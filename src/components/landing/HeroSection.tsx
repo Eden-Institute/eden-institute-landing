@@ -35,7 +35,7 @@ const HeroSection = () => {
 
         <div className="eden-divider" />
 
-        <p className="font-body text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8 leading-relaxed animate-fade-in" style={{ animationDelay: '0.4s' }}>
+        <p className="font-body text-xl md:text-2xl font-semibold max-w-3xl mx-auto mb-8 leading-relaxed animate-fade-in" style={{ animationDelay: '0.4s', color: '#F5F0E8' }}>
           A constitutional and energetics-based framework for reading the body, matching the plant, and stewarding health according to design&nbsp;— not suppression.
         </p>
 

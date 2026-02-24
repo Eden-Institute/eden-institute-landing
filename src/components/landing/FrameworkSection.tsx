@@ -61,9 +61,11 @@ const FrameworkSection = () => {
         </div>
 
         <div className="text-center mt-16">
-          <Button variant="eden" size="xl" disabled className="opacity-70 cursor-not-allowed">
-            Coming Soon
-          </Button>
+          <a href="/assessment">
+            <Button variant="eden" size="xl">
+              → Take the Assessment
+            </Button>
+          </a>
         </div>
       </div>
     </section>
