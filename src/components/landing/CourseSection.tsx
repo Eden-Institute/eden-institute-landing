@@ -14,12 +14,12 @@ const CourseSection = () => {
           <p className="font-accent text-sm tracking-[0.3em] uppercase text-eden-gold mb-4">
             Clinical Training
           </p>
-          <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-primary-foreground mb-4">
+          <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-extrabold mb-4" style={{ color: '#C9A84C' }}>
             Biblical Clinical Herbalism — The Course
           </h2>
           <div className="eden-divider" />
 
-          <p className="font-body text-lg text-primary-foreground/85 leading-relaxed mb-8">
+          <p className="font-body text-lg font-semibold leading-relaxed mb-8" style={{ color: '#F5F0E8' }}>
             A structured, multi-tiered clinical herbalism training through a biblical worldview. 100+ herbs. 11 body systems. Constitutional matching. Real pattern recognition.
           </p>
 
@@ -29,9 +29,9 @@ const CourseSection = () => {
               { number: "11", label: "Body Systems" },
               { number: "3", label: "Constitutional Axes" },
             ].map((stat) => (
-              <div key={stat.label} className="border border-primary-foreground/15 p-6">
+              <div key={stat.label} className="border p-6" style={{ borderColor: 'rgba(245, 240, 232, 0.2)' }}>
                 <p className="font-serif text-3xl font-bold text-eden-gold mb-1">{stat.number}</p>
-                <p className="font-accent text-sm tracking-[0.15em] uppercase text-primary-foreground/60">
+                <p className="font-accent text-sm tracking-[0.15em] uppercase font-semibold" style={{ color: '#F5F0E8' }}>
                   {stat.label}
                 </p>
               </div>

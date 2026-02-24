@@ -13,11 +13,11 @@ const FinalCTASection = () => {
         <p className="font-accent text-sm tracking-[0.3em] uppercase text-eden-gold mb-6">
           The Eden Institute
         </p>
-        <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-primary-foreground mb-4 leading-tight">
+        <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-extrabold mb-4 leading-tight" style={{ color: '#C9A84C' }}>
           You Were Not Designed at Random.
         </h2>
         <div className="eden-divider" />
-        <p className="font-body text-lg text-primary-foreground/70 max-w-2xl mx-auto mb-12">
+        <p className="font-body text-lg font-semibold max-w-2xl mx-auto mb-12" style={{ color: '#F5F0E8' }}>
           Your constitution, your terrain, your design — they are not accidents. Begin the journey of understanding the body you were given and the plants that were placed for its care.
         </p>
 

@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { firstName, email, audienceId } = await req.json();
+    const { firstName, email, audienceId, constitutionType, source } = await req.json();
 
     if (!firstName || !email || !audienceId) {
       return new Response(
@@ -26,17 +26,19 @@ Deno.serve(async (req) => {
       );
     }
 
+    const contactBody: Record<string, unknown> = {
+      email,
+      first_name: firstName,
+      unsubscribed: false,
+    };
+
     const res = await fetch(`https://api.resend.com/audiences/${audienceId}/contacts`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${resendApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        email,
-        first_name: firstName,
-        unsubscribed: false,
-      }),
+      body: JSON.stringify(contactBody),
     });
 
     const data = await res.json();
@@ -49,7 +51,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ success: true, constitutionType, source }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err) {
