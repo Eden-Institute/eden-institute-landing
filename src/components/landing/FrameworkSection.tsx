@@ -61,8 +61,8 @@ const FrameworkSection = () => {
         </div>
 
         <div className="text-center mt-16">
-          <Button variant="eden" size="xl">
-            → Take the Constitution Assessment
+          <Button variant="eden" size="xl" disabled className="opacity-70 cursor-not-allowed">
+            Coming Soon
           </Button>
         </div>
       </div>

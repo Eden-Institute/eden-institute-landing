@@ -1,6 +1,12 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import WaitlistModal from "./WaitlistModal";
+
+const COURSE_AUDIENCE_ID = "89e7bfad-5e08-44c6-9a5c-ff8e9cf8ee1d";
 
 const CourseSection = () => {
+  const [courseModal, setCourseModal] = useState(false);
+
   return (
     <section className="section-padding-lg bg-primary">
       <div className="eden-container">
@@ -32,11 +38,18 @@ const CourseSection = () => {
             ))}
           </div>
 
-          <Button variant="eden-light" size="xl">
-            → Join Course Waitlist
+          <Button variant="eden-light" size="xl" onClick={() => setCourseModal(true)}>
+            → Join the Foundations Course Waitlist
           </Button>
         </div>
       </div>
+
+      <WaitlistModal
+        open={courseModal}
+        onOpenChange={setCourseModal}
+        audienceId={COURSE_AUDIENCE_ID}
+        title="Join the Foundations Course Waitlist"
+      />
     </section>
   );
 };

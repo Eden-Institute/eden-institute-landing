@@ -1,4 +1,8 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import WaitlistModal from "./WaitlistModal";
+
+const APP_AUDIENCE_ID = "0ed1f4b6-1b8c-4ef2-b9ca-7a7f67d3f2e6";
 
 const tiers = [
   {
@@ -19,6 +23,8 @@ const tiers = [
 ];
 
 const AppSection = () => {
+  const [appModal, setAppModal] = useState(false);
+
   return (
     <section className="section-padding-lg parchment-texture">
       <div className="eden-container">
@@ -44,7 +50,7 @@ const AppSection = () => {
               key={tier.name}
               className={`p-8 lg:p-10 border transition-colors duration-500 ${
                 i === 2
-                  ? "bg-primary border-eden-gold/30 text-primary-foreground"
+                  ? "bg-primary border-eden-gold/30"
                   : "bg-card border-border hover:border-eden-gold/40"
               }`}
             >
@@ -62,11 +68,18 @@ const AppSection = () => {
         </div>
 
         <div className="text-center">
-          <Button variant="eden" size="xl">
-            → Join App Beta List
+          <Button variant="eden" size="xl" onClick={() => setAppModal(true)}>
+            → Join the App Beta Waitlist
           </Button>
         </div>
       </div>
+
+      <WaitlistModal
+        open={appModal}
+        onOpenChange={setAppModal}
+        audienceId={APP_AUDIENCE_ID}
+        title="Join the App Beta Waitlist"
+      />
     </section>
   );
 };

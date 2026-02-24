@@ -1,6 +1,12 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import WaitlistModal from "./WaitlistModal";
+
+const APP_AUDIENCE_ID = "0ed1f4b6-1b8c-4ef2-b9ca-7a7f67d3f2e6";
 
 const FinalCTASection = () => {
+  const [appModal, setAppModal] = useState(false);
+
   return (
     <section className="section-padding-lg bg-primary">
       <div className="eden-container text-center">
@@ -16,17 +22,28 @@ const FinalCTASection = () => {
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Button variant="eden-light" size="xl">
-            → Take the Constitution Assessment
-          </Button>
-          <Button variant="eden-gold" size="xl">
-            → Purchase Book One
-          </Button>
-          <Button variant="eden-light" size="xl">
-            → Join the App Waitlist
+          <a href="https://www.amazon.com/s?k=back+to+eden+series+eden+institute" target="_blank" rel="noopener noreferrer">
+            <Button variant="eden-light" size="xl">
+              → Explore the Series
+            </Button>
+          </a>
+          <a href="https://www.amazon.com/dp/B0GPW5BZ32" target="_blank" rel="noopener noreferrer">
+            <Button variant="eden-gold" size="xl">
+              → Purchase Book One
+            </Button>
+          </a>
+          <Button variant="eden-light" size="xl" onClick={() => setAppModal(true)}>
+            → Join the App Beta Waitlist
           </Button>
         </div>
       </div>
+
+      <WaitlistModal
+        open={appModal}
+        onOpenChange={setAppModal}
+        audienceId={APP_AUDIENCE_ID}
+        title="Join the App Beta Waitlist"
+      />
     </section>
   );
 };

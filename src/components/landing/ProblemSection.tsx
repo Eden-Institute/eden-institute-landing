@@ -11,7 +11,7 @@ const ProblemSection = () => {
         <div className="grid md:grid-cols-2 gap-16 mt-12">
           <div>
             <p className="font-body text-lg text-primary-foreground/85 leading-relaxed mb-6">
-              Herbalism became "green pharmacology" — symptom suppression dressed in natural language, extract obsession stripped of context, and protocol-chasing disconnected from the person.
+              Herbalism became "green allopathy" — symptom suppression dressed in natural language, extract obsession stripped of context, and protocol-chasing disconnected from the person.
             </p>
             <p className="font-body text-lg text-primary-foreground/85 leading-relaxed mb-8">
               The Eden Institute restores what was lost:
