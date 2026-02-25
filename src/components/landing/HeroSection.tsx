@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import heroBg from "@/assets/hero-botanical.jpg";
 import WaitlistModal from "./WaitlistModal";
@@ -10,8 +10,14 @@ const HeroSection = () => {
   const [appModal, setAppModal] = useState(false);
   const [assessmentModal, setAssessmentModal] = useState(false);
 
+  useEffect(() => {
+    if (window.location.hash === "#assessment") {
+      setAssessmentModal(true);
+    }
+  }, []);
+
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 parchment-texture" />
