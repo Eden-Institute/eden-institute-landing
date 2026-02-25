@@ -10,9 +10,9 @@ const FinalCTASection = () => {
   return (
     <section className="section-padding-lg bg-primary">
       <div className="eden-container text-center">
-        <p className="font-accent text-sm tracking-[0.3em] uppercase text-eden-gold mb-6">
-          The Eden Institute
-        </p>
+          <p className="font-accent text-sm tracking-[0.3em] uppercase mb-6 font-semibold" style={{ color: '#C9A84C' }}>
+            The Eden Institute
+          </p>
         <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-extrabold mb-4 leading-tight" style={{ color: '#C9A84C' }}>
           You Were Not Designed at Random.
         </h2>
