@@ -31,7 +31,7 @@ const CourseSection = () => {
             map((stat) =>
             <div key={stat.label} className="border border-primary-foreground/15 p-6">
                 <p className="font-serif text-3xl font-bold text-eden-gold mb-1">{stat.number}</p>
-                <p className="font-accent text-sm tracking-[0.15em] uppercase text-primary-foreground/60">
+                <p className="font-accent text-sm tracking-[0.15em] uppercase text-eden-parchment font-semibold">
                   {stat.label}
                 </p>
               </div>

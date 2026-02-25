@@ -47,6 +47,18 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        eden: {
+          forest: "hsl(var(--eden-forest))",
+          "forest-light": "hsl(var(--eden-forest-light))",
+          parchment: "hsl(var(--eden-parchment))",
+          "parchment-dark": "hsl(var(--eden-parchment-dark))",
+          gold: "hsl(var(--eden-gold))",
+          "gold-light": "hsl(var(--eden-gold-light))",
+          bark: "hsl(var(--eden-bark))",
+          "bark-light": "hsl(var(--eden-bark-light))",
+          cream: "hsl(var(--eden-cream))",
+          sage: "hsl(var(--eden-sage))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
