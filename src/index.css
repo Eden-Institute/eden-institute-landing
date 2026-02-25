@@ -147,3 +147,13 @@
     font-family: var(--font-accent);
   }
 }
+
+/* Global mobile button overflow fix */
+@media (max-width: 767px) {
+  button, .btn, [role="button"] {
+    max-width: 90vw;
+    box-sizing: border-box;
+    white-space: normal;
+    overflow: hidden;
+  }
+}
