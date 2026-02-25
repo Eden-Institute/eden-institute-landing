@@ -24,7 +24,7 @@ const WhyDifferentSection = () => {
   const [assessmentModal, setAssessmentModal] = useState(false);
 
   return (
-    <section id="foundation" className="section-padding-lg" style={{ backgroundColor: "#1C3A2E" }}>
+    <section id="foundation" className="section-padding-lg overflow-hidden w-full" style={{ backgroundColor: "#1C3A2E" }}>
       <div className="eden-container">
         <div className="text-center mb-10 md:mb-16">
           <p className="font-accent text-sm tracking-[0.3em] uppercase mb-4" style={{ color: "#C9A84C" }}>

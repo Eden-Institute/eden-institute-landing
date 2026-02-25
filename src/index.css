@@ -88,9 +88,15 @@
     @apply border-border;
   }
 
+  html {
+    overflow-x: hidden;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);
+    overflow-x: hidden;
+    max-width: 100vw;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -108,7 +114,8 @@
   }
 
   .eden-container {
-    @apply max-w-6xl mx-auto;
+    @apply max-w-6xl mx-auto w-full;
+    box-sizing: border-box;
   }
 
   .eden-divider {

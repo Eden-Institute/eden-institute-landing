@@ -44,7 +44,7 @@ const AppSection = () => {
   const [appModal, setAppModal] = useState(false);
 
   return (
-    <section id="app" className="section-padding-lg parchment-texture">
+    <section id="app" className="section-padding-lg parchment-texture overflow-hidden w-full">
       <div className="eden-container">
         <div className="text-center mb-10 md:mb-16">
           <p className="font-accent text-sm tracking-[0.3em] uppercase gold-text mb-4">
@@ -64,7 +64,7 @@ const AppSection = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6 lg:gap-8 mb-12 md:mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 mb-12 md:mb-16">
           {tiers.map((tier) => (
             <div
               key={tier.name}
