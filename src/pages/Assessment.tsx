@@ -4,7 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import WaitlistModal from "@/components/landing/WaitlistModal";
 
-const COURSE_AUDIENCE_ID = "89e7bfad-5e08-44c6-9a5c-ff8e9cf8ee1d";
+const COURSE_AUDIENCE_ID = "4860c1c5-8e2b-4d02-838a-60ef09b789bf";
 
 interface Question {
   id: number;
