@@ -15,190 +15,237 @@ const TOPIC_IDS = [
 const COURSE_AUDIENCE_ID = "4860c1c5-8e2b-4d02-838a-60ef09b789bf";
 const APP_AUDIENCE_ID = "cebd3478-b344-41b7-98c8-8bcf0e0108da";
 
-// ── Email content ──
+// ── Shared HTML components ──
 
-function buildFoundationsEmail(firstName: string): { subject: string; text: string } {
-  return {
-    subject: "You're on the list — here's what's coming",
-    text: `Hi ${firstName},
-
-Welcome to the Eden Institute community. You're on the Foundations Course waitlist and you'll be among the first to know when enrollment opens.
-
-The Foundations Course is built on one conviction: that God did not design the body to be dependent on a system. He designed it to be stewarded. The course teaches you the constitutional framework, the energetic language of plants, and how to match the two — from a scriptural foundation outward.
-
-While you wait, start here: grab Book One — Back to Eden: A Biblical Foundation for Herbal Healing — and read the first three chapters. Everything the course teaches grows out of what that book establishes.
-
-Purchase Book One: https://www.amazon.com/dp/B0GPW5BZ32
-
-We'll be in touch soon.
-
-— Camila Johnson
-The Eden Institute`,
-  };
+function emailWrapper(bodyContent: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>The Eden Institute</title></head>
+<body style="margin:0;padding:0;background-color:#F5F0E8;font-family:Georgia,serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F5F0E8;">
+<tr><td align="center" style="padding:20px 10px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#FFFFFF;">
+<!-- HEADER -->
+<tr><td style="background-color:#1C3A2E;padding:40px 20px;text-align:center;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+<tr><td style="text-align:center;font-family:Georgia,serif;font-size:13px;font-weight:bold;letter-spacing:4px;color:#C9A84C;text-transform:uppercase;">THE EDEN INSTITUTE</td></tr>
+<tr><td align="center" style="padding:16px 0;">
+<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="width:60px;border-top:1px solid #C9A84C;font-size:0;line-height:0;">&nbsp;</td></tr></table>
+</td></tr>
+<tr><td style="text-align:center;font-family:Georgia,serif;font-size:14px;color:#F5F0E8;font-style:italic;">Back to Eden. Back to Truth.</td></tr>
+</table>
+</td></tr>
+<!-- BODY -->
+<tr><td style="background-color:#FFFFFF;padding:32px 40px;">
+${bodyContent}
+</td></tr>
+<!-- FOOTER -->
+<tr><td style="background-color:#F5F0E8;padding:30px 20px;text-align:center;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+<tr><td style="font-family:Georgia,serif;font-size:13px;color:#1C3A2E;text-align:center;">The Eden Institute | edeninstitute.health</td></tr>
+<tr><td style="font-family:Georgia,serif;font-size:12px;color:#1C3A2E;text-align:center;padding-top:8px;">You're receiving this because you signed up at edeninstitute.health. No spam, ever.</td></tr>
+<tr><td style="text-align:center;padding-top:8px;"><a href="https://edeninstitute.health/unsubscribe" style="font-family:Georgia,serif;font-size:12px;color:#C9A84C;text-decoration:underline;">Unsubscribe</a></td></tr>
+</table>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
 }
 
-function buildAppBetaEmail(firstName: string): { subject: string; text: string } {
-  return {
-    subject: "You're in — Eden Apothecary beta access secured",
-    text: `Hi ${firstName},
-
-You're on the Eden Apothecary beta waitlist. That means when we launch in 2026 you'll get first access — and your beta pricing locked in for life.
-
-Here's what that means in real numbers:
-
-Full Access: $4.99/month (regular price $19.99/month) — locked in for life
-Practitioner Tier: $19.99/month (regular price $99.99/month) — locked in for life
-
-The Eden Apothecary App is a constitutional assessment and herb matching system built on the Eclectic, Physiomedical, and Vitalist traditions — grounded in Scripture. From home herbalist to clinical practitioner, every tier is designed to meet you where you are and take you further.
-
-While you wait, get the foundation in place. Start with Book One:
-https://www.amazon.com/dp/B0GPW5BZ32
-
-We'll reach out when beta access opens.
-
-— Camila Johnson
-The Eden Institute`,
-  };
+function goldDivider(): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:24px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top:1px solid #C9A84C;font-size:0;line-height:0;">&nbsp;</td></tr></table></td></tr></table>`;
 }
 
-const constitutionProfiles: Record<string, { nickname: string; body: string }> = {
+function goldLabel(text: string): string {
+  return `<p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:3px;color:#C9A84C;text-transform:uppercase;margin:0 0 16px 0;">${text}</p>`;
+}
+
+function ctaButton(label: string, href: string, variant: 'primary' | 'secondary' = 'primary'): string {
+  const bg = variant === 'primary' ? '#1C3A2E' : '#F5F0E8';
+  const color = variant === 'primary' ? '#F5F0E8' : '#1C3A2E';
+  const border = variant === 'secondary' ? 'border:2px solid #1C3A2E;' : '';
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:8px 0;">
+<a href="${href}" target="_blank" style="display:inline-block;background-color:${bg};color:${color};${border}font-family:Georgia,serif;font-size:14px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;text-decoration:none;padding:16px 32px;">${label}</a>
+</td></tr></table>`;
+}
+
+function closingBlock(): string {
+  return `<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:24px 0 4px 0;">We'll be in touch soon.</p>
+<p style="font-family:Georgia,serif;font-size:16px;color:#1C3A2E;font-weight:bold;margin:0;">— Camila Johnson</p>
+<p style="font-family:Georgia,serif;font-size:14px;color:#C9A84C;margin:4px 0 0 0;">The Eden Institute</p>`;
+}
+
+// ── Email builders ──
+
+function buildFoundationsEmail(firstName: string): { subject: string; html: string } {
+  const body = `
+<p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 8px 0;">Welcome to the Eden Institute. You're officially on the Foundations Course waitlist — and you'll be among the first to know when enrollment opens.</p>
+${goldDivider()}
+${goldLabel('WHILE YOU WAIT')}
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">The Foundations Course is built on one conviction: that God did not design the body to be dependent on a system. He designed it to be stewarded. The course teaches you the constitutional framework, the energetic language of plants, and how to match the two — from a scriptural foundation outward.</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 24px 0;">Start here. Grab Book One and read the first three chapters. Everything the course teaches grows out of what that book establishes.</p>
+${ctaButton('→ PURCHASE BOOK ONE', 'https://www.amazon.com/dp/B0GPW5BZ32')}
+${goldDivider()}
+${closingBlock()}`;
+  return { subject: "You're on the list — here's what's coming", html: emailWrapper(body) };
+}
+
+function buildAppBetaEmail(firstName: string): { subject: string; html: string } {
+  const body = `
+<p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 8px 0;">You're on the Eden Apothecary beta waitlist. That means first access when we launch in 2026 — and your pricing locked in for life.</p>
+${goldDivider()}
+${goldLabel('YOUR BETA PRICING — LOCKED IN FOR LIFE')}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+<tr><td style="background-color:#F5F0E8;padding:20px;text-align:center;border-bottom:1px solid #FFFFFF;">
+<p style="font-family:Georgia,serif;font-size:16px;font-weight:bold;color:#1C3A2E;margin:0 0 8px 0;">Full Access Tier</p>
+<p style="font-family:Georgia,serif;font-size:20px;font-weight:bold;color:#C9A84C;margin:0 0 4px 0;">$4.99/month during beta</p>
+<p style="font-family:Georgia,serif;font-size:13px;color:#999999;margin:0;"><s>Regular price: $19.99/month</s></p>
+</td></tr>
+<tr><td style="background-color:#F5F0E8;padding:20px;text-align:center;">
+<p style="font-family:Georgia,serif;font-size:16px;font-weight:bold;color:#1C3A2E;margin:0 0 8px 0;">Practitioner Tier</p>
+<p style="font-family:Georgia,serif;font-size:20px;font-weight:bold;color:#C9A84C;margin:0 0 4px 0;">$19.99/month during beta</p>
+<p style="font-family:Georgia,serif;font-size:13px;color:#999999;margin:0;"><s>Regular price: $99.99/month</s></p>
+</td></tr>
+</table>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">The Eden Apothecary App is a constitutional assessment and herb matching system built on the Eclectic, Physiomedical, and Vitalist traditions — grounded in Scripture. From home herbalist to clinical practitioner, every tier is designed to meet you where you are.</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 24px 0;">While you wait, get the foundation in place.</p>
+${ctaButton('→ START WITH BOOK ONE', 'https://www.amazon.com/dp/B0GPW5BZ32')}
+${goldDivider()}
+${closingBlock()}`;
+  return { subject: "You're in — Eden Apothecary beta access secured", html: emailWrapper(body) };
+}
+
+// ── Constitutional profiles ──
+
+const constitutionProfiles: Record<string, { nickname: string; intro: string; patterns: string; needs: string; herbs: string; anchor: string }> = {
   "Hot / Dry / Tense": {
     nickname: "The Burning Bowstring",
-    body: `You are intense, driven, and finely tuned — and your body runs hot. You were designed with a metabolism that generates heat and a nervous system that doesn't easily let go. This is a gift: your energy, passion, and focus are expressions of that fire. But when that fire isn't tended, it consumes.
-
-Your body's patterns: You likely run warm, sleep lightly, and find it difficult to fully relax. Tension lives in your muscles — your jaw, your neck, your shoulders. You may be prone to headaches, skin inflammation, or digestive heat. Emotionally, you feel things sharply and deeply.
-
-What your body needs: cooling, moistening, and releasing. Herbs that calm the heat without extinguishing your fire.
-
-Your primary herbs: Chamomile, Feverfew, California Poppy, Lavender, American Ginseng.
-
-Biblical anchor: 'A hot-tempered person stirs up conflict, but the one who is patient calms a quarrel.' — Proverbs 15:18. Your constitution understands this tension personally. The work is not to suppress your fire — it is to steward it.`,
+    intro: "You are intense, driven, and finely tuned — and your body runs hot. You were designed with a metabolism that generates heat and a nervous system that doesn't easily let go. This is a gift: your energy, passion, and focus are expressions of that fire. But when that fire isn't tended, it consumes.",
+    patterns: "You likely run warm, sleep lightly, and find it difficult to fully relax. Tension lives in your muscles — your jaw, your neck, your shoulders. You may be prone to headaches, skin inflammation, or digestive heat. Emotionally, you feel things sharply and deeply.",
+    needs: "Cooling, moistening, and releasing. Herbs that calm the heat without extinguishing your fire.",
+    herbs: "Chamomile, Feverfew, California Poppy, Lavender, American Ginseng.",
+    anchor: "'A hot-tempered person stirs up conflict, but the one who is patient calms a quarrel.' — Proverbs 15:18. Your constitution understands this tension personally. The work is not to suppress your fire — it is to steward it.",
   },
   "Hot / Dry / Relaxed": {
     nickname: "The Open Flame",
-    body: `You carry genuine warmth — people feel it when they're around you. Your metabolism runs on the warmer side, but your tissue has a softness and laxity to it. You are warm-hearted, open, and generous, but that openness can sometimes mean poor boundaries — physically and emotionally.
-
-Your body's patterns: Heat symptoms with poor tissue tone. You may experience varicose veins, hemorrhoids, or a tendency toward prolapse. Loose stools with heat. You absorb warmth from your environment and from people.
-
-What your body needs: cooling and toning. Herbs that reduce heat while firming and toning lax tissue.
-
-Your primary herbs: Yarrow, Witch Hazel, Raspberry Leaf, Goldenrod, Bayberry.
-
-Biblical anchor: 'Like a city whose walls are broken through is a person who lacks self-control.' — Proverbs 25:28. The work of your constitution is to tend your warmth while building strong walls.`,
+    intro: "You carry genuine warmth — people feel it when they're around you. Your metabolism runs on the warmer side, but your tissue has a softness and laxity to it. You are warm-hearted, open, and generous, but that openness can sometimes mean poor boundaries — physically and emotionally.",
+    patterns: "Heat symptoms with poor tissue tone. You may experience varicose veins, hemorrhoids, or a tendency toward prolapse. Loose stools with heat. You absorb warmth from your environment and from people.",
+    needs: "Cooling and toning. Herbs that reduce heat while firming and toning lax tissue.",
+    herbs: "Yarrow, Witch Hazel, Raspberry Leaf, Goldenrod, Bayberry.",
+    anchor: "'Like a city whose walls are broken through is a person who lacks self-control.' — Proverbs 25:28. The work of your constitution is to tend your warmth while building strong walls.",
   },
   "Hot / Damp / Tense": {
     nickname: "The Pressure Cooker",
-    body: `You hold heat and dampness simultaneously — a combination that produces pressure. There is real fire here, but it has nowhere to go.
-
-Your body's patterns: Damp-heat patterns throughout. Acne, eczema with oozing, urinary tract infections, liver heat, congested lymphatics. Tension in the body that compounds the congestion.
-
-What your body needs: cooling, drying, and moving. Herbs that drain heat and dampness while encouraging lymphatic circulation.
-
-Your primary herbs: Dandelion, Burdock, Calendula, Cleavers, Chickweed.
-
-Biblical anchor: 'He who tends a fig tree will eat its fruit.' — Proverbs 27:18. The congestion in your constitution is often the result of neglected tending. Regular, consistent care transforms the pattern.`,
+    intro: "You hold heat and dampness simultaneously — a combination that produces pressure. There is real fire here, but it has nowhere to go.",
+    patterns: "Damp-heat patterns throughout. Acne, eczema with oozing, urinary tract infections, liver heat, congested lymphatics. Tension in the body that compounds the congestion.",
+    needs: "Cooling, drying, and moving. Herbs that drain heat and dampness while encouraging lymphatic circulation.",
+    herbs: "Dandelion, Burdock, Calendula, Cleavers, Chickweed.",
+    anchor: "'He who tends a fig tree will eat its fruit.' — Proverbs 27:18. The congestion in your constitution is often the result of neglected tending. Regular, consistent care transforms the pattern.",
   },
   "Hot / Damp / Relaxed": {
     nickname: "The Overflowing Cup",
-    body: `Your constitution generates heat and holds moisture — a full, generous pattern. You are likely warm and welcoming by nature. But when out of balance, that fullness tips into excess.
-
-Your body's patterns: Congested lymphatics, sluggish liver, skin eruptions with heat. Prone to weight gain with warmth. Social and generous, but boundaries can be unclear.
-
-What your body needs: cooling, drying, and moving stagnation. Herbs that clear damp heat and encourage drainage.
-
-Your primary herbs: Elder, Cleavers, Red Clover, Calendula, Dandelion.
-
-Biblical anchor: 'My cup overflows.' — Psalm 23:5. Overflow is a blessing — but only when the cup is regularly poured out. Your work is circulation, generosity, and release.`,
+    intro: "Your constitution generates heat and holds moisture — a full, generous pattern. You are likely warm and welcoming by nature. But when out of balance, that fullness tips into excess.",
+    patterns: "Congested lymphatics, sluggish liver, skin eruptions with heat. Prone to weight gain with warmth. Social and generous, but boundaries can be unclear.",
+    needs: "Cooling, drying, and moving stagnation. Herbs that clear damp heat and encourage drainage.",
+    herbs: "Elder, Cleavers, Red Clover, Calendula, Dandelion.",
+    anchor: "'My cup overflows.' — Psalm 23:5. Overflow is a blessing — but only when the cup is regularly poured out. Your work is circulation, generosity, and release.",
   },
   "Cold / Dry / Tense": {
     nickname: "The Drawn Bowstring",
-    body: `You are wound tightly and running on empty. Cold from depletion, dry from exhaustion, tense from the nervous system trying to hold everything together with insufficient resources. You may identify as anxious, hypersensitive, or prone to overthinking.
-
-Your body's patterns: Poor circulation, cold extremities, dry skin, constipation, tension headaches, insomnia, anxiety, and chronic pain that is tight and cramping.
-
-What your body needs: warming, moistening, and nourishing. Herbs that feed the depleted reserves while gently releasing the tension.
-
-Your primary herbs: Ashwagandha, Ginger, Cinnamon, Asian Ginseng, Valerian, Hawthorn.
-
-Biblical anchor: 'He gives strength to the weary and increases the power of the weak.' — Isaiah 40:29. Your constitution is not a character flaw. It is a call to receive.`,
+    intro: "You are wound tightly and running on empty. Cold from depletion, dry from exhaustion, tense from the nervous system trying to hold everything together with insufficient resources. You may identify as anxious, hypersensitive, or prone to overthinking.",
+    patterns: "Poor circulation, cold extremities, dry skin, constipation, tension headaches, insomnia, anxiety, and chronic pain that is tight and cramping.",
+    needs: "Warming, moistening, and nourishing. Herbs that feed the depleted reserves while gently releasing the tension.",
+    herbs: "Ashwagandha, Ginger, Cinnamon, Asian Ginseng, Valerian, Hawthorn.",
+    anchor: "'He gives strength to the weary and increases the power of the weak.' — Isaiah 40:29. Your constitution is not a character flaw. It is a call to receive.",
   },
   "Cold / Dry / Relaxed": {
     nickname: "The Spent Candle",
-    body: `Your reserves have been drawn down. Cold, dry, and without the tone to pull things back up — this constitution speaks of genuine depletion. You may have given much, rested little, and now find that your body simply doesn't have the same resilience it once did.
-
-Your body's patterns: Deep fatigue, poor immunity, tendency toward atrophy or prolapse, thin tissue, dry mucous membranes, poor wound healing.
-
-What your body needs: deep, slow nourishment. Warming, moistening, tonic herbs that rebuild rather than stimulate.
-
-Your primary herbs: Astragalus, Asian Ginseng, Eleuthero, Marshmallow Root, Ashwagandha, Ginger.
-
-Biblical anchor: 'He restores my soul.' — Psalm 23:3. Restoration is not earned. It is received. Your work is to stop, be still, and let the restoration come.`,
+    intro: "Your reserves have been drawn down. Cold, dry, and without the tone to pull things back up — this constitution speaks of genuine depletion. You may have given much, rested little, and now find that your body simply doesn't have the same resilience it once did.",
+    patterns: "Deep fatigue, poor immunity, tendency toward atrophy or prolapse, thin tissue, dry mucous membranes, poor wound healing.",
+    needs: "Deep, slow nourishment. Warming, moistening, tonic herbs that rebuild rather than stimulate.",
+    herbs: "Astragalus, Asian Ginseng, Eleuthero, Marshmallow Root, Ashwagandha, Ginger.",
+    anchor: "'He restores my soul.' — Psalm 23:3. Restoration is not earned. It is received. Your work is to stop, be still, and let the restoration come.",
   },
   "Cold / Damp / Tense": {
     nickname: "The Frozen River",
-    body: `Cold and damp with nowhere to move — the pressure builds inside while the exterior is stiff and bound. The tension here is not wired or anxious. It is cold, heavy, and immovable.
-
-Your body's patterns: Chronic mucus, phlegm, stiff and cold joints, slow digestion, bloating, cold hands and feet with tension headaches. Tends toward melancholy or feeling unmotivated.
-
-What your body needs: warming and moving. Herbs that ignite the cold and get things circulating again.
-
-Your primary herbs: Cayenne, Ginger, Fennel, Garlic, Thyme, Horseradish.
-
-Biblical anchor: 'There is a time for everything, and a season for every activity under the heavens.' — Ecclesiastes 3:1. The frozen river needs one thing: the return of warmth. Your season of movement is coming.`,
+    intro: "Cold and damp with nowhere to move — the pressure builds inside while the exterior is stiff and bound. The tension here is not wired or anxious. It is cold, heavy, and immovable.",
+    patterns: "Chronic mucus, phlegm, stiff and cold joints, slow digestion, bloating, cold hands and feet with tension headaches. Tends toward melancholy or feeling unmotivated.",
+    needs: "Warming and moving. Herbs that ignite the cold and get things circulating again.",
+    herbs: "Cayenne, Ginger, Fennel, Garlic, Thyme, Horseradish.",
+    anchor: "'There is a time for everything, and a season for every activity under the heavens.' — Ecclesiastes 3:1. The frozen river needs one thing: the return of warmth. Your season of movement is coming.",
   },
   "Cold / Damp / Relaxed": {
     nickname: "The Still Pond",
-    body: `Slow, cool, and full — this is the most common constitution in the modern Western world. The pattern of metabolic slowdown, fluid retention, easy weight gain, chronic fatigue, and a sluggish immune system is epidemic. It is not a moral failure or a lack of willpower. It is a constitutional pattern — and it responds beautifully to constitutional care.
-
-Your body's patterns: Sluggish metabolism, weight gain, fluid retention, brain fog, chronic fatigue, frequent illness, low thyroid signs. Often presents as 'I just can't get going.'
-
-What your body needs: warming, drying, and stimulating. Herbs that ignite the metabolism, move the lymphatics, and restore the body's thermostat.
-
-Your primary herbs: Cayenne, Ginger, Cinnamon, Garlic, Eleuthero, Astragalus, Fennel.
-
-Biblical anchor: 'Wake up, sleeper, rise from the dead, and Christ will shine on you.' — Ephesians 5:14. This is not a judgment — it is an invitation. The still pond can move. The body was designed to wake up.`,
+    intro: "Slow, cool, and full — this is the most common constitution in the modern Western world. The pattern of metabolic slowdown, fluid retention, easy weight gain, chronic fatigue, and a sluggish immune system is epidemic. It is not a moral failure or a lack of willpower. It is a constitutional pattern — and it responds beautifully to constitutional care.",
+    patterns: "Sluggish metabolism, weight gain, fluid retention, brain fog, chronic fatigue, frequent illness, low thyroid signs. Often presents as 'I just can't get going.'",
+    needs: "Warming, drying, and stimulating. Herbs that ignite the metabolism, move the lymphatics, and restore the body's thermostat.",
+    herbs: "Cayenne, Ginger, Cinnamon, Garlic, Eleuthero, Astragalus, Fennel.",
+    anchor: "'Wake up, sleeper, rise from the dead, and Christ will shine on you.' — Ephesians 5:14. This is not a judgment — it is an invitation. The still pond can move. The body was designed to wake up.",
   },
 };
 
-function buildAssessmentEmail(firstName: string, constitutionType: string): { subject: string; text: string } {
+function buildAssessmentEmail(firstName: string, constitutionType: string): { subject: string; html: string } {
   const profile = constitutionProfiles[constitutionType];
   if (!profile) {
-    return {
-      subject: `Your constitutional type: ${constitutionType}`,
-      text: `Hi ${firstName},\n\nYour constitutional assessment is complete. Your type is: ${constitutionType}.\n\nVisit https://edeninstitute.health/#foundation for more.\n\n— Camila Johnson\nThe Eden Institute`,
-    };
+    const fallback = `<p style="font-family:Georgia,serif;font-size:16px;color:#1C3A2E;">Hi ${firstName},</p><p style="font-family:Georgia,serif;font-size:16px;color:#1C3A2E;">Your constitutional assessment is complete. Your type is: ${constitutionType}.</p>`;
+    return { subject: `Your constitutional type: ${constitutionType}`, html: emailWrapper(fallback) };
   }
+
+  const body = `
+<p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 8px 0;">Your constitutional assessment is complete. Here is your full profile.</p>
+${goldDivider()}
+<!-- Constitutional Type Display Block -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #C9A84C;background-color:#F5F0E8;margin-bottom:24px;">
+<tr><td style="padding:30px;text-align:center;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+<tr><td style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:3px;color:#C9A84C;text-transform:uppercase;text-align:center;padding-bottom:12px;">YOUR CONSTITUTIONAL TYPE</td></tr>
+<tr><td style="font-family:Georgia,serif;font-size:28px;font-weight:bold;color:#1C3A2E;text-align:center;padding-bottom:8px;">${constitutionType}</td></tr>
+<tr><td style="font-family:Georgia,serif;font-size:18px;font-style:italic;color:#C9A84C;text-align:center;">${profile.nickname}</td></tr>
+</table>
+</td></tr>
+</table>
+${goldDivider()}
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 20px 0;">${profile.intro}</p>
+<p style="font-family:Georgia,serif;font-size:16px;font-weight:bold;color:#1C3A2E;margin:0 0 8px 0;">Your body's patterns:</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 20px 0;">${profile.patterns}</p>
+<p style="font-family:Georgia,serif;font-size:16px;font-weight:bold;color:#1C3A2E;margin:0 0 8px 0;">What your body needs:</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 20px 0;">${profile.needs}</p>
+<p style="font-family:Georgia,serif;font-size:16px;font-weight:bold;color:#1C3A2E;margin:0 0 8px 0;">Your primary herbs:</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 20px 0;">${profile.herbs}</p>
+<!-- Biblical Anchor Block -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:8px;">
+<tr>
+<td style="width:4px;background-color:#C9A84C;"></td>
+<td style="background-color:#F5F0E8;padding:20px;">
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;font-style:italic;margin:0;"><strong>Biblical anchor:</strong> ${profile.anchor}</p>
+</td>
+</tr>
+</table>
+${goldDivider()}
+${goldLabel('WHAT THIS MEANS FOR YOU')}
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Understanding your constitution is the beginning — not the end. The Foundations Course teaches you how to read your constitution in real time, how to track it as it shifts with seasons and stress, and how to match it precisely to God's provision in the plant world.</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;font-weight:bold;margin:0 0 24px 0;">You were not designed to guess. You were designed to know.</p>
+${ctaButton('→ JOIN THE FOUNDATIONS COURSE WAITLIST', 'https://edeninstitute.health/#foundation')}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="height:12px;font-size:0;line-height:0;">&nbsp;</td></tr></table>
+${ctaButton('→ PURCHASE BOOK ONE', 'https://www.amazon.com/dp/B0GPW5BZ32', 'secondary')}
+${goldDivider()}
+<p style="font-family:Georgia,serif;font-size:16px;color:#1C3A2E;font-weight:bold;margin:0;">— Camila Johnson</p>
+<p style="font-family:Georgia,serif;font-size:14px;color:#C9A84C;margin:4px 0 0 0;">The Eden Institute</p>`;
+
   return {
     subject: `Your constitutional type: ${constitutionType} — ${profile.nickname}`,
-    text: `Hi ${firstName},
-
-Your constitutional assessment is complete. Here is your full profile.
-
-——————————————
-YOUR CONSTITUTIONAL TYPE: ${constitutionType}
-${profile.nickname}
-——————————————
-
-${profile.body}
-
-——————————————
-WHAT THIS MEANS FOR YOU
-
-Understanding your constitution is the beginning — not the end. The Foundations Course teaches you how to read your constitution in real time, how to track it as it shifts with seasons and stress, and how to match it precisely to God's provision in the plant world.
-
-You were not designed to guess. You were designed to know.
-
-→ Join the Foundations Course Waitlist: https://edeninstitute.health/#foundation
-→ Purchase Book One — Back to Eden: https://www.amazon.com/dp/B0GPW5BZ32
-
-— Camila Johnson
-The Eden Institute`,
+    html: emailWrapper(body),
   };
 }
 
 // ── Send email helper ──
 
-async function sendEmail(to: string, subject: string, text: string): Promise<void> {
+async function sendEmail(to: string, subject: string, html: string): Promise<void> {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -210,7 +257,7 @@ async function sendEmail(to: string, subject: string, text: string): Promise<voi
       reply_to: 'hello@edeninstitute.health',
       to: [to],
       subject,
-      text,
+      html,
     }),
   });
   const data = await res.json();
@@ -297,8 +344,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step 3: Send welcome/results email (fire-and-forget — don't block the response)
-    let emailContent: { subject: string; text: string } | null = null;
+    // Step 3: Send welcome/results email (fire-and-forget)
+    let emailContent: { subject: string; html: string } | null = null;
 
     if (source === 'constitution_assessment' && constitutionType) {
       emailContent = buildAssessmentEmail(firstName, constitutionType);
@@ -309,8 +356,7 @@ Deno.serve(async (req) => {
     }
 
     if (emailContent) {
-      // Don't await — send email in background so user sees success immediately
-      sendEmail(email, emailContent.subject, emailContent.text).catch((err) => {
+      sendEmail(email, emailContent.subject, emailContent.html).catch((err) => {
         console.error('Background email send error:', err.message);
       });
     }
