@@ -2,8 +2,8 @@ const ProblemSection = () => {
   return (
     <section className="section-padding-lg bg-primary">
       <div className="eden-container">
-        <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-primary-foreground mb-8">
-          Modern herbalism forgot the framework.
+        <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-primary-foreground mb-8 text-center">Modern herbalism forgot the framework.
+
         </h2>
 
         <div className="eden-divider-left" style={{ background: 'linear-gradient(90deg, hsl(var(--eden-gold)), transparent)' }} />

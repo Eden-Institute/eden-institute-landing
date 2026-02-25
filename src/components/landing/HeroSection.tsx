@@ -27,8 +27,8 @@ const HeroSection = () => {
           Back to Eden. Back to Truth.
         </p>
 
-        <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-foreground leading-tight mb-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-          Herbal Medicine, Restored to Its
+        <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-foreground leading-tight mb-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>Herbal Medicine, Restored to Its
+Biblical Foundation.
           <br />
           <span className="italic">Biblical Foundation.</span>
         </h1>
