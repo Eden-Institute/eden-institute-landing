@@ -2,11 +2,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import heroBg from "@/assets/hero-botanical.jpg";
 import WaitlistModal from "./WaitlistModal";
+import AssessmentModal from "./AssessmentModal";
 
-const COURSE_AUDIENCE_ID = "4860c1c5-8e2b-4d02-838a-60ef09b789bf";
+const APP_AUDIENCE_ID = "cebd3478-b344-41b7-98c8-8bcf0e0108da";
 
 const HeroSection = () => {
-  const [courseModal, setCourseModal] = useState(false);
+  const [appModal, setAppModal] = useState(false);
+  const [assessmentModal, setAssessmentModal] = useState(false);
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -16,8 +18,8 @@ const HeroSection = () => {
         <img
           src={heroBg}
           alt="Botanical engravings"
-          className="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-multiply" />
-
+          className="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-multiply"
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/80" />
       </div>
 
@@ -27,8 +29,8 @@ const HeroSection = () => {
           Back to Eden. Back to Truth.
         </p>
 
-        <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-foreground leading-tight mb-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>Herbal Medicine, Restored to Its
-Biblical Foundation.
+        <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-foreground leading-tight mb-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          Herbal Medicine, Restored to Its
           <br />
           <span className="italic">Biblical Foundation.</span>
         </h1>
@@ -47,13 +49,16 @@ Biblical Foundation.
         </blockquote>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in" style={{ animationDelay: '0.6s' }}>
+          <Button variant="eden" size="xl" onClick={() => setAssessmentModal(true)}>
+            → Discover Your Constitutional Type
+          </Button>
           <a href="https://www.amazon.com/s?k=back+to+eden+series+eden+institute" target="_blank" rel="noopener noreferrer">
-            <Button variant="eden" size="xl">
-              → Explore the Series
+            <Button variant="eden-outline" size="xl">
+              → Explore the Books
             </Button>
           </a>
-          <Button variant="eden-outline" size="xl" onClick={() => setCourseModal(true)}>
-            → Join the Foundations Course Waitlist
+          <Button variant="eden-outline" size="xl" onClick={() => setAppModal(true)}>
+            → Join the App Beta
           </Button>
         </div>
 
@@ -62,14 +67,16 @@ Biblical Foundation.
         </p>
       </div>
 
+      <AssessmentModal open={assessmentModal} onOpenChange={setAssessmentModal} />
+
       <WaitlistModal
-        open={courseModal}
-        onOpenChange={setCourseModal}
-        audienceId={COURSE_AUDIENCE_ID}
-        title="Join the Foundations Course Waitlist" />
-
-    </section>);
-
+        open={appModal}
+        onOpenChange={setAppModal}
+        audienceId={APP_AUDIENCE_ID}
+        title="Join the App Beta Waitlist"
+      />
+    </section>
+  );
 };
 
 export default HeroSection;
