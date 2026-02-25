@@ -26,7 +26,7 @@ const axes = [
 
 const FrameworkSection = () => {
   return (
-    <section className="section-padding-lg parchment-texture">
+    <section className="section-padding-lg parchment-texture overflow-hidden w-full">
       <div className="eden-container">
         <p className="font-accent text-sm tracking-[0.3em] uppercase gold-text mb-4 text-center">
           The Framework
@@ -40,7 +40,7 @@ const FrameworkSection = () => {
           Matching plant to person is the core of biblical herbalism. Every herb and every constitution can be understood through three fundamental axes.
         </p>
 
-        <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
           {axes.map((axis) => (
             <div
               key={axis.title}

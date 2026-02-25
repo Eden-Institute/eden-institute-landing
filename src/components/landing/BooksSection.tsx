@@ -37,7 +37,7 @@ const BooksSection = () => {
   const [courseModal, setCourseModal] = useState(false);
 
   return (
-    <section id="books" className="section-padding-lg bg-secondary">
+    <section id="books" className="section-padding-lg bg-secondary overflow-hidden w-full">
       <div className="eden-container">
         <p className="font-accent text-sm tracking-[0.3em] uppercase gold-text mb-4 text-center">
           THE LIBRARY
@@ -50,14 +50,14 @@ const BooksSection = () => {
         </p>
         <div className="eden-divider" />
 
-        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 mt-10 md:mt-16 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 mt-10 md:mt-16 items-start">
           {/* Book cover image */}
           <div className="flex justify-center lg:sticky lg:top-24">
             <a href="https://www.amazon.com/dp/B0GPW5BZ32" target="_blank" rel="noopener noreferrer">
               <img
                 src={bookCover}
                 alt="Back to Eden: A Biblical Foundation for Herbal Healing by Camila Johnson"
-                className="w-56 md:w-72 lg:w-80 shadow-2xl border border-border hover:shadow-eden-gold/20 transition-shadow duration-500"
+                className="w-48 sm:w-56 md:w-72 lg:w-80 max-w-full shadow-2xl border border-border hover:shadow-eden-gold/20 transition-shadow duration-500"
               />
             </a>
           </div>

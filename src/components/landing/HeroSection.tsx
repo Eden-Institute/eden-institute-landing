@@ -17,7 +17,7 @@ const HeroSection = () => {
   }, []);
 
   return (
-    <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden w-full">
       {/* Background */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 parchment-texture" />
@@ -30,14 +30,15 @@ const HeroSection = () => {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 eden-container text-center section-padding">
+      <div className="relative z-10 eden-container text-center section-padding w-full max-w-full">
         <p className="font-accent text-base md:text-lg tracking-[0.3em] uppercase gold-text mb-8 md:mb-12 animate-fade-in">
           Back to Eden. Back to Truth.
         </p>
 
-        <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold text-foreground leading-tight mb-6 md:mb-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+        <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold text-foreground leading-tight mb-6 md:mb-8 animate-fade-in break-words" style={{ animationDelay: '0.2s' }}>
           Herbal Medicine, Restored to Its
-          <br />
+          <br className="hidden sm:block" />
+          <span className="sm:hidden"> </span>
           <span className="italic">Biblical Foundation.</span>
         </h1>
 
