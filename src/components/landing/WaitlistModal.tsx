@@ -62,8 +62,11 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title }: WaitlistModalP
 
         {success ? (
           <div className="py-8 text-center">
-            <p className="font-accent text-lg text-foreground italic">
+            <p className="font-accent text-lg text-foreground italic mb-2">
               You're on the list. We'll be in touch.
+            </p>
+            <p className="font-body text-xs text-muted-foreground/70 italic">
+              Using Gmail? Your first email may arrive in your Promotions or Spam folder. Please move it to your Primary inbox so you don't miss anything from us.
             </p>
           </div>
         ) : (

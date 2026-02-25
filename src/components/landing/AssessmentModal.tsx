@@ -457,8 +457,11 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
         {phase === "results" && profile && (
           <div className="px-5 md:px-6 py-8 md:py-10">
             <div className="text-center mb-6 md:mb-8">
-              <p className="font-body text-sm mb-3" style={{ color: "#C9A84C" }}>
+              <p className="font-body text-sm mb-1" style={{ color: "#C9A84C" }}>
                 ✓ Your results are on their way. Check your inbox.
+              </p>
+              <p className="font-body text-xs italic mb-3" style={{ color: "#C9A84C", opacity: 0.8 }}>
+                Using Gmail? Your first email may arrive in your Promotions or Spam folder. Please move it to your Primary inbox so you don't miss anything from us.
               </p>
               <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>
                 Your Constitutional Type
