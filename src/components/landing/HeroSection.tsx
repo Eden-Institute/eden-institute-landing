@@ -16,8 +16,8 @@ const HeroSection = () => {
         <img
           src={heroBg}
           alt="Botanical engravings"
-          className="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-multiply"
-        />
+          className="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-multiply" />
+
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/80" />
       </div>
 
@@ -35,13 +35,13 @@ const HeroSection = () => {
 
         <div className="eden-divider" />
 
-        <p className="font-body text-xl md:text-2xl lg:text-3xl font-bold max-w-3xl mx-auto mb-8 leading-relaxed animate-fade-in" style={{ animationDelay: '0.4s', color: '#1C3A2E' }}>
+        <p className="font-body text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8 leading-relaxed animate-fade-in" style={{ animationDelay: '0.4s' }}>
           A constitutional and energetics-based framework for reading the body, matching the plant, and stewarding health according to design&nbsp;— not suppression.
         </p>
 
-        <blockquote className="scripture-block text-base md:text-lg max-w-2xl mx-auto mb-12 text-left animate-fade-in font-semibold" style={{ animationDelay: '0.5s', color: '#F5F0E8' }}>
+        <blockquote className="scripture-block text-base md:text-lg text-muted-foreground max-w-2xl mx-auto mb-12 text-left animate-fade-in border-secondary-foreground" style={{ animationDelay: '0.5s' }}>
           "And God said, 'Behold, I have given you every plant yielding seed that is on the face of all the earth, and every tree with seed in its fruit. You shall have them for food.'"
-          <footer className="mt-3 text-sm not-italic tracking-wider uppercase font-body font-semibold" style={{ color: 'rgba(245, 240, 232, 0.6)' }}>
+          <footer className="mt-3 text-sm not-italic tracking-wider uppercase text-muted-foreground/60 font-body">
             — Genesis 1:29 (NASB)
           </footer>
         </blockquote>
@@ -52,11 +52,7 @@ const HeroSection = () => {
               → Explore the Series
             </Button>
           </a>
-          <Button 
-            className="bg-transparent border-2 rounded-sm tracking-wider uppercase text-xs font-serif h-14 px-12 py-4 text-sm hover:bg-eden-forest hover:text-eden-parchment"
-            style={{ color: '#F5F0E8', borderColor: '#F5F0E8' }}
-            onClick={() => setCourseModal(true)}
-          >
+          <Button variant="eden-outline" size="xl" onClick={() => setCourseModal(true)}>
             → Join the Foundations Course Waitlist
           </Button>
         </div>
@@ -70,10 +66,10 @@ const HeroSection = () => {
         open={courseModal}
         onOpenChange={setCourseModal}
         audienceId={COURSE_AUDIENCE_ID}
-        title="Join the Foundations Course Waitlist"
-      />
-    </section>
-  );
+        title="Join the Foundations Course Waitlist" />
+
+    </section>);
+
 };
 
 export default HeroSection;

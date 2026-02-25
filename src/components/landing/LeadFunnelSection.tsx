@@ -13,8 +13,8 @@ const LeadFunnelSection = () => {
         <p className="font-accent text-sm tracking-[0.3em] uppercase gold-text mb-4">
           Begin Here
         </p>
-        <h2 className="font-serif text-3xl md:text-4xl font-bold text-foreground mb-4">
-          Not Sure Where to Start?
+        <h2 className="font-serif text-3xl md:text-4xl font-bold text-foreground mb-4">Not Sure Where to Start?
+
         </h2>
         <div className="eden-divider" />
         <p className="font-accent text-lg md:text-xl text-muted-foreground italic mb-12">
@@ -41,10 +41,10 @@ const LeadFunnelSection = () => {
         open={courseModal}
         onOpenChange={setCourseModal}
         audienceId={COURSE_AUDIENCE_ID}
-        title="Join the Foundations Course Waitlist"
-      />
-    </section>
-  );
+        title="Join the Foundations Course Waitlist" />
+
+    </section>);
+
 };
 
 export default LeadFunnelSection;
