@@ -35,7 +35,7 @@ const BooksSection = () => {
   const [courseModal, setCourseModal] = useState(false);
 
   return (
-    <section className="section-padding-lg bg-secondary">
+    <section id="books" className="section-padding-lg bg-secondary">
       <div className="eden-container">
         <p className="font-accent text-sm tracking-[0.3em] uppercase gold-text mb-4 text-center">
           The Library

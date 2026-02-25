@@ -26,7 +26,7 @@ const AppSection = () => {
   const [appModal, setAppModal] = useState(false);
 
   return (
-    <section className="section-padding-lg parchment-texture">
+    <section id="app" className="section-padding-lg parchment-texture">
       <div className="eden-container">
         <div className="text-center mb-16">
           <p className="font-accent text-sm tracking-[0.3em] uppercase gold-text mb-4">
