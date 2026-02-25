@@ -4,9 +4,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { X } from "lucide-react";
 
-const COURSE_AUDIENCE_ID = "4860c1c5-8e2b-4d02-838a-60ef09b789bf";
-const APP_AUDIENCE_ID = "cebd3478-b344-41b7-98c8-8bcf0e0108da";
-const BOOK2_AUDIENCE_ID = "4860c1c5-8e2b-4d02-838a-60ef09b789bf"; // same audience, different topic
+// Topics are now handled server-side in the edge function
 
 interface Question {
   id: number;
@@ -280,29 +278,16 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
     setError("");
 
     try {
-      // Add to all three audiences/topics
-      const baseBody = {
-        firstName,
-        email,
-        constitutionType,
-        source: "constitution_assessment",
-      };
-
-      const { error: fnError1 } = await supabase.functions.invoke("resend-waitlist", {
-        body: { ...baseBody, audienceId: COURSE_AUDIENCE_ID },
+      // Single call — edge function handles all 3 topic subscriptions
+      const { error: fnError } = await supabase.functions.invoke("resend-waitlist", {
+        body: {
+          firstName,
+          email,
+          constitutionType,
+          source: "constitution_assessment",
+        },
       });
-      if (fnError1) throw fnError1;
-
-      const { error: fnError2 } = await supabase.functions.invoke("resend-waitlist", {
-        body: { ...baseBody, audienceId: APP_AUDIENCE_ID },
-      });
-      if (fnError2) throw fnError2;
-
-      // Book 2 Launch List — same audience, captures intent
-      const { error: fnError3 } = await supabase.functions.invoke("resend-waitlist", {
-        body: { ...baseBody, audienceId: BOOK2_AUDIENCE_ID },
-      });
-      if (fnError3) throw fnError3;
+      if (fnError) throw fnError;
 
       setPhase("results");
     } catch (err: any) {
