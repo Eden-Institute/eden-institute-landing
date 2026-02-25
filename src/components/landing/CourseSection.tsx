@@ -11,7 +11,7 @@ const CourseSection = () => {
     <section className="section-padding-lg bg-primary">
       <div className="eden-container">
         <div className="max-w-3xl mx-auto text-center">
-          <p className="font-accent text-sm tracking-[0.3em] uppercase text-eden-gold mb-4">
+          <p className="font-accent text-sm tracking-[0.3em] uppercase mb-4 font-semibold" style={{ color: '#C9A84C' }}>
             Clinical Training
           </p>
           <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-extrabold mb-4" style={{ color: '#C9A84C' }}>
@@ -29,9 +29,9 @@ const CourseSection = () => {
               { number: "11", label: "Body Systems" },
               { number: "3", label: "Constitutional Axes" },
             ].map((stat) => (
-              <div key={stat.label} className="border p-6" style={{ borderColor: 'rgba(245, 240, 232, 0.2)' }}>
-                <p className="font-serif text-3xl font-bold text-eden-gold mb-1">{stat.number}</p>
-                <p className="font-accent text-sm tracking-[0.15em] uppercase font-semibold" style={{ color: '#F5F0E8' }}>
+              <div key={stat.label} className="border p-6" style={{ borderColor: 'rgba(245, 240, 232, 0.3)' }}>
+                <p className="font-serif text-3xl font-extrabold mb-1" style={{ color: '#C9A84C' }}>{stat.number}</p>
+                <p className="font-accent text-sm tracking-[0.15em] uppercase font-bold" style={{ color: '#F5F0E8' }}>
                   {stat.label}
                 </p>
               </div>

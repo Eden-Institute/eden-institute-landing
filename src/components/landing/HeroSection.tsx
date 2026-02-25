@@ -35,13 +35,13 @@ const HeroSection = () => {
 
         <div className="eden-divider" />
 
-        <p className="font-body text-xl md:text-2xl font-semibold max-w-3xl mx-auto mb-8 leading-relaxed animate-fade-in" style={{ animationDelay: '0.4s', color: '#F5F0E8' }}>
+        <p className="font-body text-xl md:text-2xl lg:text-3xl font-bold max-w-3xl mx-auto mb-8 leading-relaxed animate-fade-in" style={{ animationDelay: '0.4s', color: '#1C3A2E' }}>
           A constitutional and energetics-based framework for reading the body, matching the plant, and stewarding health according to design&nbsp;— not suppression.
         </p>
 
-        <blockquote className="scripture-block text-base md:text-lg text-muted-foreground max-w-2xl mx-auto mb-12 text-left animate-fade-in" style={{ animationDelay: '0.5s' }}>
+        <blockquote className="scripture-block text-base md:text-lg max-w-2xl mx-auto mb-12 text-left animate-fade-in font-semibold" style={{ animationDelay: '0.5s', color: '#F5F0E8' }}>
           "And God said, 'Behold, I have given you every plant yielding seed that is on the face of all the earth, and every tree with seed in its fruit. You shall have them for food.'"
-          <footer className="mt-3 text-sm not-italic tracking-wider uppercase text-muted-foreground/60 font-body">
+          <footer className="mt-3 text-sm not-italic tracking-wider uppercase font-body font-semibold" style={{ color: 'rgba(245, 240, 232, 0.6)' }}>
             — Genesis 1:29 (NASB)
           </footer>
         </blockquote>
@@ -52,7 +52,11 @@ const HeroSection = () => {
               → Explore the Series
             </Button>
           </a>
-          <Button variant="eden-outline" size="xl" onClick={() => setCourseModal(true)}>
+          <Button 
+            className="bg-transparent border-2 rounded-sm tracking-wider uppercase text-xs font-serif h-14 px-12 py-4 text-sm hover:bg-eden-forest hover:text-eden-parchment"
+            style={{ color: '#F5F0E8', borderColor: '#F5F0E8' }}
+            onClick={() => setCourseModal(true)}
+          >
             → Join the Foundations Course Waitlist
           </Button>
         </div>

@@ -28,10 +28,10 @@ const ProblemSection = () => {
           </div>
 
           <div className="flex items-center">
-            <blockquote className="scripture-block text-2xl md:text-3xl font-accent font-semibold leading-relaxed" style={{ borderColor: '#C9A84C', color: '#F5F0E8' }}>
-              "He causeth the grass to grow for the cattle, and herb for the service of man: that he may bring forth food out of the earth."
-              <footer className="mt-4 text-base not-italic tracking-wider uppercase font-body" style={{ color: '#C9A84C' }}>
-                — Psalm 104:14
+            <blockquote className="scripture-block text-2xl md:text-3xl font-accent font-bold leading-relaxed" style={{ borderColor: '#C9A84C', color: '#F5F0E8' }}>
+              "And God said, 'Behold, I have given you every plant yielding seed that is on the face of all the earth, and every tree with seed in its fruit. You shall have them for food.'"
+              <footer className="mt-4 text-base not-italic tracking-wider uppercase font-body font-bold" style={{ color: '#C9A84C' }}>
+                — Genesis 1:29 (NASB)
               </footer>
             </blockquote>
           </div>
