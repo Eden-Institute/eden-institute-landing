@@ -29,7 +29,7 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title }: WaitlistModalP
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke("resend-waitlist", {
-        body: { firstName, email, audienceId },
+        body: { firstName, email, audienceId, source: "waitlist" },
       });
 
       if (fnError) throw fnError;
