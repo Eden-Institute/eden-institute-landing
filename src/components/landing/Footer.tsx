@@ -9,7 +9,7 @@ const Footer = () => {
           edeninstitute.health
         </p>
         <div className="eden-divider" />
-        <p className="font-accent text-sm tracking-[0.3em] uppercase text-eden-gold">
+        <p className="font-accent text-sm tracking-[0.1em] md:tracking-[0.3em] uppercase text-eden-gold">
           "Back to Eden. Back to Truth."
         </p>
         <p className="mt-8 font-body text-xs text-eden-parchment/30">

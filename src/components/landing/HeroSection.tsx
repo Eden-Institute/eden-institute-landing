@@ -31,7 +31,7 @@ const HeroSection = () => {
 
       {/* Content */}
       <div className="relative z-10 eden-container text-center section-padding w-full max-w-full">
-        <p className="font-accent text-base md:text-lg tracking-[0.3em] uppercase gold-text mb-8 md:mb-12 animate-fade-in">
+        <p className="font-accent text-base md:text-lg tracking-[0.15em] md:tracking-[0.3em] uppercase gold-text mb-8 md:mb-12 animate-fade-in">
           Back to Eden. Back to Truth.
         </p>
 
@@ -50,13 +50,13 @@ const HeroSection = () => {
 
         <blockquote className="scripture-block text-sm md:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto mb-8 md:mb-12 text-left animate-fade-in border-secondary-foreground" style={{ animationDelay: '0.5s' }}>
           "And God said, 'Behold, I have given you every plant yielding seed that is on the face of all the earth, and every tree with seed in its fruit. You shall have them for food.'"
-          <footer className="mt-3 text-sm not-italic tracking-wider uppercase text-muted-foreground/60 font-body">
+          <footer className="mt-3 text-sm not-italic tracking-wider uppercase font-body font-medium" style={{ color: '#1C3A2E' }}>
             — Genesis 1:29 (NASB)
           </footer>
         </blockquote>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 md:gap-4 animate-fade-in" style={{ animationDelay: '0.6s' }}>
-          <Button variant="eden" size="xl" className="w-full sm:w-auto min-h-[48px]" onClick={() => setAssessmentModal(true)}>
+          <Button variant="eden" size="xl" className="w-full sm:w-auto min-h-[48px] text-[13px] sm:text-sm whitespace-normal max-w-[90vw] box-border" onClick={() => setAssessmentModal(true)}>
             → Discover Your Constitutional Type
           </Button>
           <a href="https://www.amazon.com/s?k=back+to+eden+series+eden+institute" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">

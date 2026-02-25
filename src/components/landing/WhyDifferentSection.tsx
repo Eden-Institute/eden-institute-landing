@@ -56,7 +56,7 @@ const WhyDifferentSection = () => {
           <Button
             variant="eden-gold"
             size="xl"
-            className="w-full md:w-auto"
+            className="w-full md:w-auto max-w-[90vw] mx-auto text-[12px] md:text-sm whitespace-normal box-border"
             onClick={() => setAssessmentModal(true)}
           >
             → Discover Your Constitutional Type — Take the Free Assessment
