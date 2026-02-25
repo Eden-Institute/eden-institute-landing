@@ -2,9 +2,11 @@ import { useState, useCallback } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { X } from "lucide-react";
 
 const COURSE_AUDIENCE_ID = "4860c1c5-8e2b-4d02-838a-60ef09b789bf";
 const APP_AUDIENCE_ID = "cebd3478-b344-41b7-98c8-8bcf0e0108da";
+const BOOK2_AUDIENCE_ID = "4860c1c5-8e2b-4d02-838a-60ef09b789bf"; // same audience, different topic
 
 interface Question {
   id: number;
@@ -278,21 +280,29 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
     setError("");
 
     try {
-      // Add to both audiences
-      const body = {
+      // Add to all three audiences/topics
+      const baseBody = {
         firstName,
         email,
-        audienceId: COURSE_AUDIENCE_ID,
         constitutionType,
         source: "constitution_assessment",
       };
-      const { error: fnError1 } = await supabase.functions.invoke("resend-waitlist", { body });
+
+      const { error: fnError1 } = await supabase.functions.invoke("resend-waitlist", {
+        body: { ...baseBody, audienceId: COURSE_AUDIENCE_ID },
+      });
       if (fnError1) throw fnError1;
 
       const { error: fnError2 } = await supabase.functions.invoke("resend-waitlist", {
-        body: { ...body, audienceId: APP_AUDIENCE_ID },
+        body: { ...baseBody, audienceId: APP_AUDIENCE_ID },
       });
       if (fnError2) throw fnError2;
+
+      // Book 2 Launch List — same audience, captures intent
+      const { error: fnError3 } = await supabase.functions.invoke("resend-waitlist", {
+        body: { ...baseBody, audienceId: BOOK2_AUDIENCE_ID },
+      });
+      if (fnError3) throw fnError3;
 
       setPhase("results");
     } catch (err: any) {
@@ -304,7 +314,6 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
 
   const handleClose = (val: boolean) => {
     if (!val) {
-      // Reset state on close
       setCurrentQ(0);
       setAnswers({});
       setPhase("quiz");
@@ -318,29 +327,41 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 border-eden-gold/20" style={{ backgroundColor: "#F5F0E8" }}>
+      <DialogContent
+        className="w-full h-full max-w-full max-h-full md:max-w-2xl md:max-h-[90vh] md:h-auto md:rounded-sm overflow-y-auto p-0 border-0 md:border md:border-eden-gold/20"
+        style={{ backgroundColor: "#F5F0E8" }}
+      >
+        {/* Mobile close button */}
+        <button
+          onClick={() => handleClose(false)}
+          className="absolute top-4 right-4 z-50 w-10 h-10 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors"
+          aria-label="Close"
+        >
+          <X size={24} style={{ color: "#1C3A2E" }} />
+        </button>
+
         {/* Header */}
-        <div className="px-6 py-5 border-b" style={{ borderColor: "hsl(40, 20%, 80%)" }}>
-          <div className="flex items-center justify-between">
-            <span className="font-serif text-lg font-bold" style={{ color: "#1C3A2E" }}>
+        <div className="px-5 md:px-6 py-4 md:py-5 border-b" style={{ borderColor: "hsl(40, 20%, 80%)" }}>
+          <div className="flex items-center justify-between pr-10">
+            <span className="font-serif text-base md:text-lg font-bold" style={{ color: "#1C3A2E" }}>
               Constitutional Assessment
             </span>
-            <span className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: "#C9A84C" }}>
+            <span className="font-accent text-xs tracking-[0.2em] uppercase hidden sm:block" style={{ color: "#C9A84C" }}>
               The Eden Institute
             </span>
           </div>
         </div>
 
         {phase === "quiz" && (
-          <div className="px-6 py-8">
+          <div className="px-5 md:px-6 py-6 md:py-8">
             {/* Progress */}
-            <div className="mb-8">
+            <div className="mb-6 md:mb-8">
               <div className="flex items-center justify-between mb-3">
                 <span className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: "#C9A84C" }}>
                   {axisLabel}
                 </span>
                 <span className="font-body text-sm" style={{ color: "#1C3A2E" }}>
-                  Question {currentQ + 1} of {questions.length}
+                  {currentQ + 1} / {questions.length}
                 </span>
               </div>
               <div className="w-full h-2 rounded-full" style={{ backgroundColor: "hsl(40, 20%, 80%)" }}>
@@ -353,7 +374,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
 
             {/* Question */}
             <div className={`transition-all duration-400 ${transitioning ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"}`}>
-              <h2 className="font-serif text-xl md:text-2xl font-bold mb-6" style={{ color: "#1C3A2E" }}>
+              <h2 className="font-serif text-lg md:text-xl lg:text-2xl font-bold mb-5 md:mb-6" style={{ color: "#1C3A2E" }}>
                 {q.question}
               </h2>
               <div className="space-y-3">
@@ -361,7 +382,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
                   <button
                     key={opt.label}
                     onClick={() => handleAnswer(q.id, opt.score)}
-                    className="w-full text-left p-4 border-2 rounded transition-all duration-200 hover:border-[#C9A84C] hover:shadow-md group"
+                    className="w-full text-left p-4 border-2 rounded transition-all duration-200 hover:border-[#C9A84C] hover:shadow-md group min-h-[48px]"
                     style={{
                       borderColor: answers[q.id] === opt.score ? "#C9A84C" : "hsl(40, 20%, 80%)",
                       backgroundColor: answers[q.id] === opt.score ? "hsl(40, 55%, 50%, 0.08)" : "white",
@@ -377,7 +398,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
                       >
                         {opt.label}
                       </span>
-                      <span className="font-body text-sm leading-relaxed" style={{ color: "#1C3A2E" }}>
+                      <span className="font-body text-sm md:text-base leading-relaxed" style={{ color: "#1C3A2E" }}>
                         {opt.text}
                       </span>
                     </div>
@@ -389,18 +410,18 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
         )}
 
         {phase === "gate" && profile && (
-          <div className="px-6 py-10 text-center">
+          <div className="px-5 md:px-6 py-8 md:py-10 text-center">
             <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>
               Your Constitutional Type
             </span>
-            <h2 className="font-serif text-2xl md:text-3xl font-bold mt-3 mb-2" style={{ color: "#1C3A2E" }}>
+            <h2 className="font-serif text-xl md:text-2xl lg:text-3xl font-bold mt-3 mb-2" style={{ color: "#1C3A2E" }}>
               {constitutionType}
             </h2>
             <p className="font-accent text-lg italic mb-6" style={{ color: "#C9A84C" }}>
               "{profile.nickname}"
             </p>
 
-            <div className="p-6 border rounded text-left" style={{ borderColor: "hsl(40, 20%, 80%)", backgroundColor: "white" }}>
+            <div className="p-5 md:p-6 border rounded text-left" style={{ borderColor: "hsl(40, 20%, 80%)", backgroundColor: "white" }}>
               <h3 className="font-serif text-lg font-bold mb-2" style={{ color: "#1C3A2E" }}>
                 Get Your Full Constitutional Profile
               </h3>
@@ -418,7 +439,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
                     onChange={(e) => setFirstName(e.target.value)}
                     required
                     placeholder="Your first name"
-                    className="w-full px-4 py-3 border font-body focus:outline-none transition-colors focus:border-[#C9A84C]"
+                    className="w-full px-4 py-3 border font-body focus:outline-none transition-colors focus:border-[#C9A84C] min-h-[48px]"
                     style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }}
                   />
                 </div>
@@ -432,12 +453,12 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     placeholder="your@email.com"
-                    className="w-full px-4 py-3 border font-body focus:outline-none transition-colors focus:border-[#C9A84C]"
+                    className="w-full px-4 py-3 border font-body focus:outline-none transition-colors focus:border-[#C9A84C] min-h-[48px]"
                     style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }}
                   />
                 </div>
                 {error && <p className="font-body text-sm text-destructive">{error}</p>}
-                <Button variant="eden" size="xl" className="w-full" disabled={loading}>
+                <Button variant="eden" size="xl" className="w-full min-h-[48px]" disabled={loading}>
                   {loading ? "Submitting…" : "→ Send Me My Results"}
                 </Button>
                 <p className="text-center font-body text-xs" style={{ color: "hsl(30, 10%, 40%, 0.6)" }}>
@@ -449,23 +470,23 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
         )}
 
         {phase === "results" && profile && (
-          <div className="px-6 py-10">
-            <div className="text-center mb-8">
+          <div className="px-5 md:px-6 py-8 md:py-10">
+            <div className="text-center mb-6 md:mb-8">
               <p className="font-body text-sm mb-3" style={{ color: "#C9A84C" }}>
                 ✓ Your results are on their way. Check your inbox.
               </p>
               <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>
                 Your Constitutional Type
               </span>
-              <h2 className="font-serif text-3xl md:text-4xl font-bold mt-3 mb-2" style={{ color: "#1C3A2E" }}>
+              <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-bold mt-3 mb-2" style={{ color: "#1C3A2E" }}>
                 {constitutionType}
               </h2>
-              <p className="font-accent text-xl italic" style={{ color: "#C9A84C" }}>
+              <p className="font-accent text-lg md:text-xl italic" style={{ color: "#C9A84C" }}>
                 "{profile.nickname}"
               </p>
             </div>
 
-            <div className="space-y-4 mb-10">
+            <div className="space-y-4 mb-8 md:mb-10">
               {profile.description.map((para, i) => (
                 <p key={i} className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>
                   {para}
@@ -490,7 +511,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
             </div>
 
             <div className="text-center">
-              <Button variant="eden" size="lg" onClick={() => handleClose(false)}>
+              <Button variant="eden" size="lg" className="w-full md:w-auto min-h-[48px]" onClick={() => handleClose(false)}>
                 ← Back to Home
               </Button>
             </div>

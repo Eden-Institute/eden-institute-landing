@@ -31,11 +31,11 @@ const HeroSection = () => {
 
       {/* Content */}
       <div className="relative z-10 eden-container text-center section-padding">
-        <p className="font-accent text-lg tracking-[0.3em] uppercase gold-text mb-12 animate-fade-in">
+        <p className="font-accent text-base md:text-lg tracking-[0.3em] uppercase gold-text mb-8 md:mb-12 animate-fade-in">
           Back to Eden. Back to Truth.
         </p>
 
-        <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-foreground leading-tight mb-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+        <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold text-foreground leading-tight mb-6 md:mb-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
           Herbal Medicine, Restored to Its
           <br />
           <span className="italic">Biblical Foundation.</span>
@@ -43,32 +43,32 @@ const HeroSection = () => {
 
         <div className="eden-divider" />
 
-        <p className="font-body text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8 leading-relaxed animate-fade-in" style={{ animationDelay: '0.4s' }}>
+        <p className="font-body text-base md:text-lg lg:text-xl text-muted-foreground max-w-3xl mx-auto mb-6 md:mb-8 leading-relaxed animate-fade-in" style={{ animationDelay: '0.4s' }}>
           A constitutional and energetics-based framework for reading the body, matching the plant, and stewarding health according to design&nbsp;— not suppression.
         </p>
 
-        <blockquote className="scripture-block text-base md:text-lg text-muted-foreground max-w-2xl mx-auto mb-12 text-left animate-fade-in border-secondary-foreground" style={{ animationDelay: '0.5s' }}>
+        <blockquote className="scripture-block text-sm md:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto mb-8 md:mb-12 text-left animate-fade-in border-secondary-foreground" style={{ animationDelay: '0.5s' }}>
           "And God said, 'Behold, I have given you every plant yielding seed that is on the face of all the earth, and every tree with seed in its fruit. You shall have them for food.'"
           <footer className="mt-3 text-sm not-italic tracking-wider uppercase text-muted-foreground/60 font-body">
             — Genesis 1:29 (NASB)
           </footer>
         </blockquote>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in" style={{ animationDelay: '0.6s' }}>
-          <Button variant="eden" size="xl" onClick={() => setAssessmentModal(true)}>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 md:gap-4 animate-fade-in" style={{ animationDelay: '0.6s' }}>
+          <Button variant="eden" size="xl" className="w-full sm:w-auto min-h-[48px]" onClick={() => setAssessmentModal(true)}>
             → Discover Your Constitutional Type
           </Button>
-          <a href="https://www.amazon.com/s?k=back+to+eden+series+eden+institute" target="_blank" rel="noopener noreferrer">
-            <Button variant="eden-outline" size="xl">
+          <a href="https://www.amazon.com/s?k=back+to+eden+series+eden+institute" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
+            <Button variant="eden-outline" size="xl" className="w-full min-h-[48px]">
               → Explore the Books
             </Button>
           </a>
-          <Button variant="eden-outline" size="xl" onClick={() => setAppModal(true)}>
+          <Button variant="eden-outline" size="xl" className="w-full sm:w-auto min-h-[48px]" onClick={() => setAppModal(true)}>
             → Join the App Beta
           </Button>
         </div>
 
-        <p className="mt-20 font-accent text-sm tracking-[0.4em] uppercase text-muted-foreground">
+        <p className="mt-12 md:mt-20 font-accent text-sm tracking-[0.4em] uppercase text-muted-foreground">
           The Eden Institute
         </p>
       </div>
