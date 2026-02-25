@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import WaitlistModal from "./WaitlistModal";
 
-const APP_AUDIENCE_ID = "0ed1f4b6-1b8c-4ef2-b9ca-7a7f67d3f2e6";
+const APP_AUDIENCE_ID = "cebd3478-b344-41b7-98c8-8bcf0e0108da";
 
 const FinalCTASection = () => {
   const [appModal, setAppModal] = useState(false);
