@@ -852,48 +852,199 @@ async function generateHotDampGuide(doc: PDFDocument): Promise<void> {
 }
 
 // ═══════════════════════════════════════════════════════
-// SIMPLE GUIDE GENERATOR (for Cold/Dry type, pending upgrade)
+// COLD/DRY COMPREHENSIVE GUIDE
 // ═══════════════════════════════════════════════════════
 
-interface SimpleContent {
-  title: string;
-  subtitle: string;
-  tagline: string;
-  pattern: string;
-  herbs: string;
-  scripture: string;
-  caution: string;
-}
+async function generateColdDryGuide(doc: PDFDocument): Promise<void> {
+  const b = new PDFBuilder(doc);
+  await b.init();
 
-const simpleContents: Record<string, SimpleContent> = {
-  "cold-damp": {
-    title: "COLD / DAMP CONSTITUTION",
-    subtitle: "The Phlegmatic Pattern",
-    tagline: "You conserve energy, move slowly, and tend toward accumulation.",
-    pattern: "Your body tends toward sluggishness, congestion, water retention, low metabolic drive, and heaviness. Under stress you may withdraw, feel foggy, gain weight easily, or struggle to initiate.",
-    herbs: "Warming, moving, and drying herbs are your allies: Ginger (Zingiber officinale), Rosemary (Salvia rosmarinus), Elecampane (Inula helenium), Thyme (Thymus vulgaris), Prickly Ash (Zanthoxylum americanum).",
-    scripture: "\"Whatever you do, work heartily, as for the Lord.\" \u2014 Colossians 3:23. Your constitution excels at endurance. The challenge is initiation. Herbal support for your type helps awaken and move \u2014 physically and spiritually.",
-    caution: "Cooling, heavily moistening herbs long-term \u2014 excessive marshmallow, slippery elm used alone.",
-  },
-  "hot-damp": {
-    title: "HOT / DAMP CONSTITUTION",
-    subtitle: "The Sanguine Pattern",
-    tagline: "You tend toward heat with accumulation \u2014 inflammation that doesn't fully resolve.",
-    pattern: "Your body tends toward infection, inflammation with swelling, skin eruptions, liver congestion, and reactive responses. You may run warm but feel heavy or congested simultaneously.",
-    herbs: "Cooling and moving herbs are your allies: Dandelion root (Taraxacum officinale), Burdock (Arctium lappa), Oregon Grape Root (Mahonia aquifolium), Cleavers (Galium aparine), Yellow Dock (Rumex crispus).",
-    scripture: "\"Create in me a clean heart, O God.\" \u2014 Psalm 51:10. The Hot/Damp type often carries more than it can process \u2014 physically and emotionally. Herbs that support elimination and resolution are also an invitation to release.",
-    caution: "Very warming and stimulating herbs that increase heat and circulation without supporting resolution.",
-  },
-  "cold-dry": {
-    title: "COLD / DRY CONSTITUTION",
-    subtitle: "The Melancholic Pattern",
-    tagline: "You tend toward depletion \u2014 under-resourced and underbuilt.",
-    pattern: "Your body tends toward deficiency: thin tissues, poor absorption, dryness without heat, anxiety with fatigue, fragility. You may feel depleted rather than imbalanced \u2014 the tank runs low.",
-    herbs: "Nourishing, building, and warming herbs are your allies: Ashwagandha (Withania somnifera), Oat straw (Avena sativa), Hawthorn (Crataegus spp.), Licorice root (Glycyrrhiza glabra), Nettle (Urtica dioica).",
-    scripture: "\"He gives strength to the weary and increases the power of the weak.\" \u2014 Isaiah 40:29. The Cold/Dry type is not broken \u2014 it is depleted. The work is restoration, not stimulation. Rest, nourishment, and rebuilding herbs are the path.",
-    caution: "Stimulating, depleting, or strongly bitter herbs without nourishing support \u2014 long-term coffee, ephedra, excess bitters.",
-  },
-};
+  // ── COVER ──
+  b.drawCoverPage(
+    "COLD / DRY CONSTITUTION",
+    "The Melancholic Pattern",
+    "You tend toward depletion \u2014 under-resourced and underbuilt."
+  );
+
+  // ── SECTION: YOUR PATTERN ──
+  b.newPage();
+  b.drawSectionHeader("YOUR PATTERN");
+  b.drawSubheading("Understanding the Cold/Dry Constitutional Tendency");
+
+  b.drawParagraph("You are wired for depth. Your system tends toward conservation, introspection, and careful use of resources. But when resources run low, you feel it acutely. The Cold/Dry constitution reflects a pattern of vital force that is refined, sensitive, and easily depleted. This is not a weakness \u2014 it is how God designed you.");
+  b.drawParagraph("Under normal conditions, this constitutional pattern manifests as thoughtfulness, analytical ability, attention to detail, and deep inner life. You tend to be observant, careful, creative, and capable of sustained mental work.");
+
+  b.drawSubheading("Physical Tendencies");
+  const physicals = [
+    "A tendency toward deficiency, depletion, and running on empty",
+    "Thin, dry tissues \u2014 dry skin, brittle nails, dry hair",
+    "Cold hands and feet, poor circulation, feeling chilled easily",
+    "Poor appetite, weak digestion, difficulty absorbing nutrients",
+    "Tendency toward constipation with dry, hard stools",
+    "Fatigue that rest doesn't fully resolve",
+    "Light, restless sleep or difficulty staying asleep",
+  ];
+  for (const p of physicals) b.drawBullet(p);
+  b.y -= 6;
+
+  b.drawSubheading("Emotional and Mental Tendencies");
+  const emotionals = [
+    "Anxiety, worry, and a tendency to anticipate problems",
+    "Overthinking, rumination, and difficulty quieting the mind",
+    "Sensitivity \u2014 to noise, light, criticism, and emotional atmosphere",
+    "A tendency toward melancholy, sadness, or feeling overwhelmed",
+    "Perfectionism and self-criticism",
+    "Deep capacity for insight, creativity, and spiritual awareness",
+  ];
+  for (const e of emotionals) b.drawBullet(e);
+  b.y -= 6;
+
+  b.drawSubheading("When Imbalanced");
+  b.drawParagraph("When the Cold/Dry pattern becomes excessive, you may experience chronic fatigue, anxiety disorders, insomnia, poor digestion, weight loss or inability to gain weight, and a fragility that makes normal life feel overwhelming. The sensitivity that gives you depth can become vulnerability that leaves you unable to cope.");
+
+  // ── SECTION: HISTORICAL CONTEXT ──
+  b.drawSectionHeader("HISTORICAL CONTEXT");
+  b.drawSubheading("The Melancholic Temperament in Classical Medicine");
+
+  b.drawParagraph("The Cold/Dry constitution corresponds to what classical Greek and Western medicine called the Melancholic temperament, associated with the element of Earth and the humor of Black Bile.");
+  b.drawParagraph("Hippocrates and Galen observed that individuals with this constitutional tendency were often thoughtful, analytical, artistic, and deeply introspective \u2014 but also prone to worry, sadness, and physical conditions of dryness and coldness. The term \"melancholic\" derives from the Greek melas (black) and chole (bile), reflecting the cold, dry nature of this type.");
+  b.drawParagraph("In the Eclectic and Physiomedical traditions, practitioners recognized this pattern as one of deficiency and depletion \u2014 requiring herbs that nourish, warm gently, moisten dry tissues, and rebuild vital reserves over time.");
+  b.drawParagraph("John Scudder emphasized that this constitutional type required \"restorative\" rather than \"stimulating\" treatment. The goal was not to push a depleted system harder, but to provide the nourishment and rest needed to rebuild from the foundation.");
+
+  // ── SECTION: BIBLICAL FRAMEWORK ──
+  b.drawSectionHeader("BIBLICAL FRAMEWORK");
+  b.drawSubheading("A Christian Understanding of Constitutional Medicine");
+
+  b.drawParagraph("The recognition that people differ in consistent, observable, and clinically significant ways is not borrowed from Eastern religion \u2014 it is confirmed by centuries of Western observation and is consistent with the biblical teaching that each person is \"fearfully and wonderfully made\" (Psalm 139:14).");
+  b.drawParagraph("God did not create one human template stamped out in endless copies. He wove each person with particular tendencies, strengths, and vulnerabilities. Constitutional medicine honors this particularity rather than treating all bodies as interchangeable.");
+
+  b.drawSubheading("What We Learn From Tradition \u2014 Without Adopting Its Metaphysics");
+  b.drawParagraph("The Greek humoral system, Ayurveda, and Traditional Chinese Medicine all observed similar constitutional patterns independently. This is not because they share the same spiritual framework \u2014 they do not. It is because they were all observing the same creation.");
+  b.drawParagraph("We do not need to adopt the metaphysics of these systems to benefit from their observational wisdom. We reject the idea that your constitution is determined by planetary influence, karmic imprint, or the balance of primal elements with independent existence. Instead, we affirm that your constitutional pattern reflects the particular way God designed your body to function \u2014 with its own tendencies, its own needs, and its own path toward flourishing.");
+  b.drawParagraph("The Cold/Dry pattern is not a spiritual diagnosis. It is a physiological observation with practical implications for how you should eat, rest, exercise, and \u2014 when needed \u2014 select herbal support.");
+
+  b.drawSubheading("Stewardship, Not Superstition");
+  b.drawParagraph("The Christian herbalist approaches constitutional medicine as a steward, not a mystic. We observe the body's patterns because God made the body readable. We select herbs that correspond to constitutional needs because God placed those herbs in creation with intention.");
+  b.drawScripture("\"He gives strength to the weary and increases the power of the weak\" (Isaiah 40:29). The Cold/Dry constitution is not broken \u2014 it is depleted. The call on your life includes learning to receive: to accept nourishment, to allow rest, and to trust that God's provision is sufficient. The work is restoration, not stimulation.");
+  b.drawParagraph("The intelligence that regulates your body \u2014 the coherence that holds your systems together \u2014 is not an impersonal force. It is upheld by the One in whom \"all things hold together\" (Colossians 1:17). Herbal medicine, rightly understood, is partnership with this design.");
+
+  // ── SECTION: YOUR HERBAL ALLIES ──
+  b.drawSectionHeader("YOUR HERBAL ALLIES");
+  b.drawSubheading("10 Herbs That Support the Cold/Dry Constitution");
+  b.drawParagraph("The herbs that best support your constitutional pattern are those that nourish deeply, warm gently, moisten dry tissues, and rebuild depleted reserves over time. These are not remedies for specific diseases \u2014 they are allies for your particular body.");
+
+  b.drawHerb(1, "Ashwagandha", "Withania somnifera",
+    "Adaptogen, nervine tonic, thyroid support, immune modulator, rejuvenative",
+    "Ashwagandha is perhaps the most important herb for the Cold/Dry constitution. It is warming, nourishing, and deeply restorative to the nervous system. It calms anxiety while building strength \u2014 without sedation. It supports thyroid function, often low in this type.",
+    "Traditionally prepared with warm milk and honey. Powder, capsules, or tincture. Best taken consistently over weeks or months.",
+    "Avoid with hyperthyroidism. Part of the nightshade family \u2014 avoid if sensitive."
+  );
+
+  b.drawHerb(2, "Oat Straw", "Avena sativa",
+    "Nervine trophorestorative, nutritive, demulcent, antidepressant",
+    "Oat straw is a gentle, deeply nourishing nervine that rebuilds a frayed nervous system over time. For the Cold/Dry type who feels \"burnt out,\" anxious, and depleted, oat straw provides the slow, steady nourishment the nervous system craves.",
+    "Long infusion: 1 oz dried herb to 1 quart water, steep 4+ hours or overnight. Drink freely.",
+    "Very safe. Ensure oats are gluten-free if sensitive. Milky oat tincture is more potent."
+  );
+
+  b.drawHerb(3, "Licorice Root", "Glycyrrhiza glabra",
+    "Adrenal restorative, demulcent, anti-inflammatory, expectorant, harmonizer",
+    "Licorice is moistening, nourishing, and supportive to exhausted adrenal glands. For the Cold/Dry type with chronic fatigue, low cortisol patterns, and dry tissues throughout the body, licorice provides deep restoration.",
+    "Decoction or as part of herbal formulas. Small amounts go a long way \u2014 it harmonizes other herbs in a formula.",
+    "Not for long-term use at high doses. Avoid with hypertension or edema. DGL form is safer for digestive use."
+  );
+
+  b.drawHerb(4, "Shatavari", "Asparagus racemosus",
+    "Demulcent, nutritive tonic, adaptogen, reproductive tonic, immune support",
+    "Shatavari is deeply moistening and nourishing \u2014 specific for dryness in the digestive, respiratory, and reproductive systems. For the Cold/Dry type with dry mucous membranes, weak digestion, and depleted vital reserves, shatavari is a foundational ally.",
+    "Powder mixed with warm milk and honey. Capsules or tincture. Best used consistently over time.",
+    "Very safe. Avoid with estrogen-sensitive conditions as a precaution."
+  );
+
+  b.drawHerb(5, "Hawthorn", "Crataegus spp.",
+    "Cardiovascular tonic, nervine, mildly hypotensive, antioxidant",
+    "Hawthorn nourishes and strengthens the heart \u2014 physically and emotionally. For the Cold/Dry type prone to anxiety, grief, and cardiovascular weakness, hawthorn provides gentle, steady support over time.",
+    "Tincture of berries, leaves, and flowers combined. Decoction of berries. Safe for long-term daily use.",
+    "May potentiate cardiac medications \u2014 consult a practitioner if on heart medication."
+  );
+
+  b.drawHerb(6, "Nettle", "Urtica dioica",
+    "Nutritive, mineral-rich, kidney tonic, anti-inflammatory, blood-building",
+    "Nettle is one of the most deeply nourishing herbs available \u2014 rich in iron, calcium, magnesium, and silica. For the Cold/Dry type with mineral deficiency, weak hair and nails, and a depleted constitution, nettle rebuilds from the ground up.",
+    "Long infusion: 1 oz dried leaf to 1 quart water, steep 4+ hours. Drink 1-3 cups daily.",
+    "Very safe. One of the best daily nourishing herbs available."
+  );
+
+  b.drawHerb(7, "Marshmallow Root", "Althaea officinalis",
+    "Demulcent, emollient, cooling, moistening, anti-inflammatory",
+    "Marshmallow coats, soothes, and moistens dry tissues throughout the body \u2014 digestive tract, respiratory tract, urinary tract. For the Cold/Dry type with dry constipation, irritated membranes, and tissue fragility, marshmallow provides immediate relief.",
+    "Cold infusion preserves the most mucilage: steep in room-temperature water 4-8 hours. Drink freely.",
+    "May slow absorption of medications \u2014 separate by 1-2 hours."
+  );
+
+  b.drawHerb(8, "Rehmannia", "Rehmannia glutinosa",
+    "Blood tonic, kidney/adrenal support, moistening, cooling (raw) or warming (prepared)",
+    "Rehmannia is a deep yin tonic \u2014 nourishing to the blood, kidneys, and adrenals. Prepared (cooked) rehmannia is mildly warming and particularly suited to the Cold/Dry constitution with exhaustion, weak lower back, and depleted reserves.",
+    "Prepared (shu di huang) form is best for Cold/Dry types. Often used in formulas rather than alone. Decoction or tincture.",
+    "May cause digestive upset in some \u2014 combine with digestive herbs if needed."
+  );
+
+  b.drawHerb(9, "Eleuthero", "Eleutherococcus senticosus",
+    "Adaptogen, immune modulator, cognitive support, endurance enhancer",
+    "Eleuthero (Siberian Ginseng) is a gentle, non-stimulating adaptogen that supports the body's ability to handle stress. For the Cold/Dry type who feels depleted by normal life demands, eleuthero builds resilience without pushing the system harder.",
+    "Tincture or capsules. Best taken for 6-8 weeks, then a break.",
+    "Very safe. One of the best tolerated adaptogens."
+  );
+
+  b.drawHerb(10, "Schisandra", "Schisandra chinensis",
+    "Adaptogen, astringent, liver protective, cognitive support, longevity tonic",
+    "Schisandra is unique in containing all five flavors \u2014 it has a balancing, harmonizing effect on the body. For the Cold/Dry type with scattered energy, mental fatigue, and a tendency to \"leak\" vitality, schisandra helps contain and build.",
+    "Decoction of dried berries. Tincture. Powdered berries can be added to smoothies.",
+    "May increase stomach acid \u2014 take with food if sensitive."
+  );
+
+  // ── SECTION: HERBS TO USE WITH CAUTION ──
+  b.drawSectionHeader("HERBS TO USE WITH CAUTION");
+  b.drawParagraph("The following herbs, while beneficial for other constitutional types, may aggravate the Cold/Dry pattern if used excessively or without balancing support:");
+
+  const cautions = [
+    "Coffee (Coffea arabica): Stimulating, depleting, and drying. Drains adrenal reserves.",
+    "Ephedra (Ephedra sinica): Intensely stimulating and depleting. Contraindicated.",
+    "Strong bitter herbs in excess: Can be drying and depleting. Balance with moistening herbs.",
+    "Diuretics in excess: Further dry an already dry constitution.",
+    "Cayenne in large amounts: Stimulating and can deplete a weak constitution.",
+    "Raw, cold foods in excess: Weaken digestive fire. Favor cooked, warming foods.",
+    "Fasting or severe caloric restriction: Further depletes an already depleted system.",
+  ];
+  for (const c of cautions) b.drawBullet(c);
+
+  // ── SECTION: GO DEEPER ──
+  b.drawSectionHeader("GO DEEPER");
+  b.drawSubheading("What You'll Unlock in the Eden Apothecary App");
+  b.drawParagraph("This guide has introduced you to your constitutional pattern through the lens of Western herbal tradition. But this is only the beginning.");
+  b.drawParagraph("In the Eden Apothecary app, you will discover:");
+
+  const deeper = [
+    "Deeper Constitutional Mapping: How your Cold/Dry pattern corresponds to the Ayurvedic Vata dosha and the TCM patterns of Kidney Yin and Blood Deficiency \u2014 with the practical insights extracted from these traditions, translated into a Western and Biblical framework.",
+    "50+ Additional Herbs: A comprehensive materia medica organized by constitutional affinity, with detailed monographs including actions, preparations, dosages, and contraindications.",
+    "Body System Integration: How your constitutional pattern tends to manifest in each body system \u2014 digestive, respiratory, nervous, cardiovascular, endocrine, and more \u2014 with targeted herbal protocols for each.",
+    "Tissue State Assessment: Learn to read the six tissue states (heat, cold, damp, dry, tension, laxity) and how they layer onto your constitutional baseline.",
+    "Personalized Herb Matching: Input your current symptoms and receive herb suggestions filtered through your constitutional type \u2014 not generic recommendations, but personalized matches.",
+    "Formulation Principles: Learn how to combine herbs effectively for your constitution \u2014 which herbs lead, which support, and how to balance a formula.",
+  ];
+  for (const d of deeper) b.drawBullet(d);
+
+  // ── CTA ──
+  b.y -= 10;
+  b.drawCTABlock(
+    "Join the Beta Waitlist",
+    "Be the first to access the Eden Apothecary app when it launches.",
+    "EdenInstitute.health/app-waitlist"
+  );
+
+  // ── DISCLAIMER ──
+  b.drawDisclaimer();
+}
 
 async function generateSimpleGuide(doc: PDFDocument, content: SimpleContent): Promise<void> {
   const b = new PDFBuilder(doc);
@@ -948,8 +1099,8 @@ Deno.serve(async (req) => {
       await generateColdDampGuide(doc);
     } else if (type === 'hot-damp') {
       await generateHotDampGuide(doc);
-    } else {
-      await generateSimpleGuide(doc, simpleContents[type]);
+    } else if (type === 'cold-dry') {
+      await generateColdDryGuide(doc);
     }
 
     const pdfBytes = await doc.save();
