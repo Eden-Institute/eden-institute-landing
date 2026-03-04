@@ -349,6 +349,30 @@ Deno.serve(async (req) => {
 
     if (source === 'constitution_assessment' && constitutionType) {
       emailContent = buildAssessmentEmail(firstName, constitutionType);
+
+      // Step 3b: Record quiz completion for nurture sequence
+      const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      const supabaseUrl = Deno.env.get('SUPABASE_URL');
+      if (serviceRoleKey && supabaseUrl) {
+        fetch(`${supabaseUrl}/rest/v1/quiz_completions`, {
+          method: 'POST',
+          headers: {
+            'apikey': serviceRoleKey,
+            'Authorization': `Bearer ${serviceRoleKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal',
+          },
+          body: JSON.stringify({
+            email,
+            first_name: firstName,
+            constitution_type: constitutionType,
+          }),
+        }).then(res => {
+          console.log('Quiz completion recorded:', res.status);
+        }).catch(err => {
+          console.error('Failed to record quiz completion:', err.message);
+        });
+      }
     } else if (audienceId === COURSE_AUDIENCE_ID) {
       emailContent = buildFoundationsEmail(firstName);
     } else if (audienceId === APP_AUDIENCE_ID) {
