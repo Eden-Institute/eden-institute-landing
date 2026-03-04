@@ -657,7 +657,202 @@ async function generateColdDampGuide(doc: PDFDocument): Promise<void> {
   b.drawDisclaimer();
 }
 // ═══════════════════════════════════════════════════════
-// SIMPLE GUIDE GENERATOR (for other 3 types, pending upgrade)
+// HOT/DAMP COMPREHENSIVE GUIDE
+// ═══════════════════════════════════════════════════════
+
+async function generateHotDampGuide(doc: PDFDocument): Promise<void> {
+  const b = new PDFBuilder(doc);
+  await b.init();
+
+  // ── COVER ──
+  b.drawCoverPage(
+    "HOT / DAMP CONSTITUTION",
+    "The Sanguine Pattern",
+    "You tend toward heat with accumulation \u2014 inflammation that doesn't fully resolve."
+  );
+
+  // ── SECTION: YOUR PATTERN ──
+  b.newPage();
+  b.drawSectionHeader("YOUR PATTERN");
+  b.drawSubheading("Understanding the Hot/Damp Constitutional Tendency");
+
+  b.drawParagraph("You carry both heat and moisture in your system. Your body generates warmth readily, but unlike the Hot/Dry type, you also tend to accumulate and retain. This combination creates a pattern of reactive inflammation, congestion with heat, and conditions that flare but don't fully clear. This is not a flaw \u2014 it is how God designed you. The Hot/Damp constitution reflects a pattern of vital force that is robust, reactive, and abundant.");
+  b.drawParagraph("Under normal conditions, this constitutional pattern manifests as warmth, sociability, optimism, and strong vital reserves. You tend to be expressive, enthusiastic, and physically robust.");
+
+  b.drawSubheading("Physical Tendencies");
+  const physicals = [
+    "A tendency toward inflammatory conditions with swelling, redness, and heat",
+    "Skin eruptions: acne, boils, rashes, eczema with weeping or redness",
+    "Liver congestion, sluggish detoxification, and bilious conditions",
+    "Tendency toward infections that produce pus, discharge, or thick secretions",
+    "Digestive heat with bloating \u2014 acid reflux, gastritis, or inflammatory bowel patterns",
+    "Running warm but feeling heavy or congested simultaneously",
+    "Yellow-coated tongue, dark or strong-smelling urine, oily skin",
+  ];
+  for (const p of physicals) b.drawBullet(p);
+  b.y -= 6;
+
+  b.drawSubheading("Emotional and Mental Tendencies");
+  const emotionals = [
+    "Emotional intensity that can tip into volatility or reactivity",
+    "Frustration, irritability, or anger that builds and then erupts",
+    "A tendency to take on too much and feel overwhelmed",
+    "Difficulty letting go \u2014 of emotions, grudges, or physical toxins",
+    "Strong opinions and the drive to express them",
+    "Warmth and generosity, but sometimes at the cost of boundaries",
+  ];
+  for (const e of emotionals) b.drawBullet(e);
+  b.y -= 6;
+
+  b.drawSubheading("When Imbalanced");
+  b.drawParagraph("When the Hot/Damp pattern becomes excessive, you may experience chronic inflammatory conditions, recurrent infections, skin problems that won't clear, liver and gallbladder dysfunction, and emotional reactivity that strains relationships. The abundance that fuels your warmth can become congestion that traps toxins and heat.");
+
+  // ── SECTION: HISTORICAL CONTEXT ──
+  b.drawSectionHeader("HISTORICAL CONTEXT");
+  b.drawSubheading("The Sanguine Temperament in Classical Medicine");
+
+  b.drawParagraph("The Hot/Damp constitution corresponds to what classical Greek and Western medicine called the Sanguine temperament, associated with the element of Air and the humor of Blood.");
+  b.drawParagraph("Hippocrates and Galen observed that individuals with an excess of blood tended to be warm, sociable, optimistic, and physically robust \u2014 but also prone to inflammatory conditions, plethora (excess), and reactive health patterns. The term \"sanguine\" derives from the Latin sanguis (blood), reflecting the warm, moist nature of this constitutional type.");
+  b.drawParagraph("In the Eclectic tradition of American herbalism, practitioners recognized this pattern as one of \"fullness\" and \"excess\" \u2014 conditions requiring herbs that clear heat, support elimination, and promote the resolution of inflammatory states.");
+  b.drawParagraph("Harvey Wickes Felter, in his 1922 Eclectic Materia Medica, described alterative herbs as those that \"alter\" the condition of the blood and tissues \u2014 promoting elimination of waste, clearing congestion, and restoring proper function. This approach remains central to supporting the Hot/Damp constitution.");
+
+  // ── SECTION: BIBLICAL FRAMEWORK ──
+  b.drawSectionHeader("BIBLICAL FRAMEWORK");
+  b.drawSubheading("A Christian Understanding of Constitutional Medicine");
+
+  b.drawParagraph("The recognition that people differ in consistent, observable, and clinically significant ways is not borrowed from Eastern religion \u2014 it is confirmed by centuries of Western observation and is consistent with the biblical teaching that each person is \"fearfully and wonderfully made\" (Psalm 139:14).");
+  b.drawParagraph("God did not create one human template stamped out in endless copies. He wove each person with particular tendencies, strengths, and vulnerabilities. Constitutional medicine honors this particularity rather than treating all bodies as interchangeable.");
+
+  b.drawSubheading("What We Learn From Tradition \u2014 Without Adopting Its Metaphysics");
+  b.drawParagraph("The Greek humoral system, Ayurveda, and Traditional Chinese Medicine all observed similar constitutional patterns independently. This is not because they share the same spiritual framework \u2014 they do not. It is because they were all observing the same creation.");
+  b.drawParagraph("We do not need to adopt the metaphysics of these systems to benefit from their observational wisdom. We reject the idea that your constitution is determined by planetary influence, karmic imprint, or the balance of primal elements with independent existence. Instead, we affirm that your constitutional pattern reflects the particular way God designed your body to function \u2014 with its own tendencies, its own needs, and its own path toward flourishing.");
+  b.drawParagraph("The Hot/Damp pattern is not a spiritual diagnosis. It is a physiological observation with practical implications for how you should eat, rest, exercise, and \u2014 when needed \u2014 select herbal support.");
+
+  b.drawSubheading("Stewardship, Not Superstition");
+  b.drawParagraph("The Christian herbalist approaches constitutional medicine as a steward, not a mystic. We observe the body's patterns because God made the body readable. We select herbs that correspond to constitutional needs because God placed those herbs in creation with intention.");
+  b.drawScripture("\"Create in me a clean heart, O God\" (Psalm 51:10). The Hot/Damp constitution often carries more than it can process \u2014 physically and emotionally. The call on your life includes learning to release: to eliminate what no longer serves, to process what has accumulated, and to allow resolution rather than holding onto inflammation. Herbs that support elimination and resolution are also an invitation to spiritual release.");
+  b.drawParagraph("The intelligence that regulates your body \u2014 the coherence that holds your systems together \u2014 is not an impersonal force. It is upheld by the One in whom \"all things hold together\" (Colossians 1:17). Herbal medicine, rightly understood, is partnership with this design.");
+
+  // ── SECTION: YOUR HERBAL ALLIES ──
+  b.drawSectionHeader("YOUR HERBAL ALLIES");
+  b.drawSubheading("10 Herbs That Support the Hot/Damp Constitution");
+  b.drawParagraph("The herbs that best support your constitutional pattern are those that cool heat, support elimination and detoxification, move stagnant fluids, and promote the resolution of inflammatory states. These are not remedies for specific diseases \u2014 they are allies for your particular body.");
+
+  b.drawHerb(1, "Dandelion Root", "Taraxacum officinale",
+    "Bitter tonic, liver support, mild diuretic, alterative, digestive stimulant",
+    "Dandelion root is a foundational remedy for the Hot/Damp constitution. It supports liver function, promotes bile flow, aids digestion of fats, and gently encourages elimination through both kidneys and bowels. It clears without depleting.",
+    "Decoction of dried root: simmer 1-2 teaspoons per cup for 15-20 minutes. Roasted root makes a pleasant coffee substitute. Tincture.",
+    "Avoid if you have bile duct obstruction. May interact with some medications metabolized by the liver."
+  );
+
+  b.drawHerb(2, "Burdock Root", "Arctium lappa",
+    "Alterative, lymphatic, liver support, mild diuretic, prebiotic",
+    "Burdock is the classic \"blood purifier\" of Western herbalism \u2014 supporting the body's elimination of metabolic waste through liver, kidneys, and skin. For the Hot/Damp type with skin eruptions, chronic infections, or a sense of internal toxicity, burdock works slowly and deeply.",
+    "Decoction of dried root. Can be eaten as a vegetable (gobo). Combines well with dandelion root.",
+    "Effects develop over weeks of consistent use. Not a quick fix."
+  );
+
+  b.drawHerb(3, "Oregon Grape Root", "Mahonia aquifolium",
+    "Bitter tonic, liver stimulant, alterative, antimicrobial, cooling",
+    "Oregon Grape is specifically indicated for Hot/Damp conditions with skin involvement \u2014 acne, eczema, psoriasis. It contains berberine, which supports liver function and has antimicrobial properties. It cools heat while promoting elimination.",
+    "Decoction of dried root. Tincture. Often combined with other alteratives.",
+    "Avoid during pregnancy. Not for long-term use at high doses."
+  );
+
+  b.drawHerb(4, "Yellow Dock", "Rumex crispus",
+    "Bitter alterative, gentle laxative, liver support, iron enhancer",
+    "Yellow Dock supports elimination through the bowels and liver simultaneously. For the Hot/Damp constitution with sluggish elimination, constipation with heat signs, or chronic skin conditions, it promotes the clearing of accumulated waste.",
+    "Decoction of dried root: simmer 1 teaspoon per cup for 15 minutes. Tincture. Often combined with dandelion and burdock.",
+    "Contains oxalates \u2014 avoid with kidney stones. May cause loose stools at higher doses."
+  );
+
+  b.drawHerb(5, "Cleavers", "Galium aparine",
+    "Lymphatic, cooling diuretic, alterative, mild anti-inflammatory",
+    "Cleavers is the premier lymphatic herb \u2014 cooling, cleansing, and promoting the movement of lymphatic fluid. For the Hot/Damp type with swollen lymph nodes, skin eruptions, or urinary heat, cleavers cools and clears gently.",
+    "Best used fresh as juice or cold infusion. Dried herb tea is acceptable but weaker. Spring harvest is traditional.",
+    "Very safe. Increase fluid intake when using diuretics."
+  );
+
+  b.drawHerb(6, "Red Clover", "Trifolium pratense",
+    "Alterative, lymphatic, expectorant, nutritive, mild hormonal support",
+    "Red Clover is a gentle, nourishing alterative that supports the body's cleansing processes over time. It has a particular affinity for the lymphatic system and skin, making it well-suited for Hot/Damp patterns with chronic skin conditions or lymphatic congestion.",
+    "Standard infusion of dried blossoms. Can be used freely as a daily tea.",
+    "Contains isoflavones; consult a practitioner if you have hormone-sensitive conditions."
+  );
+
+  b.drawHerb(7, "Calendula", "Calendula officinalis",
+    "Lymphatic, vulnerary, anti-inflammatory, antimicrobial, mild bitter",
+    "Calendula moves lymph, heals tissue, and clears heat from inflamed areas. For the Hot/Damp type with slow-healing wounds, inflamed skin conditions, or digestive inflammation, calendula promotes resolution both internally and externally.",
+    "Infusion of dried flowers. Tincture. Oil infusion for external use. Tea for internal lymphatic and digestive support.",
+    "Avoid if allergic to plants in the Asteraceae family."
+  );
+
+  b.drawHerb(8, "Milk Thistle", "Silybum marianum",
+    "Hepatoprotective, liver regenerative, antioxidant, bitter tonic",
+    "Milk Thistle is the premier liver-protective herb. For the Hot/Damp constitution prone to liver congestion, sluggish detoxification, and conditions of excess, milk thistle supports the liver's ability to process and eliminate.",
+    "Seed preparations are most potent \u2014 ground seeds, standardized extracts, or tincture. Seeds can be ground and added to food.",
+    "Very safe. May have mild estrogenic effects at very high doses."
+  );
+
+  b.drawHerb(9, "Nettle Leaf", "Urtica dioica",
+    "Nutritive, diuretic, alterative, anti-inflammatory, antihistamine",
+    "Nettle is both nourishing and cleansing \u2014 it provides minerals while supporting elimination through the kidneys. For the Hot/Damp type with allergies, inflammatory conditions, or fluid retention, nettle provides deep support.",
+    "Long infusion: 1 oz dried leaf to 1 quart water, steep 4+ hours. Drink 1-3 cups daily.",
+    "Very safe. Harvest with gloves; sting disappears when dried or cooked."
+  );
+
+  b.drawHerb(10, "Gentian", "Gentiana lutea",
+    "Intensely bitter, digestive stimulant, liver and gallbladder support, cooling",
+    "Gentian stimulates the entire digestive cascade \u2014 from saliva to bile to pancreatic enzymes. For the Hot/Damp type with sluggish digestion, bloating, and a sense of food sitting heavily, gentian awakens digestive fire without adding heat.",
+    "Tincture or tea \u2014 small doses before meals. The taste must be experienced for full effect (don't mask it in capsules).",
+    "Avoid with gastric ulcers or excessive stomach acid. Not for pregnancy."
+  );
+
+  // ── SECTION: HERBS TO USE WITH CAUTION ──
+  b.drawSectionHeader("HERBS TO USE WITH CAUTION");
+  b.drawParagraph("The following herbs, while beneficial for other constitutional types, may aggravate the Hot/Damp pattern if used excessively or without balancing support:");
+
+  const cautions = [
+    "Cayenne (Capsicum annuum): Intensely heating. May increase inflammation and heat.",
+    "Ginger (Zingiber officinale): Warming. Use in moderation; excess may increase heat.",
+    "Cinnamon (Cinnamomum spp.): Warming and sweet. May increase congestion in some individuals.",
+    "Licorice Root (Glycyrrhiza glabra): Moistening and can promote retention. Use sparingly.",
+    "Marshmallow (Althaea officinalis): Highly moistening. May increase dampness.",
+    "Excess oily or fried foods: Increase dampness and liver burden.",
+    "Alcohol: Hot and damp \u2014 directly aggravates this pattern.",
+  ];
+  for (const c of cautions) b.drawBullet(c);
+
+  // ── SECTION: GO DEEPER ──
+  b.drawSectionHeader("GO DEEPER");
+  b.drawSubheading("What You'll Unlock in the Eden Apothecary App");
+  b.drawParagraph("This guide has introduced you to your constitutional pattern through the lens of Western herbal tradition. But this is only the beginning.");
+  b.drawParagraph("In the Eden Apothecary app, you will discover:");
+
+  const deeper = [
+    "Deeper Constitutional Mapping: How your Hot/Damp pattern corresponds to Ayurvedic Pitta-Kapha and the TCM pattern of Liver-Gallbladder Damp-Heat \u2014 with the practical insights extracted from these traditions, translated into a Western and Biblical framework.",
+    "50+ Additional Herbs: A comprehensive materia medica organized by constitutional affinity, with detailed monographs including actions, preparations, dosages, and contraindications.",
+    "Body System Integration: How your constitutional pattern tends to manifest in each body system \u2014 digestive, respiratory, nervous, cardiovascular, endocrine, and more \u2014 with targeted herbal protocols for each.",
+    "Tissue State Assessment: Learn to read the six tissue states (heat, cold, damp, dry, tension, laxity) and how they layer onto your constitutional baseline.",
+    "Personalized Herb Matching: Input your current symptoms and receive herb suggestions filtered through your constitutional type \u2014 not generic recommendations, but personalized matches.",
+    "Formulation Principles: Learn how to combine herbs effectively for your constitution \u2014 which herbs lead, which support, and how to balance a formula.",
+  ];
+  for (const d of deeper) b.drawBullet(d);
+
+  // ── CTA ──
+  b.y -= 10;
+  b.drawCTABlock(
+    "Join the Beta Waitlist",
+    "Be the first to access the Eden Apothecary app when it launches.",
+    "EdenInstitute.health/app-waitlist"
+  );
+
+  // ── DISCLAIMER ──
+  b.drawDisclaimer();
+}
+
+// ═══════════════════════════════════════════════════════
+// SIMPLE GUIDE GENERATOR (for Cold/Dry type, pending upgrade)
 // ═══════════════════════════════════════════════════════
 
 interface SimpleContent {
@@ -751,6 +946,8 @@ Deno.serve(async (req) => {
       await generateHotDryGuide(doc);
     } else if (type === 'cold-damp') {
       await generateColdDampGuide(doc);
+    } else if (type === 'hot-damp') {
+      await generateHotDampGuide(doc);
     } else {
       await generateSimpleGuide(doc, simpleContents[type]);
     }
