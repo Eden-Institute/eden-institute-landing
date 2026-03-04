@@ -14,7 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      quiz_completions: {
+        Row: {
+          completed_at: string
+          constitution_type: string
+          email: string
+          email_1_sent_at: string | null
+          email_2_sent_at: string | null
+          email_3_sent_at: string | null
+          first_name: string
+          id: string
+        }
+        Insert: {
+          completed_at?: string
+          constitution_type: string
+          email: string
+          email_1_sent_at?: string | null
+          email_2_sent_at?: string | null
+          email_3_sent_at?: string | null
+          first_name: string
+          id?: string
+        }
+        Update: {
+          completed_at?: string
+          constitution_type?: string
+          email?: string
+          email_1_sent_at?: string | null
+          email_2_sent_at?: string | null
+          email_3_sent_at?: string | null
+          first_name?: string
+          id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
