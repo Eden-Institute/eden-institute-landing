@@ -566,7 +566,7 @@ Deno.serve(async (req) => {
         ...corsHeaders,
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="Eden-Institute-${type}-constitution-guide.pdf"`,
-        'Cache-Control': 'public, max-age=86400',
+        'Cache-Control': 'no-store, max-age=0',
       },
     });
   } catch (err) {
