@@ -463,6 +463,200 @@ async function generateHotDryGuide(doc: PDFDocument): Promise<void> {
 }
 
 // ═══════════════════════════════════════════════════════
+// COLD/DAMP COMPREHENSIVE GUIDE
+// ═══════════════════════════════════════════════════════
+
+async function generateColdDampGuide(doc: PDFDocument): Promise<void> {
+  const b = new PDFBuilder(doc);
+  await b.init();
+
+  // ── COVER ──
+  b.drawCoverPage(
+    "COLD / DAMP CONSTITUTION",
+    "The Phlegmatic Pattern",
+    "You conserve energy, move slowly, and tend toward accumulation."
+  );
+
+  // ── SECTION: YOUR PATTERN ──
+  b.newPage();
+  b.drawSectionHeader("YOUR PATTERN");
+  b.drawSubheading("Understanding the Cold/Damp Constitutional Tendency");
+
+  b.drawParagraph("You are wired for endurance. Your metabolism conserves energy, your body retains moisture, and your systems move at a measured pace. This is not a weakness \u2014 it is how God designed you. The Cold/Damp constitution reflects a pattern of vital force that is receptive, stabilizing, and accumulating.");
+  b.drawParagraph("Under normal conditions, this constitutional pattern manifests as emotional steadiness, patience, loyalty, and the capacity for sustained nurturing. You tend to be calm under pressure, reliable, and deeply rooted in relationships and commitments.");
+
+  b.drawSubheading("Physical Tendencies");
+  const physicals = [
+    "A tendency toward sluggish digestion, slow metabolism, and weight gain",
+    "Excess mucus production, sinus congestion, and respiratory heaviness",
+    "Water retention, puffiness, and a sense of heaviness in the limbs",
+    "Cold hands and feet, difficulty staying warm, sensitivity to cold weather",
+    "Sluggish lymphatic circulation and a tendency toward stagnation",
+    "Pale complexion, soft tissue tone, and a tendency toward laxity",
+    "Low energy upon waking, difficulty initiating activity, but steady once moving",
+  ];
+  for (const p of physicals) b.drawBullet(p);
+  b.y -= 6;
+
+  b.drawSubheading("Emotional and Mental Tendencies");
+  const emotionals = [
+    "A tendency toward mental fog, sluggish thinking, and difficulty concentrating",
+    "Emotional heaviness, melancholy, or a sense of being weighed down",
+    "Difficulty with motivation, initiation, and starting new projects",
+    "A tendency to withdraw, avoid confrontation, or retreat into comfort",
+    "Attachment to routine, resistance to change, preference for the familiar",
+    "Deep loyalty and emotional steadiness, but sometimes at the cost of self-assertion",
+  ];
+  for (const e of emotionals) b.drawBullet(e);
+  b.y -= 6;
+
+  b.drawSubheading("When Imbalanced");
+  b.drawParagraph("When the Cold/Damp pattern becomes excessive, you may experience chronic congestion, weight that resists all efforts, persistent fatigue, depression, and a sense of being stuck. The stability that grounds you can become stagnation that traps you.");
+
+  // ── SECTION: HISTORICAL CONTEXT ──
+  b.drawSectionHeader("HISTORICAL CONTEXT");
+  b.drawSubheading("The Phlegmatic Temperament in Classical Medicine");
+
+  b.drawParagraph("The Cold/Damp constitution corresponds to what classical Greek and Western medicine called the Phlegmatic temperament, associated with the element of Water and the humor of Phlegm.");
+  b.drawParagraph("Hippocrates and Galen observed that individuals with an excess of this humor tended to be calm, patient, caring, and slow to anger \u2014 but also prone to sluggishness, weight gain, and emotional withdrawal. The term \"phlegmatic\" derives from the Greek phlegma (inflammation, but later associated with mucus), reflecting the cold, moist nature of this constitutional type.");
+  b.drawParagraph("In the Eclectic and Physiomedical traditions of 19th-century American herbalism, practitioners recognized this pattern and developed specific therapeutic strategies: warming herbs to increase metabolic fire, drying herbs to reduce excess moisture, and stimulating herbs to move stagnant fluids and energy.");
+  b.drawParagraph("Dr. William Cook, in his 1869 Physio-Medical Dispensatory, emphasized the importance of restoring \"vital warmth\" and promoting the free flow of fluids in constitutions marked by cold and damp. The goal was not to suppress symptoms but to restore the body's innate capacity for movement and warmth.");
+
+  // ── SECTION: BIBLICAL FRAMEWORK ──
+  b.drawSectionHeader("BIBLICAL FRAMEWORK");
+  b.drawSubheading("A Christian Understanding of Constitutional Medicine");
+
+  b.drawParagraph("The recognition that people differ in consistent, observable, and clinically significant ways is not borrowed from Eastern religion \u2014 it is confirmed by centuries of Western observation and is consistent with the biblical teaching that each person is \"fearfully and wonderfully made\" (Psalm 139:14).");
+  b.drawParagraph("God did not create one human template stamped out in endless copies. He wove each person with particular tendencies, strengths, and vulnerabilities. Constitutional medicine honors this particularity rather than treating all bodies as interchangeable.");
+
+  b.drawSubheading("What We Learn From Tradition \u2014 Without Adopting Its Metaphysics");
+  b.drawParagraph("The Greek humoral system, Ayurveda, and Traditional Chinese Medicine all observed similar constitutional patterns independently. This is not because they share the same spiritual framework \u2014 they do not. It is because they were all observing the same creation.");
+  b.drawParagraph("We do not need to adopt the metaphysics of these systems to benefit from their observational wisdom. We reject the idea that your constitution is determined by planetary influence, karmic imprint, or the balance of primal elements with independent existence. Instead, we affirm that your constitutional pattern reflects the particular way God designed your body to function \u2014 with its own tendencies, its own needs, and its own path toward flourishing.");
+  b.drawParagraph("The Cold/Damp pattern is not a spiritual diagnosis. It is a physiological observation with practical implications for how you should eat, rest, exercise, and \u2014 when needed \u2014 select herbal support.");
+
+  b.drawSubheading("Stewardship, Not Superstition");
+  b.drawParagraph("The Christian herbalist approaches constitutional medicine as a steward, not a mystic. We observe the body's patterns because God made the body readable. We select herbs that correspond to constitutional needs because God placed those herbs in creation with intention.");
+  b.drawScripture("\"Whatever you do, work heartily, as for the Lord\" (Colossians 3:23). The Cold/Damp constitution excels at endurance but struggles with initiation. The call on your life includes learning to move \u2014 not from restless anxiety, but from faithful obedience. Herbal support for your type helps awaken and activate, physically and spiritually.");
+  b.drawParagraph("The intelligence that regulates your body \u2014 the coherence that holds your systems together \u2014 is not an impersonal force. It is upheld by the One in whom \"all things hold together\" (Colossians 1:17). Herbal medicine, rightly understood, is partnership with this design.");
+
+  // ── SECTION: YOUR HERBAL ALLIES ──
+  b.drawSectionHeader("YOUR HERBAL ALLIES");
+  b.drawSubheading("10 Herbs That Support the Cold/Damp Constitution");
+  b.drawParagraph("The herbs that best support your constitutional pattern are those that warm the body, dry excess moisture, stimulate sluggish circulation, and move stagnant fluids. These are not remedies for specific diseases \u2014 they are allies for your particular body.");
+
+  b.drawHerb(1, "Ginger", "Zingiber officinale",
+    "Warming circulatory stimulant, carminative, diaphoretic, anti-nausea, expectorant",
+    "Ginger is the quintessential remedy for the Cold/Damp pattern. It warms the core, stimulates digestion, moves stagnant fluids, and awakens sluggish circulation. Fresh ginger is more diaphoretic; dried ginger is more warming to the interior.",
+    "Fresh ginger tea: slice 1-2 inches of fresh root, simmer 10-15 minutes. Add honey and lemon. Dried ginger powder can be added to food or taken in capsules.",
+    "Use cautiously if you have acid reflux or run very hot. Start with small amounts."
+  );
+
+  b.drawHerb(2, "Rosemary", "Salvia rosmarinus",
+    "Warming circulatory stimulant, cognitive enhancer, carminative, antioxidant",
+    "Rosemary warms and moves. It clears mental fog, stimulates cerebral circulation, and lifts the spirits. For the Cold/Damp type prone to sluggish thinking and low motivation, rosemary brings clarity and energy.",
+    "Culinary use is therapeutic. Infusion of fresh or dried leaves. Add to broths, roasted vegetables, and meats.",
+    "Avoid large medicinal doses during pregnancy."
+  );
+
+  b.drawHerb(3, "Thyme", "Thymus vulgaris",
+    "Warming expectorant, antimicrobial, carminative, antispasmodic",
+    "Thyme is specific for Cold/Damp conditions in the respiratory system \u2014 chronic congestion, productive coughs, sinus heaviness. It warms, dries, and clears while fighting infection.",
+    "Hot infusion: 1 teaspoon dried herb per cup, steep covered 10 minutes. Honey-thyme syrup for coughs.",
+    "Avoid large medicinal doses during pregnancy."
+  );
+
+  b.drawHerb(4, "Elecampane", "Inula helenium",
+    "Warming expectorant, respiratory tonic, bitter tonic, antimicrobial",
+    "Elecampane is a deep respiratory remedy for chronic, wet, cold lung conditions. It warms the lungs, helps expel thick mucus, and strengthens respiratory function over time. Excellent for the Cold/Damp constitution with chronic bronchial weakness.",
+    "Decoction of dried root: simmer 1 teaspoon per cup for 20 minutes. Tincture. Honey paste.",
+    "Avoid during pregnancy. May cause contact dermatitis in sensitive individuals."
+  );
+
+  b.drawHerb(5, "Cayenne", "Capsicum annuum",
+    "Powerful circulatory stimulant, warming, metabolic enhancer, rubefacient",
+    "Cayenne is a powerful mover of blood and vital force. For the Cold/Damp constitution with poor peripheral circulation, cold extremities, and sluggish metabolism, small amounts of cayenne can be transformative.",
+    "Start small \u2014 a pinch in warm water or added to food. Build tolerance gradually. Can be taken in capsules if the heat is too intense.",
+    "Avoid if you have gastritis, ulcers, or hemorrhoids. Start with very small doses."
+  );
+
+  b.drawHerb(6, "Cinnamon", "Cinnamomum verum",
+    "Warming carminative, circulatory stimulant, blood sugar regulator, antimicrobial",
+    "Cinnamon gently warms the digestive system, improves circulation, and helps regulate blood sugar \u2014 all valuable for the Cold/Damp constitution prone to sluggish digestion and metabolic challenges.",
+    "Add to food, beverages, and herbal formulas. Decoction of bark. Ceylon cinnamon (C. verum) is preferred over Cassia for regular use.",
+    "Cassia cinnamon contains more coumarin; limit intake if using daily."
+  );
+
+  b.drawHerb(7, "Prickly Ash", "Zanthoxylum americanum",
+    "Powerful circulatory stimulant, warming, lymphatic mover, digestive stimulant",
+    "Prickly Ash is a specific for cold, stagnant conditions. It powerfully moves blood and lymph, warms cold extremities, and stimulates sluggish systems. A key remedy for the Cold/Damp type with poor circulation and lymphatic congestion.",
+    "Tincture of bark is most common: 10-30 drops in water. Decoction of bark.",
+    "May cause tingling sensation in the mouth (normal). Avoid during pregnancy."
+  );
+
+  b.drawHerb(8, "Angelica", "Angelica archangelica",
+    "Warming carminative, circulatory stimulant, expectorant, bitter tonic",
+    "Angelica warms the entire system \u2014 digestive, respiratory, and circulatory. It is particularly indicated for Cold/Damp conditions with digestive weakness, poor appetite, and a tendency toward respiratory congestion.",
+    "Decoction or tincture of root. Often combined with other warming herbs.",
+    "Avoid during pregnancy. May increase photosensitivity."
+  );
+
+  b.drawHerb(9, "Juniper Berry", "Juniperus communis",
+    "Warming diuretic, urinary antiseptic, carminative, circulatory stimulant",
+    "Juniper helps the Cold/Damp constitution release excess fluid accumulation through gentle diuresis. It warms the kidneys, stimulates urinary function, and helps clear the waterlogged feeling common to this type.",
+    "Infusion of crushed berries: 1 teaspoon per cup. Short-term use only.",
+    "Avoid during pregnancy and with kidney disease. Not for long-term use."
+  );
+
+  b.drawHerb(10, "Holy Basil/Tulsi", "Ocimum tenuiflorum",
+    "Warming adaptogen, respiratory support, mood elevator, metabolic enhancer",
+    "Holy Basil (Tulsi) is a gentle warming adaptogen that lifts the spirits, clears mental fog, supports respiratory health, and helps the body adapt to stress. For the Cold/Damp type prone to depression and low energy, it is an uplifting daily ally.",
+    "Infusion of dried leaves: 1-2 teaspoons per cup. Can be drunk freely as a daily tea.",
+    "May have mild blood-thinning effects at high doses."
+  );
+
+  // ── SECTION: HERBS TO USE WITH CAUTION ──
+  b.drawSectionHeader("HERBS TO USE WITH CAUTION");
+  b.drawParagraph("The following herbs, while beneficial for other constitutional types, may aggravate the Cold/Damp pattern if used excessively or without balancing support:");
+
+  const cautions = [
+    "Marshmallow Root (Althaea officinalis): Highly moistening. May increase dampness and congestion.",
+    "Slippery Elm (Ulmus rubra): Very moistening. Use sparingly or combine with warming, drying herbs.",
+    "Licorice Root (Glycyrrhiza glabra): Moistening and can promote water retention. Use in small amounts only.",
+    "Comfrey (Symphytum officinale): Cold and moist. May increase stagnation.",
+    "Excess dairy and wheat: Not herbs, but dietary factors that increase dampness significantly.",
+    "Raw, cold foods in excess: Weaken digestive fire. Favor cooked, warming foods.",
+    "Sedating nervines in excess: Valerian, Kava \u2014 may increase sluggishness. Use stimulating nervines instead.",
+  ];
+  for (const c of cautions) b.drawBullet(c);
+
+  // ── SECTION: GO DEEPER ──
+  b.drawSectionHeader("GO DEEPER");
+  b.drawSubheading("What You'll Unlock in the Eden Apothecary App");
+  b.drawParagraph("This guide has introduced you to your constitutional pattern through the lens of Western herbal tradition. But this is only the beginning.");
+  b.drawParagraph("In the Eden Apothecary app, you will discover:");
+
+  const deeper = [
+    "Deeper Constitutional Mapping: How your Cold/Damp pattern corresponds to the Ayurvedic Kapha dosha and the TCM pattern of Spleen Qi Deficiency with Dampness \u2014 with the practical insights extracted from these traditions, translated into a Western and Biblical framework.",
+    "50+ Additional Herbs: A comprehensive materia medica organized by constitutional affinity, with detailed monographs including actions, preparations, dosages, and contraindications.",
+    "Body System Integration: How your constitutional pattern tends to manifest in each body system \u2014 digestive, respiratory, nervous, cardiovascular, endocrine, and more \u2014 with targeted herbal protocols for each.",
+    "Tissue State Assessment: Learn to read the six tissue states (heat, cold, damp, dry, tension, laxity) and how they layer onto your constitutional baseline.",
+    "Personalized Herb Matching: Input your current symptoms and receive herb suggestions filtered through your constitutional type \u2014 not generic recommendations, but personalized matches.",
+    "Formulation Principles: Learn how to combine herbs effectively for your constitution \u2014 which herbs lead, which support, and how to balance a formula.",
+  ];
+  for (const d of deeper) b.drawBullet(d);
+
+  // ── CTA ──
+  b.y -= 10;
+  b.drawCTABlock(
+    "Join the Beta Waitlist",
+    "Be the first to access the Eden Apothecary app when it launches.",
+    "EdenInstitute.health/app-waitlist"
+  );
+
+  // ── DISCLAIMER ──
+  b.drawDisclaimer();
+}
+// ═══════════════════════════════════════════════════════
 // SIMPLE GUIDE GENERATOR (for other 3 types, pending upgrade)
 // ═══════════════════════════════════════════════════════
 
@@ -555,6 +749,8 @@ Deno.serve(async (req) => {
 
     if (type === 'hot-dry') {
       await generateHotDryGuide(doc);
+    } else if (type === 'cold-damp') {
+      await generateColdDampGuide(doc);
     } else {
       await generateSimpleGuide(doc, simpleContents[type]);
     }
