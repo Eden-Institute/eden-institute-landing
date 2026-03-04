@@ -498,6 +498,13 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
               ))}
             </div>
 
+            <div className="p-4 md:p-5 rounded text-sm leading-relaxed mb-6" style={{ backgroundColor: "#F5F0E8", border: "1px solid #C9A84C", color: "#1C3A2E" }}>
+              <p className="font-body">
+                📧 Your full report has been sent to your email! If you don't see it in your inbox within a few minutes, please check your spam or promotions folder. To make sure you receive your follow-up assessment insights, add{" "}
+                <strong>hello@edeninstitute.health</strong> to your contacts or safe sender list.
+              </p>
+            </div>
+
             <div className="text-center">
               <Button variant="eden" size="lg" className="w-full md:w-auto min-h-[48px]" onClick={() => handleClose(false)}>
                 ← Back to Home
