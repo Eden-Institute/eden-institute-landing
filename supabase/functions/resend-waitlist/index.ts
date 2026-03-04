@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, rgb } from 'https://esm.sh/pdf-lib@1.17.1';
+// PDF generation is handled by the constitution-pdf edge function
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,80 +17,13 @@ const TOPIC_IDS = [
 const COURSE_AUDIENCE_ID = "4860c1c5-8e2b-4d02-838a-60ef09b789bf";
 const APP_AUDIENCE_ID = "cebd3478-b344-41b7-98c8-8bcf0e0108da";
 
-// ── PDF Lead Magnet Content ──
-
-interface PDFContent {
-  title: string;
-  tagline: string;
-  pattern: string;
-  herbs: string;
-  scripture: string;
-  caution: string;
-}
-
-const pdfContents: Record<string, PDFContent> = {
-  "Hot/Dry": {
-    title: "HOT / DRY CONSTITUTION",
-    tagline: "You run warm, think fast, and burn through resources quickly.",
-    pattern: "You tend toward inflammation, dryness, intensity, and heat. Under stress, you may experience irritability, insomnia, dry skin, constipation, and a sense of urgency that won't quiet.",
-    herbs: "Cooling, moistening herbs are your allies: Marshmallow Root (Althaea officinalis), Lemon Balm (Melissa officinalis), Violet leaf (Viola odorata), Rose (Rosa spp.), Elderflower (Sambucus nigra).",
-    scripture: "\"A tranquil heart gives life to the flesh.\" — Proverbs 14:30. Your constitution is built for intensity. But intensity without rest becomes combustion. The call on your life includes learning to dwell.",
-    caution: "Stimulating, drying, or very pungent herbs used long-term — cayenne, ginger in excess, ephedra.",
-  },
-  "Cold/Damp": {
-    title: "COLD / DAMP CONSTITUTION",
-    tagline: "You conserve energy, move slowly, and tend toward accumulation.",
-    pattern: "Your body tends toward sluggishness, congestion, water retention, low metabolic drive, and heaviness. Under stress you may withdraw, feel foggy, gain weight easily, or struggle to initiate.",
-    herbs: "Warming, moving, and drying herbs are your allies: Ginger (Zingiber officinale), Rosemary (Salvia rosmarinus), Elecampane (Inula helenium), Thyme (Thymus vulgaris), Prickly Ash (Zanthoxylum americanum).",
-    scripture: "\"Whatever you do, work heartily, as for the Lord.\" — Colossians 3:23. Your constitution excels at endurance. The challenge is initiation. Herbal support for your type helps awaken and move — physically and spiritually.",
-    caution: "Cooling, heavily moistening herbs long-term — excessive marshmallow, slippery elm used alone.",
-  },
-  "Hot/Damp": {
-    title: "HOT / DAMP CONSTITUTION",
-    tagline: "You tend toward heat with accumulation — inflammation that doesn't fully resolve.",
-    pattern: "Your body tends toward infection, inflammation with swelling, skin eruptions, liver congestion, and reactive responses. You may run warm but feel heavy or congested simultaneously.",
-    herbs: "Cooling and moving herbs are your allies: Dandelion root (Taraxacum officinale), Burdock (Arctium lappa), Oregon Grape Root (Mahonia aquifolium), Cleavers (Galium aparine), Yellow Dock (Rumex crispus).",
-    scripture: "\"Create in me a clean heart, O God.\" — Psalm 51:10. The Hot/Damp type often carries more than it can process — physically and emotionally. Herbs that support elimination and resolution are also an invitation to release.",
-    caution: "Very warming and stimulating herbs that increase heat and circulation without supporting resolution.",
-  },
-  "Cold/Dry": {
-    title: "COLD / DRY CONSTITUTION",
-    tagline: "You tend toward depletion — under-resourced and underbuilt.",
-    pattern: "Your body tends toward deficiency: thin tissues, poor absorption, dryness without heat, anxiety with fatigue, fragility. You may feel depleted rather than imbalanced — the tank runs low.",
-    herbs: "Nourishing, building, and warming herbs are your allies: Ashwagandha (Withania somnifera), Oat straw (Avena sativa), Hawthorn (Crataegus spp.), Licorice root (Glycyrrhiza glabra), Nettle (Urtica dioica).",
-    scripture: "\"He gives strength to the weary and increases the power of the weak.\" — Isaiah 40:29. The Cold/Dry type is not broken — it is depleted. The work is restoration, not stimulation. Rest, nourishment, and rebuilding herbs are the path.",
-    caution: "Stimulating, depleting, or strongly bitter herbs without nourishing support — long-term coffee, ephedra, excess bitters.",
-  },
-};
-
 // Map 8 quiz types to 4 PDF categories
 function getPDFCategory(constitutionType: string): string {
-  if (constitutionType.startsWith("Hot") && constitutionType.includes("Dry")) return "Hot/Dry";
-  if (constitutionType.startsWith("Hot") && constitutionType.includes("Damp")) return "Hot/Damp";
-  if (constitutionType.startsWith("Cold") && constitutionType.includes("Dry")) return "Cold/Dry";
-  if (constitutionType.startsWith("Cold") && constitutionType.includes("Damp")) return "Cold/Damp";
-  return "Hot/Dry"; // fallback
-}
-
-// ── PDF Generation ──
-
-function wrapText(text: string, font: any, fontSize: number, maxWidth: number): string[] {
-  const words = text.split(' ');
-  const lines: string[] = [];
-  let currentLine = '';
-
-  for (const word of words) {
-    const testLine = currentLine ? `${currentLine} ${word}` : word;
-    const width = font.widthOfTextAtSize(testLine, fontSize);
-    if (width > maxWidth && currentLine) {
-      lines.push(currentLine);
-      currentLine = word;
-    } else {
-      currentLine = testLine;
-    }
-  }
-  if (currentLine) lines.push(currentLine);
-  return lines;
+  if (constitutionType.startsWith("Hot") && constitutionType.includes("Dry")) return "hot-dry";
+  if (constitutionType.startsWith("Hot") && constitutionType.includes("Damp")) return "hot-damp";
+  if (constitutionType.startsWith("Cold") && constitutionType.includes("Dry")) return "cold-dry";
+  if (constitutionType.startsWith("Cold") && constitutionType.includes("Damp")) return "cold-damp";
+  return "hot-dry"; // fallback
 }
 
 function uint8ArrayToBase64(bytes: Uint8Array): string {
@@ -103,174 +36,23 @@ function uint8ArrayToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-async function generateConstitutionPDF(category: string): Promise<Uint8Array> {
-  const content = pdfContents[category];
-  if (!content) throw new Error(`No PDF content for category: ${category}`);
-
-  const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([612, 792]); // US Letter
-
-  const timesRoman = await pdfDoc.embedFont(StandardFonts.TimesRoman);
-  const timesBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
-  const timesItalic = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
-  const timesBoldItalic = await pdfDoc.embedFont(StandardFonts.TimesRomanBoldItalic);
-
-  const darkGreen = rgb(0.11, 0.227, 0.18);
-  const gold = rgb(0.788, 0.659, 0.298);
-  const cream = rgb(0.961, 0.941, 0.91);
-  const white = rgb(1, 1, 1);
-
-  const pageWidth = 612;
-  const margin = 50;
-  const contentWidth = pageWidth - margin * 2;
-
-  // Background
-  page.drawRectangle({ x: 0, y: 0, width: pageWidth, height: 792, color: cream });
-
-  // Dark green header
-  const headerHeight = 100;
-  page.drawRectangle({ x: 0, y: 792 - headerHeight, width: pageWidth, height: headerHeight, color: darkGreen });
-
-  // "THE EDEN INSTITUTE" in gold
-  const brandText = "THE EDEN INSTITUTE";
-  const brandWidth = timesBold.widthOfTextAtSize(brandText, 11);
-  page.drawText(brandText, {
-    x: (pageWidth - brandWidth) / 2,
-    y: 792 - 40,
-    size: 11,
-    font: timesBold,
-    color: gold,
+async function fetchConstitutionPDF(category: string): Promise<Uint8Array> {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const url = `${supabaseUrl}/functions/v1/constitution-pdf?type=${category}`;
+  const res = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${serviceRoleKey}`,
+    },
   });
-
-  // Gold divider in header
-  const dividerWidth = 60;
-  page.drawLine({
-    start: { x: (pageWidth - dividerWidth) / 2, y: 792 - 52 },
-    end: { x: (pageWidth + dividerWidth) / 2, y: 792 - 52 },
-    thickness: 1,
-    color: gold,
-  });
-
-  // Tagline in header
-  const tagline1 = "Back to Eden. Back to Truth.";
-  const tag1Width = timesItalic.widthOfTextAtSize(tagline1, 10);
-  page.drawText(tagline1, {
-    x: (pageWidth - tag1Width) / 2,
-    y: 792 - 70,
-    size: 10,
-    font: timesItalic,
-    color: cream,
-  });
-
-  let y = 792 - headerHeight - 30;
-
-  // Constitution title
-  const titleWidth = timesBold.widthOfTextAtSize(content.title, 22);
-  page.drawText(content.title, {
-    x: (pageWidth - titleWidth) / 2,
-    y,
-    size: 22,
-    font: timesBold,
-    color: darkGreen,
-  });
-  y -= 8;
-
-  // Gold line under title
-  page.drawLine({
-    start: { x: margin + 80, y },
-    end: { x: pageWidth - margin - 80, y },
-    thickness: 1,
-    color: gold,
-  });
-  y -= 20;
-
-  // Tagline in italic gold
-  const tagLines = wrapText(content.tagline, timesItalic, 12, contentWidth);
-  for (const line of tagLines) {
-    const lw = timesItalic.widthOfTextAtSize(line, 12);
-    page.drawText(line, { x: (pageWidth - lw) / 2, y, size: 12, font: timesItalic, color: gold });
-    y -= 16;
+  if (!res.ok) {
+    throw new Error(`PDF fetch failed: ${res.status}`);
   }
-  y -= 12;
-
-  // Helper: draw section
-  function drawSection(label: string, body: string, yPos: number): number {
-    // Gold label
-    page.drawText(label, { x: margin, y: yPos, size: 10, font: timesBold, color: gold });
-    yPos -= 4;
-    // Small gold underline
-    const labelW = timesBold.widthOfTextAtSize(label, 10);
-    page.drawLine({
-      start: { x: margin, y: yPos },
-      end: { x: margin + labelW, y: yPos },
-      thickness: 0.5,
-      color: gold,
-    });
-    yPos -= 14;
-
-    // Body text
-    const lines = wrapText(body, timesRoman, 10, contentWidth);
-    for (const line of lines) {
-      page.drawText(line, { x: margin, y: yPos, size: 10, font: timesRoman, color: darkGreen });
-      yPos -= 14;
-    }
-    yPos -= 10;
-    return yPos;
-  }
-
-  y = drawSection("YOUR PATTERN", content.pattern, y);
-  y = drawSection("HERBAL ALLIES", content.herbs, y);
-
-  // Scripture section with gold left border
-  page.drawText("A WORD FROM SCRIPTURE", { x: margin, y, size: 10, font: timesBold, color: gold });
-  const scrLabelW = timesBold.widthOfTextAtSize("A WORD FROM SCRIPTURE", 10);
-  y -= 4;
-  page.drawLine({
-    start: { x: margin, y },
-    end: { x: margin + scrLabelW, y },
-    thickness: 0.5,
-    color: gold,
-  });
-  y -= 14;
-
-  // Gold left border for scripture
-  const scriptureLines = wrapText(content.scripture, timesItalic, 10, contentWidth - 16);
-  const scriptureHeight = scriptureLines.length * 14 + 4;
-  page.drawRectangle({
-    x: margin,
-    y: y - scriptureHeight + 14,
-    width: 3,
-    height: scriptureHeight,
-    color: gold,
-  });
-  for (const line of scriptureLines) {
-    page.drawText(line, { x: margin + 12, y, size: 10, font: timesItalic, color: darkGreen });
-    y -= 14;
-  }
-  y -= 10;
-
-  y = drawSection("USE WITH CAUTION", content.caution, y);
-
-  // Gold divider before footer
-  page.drawLine({
-    start: { x: margin, y: y + 4 },
-    end: { x: pageWidth - margin, y: y + 4 },
-    thickness: 0.5,
-    color: gold,
-  });
-  y -= 12;
-
-  // Footer disclaimer
-  const disclaimer = "This guide is educational only and does not constitute medical advice. For complex or serious health concerns, consult a qualified practitioner. Learn more at EdenInstitute.health";
-  const disclaimerLines = wrapText(disclaimer, timesItalic, 8, contentWidth);
-  for (const line of disclaimerLines) {
-    const dw = timesItalic.widthOfTextAtSize(line, 8);
-    page.drawText(line, { x: (pageWidth - dw) / 2, y, size: 8, font: timesItalic, color: gold });
-    y -= 11;
-  }
-
-  return await pdfDoc.save();
+  const buf = await res.arrayBuffer();
+  return new Uint8Array(buf);
 }
+
+// Old generateConstitutionPDF removed — now fetched from constitution-pdf edge function
 
 // ── Shared HTML components ──
 
@@ -615,20 +397,19 @@ Deno.serve(async (req) => {
     if (source === 'constitution_assessment' && constitutionType) {
       emailContent = buildAssessmentEmail(firstName, constitutionType);
 
-      // Generate PDF lead magnet
+      // Fetch comprehensive PDF from constitution-pdf edge function
       try {
         const pdfCategory = getPDFCategory(constitutionType);
-        console.log(`Generating PDF for category: ${pdfCategory}`);
-        const pdfBytes = await generateConstitutionPDF(pdfCategory);
+        console.log(`Fetching PDF for category: ${pdfCategory}`);
+        const pdfBytes = await fetchConstitutionPDF(pdfCategory);
         const pdfBase64 = uint8ArrayToBase64(pdfBytes);
-        const safeName = pdfCategory.replace('/', '-').toLowerCase();
         pdfAttachments = [{
-          filename: `Eden-Institute-${safeName}-constitution-guide.pdf`,
+          filename: `Eden-Institute-${pdfCategory}-constitution-guide.pdf`,
           content: pdfBase64,
         }];
-        console.log(`PDF generated: ${pdfBytes.length} bytes`);
+        console.log(`PDF fetched: ${pdfBytes.length} bytes`);
       } catch (pdfErr) {
-        console.error('PDF generation failed:', pdfErr.message);
+        console.error('PDF fetch failed:', pdfErr.message);
         // Continue without attachment — email still sends
       }
 
