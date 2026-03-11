@@ -303,8 +303,8 @@ Deno.serve(async (req) => {
         await new Promise(r => setTimeout(r, 300));
       }
 
-      // Email 2: Send after 3 days (72 hours)
-      if (!row.email_2_sent_at && row.email_1_sent_at && hoursSince >= 72) {
+      // Email 2: Send after 2 minutes (QA TESTING - normally 72 hours)
+      if (!row.email_2_sent_at && row.email_1_sent_at && hoursSince >= 0.0333) {
         const { subject, previewText, html } = buildNurtureEmail2(row.first_name);
         const ok = await sendEmail(row.email, subject, html, previewText);
         if (ok) {
