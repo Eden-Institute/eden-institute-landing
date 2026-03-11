@@ -350,6 +350,7 @@ Deno.serve(async (req) => {
         email,
         first_name: firstName,
         unsubscribed: false,
+        ...(constitutionType ? { properties: { constitutional_type: constitutionType } } : {}),
       }),
     });
 
