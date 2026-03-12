@@ -139,7 +139,7 @@ ${arrow("Short teachings on biblical herbalism, human constitution, and how God 
 ${arrow("Honest, rigorous content — no wellness trends, no fear-based messaging.")}
 ${arrow("An invitation, on June 9th, to go much deeper together in <strong>Back to Eden: Foundations of Biblical Herbalism</strong> — our first cohort.")}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="height:8px;"></td></tr></table>
-${p("Your constitutional type quiz result is on its way in a separate email — along with a short guide on what your type means and how to begin working with it.")}
+${p("You should already have your constitutional type quiz result in your inbox — along with a short guide on what your type means and how to begin working with it. If you don't see it, check your spam folder and add hello@edeninstitute.health to your contacts.")}
 ${p("I'm glad you're here.")}
 ${signatureShort()}`;
 
