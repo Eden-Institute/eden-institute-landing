@@ -294,8 +294,8 @@ Deno.serve(async (req) => {
       const completedAt = new Date(row.completed_at);
       const hoursSince = (now.getTime() - completedAt.getTime()) / (1000 * 60 * 60);
 
-      // Email 1: Send immediately (QA TESTING - normally 1 hour)
-      if (!row.email_1_sent_at && hoursSince >= 0) {
+      // Email 1: Send after 1 hour
+      if (!row.email_1_sent_at && hoursSince >= 1) {
         const { subject, previewText, html } = buildNurtureEmail1(row.first_name);
         const ok = await sendEmail(row.email, subject, html, previewText);
         if (ok) {
@@ -308,8 +308,8 @@ Deno.serve(async (req) => {
         await new Promise(r => setTimeout(r, 300));
       }
 
-      // Email 2: Send after 2 minutes (QA TESTING - normally 72 hours)
-      if (!row.email_2_sent_at && row.email_1_sent_at && hoursSince >= 0.0333) {
+      // Email 2: Send after 72 hours (3 days)
+      if (!row.email_2_sent_at && row.email_1_sent_at && hoursSince >= 72) {
         const { subject, previewText, html } = buildNurtureEmail2(row.first_name);
         const ok = await sendEmail(row.email, subject, html, previewText);
         if (ok) {
@@ -322,8 +322,8 @@ Deno.serve(async (req) => {
         await new Promise(r => setTimeout(r, 300));
       }
 
-      // Email 3: Send after 5 minutes (QA TESTING - normally 168 hours)
-      if (!row.email_3_sent_at && row.email_2_sent_at && hoursSince >= 0.0833) {
+      // Email 3: Send after 168 hours (7 days)
+      if (!row.email_3_sent_at && row.email_2_sent_at && hoursSince >= 168) {
         const { subject, previewText, html } = buildNurtureEmail3(row.first_name);
         const ok = await sendEmail(row.email, subject, html, previewText);
         if (ok) {
