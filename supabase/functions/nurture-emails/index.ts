@@ -157,15 +157,16 @@ function buildNurtureEmail2(firstName: string): { subject: string; previewText: 
 ${p(`${firstName},`)}
 ${p("If you've spent any time in the herbal world, you've probably encountered lists. Take elderberry for immunity. Take ashwagandha for stress. Take turmeric for inflammation.")}
 ${p("Here's what those lists leave out: <strong>you</strong>.")}
-${p("Constitutional medicine — found in Ayurveda, Traditional Chinese Medicine, Greek medicine, and Western herbalism — arrived at the same insight independently: people differ in ways that are consistent and clinically meaningful. The body has a direction. Good herbal medicine honors that direction.")}
+${p(`Scripture tells us that God formed each person with intention — <em>"For you created my inmost being; you knit me together in my mother's womb"</em> (Psalm 139:13). That means your body has a design. A direction. A constitutional pattern that shows up in how you respond to stress, to seasons, to food, and to illness.`)}
+${p("This is not a new idea. Physicians across centuries — from the Greek humoral tradition to the Western Physiomedicalists — observed that people differ in consistent, clinically meaningful ways. What they lacked was the right framework for <em>why</em>. Scripture supplies what clinical observation alone cannot: the truth that these patterns are not accidents of nature. They are features of intentional design.")}
 ${goldDivider()}
-${p("Your quiz result identified your constitutional pattern. This isn't a personality type. It's a physiological tendency — the baseline toward which your body tends to drift under stress, in illness, and across your life.")}
-${p("Here's what this means practically:")}
-${bullet("The herbs that cool and moisten help the person who runs hot and dry.")}
-${bullet("The herbs that warm and move help the person who tends cold and stagnant.")}
-${bullet("The herbs that tone and dry help the person who tends toward laxity and dampness.")}
+${p("Your quiz result identified your constitutional pattern — the physiological baseline toward which your body tends to drift. Here is what that means practically:")}
+${bullet("The herbs that cool and moisten serve the person who runs hot and dry.")}
+${bullet("The herbs that warm and move serve the person who tends cold and stagnant.")}
+${bullet("The herbs that tone and dry serve the person who tends toward laxity and dampness.")}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="height:8px;"></td></tr></table>
-${p("This is not complicated. But it requires reading the person before reaching for the plant. That's what <em>Back to Eden</em> teaches — and what <strong>Back to Eden: Foundations of Biblical Herbalism</strong> builds into a full clinical framework.")}
+${p("This is not complicated. But it requires reading the person before reaching for the plant.")}
+${p("That is what <strong>Back to Eden: Foundations of Biblical Herbalism</strong> teaches — a framework where clinical observation and Biblical truth work together, not in tension.")}
 ${p("More on that soon.")}
 ${signatureShort()}`;
 
