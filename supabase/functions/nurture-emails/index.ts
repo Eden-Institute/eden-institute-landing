@@ -101,7 +101,11 @@ function bullet(text: string): string {
 function brandButton(label: string, url: string): string {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
 <tr><td align="center">
-<a href="${url}" target="_blank" style="display:block;width:100%;max-width:520px;background-color:${BRAND.button};color:${BRAND.buttonText};font-family:Georgia,serif;font-size:16px;font-weight:bold;text-decoration:none;text-align:center;padding:14px 24px;border-radius:8px;line-height:48px;mso-line-height-rule:exactly;">${label}</a>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
+<tr><td align="center" style="background-color:${BRAND.button};border-radius:8px;">
+<a href="${url}" target="_blank" style="display:inline-block;background-color:${BRAND.button};color:${BRAND.buttonText};font-family:Georgia,serif;font-size:16px;font-weight:bold;text-decoration:none;text-align:center;padding:14px 40px;border-radius:8px;line-height:24px;mso-line-height-rule:exactly;">${label}</a>
+</td></tr>
+</table>
 </td></tr>
 </table>`;
 }
