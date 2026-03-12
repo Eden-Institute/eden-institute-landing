@@ -139,7 +139,7 @@ ${arrow("Short teachings on biblical herbalism, human constitution, and how God 
 ${arrow("Honest, rigorous content — no wellness trends, no fear-based messaging.")}
 ${arrow("An invitation, on June 9th, to go much deeper together in <strong>Back to Eden: Foundations of Biblical Herbalism</strong> — our first cohort.")}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="height:8px;"></td></tr></table>
-${p("Your constitutional type quiz result is on its way in a separate email — along with a short guide on what your type means and how to begin working with it.")}
+${p("You should already have your constitutional type quiz result in your inbox — along with a short guide on what your type means and how to begin working with it. If you don't see it, check your spam folder and add hello@edeninstitute.health to your contacts.")}
 ${p("I'm glad you're here.")}
 ${signatureShort()}`;
 
@@ -157,15 +157,16 @@ function buildNurtureEmail2(firstName: string): { subject: string; previewText: 
 ${p(`${firstName},`)}
 ${p("If you've spent any time in the herbal world, you've probably encountered lists. Take elderberry for immunity. Take ashwagandha for stress. Take turmeric for inflammation.")}
 ${p("Here's what those lists leave out: <strong>you</strong>.")}
-${p("Constitutional medicine — found in Ayurveda, Traditional Chinese Medicine, Greek medicine, and Western herbalism — arrived at the same insight independently: people differ in ways that are consistent and clinically meaningful. The body has a direction. Good herbal medicine honors that direction.")}
+${p(`Scripture tells us that God formed each person with intention — <em>"For you created my inmost being; you knit me together in my mother's womb"</em> (Psalm 139:13). That means your body has a design. A direction. A constitutional pattern that shows up in how you respond to stress, to seasons, to food, and to illness.`)}
+${p("This is not a new idea. Physicians across centuries — from the Greek humoral tradition to the Western Physiomedicalists — observed that people differ in consistent, clinically meaningful ways. What they lacked was the right framework for <em>why</em>. Scripture supplies what clinical observation alone cannot: the truth that these patterns are not accidents of nature. They are features of intentional design.")}
 ${goldDivider()}
-${p("Your quiz result identified your constitutional pattern. This isn't a personality type. It's a physiological tendency — the baseline toward which your body tends to drift under stress, in illness, and across your life.")}
-${p("Here's what this means practically:")}
-${bullet("The herbs that cool and moisten help the person who runs hot and dry.")}
-${bullet("The herbs that warm and move help the person who tends cold and stagnant.")}
-${bullet("The herbs that tone and dry help the person who tends toward laxity and dampness.")}
+${p("Your quiz result identified your constitutional pattern — the physiological baseline toward which your body tends to drift. Here is what that means practically:")}
+${bullet("The herbs that cool and moisten serve the person who runs hot and dry.")}
+${bullet("The herbs that warm and move serve the person who tends cold and stagnant.")}
+${bullet("The herbs that tone and dry serve the person who tends toward laxity and dampness.")}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="height:8px;"></td></tr></table>
-${p("This is not complicated. But it requires reading the person before reaching for the plant. That's what <em>Back to Eden</em> teaches — and what <strong>Back to Eden: Foundations of Biblical Herbalism</strong> builds into a full clinical framework.")}
+${p("This is not complicated. But it requires reading the person before reaching for the plant.")}
+${p("That is what <strong>Back to Eden: Foundations of Biblical Herbalism</strong> teaches — a framework where clinical observation and Biblical truth work together, not in tension.")}
 ${p("More on that soon.")}
 ${signatureShort()}`;
 
@@ -293,8 +294,8 @@ Deno.serve(async (req) => {
       const completedAt = new Date(row.completed_at);
       const hoursSince = (now.getTime() - completedAt.getTime()) / (1000 * 60 * 60);
 
-      // Email 1: Send immediately (QA TESTING - normally 1 hour)
-      if (!row.email_1_sent_at && hoursSince >= 0) {
+      // Email 1: Send after 1 hour
+      if (!row.email_1_sent_at && hoursSince >= 1) {
         const { subject, previewText, html } = buildNurtureEmail1(row.first_name);
         const ok = await sendEmail(row.email, subject, html, previewText);
         if (ok) {
@@ -307,8 +308,8 @@ Deno.serve(async (req) => {
         await new Promise(r => setTimeout(r, 300));
       }
 
-      // Email 2: Send after 2 minutes (QA TESTING - normally 72 hours)
-      if (!row.email_2_sent_at && row.email_1_sent_at && hoursSince >= 0.0333) {
+      // Email 2: Send after 3 days (72 hours)
+      if (!row.email_2_sent_at && row.email_1_sent_at && hoursSince >= 72) {
         const { subject, previewText, html } = buildNurtureEmail2(row.first_name);
         const ok = await sendEmail(row.email, subject, html, previewText);
         if (ok) {
@@ -321,8 +322,8 @@ Deno.serve(async (req) => {
         await new Promise(r => setTimeout(r, 300));
       }
 
-      // Email 3: Send after 5 minutes (QA TESTING - normally 168 hours)
-      if (!row.email_3_sent_at && row.email_2_sent_at && hoursSince >= 0.0833) {
+      // Email 3: Send after 7 days (168 hours)
+      if (!row.email_3_sent_at && row.email_2_sent_at && hoursSince >= 168) {
         const { subject, previewText, html } = buildNurtureEmail3(row.first_name);
         const ok = await sendEmail(row.email, subject, html, previewText);
         if (ok) {
