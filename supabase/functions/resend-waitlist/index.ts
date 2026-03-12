@@ -349,23 +349,37 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step 1: Add/update contact in the audience
-    const contactRes = await fetch(`https://api.resend.com/audiences/${RESEND_AUDIENCE_ID}/contacts`, {
+    // Step 1: Add/update contact in the audience (try with properties, fallback without)
+    const hasProperties = Object.keys(contactProperties).length > 0;
+    const baseContactPayload = { email, first_name: firstName, unsubscribed: false };
+
+    let contactRes = await fetch(`https://api.resend.com/audiences/${RESEND_AUDIENCE_ID}/contacts`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${RESEND_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        email,
-        first_name: firstName,
-        unsubscribed: false,
-        ...(Object.keys(contactProperties).length > 0 ? { properties: contactProperties } : {}),
-      }),
+      body: JSON.stringify(hasProperties ? { ...baseContactPayload, properties: contactProperties } : baseContactPayload),
     });
 
-    const contactData = await contactRes.json();
+    let contactData = await contactRes.json();
     console.log('Contact creation response:', contactRes.status, JSON.stringify(contactData));
+
+    // If properties don't exist in Resend yet, retry without them
+    if (contactRes.status === 422 && hasProperties) {
+      console.warn('Properties not found on audience — retrying without properties. Create constitution_type and constitution_name properties in Resend Audience settings.');
+      await new Promise(r => setTimeout(r, 300));
+      contactRes = await fetch(`https://api.resend.com/audiences/${RESEND_AUDIENCE_ID}/contacts`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(baseContactPayload),
+      });
+      contactData = await contactRes.json();
+      console.log('Contact creation retry (no props):', contactRes.status, JSON.stringify(contactData));
+    }
 
     if (!contactRes.ok && contactRes.status !== 409) {
       return new Response(
@@ -390,7 +404,6 @@ Deno.serve(async (req) => {
             email,
             first_name: firstName,
             unsubscribed: false,
-            ...(Object.keys(contactProperties).length > 0 ? { properties: contactProperties } : {}),
           }),
         });
         const topicData = await topicRes.json();
