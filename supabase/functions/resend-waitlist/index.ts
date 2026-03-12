@@ -404,7 +404,6 @@ Deno.serve(async (req) => {
             email,
             first_name: firstName,
             unsubscribed: false,
-            ...(Object.keys(contactProperties).length > 0 ? { properties: contactProperties } : {}),
           }),
         });
         const topicData = await topicRes.json();
