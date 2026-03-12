@@ -294,8 +294,8 @@ Deno.serve(async (req) => {
       const completedAt = new Date(row.completed_at);
       const hoursSince = (now.getTime() - completedAt.getTime()) / (1000 * 60 * 60);
 
-      // Email 1: Send after 1 hour
-      if (!row.email_1_sent_at && hoursSince >= 1) {
+      // Email 1: Send immediately (QA TESTING - normally 1 hour)
+      if (!row.email_1_sent_at && hoursSince >= 0) {
         const { subject, previewText, html } = buildNurtureEmail1(row.first_name);
         const ok = await sendEmail(row.email, subject, html, previewText);
         if (ok) {
