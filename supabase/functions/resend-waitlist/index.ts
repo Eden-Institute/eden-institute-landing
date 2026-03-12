@@ -339,6 +339,16 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Build contact properties for quiz submissions
+    const contactProperties: Record<string, string> = {};
+    if (constitutionType) {
+      contactProperties.constitution_type = constitutionType;
+      const profile = constitutionProfiles[constitutionType];
+      if (profile) {
+        contactProperties.constitution_name = profile.nickname;
+      }
+    }
+
     // Step 1: Add/update contact in the audience
     const contactRes = await fetch(`https://api.resend.com/audiences/${RESEND_AUDIENCE_ID}/contacts`, {
       method: 'POST',
@@ -350,7 +360,7 @@ Deno.serve(async (req) => {
         email,
         first_name: firstName,
         unsubscribed: false,
-        ...(constitutionType ? { properties: { constitutional_type: constitutionType } } : {}),
+        ...(Object.keys(contactProperties).length > 0 ? { properties: contactProperties } : {}),
       }),
     });
 
