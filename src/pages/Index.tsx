@@ -73,6 +73,29 @@ const Index = () => {
         </div>
       </section>
 
+      {/* ─── BANNER: What Makes Us Different ─── */}
+      <section className="py-5 md:py-6 px-6" style={{ backgroundColor: "hsl(var(--eden-gold))" }}>
+        <div className="eden-container">
+          <Link
+            to="/why-eden"
+            className="flex items-center justify-center gap-3 group"
+          >
+            <span
+              className="font-serif text-base sm:text-lg md:text-xl font-semibold tracking-wide group-hover:underline underline-offset-4"
+              style={{ color: "hsl(var(--eden-bark))" }}
+            >
+              What makes our program different?
+            </span>
+            <span
+              className="font-serif text-xl md:text-2xl transition-transform group-hover:translate-x-1"
+              style={{ color: "hsl(var(--eden-bark))" }}
+            >
+              →
+            </span>
+          </Link>
+        </div>
+      </section>
+
       {/* ─── SECTION 2: THE INSIGHT ─── */}
       <section className="section-padding-lg" style={{ backgroundColor: "hsl(var(--eden-forest))" }}>
         <div className="eden-container px-6">
