@@ -292,6 +292,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
       });
       if (fnError) throw fnError;
 
+      (window as any).gtag?.('event', 'quiz_complete', { event_category: 'engagement', quiz_result: constitutionType });
       setPhase("results");
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");

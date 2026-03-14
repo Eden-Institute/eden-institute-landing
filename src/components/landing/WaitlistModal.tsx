@@ -35,6 +35,7 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title }: WaitlistModalP
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
 
+      (window as any).gtag?.('event', 'email_submit', { event_category: 'conversion' });
       setSuccess(true);
       setFirstName("");
       setEmail("");
