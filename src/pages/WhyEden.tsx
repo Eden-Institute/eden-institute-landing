@@ -34,7 +34,7 @@ const differentiators = [
   {
     num: 4,
     title: "This Is a Three-Tier Clinical Program",
-    body: "This isn't a weekend workshop. It's a structured, sequential education:\n— Tier 1: Biblical Foundations of Herbalism (10 lessons)\n— Tier 2: Body Systems & Clinical Literacy (14 chapters, textbook-level depth)\n— Tier 3: Terrain-Based Clinical Herbalism (mentorship-level, coming soon)\nBuilt with academic rigor. Designed for women who want mastery.",
+    body: "This isn't a weekend workshop. It's a structured, sequential education:\n— Tier 1: Biblical Foundations of Herbalism (10 lessons)\n— Tier 2: Body Systems & Clinical Literacy (14 chapters, textbook-level depth)\n— Tier 3: Terrain-Based Clinical Herbalism (mentorship-level, coming soon)\nBuilt with academic rigor. Designed for those who want mastery.",
   },
   {
     num: 5,
