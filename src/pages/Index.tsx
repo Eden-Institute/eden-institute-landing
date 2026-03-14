@@ -246,6 +246,8 @@ const Index = () => {
         </div>
       </section>
 
+      <GoldDivider />
+
       {/* ─── SECTION 4: THE APP ─── */}
       <section className="section-padding-lg" style={{ backgroundColor: "hsl(var(--eden-sage))" }}>
         <div className="eden-container text-center px-6">
