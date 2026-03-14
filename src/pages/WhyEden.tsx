@@ -34,7 +34,7 @@ const differentiators = [
   {
     num: 4,
     title: "This Is a Three-Tier Clinical Program",
-    body: "This isn't a weekend workshop. It's a structured, sequential education:\n— Tier 1: Biblical Foundations of Herbalism (10 lessons)\n— Tier 2: Body Systems & Clinical Literacy (14 chapters, textbook-level depth)\n— Tier 3: Terrain-Based Clinical Herbalism (mentorship-level, coming soon)\nBuilt with academic rigor. Designed for women who want mastery.",
+    body: "This isn't a weekend workshop. It's a structured, sequential education:\n— Tier 1: Biblical Foundations of Herbalism (10 lessons)\n— Tier 2: Body Systems & Clinical Literacy (14 chapters, textbook-level depth)\n— Tier 3: Terrain-Based Clinical Herbalism (mentorship-level, coming soon)\nBuilt with academic rigor. Designed for those who want mastery.",
   },
   {
     num: 5,
@@ -68,7 +68,7 @@ const forYou = [
   "You want clinical depth, not surface-level wellness content",
   "You've felt out of place in herbalism programs that center Eastern spirituality",
   "You want to understand WHY an herb works, not just memorize WHICH herb to take",
-  "You're a mother, educator, or aspiring practitioner who wants real training",
+  "You're a parent, educator, or aspiring practitioner who wants real training",
   "You're ready to steward your family's health with knowledge, not fear",
 ];
 
@@ -139,7 +139,7 @@ const WhyEden = () => {
           <div className="eden-divider" />
           <ScrollReveal delay={200}>
             <p className="font-body text-base md:text-lg max-w-3xl mx-auto mb-10 leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.65)", fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
-              Most herbalism programs teach you what to take. We teach you <em>how to think</em>. The Eden Institute is a three-tier clinical herbalism education anchored in Scripture, built with academic rigor, and designed for women who want depth — not decoration.
+              Most herbalism programs teach you what to take. We teach you <em>how to think</em>. The Eden Institute is a three-tier clinical herbalism education anchored in Scripture, built with academic rigor, and designed for Christians and Herbalists who want depth — not decoration.
             </p>
           </ScrollReveal>
           <ScrollReveal delay={300}>
@@ -333,11 +333,11 @@ const WhyEden = () => {
         <div className="eden-container max-w-3xl mx-auto text-center">
           <ScrollReveal>
             <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl font-bold text-foreground leading-tight mb-8">
-              This Was Built for the Woman at 2AM.
+              This Was Built for the Believer at 2AM.
             </h2>
             <div className="eden-divider" />
             <p className="text-muted-foreground text-base md:text-lg leading-relaxed" style={{ fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
-              The one Googling symptoms in the dark. The one who doesn't trust the answers she's finding. The one who wants to do better for her family but doesn't know where to start. You were never taught how to think about the body — just how to panic about it. The Eden Institute was built to replace that fear with a framework. So the next time your child has a fever at 2AM, you respond with confidence instead of chaos.
+              The one Googling symptoms in the dark. The one who doesn't trust the answers they're finding. The one who wants to do better for their family but doesn't know where to start. You were never taught how to think about the body — just how to panic about it. The Eden Institute was built to replace that fear with a framework. So the next time your child has a fever at 2AM, you respond with confidence instead of chaos.
             </p>
           </ScrollReveal>
         </div>
@@ -397,11 +397,11 @@ const WhyEden = () => {
         <div className="eden-container max-w-3xl mx-auto text-center relative z-10">
           <ScrollReveal>
             <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl font-bold leading-tight mb-8" style={{ color: "#F5F0E8" }}>
-              Built by a Woman Who Couldn't Find the Right Course — So She Created It.
+              Built by Someone Who Couldn't Find the Right Course — So She Created It.
             </h2>
             <div className="eden-divider" />
             <p className="text-base md:text-lg leading-relaxed" style={{ color: "rgba(245, 240, 232, 0.8)", fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
-              Camila is the founder of The Eden Institute and a Biblical clinical herbalism educator. After years of studying under programs that required her to set aside her faith to learn what God made, she stopped looking for the right course and started building it. The Eden Institute is the result — a structured, Scripture-anchored, clinically rigorous education for women who refuse to choose between depth and devotion.
+              Camila is the founder of The Eden Institute and a Biblical clinical herbalism educator. After years of studying under programs that required her to set aside her faith to learn what God made, she stopped looking for the right course and started building it. The Eden Institute is the result — a structured, Scripture-anchored, clinically rigorous education for Christians and Herbalists who refuse to choose between depth and devotion.
             </p>
           </ScrollReveal>
         </div>

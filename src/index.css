@@ -148,12 +148,42 @@
   }
 }
 
-/* Global mobile button overflow fix */
-@media (max-width: 767px) {
-  button, .btn, [role="button"] {
-    max-width: 90vw;
+/* Global mobile responsiveness fixes */
+@media (max-width: 768px) {
+  * {
     box-sizing: border-box;
+  }
+
+  section, .container, .wrapper, .eden-container {
+    padding-left: 16px;
+    padding-right: 16px;
+    overflow-x: hidden;
+  }
+
+  button, .btn, a.btn, a[role="button"], [role="button"] {
+    display: block;
+    width: 100%;
+    max-width: 100%;
     white-space: normal;
-    overflow: hidden;
+    text-align: center;
+    padding: 14px 20px;
+    word-break: normal;
+    overflow: visible;
+  }
+
+  h1, h2, h3, h4, h5, h6, p, span, li {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
+  .section-padding {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .section-padding-lg {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }
