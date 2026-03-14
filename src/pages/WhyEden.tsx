@@ -333,7 +333,7 @@ const WhyEden = () => {
         <div className="eden-container max-w-3xl mx-auto text-center">
           <ScrollReveal>
             <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl font-bold text-foreground leading-tight mb-8">
-              This Was Built for the Woman at 2AM.
+              This Was Built for the Believer at 2AM.
             </h2>
             <div className="eden-divider" />
             <p className="text-muted-foreground text-base md:text-lg leading-relaxed" style={{ fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
