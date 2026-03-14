@@ -397,7 +397,7 @@ const WhyEden = () => {
         <div className="eden-container max-w-3xl mx-auto text-center relative z-10">
           <ScrollReveal>
             <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl font-bold leading-tight mb-8" style={{ color: "#F5F0E8" }}>
-              Built by a Woman Who Couldn't Find the Right Course — So She Created It.
+              Built by Someone Who Couldn't Find the Right Course — So She Created It.
             </h2>
             <div className="eden-divider" />
             <p className="text-base md:text-lg leading-relaxed" style={{ color: "rgba(245, 240, 232, 0.8)", fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
