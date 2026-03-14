@@ -15,7 +15,11 @@ const Footer = () => {
           "Back to Eden. Back to Truth."
         </p>
 
-        <div className="mt-6 flex items-center justify-center gap-2 text-xs font-body text-eden-parchment/30">
+        <div className="mt-6 flex items-center justify-center gap-2 text-xs font-body text-eden-parchment/30 flex-wrap">
+          <Link to="/why-eden" className="hover:text-eden-parchment/50 transition-colors">
+            Why Eden
+          </Link>
+          <span>|</span>
           <Link to="/terms" className="hover:text-eden-parchment/50 transition-colors">
             Terms &amp; Conditions
           </Link>

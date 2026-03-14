@@ -69,7 +69,18 @@ const HeroSection = () => {
           </Button>
         </div>
 
-        <p className="mt-12 md:mt-20 font-accent text-sm tracking-[0.4em] uppercase text-muted-foreground">
+        {/* Why Eden Banner */}
+        <div className="mt-10 md:mt-14 animate-fade-in" style={{ animationDelay: "0.8s" }}>
+          <a
+            href="/why-eden"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded border-2 font-serif text-sm md:text-base font-semibold tracking-wide transition-all hover:shadow-lg"
+            style={{ borderColor: "#C5A44E", color: "#C5A44E", backgroundColor: "rgba(197,164,78,0.08)" }}
+          >
+            What makes our program different? →
+          </a>
+        </div>
+
+        <p className="mt-8 md:mt-12 font-accent text-sm tracking-[0.4em] uppercase text-muted-foreground">
           The Eden Institute
         </p>
       </div>
