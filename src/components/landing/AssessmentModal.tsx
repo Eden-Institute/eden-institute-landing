@@ -260,6 +260,9 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
   const axisLabel = q.axis === "temperature" ? "Temperature Axis" : q.axis === "fluid" ? "Fluid Axis" : "Tone Axis";
 
   const handleAnswer = useCallback((questionId: number, score: string) => {
+    if (currentQ === 0) {
+      (window as any).gtag?.('event', 'quiz_start', { event_category: 'engagement' });
+    }
     setAnswers((prev) => ({ ...prev, [questionId]: score }));
     setTransitioning(true);
     setTimeout(() => {
@@ -289,6 +292,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
       });
       if (fnError) throw fnError;
 
+      (window as any).gtag?.('event', 'quiz_complete', { event_category: 'engagement', quiz_result: constitutionType });
       setPhase("results");
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");
