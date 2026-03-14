@@ -1,8 +1,15 @@
+import { useEffect } from "react";
 import Footer from "@/components/landing/Footer";
 
 const HEADER_IMG = "https://images.unsplash.com/photo-1580116270858-8a0d62b15426?auto=format&fit=crop&w=1920&q=80";
 
 const Cookies = () => {
+  useEffect(() => {
+    document.title = "Cookie Policy — The Eden Institute";
+    document.querySelector('meta[name="description"]')?.setAttribute("content", "Cookie policy for The Eden Institute. Understand what cookies we use and how they enhance your experience.");
+  }, []);
+
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       {/* Header with botanical image */}

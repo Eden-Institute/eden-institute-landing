@@ -1,9 +1,16 @@
+import { useEffect } from "react";
 import Footer from "@/components/landing/Footer";
 import { Link } from "react-router-dom";
 
 const HEADER_IMG = "https://images.unsplash.com/photo-1726996155615-e986ed87c9d4?auto=format&fit=crop&w=1920&q=80";
 
 const Terms = () => {
+  useEffect(() => {
+    document.title = "Terms and Conditions — The Eden Institute";
+    document.querySelector('meta[name="description"]')?.setAttribute("content", "Terms and conditions for The Eden Institute's Biblical clinical herbalism education platform and services.");
+  }, []);
+
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       {/* Header with botanical image */}

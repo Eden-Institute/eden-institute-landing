@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Check, X } from "lucide-react";
@@ -82,6 +83,11 @@ const notForYou = [
 const WhyEden = () => {
   const [waitlistModal, setWaitlistModal] = useState(false);
   const [assessmentModal, setAssessmentModal] = useState(false);
+
+  useEffect(() => {
+    document.title = "Why Eden — The Eden Institute";
+    document.querySelector('meta[name="description"]')?.setAttribute("content", "A three-tier herbalism education program rooted in Scripture, terrain-based assessment, and clinical rigor. Enrollment opens June 2026.");
+  }, []);
 
   useEffect(() => {
     window.scrollTo(0, 0);

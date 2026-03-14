@@ -17,6 +17,11 @@ const Index = () => {
   const [assessmentModal, setAssessmentModal] = useState(false);
 
   useEffect(() => {
+    document.title = "The Eden Institute — Biblical Clinical Herbalism Education";
+    document.querySelector('meta[name="description"]')?.setAttribute("content", "The Eden Institute offers Biblical clinical herbalism education. Take our free constitutional quiz and discover your God-given health pattern.");
+  }, []);
+
+  useEffect(() => {
     if (window.location.hash === "#assessment") {
       setAssessmentModal(true);
     }
