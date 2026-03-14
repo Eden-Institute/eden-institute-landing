@@ -337,7 +337,7 @@ const WhyEden = () => {
             </h2>
             <div className="eden-divider" />
             <p className="text-muted-foreground text-base md:text-lg leading-relaxed" style={{ fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
-              The one Googling symptoms in the dark. The one who doesn't trust the answers she's finding. The one who wants to do better for her family but doesn't know where to start. You were never taught how to think about the body — just how to panic about it. The Eden Institute was built to replace that fear with a framework. So the next time your child has a fever at 2AM, you respond with confidence instead of chaos.
+              The one Googling symptoms in the dark. The one who doesn't trust the answers they're finding. The one who wants to do better for their family but doesn't know where to start. You were never taught how to think about the body — just how to panic about it. The Eden Institute was built to replace that fear with a framework. So the next time your child has a fever at 2AM, you respond with confidence instead of chaos.
             </p>
           </ScrollReveal>
         </div>
