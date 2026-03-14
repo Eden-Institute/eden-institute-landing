@@ -30,8 +30,8 @@ export const BotanicalLeafTopRight = ({ className = "", style }: { className?: s
   </svg>
 );
 
-export const BotanicalLeafBottomLeft = ({ className = "" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+export const BotanicalLeafBottomLeft = ({ className = "", style }: { className?: string; style?: React.CSSProperties }) => (
+  <svg className={className} style={style} viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
     <g stroke="currentColor" strokeWidth="0.8" strokeLinecap="round">
       {/* Main stem curving up from bottom-left */}
       <path d="M20 380 C60 320, 100 260, 140 180 C160 140, 170 100, 180 40" />
