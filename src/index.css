@@ -160,7 +160,7 @@
     overflow-x: hidden;
   }
 
-  button, .btn, a.btn, a[role="button"], [role="button"] {
+  section button, section .btn, section a.btn, section a[role="button"], section [role="button"] {
     display: block;
     width: 100%;
     max-width: 100%;
