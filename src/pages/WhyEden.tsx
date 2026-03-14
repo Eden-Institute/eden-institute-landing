@@ -401,7 +401,7 @@ const WhyEden = () => {
             </h2>
             <div className="eden-divider" />
             <p className="text-base md:text-lg leading-relaxed" style={{ color: "rgba(245, 240, 232, 0.8)", fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
-              Camila is the founder of The Eden Institute and a Biblical clinical herbalism educator. After years of studying under programs that required her to set aside her faith to learn what God made, she stopped looking for the right course and started building it. The Eden Institute is the result — a structured, Scripture-anchored, clinically rigorous education for women who refuse to choose between depth and devotion.
+              Camila is the founder of The Eden Institute and a Biblical clinical herbalism educator. After years of studying under programs that required her to set aside her faith to learn what God made, she stopped looking for the right course and started building it. The Eden Institute is the result — a structured, Scripture-anchored, clinically rigorous education for Christians and Herbalists who refuse to choose between depth and devotion.
             </p>
           </ScrollReveal>
         </div>
