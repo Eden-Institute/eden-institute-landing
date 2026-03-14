@@ -85,6 +85,11 @@ const WhyEden = () => {
   const [assessmentModal, setAssessmentModal] = useState(false);
 
   useEffect(() => {
+    document.title = "Why Eden — The Eden Institute";
+    document.querySelector('meta[name="description"]')?.setAttribute("content", "A three-tier herbalism education program rooted in Scripture, terrain-based assessment, and clinical rigor. Enrollment opens June 2026.");
+  }, []);
+
+  useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
