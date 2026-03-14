@@ -41,7 +41,7 @@ const Index = () => {
             </Link>
             <button
               onClick={openQuiz}
-              className="font-body text-sm font-semibold px-4 py-1.5 rounded transition-all hover:opacity-90"
+              className="!inline-block !w-auto font-body text-sm font-semibold px-4 py-1.5 rounded transition-all hover:opacity-90"
               style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}
             >
               Free Quiz
