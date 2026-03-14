@@ -139,7 +139,7 @@ const WhyEden = () => {
           <div className="eden-divider" />
           <ScrollReveal delay={200}>
             <p className="font-body text-base md:text-lg max-w-3xl mx-auto mb-10 leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.65)", fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
-              Most herbalism programs teach you what to take. We teach you <em>how to think</em>. The Eden Institute is a three-tier clinical herbalism education anchored in Scripture, built with academic rigor, and designed for women who want depth — not decoration.
+              Most herbalism programs teach you what to take. We teach you <em>how to think</em>. The Eden Institute is a three-tier clinical herbalism education anchored in Scripture, built with academic rigor, and designed for Christians and Herbalists who want depth — not decoration.
             </p>
           </ScrollReveal>
           <ScrollReveal delay={300}>
