@@ -3,8 +3,8 @@
  * Pure visual component — no functional logic.
  */
 
-export const BotanicalLeafTopRight = ({ className = "" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+export const BotanicalLeafTopRight = ({ className = "", style }: { className?: string; style?: React.CSSProperties }) => (
+  <svg className={className} style={style} viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
     <g stroke="currentColor" strokeWidth="0.8" strokeLinecap="round">
       {/* Main stem */}
       <path d="M380 20 C340 80, 300 140, 260 220 C240 260, 220 300, 200 380" />
