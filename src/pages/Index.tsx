@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Facebook, Instagram } from "lucide-react";
 import Footer from "@/components/landing/Footer";
 import AssessmentModal from "@/components/landing/AssessmentModal";
+import { BotanicalLeafTopRight, BotanicalLeafBottomLeft, GoldDivider } from "@/components/landing/BotanicalAccents";
 
 const Index = () => {
   const [assessmentModal, setAssessmentModal] = useState(false);
@@ -43,8 +44,12 @@ const Index = () => {
       </nav>
 
       {/* ─── SECTION 1: HERO ─── */}
-      <section id="hero" className="pt-32 pb-20 md:pt-40 md:pb-28 parchment-texture">
-        <div className="eden-container text-center px-6">
+      <section id="hero" className="pt-32 pb-20 md:pt-40 md:pb-28 parchment-texture relative overflow-hidden">
+        {/* Botanical line-art accents */}
+        <BotanicalLeafTopRight className="absolute top-0 right-0 w-48 md:w-72 lg:w-96 h-48 md:h-72 lg:h-96 opacity-[0.12] pointer-events-none" style={{ color: "hsl(var(--eden-forest))" }} />
+        <BotanicalLeafBottomLeft className="absolute bottom-0 left-0 w-48 md:w-72 lg:w-96 h-48 md:h-72 lg:h-96 opacity-[0.10] pointer-events-none" style={{ color: "hsl(var(--eden-forest))" }} />
+
+        <div className="eden-container text-center px-6 relative z-10">
           <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-foreground leading-[1.1] mb-5">
             The Herb Wasn't the Problem.
           </h1>
@@ -95,6 +100,8 @@ const Index = () => {
           </Link>
         </div>
       </section>
+
+      <GoldDivider />
 
       {/* ─── SECTION 2: THE INSIGHT ─── */}
       <section className="section-padding-lg" style={{ backgroundColor: "hsl(var(--eden-forest))" }}>
@@ -148,6 +155,8 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      <GoldDivider />
 
       {/* ─── SECTION 3: THE COURSE ─── */}
       <section id="course" className="section-padding-lg parchment-texture">
@@ -237,6 +246,8 @@ const Index = () => {
         </div>
       </section>
 
+      <GoldDivider />
+
       {/* ─── SECTION 4: THE APP ─── */}
       <section className="section-padding-lg" style={{ backgroundColor: "hsl(var(--eden-sage))" }}>
         <div className="eden-container text-center px-6">
@@ -251,6 +262,8 @@ const Index = () => {
           </p>
         </div>
       </section>
+
+      <GoldDivider />
 
       {/* ─── SECTION 5: BOTTOM CTA ─── */}
       <section className="section-padding-lg" style={{ backgroundColor: "hsl(var(--eden-forest))" }}>
