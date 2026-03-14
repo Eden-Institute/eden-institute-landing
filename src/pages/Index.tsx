@@ -282,7 +282,7 @@ const Index = () => {
                   14 chapters of textbook-level depth
                 </p>
                 <p className="font-body text-base text-muted-foreground leading-relaxed mb-6 flex-1">
-                  Every major body system. Tissue state assessment. Integrated Materia Medica. Clinical thinking you can actually use. Built for women who want mastery, not just familiarity.
+                  Every major body system. Tissue state assessment. Integrated Materia Medica. Clinical thinking you can actually use. Built for those who want mastery, not just familiarity.
                 </p>
                 {/* Small herb accent image */}
                 <div className="mb-4 rounded overflow-hidden" style={{ height: "100px" }}>

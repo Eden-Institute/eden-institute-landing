@@ -68,7 +68,7 @@ const forYou = [
   "You want clinical depth, not surface-level wellness content",
   "You've felt out of place in herbalism programs that center Eastern spirituality",
   "You want to understand WHY an herb works, not just memorize WHICH herb to take",
-  "You're a mother, educator, or aspiring practitioner who wants real training",
+  "You're a parent, educator, or aspiring practitioner who wants real training",
   "You're ready to steward your family's health with knowledge, not fear",
 ];
 
