@@ -1,14 +1,20 @@
 import Footer from "@/components/landing/Footer";
 import { Link } from "react-router-dom";
 
+const HEADER_IMG = "https://images.unsplash.com/photo-1726996155615-e986ed87c9d4?auto=format&fit=crop&w=1920&q=80";
+
 const Terms = () => {
   return (
     <main className="min-h-screen bg-background text-foreground">
-      {/* Header */}
-      <header className="bg-primary text-primary-foreground py-10 text-center">
-        <h1 className="font-serif text-3xl md:text-4xl font-bold mb-2">Terms and Conditions</h1>
-        <p className="font-body text-sm opacity-80">The Eden Institute — edeninstitute.health</p>
-        <p className="font-body text-xs mt-2 opacity-60">Effective Date: June 9, 2026 · Last Updated: March 11, 2026</p>
+      {/* Header with botanical image */}
+      <header className="relative overflow-hidden py-16 md:py-20 text-center">
+        <img src={HEADER_IMG} alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, hsl(var(--eden-forest) / 0.88), hsl(var(--eden-forest) / 0.92))" }} />
+        <div className="relative z-10">
+          <h1 className="font-serif text-3xl md:text-4xl font-bold mb-2" style={{ color: "hsl(var(--eden-parchment))" }}>Terms and Conditions</h1>
+          <p className="font-body text-sm" style={{ color: "hsl(var(--eden-parchment) / 0.8)" }}>The Eden Institute — edeninstitute.health</p>
+          <p className="font-body text-xs mt-2" style={{ color: "hsl(var(--eden-parchment) / 0.6)" }}>Effective Date: June 9, 2026 · Last Updated: March 11, 2026</p>
+        </div>
       </header>
 
       <article className="max-w-3xl mx-auto px-6 py-12 font-body text-foreground/90 leading-relaxed space-y-8">
