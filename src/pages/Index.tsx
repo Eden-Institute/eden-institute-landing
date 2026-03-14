@@ -380,7 +380,7 @@ const Index = () => {
               <Button
                 variant="eden"
                 size="xl"
-                className="min-h-[48px] text-sm sm:text-base px-8"
+                className="min-h-[48px] text-sm sm:text-base px-4 sm:px-8 max-w-[90vw] whitespace-normal leading-snug"
                 onClick={openQuiz}
                 style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}
               >
