@@ -263,6 +263,8 @@ const Index = () => {
         </div>
       </section>
 
+      <GoldDivider />
+
       {/* ─── SECTION 5: BOTTOM CTA ─── */}
       <section className="section-padding-lg" style={{ backgroundColor: "hsl(var(--eden-forest))" }}>
         <div className="eden-container text-center px-6">
