@@ -156,6 +156,8 @@ const Index = () => {
         </div>
       </section>
 
+      <GoldDivider />
+
       {/* ─── SECTION 3: THE COURSE ─── */}
       <section id="course" className="section-padding-lg parchment-texture">
         <div className="eden-container px-6">
