@@ -192,6 +192,25 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
           </div>
         </div>
 
+        {phase === "intro" && (
+          <div className="px-5 md:px-6 py-8 md:py-12 text-center">
+            <h2 className="font-serif text-xl md:text-2xl lg:text-3xl font-bold mb-6" style={{ color: "#1C3A2E" }}>
+              Discover Your Constitutional Type
+            </h2>
+            <p className="font-body text-base md:text-lg leading-relaxed mb-8 max-w-lg mx-auto" style={{ color: "hsl(30, 10%, 40%)", fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
+              Most people have tried herbs and gotten inconsistent results. That's because herbalism is not one-size-fits-all — your body has a type. Answer 12 questions to discover yours. No email required to start.
+            </p>
+            <Button
+              variant="eden"
+              size="xl"
+              className="min-h-[48px] w-full sm:w-auto"
+              onClick={() => setPhase("quiz")}
+            >
+              → Begin the Quiz
+            </Button>
+          </div>
+        )}
+
         {phase === "quiz" && (
           <div className="px-5 md:px-6 py-6 md:py-8">
             {/* Progress */}
