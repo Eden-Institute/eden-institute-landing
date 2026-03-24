@@ -454,6 +454,7 @@ Deno.serve(async (req) => {
             email,
             first_name: firstName,
             constitution_type: constitutionType,
+            constitution_nickname: constitutionNickname || (constitutionProfiles[constitutionType]?.nickname ?? null),
           }),
         }).then(res => {
           console.log('Quiz completion recorded:', res.status);
