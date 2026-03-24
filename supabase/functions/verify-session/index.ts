@@ -1,6 +1,3 @@
-// verify-session — verifies Stripe checkout and updates Resend contact properties
-
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14?target=deno";
 
 const corsHeaders = {
@@ -9,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -39,45 +36,11 @@ serve(async (req) => {
 
     const constitution_type = session.metadata?.constitution_type || "";
     const constitution_nickname = session.metadata?.constitution_nickname || "";
+    const slug = session.metadata?.slug || "";
     const email = session.metadata?.email || session.customer_email || "";
-    const product_type = session.metadata?.product_type || "guide"; // "guide" or "course"
 
-    // Determine which purchase flag to set
-    const isPurchasedGuide = product_type === "guide" || !session.metadata?.product_type;
-    const isPurchasedCourse = product_type === "course";
-
-    // Update Resend contact with purchase info
-    try {
-      const resendKey = Deno.env.get("RESEND_API_KEY");
-      const audienceId = Deno.env.get("RESEND_AUDIENCE_ID");
-      if (resendKey && audienceId && email) {
-        const properties: Record<string, string> = {
-          constitution_type,
-          constitution_name: constitution_nickname,
-        };
-        if (isPurchasedGuide) properties.purchased_guide = "true";
-        if (isPurchasedCourse) properties.purchased_course = "true";
-
-        await fetch(`https://api.resend.com/audiences/${audienceId}/contacts`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${resendKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email,
-            unsubscribed: false,
-            properties,
-          }),
-        });
-        console.log(`Resend contact updated for ${email}: ${isPurchasedGuide ? 'guide' : ''}${isPurchasedCourse ? 'course' : ''}`);
-      }
-    } catch (resendErr) {
-      console.error("Resend update failed (non-blocking):", resendErr);
-    }
-
-    // If course purchase, also update quiz_completions.purchased_course
-    if (isPurchasedCourse && email) {
+    // Update quiz_completions to mark guide as purchased
+    if (email) {
       try {
         const supabaseUrl = Deno.env.get("SUPABASE_URL");
         const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -92,11 +55,32 @@ serve(async (req) => {
             },
             body: JSON.stringify({ purchased_course: true }),
           });
-          console.log(`quiz_completions.purchased_course set to true for ${email}`);
+          console.log(`quiz_completions updated for ${email}`);
         }
       } catch (dbErr) {
         console.error("DB update failed (non-blocking):", dbErr);
       }
+    }
+
+    // Also try to update Resend contact (non-blocking)
+    try {
+      const resendKey = Deno.env.get("RESEND_API_KEY");
+      const audienceId = Deno.env.get("RESEND_AUDIENCE_ID");
+      if (resendKey && audienceId && email) {
+        await fetch(`https://api.resend.com/audiences/${audienceId}/contacts`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${resendKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            unsubscribed: false,
+          }),
+        });
+      }
+    } catch (resendErr) {
+      console.error("Resend update failed (non-blocking):", resendErr);
     }
 
     return new Response(
@@ -104,6 +88,7 @@ serve(async (req) => {
         paid: true,
         constitution_type,
         constitution_nickname,
+        slug,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );

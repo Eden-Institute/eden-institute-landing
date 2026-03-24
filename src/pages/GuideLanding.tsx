@@ -1,7 +1,10 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { constitutionProfiles } from "@/lib/constitution-data";
+import { getFullGuide } from "@/lib/guide-registry";
+import GuideTemplate from "@/components/guide/GuideTemplate";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 
 // Map slug → constitution type key
 const slugToType: Record<string, string> = {};
@@ -15,12 +18,39 @@ for (const [type, profile] of Object.entries(constitutionProfiles)) {
 
 const GuideLanding = () => {
   const { constitutionSlug } = useParams<{ constitutionSlug: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const [verifying, setVerifying] = useState(false);
+  const [paid, setPaid] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState("");
 
   const constitutionType = constitutionSlug ? slugToType[constitutionSlug] : null;
   const profile = constitutionType ? constitutionProfiles[constitutionType] : null;
+
+  // On mount: check for session_id (post-payment redirect)
+  useEffect(() => {
+    const sessionId = searchParams.get("session_id");
+    if (!sessionId) return;
+
+    setVerifying(true);
+    const verify = async () => {
+      try {
+        const { data, error: fnError } = await supabase.functions.invoke("verify-session", {
+          body: { session_id: sessionId },
+        });
+        if (fnError) throw fnError;
+        if (data?.paid) {
+          setPaid(true);
+        }
+      } catch (err) {
+        console.error("Payment verification failed:", err);
+      } finally {
+        setVerifying(false);
+      }
+    };
+    verify();
+  }, [searchParams]);
 
   useEffect(() => {
     if (constitutionSlug && !profile) {
@@ -31,17 +61,32 @@ const GuideLanding = () => {
   useEffect(() => {
     if (profile) {
       document.title = `${profile.nickname} Deep-Dive Guide — The Eden Institute`;
-      const setMeta = (attr: string, key: string, content: string) => {
-        let el = document.querySelector(`meta[${attr}="${key}"]`);
-        if (!el) { el = document.createElement("meta"); el.setAttribute(attr, key); document.head.appendChild(el); }
-        el.setAttribute("content", content);
-      };
-      setMeta("name", "description", `Get your complete ${profile.nickname} constitutional guide — 10 herbs, preparation methods, biblical framework, and lifestyle protocol.`);
     }
   }, [profile]);
 
-  if (!profile || !constitutionType) return null;
+  if (!profile || !constitutionType || !constitutionSlug) return null;
 
+  // Show loading spinner during verification
+  if (verifying) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#F5F0E8" }}>
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 rounded-full animate-spin mx-auto mb-4" style={{ borderColor: "#C5A44E", borderTopColor: "transparent" }} />
+          <p className="font-serif text-lg" style={{ color: "#2C3E2D" }}>Verifying your purchase…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If paid, render the full guide
+  if (paid) {
+    const fullGuide = getFullGuide(profile.nickname);
+    if (fullGuide) {
+      return <GuideTemplate guide={fullGuide} />;
+    }
+  }
+
+  // Otherwise show the sales/upsell page
   const handleCheckout = async () => {
     setCheckoutLoading(true);
     setError("");
@@ -57,11 +102,14 @@ const GuideLanding = () => {
         window.location.href = data.url;
       }
     } catch (err: any) {
-      setError(err.message || "Something went wrong.");
+      console.error("Checkout error:", err);
+      setError("Something went wrong. Please try again.");
     } finally {
       setCheckoutLoading(false);
     }
   };
+
+  const displayName = profile.nickname.replace(/^The\s+/i, "");
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F5F0E8" }}>
@@ -147,7 +195,7 @@ const GuideLanding = () => {
             className="inline-block font-serif text-sm font-bold tracking-[0.15em] uppercase px-8 py-4 rounded transition-opacity disabled:opacity-60"
             style={{ backgroundColor: "#C5A44E", color: "#2C3E2D" }}
           >
-            {checkoutLoading ? "Loading…" : "Get Your Guide — $14"}
+            {checkoutLoading ? "Loading…" : `Get Your ${displayName} Guide — $14`}
           </button>
 
           {error && (
