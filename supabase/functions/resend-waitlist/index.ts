@@ -210,7 +210,7 @@ const constitutionProfiles: Record<string, { nickname: string; intro: string; pa
     anchor: "'He restores my soul.' — Psalm 23:3. Restoration is not earned. It is received. Your work is to stop, be still, and let the restoration come.",
   },
   "Cold / Damp / Tense": {
-    nickname: "The Frozen River",
+    nickname: "The Frozen Knot",
     intro: "Cold and damp with nowhere to move — the pressure builds inside while the exterior is stiff and bound. The tension here is not wired or anxious. It is cold, heavy, and immovable.",
     patterns: "Chronic mucus, phlegm, stiff and cold joints, slow digestion, bloating, cold hands and feet with tension headaches. Tends toward melancholy or feeling unmotivated.",
     needs: "Warming and moving. Herbs that ignite the cold and get things circulating again.",
