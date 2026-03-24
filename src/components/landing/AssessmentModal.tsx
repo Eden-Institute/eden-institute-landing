@@ -367,7 +367,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
               Your Top 3 Herbs
             </h3>
             <div className="space-y-3 mb-8">
-              {profile.herbs.map((herb, i) => (
+              {profile.herbs.slice(0, 3).map((herb, i) => (
                 <div key={i} className="p-4 border rounded" style={{ borderColor: "hsl(40, 20%, 80%)", backgroundColor: "white" }}>
                   <h4 className="font-serif text-base font-bold mb-1" style={{ color: "#C9A84C" }}>
                     {herb.name}
