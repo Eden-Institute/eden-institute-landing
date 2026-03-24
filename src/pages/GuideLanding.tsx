@@ -52,6 +52,27 @@ const GuideLanding = () => {
     verify();
   }, [searchParams]);
 
+  // Check for prior purchase if no session_id
+  useEffect(() => {
+    const sessionId = searchParams.get("session_id");
+    if (sessionId) return;
+
+    const checkPriorPurchase = async () => {
+      try {
+        const { data, error: fnError } = await supabase.functions.invoke("verify-session", {
+          body: { check_slug: constitutionSlug },
+        });
+        if (fnError) throw fnError;
+        if (data?.paid) {
+          setPaid(true);
+        }
+      } catch (err) {
+        console.error('Prior purchase check failed:', err);
+      }
+    };
+    checkPriorPurchase();
+  }, [constitutionSlug, searchParams]);
+
   useEffect(() => {
     if (constitutionSlug && !profile) {
       navigate("/assessment");
