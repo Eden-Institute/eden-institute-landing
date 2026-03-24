@@ -156,7 +156,7 @@ const Results = () => {
               }
             }}
           >
-            {checkoutLoading ? "Redirecting to checkout…" : `Get Your Full ${profile.nickname} Guide — $14`}
+            {checkoutLoading ? "Redirecting to checkout…" : `Get Your Full ${profile.nickname.replace(/^The\s+/i, "")} Guide — $14`}
           </Button>
         </div>
 
