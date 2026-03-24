@@ -311,7 +311,7 @@ const Assessment = () => {
               Your Top 3 Herbs
             </h2>
             <div className="space-y-4">
-              {profile.herbs.map((herb, i) => (
+              {profile.herbs.slice(0, 3).map((herb, i) => (
                 <div key={i} className="p-5 border rounded" style={{ borderColor: "hsl(40, 20%, 80%)", backgroundColor: "white" }}>
                   <h3 className="font-serif text-lg font-bold mb-1" style={{ color: "#C9A84C" }}>
                     {herb.name}
