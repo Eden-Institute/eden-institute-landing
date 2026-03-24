@@ -1,4 +1,3 @@
-// PDF generation is handled by the constitution-pdf edge function
 import { buildNurtureEmail1, buildNurtureEmail2, buildNurtureEmail3, buildNurtureEmail4, toSlug } from '../_shared/nurture-email-templates.ts';
 
 const corsHeaders = {
@@ -18,42 +17,28 @@ const TOPIC_IDS = [
 const COURSE_AUDIENCE_ID = "4860c1c5-8e2b-4d02-838a-60ef09b789bf";
 const APP_AUDIENCE_ID = "cebd3478-b344-41b7-98c8-8bcf0e0108da";
 
-// Map 8 quiz types to 4 PDF categories
-function getPDFCategory(constitutionType: string): string {
-  if (constitutionType.startsWith("Hot") && constitutionType.includes("Dry")) return "hot-dry";
-  if (constitutionType.startsWith("Hot") && constitutionType.includes("Damp")) return "hot-damp";
-  if (constitutionType.startsWith("Cold") && constitutionType.includes("Dry")) return "cold-dry";
-  if (constitutionType.startsWith("Cold") && constitutionType.includes("Damp")) return "cold-damp";
-  return "hot-dry"; // fallback
-}
+const CONSTITUTION_SLUG_MAP: Record<string, { slug: string; name: string }> = {
+  "Hot / Dry / Tense": { slug: "burning-bowstring", name: "The Burning Bowstring" },
+  "Hot / Dry / Relaxed": { slug: "open-flame", name: "The Open Flame" },
+  "Hot / Damp / Tense": { slug: "pressure-cooker", name: "The Pressure Cooker" },
+  "Hot / Damp / Relaxed": { slug: "overflowing-cup", name: "The Overflowing Cup" },
+  "Cold / Dry / Tense": { slug: "drawn-bowstring", name: "The Drawn Bowstring" },
+  "Cold / Dry / Relaxed": { slug: "spent-candle", name: "The Spent Candle" },
+  "Cold / Damp / Tense": { slug: "frozen-knot", name: "The Frozen Knot" },
+  "Cold / Damp / Relaxed": { slug: "still-water", name: "The Still Water" },
+};
 
-function uint8ArrayToBase64(bytes: Uint8Array): string {
-  let binary = '';
-  const chunkSize = 8192;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.subarray(i, i + chunkSize);
-    binary += String.fromCharCode(...chunk);
-  }
-  return btoa(binary);
+function getSlugInfo(
+  constitutionType?: string,
+  constitutionSlug?: string,
+  constitutionName?: string,
+  constitutionNickname?: string,
+): { slug: string; name: string } {
+  const mapMatch = constitutionType ? CONSTITUTION_SLUG_MAP[constitutionType] : undefined;
+  const resolvedName = constitutionName || constitutionNickname || mapMatch?.name || 'Unknown';
+  const resolvedSlug = constitutionSlug || mapMatch?.slug || (resolvedName !== 'Unknown' ? toSlug(resolvedName) : 'unknown');
+  return { slug: resolvedSlug, name: resolvedName };
 }
-
-async function fetchConstitutionPDF(category: string): Promise<Uint8Array> {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  const url = `${supabaseUrl}/functions/v1/constitution-pdf?type=${category}`;
-  const res = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${serviceRoleKey}`,
-    },
-  });
-  if (!res.ok) {
-    throw new Error(`PDF fetch failed: ${res.status}`);
-  }
-  const buf = await res.arrayBuffer();
-  return new Uint8Array(buf);
-}
-
-// Old generateConstitutionPDF removed — now fetched from constitution-pdf edge function
 
 // ── Shared HTML components ──
 
@@ -216,7 +201,7 @@ const constitutionProfiles: Record<string, { nickname: string; intro: string; pa
     patterns: "Chronic mucus, phlegm, stiff and cold joints, slow digestion, bloating, cold hands and feet with tension headaches. Tends toward melancholy or feeling unmotivated.",
     needs: "Warming and moving. Herbs that ignite the cold and get things circulating again.",
     herbs: "Cayenne, Ginger, Fennel, Garlic, Thyme, Horseradish.",
-    anchor: "'There is a time for everything, and a season for every activity under the heavens.' — Ecclesiastes 3:1. The frozen river needs one thing: the return of warmth. Your season of movement is coming.",
+    anchor: "'There is a time for everything, and a season for every activity under the heavens.' — Ecclesiastes 3:1. The frozen knot needs one thing: the return of warmth. Your season of movement is coming.",
   },
   "Cold / Damp / Relaxed": {
     nickname: "The Still Water",
@@ -224,11 +209,11 @@ const constitutionProfiles: Record<string, { nickname: string; intro: string; pa
     patterns: "Sluggish metabolism, weight gain, fluid retention, brain fog, chronic fatigue, frequent illness, low thyroid signs. Often presents as 'I just can't get going.'",
     needs: "Warming, drying, and stimulating. Herbs that ignite the metabolism, move the lymphatics, and restore the body's thermostat.",
     herbs: "Cayenne, Ginger, Cinnamon, Garlic, Eleuthero, Astragalus, Fennel.",
-    anchor: "'Wake up, sleeper, rise from the dead, and Christ will shine on you.' — Ephesians 5:14. This is not a judgment — it is an invitation. The still pond can move. The body was designed to wake up.",
+    anchor: "'Wake up, sleeper, rise from the dead, and Christ will shine on you.' — Ephesians 5:14. This is not a judgment — it is an invitation. Still water can move. The body was designed to wake up.",
   },
 };
 
-function buildAssessmentEmail(firstName: string, constitutionType: string): { subject: string; html: string } {
+function buildAssessmentEmail(firstName: string, constitutionType: string, slugInfo: { slug: string; name: string }): { subject: string; html: string } {
   const profile = constitutionProfiles[constitutionType];
   if (!profile) {
     const fallback = `<p style="font-family:Georgia,serif;font-size:16px;color:#1C3A2E;">Hi ${firstName},</p><p style="font-family:Georgia,serif;font-size:16px;color:#1C3A2E;">Your constitutional assessment is complete. Your type is: ${constitutionType}.</p>`;
@@ -237,8 +222,8 @@ function buildAssessmentEmail(firstName: string, constitutionType: string): { su
 
   const body = `
 <p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 8px 0;">Your constitutional assessment is complete. Here is your full profile.</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 8px 0;"><strong>Your personalized Constitutional Guide is attached to this email as a PDF</strong> — save it, print it, or keep it for reference.</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 8px 0;">Your constitutional assessment is complete. Here is your profile snapshot.</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 8px 0;">Want the full deep-dive? Your complete guide — all 10 herbs, preparation methods, lifestyle protocols, and Biblical framework — is available for just $14.</p>
 ${goldDivider()}
 <!-- Constitutional Type Display Block -->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #C9A84C;background-color:#F5F0E8;margin-bottom:24px;">
@@ -250,6 +235,7 @@ ${goldDivider()}
 </table>
 </td></tr>
 </table>
+${ctaButton('→ GET YOUR FULL DEEP-DIVE GUIDE — $14', `https://edeninstitute.health/results/${slugInfo.slug}`)}
 ${goldDivider()}
 <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 20px 0;">${profile.intro}</p>
 <p style="font-family:Georgia,serif;font-size:16px;font-weight:bold;color:#1C3A2E;margin:0 0 8px 0;">Your body's patterns:</p>
@@ -286,18 +272,14 @@ ${goldDivider()}
 
 // ── Send email helper ──
 
-async function sendEmail(to: string, subject: string, html: string, attachments?: Array<{ filename: string; content: string }>): Promise<void> {
-  const payload: any = {
+async function sendEmail(to: string, subject: string, html: string): Promise<void> {
+  const payload = {
     from: 'The Eden Institute <hello@edeninstitute.health>',
     reply_to: 'hello@edeninstitute.health',
     to: [to],
     subject,
     html,
   };
-
-  if (attachments && attachments.length > 0) {
-    payload.attachments = attachments;
-  }
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -331,7 +313,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { firstName, email, audienceId, constitutionType, constitutionNickname, source } = await req.json();
+    const { firstName, email, audienceId, constitutionType, constitutionSlug, constitutionName, constitutionNickname, source } = await req.json();
 
     if (!firstName || !email) {
       return new Response(
@@ -340,20 +322,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Build contact properties for quiz submissions
-    const contactProperties: Record<string, string> = {};
-    if (constitutionType) {
-      const nickname = constitutionNickname || constitutionProfiles[constitutionType]?.nickname || '';
-      const slug = nickname ? toSlug(nickname) : '';
-      contactProperties.constitution_type = slug;
-      contactProperties.constitution_name = nickname;
-      contactProperties.quiz_completed_at = new Date().toISOString();
-      contactProperties.purchased_guide = 'false';
-      contactProperties.purchased_course = 'false';
-    }
-
-    // Step 1: Create/update contact in the audience (without custom properties — those go via separate update)
-    const hasProperties = Object.keys(contactProperties).length > 0;
+    // Step 1: Create/update contact in the audience
     const baseContactPayload: Record<string, any> = { email, first_name: firstName, unsubscribed: false };
 
     let contactRes = await fetch(`https://api.resend.com/audiences/${RESEND_AUDIENCE_ID}/contacts`, {
@@ -367,39 +336,6 @@ Deno.serve(async (req) => {
 
     let contactData = await contactRes.json();
     console.log('Contact creation response:', contactRes.status, JSON.stringify(contactData));
-
-    // Step 1b: Set custom properties via PATCH /contacts/{contactId} with "properties" object
-    if (hasProperties && contactData?.id) {
-      try {
-        // Ensure contact properties exist in Resend (idempotent — 409 if already exists)
-        for (const key of Object.keys(contactProperties)) {
-          await fetch('https://api.resend.com/contact-properties', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${RESEND_API_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ key, type: 'string', fallback_value: '' }),
-          });
-        }
-
-        // Update contact with custom properties
-        const updateRes = await fetch(`https://api.resend.com/contacts/${contactData.id}`, {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${RESEND_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            properties: contactProperties,
-          }),
-        });
-        const updateData = await updateRes.json();
-        console.log('Contact properties update:', updateRes.status, JSON.stringify(updateData));
-      } catch (propErr) {
-        console.error('Failed to set contact properties:', propErr.message);
-      }
-    }
 
     if (!contactRes.ok && contactRes.status !== 409) {
       return new Response(
@@ -430,8 +366,9 @@ Deno.serve(async (req) => {
         console.log(`Topic ${topicId} response:`, topicRes.status, JSON.stringify(topicData));
         topicResults.push({ topicId, status: topicRes.status, ok: topicRes.ok });
       } catch (topicErr) {
-        console.error(`Topic ${topicId} error:`, topicErr.message);
-        topicResults.push({ topicId, error: topicErr.message });
+        const topicErrorMessage = topicErr instanceof Error ? topicErr.message : String(topicErr);
+        console.error(`Topic ${topicId} error:`, topicErrorMessage);
+        topicResults.push({ topicId, error: topicErrorMessage });
       }
     }
 
@@ -445,8 +382,9 @@ Deno.serve(async (req) => {
       const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
       const supabaseUrl = Deno.env.get('SUPABASE_URL');
       if (serviceRoleKey && supabaseUrl) {
-        const nickname = constitutionNickname || constitutionProfiles[constitutionType]?.nickname || '';
-        const slug = nickname ? toSlug(nickname) : '';
+        const slugInfo = getSlugInfo(constitutionType, constitutionSlug, constitutionName, constitutionNickname);
+        const name = slugInfo.name;
+        const slug = slugInfo.slug;
 
         // Check for existing quiz completion (duplicate prevention)
         const checkRes = await fetch(
@@ -476,8 +414,9 @@ Deno.serve(async (req) => {
                 'Prefer': 'return=minimal',
               },
               body: JSON.stringify({
-                constitution_type: constitutionType,
-                constitution_nickname: nickname,
+                constitution_type: slug,
+                constitution_name: name,
+                constitution_nickname: name,
               }),
             }
           );
@@ -499,8 +438,9 @@ Deno.serve(async (req) => {
                   'Prefer': 'return=minimal',
                 },
                 body: JSON.stringify({
-                  constitution_type: constitutionType,
-                  constitution_nickname: nickname,
+                  constitution_type: slug,
+                  constitution_name: name,
+                  constitution_nickname: name,
                   email_1_sent_at: nowIso,
                   email_2_sent_at: nowIso,
                   email_3_sent_at: nowIso,
@@ -520,8 +460,9 @@ Deno.serve(async (req) => {
               body: JSON.stringify({
                 email,
                 first_name: firstName,
-                constitution_type: constitutionType,
-                constitution_nickname: nickname,
+                constitution_type: slug,
+                constitution_name: name,
+                constitution_nickname: name,
                 email_1_sent_at: nowIso,
                 email_2_sent_at: nowIso,
                 email_3_sent_at: nowIso,
@@ -542,7 +483,7 @@ Deno.serve(async (req) => {
               const replyTo = 'hello@edeninstitute.health';
 
               // Email 1 — immediate
-              const e1 = buildNurtureEmail1(firstName, nickname, slug);
+              const e1 = buildNurtureEmail1(firstName, name, slug);
               await fetch('https://api.resend.com/emails', {
                 method: 'POST',
                 headers: sendHeaders,
@@ -551,7 +492,7 @@ Deno.serve(async (req) => {
               console.log('Nurture Email 1 sent to', email);
 
               // Email 2 — Day 3
-              const e2 = buildNurtureEmail2(firstName, nickname, slug);
+              const e2 = buildNurtureEmail2(firstName, name, slug);
               const day3 = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString();
               await fetch('https://api.resend.com/emails', {
                 method: 'POST',
@@ -561,7 +502,7 @@ Deno.serve(async (req) => {
               console.log('Nurture Email 2 scheduled for', day3);
 
               // Email 3 — Day 7
-              const e3 = buildNurtureEmail3(firstName, nickname, slug);
+              const e3 = buildNurtureEmail3(firstName, name, slug);
               const day7 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
               await fetch('https://api.resend.com/emails', {
                 method: 'POST',
@@ -571,7 +512,7 @@ Deno.serve(async (req) => {
               console.log('Nurture Email 3 scheduled for', day7);
 
               // Email 4 — Day 10
-              const e4 = buildNurtureEmail4(firstName, nickname, slug);
+              const e4 = buildNurtureEmail4(firstName, name, slug);
               const day10 = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString();
               await fetch('https://api.resend.com/emails', {
                 method: 'POST',
@@ -580,12 +521,16 @@ Deno.serve(async (req) => {
               });
               console.log('Nurture Email 4 scheduled for', day10);
             } catch (nurtureErr) {
-              console.error('Nurture scheduling error:', nurtureErr.message);
+              const nurtureErrorMessage = nurtureErr instanceof Error ? nurtureErr.message : String(nurtureErr);
+              console.error('Nurture scheduling error:', nurtureErrorMessage);
             }
           };
 
           // Fire-and-forget — don't block the response
-          scheduleNurture().catch(err => console.error('Nurture scheduling failed:', err.message));
+          scheduleNurture().catch((err) => {
+            const schedulingErrorMessage = err instanceof Error ? err.message : String(err);
+            console.error('Nurture scheduling failed:', schedulingErrorMessage);
+          });
         }
       }
     } else if (audienceId === COURSE_AUDIENCE_ID) {
@@ -596,7 +541,8 @@ Deno.serve(async (req) => {
 
     if (emailContent) {
       sendEmail(email, emailContent.subject, emailContent.html).catch((err) => {
-        console.error('Background email send error:', err.message);
+        const backgroundEmailError = err instanceof Error ? err.message : String(err);
+        console.error('Background email send error:', backgroundEmailError);
       });
     }
 
@@ -605,9 +551,11 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err) {
-    console.error('Unhandled error:', err.message, err.stack);
+    const unhandledMessage = err instanceof Error ? err.message : String(err);
+    const unhandledStack = err instanceof Error ? err.stack : undefined;
+    console.error('Unhandled error:', unhandledMessage, unhandledStack);
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ error: unhandledMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

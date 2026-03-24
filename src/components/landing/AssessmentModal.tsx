@@ -1,9 +1,11 @@
 import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { X } from "lucide-react";
 import { constitutionProfiles, computeResult } from "@/lib/constitution-data";
+import { getNameFromType, getSlugFromType } from "@/lib/constitution-utils";
 
 interface Question {
   id: number;
@@ -93,6 +95,7 @@ interface AssessmentModalProps {
 }
 
 const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
+  const navigate = useNavigate();
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [phase, setPhase] = useState<"intro" | "quiz" | "gate" | "results">("intro");
@@ -137,6 +140,8 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
           firstName,
           email,
           constitutionType,
+          constitutionSlug: getSlugFromType(constitutionType),
+          constitutionName: getNameFromType(constitutionType),
           constitutionNickname: profile?.nickname,
           source: "constitution_assessment",
         },
@@ -145,7 +150,9 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
 
       (window as any).gtag?.('event', 'email_submit', { event_category: 'conversion' });
       (window as any).gtag?.('event', 'quiz_complete', { event_category: 'engagement', quiz_result: constitutionType });
-      setPhase("results");
+      const slug = getSlugFromType(constitutionType);
+      handleClose(false);
+      navigate(`/results/${slug}`);
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
