@@ -354,7 +354,10 @@ Deno.serve(async (req) => {
 
     // Step 1: Add/update contact in the audience (try with properties, fallback without)
     const hasProperties = Object.keys(contactProperties).length > 0;
-    const baseContactPayload = { email, first_name: firstName, unsubscribed: false };
+    const baseContactPayload: Record<string, any> = { email, first_name: firstName, unsubscribed: false };
+
+    // Resend expects custom properties at top level, not nested under "properties"
+    const contactPayload = hasProperties ? { ...baseContactPayload, ...contactProperties } : baseContactPayload;
 
     let contactRes = await fetch(`https://api.resend.com/audiences/${RESEND_AUDIENCE_ID}/contacts`, {
       method: 'POST',
@@ -362,7 +365,7 @@ Deno.serve(async (req) => {
         'Authorization': `Bearer ${RESEND_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(hasProperties ? { ...baseContactPayload, properties: contactProperties } : baseContactPayload),
+      body: JSON.stringify(contactPayload),
     });
 
     let contactData = await contactRes.json();
@@ -418,30 +421,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step 3: Send welcome/results email
+    // Step 3: Send welcome/results email (non-assessment sources only)
+    // Assessment emails are handled by the nurture sequence (Email 1 sends immediately)
     let emailContent: { subject: string; html: string } | null = null;
-    let pdfAttachments: Array<{ filename: string; content: string }> | undefined;
 
     if (source === 'constitution_assessment' && constitutionType) {
-      emailContent = buildAssessmentEmail(firstName, constitutionType);
-
-      // Fetch comprehensive PDF from constitution-pdf edge function
-      try {
-        const pdfCategory = getPDFCategory(constitutionType);
-        console.log(`Fetching PDF for category: ${pdfCategory}`);
-        const pdfBytes = await fetchConstitutionPDF(pdfCategory);
-        const pdfBase64 = uint8ArrayToBase64(pdfBytes);
-        pdfAttachments = [{
-          filename: `Eden-Institute-${pdfCategory}-constitution-guide.pdf`,
-          content: pdfBase64,
-        }];
-        console.log(`PDF fetched: ${pdfBytes.length} bytes`);
-      } catch (pdfErr) {
-        console.error('PDF fetch failed:', pdfErr.message);
-        // Continue without attachment — email still sends
-      }
-
-      // Step 3b: Record quiz completion and schedule nurture emails
+      // Quiz completion — nurture Email 1 handles the welcome email
+      // Record quiz completion and schedule nurture emails 1-4
       const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
       const supabaseUrl = Deno.env.get('SUPABASE_URL');
       if (serviceRoleKey && supabaseUrl) {
@@ -488,7 +474,6 @@ Deno.serve(async (req) => {
 
           // Insert or update quiz_completion row
           if (Array.isArray(existing) && existing.length > 0) {
-            // Row exists but no emails sent yet — update it
             await fetch(
               `${supabaseUrl}/rest/v1/quiz_completions?email=eq.${encodeURIComponent(email)}`,
               {
@@ -510,7 +495,6 @@ Deno.serve(async (req) => {
               }
             );
           } else {
-            // Brand new row
             await fetch(`${supabaseUrl}/rest/v1/quiz_completions`, {
               method: 'POST',
               headers: {
@@ -597,7 +581,7 @@ Deno.serve(async (req) => {
     }
 
     if (emailContent) {
-      sendEmail(email, emailContent.subject, emailContent.html, pdfAttachments).catch((err) => {
+      sendEmail(email, emailContent.subject, emailContent.html).catch((err) => {
         console.error('Background email send error:', err.message);
       });
     }
