@@ -17,6 +17,7 @@ export type Database = {
       quiz_completions: {
         Row: {
           completed_at: string
+          constitution_name: string | null
           constitution_nickname: string | null
           constitution_type: string
           email: string
@@ -31,6 +32,7 @@ export type Database = {
         }
         Insert: {
           completed_at?: string
+          constitution_name?: string | null
           constitution_nickname?: string | null
           constitution_type: string
           email: string
@@ -45,6 +47,7 @@ export type Database = {
         }
         Update: {
           completed_at?: string
+          constitution_name?: string | null
           constitution_nickname?: string | null
           constitution_type?: string
           email?: string
