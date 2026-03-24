@@ -156,7 +156,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
     if (!val) {
       setCurrentQ(0);
       setAnswers({});
-      setPhase("quiz");
+      setPhase("intro");
       setTransitioning(false);
       setFirstName("");
       setEmail("");
