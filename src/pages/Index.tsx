@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Facebook, Instagram } from "lucide-react";
+import { Facebook, Instagram, ClipboardList, BookOpen, GraduationCap } from "lucide-react";
 import Footer from "@/components/landing/Footer";
 import AssessmentModal from "@/components/landing/AssessmentModal";
 import { BotanicalLeafTopRight, BotanicalLeafBottomLeft, GoldDivider } from "@/components/landing/BotanicalAccents";
@@ -12,6 +12,8 @@ const HERO_IMG = "https://images.unsplash.com/photo-1771128264855-1c032332cbc8?a
 const HERBS_SHELF_IMG = "https://images.unsplash.com/photo-1580116270858-8a0d62b15426?auto=format&fit=crop&w=1200&q=80";
 const MORTAR_IMG = "https://images.unsplash.com/photo-1492552085122-36706c238263?auto=format&fit=crop&w=1200&q=80";
 const HERBS_TABLE_IMG = "https://images.unsplash.com/photo-1726996155615-e986ed87c9d4?auto=format&fit=crop&w=1200&q=80";
+
+const QUIZ_CTA = "Find Out How Your Body Works — Take the Free Quiz (2 min)";
 
 const Index = () => {
   const [assessmentModal, setAssessmentModal] = useState(false);
@@ -57,42 +59,33 @@ const Index = () => {
 
       {/* ─── SECTION 1: HERO ─── */}
       <section id="hero" className="pt-20 relative overflow-hidden min-h-[90vh] flex items-center">
-        {/* Full-width background image */}
         <div className="absolute inset-0">
           <img
             src={HERO_IMG}
             alt="Rustic apothecary with dried herbs in glass jars on wooden shelves"
             className="absolute inset-0 w-full h-full object-cover"
           />
-          {/* Cream/dark overlay for readability */}
           <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, hsla(40, 33%, 93%, 0.82) 0%, hsla(40, 33%, 93%, 0.75) 50%, hsla(40, 33%, 93%, 0.88) 100%)" }} />
         </div>
 
-        {/* Botanical line-art accents */}
         <BotanicalLeafTopRight className="absolute top-0 right-0 w-48 md:w-72 lg:w-96 h-48 md:h-72 lg:h-96 opacity-[0.08] pointer-events-none" style={{ color: "hsl(var(--eden-forest))" }} />
         <BotanicalLeafBottomLeft className="absolute bottom-0 left-0 w-48 md:w-72 lg:w-96 h-48 md:h-72 lg:h-96 opacity-[0.06] pointer-events-none" style={{ color: "hsl(var(--eden-forest))" }} />
 
         <div className="eden-container text-center px-6 relative z-10 py-20 md:py-28">
           <ScrollReveal>
             <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] mb-5" style={{ color: "hsl(var(--eden-bark))" }}>
-              The Herb Wasn't the Problem.
+              Herbs Work. But Not the Same Way for Everyone.
             </h1>
           </ScrollReveal>
           <ScrollReveal delay={100}>
-            <p className="font-body text-xl sm:text-2xl md:text-3xl mb-10 font-medium" style={{ color: "hsl(var(--eden-bark) / 0.75)" }}>
-              You were using it like a pill.
+            <p className="font-body text-xl sm:text-2xl md:text-3xl mb-10 italic" style={{ color: "hsl(var(--eden-bark) / 0.7)", fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
+              The reason lavender calmed her and wired you isn't random. Your body has a pattern — and once you know it, every herb makes sense.
             </p>
           </ScrollReveal>
 
           <div className="eden-divider" />
 
           <ScrollReveal delay={200}>
-            <p className="font-body text-base sm:text-lg md:text-xl text-muted-foreground max-w-[680px] mx-auto leading-relaxed mb-10">
-              You tried the herb. It didn't work. So you assumed herbs don't work. But the herb was never the problem — the approach was. Real herbalism doesn't match a symptom to a supplement. It matches a <em>person</em> to a <em>plant</em>. Your constitution. Your tissue state. Your terrain. When you understand the pattern God designed into your body, the plant He designed to meet it becomes precise — not guesswork.
-            </p>
-          </ScrollReveal>
-
-          <ScrollReveal delay={300}>
             <Button
               variant="eden"
               size="xl"
@@ -100,11 +93,11 @@ const Index = () => {
               onClick={openQuiz}
               style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}
             >
-              Discover Your Constitution — Take the Free Quiz
+              {QUIZ_CTA}
             </Button>
 
             <p className="mt-4 font-body text-sm" style={{ color: "hsl(var(--eden-sage))" }}>
-              Takes 2 minutes. No email required to start.
+              No email required to start.
             </p>
           </ScrollReveal>
         </div>
@@ -135,9 +128,8 @@ const Index = () => {
 
       <GoldDivider />
 
-      {/* ─── SECTION 2: THE INSIGHT ─── */}
+      {/* ─── WHY HERBS FAIL SECTION ─── */}
       <section className="relative overflow-hidden" style={{ backgroundColor: "hsl(var(--eden-forest))" }}>
-        {/* Background herb image at low opacity */}
         <img
           src={HERBS_SHELF_IMG}
           alt=""
@@ -148,23 +140,23 @@ const Index = () => {
           <div className="eden-container px-6">
             <ScrollReveal>
               <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-14" style={{ color: "hsl(var(--eden-parchment))" }}>
-                Why Herbs Work for Some People and Not Others
+                Why Herbs Fail Most People
               </h2>
             </ScrollReveal>
 
             <div className="grid md:grid-cols-3 gap-6 md:gap-8">
               {[
                 {
-                  title: "Every Body Carries a Pattern",
-                  body: "God didn't make every body the same. Some people run hot. Some run cold. Some are dry, some are damp. These aren't random — they're constitutional patterns. When you don't know your pattern, you're guessing. When you do, you're matching.",
+                  title: "Wrong herb for your body",
+                  body: "You picked an herb based on a blog post or a friend's recommendation. But her body runs hot and yours runs cold — the same herb does opposite things.",
                 },
                 {
-                  title: "Every Plant Carries One Too",
-                  body: "Chamomile isn't just 'calming.' It's cooling, relaxing, and moisture-restoring. That matters. A cooling herb given to someone who's already cold won't help — it'll make things worse. The precision is in the match.",
+                  title: "Wrong dose at the wrong time",
+                  body: "You used the right herb but the wrong preparation, the wrong amount, or at the wrong point in your cycle. Timing and dosing are constitutional.",
                 },
                 {
-                  title: "Most Programs Skip This Entirely",
-                  body: "Most herbalism education teaches you WHAT to take. We teach you HOW to think. Constitution. Tissue state. Terrain. When you learn the framework, you stop chasing protocols and start making decisions — grounded ones.",
+                  title: "You expected it to work like a drug",
+                  body: "Herbs don't suppress symptoms. They support terrain. When you treat your body like a machine that needs a quick fix, herbs will always disappoint.",
                 },
               ].map((card, i) => (
                 <ScrollReveal key={card.title} delay={i * 120}>
@@ -186,26 +178,20 @@ const Index = () => {
               ))}
             </div>
 
-            {/* Accent image */}
             <ScrollReveal delay={200}>
-              <div className="mt-12 flex justify-center">
-                <img
-                  src={HERBS_SHELF_IMG}
-                  alt="Dried herbs and spices on rustic wooden shelves"
-                  className="w-full max-w-2xl h-48 md:h-56 object-cover rounded-lg shadow-xl opacity-90"
-                  style={{ border: "2px solid hsl(var(--eden-gold) / 0.3)" }}
-                />
-              </div>
+              <p className="text-center mt-12 font-body text-lg italic" style={{ color: "hsl(var(--eden-parchment) / 0.85)", fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
+                None of that is your fault. You were never taught to read your own terrain.
+              </p>
             </ScrollReveal>
 
-            <div className="text-center mt-12">
+            <div className="text-center mt-8">
               <Button
                 variant="eden"
                 size="xl"
-                className="min-h-[48px] text-sm sm:text-base px-8"
+                className="min-h-[48px] text-sm sm:text-base px-8 max-w-[90vw] whitespace-normal leading-snug"
                 onClick={openQuiz}
               >
-                Find Your Pattern — Take the Quiz
+                {QUIZ_CTA}
               </Button>
             </div>
           </div>
@@ -214,105 +200,22 @@ const Index = () => {
 
       <GoldDivider />
 
-      {/* ─── SECTION 3: THE COURSE ─── */}
-      <section id="course" className="section-padding-lg parchment-texture relative overflow-hidden">
-        <div className="eden-container px-6 relative z-10">
+      {/* ─── CREDIBILITY STRIP ─── */}
+      <section className="py-10 md:py-12 px-6" style={{ backgroundColor: "hsl(var(--eden-sage) / 0.15)" }}>
+        <div className="eden-container">
           <ScrollReveal>
-            <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-foreground text-center mb-6">
-              A Real Education in Biblical Clinical Herbalism
-            </h2>
-
-            <p className="font-body text-base sm:text-lg text-muted-foreground max-w-3xl mx-auto text-center leading-relaxed mb-14">
-              The Eden Institute is a structured, three-tier clinical herbalism program anchored in Scripture and built with academic rigor. We don't sell supplement stacks or weekend certifications. We teach you to read the body, understand the terrain, and match the person to the plant — the way God designed it.
-            </p>
-          </ScrollReveal>
-
-          <div className="grid md:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto">
-            {/* Tier 1 */}
-            <ScrollReveal delay={0}>
-              <div
-                className="rounded-lg p-6 md:p-8 flex flex-col shadow-md hover:shadow-lg transition-shadow duration-300"
-                style={{
-                  backgroundColor: "hsl(var(--eden-cream))",
-                  border: "1.5px solid hsl(var(--eden-gold) / 0.4)",
-                }}
-              >
-                <p
-                  className="font-accent text-sm uppercase tracking-[0.15em] font-semibold mb-2"
-                  style={{ color: "hsl(var(--eden-gold))" }}
-                >
-                  Tier 1
-                </p>
-                <h3 className="font-serif text-xl md:text-2xl font-bold text-foreground mb-1">
-                  Foundations of Biblical Herbalism
-                </h3>
-                <p className="font-body text-sm text-muted-foreground mb-4">
-                  10 video lessons across 3 parts
-                </p>
-                <p className="font-body text-base text-muted-foreground leading-relaxed mb-6 flex-1">
-                  Constitutional assessment. The Five Tenets of Health. Terrain-based thinking. Biblical theology of healing. Companion worksheets, quizzes, Sensory Exploration Guide, and Certificate of Completion.
-                </p>
-                {/* Small herb accent image */}
-                <div className="mb-4 rounded overflow-hidden" style={{ height: "100px" }}>
-                  <img src={HERBS_TABLE_IMG} alt="Fresh herbs on a rustic table" className="w-full h-full object-cover opacity-80" />
-                </div>
-                <p className="font-serif text-lg font-bold text-foreground mb-1">
-                  $197 — Payment plans available
-                </p>
-                <p className="font-body text-xs text-muted-foreground">
-                  Includes companion textbook materials
-                </p>
-              </div>
-            </ScrollReveal>
-
-            {/* Tier 2 */}
-            <ScrollReveal delay={150}>
-              <div
-                className="rounded-lg p-6 md:p-8 flex flex-col shadow-md hover:shadow-lg transition-shadow duration-300"
-                style={{
-                  backgroundColor: "hsl(var(--eden-cream))",
-                  border: "1.5px solid hsl(var(--eden-gold) / 0.4)",
-                }}
-              >
-                <p
-                  className="font-accent text-sm uppercase tracking-[0.15em] font-semibold mb-2"
-                  style={{ color: "hsl(var(--eden-gold))" }}
-                >
-                  Tier 2
-                </p>
-                <h3 className="font-serif text-xl md:text-2xl font-bold text-foreground mb-1">
-                  Body Systems &amp; Clinical Literacy
-                </h3>
-                <p className="font-body text-sm text-muted-foreground mb-4">
-                  14 chapters of textbook-level depth
-                </p>
-                <p className="font-body text-base text-muted-foreground leading-relaxed mb-6 flex-1">
-                  Every major body system. Tissue state assessment. Integrated Materia Medica. Clinical thinking you can actually use. Built for those who want mastery, not just familiarity.
-                </p>
-                {/* Small herb accent image */}
-                <div className="mb-4 rounded overflow-hidden" style={{ height: "100px" }}>
-                  <img src={MORTAR_IMG} alt="Mortar and pestle with herbs" className="w-full h-full object-cover opacity-80" />
-                </div>
-                <p
-                  className="font-serif text-base font-semibold"
-                  style={{ color: "hsl(var(--eden-gold))" }}
-                >
-                  Launching Summer 2026
-                </p>
-              </div>
-            </ScrollReveal>
-          </div>
-
-          <ScrollReveal delay={200}>
-            <div className="text-center mt-12">
-              <Link to="/why-eden">
-                <Button variant="eden" size="xl" className="min-h-[48px] text-sm sm:text-base px-8">
-                  Learn More About the Program →
-                </Button>
-              </Link>
-              <p className="mt-4 font-body text-sm text-muted-foreground">
-                Enrollment opens June 2026. Course launches July 7, 2026.
-              </p>
+            <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6 text-center">
+              <span className="font-accent text-sm md:text-base tracking-wide" style={{ color: "hsl(var(--eden-forest))" }}>
+                Built on 3,000 years of Western clinical herbalism tradition
+              </span>
+              <span className="hidden md:inline font-serif text-lg" style={{ color: "hsl(var(--eden-gold))" }}>·</span>
+              <span className="font-accent text-sm md:text-base tracking-wide" style={{ color: "hsl(var(--eden-forest))" }}>
+                Eclectic · Physiomedical · Vitalist frameworks
+              </span>
+              <span className="hidden md:inline font-serif text-lg" style={{ color: "hsl(var(--eden-gold))" }}>·</span>
+              <span className="font-accent text-sm md:text-base tracking-wide" style={{ color: "hsl(var(--eden-forest))" }}>
+                Rooted in Scripture. Free from Eastern metaphysics.
+              </span>
             </div>
           </ScrollReveal>
         </div>
@@ -320,9 +223,76 @@ const Index = () => {
 
       <GoldDivider />
 
-      {/* ─── SECTION 4: THE APP ─── */}
-      <section className="relative overflow-hidden" style={{ backgroundColor: "hsl(var(--eden-sage))" }}>
-        {/* Background mortar image */}
+      {/* ─── VALUE LADDER SECTION ─── */}
+      <section className="section-padding-lg parchment-texture relative overflow-hidden">
+        <div className="eden-container px-6 relative z-10">
+          <ScrollReveal>
+            <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-foreground text-center mb-6">
+              Your Path to Understanding
+            </h2>
+            <div className="eden-divider" />
+          </ScrollReveal>
+
+          <div className="grid md:grid-cols-3 gap-6 md:gap-8 max-w-4xl mx-auto mt-12">
+            {[
+              {
+                icon: <ClipboardList className="w-10 h-10" style={{ color: "hsl(var(--eden-gold))" }} />,
+                label: "Free Quiz",
+                description: "Discover your body's constitutional pattern in 2 minutes",
+                price: "FREE",
+              },
+              {
+                icon: <BookOpen className="w-10 h-10" style={{ color: "hsl(var(--eden-gold))" }} />,
+                label: "Deep-Dive Guide",
+                description: "Your personalized herb guide — 10 matched herbs, nutrition, lifestyle, and Scripture",
+                price: "$14",
+              },
+              {
+                icon: <GraduationCap className="w-10 h-10" style={{ color: "hsl(var(--eden-gold))" }} />,
+                label: "Foundations Course",
+                description: "Learn to read your constitution and match it to God's provision in the plant world",
+                price: "$197",
+              },
+            ].map((step, i) => (
+              <ScrollReveal key={step.label} delay={i * 120}>
+                <div
+                  className="rounded-lg p-6 md:p-8 text-center shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col items-center"
+                  style={{
+                    backgroundColor: "hsl(var(--eden-cream))",
+                    border: "1.5px solid hsl(var(--eden-gold) / 0.4)",
+                  }}
+                >
+                  {/* Step number */}
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center font-serif text-sm font-bold mb-4" style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}>
+                    {i + 1}
+                  </div>
+                  {step.icon}
+                  <h3 className="font-serif text-xl md:text-2xl font-bold text-foreground mt-4 mb-2">
+                    {step.label}
+                  </h3>
+                  <p className="font-body text-base text-muted-foreground leading-relaxed mb-4 flex-1">
+                    {step.description}
+                  </p>
+                  <p className="font-serif text-2xl font-bold" style={{ color: "hsl(var(--eden-gold))" }}>
+                    {step.price}
+                  </p>
+                </div>
+              </ScrollReveal>
+            ))}
+          </div>
+
+          <ScrollReveal delay={200}>
+            <p className="text-center mt-10 font-body text-lg italic text-muted-foreground" style={{ fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
+              Start wherever you are. Each step builds on the last.
+            </p>
+          </ScrollReveal>
+        </div>
+      </section>
+
+      <GoldDivider />
+
+      {/* ─── THE COURSE ─── */}
+      <section id="course" className="section-padding-lg relative overflow-hidden" style={{ backgroundColor: "hsl(var(--eden-sage))" }}>
         <img
           src={MORTAR_IMG}
           alt=""
@@ -335,13 +305,18 @@ const Index = () => {
               <ScrollReveal>
                 <div className="text-center md:text-left">
                   <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold mb-6" style={{ color: "hsl(var(--eden-parchment))" }}>
-                    Your Apothecary, In Your Pocket
+                    A Real Education in Biblical Clinical Herbalism
                   </h2>
                   <p className="font-body text-base sm:text-lg max-w-3xl leading-relaxed mb-8" style={{ color: "hsl(var(--eden-parchment) / 0.9)" }}>
-                    The Eden Apothecary app is launching alongside the course this summer. A personal herbal reference tool built on the same constitutional and terrain-based framework you'll learn in the program. Look up herbs by body system, tissue state, or constitution — and know exactly why they work for you.
+                    The Eden Institute is a structured, three-tier clinical herbalism program anchored in Scripture and built with academic rigor. We don't sell supplement stacks or weekend certifications. We teach you to read the body, understand the terrain, and match the person to the plant.
                   </p>
-                  <p className="font-serif text-lg font-semibold" style={{ color: "hsl(var(--eden-gold))" }}>
-                    Coming Summer 2026
+                  <Link to="/why-eden">
+                    <Button variant="eden" size="xl" className="min-h-[48px] text-sm sm:text-base px-8">
+                      Learn More About the Program →
+                    </Button>
+                  </Link>
+                  <p className="mt-4 font-body text-sm" style={{ color: "hsl(var(--eden-parchment) / 0.7)" }}>
+                    Enrollment opens June 2026. Course launches July 7, 2026.
                   </p>
                 </div>
               </ScrollReveal>
@@ -362,9 +337,8 @@ const Index = () => {
 
       <GoldDivider />
 
-      {/* ─── SECTION 5: BOTTOM CTA ─── */}
+      {/* ─── BOTTOM CTA ─── */}
       <section className="relative overflow-hidden" style={{ backgroundColor: "hsl(var(--eden-forest))" }}>
-        {/* Atmospheric background image */}
         <img
           src={HERO_IMG}
           alt=""
@@ -389,7 +363,7 @@ const Index = () => {
                 onClick={openQuiz}
                 style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}
               >
-                Take the Free Constitutional Quiz
+                {QUIZ_CTA}
               </Button>
             </ScrollReveal>
 
