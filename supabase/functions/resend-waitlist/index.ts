@@ -343,11 +343,13 @@ Deno.serve(async (req) => {
     // Build contact properties for quiz submissions
     const contactProperties: Record<string, string> = {};
     if (constitutionType) {
-      contactProperties.constitution_type = constitutionType;
-      const profile = constitutionProfiles[constitutionType];
-      if (profile) {
-        contactProperties.constitution_name = profile.nickname;
-      }
+      const nickname = constitutionNickname || constitutionProfiles[constitutionType]?.nickname || '';
+      const slug = nickname ? toSlug(nickname) : '';
+      contactProperties.constitution_type = slug;
+      contactProperties.constitution_name = nickname;
+      contactProperties.quiz_completed_at = new Date().toISOString();
+      contactProperties.purchased_guide = 'false';
+      contactProperties.purchased_course = 'false';
     }
 
     // Step 1: Add/update contact in the audience (try with properties, fallback without)
