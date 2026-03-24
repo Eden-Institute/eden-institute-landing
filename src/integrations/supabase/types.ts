@@ -23,8 +23,11 @@ export type Database = {
           email_1_sent_at: string | null
           email_2_sent_at: string | null
           email_3_sent_at: string | null
+          email_4_sent_at: string | null
+          email_5_sent_at: string | null
           first_name: string
           id: string
+          purchased_course: boolean | null
         }
         Insert: {
           completed_at?: string
@@ -34,8 +37,11 @@ export type Database = {
           email_1_sent_at?: string | null
           email_2_sent_at?: string | null
           email_3_sent_at?: string | null
+          email_4_sent_at?: string | null
+          email_5_sent_at?: string | null
           first_name: string
           id?: string
+          purchased_course?: boolean | null
         }
         Update: {
           completed_at?: string
@@ -45,8 +51,11 @@ export type Database = {
           email_1_sent_at?: string | null
           email_2_sent_at?: string | null
           email_3_sent_at?: string | null
+          email_4_sent_at?: string | null
+          email_5_sent_at?: string | null
           first_name?: string
           id?: string
+          purchased_course?: boolean | null
         }
         Relationships: []
       }

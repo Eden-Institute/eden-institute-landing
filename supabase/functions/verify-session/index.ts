@@ -1,3 +1,5 @@
+// verify-session — verifies Stripe checkout and updates Resend contact properties
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14?target=deno";
 
@@ -38,12 +40,24 @@ serve(async (req) => {
     const constitution_type = session.metadata?.constitution_type || "";
     const constitution_nickname = session.metadata?.constitution_nickname || "";
     const email = session.metadata?.email || session.customer_email || "";
+    const product_type = session.metadata?.product_type || "guide"; // "guide" or "course"
+
+    // Determine which purchase flag to set
+    const isPurchasedGuide = product_type === "guide" || !session.metadata?.product_type;
+    const isPurchasedCourse = product_type === "course";
 
     // Update Resend contact with purchase info
     try {
       const resendKey = Deno.env.get("RESEND_API_KEY");
       const audienceId = Deno.env.get("RESEND_AUDIENCE_ID");
       if (resendKey && audienceId && email) {
+        const properties: Record<string, string> = {
+          constitution_type,
+          constitution_name: constitution_nickname,
+        };
+        if (isPurchasedGuide) properties.purchased_guide = "true";
+        if (isPurchasedCourse) properties.purchased_course = "true";
+
         await fetch(`https://api.resend.com/audiences/${audienceId}/contacts`, {
           method: "POST",
           headers: {
@@ -53,15 +67,36 @@ serve(async (req) => {
           body: JSON.stringify({
             email,
             unsubscribed: false,
-            purchased_guide: "true",
-            guide_type: constitution_nickname,
-            constitution_type,
-            constitution_name: constitution_nickname,
+            properties,
           }),
         });
+        console.log(`Resend contact updated for ${email}: ${isPurchasedGuide ? 'guide' : ''}${isPurchasedCourse ? 'course' : ''}`);
       }
     } catch (resendErr) {
       console.error("Resend update failed (non-blocking):", resendErr);
+    }
+
+    // If course purchase, also update quiz_completions.purchased_course
+    if (isPurchasedCourse && email) {
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        if (supabaseUrl && serviceRoleKey) {
+          await fetch(`${supabaseUrl}/rest/v1/quiz_completions?email=eq.${encodeURIComponent(email)}`, {
+            method: "PATCH",
+            headers: {
+              "apikey": serviceRoleKey,
+              "Authorization": `Bearer ${serviceRoleKey}`,
+              "Content-Type": "application/json",
+              "Prefer": "return=minimal",
+            },
+            body: JSON.stringify({ purchased_course: true }),
+          });
+          console.log(`quiz_completions.purchased_course set to true for ${email}`);
+        }
+      } catch (dbErr) {
+        console.error("DB update failed (non-blocking):", dbErr);
+      }
     }
 
     return new Response(

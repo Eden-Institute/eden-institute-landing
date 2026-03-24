@@ -1,4 +1,5 @@
 // PDF generation is handled by the constitution-pdf edge function
+import { buildNurtureEmail1, buildNurtureEmail2, buildNurtureEmail3, buildNurtureEmail4, toSlug } from '../_shared/nurture-email-templates.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -342,11 +343,13 @@ Deno.serve(async (req) => {
     // Build contact properties for quiz submissions
     const contactProperties: Record<string, string> = {};
     if (constitutionType) {
-      contactProperties.constitution_type = constitutionType;
-      const profile = constitutionProfiles[constitutionType];
-      if (profile) {
-        contactProperties.constitution_name = profile.nickname;
-      }
+      const nickname = constitutionNickname || constitutionProfiles[constitutionType]?.nickname || '';
+      const slug = nickname ? toSlug(nickname) : '';
+      contactProperties.constitution_type = slug;
+      contactProperties.constitution_name = nickname;
+      contactProperties.quiz_completed_at = new Date().toISOString();
+      contactProperties.purchased_guide = 'false';
+      contactProperties.purchased_course = 'false';
     }
 
     // Step 1: Add/update contact in the audience (try with properties, fallback without)
@@ -438,29 +441,154 @@ Deno.serve(async (req) => {
         // Continue without attachment — email still sends
       }
 
-      // Step 3b: Record quiz completion for nurture sequence
+      // Step 3b: Record quiz completion and schedule nurture emails
       const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
       const supabaseUrl = Deno.env.get('SUPABASE_URL');
       if (serviceRoleKey && supabaseUrl) {
-        fetch(`${supabaseUrl}/rest/v1/quiz_completions`, {
-          method: 'POST',
-          headers: {
-            'apikey': serviceRoleKey,
-            'Authorization': `Bearer ${serviceRoleKey}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=minimal',
-          },
-          body: JSON.stringify({
-            email,
-            first_name: firstName,
-            constitution_type: constitutionType,
-            constitution_nickname: constitutionNickname || (constitutionProfiles[constitutionType]?.nickname ?? null),
-          }),
-        }).then(res => {
-          console.log('Quiz completion recorded:', res.status);
-        }).catch(err => {
-          console.error('Failed to record quiz completion:', err.message);
-        });
+        const nickname = constitutionNickname || constitutionProfiles[constitutionType]?.nickname || '';
+        const slug = nickname ? toSlug(nickname) : '';
+
+        // Check for existing quiz completion (duplicate prevention)
+        const checkRes = await fetch(
+          `${supabaseUrl}/rest/v1/quiz_completions?email=eq.${encodeURIComponent(email)}&select=id,email_1_sent_at&limit=1`,
+          {
+            headers: {
+              'apikey': serviceRoleKey,
+              'Authorization': `Bearer ${serviceRoleKey}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        const existing = await checkRes.json();
+        const alreadyNurtured = Array.isArray(existing) && existing.length > 0 && existing[0].email_1_sent_at;
+
+        if (alreadyNurtured) {
+          // User retook quiz — update constitution info but DON'T re-send nurture sequence
+          console.log(`Existing nurture sequence for ${email} — updating constitution info only`);
+          await fetch(
+            `${supabaseUrl}/rest/v1/quiz_completions?email=eq.${encodeURIComponent(email)}`,
+            {
+              method: 'PATCH',
+              headers: {
+                'apikey': serviceRoleKey,
+                'Authorization': `Bearer ${serviceRoleKey}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal',
+              },
+              body: JSON.stringify({
+                constitution_type: constitutionType,
+                constitution_nickname: nickname,
+              }),
+            }
+          );
+        } else {
+          // New quiz completion — insert row and schedule nurture emails 1-4
+          const now = new Date();
+          const nowIso = now.toISOString();
+
+          // Insert or update quiz_completion row
+          if (Array.isArray(existing) && existing.length > 0) {
+            // Row exists but no emails sent yet — update it
+            await fetch(
+              `${supabaseUrl}/rest/v1/quiz_completions?email=eq.${encodeURIComponent(email)}`,
+              {
+                method: 'PATCH',
+                headers: {
+                  'apikey': serviceRoleKey,
+                  'Authorization': `Bearer ${serviceRoleKey}`,
+                  'Content-Type': 'application/json',
+                  'Prefer': 'return=minimal',
+                },
+                body: JSON.stringify({
+                  constitution_type: constitutionType,
+                  constitution_nickname: nickname,
+                  email_1_sent_at: nowIso,
+                  email_2_sent_at: nowIso,
+                  email_3_sent_at: nowIso,
+                  email_4_sent_at: nowIso,
+                }),
+              }
+            );
+          } else {
+            // Brand new row
+            await fetch(`${supabaseUrl}/rest/v1/quiz_completions`, {
+              method: 'POST',
+              headers: {
+                'apikey': serviceRoleKey,
+                'Authorization': `Bearer ${serviceRoleKey}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal',
+              },
+              body: JSON.stringify({
+                email,
+                first_name: firstName,
+                constitution_type: constitutionType,
+                constitution_nickname: nickname,
+                email_1_sent_at: nowIso,
+                email_2_sent_at: nowIso,
+                email_3_sent_at: nowIso,
+                email_4_sent_at: nowIso,
+              }),
+            });
+          }
+          console.log('Quiz completion recorded, scheduling nurture emails');
+
+          // Schedule nurture emails 1-4 via Resend (fire-and-forget)
+          const scheduleNurture = async () => {
+            try {
+              const sendHeaders = {
+                'Authorization': `Bearer ${RESEND_API_KEY}`,
+                'Content-Type': 'application/json',
+              };
+              const from = 'Camila at The Eden Institute <hello@edeninstitute.health>';
+              const replyTo = 'hello@edeninstitute.health';
+
+              // Email 1 — immediate
+              const e1 = buildNurtureEmail1(firstName, nickname, slug);
+              await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: sendHeaders,
+                body: JSON.stringify({ from, reply_to: replyTo, to: [email], subject: e1.subject, html: e1.html }),
+              });
+              console.log('Nurture Email 1 sent to', email);
+
+              // Email 2 — Day 3
+              const e2 = buildNurtureEmail2(firstName, nickname, slug);
+              const day3 = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString();
+              await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: sendHeaders,
+                body: JSON.stringify({ from, reply_to: replyTo, to: [email], subject: e2.subject, html: e2.html, scheduled_at: day3 }),
+              });
+              console.log('Nurture Email 2 scheduled for', day3);
+
+              // Email 3 — Day 7
+              const e3 = buildNurtureEmail3(firstName, nickname, slug);
+              const day7 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+              await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: sendHeaders,
+                body: JSON.stringify({ from, reply_to: replyTo, to: [email], subject: e3.subject, html: e3.html, scheduled_at: day7 }),
+              });
+              console.log('Nurture Email 3 scheduled for', day7);
+
+              // Email 4 — Day 10
+              const e4 = buildNurtureEmail4(firstName, nickname, slug);
+              const day10 = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString();
+              await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: sendHeaders,
+                body: JSON.stringify({ from, reply_to: replyTo, to: [email], subject: e4.subject, html: e4.html, scheduled_at: day10 }),
+              });
+              console.log('Nurture Email 4 scheduled for', day10);
+            } catch (nurtureErr) {
+              console.error('Nurture scheduling error:', nurtureErr.message);
+            }
+          };
+
+          // Fire-and-forget — don't block the response
+          scheduleNurture().catch(err => console.error('Nurture scheduling failed:', err.message));
+        }
       }
     } else if (audienceId === COURSE_AUDIENCE_ID) {
       emailContent = buildFoundationsEmail(firstName);
