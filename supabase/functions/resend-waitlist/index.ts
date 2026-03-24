@@ -352,12 +352,9 @@ Deno.serve(async (req) => {
       contactProperties.purchased_course = 'false';
     }
 
-    // Step 1: Add/update contact in the audience (try with properties, fallback without)
+    // Step 1: Create/update contact in the audience (without custom properties — those go via separate update)
     const hasProperties = Object.keys(contactProperties).length > 0;
     const baseContactPayload: Record<string, any> = { email, first_name: firstName, unsubscribed: false };
-
-    // Resend expects custom properties at top level, not nested under "properties"
-    const contactPayload = hasProperties ? { ...baseContactPayload, ...contactProperties } : baseContactPayload;
 
     let contactRes = await fetch(`https://api.resend.com/audiences/${RESEND_AUDIENCE_ID}/contacts`, {
       method: 'POST',
@@ -365,26 +362,43 @@ Deno.serve(async (req) => {
         'Authorization': `Bearer ${RESEND_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(contactPayload),
+      body: JSON.stringify(baseContactPayload),
     });
 
     let contactData = await contactRes.json();
     console.log('Contact creation response:', contactRes.status, JSON.stringify(contactData));
 
-    // If properties don't exist in Resend yet, retry without them
-    if (contactRes.status === 422 && hasProperties) {
-      console.warn('Properties not found on audience — retrying without properties. Create constitution_type and constitution_name properties in Resend Audience settings.');
-      await new Promise(r => setTimeout(r, 300));
-      contactRes = await fetch(`https://api.resend.com/audiences/${RESEND_AUDIENCE_ID}/contacts`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(baseContactPayload),
-      });
-      contactData = await contactRes.json();
-      console.log('Contact creation retry (no props):', contactRes.status, JSON.stringify(contactData));
+    // Step 1b: Set custom properties via PATCH /contacts/{contactId} with "properties" object
+    if (hasProperties && contactData?.id) {
+      try {
+        // Ensure contact properties exist in Resend (idempotent — 409 if already exists)
+        for (const key of Object.keys(contactProperties)) {
+          await fetch('https://api.resend.com/contact-properties', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${RESEND_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ key, type: 'string', fallback_value: '' }),
+          });
+        }
+
+        // Update contact with custom properties
+        const updateRes = await fetch(`https://api.resend.com/contacts/${contactData.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            properties: contactProperties,
+          }),
+        });
+        const updateData = await updateRes.json();
+        console.log('Contact properties update:', updateRes.status, JSON.stringify(updateData));
+      } catch (propErr) {
+        console.error('Failed to set contact properties:', propErr.message);
+      }
     }
 
     if (!contactRes.ok && contactRes.status !== 409) {

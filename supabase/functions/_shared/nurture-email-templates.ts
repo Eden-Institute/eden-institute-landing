@@ -211,7 +211,7 @@ ${p(`${link("See your full quiz results anytime →", `https://edeninstitute.hea
 ${goldDivider()}
 ${heading("WANT THE FULL PICTURE?")}
 ${p("Your Deep-Dive Guide includes all 10 matched herbs with actions, preparation methods, dosages, and safety notes — plus a caution list, lifestyle and nutrition guidance, and a Biblical framework for your constitutional pattern.")}
-${brandButton(`Get Your ${constitutionName} Deep-Dive Guide — $14`, `https://edeninstitute.health/guide/${constitutionSlug}`)}
+${brandButton(`Get Your ${constitutionName} Deep-Dive Guide — $14`, `https://edeninstitute.health/results/${constitutionSlug}`)}
 ${signature()}`;
 
   return {
