@@ -12,6 +12,7 @@ import Cookies from "./pages/Cookies";
 import ConstitutionalHerbalism from "./pages/ConstitutionalHerbalism";
 import NotFound from "./pages/NotFound";
 import GuideSuccess from "./pages/GuideSuccess";
+import Results from "./pages/Results";
 
 const queryClient = new QueryClient();
 
