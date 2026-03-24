@@ -148,6 +148,20 @@
   }
 }
 
+/* Print styles for guide pages */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  .no-print { display: none !important; }
+  body { background: white; }
+  .guide-container { max-width: 100%; box-shadow: none; }
+  .cover-section { break-after: page; }
+  section { break-inside: avoid; }
+}
+
 /* Global mobile responsiveness fixes */
 @media (max-width: 768px) {
   * {
