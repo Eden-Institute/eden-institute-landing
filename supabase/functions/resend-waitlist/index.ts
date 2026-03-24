@@ -354,7 +354,10 @@ Deno.serve(async (req) => {
 
     // Step 1: Add/update contact in the audience (try with properties, fallback without)
     const hasProperties = Object.keys(contactProperties).length > 0;
-    const baseContactPayload = { email, first_name: firstName, unsubscribed: false };
+    const baseContactPayload: Record<string, any> = { email, first_name: firstName, unsubscribed: false };
+
+    // Resend expects custom properties at top level, not nested under "properties"
+    const contactPayload = hasProperties ? { ...baseContactPayload, ...contactProperties } : baseContactPayload;
 
     let contactRes = await fetch(`https://api.resend.com/audiences/${RESEND_AUDIENCE_ID}/contacts`, {
       method: 'POST',
@@ -362,7 +365,7 @@ Deno.serve(async (req) => {
         'Authorization': `Bearer ${RESEND_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(hasProperties ? { ...baseContactPayload, properties: contactProperties } : baseContactPayload),
+      body: JSON.stringify(contactPayload),
     });
 
     let contactData = await contactRes.json();
