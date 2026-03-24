@@ -12,18 +12,50 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
-      apiVersion: "2023-10-16",
-    });
+    const body = await req.json();
+    const { session_id, check_slug } = body;
 
-    const { session_id } = await req.json();
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
+    // --- Path B: Check prior purchase by slug ---
+    if (check_slug && !session_id) {
+      if (!supabaseUrl || !serviceRoleKey) {
+        return new Response(
+          JSON.stringify({ paid: false }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+        );
+      }
+
+      const res = await fetch(
+        `${supabaseUrl}/rest/v1/quiz_completions?constitution_type=eq.${encodeURIComponent(check_slug)}&purchased_course=eq.true&limit=1&select=id`,
+        {
+          headers: {
+            apikey: serviceRoleKey,
+            Authorization: `Bearer ${serviceRoleKey}`,
+          },
+        }
+      );
+      const rows = await res.json();
+      const hasPurchased = Array.isArray(rows) && rows.length > 0;
+
+      return new Response(
+        JSON.stringify({ paid: hasPurchased }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
+    // --- Path A: Verify Stripe session_id ---
     if (!session_id) {
       return new Response(
         JSON.stringify({ error: "Missing session_id" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
+      apiVersion: "2023-10-16",
+    });
 
     const session = await stripe.checkout.sessions.retrieve(session_id);
 
@@ -40,23 +72,19 @@ Deno.serve(async (req) => {
     const email = session.metadata?.email || session.customer_email || "";
 
     // Update quiz_completions to mark guide as purchased
-    if (email) {
+    if (email && supabaseUrl && serviceRoleKey) {
       try {
-        const supabaseUrl = Deno.env.get("SUPABASE_URL");
-        const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-        if (supabaseUrl && serviceRoleKey) {
-          await fetch(`${supabaseUrl}/rest/v1/quiz_completions?email=eq.${encodeURIComponent(email)}`, {
-            method: "PATCH",
-            headers: {
-              "apikey": serviceRoleKey,
-              "Authorization": `Bearer ${serviceRoleKey}`,
-              "Content-Type": "application/json",
-              "Prefer": "return=minimal",
-            },
-            body: JSON.stringify({ purchased_course: true }),
-          });
-          console.log(`quiz_completions updated for ${email}`);
-        }
+        await fetch(`${supabaseUrl}/rest/v1/quiz_completions?email=eq.${encodeURIComponent(email)}`, {
+          method: "PATCH",
+          headers: {
+            apikey: serviceRoleKey,
+            Authorization: `Bearer ${serviceRoleKey}`,
+            "Content-Type": "application/json",
+            Prefer: "return=minimal",
+          },
+          body: JSON.stringify({ purchased_course: true }),
+        });
+        console.log(`quiz_completions updated for ${email}`);
       } catch (dbErr) {
         console.error("DB update failed (non-blocking):", dbErr);
       }
@@ -73,10 +101,7 @@ Deno.serve(async (req) => {
             Authorization: `Bearer ${resendKey}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            email,
-            unsubscribed: false,
-          }),
+          body: JSON.stringify({ email, unsubscribed: false }),
         });
       }
     } catch (resendErr) {
@@ -84,12 +109,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({
-        paid: true,
-        constitution_type,
-        constitution_nickname,
-        slug,
-      }),
+      JSON.stringify({ paid: true, constitution_type, constitution_nickname, slug }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   } catch (error) {
