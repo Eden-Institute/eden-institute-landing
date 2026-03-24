@@ -330,7 +330,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { firstName, email, audienceId, constitutionType, source } = await req.json();
+    const { firstName, email, audienceId, constitutionType, constitutionNickname, source } = await req.json();
 
     if (!firstName || !email) {
       return new Response(
