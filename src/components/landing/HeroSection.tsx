@@ -57,7 +57,7 @@ const HeroSection = () => {
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 md:gap-4 animate-fade-in" style={{ animationDelay: '0.6s' }}>
           <Button variant="eden" size="xl" className="w-full sm:w-auto min-h-[48px] text-[13px] sm:text-sm whitespace-normal max-w-[90vw] box-border" onClick={() => setAssessmentModal(true)}>
-            → Discover Your Constitutional Type
+            Find Out How Your Body Works — Take the Free Quiz (2 min)
           </Button>
           <a href="https://www.amazon.com/s?k=back+to+eden+series+eden+institute" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
             <Button variant="eden-outline" size="xl" className="w-full min-h-[48px]">

@@ -59,7 +59,7 @@ const WhyDifferentSection = () => {
             className="w-full md:w-auto max-w-[90vw] mx-auto text-[12px] md:text-sm whitespace-normal box-border"
             onClick={() => setAssessmentModal(true)}
           >
-            → Discover Your Constitutional Type — Take the Free Assessment
+            Find Out How Your Body Works — Take the Free Quiz (2 min)
           </Button>
         </div>
       </div>

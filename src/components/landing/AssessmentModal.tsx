@@ -95,14 +95,14 @@ interface AssessmentModalProps {
 const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [phase, setPhase] = useState<"quiz" | "gate" | "results">("quiz");
+  const [phase, setPhase] = useState<"intro" | "quiz" | "gate" | "results">("intro");
   const [transitioning, setTransitioning] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const constitutionType = phase !== "quiz" ? computeResult(answers) : "";
+  const constitutionType = (phase === "gate" || phase === "results") ? computeResult(answers) : "";
   const profile = constitutionType ? constitutionProfiles[constitutionType] : null;
 
   const q = questions[currentQ];
@@ -156,7 +156,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
     if (!val) {
       setCurrentQ(0);
       setAnswers({});
-      setPhase("quiz");
+      setPhase("intro");
       setTransitioning(false);
       setFirstName("");
       setEmail("");
@@ -191,6 +191,25 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
             </span>
           </div>
         </div>
+
+        {phase === "intro" && (
+          <div className="px-5 md:px-6 py-8 md:py-12 text-center">
+            <h2 className="font-serif text-xl md:text-2xl lg:text-3xl font-bold mb-6" style={{ color: "#1C3A2E" }}>
+              Discover Your Constitutional Type
+            </h2>
+            <p className="font-body text-base md:text-lg leading-relaxed mb-8 max-w-lg mx-auto" style={{ color: "hsl(30, 10%, 40%)", fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
+              Most people have tried herbs and gotten inconsistent results. That's because herbalism is not one-size-fits-all — your body has a type. Answer 12 questions to discover yours. No email required to start.
+            </p>
+            <Button
+              variant="eden"
+              size="xl"
+              className="min-h-[48px] w-full sm:w-auto"
+              onClick={() => setPhase("quiz")}
+            >
+              → Begin the Quiz
+            </Button>
+          </div>
+        )}
 
         {phase === "quiz" && (
           <div className="px-5 md:px-6 py-6 md:py-8">
