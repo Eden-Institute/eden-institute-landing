@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { constitutionProfiles } from "@/lib/constitution-data";
@@ -22,6 +22,42 @@ const Results = () => {
 
   const constitutionType = constitutionSlug ? slugToType[constitutionSlug] : undefined;
   const profile = constitutionType ? constitutionProfiles[constitutionType] : undefined;
+
+  useEffect(() => {
+    if (!profile || !constitutionType) return;
+
+    const title = `Your Type: ${profile.nickname} — The Eden Institute`;
+    const description = `You are ${profile.nickname} (${constitutionType}). ${profile.tagline} Discover your top herbs and a Biblical framework for your constitutional pattern.`;
+    const url = `https://eden-institute-landing.lovable.app/results/${constitutionSlug}`;
+    const ogImage = "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/885c26d7-47fa-44a2-8cbe-2fb65fe2ac1d/id-preview-76fd0110--2c0295c8-d605-4e05-b894-d14a43a38181.lovable.app-1771968635738.png";
+
+    document.title = title;
+
+    const setMeta = (attr: string, key: string, content: string) => {
+      let el = document.querySelector(`meta[${attr}="${key}"]`) as HTMLMetaElement | null;
+      if (!el) {
+        el = document.createElement("meta");
+        el.setAttribute(attr, key);
+        document.head.appendChild(el);
+      }
+      el.setAttribute("content", content);
+    };
+
+    setMeta("name", "description", description);
+    setMeta("property", "og:title", title);
+    setMeta("property", "og:description", description);
+    setMeta("property", "og:url", url);
+    setMeta("property", "og:image", ogImage);
+    setMeta("property", "og:type", "article");
+    setMeta("name", "twitter:title", title);
+    setMeta("name", "twitter:description", description);
+    setMeta("name", "twitter:image", ogImage);
+    setMeta("name", "twitter:card", "summary_large_image");
+
+    return () => {
+      document.title = "The Eden Institute — Biblical Clinical Herbalism Education";
+    };
+  }, [profile, constitutionType, constitutionSlug]);
 
   if (!profile || !constitutionType) {
     return (
