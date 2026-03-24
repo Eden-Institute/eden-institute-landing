@@ -272,7 +272,6 @@ ${goldDivider()}
 
 // ── Send email helper ──
 
-async function sendEmail(to: string, subject: string, html: string, attachments?: Array<{ filename: string; content: string }>): Promise<void> {
 async function sendEmail(to: string, subject: string, html: string): Promise<void> {
   const payload = {
     from: 'The Eden Institute <hello@edeninstitute.health>',
@@ -367,8 +366,9 @@ Deno.serve(async (req) => {
         console.log(`Topic ${topicId} response:`, topicRes.status, JSON.stringify(topicData));
         topicResults.push({ topicId, status: topicRes.status, ok: topicRes.ok });
       } catch (topicErr) {
-        console.error(`Topic ${topicId} error:`, topicErr.message);
-        topicResults.push({ topicId, error: topicErr.message });
+        const topicErrorMessage = topicErr instanceof Error ? topicErr.message : String(topicErr);
+        console.error(`Topic ${topicId} error:`, topicErrorMessage);
+        topicResults.push({ topicId, error: topicErrorMessage });
       }
     }
 
@@ -521,12 +521,16 @@ Deno.serve(async (req) => {
               });
               console.log('Nurture Email 4 scheduled for', day10);
             } catch (nurtureErr) {
-              console.error('Nurture scheduling error:', nurtureErr.message);
+              const nurtureErrorMessage = nurtureErr instanceof Error ? nurtureErr.message : String(nurtureErr);
+              console.error('Nurture scheduling error:', nurtureErrorMessage);
             }
           };
 
           // Fire-and-forget — don't block the response
-          scheduleNurture().catch(err => console.error('Nurture scheduling failed:', err.message));
+          scheduleNurture().catch((err) => {
+            const schedulingErrorMessage = err instanceof Error ? err.message : String(err);
+            console.error('Nurture scheduling failed:', schedulingErrorMessage);
+          });
         }
       }
     } else if (audienceId === COURSE_AUDIENCE_ID) {
@@ -537,7 +541,8 @@ Deno.serve(async (req) => {
 
     if (emailContent) {
       sendEmail(email, emailContent.subject, emailContent.html).catch((err) => {
-        console.error('Background email send error:', err.message);
+        const backgroundEmailError = err instanceof Error ? err.message : String(err);
+        console.error('Background email send error:', backgroundEmailError);
       });
     }
 
@@ -546,9 +551,11 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err) {
-    console.error('Unhandled error:', err.message, err.stack);
+    const unhandledMessage = err instanceof Error ? err.message : String(err);
+    const unhandledStack = err instanceof Error ? err.stack : undefined;
+    console.error('Unhandled error:', unhandledMessage, unhandledStack);
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ error: unhandledMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
