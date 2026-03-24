@@ -102,7 +102,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const constitutionType = phase !== "quiz" ? computeResult(answers) : "";
+  const constitutionType = (phase === "gate" || phase === "results") ? computeResult(answers) : "";
   const profile = constitutionType ? constitutionProfiles[constitutionType] : null;
 
   const q = questions[currentQ];
