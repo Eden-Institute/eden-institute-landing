@@ -59,14 +59,11 @@ const GuideLanding = () => {
 
     const checkPriorPurchase = async () => {
       try {
-        const { data } = await supabase
-          .from('quiz_completions')
-          .select('purchased_course')
-          .eq('constitution_type', constitutionSlug || '')
-          .eq('purchased_course', true)
-          .limit(1);
-
-        if (data && data.length > 0) {
+        const { data, error: fnError } = await supabase.functions.invoke("verify-session", {
+          body: { check_slug: constitutionSlug },
+        });
+        if (fnError) throw fnError;
+        if (data?.paid) {
           setPaid(true);
         }
       } catch (err) {
