@@ -201,7 +201,7 @@ const constitutionProfiles: Record<string, { nickname: string; intro: string; pa
     patterns: "Chronic mucus, phlegm, stiff and cold joints, slow digestion, bloating, cold hands and feet with tension headaches. Tends toward melancholy or feeling unmotivated.",
     needs: "Warming and moving. Herbs that ignite the cold and get things circulating again.",
     herbs: "Cayenne, Ginger, Fennel, Garlic, Thyme, Horseradish.",
-    anchor: "'There is a time for everything, and a season for every activity under the heavens.' — Ecclesiastes 3:1. The frozen river needs one thing: the return of warmth. Your season of movement is coming.",
+    anchor: "'There is a time for everything, and a season for every activity under the heavens.' — Ecclesiastes 3:1. The frozen knot needs one thing: the return of warmth. Your season of movement is coming.",
   },
   "Cold / Damp / Relaxed": {
     nickname: "The Still Water",
@@ -209,7 +209,7 @@ const constitutionProfiles: Record<string, { nickname: string; intro: string; pa
     patterns: "Sluggish metabolism, weight gain, fluid retention, brain fog, chronic fatigue, frequent illness, low thyroid signs. Often presents as 'I just can't get going.'",
     needs: "Warming, drying, and stimulating. Herbs that ignite the metabolism, move the lymphatics, and restore the body's thermostat.",
     herbs: "Cayenne, Ginger, Cinnamon, Garlic, Eleuthero, Astragalus, Fennel.",
-    anchor: "'Wake up, sleeper, rise from the dead, and Christ will shine on you.' — Ephesians 5:14. This is not a judgment — it is an invitation. The still pond can move. The body was designed to wake up.",
+    anchor: "'Wake up, sleeper, rise from the dead, and Christ will shine on you.' — Ephesians 5:14. This is not a judgment — it is an invitation. Still water can move. The body was designed to wake up.",
   },
 };
 
