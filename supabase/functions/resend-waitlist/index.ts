@@ -1,4 +1,5 @@
 // PDF generation is handled by the constitution-pdf edge function
+import { buildNurtureEmail1, buildNurtureEmail2, buildNurtureEmail3, buildNurtureEmail4, toSlug } from '../_shared/nurture-email-templates.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
