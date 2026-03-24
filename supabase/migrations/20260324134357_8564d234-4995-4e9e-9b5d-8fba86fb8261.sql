@@ -1,0 +1,1 @@
+ALTER TABLE public.quiz_completions ADD COLUMN constitution_nickname text;
