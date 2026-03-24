@@ -340,8 +340,27 @@ const Assessment = () => {
               size="xl"
               className="w-full"
               data-product="constitution-guide"
+              disabled={checkoutLoading}
+              onClick={async () => {
+                setCheckoutLoading(true);
+                try {
+                  const { data, error: fnError } = await supabase.functions.invoke("create-checkout", {
+                    body: {
+                      constitution_type: constitutionType,
+                      constitution_nickname: profile?.nickname,
+                      email,
+                    },
+                  });
+                  if (fnError) throw fnError;
+                  if (data?.url) window.location.href = data.url;
+                } catch (err: any) {
+                  setError(err.message || "Could not start checkout");
+                } finally {
+                  setCheckoutLoading(false);
+                }
+              }}
             >
-              Get Your Full Guide
+              {checkoutLoading ? "Redirecting to checkout…" : "Get Your Full Guide — $14"}
             </Button>
           </div>
 
