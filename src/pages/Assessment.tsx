@@ -93,6 +93,7 @@ const Assessment = () => {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState("");
 
   const constitutionType = phase !== "quiz" ? computeResult(answers) : "";
