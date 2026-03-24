@@ -52,6 +52,30 @@ const GuideLanding = () => {
     verify();
   }, [searchParams]);
 
+  // Check for prior purchase if no session_id
+  useEffect(() => {
+    const sessionId = searchParams.get("session_id");
+    if (sessionId) return;
+
+    const checkPriorPurchase = async () => {
+      try {
+        const { data } = await supabase
+          .from('quiz_completions')
+          .select('purchased_course')
+          .eq('constitution_type', constitutionSlug || '')
+          .eq('purchased_course', true)
+          .limit(1);
+
+        if (data && data.length > 0) {
+          setPaid(true);
+        }
+      } catch (err) {
+        console.error('Prior purchase check failed:', err);
+      }
+    };
+    checkPriorPurchase();
+  }, [constitutionSlug, searchParams]);
+
   useEffect(() => {
     if (constitutionSlug && !profile) {
       navigate("/assessment");
