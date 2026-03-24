@@ -327,13 +327,10 @@ const Assessment = () => {
           {/* Section D: $14 Deep-Dive Guide Upsell */}
           <div className="p-6 md:p-8 border-2 rounded mb-12" style={{ borderColor: "#C9A84C", backgroundColor: "white" }}>
             <h2 className="font-serif text-2xl font-bold mb-4" style={{ color: "#1C3A2E" }}>
-              Your {profile.nickname.replace(/^The /, '')} Deep-Dive Guide
+              Want the full picture?
             </h2>
             <p className="font-body text-base leading-relaxed mb-4" style={{ color: "#1C3A2E" }}>
-              Everything God designed into your body — and every plant He made to meet it. 10 matched herbs with clinical actions explained in plain language. Nutrition, lifestyle, and spiritual guidance for your specific pattern. Biblical anchors. Preparation methods. Caution herbs to avoid.
-            </p>
-            <p className="font-serif text-3xl font-bold mb-6" style={{ color: "#C9A84C" }}>
-              $14
+              Your complete Deep-Dive Guide includes all 10 matched herbs with clinical preparation methods, dosages, and safety notes — plus caution lists, lifestyle and nutrition guidance, and a Biblical framework for your constitutional pattern.
             </p>
             <Button
               variant="eden"
@@ -360,7 +357,7 @@ const Assessment = () => {
                 }
               }}
             >
-              {checkoutLoading ? "Redirecting to checkout…" : "Get Your Full Guide — $14"}
+              {checkoutLoading ? "Redirecting to checkout…" : `Get Your Full ${profile.nickname} Guide — $14`}
             </Button>
           </div>
 
