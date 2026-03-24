@@ -210,7 +210,7 @@ const constitutionProfiles: Record<string, { nickname: string; intro: string; pa
     anchor: "'He restores my soul.' — Psalm 23:3. Restoration is not earned. It is received. Your work is to stop, be still, and let the restoration come.",
   },
   "Cold / Damp / Tense": {
-    nickname: "The Frozen River",
+    nickname: "The Frozen Knot",
     intro: "Cold and damp with nowhere to move — the pressure builds inside while the exterior is stiff and bound. The tension here is not wired or anxious. It is cold, heavy, and immovable.",
     patterns: "Chronic mucus, phlegm, stiff and cold joints, slow digestion, bloating, cold hands and feet with tension headaches. Tends toward melancholy or feeling unmotivated.",
     needs: "Warming and moving. Herbs that ignite the cold and get things circulating again.",
@@ -218,7 +218,7 @@ const constitutionProfiles: Record<string, { nickname: string; intro: string; pa
     anchor: "'There is a time for everything, and a season for every activity under the heavens.' — Ecclesiastes 3:1. The frozen river needs one thing: the return of warmth. Your season of movement is coming.",
   },
   "Cold / Damp / Relaxed": {
-    nickname: "The Still Pond",
+    nickname: "The Still Water",
     intro: "Slow, cool, and full — this is the most common constitution in the modern Western world. The pattern of metabolic slowdown, fluid retention, easy weight gain, chronic fatigue, and a sluggish immune system is epidemic. It is not a moral failure or a lack of willpower. It is a constitutional pattern — and it responds beautifully to constitutional care.",
     patterns: "Sluggish metabolism, weight gain, fluid retention, brain fog, chronic fatigue, frequent illness, low thyroid signs. Often presents as 'I just can't get going.'",
     needs: "Warming, drying, and stimulating. Herbs that ignite the metabolism, move the lymphatics, and restore the body's thermostat.",
@@ -330,7 +330,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { firstName, email, audienceId, constitutionType, source } = await req.json();
+    const { firstName, email, audienceId, constitutionType, constitutionNickname, source } = await req.json();
 
     if (!firstName || !email) {
       return new Response(
@@ -454,6 +454,7 @@ Deno.serve(async (req) => {
             email,
             first_name: firstName,
             constitution_type: constitutionType,
+            constitution_nickname: constitutionNickname || (constitutionProfiles[constitutionType]?.nickname ?? null),
           }),
         }).then(res => {
           console.log('Quiz completion recorded:', res.status);

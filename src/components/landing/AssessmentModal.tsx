@@ -3,8 +3,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { X } from "lucide-react";
-
-// Topics are now handled server-side in the edge function
+import { constitutionProfiles, computeResult } from "@/lib/constitution-data";
 
 interface Question {
   id: number;
@@ -88,155 +87,6 @@ const questions: Question[] = [
   ]},
 ];
 
-interface ConstitutionProfile {
-  nickname: string;
-  description: string[];
-  herbs: { name: string; note: string }[];
-}
-
-const constitutionProfiles: Record<string, ConstitutionProfile> = {
-  "Hot / Dry / Tense": {
-    nickname: "The Burning Bowstring",
-    description: [
-      "You are a person of intensity. Your body runs hot, your tissues tend toward dryness, and your nervous system holds tension like a drawn bow.",
-      "Your body needs cooling, moistening, and relaxing support — not more stimulation.",
-      "Your path to wellness involves learning to yield — to rest before you're forced to, to hydrate before you're parched.",
-    ],
-    herbs: [
-      { name: "Marshmallow Root", note: "Deeply moistening and soothing to dry, inflamed tissues." },
-      { name: "Passionflower", note: "Calms an overactive mind and releases muscular tension." },
-      { name: "Lemon Balm", note: "Gently cooling and nervine, easing heat-driven anxiety." },
-      { name: "Chamomile", note: "Anti-inflammatory and relaxing, especially for tension in the gut." },
-      { name: "Violet Leaf", note: "Cooling and moistening, softening dry, tight tissue states." },
-    ],
-  },
-  "Hot / Dry / Relaxed": {
-    nickname: "The Open Flame",
-    description: [
-      "You burn bright but without the tension to hold it in — your heat disperses freely.",
-      "This is the constitution of someone who gives freely — perhaps too freely.",
-      "Your healing journey is about containment without restriction.",
-    ],
-    herbs: [
-      { name: "Shatavari", note: "Deeply nourishing and moistening, rebuilding depleted fluids." },
-      { name: "Rose", note: "Gently cooling and mildly astringent, restoring tone." },
-      { name: "Hibiscus", note: "Cooling and hydrating with mild astringency." },
-      { name: "Licorice Root", note: "Moistening and restorative, supporting adrenal function." },
-      { name: "Aloe Vera", note: "Cooling, moistening, and soothing to internal dry heat." },
-    ],
-  },
-  "Hot / Damp / Tense": {
-    nickname: "The Pressure Cooker",
-    description: [
-      "You hold heat and fluid simultaneously, and your body is wound tight.",
-      "This is one of the most intense constitutional patterns.",
-      "Your work is to create outlets — not through force, but through gentle, consistent release.",
-    ],
-    herbs: [
-      { name: "Dandelion Root", note: "Bitter, cooling, and draining — supports liver function." },
-      { name: "Skullcap", note: "Nervine relaxant that cools and calms without adding moisture." },
-      { name: "Burdock Root", note: "Alterative and cooling, clearing damp heat." },
-      { name: "Milk Thistle", note: "Liver-protective and cooling." },
-      { name: "Cramp Bark", note: "Antispasmodic that releases tension in muscles." },
-    ],
-  },
-  "Hot / Damp / Relaxed": {
-    nickname: "The Overflowing Cup",
-    description: [
-      "You run warm, your body holds excess moisture, and your tissues lack tone.",
-      "This constitution often shows up as someone who feels weighed down by their own abundance.",
-      "Your path involves drying, cooling, and toning simultaneously.",
-    ],
-    herbs: [
-      { name: "Yarrow", note: "Cooling, drying, and astringent — restores tone." },
-      { name: "Sage", note: "Drying and mildly astringent, reduces excessive dampness." },
-      { name: "Green Tea", note: "Gently stimulating, antioxidant-rich, and astringent." },
-      { name: "Oregon Grape Root", note: "Bitter and cooling, clears damp heat." },
-      { name: "Raspberry Leaf", note: "Nutritive and astringent, toning lax tissues." },
-    ],
-  },
-  "Cold / Dry / Tense": {
-    nickname: "The Drawn Bowstring",
-    description: [
-      "You are cold, dry, and tightly wound — like a bow drawn but never released.",
-      "This is the constitution of someone who holds everything in.",
-      "Your healing lies in warmth, moisture, and gentle release.",
-    ],
-    herbs: [
-      { name: "Ashwagandha", note: "Warming, moistening adaptogen for depleted, tense constitutions." },
-      { name: "Cinnamon", note: "Gently warming and stimulating to cold circulation." },
-      { name: "Marshmallow Root", note: "Deeply moistening, softening dry, constricted tissues." },
-      { name: "Milky Oat Tops", note: "Nervine trophorestorative for exhausted nervous systems." },
-      { name: "Ginger", note: "Warming and stimulating to sluggish digestion." },
-    ],
-  },
-  "Cold / Dry / Relaxed": {
-    nickname: "The Spent Candle",
-    description: [
-      "You are depleted across all three axes — cold, dry, and without tone.",
-      "This is often the constitution of deep exhaustion.",
-      "Your path is the most gentle of all — slow, steady rebuilding.",
-    ],
-    herbs: [
-      { name: "Shatavari", note: "Deeply nourishing, warming, and moistening." },
-      { name: "Astragalus", note: "Warming and tonifying, strengthening immunity." },
-      { name: "Licorice Root", note: "Moistening, warming, and restorative." },
-      { name: "Rehmannia", note: "Blood-building and deeply moistening." },
-      { name: "Bone Broth Herbs (Nettle, Oatstraw)", note: "Mineral-rich and gently building." },
-    ],
-  },
-  "Cold / Damp / Tense": {
-    nickname: "The Frozen River",
-    description: [
-      "You are cold and waterlogged, but held rigidly in place — like a river frozen mid-flow.",
-      "This constitution combines stagnation with rigidity.",
-      "Your healing requires gentle warming, drying herbs, and antispasmodics.",
-    ],
-    herbs: [
-      { name: "Ginger", note: "Warming and drying, stimulating sluggish circulation." },
-      { name: "Juniper Berry", note: "Warming, drying, and diuretic — moves stagnant fluid." },
-      { name: "Rosemary", note: "Warming and stimulating to cold, tense tissue states." },
-      { name: "Valerian", note: "Warming antispasmodic that releases deep-held tension." },
-      { name: "Angelica Root", note: "Warming and aromatic, moving stagnant blood and fluid." },
-    ],
-  },
-  "Cold / Damp / Relaxed": {
-    nickname: "The Still Pond",
-    description: [
-      "You are the most yin of all constitutional types — cold, damp, and relaxed.",
-      "This constitution often manifests as weight gain, chronic congestion, and fatigue.",
-      "Your path is activation — gentle, sustained activation, not aggressive stimulation.",
-    ],
-    herbs: [
-      { name: "Cinnamon", note: "Warming and drying, kindling metabolic fire." },
-      { name: "Turmeric", note: "Warming, drying, and anti-inflammatory." },
-      { name: "Sage", note: "Drying and astringent, toning lax tissues." },
-      { name: "Eleuthero", note: "Warming adaptogen that builds sustained energy." },
-      { name: "Thyme", note: "Warming, drying, and antimicrobial." },
-    ],
-  },
-};
-
-function computeResult(answers: Record<number, string>) {
-  const axes = {
-    temperature: { first: "Hot", second: "Cold", questions: [1, 2, 3, 4] },
-    fluid: { first: "Damp", second: "Dry", questions: [5, 6, 7, 8] },
-    tone: { first: "Tense", second: "Relaxed", questions: [9, 10, 11, 12] },
-  };
-  const results: string[] = [];
-  for (const axis of Object.values(axes)) {
-    let firstCount = 0;
-    let secondCount = 0;
-    for (const qId of axis.questions) {
-      const score = answers[qId];
-      if (score === axis.first) firstCount++;
-      if (score === axis.second) secondCount++;
-    }
-    results.push(firstCount >= secondCount ? axis.first : axis.second);
-  }
-  return results.join(" / ");
-}
-
 interface AssessmentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -281,12 +131,12 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
     setError("");
 
     try {
-      // Single call — edge function handles all 3 topic subscriptions
       const { error: fnError } = await supabase.functions.invoke("resend-waitlist", {
         body: {
           firstName,
           email,
           constitutionType,
+          constitutionNickname: profile?.nickname,
           source: "constitution_assessment",
         },
       });
@@ -405,10 +255,13 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
               Your Constitutional Type
             </span>
             <h2 className="font-serif text-xl md:text-2xl lg:text-3xl font-bold mt-3 mb-2" style={{ color: "#1C3A2E" }}>
-              {constitutionType}
+              {profile.nickname}
             </h2>
-            <p className="font-accent text-lg italic mb-6" style={{ color: "#C9A84C" }}>
-              "{profile.nickname}"
+            <p className="font-body text-base mb-1" style={{ color: "#1C3A2E" }}>
+              {constitutionType}
+            </p>
+            <p className="font-accent text-base italic mb-6" style={{ color: "#C9A84C" }}>
+              {profile.tagline}
             </p>
 
             <div className="p-5 md:p-6 border rounded text-left" style={{ borderColor: "hsl(40, 20%, 80%)", backgroundColor: "white" }}>
@@ -461,6 +314,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
 
         {phase === "results" && profile && (
           <div className="px-5 md:px-6 py-8 md:py-10">
+            {/* Section A: Type Header */}
             <div className="text-center mb-6 md:mb-8">
               <p className="font-body text-sm mb-1" style={{ color: "#C9A84C" }}>
                 ✓ Your results are on their way. Check your inbox.
@@ -468,17 +322,18 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
               <p className="font-body text-xs italic mb-3" style={{ color: "#C9A84C", opacity: 0.8 }}>
                 Using Gmail? Your first email may arrive in your Promotions or Spam folder. Please move it to your Primary inbox so you don't miss anything from us.
               </p>
-              <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>
-                Your Constitutional Type
-              </span>
               <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-bold mt-3 mb-2" style={{ color: "#1C3A2E" }}>
-                {constitutionType}
+                {profile.nickname}
               </h2>
-              <p className="font-accent text-lg md:text-xl italic" style={{ color: "#C9A84C" }}>
-                "{profile.nickname}"
+              <p className="font-body text-base mb-1" style={{ color: "#1C3A2E" }}>
+                {constitutionType}
+              </p>
+              <p className="font-accent text-base italic" style={{ color: "#C9A84C" }}>
+                {profile.tagline}
               </p>
             </div>
 
+            {/* Section B: Pattern Summary */}
             <div className="space-y-4 mb-8 md:mb-10">
               {profile.description.map((para, i) => (
                 <p key={i} className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>
@@ -487,8 +342,9 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
               ))}
             </div>
 
+            {/* Section C: Top 3 Herbs */}
             <h3 className="font-serif text-xl font-bold mb-4" style={{ color: "#1C3A2E" }}>
-              Your Top 5 Herbs
+              Your Top 3 Herbs
             </h3>
             <div className="space-y-3 mb-8">
               {profile.herbs.map((herb, i) => (
@@ -503,11 +359,64 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
               ))}
             </div>
 
-            <div className="p-4 md:p-5 rounded text-sm leading-relaxed mb-6" style={{ backgroundColor: "#F5F0E8", border: "1px solid #C9A84C", color: "#1C3A2E" }}>
-              <p className="font-body">
-                📧 Your full report has been sent to your email! If you don't see it in your inbox within a few minutes, please check your spam or promotions folder. To make sure you receive your follow-up assessment insights, add{" "}
-                <strong>hello@edeninstitute.health</strong> to your contacts or safe sender list.
+            {/* Section D: $14 Deep-Dive Guide Upsell */}
+            <div className="p-5 md:p-6 border-2 rounded mb-8" style={{ borderColor: "#C9A84C", backgroundColor: "white" }}>
+              <h3 className="font-serif text-lg font-bold mb-3" style={{ color: "#1C3A2E" }}>
+                Your {profile.nickname} Deep-Dive Guide
+              </h3>
+              <p className="font-body text-sm leading-relaxed mb-4" style={{ color: "#1C3A2E" }}>
+                Everything God designed into your body — and every plant He made to meet it. 10 matched herbs with clinical actions explained in plain language. Nutrition, lifestyle, and spiritual guidance for your specific pattern. Biblical anchors. Preparation methods. Caution herbs to avoid.
               </p>
+              <p className="font-serif text-2xl font-bold mb-4" style={{ color: "#C9A84C" }}>
+                $14
+              </p>
+              <Button
+                variant="eden"
+                size="lg"
+                className="w-full min-h-[48px]"
+                data-product="constitution-guide"
+              >
+                Get Your Full Guide
+              </Button>
+            </div>
+
+            {/* Section E: Amazon Herb Kit */}
+            <div className="p-5 md:p-6 rounded mb-8" style={{ backgroundColor: "#F5F0E8" }}>
+              <h3 className="font-serif text-lg font-bold mb-3" style={{ color: "#1C3A2E" }}>
+                Your Starter Herb Kit
+              </h3>
+              <p className="font-body text-sm leading-relaxed mb-4" style={{ color: "#1C3A2E" }}>
+                We curated the exact herbs for your body type on Amazon. One-click shopping list — everything you need to get started.
+              </p>
+              <a
+                href={profile.amazonUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center w-full px-6 py-3 font-serif font-bold text-sm tracking-wider uppercase transition-colors min-h-[48px] rounded"
+                style={{ backgroundColor: "#1C3A2E", color: "#F5F0E8" }}
+              >
+                Shop Your Kit on Amazon
+              </a>
+              <p className="font-body text-xs text-center mt-2" style={{ color: "hsl(30, 10%, 40%, 0.6)" }}>
+                Affiliate link — I earn a small commission at no cost to you.
+              </p>
+            </div>
+
+            {/* Section F: Course CTA */}
+            <div className="p-6 md:p-8 rounded text-center mb-6" style={{ backgroundColor: "#1C3A2E" }}>
+              <h3 className="font-serif text-xl font-bold mb-3" style={{ color: "#C9A84C" }}>
+                Ready to Go Deeper?
+              </h3>
+              <p className="font-body text-base mb-6" style={{ color: "#F5F0E8" }}>
+                The Foundations Course teaches you how to read your constitution and match it to God's provision in the plant world.
+              </p>
+              <a
+                href="/why-eden"
+                className="inline-flex items-center justify-center px-8 py-3 font-serif font-bold text-sm tracking-wider uppercase transition-colors min-h-[48px] rounded"
+                style={{ backgroundColor: "#C9A84C", color: "#1C3A2E" }}
+              >
+                Learn About the Foundations Course
+              </a>
             </div>
 
             <div className="text-center">
