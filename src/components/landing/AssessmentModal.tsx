@@ -95,7 +95,7 @@ interface AssessmentModalProps {
 const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [phase, setPhase] = useState<"quiz" | "gate" | "results">("quiz");
+  const [phase, setPhase] = useState<"intro" | "quiz" | "gate" | "results">("intro");
   const [transitioning, setTransitioning] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
