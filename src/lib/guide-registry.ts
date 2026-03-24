@@ -5,6 +5,7 @@ import { stillWaterGuide } from "./guide-content-still-water";
 import { spentCandleGuide } from "./guide-content-spent-candle";
 import { drawnBowstringGuide } from "./guide-content-drawn-bowstring";
 import { openFlameGuide } from "./guide-content-open-flame";
+import { pressureCookerGuide } from "./guide-content-pressure-cooker";
 
 // Registry of full guide content keyed by nickname slug
 const guideRegistry: Record<string, FullGuideContent> = {
@@ -14,6 +15,7 @@ const guideRegistry: Record<string, FullGuideContent> = {
   "The Spent Candle": spentCandleGuide,
   "The Drawn Bowstring": drawnBowstringGuide,
   "The Open Flame": openFlameGuide,
+  "The Pressure Cooker": pressureCookerGuide,
 };
 
 export function getFullGuide(nickname: string): FullGuideContent | null {
