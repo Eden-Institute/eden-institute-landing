@@ -100,8 +100,8 @@ Deno.serve(async (req) => {
       // Skip if purchased_course is true (double-check)
       if (row.purchased_course) continue;
 
-      const nickname = row.constitution_nickname || 'Your Constitutional Type';
-      const slug = toSlug(nickname);
+      const nickname = row.constitution_name || row.constitution_nickname || 'Your Constitutional Type';
+      const slug = row.constitution_type || toSlug(nickname);
       const { subject, html } = buildNurtureEmail5(row.first_name, nickname, slug);
 
       const ok = await sendEmail(row.email, subject, html);
