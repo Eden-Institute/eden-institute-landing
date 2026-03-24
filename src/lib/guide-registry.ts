@@ -6,8 +6,9 @@ import { spentCandleGuide } from "./guide-content-spent-candle";
 import { drawnBowstringGuide } from "./guide-content-drawn-bowstring";
 import { openFlameGuide } from "./guide-content-open-flame";
 import { pressureCookerGuide } from "./guide-content-pressure-cooker";
+import { overflowingCupGuide } from "./guide-content-overflowing-cup";
 
-// Registry of full guide content keyed by nickname slug
+// Registry — all 8 constitutional types
 const guideRegistry: Record<string, FullGuideContent> = {
   "The Frozen Knot": frozenKnotGuide,
   "The Burning Bowstring": burningBowstringGuide,
@@ -16,6 +17,7 @@ const guideRegistry: Record<string, FullGuideContent> = {
   "The Drawn Bowstring": drawnBowstringGuide,
   "The Open Flame": openFlameGuide,
   "The Pressure Cooker": pressureCookerGuide,
+  "The Overflowing Cup": overflowingCupGuide,
 };
 
 export function getFullGuide(nickname: string): FullGuideContent | null {
