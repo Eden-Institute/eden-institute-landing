@@ -100,6 +100,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState("");
 
   const constitutionType = (phase === "gate" || phase === "results") ? computeResult(answers) : "";
@@ -394,8 +395,27 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
                 size="lg"
                 className="w-full min-h-[48px]"
                 data-product="constitution-guide"
+                disabled={checkoutLoading}
+                onClick={async () => {
+                  setCheckoutLoading(true);
+                  try {
+                    const { data, error: fnError } = await supabase.functions.invoke("create-checkout", {
+                      body: {
+                        constitution_type: constitutionType,
+                        constitution_nickname: profile?.nickname,
+                        email,
+                      },
+                    });
+                    if (fnError) throw fnError;
+                    if (data?.url) window.location.href = data.url;
+                  } catch (err: any) {
+                    setError(err.message || "Could not start checkout");
+                  } finally {
+                    setCheckoutLoading(false);
+                  }
+                }}
               >
-                Get Your Full Guide
+                {checkoutLoading ? "Redirecting to checkout…" : "Get Your Full Guide — $14"}
               </Button>
             </div>
 
