@@ -59,6 +59,10 @@ const GuideLanding = () => {
     if (sessionId) return;
 
     const checkPriorPurchase = async () => {
+      if (localStorage.getItem(`guide_purchased_${constitutionSlug}`) === "true") {
+        setPaid(true);
+        return;
+      }
       try {
         const { data, error: fnError } = await supabase.functions.invoke("verify-session", {
           body: { check_slug: constitutionSlug },

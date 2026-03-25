@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({ purchased_guide: true }),
         });
-        console.log(`quiz_completions updated for constitution_type: ${constitution_type}`);
+        console.log(`quiz_completions updated for email: ${email}`);
       } catch (dbErr) {
         console.error("DB update failed (non-blocking):", dbErr);
       }
