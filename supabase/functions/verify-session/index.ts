@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
       }
 
       const res = await fetch(
-        `${supabaseUrl}/rest/v1/quiz_completions?constitution_type=eq.${encodeURIComponent(check_slug)}&purchased_course=eq.true&limit=1&select=id`,
+        `${supabaseUrl}/rest/v1/quiz_completions?constitution_type=eq.${encodeURIComponent(check_slug)}&purchased_guide=eq.true&limit=1&select=id`,
         {
           headers: {
             apikey: serviceRoleKey,
@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
             "Content-Type": "application/json",
             Prefer: "return=minimal",
           },
-          body: JSON.stringify({ purchased_course: true }),
+          body: JSON.stringify({ body: JSON.stringify({ purchased_guide: true }), }),
         });
         console.log(`quiz_completions updated for ${email}`);
       } catch (dbErr) {

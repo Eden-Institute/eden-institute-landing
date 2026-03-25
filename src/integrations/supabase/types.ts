@@ -29,6 +29,7 @@ export type Database = {
           first_name: string
           id: string
           purchased_course: boolean | null
+          purchased_guide: boolean | null
         }
         Insert: {
           completed_at?: string
@@ -44,6 +45,7 @@ export type Database = {
           first_name: string
           id?: string
           purchased_course?: boolean | null
+          purchased_guide?: boolean | null
         }
         Update: {
           completed_at?: string
@@ -59,6 +61,7 @@ export type Database = {
           first_name?: string
           id?: string
           purchased_course?: boolean | null
+          purchased_guide?: boolean | null
         }
         Relationships: []
       }
