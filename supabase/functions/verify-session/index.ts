@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
             "Content-Type": "application/json",
             Prefer: "return=minimal",
           },
-          body: JSON.stringify({ purchased_course: true }),
+          body: JSON.stringify({ body: JSON.stringify({ purchased_guide: true }), }),
         });
         console.log(`quiz_completions updated for ${email}`);
       } catch (dbErr) {
