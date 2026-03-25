@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
     // Update quiz_completions to mark guide as purchased
     if (email && supabaseUrl && serviceRoleKey) {
       try {
-        await fetch(`${supabaseUrl}/rest/v1/quiz_completions?email=eq.${encodeURIComponent(email)}`, {
+        await fetch(`${supabaseUrl}/rest/v1/quiz_completions?constitution_type=eq.${encodeURIComponent(constitution_type)}`, {
           method: "PATCH",
           headers: {
             apikey: serviceRoleKey,
