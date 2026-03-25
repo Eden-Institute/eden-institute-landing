@@ -42,6 +42,7 @@ const GuideLanding = () => {
         if (fnError) throw fnError;
         if (data?.paid) {
           setPaid(true);
+          localStorage.setItem(`guide_purchased_${constitutionSlug}`, "true");
         }
       } catch (err) {
         console.error("Payment verification failed:", err);
