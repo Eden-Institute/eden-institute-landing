@@ -42,6 +42,7 @@ const GuideLanding = () => {
         if (fnError) throw fnError;
         if (data?.paid) {
           setPaid(true);
+          localStorage.setItem(`guide_purchased_${constitutionSlug}`, "true");
         }
       } catch (err) {
         console.error("Payment verification failed:", err);
@@ -58,6 +59,10 @@ const GuideLanding = () => {
     if (sessionId) return;
 
     const checkPriorPurchase = async () => {
+      if (localStorage.getItem(`guide_purchased_${constitutionSlug}`) === "true") {
+        setPaid(true);
+        return;
+      }
       try {
         const { data, error: fnError } = await supabase.functions.invoke("verify-session", {
           body: { check_slug: constitutionSlug },
