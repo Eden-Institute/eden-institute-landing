@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
     const email = session.metadata?.email || session.customer_email || "";
 
     // Update quiz_completions to mark guide as purchased
-    if (email && supabaseUrl && serviceRoleKey) {
+    if (constitution_type && supabaseUrl && serviceRoleKey) {
       try {
         await fetch(`${supabaseUrl}/rest/v1/quiz_completions?constitution_type=eq.${encodeURIComponent(constitution_type)}`, {
           method: "PATCH",
@@ -82,9 +82,9 @@ Deno.serve(async (req) => {
             "Content-Type": "application/json",
             Prefer: "return=minimal",
           },
-          body: JSON.stringify({ body: JSON.stringify({ purchased_guide: true }), }),
+          body: JSON.stringify({ purchased_guide: true }),
         });
-        console.log(`quiz_completions updated for ${email}`);
+        console.log(`quiz_completions updated for constitution_type: ${constitution_type}`);
       } catch (dbErr) {
         console.error("DB update failed (non-blocking):", dbErr);
       }
