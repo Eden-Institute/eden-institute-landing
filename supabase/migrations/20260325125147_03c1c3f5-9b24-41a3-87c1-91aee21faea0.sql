@@ -1,0 +1,1 @@
+ALTER TABLE public.quiz_completions ADD COLUMN IF NOT EXISTS purchased_guide boolean DEFAULT false;
