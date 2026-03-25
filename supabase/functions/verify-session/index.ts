@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
     const constitution_type = session.metadata?.constitution_type || "";
     const constitution_nickname = session.metadata?.constitution_nickname || "";
     const slug = session.metadata?.slug || "";
-    const email = session.metadata?.email || session.customer_email || "";
+    const email = session.metadata?.email || session.customer_email || session.customer_details?.email || "";
 
     // Update quiz_completions to mark guide as purchased
     if (email && supabaseUrl && serviceRoleKey) {
