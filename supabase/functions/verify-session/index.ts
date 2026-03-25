@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
       }
 
       const res = await fetch(
-        `${supabaseUrl}/rest/v1/quiz_completions?constitution_type=eq.${encodeURIComponent(check_slug)}&purchased_course=eq.true&limit=1&select=id`,
+        `${supabaseUrl}/rest/v1/quiz_completions?constitution_type=eq.${encodeURIComponent(check_slug)}&`${supabaseUrl}/rest/v1/quiz_completions?constitution_type=eq.${encodeURIComponent(check_slug)}&purchased_guide=eq.true&limit=1&select=id`,&limit=1&select=id`,
         {
           headers: {
             apikey: serviceRoleKey,
