@@ -191,7 +191,7 @@ const Results = () => {
             The Foundations Course teaches you how to read your constitution and match it to God's provision in the plant world.
           </p>
           <a
-            href="https://learn.edeninstitute.health/pages/checkout?product_id=back-to-eden1&type=course"
+            href="https://learn.edeninstitute.health/course/back-to-eden1"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center px-10 py-4 font-serif font-bold text-base tracking-wider uppercase transition-colors rounded"
