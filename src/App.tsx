@@ -38,6 +38,10 @@ const App = () => (
           <Route path="/guide/success" element={<GuideSuccess />} />
           <Route path="/guide/:constitutionSlug" element={<GuideLanding />} />
           <Route path="/results/:constitutionSlug" element={<Results />} />
+          <Route path="/courses" element={<Courses />} />
+          <Route path="/app" element={<AppPage />} />
+          <Route path="/homeschool" element={<Homeschool />} />
+          <Route path="/community" element={<Community />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
