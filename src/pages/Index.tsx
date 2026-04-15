@@ -19,6 +19,8 @@ const Index = () => {
   const [assessmentModal, setAssessmentModal] = useState(false);
 
   useEffect(() => {
+    g259;
+
     document.title = "The Eden Institute — Biblical Clinical Herbalism Education";
     document
       .querySelector('meta[name="description"]')
@@ -313,7 +315,7 @@ const Index = () => {
             ].map((step, i) => (
               <ScrollReveal key={step.label} delay={i * 120}>
                 <div
-                  className="rounded-lg p-6 md:p-8 texth-center shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col items-center hover:-translate-y-1 transition-all cursor-pointerh"
+                  className="rounded-lg p-6 md:p-8 text-center shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center hover:-translate-y-1 cursor-pointer hover:-translate-y-1 transition-all cursor-pointerh"
                   style={{
                     backgroundColor: "hsl(var(--eden-cream))",
                     border: "1.5px solid hsl(var(--eden-gold) / 0.4)",
