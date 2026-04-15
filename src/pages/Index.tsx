@@ -20,7 +20,12 @@ const Index = () => {
 
   useEffect(() => {
     document.title = "The Eden Institute — Biblical Clinical Herbalism Education";
-    document.querySelector('meta[name="description"]')?.setAttribute("content", "The Eden Institute offers Biblical clinical herbalism education. Take our free constitutional quiz and discover your God-given health pattern.");
+    document
+      .querySelector('meta[name="description"]')
+      ?.setAttribute(
+        "content",
+        "The Eden Institute offers Biblical clinical herbalism education. Take our free constitutional quiz and discover your God-given health pattern.",
+      );
   }, []);
 
   useEffect(() => {
@@ -34,16 +39,31 @@ const Index = () => {
   return (
     <main className="min-h-screen overflow-x-hidden">
       {/* ─── NAV ─── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur border-b" style={{ backgroundColor: "hsla(40, 40%, 97%, 0.95)", borderColor: "hsl(var(--eden-gold) / 0.2)" }}>
+      <nav
+        className="fixed top-0 left-0 right-0 z-50 backdrop-blur border-b"
+        style={{ backgroundColor: "hsla(40, 40%, 97%, 0.95)", borderColor: "hsl(var(--eden-gold) / 0.2)" }}
+      >
         <div className="eden-container flex items-center justify-between py-3 px-6">
-          <Link to="/" className="font-serif text-lg font-bold tracking-wide" style={{ color: "hsl(var(--eden-forest))" }}>
+          <Link
+            to="/"
+            className="font-serif text-lg font-bold tracking-wide"
+            style={{ color: "hsl(var(--eden-forest))" }}
+          >
             The Eden Institute
           </Link>
           <div className="flex items-center gap-6">
-            <Link to="/" className="font-body text-sm hover:opacity-80 transition-colors hidden sm:inline" style={{ color: "hsl(var(--eden-forest))" }}>
+            <Link
+              to="/"
+              className="font-body text-sm hover:opacity-80 transition-colors hidden sm:inline"
+              style={{ color: "hsl(var(--eden-forest))" }}
+            >
               Home
             </Link>
-            <Link to="/why-eden" className="font-body text-sm hover:opacity-80 transition-colors hidden sm:inline" style={{ color: "hsl(var(--eden-forest))" }}>
+            <Link
+              to="/why-eden"
+              className="font-body text-sm hover:opacity-80 transition-colors hidden sm:inline"
+              style={{ color: "hsl(var(--eden-forest))" }}
+            >
               Why Eden
             </Link>
             <button
@@ -65,21 +85,43 @@ const Index = () => {
             alt="Rustic apothecary with dried herbs in glass jars on wooden shelves"
             className="absolute inset-0 w-full h-full object-cover"
           />
-          <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, hsla(40, 33%, 93%, 0.82) 0%, hsla(40, 33%, 93%, 0.75) 50%, hsla(40, 33%, 93%, 0.88) 100%)" }} />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(180deg, hsla(40, 33%, 93%, 0.82) 0%, hsla(40, 33%, 93%, 0.75) 50%, hsla(40, 33%, 93%, 0.88) 100%)",
+            }}
+          />
         </div>
 
-        <BotanicalLeafTopRight className="absolute top-0 right-0 w-48 md:w-72 lg:w-96 h-48 md:h-72 lg:h-96 opacity-[0.08] pointer-events-none" style={{ color: "hsl(var(--eden-forest))" }} />
-        <BotanicalLeafBottomLeft className="absolute bottom-0 left-0 w-48 md:w-72 lg:w-96 h-48 md:h-72 lg:h-96 opacity-[0.06] pointer-events-none" style={{ color: "hsl(var(--eden-forest))" }} />
+        <BotanicalLeafTopRight
+          className="absolute top-0 right-0 w-48 md:w-72 lg:w-96 h-48 md:h-72 lg:h-96 opacity-[0.08] pointer-events-none"
+          style={{ color: "hsl(var(--eden-forest))" }}
+        />
+        <BotanicalLeafBottomLeft
+          className="absolute bottom-0 left-0 w-48 md:w-72 lg:w-96 h-48 md:h-72 lg:h-96 opacity-[0.06] pointer-events-none"
+          style={{ color: "hsl(var(--eden-forest))" }}
+        />
 
         <div className="eden-container text-center px-6 relative z-10 py-20 md:py-28">
           <ScrollReveal>
-            <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] mb-5" style={{ color: "hsl(var(--eden-bark))" }}>
+            <h1
+              className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] mb-5"
+              style={{ color: "hsl(var(--eden-bark))" }}
+            >
               Herbs Work. But Not the Same Way for Everyone.
             </h1>
           </ScrollReveal>
           <ScrollReveal delay={100}>
-            <p className="font-body text-xl sm:text-2xl md:text-3xl mb-10 italic" style={{ color: "hsl(var(--eden-bark) / 0.7)", fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
-              The reason lavender calmed her and wired you isn't random. Your body has a pattern — and once you know it, every herb makes sense.
+            <p
+              className="font-body text-xl sm:text-2xl md:text-3xl mb-10 italic"
+              style={{
+                color: "hsl(var(--eden-bark) / 0.7)",
+                fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif",
+              }}
+            >
+              The reason lavender calmed her and wired you isn't random. Your body has a pattern — and once you know it,
+              every herb makes sense.
             </p>
           </ScrollReveal>
 
@@ -106,10 +148,7 @@ const Index = () => {
       {/* ─── BANNER: What Makes Us Different ─── */}
       <section className="py-5 md:py-6 px-6" style={{ backgroundColor: "hsl(var(--eden-gold))" }}>
         <div className="eden-container">
-          <Link
-            to="/why-eden"
-            className="flex items-center justify-center gap-3 group"
-          >
+          <Link to="/why-eden" className="flex items-center justify-center gap-3 group">
             <span
               className="font-serif text-base sm:text-lg md:text-xl font-semibold tracking-wide group-hover:underline underline-offset-4"
               style={{ color: "hsl(var(--eden-bark))" }}
@@ -139,7 +178,10 @@ const Index = () => {
         <div className="section-padding-lg relative z-10">
           <div className="eden-container px-6">
             <ScrollReveal>
-              <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-14" style={{ color: "hsl(var(--eden-parchment))" }}>
+              <h2
+                className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-14"
+                style={{ color: "hsl(var(--eden-parchment))" }}
+              >
                 Why Herbs Fail Most People
               </h2>
             </ScrollReveal>
@@ -167,19 +209,21 @@ const Index = () => {
                       borderTop: "3px solid hsl(var(--eden-gold))",
                     }}
                   >
-                    <h3 className="font-serif text-xl md:text-2xl font-bold text-foreground mb-4">
-                      {card.title}
-                    </h3>
-                    <p className="font-body text-base text-muted-foreground leading-relaxed">
-                      {card.body}
-                    </p>
+                    <h3 className="font-serif text-xl md:text-2xl font-bold text-foreground mb-4">{card.title}</h3>
+                    <p className="font-body text-base text-muted-foreground leading-relaxed">{card.body}</p>
                   </div>
                 </ScrollReveal>
               ))}
             </div>
 
             <ScrollReveal delay={200}>
-              <p className="text-center mt-12 font-body text-lg italic" style={{ color: "hsl(var(--eden-parchment) / 0.85)", fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
+              <p
+                className="text-center mt-12 font-body text-lg italic"
+                style={{
+                  color: "hsl(var(--eden-parchment) / 0.85)",
+                  fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif",
+                }}
+              >
                 None of that is your fault. You were never taught to read your own terrain.
               </p>
             </ScrollReveal>
@@ -205,15 +249,28 @@ const Index = () => {
         <div className="eden-container">
           <ScrollReveal>
             <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6 text-center">
-              <span className="font-accent text-sm md:text-base tracking-wide" style={{ color: "hsl(var(--eden-forest))" }}>
+              <span
+                className="font-accent text-sm md:text-base tracking-wide"
+                style={{ color: "hsl(var(--eden-forest))" }}
+              >
                 Built on 3,000 years of Western clinical herbalism tradition
               </span>
-              <span className="hidden md:inline font-serif text-lg" style={{ color: "hsl(var(--eden-gold))" }}>·</span>
-              <span className="font-accent text-sm md:text-base tracking-wide" style={{ color: "hsl(var(--eden-forest))" }}>
+              <span className="hidden md:inline font-serif text-lg" style={{ color: "hsl(var(--eden-gold))" }}>
+                ·
+              </span>
+              <span
+                className="font-accent text-sm md:text-base tracking-wide"
+                style={{ color: "hsl(var(--eden-forest))" }}
+              >
                 Eclectic · Physiomedical · Vitalist frameworks
               </span>
-              <span className="hidden md:inline font-serif text-lg" style={{ color: "hsl(var(--eden-gold))" }}>·</span>
-              <span className="font-accent text-sm md:text-base tracking-wide" style={{ color: "hsl(var(--eden-forest))" }}>
+              <span className="hidden md:inline font-serif text-lg" style={{ color: "hsl(var(--eden-gold))" }}>
+                ·
+              </span>
+              <span
+                className="font-accent text-sm md:text-base tracking-wide"
+                style={{ color: "hsl(var(--eden-forest))" }}
+              >
                 Rooted in Scripture. Free from Eastern metaphysics.
               </span>
             </div>
@@ -240,83 +297,53 @@ const Index = () => {
                 label: "Free Quiz",
                 description: "Discover your body's constitutional pattern in 2 minutes",
                 price: "FREE",
-                onClick: openQuiz,
               },
               {
                 icon: <BookOpen className="w-10 h-10" style={{ color: "hsl(var(--eden-gold))" }} />,
                 label: "Deep-Dive Guide",
                 description: "Your personalized herb guide — 10 matched herbs, nutrition, lifestyle, and Scripture",
                 price: "$14",
-                onClick: openQuiz,
               },
               {
                 icon: <GraduationCap className="w-10 h-10" style={{ color: "hsl(var(--eden-gold))" }} />,
                 label: "Foundations Course",
                 description: "Learn to read your constitution and match it to God's provision in the plant world",
                 price: "$197",
-                href: "https://learn.edeninstitute.health/course/back-to-eden1",
               },
             ].map((step, i) => (
               <ScrollReveal key={step.label} delay={i * 120}>
-                {step.href ? (
-                  <a
-                    href={step.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block cursor-pointer"
-                  >
-                    <div
-                      className="rounded-lg p-6 md:p-8 text-center shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col items-center"
-                      style={{
-                        backgroundColor: "hsl(var(--eden-cream))",
-                        border: "1.5px solid hsl(var(--eden-gold) / 0.4)",
-                      }}
-                    >
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center font-serif text-sm font-bold mb-4" style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}>
-                        {i + 1}
-                      </div>
-                      {step.icon}
-                      <h3 className="font-serif text-xl md:text-2xl font-bold text-foreground mt-4 mb-2">
-                        {step.label}
-                      </h3>
-                      <p className="font-body text-base text-muted-foreground leading-relaxed mb-4 flex-1">
-                        {step.description}
-                      </p>
-                      <p className="font-serif text-2xl font-bold" style={{ color: "hsl(var(--eden-gold))" }}>
-                        {step.price}
-                      </p>
-                    </div>
-                  </a>
-                ) : (
+                <div
+                  className="rounded-lg p-6 md:p-8 texth-center shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col items-center hover:-translate-y-1 transition-all cursor-pointerh"
+                  style={{
+                    backgroundColor: "hsl(var(--eden-cream))",
+                    border: "1.5px solid hsl(var(--eden-gold) / 0.4)",
+                  }}
+                >
+                  {/* Step number */}
                   <div
-                    onClick={step.onClick}
-                    className="rounded-lg p-6 md:p-8 text-center shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col items-center cursor-pointer"
-                    style={{
-                      backgroundColor: "hsl(var(--eden-cream))",
-                      border: "1.5px solid hsl(var(--eden-gold) / 0.4)",
-                    }}
+                    className="w-8 h-8 rounded-full flex items-center justify-center font-serif text-sm font-bold mb-4"
+                    style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}
                   >
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center font-serif text-sm font-bold mb-4" style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}>
-                      {i + 1}
-                    </div>
-                    {step.icon}
-                    <h3 className="font-serif text-xl md:text-2xl font-bold text-foreground mt-4 mb-2">
-                      {step.label}
-                    </h3>
-                    <p className="font-body text-base text-muted-foreground leading-relaxed mb-4 flex-1">
-                      {step.description}
-                    </p>
-                    <p className="font-serif text-2xl font-bold" style={{ color: "hsl(var(--eden-gold))" }}>
-                      {step.price}
-                    </p>
+                    {i + 1}
                   </div>
-                )}
+                  {step.icon}
+                  <h3 className="font-serif text-xl md:text-2xl font-bold text-foreground mt-4 mb-2">{step.label}</h3>
+                  <p className="font-body text-base text-muted-foreground leading-relaxed mb-4 flex-1">
+                    {step.description}
+                  </p>
+                  <p className="font-serif text-2xl font-bold" style={{ color: "hsl(var(--eden-gold))" }}>
+                    {step.price}
+                  </p>
+                </div>
               </ScrollReveal>
             ))}
           </div>
 
           <ScrollReveal delay={200}>
-            <p className="text-center mt-10 font-body text-lg italic text-muted-foreground" style={{ fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
+            <p
+              className="text-center mt-10 font-body text-lg italic text-muted-foreground"
+              style={{ fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}
+            >
               Start wherever you are. Each step builds on the last.
             </p>
           </ScrollReveal>
@@ -326,7 +353,11 @@ const Index = () => {
       <GoldDivider />
 
       {/* ─── THE COURSE ─── */}
-      <section id="course" className="section-padding-lg relative overflow-hidden" style={{ backgroundColor: "hsl(var(--eden-sage))" }}>
+      <section
+        id="course"
+        className="section-padding-lg relative overflow-hidden"
+        style={{ backgroundColor: "hsl(var(--eden-sage))" }}
+      >
         <img
           src={MORTAR_IMG}
           alt=""
@@ -338,11 +369,19 @@ const Index = () => {
             <div className="grid md:grid-cols-2 gap-10 items-center">
               <ScrollReveal>
                 <div className="text-center md:text-left">
-                  <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold mb-6" style={{ color: "hsl(var(--eden-parchment))" }}>
+                  <h2
+                    className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold mb-6"
+                    style={{ color: "hsl(var(--eden-parchment))" }}
+                  >
                     A Real Education in Biblical Clinical Herbalism
                   </h2>
-                  <p className="font-body text-base sm:text-lg max-w-3xl leading-relaxed mb-8" style={{ color: "hsl(var(--eden-parchment) / 0.9)" }}>
-                    The Eden Institute is a structured, three-tier clinical herbalism program anchored in Scripture and built with academic rigor. We don't sell supplement stacks or weekend certifications. We teach you to read the body, understand the terrain, and match the person to the plant.
+                  <p
+                    className="font-body text-base sm:text-lg max-w-3xl leading-relaxed mb-8"
+                    style={{ color: "hsl(var(--eden-parchment) / 0.9)" }}
+                  >
+                    The Eden Institute is a structured, three-tier clinical herbalism program anchored in Scripture and
+                    built with academic rigor. We don't sell supplement stacks or weekend certifications. We teach you
+                    to read the body, understand the terrain, and match the person to the plant.
                   </p>
                   <Link to="/why-eden">
                     <Button variant="eden" size="xl" className="min-h-[48px] text-sm sm:text-base px-8">
@@ -379,11 +418,19 @@ const Index = () => {
           aria-hidden="true"
           className="absolute inset-0 w-full h-full object-cover opacity-[0.12]"
         />
-        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, hsl(var(--eden-forest) / 0.9), hsl(var(--eden-forest) / 0.85))" }} />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: "linear-gradient(180deg, hsl(var(--eden-forest) / 0.9), hsl(var(--eden-forest) / 0.85))",
+          }}
+        />
         <div className="section-padding-lg relative z-10">
           <div className="eden-container text-center px-6">
             <ScrollReveal>
-              <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold mb-4" style={{ color: "hsl(var(--eden-parchment))" }}>
+              <h2
+                className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold mb-4"
+                style={{ color: "hsl(var(--eden-parchment))" }}
+              >
                 Start With Your Constitution
               </h2>
               <p className="font-body text-lg md:text-xl mb-10" style={{ color: "hsl(var(--eden-parchment) / 0.85)" }}>
