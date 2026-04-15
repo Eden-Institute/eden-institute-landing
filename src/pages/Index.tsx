@@ -19,7 +19,7 @@ const Index = () => {
   const [assessmentModal, setAssessmentModal] = useState(false);
 
   useEffect(() => {
-    g259;
+    
 
     document.title = "The Eden Institute — Biblical Clinical Herbalism Education";
     document
