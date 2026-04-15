@@ -341,9 +341,9 @@ const GuideTemplate = ({ guide }: Props) => {
               <p className="italic text-sm mb-4" style={{ color: COLORS.goldPale }}>
                 Learn to read your constitution, understand your body's language, and match it to God's provision in the plant world.
               </p>
-              <span className="inline-block px-8 py-3 rounded text-sm uppercase tracking-wider font-bold" style={{ backgroundColor: COLORS.gold, color: COLORS.forest, fontFamily: "'Playfair Display', serif" }}>
+              <a href="https://learn.edeninstitute.health/pages/checkout?product_id=back-to-eden1&type=course" target="_blank" rel="noopener noreferrer" className="inline-block px-8 py-3 rounded text-sm uppercase tracking-wider font-bold no-underline" style={{ backgroundColor: COLORS.gold, color: COLORS.forest, fontFamily: "'Playfair Display', serif" }}>
                 Enroll Now — $197
-              </span>
+              </a>
             </div>
           </section>
 

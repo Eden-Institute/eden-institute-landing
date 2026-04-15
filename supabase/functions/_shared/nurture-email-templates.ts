@@ -336,7 +336,7 @@ ${subheading("\"Is this faith-based?\"")}
 ${p("Yes. Grounded in Scripture, with Yahweh as healer. Clinical rigor within a Biblical worldview.")}
 ${subheading("\"What if I can't finish in time?\"")}
 ${p("The course is entirely self-paced with lifetime access. There is no deadline.")}
-${brandButton("ENROLL NOW — THE FOUNDATIONS COURSE ($197)", "https://edeninstitute.health")}
+${brandButton("ENROLL NOW — THE FOUNDATIONS COURSE ($197)", "https://learn.edeninstitute.health/pages/checkout?product_id=back-to-eden1&type=course")}
 ${signature()}`;
 
   return {
