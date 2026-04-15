@@ -341,7 +341,7 @@ const GuideTemplate = ({ guide }: Props) => {
               <p className="italic text-sm mb-4" style={{ color: COLORS.goldPale }}>
                 Learn to read your constitution, understand your body's language, and match it to God's provision in the plant world.
               </p>
-              <a <a href="https://learn.edeninstitute.health/course/back-to-eden1" target="_blank" rel="noopener noreferrer" className="inline-block px-8 py-3 rounded text-sm uppercase tracking-wider font-bold no-underline" style={{ backgroundColor: COLORS.gold, color: COLORS.forest, fontFamily: "'Playfair Display', serif" }}> target="_blank" rel="noopener noreferrer" className="inline-block px-8 py-3 rounded text-sm uppercase tracking-wider font-bold no-underline" style={{ backgroundColor: COLORS.gold, color: COLORS.forest, fontFamily: "'Playfair Display', serif" }}>
+              <a href="https://learn.edeninstitute.health/course/back-to-eden1" target="_blank" rel="noopener noreferrer" className="inline-block px-8 py-3 rounded text-sm uppercase tracking-wider font-bold no-underline" style={{ backgroundColor: COLORS.gold, color: COLORS.forest, fontFamily: "'Playfair Display', serif" }}> target="_blank" rel="noopener noreferrer" className="inline-block px-8 py-3 rounded text-sm uppercase tracking-wider font-bold no-underline" style={{ backgroundColor: COLORS.gold, color: COLORS.forest, fontFamily: "'Playfair Display', serif" }}> target="_blank" rel="noopener noreferrer" className="inline-block px-8 py-3 rounded text-sm uppercase tracking-wider font-bold no-underline" style={{ backgroundColor: COLORS.gold, color: COLORS.forest, fontFamily: "'Playfair Display', serif" }}>
                 Enroll Now — $197
               </a>
             </div>
