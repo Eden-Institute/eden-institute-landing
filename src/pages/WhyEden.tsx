@@ -325,7 +325,7 @@ const WhyEden = () => {
               >
                 → Take the Free Quiz
               </Button>
-              <a href="https://edeninstitute.health/course" target="_blank" rel="noopener noreferrer">
+              <a href="https://learn.edeninstitute.health/pages/checkout?product_id=back-to-eden1&type=course" target="_blank" rel="noopener noreferrer">
                 <Button
                   size="xl"
                   variant="outline"

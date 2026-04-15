@@ -457,11 +457,13 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
                 The Foundations Course teaches you how to read your constitution and match it to God's provision in the plant world.
               </p>
               <a
-                href="/why-eden"
+                href="https://learn.edeninstitute.health/pages/checkout?product_id=back-to-eden1&type=course"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center justify-center px-8 py-3 font-serif font-bold text-sm tracking-wider uppercase transition-colors min-h-[48px] rounded"
                 style={{ backgroundColor: "#C9A84C", color: "#1C3A2E" }}
               >
-                Learn About the Foundations Course
+                Enroll in the Foundations Course — $197
               </a>
             </div>
 
