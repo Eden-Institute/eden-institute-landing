@@ -457,7 +457,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
                 The Foundations Course teaches you how to read your constitution and match it to God's provision in the plant world.
               </p>
               <a
-                href="https://learn.edeninstitute.health/pages/checkout?product_id=back-to-eden1&type=course"
+                href="https://learn.edeninstitute.health/course/back-to-eden1"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center px-8 py-3 font-serif font-bold text-sm tracking-wider uppercase transition-colors min-h-[48px] rounded"
