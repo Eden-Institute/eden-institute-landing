@@ -240,43 +240,53 @@ const Index = () => {
                 label: "Free Quiz",
                 description: "Discover your body's constitutional pattern in 2 minutes",
                 price: "FREE",
+                link: "#assessment",
               },
               {
                 icon: <BookOpen className="w-10 h-10" style={{ color: "hsl(var(--eden-gold))" }} />,
                 label: "Deep-Dive Guide",
                 description: "Your personalized herb guide — 10 matched herbs, nutrition, lifestyle, and Scripture",
                 price: "$14",
+                link: "#assessment",
               },
               {
                 icon: <GraduationCap className="w-10 h-10" style={{ color: "hsl(var(--eden-gold))" }} />,
                 label: "Foundations Course",
                 description: "Learn to read your constitution and match it to God's provision in the plant world",
                 price: "$197",
+                link: "https://learn.edeninstitute.health/course/back-to-eden1",
               },
             ].map((step, i) => (
               <ScrollReveal key={step.label} delay={i * 120}>
-                <div
-                  className="rounded-lg p-6 md:p-8 text-center shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col items-center"
-                  style={{
-                    backgroundColor: "hsl(var(--eden-cream))",
-                    border: "1.5px solid hsl(var(--eden-gold) / 0.4)",
-                  }}
+                <a
+                  href={step.link}
+                  target={step.link.startsWith("http") ? "_blank" : undefined}
+                  rel={step.link.startsWith("http") ? "noopener noreferrer" : undefined}
+                  className="block"
                 >
-                  {/* Step number */}
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center font-serif text-sm font-bold mb-4" style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}>
-                    {i + 1}
+                  <div
+                    className="rounded-lg p-6 md:p-8 text-center shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col items-center"
+                    style={{
+                      backgroundColor: "hsl(var(--eden-cream))",
+                      border: "1.5px solid hsl(var(--eden-gold) / 0.4)",
+                    }}
+                  >
+                    {/* Step number */}
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center font-serif text-sm font-bold mb-4" style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}>
+                      {i + 1}
+                    </div>
+                    {step.icon}
+                    <h3 className="font-serif text-xl md:text-2xl font-bold text-foreground mt-4 mb-2">
+                      {step.label}
+                    </h3>
+                    <p className="font-body text-base text-muted-foreground leading-relaxed mb-4 flex-1">
+                      {step.description}
+                    </p>
+                    <p className="font-serif text-2xl font-bold" style={{ color: "hsl(var(--eden-gold))" }}>
+                      {step.price}
+                    </p>
                   </div>
-                  {step.icon}
-                  <h3 className="font-serif text-xl md:text-2xl font-bold text-foreground mt-4 mb-2">
-                    {step.label}
-                  </h3>
-                  <p className="font-body text-base text-muted-foreground leading-relaxed mb-4 flex-1">
-                    {step.description}
-                  </p>
-                  <p className="font-serif text-2xl font-bold" style={{ color: "hsl(var(--eden-gold))" }}>
-                    {step.price}
-                  </p>
-                </div>
+                </a>
               </ScrollReveal>
             ))}
           </div>
