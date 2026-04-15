@@ -14,6 +14,10 @@ import NotFound from "./pages/NotFound";
 import GuideSuccess from "./pages/GuideSuccess";
 import Results from "./pages/Results";
 import GuideLanding from "./pages/GuideLanding";
+import Courses from "./pages/Courses";
+import AppPage from "./pages/AppPage";
+import Homeschool from "./pages/Homeschool";
+import Community from "./pages/Community";
 
 const queryClient = new QueryClient();
 
