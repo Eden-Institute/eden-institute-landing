@@ -27,10 +27,10 @@ const Courses = () => {
                                     {NAV.map(n => (
                           <Link key={n.to} to={n.to} className={`font-body text-sm transition-colors ${n.to === "/courses" ? "font-medium" : "text-muted-foreground hover:text-foreground"}`} style={n.to === "/courses" ? { color: "hsl(var(--eden-bark))" } : {}}>{n.label}</Link>Link>
                                               ))}
-                                  </div>div>
+                                  </div>
                                   <Button variant="eden" size="sm" onClick={() => setQuiz(true)}>Free Quiz</Button>Button>
-                        </div>div>
-                </nav>nav>
+                        </div>
+          
           
                 <section className="py-20 md:py-28 px-6" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
                         <div className="max-w-4xl mx-auto text-center">
