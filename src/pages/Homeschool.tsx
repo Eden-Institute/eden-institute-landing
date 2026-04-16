@@ -5,7 +5,7 @@ import Footer from "@/components/landing/Footer";
 import WaitlistModal from "@/components/landing/WaitlistModal";
 import { BookOpen, Sprout, Users } from "lucide-react";
 
-const HS_AUD = "YOUR_EDENS_TABLE_AUDIENCE_ID";
+const HS_AUD = "a48cb66e-b2a9-461d-98a6-bb1b12f72693";
 const NAV = [
   { to: "/", label: "Home" },
   { to: "/courses", label: "Courses" },
