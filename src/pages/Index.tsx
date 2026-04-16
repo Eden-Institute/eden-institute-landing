@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Facebook, Instagram, ClipboardList, BookOpen, GraduationCap } from "lucide-react";
+import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import AssessmentModal from "@/components/landing/AssessmentModal";
 import { BotanicalLeafTopRight, BotanicalLeafBottomLeft, GoldDivider } from "@/components/landing/BotanicalAccents";
@@ -38,44 +39,7 @@ const Index = () => {
 
   return (
     <main className="min-h-screen overflow-x-hidden">
-      {/* ─── NAV ─── */}
-      <nav
-        className="fixed top-0 left-0 right-0 z-50 backdrop-blur border-b"
-        style={{ backgroundColor: "hsla(40, 40%, 97%, 0.95)", borderColor: "hsl(var(--eden-gold) / 0.2)" }}
-      >
-        <div className="eden-container flex items-center justify-between py-3 px-6">
-          <Link
-            to="/"
-            className="font-serif text-lg font-bold tracking-wide"
-            style={{ color: "hsl(var(--eden-forest))" }}
-          >
-            The Eden Institute
-          </Link>
-          <div className="flex items-center gap-6">
-            <Link
-              to="/"
-              className="font-body text-sm hover:opacity-80 transition-colors hidden sm:inline"
-              style={{ color: "hsl(var(--eden-forest))" }}
-            >
-              Home
-            </Link>
-            <Link
-              to="/why-eden"
-              className="font-body text-sm hover:opacity-80 transition-colors hidden sm:inline"
-              style={{ color: "hsl(var(--eden-forest))" }}
-            >
-              Why Eden
-            </Link>
-            <button
-              onClick={openQuiz}
-              className="!inline-block !w-auto font-body text-sm font-semibold px-4 py-1.5 rounded transition-all hover:opacity-90"
-              style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}
-            >
-              Free Quiz
-            </button>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* ─── SECTION 1: HERO ─── */}
       <section id="hero" className="pt-20 relative overflow-hidden min-h-[90vh] flex items-center">
@@ -162,6 +126,106 @@ const Index = () => {
               →
             </span>
           </Link>
+        </div>
+      </section>
+
+      {/* ─── PATH CARDS SECTION ─── */}
+      <section className="section-padding-lg" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
+        <div className="eden-container px-6">
+          <ScrollReveal>
+            <h2 className="font-serif text-3xl md:text-4xl font-bold text-center mb-4" style={{ color: "hsl(var(--eden-forest))" }}>
+              Where Would You Like to Begin?
+            </h2>
+            <p className="font-body text-center text-base mb-12" style={{ color: "hsl(var(--eden-bark) / 0.7)" }}>
+              Every path leads to the same foundation — Yahweh as the ultimate healer, your body as His design.
+            </p>
+          </ScrollReveal>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+
+            {/* Card 1 — Tier 1 */}
+            <ScrollReveal delay={100}>
+              <a href="https://learn.edeninstitute.health/course/back-to-eden1" target="_blank" rel="noopener noreferrer"
+                className="block rounded-sm border p-8 hover:shadow-md transition-shadow duration-300 h-full"
+                style={{ backgroundColor: "hsl(var(--eden-parchment))", borderColor: "hsl(var(--eden-gold) / 0.3)" }}>
+                <BookOpen className="mb-4 w-7 h-7" style={{ color: "hsl(var(--eden-gold))" }} />
+                <h3 className="font-serif text-xl font-bold mb-2" style={{ color: "hsl(var(--eden-forest))" }}>
+                  Biblical Foundations
+                </h3>
+                <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>
+                  Tier 1 · Now Enrolling
+                </p>
+                <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.8)" }}>
+                  Start here. Ten lessons grounding your herbal practice in Scripture, stewardship, and the Five Tenets of Health.
+                </p>
+                <p className="font-body text-sm font-semibold mt-6" style={{ color: "hsl(var(--eden-forest))" }}>
+                  Enroll now →
+                </p>
+              </a>
+            </ScrollReveal>
+
+            {/* Card 2 — Tier 2 */}
+            <ScrollReveal delay={200}>
+              <div className="block rounded-sm border p-8 h-full"
+                style={{ backgroundColor: "hsl(var(--eden-parchment))", borderColor: "hsl(var(--eden-gold) / 0.3)", opacity: 0.75 }}>
+                <GraduationCap className="mb-4 w-7 h-7" style={{ color: "hsl(var(--eden-gold))" }} />
+                <h3 className="font-serif text-xl font-bold mb-2" style={{ color: "hsl(var(--eden-forest))" }}>
+                  Body Systems & Clinical Literacy
+                </h3>
+                <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>
+                  Tier 2 · Opening July 7, 2026
+                </p>
+                <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.8)" }}>
+                  Fourteen modules. Every major body system. Terrain-based clinical reasoning rooted in Scripture and Western herbalism tradition.
+                </p>
+                <p className="font-body text-sm font-semibold mt-6" style={{ color: "hsl(var(--eden-forest) / 0.5)" }}>
+                  Coming July 7 →
+                </p>
+              </div>
+            </ScrollReveal>
+
+            {/* Card 3 — Homeschool */}
+            <ScrollReveal delay={300}>
+              <Link to="/homeschool"
+                className="block rounded-sm border p-8 hover:shadow-md transition-shadow duration-300 h-full"
+                style={{ backgroundColor: "hsl(var(--eden-parchment))", borderColor: "hsl(var(--eden-gold) / 0.3)" }}>
+                <ClipboardList className="mb-4 w-7 h-7" style={{ color: "hsl(var(--eden-gold))" }} />
+                <h3 className="font-serif text-xl font-bold mb-2" style={{ color: "hsl(var(--eden-forest))" }}>
+                  Eden's Table Curriculum
+                </h3>
+                <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>
+                  K–12 Homeschool · Early Access
+                </p>
+                <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.8)" }}>
+                  Biblical herbalism for the whole family. Hands-on, Scripture-anchored, open-and-go. Join the founding families waitlist.
+                </p>
+                <p className="font-body text-sm font-semibold mt-6" style={{ color: "hsl(var(--eden-forest))" }}>
+                  Join the waitlist →
+                </p>
+              </Link>
+            </ScrollReveal>
+
+            {/* Card 4 — Quiz */}
+            <ScrollReveal delay={400}>
+              <button onClick={openQuiz}
+                className="block w-full text-left rounded-sm border p-8 hover:shadow-md transition-shadow duration-300 h-full cursor-pointer"
+                style={{ backgroundColor: "hsl(var(--eden-forest))", borderColor: "hsl(var(--eden-gold) / 0.3)" }}>
+                <Instagram className="mb-4 w-7 h-7" style={{ color: "hsl(var(--eden-gold))" }} />
+                <h3 className="font-serif text-xl font-bold mb-2" style={{ color: "hsl(var(--eden-parchment))" }}>
+                  Know Your Constitution
+                </h3>
+                <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>
+                  Free · 2 Minutes
+                </p>
+                <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-parchment) / 0.8)" }}>
+                  Discover your God-given constitutional type. Eight patterns, one quiz. Your herbs, your terrain, your design.
+                </p>
+                <p className="font-body text-sm font-semibold mt-6" style={{ color: "hsl(var(--eden-gold))" }}>
+                  Take the free quiz →
+                </p>
+              </button>
+            </ScrollReveal>
+
+          </div>
         </div>
       </section>
 
