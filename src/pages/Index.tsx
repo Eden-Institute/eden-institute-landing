@@ -9,10 +9,10 @@ import { BotanicalLeafTopRight, BotanicalLeafBottomLeft, GoldDivider } from "@/c
 import ScrollReveal from "@/components/landing/ScrollReveal";
 
 // Unsplash photography
-const HERO_IMG = "https://images.unsplash.com/photo-1771128264855-1c032332cbc8?auto=format&fit=crop&w=1920&q=80";
-const HERBS_SHELF_IMG = "https://images.unsplash.com/photo-1580116270858-8a0d62b15426?auto=format&fit=crop&w=1200&q=80";
-const MORTAR_IMG = "https://images.unsplash.com/photo-1492552085122-36706c238263?auto=format&fit=crop&w=1200&q=80";
-const HERBS_TABLE_IMG = "https://images.unsplash.com/photo-1726996155615-e986ed87c9d4?auto=format&fit=crop&w=1200&q=80";
+const HERO_IMG = "https://images.unsplash.com/photo-lP_FoHCLjWk?auto=format&fit=crop&w=1920&q=80";
+const HERBS_SHELF_IMG = "https://images.unsplash.com/photo-cc-Wj-yl5Z4?auto=format&fit=crop&w=1200&q=80";
+const MORTAR_IMG = "https://images.unsplash.com/photo-EHG22u_SIfI?auto=format&fit=crop&w=1200&q=80";
+const HERBS_TABLE_IMG = "https://images.unsplash.com/photo-Iokj6jEwkxM?auto=format&fit=crop&w=1200&q=80";
 
 const QUIZ_CTA = "Find Out How Your Body Works — Take the Free Quiz (2 min)";
 
