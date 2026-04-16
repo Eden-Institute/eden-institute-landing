@@ -154,18 +154,18 @@ const Index = () => {
       {/* ─── BANNER: What Makes Us Different ─── */}
       <section className="py-5 md:py-6 px-6" style={{ backgroundColor: "hsl(var(--eden-gold))" }}>
         <div className="eden-container">
-          <Link to="/why-eden" className="flex items-center justify-center gap-3 group">
+          <Link to="/why-eden" className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 group text-center">
             <span
-              className="font-serif text-base sm:text-lg md:text-xl font-semibold tracking-wide group-hover:underline underline-offset-4"
+              className="font-serif text-base sm:text-lg md:text-xl font-semibold tracking-wide"
               style={{ color: "hsl(var(--eden-bark))" }}
             >
-              What makes our program different?
+              No Eastern philosophy. No supplement stacks. No weekend certifications. Just Scripture, science, and your body's actual design.
             </span>
             <span
-              className="font-serif text-xl md:text-2xl transition-transform group-hover:translate-x-1"
+              className="font-serif text-sm sm:text-base font-semibold whitespace-nowrap transition-transform group-hover:translate-x-1 group-hover:underline underline-offset-4"
               style={{ color: "hsl(var(--eden-bark))" }}
             >
-              →
+              See How We're Different →
             </span>
           </Link>
         </div>
