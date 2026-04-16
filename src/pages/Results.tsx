@@ -27,7 +27,7 @@ const Results = () => {
     if (!profile || !constitutionType) return;
 
     const title = `Your Type: ${profile.nickname} — The Eden Institute`;
-    const description = `You are ${profile.nickname} (${constitutionType}). ${profile.tagline} Discover your top herbs and a Biblical framework for your constitutional pattern.`;
+    const description = `You are ${profile.nickname} (${constitutionType}). ${profile.tagline} Discover your top herbs and a Biblical framework for your body typeal pattern.`;
     const url = `https://eden-institute-landing.lovable.app/results/${constitutionSlug}`;
     const ogImage = "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/885c26d7-47fa-44a2-8cbe-2fb65fe2ac1d/id-preview-76fd0110--2c0295c8-d605-4e05-b894-d14a43a38181.lovable.app-1771968635738.png";
 
@@ -63,10 +63,10 @@ const Results = () => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ backgroundColor: "#F5F0E8" }}>
         <h1 className="font-serif text-3xl font-bold mb-4" style={{ color: "#1C3A2E" }}>
-          Constitution Type Not Found
+          Body Type Not Found
         </h1>
         <p className="font-body text-lg mb-8" style={{ color: "#1C3A2E" }}>
-          We couldn't find that constitutional type. Take the free quiz to discover yours.
+          We couldn't find that body type. Take the free quiz to discover yours.
         </p>
         <Link to="/assessment">
           <Button variant="eden" size="xl">Take the Free Quiz</Button>
@@ -81,7 +81,7 @@ const Results = () => {
         {/* Type Header */}
         <div className="text-center mb-12">
           <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>
-            Your Constitutional Type
+            Your Body Type
           </span>
           <h1 className="font-serif text-4xl md:text-5xl font-bold mt-4 mb-2" style={{ color: "#1C3A2E" }}>
             {profile.nickname}
@@ -128,7 +128,7 @@ const Results = () => {
             Want the full picture?
           </h2>
           <p className="font-body text-base leading-relaxed mb-4" style={{ color: "#1C3A2E" }}>
-            Your complete Deep-Dive Guide includes all 10 matched herbs with clinical preparation methods, dosages, and safety notes — plus caution lists, lifestyle and nutrition guidance, and a Biblical framework for your constitutional pattern.
+            Your complete Deep-Dive Guide includes all 10 matched herbs with clinical preparation methods, dosages, and safety notes — plus caution lists, lifestyle and nutrition guidance, and a Biblical framework for your body typeal pattern.
           </p>
           {error && <p className="font-body text-sm text-destructive mb-4">{error}</p>}
           <Button
@@ -188,7 +188,7 @@ const Results = () => {
             Ready to Go Deeper?
           </h3>
           <p className="font-body text-lg mb-8 max-w-xl mx-auto" style={{ color: "#F5F0E8" }}>
-            The Foundations Course teaches you how to read your constitution and match it to God's provision in the plant world.
+            The Foundations Course teaches you how to read your body type and match it to God's provision in the plant world.
           </p>
           <a
             href="https://learn.edeninstitute.health/course/back-to-eden1"
@@ -204,7 +204,7 @@ const Results = () => {
         {/* Retake Quiz */}
         <div className="text-center mt-8">
           <Link to="/assessment" className="font-body text-base underline" style={{ color: "#5C7A5C" }}>
-            Retake the Constitutional Assessment →
+            Retake the Body Type Quiz →
           </Link>
         </div>
       </div>

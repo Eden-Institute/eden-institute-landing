@@ -6,14 +6,14 @@ const axes = [
     title: "Temperature",
     spectrum: "Hot ↔ Cold",
     description:
-      "Every person and every plant carries a thermal signature. Understanding this axis is foundational to constitutional matching — warming herbs for cold constitutions, cooling herbs for excess heat.",
+      "Every person and every plant carries a thermal signature. Understanding this axis is foundational to body type matching — warming herbs for cold constitutions, cooling herbs for excess heat.",
   },
   {
     icon: "💧",
     title: "Fluid",
     spectrum: "Damp ↔ Dry",
     description:
-      "The body's fluid terrain reveals patterns of stagnation or depletion. Matching moistening or drying herbs to the person's constitutional tendency restores balance without suppression.",
+      "The body's fluid terrain reveals patterns of stagnation or depletion. Matching moistening or drying herbs to the person's body type tendency restores balance without suppression.",
   },
   {
     icon: "⚡",

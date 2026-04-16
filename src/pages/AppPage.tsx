@@ -51,13 +51,13 @@ const AppPage = () => {
             className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6"
             style={{ color: "hsl(var(--eden-bark))" }}
           >
-            Your Constitutional Herb Guide.
+            Your Body Typeal Herb Guide.
             <br />
             <span className="italic">In Your Pocket.</span>
           </h1>
           <div className="w-16 h-px mx-auto my-8" style={{ backgroundColor: "hsl(var(--eden-gold))" }} />
           <p className="font-body text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
-            Eden Apothecary matches herbs to your constitutional type — your body's innate pattern — so you're never
+            Eden Apothecary matches herbs to your body type — your body's innate pattern — so you're never
             guessing. Rooted in Biblical terrain medicine. Built for Christian families.
           </p>
           <div
@@ -82,10 +82,10 @@ const AppPage = () => {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="font-serif text-3xl font-bold mb-4" style={{ color: "hsl(var(--eden-bark))" }}>
-              Built Around Your Constitution
+              Built Around Your Body Type
             </h2>
             <p className="font-body text-muted-foreground max-w-2xl mx-auto">
-              Eight constitutional types. One personalised herb library. Terrain intelligence, not symptom lookup.
+              Eight body types. One personalised herb library. Terrain intelligence, not symptom lookup.
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -95,7 +95,7 @@ const AppPage = () => {
             >
               <Smartphone className="w-7 h-7 mb-4" style={{ color: "hsl(var(--eden-gold))" }} />
               <h3 className="font-serif text-base font-semibold mb-2" style={{ color: "hsl(var(--eden-bark))" }}>
-                Constitution Quiz
+                Body Type Quiz
               </h3>
               <p className="font-body text-sm text-muted-foreground leading-relaxed">
                 Discover your innate body type in 2 minutes. All 8 types mapped to herbs, tissues, and tendencies.

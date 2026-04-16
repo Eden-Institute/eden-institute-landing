@@ -105,7 +105,7 @@ const Courses = () => {
               </h3>
               <p className="my-4 font-body text-sm leading-relaxed text-muted-foreground">
                 The theological foundation of plant medicine. Creation-based health, the Five
-                Tenets, and your constitutional type.
+                Tenets, and your body type.
               </p>
               <ul className="mb-6 space-y-2 text-sm text-muted-foreground">
                 <li className="flex gap-2">
@@ -120,7 +120,7 @@ const Courses = () => {
                     className="mt-0.5 h-4 w-4 flex-shrink-0"
                     style={{ color: "hsl(var(--eden-forest))" }}
                   />
-                  Constitutional Assessment included
+                  Body Type Quiz included
                 </li>
                 <li className="flex gap-2">
                   <CheckCircle
@@ -316,7 +316,7 @@ const Courses = () => {
             Not Sure Where to Start?
           </h2>
           <p className="mb-8 font-body text-muted-foreground">
-            Take the 2-minute Constitutional Assessment. Discover your body pattern first.
+            Take the 2-minute Body Type Quiz. Discover your body pattern first.
           </p>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
             <Button variant="eden" size="xl" onClick={() => setQuiz(true)}>

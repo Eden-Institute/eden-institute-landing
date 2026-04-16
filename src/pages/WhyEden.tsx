@@ -99,7 +99,7 @@ const WhyEden = () => {
           <div className="space-y-6">
             {[
               "They're sold like supplements — take X for Y.",
-              "No one explains that your constitution determines your response.",
+              "No one explains that your body type determines your response.",
               'The same "calming herb" can be stimulating for a hot/tense type.',
               "Most courses teach you herb facts. None of them teach you to read your own body first.",
             ].map((item, i) => (
@@ -314,7 +314,7 @@ const WhyEden = () => {
               Ready to Understand Your Body?
             </h2>
             <p className="font-body text-lg md:text-xl mb-10 leading-relaxed" style={{ color: "hsl(var(--eden-bark))", fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
-              Start with the free 2-minute quiz to discover your constitutional type — then decide if the course is right for you.
+              Start with the free 2-minute quiz to discover your body type — then decide if the course is right for you.
             </p>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4">
               <Button
