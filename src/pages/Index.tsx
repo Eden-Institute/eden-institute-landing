@@ -1,4 +1,3 @@
-import Navbar from "@/components/landing/Navbar";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
