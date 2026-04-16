@@ -5,7 +5,7 @@ import Footer from "@/components/landing/Footer";
 import WaitlistModal from "@/components/landing/WaitlistModal";
 import { MapPin, Sprout, Users, BookOpen } from "lucide-react";
 
-const COMM_AUD = "YOUR_ROOTED_COMMUNITY_AUDIENCE_ID";
+const COMM_AUD = "a48cb66e-b2a9-461d-98a6-bb1b12f72693";
 const NAV = [
   { to: "/", label: "Home" },
   { to: "/courses", label: "Courses" },
