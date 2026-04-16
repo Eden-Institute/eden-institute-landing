@@ -1,328 +1,173 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Check, X } from "lucide-react";
-import AssessmentModal from "@/components/landing/AssessmentModal";
+import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import ScrollReveal from "@/components/landing/ScrollReveal";
 import { GoldDivider } from "@/components/landing/BotanicalAccents";
-import Navbar from "@/components/landing/Navbar";
-
-const HERO_IMG = "https://images.unsplash.com/photo-1771128264855-1c032332cbc8?auto=format&fit=crop&w=1920&q=80";
-const HERBS_SHELF_IMG = "https://images.unsplash.com/photo-1580116270858-8a0d62b15426?auto=format&fit=crop&w=1200&q=80";
-
-const comparisonData = [
-  { eden: "Body type framework", other: "Symptom-matching" },
-  { eden: "Clinical tissue-state theory", other: '"Try this herb for that"' },
-  { eden: "Biblically anchored worldview", other: "New Age or secular framing" },
-  { eden: "Safety + scope training", other: "No boundaries taught" },
-  { eden: "Sequenced 3-tier curriculum", other: "One-off classes" },
-  { eden: "Personalized to your body type", other: "One-size-fits-all" },
-];
 
 const WhyEden = () => {
-  const [assessmentModal, setAssessmentModal] = useState(false);
-
   useEffect(() => {
-    document.title = "Why Eden — The Eden Institute";
-    document.querySelector('meta[name="description"]')?.setAttribute("content", "A terrain-based, body type herbalism education rooted in Scripture. Learn why The Eden Institute is different.");
-  }, []);
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
+    document.title = "Why Eden Institute — Biblical Clinical Herbalism";
+    document
+      .querySelector('meta[name="description"]')
+      ?.setAttribute(
+        "content",
+        "There is no other program like this one. Eden Institute offers clinically rigorous, Scripture-anchored herbalism education — free from Eastern spiritual frameworks.",
+      );
   }, []);
 
   return (
     <main className="min-h-screen overflow-x-hidden">
-      {/* NAV BAR */}
       <Navbar />
 
-      {/* SECTION 1: HERO */}
-      <section className="relative min-h-[60vh] flex items-center overflow-hidden">
-        <img
-          src={HERO_IMG}
-          alt="Rustic apothecary with dried herbs"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, hsla(40, 33%, 93%, 0.88) 0%, hsla(40, 33%, 93%, 0.82) 60%, hsla(40, 33%, 93%, 0.92) 100%)" }} />
-        <div className="relative z-10 eden-container text-center max-w-4xl mx-auto px-6 pt-28 pb-20 md:pt-36 md:pb-28">
-          <ScrollReveal>
-            <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-4" style={{ color: "hsl(var(--eden-bark))" }}>
-              Most herbalism courses teach you about herbs.
-            </h1>
-          </ScrollReveal>
-          <ScrollReveal delay={100}>
-            <p className="font-serif text-2xl sm:text-3xl md:text-4xl font-bold mb-8" style={{ color: "hsl(var(--eden-gold))" }}>
-              We teach you about YOU.
-            </p>
-          </ScrollReveal>
-          <div className="eden-divider" />
-          <ScrollReveal delay={200}>
-            <p className="font-body text-base md:text-lg max-w-3xl mx-auto leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.7)", fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
-              Because the herb that heals her might wire you. The dose that works for him won't work for you. Herbalism fails when it ignores the most important variable: the body in front of you.
-            </p>
-          </ScrollReveal>
-        </div>
-      </section>
-
-      <GoldDivider />
-
-      {/* SECTION 2: THE PROBLEM */}
-      <section className="section-padding-lg relative overflow-hidden" style={{ backgroundColor: "hsl(var(--eden-forest))" }}>
-        <img src={HERBS_SHELF_IMG} alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover opacity-[0.07] mix-blend-luminosity" />
-        <div className="eden-container max-w-4xl mx-auto relative z-10">
-          <ScrollReveal>
-            <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl font-bold text-center leading-tight mb-12" style={{ color: "hsl(var(--eden-parchment))" }}>
-              Why Herbs Fail Most People
-            </h2>
-          </ScrollReveal>
-          <div className="space-y-6">
-            {[
-              "They're sold like supplements — take X for Y.",
-              "No one explains that your body type determines your response.",
-              'The same "calming herb" can be stimulating for a hot/tense type.',
-              "Most courses teach you herb facts. None of them teach you to read your own body first.",
-            ].map((item, i) => (
-              <ScrollReveal key={i} delay={i * 80}>
-                <div className="flex items-start gap-4 pl-4 border-l-2" style={{ borderColor: "hsl(var(--eden-gold))" }}>
-                  <p className="text-base md:text-lg leading-relaxed" style={{ color: "hsla(40, 33%, 93%, 0.85)", fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
-                    {item}
-                  </p>
-                </div>
-              </ScrollReveal>
-            ))}
-          </div>
-          <ScrollReveal delay={300}>
-            <p className="text-center mt-12 font-body text-lg italic" style={{ color: "hsl(var(--eden-gold))", fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
-              This isn't herbalism's failure. It's an education gap. And that's exactly what we built The Eden Institute to fix.
-            </p>
-          </ScrollReveal>
-        </div>
-      </section>
-
-      <GoldDivider />
-
-      {/* SECTION 3: THE SOLUTION */}
-      <section className="section-padding-lg parchment-texture">
-        <div className="eden-container max-w-4xl mx-auto">
-          <ScrollReveal>
-            <p className="font-accent text-sm tracking-[0.3em] uppercase mb-4 text-center" style={{ color: "hsl(var(--eden-gold))" }}>
-              The Eden Approach
-            </p>
-            <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl font-bold text-foreground text-center mb-8">
-              The Eden Approach
-            </h2>
-            <div className="eden-divider" />
-          </ScrollReveal>
-          <ScrollReveal delay={100}>
-            <p className="font-body text-base md:text-lg text-muted-foreground leading-relaxed mb-6" style={{ fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
-              We teach terrain-based, body type herbalism. Before you touch a single herb, you understand your body's pattern — its temperature tendency, fluid state, and tissue tone. Then every herb recommendation is precise, not generic.
-            </p>
-            <p className="font-body text-base md:text-lg text-muted-foreground leading-relaxed" style={{ fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
-              This is Western Clinical Herbalism, rooted in 3,000 years of tradition and grounded in Scripture. No chakras. No doshas. No universe worship. Just rigorous plant medicine anchored in the belief that God was intentional in what He made — every body, every plant, every pattern of healing.
-            </p>
-          </ScrollReveal>
-        </div>
-      </section>
-
-      <GoldDivider />
-
-      {/* SECTION 4: TIER 1 */}
-      <section className="section-padding-lg relative overflow-hidden" style={{ backgroundColor: "hsl(var(--eden-forest))" }}>
-        <div className="eden-container max-w-4xl mx-auto relative z-10">
-          <ScrollReveal>
-            <p className="font-accent text-xs tracking-[0.25em] uppercase mb-3 text-center" style={{ color: "hsl(var(--eden-gold))" }}>
-              Tier 1
-            </p>
-            <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-10" style={{ color: "hsl(var(--eden-parchment))" }}>
-              The Foundations Course
-            </h2>
-          </ScrollReveal>
-
-          <div className="grid md:grid-cols-3 gap-6 mb-10">
-            {[
-              { label: "Feature", text: "10-lesson Biblical framework course" },
-              { label: "Advantage", text: "You learn to read your body's signals before choosing herbs" },
-              { label: "Benefit", text: "Herbs stop being guesswork. They become a language." },
-            ].map((fab, i) => (
-              <ScrollReveal key={fab.label} delay={i * 100}>
-                <div className="rounded-lg p-6 text-center" style={{ backgroundColor: "hsl(var(--eden-parchment))", border: "1.5px solid hsl(var(--eden-gold) / 0.4)" }}>
-                  <p className="font-accent text-xs tracking-[0.2em] uppercase mb-2" style={{ color: "hsl(var(--eden-gold))" }}>
-                    {fab.label}
-                  </p>
-                  <p className="font-body text-base text-foreground leading-relaxed" style={{ fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
-                    {fab.text}
-                  </p>
-                </div>
-              </ScrollReveal>
-            ))}
-          </div>
-
-          <ScrollReveal delay={200}>
-            <blockquote className="text-center px-6 py-8">
-              <p className="font-accent text-lg md:text-xl italic leading-relaxed mb-3" style={{ color: "hsl(var(--eden-parchment) / 0.9)" }}>
-                "Finally understood why lavender made me more anxious — it was wrong for my type."
+      {/* HERO */}
+      <section className="pt-20 section-padding-lg" style={{ backgroundColor: "hsl(var(--eden-parchment))" }}>
+        <div className="eden-container px-6">
+          <div className="max-w-3xl mx-auto text-center">
+            <ScrollReveal>
+              <p className="font-accent text-xs tracking-widest uppercase mb-4" style={{ color: "hsl(var(--eden-gold))" }}>
+                Why Eden Institute
               </p>
-              <footer className="font-body text-sm" style={{ color: "hsl(var(--eden-gold))" }}>
-                — Beta Student
-              </footer>
-            </blockquote>
-          </ScrollReveal>
-        </div>
-      </section>
-
-      <GoldDivider />
-
-      {/* SECTION 5: TIER 2 */}
-      <section className="section-padding-lg parchment-texture">
-        <div className="eden-container max-w-4xl mx-auto">
-          <ScrollReveal>
-            <p className="font-accent text-xs tracking-[0.25em] uppercase mb-3 text-center" style={{ color: "hsl(var(--eden-gold))" }}>
-              Tier 2
-            </p>
-            <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl font-bold text-foreground text-center mb-10">
-              Body Systems & Clinical Literacy
-            </h2>
-          </ScrollReveal>
-
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
-            {[
-              { label: "Feature", text: "14 body-system modules with clinical depth" },
-              { label: "Advantage", text: "You understand every major system — digestive, hormonal, immune — through a terrain lens" },
-              { label: "Benefit", text: "You can help your family the way a trained herbalist would, not a wellness blogger" },
-            ].map((fab, i) => (
-              <ScrollReveal key={fab.label} delay={i * 100}>
-                <div className="rounded-lg p-6 text-center" style={{ backgroundColor: "hsl(var(--eden-cream))", border: "1.5px solid hsl(var(--eden-gold) / 0.4)" }}>
-                  <p className="font-accent text-xs tracking-[0.2em] uppercase mb-2" style={{ color: "hsl(var(--eden-gold))" }}>
-                    {fab.label}
-                  </p>
-                  <p className="font-body text-base text-muted-foreground leading-relaxed" style={{ fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
-                    {fab.text}
-                  </p>
-                </div>
-              </ScrollReveal>
-            ))}
-          </div>
-
-          <ScrollReveal delay={200}>
-            <p className="text-center font-serif text-lg font-semibold" style={{ color: "hsl(var(--eden-gold))" }}>
-              Coming 2027
-            </p>
-          </ScrollReveal>
-        </div>
-      </section>
-
-      <GoldDivider />
-
-      {/* SECTION 6: COMPARISON CHART */}
-      <section className="section-padding-lg relative overflow-hidden" style={{ backgroundColor: "hsl(var(--eden-forest))" }}>
-        <div className="eden-container max-w-4xl mx-auto relative z-10">
-          <ScrollReveal>
-            <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-12" style={{ color: "hsl(var(--eden-parchment))" }}>
-              Eden Institute vs. Generic Herb Courses
-            </h2>
-          </ScrollReveal>
-
-          <div className="grid grid-cols-2 gap-x-4 gap-y-0">
-            {/* Header */}
-            <div className="pb-4 mb-2 border-b" style={{ borderColor: "hsl(var(--eden-gold) / 0.3)" }}>
-              <p className="font-accent text-xs tracking-[0.2em] uppercase font-semibold" style={{ color: "hsl(var(--eden-gold))" }}>
-                The Eden Institute
+              <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] mb-6" style={{ color: "hsl(var(--eden-forest))" }}>
+                There Is No Other Program<br />Like This One.
+              </h1>
+              <p className="font-body text-lg leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.8)" }}>
+                And we say that not as a marketing claim — but as a description of reality. Here's what we mean.
               </p>
-            </div>
-            <div className="pb-4 mb-2 border-b" style={{ borderColor: "hsl(var(--eden-gold) / 0.3)" }}>
-              <p className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
-                Generic Courses
-              </p>
-            </div>
-
-            {comparisonData.map((row, i) => (
-              <ScrollReveal key={i} delay={i * 60} className="contents">
-                <div className="flex items-start gap-2 py-3 border-b" style={{ borderColor: "hsl(var(--eden-gold) / 0.1)" }}>
-                  <Check className="w-5 h-5 mt-0.5 shrink-0" style={{ color: "hsl(var(--eden-sage))" }} />
-                  <span className="font-body text-sm md:text-base" style={{ color: "hsl(var(--eden-parchment) / 0.9)", fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
-                    {row.eden}
-                  </span>
-                </div>
-                <div className="flex items-start gap-2 py-3 border-b" style={{ borderColor: "hsl(var(--eden-gold) / 0.1)" }}>
-                  <X className="w-5 h-5 mt-0.5 shrink-0" style={{ color: "hsl(0, 60%, 60%)" }} />
-                  <span className="font-body text-sm md:text-base" style={{ color: "hsl(var(--eden-parchment) / 0.5)", fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
-                    {row.other}
-                  </span>
-                </div>
-              </ScrollReveal>
-            ))}
+            </ScrollReveal>
           </div>
         </div>
       </section>
 
       <GoldDivider />
 
-      {/* SECTION 7: CREDIBILITY / BUILT ON */}
-      <section className="section-padding-lg parchment-texture">
-        <div className="eden-container max-w-3xl mx-auto text-center">
-          <ScrollReveal>
-            <p className="font-accent text-sm tracking-[0.3em] uppercase mb-4" style={{ color: "hsl(var(--eden-gold))" }}>
-              Built On
-            </p>
-            <div className="eden-divider" />
-            <div className="space-y-3 mt-8 mb-10">
+      {/* THE PROBLEM */}
+      <section className="section-padding-lg" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
+        <div className="eden-container px-6">
+          <div className="max-w-4xl mx-auto">
+            <ScrollReveal>
+              <h2 className="font-serif text-3xl md:text-4xl font-bold text-center mb-10" style={{ color: "hsl(var(--eden-forest))" }}>
+                The Christian Herbalism Problem
+              </h2>
+            </ScrollReveal>
+            <div className="grid grid-cols-1 gap-8">
               {[
-                "Western Clinical Herbalism (Eclectic, Physiomedical, Vitalist traditions)",
-                "Dr. Sebi's mineral-first nutritional framework",
-                "Biblical stewardship medicine",
+                { heading: "Most herbal programs are spiritually compromised.", body: "Chakras. Doshas. Moon cycles. Energy fields. These frameworks are borrowed from Hinduism, Buddhism, and paganism — and they appear in mainstream herbalism education with regularity. For a Christian trying to learn herbalism, navigating this is exhausting and often disqualifying." },
+                { heading: "Christian-branded programs are often clinically shallow.", body: "There are a handful of programs that call themselves Christian herbalism schools. But most offer little more than folk remedies and Scripture references dropped into otherwise thin content. They don't teach terrain theory, tissue states, or clinical reasoning. They don't prepare you to actually understand what's happening in the body." },
+                { heading: "The academic programs don't speak your language.", body: "The rigorous schools — Herbal Academy, Colorado School of Clinical Herbalism, Chestnut — produce excellent graduates. But they are secular institutions. Faith is absent. You learn biochemistry but not stewardship. You learn pharmacognosy but not the Creator behind the plant." },
               ].map((item, i) => (
-                <p key={i} className="font-body text-base md:text-lg text-muted-foreground" style={{ fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
-                  ✦ {item}
-                </p>
+                <ScrollReveal key={i} delay={i * 100}>
+                  <div className="p-6 rounded-sm" style={{ backgroundColor: "hsl(var(--eden-parchment))", border: "1px solid hsl(var(--eden-gold) / 0.2)" }}>
+                    <h3 className="font-serif text-xl font-bold mb-3" style={{ color: "hsl(var(--eden-forest))" }}>{item.heading}</h3>
+                    <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.85)" }}>{item.body}</p>
+                  </div>
+                </ScrollReveal>
               ))}
             </div>
-            <p className="font-body text-base italic text-muted-foreground" style={{ fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
-              Founded by Camila — herbalist, educator, and founder of The Eden Institute.
-            </p>
-          </ScrollReveal>
+          </div>
         </div>
       </section>
 
       <GoldDivider />
 
-      {/* SECTION 8: CTA */}
-      <section className="section-padding-lg" style={{ backgroundColor: "hsl(var(--eden-gold))" }}>
-        <div className="eden-container max-w-4xl mx-auto text-center">
-          <ScrollReveal>
-            <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl font-bold leading-tight mb-4" style={{ color: "hsl(var(--eden-bark))" }}>
-              Ready to Understand Your Body?
-            </h2>
-            <p className="font-body text-lg md:text-xl mb-10 leading-relaxed" style={{ color: "hsl(var(--eden-bark))", fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
-              Start with the free 2-minute quiz to discover your body type — then decide if the course is right for you.
-            </p>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4">
-              <Button
-                size="xl"
-                className="font-serif font-semibold tracking-wide min-h-[48px]"
-                style={{ backgroundColor: "hsl(var(--eden-bark))", borderColor: "hsl(var(--eden-bark))", color: "hsl(var(--eden-gold))" }}
-                onClick={() => setAssessmentModal(true)}
-              >
-                → Take the Free Quiz
-              </Button>
-              <a href="https://learn.edeninstitute.health/course/back-to-eden1" target="_blank" rel="noopener noreferrer">
-                <Button
-                  size="xl"
-                  variant="outline"
-                  className="font-serif font-semibold tracking-wide min-h-[48px] w-full"
-                  style={{ backgroundColor: "transparent", borderColor: "hsl(var(--eden-bark))", color: "hsl(var(--eden-bark))" }}
-                >
-                  → Enroll in the Foundations Course — $197
-                </Button>
-              </a>
+      {/* THE SOLUTION */}
+      <section className="section-padding-lg" style={{ backgroundColor: "hsl(var(--eden-parchment))" }}>
+        <div className="eden-container px-6">
+          <div className="max-w-4xl mx-auto">
+            <ScrollReveal>
+              <h2 className="font-serif text-3xl md:text-4xl font-bold text-center mb-4" style={{ color: "hsl(var(--eden-forest))" }}>
+                Eden Institute Is the Answer to All Three.
+              </h2>
+              <div className="eden-divider mb-10" />
+            </ScrollReveal>
+            <div className="grid grid-cols-1 gap-8">
+              {[
+                { label: "Worldview-Anchored", body: "Every framework in our curriculum starts with Yahweh as Creator and ultimate healer. We teach Western clinical herbalism — not Ayurveda, not Traditional Chinese Medicine, not any spiritual framework borrowed from another religion. If you encounter a concept rooted in Eastern spirituality, we name it, explain why we don't use it, and offer the Western clinical equivalent." },
+                { label: "Clinically Rigorous", body: "Built on 3,000 years of Western clinical herbalism tradition — Eclectic, Physiomedical, and Vitalist frameworks. Terrain theory. Six tissue states. Constitutional assessment. Body systems literacy. This is not folk medicine dressed up in Scripture. This is serious clinical education with faith as its foundation." },
+                { label: "Built by an Educator", body: "Camila holds a Master's in Education and spent years as a credentialed classroom teacher before building Eden Institute. The curriculum architecture, the pedagogical design, the scope and sequence — these are built with the same rigor you'd find in an accredited graduate program. Not a blogger who learned herbs from Pinterest." },
+                { label: "Designed for the Christian Family", body: "Our students are mothers, homeschoolers, farmers, and believers who want to care for their families with wisdom and confidence. The curriculum speaks directly to their life, their values, and their calling. Eden's Table extends this education to their children. The community surrounds them with others on the same path." },
+              ].map((item, i) => (
+                <ScrollReveal key={i} delay={i * 100}>
+                  <div className="flex items-start gap-4 p-6 rounded-sm" style={{ backgroundColor: "hsl(var(--eden-cream))", border: "1px solid hsl(var(--eden-gold) / 0.2)" }}>
+                    <span className="font-serif text-xl mt-0.5 shrink-0" style={{ color: "hsl(var(--eden-gold))" }}>✦</span>
+                    <div>
+                      <h3 className="font-serif text-lg font-bold mb-2" style={{ color: "hsl(var(--eden-forest))" }}>{item.label}</h3>
+                      <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.85)" }}>{item.body}</p>
+                    </div>
+                  </div>
+                </ScrollReveal>
+              ))}
             </div>
-          </ScrollReveal>
+          </div>
+        </div>
+      </section>
+
+      <GoldDivider />
+
+      {/* VS COMPETITORS */}
+      <section className="section-padding-lg" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
+        <div className="eden-container px-6">
+          <div className="max-w-5xl mx-auto">
+            <ScrollReveal>
+              <h2 className="font-serif text-3xl md:text-4xl font-bold text-center mb-4" style={{ color: "hsl(var(--eden-forest))" }}>
+                How We're Different
+              </h2>
+              <div className="eden-divider mb-10" />
+            </ScrollReveal>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                { title: "Other Programs", items: ["Eastern spiritual frameworks", "Weekend certifications", "Secular foundation", "No clinical depth", "No family application"], negative: true },
+                { title: "Eden Institute", items: ["Biblical worldview throughout", "Structured multi-tier curriculum", "Scripture as the anchor", "Clinical terrain theory", "Built for the whole family"], negative: false },
+                { title: "Generic Wellness", items: ["No framework at all", "Tips and recipes", "No worldview", "No clinical training", "No community"], negative: true },
+              ].map((col, i) => (
+                <ScrollReveal key={i} delay={i * 100}>
+                  <div className="p-6 rounded-sm h-full" style={{ backgroundColor: col.negative ? "hsl(var(--eden-parchment))" : "hsl(var(--eden-forest))", border: col.negative ? "1px solid hsl(var(--eden-gold) / 0.2)" : "1px solid hsl(var(--eden-gold) / 0.4)" }}>
+                    <h3 className="font-serif text-lg font-bold mb-4 text-center" style={{ color: col.negative ? "hsl(var(--eden-bark))" : "hsl(var(--eden-parchment))" }}>
+                      {col.title}
+                    </h3>
+                    <ul className="space-y-3">
+                      {col.items.map((item, j) => (
+                        <li key={j} className="flex items-start gap-2 font-body text-sm" style={{ color: col.negative ? "hsl(var(--eden-bark) / 0.7)" : "hsl(var(--eden-parchment) / 0.9)" }}>
+                          <span style={{ color: col.negative ? "hsl(var(--eden-bark) / 0.4)" : "hsl(var(--eden-gold))" }}>{col.negative ? "—" : "✦"}</span>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </ScrollReveal>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <GoldDivider />
+
+      {/* FINAL CTA */}
+      <section className="section-padding-lg" style={{ backgroundColor: "hsl(var(--eden-parchment))" }}>
+        <div className="eden-container px-6">
+          <div className="max-w-3xl mx-auto text-center">
+            <ScrollReveal>
+              <h2 className="font-serif text-3xl md:text-4xl font-bold mb-6" style={{ color: "hsl(var(--eden-forest))" }}>
+                Ready to Begin?
+              </h2>
+              <p className="font-body text-base leading-relaxed mb-8" style={{ color: "hsl(var(--eden-bark) / 0.85)" }}>
+                Start with the free body type quiz. Two minutes. Eight possible results. It will change how you think about every herb you'll ever use.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Link to="/#assessment" className="font-body text-sm font-semibold px-8 py-3 rounded-sm" style={{ backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-parchment))" }}>
+                  Take the Free Body Type Quiz →
+                </Link>
+                <Link to="/courses" className="font-body text-sm font-semibold px-8 py-3 rounded-sm" style={{ backgroundColor: "transparent", color: "hsl(var(--eden-forest))", border: "1px solid hsl(var(--eden-forest))" }}>
+                  View Our Courses
+                </Link>
+              </div>
+            </ScrollReveal>
+          </div>
         </div>
       </section>
 
       <Footer />
-
-      <AssessmentModal open={assessmentModal} onOpenChange={setAssessmentModal} />
     </main>
   );
 };
