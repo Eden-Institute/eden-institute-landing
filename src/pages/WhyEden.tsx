@@ -25,7 +25,7 @@ const WhyEden = () => {
 
   useEffect(() => {
     document.title = "Why Eden — The Eden Institute";
-    document.querySelector('meta[name="description"]')?.setAttribute("content", "A terrain-based, constitutional herbalism education rooted in Scripture. Learn why The Eden Institute is different.");
+    document.querySelector('meta[name="description"]')?.setAttribute("content", "A terrain-based, body type herbalism education rooted in Scripture. Learn why The Eden Institute is different.");
   }, []);
 
   useEffect(() => {
