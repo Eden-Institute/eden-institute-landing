@@ -53,7 +53,7 @@ const Index = () => {
             className="absolute inset-0"
             style={{
               background:
-                "linear-gradient(180deg, hsla(40, 33%, 93%, 0.82) 0%, hsla(40, 33%, 93%, 0.75) 50%, hsla(40, 33%, 93%, 0.88) 100%)",
+                "linear-gradient(180deg, hsla(40, 33%, 93%, 0.88) 0%, hsla(40, 33%, 93%, 0.83) 50%, hsla(40, 33%, 93%, 0.93) 100%)",
             }}
           />
         </div>
