@@ -108,6 +108,49 @@ const Index = () => {
         </div>
       </section>
 
+      {/* ─── SOCIAL PROOF STRIP ─── */}
+      <section className="py-12 px-6" style={{ backgroundColor: "hsl(var(--eden-forest))" }}>
+        <div className="max-w-5xl mx-auto">
+          <ScrollReveal>
+            <p className="font-accent text-xs tracking-widest uppercase text-center mb-8" style={{ color: "hsl(var(--eden-gold))" }}>
+              What Our Students Say
+            </p>
+          </ScrollReveal>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <ScrollReveal delay={100}>
+              <div className="flex flex-col gap-3">
+                <p className="font-body text-sm leading-relaxed italic" style={{ color: "hsl(var(--eden-parchment) / 0.9)" }}>
+                  "I've taken three herbal courses. This is the first one that treated me like I had a brain. The clinical depth is unlike anything else in this space."
+                </p>
+                <p className="font-accent text-xs tracking-wide" style={{ color: "hsl(var(--eden-gold))" }}>
+                  — Beta Student, Tennessee
+                </p>
+              </div>
+            </ScrollReveal>
+            <ScrollReveal delay={200}>
+              <div className="flex flex-col gap-3">
+                <p className="font-body text-sm leading-relaxed italic" style={{ color: "hsl(var(--eden-parchment) / 0.9)" }}>
+                  "I finally understand why some herbs work for me and others don't. I wish I had found this ten years ago. My whole family has benefited."
+                </p>
+                <p className="font-accent text-xs tracking-wide" style={{ color: "hsl(var(--eden-gold))" }}>
+                  — Founding Cohort Student
+                </p>
+              </div>
+            </ScrollReveal>
+            <ScrollReveal delay={300}>
+              <div className="flex flex-col gap-3">
+                <p className="font-body text-sm leading-relaxed italic" style={{ color: "hsl(var(--eden-parchment) / 0.9)" }}>
+                  "As a homeschool mom I needed something I could learn from AND eventually teach my kids. Eden Institute is exactly that. Scripture-anchored and clinically serious."
+                </p>
+                <p className="font-accent text-xs tracking-wide" style={{ color: "hsl(var(--eden-gold))" }}>
+                  — Homeschool Parent, Founding Cohort
+                </p>
+              </div>
+            </ScrollReveal>
+          </div>
+        </div>
+      </section>
+
       {/* ─── BANNER: What Makes Us Different ─── */}
       <section className="py-5 md:py-6 px-6" style={{ backgroundColor: "hsl(var(--eden-gold))" }}>
         <div className="eden-container">
