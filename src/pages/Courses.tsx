@@ -172,7 +172,7 @@ const Courses = () => {
                 className="absolute -top-3 left-6 rounded px-3 py-1 text-xs font-semibold uppercase tracking-widest text-white"
                 style={{ backgroundColor: "hsl(var(--eden-sage))" }}
               >
-                Launches July 7
+                Coming Fall 2026
               </span>
               <GraduationCap className="mb-4 h-8 w-8" style={{ color: "hsl(var(--eden-sage))" }} />
               <h3 className="mb-1 font-serif text-xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>
@@ -212,7 +212,7 @@ const Courses = () => {
                 </li>
               </ul>
               <p className="mb-4 text-center font-body text-sm text-muted-foreground">
-                Opening July 7, 2026
+                Coming Fall 2026
               </p>
               <a href={T1} target="_blank" rel="noopener noreferrer" className="block">
                 <Button variant="eden-outline" className="w-full">
@@ -223,7 +223,7 @@ const Courses = () => {
               <div className="mt-6 rounded-sm border p-6"
                 style={{ backgroundColor: "hsl(var(--eden-parchment))", borderColor: "hsl(var(--eden-gold) / 0.3)" }}>
                 <p className="font-accent text-xs tracking-widest uppercase mb-1" style={{ color: "hsl(var(--eden-gold))" }}>
-                  Companion Textbook · Tier 2 · Coming Later in 2026
+                  Companion Textbook · Tier 2 · Coming Fall 2026
                 </p>
                 <h3 className="font-serif text-lg font-bold mb-2" style={{ color: "hsl(var(--eden-forest))" }}>
                   Back to Eden: Body Systems &amp; Clinical Literacy

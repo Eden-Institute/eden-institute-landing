@@ -172,14 +172,14 @@ const Index = () => {
                   Body Systems & Clinical Literacy
                 </h3>
                 <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>
-                  Tier 2 · Opening July 7, 2026
+                  Tier 2 · Coming Fall 2026
                 </p>
                 <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.8)" }}>
                   Fourteen modules. Every major body system. Terrain-based clinical reasoning rooted in Scripture and Western herbalism tradition.
                 </p>
-                <p className="font-body text-sm font-semibold mt-6" style={{ color: "hsl(var(--eden-forest) / 0.5)" }}>
-                  Coming July 7 →
-                </p>
+                <Link to="/courses" className="font-body text-sm font-semibold mt-6 block" style={{ color: "hsl(var(--eden-forest))" }}>
+                  Join the Waitlist →
+                </Link>
               </div>
             </ScrollReveal>
 
