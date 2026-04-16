@@ -16,6 +16,8 @@ const TOPIC_IDS = [
 
 const COURSE_AUDIENCE_ID = "4860c1c5-8e2b-4d02-838a-60ef09b789bf";
 const APP_AUDIENCE_ID = "cebd3478-b344-41b7-98c8-8bcf0e0108da";
+const HOMESCHOOL_AUDIENCE_ID = "a48cb66e-b2a9-461d-98a6-bb1b12f72693";
+const COMMUNITY_AUDIENCE_ID = "a48cb66e-b2a9-461d-98a6-bb1b12f72693";
 
 const CONSTITUTION_SLUG_MAP: Record<string, { slug: string; name: string }> = {
   "Hot / Dry / Tense": { slug: "burning-bowstring", name: "The Burning Bowstring" },
@@ -142,6 +144,46 @@ ${ctaButton('→ START WITH BOOK ONE', 'https://www.amazon.com/dp/B0GPW5BZ32')}
 ${goldDivider()}
 ${closingBlock()}`;
   return { subject: "You're in — Eden Apothecary beta access secured", html: emailWrapper(body) };
+}
+
+function buildHomeschoolEmail(firstName: string): { subject: string; html: string } {
+  const body = `
+    <p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
+    <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 8px 0;">You're on the list.</p>
+    <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 24px 0;">
+      Eden's Table is a K–12 Biblical herbalism curriculum being built for families who believe the earth was created with purpose — and that stewarding it well begins at home. You'll be among the first to see it, price it, and shape it.
+    </p>
+    <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 24px 0;">
+      While we finish building, consider starting with our adult foundations course. Most of our homeschool families tell us it changed how they teach — because it changed how they understand.
+    </p>
+    ${ctaButton("Explore the Foundations Course", "https://learn.edeninstitute.health/course/back-to-eden1")}
+    ${goldDivider()}
+    ${closingBlock()}
+  `;
+  return {
+    subject: "You're on the Eden's Table Waitlist — Here's What's Coming",
+    html: `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#FAF8F3;">${body}</body></html>`
+  };
+}
+
+function buildCommunityEmail(firstName: string): { subject: string; html: string } {
+  const body = `
+    <p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
+    <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 8px 0;">Welcome to the circle.</p>
+    <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 24px 0;">
+      The Eden Institute Community is being built for serious students of Biblical herbalism — people who want to go deeper, ask hard questions, and practice together. You'll hear from us as soon as the doors open.
+    </p>
+    <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 24px 0;">
+      In the meantime, take our free Constitutional Assessment. Knowing your body type is the foundation of everything we teach — and it will make community conversations far richer.
+    </p>
+    ${ctaButton("Take the Free Constitutional Assessment", "https://edeninstitute.health/#assessment")}
+    ${goldDivider()}
+    ${closingBlock()}
+  `;
+  return {
+    subject: "You're on the Community Waitlist — We're Building Something Worth Waiting For",
+    html: `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#FAF8F3;">${body}</body></html>`
+  };
 }
 
 // ── Constitutional profiles ──
@@ -323,7 +365,7 @@ Deno.serve(async (req) => {
     }
 
     // Step 1: Create/update contact in the audience
-    const baseContactPayload: Record<string, any> = { email, first_name: firstName, unsubscribed: false };
+    const baseContactPayload: Record<string, any> = { email, first_name: firstName, unsubscribed: false, contact_properties: { waitlist_source: source || audienceId || "unknown" } };
 
     let contactRes = await fetch(`https://api.resend.com/audiences/${RESEND_AUDIENCE_ID}/contacts`, {
       method: 'POST',
@@ -537,6 +579,10 @@ Deno.serve(async (req) => {
       emailContent = buildFoundationsEmail(firstName);
     } else if (audienceId === APP_AUDIENCE_ID) {
       emailContent = buildAppBetaEmail(firstName);
+    } else if (audienceId === HOMESCHOOL_AUDIENCE_ID && source === "homeschool") {
+      emailContent = buildHomeschoolEmail(firstName);
+    } else if (audienceId === COMMUNITY_AUDIENCE_ID && source === "community") {
+      emailContent = buildCommunityEmail(firstName);
     }
 
     if (emailContent) {
