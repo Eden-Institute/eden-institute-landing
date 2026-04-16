@@ -9,10 +9,10 @@ import { BotanicalLeafTopRight, BotanicalLeafBottomLeft, GoldDivider } from "@/c
 import ScrollReveal from "@/components/landing/ScrollReveal";
 
 // Unsplash photography
-const HERO_IMG = "https://images.unsplash.com/photo-1771128264855-1c032332cbc8?auto=format&fit=crop&w=1920&q=80";
-const HERBS_SHELF_IMG = "https://images.unsplash.com/photo-1580116270858-8a0d62b15426?auto=format&fit=crop&w=1200&q=80";
-const MORTAR_IMG = "https://images.unsplash.com/photo-1492552085122-36706c238263?auto=format&fit=crop&w=1200&q=80";
-const HERBS_TABLE_IMG = "https://images.unsplash.com/photo-1726996155615-e986ed87c9d4?auto=format&fit=crop&w=1200&q=80";
+const HERO_IMG = "https://images.unsplash.com/photo-lP_FoHCLjWk?auto=format&fit=crop&w=1920&q=80";
+const HERBS_SHELF_IMG = "https://images.unsplash.com/photo-cc-Wj-yl5Z4?auto=format&fit=crop&w=1200&q=80";
+const MORTAR_IMG = "https://images.unsplash.com/photo-EHG22u_SIfI?auto=format&fit=crop&w=1200&q=80";
+const HERBS_TABLE_IMG = "https://images.unsplash.com/photo-Iokj6jEwkxM?auto=format&fit=crop&w=1200&q=80";
 
 const QUIZ_CTA = "Find Out How Your Body Works — Take the Free Quiz (2 min)";
 
@@ -145,6 +145,71 @@ const Index = () => {
                 <p className="font-accent text-xs tracking-wide" style={{ color: "hsl(var(--eden-gold))" }}>
                   — Homeschool Parent, Founding Cohort
                 </p>
+              </div>
+            </ScrollReveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── FOUNDER SECTION ─── */}
+      <section className="section-padding-lg" style={{ backgroundColor: "hsl(var(--eden-parchment))" }}>
+        <div className="eden-container px-6">
+          <div className="max-w-3xl mx-auto text-center">
+            <ScrollReveal>
+              <p className="font-accent text-xs tracking-widest uppercase mb-4" style={{ color: "hsl(var(--eden-gold))" }}>
+                From the Founder
+              </p>
+              <h2 className="font-serif text-3xl md:text-4xl font-bold mb-6" style={{ color: "hsl(var(--eden-forest))" }}>
+                This Education Should Have Existed Already.
+              </h2>
+              <p className="font-body text-base leading-relaxed mb-6" style={{ color: "hsl(var(--eden-bark) / 0.85)" }}>
+                I'm Camila — a Master's-level educator, U.S. veteran, credentialed teacher, and herbalism practitioner based in Clarksville, Tennessee. I built Eden Institute because I couldn't find a single Biblical herbalism program that was both clinically rigorous and completely free from Eastern spiritual frameworks.
+              </p>
+              <p className="font-body text-base leading-relaxed mb-6" style={{ color: "hsl(var(--eden-bark) / 0.85)" }}>
+                Everything I found was either too shallow, too secular, or quietly rooted in philosophies I don't share. So I built what I needed — and what I believe you've been looking for too. A structured, academically serious, Scripture-anchored education in terrain-based clinical herbalism. Built for the Christian family. Built to last.
+              </p>
+              <p className="font-body text-base leading-relaxed italic" style={{ color: "hsl(var(--eden-forest))" }}>
+                "Yahweh is the ultimate healer. The plants were His idea first."
+              </p>
+            </ScrollReveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── FOR YOU SECTION ─── */}
+      <section className="section-padding-lg" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
+        <div className="eden-container px-6">
+          <div className="max-w-4xl mx-auto">
+            <ScrollReveal>
+              <h2 className="font-serif text-3xl md:text-4xl font-bold text-center mb-4" style={{ color: "hsl(var(--eden-forest))" }}>
+                This Is for You If...
+              </h2>
+              <div className="eden-divider mb-10" />
+            </ScrollReveal>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {[
+                "You've tried herbs but can't figure out why they work for your friend and not for you.",
+                "You want to be the health authority in your home — not dependent on a system that doesn't know your family.",
+                "You're homeschooling and want your children to grow up understanding how God designed their bodies.",
+                "You've looked at other herbal programs and found chakras, doshas, or moon cycles buried inside them.",
+                "You believe Yahweh is the ultimate healer and you want an education that starts there — not as an afterthought.",
+                "You're done with weekend certifications and Pinterest recipes. You want to actually understand the terrain."
+              ].map((item, i) => (
+                <ScrollReveal key={i} delay={i * 80}>
+                  <div className="flex items-start gap-4 p-5 rounded-sm" style={{ backgroundColor: "hsl(var(--eden-parchment))", border: "1px solid hsl(var(--eden-gold) / 0.25)" }}>
+                    <span className="font-serif text-xl mt-0.5 shrink-0" style={{ color: "hsl(var(--eden-gold))" }}>✦</span>
+                    <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.85)" }}>{item}</p>
+                  </div>
+                </ScrollReveal>
+              ))}
+            </div>
+            <ScrollReveal delay={500}>
+              <div className="text-center mt-10">
+                <button onClick={openQuiz}
+                  className="font-body text-sm font-semibold px-8 py-3 rounded-sm"
+                  style={{ backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-parchment))" }}>
+                  Yes — Find My Body Type Free →
+                </button>
               </div>
             </ScrollReveal>
           </div>
