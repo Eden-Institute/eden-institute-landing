@@ -177,6 +177,26 @@ const Courses = () => {
               </a>
             </div>
 
+            <div className="mt-8 rounded-sm border p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+              style={{ backgroundColor: "hsl(var(--eden-parchment))", borderColor: "hsl(var(--eden-gold) / 0.4)" }}>
+              <div>
+                <p className="font-accent text-xs tracking-widest uppercase mb-1" style={{ color: "hsl(var(--eden-gold))" }}>
+                  Companion Textbook · Tier 1
+                </p>
+                <h3 className="font-serif text-xl font-bold mb-1" style={{ color: "hsl(var(--eden-forest))" }}>
+                  Back to Eden: Foundations of Biblical Herbalism
+                </h3>
+                <p className="font-body text-sm" style={{ color: "hsl(var(--eden-bark) / 0.75)" }}>
+                  The print companion to the Tier 1 course. Read it alongside the lessons or give it as a gift to someone beginning their herbal journey.
+                </p>
+              </div>
+              <a href="https://edeninstitute.health" target="_blank" rel="noopener noreferrer"
+                className="shrink-0 font-body text-sm font-semibold px-6 py-3 rounded-sm text-center"
+                style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}>
+                Get the Book →
+              </a>
+            </div>
+
             <div className="relative rounded-lg border p-8" style={{ borderColor: "hsl(var(--eden-sage))" }}>
               <span
                 className="absolute -top-3 left-6 rounded px-3 py-1 text-xs font-semibold uppercase tracking-widest text-white"
@@ -229,6 +249,22 @@ const Courses = () => {
                   Enroll Tier 1 for Priority Access
                 </Button>
               </a>
+
+              <div className="mt-6 rounded-sm border p-6"
+                style={{ backgroundColor: "hsl(var(--eden-parchment))", borderColor: "hsl(var(--eden-gold) / 0.3)" }}>
+                <p className="font-accent text-xs tracking-widest uppercase mb-1" style={{ color: "hsl(var(--eden-gold))" }}>
+                  Companion Textbook · Tier 2 · Coming Later in 2026
+                </p>
+                <h3 className="font-serif text-lg font-bold mb-2" style={{ color: "hsl(var(--eden-forest))" }}>
+                  Back to Eden: Body Systems &amp; Clinical Literacy
+                </h3>
+                <p className="font-body text-sm mb-4" style={{ color: "hsl(var(--eden-bark) / 0.75)" }}>
+                  A comprehensive 14-module clinical reference covering every major body system. Terrain-based, Scripture-anchored, practitioner-grade. Join the waitlist to be notified when it's available.
+                </p>
+                <Button variant="eden" size="sm" onClick={() => setQuiz(true)}>
+                  Join the Textbook Waitlist
+                </Button>
+              </div>
             </div>
 
             <div className="relative rounded-lg border p-8 opacity-65" style={{ borderColor: "hsl(var(--border))" }}>
