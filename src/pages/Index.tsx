@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Facebook, Instagram, ClipboardList, BookOpen, GraduationCap } from "lucide-react";
+import { Facebook, Instagram, Compass, ClipboardList, BookOpen, GraduationCap } from "lucide-react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import AssessmentModal from "@/components/landing/AssessmentModal";
@@ -209,7 +209,7 @@ const Index = () => {
               <button onClick={openQuiz}
                 className="block w-full text-left rounded-sm border p-8 hover:shadow-md transition-shadow duration-300 h-full cursor-pointer"
                 style={{ backgroundColor: "hsl(var(--eden-forest))", borderColor: "hsl(var(--eden-gold) / 0.3)" }}>
-                <Instagram className="mb-4 w-7 h-7" style={{ color: "hsl(var(--eden-gold))" }} />
+                <Compass className="mb-4 w-7 h-7" style={{ color: "hsl(var(--eden-gold))" }} />
                 <h3 className="font-serif text-xl font-bold mb-2" style={{ color: "hsl(var(--eden-parchment))" }}>
                   Know Your Constitution
                 </h3>

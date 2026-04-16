@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/landing/Footer";
 import WaitlistModal from "@/components/landing/WaitlistModal";
+import Navbar from "@/components/landing/Navbar";
 import { MapPin, Sprout, Users, BookOpen } from "lucide-react";
 
 const COMM_AUD = "a48cb66e-b2a9-461d-98a6-bb1b12f72693";
@@ -19,28 +20,7 @@ const Community = () => {
   const [open, setOpen] = useState(false);
   return (
     <div className="min-h-screen bg-background">
-      <nav className="border-b border-border/40 bg-background sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="font-serif text-xl font-semibold" style={{ color: "hsl(var(--eden-bark))" }}>
-            The Eden Institute
-          </Link>
-          <div className="hidden md:flex items-center gap-6">
-            {NAV.map((n) => (
-              <Link
-                key={n.to}
-                to={n.to}
-                className={`font-body text-sm transition-colors ${n.to === "/community" ? "font-medium" : "text-muted-foreground hover:text-foreground"}`}
-                style={n.to === "/community" ? { color: "hsl(var(--eden-bark))" } : {}}
-              >
-                {n.label}
-              </Link>
-            ))}
-          </div>
-          <Button variant="eden" size="sm" onClick={() => setOpen(true)}>
-            Join Waitlist
-          </Button>
-        </div>
-      </nav>
+      <Navbar />
 
       <section className="py-20 md:py-28 px-6" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
         <div className="max-w-4xl mx-auto text-center">

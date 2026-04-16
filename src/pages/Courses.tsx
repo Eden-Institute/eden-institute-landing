@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { BookOpen, CheckCircle, Clock, GraduationCap, Users } from "lucide-react";
 
+import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import AssessmentModal from "@/components/landing/AssessmentModal";
 import { Button } from "@/components/ui/button";
@@ -22,38 +23,7 @@ const Courses = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <nav className="sticky top-0 z-50 border-b border-border/40 bg-background">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link
-            to="/"
-            className="font-serif text-xl font-semibold"
-            style={{ color: "hsl(var(--eden-bark))" }}
-          >
-            The Eden Institute
-          </Link>
-
-          <div className="hidden items-center gap-6 md:flex">
-            {NAV.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={`font-body text-sm transition-colors ${
-                  item.to === "/courses"
-                    ? "font-medium"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                style={item.to === "/courses" ? { color: "hsl(var(--eden-bark))" } : undefined}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
-
-          <Button variant="eden" size="sm" onClick={() => setQuiz(true)}>
-            Free Quiz
-          </Button>
-        </div>
-      </nav>
+      <Navbar />
 
       <section className="px-6 py-20 md:py-28" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
         <div className="mx-auto max-w-4xl text-center">
