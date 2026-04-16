@@ -29,8 +29,8 @@ const tenets = [
 
 const biblicalDifferences = [
   "It acknowledges God as the designer of both the human body and the plants that serve it. Genesis 1:29 tells us that God gave humanity every seed-bearing plant. Ezekiel 47:12 describes trees whose leaves are \"for healing.\" Revelation 22:2 speaks of leaves \"for the healing of the nations.\" These aren't metaphors. They're descriptions of a created order that includes plant medicine by design.",
-  "It rejects the reductionist \"take this for that\" model that dominates both conventional pharmacy and much of popular herbalism. Instead, it treats the whole person — body, mind, and spirit — within the context of their unique constitutional pattern.",
-  "It prioritizes terrain over symptoms. The terrain is the internal environment of your body — your tissue states, your eliminative capacity, your constitutional tendencies. When the terrain is balanced, symptoms resolve on their own. When the terrain is ignored, symptoms return no matter how many herbs you take.",
+  "It rejects the reductionist \"take this for that\" model that dominates both conventional pharmacy and much of popular herbalism. Instead, it treats the whole person — body, mind, and spirit — within the context of their unique body type.",
+  "It prioritizes terrain over symptoms. The terrain is the internal environment of your body — your tissue states, your eliminative capacity, your body type tendencies. When the terrain is balanced, symptoms resolve on their own. When the terrain is ignored, symptoms return no matter how many herbs you take.",
   "It insists on clinical rigor. Biblical herbalism is not folk medicine or wellness trends. It requires understanding anatomy, physiology, tissue states, herbal actions, contraindications, and safety. It honors God's creation by studying it seriously.",
 ];
 
@@ -110,7 +110,7 @@ const ConstitutionalHerbalism = () => {
           <ScrollReveal delay={100}>
             <div className="space-y-6 text-base md:text-lg leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.75)", fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
               <p>They Google a symptom, buy whatever shows up first, take it for a week, feel nothing, and conclude that herbs don't work. But the herb was never the problem. The match was.</p>
-              <p>Constitutional herbalism is the practice of matching herbs to the person — not the symptom. It's built on a simple but profound truth: God didn't design every body the same way. Your body has a pattern — a constitutional type — and when you understand that pattern, you stop guessing and start healing.</p>
+              <p>Constitutional herbalism is the practice of matching herbs to the person — not the symptom. It's built on a simple but profound truth: God didn't design every body the same way. Your body has a pattern — a body type — and when you understand that pattern, you stop guessing and start healing.</p>
               <p>This isn't new. It's one of the oldest frameworks in the history of medicine. And it's deeply consistent with what Scripture teaches about how God designed the human body.</p>
             </div>
           </ScrollReveal>
@@ -135,7 +135,7 @@ const ConstitutionalHerbalism = () => {
           <ScrollReveal delay={100}>
             <div className="max-w-3xl mx-auto mb-12 md:mb-16">
               <p className="text-base md:text-lg leading-relaxed text-center" style={{ color: "rgba(245, 240, 232, 0.8)", fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
-                Every person has a constitutional tendency — a baseline way their body operates. These tendencies aren't diseases. They're patterns. In clinical herbalism, we organize these patterns into six tissue states:
+                Every person has a body type tendency — a baseline way their body operates. These tendencies aren't diseases. They're patterns. In clinical herbalism, we organize these patterns into six tissue states:
               </p>
             </div>
           </ScrollReveal>
@@ -179,8 +179,8 @@ const ConstitutionalHerbalism = () => {
               </div>
               <p>This is symptom-based herbalism — and it's the herbal equivalent of treating every patient the same regardless of who they are. It works sometimes, by accident, when the herb happens to match the person. But it fails far more often than it succeeds.</p>
               <p>Constitutional herbalism asks a different question. Instead of "what herb treats this symptom?" it asks: <em>"Why is THIS person experiencing this symptom, and what does THEIR body need to restore balance?"</em></p>
-              <p>A person with a hot, tense constitution who can't sleep needs a very different herb than a person with a cold, relaxed constitution who can't sleep. Giving them both valerian isn't herbalism — it's guessing.</p>
-              <p>When you match the herb to the constitution, the results aren't subtle. They're profound. Because you're not suppressing a symptom. You're restoring the terrain.</p>
+              <p>A person with a hot, tense body type who can't sleep needs a very different herb than a person with a cold, relaxed body type who can't sleep. Giving them both valerian isn't herbalism — it's guessing.</p>
+              <p>When you match the herb to the body type, the results aren't subtle. They're profound. Because you're not suppressing a symptom. You're restoring the terrain.</p>
             </div>
           </ScrollReveal>
         </div>
@@ -272,14 +272,14 @@ const ConstitutionalHerbalism = () => {
         <div className="eden-container max-w-3xl mx-auto relative z-10 px-6 text-center">
           <ScrollReveal>
             <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl font-bold leading-tight mb-6" style={{ color: "#F5F0E8" }}>
-              Discover Your Constitutional Type
+              Discover Your Body Type
             </h2>
           </ScrollReveal>
           <ScrollReveal delay={100}>
             <div className="space-y-6 text-base md:text-lg leading-relaxed mb-10" style={{ color: "rgba(245, 240, 232, 0.8)", fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
               <p>Your body is already telling you what it needs. The question is whether you know how to listen.</p>
-              <p>The Eden Institute offers a free Constitutional Type Quiz that assesses your unique pattern across the six tissue states. In just a few minutes, you'll discover whether you tend toward hot or cold, damp or dry, tense or relaxed — and you'll begin to understand why certain herbs have worked for you in the past while others haven't.</p>
-              <p>This is the starting point. Once you know your constitution, everything changes — from the herbs you choose to the foods you eat to the way you approach your family's health.</p>
+              <p>The Eden Institute offers a free Body Type Quiz that assesses your unique pattern across the six tissue states. In just a few minutes, you'll discover whether you tend toward hot or cold, damp or dry, tense or relaxed — and you'll begin to understand why certain herbs have worked for you in the past while others haven't.</p>
+              <p>This is the starting point. Once you know your body type, everything changes — from the herbs you choose to the foods you eat to the way you approach your family's health.</p>
             </div>
           </ScrollReveal>
           <ScrollReveal delay={200}>
@@ -289,7 +289,7 @@ const ConstitutionalHerbalism = () => {
               onClick={() => setAssessmentModal(true)}
               className="text-sm md:text-base"
             >
-              Discover Your Constitutional Type — Take the Free Quiz
+              Discover Your Body Type — Take the Free Quiz
             </Button>
           </ScrollReveal>
         </div>
@@ -359,7 +359,7 @@ const ConstitutionalHerbalism = () => {
               onClick={() => setAssessmentModal(true)}
               className="text-sm md:text-base"
             >
-              Discover Your Constitutional Type — Take the Free Quiz
+              Discover Your Body Type — Take the Free Quiz
             </Button>
           </ScrollReveal>
         </div>

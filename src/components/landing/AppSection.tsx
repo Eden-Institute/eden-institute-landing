@@ -9,7 +9,7 @@ const tiers = [
     name: "Freemium Tier",
     audience: "FOR HOME HERBALISTS",
     description:
-      "Begin your constitutional journey. Introductory assessment, basic herb profiles, and foundational educational content.",
+      "Begin your body type journey. Introductory assessment, basic herb profiles, and foundational educational content.",
     price: "Free",
     fullPrice: null,
     betaPrice: null,
@@ -20,7 +20,7 @@ const tiers = [
     name: "Full Access Tier",
     audience: "FOR SERIOUS STUDENTS",
     description:
-      "Deep energetics, constitutional matching, tissue state analysis, and full materia medica access across 100+ herbs.",
+      "Deep energetics, body type matching, tissue state analysis, and full materia medica access across 100+ herbs.",
     price: null,
     fullPrice: "$19.99/month",
     betaPrice: "$4.99/month during beta",
@@ -31,7 +31,7 @@ const tiers = [
     name: "Practitioner Tier",
     audience: "FOR CLINICAL HERBALISTS",
     description:
-      "Client profiles, saved constitutions, intelligent herb surfacing based on pattern recognition, and clinical workflow tools.",
+      "Client profiles, saved body types, intelligent herb surfacing based on pattern recognition, and clinical workflow tools.",
     price: null,
     fullPrice: "$99.99/month",
     betaPrice: "$19.99/month during beta",
@@ -54,11 +54,11 @@ const AppSection = () => {
             Eden Apothecary
           </h2>
           <p className="font-accent text-lg md:text-xl text-muted-foreground italic mb-4">
-            Constitutional Intelligence for Modern Herbalists.
+            Body Type Intelligence for Modern Herbalists.
           </p>
           <div className="eden-divider" />
           <p className="font-body text-base md:text-lg text-muted-foreground max-w-3xl mx-auto">
-            The Eden Apothecary App is a multi-tiered constitutional assessment and herb matching
+            The Eden Apothecary App is a multi-tiered body type quiz and herb matching
             system — from the home kitchen to the clinical practice. Beta testers get locked-in
             discounted pricing for life. Join now before we launch.
           </p>

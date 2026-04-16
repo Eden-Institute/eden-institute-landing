@@ -25,7 +25,7 @@ const Index = () => {
       .querySelector('meta[name="description"]')
       ?.setAttribute(
         "content",
-        "The Eden Institute offers Biblical clinical herbalism education. Take our free constitutional quiz and discover your God-given health pattern.",
+        "The Eden Institute offers Biblical clinical herbalism education. Take our free body type quiz and discover your God-given health pattern.",
       );
   }, []);
 
@@ -172,14 +172,14 @@ const Index = () => {
                   Body Systems & Clinical Literacy
                 </h3>
                 <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>
-                  Tier 2 · Opening July 7, 2026
+                  Tier 2 · Coming Fall 2026
                 </p>
                 <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.8)" }}>
                   Fourteen modules. Every major body system. Terrain-based clinical reasoning rooted in Scripture and Western herbalism tradition.
                 </p>
-                <p className="font-body text-sm font-semibold mt-6" style={{ color: "hsl(var(--eden-forest) / 0.5)" }}>
-                  Coming July 7 →
-                </p>
+                <Link to="/courses" className="font-body text-sm font-semibold mt-6 block" style={{ color: "hsl(var(--eden-forest))" }}>
+                  Join the Waitlist →
+                </Link>
               </div>
             </ScrollReveal>
 
@@ -211,13 +211,13 @@ const Index = () => {
                 style={{ backgroundColor: "hsl(var(--eden-forest))", borderColor: "hsl(var(--eden-gold) / 0.3)" }}>
                 <Compass className="mb-4 w-7 h-7" style={{ color: "hsl(var(--eden-gold))" }} />
                 <h3 className="font-serif text-xl font-bold mb-2" style={{ color: "hsl(var(--eden-parchment))" }}>
-                  Know Your Constitution
+                  Know Your Body Type
                 </h3>
                 <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>
                   Free · 2 Minutes
                 </p>
                 <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-parchment) / 0.8)" }}>
-                  Discover your God-given constitutional type. Eight patterns, one quiz. Your herbs, your terrain, your design.
+                  Discover your God-given body type. Eight patterns, one quiz. Your herbs, your terrain, your design.
                 </p>
                 <p className="font-body text-sm font-semibold mt-6" style={{ color: "hsl(var(--eden-gold))" }}>
                   Take the free quiz →
@@ -258,7 +258,7 @@ const Index = () => {
                 },
                 {
                   title: "Wrong dose at the wrong time",
-                  body: "You used the right herb but the wrong preparation, the wrong amount, or at the wrong point in your cycle. Timing and dosing are constitutional.",
+                  body: "You used the right herb but the wrong preparation, the wrong amount, or at the wrong point in your cycle. Timing and dosing depend on your body type.",
                 },
                 {
                   title: "You expected it to work like a drug",
@@ -359,7 +359,7 @@ const Index = () => {
               {
                 icon: <ClipboardList className="w-10 h-10" style={{ color: "hsl(var(--eden-gold))" }} />,
                 label: "Free Quiz",
-                description: "Discover your body's constitutional pattern in 2 minutes",
+                description: "Discover your body type in 2 minutes",
                 price: "FREE",
               },
               {
@@ -371,7 +371,7 @@ const Index = () => {
               {
                 icon: <GraduationCap className="w-10 h-10" style={{ color: "hsl(var(--eden-gold))" }} />,
                 label: "Foundations Course",
-                description: "Learn to read your constitution and match it to God's provision in the plant world",
+                description: "Learn to read your body type and match it to God's provision in the plant world",
                 price: "$197",
               },
             ].map((step, i) => (
@@ -495,7 +495,7 @@ const Index = () => {
                 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold mb-4"
                 style={{ color: "hsl(var(--eden-parchment))" }}
               >
-                Start With Your Constitution
+                Start With Your Body Type
               </h2>
               <p className="font-body text-lg md:text-xl mb-10" style={{ color: "hsl(var(--eden-parchment) / 0.85)" }}>
                 It takes 2 minutes. And it changes how you think about every herb you'll ever use.

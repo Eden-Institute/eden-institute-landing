@@ -104,7 +104,7 @@ const Homeschool = () => {
               </h3>
               <p className="font-accent text-xs tracking-widest uppercase mb-3 text-muted-foreground">Grades 7-9</p>
               <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">
-                Constitutional thinking, terrain basics, and garden-to-remedy workflows.
+                Body type thinking, terrain basics, and garden-to-remedy workflows.
               </p>
               <span className="text-xs font-body px-2 py-1 rounded bg-muted text-muted-foreground">2027</span>
             </div>

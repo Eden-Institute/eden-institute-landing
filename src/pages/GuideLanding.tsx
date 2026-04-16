@@ -155,7 +155,7 @@ const GuideLanding = () => {
             className="inline-block text-xs tracking-[0.2em] uppercase font-bold px-4 py-1.5 rounded-full"
             style={{ backgroundColor: "#2C3E2D", color: "#C5A44E" }}
           >
-            Your Constitutional Type
+            Your Body Type
           </span>
         </div>
 

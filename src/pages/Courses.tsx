@@ -105,7 +105,7 @@ const Courses = () => {
               </h3>
               <p className="my-4 font-body text-sm leading-relaxed text-muted-foreground">
                 The theological foundation of plant medicine. Creation-based health, the Five
-                Tenets, and your constitutional type.
+                Tenets, and your body type.
               </p>
               <ul className="mb-6 space-y-2 text-sm text-muted-foreground">
                 <li className="flex gap-2">
@@ -120,7 +120,7 @@ const Courses = () => {
                     className="mt-0.5 h-4 w-4 flex-shrink-0"
                     style={{ color: "hsl(var(--eden-forest))" }}
                   />
-                  Constitutional Assessment included
+                  Body Type Quiz included
                 </li>
                 <li className="flex gap-2">
                   <CheckCircle
@@ -172,7 +172,7 @@ const Courses = () => {
                 className="absolute -top-3 left-6 rounded px-3 py-1 text-xs font-semibold uppercase tracking-widest text-white"
                 style={{ backgroundColor: "hsl(var(--eden-sage))" }}
               >
-                Launches July 7
+                Coming Fall 2026
               </span>
               <GraduationCap className="mb-4 h-8 w-8" style={{ color: "hsl(var(--eden-sage))" }} />
               <h3 className="mb-1 font-serif text-xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>
@@ -212,7 +212,7 @@ const Courses = () => {
                 </li>
               </ul>
               <p className="mb-4 text-center font-body text-sm text-muted-foreground">
-                Opening July 7, 2026
+                Coming Fall 2026
               </p>
               <a href={T1} target="_blank" rel="noopener noreferrer" className="block">
                 <Button variant="eden-outline" className="w-full">
@@ -223,7 +223,7 @@ const Courses = () => {
               <div className="mt-6 rounded-sm border p-6"
                 style={{ backgroundColor: "hsl(var(--eden-parchment))", borderColor: "hsl(var(--eden-gold) / 0.3)" }}>
                 <p className="font-accent text-xs tracking-widest uppercase mb-1" style={{ color: "hsl(var(--eden-gold))" }}>
-                  Companion Textbook · Tier 2 · Coming Later in 2026
+                  Companion Textbook · Tier 2 · Coming Fall 2026
                 </p>
                 <h3 className="font-serif text-lg font-bold mb-2" style={{ color: "hsl(var(--eden-forest))" }}>
                   Back to Eden: Body Systems &amp; Clinical Literacy
@@ -246,7 +246,7 @@ const Courses = () => {
                 Tier 3 — Clinical Practice
               </h3>
               <p className="my-4 font-body text-sm leading-relaxed text-muted-foreground">
-                Advanced clinical application — tissue states, constitutional prescribing, and
+                Advanced clinical application — tissue states, body type prescribing, and
                 supervised practice.
               </p>
               <ul className="mb-6 space-y-2 text-sm text-muted-foreground">
@@ -282,7 +282,7 @@ const Courses = () => {
           </h2>
           <p className="mb-10 font-body text-lg leading-relaxed" style={{ color: "rgba(255,255,255,0.8)" }}>
             Most courses teach you what a plant does. We teach you to read the person first —
-            terrain, constitution, tissue state — then match the plant.
+            terrain, body type, tissue state — then match the plant.
           </p>
           <div className="grid gap-6 text-left md:grid-cols-3">
             <div className="rounded-lg p-6" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
@@ -295,7 +295,7 @@ const Courses = () => {
             <div className="rounded-lg p-6" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
               <h3 className="mb-3 font-serif text-lg font-semibold text-white">Terrain-Based</h3>
               <p className="font-body text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>
-                We read the terrain, not the symptom. Constitutional types, tissue states, and
+                We read the terrain, not the symptom. Body types, tissue states, and
                 energetics are the tools.
               </p>
             </div>
@@ -316,7 +316,7 @@ const Courses = () => {
             Not Sure Where to Start?
           </h2>
           <p className="mb-8 font-body text-muted-foreground">
-            Take the 2-minute Constitutional Assessment. Discover your body pattern first.
+            Take the 2-minute Body Type Quiz. Discover your body pattern first.
           </p>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
             <Button variant="eden" size="xl" onClick={() => setQuiz(true)}>

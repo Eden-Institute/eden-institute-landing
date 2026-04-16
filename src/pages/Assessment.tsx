@@ -152,7 +152,7 @@ const Assessment = () => {
             The Eden Institute
           </a>
           <span className="font-accent text-sm tracking-[0.2em] uppercase" style={{ color: "#C9A84C" }}>
-            Constitutional Assessment
+            Body Type Quiz
           </span>
         </div>
       </header>
@@ -217,7 +217,7 @@ const Assessment = () => {
       {phase === "gate" && profile && (
         <div className="max-w-xl mx-auto px-6 py-16 text-center">
           <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>
-            Your Constitutional Type
+            Your Body Type
           </span>
           <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-2" style={{ color: "#1C3A2E" }}>
             {profile.nickname}
@@ -231,10 +231,10 @@ const Assessment = () => {
 
           <div className="p-8 border rounded" style={{ borderColor: "hsl(40, 20%, 80%)", backgroundColor: "white" }}>
             <h3 className="font-serif text-xl font-bold mb-2" style={{ color: "#1C3A2E" }}>
-              Get Your Full Constitutional Profile
+              Get Your Full Body Type Profile
             </h3>
             <p className="font-body text-sm mb-6" style={{ color: "hsl(30, 10%, 40%)" }}>
-              Enter your name and email to receive your full constitutional profile and personalized herb recommendations.
+              Enter your name and email to receive your full body type profile and personalized herb recommendations.
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4 text-left">
@@ -330,7 +330,7 @@ const Assessment = () => {
               Want the full picture?
             </h2>
             <p className="font-body text-base leading-relaxed mb-4" style={{ color: "#1C3A2E" }}>
-              Your complete Deep-Dive Guide includes all 10 matched herbs with clinical preparation methods, dosages, and safety notes — plus caution lists, lifestyle and nutrition guidance, and a Biblical framework for your constitutional pattern.
+              Your complete Deep-Dive Guide includes all 10 matched herbs with clinical preparation methods, dosages, and safety notes — plus caution lists, lifestyle and nutrition guidance, and a Biblical framework for your body type pattern.
             </p>
             <Button
               variant="eden"
@@ -389,7 +389,7 @@ const Assessment = () => {
               Ready to Go Deeper?
             </h3>
             <p className="font-body text-lg mb-8 max-w-xl mx-auto" style={{ color: "#F5F0E8" }}>
-              The Foundations Course teaches you how to read your constitution and match it to God's provision in the plant world.
+              The Foundations Course teaches you how to read your body type and match it to God's provision in the plant world.
             </p>
             <a
               href="/why-eden"
