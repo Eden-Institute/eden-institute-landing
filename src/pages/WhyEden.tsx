@@ -6,6 +6,7 @@ import AssessmentModal from "@/components/landing/AssessmentModal";
 import Footer from "@/components/landing/Footer";
 import ScrollReveal from "@/components/landing/ScrollReveal";
 import { GoldDivider } from "@/components/landing/BotanicalAccents";
+import Navbar from "@/components/landing/Navbar";
 
 const HERO_IMG = "https://images.unsplash.com/photo-1771128264855-1c032332cbc8?auto=format&fit=crop&w=1920&q=80";
 const HERBS_SHELF_IMG = "https://images.unsplash.com/photo-1580116270858-8a0d62b15426?auto=format&fit=crop&w=1200&q=80";
@@ -34,28 +35,7 @@ const WhyEden = () => {
   return (
     <main className="min-h-screen overflow-x-hidden">
       {/* NAV BAR */}
-      <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-sm border-b" style={{ backgroundColor: "hsla(40, 40%, 97%, 0.95)", borderColor: "hsl(var(--eden-gold) / 0.2)" }}>
-        <div className="eden-container flex items-center justify-between py-3 px-6">
-          <Link to="/" className="font-serif text-lg font-semibold" style={{ color: "hsl(var(--eden-forest))" }}>
-            The Eden Institute
-          </Link>
-          <div className="flex items-center gap-6">
-            <Link to="/" className="font-body text-sm hover:opacity-80 transition-colors hidden sm:inline" style={{ color: "hsl(var(--eden-forest))" }}>
-              Home
-            </Link>
-            <Link to="/why-eden" className="font-body text-sm font-semibold hidden sm:inline" style={{ color: "hsl(var(--eden-gold))" }}>
-              Why Eden
-            </Link>
-            <button
-              onClick={() => setAssessmentModal(true)}
-              className="!inline-block !w-auto font-body text-sm font-semibold px-4 py-1.5 rounded transition-all hover:opacity-90"
-              style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}
-            >
-              Free Quiz
-            </button>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* SECTION 1: HERO */}
       <section className="relative min-h-[60vh] flex items-center overflow-hidden">
@@ -136,7 +116,7 @@ const WhyEden = () => {
           </ScrollReveal>
           <ScrollReveal delay={100}>
             <p className="font-body text-base md:text-lg text-muted-foreground leading-relaxed mb-6" style={{ fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
-              We teach terrain-based, constitutional herbalism. Before you touch a single herb, you understand your body's pattern — its temperature tendency, fluid state, and tissue tone. Then every herb recommendation is precise, not generic.
+              We teach terrain-based, body type herbalism. Before you touch a single herb, you understand your body's pattern — its temperature tendency, fluid state, and tissue tone. Then every herb recommendation is precise, not generic.
             </p>
             <p className="font-body text-base md:text-lg text-muted-foreground leading-relaxed" style={{ fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
               This is Western Clinical Herbalism, rooted in 3,000 years of tradition and grounded in Scripture. No chakras. No doshas. No universe worship. Just rigorous plant medicine anchored in the belief that God was intentional in what He made — every body, every plant, every pattern of healing.
