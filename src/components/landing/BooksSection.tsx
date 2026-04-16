@@ -11,7 +11,7 @@ const books = [
     label: "AVAILABLE NOW",
     labelActive: true,
     summary:
-      "The foundational text restoring herbal medicine to its theological and body type roots. Establishes the scriptural basis for plant medicine, the doctrine of signatures, and the framework for reading the body before reaching for the herb.",
+      "The foundational text restoring herbal medicine to its theological and constitutional roots. Establishes the scriptural basis for plant medicine, the doctrine of signatures, and the framework for reading the body before reaching for the herb.",
     action: "purchase" as const,
     link: "https://www.amazon.com/dp/B0GPW5BZ32",
   },

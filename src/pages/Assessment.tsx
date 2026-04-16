@@ -330,7 +330,7 @@ const Assessment = () => {
               Want the full picture?
             </h2>
             <p className="font-body text-base leading-relaxed mb-4" style={{ color: "#1C3A2E" }}>
-              Your complete Deep-Dive Guide includes all 10 matched herbs with clinical preparation methods, dosages, and safety notes — plus caution lists, lifestyle and nutrition guidance, and a Biblical framework for your body typeal pattern.
+              Your complete Deep-Dive Guide includes all 10 matched herbs with clinical preparation methods, dosages, and safety notes — plus caution lists, lifestyle and nutrition guidance, and a Biblical framework for your body type pattern.
             </p>
             <Button
               variant="eden"

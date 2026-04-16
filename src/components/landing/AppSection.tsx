@@ -9,7 +9,7 @@ const tiers = [
     name: "Freemium Tier",
     audience: "FOR HOME HERBALISTS",
     description:
-      "Begin your body typeal journey. Introductory assessment, basic herb profiles, and foundational educational content.",
+      "Begin your body type journey. Introductory assessment, basic herb profiles, and foundational educational content.",
     price: "Free",
     fullPrice: null,
     betaPrice: null,

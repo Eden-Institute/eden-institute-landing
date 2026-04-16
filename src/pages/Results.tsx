@@ -27,7 +27,7 @@ const Results = () => {
     if (!profile || !constitutionType) return;
 
     const title = `Your Type: ${profile.nickname} — The Eden Institute`;
-    const description = `You are ${profile.nickname} (${constitutionType}). ${profile.tagline} Discover your top herbs and a Biblical framework for your body typeal pattern.`;
+    const description = `You are ${profile.nickname} (${constitutionType}). ${profile.tagline} Discover your top herbs and a Biblical framework for your body type pattern.`;
     const url = `https://eden-institute-landing.lovable.app/results/${constitutionSlug}`;
     const ogImage = "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/885c26d7-47fa-44a2-8cbe-2fb65fe2ac1d/id-preview-76fd0110--2c0295c8-d605-4e05-b894-d14a43a38181.lovable.app-1771968635738.png";
 
@@ -128,7 +128,7 @@ const Results = () => {
             Want the full picture?
           </h2>
           <p className="font-body text-base leading-relaxed mb-4" style={{ color: "#1C3A2E" }}>
-            Your complete Deep-Dive Guide includes all 10 matched herbs with clinical preparation methods, dosages, and safety notes — plus caution lists, lifestyle and nutrition guidance, and a Biblical framework for your body typeal pattern.
+            Your complete Deep-Dive Guide includes all 10 matched herbs with clinical preparation methods, dosages, and safety notes — plus caution lists, lifestyle and nutrition guidance, and a Biblical framework for your body type pattern.
           </p>
           {error && <p className="font-body text-sm text-destructive mb-4">{error}</p>}
           <Button

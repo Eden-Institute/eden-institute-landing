@@ -30,7 +30,7 @@ const tenets = [
 const biblicalDifferences = [
   "It acknowledges God as the designer of both the human body and the plants that serve it. Genesis 1:29 tells us that God gave humanity every seed-bearing plant. Ezekiel 47:12 describes trees whose leaves are \"for healing.\" Revelation 22:2 speaks of leaves \"for the healing of the nations.\" These aren't metaphors. They're descriptions of a created order that includes plant medicine by design.",
   "It rejects the reductionist \"take this for that\" model that dominates both conventional pharmacy and much of popular herbalism. Instead, it treats the whole person — body, mind, and spirit — within the context of their unique body type.",
-  "It prioritizes terrain over symptoms. The terrain is the internal environment of your body — your tissue states, your eliminative capacity, your body typeal tendencies. When the terrain is balanced, symptoms resolve on their own. When the terrain is ignored, symptoms return no matter how many herbs you take.",
+  "It prioritizes terrain over symptoms. The terrain is the internal environment of your body — your tissue states, your eliminative capacity, your body type tendencies. When the terrain is balanced, symptoms resolve on their own. When the terrain is ignored, symptoms return no matter how many herbs you take.",
   "It insists on clinical rigor. Biblical herbalism is not folk medicine or wellness trends. It requires understanding anatomy, physiology, tissue states, herbal actions, contraindications, and safety. It honors God's creation by studying it seriously.",
 ];
 
