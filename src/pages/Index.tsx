@@ -192,7 +192,7 @@ const Index = () => {
                 "You want to be the health authority in your home — not dependent on a system that doesn't know your family.",
                 "You're homeschooling and want your children to grow up understanding how God designed their bodies.",
                 "You've looked at other herbal programs and found chakras, doshas, or moon cycles buried inside them.",
-                "You believe Yahweh is the ultimate healer and you want an education that starts there — not as an afterthought.",
+                "You believe Yahweh is the ultimate healer and want an education that starts there — not as an afterthought.",
                 "You're done with weekend certifications and Pinterest recipes. You want to actually understand the terrain."
               ].map((item, i) => (
                 <ScrollReveal key={i} delay={i * 80}>
