@@ -7,7 +7,7 @@ const navLinks = [
   { label: "Courses", href: "/courses" },
   { label: "Homeschool", href: "/homeschool" },
   { label: "Community", href: "/community" },
-  { label: "About", href: "/about" },
+  { label: "Why Eden", href: "/why-eden" },
 ];
 
 export default function Navbar() {
