@@ -110,7 +110,7 @@ const AppPage = () => {
                 Herb Library
               </h3>
               <p className="font-body text-sm text-muted-foreground leading-relaxed">
-                70+ herbs with terrain intelligence — energetics, tissue affinities, constitutional matches, and safety
+                70+ herbs with terrain intelligence — energetics, tissue affinities, body type matches, and safety
                 notes.
               </p>
             </div>

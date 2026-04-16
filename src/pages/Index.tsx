@@ -258,7 +258,7 @@ const Index = () => {
                 },
                 {
                   title: "Wrong dose at the wrong time",
-                  body: "You used the right herb but the wrong preparation, the wrong amount, or at the wrong point in your cycle. Timing and dosing are constitutional.",
+                  body: "You used the right herb but the wrong preparation, the wrong amount, or at the wrong point in your cycle. Timing and dosing depend on your body type.",
                 },
                 {
                   title: "You expected it to work like a drug",
@@ -359,7 +359,7 @@ const Index = () => {
               {
                 icon: <ClipboardList className="w-10 h-10" style={{ color: "hsl(var(--eden-gold))" }} />,
                 label: "Free Quiz",
-                description: "Discover your body's body type in 2 minutes",
+                description: "Discover your body type in 2 minutes",
                 price: "FREE",
               },
               {

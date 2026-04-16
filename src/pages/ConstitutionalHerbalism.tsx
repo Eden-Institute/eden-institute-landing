@@ -179,8 +179,8 @@ const ConstitutionalHerbalism = () => {
               </div>
               <p>This is symptom-based herbalism — and it's the herbal equivalent of treating every patient the same regardless of who they are. It works sometimes, by accident, when the herb happens to match the person. But it fails far more often than it succeeds.</p>
               <p>Constitutional herbalism asks a different question. Instead of "what herb treats this symptom?" it asks: <em>"Why is THIS person experiencing this symptom, and what does THEIR body need to restore balance?"</em></p>
-              <p>A person with a hot, tense constitution who can't sleep needs a very different herb than a person with a cold, relaxed constitution who can't sleep. Giving them both valerian isn't herbalism — it's guessing.</p>
-              <p>When you match the herb to the constitution, the results aren't subtle. They're profound. Because you're not suppressing a symptom. You're restoring the terrain.</p>
+              <p>A person with a hot, tense body type who can't sleep needs a very different herb than a person with a cold, relaxed body type who can't sleep. Giving them both valerian isn't herbalism — it's guessing.</p>
+              <p>When you match the herb to the body type, the results aren't subtle. They're profound. Because you're not suppressing a symptom. You're restoring the terrain.</p>
             </div>
           </ScrollReveal>
         </div>

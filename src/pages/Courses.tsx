@@ -246,7 +246,7 @@ const Courses = () => {
                 Tier 3 — Clinical Practice
               </h3>
               <p className="my-4 font-body text-sm leading-relaxed text-muted-foreground">
-                Advanced clinical application — tissue states, constitutional prescribing, and
+                Advanced clinical application — tissue states, body type prescribing, and
                 supervised practice.
               </p>
               <ul className="mb-6 space-y-2 text-sm text-muted-foreground">
@@ -282,7 +282,7 @@ const Courses = () => {
           </h2>
           <p className="mb-10 font-body text-lg leading-relaxed" style={{ color: "rgba(255,255,255,0.8)" }}>
             Most courses teach you what a plant does. We teach you to read the person first —
-            terrain, constitution, tissue state — then match the plant.
+            terrain, body type, tissue state — then match the plant.
           </p>
           <div className="grid gap-6 text-left md:grid-cols-3">
             <div className="rounded-lg p-6" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
@@ -295,7 +295,7 @@ const Courses = () => {
             <div className="rounded-lg p-6" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
               <h3 className="mb-3 font-serif text-lg font-semibold text-white">Terrain-Based</h3>
               <p className="font-body text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>
-                We read the terrain, not the symptom. Constitutional types, tissue states, and
+                We read the terrain, not the symptom. Body types, tissue states, and
                 energetics are the tools.
               </p>
             </div>

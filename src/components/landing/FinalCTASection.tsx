@@ -17,7 +17,7 @@ const FinalCTASection = () => {
 
         </h2>
         <div className="eden-divider" />
-        <p className="font-body text-lg text-primary-foreground/70 max-w-2xl mx-auto mb-12">Your constitution, your terrain, your design — they are not accidents. Begin the journey of understanding the body you were given and the plants that were placed for its care.
+        <p className="font-body text-lg text-primary-foreground/70 max-w-2xl mx-auto mb-12">Your body type, your terrain, your design — they are not accidents. Begin the journey of understanding the body you were given and the plants that were placed for its care.
 
         </p>
 

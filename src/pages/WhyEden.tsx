@@ -11,7 +11,7 @@ const HERO_IMG = "https://images.unsplash.com/photo-1771128264855-1c032332cbc8?a
 const HERBS_SHELF_IMG = "https://images.unsplash.com/photo-1580116270858-8a0d62b15426?auto=format&fit=crop&w=1200&q=80";
 
 const comparisonData = [
-  { eden: "Constitutional framework", other: "Symptom-matching" },
+  { eden: "Body type framework", other: "Symptom-matching" },
   { eden: "Clinical tissue-state theory", other: '"Try this herb for that"' },
   { eden: "Biblically anchored worldview", other: "New Age or secular framing" },
   { eden: "Safety + scope training", other: "No boundaries taught" },

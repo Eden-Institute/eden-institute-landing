@@ -18,7 +18,7 @@ const ProblemSection = () => {
             </p>
 
             <ul className="space-y-3">
-              {["Constitution", "Terrain", "Energetics", "Stewardship", "Scripture-aligned worldview"].map((item) =>
+              {["Body Type", "Terrain", "Energetics", "Stewardship", "Scripture-aligned worldview"].map((item) =>
               <li key={item} className="flex items-center gap-3 font-body text-lg text-primary-foreground/90">
                   <span className="w-1.5 h-1.5 rounded-full bg-eden-gold flex-shrink-0" />
                   {item}

@@ -34,7 +34,7 @@ const Privacy = () => {
           <h2 className="font-serif text-xl font-semibold text-primary mb-3">2. Information We Collect</h2>
           <h3 className="font-serif text-lg font-medium text-foreground/80 mb-2">Information you provide directly:</h3>
           <ul className="list-disc pl-6 space-y-1 mb-4">
-            <li>Name and email address (when creating an account or taking the Constitutional Quiz).</li>
+            <li>Name and email address (when creating an account or taking the Body Type Quiz).</li>
             <li>Password (encrypted and stored securely).</li>
             <li>Payment information (processed securely by Stripe — we do not store credit card numbers).</li>
             <li>Quiz responses and body type results.</li>
@@ -65,7 +65,7 @@ const Privacy = () => {
 
         <section>
           <h2 className="font-serif text-xl font-semibold text-primary mb-3">4. Email Communications</h2>
-          <p>When you take the Constitutional Quiz, you consent to receiving a nurture email sequence related to your quiz results and our educational offerings. You may unsubscribe from marketing emails at any time by clicking the "Unsubscribe" link in any email. Transactional emails (such as enrollment confirmations and invoices) are not subject to unsubscribe as they are necessary for service delivery.</p>
+          <p>When you take the Body Type Quiz, you consent to receiving a nurture email sequence related to your quiz results and our educational offerings. You may unsubscribe from marketing emails at any time by clicking the "Unsubscribe" link in any email. Transactional emails (such as enrollment confirmations and invoices) are not subject to unsubscribe as they are necessary for service delivery.</p>
         </section>
 
         <section>
