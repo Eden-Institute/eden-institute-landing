@@ -163,7 +163,7 @@ const Index = () => {
                 This Education Should Have Existed Already.
               </h2>
               <p className="font-body text-base leading-relaxed mb-6" style={{ color: "hsl(var(--eden-bark) / 0.85)" }}>
-                I'm Camila — a Master's-level educator, U.S. veteran, and credentialed herbalism practitioner based in Clarksville, Tennessee. I built Eden Institute because I couldn't find a single Biblical herbalism program that was both clinically rigorous and completely free from Eastern spiritual frameworks.
+                I'm Camila — a Master's-level educator, credentialed teacher, and herbalism practitioner based in Clarksville, Tennessee. I built Eden Institute because I couldn't find a single Biblical herbalism program that was both clinically rigorous and completely free from Eastern spiritual frameworks.
               </p>
               <p className="font-body text-base leading-relaxed mb-6" style={{ color: "hsl(var(--eden-bark) / 0.85)" }}>
                 Everything I found was either too shallow, too secular, or quietly rooted in philosophies I don't share. So I built what I needed — and what I believe you've been looking for too. A structured, academically serious, Scripture-anchored education in terrain-based clinical herbalism. Built for the Christian family. Built to last.
