@@ -84,8 +84,7 @@ const Index = () => {
                 fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif",
               }}
             >
-              The reason lavender calmed her and wired you isn't random. Your body has a pattern — and once you know it,
-              every herb makes sense.
+              God designed your body with a specific pattern. Once you know yours, every herb, every protocol, and every decision finally makes sense.
             </p>
           </ScrollReveal>
 
@@ -134,7 +133,7 @@ const Index = () => {
         <div className="eden-container px-6">
           <ScrollReveal>
             <h2 className="font-serif text-3xl md:text-4xl font-bold text-center mb-4" style={{ color: "hsl(var(--eden-forest))" }}>
-              Where Would You Like to Begin?
+              One Vision. Four Ways In.
             </h2>
             <p className="font-body text-center text-base mb-12" style={{ color: "hsl(var(--eden-bark) / 0.7)" }}>
               Every path leads to the same foundation — Yahweh as the ultimate healer, your body as His design.
@@ -155,7 +154,7 @@ const Index = () => {
                   Tier 1 · Now Enrolling
                 </p>
                 <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.8)" }}>
-                  Start here. Ten lessons grounding your herbal practice in Scripture, stewardship, and the Five Tenets of Health.
+                  The foundation every Christian herbalist needs. Ten lessons covering Biblical health theology, your body's terrain, and how God designed provision in the plant world. This is where everything starts.
                 </p>
                 <p className="font-body text-sm font-semibold mt-6" style={{ color: "hsl(var(--eden-forest))" }}>
                   Enroll now →
@@ -175,7 +174,7 @@ const Index = () => {
                   Tier 2 · Coming Fall 2026
                 </p>
                 <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.8)" }}>
-                  Fourteen modules. Every major body system. Terrain-based clinical reasoning rooted in Scripture and Western herbalism tradition.
+                  Go clinical. 14 modules. 127 lessons. Every major body system studied through a terrain lens with Scripture as the anchor. This is where students stop dabbling and start practicing.
                 </p>
                 <Link to="/courses" className="font-body text-sm font-semibold mt-6 block" style={{ color: "hsl(var(--eden-forest))" }}>
                   Join the Waitlist →
@@ -196,7 +195,7 @@ const Index = () => {
                   K–12 Homeschool · Early Access
                 </p>
                 <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.8)" }}>
-                  Biblical herbalism for the whole family. Hands-on, Scripture-anchored, open-and-go. Join the founding families waitlist.
+                  K–12 curriculum that turns your kitchen into a classroom. Memory songs, hands-on herb labs, Scripture at every turn. Open-and-go. Built for the family that wants to pass this down.
                 </p>
                 <p className="font-body text-sm font-semibold mt-6" style={{ color: "hsl(var(--eden-forest))" }}>
                   Join the waitlist →
@@ -217,7 +216,7 @@ const Index = () => {
                   Free · 2 Minutes
                 </p>
                 <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-parchment) / 0.8)" }}>
-                  Discover your God-given body type. Eight patterns, one quiz. Your herbs, your terrain, your design.
+                  Two minutes. Eight possible body types. One result that explains why your sister thrives on ginger and you can't touch it. Start here — it's free.
                 </p>
                 <p className="font-body text-sm font-semibold mt-6" style={{ color: "hsl(var(--eden-gold))" }}>
                   Take the free quiz →
@@ -349,7 +348,7 @@ const Index = () => {
         <div className="eden-container px-6 relative z-10">
           <ScrollReveal>
             <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-foreground text-center mb-6">
-              Your Path to Understanding
+              Start Free. Go Deep When You're Ready.
             </h2>
             <div className="eden-divider" />
           </ScrollReveal>
@@ -408,7 +407,7 @@ const Index = () => {
               className="text-center mt-10 font-body text-lg italic text-muted-foreground"
               style={{ fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}
             >
-              Start wherever you are. Each step builds on the last.
+              No pressure. No upsells. Just a clear path from curious to clinically literate.
             </p>
           </ScrollReveal>
         </div>
@@ -495,7 +494,7 @@ const Index = () => {
                 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold mb-4"
                 style={{ color: "hsl(var(--eden-parchment))" }}
               >
-                Start With Your Body Type
+                Two Minutes Could Change How You Use Herbs Forever.
               </h2>
               <p className="font-body text-lg md:text-xl mb-10" style={{ color: "hsl(var(--eden-parchment) / 0.85)" }}>
                 It takes 2 minutes. And it changes how you think about every herb you'll ever use.
