@@ -336,7 +336,9 @@ ${subheading("\"Is this faith-based?\"")}
 ${p("Yes. Grounded in Scripture, with Yahweh as healer. Clinical rigor within a Biblical worldview.")}
 ${subheading("\"What if I can't finish in time?\"")}
 ${p("The course is entirely self-paced with lifetime access. There is no deadline.")}
-${brandButton("ENROLL NOW — THE FOUNDATIONS COURSE ($197)", "https://learn.edeninstitute.health/course/back-to-eden1")}
+${brandButton("ENROLL NOW — THE FOUNDATIONS COURSE ($97)", "https://learn.edeninstitute.health/course/back-to-eden1")}
+${goldDivider()}
+${p("<strong>P.S.</strong> Tier 2 — Body Systems & Clinical Literacy — opens to the public October 8, 2026 at $1,497. Join the free waitlist now and you'll receive a founding access code for $497 (valid 14 days) when Tier 2 launches July 7. " + link("Join the waitlist →", "https://edeninstitute.health/tier-2-waitlist"))}
 ${signature()}`;
 
   return {
