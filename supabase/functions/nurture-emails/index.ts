@@ -1,4 +1,4 @@
-// nurture-emails — handles ONLY Email 5 (Day 14, conditional on purchased_course)
+// nurture-emails — handles ONLY Email 5 (Day 8, conditional on !purchased_course AND !purchased_guide)
 // Emails 1-4 are scheduled via Resend scheduled_at in resend-waitlist
 
 import { buildNurtureEmail5, toSlug } from '../_shared/nurture-email-templates.ts';
@@ -74,10 +74,10 @@ Deno.serve(async (req) => {
     const now = new Date();
     let sent = 0;
 
-    // Find users who completed quiz 14+ days ago, haven't received Email 5,
-    // and have NOT purchased the course
+    // Find users who completed quiz 8+ days ago, haven't received Email 5,
+    // and have NOT purchased the course AND NOT purchased the guide
     const rows = await supabaseQuery(
-      'quiz_completions?email_5_sent_at=is.null&email_4_sent_at=not.is.null&purchased_course=eq.false&limit=50'
+      'quiz_completions?email_5_sent_at=is.null&email_4_sent_at=not.is.null&purchased_course=eq.false&purchased_guide=eq.false&limit=50'
     );
 
     if (!Array.isArray(rows)) {
@@ -94,11 +94,12 @@ Deno.serve(async (req) => {
       const completedAt = new Date(row.completed_at);
       const hoursSince = (now.getTime() - completedAt.getTime()) / (1000 * 60 * 60);
 
-      // Only send if 14+ days (336 hours) have passed
-      if (hoursSince < 336) continue;
+      // Only send if 8+ days (192 hours) have passed
+      if (hoursSince < 192) continue;
 
-      // Skip if purchased_course is true (double-check)
+      // Skip if purchased_course OR purchased_guide is true (double-check)
       if (row.purchased_course) continue;
+      if (row.purchased_guide) continue;
 
       const nickname = row.constitution_name || row.constitution_nickname || 'Your Constitutional Type';
       const slug = row.constitution_type || toSlug(nickname);

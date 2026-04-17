@@ -211,7 +211,7 @@ ${p(`${link("See your full quiz results anytime →", `https://edeninstitute.hea
 ${goldDivider()}
 ${heading("WANT THE FULL PICTURE?")}
 ${p("Your Deep-Dive Guide includes all 10 matched herbs with actions, preparation methods, dosages, and safety notes — plus a caution list, lifestyle and nutrition guidance, and a Biblical framework for your constitutional pattern.")}
-${brandButton(`Get Your ${constitutionName.replace(/^The /i, '')} Deep-Dive Guide — $14`, `https://edeninstitute.health/results/${constitutionSlug}`)}
+${brandButton(`Get Your ${constitutionName.replace(/^The /i, '')} Deep-Dive Guide — $14`, `https://edeninstitute.health/guide/${constitutionSlug}`)}
 ${signature()}`;
 
   return {
@@ -221,7 +221,7 @@ ${signature()}`;
 }
 
 // ══════════════════════════════════════════════════════════════
-// EMAIL 2 — Day 3
+// EMAIL 2 — Day 2
 // ══════════════════════════════════════════════════════════════
 export function buildNurtureEmail2(
   firstName: string,
@@ -249,7 +249,7 @@ ${p(`Your quiz result — <strong>${constitutionName}</strong> — reflects your
 ${p("This is the foundation of constitutional herbalism. Practitioners have been reading these patterns for 3,000 years in the Western clinical tradition. We've translated it into a framework that makes sense for modern Christian families.")}
 ${spacer(8)}
 ${p("<em>This is exactly what Tier 1 of the Foundations Course covers in depth.</em>")}
-${brandButton("Learn More About the Foundations Course", "https://edeninstitute.health/whyeden")}
+${brandButton("Learn More About the Foundations Course", "https://learn.edeninstitute.health/course/back-to-eden1")}
 ${p(`${link("Your full quiz results →", `https://edeninstitute.health/results/${constitutionSlug}`)}`)}
 ${signature()}`;
 
@@ -260,7 +260,7 @@ ${signature()}`;
 }
 
 // ══════════════════════════════════════════════════════════════
-// EMAIL 3 — Day 7
+// EMAIL 3 — Day 4
 // ══════════════════════════════════════════════════════════════
 export function buildNurtureEmail3(
   firstName: string,
@@ -280,7 +280,7 @@ ${p(`You already know yours: <strong>${constitutionName}</strong>. The Foundatio
 ${goldDivider()}
 ${heading("\"BUT I DON'T HAVE TIME FOR A COURSE.\"")}
 ${p("The course is self-paced. No deadlines, no live sessions. Most students spend 2-3 hours per week. The knowledge lasts a lifetime.")}
-${brandButton("See What's Inside the Foundations Course", "https://edeninstitute.health/whyeden")}
+${brandButton("See What's Inside the Foundations Course", "https://learn.edeninstitute.health/course/back-to-eden1")}
 ${signature()}`;
 
   return {
@@ -290,7 +290,7 @@ ${signature()}`;
 }
 
 // ══════════════════════════════════════════════════════════════
-// EMAIL 4 — Day 10
+// EMAIL 4 — Day 6
 // ══════════════════════════════════════════════════════════════
 export function buildNurtureEmail4(
   firstName: string,
@@ -298,7 +298,7 @@ export function buildNurtureEmail4(
   constitutionSlug: string,
 ): { subject: string; html: string } {
   const body = `
-${p(`Ten days ago, you discovered your constitutional type: <strong>${constitutionName}</strong>. Since then, you've learned why herbs work differently in different bodies. Now it's time to go deeper.`)}
+${p(`Six days ago, you discovered your constitutional type: <strong>${constitutionName}</strong>. Since then, you've learned why herbs work differently in different bodies. Now it's time to go deeper.`)}
 ${goldDivider()}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;background-color:${BRAND.bgOuter};border:1px solid ${BRAND.gold};">
 <tr><td style="padding:24px;text-align:center;">
@@ -348,7 +348,7 @@ ${signature()}`;
 }
 
 // ══════════════════════════════════════════════════════════════
-// EMAIL 5 — Day 14 (conditional — only if NOT purchased course)
+// EMAIL 5 — Day 8 (conditional — only if NOT purchased course AND NOT purchased guide)
 // ══════════════════════════════════════════════════════════════
 export function buildNurtureEmail5(
   firstName: string,
