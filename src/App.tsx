@@ -18,6 +18,7 @@ import Courses from "./pages/Courses";
 import AppPage from "./pages/AppPage";
 import Homeschool from "./pages/Homeschool";
 import Community from "./pages/Community";
+import TierTwoWaitlist from "./pages/TierTwoWaitlist";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
           <Route path="/app" element={<AppPage />} />
           <Route path="/homeschool" element={<Homeschool />} />
           <Route path="/community" element={<Community />} />
+          <Route path="/tier-2-waitlist" element={<TierTwoWaitlist />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
