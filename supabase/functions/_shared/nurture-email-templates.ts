@@ -368,7 +368,9 @@ ${spacer(8)}
 </td></tr>
 </table>
 ${p("If and when you're ready to go deeper, the Foundations Course is always available.")}
-${p(`${link("Learn about the Foundations Course →", "https://edeninstitute.health/whyeden")}`)}
+${p(`${link("Learn about the Foundations Course →", "https://learn.edeninstitute.health/course/back-to-eden1")}`)}
+${goldDivider()}
+${p("<strong>P.S.</strong> Tier 2 — Body Systems & Clinical Literacy — opens to the public October 8, 2026 at $1,497. Join the free waitlist now and you'll receive a founding access code for $497 (valid 14 days) when Tier 2 launches July 7. " + link("Join the waitlist →", "https://edeninstitute.health/tier-2-waitlist"))}
 ${signature()}`;
 
   return {
