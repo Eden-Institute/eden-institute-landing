@@ -65,6 +65,33 @@ export type Database = {
         }
         Relationships: []
       }
+      tier_2_waitlist: {
+        Row: {
+          email: string
+          first_name: string
+          founding_code_sent: boolean
+          founding_code_sent_at: string | null
+          id: string
+          signed_up_at: string
+        }
+        Insert: {
+          email: string
+          first_name: string
+          founding_code_sent?: boolean
+          founding_code_sent_at?: string | null
+          id?: string
+          signed_up_at?: string
+        }
+        Update: {
+          email?: string
+          first_name?: string
+          founding_code_sent?: boolean
+          founding_code_sent_at?: string | null
+          id?: string
+          signed_up_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
