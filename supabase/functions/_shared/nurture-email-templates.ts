@@ -325,7 +325,7 @@ ${spacer(12)}
 <tr><td style="padding:20px;">
 <p style="font-family:Georgia,serif;font-size:28px;font-weight:bold;color:${BRAND.forest};margin:0 0 8px 0;">$97 founding student pricing</p>
 <p style="font-family:Georgia,serif;font-size:15px;color:${BRAND.text};margin:0 0 8px 0;">Use code <strong>FIRSTFRUITS</strong> at checkout for early enrollment pricing.</p>
-<p style="font-family:Georgia,serif;font-size:14px;color:${BRAND.gold};font-weight:bold;margin:0;">Founding price closes when 25 students enroll</p>
+<p style="font-family:Georgia,serif;font-size:14px;color:${BRAND.gold};font-weight:bold;margin:0;">Price raises to $147 on July 7, 2026</p>
 </td></tr>
 </table>
 ${goldDivider()}
