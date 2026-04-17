@@ -533,35 +533,35 @@ Deno.serve(async (req) => {
               });
               console.log('Nurture Email 1 sent to', email);
 
-              // Email 2 — Day 3
+              // Email 2 — Day 2
               const e2 = buildNurtureEmail2(firstName, name, slug);
-              const day3 = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString();
+              const day2 = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString();
               await fetch('https://api.resend.com/emails', {
                 method: 'POST',
                 headers: sendHeaders,
-                body: JSON.stringify({ from, reply_to: replyTo, to: [email], subject: e2.subject, html: e2.html, scheduled_at: day3 }),
+                body: JSON.stringify({ from, reply_to: replyTo, to: [email], subject: e2.subject, html: e2.html, scheduled_at: day2 }),
               });
-              console.log('Nurture Email 2 scheduled for', day3);
+              console.log('Nurture Email 2 scheduled for', day2);
 
-              // Email 3 — Day 7
+              // Email 3 — Day 4
               const e3 = buildNurtureEmail3(firstName, name, slug);
-              const day7 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+              const day4 = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000).toISOString();
               await fetch('https://api.resend.com/emails', {
                 method: 'POST',
                 headers: sendHeaders,
-                body: JSON.stringify({ from, reply_to: replyTo, to: [email], subject: e3.subject, html: e3.html, scheduled_at: day7 }),
+                body: JSON.stringify({ from, reply_to: replyTo, to: [email], subject: e3.subject, html: e3.html, scheduled_at: day4 }),
               });
-              console.log('Nurture Email 3 scheduled for', day7);
+              console.log('Nurture Email 3 scheduled for', day4);
 
-              // Email 4 — Day 10
+              // Email 4 — Day 6
               const e4 = buildNurtureEmail4(firstName, name, slug);
-              const day10 = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString();
+              const day6 = new Date(now.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString();
               await fetch('https://api.resend.com/emails', {
                 method: 'POST',
                 headers: sendHeaders,
-                body: JSON.stringify({ from, reply_to: replyTo, to: [email], subject: e4.subject, html: e4.html, scheduled_at: day10 }),
+                body: JSON.stringify({ from, reply_to: replyTo, to: [email], subject: e4.subject, html: e4.html, scheduled_at: day6 }),
               });
-              console.log('Nurture Email 4 scheduled for', day10);
+              console.log('Nurture Email 4 scheduled for', day6);
             } catch (nurtureErr) {
               const nurtureErrorMessage = nurtureErr instanceof Error ? nurtureErr.message : String(nurtureErr);
               console.error('Nurture scheduling error:', nurtureErrorMessage);
