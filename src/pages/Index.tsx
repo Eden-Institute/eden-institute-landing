@@ -468,23 +468,35 @@ const Index = () => {
                 label: "Free Quiz",
                 description: "Discover your body type in 2 minutes",
                 price: "FREE",
+                onClick: openQuiz,
+                href: null as string | null,
+                external: false,
+                ariaLabel: "Take the free constitutional quiz",
               },
               {
                 icon: <BookOpen className="w-10 h-10" style={{ color: "hsl(var(--eden-gold))" }} />,
                 label: "Deep-Dive Guide",
                 description: "Your personalized herb guide — 10 matched herbs, nutrition, lifestyle, and Scripture",
                 price: "$14",
+                onClick: openQuiz,
+                href: null as string | null,
+                external: false,
+                ariaLabel: "Take the quiz to unlock your $14 Deep-Dive Guide",
               },
               {
                 icon: <GraduationCap className="w-10 h-10" style={{ color: "hsl(var(--eden-gold))" }} />,
                 label: "Foundations Course",
                 description: "Learn to read your body type and match it to God's provision in the plant world",
-                price: "$197",
+                price: "$97",
+                onClick: null as null | (() => void),
+                href: "https://learn.edeninstitute.health/course/back-to-eden1",
+                external: true,
+                ariaLabel: "Enroll in the Foundations Course",
               },
-            ].map((step, i) => (
-              <ScrollReveal key={step.label} delay={i * 120}>
+            ].map((step, i) => {
+              const cardInner = (
                 <div
-                  className="rounded-lg p-6 md:p-8 text-center shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center hover:-translate-y-1 cursor-pointer hover:-translate-y-1 transition-all cursor-pointerh"
+                  className="rounded-lg p-6 md:p-8 text-center shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center hover:-translate-y-1 cursor-pointer h-full"
                   style={{
                     backgroundColor: "hsl(var(--eden-cream))",
                     border: "1.5px solid hsl(var(--eden-gold) / 0.4)",
@@ -506,8 +518,33 @@ const Index = () => {
                     {step.price}
                   </p>
                 </div>
-              </ScrollReveal>
-            ))}
+              );
+
+              return (
+                <ScrollReveal key={step.label} delay={i * 120}>
+                  {step.href ? (
+                    <a
+                      href={step.href}
+                      target={step.external ? "_blank" : undefined}
+                      rel={step.external ? "noopener noreferrer" : undefined}
+                      aria-label={step.ariaLabel}
+                      className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--eden-gold))] rounded-lg"
+                    >
+                      {cardInner}
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={step.onClick ?? undefined}
+                      aria-label={step.ariaLabel}
+                      className="block w-full h-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--eden-gold))] rounded-lg"
+                    >
+                      {cardInner}
+                    </button>
+                  )}
+                </ScrollReveal>
+              );
+            })}
           </div>
 
           <ScrollReveal delay={200}>
