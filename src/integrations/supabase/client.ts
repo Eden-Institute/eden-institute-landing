@@ -16,4 +16,4 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   }
 });
 
-// rebuild marker: repointed to noeqz 2026-04-21
+// rebuild marker: repointed to noeqz 2026-04-21 (force redeploy 2)
