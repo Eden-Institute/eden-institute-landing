@@ -4,9 +4,15 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrentTier, Tier } from "@/hooks/useCurrentTier";
 
-const NAV_LINKS: { to: string; label: string; end?: boolean }[] = [
+type NavItem = { to: string; label: string; end?: boolean };
+
+const PUBLIC_NAV_LINKS: NavItem[] = [
   { to: "/apothecary", label: "Home", end: true },
   { to: "/apothecary/pricing", label: "Pricing" },
+];
+
+const AUTHED_NAV_LINKS: NavItem[] = [
+  { to: "/apothecary/account", label: "Account" },
 ];
 
 const tierLabel: Record<Tier, string> = {
@@ -21,6 +27,10 @@ export function ApothecaryNav() {
   const { user, signOut } = useAuth();
   const { data: tier } = useCurrentTier();
 
+  const navLinks: NavItem[] = user
+    ? [...PUBLIC_NAV_LINKS, ...AUTHED_NAV_LINKS]
+    : PUBLIC_NAV_LINKS;
+
   return (
     <nav className="border-b border-border/40 bg-background sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -29,12 +39,14 @@ export function ApothecaryNav() {
           className="font-serif text-xl font-semibold flex items-center gap-2"
           style={{ color: "hsl(var(--eden-bark))" }}
         >
-          <Leaf className="w-5 h-5" style={{ color: "hsl(var(--eden-gold))" }} />
+          <Leaf
+            className="w-5 h-5"
+            style={{ color: "hsl(var(--eden-gold))" }}
+          />
           Eden Apothecary
         </Link>
-
         <div className="hidden md:flex items-center gap-6">
-          {NAV_LINKS.map((link) => (
+          {navLinks.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
@@ -54,7 +66,6 @@ export function ApothecaryNav() {
             </NavLink>
           ))}
         </div>
-
         <div className="flex items-center gap-3">
           {user && tier && tier !== "anon" && (
             <span
