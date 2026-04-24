@@ -108,20 +108,47 @@ serve(async (req) => {
 /**
  * Write the current state of a subscription to the profiles table.
  * Called for both `created` and `updated` events. Idempotent — safe to replay.
+ *
+ * RACE-SAFETY: Stripe does not guarantee event delivery order. A late-arriving
+ * `customer.subscription.created` event (with status='incomplete') could
+ * overwrite an earlier-arriving `customer.subscription.updated` event (with
+ * status='active'), leaving profiles stuck at an outdated status.
+ *
+ * Fix: rather than trust `event.data.object` as ground truth, re-fetch the
+ * subscription from Stripe. `stripe.subscriptions.retrieve(id)` always returns
+ * the CURRENT state, regardless of which event is being processed. This makes
+ * the handler naturally idempotent across any event ordering, dashboard
+ * replays, or retry scenarios. Costs one extra Stripe API call per event —
+ * negligible at webhook volume.
  */
 async function reconcileSubscription(subscription: Stripe.Subscription) {
-  const userId = await resolveSupabaseUserId(subscription)
+  // Re-fetch the subscription from Stripe to get the authoritative current state.
+  // Defensive: if retrieve fails, fall back to the event payload so we never
+  // drop an event entirely.
+  let fresh: Stripe.Subscription
+  try {
+    fresh = await stripe.subscriptions.retrieve(subscription.id)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error"
+    console.warn(
+      `stripe.subscriptions.retrieve(${subscription.id}) failed, ` +
+        `falling back to event payload: ${message}`,
+    )
+    fresh = subscription
+  }
+
+  const userId = await resolveSupabaseUserId(fresh)
   if (!userId) {
     console.error(
-      `Could not resolve Supabase user for subscription ${subscription.id} ` +
-        `(customer: ${subscription.customer})`,
+      `Could not resolve Supabase user for subscription ${fresh.id} ` +
+        `(customer: ${fresh.customer})`,
     )
     return
   }
 
   // Derive tier from the ACTIVE price's lookup_key, not from stale metadata.
   // Plan changes via Customer Portal update the price but leave metadata alone.
-  const firstItem = subscription.items.data[0]
+  const firstItem = fresh.items.data[0]
   const priceLookupKey = firstItem?.price.lookup_key ?? null
   const tier = tierFromLookupKey(priceLookupKey)
 
@@ -129,19 +156,19 @@ async function reconcileSubscription(subscription: Stripe.Subscription) {
   // subscription item in API versions >= 2025-x. Webhooks pinned to older versions
   // still return them at the top level. Check both locations for compatibility.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const subAny = subscription as any
+  const subAny = fresh as any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const itemAny = firstItem as any
   const periodStart = itemAny?.current_period_start ?? subAny.current_period_start
   const periodEnd = itemAny?.current_period_end ?? subAny.current_period_end
 
   const update = {
-    stripe_subscription_id: subscription.id,
+    stripe_subscription_id: fresh.id,
     subscription_tier: tier,
-    subscription_status: subscription.status,
+    subscription_status: fresh.status,
     current_period_start: toIso(periodStart),
     current_period_end: toIso(periodEnd),
-    cancel_at_period_end: subscription.cancel_at_period_end,
+    cancel_at_period_end: fresh.cancel_at_period_end,
   }
 
   const { error } = await adminClient
@@ -154,20 +181,44 @@ async function reconcileSubscription(subscription: Stripe.Subscription) {
   }
 
   console.log(
-    `Reconciled profile for user ${userId}: tier=${tier}, ` +
-      `status=${subscription.status}, cancel_at_period_end=${subscription.cancel_at_period_end}`,
+    `Reconciled profile for user ${userId} (event-type=${subscription.object === "subscription" ? "sub" : "event"}): ` +
+      `tier=${tier}, status=${fresh.status}, cancel_at_period_end=${fresh.cancel_at_period_end} ` +
+      `(fetched fresh from Stripe)`,
   )
 }
 
 /**
  * Subscription fully ended (after grace period or immediate cancellation).
  * Downgrade the user to the free tier and clear subscription fields.
+ *
+ * RACE-SAFETY: Only downgrade if the profile's current stripe_subscription_id
+ * matches the deleted subscription's id. This guards against a late-arriving
+ * `deleted` event for an OLD subscription clobbering a NEW active subscription
+ * on the same user (e.g., user canceled and immediately re-subscribed; Stripe
+ * retried the old delete event after the new sub was created).
  */
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const userId = await resolveSupabaseUserId(subscription)
   if (!userId) {
     console.error(
       `Could not resolve user for deleted subscription ${subscription.id}`,
+    )
+    return
+  }
+
+  const { data: profile, error: readError } = await adminClient
+    .from("profiles")
+    .select("stripe_subscription_id")
+    .eq("user_id", userId)
+    .maybeSingle()
+
+  if (readError) {
+    throw new Error(`profiles read failed: ${readError.message}`)
+  }
+
+  if (profile?.stripe_subscription_id && profile.stripe_subscription_id !== subscription.id) {
+    console.log(
+      `Ignoring delete for ${subscription.id}; user ${userId} is now on a different subscription (${profile.stripe_subscription_id})`,
     )
     return
   }
@@ -188,7 +239,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     throw new Error(`profiles downgrade failed: ${error.message}`)
   }
 
-  console.log(`Downgraded user ${userId} to free (subscription ended)`)
+  console.log(`Downgraded user ${userId} to free (subscription ${subscription.id} ended)`)
 }
 
 // ---------- Helpers ----------
