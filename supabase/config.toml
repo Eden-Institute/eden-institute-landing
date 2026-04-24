@@ -1,4 +1,11 @@
 project_id = "noeqztssupewjidpvhar"
 
+# Webhook endpoints authenticate via provider-specific signatures (Stripe HMAC,
+# Resend svix), not Supabase JWT. They MUST be deployed with verify_jwt=false,
+# otherwise the Supabase gateway 401s every request before the function runs.
+
 [functions.resend-webhook]
+verify_jwt = false
+
+[functions.stripe-webhook]
 verify_jwt = false
