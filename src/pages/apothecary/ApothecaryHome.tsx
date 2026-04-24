@@ -2,8 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCurrentTier } from "@/hooks/useCurrentTier";
-import { useHerbsPublic } from "@/hooks/useHerbsPublic";
+import { useApothecaryHerbs } from "@/hooks/useApothecaryHerbs";
 import { HerbCard } from "@/components/apothecary/HerbCard";
 import {
   HerbDirectoryFilters,
@@ -14,32 +13,31 @@ import {
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
 
 /**
- * Eden Apothecary index (`/apothecary`). Stage 6.2 — anon / free-tier herb
- * directory.
+ * Eden Apothecary index (`/apothecary`). Stage 6.3 — tier-gated herb directory.
  *
- * Reads from `public.herbs_public` (50 basic monographs, no junction data).
- * Per Locked Decision §0.8 the view is the only client-facing read surface;
- * RLS + view filter enforce tier gating at the DB layer.
+ * Read path branches on `useCurrentTier()` via `useApothecaryHerbs`:
+ *   - anon / free  → `herbs_public` (50 rows, basic monograph)
+ *   - seed / root+ → `herbs_clinical_v` (100 rows, full clinical overlay)
  *
- * Seed+ expansion (full 100-herb clinical overlay via `herbs_clinical_v`)
- * lands in Stage 6.3; routed herb-detail pages in Stage 6.4. For v1 each card
- * expands in place to render the full herbs_public row.
+ * Per Locked Decision §0.8 the DB view is the sole read surface; RLS and the
+ * view filter enforce tier gating server-side. This component mirrors that
+ * gating in the UI by rendering tier-appropriate sections within `HerbCard`
+ * and suppressing the upgrade CTA for active subscribers.
+ *
+ * Routed herb detail (`/apothecary/:herb_id`) + `contraindications_clinical_v`
+ * view migration + rendered contraindications table land in Stage 6.4.
  */
 export default function ApothecaryHome() {
   const { user } = useAuth();
-  const { data: tier } = useCurrentTier();
-  const { data: herbs, isLoading, isError, error } = useHerbsPublic();
+  const { tier, isSubscriber, data: herbs, isLoading, isError, error } =
+    useApothecaryHerbs();
 
   const [filters, setFilters] = useState<HerbFilterState>(EMPTY_FILTERS);
 
-  const list = herbs ?? [];
   const visible = useMemo(
-    () => list.filter((h) => matchesFilters(h, filters)),
-    [list, filters]
+    () => herbs.filter((h) => matchesFilters(h, filters)),
+    [herbs, filters]
   );
-
-  const isSubscriber =
-    tier === "seed" || tier === "root" || tier === "practitioner";
 
   if (isLoading) return <PageSkeleton />;
 
@@ -58,6 +56,18 @@ export default function ApothecaryHome() {
       </div>
     );
   }
+
+  const subtitle = isSubscriber
+    ? "The full materia medica — 100 monographs with tissue-state indications, organ system affinity, constitutional matches, and safety overlays."
+    : "A clinical reasoning partner rather than a symptom index. Each monograph is anchored to constitutional patterns, tissue states, and stewardship — never to disease names.";
+
+  const tierBadge = isSubscriber
+    ? tier === "practitioner"
+      ? "Practitioner tier"
+      : tier === "root"
+      ? "Root tier"
+      : "Seed tier"
+    : null;
 
   return (
     <div>
@@ -79,21 +89,27 @@ export default function ApothecaryHome() {
             Materia medica, <span className="italic">terrain-first.</span>
           </h1>
           <p className="font-body text-base md:text-lg text-muted-foreground max-w-2xl leading-relaxed">
-            A clinical reasoning partner rather than a symptom index. Each
-            monograph is anchored to constitutional patterns, tissue states,
-            and stewardship — never to disease names.
+            {subtitle}
           </p>
+          {tierBadge && (
+            <p
+              className="font-accent text-[11px] tracking-[0.25em] uppercase mt-5"
+              style={{ color: "hsl(var(--eden-gold))" }}
+            >
+              Viewing as {tierBadge}
+            </p>
+          )}
         </div>
       </section>
 
       <section className="px-6 py-10">
         <div className="max-w-6xl mx-auto space-y-8">
           <HerbDirectoryFilters
-            herbs={list}
+            herbs={herbs}
             filters={filters}
             onChange={setFilters}
             visibleCount={visible.length}
-            totalCount={list.length}
+            totalCount={herbs.length}
           />
 
           {visible.length === 0 ? (
