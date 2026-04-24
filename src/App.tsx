@@ -26,6 +26,8 @@ import SignUp from "./pages/apothecary/auth/SignUp";
 import SignIn from "./pages/apothecary/auth/SignIn";
 import Reset from "./pages/apothecary/auth/Reset";
 import UpdatePassword from "./pages/apothecary/auth/UpdatePassword";
+import Pricing from "./pages/apothecary/Pricing";
+import Welcome from "./pages/apothecary/Welcome";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +62,8 @@ const App = () => (
               <Route path="auth/signin" element={<SignIn />} />
               <Route path="auth/reset" element={<Reset />} />
               <Route path="auth/update-password" element={<UpdatePassword />} />
+              <Route path="pricing" element={<Pricing />} />
+              <Route path="welcome" element={<Welcome />} />
             </Route>
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
