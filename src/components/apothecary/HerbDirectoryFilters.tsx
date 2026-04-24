@@ -1,5 +1,5 @@
 import { X, Search } from "lucide-react";
-import type { HerbPublicRow } from "@/hooks/useHerbsPublic";
+import type { HerbRow } from "@/hooks/useApothecaryHerbs";
 
 export interface HerbFilterState {
   query: string;
@@ -18,7 +18,7 @@ export const EMPTY_FILTERS: HerbFilterState = {
 };
 
 interface HerbDirectoryFiltersProps {
-  herbs: HerbPublicRow[];
+  herbs: HerbRow[];
   filters: HerbFilterState;
   onChange: (next: HerbFilterState) => void;
   visibleCount: number;
@@ -26,15 +26,27 @@ interface HerbDirectoryFiltersProps {
 }
 
 /**
- * Returns sorted unique non-null values for a given key, for faceted filters.
+ * Fields shared by both `herbs_public` and `herbs_clinical_v` — safe to read
+ * regardless of whether the caller is on the anon or Seed+ code path.
  */
+type SharedTextField =
+  | "temperature"
+  | "part_used"
+  | "plant_family"
+  | "taste";
+
+function readText(row: HerbRow, field: SharedTextField): string | null {
+  const value = (row as Record<string, unknown>)[field];
+  return typeof value === "string" ? value : null;
+}
+
 function distinctValues(
-  herbs: HerbPublicRow[],
-  key: keyof HerbPublicRow
+  herbs: HerbRow[],
+  field: SharedTextField
 ): string[] {
   const set = new Set<string>();
   for (const h of herbs) {
-    const v = h[key];
+    const v = readText(h, field);
     if (typeof v === "string" && v.trim().length > 0) set.add(v.trim());
   }
   return Array.from(set).sort((a, b) => a.localeCompare(b));
@@ -44,11 +56,12 @@ function distinctValues(
  * Extract individual taste tokens from comma-separated values
  * (e.g., "Bitter, Astringent, Sweet" → ["Astringent", "Bitter", "Sweet"]).
  */
-function distinctTastes(herbs: HerbPublicRow[]): string[] {
+function distinctTastes(herbs: HerbRow[]): string[] {
   const set = new Set<string>();
   for (const h of herbs) {
-    if (typeof h.taste === "string") {
-      for (const token of h.taste.split(/[,/]/)) {
+    const v = readText(h, "taste");
+    if (typeof v === "string") {
+      for (const token of v.split(/[,/]/)) {
         const t = token.trim();
         if (t.length > 0) set.add(t);
       }
@@ -231,9 +244,10 @@ export function HerbDirectoryFilters({
 
 /**
  * Pure filter predicate — applied client-side to the in-memory herb list.
+ * Reads only fields that exist on both HerbPublicRow and HerbClinicalRow.
  */
 export function matchesFilters(
-  herb: HerbPublicRow,
+  herb: HerbRow,
   filters: HerbFilterState
 ): boolean {
   const q = filters.query.trim().toLowerCase();
