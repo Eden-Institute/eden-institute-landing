@@ -396,18 +396,41 @@ const corsHeaders = {
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
 const RESEND_CONTACTS_KEY = Deno.env.get('RESEND_CONTACTS_KEY');
-const RESEND_AUDIENCE_ID = Deno.env.get('RESEND_AUDIENCE_ID');
+// Master audience UUID — single destination for all contact writes post-Stage 2.
+// Falls back to legacy RESEND_AUDIENCE_ID during rollout (same UUID today).
+const RESEND_MASTER_AUDIENCE_ID =
+  Deno.env.get('RESEND_MASTER_AUDIENCE_ID') ?? Deno.env.get('RESEND_AUDIENCE_ID');
 
-const TOPIC_IDS = [
-  '89e7bfad-5e08-44c6-9a5c-ff8e9cf8ee1d',
-  '0ed1f4b6-1b8c-4ef2-b9ca-7a7f67d3f2e6',
-  'b87ee1ad-8592-495c-aa1d-1ddbbb7d0afd',
-];
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-const COURSE_AUDIENCE_ID = "4860c1c5-8e2b-4d02-838a-60ef09b789bf";
-const APP_AUDIENCE_ID = "cebd3478-b344-41b7-98c8-8bcf0e0108da";
-const HOMESCHOOL_AUDIENCE_ID = "a48cb66e-b2a9-461d-98a6-bb1b12f72693";
-const COMMUNITY_AUDIENCE_ID = "a48cb66e-b2a9-461d-98a6-bb1b12f72693";
+// ── Entry funnel resolution ──
+// Canonical taxonomy matches the public.entry_funnel Postgres enum.
+type EntryFunnel =
+  | 'app_beta'
+  | 'course_tier2'
+  | 'edens_table'
+  | 'homeschool'
+  | 'community'
+  | 'quiz_funnel';
+
+const VALID_FUNNELS = new Set<EntryFunnel>([
+  'app_beta',
+  'course_tier2',
+  'edens_table',
+  'homeschool',
+  'community',
+  'quiz_funnel',
+]);
+
+// Legacy frontend sends audienceId; map to the entry_funnel taxonomy.
+// Compatibility layer retained through Lane C Stage 3; drop once the
+// frontend sends entry_funnel directly.
+const LEGACY_AUDIENCE_TO_FUNNEL: Record<string, EntryFunnel> = {
+  '4860c1c5-8e2b-4d02-838a-60ef09b789bf': 'course_tier2',
+  'cebd3478-b344-41b7-98c8-8bcf0e0108da': 'app_beta',
+  'a48cb66e-b2a9-461d-98a6-bb1b12f72693': 'edens_table',
+};
 
 const CONSTITUTION_SLUG_MAP: Record<string, { slug: string; name: string }> = {
   "Hot / Dry / Tense": { slug: "burning-bowstring", name: "The Burning Bowstring" },
@@ -513,22 +536,27 @@ ${closingBlock()}`;
 function buildAppBetaEmail(firstName: string): { subject: string; html: string } {
   const body = `
 <p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 8px 0;">You're on the Eden Apothecary beta waitlist. That means first access when we launch in 2026 — and your pricing locked in for life.</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 8px 0;">You're on the Eden Apothecary beta waitlist. That means first access when we launch on July 7, 2026 — and founding pricing locked in for the life of your subscription.</p>
 ${goldDivider()}
-${goldLabel('YOUR BETA PRICING — LOCKED IN FOR LIFE')}
+${goldLabel('FOUNDING PRICING — LOCKED IN')}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
 <tr><td style="background-color:#F5F0E8;padding:20px;text-align:center;border-bottom:1px solid #FFFFFF;">
-<p style="font-family:Georgia,serif;font-size:16px;font-weight:bold;color:#1C3A2E;margin:0 0 8px 0;">Full Access Tier</p>
-<p style="font-family:Georgia,serif;font-size:20px;font-weight:bold;color:#C9A84C;margin:0 0 4px 0;">$4.99/month during beta</p>
-<p style="font-family:Georgia,serif;font-size:13px;color:#999999;margin:0;"><s>Regular price: $19.99/month</s></p>
+<p style="font-family:Georgia,serif;font-size:16px;font-weight:bold;color:#1C3A2E;margin:0 0 8px 0;">Seed</p>
+<p style="font-family:Georgia,serif;font-size:20px;font-weight:bold;color:#C9A84C;margin:0 0 4px 0;">$7.99 / month &nbsp;·&nbsp; $79.99 / year</p>
+<p style="font-family:Georgia,serif;font-size:13px;line-height:1.5;color:#1C3A2E;margin:0;">Full herb library, constitutional profile, 1–3 system assessments. Designed for your household.</p>
+</td></tr>
+<tr><td style="background-color:#F5F0E8;padding:20px;text-align:center;border-bottom:1px solid #FFFFFF;">
+<p style="font-family:Georgia,serif;font-size:16px;font-weight:bold;color:#1C3A2E;margin:0 0 8px 0;">Root</p>
+<p style="font-family:Georgia,serif;font-size:20px;font-weight:bold;color:#C9A84C;margin:0 0 4px 0;">$24.99 / month &nbsp;·&nbsp; $249.99 / year</p>
+<p style="font-family:Georgia,serif;font-size:13px;line-height:1.5;color:#1C3A2E;margin:0;">All 12 system assessments, full materia medica, pattern tracking, lifestyle protocols.</p>
 </td></tr>
 <tr><td style="background-color:#F5F0E8;padding:20px;text-align:center;">
-<p style="font-family:Georgia,serif;font-size:16px;font-weight:bold;color:#1C3A2E;margin:0 0 8px 0;">Practitioner Tier</p>
-<p style="font-family:Georgia,serif;font-size:20px;font-weight:bold;color:#C9A84C;margin:0 0 4px 0;">$19.99/month during beta</p>
-<p style="font-family:Georgia,serif;font-size:13px;color:#999999;margin:0;"><s>Regular price: $99.99/month</s></p>
+<p style="font-family:Georgia,serif;font-size:16px;font-weight:bold;color:#1C3A2E;margin:0 0 8px 0;">Practitioner</p>
+<p style="font-family:Georgia,serif;font-size:14px;font-style:italic;color:#C9A84C;margin:0 0 4px 0;">Unlocks with Tier 3 of the Institute — end of 2027</p>
+<p style="font-family:Georgia,serif;font-size:13px;line-height:1.5;color:#1C3A2E;margin:0;">Formula builder, multi-system analysis, session notes, exportable PDFs.</p>
 </td></tr>
 </table>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">The Eden Apothecary App is a constitutional assessment and herb matching system built on the Eclectic, Physiomedical, and Vitalist traditions — grounded in Scripture. From home herbalist to clinical practitioner, every tier is designed to meet you where you are.</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">The Eden Apothecary is a terrain-based clinical decision-support tool built on the Eclectic, Physiomedical, and Vitalist traditions — grounded in Scripture. From home herbalist to working practitioner, every tier is designed to meet you where you are.</p>
 <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 24px 0;">While you wait, get the foundation in place.</p>
 ${ctaButton('→ START WITH BOOK ONE', 'https://www.amazon.com/dp/B0GPW5BZ32')}
 ${goldDivider()}
@@ -737,161 +765,214 @@ Deno.serve(async (req) => {
   }
 
   try {
-    if (!RESEND_API_KEY || !RESEND_CONTACTS_KEY || !RESEND_AUDIENCE_ID) {
-      console.error('Missing env vars:', { hasKey: !!RESEND_API_KEY, hasContactsKey: !!RESEND_CONTACTS_KEY, hasAudience: !!RESEND_AUDIENCE_ID });
-      return new Response(
-        JSON.stringify({ error: 'Server configuration error' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (
+      !RESEND_API_KEY
+      || !RESEND_CONTACTS_KEY
+      || !RESEND_MASTER_AUDIENCE_ID
+      || !SUPABASE_URL
+      || !SUPABASE_SERVICE_ROLE_KEY
+    ) {
+      console.error('Missing env vars:', {
+        hasSendKey: !!RESEND_API_KEY,
+        hasContactsKey: !!RESEND_CONTACTS_KEY,
+        hasMasterAudience: !!RESEND_MASTER_AUDIENCE_ID,
+        hasSupabaseUrl: !!SUPABASE_URL,
+        hasServiceRoleKey: !!SUPABASE_SERVICE_ROLE_KEY,
+      });
+      return json(500, { error: 'Server configuration error' });
     }
 
-    const { firstName, email, audienceId, constitutionType, constitutionSlug, constitutionName, constitutionNickname, source } = await req.json();
+    const body = await req.json();
+    const {
+      firstName,
+      email,
+      audienceId,
+      source,
+      constitutionType,
+      constitutionSlug,
+      constitutionName,
+      constitutionNickname,
+      entry_funnel: providedFunnel,
+      consents,
+      source_url,
+      referrer,
+      utm_source,
+      utm_medium,
+      utm_campaign,
+      utm_term,
+      utm_content,
+    } = body;
 
     if (!firstName || !email) {
-      return new Response(
-        JSON.stringify({ error: 'Name and email are required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return json(400, { error: 'Name and email are required' });
     }
 
-    // Step 1: Create/update contact in the audience
-    const baseContactPayload: Record<string, any> = { email, first_name: firstName, unsubscribed: false, contact_properties: { waitlist_source: source || audienceId || "unknown" } };
+    const normalizedEmail = String(email).trim().toLowerCase();
 
-    let contactRes = await fetch(`https://api.resend.com/audiences/${RESEND_AUDIENCE_ID}/contacts`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_CONTACTS_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(baseContactPayload),
-    });
-
-    let contactData = await contactRes.json();
-    console.log('Contact creation response:', contactRes.status, JSON.stringify(contactData));
-
-    if (!contactRes.ok && contactRes.status !== 409) {
-      return new Response(
-        JSON.stringify({ error: contactData.message || 'Failed to add contact' }),
-        { status: contactRes.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // ── Resolve entry_funnel ──
+    // Precedence: explicit entry_funnel → constitution_assessment source →
+    // legacy audienceId mapping → homeschool/community source keywords.
+    let entry_funnel: EntryFunnel | null = null;
+    if (providedFunnel && VALID_FUNNELS.has(providedFunnel as EntryFunnel)) {
+      entry_funnel = providedFunnel as EntryFunnel;
+    } else if (source === 'constitution_assessment') {
+      entry_funnel = 'quiz_funnel';
+    } else if (audienceId && LEGACY_AUDIENCE_TO_FUNNEL[audienceId]) {
+      entry_funnel = LEGACY_AUDIENCE_TO_FUNNEL[audienceId];
+    } else if (source === 'homeschool') {
+      entry_funnel = 'homeschool';
+    } else if (source === 'community') {
+      entry_funnel = 'community';
     }
 
-    // Step 2: Subscribe to each topic separately with delays
-    const topicResults = [];
-    for (let i = 0; i < TOPIC_IDS.length; i++) {
-      const topicId = TOPIC_IDS[i];
-      if (i > 0) await new Promise(r => setTimeout(r, 500));
-      try {
-        const topicRes = await fetch(`https://api.resend.com/audiences/${RESEND_AUDIENCE_ID}/contacts`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${RESEND_CONTACTS_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email,
-            first_name: firstName,
-            unsubscribed: false,
-          }),
-        });
-        const topicData = await topicRes.json();
-        console.log(`Topic ${topicId} response:`, topicRes.status, JSON.stringify(topicData));
-        topicResults.push({ topicId, status: topicRes.status, ok: topicRes.ok });
-      } catch (topicErr) {
-        const topicErrorMessage = topicErr instanceof Error ? topicErr.message : String(topicErr);
-        console.error(`Topic ${topicId} error:`, topicErrorMessage);
-        topicResults.push({ topicId, error: topicErrorMessage });
+    if (!entry_funnel) {
+      return json(400, {
+        error: 'Could not resolve entry_funnel; provide entry_funnel or a known audienceId',
+      });
+    }
+
+    // ── Step 1: Supabase-first waitlist_signups UPSERT (non-quiz paths) ──
+    // For entry_funnel='quiz_funnel', the quiz_completions AFTER INSERT and
+    // AFTER UPDATE triggers maintain the waitlist_signups row. Skip explicit
+    // upsert here to keep the trigger as single owner of that row.
+    let waitlistId: string | null = null;
+    let existingResendContactId: string | null = null;
+    if (entry_funnel !== 'quiz_funnel') {
+      const upsertResult = await waitlistUpsert({
+        email: normalizedEmail,
+        first_name: firstName,
+        entry_funnel,
+        source_url: source_url ?? null,
+        referrer: referrer ?? null,
+        utm_source: utm_source ?? null,
+        utm_medium: utm_medium ?? null,
+        utm_campaign: utm_campaign ?? null,
+        utm_term: utm_term ?? null,
+        utm_content: utm_content ?? null,
+        consents: consents ?? {},
+      });
+      if (upsertResult) {
+        waitlistId = upsertResult.id;
+        existingResendContactId = upsertResult.resend_contact_id;
       }
     }
 
-    // Step 3: Send welcome/results email (non-assessment sources only)
-    // Assessment emails are handled by the nurture sequence (Email 1 sends immediately)
-    let emailContent: { subject: string; html: string } | null = null;
-
-    if (source === 'constitution_assessment' && constitutionType) {
-      // Quiz completion — nurture Email 1 handles the welcome email
-      // Record quiz completion and schedule nurture emails 1-4
-      const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-      const supabaseUrl = Deno.env.get('SUPABASE_URL');
-      if (serviceRoleKey && supabaseUrl) {
-        const slugInfo = getSlugInfo(constitutionType, constitutionSlug, constitutionName, constitutionNickname);
-        const name = slugInfo.name;
-        const slug = slugInfo.slug;
-
-        // Check for existing quiz completion (duplicate prevention)
-        const checkRes = await fetch(
-          `${supabaseUrl}/rest/v1/quiz_completions?email=eq.${encodeURIComponent(email)}&select=id,email_1_sent_at&limit=1`,
+    // ── Step 2: Resend contact create in master audience ──
+    // Idempotent at the Resend level (existing email in audience returns 409;
+    // we handle that as success). Skipped if the Supabase row already has a
+    // resend_contact_id from a prior sync.
+    let resendContactId: string | null = existingResendContactId;
+    if (!resendContactId) {
+      try {
+        const contactRes = await fetch(
+          `https://api.resend.com/audiences/${RESEND_MASTER_AUDIENCE_ID}/contacts`,
           {
+            method: 'POST',
             headers: {
-              'apikey': serviceRoleKey,
-              'Authorization': `Bearer ${serviceRoleKey}`,
+              'Authorization': `Bearer ${RESEND_CONTACTS_KEY}`,
               'Content-Type': 'application/json',
             },
+            body: JSON.stringify({
+              email: normalizedEmail,
+              first_name: firstName,
+              unsubscribed: false,
+            }),
           }
         );
-        const existing = await checkRes.json();
-        const alreadyNurtured = Array.isArray(existing) && existing.length > 0 && existing[0].email_1_sent_at;
+        if (contactRes.ok) {
+          const contactData = await contactRes.json();
+          resendContactId = contactData?.id ?? null;
+          console.log('Resend contact created:', resendContactId);
+        } else if (contactRes.status === 409) {
+          // Contact already exists in this audience. Not an error, just means
+          // the signup came through a path where we don't yet know the prior
+          // resend_contact_id. A follow-up GET can retrieve it; for now we
+          // leave resend_contact_id null and let reconciliation fill it in.
+          console.log('Resend contact already exists for', normalizedEmail);
+        } else {
+          const errText = await contactRes.text().catch(() => '');
+          console.warn('Resend contact create failed:', contactRes.status, errText);
+          // Non-fatal. The waitlist_signups row exists; the needs_sync partial
+          // index lets a reconciliation worker pick it up on a later pass.
+        }
+      } catch (resendErr) {
+        console.warn('Resend contact create exception:', String(resendErr));
+      }
+    }
 
-        if (alreadyNurtured) {
-          // User retook quiz — update constitution info but DON'T re-send nurture sequence
-          console.log(`Existing nurture sequence for ${email} — updating constitution info only`);
+    // ── Step 3: Mark waitlist_signups synced (non-quiz paths) ──
+    if (waitlistId && resendContactId) {
+      await waitlistMarkSyncedById(waitlistId, resendContactId).catch((e) =>
+        console.warn('waitlist_signups sync update failed:', String(e))
+      );
+    }
+
+    // ── Step 4: Quiz completion path (behavior preserved) ──
+    // quiz_completions INSERT/UPDATE triggers (migrations 20260423232500 and
+    // 20260423235500) maintain the waitlist_signups row for entry_funnel='quiz_funnel'.
+    if (source === 'constitution_assessment' && constitutionType) {
+      const slugInfo = getSlugInfo(
+        constitutionType,
+        constitutionSlug,
+        constitutionName,
+        constitutionNickname,
+      );
+      const name = slugInfo.name;
+      const slug = slugInfo.slug;
+
+      const checkRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/quiz_completions?email=eq.${encodeURIComponent(normalizedEmail)}&select=id,email_1_sent_at&limit=1`,
+        {
+          headers: {
+            'apikey': SUPABASE_SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      const existing = await checkRes.json();
+      const alreadyNurtured =
+        Array.isArray(existing) && existing.length > 0 && existing[0].email_1_sent_at;
+
+      if (alreadyNurtured) {
+        // Retake. Update constitution fields; the AFTER UPDATE trigger refreshes
+        // waitlist_signups.metadata to the latest result while preserving entered_at.
+        console.log(`Existing nurture sequence for ${normalizedEmail} — updating constitution info only`);
+        await fetch(
+          `${SUPABASE_URL}/rest/v1/quiz_completions?email=eq.${encodeURIComponent(normalizedEmail)}`,
+          {
+            method: 'PATCH',
+            headers: {
+              'apikey': SUPABASE_SERVICE_ROLE_KEY,
+              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal',
+            },
+            body: JSON.stringify({
+              constitution_type: slug,
+              constitution_name: name,
+              constitution_nickname: name,
+            }),
+          }
+        );
+      } else {
+        // First-time completion. Insert the row (AFTER INSERT trigger creates
+        // the waitlist_signups row) and schedule the 4-email nurture drip.
+        const now = new Date();
+        const nowIso = now.toISOString();
+
+        if (Array.isArray(existing) && existing.length > 0) {
           await fetch(
-            `${supabaseUrl}/rest/v1/quiz_completions?email=eq.${encodeURIComponent(email)}`,
+            `${SUPABASE_URL}/rest/v1/quiz_completions?email=eq.${encodeURIComponent(normalizedEmail)}`,
             {
               method: 'PATCH',
               headers: {
-                'apikey': serviceRoleKey,
-                'Authorization': `Bearer ${serviceRoleKey}`,
+                'apikey': SUPABASE_SERVICE_ROLE_KEY,
+                'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
                 'Content-Type': 'application/json',
                 'Prefer': 'return=minimal',
               },
               body: JSON.stringify({
-                constitution_type: slug,
-                constitution_name: name,
-                constitution_nickname: name,
-              }),
-            }
-          );
-        } else {
-          // New quiz completion — insert row and schedule nurture emails 1-4
-          const now = new Date();
-          const nowIso = now.toISOString();
-
-          // Insert or update quiz_completion row
-          if (Array.isArray(existing) && existing.length > 0) {
-            await fetch(
-              `${supabaseUrl}/rest/v1/quiz_completions?email=eq.${encodeURIComponent(email)}`,
-              {
-                method: 'PATCH',
-                headers: {
-                  'apikey': serviceRoleKey,
-                  'Authorization': `Bearer ${serviceRoleKey}`,
-                  'Content-Type': 'application/json',
-                  'Prefer': 'return=minimal',
-                },
-                body: JSON.stringify({
-                  constitution_type: slug,
-                  constitution_name: name,
-                  constitution_nickname: name,
-                  email_1_sent_at: nowIso,
-                  email_2_sent_at: nowIso,
-                  email_3_sent_at: nowIso,
-                  email_4_sent_at: nowIso,
-                }),
-              }
-            );
-          } else {
-            await fetch(`${supabaseUrl}/rest/v1/quiz_completions`, {
-              method: 'POST',
-              headers: {
-                'apikey': serviceRoleKey,
-                'Authorization': `Bearer ${serviceRoleKey}`,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=minimal',
-              },
-              body: JSON.stringify({
-                email,
-                first_name: firstName,
                 constitution_type: slug,
                 constitution_name: name,
                 constitution_nickname: name,
@@ -900,99 +981,251 @@ Deno.serve(async (req) => {
                 email_3_sent_at: nowIso,
                 email_4_sent_at: nowIso,
               }),
-            });
-          }
-          console.log('Quiz completion recorded, scheduling nurture emails');
-
-          // Schedule nurture emails 1-4 via Resend (fire-and-forget)
-          const scheduleNurture = async () => {
-            try {
-              const sendHeaders = {
-                'Authorization': `Bearer ${RESEND_API_KEY}`,
-                'Content-Type': 'application/json',
-              };
-              const from = 'Camila at The Eden Institute <hello@edeninstitute.health>';
-              const replyTo = 'hello@edeninstitute.health';
-
-              // Email 1 — immediate
-              const e1 = buildNurtureEmail1(firstName, name, slug);
-              await fetch('https://api.resend.com/emails', {
-                method: 'POST',
-                headers: sendHeaders,
-                body: JSON.stringify({ from, reply_to: replyTo, to: [email], subject: e1.subject, html: e1.html }),
-              });
-              console.log('Nurture Email 1 sent to', email);
-
-              // Email 2 — Day 2
-              const e2 = buildNurtureEmail2(firstName, name, slug);
-              const day2 = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString();
-              await fetch('https://api.resend.com/emails', {
-                method: 'POST',
-                headers: sendHeaders,
-                body: JSON.stringify({ from, reply_to: replyTo, to: [email], subject: e2.subject, html: e2.html, scheduled_at: day2 }),
-              });
-              console.log('Nurture Email 2 scheduled for', day2);
-
-              // Email 3 — Day 4
-              const e3 = buildNurtureEmail3(firstName, name, slug);
-              const day4 = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000).toISOString();
-              await fetch('https://api.resend.com/emails', {
-                method: 'POST',
-                headers: sendHeaders,
-                body: JSON.stringify({ from, reply_to: replyTo, to: [email], subject: e3.subject, html: e3.html, scheduled_at: day4 }),
-              });
-              console.log('Nurture Email 3 scheduled for', day4);
-
-              // Email 4 — Day 6
-              const e4 = buildNurtureEmail4(firstName, name, slug);
-              const day6 = new Date(now.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString();
-              await fetch('https://api.resend.com/emails', {
-                method: 'POST',
-                headers: sendHeaders,
-                body: JSON.stringify({ from, reply_to: replyTo, to: [email], subject: e4.subject, html: e4.html, scheduled_at: day6 }),
-              });
-              console.log('Nurture Email 4 scheduled for', day6);
-            } catch (nurtureErr) {
-              const nurtureErrorMessage = nurtureErr instanceof Error ? nurtureErr.message : String(nurtureErr);
-              console.error('Nurture scheduling error:', nurtureErrorMessage);
             }
-          };
-
-          // Fire-and-forget — don't block the response
-          scheduleNurture().catch((err) => {
-            const schedulingErrorMessage = err instanceof Error ? err.message : String(err);
-            console.error('Nurture scheduling failed:', schedulingErrorMessage);
+          );
+        } else {
+          await fetch(`${SUPABASE_URL}/rest/v1/quiz_completions`, {
+            method: 'POST',
+            headers: {
+              'apikey': SUPABASE_SERVICE_ROLE_KEY,
+              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal',
+            },
+            body: JSON.stringify({
+              email: normalizedEmail,
+              first_name: firstName,
+              constitution_type: slug,
+              constitution_name: name,
+              constitution_nickname: name,
+              email_1_sent_at: nowIso,
+              email_2_sent_at: nowIso,
+              email_3_sent_at: nowIso,
+              email_4_sent_at: nowIso,
+            }),
           });
         }
+        console.log('Quiz completion recorded, scheduling nurture emails');
+
+        // Schedule nurture emails 1-4 (fire-and-forget).
+        const scheduleNurture = async () => {
+          try {
+            const sendHeaders = {
+              'Authorization': `Bearer ${RESEND_API_KEY}`,
+              'Content-Type': 'application/json',
+            };
+            const from = 'Camila at The Eden Institute <hello@edeninstitute.health>';
+            const replyTo = 'hello@edeninstitute.health';
+
+            const e1 = buildNurtureEmail1(firstName, name, slug);
+            await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: sendHeaders,
+              body: JSON.stringify({ from, reply_to: replyTo, to: [normalizedEmail], subject: e1.subject, html: e1.html }),
+            });
+            console.log('Nurture Email 1 sent to', normalizedEmail);
+
+            const e2 = buildNurtureEmail2(firstName, name, slug);
+            const day2 = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString();
+            await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: sendHeaders,
+              body: JSON.stringify({ from, reply_to: replyTo, to: [normalizedEmail], subject: e2.subject, html: e2.html, scheduled_at: day2 }),
+            });
+            console.log('Nurture Email 2 scheduled for', day2);
+
+            const e3 = buildNurtureEmail3(firstName, name, slug);
+            const day4 = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000).toISOString();
+            await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: sendHeaders,
+              body: JSON.stringify({ from, reply_to: replyTo, to: [normalizedEmail], subject: e3.subject, html: e3.html, scheduled_at: day4 }),
+            });
+            console.log('Nurture Email 3 scheduled for', day4);
+
+            const e4 = buildNurtureEmail4(firstName, name, slug);
+            const day6 = new Date(now.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString();
+            await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: sendHeaders,
+              body: JSON.stringify({ from, reply_to: replyTo, to: [normalizedEmail], subject: e4.subject, html: e4.html, scheduled_at: day6 }),
+            });
+            console.log('Nurture Email 4 scheduled for', day6);
+          } catch (nurtureErr) {
+            console.error('Nurture scheduling error:', String(nurtureErr));
+          }
+        };
+
+        // Fire-and-forget: don't block the response on nurture scheduling.
+        scheduleNurture().catch((err) =>
+          console.error('Nurture scheduling failed:', String(err))
+        );
       }
-    } else if (audienceId === COURSE_AUDIENCE_ID) {
+
+      // Backfill resend_contact_id on the quiz_funnel waitlist_signups row
+      // (which the trigger created/refreshed above).
+      if (resendContactId) {
+        await waitlistMarkSyncedByFunnel(normalizedEmail, 'quiz_funnel', resendContactId).catch((e) =>
+          console.warn('quiz_funnel waitlist sync update failed:', String(e))
+        );
+      }
+    }
+
+    // ── Step 5: Welcome email dispatch (non-quiz paths) ──
+    let emailContent: { subject: string; html: string } | null = null;
+    if (entry_funnel === 'course_tier2') {
       emailContent = buildFoundationsEmail(firstName);
-    } else if (audienceId === APP_AUDIENCE_ID) {
+    } else if (entry_funnel === 'app_beta') {
       emailContent = buildAppBetaEmail(firstName);
-    } else if (audienceId === HOMESCHOOL_AUDIENCE_ID && source === "homeschool") {
+    } else if (entry_funnel === 'homeschool') {
       emailContent = buildHomeschoolEmail(firstName);
-    } else if (audienceId === COMMUNITY_AUDIENCE_ID && source === "community") {
+    } else if (entry_funnel === 'community') {
       emailContent = buildCommunityEmail(firstName);
     }
+    // edens_table currently has no welcome email.
+    // quiz_funnel is handled by the nurture sequence above.
 
+    let welcomeSent = false;
     if (emailContent) {
-      sendEmail(email, emailContent.subject, emailContent.html).catch((err) => {
-        const backgroundEmailError = err instanceof Error ? err.message : String(err);
-        console.error('Background email send error:', backgroundEmailError);
-      });
+      try {
+        await sendEmail(normalizedEmail, emailContent.subject, emailContent.html);
+        welcomeSent = true;
+      } catch (emailErr) {
+        console.error('Welcome email send error:', String(emailErr));
+      }
     }
 
-    return new Response(
-      JSON.stringify({ success: true, message: 'Your results are on their way. Check your inbox.', constitutionType, source, topicResults }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return json(200, {
+      success: true,
+      waitlist_id: waitlistId,
+      entry_funnel,
+      resend_contact_id: resendContactId,
+      welcome_email_sent: welcomeSent,
+      message: "You're on the list. Check your inbox.",
+    });
   } catch (err) {
     const unhandledMessage = err instanceof Error ? err.message : String(err);
     const unhandledStack = err instanceof Error ? err.stack : undefined;
     console.error('Unhandled error:', unhandledMessage, unhandledStack);
-    return new Response(
-      JSON.stringify({ error: unhandledMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return json(500, { error: unhandledMessage });
   }
 });
+
+// ── Helpers ──
+
+function json(status: number, payload: unknown): Response {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+// Insert a waitlist_signups row; on (email, entry_funnel) conflict return
+// the existing row. Returns null on unexpected failure.
+async function waitlistUpsert(row: {
+  email: string;
+  first_name: string;
+  entry_funnel: EntryFunnel;
+  source_url: string | null;
+  referrer: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  utm_term: string | null;
+  utm_content: string | null;
+  consents: Record<string, unknown>;
+}): Promise<{ id: string; resend_contact_id: string | null } | null> {
+  const insertRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/waitlist_signups?select=id,resend_contact_id`,
+    {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_SERVICE_ROLE_KEY!,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY!}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+      },
+      body: JSON.stringify(row),
+    }
+  );
+
+  if (insertRes.ok) {
+    const data = await insertRes.json();
+    if (Array.isArray(data) && data.length > 0) {
+      return { id: data[0].id, resend_contact_id: data[0].resend_contact_id ?? null };
+    }
+  }
+
+  // Unique violation (409) → row exists → fetch and return it.
+  if (insertRes.status === 409) {
+    const fetchRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/waitlist_signups?email=eq.${encodeURIComponent(row.email)}&entry_funnel=eq.${row.entry_funnel}&select=id,resend_contact_id&limit=1`,
+      {
+        headers: {
+          'apikey': SUPABASE_SERVICE_ROLE_KEY!,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY!}`,
+        },
+      }
+    );
+    if (fetchRes.ok) {
+      const existing = await fetchRes.json();
+      if (Array.isArray(existing) && existing.length > 0) {
+        return { id: existing[0].id, resend_contact_id: existing[0].resend_contact_id ?? null };
+      }
+    }
+  }
+
+  const errText = await insertRes.text().catch(() => '');
+  console.error('waitlist_signups upsert failed:', insertRes.status, errText);
+  return null;
+}
+
+async function waitlistMarkSyncedById(id: string, resendContactId: string): Promise<void> {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/waitlist_signups?id=eq.${id}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_SERVICE_ROLE_KEY!,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY!}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({
+        resend_contact_id: resendContactId,
+        resend_synced_at: new Date().toISOString(),
+      }),
+    }
+  );
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    throw new Error(`PATCH by id failed: ${res.status} ${txt}`);
+  }
+}
+
+async function waitlistMarkSyncedByFunnel(
+  email: string,
+  funnel: EntryFunnel,
+  resendContactId: string,
+): Promise<void> {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/waitlist_signups?email=eq.${encodeURIComponent(email)}&entry_funnel=eq.${funnel}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_SERVICE_ROLE_KEY!,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY!}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({
+        resend_contact_id: resendContactId,
+        resend_synced_at: new Date().toISOString(),
+      }),
+    }
+  );
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    throw new Error(`PATCH by funnel failed: ${res.status} ${txt}`);
+  }
+}
