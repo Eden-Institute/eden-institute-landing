@@ -11,7 +11,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type AuthMode = "signup" | "signin" | "reset";
 
-const emailSchema = z.string().email({ message: "Enter a valid email address" });
+const emailSchema = z.string().email({
+  message: "Enter a valid email address",
+});
 const passwordSchema = z
   .string()
   .min(8, { message: "Password must be at least 8 characters" });
@@ -20,10 +22,12 @@ const signupSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
 });
+
 const signinSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, { message: "Enter your password" }),
 });
+
 const resetSchema = z.object({ email: emailSchema });
 
 interface FormValues {
@@ -41,13 +45,23 @@ interface Props {
  * emailRedirectTo and redirectTo URLs point at /apothecary/auth/update-password
  * so the PASSWORD_RECOVERY flow lands on the set-new-password form.
  *
+ * Post-signup routing (Stage 6.3.4):
+ * - Email confirmation flow (default Supabase config): emailRedirectTo points
+ *   at /apothecary/welcome-tour, so first-time users land on the onboarding
+ *   tour after clicking the confirmation link.
+ * - Immediate-session flow (email confirmation off): if no return_to is set,
+ *   route to /apothecary/welcome-tour. If return_to is present, honor it —
+ *   the user came in with intent (e.g., started from a deep link or a paid
+ *   tier card) and the welcome tour can be revisited later.
+ *
  * AuthContext listens for the PASSWORD_RECOVERY event and handles navigation;
  * redirectTo here just needs to be an allowed URL in Supabase Auth settings.
  */
 export function AuthForm({ mode }: Props) {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const returnTo = params.get("return_to") ?? "/apothecary";
+  const returnToParam = params.get("return_to");
+  const signinReturnTo = returnToParam ?? "/apothecary";
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -55,8 +69,8 @@ export function AuthForm({ mode }: Props) {
     mode === "signup"
       ? signupSchema
       : mode === "signin"
-      ? signinSchema
-      : resetSchema;
+        ? signinSchema
+        : resetSchema;
 
   const {
     register,
@@ -75,13 +89,17 @@ export function AuthForm({ mode }: Props) {
           email: values.email,
           password: values.password ?? "",
           options: {
-            emailRedirectTo: `${window.location.origin}/apothecary`,
+            emailRedirectTo: `${window.location.origin}/apothecary/welcome-tour`,
           },
         });
         if (error) throw error;
         if (data.session) {
           toast.success("Welcome — you're signed in.");
-          navigate(returnTo, { replace: true });
+          // Honor explicit intent (deep link or paid-tier card with
+          // return_to=/apothecary/pricing); otherwise route first-time
+          // signups through the welcome tour.
+          const target = returnToParam ?? "/apothecary/welcome-tour";
+          navigate(target, { replace: true });
         } else {
           setSubmitted(true);
           toast.success("Check your email to confirm your account.");
@@ -93,7 +111,7 @@ export function AuthForm({ mode }: Props) {
         });
         if (error) throw error;
         toast.success("Signed in.");
-        navigate(returnTo, { replace: true });
+        navigate(signinReturnTo, { replace: true });
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(
           values.email,
@@ -138,15 +156,15 @@ export function AuthForm({ mode }: Props) {
     mode === "signup"
       ? "Create your Apothecary account"
       : mode === "signin"
-      ? "Sign in to Apothecary"
-      : "Reset your password";
+        ? "Sign in to Apothecary"
+        : "Reset your password";
 
   const submitLabel =
     mode === "signup"
       ? "Create account"
       : mode === "signin"
-      ? "Sign in"
-      : "Send reset link";
+        ? "Sign in"
+        : "Send reset link";
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -158,7 +176,6 @@ export function AuthForm({ mode }: Props) {
           {title}
         </h1>
       </div>
-
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input
@@ -173,7 +190,6 @@ export function AuthForm({ mode }: Props) {
           </p>
         )}
       </div>
-
       {mode !== "reset" && (
         <div className="space-y-2">
           <Label htmlFor="password">Password</Label>
@@ -192,7 +208,6 @@ export function AuthForm({ mode }: Props) {
           )}
         </div>
       )}
-
       <Button
         type="submit"
         variant="eden"
@@ -202,7 +217,6 @@ export function AuthForm({ mode }: Props) {
       >
         {submitting ? "Please wait…" : submitLabel}
       </Button>
-
       <div className="text-center text-sm font-body text-muted-foreground space-y-1">
         {mode === "signin" && (
           <>
