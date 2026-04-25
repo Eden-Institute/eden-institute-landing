@@ -6,12 +6,14 @@ import { useCurrentTier, Tier } from "@/hooks/useCurrentTier";
 
 type NavItem = { to: string; label: string; end?: boolean };
 
-const PUBLIC_NAV_LINKS: NavItem[] = [
+/**
+ * Authed-only nav links. Unauthenticated visitors only ever see /apothecary/start
+ * (Locked Decision §0.8 v3.3 #21 — no anonymous browsing inside the app), so the
+ * middle nav surface is empty for them by design.
+ */
+const AUTHED_NAV_LINKS: NavItem[] = [
   { to: "/apothecary", label: "Home", end: true },
   { to: "/apothecary/pricing", label: "Pricing" },
-];
-
-const AUTHED_NAV_LINKS: NavItem[] = [
   { to: "/apothecary/account", label: "Account" },
 ];
 
@@ -27,15 +29,15 @@ export function ApothecaryNav() {
   const { user, signOut } = useAuth();
   const { data: tier } = useCurrentTier();
 
-  const navLinks: NavItem[] = user
-    ? [...PUBLIC_NAV_LINKS, ...AUTHED_NAV_LINKS]
-    : PUBLIC_NAV_LINKS;
+  // Logo routes to the directory for authed users, to the public landing
+  // for everyone else. Keeps the nav self-consistent with the auth wall.
+  const logoTo = user ? "/apothecary" : "/apothecary/start";
 
   return (
     <nav className="border-b border-border/40 bg-background sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
         <Link
-          to="/apothecary"
+          to={logoTo}
           className="font-serif text-xl font-semibold flex items-center gap-2"
           style={{ color: "hsl(var(--eden-bark))" }}
         >
@@ -45,27 +47,31 @@ export function ApothecaryNav() {
           />
           Eden Apothecary
         </Link>
-        <div className="hidden md:flex items-center gap-6">
-          {navLinks.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              end={link.end}
-              className={({ isActive }) =>
-                `font-body text-sm transition-colors ${
-                  isActive
-                    ? "font-medium"
-                    : "text-muted-foreground hover:text-foreground"
-                }`
-              }
-              style={({ isActive }) =>
-                isActive ? { color: "hsl(var(--eden-bark))" } : {}
-              }
-            >
-              {link.label}
-            </NavLink>
-          ))}
-        </div>
+
+        {user && (
+          <div className="hidden md:flex items-center gap-6">
+            {AUTHED_NAV_LINKS.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                end={link.end}
+                className={({ isActive }) =>
+                  `font-body text-sm transition-colors ${
+                    isActive
+                      ? "font-medium"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`
+                }
+                style={({ isActive }) =>
+                  isActive ? { color: "hsl(var(--eden-bark))" } : {}
+                }
+              >
+                {link.label}
+              </NavLink>
+            ))}
+          </div>
+        )}
+
         <div className="flex items-center gap-3">
           {user && tier && tier !== "anon" && (
             <span
