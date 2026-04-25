@@ -98,7 +98,7 @@ const GuideTemplate = ({ guide }: Props) => {
               The Eden Institute
             </p>
             <p className="italic text-lg mb-10" style={{ color: COLORS.sage }}>
-              Your Body Typeal Deep-Dive Guide
+              Your Constitutional Deep-Dive Guide
             </p>
 
             <GoldDivider />
@@ -339,7 +339,7 @@ const GuideTemplate = ({ guide }: Props) => {
                 The Foundations Course
               </p>
               <p className="italic text-sm mb-4" style={{ color: COLORS.goldPale }}>
-                Learn to read your body type, understand your body's language, and match it to God's provision in the plant world.
+                Learn to read your body pattern, understand your body's language, and match it to God's provision in the plant world.
               </p>
               <a href="https://learn.edeninstitute.health/course/back-to-eden1" target="_blank" rel="noopener noreferrer" className="inline-block px-8 py-3 rounded text-sm uppercase tracking-wider font-bold no-underline" style={{ backgroundColor: COLORS.gold, color: COLORS.forest, fontFamily: "'Playfair Display', serif" }}>
                 Enroll Now — $197

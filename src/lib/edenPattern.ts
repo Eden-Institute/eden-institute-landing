@@ -286,11 +286,12 @@ export function computeMatchRelationship(
 }
 
 /**
- * Resolve a free-text constitution string (which may come from the
- * existing on-site quiz that writes Western/Ayurvedic/TCM labels into
- * profiles.constitution_type) to an Eden Pattern, with fall-throughs.
- * Returns null when no clean mapping is possible — the badge UI then
- * renders "Take the quiz to see your Pattern" rather than a wrong badge.
+ * Resolve a free-text constitution string from profiles.constitution_type
+ * to an Eden Pattern, with fall-throughs. Per worldview lock §0.8, only
+ * Western classical frameworks are surfaced — Ayurvedic/TCM are not in
+ * scope for any Apothecary surface. Returns null when no clean mapping is
+ * possible — the badge UI then renders "Take the quiz to see your Pattern"
+ * rather than a wrong badge.
  */
 export function resolveEdenPattern(value: string | null | undefined): EdenPatternName | null {
   if (!value) return null;
@@ -316,8 +317,8 @@ export function resolveEdenPattern(value: string | null | undefined): EdenPatter
     if (name.replace(/^the\s+/i, "").toLowerCase() === norm) return name;
   }
 
-  // Future: Western/Ayurvedic/TCM mapping table. For now, return null and
-  // let the UI surface the take-the-quiz affordance — better than a
-  // wrong-but-confident badge.
+  // Per worldview lock §0.8, no Eastern-framework labels are mapped here.
+  // Unrecognized values fall through to null and the UI surfaces the
+  // take-the-quiz affordance — better than a wrong-but-confident badge.
   return null;
 }

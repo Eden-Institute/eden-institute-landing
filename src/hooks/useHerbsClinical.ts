@@ -10,7 +10,7 @@ export type HerbClinicalRow =
  *
  * Reads from `public.herbs_clinical_v` — the 47-column, 100-row view that
  * exposes the full clinical overlay (tissue states, organ systems, chief
- * complaints, constitutional matches across Western / Ayurvedic / TCM,
+ * complaints, Western constitutional matches,
  * drug interactions, preparations, dosage, citations) plus twelve jsonb
  * `_rel` columns carrying denormalized junction data for the eventual
  * detail-page render.

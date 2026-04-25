@@ -20,14 +20,14 @@ const CourseSection = () => {
           <div className="eden-divider" />
 
           <p className="font-body text-lg text-primary-foreground/85 leading-relaxed mb-8">
-            A structured, multi-tiered clinical herbalism training through a biblical worldview. 100+ herbs. 11 body systems. Body type matching. Real pattern recognition.
+            A structured, multi-tiered clinical herbalism training through a biblical worldview. 100+ herbs. 11 body systems. Body pattern matching. Real pattern recognition.
           </p>
 
           <div className="grid sm:grid-cols-3 gap-6 mb-12">
             {[
             { number: "100+", label: "Herbs Covered" },
             { number: "11", label: "Body Systems" },
-            { number: "3", label: "Body Type Axes" }].
+            { number: "3", label: "Body Pattern Axes" }].
             map((stat) =>
             <div key={stat.label} className="border border-primary-foreground/15 p-6">
                 <p className="font-serif text-3xl font-bold text-eden-gold mb-1">{stat.number}</p>

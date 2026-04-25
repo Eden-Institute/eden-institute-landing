@@ -105,7 +105,7 @@ const Courses = () => {
               </h3>
               <p className="my-4 font-body text-sm leading-relaxed text-muted-foreground">
                 The theological foundation of plant medicine. Creation-based health, the Five
-                Tenets, and your body type.
+                Tenets, and your body pattern.
               </p>
               <ul className="mb-6 space-y-2 text-sm text-muted-foreground">
                 <li className="flex gap-2">
@@ -120,7 +120,7 @@ const Courses = () => {
                     className="mt-0.5 h-4 w-4 flex-shrink-0"
                     style={{ color: "hsl(var(--eden-forest))" }}
                   />
-                  Body Type Quiz included
+                  Body Pattern Quiz included
                 </li>
                 <li className="flex gap-2">
                   <CheckCircle
@@ -246,7 +246,7 @@ const Courses = () => {
                 Tier 3 — Clinical Practice
               </h3>
               <p className="my-4 font-body text-sm leading-relaxed text-muted-foreground">
-                Advanced clinical application — tissue states, body type prescribing, and
+                Advanced clinical application — tissue states, body pattern prescribing, and
                 supervised practice.
               </p>
               <ul className="mb-6 space-y-2 text-sm text-muted-foreground">
@@ -282,7 +282,7 @@ const Courses = () => {
           </h2>
           <p className="mb-10 font-body text-lg leading-relaxed" style={{ color: "rgba(255,255,255,0.8)" }}>
             Most courses teach you what a plant does. We teach you to read the person first —
-            terrain, body type, tissue state — then match the plant.
+            terrain, body pattern, tissue state — then match the plant.
           </p>
           <div className="grid gap-6 text-left md:grid-cols-3">
             <div className="rounded-lg p-6" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
@@ -295,7 +295,7 @@ const Courses = () => {
             <div className="rounded-lg p-6" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
               <h3 className="mb-3 font-serif text-lg font-semibold text-white">Terrain-Based</h3>
               <p className="font-body text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>
-                We read the terrain, not the symptom. Body types, tissue states, and
+                We read the terrain, not the symptom. Body patterns, tissue states, and
                 energetics are the tools.
               </p>
             </div>
@@ -316,7 +316,7 @@ const Courses = () => {
             Not Sure Where to Start?
           </h2>
           <p className="mb-8 font-body text-muted-foreground">
-            Take the 2-minute Body Type Quiz. Discover your body pattern first.
+            Take the 2-minute Body Pattern Quiz. Discover your body pattern first.
           </p>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
             <Button variant="eden" size="xl" onClick={() => setQuiz(true)}>

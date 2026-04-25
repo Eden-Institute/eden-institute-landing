@@ -57,7 +57,7 @@ const questions: Question[] = [
     { label: "C", text: "Irregular — alternates", score: "neutral" },
     { label: "D", text: "Generally normal", score: "neutral" },
   ]},
-  { id: 8, axis: "fluid", question: "How would you describe your body type?", options: [
+  { id: 8, axis: "fluid", question: "How would you describe your body's build?", options: [
     { label: "A", text: "I gain weight easily, retain fluid, soft or puffy tissue", score: "Damp" },
     { label: "B", text: "I stay lean naturally, dry out easily, firm tissue", score: "Dry" },
     { label: "C", text: "I fluctuate", score: "neutral" },
@@ -192,7 +192,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
         <div className="px-5 md:px-6 py-4 md:py-5 border-b" style={{ borderColor: "hsl(40, 20%, 80%)" }}>
           <div className="flex items-center justify-between pr-10">
             <span className="font-serif text-base md:text-lg font-bold" style={{ color: "#1C3A2E" }}>
-              Body Type Quiz
+              Body Pattern Quiz
             </span>
             <span className="font-accent text-xs tracking-[0.2em] uppercase hidden sm:block" style={{ color: "#C9A84C" }}>
               The Eden Institute
@@ -203,7 +203,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
         {phase === "intro" && (
           <div className="px-5 md:px-6 py-8 md:py-12 text-center">
             <h2 className="font-serif text-xl md:text-2xl lg:text-3xl font-bold mb-6" style={{ color: "#1C3A2E" }}>
-              Discover Your Body Type
+              Discover Your Body Pattern
             </h2>
             <p className="font-body text-base md:text-lg leading-relaxed mb-8 max-w-lg mx-auto" style={{ color: "hsl(30, 10%, 40%)", fontFamily: "'EB Garamond', 'Crimson Text', Georgia, serif" }}>
               Most people have tried herbs and gotten inconsistent results. That's because herbalism is not one-size-fits-all — your body has a type. Answer 12 questions to discover yours. No email required to start.
@@ -279,7 +279,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
         {phase === "gate" && profile && (
           <div className="px-5 md:px-6 py-8 md:py-10 text-center">
             <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>
-              Your Body Type
+              Your Body Pattern
             </span>
             <h2 className="font-serif text-xl md:text-2xl lg:text-3xl font-bold mt-3 mb-2" style={{ color: "#1C3A2E" }}>
               {profile.nickname}
@@ -293,7 +293,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
 
             <div className="p-5 md:p-6 border rounded text-left" style={{ borderColor: "hsl(40, 20%, 80%)", backgroundColor: "white" }}>
               <h3 className="font-serif text-lg font-bold mb-2" style={{ color: "#1C3A2E" }}>
-                Get Your Full Body Type Profile
+                Get Your Full Body Pattern Profile
               </h3>
               <p className="font-body text-sm mb-5" style={{ color: "hsl(30, 10%, 40%)" }}>
                 Enter your name and email to unlock your full profile, personalized herb recommendations, and join our community.
@@ -432,7 +432,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
                 Your Starter Herb Kit
               </h3>
               <p className="font-body text-sm leading-relaxed mb-4" style={{ color: "#1C3A2E" }}>
-                We curated the exact herbs for your body type on Amazon. One-click shopping list — everything you need to get started.
+                We curated the exact herbs for your body pattern on Amazon. One-click shopping list — everything you need to get started.
               </p>
               <a
                 href={profile.amazonUrl}
@@ -454,7 +454,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
                 Ready to Go Deeper?
               </h3>
               <p className="font-body text-base mb-6" style={{ color: "#F5F0E8" }}>
-                The Foundations Course teaches you how to read your body type and match it to God's provision in the plant world.
+                The Foundations Course teaches you how to read your body pattern and match it to God's provision in the plant world.
               </p>
               <a
                 href="https://learn.edeninstitute.health/course/back-to-eden1"

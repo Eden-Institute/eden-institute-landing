@@ -435,9 +435,7 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
                 </section>
               )}
 
-              {(herb.western_constitution_match ||
-                herb.ayurvedic_dosha_match ||
-                herb.tcm_pattern_match) && (
+              {herb.western_constitution_match && (
                 <section>
                   <h4
                     className={sectionLabel}
@@ -446,43 +444,12 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
                     Constitutional match
                   </h4>
                   <dl className="font-body text-sm leading-relaxed space-y-1">
-                    {herb.western_constitution_match && (
-                      <div>
-                        <dt className="inline font-medium">Western: </dt>
-                        <dd className="inline">
-                          {herb.western_constitution_match}
-                        </dd>
-                      </div>
-                    )}
-                    {herb.ayurvedic_dosha_match && (
-                      <div>
-                        <dt className="inline font-medium">Ayurvedic: </dt>
-                        <dd className="inline">
-                          {herb.ayurvedic_dosha_match}
-                          {herb.ayurvedic_dosha_aggravates && (
-                            <span className="text-muted-foreground">
-                              {" "}
-                              (aggravates: {herb.ayurvedic_dosha_aggravates})
-                            </span>
-                          )}
-                        </dd>
-                      </div>
-                    )}
-                    {herb.tcm_pattern_match && (
-                      <div>
-                        <dt className="inline font-medium">TCM: </dt>
-                        <dd className="inline">
-                          {herb.tcm_pattern_match}
-                          {herb.tcm_contraindicated_patterns && (
-                            <span className="text-muted-foreground">
-                              {" "}
-                              (contraindicated:{" "}
-                              {herb.tcm_contraindicated_patterns})
-                            </span>
-                          )}
-                        </dd>
-                      </div>
-                    )}
+                    <div>
+                      <dt className="inline font-medium">Western: </dt>
+                      <dd className="inline">
+                        {herb.western_constitution_match}
+                      </dd>
+                    </div>
                   </dl>
                 </section>
               )}

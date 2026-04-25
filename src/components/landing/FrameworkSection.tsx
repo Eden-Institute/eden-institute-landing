@@ -6,14 +6,14 @@ const axes = [
     title: "Temperature",
     spectrum: "Hot ↔ Cold",
     description:
-      "Every person and every plant carries a thermal signature. Understanding this axis is foundational to body type matching — warming herbs for cold constitutions, cooling herbs for excess heat.",
+      "Every person and every plant carries a thermal signature. Understanding this axis is foundational to body pattern matching — warming herbs for cold constitutions, cooling herbs for excess heat.",
   },
   {
     icon: "💧",
     title: "Fluid",
     spectrum: "Damp ↔ Dry",
     description:
-      "The body's fluid terrain reveals patterns of stagnation or depletion. Matching moistening or drying herbs to the person's body type tendency restores balance without suppression.",
+      "The body's fluid terrain reveals patterns of stagnation or depletion. Matching moistening or drying herbs to the person's body pattern tendency restores balance without suppression.",
   },
   {
     icon: "⚡",
@@ -37,7 +37,7 @@ const FrameworkSection = () => {
         <div className="eden-divider" />
 
         <p className="font-body text-lg text-muted-foreground text-center max-w-2xl mx-auto mb-16">
-          Matching plant to person is the core of biblical herbalism. Every herb and every body type can be understood through three fundamental axes.
+          Matching plant to person is the core of biblical herbalism. Every herb and every body pattern can be understood through three fundamental axes.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
