@@ -26,9 +26,24 @@ interface HerbDirectoryFiltersProps {
 }
 
 /**
- * Fields shared by both `herbs_public` and `herbs_clinical_v` — safe to read
- * regardless of whether the caller is on the anon or Seed+ code path.
+ * Stage 6.3.6 — filter surface over the unified `herbs_directory_v` row shape.
+ *
+ * Filter facets read fields from BAND 2 of the view (taste, temperature,
+ * part_used, plant_family). On a locked row those fields are NULL by design,
+ * so the facet domain is computed from unlocked rows only — anon/free see
+ * facet options drawn from the 50 free-tier herbs, Seed+ see options drawn
+ * from all 100. Matching also short-circuits on locked rows for any non-text
+ * facet (a locked row with NULL temperature can't be matched on temperature).
+ *
+ * The free-text search runs over identity columns (always populated), so
+ * search returns hits across all 100 rows for every caller — including
+ * locked ones, which then render as locked cards in the result grid.
+ *
+ * Stage 6.3.5 will rebuild this file with clinical filters (tissue state,
+ * organ system, chief complaint, Pattern of Eden) — those facets are gated
+ * to subscribers because the source columns are Seed+ only.
  */
+
 type SharedTextField =
   | "temperature"
   | "part_used"
@@ -52,10 +67,6 @@ function distinctValues(
   return Array.from(set).sort((a, b) => a.localeCompare(b));
 }
 
-/**
- * Extract individual taste tokens from comma-separated values
- * (e.g., "Bitter, Astringent, Sweet" → ["Astringent", "Bitter", "Sweet"]).
- */
 function distinctTastes(herbs: HerbRow[]): string[] {
   const set = new Set<string>();
   for (const h of herbs) {
@@ -72,7 +83,6 @@ function distinctTastes(herbs: HerbRow[]): string[] {
 
 const labelClass =
   "font-accent text-[11px] tracking-[0.25em] uppercase mb-1.5 block";
-
 const selectClass =
   "w-full rounded-md border bg-background px-3 py-1.5 text-sm font-body focus:outline-none focus:ring-1";
 
@@ -83,10 +93,13 @@ export function HerbDirectoryFilters({
   visibleCount,
   totalCount,
 }: HerbDirectoryFiltersProps) {
-  const temperatures = distinctValues(herbs, "temperature");
-  const partsUsed = distinctValues(herbs, "part_used");
-  const plantFamilies = distinctValues(herbs, "plant_family");
-  const tastes = distinctTastes(herbs);
+  // Facet domains drawn only from unlocked rows — locked rows have NULL
+  // body fields by design and would inject empty options otherwise.
+  const unlockedHerbs = herbs.filter((h) => h.is_locked !== true);
+  const temperatures = distinctValues(unlockedHerbs, "temperature");
+  const partsUsed = distinctValues(unlockedHerbs, "part_used");
+  const plantFamilies = distinctValues(unlockedHerbs, "plant_family");
+  const tastes = distinctTastes(unlockedHerbs);
 
   const hasActiveFilters =
     filters.query.trim().length > 0 ||
@@ -243,8 +256,10 @@ export function HerbDirectoryFilters({
 }
 
 /**
- * Pure filter predicate — applied client-side to the in-memory herb list.
- * Reads only fields that exist on both HerbPublicRow and HerbClinicalRow.
+ * Pure filter predicate. Search runs over identity columns (always
+ * populated) so locked rows can still match by name. Facet filters require
+ * the corresponding column to be present, which excludes locked rows from
+ * any facet match by construction (their body columns are NULL).
  */
 export function matchesFilters(
   herb: HerbRow,
