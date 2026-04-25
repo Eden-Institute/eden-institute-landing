@@ -1,9 +1,14 @@
 import { useState } from "react";
-import { ChevronDown, ChevronUp, AlertTriangle, Pill } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
-  isClinicalRow,
-  type HerbRow,
-} from "@/hooks/useApothecaryHerbs";
+  ChevronDown,
+  ChevronUp,
+  AlertTriangle,
+  Pill,
+  Lock,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { type HerbRow } from "@/hooks/useApothecaryHerbs";
 
 interface HerbCardProps {
   herb: HerbRow;
@@ -11,7 +16,6 @@ interface HerbCardProps {
 
 const chipClass =
   "inline-block px-2.5 py-0.5 rounded-full text-xs font-body tracking-wide";
-
 const sectionLabel =
   "font-accent text-[11px] tracking-[0.25em] uppercase mb-1.5";
 
@@ -28,13 +32,133 @@ function splitTokens(value: string | null | undefined): string[] {
     .filter((t) => t.length > 0);
 }
 
+/**
+ * Stage 6.3.6 visible-but-gated card.
+ *
+ * Three render states, derived entirely from the row shape (no out-of-band
+ * tier check):
+ *
+ * 1. LOCKED (`herb.is_locked === true`) — anon/free caller on a Seed-tier row.
+ *    Renders identity (name, latin, pronunciation) + a clear lock affordance
+ *    + an "Unlock with Seed" CTA. No body chips, no clinical sections, no
+ *    expand toggle. Per Locked Decision §0.8 #17.
+ *
+ * 2. BODY-ONLY (`!is_locked` AND clinical fields NULL) — anon/free caller on
+ *    a free-tier row. Existing herbs_public-style render: identity, body
+ *    chips (temperature, moisture, part used, plant family, taste), energetics
+ *    summary, and on expand: stewardship, biblical reference, cautions,
+ *    special populations. The footer "Clinical overlay unlocks with Seed"
+ *    teaser remains for this state.
+ *
+ * 3. CLINICAL (`!is_locked` AND clinical populated) — Seed+ caller, any row.
+ *    Full monograph: tissue states, organ system affinity, chief complaints,
+ *    constitutional matches, drug interactions, preparation & dosage, refer
+ *    threshold, plus identity + body. Footer teaser suppressed.
+ */
 export function HerbCard({ herb }: HerbCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const hasSafetyFlag = Boolean(
-    herb.cautions || herb.contraindications_general
-  );
-  const clinical = isClinicalRow(herb) ? herb : null;
 
+  const isLocked = herb.is_locked === true;
+  // The clinical band is present whenever any Seed+ column is non-null.
+  // tissue_states_indicated is the canonical discriminator (matches the
+  // Stage 6.3 isClinicalRow logic).
+  const hasClinical =
+    !isLocked && herb.tissue_states_indicated !== null;
+  const hasSafetyFlag =
+    !isLocked &&
+    Boolean(herb.cautions || herb.contraindications_general);
+
+  // -------------------------------------------------------------------------
+  // STATE 1: LOCKED — identity + lock affordance + CTA
+  // -------------------------------------------------------------------------
+  if (isLocked) {
+    return (
+      <article
+        className="rounded-lg border p-5 bg-background flex flex-col h-full"
+        style={{
+          borderColor: "hsl(var(--eden-gold) / 0.4)",
+          backgroundColor: "hsl(var(--eden-cream) / 0.4)",
+        }}
+        aria-label={`${herb.common_name ?? "Herb"} — locked, requires Seed`}
+      >
+        <header>
+          <div className="flex items-start justify-between gap-2">
+            <h3
+              className="font-serif text-xl font-semibold leading-tight"
+              style={{ color: "hsl(var(--eden-bark))" }}
+            >
+              {herb.common_name ?? "Unnamed herb"}
+            </h3>
+            <Lock
+              className="w-4 h-4 mt-1 shrink-0"
+              style={{ color: "hsl(var(--eden-gold))" }}
+              aria-hidden="true"
+            />
+          </div>
+          {herb.latin_name && (
+            <p className="font-body italic text-sm text-muted-foreground mt-0.5">
+              {herb.latin_name}
+            </p>
+          )}
+          {herb.pronunciation && (
+            <p className="font-accent text-[11px] tracking-[0.2em] uppercase text-muted-foreground mt-1">
+              {herb.pronunciation}
+            </p>
+          )}
+        </header>
+
+        {/* identity-only chip row: part used + plant family if present */}
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {herb.part_used && (
+            <span
+              className={chipClass}
+              style={{
+                backgroundColor: "hsl(var(--eden-cream))",
+                color: "hsl(var(--eden-bark))",
+              }}
+            >
+              {herb.part_used}
+            </span>
+          )}
+          {herb.plant_family && (
+            <span
+              className={chipClass}
+              style={{
+                backgroundColor: "hsl(var(--eden-cream) / 0.6)",
+                color: "hsl(var(--eden-bark))",
+              }}
+            >
+              {herb.plant_family}
+            </span>
+          )}
+        </div>
+
+        <div
+          className="mt-5 flex-1 flex flex-col items-start justify-end gap-3 pt-4 border-t"
+          style={{ borderColor: "hsl(var(--eden-gold) / 0.25)" }}
+        >
+          <p
+            className="font-accent text-[11px] tracking-[0.25em] uppercase"
+            style={{ color: "hsl(var(--eden-gold))" }}
+          >
+            There's more to know about this herb
+          </p>
+          <p className="font-body text-sm leading-relaxed text-muted-foreground">
+            Seed opens the full study — how it acts in the body, who it suits,
+            how to prepare it, and how to use it safely. All 100 herbs, one
+            subscription.
+          </p>
+          <Button variant="eden" size="sm" asChild>
+            <Link to="/apothecary/pricing">Unlock with Seed</Link>
+          </Button>
+        </div>
+      </article>
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // STATE 2 & 3: UNLOCKED — body always; clinical sections only when populated
+  // -------------------------------------------------------------------------
   return (
     <article
       className="rounded-lg border p-5 bg-background flex flex-col h-full"
@@ -143,11 +267,11 @@ export function HerbCard({ herb }: HerbCardProps) {
           className="mt-4 space-y-5 border-t pt-4"
           style={{ borderColor: "hsl(var(--border))" }}
         >
-          {/* ---------- Clinical-tier sections (Seed+) ---------- */}
-          {clinical && (
+          {/* ---------- Clinical-tier sections (Seed+ only) ---------- */}
+          {hasClinical && (
             <>
-              {(clinical.tissue_states_indicated ||
-                clinical.tissue_states_contraindicated) && (
+              {(herb.tissue_states_indicated ||
+                herb.tissue_states_contraindicated) && (
                 <section>
                   <h4
                     className={sectionLabel}
@@ -155,21 +279,42 @@ export function HerbCard({ herb }: HerbCardProps) {
                   >
                     Tissue states
                   </h4>
-                  {clinical.tissue_states_indicated && (
+                  {herb.tissue_states_indicated && (
                     <div className="mb-2">
                       <p className="font-body text-[11px] uppercase tracking-[0.15em] text-muted-foreground mb-1">
                         Indicated
                       </p>
                       <div className="flex flex-wrap gap-1.5">
-                        {splitTokens(clinical.tissue_states_indicated).map(
+                        {splitTokens(herb.tissue_states_indicated).map((t) => (
+                          <span
+                            key={`tsi-${t}`}
+                            className={chipClass}
+                            style={{
+                              backgroundColor: "hsl(var(--eden-cream) / 0.8)",
+                              color: "hsl(var(--eden-bark))",
+                            }}
+                          >
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {herb.tissue_states_contraindicated && (
+                    <div>
+                      <p className="font-body text-[11px] uppercase tracking-[0.15em] text-muted-foreground mb-1">
+                        Contraindicated
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {splitTokens(herb.tissue_states_contraindicated).map(
                           (t) => (
                             <span
-                              key={`tsi-${t}`}
+                              key={`tsc-${t}`}
                               className={chipClass}
                               style={{
                                 backgroundColor:
-                                  "hsl(var(--eden-cream) / 0.8)",
-                                color: "hsl(var(--eden-bark))",
+                                  "hsl(var(--destructive) / 0.08)",
+                                color: "hsl(var(--destructive))",
                               }}
                             >
                               {t}
@@ -179,34 +324,10 @@ export function HerbCard({ herb }: HerbCardProps) {
                       </div>
                     </div>
                   )}
-                  {clinical.tissue_states_contraindicated && (
-                    <div>
-                      <p className="font-body text-[11px] uppercase tracking-[0.15em] text-muted-foreground mb-1">
-                        Contraindicated
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {splitTokens(
-                          clinical.tissue_states_contraindicated
-                        ).map((t) => (
-                          <span
-                            key={`tsc-${t}`}
-                            className={chipClass}
-                            style={{
-                              backgroundColor:
-                                "hsl(var(--destructive) / 0.08)",
-                              color: "hsl(var(--destructive))",
-                            }}
-                          >
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </section>
               )}
 
-              {clinical.system_affinity && (
+              {herb.system_affinity && (
                 <section>
                   <h4
                     className={sectionLabel}
@@ -215,7 +336,7 @@ export function HerbCard({ herb }: HerbCardProps) {
                     Organ system affinity
                   </h4>
                   <div className="flex flex-wrap gap-1.5">
-                    {splitTokens(clinical.system_affinity).map((s) => (
+                    {splitTokens(herb.system_affinity).map((s) => (
                       <span
                         key={`sys-${s}`}
                         className={chipClass}
@@ -231,7 +352,7 @@ export function HerbCard({ herb }: HerbCardProps) {
                 </section>
               )}
 
-              {clinical.chief_complaints && (
+              {herb.chief_complaints && (
                 <section>
                   <h4
                     className={sectionLabel}
@@ -240,7 +361,7 @@ export function HerbCard({ herb }: HerbCardProps) {
                     Chief complaints
                   </h4>
                   <div className="flex flex-wrap gap-1.5">
-                    {splitTokens(clinical.chief_complaints).map((c) => (
+                    {splitTokens(herb.chief_complaints).map((c) => (
                       <span
                         key={`cc-${c}`}
                         className={chipClass}
@@ -256,9 +377,9 @@ export function HerbCard({ herb }: HerbCardProps) {
                 </section>
               )}
 
-              {(clinical.western_constitution_match ||
-                clinical.ayurvedic_dosha_match ||
-                clinical.tcm_pattern_match) && (
+              {(herb.western_constitution_match ||
+                herb.ayurvedic_dosha_match ||
+                herb.tcm_pattern_match) && (
                 <section>
                   <h4
                     className={sectionLabel}
@@ -267,39 +388,38 @@ export function HerbCard({ herb }: HerbCardProps) {
                     Constitutional match
                   </h4>
                   <dl className="font-body text-sm leading-relaxed space-y-1">
-                    {clinical.western_constitution_match && (
+                    {herb.western_constitution_match && (
                       <div>
                         <dt className="inline font-medium">Western: </dt>
                         <dd className="inline">
-                          {clinical.western_constitution_match}
+                          {herb.western_constitution_match}
                         </dd>
                       </div>
                     )}
-                    {clinical.ayurvedic_dosha_match && (
+                    {herb.ayurvedic_dosha_match && (
                       <div>
                         <dt className="inline font-medium">Ayurvedic: </dt>
                         <dd className="inline">
-                          {clinical.ayurvedic_dosha_match}
-                          {clinical.ayurvedic_dosha_aggravates && (
+                          {herb.ayurvedic_dosha_match}
+                          {herb.ayurvedic_dosha_aggravates && (
                             <span className="text-muted-foreground">
                               {" "}
-                              (aggravates:{" "}
-                              {clinical.ayurvedic_dosha_aggravates})
+                              (aggravates: {herb.ayurvedic_dosha_aggravates})
                             </span>
                           )}
                         </dd>
                       </div>
                     )}
-                    {clinical.tcm_pattern_match && (
+                    {herb.tcm_pattern_match && (
                       <div>
                         <dt className="inline font-medium">TCM: </dt>
                         <dd className="inline">
-                          {clinical.tcm_pattern_match}
-                          {clinical.tcm_contraindicated_patterns && (
+                          {herb.tcm_pattern_match}
+                          {herb.tcm_contraindicated_patterns && (
                             <span className="text-muted-foreground">
                               {" "}
                               (contraindicated:{" "}
-                              {clinical.tcm_contraindicated_patterns})
+                              {herb.tcm_contraindicated_patterns})
                             </span>
                           )}
                         </dd>
@@ -309,7 +429,7 @@ export function HerbCard({ herb }: HerbCardProps) {
                 </section>
               )}
 
-              {clinical.drug_interactions && (
+              {herb.drug_interactions && (
                 <section>
                   <h4
                     className={`${sectionLabel} flex items-center gap-1.5`}
@@ -319,12 +439,12 @@ export function HerbCard({ herb }: HerbCardProps) {
                     Drug interactions
                   </h4>
                   <p className="font-body text-sm leading-relaxed">
-                    {clinical.drug_interactions}
+                    {herb.drug_interactions}
                   </p>
                 </section>
               )}
 
-              {(clinical.preparation_methods || clinical.dosage_notes) && (
+              {(herb.preparation_methods || herb.dosage_notes) && (
                 <section>
                   <h4
                     className={`${sectionLabel} flex items-center gap-1.5`}
@@ -333,22 +453,22 @@ export function HerbCard({ herb }: HerbCardProps) {
                     <Pill className="w-3 h-3" />
                     Preparation & dosage
                   </h4>
-                  {clinical.preparation_methods && (
+                  {herb.preparation_methods && (
                     <p className="font-body text-sm leading-relaxed">
                       <span className="font-medium">Methods: </span>
-                      {clinical.preparation_methods}
+                      {herb.preparation_methods}
                     </p>
                   )}
-                  {clinical.dosage_notes && (
+                  {herb.dosage_notes && (
                     <p className="font-body text-sm leading-relaxed mt-1.5 text-muted-foreground">
                       <span className="font-medium">Dosage: </span>
-                      {clinical.dosage_notes}
+                      {herb.dosage_notes}
                     </p>
                   )}
                 </section>
               )}
 
-              {clinical.refer_threshold && (
+              {herb.refer_threshold && (
                 <section>
                   <h4
                     className={sectionLabel}
@@ -357,7 +477,7 @@ export function HerbCard({ herb }: HerbCardProps) {
                     Refer threshold
                   </h4>
                   <p className="font-body text-sm leading-relaxed italic">
-                    {clinical.refer_threshold}
+                    {herb.refer_threshold}
                   </p>
                 </section>
               )}
@@ -410,8 +530,8 @@ export function HerbCard({ herb }: HerbCardProps) {
               {herb.contraindications_general && (
                 <p className="font-body text-sm leading-relaxed mt-1.5 text-muted-foreground">
                   <span className="font-medium">
-                    General contraindications:
-                  </span>{" "}
+                    General contraindications:{" "}
+                  </span>
                   {herb.contraindications_general}
                 </p>
               )}
@@ -451,7 +571,7 @@ export function HerbCard({ herb }: HerbCardProps) {
             </section>
           )}
 
-          {clinical?.notes && (
+          {hasClinical && herb.notes && (
             <section>
               <h4
                 className={sectionLabel}
@@ -460,13 +580,13 @@ export function HerbCard({ herb }: HerbCardProps) {
                 Notes
               </h4>
               <p className="font-body text-sm leading-relaxed">
-                {clinical.notes}
+                {herb.notes}
               </p>
             </section>
           )}
 
-          {clinical &&
-            (clinical.primary_sources || clinical.secondary_sources) && (
+          {hasClinical &&
+            (herb.primary_sources || herb.secondary_sources) && (
               <section>
                 <h4
                   className={sectionLabel}
@@ -474,25 +594,26 @@ export function HerbCard({ herb }: HerbCardProps) {
                 >
                   Sources
                 </h4>
-                {clinical.primary_sources && (
+                {herb.primary_sources && (
                   <p className="font-body text-xs leading-relaxed text-muted-foreground">
                     <span className="font-medium">Primary: </span>
-                    {clinical.primary_sources}
+                    {herb.primary_sources}
                   </p>
                 )}
-                {clinical.secondary_sources && (
+                {herb.secondary_sources && (
                   <p className="font-body text-xs leading-relaxed text-muted-foreground mt-1">
                     <span className="font-medium">Secondary: </span>
-                    {clinical.secondary_sources}
+                    {herb.secondary_sources}
                   </p>
                 )}
               </section>
             )}
 
-          {!clinical && (
+          {/* Footer teaser only on the body-only state (free-tier row, anon/free caller). */}
+          {!hasClinical && (
             <p className="font-body text-xs text-muted-foreground italic pt-1">
-              Clinical overlay — tissue states, organ system affinity, actions,
-              constitutional matches, and citations — unlocks with Seed.
+              The full study — how this herb acts in the body, who it suits,
+              how to prepare and use it safely — opens with Seed.
             </p>
           )}
         </div>
@@ -508,11 +629,13 @@ export function HerbCard({ herb }: HerbCardProps) {
       >
         {expanded ? (
           <>
-            <ChevronUp className="w-3 h-3" /> Collapse
+            <ChevronUp className="w-3 h-3" />
+            Collapse
           </>
         ) : (
           <>
-            <ChevronDown className="w-3 h-3" /> Read monograph
+            <ChevronDown className="w-3 h-3" />
+            Read monograph
           </>
         )}
       </button>
