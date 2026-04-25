@@ -23,6 +23,8 @@ import TierTwoWaitlist from "./pages/TierTwoWaitlist";
 import { ApothecaryLayout } from "@/components/apothecary/ApothecaryLayout";
 import { RequireAuth } from "@/components/apothecary/RequireAuth";
 import ApothecaryHome from "./pages/apothecary/ApothecaryHome";
+import Start from "./pages/apothecary/Start";
+import WelcomeTour from "./pages/apothecary/WelcomeTour";
 import SignUp from "./pages/apothecary/auth/SignUp";
 import SignIn from "./pages/apothecary/auth/SignIn";
 import Reset from "./pages/apothecary/auth/Reset";
@@ -65,9 +67,10 @@ const App = () => (
             <Route path="/homeschool" element={<Homeschool />} />
             <Route path="/community" element={<Community />} />
             <Route path="/tier-2-waitlist" element={<TierTwoWaitlist />} />
-            {/* Apothecary application — Lane C Stage 3+ */}
+            {/* Apothecary application — Lane C Stage 6.3.4: auth-walled per §0.8 v3.3 #21. */}
             <Route path="/apothecary" element={<ApothecaryLayout />}>
-              <Route index element={<ApothecaryHome />} />
+              {/* Public surfaces */}
+              <Route path="start" element={<Start />} />
               <Route path="auth/signup" element={<SignUp />} />
               <Route path="auth/signin" element={<SignIn />} />
               <Route path="auth/reset" element={<Reset />} />
@@ -75,8 +78,39 @@ const App = () => (
                 path="auth/update-password"
                 element={<UpdatePassword />}
               />
-              <Route path="pricing" element={<Pricing />} />
-              <Route path="welcome" element={<Welcome />} />
+              {/* Auth-walled surfaces */}
+              <Route
+                index
+                element={
+                  <RequireAuth>
+                    <ApothecaryHome />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="welcome-tour"
+                element={
+                  <RequireAuth>
+                    <WelcomeTour />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="pricing"
+                element={
+                  <RequireAuth>
+                    <Pricing />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="welcome"
+                element={
+                  <RequireAuth>
+                    <Welcome />
+                  </RequireAuth>
+                }
+              />
               <Route
                 path="account"
                 element={
