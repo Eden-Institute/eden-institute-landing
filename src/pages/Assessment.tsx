@@ -131,6 +131,30 @@ const Assessment = () => {
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
 
+      // Constitution capture for /apothecary personalization (independent of
+      // marketing-consent). Failure here must NOT block the result reveal —
+      // personalization is recoverable (the user can retake the quiz post-
+      // signup) but a blocked results page is not. We log to Edge Function
+      // logs for ops visibility instead of surfacing to the user.
+      try {
+        const { data: recordData, error: recordError } =
+          await supabase.functions.invoke("record-quiz-completion", {
+            body: {
+              email,
+              first_name: firstName,
+              constitution_type: constitutionType,
+              constitution_nickname: profile?.nickname,
+            },
+          });
+        if (recordError) {
+          console.error("record-quiz-completion failed", recordError);
+        } else if (recordData?.error) {
+          console.error("record-quiz-completion returned error", recordData.error);
+        }
+      } catch (recordErr) {
+        console.error("record-quiz-completion threw", recordErr);
+      }
+
       setPhase("results");
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");

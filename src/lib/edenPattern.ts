@@ -146,6 +146,31 @@ export const PATTERN_PROFILES: Record<EdenPatternName, EdenPatternProfile> = {
 };
 
 /**
+ * AXIS_LABEL_TO_PATTERN — derived inverse of PATTERN_PROFILES.
+ *
+ * Maps the 3-axis label shape ("Hot / Dry / Tense") to the canonical
+ * EdenPatternName ("The Burning Bowstring"). The production marketing quiz
+ * (src/pages/Assessment.tsx) writes the axis-label shape into
+ * profiles.constitution_type via the resend-waitlist + record-quiz-completion
+ * Edge Functions; resolveEdenPattern consults this table to resolve those
+ * back to a Pattern name for personalization.
+ *
+ * Single source of truth: derived from PATTERN_PROFILES at module load. Any
+ * Pattern added to PATTERN_PROFILES is auto-included here. No second list to
+ * maintain.
+ */
+export const AXIS_LABEL_TO_PATTERN: Readonly<Record<string, EdenPatternName>> =
+  Object.freeze(
+    Object.fromEntries(
+      Object.values(PATTERN_PROFILES).map((p) => [
+        `${p.temperature} / ${p.moisture} / ${p.tone}`,
+        p.name,
+      ]),
+    ),
+  );
+
+
+/**
  * Classify a herb's `temperature` field (descriptive prose) onto the
  * Hot/Cold/Neutral axis. Returns "Neutral" when the value is genuinely
  * neutral or genuinely unparseable.
@@ -269,15 +294,28 @@ export function computeMatchRelationship(
  */
 export function resolveEdenPattern(value: string | null | undefined): EdenPatternName | null {
   if (!value) return null;
-  // Fast path: exact match
+
+  // Fast path: exact match against canonical Pattern names.
   for (const name of EDEN_PATTERNS) {
     if (name === value) return name;
   }
-  // Loose match — strip "The" and lower-case
+
+  // Axis-label match — what the production marketing quiz writes into
+  // profiles.constitution_type via record-quiz-completion. Exact key match
+  // first, then a normalized fallback for whitespace / case variations.
+  const axisHit = AXIS_LABEL_TO_PATTERN[value];
+  if (axisHit) return axisHit;
+  const normAxis = value.replace(/\s+/g, " ").trim().toLowerCase();
+  for (const [label, name] of Object.entries(AXIS_LABEL_TO_PATTERN)) {
+    if (label.toLowerCase() === normAxis) return name;
+  }
+
+  // Loose Pattern-name match — strip leading "the" and lowercase.
   const norm = value.replace(/^the\s+/i, "").toLowerCase().trim();
   for (const name of EDEN_PATTERNS) {
     if (name.replace(/^the\s+/i, "").toLowerCase() === norm) return name;
   }
+
   // Future: Western/Ayurvedic/TCM mapping table. For now, return null and
   // let the UI surface the take-the-quiz affordance — better than a
   // wrong-but-confident badge.
