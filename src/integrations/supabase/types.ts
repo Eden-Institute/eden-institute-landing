@@ -1176,6 +1176,7 @@ export type Database = {
       profiles: {
         Row: {
           cancel_at_period_end: boolean | null
+          constitution_type: string | null
           created_at: string
           current_period_end: string | null
           current_period_start: string | null
@@ -1192,6 +1193,7 @@ export type Database = {
         }
         Insert: {
           cancel_at_period_end?: boolean | null
+          constitution_type?: string | null
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
@@ -1208,6 +1210,7 @@ export type Database = {
         }
         Update: {
           cancel_at_period_end?: boolean | null
+          constitution_type?: string | null
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
@@ -1711,6 +1714,171 @@ export type Database = {
         }
         Relationships: []
       }
+      herbs_directory_v: {
+        Row: {
+          actions_rel: Json | null
+          ayurvedic_dosha_aggravates: string | null
+          ayurvedic_dosha_match: string | null
+          biblical_traditional_reference: string | null
+          breastfeeding_safety: string | null
+          cautions: string | null
+          chief_complaints: string | null
+          children_safety: string | null
+          common_name: string | null
+          complaint_names: string[] | null
+          complaints_rel: Json | null
+          constitutions_rel: Json | null
+          contraindications_general: string | null
+          dosage_notes: string | null
+          doshas_aggravates_rel: Json | null
+          doshas_match_rel: Json | null
+          drug_interactions: string | null
+          energetics_summary: string | null
+          herb_id: string | null
+          image_filename: string | null
+          is_locked: boolean | null
+          latin_name: string | null
+          moisture: string | null
+          notes: string | null
+          part_used: string | null
+          plant_family: string | null
+          pregnancy_safety: string | null
+          preparation_methods: string | null
+          preparations_rel: Json | null
+          primary_sources: string | null
+          pronunciation: string | null
+          refer_threshold: string | null
+          secondary_sources: string | null
+          status: string | null
+          stewardship_note: string | null
+          system_affinity: string | null
+          systems_rel: Json | null
+          taste: string | null
+          tastes_rel: Json | null
+          tcm_contraindicated_patterns: string | null
+          tcm_contraindicated_rel: Json | null
+          tcm_indicated_rel: Json | null
+          tcm_pattern_match: string | null
+          temperature: string | null
+          tier_visibility:
+            | Database["public"]["Enums"]["subscription_tier"]
+            | null
+          tissue_states_contraindicated: string | null
+          tissue_states_contraindicated_rel: Json | null
+          tissue_states_indicated: string | null
+          tissue_states_indicated_rel: Json | null
+          western_constitution_match: string | null
+        }
+        Insert: {
+          actions_rel?: never
+          ayurvedic_dosha_aggravates?: string | null
+          ayurvedic_dosha_match?: string | null
+          biblical_traditional_reference?: string | null
+          breastfeeding_safety?: string | null
+          cautions?: string | null
+          chief_complaints?: string | null
+          children_safety?: string | null
+          common_name?: string | null
+          complaint_names?: never
+          complaints_rel?: never
+          constitutions_rel?: never
+          contraindications_general?: string | null
+          dosage_notes?: string | null
+          doshas_aggravates_rel?: never
+          doshas_match_rel?: never
+          drug_interactions?: string | null
+          energetics_summary?: string | null
+          herb_id?: string | null
+          image_filename?: string | null
+          is_locked?: never
+          latin_name?: string | null
+          moisture?: string | null
+          notes?: string | null
+          part_used?: string | null
+          plant_family?: string | null
+          pregnancy_safety?: string | null
+          preparation_methods?: string | null
+          preparations_rel?: never
+          primary_sources?: string | null
+          pronunciation?: string | null
+          refer_threshold?: string | null
+          secondary_sources?: string | null
+          status?: string | null
+          stewardship_note?: string | null
+          system_affinity?: string | null
+          systems_rel?: never
+          taste?: string | null
+          tastes_rel?: never
+          tcm_contraindicated_patterns?: string | null
+          tcm_contraindicated_rel?: never
+          tcm_indicated_rel?: never
+          tcm_pattern_match?: string | null
+          temperature?: string | null
+          tier_visibility?:
+            | Database["public"]["Enums"]["subscription_tier"]
+            | null
+          tissue_states_contraindicated?: string | null
+          tissue_states_contraindicated_rel?: never
+          tissue_states_indicated?: string | null
+          tissue_states_indicated_rel?: never
+          western_constitution_match?: string | null
+        }
+        Update: {
+          actions_rel?: never
+          ayurvedic_dosha_aggravates?: string | null
+          ayurvedic_dosha_match?: string | null
+          biblical_traditional_reference?: string | null
+          breastfeeding_safety?: string | null
+          cautions?: string | null
+          chief_complaints?: string | null
+          children_safety?: string | null
+          common_name?: string | null
+          complaint_names?: never
+          complaints_rel?: never
+          constitutions_rel?: never
+          contraindications_general?: string | null
+          dosage_notes?: string | null
+          doshas_aggravates_rel?: never
+          doshas_match_rel?: never
+          drug_interactions?: string | null
+          energetics_summary?: string | null
+          herb_id?: string | null
+          image_filename?: string | null
+          is_locked?: never
+          latin_name?: string | null
+          moisture?: string | null
+          notes?: string | null
+          part_used?: string | null
+          plant_family?: string | null
+          pregnancy_safety?: string | null
+          preparation_methods?: string | null
+          preparations_rel?: never
+          primary_sources?: string | null
+          pronunciation?: string | null
+          refer_threshold?: string | null
+          secondary_sources?: string | null
+          status?: string | null
+          stewardship_note?: string | null
+          system_affinity?: string | null
+          systems_rel?: never
+          taste?: string | null
+          tastes_rel?: never
+          tcm_contraindicated_patterns?: string | null
+          tcm_contraindicated_rel?: never
+          tcm_indicated_rel?: never
+          tcm_pattern_match?: string | null
+          temperature?: string | null
+          tier_visibility?:
+            | Database["public"]["Enums"]["subscription_tier"]
+            | null
+          tissue_states_contraindicated?: string | null
+          tissue_states_contraindicated_rel?: never
+          tissue_states_indicated?: string | null
+          tissue_states_indicated_rel?: never
+          western_constitution_match?: string | null
+        }
+        Relationships: []
+      }
       herbs_public: {
         Row: {
           biblical_traditional_reference: string | null
@@ -1767,200 +1935,4 @@ export type Database = {
           children_safety?: string | null
           common_name?: string | null
           contraindications_general?: string | null
-          energetics_summary?: string | null
-          herb_id?: string | null
-          image_filename?: string | null
-          latin_name?: string | null
-          moisture?: string | null
-          part_used?: string | null
-          plant_family?: string | null
-          pregnancy_safety?: string | null
-          pronunciation?: string | null
-          status?: string | null
-          stewardship_note?: string | null
-          taste?: string | null
-          temperature?: string | null
-          tier_visibility?:
-            | Database["public"]["Enums"]["subscription_tier"]
-            | null
-        }
-        Relationships: []
-      }
-    }
-    Functions: {
-      current_tier: {
-        Args: never
-        Returns: Database["public"]["Enums"]["subscription_tier"]
-      }
-      current_user_at_least: { Args: { min_tier: string }; Returns: boolean }
-      current_user_tier: { Args: never; Returns: string }
-      has_tier: {
-        Args: { required: Database["public"]["Enums"]["subscription_tier"] }
-        Returns: boolean
-      }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
-      tier_rank: {
-        Args: { t: Database["public"]["Enums"]["subscription_tier"] }
-        Returns: number
-      }
-    }
-    Enums: {
-      contraindication_kind:
-        | "drug_interaction"
-        | "condition"
-        | "population"
-        | "pregnancy"
-        | "breastfeeding"
-        | "pediatric"
-        | "geriatric"
-        | "other"
-      public_domain_flag: "yes" | "no" | "partial"
-      severity_level: "low" | "moderate" | "high" | "absolute"
-      subscription_tier: "free" | "seed" | "root" | "practitioner"
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-}
-
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
-
-export type Tables<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
-    }
-    ? R
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
-
-export type TablesInsert<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
-
-export type TablesUpdate<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
-
-export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
-
-export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
-
-export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
-  public: {
-    Enums: {
-      contraindication_kind: [
-        "drug_interaction",
-        "condition",
-        "population",
-        "pregnancy",
-        "breastfeeding",
-        "pediatric",
-        "geriatric",
-        "other",
-      ],
-      public_domain_flag: ["yes", "no", "partial"],
-      severity_level: ["low", "moderate", "high", "absolute"],
-      subscription_tier: ["free", "seed", "root", "practitioner"],
-    },
-  },
-} as const
+     

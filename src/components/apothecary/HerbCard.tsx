@@ -6,12 +6,26 @@ import {
   AlertTriangle,
   Pill,
   Lock,
+  Sparkles,
+  ShieldAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type HerbRow } from "@/hooks/useApothecaryHerbs";
+import {
+  type EdenPatternName,
+  computeMatchRelationship,
+  type MatchRelationship,
+} from "@/lib/edenPattern";
 
 interface HerbCardProps {
   herb: HerbRow;
+  /**
+   * Active user's Eden Pattern, when known. When set, the card surfaces a
+   * Match (green) or Avoid (amber) badge for unlocked rows, computed from
+   * `temperature × moisture × tissue_states_indicated`. Locked rows are
+   * skipped — the lock affordance owns that visual slot.
+   */
+  activePattern?: EdenPatternName | null;
 }
 
 const chipClass =
@@ -55,7 +69,7 @@ function splitTokens(value: string | null | undefined): string[] {
  *    constitutional matches, drug interactions, preparation & dosage, refer
  *    threshold, plus identity + body. Footer teaser suppressed.
  */
-export function HerbCard({ herb }: HerbCardProps) {
+export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
   const [expanded, setExpanded] = useState(false);
 
   const isLocked = herb.is_locked === true;
@@ -67,6 +81,22 @@ export function HerbCard({ herb }: HerbCardProps) {
   const hasSafetyFlag =
     !isLocked &&
     Boolean(herb.cautions || herb.contraindications_general);
+
+  // Pattern of Eden relationship — computed only for unlocked rows when an
+  // active pattern is set. For locked rows the lock affordance owns the
+  // header visual slot, so the badge is suppressed (visible-but-gated stays
+  // primary). Neutral relationships also suppress the badge to avoid noise.
+  const matchRelationship: MatchRelationship | null =
+    !isLocked && activePattern
+      ? computeMatchRelationship(
+          {
+            temperature: herb.temperature ?? null,
+            moisture: herb.moisture ?? null,
+            tissue_states_indicated: herb.tissue_states_indicated ?? null,
+          },
+          activePattern
+        ).relationship
+      : null;
 
   // -------------------------------------------------------------------------
   // STATE 1: LOCKED — identity + lock affordance + CTA
@@ -184,6 +214,34 @@ export function HerbCard({ herb }: HerbCardProps) {
       </header>
 
       <div className="mt-3 flex flex-wrap gap-1.5">
+        {/* Pattern of Eden Match badge — leads the chip row when active. */}
+        {matchRelationship === "match" && (
+          <span
+            className={`${chipClass} flex items-center gap-1`}
+            style={{
+              backgroundColor: "hsl(var(--eden-gold) / 0.15)",
+              color: "hsl(var(--eden-gold))",
+              borderColor: "hsl(var(--eden-gold))",
+            }}
+            title="Rebalances your Pattern"
+          >
+            <Sparkles className="w-3 h-3" />
+            Match
+          </span>
+        )}
+        {matchRelationship === "avoid" && (
+          <span
+            className={`${chipClass} flex items-center gap-1`}
+            style={{
+              backgroundColor: "hsl(var(--destructive) / 0.1)",
+              color: "hsl(var(--destructive))",
+            }}
+            title="May aggravate your Pattern"
+          >
+            <ShieldAlert className="w-3 h-3" />
+            Avoid
+          </span>
+        )}
         {herb.temperature && (
           <span
             className={chipClass}
