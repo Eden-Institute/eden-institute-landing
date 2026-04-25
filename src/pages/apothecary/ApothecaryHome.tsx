@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApothecaryHerbs } from "@/hooks/useApothecaryHerbs";
+import { useEdenPattern } from "@/hooks/useEdenPattern";
 import { HerbCard } from "@/components/apothecary/HerbCard";
 import {
   HerbDirectoryFilters,
@@ -13,30 +14,46 @@ import {
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
 
 /**
- * Eden Apothecary index (`/apothecary`). Stage 6.3 — tier-gated herb directory.
+ * Eden Apothecary index (`/apothecary`).
  *
- * Read path branches on `useCurrentTier()` via `useApothecaryHerbs`:
- *   - anon / free  → `herbs_public` (50 rows, basic monograph)
- *   - seed / root+ → `herbs_clinical_v` (100 rows, full clinical overlay)
+ * Stage 6.3.5 — Symptom-Doorway Filter Rebuild + Stage 6.3.6 visible-but-
+ * gated unified directory. Reads `herbs_directory_v` for all 100 herbs;
+ * tier-conditional column population (Band 1 always, Band 2 unlocked rows
+ * for anon/free + all rows for Seed+, Band 3 Seed+ only across all rows).
  *
- * Per Locked Decision §0.8 the DB view is the sole read surface; RLS and the
- * view filter enforce tier gating server-side. This component mirrors that
- * gating in the UI by rendering tier-appropriate sections within `HerbCard`
- * and suppressing the upgrade CTA for active subscribers.
+ * The four-axis filter primitives (Symptom · Action · Body system→tissue ·
+ * Clinical safety) plus the Pattern of Eden constitutional overlay live in
+ * `HerbDirectoryFilters`. Pattern matching is computed client-side in
+ * `@/lib/edenPattern` from herbs.temperature × moisture × tissue states.
+ *
+ * Active user's Eden Pattern (when known) drives both the filter overlay
+ * UI and the per-card Match/Avoid badges. The pattern is read from
+ * `profiles.constitution_type` via `useEdenPattern`. Unknown / unmapped
+ * values resolve to null — the UI degrades gracefully (no badge, take-the-
+ * quiz affordance surfaces in the upgrade aside).
+ *
+ * Per Locked Decision §0.8 #4 the DB view is the sole read surface; RLS
+ * and the view's CASE expressions enforce gating server-side.
  *
  * Routed herb detail (`/apothecary/:herb_id`) + `contraindications_clinical_v`
- * view migration + rendered contraindications table land in Stage 6.4.
+ * view migration land in Stage 6.4.
  */
 export default function ApothecaryHome() {
   const { user } = useAuth();
-  const { tier, isSubscriber, data: herbs, isLoading, isError, error } =
-    useApothecaryHerbs();
-
+  const {
+    tier,
+    isSubscriber,
+    data: herbs,
+    isLoading,
+    isError,
+    error,
+  } = useApothecaryHerbs();
+  const { data: activePattern } = useEdenPattern();
   const [filters, setFilters] = useState<HerbFilterState>(EMPTY_FILTERS);
 
   const visible = useMemo(
-    () => herbs.filter((h) => matchesFilters(h, filters)),
-    [herbs, filters]
+    () => herbs.filter((h) => matchesFilters(h, { filters, activePattern })),
+    [herbs, filters, activePattern]
   );
 
   if (isLoading) return <PageSkeleton />;
@@ -97,6 +114,11 @@ export default function ApothecaryHome() {
               style={{ color: "hsl(var(--eden-gold))" }}
             >
               Viewing as {tierBadge}
+              {activePattern && (
+                <span className="ml-2 text-muted-foreground">
+                  · Your Pattern: {activePattern}
+                </span>
+              )}
             </p>
           )}
         </div>
@@ -110,6 +132,8 @@ export default function ApothecaryHome() {
             onChange={setFilters}
             visibleCount={visible.length}
             totalCount={herbs.length}
+            tier={tier}
+            activePattern={activePattern}
           />
 
           {visible.length === 0 ? (
@@ -136,6 +160,7 @@ export default function ApothecaryHome() {
                 <HerbCard
                   key={herb.herb_id ?? herb.common_name ?? Math.random()}
                   herb={herb}
+                  activePattern={activePattern}
                 />
               ))}
             </div>
@@ -160,13 +185,12 @@ export default function ApothecaryHome() {
                   className="font-serif text-xl md:text-2xl font-semibold leading-tight mb-2"
                   style={{ color: "hsl(var(--eden-bark))" }}
                 >
-                  Seed opens 50 additional herbs and every clinical overlay.
+                  Seed opens the full study for all 100 herbs.
                 </h2>
                 <p className="font-body text-sm text-muted-foreground max-w-xl">
-                  Tissue state indications, actions, constitutional matches,
-                  organ system affinities, preparation methods, TCM and
-                  Ayurvedic frameworks, and a full safety layer including
-                  drug-herb interactions.
+                  How each herb acts in the body, who it suits, how to prepare
+                  it, and how to use it safely — including drug-herb
+                  interactions and special-population guidance.
                 </p>
               </div>
               <div className="flex gap-3 shrink-0">
