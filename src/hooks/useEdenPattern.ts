@@ -12,11 +12,11 @@ import { resolveEdenPattern, type EdenPatternName } from "@/lib/edenPattern";
  * single SELECT against `public.profiles` for their own row (RLS enforces
  * own-row visibility).
  *
- * The constitution_type column may legitimately hold values that aren't
- * Eden Pattern names (e.g. legacy quiz redirects from edeninstitute.health
- * write Western/Ayurvedic/TCM labels). `resolveEdenPattern` returns null for
- * those — the directory then offers the take-the-quiz affordance instead of
- * surfacing a wrong-but-confident badge.
+ * The constitution_type column may legitimately hold legacy values that
+ * aren't current Eden Pattern names. Per worldview lock §0.8, only Western
+ * classical frameworks are surfaced. `resolveEdenPattern` returns null for
+ * unrecognized values — the directory then offers the take-the-quiz
+ * affordance instead of surfacing a wrong-but-confident badge.
  *
  * Cache duration matches `useCurrentTier` (30 min stale, 4 hr GC) — a user's
  * Pattern doesn't change between page loads in practice; we refetch on

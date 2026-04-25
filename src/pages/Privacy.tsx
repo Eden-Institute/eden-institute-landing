@@ -34,10 +34,10 @@ const Privacy = () => {
           <h2 className="font-serif text-xl font-semibold text-primary mb-3">2. Information We Collect</h2>
           <h3 className="font-serif text-lg font-medium text-foreground/80 mb-2">Information you provide directly:</h3>
           <ul className="list-disc pl-6 space-y-1 mb-4">
-            <li>Name and email address (when creating an account or taking the Body Type Quiz).</li>
+            <li>Name and email address (when creating an account or taking the Body Pattern Quiz).</li>
             <li>Password (encrypted and stored securely).</li>
             <li>Payment information (processed securely by Stripe — we do not store credit card numbers).</li>
-            <li>Quiz responses and body type results.</li>
+            <li>Quiz responses and body pattern results.</li>
             <li>Community posts and discussion contributions.</li>
           </ul>
           <h3 className="font-serif text-lg font-medium text-foreground/80 mb-2">Information collected automatically:</h3>
@@ -56,7 +56,7 @@ const Privacy = () => {
             <li>Process payments and manage your account.</li>
             <li>Send transactional emails (enrollment confirmation, course completion, invoices).</li>
             <li>Send nurture and marketing emails (only with your consent, and you may unsubscribe at any time).</li>
-            <li>Personalize your experience (such as body type-based content).</li>
+            <li>Personalize your experience (such as body pattern-based content).</li>
             <li>Improve our website, courses, and services.</li>
             <li>Respond to your questions or support requests.</li>
             <li>Protect against fraud and unauthorized access.</li>
@@ -65,7 +65,7 @@ const Privacy = () => {
 
         <section>
           <h2 className="font-serif text-xl font-semibold text-primary mb-3">4. Email Communications</h2>
-          <p>When you take the Body Type Quiz, you consent to receiving a nurture email sequence related to your quiz results and our educational offerings. You may unsubscribe from marketing emails at any time by clicking the "Unsubscribe" link in any email. Transactional emails (such as enrollment confirmations and invoices) are not subject to unsubscribe as they are necessary for service delivery.</p>
+          <p>When you take the Body Pattern Quiz, you consent to receiving a nurture email sequence related to your quiz results and our educational offerings. You may unsubscribe from marketing emails at any time by clicking the "Unsubscribe" link in any email. Transactional emails (such as enrollment confirmations and invoices) are not subject to unsubscribe as they are necessary for service delivery.</p>
         </section>
 
         <section>

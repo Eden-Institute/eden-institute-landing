@@ -28,7 +28,7 @@ const books = [
     label: "COMING SOON",
     labelActive: false,
     summary:
-      "The clinical application text. System-by-system herbal protocols grounded in body type matching, energetic assessment, and a scriptural framework for stewarding health.",
+      "The clinical application text. System-by-system herbal protocols grounded in body pattern matching, energetic assessment, and a scriptural framework for stewarding health.",
     action: "none" as const,
   },
 ];

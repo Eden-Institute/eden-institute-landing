@@ -25,7 +25,7 @@ const Index = () => {
       .querySelector('meta[name="description"]')
       ?.setAttribute(
         "content",
-        "The Eden Institute offers Biblical clinical herbalism education. Take our free body type quiz and discover your God-given health pattern.",
+        "The Eden Institute offers Biblical clinical herbalism education. Take our free body pattern quiz and discover your God-given health pattern.",
       );
   }, []);
 
@@ -208,7 +208,7 @@ const Index = () => {
                 <button onClick={openQuiz}
                   className="font-body text-sm font-semibold px-8 py-3 rounded-sm"
                   style={{ backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-parchment))" }}>
-                  Yes — Find My Body Type Free →
+                  Yes — Find My Body Pattern Free →
                 </button>
               </div>
             </ScrollReveal>
@@ -318,13 +318,13 @@ const Index = () => {
                 style={{ backgroundColor: "hsl(var(--eden-forest))", borderColor: "hsl(var(--eden-gold) / 0.3)" }}>
                 <Compass className="mb-4 w-7 h-7" style={{ color: "hsl(var(--eden-gold))" }} />
                 <h3 className="font-serif text-xl font-bold mb-2" style={{ color: "hsl(var(--eden-parchment))" }}>
-                  Know Your Body Type
+                  Know Your Body Pattern
                 </h3>
                 <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>
                   Free · 2 Minutes
                 </p>
                 <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-parchment) / 0.8)" }}>
-                  Two minutes. Eight possible body types. One result that explains why your sister thrives on ginger and you can't touch it. Start here — it's free.
+                  Two minutes. Eight possible body patterns. One result that explains why your sister thrives on ginger and you can't touch it. Start here — it's free.
                 </p>
                 <p className="font-body text-sm font-semibold mt-6" style={{ color: "hsl(var(--eden-gold))" }}>
                   Take the free quiz →
@@ -365,7 +365,7 @@ const Index = () => {
                 },
                 {
                   title: "Wrong dose at the wrong time",
-                  body: "You used the right herb but the wrong preparation, the wrong amount, or at the wrong point in your cycle. Timing and dosing depend on your body type.",
+                  body: "You used the right herb but the wrong preparation, the wrong amount, or at the wrong point in your cycle. Timing and dosing depend on your body pattern.",
                 },
                 {
                   title: "You expected it to work like a drug",
@@ -466,7 +466,7 @@ const Index = () => {
               {
                 icon: <ClipboardList className="w-10 h-10" style={{ color: "hsl(var(--eden-gold))" }} />,
                 label: "Free Quiz",
-                description: "Discover your body type in 2 minutes",
+                description: "Discover your body pattern in 2 minutes",
                 price: "FREE",
                 onClick: openQuiz,
                 href: null as string | null,
@@ -486,7 +486,7 @@ const Index = () => {
               {
                 icon: <GraduationCap className="w-10 h-10" style={{ color: "hsl(var(--eden-gold))" }} />,
                 label: "Foundations Course",
-                description: "Learn to read your body type and match it to God's provision in the plant world",
+                description: "Learn to read your body pattern and match it to God's provision in the plant world",
                 price: "$97",
                 onClick: null as null | (() => void),
                 href: "https://learn.edeninstitute.health/course/back-to-eden1",

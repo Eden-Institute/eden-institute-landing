@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { constitutionProfiles, computeResult } from "@/lib/constitution-data";
+import { constitutionProfiles, computeResult, isInconclusiveResult, inconclusiveAxes } from "@/lib/constitution-data";
 
 interface Question {
   id: number;
@@ -53,7 +53,7 @@ const questions: Question[] = [
     { label: "C", text: "Irregular — alternates", score: "neutral" },
     { label: "D", text: "Generally normal", score: "neutral" },
   ]},
-  { id: 8, axis: "fluid", question: "How would you describe your body type?", options: [
+  { id: 8, axis: "fluid", question: "How would you describe your body's build?", options: [
     { label: "A", text: "I gain weight easily, retain fluid, soft or puffy tissue", score: "Damp" },
     { label: "B", text: "I stay lean naturally, dry out easily, firm tissue", score: "Dry" },
     { label: "C", text: "I fluctuate", score: "neutral" },
@@ -88,7 +88,7 @@ const questions: Question[] = [
 const Assessment = () => {
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [phase, setPhase] = useState<"quiz" | "gate" | "results">("quiz");
+  const [phase, setPhase] = useState<"quiz" | "gate" | "inconclusive" | "results">("quiz");
   const [transitioning, setTransitioning] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
@@ -97,20 +97,35 @@ const Assessment = () => {
   const [error, setError] = useState("");
 
   const constitutionType = phase !== "quiz" ? computeResult(answers) : "";
+  const isInconclusive = constitutionType ? isInconclusiveResult(constitutionType) : false;
+  const neutralAxes = constitutionType && isInconclusive ? inconclusiveAxes(constitutionType) : [];
   const profile = constitutionType ? constitutionProfiles[constitutionType] : null;
 
   const handleAnswer = useCallback((questionId: number, score: string) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: score }));
-    setTransitioning(true);
-    setTimeout(() => {
-      if (currentQ < questions.length - 1) {
-        setCurrentQ((prev) => prev + 1);
-      } else {
-        setPhase("gate");
-      }
-      setTransitioning(false);
-    }, 400);
+    setAnswers((prev) => {
+      const next = { ...prev, [questionId]: score };
+      // On the final question, route based on result. Inconclusive results
+      // never enter the email-capture gate per Locked Decision §0.8 #39.
+      setTransitioning(true);
+      setTimeout(() => {
+        if (currentQ < questions.length - 1) {
+          setCurrentQ((p) => p + 1);
+        } else {
+          const result = computeResult(next);
+          setPhase(isInconclusiveResult(result) ? "inconclusive" : "gate");
+        }
+        setTransitioning(false);
+      }, 400);
+      return next;
+    });
   }, [currentQ]);
+
+  const restartQuiz = useCallback(() => {
+    setAnswers({});
+    setCurrentQ(0);
+    setPhase("quiz");
+    setError("");
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,7 +191,7 @@ const Assessment = () => {
             The Eden Institute
           </a>
           <span className="font-accent text-sm tracking-[0.2em] uppercase" style={{ color: "#C9A84C" }}>
-            Body Type Quiz
+            Body Pattern Quiz
           </span>
         </div>
       </header>
@@ -241,7 +256,7 @@ const Assessment = () => {
       {phase === "gate" && profile && (
         <div className="max-w-xl mx-auto px-6 py-16 text-center">
           <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>
-            Your Body Type
+            Your Body Pattern
           </span>
           <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-2" style={{ color: "#1C3A2E" }}>
             {profile.nickname}
@@ -255,10 +270,10 @@ const Assessment = () => {
 
           <div className="p-8 border rounded" style={{ borderColor: "hsl(40, 20%, 80%)", backgroundColor: "white" }}>
             <h3 className="font-serif text-xl font-bold mb-2" style={{ color: "#1C3A2E" }}>
-              Get Your Full Body Type Profile
+              Get Your Full Body Pattern Profile
             </h3>
             <p className="font-body text-sm mb-6" style={{ color: "hsl(30, 10%, 40%)" }}>
-              Enter your name and email to receive your full body type profile and personalized herb recommendations.
+              Enter your name and email to receive your full body pattern profile and personalized herb recommendations.
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4 text-left">
@@ -296,6 +311,44 @@ const Assessment = () => {
               </Button>
             </form>
           </div>
+        </div>
+      )}
+
+      {phase === "inconclusive" && (
+        <div className="max-w-xl mx-auto px-6 py-16 text-center">
+          <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>
+            Pattern Inconclusive
+          </span>
+          <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-6" style={{ color: "#1C3A2E" }}>
+            Your responses didn't resolve to a clear Pattern.
+          </h2>
+
+          <div className="space-y-5 mb-10 text-left">
+            <p className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>
+              {neutralAxes.length === 1 ? (
+                <>This usually happens when "varies" or "no preference" answers cluster on the <strong>{neutralAxes[0]}</strong> axis. Your body may genuinely be balanced on that axis, or the quiz may benefit from a more deliberate retake.</>
+              ) : (
+                <>This usually happens when "varies" or "no preference" answers cluster across multiple axes (here: <strong>{neutralAxes.join(", ")}</strong>). Your body may genuinely be balanced on one or more of these axes, or the quiz may benefit from a more deliberate retake.</>
+              )}
+            </p>
+            <p className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>
+              We never default you to a Pattern when your responses don't clearly indicate one. The honest answer is: take a closer look at the questions and pick A or B whenever you can — the resolution improves quickly.
+            </p>
+          </div>
+
+          <Button
+            type="button"
+            variant="eden"
+            size="xl"
+            className="w-full"
+            onClick={restartQuiz}
+          >
+            → Retake the Quiz with More Deliberate Answers
+          </Button>
+
+          <p className="font-body text-xs italic mt-4" style={{ color: "hsl(30, 10%, 40%, 0.7)" }}>
+            Some constitutions are genuinely balanced on an axis — this is itself a clinical category, not a quiz failure. The Root-tier deeper diagnostic (40 questions, four classical Western frameworks) is built to resolve cases like this.
+          </p>
         </div>
       )}
 
@@ -354,7 +407,7 @@ const Assessment = () => {
               Want the full picture?
             </h2>
             <p className="font-body text-base leading-relaxed mb-4" style={{ color: "#1C3A2E" }}>
-              Your complete Deep-Dive Guide includes all 10 matched herbs with clinical preparation methods, dosages, and safety notes — plus caution lists, lifestyle and nutrition guidance, and a Biblical framework for your body type pattern.
+              Your complete Deep-Dive Guide includes all 10 matched herbs with clinical preparation methods, dosages, and safety notes — plus caution lists, lifestyle and nutrition guidance, and a Biblical framework for your body pattern.
             </p>
             <Button
               variant="eden"
@@ -391,7 +444,7 @@ const Assessment = () => {
               Your Starter Herb Kit
             </h2>
             <p className="font-body text-base leading-relaxed mb-6" style={{ color: "#1C3A2E" }}>
-              We curated the exact herbs for your body type on Amazon. One-click shopping list — everything you need to get started.
+              We curated the exact herbs for your body pattern on Amazon. One-click shopping list — everything you need to get started.
             </p>
             <a
               href={profile.amazonUrl}
@@ -413,7 +466,7 @@ const Assessment = () => {
               Ready to Go Deeper?
             </h3>
             <p className="font-body text-lg mb-8 max-w-xl mx-auto" style={{ color: "#F5F0E8" }}>
-              The Foundations Course teaches you how to read your body type and match it to God's provision in the plant world.
+              The Foundations Course teaches you how to read your body pattern and match it to God's provision in the plant world.
             </p>
             <a
               href="/why-eden"

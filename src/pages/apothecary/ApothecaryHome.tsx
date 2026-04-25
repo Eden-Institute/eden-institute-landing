@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useApothecaryHerbs } from "@/hooks/useApothecaryHerbs";
 import { useEdenPattern } from "@/hooks/useEdenPattern";
 import { HerbCard } from "@/components/apothecary/HerbCard";
+import { PatternMatchHero } from "@/components/apothecary/PatternMatchHero";
 import {
   HerbDirectoryFilters,
   EMPTY_FILTERS,
@@ -121,6 +122,12 @@ export default function ApothecaryHome() {
               )}
             </p>
           )}
+        </div>
+      </section>
+
+      <section className="px-6">
+        <div className="max-w-6xl mx-auto pt-8">
+          <PatternMatchHero />
         </div>
       </section>
 

@@ -45,7 +45,7 @@ const HeroSection = () => {
         <div className="eden-divider" />
 
         <p className="font-body text-base md:text-lg lg:text-xl text-muted-foreground max-w-3xl mx-auto mb-6 md:mb-8 leading-relaxed animate-fade-in" style={{ animationDelay: '0.4s' }}>
-          A body type and energetics-based framework for reading the body, matching the plant, and stewarding health according to design&nbsp;— not suppression.
+          A body pattern and energetics-based framework for reading the body, matching the plant, and stewarding health according to design&nbsp;— not suppression.
         </p>
 
         <blockquote className="scripture-block text-sm md:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto mb-8 md:mb-12 text-left animate-fade-in border-secondary-foreground" style={{ animationDelay: '0.5s' }}>

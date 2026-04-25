@@ -181,6 +181,19 @@ export function getNickname(constitutionType: string): string {
   return constitutionProfiles[constitutionType]?.nickname ?? constitutionType;
 }
 
+/**
+ * Compute the 3-axis result label from quiz answers.
+ *
+ * Per Locked Decision §0.8 #39, inconclusive results never default to a
+ * Pattern. Each axis resolves to the dominant direction ONLY when the count
+ * strictly exceeds the opposite count. Ties (including all-neutral answers)
+ * resolve to "Neutral" on that axis. Any "Neutral" in the result string
+ * means the user should be routed to the inconclusive UI, not the email
+ * gate or the Pattern result.
+ *
+ * Use `isInconclusiveResult(result)` to test for inconclusivity rather than
+ * substring-matching on the caller side.
+ */
 export function computeResult(answers: Record<number, string>): string {
   const axes = {
     temperature: { first: "Hot", second: "Cold", questions: [1, 2, 3, 4] },
@@ -196,7 +209,38 @@ export function computeResult(answers: Record<number, string>): string {
       if (score === axis.first) firstCount++;
       if (score === axis.second) secondCount++;
     }
-    results.push(firstCount >= secondCount ? axis.first : axis.second);
+    if (firstCount > secondCount) results.push(axis.first);
+    else if (secondCount > firstCount) results.push(axis.second);
+    else results.push("Neutral");
   }
   return results.join(" / ");
+}
+
+/**
+ * Identify the axes that came back Neutral, for surfacing in the
+ * inconclusive UI ("Your responses didn't show a clear pattern on the
+ * temperature axis"). Returns the human-readable axis names, in the same
+ * order as the result string.
+ */
+export function inconclusiveAxes(result: string): Array<"temperature" | "fluid" | "tone"> {
+  const parts = result.split(" / ");
+  const axisNames: Array<"temperature" | "fluid" | "tone"> = [
+    "temperature",
+    "fluid",
+    "tone",
+  ];
+  const out: Array<"temperature" | "fluid" | "tone"> = [];
+  parts.forEach((p, i) => {
+    if (p === "Neutral" && axisNames[i]) out.push(axisNames[i]);
+  });
+  return out;
+}
+
+/**
+ * True when any axis is Neutral. The Assessment phase machine routes to
+ * "inconclusive" when this returns true; never silently defaults to a
+ * Pattern.
+ */
+export function isInconclusiveResult(result: string): boolean {
+  return result.split(" / ").includes("Neutral");
 }
