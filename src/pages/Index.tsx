@@ -7,6 +7,7 @@ import Footer from "@/components/landing/Footer";
 import AssessmentModal from "@/components/landing/AssessmentModal";
 import { BotanicalLeafTopRight, BotanicalLeafBottomLeft, GoldDivider } from "@/components/landing/BotanicalAccents";
 import ScrollReveal from "@/components/landing/ScrollReveal";
+import { WorldviewBand } from "@/components/landing/WorldviewBand";
 
 // Unsplash photography
 const HERO_IMG = "https://images.unsplash.com/photo-1659328376647-52ec39d1a5cf?auto=format&fit=crop&w=1920&q=80";
@@ -175,6 +176,9 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      {/* ─── WORLDVIEW BAND (Manual v3.17 Lock #14 + #44 — the source-of-vital-force thesis) ─── */}
+      <WorldviewBand />
 
       {/* ─── FOR YOU SECTION ─── */}
       <section className="section-padding-lg" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
