@@ -210,7 +210,7 @@ export default function Start() {
               features={[
                 "Unlock clinical body of every monograph",
                 "Tissue state indications and energetic actions",
-                "Western clinical and Pattern of Eden constitutional overlays",
+                "Western, Ayurvedic, and TCM constitutional overlays plus Pattern of Eden",
                 "Save your constitutional result and revisit it",
               ]}
               highlighted
