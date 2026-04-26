@@ -22,8 +22,9 @@ import { useAuth } from "@/contexts/AuthContext";
  *     table public.person_profile_tissue_states and is NOT a column on
  *     this row. The phantom `tissue_state_profile` field that was on this
  *     interface in v3.15 was removed in the v3.16 audit-fix pass; consumers
- *     that need Layer 3 read it via diagnostic_profile_v (or the dedicated
- *     `usePersonProfileTissueStates` hook when it ships).
+ *     that need Layer 3 read it via diagnostic_profile_v; a dedicated
+ *     per-profile reader hook will ship alongside the deep-quiz frontend
+ *     when a consumer mounts.
  */
 export interface PersonProfile {
   id: string;
