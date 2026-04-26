@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDiagnosticProfile } from "@/hooks/useDiagnosticProfile";
 import { PATTERN_PROFILES } from "@/lib/edenPattern";
-import { type DiagnosticProfile } from "@/lib/diagnosticProfile";
+import { type DiagnosticProfile, hasFullDiagnosticDepth } from "@/lib/diagnosticProfile";
 
 /**
  * PatternMatchHero — personalization card on the Apothecary directory home.
@@ -223,7 +223,7 @@ function ResolvedProfileCard({ profile }: { profile: DiagnosticProfile }) {
         {/* Upgrade narrative when not yet on deep diagnostic. v1 surfaces
             conservative copy only — the deep-diagnostic upgrade endpoint
             ships in a later PR (Manual v3.8 strategic pivot). */}
-        {profile.source === "marketing_quiz_12q" && (
+        {!hasFullDiagnosticDepth(profile) && (
           <p
             className="font-body text-xs italic mt-6 pt-4 border-t"
             style={{
