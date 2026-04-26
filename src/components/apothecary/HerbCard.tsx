@@ -435,7 +435,11 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
                 </section>
               )}
 
-              {herb.western_constitution_match && (
+              {(herb.western_constitution_match ||
+                herb.ayurvedic_dosha_match ||
+                herb.ayurvedic_dosha_aggravates ||
+                herb.tcm_pattern_match ||
+                herb.tcm_contraindicated_patterns) && (
                 <section>
                   <h4
                     className={sectionLabel}
@@ -443,14 +447,77 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
                   >
                     Constitutional match
                   </h4>
+                  {/*
+                    Cross-tradition observational labels per Lock #44 (Manual
+                    §0.8). Western, Ayurvedic, and TCM systems each
+                    independently observed the same human body and named
+                    what they saw. We honor each tradition's pattern-
+                    observation while explicitly NOT carrying forward its
+                    spiritual attribution of vital force (qi-as-cosmic,
+                    prana-as-Brahman, the Tao as ground of being). Per Lock
+                    #14 worldview anchor, the source of vital force is named
+                    plainly as the Holy Spirit; the dosha and pattern labels
+                    here describe what the body is doing, not where life
+                    comes from.
+                  */}
                   <dl className="font-body text-sm leading-relaxed space-y-1">
-                    <div>
-                      <dt className="inline font-medium">Western: </dt>
-                      <dd className="inline">
-                        {herb.western_constitution_match}
-                      </dd>
-                    </div>
+                    {herb.western_constitution_match && (
+                      <div>
+                        <dt className="inline font-medium">Western: </dt>
+                        <dd className="inline">
+                          {herb.western_constitution_match}
+                        </dd>
+                      </div>
+                    )}
+                    {herb.ayurvedic_dosha_match && (
+                      <div>
+                        <dt className="inline font-medium">
+                          Ayurvedic (matches):{" "}
+                        </dt>
+                        <dd className="inline">
+                          {herb.ayurvedic_dosha_match}
+                        </dd>
+                      </div>
+                    )}
+                    {herb.ayurvedic_dosha_aggravates && (
+                      <div>
+                        <dt className="inline font-medium">
+                          Ayurvedic (aggravates):{" "}
+                        </dt>
+                        <dd className="inline">
+                          {herb.ayurvedic_dosha_aggravates}
+                        </dd>
+                      </div>
+                    )}
+                    {herb.tcm_pattern_match && (
+                      <div>
+                        <dt className="inline font-medium">
+                          TCM (matches):{" "}
+                        </dt>
+                        <dd className="inline">
+                          {herb.tcm_pattern_match}
+                        </dd>
+                      </div>
+                    )}
+                    {herb.tcm_contraindicated_patterns && (
+                      <div>
+                        <dt className="inline font-medium">
+                          TCM (contraindicated):{" "}
+                        </dt>
+                        <dd className="inline">
+                          {herb.tcm_contraindicated_patterns}
+                        </dd>
+                      </div>
+                    )}
                   </dl>
+                  <p
+                    className="font-body text-xs italic mt-2 text-muted-foreground"
+                    aria-label="Cross-tradition observational scope"
+                  >
+                    Pattern-observation only. The source of vital force is
+                    named on the WhyEden page — these labels describe
+                    what the body is doing, not where life comes from.
+                  </p>
                 </section>
               )}
 
