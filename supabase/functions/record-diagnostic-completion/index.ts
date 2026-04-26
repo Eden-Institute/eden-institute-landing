@@ -48,7 +48,7 @@
 //     edenConstitution?: string,                // Layer 1
 //     galenicTemperament?: string,              // Layer 2
 //     vitalForceReading?: string,               // Layer 4
-//     tissueStateProfile?: object | object[],   // Layer 3 (jsonb shape)
+//     tissueStateProfile?: Record<string,string>,// Layer 3: body_system_id -> tissue_state_id map (jsonb)
 //     quizVersion?: "v1-diagnostic" | "v2-deep" // default: "v1-diagnostic"
 //   }
 // At least ONE clinical layer must be present. Otherwise 400 no_layer_present.
@@ -147,19 +147,14 @@ function normalizeOptionalText(
 function validateTissueStateProfile(
   raw: unknown,
 ): { ok: true; value: unknown } | { ok: false } {
+  // Layer 3 wire shape per Lock #37 + Lock #42: a Record<body_system_id, tissue_state_id>.
+  // The trigger consumes this via jsonb_each_text; arrays would be silently
+  // accepted here, persisted, then thrown by the trigger as a confusing
+  // noncanonical_clinical_value. Reject arrays at the API surface so the
+  // client sees an immediate, meaningful invalid_tissue_state_profile.
   if (raw === undefined || raw === null) return { ok: true, value: null };
   if (typeof raw !== "object") return { ok: false };
-  if (Array.isArray(raw)) {
-    for (const entry of raw) {
-      if (!entry || typeof entry !== "object") return { ok: false };
-      const e = entry as Record<string, unknown>;
-      if (typeof e.body_system_id !== "string" ||
-          typeof e.tissue_state_id !== "string") {
-        return { ok: false };
-      }
-    }
-    return { ok: true, value: raw };
-  }
+  if (Array.isArray(raw)) return { ok: false };
   for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
     if (typeof k !== "string" || typeof v !== "string") return { ok: false };
   }
