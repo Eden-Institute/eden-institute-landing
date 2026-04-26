@@ -4,6 +4,7 @@ import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import ScrollReveal from "@/components/landing/ScrollReveal";
 import { GoldDivider } from "@/components/landing/BotanicalAccents";
+import { WorldviewBand } from "@/components/landing/WorldviewBand";
 
 const WhyEden = () => {
   useEffect(() => {
@@ -39,6 +40,10 @@ const WhyEden = () => {
         </div>
       </section>
 
+      <GoldDivider />
+
+      {/* WORLDVIEW BAND — the thesis the page builds out from (Manual v3.17 Lock #14 + #44) */}
+      <WorldviewBand caption="What we believe and what we don’t" headline={null} />
       <GoldDivider />
 
       {/* THE PROBLEM */}
