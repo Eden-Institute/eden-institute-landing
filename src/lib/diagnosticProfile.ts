@@ -152,4 +152,40 @@ export function hasFullDiagnosticDepth(profile: DiagnosticProfile): boolean {
     profile.source === "deep_diagnostic_40q" &&
     profile.galenicTemperament !== undefined &&
     profile.tissueStateProfile !== undefined &&
-    profile.vitalFo
+    profile.vitalForce !== undefined
+  );
+}
+
+/**
+ * Convert a raw constitution_type string (the axis-label shape that the
+ * 12-q marketing quiz writes into profiles.constitution_type) into the
+ * EdenAxisReadings detail. Used by useDiagnosticProfile when no deep-quiz
+ * data exists yet.
+ *
+ * Returns null when the raw value cannot be parsed. Caller should fall
+ * through to the take-the-quiz affordance.
+ */
+export function parseAxisReadingsFromRaw(
+  raw: string | null | undefined,
+): EdenAxisReadings | null {
+  if (!raw) return null;
+  const parts = raw.split(" / ").map((p) => p.trim());
+  if (parts.length !== 3) return null;
+  const [tempPart, moistPart, tonePart] = parts;
+
+  const temperature: TemperatureReading | null =
+    tempPart === "Hot" || tempPart === "Cold" || tempPart === "Neutral"
+      ? tempPart
+      : null;
+  const moisture: MoistureReading | null =
+    moistPart === "Dry" || moistPart === "Damp" || moistPart === "Neutral"
+      ? moistPart
+      : null;
+  const tone: ToneReading | null =
+    tonePart === "Tense" || tonePart === "Relaxed" || tonePart === "Neutral"
+      ? tonePart
+      : null;
+
+  if (!temperature || !moisture || !tone) return null;
+  return { temperature, moisture, tone };
+}
