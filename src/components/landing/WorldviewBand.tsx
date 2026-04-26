@@ -19,7 +19,7 @@
  * Mobile-aware per project_mobile_wrapping_roadmap.md: no hover-only
  * interactions, generous line-height, responsive Tailwind utilities.
  */
-import { ScrollReveal } from "@/components/landing/ScrollReveal";
+import ScrollReveal from "@/components/landing/ScrollReveal";
 
 interface WorldviewBandProps {
   /**
