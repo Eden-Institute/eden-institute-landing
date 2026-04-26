@@ -1,7 +1,16 @@
-import { useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { constitutionProfiles, computeResult, isInconclusiveResult, inconclusiveAxes } from "@/lib/constitution-data";
+import {
+  constitutionProfiles,
+  computeResult,
+  isInconclusiveResult,
+  inconclusiveAxes,
+} from "@/lib/constitution-data";
+import { useAuth } from "@/contexts/AuthContext";
+import { useActiveProfileOptional } from "@/contexts/ActiveProfileContext";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Question {
   id: number;
@@ -85,10 +94,60 @@ const questions: Question[] = [
   ]},
 ];
 
+/**
+ * Assessment — the 12-question Pattern of Eden quiz.
+ *
+ * Two modes (per Manual §0.8 #40 + v3.14 Session Log):
+ *
+ *   1. MARKETING mode (default). Mounted at `/assessment`. Anonymous flow:
+ *      quiz → email-capture gate → resend-waitlist (lead capture) +
+ *      record-quiz-completion (email-keyed marketing pipeline) → results.
+ *      Inconclusive routes per Lock #39 (no silent defaults).
+ *
+ *   2. DIAGNOSTIC mode. Mounted at `/apothecary/quiz?profileId=<uuid>`,
+ *      gated by RequireAuth + RequireTier(allow=["root","practitioner"]).
+ *      Auth'd flow: quiz → record-diagnostic-completion (id-keyed clinical
+ *      pipeline writing person_profiles.eden_constitution for the supplied
+ *      profileId, NEVER touching the email-keyed marketing pipeline) →
+ *      redirect back to /apothecary/start with the picker pointing at the
+ *      now-personalized profile.
+ *
+ *   Mode is decided by presence of `?profileId=<uuid>` in the URL search.
+ *   When in DIAGNOSTIC mode, the marketing header is suppressed because
+ *   ApothecaryLayout already provides nav + the picker pill.
+ *
+ * Lock #40 separation: the two pipelines are NEVER mixed. A diagnostic-mode
+ * completion does NOT call resend-waitlist or record-quiz-completion.
+ */
 const Assessment = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const profileCtx = useActiveProfileOptional();
+
+  // Diagnostic-mode detection: `?profileId=<uuid>` AND we are inside the
+  // ApothecaryLayout (provider mounted) AND the supplied id matches one
+  // of the user's profiles. The route-level RequireAuth + RequireTier
+  // already enforce auth + Root tier; we additionally verify ownership
+  // here to guard against a forged URL. Server-side, record-diagnostic-
+  // completion re-checks ownership against auth.uid(), so this is a UX
+  // guard, not a security boundary.
+  const profileIdParam = searchParams.get("profileId");
+  const targetProfile = useMemo(() => {
+    if (!profileIdParam) return null;
+    if (!profileCtx) return null;
+    return profileCtx.profiles.find((p) => p.id === profileIdParam) ?? null;
+  }, [profileIdParam, profileCtx]);
+  const diagnosticMode = profileIdParam !== null && targetProfile !== null;
+  const profileLookupPending =
+    profileIdParam !== null && (profileCtx?.isLoading ?? false);
+
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [phase, setPhase] = useState<"quiz" | "gate" | "inconclusive" | "results">("quiz");
+  const [phase, setPhase] = useState<
+    "quiz" | "gate" | "inconclusive" | "results" | "diagnostic-saving" | "diagnostic-saved"
+  >("quiz");
   const [transitioning, setTransitioning] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
@@ -101,24 +160,89 @@ const Assessment = () => {
   const neutralAxes = constitutionType && isInconclusive ? inconclusiveAxes(constitutionType) : [];
   const profile = constitutionType ? constitutionProfiles[constitutionType] : null;
 
+  // ── Diagnostic-mode submit: call record-diagnostic-completion ──
+  // Skips email gate entirely. On success, invalidates the per-profile
+  // diagnostic_profile_v2 + eden_pattern_v2 query keys so the picker-driven
+  // hooks re-render the new Pattern, and the person_profiles list cache so
+  // the picker dropdown reflects the new state. Then redirects to
+  // /apothecary/start which has the directory + PatternMatchHero.
+  const submitDiagnostic = useCallback(async (answersToSubmit: Record<number, string>) => {
+    if (!targetProfile || !user) {
+      setError("Missing profile context. Please reload and try again.");
+      return;
+    }
+    setPhase("diagnostic-saving");
+    setError("");
+    try {
+      const result = computeResult(answersToSubmit);
+      // Inconclusive results don't write — surfaced to the user via the
+      // inconclusive phase instead. We never silently default per Lock #39.
+      if (isInconclusiveResult(result)) {
+        setPhase("inconclusive");
+        return;
+      }
+      const { data, error: fnError } = await supabase.functions.invoke(
+        "record-diagnostic-completion",
+        {
+          body: {
+            personProfileId: targetProfile.id,
+            edenConstitution: result, // EF accepts axis-label form + normalizes to slug
+          },
+        },
+      );
+      if (fnError) throw fnError;
+      if (data?.error) throw new Error(data.error);
+
+      // Invalidate the picker-driven hooks + person_profiles so the new
+      // Pattern shows up immediately on the directory.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["person_profiles"] }),
+        queryClient.invalidateQueries({ queryKey: ["eden_pattern_v2"] }),
+        queryClient.invalidateQueries({ queryKey: ["diagnostic_profile_v2"] }),
+      ]);
+
+      setPhase("diagnostic-saved");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Could not save your Pattern. Please try again.";
+      setError(message);
+      setPhase("gate"); // surface the error inside the gate-style screen so user can retry
+    }
+  }, [targetProfile, user, queryClient]);
+
+  // Auto-redirect after diagnostic save with a short pause for confirmation.
+  useEffect(() => {
+    if (phase === "diagnostic-saved") {
+      const t = setTimeout(() => {
+        navigate("/apothecary/start", { replace: true });
+      }, 2000);
+      return () => clearTimeout(t);
+    }
+  }, [phase, navigate]);
+
   const handleAnswer = useCallback((questionId: number, score: string) => {
     setAnswers((prev) => {
       const next = { ...prev, [questionId]: score };
-      // On the final question, route based on result. Inconclusive results
-      // never enter the email-capture gate per Locked Decision §0.8 #39.
       setTransitioning(true);
       setTimeout(() => {
         if (currentQ < questions.length - 1) {
           setCurrentQ((p) => p + 1);
         } else {
           const result = computeResult(next);
-          setPhase(isInconclusiveResult(result) ? "inconclusive" : "gate");
+          if (isInconclusiveResult(result)) {
+            setPhase("inconclusive");
+          } else if (diagnosticMode) {
+            // Diagnostic mode: skip the email gate, go straight to the EF.
+            submitDiagnostic(next);
+          } else {
+            // Marketing mode: enter email-capture gate.
+            setPhase("gate");
+          }
         }
         setTransitioning(false);
       }, 400);
       return next;
     });
-  }, [currentQ]);
+  }, [currentQ, diagnosticMode, submitDiagnostic]);
 
   const restartQuiz = useCallback(() => {
     setAnswers({});
@@ -149,8 +273,7 @@ const Assessment = () => {
       // Constitution capture for /apothecary personalization (independent of
       // marketing-consent). Failure here must NOT block the result reveal —
       // personalization is recoverable (the user can retake the quiz post-
-      // signup) but a blocked results page is not. We log to Edge Function
-      // logs for ops visibility instead of surfacing to the user.
+      // signup) but a blocked results page is not.
       try {
         const { data: recordData, error: recordError } =
           await supabase.functions.invoke("record-quiz-completion", {
@@ -171,8 +294,9 @@ const Assessment = () => {
       }
 
       setPhase("results");
-    } catch (err: any) {
-      setError(err.message || "Something went wrong. Please try again.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -182,19 +306,69 @@ const Assessment = () => {
   const progress = phase === "quiz" ? ((currentQ + (answers[q.id] ? 1 : 0)) / questions.length) * 100 : 100;
   const axisLabel = q.axis === "temperature" ? "Temperature Axis" : q.axis === "fluid" ? "Fluid Axis" : "Tone Axis";
 
-  return (
-    <div className="min-h-screen" style={{ backgroundColor: "#F5F0E8" }}>
-      {/* Header */}
-      <header className="px-6 py-6 border-b" style={{ borderColor: "hsl(40, 20%, 80%)" }}>
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <a href="/" className="font-serif text-lg font-bold" style={{ color: "#1C3A2E" }}>
-            The Eden Institute
-          </a>
-          <span className="font-accent text-sm tracking-[0.2em] uppercase" style={{ color: "#C9A84C" }}>
-            Body Pattern Quiz
-          </span>
+  // Profile-lookup pending: we have a profileId in the URL but the profile
+  // list query hasn't resolved yet. Render a brief loading state — once
+  // profiles hydrate we either enter diagnostic mode (target found) or
+  // fall through to a 404-style message (target not found / not owned).
+  if (profileLookupPending) {
+    return (
+      <div className={diagnosticMode ? "" : "min-h-screen"} style={!diagnosticMode ? { backgroundColor: "#F5F0E8" } : undefined}>
+        <div className="max-w-xl mx-auto px-6 py-16 text-center font-body" style={{ color: "#1C3A2E" }}>
+          Loading profile…
         </div>
-      </header>
+      </div>
+    );
+  }
+
+  // profileId param supplied but no matching profile under this user —
+  // either bad URL or not owned. RequireAuth + RequireTier already gate the
+  // route, so reaching this means the URL is wrong; surface a clear message
+  // rather than silently re-mounting the marketing flow.
+  if (profileIdParam !== null && !targetProfile && profileCtx !== null) {
+    return (
+      <div className="max-w-xl mx-auto px-6 py-16 text-center">
+        <h2 className="font-serif text-2xl font-bold mb-3" style={{ color: "#1C3A2E" }}>
+          Profile not found
+        </h2>
+        <p className="font-body text-base mb-6" style={{ color: "#1C3A2E" }}>
+          The profile you tried to take the quiz for doesn't belong to your account or no longer exists.
+        </p>
+        <Button variant="eden" size="lg" onClick={() => navigate("/apothecary/profiles")}>
+          Manage profiles
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className={diagnosticMode ? "" : "min-h-screen"} style={!diagnosticMode ? { backgroundColor: "#F5F0E8" } : undefined}>
+      {/* Marketing-mode header. Suppressed in diagnostic mode because the
+          ApothecaryLayout already provides nav + picker pill. */}
+      {!diagnosticMode && (
+        <header className="px-6 py-6 border-b" style={{ borderColor: "hsl(40, 20%, 80%)" }}>
+          <div className="max-w-3xl mx-auto flex items-center justify-between">
+            <a href="/" className="font-serif text-lg font-bold" style={{ color: "#1C3A2E" }}>
+              The Eden Institute
+            </a>
+            <span className="font-accent text-sm tracking-[0.2em] uppercase" style={{ color: "#C9A84C" }}>
+              Body Pattern Quiz
+            </span>
+          </div>
+        </header>
+      )}
+
+      {/* Diagnostic-mode banner — establishes "whose quiz is this?" so the
+          user is never ambiguous about which profile they're personalizing. */}
+      {diagnosticMode && targetProfile && phase === "quiz" && (
+        <div className="max-w-2xl mx-auto px-6 pt-8">
+          <p className="font-accent text-xs tracking-[0.2em] uppercase mb-1" style={{ color: "#C9A84C" }}>
+            Pattern of Eden Quiz
+          </p>
+          <h1 className="font-serif text-2xl md:text-3xl font-bold" style={{ color: "#1C3A2E" }}>
+            {targetProfile.is_self ? "For you" : `For ${targetProfile.name}`}
+          </h1>
+        </div>
+      )}
 
       {phase === "quiz" && (
         <div className="max-w-2xl mx-auto px-6 py-12">
@@ -226,7 +400,7 @@ const Assessment = () => {
                 <button
                   key={opt.label}
                   onClick={() => handleAnswer(q.id, opt.score)}
-                  className="w-full text-left p-5 border-2 rounded transition-all duration-200 hover:border-[#C9A84C] hover:shadow-md group"
+                  className="w-full text-left p-5 border-2 rounded transition-all duration-200 hover:border-[#C9A84C] hover:shadow-md group min-h-[44px]"
                   style={{
                     borderColor: answers[q.id] === opt.score ? "#C9A84C" : "hsl(40, 20%, 80%)",
                     backgroundColor: answers[q.id] === opt.score ? "hsl(40, 55%, 50%, 0.08)" : "white",
@@ -253,7 +427,36 @@ const Assessment = () => {
         </div>
       )}
 
-      {phase === "gate" && profile && (
+      {/* Diagnostic-mode saving + saved screens */}
+      {phase === "diagnostic-saving" && (
+        <div className="max-w-xl mx-auto px-6 py-16 text-center">
+          <p className="font-body text-base" style={{ color: "#1C3A2E" }}>
+            Recording your Pattern…
+          </p>
+        </div>
+      )}
+      {phase === "diagnostic-saved" && profile && targetProfile && (
+        <div className="max-w-xl mx-auto px-6 py-16 text-center">
+          <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>
+            Pattern Recorded
+          </span>
+          <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-2" style={{ color: "#1C3A2E" }}>
+            {profile.nickname}
+          </h2>
+          <p className="font-body text-base mb-1" style={{ color: "#1C3A2E" }}>
+            {constitutionType}
+          </p>
+          <p className="font-accent text-lg italic mb-8" style={{ color: "#C9A84C" }}>
+            {profile.tagline}
+          </p>
+          <p className="font-body text-base" style={{ color: "#1C3A2E" }}>
+            Saved to {targetProfile.is_self ? "your profile" : targetProfile.name + "'s profile"}. Returning to the directory…
+          </p>
+        </div>
+      )}
+
+      {/* Marketing-mode email-capture gate. Diagnostic mode never enters this phase. */}
+      {phase === "gate" && profile && !diagnosticMode && (
         <div className="max-w-xl mx-auto px-6 py-16 text-center">
           <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>
             Your Body Pattern
@@ -427,8 +630,9 @@ const Assessment = () => {
                   });
                   if (fnError) throw fnError;
                   if (data?.url) window.location.href = data.url;
-                } catch (err: any) {
-                  setError(err.message || "Could not start checkout");
+                } catch (err: unknown) {
+                  const message = err instanceof Error ? err.message : "Could not start checkout";
+                  setError(message);
                 } finally {
                   setCheckoutLoading(false);
                 }

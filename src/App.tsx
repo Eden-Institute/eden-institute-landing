@@ -22,6 +22,7 @@ import Community from "./pages/Community";
 import TierTwoWaitlist from "./pages/TierTwoWaitlist";
 import { ApothecaryLayout } from "@/components/apothecary/ApothecaryLayout";
 import { RequireAuth } from "@/components/apothecary/RequireAuth";
+import { RequireTier } from "@/components/apothecary/RequireTier";
 import ApothecaryHome from "./pages/apothecary/ApothecaryHome";
 import Start from "./pages/apothecary/Start";
 import WelcomeTour from "./pages/apothecary/WelcomeTour";
@@ -115,6 +116,21 @@ const App = () => (
                   Auth + tier gating is enforced by the page itself
                   (RequireAuth + RequireTier allow={["root","practitioner"]}). */}
               <Route path="profiles" element={<ProfilesPage />} />
+              {/* Stage 6.3.5 Phase B sub-task 4 Layer 1+2: in-app Pattern of
+                  Eden quiz, mounted under ApothecaryLayout so the picker
+                  pill is visible during the quiz. Root+ only — the Pattern
+                  of Eden write path is a Root-tier clinical action per
+                  Lock #40 (id-keyed Edge Functions to diagnostic_completions). */}
+              <Route
+                path="quiz"
+                element={
+                  <RequireAuth>
+                    <RequireTier allow={["root", "practitioner"]}>
+                      <Assessment />
+                    </RequireTier>
+                  </RequireAuth>
+                }
+              />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

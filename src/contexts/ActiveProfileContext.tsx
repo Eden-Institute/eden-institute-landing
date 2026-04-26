@@ -12,9 +12,12 @@ import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * PersonProfile — minimal shape consumed by the picker + management surface.
+ *
  * Diagnostic-stack columns (galenic_temperament, vital_force_reading,
- * diagnostic_completed_at) live on the row but are read via
- * useDiagnosticProfile, not from this context.
+ * tissue_state_profile) live on the row. v3.14 Layer 1+2 build surfaces
+ * them via useDiagnosticProfile rather than from this context, but they
+ * are SELECTED on the row read so the picker dropdown can show
+ * "Pattern recorded" / "No Pattern yet" badges without a second fetch.
  */
 export interface PersonProfile {
   id: string;
@@ -25,6 +28,9 @@ export interface PersonProfile {
   profile_kind: "adult" | "child";
   is_self: boolean;
   eden_constitution: string | null;
+  galenic_temperament: string | null;
+  vital_force_reading: string | null;
+  tissue_state_profile: unknown | null;
   allergies: string | null;
   medications: string | null;
   conditions: string | null;
@@ -169,9 +175,10 @@ export function ActiveProfileProvider({ children }: { children: ReactNode }) {
 }
 
 /**
- * useActiveProfile — consumer hook. Must be used inside ActiveProfileProvider
- * (mounted at ApothecaryLayout). Throws if used outside the provider so the
- * mistake surfaces at component-mount time rather than as a silent null-deref.
+ * useActiveProfile — strict consumer hook. Must be used inside
+ * ActiveProfileProvider (mounted at ApothecaryLayout). Throws if used
+ * outside the provider so the mistake surfaces at component-mount time
+ * rather than as a silent null-deref.
  */
 export function useActiveProfile(): ActiveProfileContextValue {
   const ctx = useContext(ActiveProfileContext);
@@ -181,4 +188,20 @@ export function useActiveProfile(): ActiveProfileContextValue {
     );
   }
   return ctx;
+}
+
+/**
+ * useActiveProfileOptional — non-throwing variant. Returns null when used
+ * outside ActiveProfileProvider (e.g. on the marketing /assessment route,
+ * which is not mounted under ApothecaryLayout).
+ *
+ * Rationale: hooks like useEdenPattern and useDiagnosticProfile are
+ * consumed both inside the apothecary subtree (where the picker exists)
+ * AND in places that pre-date the picker. The strict useActiveProfile
+ * throw would force every consumer to gate itself on route, which is
+ * brittle. The optional variant lets the hook decide its behavior based
+ * on context availability rather than caller routing.
+ */
+export function useActiveProfileOptional(): ActiveProfileContextValue | null {
+  return useContext(ActiveProfileContext);
 }
