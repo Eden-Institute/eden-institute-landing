@@ -187,11 +187,22 @@ const Assessment = () => {
           body: {
             personProfileId: targetProfile.id,
             edenConstitution: result, // EF accepts axis-label form + normalizes to slug
+            // Per Lock #40 strict separation, the in-app 12-q diagnostic
+            // tags its writes with `v1-diagnostic`. The marketing-pipeline
+            // `v1` namespace lives only on quiz_completions.
+            quizVersion: "v1-diagnostic",
           },
         },
       );
       if (fnError) throw fnError;
-      if (data?.error) throw new Error(data.error);
+      // EF v3.16 returns `{ error: { code, message } }` on failure (wire-stable
+      // contract). Surface the message; UI may branch on `code` if needed.
+      if (data?.error) {
+        const msg = typeof data.error === "string"
+          ? data.error
+          : (data.error.message ?? "Could not save your Pattern. Please try again.");
+        throw new Error(msg);
+      }
 
       // Invalidate the picker-driven hooks + person_profiles so the new
       // Pattern shows up immediately on the directory.

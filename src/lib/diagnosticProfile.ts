@@ -87,7 +87,32 @@ export interface EdenAxisReadings {
 
 /* -------------------- The unified profile contract -------------------- */
 
-export type DiagnosticSource = "marketing_quiz_12q" | "deep_diagnostic_40q";
+/**
+ * Provenance of the Layer 1 value in this profile.
+ *
+ * Per Lock #38 (citation integrity), the source must honestly identify the
+ * pipeline that produced the value. Per Lock #40 strict separation, the
+ * marketing-quiz namespace (12-q anonymous funnel via quiz_completions) is
+ * never conflated with the in-app diagnostic namespace (auth'd via
+ * diagnostic_completions through record-diagnostic-completion).
+ *
+ *   • marketing_quiz_12q                  — anonymous /quiz, email-keyed.
+ *   • marketing_quiz_12q_legacy_bridge   — legacy bridge fallback: the user
+ *     read came from profiles.constitution_type because their account
+ *     pre-dates the v3.10 sync trigger and they have not retaken the quiz
+ *     in-app yet. See Manual v3.14 Phase 8 durable architectural finding.
+ *   • in_app_diagnostic_12q              — auth'd user took the 12-q
+ *     diagnostic from inside the apothecary (per-profile picker context).
+ *   • deep_diagnostic_40q                 — Root-tier 40-question deep
+ *     diagnostic. Sets has_full_diagnostic_depth.
+ *
+ * Mapper: src/lib/diagnosticSource.ts (provenanceForQuizVersion).
+ */
+export type DiagnosticSource =
+  | "marketing_quiz_12q"
+  | "marketing_quiz_12q_legacy_bridge"
+  | "in_app_diagnostic_12q"
+  | "deep_diagnostic_40q";
 
 export interface DiagnosticProfile {
   /**

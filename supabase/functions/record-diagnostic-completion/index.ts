@@ -1,73 +1,117 @@
 // supabase/functions/record-diagnostic-completion/index.ts
-// Eden Apothecary — Layer 1+2+3+4 clinical-reading write surface (Lock #40)
-// Auth: requires logged-in Supabase user (JWT in Authorization header)
+// Eden Apothecary — id-keyed clinical-reading write surface (Lock #40).
+// Auth: requires logged-in Supabase user (JWT in Authorization header).
 //
-// Architectural posture (per Manual §0.8 #40 and v3.14 Session Log):
-//   • Single id-keyed write surface for all four diagnostic layers
-//     (Eden Pattern · Galenic temperament · vital force overlay · tissue
-//     state profile by organ system). Each layer is INDEPENDENTLY OPTIONAL —
-//     a Layer-1-only call is valid; a Layer-2/3/4 build-out call is valid.
-//   • Writes into public.diagnostic_completions; the
-//     tg_diagnostic_completion_sync_profile trigger then fans into
-//     public.person_profiles (eden_constitution, galenic_temperament,
-//     vital_force_reading, tissue_state_profile via COALESCE so each
-//     column is preserved when its layer is omitted from this call).
-//   • The marketing pipeline (anon /quiz → record-quiz-completion →
-//     quiz_completions, email-keyed) is NOT touched by this function.
-//   • Caller MUST own the supplied personProfileId (auth.uid() match
-//     against person_profiles.user_id), enforced server-side before insert.
-//   • diagnostic_completions.user_id is NOT NULL (caught during the v3.14
-//     PR #24 smoke); this function injects user_id from auth.uid().
+// Architectural posture (per Manual §0.8 #37, #38, #40, #41, #42 — v3.16):
+//
+//   • SOLE write surface for diagnostic_completions. The authenticated role
+//     no longer has direct INSERT privilege on that table (Lock #41); this
+//     EF performs the insert with the service-role key after validating
+//     ownership against the caller's JWT. The dual posture is:
+//       - userClient (anon key + JWT) → auth.getUser()
+//       - service-role REST → ownership SELECT + INSERT + post-insert read
+//     Closes the cross-user write hole that direct PostgREST would leave.
+//
+//   • Layered diagnostic stack per Lock #37:
+//       Layer 1 — Eden Pattern         (eden_constitution)         all authed tiers
+//       Layer 2 — Galenic Temperament  (galenic_temperament)       Root
+//       Layer 3 — Tissue State Profile (tissue_state_profile JSON) Root, junction storage
+//       Layer 4 — Vital Force Reading  (vital_force_reading)       Root
+//     Each layer is INDEPENDENTLY OPTIONAL; partial calls are valid.
+//
+//   • Trigger fan-out behavior (recompiled in 20260426143000_diagnostic_contract_hardening):
+//       - Layers 1, 2, 4 + completed_at: COALESCE-fan into person_profiles.
+//         Partial calls preserve unspecified columns.
+//       - Layer 3 (tissue_state_profile JSONB → person_profile_tissue_states
+//         junction): UPSERT-per-pair (additive). Partial Layer-3 payloads
+//         preserve unrelated body-system rows. Per Lock #42.
+//
+//   • Lock #38 citation provenance: every junction row carries completion_id
+//     pointing at the diagnostic_completions row that established it. The
+//     EF echoes the new completion id back in the response so the frontend
+//     can label provenance honestly.
+//
+//   • Quiz-version namespace per Lock #40 strict separation:
+//       - v1            → quiz_completions (marketing pipeline)  — REJECTED here
+//       - v1-diagnostic → in-app 12-q diagnostic                  — accepted (default)
+//       - v2-deep       → Root 40-q deep diagnostic               — accepted
+//
+//   • CORS: narrowed to the production allowlist (eden-institute-landing
+//     web + Vercel previews). Unknown origins receive no header.
+//
+//   • Error contract: every failure is mapped through ./errorMap.ts to a
+//     stable { code, message } shape. Raw DB error text NEVER leaks.
 //
 // Payload (POST JSON):
 //   {
-//     personProfileId: uuid,           // REQUIRED
-//     edenConstitution?: string,       // Layer 1 — Pattern of Eden
-//     galenicTemperament?: string,     // Layer 2 — Galenic temperament
-//     vitalForceReading?: string,      // Layer 3 — vital force overlay
-//     tissueStateProfile?: object[]    // Layer 4 — tissue state profile
+//     personProfileId: uuid,                    // REQUIRED
+//     edenConstitution?: string,                // Layer 1
+//     galenicTemperament?: string,              // Layer 2
+//     vitalForceReading?: string,               // Layer 4
+//     tissueStateProfile?: object | object[],   // Layer 3 (jsonb shape)
+//     quizVersion?: "v1-diagnostic" | "v2-deep" // default: "v1-diagnostic"
 //   }
-// At least ONE clinical layer must be present. Otherwise 400.
+// At least ONE clinical layer must be present. Otherwise 400 no_layer_present.
 //
-// Returns 200 { ok: true, person_profile: {...} } with the updated
-// person_profiles row (post trigger fan-out) so the caller can
-// rerender immediately without a separate read.
+// Returns 200:
+//   { ok: true, completion_id, person_profile: {...}|null, source }
+// where `source` is the wire-stable provenance string for the supplied
+// quizVersion (per Lock #38, threaded through the frontend's
+// useDiagnosticProfile via diagnosticSource.ts).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  diagnosticError,
+  mapPostgrestError,
+  type DiagnosticError,
+} from "./errorMap.ts";
 
 // ── env ──
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+// ── CORS allowlist (Lock #41 / audit Minor #9) ──
+// Only echo Access-Control-Allow-Origin when the request Origin matches.
+// Unknown origins: omit the header — browser blocks the response.
+//
+//   • https://edeninstitute.health           — production
+//   • https://eden-institute-landing.vercel.app — canonical Vercel project URL
+//   • https://eden-institute-landing-*.vercel.app — PR/preview deploys
+//
+// Capacitor wrap (post-launch per project_mobile_wrapping_roadmap.md) will
+// add capacitor://localhost when the mobile shell ships — extend the regex
+// at that time.
+const CORS_ORIGIN_RE =
+  /^https:\/\/(edeninstitute\.health|eden-institute-landing(-[a-z0-9-]+)?\.vercel\.app)$/i;
 
-// ── Layer-1 (Eden Pattern) canonical accept set ──
+function corsHeaders(req: Request): HeadersInit {
+  const origin = req.headers.get("Origin");
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    Vary: "Origin",
+  };
+  if (origin && CORS_ORIGIN_RE.test(origin)) {
+    headers["Access-Control-Allow-Origin"] = origin;
+  }
+  return headers;
+}
+
+// ── Layer 1 (Eden Pattern) canonical accept set ──
 // person_profiles.eden_constitution and profiles.constitution_type both
 // store the snake-case the_* slug form (e.g. "the_burning_bowstring").
-// Three input forms are accepted and normalized to slug server-side
-// (mirrors record-quiz-completion's accept logic so callers can pass
-// whatever computeResult() produces without front-end-side mapping):
-//
-//   • slug form         "the_burning_bowstring"
-//   • display name      "The Burning Bowstring"
-//   • 3-axis label      "Hot / Dry / Tense"  (what computeResult writes)
-//
-// All comparisons are case-insensitive and whitespace-normalized.
+// Three input forms accepted; mirrors record-quiz-completion's accept logic.
 const PATTERN_TABLE: Array<{ slug: string; name: string; axis: string }> = [
-  { slug: "the_burning_bowstring",  name: "The Burning Bowstring",  axis: "Hot / Dry / Tense" },
-  { slug: "the_open_flame",         name: "The Open Flame",         axis: "Hot / Dry / Relaxed" },
-  { slug: "the_pressure_cooker",    name: "The Pressure Cooker",    axis: "Hot / Damp / Tense" },
-  { slug: "the_overflowing_cup",    name: "The Overflowing Cup",    axis: "Hot / Damp / Relaxed" },
-  { slug: "the_drawn_bowstring",    name: "The Drawn Bowstring",    axis: "Cold / Dry / Tense" },
-  { slug: "the_spent_candle",       name: "The Spent Candle",       axis: "Cold / Dry / Relaxed" },
-  { slug: "the_frozen_knot",        name: "The Frozen Knot",        axis: "Cold / Damp / Tense" },
-  { slug: "the_still_water",        name: "The Still Water",        axis: "Cold / Damp / Relaxed" },
+  { slug: "the_burning_bowstring", name: "The Burning Bowstring", axis: "Hot / Dry / Tense" },
+  { slug: "the_open_flame",        name: "The Open Flame",        axis: "Hot / Dry / Relaxed" },
+  { slug: "the_pressure_cooker",   name: "The Pressure Cooker",   axis: "Hot / Damp / Tense" },
+  { slug: "the_overflowing_cup",   name: "The Overflowing Cup",   axis: "Hot / Damp / Relaxed" },
+  { slug: "the_drawn_bowstring",   name: "The Drawn Bowstring",   axis: "Cold / Dry / Tense" },
+  { slug: "the_spent_candle",      name: "The Spent Candle",      axis: "Cold / Dry / Relaxed" },
+  { slug: "the_frozen_knot",       name: "The Frozen Knot",       axis: "Cold / Damp / Tense" },
+  { slug: "the_still_water",       name: "The Still Water",       axis: "Cold / Damp / Relaxed" },
 ];
 
 function normalizeForCompare(s: string): string {
@@ -88,12 +132,6 @@ function normalizeEdenConstitution(raw: unknown): string | null {
   return FROM_ANY_FORM.get(normalizeForCompare(trimmed)) ?? null;
 }
 
-// ── Layer 2/3 lightweight validation ──
-// Galenic temperament + vital force overlay are TS-contract-bounded
-// in src/lib/galenicTemperament.ts and src/lib/vitalForce.ts.
-// Server-side we validate length/shape only; the TS contract is the
-// authoring-time gate on canonical strings (Lock #38: every diagnostic
-// claim cites a primary text — claim authoring is in TS modules).
 function normalizeOptionalText(
   raw: unknown,
   maxLen: number,
@@ -106,59 +144,55 @@ function normalizeOptionalText(
   return trimmed;
 }
 
-// ── Layer 4 (tissue state profile) shape validation ──
-// The DB-level FK trigger trg_pp_tissue_states_enforce_canonical
-// (PR #23) is authoritative on clinical_canonical membership.
-// Here we only confirm the value is parseable JSON of expected shape:
-// either an array of {body_system_id, tissue_state_id} pairs OR an
-// object map keyed by body_system_id. We pass through to the JSONB
-// column unchanged once shape is sane.
 function validateTissueStateProfile(
   raw: unknown,
-): { ok: true; value: unknown } | { ok: false; reason: string } {
+): { ok: true; value: unknown } | { ok: false } {
   if (raw === undefined || raw === null) return { ok: true, value: null };
-  if (typeof raw !== "object") {
-    return { ok: false, reason: "tissueStateProfile must be object or array" };
-  }
+  if (typeof raw !== "object") return { ok: false };
   if (Array.isArray(raw)) {
     for (const entry of raw) {
-      if (!entry || typeof entry !== "object") {
-        return { ok: false, reason: "tissueStateProfile array entry malformed" };
-      }
+      if (!entry || typeof entry !== "object") return { ok: false };
       const e = entry as Record<string, unknown>;
       if (typeof e.body_system_id !== "string" ||
           typeof e.tissue_state_id !== "string") {
-        return {
-          ok: false,
-          reason:
-            "tissueStateProfile entries require string body_system_id + tissue_state_id",
-        };
+        return { ok: false };
       }
     }
     return { ok: true, value: raw };
   }
-  // Object-map form: keys are body_system_id, values are tissue_state_id strings
   for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
-    if (typeof k !== "string" || typeof v !== "string") {
-      return {
-        ok: false,
-        reason: "tissueStateProfile object map must be string→string",
-      };
-    }
+    if (typeof k !== "string" || typeof v !== "string") return { ok: false };
   }
   return { ok: true, value: raw };
 }
 
+// ── Quiz version allowlist (Lock #40 / audit Major #5) ──
+const ALLOWED_QUIZ_VERSIONS = new Set<string>(["v1-diagnostic", "v2-deep"]);
+const DEFAULT_QUIZ_VERSION = "v1-diagnostic";
+
+// ── Provenance string per quiz_version (mirrors src/lib/diagnosticSource.ts) ──
+const SOURCE_BY_QUIZ_VERSION: Record<string, string> = {
+  "v1-diagnostic": "in_app_diagnostic_12q",
+  "v2-deep": "deep_diagnostic_40q",
+};
+
 // ── Helpers ──
-function jsonResponse(body: unknown, status: number): Response {
+function jsonResponse(
+  body: unknown,
+  status: number,
+  req: Request,
+): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...corsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
-function jsonError(message: string, status: number): Response {
-  return jsonResponse({ error: message }, status);
+function errorResponse(
+  err: { body: { error: DiagnosticError }; status: number },
+  req: Request,
+): Response {
+  return jsonResponse(err.body, err.status, req);
 }
 
 const UUID_RE =
@@ -167,22 +201,22 @@ const UUID_RE =
 // ── Main handler ──
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders(req) });
   }
   if (req.method !== "POST") {
-    return jsonError("Method not allowed", 405);
+    return errorResponse(diagnosticError("method_not_allowed"), req);
   }
 
   try {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
-      console.error("record-diagnostic-completion: missing env vars");
-      return jsonError("Server configuration error", 500);
+      console.error("[record-diagnostic-completion] missing env vars");
+      return errorResponse(diagnosticError("server_misconfigured"), req);
     }
 
-    // 1. Authenticate the caller via JWT.
+    // 1. Authenticate via JWT.
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return jsonError("Missing Authorization header", 401);
+      return errorResponse(diagnosticError("missing_authorization"), req);
     }
 
     const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -191,71 +225,77 @@ Deno.serve(async (req) => {
 
     const { data: { user }, error: authError } = await userClient.auth.getUser();
     if (authError || !user) {
-      return jsonError("Invalid or expired session", 401);
+      return errorResponse(diagnosticError("invalid_session"), req);
     }
 
     // 2. Parse + validate payload shape.
     const body = await req.json().catch(() => null);
     if (!body || typeof body !== "object") {
-      return jsonError("Invalid JSON body", 400);
+      return errorResponse(diagnosticError("invalid_json_body"), req);
     }
     const b = body as Record<string, unknown>;
 
     const personProfileId =
       typeof b.personProfileId === "string" ? b.personProfileId.trim() : "";
     if (!UUID_RE.test(personProfileId)) {
-      return jsonError("Invalid or missing personProfileId", 400);
+      return errorResponse(diagnosticError("invalid_person_profile_id"), req);
     }
 
-    // 2a. Layer 1 — Eden Pattern (optional).
+    // 2a. Layer 1 — Eden Pattern.
     let edenConstitution: string | null = null;
     if (b.edenConstitution !== undefined && b.edenConstitution !== null) {
       const norm = normalizeEdenConstitution(b.edenConstitution);
       if (norm === null) {
-        return jsonError("Invalid edenConstitution", 400);
+        return errorResponse(diagnosticError("invalid_eden_constitution"), req);
       }
       edenConstitution = norm;
     }
 
-    // 2b. Layer 2 — Galenic temperament (optional, free-form text bounded).
+    // 2b. Layer 2 — Galenic temperament.
     const galenicResult = normalizeOptionalText(b.galenicTemperament, 100);
     if (galenicResult === "INVALID") {
-      return jsonError("Invalid galenicTemperament", 400);
+      return errorResponse(diagnosticError("invalid_galenic_temperament"), req);
     }
     const galenicTemperament: string | null = galenicResult;
 
-    // 2c. Layer 3 — vital force overlay (optional, bounded).
+    // 2c. Layer 4 — vital force reading. (Per Lock #37 layer numbering.)
     const vitalResult = normalizeOptionalText(b.vitalForceReading, 100);
     if (vitalResult === "INVALID") {
-      return jsonError("Invalid vitalForceReading", 400);
+      return errorResponse(diagnosticError("invalid_vital_force_reading"), req);
     }
     const vitalForceReading: string | null = vitalResult;
 
-    // 2d. Layer 4 — tissue state profile (optional, JSONB shape-validated).
+    // 2d. Layer 3 — tissue state profile (JSONB shape; trigger UPSERTs into junction).
     const tspCheck = validateTissueStateProfile(b.tissueStateProfile);
     if (!tspCheck.ok) {
-      return jsonError(tspCheck.reason, 400);
+      return errorResponse(diagnosticError("invalid_tissue_state_profile"), req);
     }
     const tissueStateProfile = tspCheck.value;
 
-    // 2e. Require at least one layer present — empty completions are not meaningful.
+    // 2e. Quiz version (Lock #40 strict separation).
+    let quizVersion: string;
+    if (b.quizVersion === undefined || b.quizVersion === null) {
+      quizVersion = DEFAULT_QUIZ_VERSION;
+    } else if (typeof b.quizVersion !== "string"
+               || !ALLOWED_QUIZ_VERSIONS.has(b.quizVersion)) {
+      return errorResponse(diagnosticError("invalid_quiz_version"), req);
+    } else {
+      quizVersion = b.quizVersion;
+    }
+
+    // 2f. Require at least one layer present.
     const anyLayerPresent =
       edenConstitution !== null ||
       galenicTemperament !== null ||
       vitalForceReading !== null ||
       tissueStateProfile !== null;
     if (!anyLayerPresent) {
-      return jsonError(
-        "At least one diagnostic layer must be supplied (edenConstitution / galenicTemperament / vitalForceReading / tissueStateProfile)",
-        400,
-      );
+      return errorResponse(diagnosticError("no_layer_present"), req);
     }
 
     // 3. Verify caller owns the supplied personProfileId.
-    //    Read with service role so RLS does not occlude the integrity check;
-    //    we are doing the ownership check in code rather than relying on RLS
-    //    of the user-scoped client because we want a precise 403 on mismatch
-    //    rather than a generic empty result.
+    //    Service-role read so we get a precise 403/404 distinction; RLS would
+    //    occlude as empty result.
     const ownerCheckRes = await fetch(
       `${SUPABASE_URL}/rest/v1/person_profiles?id=eq.${personProfileId}&select=id,user_id,name`,
       {
@@ -269,11 +309,10 @@ Deno.serve(async (req) => {
     if (!ownerCheckRes.ok) {
       const text = await ownerCheckRes.text();
       console.error(
-        "record-diagnostic-completion: ownership read failed",
-        ownerCheckRes.status,
-        text,
+        "[record-diagnostic-completion] ownership read failed",
+        { status: ownerCheckRes.status, text, user_id: user.id, personProfileId },
       );
-      return jsonError("Profile lookup failed", 500);
+      return errorResponse(diagnosticError("profile_lookup_failed"), req);
     }
     const ownerRows = (await ownerCheckRes.json()) as Array<{
       id: string;
@@ -281,16 +320,18 @@ Deno.serve(async (req) => {
       name: string;
     }>;
     if (ownerRows.length === 0) {
-      return jsonError("Profile not found", 404);
+      return errorResponse(diagnosticError("profile_not_found"), req);
     }
     if (ownerRows[0].user_id !== user.id) {
-      return jsonError("Not authorized for this profile", 403);
+      return errorResponse(diagnosticError("profile_not_owned"), req);
     }
 
-    // 4. Insert into diagnostic_completions. Trigger fans into person_profiles.
+    // 4. Insert into diagnostic_completions (service-role, single-write-surface
+    //    per Lock #41). Trigger fans into person_profiles + junction.
     const insertPayload: Record<string, unknown> = {
       user_id: user.id,
       person_profile_id: personProfileId,
+      quiz_version: quizVersion,
     };
     if (edenConstitution !== null) {
       insertPayload.eden_constitution = edenConstitution;
@@ -321,41 +362,38 @@ Deno.serve(async (req) => {
 
     if (!insertRes.ok) {
       const errText = await insertRes.text();
-      console.error(
-        "record-diagnostic-completion: insert failed",
+      const mapped = mapPostgrestError(
         insertRes.status,
         errText,
+        "diagnostic_completions insert",
       );
-      // 400 → likely shape validation failure; 422/409 → constraint or trigger
-      // failure surfaced from DB (e.g. tissue_state non-canonical via FK trigger).
-      const passthrough =
-        insertRes.status >= 400 && insertRes.status < 500
-          ? insertRes.status
-          : 502;
-      return jsonResponse(
-        { error: "Failed to record diagnostic completion", detail: errText },
-        passthrough,
-      );
+      return errorResponse(mapped, req);
     }
 
     const insertedRows = await insertRes.json();
     const completion = Array.isArray(insertedRows)
       ? insertedRows[0]
       : insertedRows;
-    console.log("record-diagnostic-completion: insert ok", {
-      user_id: user.id,
-      person_profile_id: personProfileId,
-      completion_id: completion?.id,
-      layers: {
-        eden: edenConstitution !== null,
-        galenic: galenicTemperament !== null,
-        vital: vitalForceReading !== null,
-        tissue: tissueStateProfile !== null,
+    console.log(
+      "[record-diagnostic-completion] insert ok",
+      {
+        user_id: user.id,
+        person_profile_id: personProfileId,
+        completion_id: completion?.id,
+        quiz_version: quizVersion,
+        layers: {
+          eden: edenConstitution !== null,
+          galenic: galenicTemperament !== null,
+          tissue: tissueStateProfile !== null,
+          vital: vitalForceReading !== null,
+        },
       },
-    });
+    );
 
-    // 5. Re-read the person_profile so the caller can rerender from the
-    //    post-trigger fan-out state without a second round-trip.
+    // 5. Re-read person_profile post-trigger so the caller can rerender from
+    //    the COALESCE'd state without a second round-trip. Junction rows
+    //    (Layer 3) live in person_profile_tissue_states; consumers that need
+    //    Layer 3 read diagnostic_profile_v separately.
     const profileRes = await fetch(
       `${SUPABASE_URL}/rest/v1/person_profiles?id=eq.${personProfileId}&select=*`,
       {
@@ -369,15 +407,22 @@ Deno.serve(async (req) => {
     if (!profileRes.ok) {
       const text = await profileRes.text();
       console.error(
-        "record-diagnostic-completion: post-insert profile read failed",
-        profileRes.status,
-        text,
+        "[record-diagnostic-completion] post-insert profile read failed",
+        { status: profileRes.status, text, completion_id: completion?.id },
       );
-      // Insert succeeded; fan-out trigger ran. Don't fail the call — just
-      // return ok without the profile shape so the frontend can re-fetch.
+      // Insert succeeded; trigger ran. Don't fail the call — return ok with
+      // null person_profile and a soft warning code so the UI can refetch.
       return jsonResponse(
-        { ok: true, completion_id: completion?.id ?? null, person_profile: null },
+        {
+          ok: true,
+          completion_id: completion?.id ?? null,
+          person_profile: null,
+          source: SOURCE_BY_QUIZ_VERSION[quizVersion] ?? "in_app_diagnostic_12q",
+          quiz_version: quizVersion,
+          warning: { code: "post_insert_read_failed", message: "Completion recorded; profile re-read failed. Please refresh." },
+        },
         200,
+        req,
       );
     }
     const profileRows = (await profileRes.json()) as Array<unknown>;
@@ -388,12 +433,14 @@ Deno.serve(async (req) => {
         ok: true,
         completion_id: completion?.id ?? null,
         person_profile: personProfile,
+        source: SOURCE_BY_QUIZ_VERSION[quizVersion] ?? "in_app_diagnostic_12q",
+        quiz_version: quizVersion,
       },
       200,
+      req,
     );
   } catch (err) {
-    console.error("record-diagnostic-completion: uncaught", err);
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return jsonError(message, 500);
+    console.error("[record-diagnostic-completion] uncaught", err);
+    return errorResponse(diagnosticError("internal_error"), req);
   }
 });
