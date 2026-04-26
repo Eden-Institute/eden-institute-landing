@@ -13,11 +13,17 @@ import { useAuth } from "@/contexts/AuthContext";
 /**
  * PersonProfile — minimal shape consumed by the picker + management surface.
  *
- * Diagnostic-stack columns (galenic_temperament, vital_force_reading,
- * tissue_state_profile) live on the row. v3.14 Layer 1+2 build surfaces
- * them via useDiagnosticProfile rather than from this context, but they
- * are SELECTED on the row read so the picker dropdown can show
- * "Pattern recorded" / "No Pattern yet" badges without a second fetch.
+ * Per Lock #37 layered diagnostic stack:
+ *   - Layer 1 (eden_constitution), Layer 2 (galenic_temperament), Layer 4
+ *     (vital_force_reading) live as columns on this row and are SELECTed
+ *     here so the picker dropdown can show "Pattern recorded" / "No Pattern
+ *     yet" badges without a second fetch.
+ *   - Layer 3 (tissue state profile by organ system) lives in the junction
+ *     table public.person_profile_tissue_states and is NOT a column on
+ *     this row. The phantom `tissue_state_profile` field that was on this
+ *     interface in v3.15 was removed in the v3.16 audit-fix pass; consumers
+ *     that need Layer 3 read it via diagnostic_profile_v (or the dedicated
+ *     `usePersonProfileTissueStates` hook when it ships).
  */
 export interface PersonProfile {
   id: string;
@@ -30,7 +36,6 @@ export interface PersonProfile {
   eden_constitution: string | null;
   galenic_temperament: string | null;
   vital_force_reading: string | null;
-  tissue_state_profile: unknown | null;
   allergies: string | null;
   medications: string | null;
   conditions: string | null;
@@ -197,11 +202,4 @@ export function useActiveProfile(): ActiveProfileContextValue {
  *
  * Rationale: hooks like useEdenPattern and useDiagnosticProfile are
  * consumed both inside the apothecary subtree (where the picker exists)
- * AND in places that pre-date the picker. The strict useActiveProfile
- * throw would force every consumer to gate itself on route, which is
- * brittle. The optional variant lets the hook decide its behavior based
- * on context availability rather than caller routing.
- */
-export function useActiveProfileOptional(): ActiveProfileContextValue | null {
-  return useContext(ActiveProfileContext);
-}
+ * AND in places that pre-date the picker. T

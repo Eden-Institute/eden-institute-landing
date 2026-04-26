@@ -87,7 +87,32 @@ export interface EdenAxisReadings {
 
 /* -------------------- The unified profile contract -------------------- */
 
-export type DiagnosticSource = "marketing_quiz_12q" | "deep_diagnostic_40q";
+/**
+ * Provenance of the Layer 1 value in this profile.
+ *
+ * Per Lock #38 (citation integrity), the source must honestly identify the
+ * pipeline that produced the value. Per Lock #40 strict separation, the
+ * marketing-quiz namespace (12-q anonymous funnel via quiz_completions) is
+ * never conflated with the in-app diagnostic namespace (auth'd via
+ * diagnostic_completions through record-diagnostic-completion).
+ *
+ *   • marketing_quiz_12q                  — anonymous /quiz, email-keyed.
+ *   • marketing_quiz_12q_legacy_bridge   — legacy bridge fallback: the user
+ *     read came from profiles.constitution_type because their account
+ *     pre-dates the v3.10 sync trigger and they have not retaken the quiz
+ *     in-app yet. See Manual v3.14 Phase 8 durable architectural finding.
+ *   • in_app_diagnostic_12q              — auth'd user took the 12-q
+ *     diagnostic from inside the apothecary (per-profile picker context).
+ *   • deep_diagnostic_40q                 — Root-tier 40-question deep
+ *     diagnostic. Sets has_full_diagnostic_depth.
+ *
+ * Mapper: src/lib/diagnosticSource.ts (provenanceForQuizVersion).
+ */
+export type DiagnosticSource =
+  | "marketing_quiz_12q"
+  | "marketing_quiz_12q_legacy_bridge"
+  | "in_app_diagnostic_12q"
+  | "deep_diagnostic_40q";
 
 export interface DiagnosticProfile {
   /**
@@ -127,40 +152,4 @@ export function hasFullDiagnosticDepth(profile: DiagnosticProfile): boolean {
     profile.source === "deep_diagnostic_40q" &&
     profile.galenicTemperament !== undefined &&
     profile.tissueStateProfile !== undefined &&
-    profile.vitalForce !== undefined
-  );
-}
-
-/**
- * Convert a raw constitution_type string (the axis-label shape that the
- * 12-q marketing quiz writes into profiles.constitution_type) into the
- * EdenAxisReadings detail. Used by useDiagnosticProfile when no deep-quiz
- * data exists yet.
- *
- * Returns null when the raw value cannot be parsed. Caller should fall
- * through to the take-the-quiz affordance.
- */
-export function parseAxisReadingsFromRaw(
-  raw: string | null | undefined,
-): EdenAxisReadings | null {
-  if (!raw) return null;
-  const parts = raw.split(" / ").map((p) => p.trim());
-  if (parts.length !== 3) return null;
-  const [tempPart, moistPart, tonePart] = parts;
-
-  const temperature: TemperatureReading | null =
-    tempPart === "Hot" || tempPart === "Cold" || tempPart === "Neutral"
-      ? tempPart
-      : null;
-  const moisture: MoistureReading | null =
-    moistPart === "Dry" || moistPart === "Damp" || moistPart === "Neutral"
-      ? moistPart
-      : null;
-  const tone: ToneReading | null =
-    tonePart === "Tense" || tonePart === "Relaxed" || tonePart === "Neutral"
-      ? tonePart
-      : null;
-
-  if (!temperature || !moisture || !tone) return null;
-  return { temperature, moisture, tone };
-}
+    profile.vitalFo
