@@ -6,77 +6,91 @@ import {
   type DiagnosticProfile,
   parseAxisReadingsFromRaw,
 } from "@/lib/diagnosticProfile";
+import { useActiveProfileOptional } from "@/contexts/ActiveProfileContext";
 
 /**
  * useDiagnosticProfile — the canonical Apothecary hook for reading the
- * active user's full layered diagnostic profile.
+ * active context's full layered diagnostic profile (v3.14 Layer 1 reactive
+ * refactor; Layer 2-4 wire-in deferred until the deep-diagnostic frontend
+ * authoring ships per Manual §0.8 #37/#38).
  *
- * v1 (this implementation) returns LAYER 1 only — Eden Pattern + axis
- * readings — derived from `profiles.constitution_type` (the column the
- * 12-question marketing quiz writes via record-quiz-completion). Layers
- * 2-4 (Galenic temperament, tissue state profile, vital force) are typed
- * but undefined.
+ * v2 (this implementation) returns LAYER 1 only — Eden Pattern + axis
+ * readings — but resolves it from the per-profile picker context rather
+ * than the user-level account row. Layers 2-4 remain typed-but-undefined
+ * until galenicTemperament.ts / tissueStateProfile.ts / vitalForce.ts
+ * content modules + the typed 40-q quiz ship; at that point the same
+ * DiagnosticProfile shape gains populated Layer 2-4 fields with no
+ * consumer refactor needed (per the original v1 design pledge).
  *
- * When the Root-tier deep diagnostic ships, this hook will additionally
- * read `profiles.galenic_temperament`, `profiles.tissue_state_profile`,
- * and `profiles.vital_force_reading`, populate Layers 2-4, and flip the
- * `source` field to "deep_diagnostic_40q" when those columns are present.
- * Consuming components (PatternMatchHero, ProfileLayer cards) read from
- * the same DiagnosticProfile shape and gracefully render whichever layers
- * are populated — no consumer refactor required.
+ * Resolution strategy (per v3.14 Session Log + Lock #40):
  *
- * Anonymous callers and authenticated callers without a resolved Pattern
- * receive `null` — the consuming UI then surfaces the take-the-quiz
- * affordance rather than a wrong-but-confident badge.
+ *   1. Anonymous → null synchronously.
  *
- * Cache duration matches `useEdenPattern` (30 min stale, 4 hr GC) — a
- * user's profile doesn't change between page loads in practice.
+ *   2. Authenticated, picker NOT mounted OR no active profile selected:
+ *      → read user-level legacy `profiles.constitution_type`. Source =
+ *        "marketing_quiz_12q".
+ *
+ *   3. Authenticated, picker mounted, active profile is SELF:
+ *      → prefer `person_profiles.eden_constitution` (canonical, written by
+ *        the in-app Pattern of Eden quiz via record-diagnostic-completion).
+ *        Fall back to `profiles.constitution_type` when canonical is NULL
+ *        (legacy onboarding bridge for accounts that pre-date PR #18's
+ *        sync trigger).
+ *
+ *   4. Authenticated, picker mounted, active profile is NON-SELF:
+ *      → read ONLY `person_profiles.eden_constitution`. No fallback. NULL
+ *        canonical returns null + isEmptyForActiveProfile=true so the
+ *        consumer surfaces the take-the-quiz empty state per Lock #39.
+ *
+ * Cache duration matches `useEdenPattern` (30 min stale, 4 hr GC) — keyed
+ * on user.id + active person_profile.id so a picker switch or quiz
+ * completion re-fetches.
  */
 export function useDiagnosticProfile(): {
   data: DiagnosticProfile | null;
   isLoading: boolean;
+  isEmptyForActiveProfile: boolean;
 } {
   const { user } = useAuth();
+  const profileCtx = useActiveProfileOptional();
+  const activeProfile = profileCtx?.activeProfile ?? null;
 
   const query = useQuery({
-    queryKey: ["diagnostic_profile_v1", user?.id ?? "anon"],
-    queryFn: async (): Promise<DiagnosticProfile | null> => {
-      if (!user) return null;
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("constitution_type")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (error) return null;
+    queryKey: [
+      "diagnostic_profile_v2",
+      user?.id ?? "anon",
+      activeProfile?.id ?? "no-active-profile",
+    ],
+    queryFn: async (): Promise<{
+      profile: DiagnosticProfile | null;
+      isEmptyForActiveProfile: boolean;
+    }> => {
+      if (!user) return { profile: null, isEmptyForActiveProfile: false };
 
-      const raw =
-        typeof (data as { constitution_type?: string | null } | null)
-          ?.constitution_type === "string"
-          ? ((data as { constitution_type?: string | null }).constitution_type ??
-            null)
-          : null;
+      // Case A: no picker context → legacy user-level read.
+      if (!activeProfile) {
+        const raw = await readUserLevelConstitution(user.id);
+        return resolveLayer1(raw, /* isEmptyForActiveProfile= */ false);
+      }
 
-      const pattern = resolveEdenPattern(raw);
-      if (!pattern) return null;
+      // Case B: picker mounted, active profile has a canonical Pattern.
+      if (activeProfile.eden_constitution) {
+        return resolveLayer1(
+          activeProfile.eden_constitution,
+          /* isEmptyForActiveProfile= */ false,
+        );
+      }
 
-      // Derive axis readings: prefer parsing the raw axis-label shape
-      // (what the 12-q quiz writes); fall back to looking up the canonical
-      // axes from PATTERN_PROFILES when raw is the Pattern-name shape.
-      const axesFromRaw = parseAxisReadingsFromRaw(raw);
-      const profile = PATTERN_PROFILES[pattern];
-      const edenAxes = axesFromRaw ?? {
-        temperature: profile.temperature,
-        moisture: profile.moisture,
-        tone: profile.tone,
-      };
+      // Case C: SELF + canonical NULL → legacy bridge fallback.
+      if (activeProfile.is_self) {
+        const legacy = await readUserLevelConstitution(user.id);
+        const resolved = resolveLayer1(legacy, /* isEmpty= */ false);
+        if (resolved.profile) return resolved;
+        return { profile: null, isEmptyForActiveProfile: true };
+      }
 
-      return {
-        edenPattern: pattern,
-        edenAxes,
-        // Layers 2-4 intentionally undefined in v1. Populated when the
-        // Root-tier deep diagnostic ships and writes its columns.
-        source: "marketing_quiz_12q",
-      };
+      // Case D: non-self + canonical NULL → empty state.
+      return { profile: null, isEmptyForActiveProfile: true };
     },
     enabled: true,
     staleTime: 30 * 60 * 1000,
@@ -84,7 +98,49 @@ export function useDiagnosticProfile(): {
   });
 
   return {
-    data: query.data ?? null,
+    data: query.data?.profile ?? null,
     isLoading: query.isLoading,
+    isEmptyForActiveProfile: query.data?.isEmptyForActiveProfile ?? false,
   };
+}
+
+function resolveLayer1(
+  raw: string | null,
+  isEmptyForActiveProfile: boolean,
+): { profile: DiagnosticProfile | null; isEmptyForActiveProfile: boolean } {
+  const pattern = resolveEdenPattern(raw);
+  if (!pattern) {
+    return { profile: null, isEmptyForActiveProfile };
+  }
+  const axesFromRaw = parseAxisReadingsFromRaw(raw);
+  const profile = PATTERN_PROFILES[pattern];
+  const edenAxes = axesFromRaw ?? {
+    temperature: profile.temperature,
+    moisture: profile.moisture,
+    tone: profile.tone,
+  };
+  return {
+    profile: {
+      edenPattern: pattern,
+      edenAxes,
+      // Layers 2-4 intentionally undefined in v2 — the typed 40-q quiz
+      // and content modules ship those.
+      source: "marketing_quiz_12q",
+    },
+    isEmptyForActiveProfile: false,
+  };
+}
+
+async function readUserLevelConstitution(
+  userId: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("constitution_type")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) return null;
+  const v = (data as { constitution_type?: string | null } | null)
+    ?.constitution_type;
+  return typeof v === "string" ? v : null;
 }

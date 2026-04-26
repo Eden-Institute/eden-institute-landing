@@ -22,6 +22,7 @@ import Community from "./pages/Community";
 import TierTwoWaitlist from "./pages/TierTwoWaitlist";
 import { ApothecaryLayout } from "@/components/apothecary/ApothecaryLayout";
 import { RequireAuth } from "@/components/apothecary/RequireAuth";
+import { RequireTier } from "@/components/apothecary/RequireTier";
 import ApothecaryHome from "./pages/apothecary/ApothecaryHome";
 import Start from "./pages/apothecary/Start";
 import WelcomeTour from "./pages/apothecary/WelcomeTour";
@@ -32,6 +33,7 @@ import UpdatePassword from "./pages/apothecary/auth/UpdatePassword";
 import Pricing from "./pages/apothecary/Pricing";
 import Welcome from "./pages/apothecary/Welcome";
 import Account from "./pages/apothecary/Account";
+import ProfilesPage from "./pages/apothecary/ProfilesPage";
 
 const queryClient = new QueryClient();
 
@@ -54,14 +56,8 @@ const App = () => (
               element={<ConstitutionalHerbalism />}
             />
             <Route path="/guide/success" element={<GuideSuccess />} />
-            <Route
-              path="/guide/:constitutionSlug"
-              element={<GuideLanding />}
-            />
-            <Route
-              path="/results/:constitutionSlug"
-              element={<Results />}
-            />
+            <Route path="/guide/:constitutionSlug" element={<GuideLanding />} />
+            <Route path="/results/:constitutionSlug" element={<Results />} />
             <Route path="/courses" element={<Courses />} />
             <Route path="/app" element={<AppPage />} />
             <Route path="/homeschool" element={<Homeschool />} />
@@ -74,10 +70,7 @@ const App = () => (
               <Route path="auth/signup" element={<SignUp />} />
               <Route path="auth/signin" element={<SignIn />} />
               <Route path="auth/reset" element={<Reset />} />
-              <Route
-                path="auth/update-password"
-                element={<UpdatePassword />}
-              />
+              <Route path="auth/update-password" element={<UpdatePassword />} />
               {/* Auth-walled surfaces */}
               <Route
                 index
@@ -116,6 +109,25 @@ const App = () => (
                 element={
                   <RequireAuth>
                     <Account />
+                  </RequireAuth>
+                }
+              />
+              {/* Stage 6.3.5 Phase B sub-task 4: Root multi-profile management.
+                  Auth + tier gating is enforced by the page itself
+                  (RequireAuth + RequireTier allow={["root","practitioner"]}). */}
+              <Route path="profiles" element={<ProfilesPage />} />
+              {/* Stage 6.3.5 Phase B sub-task 4 Layer 1+2: in-app Pattern of
+                  Eden quiz, mounted under ApothecaryLayout so the picker
+                  pill is visible during the quiz. Root+ only — the Pattern
+                  of Eden write path is a Root-tier clinical action per
+                  Lock #40 (id-keyed Edge Functions to diagnostic_completions). */}
+              <Route
+                path="quiz"
+                element={
+                  <RequireAuth>
+                    <RequireTier allow={["root", "practitioner"]}>
+                      <Assessment />
+                    </RequireTier>
                   </RequireAuth>
                 }
               />
