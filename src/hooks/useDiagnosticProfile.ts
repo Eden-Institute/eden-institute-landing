@@ -184,7 +184,10 @@ async function readUserLevelConstitution(
     .select("constitution_type")
     .eq("user_id", userId)
     .maybeSingle();
-  if (error) return null;
+  if (error) {
+    console.error("[useDiagnosticProfile] readUserLevelConstitution failed", error);
+    return null;
+  }
   const v = (data as { constitution_type?: string | null } | null)
     ?.constitution_type;
   return typeof v === "string" ? v : null;
