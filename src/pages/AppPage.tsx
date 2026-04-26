@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import Footer from "@/components/landing/Footer";
 import WaitlistModal from "@/components/landing/WaitlistModal";
 import { Smartphone, Leaf, Shield, Star } from "lucide-react";
+import { WorldviewBand } from "@/components/landing/WorldviewBand";
 
 const APP_AUD = "cebd3478-b344-41b7-98c8-8bcf0e0108da";
 const NAV = [
@@ -78,6 +79,9 @@ const AppPage = () => {
         </div>
       </section>
 
+      {/* WORLDVIEW BAND — the positioning thesis (Manual v3.17 Lock #14 + #44) */}
+      <WorldviewBand caption="On the source of vital force" headline={null} />
+
       <section className="py-16 px-6 bg-background">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
@@ -123,7 +127,7 @@ const AppPage = () => {
                 Biblical Foundation
               </h3>
               <p className="font-body text-sm text-muted-foreground leading-relaxed">
-                No doshas. No Eastern frameworks. Grounded in creation stewardship and the Five Tenets of Health.
+                Yahweh as the source of vital force, named plainly. Classical pattern observation across traditions, with theological attribution stripped per Lock #44.
               </p>
             </div>
             <div
