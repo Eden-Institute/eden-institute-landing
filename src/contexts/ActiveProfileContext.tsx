@@ -202,4 +202,11 @@ export function useActiveProfile(): ActiveProfileContextValue {
  *
  * Rationale: hooks like useEdenPattern and useDiagnosticProfile are
  * consumed both inside the apothecary subtree (where the picker exists)
- * AND in places that pre-date the picker. T
+ * AND in places that pre-date the picker. The strict useActiveProfile
+ * throw would force every consumer to gate itself on route, which is
+ * brittle. The optional variant lets the hook decide its behavior based
+ * on context availability rather than caller routing.
+ */
+export function useActiveProfileOptional(): ActiveProfileContextValue | null {
+  return useContext(ActiveProfileContext);
+}
