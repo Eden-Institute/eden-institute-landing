@@ -235,6 +235,28 @@ async function processAudience(
   }
   result.valid_for_upsert = validRows.length;
 
+  // Deduplicate within the batch — ON CONFLICT can't handle multiple rows with the
+  // same (email, entry_funnel) in the same upsert call (Postgres 21000
+  // cardinality_violation). Last-write-wins is the right semantic since Resend's
+  // contact list is the source of truth — if Resend has two contact records with
+  // the same email (e.g., from testing), the most recent one in the API response
+  // order wins. The `migrated_from` metadata still records which Resend contact_id
+  // was the surviving source.
+  const seen = new Map<string, UpsertRow>();
+  for (const row of validRows) {
+    seen.set(`${row.email}|${row.entry_funnel}`, row);
+  }
+  const beforeDedup = validRows.length;
+  validRows.length = 0;
+  validRows.push(...seen.values());
+  const afterDedup = validRows.length;
+  if (afterDedup < beforeDedup) {
+    console.log(
+      `[${a.label}] deduplicated ${beforeDedup - afterDedup} in-batch duplicate (email, entry_funnel) pairs → ${afterDedup} unique rows`,
+    );
+  }
+  result.valid_for_upsert = validRows.length;
+
   if (DRY_RUN) {
     console.log(
       `[${a.label}] DRY-RUN: would upsert ${validRows.length} valid rows; sample: ${
