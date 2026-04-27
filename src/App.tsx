@@ -59,7 +59,7 @@ const App = () => (
             <Route path="/guide/:constitutionSlug" element={<GuideLanding />} />
             <Route path="/results/:constitutionSlug" element={<Results />} />
             <Route path="/courses" element={<Courses />} />
-            <Route path="/app" element={<AppPage />} />
+            <Route path="/apothecary" element={<AppPage />} />
             <Route path="/homeschool" element={<Homeschool />} />
             <Route path="/community" element={<Community />} />
             <Route path="/tier-2-waitlist" element={<TierTwoWaitlist />} />
