@@ -46,7 +46,7 @@ export default function Start() {
             className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6"
             style={{ color: "hsl(var(--eden-bark))" }}
           >
-            A clinical reasoning partner,{" "}
+            A clinical reasoning app,{" "}
             <span className="italic">not a symptom index.</span>
           </h1>
           <p className="font-body text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-8">
@@ -56,7 +56,7 @@ export default function Start() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button variant="eden" size="lg" asChild>
-              <Link to="/apothecary/auth/signup">Create your free account</Link>
+              <Link to="/apothecary/auth/signup">Open the app — free</Link>
             </Button>
             <Button variant="eden-outline" size="lg" asChild>
               <Link to="/apothecary/auth/signin">Sign in</Link>
@@ -284,7 +284,7 @@ export default function Start() {
           <div className="text-center mt-12">
             <Button variant="eden" size="lg" asChild>
               <Link to="/apothecary/auth/signup">
-                Create your free account
+                Open the app — free
               </Link>
             </Button>
           </div>
