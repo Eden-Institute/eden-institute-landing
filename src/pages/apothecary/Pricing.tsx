@@ -23,7 +23,7 @@ export default function Pricing() {
             className="font-serif text-4xl md:text-5xl font-bold leading-tight mb-6"
             style={{ color: "hsl(var(--eden-bark))" }}
           >
-            Plans for every stage
+            App plans for every stage
             <br />
             <span className="italic">of the journey.</span>
           </h1>
