@@ -6,15 +6,25 @@ import {
   constitutionProfiles,
   computeResult,
   isInconclusiveResult,
-  inconclusiveAxes,
+  buildAxisCounts,
+  computeResultFromCounts,
+  getNeutralAxesFromCounts,
+  type Axis,
+  type AxisCounts,
 } from "@/lib/constitution-data";
+import {
+  followupQuestions,
+  getFollowupQuestionsForAxes,
+  type FollowupQuestion,
+} from "@/lib/quiz-followup";
+import { AxisSpectrum } from "@/components/quiz/AxisSpectrum";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveProfileOptional } from "@/contexts/ActiveProfileContext";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface Question {
   id: number;
-  axis: "temperature" | "fluid" | "tone";
+  axis: Axis;
   question: string;
   options: { label: string; text: string; score: string }[];
 }
@@ -95,29 +105,36 @@ const questions: Question[] = [
 ];
 
 /**
- * Assessment — the 12-question Pattern of Eden quiz.
+ * Assessment — the 12-question Pattern of Eden quiz with v3.31 targeted-
+ * follow-up extension.
  *
- * Two modes (per Manual §0.8 #40 + v3.14 Session Log):
+ * Marketing mode (default, mounted at `/assessment`): anonymous flow:
+ * quiz → [followup if any axis Neutral] → email-capture gate →
+ * resend-waitlist (lead capture) + record-quiz-completion (email-keyed
+ * marketing pipeline) → results. Inconclusive routes per Lock #39 (no
+ * silent defaults) — even after follow-up, if user is genuinely balanced,
+ * we surface the AxisSpectrum visual + reframed copy ("your body sits
+ * between patterns") + footnote pointing at Root deeper diagnostic.
  *
- *   1. MARKETING mode (default). Mounted at `/assessment`. Anonymous flow:
- *      quiz → email-capture gate → resend-waitlist (lead capture) +
- *      record-quiz-completion (email-keyed marketing pipeline) → results.
- *      Inconclusive routes per Lock #39 (no silent defaults).
+ * Diagnostic mode (mounted at `/apothecary/quiz?profileId=<uuid>`, gated
+ * by RequireAuth + RequireTier(allow=["root","practitioner"])): auth'd flow:
+ * quiz → [followup if any axis Neutral] → record-diagnostic-completion
+ * (id-keyed clinical pipeline writing person_profiles.eden_constitution
+ * for the supplied profileId, NEVER touching the email-keyed marketing
+ * pipeline) → redirect back to /apothecary/start with the picker pointing
+ * at the now-personalized profile.
  *
- *   2. DIAGNOSTIC mode. Mounted at `/apothecary/quiz?profileId=<uuid>`,
- *      gated by RequireAuth + RequireTier(allow=["root","practitioner"]).
- *      Auth'd flow: quiz → record-diagnostic-completion (id-keyed clinical
- *      pipeline writing person_profiles.eden_constitution for the supplied
- *      profileId, NEVER touching the email-keyed marketing pipeline) →
- *      redirect back to /apothecary/start with the picker pointing at the
- *      now-personalized profile.
+ * v3.31 targeted-follow-up (Option A+B): when initial pass returns Neutral
+ * on one or more axes, the phase machine routes to "followup" — only the
+ * follow-up questions for the inconclusive axes (smart targeting) are
+ * surfaced. After all relevant follow-ups answered, recompute via
+ * buildAxisCounts(combinedAnswers, combinedQuestions). If now resolved,
+ * advance per the mode (gate / diagnostic). If still inconclusive, the
+ * improved inconclusive screen renders the AxisSpectrum visual.
  *
- *   Mode is decided by presence of `?profileId=<uuid>` in the URL search.
- *   When in DIAGNOSTIC mode, the marketing header is suppressed because
- *   ApothecaryLayout already provides nav + the picker pill.
- *
- * Lock #40 separation: the two pipelines are NEVER mixed. A diagnostic-mode
- * completion does NOT call resend-waitlist or record-quiz-completion.
+ * Lock #40 separation preserved: the two pipelines are NEVER mixed. A
+ * diagnostic-mode completion does NOT call resend-waitlist or
+ * record-quiz-completion.
  */
 const Assessment = () => {
   const [searchParams] = useSearchParams();
@@ -126,13 +143,6 @@ const Assessment = () => {
   const { user } = useAuth();
   const profileCtx = useActiveProfileOptional();
 
-  // Diagnostic-mode detection: `?profileId=<uuid>` AND we are inside the
-  // ApothecaryLayout (provider mounted) AND the supplied id matches one
-  // of the user's profiles. The route-level RequireAuth + RequireTier
-  // already enforce auth + Root tier; we additionally verify ownership
-  // here to guard against a forged URL. Server-side, record-diagnostic-
-  // completion re-checks ownership against auth.uid(), so this is a UX
-  // guard, not a security boundary.
   const profileIdParam = searchParams.get("profileId");
   const targetProfile = useMemo(() => {
     if (!profileIdParam) return null;
@@ -145,8 +155,25 @@ const Assessment = () => {
 
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
+  // v3.31 follow-up answers live in a separate Record so the original 12-q
+  // record stays clean (used by computeResult for backward-compat call sites).
+  // Combined answers feed buildAxisCounts when we recompute post-follow-up.
+  const [followupAnswers, setFollowupAnswers] = useState<Record<number, string>>({});
+  const [currentFollowupIdx, setCurrentFollowupIdx] = useState(0);
+  const [activeFollowups, setActiveFollowups] = useState<FollowupQuestion[]>([]);
+  // Snapshot of the AxisCounts used to render AxisSpectrum on the inconclusive
+  // screen — frozen at the moment we route to "inconclusive" so the visual
+  // doesn't shift if state mutates later.
+  const [inconclusiveCounts, setInconclusiveCounts] = useState<AxisCounts | null>(null);
+
   const [phase, setPhase] = useState<
-    "quiz" | "gate" | "inconclusive" | "results" | "diagnostic-saving" | "diagnostic-saved"
+    | "quiz"
+    | "followup"
+    | "gate"
+    | "inconclusive"
+    | "results"
+    | "diagnostic-saving"
+    | "diagnostic-saved"
   >("quiz");
   const [transitioning, setTransitioning] = useState(false);
   const [firstName, setFirstName] = useState("");
@@ -155,10 +182,72 @@ const Assessment = () => {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const constitutionType = phase !== "quiz" ? computeResult(answers) : "";
-  const isInconclusive = constitutionType ? isInconclusiveResult(constitutionType) : false;
-  const neutralAxes = constitutionType && isInconclusive ? inconclusiveAxes(constitutionType) : [];
+  // Result computation: in phases past quiz/followup, the combined answer set
+  // (originals + any follow-up) is the source of truth.
+  const combinedAnswers = useMemo(
+    () => ({ ...answers, ...followupAnswers }),
+    [answers, followupAnswers],
+  );
+  const allQuestionsForCombined = useMemo(
+    () => [...questions, ...followupQuestions],
+    [],
+  );
+  const combinedCounts = useMemo(
+    () => buildAxisCounts(combinedAnswers, allQuestionsForCombined),
+    [combinedAnswers, allQuestionsForCombined],
+  );
+  const combinedResult = useMemo(
+    () => computeResultFromCounts(combinedCounts),
+    [combinedCounts],
+  );
+  const constitutionType =
+    phase === "gate" || phase === "results" || phase === "diagnostic-saving" || phase === "diagnostic-saved"
+      ? combinedResult
+      : "";
   const profile = constitutionType ? constitutionProfiles[constitutionType] : null;
+
+  // ── Route after quiz/followup completion ──
+  // Centralized so handleAnswer (Q12) and handleFollowupAnswer (last follow-up)
+  // both call the same routing logic and the result is computed identically.
+  const routeAfterScoring = useCallback(
+    (allAnswers: Record<number, string>) => {
+      const counts = buildAxisCounts(allAnswers, allQuestionsForCombined);
+      const neutral = getNeutralAxesFromCounts(counts);
+
+      if (neutral.length === 0) {
+        // Resolved. Branch on mode.
+        if (diagnosticMode) {
+          submitDiagnostic(allAnswers);
+        } else {
+          setPhase("gate");
+        }
+        return;
+      }
+
+      // Still has Neutral axes. If we already ran follow-ups, give up gracefully
+      // — user is genuinely balanced; surface AxisSpectrum + reframe.
+      // If we haven't run follow-ups yet (just finished initial 12), route to
+      // followup phase with smart-targeted questions.
+      const alreadyDidFollowup = Object.keys(followupAnswers).length > 0;
+      if (alreadyDidFollowup) {
+        setInconclusiveCounts(counts);
+        setPhase("inconclusive");
+      } else {
+        const followups = getFollowupQuestionsForAxes(neutral);
+        if (followups.length === 0) {
+          // Defensive: no follow-ups available for these axes. Route to
+          // inconclusive directly.
+          setInconclusiveCounts(counts);
+          setPhase("inconclusive");
+          return;
+        }
+        setActiveFollowups(followups);
+        setCurrentFollowupIdx(0);
+        setPhase("followup");
+      }
+    },
+    [allQuestionsForCombined, diagnosticMode, followupAnswers],
+  );
 
   // ── Diagnostic-mode submit: call record-diagnostic-completion ──
   // Skips email gate entirely. On success, invalidates the per-profile
@@ -166,59 +255,60 @@ const Assessment = () => {
   // hooks re-render the new Pattern, and the person_profiles list cache so
   // the picker dropdown reflects the new state. Then redirects to
   // /apothecary/start which has the directory + PatternMatchHero.
-  const submitDiagnostic = useCallback(async (answersToSubmit: Record<number, string>) => {
-    if (!targetProfile || !user) {
-      setError("Missing profile context. Please reload and try again.");
-      return;
-    }
-    setPhase("diagnostic-saving");
-    setError("");
-    try {
-      const result = computeResult(answersToSubmit);
-      // Inconclusive results don't write — surfaced to the user via the
-      // inconclusive phase instead. We never silently default per Lock #39.
-      if (isInconclusiveResult(result)) {
-        setPhase("inconclusive");
+  const submitDiagnostic = useCallback(
+    async (allAnswers: Record<number, string>) => {
+      if (!targetProfile || !user) {
+        setError("Missing profile context. Please reload and try again.");
         return;
       }
-      const { data, error: fnError } = await supabase.functions.invoke(
-        "record-diagnostic-completion",
-        {
-          body: {
-            personProfileId: targetProfile.id,
-            edenConstitution: result, // EF accepts axis-label form + normalizes to slug
-            // Per Lock #40 strict separation, the in-app 12-q diagnostic
-            // tags its writes with `v1-diagnostic`. The marketing-pipeline
-            // `v1` namespace lives only on quiz_completions.
-            quizVersion: "v1-diagnostic",
+      setPhase("diagnostic-saving");
+      setError("");
+      try {
+        const counts = buildAxisCounts(allAnswers, allQuestionsForCombined);
+        const result = computeResultFromCounts(counts);
+        // Inconclusive results don't write — surfaced to the user via the
+        // inconclusive phase instead. We never silently default per Lock #39.
+        if (isInconclusiveResult(result)) {
+          setInconclusiveCounts(counts);
+          setPhase("inconclusive");
+          return;
+        }
+        const { data, error: fnError } = await supabase.functions.invoke(
+          "record-diagnostic-completion",
+          {
+            body: {
+              personProfileId: targetProfile.id,
+              edenConstitution: result, // EF accepts axis-label form + normalizes to slug
+              // Per Lock #40 strict separation, the in-app 12-q diagnostic
+              // tags its writes with `v1-diagnostic`. The marketing-pipeline
+              // `v1` namespace lives only on quiz_completions.
+              quizVersion: "v1-diagnostic",
+            },
           },
-        },
-      );
-      if (fnError) throw fnError;
-      // EF v3.16 returns `{ error: { code, message } }` on failure (wire-stable
-      // contract). Surface the message; UI may branch on `code` if needed.
-      if (data?.error) {
-        const msg = typeof data.error === "string"
-          ? data.error
-          : (data.error.message ?? "Could not save your Pattern. Please try again.");
-        throw new Error(msg);
+        );
+        if (fnError) throw fnError;
+        if (data?.error) {
+          const msg = typeof data.error === "string"
+            ? data.error
+            : (data.error.message ?? "Could not save your Pattern. Please try again.");
+          throw new Error(msg);
+        }
+
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["person_profiles"] }),
+          queryClient.invalidateQueries({ queryKey: ["eden_pattern_v2"] }),
+          queryClient.invalidateQueries({ queryKey: ["diagnostic_profile_v2"] }),
+        ]);
+
+        setPhase("diagnostic-saved");
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Could not save your Pattern. Please try again.";
+        setError(message);
+        setPhase("gate"); // surface the error inside the gate-style screen so user can retry
       }
-
-      // Invalidate the picker-driven hooks + person_profiles so the new
-      // Pattern shows up immediately on the directory.
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["person_profiles"] }),
-        queryClient.invalidateQueries({ queryKey: ["eden_pattern_v2"] }),
-        queryClient.invalidateQueries({ queryKey: ["diagnostic_profile_v2"] }),
-      ]);
-
-      setPhase("diagnostic-saved");
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Could not save your Pattern. Please try again.";
-      setError(message);
-      setPhase("gate"); // surface the error inside the gate-style screen so user can retry
-    }
-  }, [targetProfile, user, queryClient]);
+    },
+    [targetProfile, user, queryClient, allQuestionsForCombined],
+  );
 
   // Auto-redirect after diagnostic save with a short pause for confirmation.
   useEffect(() => {
@@ -238,25 +328,46 @@ const Assessment = () => {
         if (currentQ < questions.length - 1) {
           setCurrentQ((p) => p + 1);
         } else {
-          const result = computeResult(next);
-          if (isInconclusiveResult(result)) {
-            setPhase("inconclusive");
-          } else if (diagnosticMode) {
-            // Diagnostic mode: skip the email gate, go straight to the EF.
-            submitDiagnostic(next);
-          } else {
-            // Marketing mode: enter email-capture gate.
-            setPhase("gate");
-          }
+          // Initial 12 done — route based on result + mode.
+          // followupAnswers is still {} at this point (this is the initial pass),
+          // so routeAfterScoring will route to followup if any axis is Neutral.
+          routeAfterScoring(next);
         }
         setTransitioning(false);
       }, 400);
       return next;
     });
-  }, [currentQ, diagnosticMode, submitDiagnostic]);
+  }, [currentQ, routeAfterScoring]);
+
+  const handleFollowupAnswer = useCallback(
+    (questionId: number, score: string) => {
+      setFollowupAnswers((prev) => {
+        const next = { ...prev, [questionId]: score };
+        setTransitioning(true);
+        setTimeout(() => {
+          if (currentFollowupIdx < activeFollowups.length - 1) {
+            setCurrentFollowupIdx((p) => p + 1);
+          } else {
+            // Last follow-up done. Combine answers + recompute. routeAfterScoring
+            // will detect that follow-ups have run (followupAnswers non-empty
+            // after this state-update settles); if still Neutral, surface
+            // inconclusive with AxisSpectrum.
+            routeAfterScoring({ ...answers, ...next });
+          }
+          setTransitioning(false);
+        }, 400);
+        return next;
+      });
+    },
+    [currentFollowupIdx, activeFollowups.length, answers, routeAfterScoring],
+  );
 
   const restartQuiz = useCallback(() => {
     setAnswers({});
+    setFollowupAnswers({});
+    setActiveFollowups([]);
+    setCurrentFollowupIdx(0);
+    setInconclusiveCounts(null);
     setCurrentQ(0);
     setPhase("quiz");
     setError("");
@@ -281,10 +392,6 @@ const Assessment = () => {
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
 
-      // Constitution capture for /apothecary personalization (independent of
-      // marketing-consent). Failure here must NOT block the result reveal —
-      // personalization is recoverable (the user can retake the quiz post-
-      // signup) but a blocked results page is not.
       try {
         const { data: recordData, error: recordError } =
           await supabase.functions.invoke("record-quiz-completion", {
@@ -314,13 +421,34 @@ const Assessment = () => {
   };
 
   const q = questions[currentQ];
-  const progress = phase === "quiz" ? ((currentQ + (answers[q.id] ? 1 : 0)) / questions.length) * 100 : 100;
-  const axisLabel = q.axis === "temperature" ? "Temperature Axis" : q.axis === "fluid" ? "Fluid Axis" : "Tone Axis";
+  const fq = activeFollowups[currentFollowupIdx];
 
-  // Profile-lookup pending: we have a profileId in the URL but the profile
-  // list query hasn't resolved yet. Render a brief loading state — once
-  // profiles hydrate we either enter diagnostic mode (target found) or
-  // fall through to a 404-style message (target not found / not owned).
+  // Progress bar: in the initial quiz, fraction of 12; in follow-up, fraction
+  // of (12 + activeFollowups.length).
+  const progress =
+    phase === "quiz"
+      ? ((currentQ + (answers[q.id] ? 1 : 0)) / questions.length) * 100
+      : phase === "followup"
+        ? ((questions.length + currentFollowupIdx + (fq && followupAnswers[fq.id] ? 1 : 0)) /
+            (questions.length + activeFollowups.length)) *
+          100
+        : 100;
+
+  const axisLabel =
+    phase === "quiz"
+      ? q.axis === "temperature"
+        ? "Temperature Axis"
+        : q.axis === "fluid"
+          ? "Fluid Axis"
+          : "Tone Axis"
+      : phase === "followup" && fq
+        ? fq.axis === "temperature"
+          ? "Temperature Axis (sharper)"
+          : fq.axis === "fluid"
+            ? "Fluid Axis (sharper)"
+            : "Tone Axis (sharper)"
+        : "";
+
   if (profileLookupPending) {
     return (
       <div className={diagnosticMode ? "" : "min-h-screen"} style={!diagnosticMode ? { backgroundColor: "#F5F0E8" } : undefined}>
@@ -331,10 +459,6 @@ const Assessment = () => {
     );
   }
 
-  // profileId param supplied but no matching profile under this user —
-  // either bad URL or not owned. RequireAuth + RequireTier already gate the
-  // route, so reaching this means the URL is wrong; surface a clear message
-  // rather than silently re-mounting the marketing flow.
   if (profileIdParam !== null && !targetProfile && profileCtx !== null) {
     return (
       <div className="max-w-xl mx-auto px-6 py-16 text-center">
@@ -353,8 +477,6 @@ const Assessment = () => {
 
   return (
     <div className={diagnosticMode ? "" : "min-h-screen"} style={!diagnosticMode ? { backgroundColor: "#F5F0E8" } : undefined}>
-      {/* Marketing-mode header. Suppressed in diagnostic mode because the
-          ApothecaryLayout already provides nav + picker pill. */}
       {!diagnosticMode && (
         <header className="px-6 py-6 border-b" style={{ borderColor: "hsl(40, 20%, 80%)" }}>
           <div className="max-w-3xl mx-auto flex items-center justify-between">
@@ -368,9 +490,7 @@ const Assessment = () => {
         </header>
       )}
 
-      {/* Diagnostic-mode banner — establishes "whose quiz is this?" so the
-          user is never ambiguous about which profile they're personalizing. */}
-      {diagnosticMode && targetProfile && phase === "quiz" && (
+      {diagnosticMode && targetProfile && (phase === "quiz" || phase === "followup") && (
         <div className="max-w-2xl mx-auto px-6 pt-8">
           <p className="font-accent text-xs tracking-[0.2em] uppercase mb-1" style={{ color: "#C9A84C" }}>
             Pattern of Eden Quiz
@@ -383,7 +503,6 @@ const Assessment = () => {
 
       {phase === "quiz" && (
         <div className="max-w-2xl mx-auto px-6 py-12">
-          {/* Progress */}
           <div className="mb-10">
             <div className="flex items-center justify-between mb-3">
               <span className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: "#C9A84C" }}>
@@ -401,7 +520,6 @@ const Assessment = () => {
             </div>
           </div>
 
-          {/* Question */}
           <div className={`transition-all duration-400 ${transitioning ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"}`}>
             <h2 className="font-serif text-2xl md:text-3xl font-bold mb-8" style={{ color: "#1C3A2E" }}>
               {q.question}
@@ -438,7 +556,67 @@ const Assessment = () => {
         </div>
       )}
 
-      {/* Diagnostic-mode saving + saved screens */}
+      {phase === "followup" && fq && (
+        <div className="max-w-2xl mx-auto px-6 py-12">
+          <div className="mb-6 p-4 rounded" style={{ backgroundColor: "hsl(40, 55%, 50%, 0.08)", border: "1px solid #C9A84C" }}>
+            <p className="font-body text-sm" style={{ color: "#1C3A2E" }}>
+              <strong>Sharpening just one or two axes.</strong> Your initial answers were balanced on the {activeFollowups.map((a, i) => i === 0 ? a.axis : ` and ${a.axis}`).filter((_, i, arr) => arr.indexOf(arr[i]) === i).join(" / ")} axis. A few more concrete questions will help resolve where your body actually sits.
+            </p>
+          </div>
+
+          <div className="mb-10">
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: "#C9A84C" }}>
+                {axisLabel}
+              </span>
+              <span className="font-body text-sm" style={{ color: "#1C3A2E" }}>
+                Follow-up {currentFollowupIdx + 1} of {activeFollowups.length}
+              </span>
+            </div>
+            <div className="w-full h-2 rounded-full" style={{ backgroundColor: "hsl(40, 20%, 80%)" }}>
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${progress}%`, backgroundColor: "#C9A84C" }}
+              />
+            </div>
+          </div>
+
+          <div className={`transition-all duration-400 ${transitioning ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"}`}>
+            <h2 className="font-serif text-2xl md:text-3xl font-bold mb-8" style={{ color: "#1C3A2E" }}>
+              {fq.question}
+            </h2>
+            <div className="space-y-4">
+              {fq.options.map((opt) => (
+                <button
+                  key={opt.label}
+                  onClick={() => handleFollowupAnswer(fq.id, opt.score)}
+                  className="w-full text-left p-5 border-2 rounded transition-all duration-200 hover:border-[#C9A84C] hover:shadow-md group min-h-[44px]"
+                  style={{
+                    borderColor: followupAnswers[fq.id] === opt.score ? "#C9A84C" : "hsl(40, 20%, 80%)",
+                    backgroundColor: followupAnswers[fq.id] === opt.score ? "hsl(40, 55%, 50%, 0.08)" : "white",
+                  }}
+                >
+                  <div className="flex items-start gap-4">
+                    <span
+                      className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full font-serif font-bold text-sm border-2 group-hover:border-[#C9A84C] group-hover:text-[#C9A84C] transition-colors"
+                      style={{
+                        borderColor: followupAnswers[fq.id] === opt.score ? "#C9A84C" : "#1C3A2E",
+                        color: followupAnswers[fq.id] === opt.score ? "#C9A84C" : "#1C3A2E",
+                      }}
+                    >
+                      {opt.label}
+                    </span>
+                    <span className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>
+                      {opt.text}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {phase === "diagnostic-saving" && (
         <div className="max-w-xl mx-auto px-6 py-16 text-center">
           <p className="font-body text-base" style={{ color: "#1C3A2E" }}>
@@ -466,7 +644,6 @@ const Assessment = () => {
         </div>
       )}
 
-      {/* Marketing-mode email-capture gate. Diagnostic mode never enters this phase. */}
       {phase === "gate" && profile && !diagnosticMode && (
         <div className="max-w-xl mx-auto px-6 py-16 text-center">
           <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>
@@ -529,46 +706,51 @@ const Assessment = () => {
       )}
 
       {phase === "inconclusive" && (
-        <div className="max-w-xl mx-auto px-6 py-16 text-center">
-          <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>
-            Pattern Inconclusive
-          </span>
-          <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-6" style={{ color: "#1C3A2E" }}>
-            Your responses didn't resolve to a clear Pattern.
-          </h2>
-
-          <div className="space-y-5 mb-10 text-left">
-            <p className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>
-              {neutralAxes.length === 1 ? (
-                <>This usually happens when "varies" or "no preference" answers cluster on the <strong>{neutralAxes[0]}</strong> axis. Your body may genuinely be balanced on that axis, or the quiz may benefit from a more deliberate retake.</>
-              ) : (
-                <>This usually happens when "varies" or "no preference" answers cluster across multiple axes (here: <strong>{neutralAxes.join(", ")}</strong>). Your body may genuinely be balanced on one or more of these axes, or the quiz may benefit from a more deliberate retake.</>
-              )}
-            </p>
-            <p className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>
-              We never default you to a Pattern when your responses don't clearly indicate one. The honest answer is: take a closer look at the questions and pick A or B whenever you can — the resolution improves quickly.
+        <div className="max-w-2xl mx-auto px-6 py-16">
+          <div className="text-center mb-10">
+            <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>
+              Where you sit
+            </span>
+            <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-4" style={{ color: "#1C3A2E" }}>
+              Your body sits between patterns.
+            </h2>
+            <p className="font-body text-base leading-relaxed max-w-xl mx-auto" style={{ color: "#1C3A2E" }}>
+              The Pattern of Eden resolves when one direction clearly dominates each axis. Your responses landed in the middle on one or more axes — a clinical category in its own right, not a quiz failure.
             </p>
           </div>
 
-          <Button
-            type="button"
-            variant="eden"
-            size="xl"
-            className="w-full"
-            onClick={restartQuiz}
-          >
-            → Retake the Quiz with More Deliberate Answers
-          </Button>
+          {inconclusiveCounts && (
+            <div className="p-6 md:p-8 mb-10 rounded" style={{ backgroundColor: "white", border: "1px solid hsl(40, 20%, 80%)" }}>
+              <AxisSpectrum counts={inconclusiveCounts} />
+            </div>
+          )}
 
-          <p className="font-body text-xs italic mt-4" style={{ color: "hsl(30, 10%, 40%, 0.7)" }}>
-            Some constitutions are genuinely balanced on an axis — this is itself a clinical category, not a quiz failure. The Root-tier deeper diagnostic (40 questions, four classical Western frameworks) is built to resolve cases like this.
+          <div className="space-y-5 mb-10 text-left max-w-xl mx-auto">
+            <p className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>
+              We never default you to a Pattern when your responses don't clearly indicate one. The honest answer is to either retake the quiz with a more deliberate inner check on each question, or use the deeper diagnostic tool that's built to resolve cases like this one.
+            </p>
+          </div>
+
+          <div className="space-y-3 max-w-xl mx-auto">
+            <Button
+              type="button"
+              variant="eden"
+              size="xl"
+              className="w-full"
+              onClick={restartQuiz}
+            >
+              → Retake the Quiz
+            </Button>
+          </div>
+
+          <p className="font-body text-xs italic mt-6 text-center max-w-xl mx-auto" style={{ color: "hsl(30, 10%, 40%, 0.7)" }}>
+            The Root-tier deeper diagnostic (40 questions, four classical Western frameworks: Pattern of Eden + Galenic temperament + tissue state + vital force) is built to resolve genuinely-balanced constitutions — it surfaces what the 12-question quiz can't.
           </p>
         </div>
       )}
 
       {phase === "results" && profile && (
         <div className="max-w-3xl mx-auto px-6 py-16">
-          {/* Section A: Type Header */}
           <div className="text-center mb-12">
             <p className="font-body text-sm mb-1" style={{ color: "#C9A84C" }}>
               ✓ Your results are on their way. Check your inbox.
@@ -587,7 +769,6 @@ const Assessment = () => {
             </p>
           </div>
 
-          {/* Section B: Pattern Summary */}
           <div className="space-y-6 mb-16">
             {profile.description.map((para, i) => (
               <p key={i} className="font-body text-lg leading-relaxed" style={{ color: "#1C3A2E" }}>
@@ -596,7 +777,6 @@ const Assessment = () => {
             ))}
           </div>
 
-          {/* Section C: Top 3 Herbs */}
           <div className="mb-16">
             <h2 className="font-serif text-2xl font-bold mb-6" style={{ color: "#1C3A2E" }}>
               Your Top 3 Herbs
@@ -615,7 +795,6 @@ const Assessment = () => {
             </div>
           </div>
 
-          {/* Section D: $14 Deep-Dive Guide Upsell */}
           <div className="p-6 md:p-8 border-2 rounded mb-12" style={{ borderColor: "#C9A84C", backgroundColor: "white" }}>
             <h2 className="font-serif text-2xl font-bold mb-4" style={{ color: "#1C3A2E" }}>
               Want the full picture?
@@ -653,7 +832,6 @@ const Assessment = () => {
             </Button>
           </div>
 
-          {/* Section E: Amazon Herb Kit */}
           <div className="p-6 md:p-8 rounded mb-12" style={{ backgroundColor: "#F5F0E8" }}>
             <h2 className="font-serif text-2xl font-bold mb-4" style={{ color: "#1C3A2E" }}>
               Your Starter Herb Kit
@@ -675,7 +853,6 @@ const Assessment = () => {
             </p>
           </div>
 
-          {/* Section F: Course CTA */}
           <div className="text-center p-10 rounded mb-8" style={{ backgroundColor: "#1C3A2E" }}>
             <h3 className="font-serif text-2xl font-bold mb-4" style={{ color: "#C9A84C" }}>
               Ready to Go Deeper?
