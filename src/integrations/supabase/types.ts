@@ -425,8 +425,10 @@ export type Database = {
           pregnancy_safety: string | null
           preparation_methods: string | null
           primary_sources: string | null
+          primary_text_citation: Json | null
           pronunciation: string | null
           refer_threshold: string | null
+          secondary_citation: Json | null
           secondary_sources: string | null
           status: string | null
           stewardship_note: string | null
@@ -438,6 +440,7 @@ export type Database = {
           tier_visibility: Database["public"]["Enums"]["subscription_tier"]
           tissue_states_contraindicated: string | null
           tissue_states_indicated: string | null
+          traditional_observations: Json | null
           western_constitution_match: string | null
         }
         Insert: {
@@ -465,8 +468,10 @@ export type Database = {
           pregnancy_safety?: string | null
           preparation_methods?: string | null
           primary_sources?: string | null
+          primary_text_citation?: Json | null
           pronunciation?: string | null
           refer_threshold?: string | null
+          secondary_citation?: Json | null
           secondary_sources?: string | null
           status?: string | null
           stewardship_note?: string | null
@@ -478,6 +483,7 @@ export type Database = {
           tier_visibility?: Database["public"]["Enums"]["subscription_tier"]
           tissue_states_contraindicated?: string | null
           tissue_states_indicated?: string | null
+          traditional_observations?: Json | null
           western_constitution_match?: string | null
         }
         Update: {
@@ -505,8 +511,10 @@ export type Database = {
           pregnancy_safety?: string | null
           preparation_methods?: string | null
           primary_sources?: string | null
+          primary_text_citation?: Json | null
           pronunciation?: string | null
           refer_threshold?: string | null
+          secondary_citation?: Json | null
           secondary_sources?: string | null
           status?: string | null
           stewardship_note?: string | null
@@ -518,6 +526,7 @@ export type Database = {
           tier_visibility?: Database["public"]["Enums"]["subscription_tier"]
           tissue_states_contraindicated?: string | null
           tissue_states_indicated?: string | null
+          traditional_observations?: Json | null
           western_constitution_match?: string | null
         }
         Relationships: []
@@ -1746,8 +1755,10 @@ export type Database = {
           preparation_methods: string | null
           preparations_rel: Json | null
           primary_sources: string | null
+          primary_text_citation: Json | null
           pronunciation: string | null
           refer_threshold: string | null
+          secondary_citation: Json | null
           secondary_sources: string | null
           status: string | null
           stewardship_note: string | null
@@ -1767,6 +1778,7 @@ export type Database = {
           tissue_states_contraindicated_rel: Json | null
           tissue_states_indicated: string | null
           tissue_states_indicated_rel: Json | null
+          traditional_observations: Json | null
           western_constitution_match: string | null
         }
         Insert: {
@@ -1800,8 +1812,10 @@ export type Database = {
           preparation_methods?: string | null
           preparations_rel?: never
           primary_sources?: string | null
+          primary_text_citation?: never
           pronunciation?: string | null
           refer_threshold?: string | null
+          secondary_citation?: never
           secondary_sources?: string | null
           status?: string | null
           stewardship_note?: string | null
@@ -1821,6 +1835,7 @@ export type Database = {
           tissue_states_contraindicated_rel?: never
           tissue_states_indicated?: string | null
           tissue_states_indicated_rel?: never
+          traditional_observations?: never
           western_constitution_match?: string | null
         }
         Update: {
@@ -1854,8 +1869,10 @@ export type Database = {
           preparation_methods?: string | null
           preparations_rel?: never
           primary_sources?: string | null
+          primary_text_citation?: never
           pronunciation?: string | null
           refer_threshold?: string | null
+          secondary_citation?: never
           secondary_sources?: string | null
           status?: string | null
           stewardship_note?: string | null
@@ -1875,6 +1892,7 @@ export type Database = {
           tissue_states_contraindicated_rel?: never
           tissue_states_indicated?: string | null
           tissue_states_indicated_rel?: never
+          traditional_observations?: never
           western_constitution_match?: string | null
         }
         Relationships: []

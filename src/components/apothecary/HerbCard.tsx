@@ -16,6 +16,11 @@ import {
   computeMatchRelationship,
   type MatchRelationship,
 } from "@/lib/edenPattern";
+import {
+  type PrimaryTextCitation,
+  type SecondaryCitation,
+  type TraditionalObservation,
+} from "@/lib/contentEntry";
 
 interface HerbCardProps {
   herb: HerbRow;
@@ -45,6 +50,104 @@ function splitTokens(value: string | null | undefined): string[] {
     .map((t) => t.trim())
     .filter((t) => t.length > 0);
 }
+
+/**
+ * Phase B sub-task 6 — narrowing helpers for the structured dual-source
+ * citation JSONB columns added in 20260426234500_herbs_dual_citation_jsonb.sql.
+ *
+ * The view exposes these as `Json | null`; at runtime the shape is the one
+ * authored by the data-backfill migration (mirrors the TS types exported from
+ * `@/lib/contentEntry`). The narrowing below is defensive — if a row has
+ * malformed JSONB, the helper returns null and the UI falls back to the
+ * legacy free-text `primary_sources` / `secondary_sources` prose render.
+ */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value)
+  );
+}
+
+function asPrimaryTextCitation(value: unknown): PrimaryTextCitation | null {
+  if (!isPlainObject(value)) return null;
+  const { author, title, year, url } = value;
+  if (
+    typeof author !== "string" ||
+    typeof title !== "string" ||
+    typeof year !== "number" ||
+    typeof url !== "string"
+  ) {
+    return null;
+  }
+  return value as unknown as PrimaryTextCitation;
+}
+
+function asSecondaryCitation(value: unknown): SecondaryCitation | null {
+  if (!isPlainObject(value)) return null;
+  const { kind, title, identifier, url } = value;
+  if (
+    typeof kind !== "string" ||
+    typeof title !== "string" ||
+    typeof identifier !== "string" ||
+    typeof url !== "string"
+  ) {
+    return null;
+  }
+  return value as unknown as SecondaryCitation;
+}
+
+function asTraditionalObservations(
+  value: unknown,
+): TraditionalObservation[] | null {
+  if (!Array.isArray(value)) return null;
+  const observations: TraditionalObservation[] = [];
+  for (const item of value) {
+    if (!isPlainObject(item)) continue;
+    const { tradition, pattern, observation, citation } = item;
+    if (
+      typeof tradition !== "string" ||
+      typeof pattern !== "string" ||
+      typeof observation !== "string" ||
+      asPrimaryTextCitation(citation) === null
+    ) {
+      continue;
+    }
+    observations.push(item as unknown as TraditionalObservation);
+  }
+  return observations.length > 0 ? observations : null;
+}
+
+/**
+ * Human-readable label for the SecondaryCitation.kind enum. Used in the
+ * citation drawer to surface provenance (WHO / ESCOP / PubMed / etc.).
+ */
+const SECONDARY_KIND_LABELS: Record<SecondaryCitation["kind"], string> = {
+  pubmed: "PubMed / PMC",
+  who_monograph: "WHO Monograph",
+  escop: "ESCOP Monograph",
+  nih: "NIH / NCCIH",
+  usda: "USDA / FDA",
+  university_extension: "University Extension",
+  ahg_standard: "AHG Standard",
+  nimh_standard: "NIMH Standard",
+  ahpa_safety: "AHPA Botanical Safety",
+  industry_textbook: "Industry Textbook",
+};
+
+/**
+ * Human-readable label for the ClassicalTradition slug union. Used in the
+ * traditional-observations strip badges per Lock #44.
+ */
+const TRADITION_LABELS: Record<TraditionalObservation["tradition"], string> = {
+  western_eclectic: "Western Eclectic",
+  western_physiomedical: "Western Physiomedical",
+  tcm: "TCM",
+  ayurveda: "Ayurveda",
+  unani: "Unani",
+  tibetan: "Tibetan",
+  other: "Other Tradition",
+};
 
 /**
  * Stage 6.3.6 visible-but-gated card.
@@ -678,28 +781,129 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
           )}
 
           {hasClinical &&
-            (herb.primary_sources || herb.secondary_sources) && (
-              <section>
-                <h4
-                  className={sectionLabel}
-                  style={{ color: "hsl(var(--eden-gold))" }}
-                >
-                  Sources
-                </h4>
-                {herb.primary_sources && (
-                  <p className="font-body text-xs leading-relaxed text-muted-foreground">
-                    <span className="font-medium">Primary: </span>
-                    {herb.primary_sources}
-                  </p>
-                )}
-                {herb.secondary_sources && (
-                  <p className="font-body text-xs leading-relaxed text-muted-foreground mt-1">
-                    <span className="font-medium">Secondary: </span>
-                    {herb.secondary_sources}
-                  </p>
-                )}
-              </section>
-            )}
+            (() => {
+              // Phase B sub-task 6 — prefer the structured dual-source citations
+              // populated by 20260426234600_herbs_archetypal_dual_citation_backfill.sql
+              // and follow-on data migrations, per Locks #38 + #43. Fall back to the
+              // legacy free-text prose render when the structured fields are NULL
+              // (rows not yet through the audit).
+              const primary = asPrimaryTextCitation(herb.primary_text_citation);
+              const secondary = asSecondaryCitation(herb.secondary_citation);
+              const traditional = asTraditionalObservations(
+                herb.traditional_observations,
+              );
+              const hasStructured = primary || secondary || traditional;
+              const hasLegacy = herb.primary_sources || herb.secondary_sources;
+              if (!hasStructured && !hasLegacy) return null;
+
+              return (
+                <section>
+                  <h4
+                    className={sectionLabel}
+                    style={{ color: "hsl(var(--eden-gold))" }}
+                  >
+                    Sources
+                  </h4>
+
+                  {primary ? (
+                    <div className="font-body text-xs leading-relaxed text-muted-foreground">
+                      <span className="font-medium">Primary: </span>
+                      <a
+                        href={primary.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline decoration-dotted underline-offset-2 hover:opacity-80"
+                      >
+                        {primary.author}, <em>{primary.title}</em>{" "}
+                        ({primary.year})
+                      </a>
+                      {primary.locator && (
+                        <span className="opacity-80"> — {primary.locator}</span>
+                      )}
+                    </div>
+                  ) : (
+                    herb.primary_sources && (
+                      <p className="font-body text-xs leading-relaxed text-muted-foreground">
+                        <span className="font-medium">Primary: </span>
+                        {herb.primary_sources}
+                      </p>
+                    )
+                  )}
+
+                  {secondary ? (
+                    <div className="font-body text-xs leading-relaxed text-muted-foreground mt-1">
+                      <span className="font-medium">Secondary: </span>
+                      <a
+                        href={secondary.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline decoration-dotted underline-offset-2 hover:opacity-80"
+                      >
+                        {secondary.author
+                          ? `${secondary.author}, `
+                          : ""}
+                        <em>{secondary.title}</em>
+                        {secondary.year ? ` (${secondary.year})` : ""}
+                      </a>
+                      <span className="opacity-80">
+                        {" "}
+                        — {SECONDARY_KIND_LABELS[secondary.kind] ?? secondary.kind}
+                        {secondary.identifier && ` · ${secondary.identifier}`}
+                      </span>
+                    </div>
+                  ) : (
+                    herb.secondary_sources && (
+                      <p className="font-body text-xs leading-relaxed text-muted-foreground mt-1">
+                        <span className="font-medium">Secondary: </span>
+                        {herb.secondary_sources}
+                      </p>
+                    )
+                  )}
+
+                  {traditional && (
+                    <div className="mt-3 space-y-2">
+                      {traditional.map((obs, i) => (
+                        <div
+                          key={`${obs.tradition}-${i}`}
+                          className="border-l-2 pl-3 py-1"
+                          style={{ borderColor: "hsl(var(--eden-bark) / 0.4)" }}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <span
+                              className={chipClass}
+                              style={{
+                                background: "hsl(var(--eden-bark) / 0.1)",
+                                color: "hsl(var(--eden-bark))",
+                              }}
+                            >
+                              {obs.traditionLabel ??
+                                TRADITION_LABELS[obs.tradition] ??
+                                obs.tradition}
+                            </span>
+                            <span className="font-body text-xs font-medium">
+                              {obs.pattern}
+                            </span>
+                          </div>
+                          <p className="font-body text-xs leading-relaxed text-muted-foreground">
+                            {obs.observation}
+                          </p>
+                          <a
+                            href={obs.citation.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-body text-[10px] tracking-wide uppercase underline decoration-dotted underline-offset-2 text-muted-foreground hover:opacity-80 mt-1 inline-block"
+                          >
+                            {obs.citation.author}, {obs.citation.title} ({
+                              obs.citation.year
+                            })
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              );
+            })()}
 
           {/* Footer teaser only on the body-only state (free-tier row, anon/free caller). */}
           {!hasClinical && (
