@@ -63,7 +63,10 @@ const App = () => (
             <Route path="/homeschool" element={<Homeschool />} />
             <Route path="/community" element={<Community />} />
             <Route path="/tier-2-waitlist" element={<TierTwoWaitlist />} />
-            {/* Apothecary application — Lane C Stage 6.3.4: auth-walled per §0.8 v3.3 #21. */}
+            {/* Apothecary application — Lane C Stage 6.3.4: auth-walled per §0.8 v3.3 #21.
+                v3.33 amendment (PR #51): Lock #21 RETIRED for pricing surface only —
+                /apothecary/pricing is now public per founder Q2 authorization to open
+                pricing pre-signup for conversion. All other auth-walled surfaces preserved. */}
             <Route path="/apothecary" element={<ApothecaryLayout />}>
               {/* Public surfaces */}
               <Route path="start" element={<Start />} />
@@ -71,6 +74,8 @@ const App = () => (
               <Route path="auth/signin" element={<SignIn />} />
               <Route path="auth/reset" element={<Reset />} />
               <Route path="auth/update-password" element={<UpdatePassword />} />
+              {/* PR #51 v3.33: pricing made PUBLIC — retires Lock #21 for this surface. */}
+              <Route path="pricing" element={<Pricing />} />
               {/* Auth-walled surfaces */}
               <Route
                 index
@@ -85,14 +90,6 @@ const App = () => (
                 element={
                   <RequireAuth>
                     <WelcomeTour />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="pricing"
-                element={
-                  <RequireAuth>
-                    <Pricing />
                   </RequireAuth>
                 }
               />
