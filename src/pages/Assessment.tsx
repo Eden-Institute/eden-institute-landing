@@ -95,6 +95,66 @@ const questions: Question[] = [
   ]},
 ];
 
+// v3.34 #2: compute axis positions from -1.0 (fully one side) to +1.0 (fully other side)
+// for the inconclusive AxisSpectrum visual.
+function computeAxisPositions(answers: Record<number, string>) {
+  let hot = 0, cold = 0, damp = 0, dry = 0, tense = 0, relaxed = 0;
+  for (const q of questions) {
+    const a = answers[q.id];
+    if (a === "Hot") hot++;
+    else if (a === "Cold") cold++;
+    else if (a === "Damp") damp++;
+    else if (a === "Dry") dry++;
+    else if (a === "Tense") tense++;
+    else if (a === "Relaxed") relaxed++;
+  }
+  // 4 questions per axis; net position normalized to [-1, +1]
+  return {
+    temperature: (hot - cold) / 4,
+    fluid: (damp - dry) / 4,
+    tone: (tense - relaxed) / 4,
+  };
+}
+
+interface AxisSpectrumProps {
+  axisLabel: string;
+  leftLabel: string;
+  rightLabel: string;
+  position: number; // -1.0 to +1.0; 0 = middle/inconclusive
+  isInconclusive: boolean;
+}
+
+function AxisSpectrum({ axisLabel, leftLabel, rightLabel, position, isInconclusive }: AxisSpectrumProps) {
+  // Map [-1, +1] to [10%, 90%] left-position so marker stays inside the bar.
+  const leftPct = 50 + position * 40;
+  const markerColor = isInconclusive ? "#C9A84C" : "#1C3A2E";
+  return (
+    <div className="mb-5">
+      <div className="flex items-baseline justify-between mb-1.5">
+        <span className="font-accent text-xs tracking-[0.15em] uppercase" style={{ color: "#1C3A2E" }}>{leftLabel}</span>
+        <span className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: isInconclusive ? "#C9A84C" : "hsl(30, 10%, 40%)" }}>
+          {axisLabel}{isInconclusive ? " — inconclusive" : ""}
+        </span>
+        <span className="font-accent text-xs tracking-[0.15em] uppercase" style={{ color: "#1C3A2E" }}>{rightLabel}</span>
+      </div>
+      <div className="relative h-3 rounded-full" style={{ backgroundColor: "hsl(40, 20%, 80%)" }}>
+        {/* Center tick mark */}
+        <div className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 w-px h-3" style={{ backgroundColor: "hsl(30, 10%, 40%)", opacity: 0.3 }} />
+        {/* Position marker */}
+        <div
+          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full transition-all"
+          style={{
+            left: `${leftPct}%`,
+            backgroundColor: markerColor,
+            border: "2px solid white",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
 const Assessment = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -128,8 +188,9 @@ const Assessment = () => {
   const isInconclusive = constitutionType ? isInconclusiveResult(constitutionType) : false;
   const neutralAxes = constitutionType && isInconclusive ? inconclusiveAxes(constitutionType) : [];
   const profile = constitutionType ? constitutionProfiles[constitutionType] : null;
+  // Compute axis positions for the inconclusive spectrum visual.
+  const axisPositions = useMemo(() => computeAxisPositions(answers), [answers]);
 
-  // Pre-fill email + first_name for logged-in users.
   useEffect(() => {
     if (!user || diagnosticMode) return;
     if (user.email && !email) {
@@ -239,10 +300,6 @@ const Assessment = () => {
         console.error("record-quiz-completion threw", recordErr);
       }
 
-      // v3.34 fix #3a: navigate to /results/[slug] instead of setting inline
-      // results phase. Browser back from /results/[slug] now goes to wherever
-      // the user came from BEFORE /assessment (homepage usually) — not back
-      // into the quiz at Q1. replace:true keeps /assessment out of history.
       const slugForRedirect = (profileForSubmit?.nickname ?? "")
         .replace(/^The\s+/i, "")
         .toLowerCase()
@@ -504,20 +561,53 @@ const Assessment = () => {
       )}
 
       {phase === "inconclusive" && (
-        <div className="max-w-xl mx-auto px-6 py-16 text-center">
-          <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>
-            Pattern Inconclusive
-          </span>
-          <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-6" style={{ color: "#1C3A2E" }}>
-            Your responses didn't resolve to a clear Pattern.
-          </h2>
+        <div className="max-w-xl mx-auto px-6 py-16">
+          <div className="text-center">
+            <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>
+              Pattern Inconclusive
+            </span>
+            <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-6" style={{ color: "#1C3A2E" }}>
+              Your responses didn't resolve to a clear Pattern.
+            </h2>
+          </div>
+
+          {/* v3.34 #2: AxisSpectrum visual — show where the user landed on each
+              of the three axes. Inconclusive axes get a gold marker (sitting in
+              the middle of the bar); decided axes get a forest-green marker
+              shifted to the side they leaned. */}
+          <div className="my-10 p-6 rounded" style={{ backgroundColor: "white", border: "1px solid hsl(40, 20%, 80%)" }}>
+            <p className="font-accent text-xs tracking-[0.2em] uppercase mb-5 text-center" style={{ color: "hsl(30, 10%, 40%)" }}>
+              Where you landed on each axis
+            </p>
+            <AxisSpectrum
+              axisLabel="Temperature"
+              leftLabel="Hot"
+              rightLabel="Cold"
+              position={axisPositions.temperature}
+              isInconclusive={neutralAxes.includes("temperature")}
+            />
+            <AxisSpectrum
+              axisLabel="Fluid"
+              leftLabel="Damp"
+              rightLabel="Dry"
+              position={axisPositions.fluid}
+              isInconclusive={neutralAxes.includes("fluid")}
+            />
+            <AxisSpectrum
+              axisLabel="Tone"
+              leftLabel="Tense"
+              rightLabel="Relaxed"
+              position={axisPositions.tone}
+              isInconclusive={neutralAxes.includes("tone")}
+            />
+          </div>
 
           <div className="space-y-5 mb-10 text-left">
             <p className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>
               {neutralAxes.length === 1 ? (
-                <>This usually happens when "varies" or "no preference" answers cluster on the <strong>{neutralAxes[0]}</strong> axis. Your body may genuinely be balanced on that axis, or the quiz may benefit from a more deliberate retake.</>
+                <>The <strong>{neutralAxes[0]}</strong> axis didn't resolve clearly — your marker landed near center because "varies" or "no preference" answers clustered there. Your body may genuinely be balanced on that axis, or the quiz may benefit from a more deliberate retake.</>
               ) : (
-                <>This usually happens when "varies" or "no preference" answers cluster across multiple axes (here: <strong>{neutralAxes.join(", ")}</strong>). Your body may genuinely be balanced on one or more of these axes, or the quiz may benefit from a more deliberate retake.</>
+                <>Multiple axes didn't resolve clearly (here: <strong>{neutralAxes.join(", ")}</strong>). Their markers landed near center because "varies" or "no preference" answers clustered there. Your body may genuinely be balanced on one or more of these axes, or the quiz may benefit from a more deliberate retake.</>
               )}
             </p>
             <p className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>
@@ -535,7 +625,7 @@ const Assessment = () => {
             → Retake the Quiz with More Deliberate Answers
           </Button>
 
-          <p className="font-body text-xs italic mt-4" style={{ color: "hsl(30, 10%, 40%, 0.7)" }}>
+          <p className="font-body text-xs italic mt-4 text-center" style={{ color: "hsl(30, 10%, 40%, 0.7)" }}>
             Some constitutions are genuinely balanced on an axis — this is itself a clinical category, not a quiz failure. The Root-tier deeper diagnostic (40 questions, four classical Western frameworks) is built to resolve cases like this.
           </p>
         </div>
