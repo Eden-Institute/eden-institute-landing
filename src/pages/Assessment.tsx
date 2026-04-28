@@ -129,11 +129,7 @@ const Assessment = () => {
   const neutralAxes = constitutionType && isInconclusive ? inconclusiveAxes(constitutionType) : [];
   const profile = constitutionType ? constitutionProfiles[constitutionType] : null;
 
-  // Pre-fill email + first_name for logged-in users so the marketing-quiz
-  // auto-submit path (Phase 5 fix #3 / launch-blocker #57) and the results
-  // page CTAs both have a real value to work with. Only runs when not in
-  // diagnosticMode (diagnosticMode writes to diagnostic_completions and is
-  // id-keyed per Lock #40).
+  // Pre-fill email + first_name for logged-in users.
   useEffect(() => {
     if (!user || diagnosticMode) return;
     if (user.email && !email) {
@@ -199,22 +195,6 @@ const Assessment = () => {
     }
   }, [phase, navigate]);
 
-  /**
-   * Shared marketing-quiz submission logic. Used by both the form-driven
-   * handleSubmit (anonymous taker) and the auto-submit path for logged-in
-   * users (Phase 5 fix #3 / launch-blocker #57).
-   *
-   * Always writes to:
-   *   1. resend-waitlist (audience capture + nurture queue enrollment)
-   *   2. record-quiz-completion (quiz_completions row; trigger then
-   *      backfills profiles.constitution_type + display_name when the
-   *      email-keyed match resolves to a user_id)
-   *
-   * Per Locked Decision §0.8 #15 the two writes are independent — a
-   * record-quiz-completion failure does not roll back the audience
-   * subscription, and a resend-waitlist failure does block proceeding
-   * because that's the user's primary feedback signal ("results on the way").
-   */
   const submitMarketingQuiz = useCallback(async (
     submittedEmail: string,
     submittedFirstName: string,
@@ -240,8 +220,6 @@ const Assessment = () => {
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
 
-      // Independent record-quiz-completion call. Best-effort — failures here
-      // do NOT block the user's results; logged for diagnostic follow-up.
       try {
         const { data: recordData, error: recordError } =
           await supabase.functions.invoke("record-quiz-completion", {
@@ -261,15 +239,21 @@ const Assessment = () => {
         console.error("record-quiz-completion threw", recordErr);
       }
 
-      setPhase("results");
+      // v3.34 fix #3a: navigate to /results/[slug] instead of setting inline
+      // results phase. Browser back from /results/[slug] now goes to wherever
+      // the user came from BEFORE /assessment (homepage usually) — not back
+      // into the quiz at Q1. replace:true keeps /assessment out of history.
+      const slugForRedirect = (profileForSubmit?.nickname ?? "")
+        .replace(/^The\s+/i, "")
+        .toLowerCase()
+        .replace(/\s+/g, "-");
+      navigate(`/results/${slugForRedirect}`, { replace: true });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
       setError(message);
-      // For the auto-submit path, surface the gate as a fallback so the
-      // user can still complete capture if the auto-submit failed.
       setPhase("gate");
     }
-  }, []);
+  }, [navigate]);
 
   const handleAnswer = useCallback((questionId: number, score: string) => {
     setAnswers((prev) => {
@@ -285,9 +269,6 @@ const Assessment = () => {
           } else if (diagnosticMode) {
             submitDiagnostic(next);
           } else if (user?.email && !authLoading) {
-            // Phase 5 fix #3 / launch-blocker #57 — logged-in user taking the
-            // marketing quiz skips the email gate entirely. Pre-fill from auth,
-            // submit immediately, render results.
             setPhase("auto-submitting");
             const submitEmail = user.email;
             const metaFirstName = (user.user_metadata as Record<string, unknown> | undefined)?.first_name;
@@ -355,9 +336,6 @@ const Assessment = () => {
 
   return (
     <div className={diagnosticMode ? "" : "min-h-screen"} style={!diagnosticMode ? { backgroundColor: "#F5F0E8" } : undefined}>
-      {/* Phase 5 fix #8: render the global Navbar (with hamburger nav) on the
-          marketing quiz so visitors can navigate the rest of the site mid-quiz.
-          Diagnostic mode (under ApothecaryLayout) gets ApothecaryNav instead. */}
       {!diagnosticMode && <Navbar />}
 
       {diagnosticMode && targetProfile && phase === "quiz" && (
@@ -560,144 +538,6 @@ const Assessment = () => {
           <p className="font-body text-xs italic mt-4" style={{ color: "hsl(30, 10%, 40%, 0.7)" }}>
             Some constitutions are genuinely balanced on an axis — this is itself a clinical category, not a quiz failure. The Root-tier deeper diagnostic (40 questions, four classical Western frameworks) is built to resolve cases like this.
           </p>
-        </div>
-      )}
-
-      {phase === "results" && profile && (
-        <div className="max-w-3xl mx-auto px-6 py-16">
-          <div className="text-center mb-12">
-            <p className="font-body text-sm mb-1" style={{ color: "#C9A84C" }}>
-              {user ? "✓ Your Pattern is saved to your account." : "✓ Your results are on their way. Check your inbox."}
-            </p>
-            {!user && (
-              <p className="font-body text-xs italic mb-4" style={{ color: "#C9A84C", opacity: 0.8 }}>
-                Using Gmail? Your first email may arrive in your Promotions or Spam folder. Please move it to your Primary inbox so you don't miss anything from us.
-              </p>
-            )}
-            <h1 className="font-serif text-4xl md:text-5xl font-bold mt-4 mb-2" style={{ color: "#1C3A2E" }}>
-              {profile.nickname}
-            </h1>
-            <p className="font-body text-lg mb-1" style={{ color: "#1C3A2E" }}>
-              {constitutionType}
-            </p>
-            <p className="font-accent text-xl italic" style={{ color: "#C9A84C" }}>
-              {profile.tagline}
-            </p>
-          </div>
-
-          <div className="space-y-6 mb-16">
-            {profile.description.map((para, i) => (
-              <p key={i} className="font-body text-lg leading-relaxed" style={{ color: "#1C3A2E" }}>
-                {para}
-              </p>
-            ))}
-          </div>
-
-          <div className="mb-16">
-            <h2 className="font-serif text-2xl font-bold mb-6" style={{ color: "#1C3A2E" }}>
-              Your Top 3 Herbs
-            </h2>
-            <div className="space-y-4">
-              {profile.herbs.slice(0, 3).map((herb, i) => (
-                <div key={i} className="p-5 border rounded" style={{ borderColor: "hsl(40, 20%, 80%)", backgroundColor: "white" }}>
-                  <h3 className="font-serif text-lg font-bold mb-1" style={{ color: "#C9A84C" }}>
-                    {herb.name}
-                  </h3>
-                  <p className="font-body text-base" style={{ color: "#1C3A2E" }}>
-                    {herb.note}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="p-6 md:p-8 border-2 rounded mb-12" style={{ borderColor: "#C9A84C", backgroundColor: "white" }}>
-            <h2 className="font-serif text-2xl font-bold mb-4" style={{ color: "#1C3A2E" }}>
-              Want the full picture?
-            </h2>
-            <p className="font-body text-base leading-relaxed mb-4" style={{ color: "#1C3A2E" }}>
-              Your complete Deep-Dive Guide includes all 10 matched herbs with clinical preparation methods, dosages, and safety notes — plus caution lists, lifestyle and nutrition guidance, and a Biblical framework for your body pattern.
-            </p>
-            <Button
-              variant="eden"
-              size="xl"
-              className="w-full"
-              data-product="constitution-guide"
-              disabled={checkoutLoading}
-              onClick={async () => {
-                setCheckoutLoading(true);
-                setError("");
-                try {
-                  // Phase 5 fix #4 / launch-blocker #58a — pass lookup_key
-                  // (was missing → silent 400) plus success_url that lands
-                  // back on the constitution-specific GuideLanding page so
-                  // the post-purchase flow can verify and unlock the guide.
-                  const slug = (profile?.nickname ?? "")
-                    .replace(/^The\s+/i, "")
-                    .toLowerCase()
-                    .replace(/\s+/g, "-");
-                  const { data, error: fnError } = await supabase.functions.invoke("create-checkout", {
-                    body: {
-                      lookup_key: "deep_dive_guide",
-                      constitution_type: constitutionType,
-                      constitution_nickname: profile?.nickname,
-                      email,
-                      success_url: `https://edeninstitute.health/guide/${slug}?session_id={CHECKOUT_SESSION_ID}`,
-                      cancel_url: "https://edeninstitute.health/assessment",
-                    },
-                  });
-                  if (fnError) throw fnError;
-                  if (data?.error) throw new Error(typeof data.error === "string" ? data.error : "Checkout failed");
-                  if (data?.url) window.location.href = data.url;
-                } catch (err: unknown) {
-                  const message = err instanceof Error ? err.message : "Could not start checkout";
-                  setError(message);
-                } finally {
-                  setCheckoutLoading(false);
-                }
-              }}
-            >
-              {checkoutLoading ? "Redirecting to checkout…" : `Get Your Full ${profile.nickname} Guide — $14`}
-            </Button>
-            {error && <p className="font-body text-sm text-destructive mt-3">{error}</p>}
-          </div>
-
-          <div className="p-6 md:p-8 rounded mb-12" style={{ backgroundColor: "#F5F0E8" }}>
-            <h2 className="font-serif text-2xl font-bold mb-4" style={{ color: "#1C3A2E" }}>
-              Your Starter Herb Kit
-            </h2>
-            <p className="font-body text-base leading-relaxed mb-6" style={{ color: "#1C3A2E" }}>
-              We curated the exact herbs for your body pattern on Amazon. One-click shopping list — everything you need to get started.
-            </p>
-            <a
-              href={profile.amazonUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center w-full px-8 py-4 font-serif font-bold text-base tracking-wider uppercase transition-colors rounded"
-              style={{ backgroundColor: "#1C3A2E", color: "#F5F0E8" }}
-            >
-              Shop Your Kit on Amazon
-            </a>
-            <p className="font-body text-xs text-center mt-3" style={{ color: "hsl(30, 10%, 40%, 0.6)" }}>
-              Affiliate link — I earn a small commission at no cost to you.
-            </p>
-          </div>
-
-          <div className="text-center p-10 rounded mb-8" style={{ backgroundColor: "#1C3A2E" }}>
-            <h3 className="font-serif text-2xl font-bold mb-4" style={{ color: "#C9A84C" }}>
-              Ready to Go Deeper?
-            </h3>
-            <p className="font-body text-lg mb-8 max-w-xl mx-auto" style={{ color: "#F5F0E8" }}>
-              The Foundations Course teaches you how to read your body pattern and match it to God's provision in the plant world.
-            </p>
-            <a
-              href="/why-eden"
-              className="inline-flex items-center justify-center px-10 py-4 font-serif font-bold text-base tracking-wider uppercase transition-colors rounded"
-              style={{ backgroundColor: "#C9A84C", color: "#1C3A2E" }}
-            >
-              Learn About the Foundations Course
-            </a>
-          </div>
         </div>
       )}
     </div>
