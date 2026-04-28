@@ -17,13 +17,14 @@ interface Props {
 /**
  * Public-only tier card used on `/apothecary/start`. Unlike PricingTier,
  * this component never sees an authenticated session — `/start` redirects
- * authed users straight to `/apothecary` — so all CTAs route through
- * signup with a return_to that lands the user on the right post-confirm
- * surface.
+ * authed users straight to `/apothecary`.
  *
  * Free → /auth/signup (default flow lands on /welcome-tour).
- * Seed/Root → /auth/signup with return_to=/apothecary/pricing so the
- * user returns to the tier they expressed intent for after confirmation.
+ *
+ * Seed/Root → /apothecary/pricing?tier={tier}. Per v3.33 PR #51 (Lock #21
+ * retired for the pricing surface), the pricing page is now public so
+ * paid-tier intent links straight to it without a signup detour. The
+ * `?tier=` param lets Pricing.tsx pre-highlight the chosen plan.
  */
 export function PublicTierCard({
   tier,
@@ -38,12 +39,12 @@ export function PublicTierCard({
   const ctaLabel =
     tier === "free" ? "Create a free account" : `Start with ${displayName}`;
 
+  // PR #51 v3.33: pricing is now public. Free tier still routes to signup;
+  // paid tiers deep-link to public pricing with ?tier= preselection.
   const ctaTo =
     tier === "free"
       ? "/apothecary/auth/signup"
-      : `/apothecary/auth/signup?return_to=${encodeURIComponent(
-          "/apothecary/pricing"
-        )}`;
+      : `/apothecary/pricing?tier=${tier}`;
 
   return (
     <div
