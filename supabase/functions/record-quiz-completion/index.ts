@@ -1,8 +1,8 @@
 // record-quiz-completion — captures one quiz submission into public.quiz_completions.
-// Source of truth for constitution-quiz results. The AFTER INSERT trigger
-// `quiz_completion_sync_constitution_insert_trg` then propagates the latest
-// constitution_type into `public.profiles` (email-keyed) and into the user's
-// is_self person_profiles row.
+// Source of truth for constitution-quiz results. Two AFTER INSERT triggers then propagate:
+//   1. tg_quiz_completion_sync_constitution → profiles.constitution_type + display_name (v3.33.2),
+//      person_profiles.eden_constitution for the user's is_self profile.
+//   2. quiz_completions_to_waitlist → waitlist_signups (entry_funnel='quiz_funnel') with metadata.
 //
 // Architectural rationale:
 //   1. quiz_completions has RLS enabled with no policies — anon/authenticated
@@ -21,6 +21,20 @@
 //      consent must still get their constitution captured, because
 //      profiles.constitution_type drives /apothecary personalization after
 //      signup. See Locked Decision §0.8 #15.
+//
+// v3.33.4: switched from `Prefer: return=representation` to `Prefer: return=minimal`
+// to eliminate a 502 false-positive failure mode observed in production logs
+// (15:18 UTC + 15:26 UTC Apr 28). Symptom: row was successfully inserted
+// (visible in DB) but the EF returned 502, blocking the frontend's success
+// signal. Root cause hypothesis: PostgREST representation-mode response was
+// non-2xx in some edge case despite the underlying INSERT succeeding (possibly
+// related to the AFTER triggers or PostgREST's row-return logic on tables
+// with RLS-no-policies). The frontend never uses the returned row ID anyway.
+// Switching to return=minimal removes the parsing failure surface, the EF
+// returns 201/empty-body, status check is binary success/fail, and the EF
+// returns { ok: true } regardless. If a richer return is needed later, do an
+// explicit SELECT after the INSERT (cleaner separation than the implicit
+// PostgREST representation chain).
 //
 // Mapping cross-reference: any addition to the allowlist below MUST be
 // mirrored in src/lib/edenPattern.ts (EDEN_PATTERNS + PATTERN_PROFILES) so
@@ -152,6 +166,9 @@ Deno.serve(async (req) => {
     const constitution_nickname = normalizeOptionalString((body as Record<string, unknown>).constitution_nickname, 200);
 
     // ── PostgREST insert (service-role) ──
+    // v3.33.4: return=minimal eliminates the 502 false-positive observed in
+    // production logs. We don't use the returned row ID anywhere downstream;
+    // a 201 No Content response is the correct minimal contract.
     const insertPayload = {
       email,
       first_name,
@@ -169,26 +186,35 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
         apikey: SUPABASE_SERVICE_ROLE_KEY,
         Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        Prefer: 'return=representation',
+        Prefer: 'return=minimal',
       },
       body: JSON.stringify(insertPayload),
     });
 
     if (!insertRes.ok) {
-      const errText = await insertRes.text();
-      console.error('quiz_completions INSERT failed', insertRes.status, errText);
+      // Capture both status and body text for diagnosis. PostgREST returns
+      // a JSON error envelope with code/message/hint/details for 4xx/5xx.
+      const errText = await insertRes.text().catch(() => '<unreadable response body>');
+      console.error('quiz_completions INSERT failed', {
+        status: insertRes.status,
+        statusText: insertRes.statusText,
+        body: errText,
+        email,
+      });
       return new Response(
-        JSON.stringify({ error: 'Failed to record quiz completion' }),
+        JSON.stringify({
+          error: 'Failed to record quiz completion',
+          status: insertRes.status,
+          detail: errText,
+        }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    const inserted = await insertRes.json();
-    const row = Array.isArray(inserted) ? inserted[0] : inserted;
-    console.log('quiz_completions INSERT ok', { email, constitution_type, id: row?.id });
+    console.log('quiz_completions INSERT ok', { email, constitution_type, status: insertRes.status });
 
     return new Response(
-      JSON.stringify({ ok: true, id: row?.id ?? null }),
+      JSON.stringify({ ok: true }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (err) {
