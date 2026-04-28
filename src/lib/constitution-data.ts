@@ -181,19 +181,6 @@ export function getNickname(constitutionType: string): string {
   return constitutionProfiles[constitutionType]?.nickname ?? constitutionType;
 }
 
-/**
- * Compute the 3-axis result label from quiz answers.
- *
- * Per Locked Decision §0.8 #39, inconclusive results never default to a
- * Pattern. Each axis resolves to the dominant direction ONLY when the count
- * strictly exceeds the opposite count. Ties (including all-neutral answers)
- * resolve to "Neutral" on that axis. Any "Neutral" in the result string
- * means the user should be routed to the inconclusive UI, not the email
- * gate or the Pattern result.
- *
- * Use `isInconclusiveResult(result)` to test for inconclusivity rather than
- * substring-matching on the caller side.
- */
 export function computeResult(answers: Record<number, string>): string {
   const axes = {
     temperature: { first: "Hot", second: "Cold", questions: [1, 2, 3, 4] },
@@ -216,12 +203,6 @@ export function computeResult(answers: Record<number, string>): string {
   return results.join(" / ");
 }
 
-/**
- * Identify the axes that came back Neutral, for surfacing in the
- * inconclusive UI ("Your responses didn't show a clear pattern on the
- * temperature axis"). Returns the human-readable axis names, in the same
- * order as the result string.
- */
 export function inconclusiveAxes(result: string): Array<"temperature" | "fluid" | "tone"> {
   const parts = result.split(" / ");
   const axisNames: Array<"temperature" | "fluid" | "tone"> = [
@@ -236,124 +217,6 @@ export function inconclusiveAxes(result: string): Array<"temperature" | "fluid" 
   return out;
 }
 
-/**
- * True when any axis is Neutral. The Assessment phase machine routes to
- * "inconclusive" when this returns true; never silently defaults to a
- * Pattern.
- */
 export function isInconclusiveResult(result: string): boolean {
   return result.split(" / ").includes("Neutral");
-}
-
-// ============================================================================
-// v3.31 additions — axis-counts API for Option A+B quiz fix
-// ============================================================================
-//
-// The targeted-follow-up flow needs a count-based scoring API rather than the
-// id-range-based computeResult above. Existing computeResult / inconclusiveAxes
-// / isInconclusiveResult preserved unchanged for backward compat with anything
-// already calling them on the Edge Function side or in tests.
-
-export type Axis = "temperature" | "fluid" | "tone";
-
-/**
- * Per-axis answer counts. Used by both the original 12-question scoring path
- * (via buildAxisCounts) and the targeted follow-up path (combine original +
- * follow-up answers, then call buildAxisCounts again with the combined set).
- */
-export interface AxisCounts {
-  temperature: { hot: number; cold: number; neutral: number; total: number };
-  fluid: { damp: number; dry: number; neutral: number; total: number };
-  tone: { tense: number; relaxed: number; neutral: number; total: number };
-}
-
-/**
- * Minimal question shape for axis classification. The full Question /
- * FollowupQuestion types in Assessment.tsx + quiz-followup.ts both extend
- * this implicitly via their `id` + `axis` fields.
- */
-export interface QuestionAxisDef {
-  id: number;
-  axis: Axis;
-}
-
-/**
- * Build per-axis answer counts from a Record<questionId, scoreValue> and a
- * questions definition list. Counts each answer toward its axis's first /
- * second / neutral bucket. Robust to: missing answers (just doesn't count),
- * unknown score values (counted as neutral), questions not in the list
- * (ignored). Used by Assessment.tsx for both the initial pass and the
- * targeted-follow-up combined recompute.
- */
-export function buildAxisCounts(
-  answers: Record<number, string>,
-  questions: ReadonlyArray<QuestionAxisDef>,
-): AxisCounts {
-  const counts: AxisCounts = {
-    temperature: { hot: 0, cold: 0, neutral: 0, total: 0 },
-    fluid: { damp: 0, dry: 0, neutral: 0, total: 0 },
-    tone: { tense: 0, relaxed: 0, neutral: 0, total: 0 },
-  };
-  for (const q of questions) {
-    const score = answers[q.id];
-    if (score === undefined) continue;
-    counts[q.axis].total++;
-    if (q.axis === "temperature") {
-      if (score === "Hot") counts.temperature.hot++;
-      else if (score === "Cold") counts.temperature.cold++;
-      else counts.temperature.neutral++;
-    } else if (q.axis === "fluid") {
-      if (score === "Damp") counts.fluid.damp++;
-      else if (score === "Dry") counts.fluid.dry++;
-      else counts.fluid.neutral++;
-    } else {
-      if (score === "Tense") counts.tone.tense++;
-      else if (score === "Relaxed") counts.tone.relaxed++;
-      else counts.tone.neutral++;
-    }
-  }
-  return counts;
-}
-
-/**
- * Resolve per-axis counts to the same `"Hot / Damp / Tense"`-shaped result
- * string that computeResult emits. Lock #39 semantics preserved: ties
- * (including all-neutral) resolve to "Neutral" on that axis; any "Neutral"
- * in the result makes the entire result inconclusive (use
- * isInconclusiveResult to test).
- */
-export function computeResultFromCounts(counts: AxisCounts): string {
-  const t =
-    counts.temperature.hot > counts.temperature.cold
-      ? "Hot"
-      : counts.temperature.cold > counts.temperature.hot
-        ? "Cold"
-        : "Neutral";
-  const f =
-    counts.fluid.damp > counts.fluid.dry
-      ? "Damp"
-      : counts.fluid.dry > counts.fluid.damp
-        ? "Dry"
-        : "Neutral";
-  const tone =
-    counts.tone.tense > counts.tone.relaxed
-      ? "Tense"
-      : counts.tone.relaxed > counts.tone.tense
-        ? "Relaxed"
-        : "Neutral";
-  return `${t} / ${f} / ${tone}`;
-}
-
-/**
- * Identify the axes that resolved to Neutral from per-axis counts. Used to
- * decide which follow-up questions to surface in the targeted-follow-up
- * phase (smart targeting per Option B — only inconclusive axes get
- * follow-up, not a blanket extension of the quiz).
- */
-export function getNeutralAxesFromCounts(counts: AxisCounts): Axis[] {
-  const out: Axis[] = [];
-  if (counts.temperature.hot === counts.temperature.cold) out.push("temperature");
-  if (counts.fluid.damp === counts.fluid.dry) out.push("fluid");
-  if (counts.tone.tense === counts.tone.relaxed) out.push("tone");
-  return out;
 }
