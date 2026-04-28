@@ -75,9 +75,10 @@ export default function ApothecaryHome() {
     );
   }
 
+  // PR #50 (v3.33 Pass 2 marketing): "partner" -> "app" per Lock #47.
   const subtitle = isSubscriber
     ? "The full materia medica — 100 monographs with tissue-state indications, organ system affinity, constitutional matches, and safety overlays."
-    : "A clinical reasoning partner rather than a symptom index. Each monograph is anchored to constitutional patterns, tissue states, and stewardship — never to disease names.";
+    : "A clinical reasoning app rather than a symptom index. Each monograph is anchored to constitutional patterns, tissue states, and stewardship — never to disease names.";
 
   const tierBadge = isSubscriber
     ? tier === "practitioner"
