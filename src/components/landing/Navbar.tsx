@@ -2,12 +2,16 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 
+// PR #52 v3.33: Apothecary nav entry added between "Why Eden" and the
+// "Take the Quiz" CTA per founder Q3 authorization. Links to the public
+// marketing landing /apothecary/start (Lock #47 framing surface).
 const navLinks = [
   { label: "Home", href: "/" },
   { label: "Courses", href: "/courses" },
   { label: "Homeschool", href: "/homeschool" },
   { label: "Community", href: "/community" },
   { label: "Why Eden", href: "/why-eden" },
+  { label: "Apothecary", href: "/apothecary/start" },
 ];
 
 export default function Navbar() {
