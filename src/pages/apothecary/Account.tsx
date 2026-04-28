@@ -10,6 +10,9 @@ import { ManageSubscriptionButton } from "@/components/apothecary/ManageSubscrip
 /**
  * Columns we read from public.profiles for the Account page. Source: PR #7
  * Stage 3 schema. RLS grants authenticated users SELECT on their own row.
+ *
+ * v3.33.2: added constitution_type, populated by tg_quiz_completion_sync
+ * trigger from quiz_completions on email match.
  */
 type ProfileRow = {
   user_id: string;
@@ -23,6 +26,7 @@ type ProfileRow = {
   current_period_end: string | null;
   cancel_at_period_end: boolean | null;
   is_founding_member: boolean | null;
+  constitution_type: string | null;
 };
 
 const tierDisplayName: Record<Tier, string> = {
@@ -44,6 +48,32 @@ const statusDisplayLabel: Record<string, string> = {
   paused: "Paused",
 };
 
+/**
+ * Map raw constitution_type values to friendly Pattern names.
+ * Accepts both shapes the EF allows:
+ *   - slug shape: "frozen-knot"
+ *   - name shape: "The Frozen Knot"
+ *   - axis shape: "Cold / Damp / Tense"
+ */
+const CONSTITUTION_NICKNAMES: Record<string, string> = {
+  "burning-bowstring": "The Burning Bowstring",
+  "open-flame": "The Open Flame",
+  "pressure-cooker": "The Pressure Cooker",
+  "overflowing-cup": "The Overflowing Cup",
+  "drawn-bowstring": "The Drawn Bowstring",
+  "spent-candle": "The Spent Candle",
+  "frozen-knot": "The Frozen Knot",
+  "still-water": "The Still Water",
+};
+
+function prettyConstitution(raw: string | null): string | null {
+  if (!raw) return null;
+  const slug = raw.trim().toLowerCase();
+  if (CONSTITUTION_NICKNAMES[slug]) return CONSTITUTION_NICKNAMES[slug];
+  // If it already starts with "The ", treat as canonical name; else return verbatim.
+  return raw.trim();
+}
+
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-US", {
@@ -56,17 +86,17 @@ function formatDate(iso: string | null): string {
 /**
  * Account / self-serve subscription management surface.
  *
- * Composition:
+ * Composition (v3.33.2 update):
  *   - Header: display_name + email
+ *   - **NEW: Body Pattern card** — surfaces user’s constitution result
+ *     from the quiz, with a CTA to the directory or to retake the quiz
  *   - Subscription card: current tier, status, renewal / cancel-at date,
  *     founding-member badge, and one of:
  *       · ManageSubscriptionButton (any user with a Stripe customer record)
- *       · "Choose a plan" CTA (users on the free tier with no prior subscription)
+ *       · “Choose a plan” CTA (users on the free tier with no prior subscription)
  *   - Sign-out row
  *
- * Gated by <RequireAuth> at the route level (App.tsx), so we can assume a
- * logged-in user is present on first render. We still defensively render a
- * skeleton while the profiles query is in-flight.
+ * Gated by <RequireAuth> at the route level (App.tsx).
  *
  * Per Locked Decision §0.8 the canonical tier comes from current_user_tier()
  * (wrapped in useCurrentTier). Fields like subscription_status and
@@ -88,7 +118,7 @@ export default function Account() {
       const { data, error } = await supabase
         .from("profiles")
         .select(
-          "user_id, email, display_name, stripe_customer_id, stripe_subscription_id, subscription_tier, subscription_status, current_period_start, current_period_end, cancel_at_period_end, is_founding_member",
+          "user_id, email, display_name, stripe_customer_id, stripe_subscription_id, subscription_tier, subscription_status, current_period_start, current_period_end, cancel_at_period_end, is_founding_member, constitution_type",
         )
         .eq("user_id", user.id)
         .maybeSingle();
@@ -112,6 +142,7 @@ export default function Account() {
     ? statusDisplayLabel[profile.subscription_status] ??
       profile.subscription_status
     : null;
+  const constitutionPretty = prettyConstitution(profile.constitution_type);
 
   return (
     <section className="py-12 md:py-16 px-6">
@@ -142,10 +173,74 @@ export default function Account() {
               color: "hsl(var(--destructive))",
             }}
           >
-            We couldn't load your account details. Refresh the page, or
+            We couldn&apos;t load your account details. Refresh the page, or
             contact us at hello@edeninstitute.health if this persists.
           </div>
         )}
+
+        {/* v3.33.2 NEW: Body Pattern card. Surfaces the user’s quiz result
+            so their account page reflects the work they’ve already done.
+            Fixes Phase 5 #5 (“quiz responses didn’t seem to register”). */}
+        <section
+          className="rounded-lg border p-6 space-y-4"
+          style={{
+            borderColor: "hsl(var(--border))",
+            backgroundColor: "hsl(var(--eden-cream) / 0.3)",
+          }}
+        >
+          <div>
+            <p
+              className="font-accent text-xs tracking-[0.2em] uppercase mb-1"
+              style={{ color: "hsl(var(--eden-gold))" }}
+            >
+              Your Body Pattern
+            </p>
+            {constitutionPretty ? (
+              <>
+                <h2
+                  className="font-serif text-2xl font-semibold"
+                  style={{ color: "hsl(var(--eden-bark))" }}
+                >
+                  {constitutionPretty}
+                </h2>
+                <p className="font-body text-sm text-muted-foreground mt-1">
+                  Your body type (constitution) shapes how every herb works
+                  for you. Your matched herbs are highlighted in the
+                  Apothecary directory.
+                </p>
+              </>
+            ) : (
+              <>
+                <h2
+                  className="font-serif text-2xl font-semibold"
+                  style={{ color: "hsl(var(--eden-bark))" }}
+                >
+                  Not yet known
+                </h2>
+                <p className="font-body text-sm text-muted-foreground mt-1">
+                  Take the body type quiz to unlock matched herbs and
+                  personalized recommendations across the Apothecary.
+                </p>
+              </>
+            )}
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            {constitutionPretty ? (
+              <>
+                <Button variant="eden" asChild>
+                  <Link to="/apothecary">View matched herbs</Link>
+                </Button>
+                <Button variant="eden-outline" asChild>
+                  <Link to="/assessment">Retake the quiz</Link>
+                </Button>
+              </>
+            ) : (
+              <Button variant="eden" asChild>
+                <Link to="/assessment">Take the body type quiz</Link>
+              </Button>
+            )}
+          </div>
+        </section>
 
         {/* Subscription card */}
         <section
@@ -218,7 +313,7 @@ export default function Account() {
                   className="font-body text-sm"
                   style={{ color: "hsl(var(--destructive))" }}
                 >
-                  Your last payment didn't go through. Update your payment
+                  Your last payment didn&apos;t go through. Update your payment
                   method in the billing portal to keep your access.
                 </p>
               )}
