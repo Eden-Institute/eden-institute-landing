@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveProfileOptional } from "@/contexts/ActiveProfileContext";
 import { useQueryClient } from "@tanstack/react-query";
+import Navbar from "@/components/landing/Navbar";
 
 interface Question {
   id: number;
@@ -354,18 +355,10 @@ const Assessment = () => {
 
   return (
     <div className={diagnosticMode ? "" : "min-h-screen"} style={!diagnosticMode ? { backgroundColor: "#F5F0E8" } : undefined}>
-      {!diagnosticMode && (
-        <header className="px-6 py-6 border-b" style={{ borderColor: "hsl(40, 20%, 80%)" }}>
-          <div className="max-w-3xl mx-auto flex items-center justify-between">
-            <a href="/" className="font-serif text-lg font-bold" style={{ color: "#1C3A2E" }}>
-              The Eden Institute
-            </a>
-            <span className="font-accent text-sm tracking-[0.2em] uppercase" style={{ color: "#C9A84C" }}>
-              Body Pattern Quiz
-            </span>
-          </div>
-        </header>
-      )}
+      {/* Phase 5 fix #8: render the global Navbar (with hamburger nav) on the
+          marketing quiz so visitors can navigate the rest of the site mid-quiz.
+          Diagnostic mode (under ApothecaryLayout) gets ApothecaryNav instead. */}
+      {!diagnosticMode && <Navbar />}
 
       {diagnosticMode && targetProfile && phase === "quiz" && (
         <div className="max-w-2xl mx-auto px-6 pt-8">
