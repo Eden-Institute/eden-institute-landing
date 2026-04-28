@@ -633,15 +633,28 @@ const Assessment = () => {
               disabled={checkoutLoading}
               onClick={async () => {
                 setCheckoutLoading(true);
+                setError("");
                 try {
+                  // Phase 5 fix #4 / launch-blocker #58a — pass lookup_key
+                  // (was missing → silent 400) plus success_url that lands
+                  // back on the constitution-specific GuideLanding page so
+                  // the post-purchase flow can verify and unlock the guide.
+                  const slug = (profile?.nickname ?? "")
+                    .replace(/^The\s+/i, "")
+                    .toLowerCase()
+                    .replace(/\s+/g, "-");
                   const { data, error: fnError } = await supabase.functions.invoke("create-checkout", {
                     body: {
+                      lookup_key: "deep_dive_guide",
                       constitution_type: constitutionType,
                       constitution_nickname: profile?.nickname,
                       email,
+                      success_url: `https://edeninstitute.health/guide/${slug}?session_id={CHECKOUT_SESSION_ID}`,
+                      cancel_url: "https://edeninstitute.health/assessment",
                     },
                   });
                   if (fnError) throw fnError;
+                  if (data?.error) throw new Error(typeof data.error === "string" ? data.error : "Checkout failed");
                   if (data?.url) window.location.href = data.url;
                 } catch (err: unknown) {
                   const message = err instanceof Error ? err.message : "Could not start checkout";

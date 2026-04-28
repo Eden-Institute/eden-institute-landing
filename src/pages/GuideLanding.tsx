@@ -117,19 +117,27 @@ const GuideLanding = () => {
     setCheckoutLoading(true);
     setError("");
     try {
+      // Phase 5 fix #4 / launch-blocker #58a — pass lookup_key (was
+      // missing → silent 400) and a success_url that returns to this
+      // same /guide/[slug] page with ?session_id= so the verify-session
+      // useEffect above unlocks the full guide.
       const { data, error: fnError } = await supabase.functions.invoke("create-checkout", {
         body: {
+          lookup_key: "deep_dive_guide",
           constitution_type: constitutionType,
           constitution_nickname: profile.nickname,
+          success_url: `https://edeninstitute.health/guide/${constitutionSlug}?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `https://edeninstitute.health/guide/${constitutionSlug}`,
         },
       });
       if (fnError) throw fnError;
+      if (data?.error) throw new Error(typeof data.error === "string" ? data.error : "Checkout failed");
       if (data?.url) {
         window.location.href = data.url;
       }
     } catch (err: any) {
       console.error("Checkout error:", err);
-      setError("Something went wrong. Please try again.");
+      setError(err?.message || "Something went wrong. Please try again.");
     } finally {
       setCheckoutLoading(false);
     }
