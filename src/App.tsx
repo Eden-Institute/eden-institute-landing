@@ -34,6 +34,7 @@ import Pricing from "./pages/apothecary/Pricing";
 import Welcome from "./pages/apothecary/Welcome";
 import Account from "./pages/apothecary/Account";
 import ProfilesPage from "./pages/apothecary/ProfilesPage";
+import { FeedbackButton } from "@/components/FeedbackButton";
 
 const queryClient = new QueryClient();
 
@@ -132,6 +133,9 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          {/* v3.34 — global feedback affordance, mounted inside AuthProvider so the
+              widget can include the signed-in user's email + bearer token when present. */}
+          <FeedbackButton />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
