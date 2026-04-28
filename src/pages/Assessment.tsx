@@ -98,7 +98,7 @@ const Assessment = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const profileCtx = useActiveProfileOptional();
 
   const profileIdParam = searchParams.get("profileId");
@@ -114,7 +114,7 @@ const Assessment = () => {
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [phase, setPhase] = useState<
-    "quiz" | "gate" | "inconclusive" | "results" | "diagnostic-saving" | "diagnostic-saved"
+    "quiz" | "gate" | "inconclusive" | "results" | "diagnostic-saving" | "diagnostic-saved" | "auto-submitting"
   >("quiz");
   const [transitioning, setTransitioning] = useState(false);
   const [firstName, setFirstName] = useState("");
@@ -127,6 +127,22 @@ const Assessment = () => {
   const isInconclusive = constitutionType ? isInconclusiveResult(constitutionType) : false;
   const neutralAxes = constitutionType && isInconclusive ? inconclusiveAxes(constitutionType) : [];
   const profile = constitutionType ? constitutionProfiles[constitutionType] : null;
+
+  // Pre-fill email + first_name for logged-in users so the marketing-quiz
+  // auto-submit path (Phase 5 fix #3 / launch-blocker #57) and the results
+  // page CTAs both have a real value to work with. Only runs when not in
+  // diagnosticMode (diagnosticMode writes to diagnostic_completions and is
+  // id-keyed per Lock #40).
+  useEffect(() => {
+    if (!user || diagnosticMode) return;
+    if (user.email && !email) {
+      setEmail(user.email);
+    }
+    const metaFirstName = (user.user_metadata as Record<string, unknown> | undefined)?.first_name;
+    if (typeof metaFirstName === "string" && metaFirstName.trim() && !firstName) {
+      setFirstName(metaFirstName.trim());
+    }
+  }, [user, diagnosticMode, email, firstName]);
 
   const submitDiagnostic = useCallback(async (answersToSubmit: Record<number, string>) => {
     if (!targetProfile || !user) {
@@ -182,48 +198,40 @@ const Assessment = () => {
     }
   }, [phase, navigate]);
 
-  const handleAnswer = useCallback((questionId: number, score: string) => {
-    setAnswers((prev) => {
-      const next = { ...prev, [questionId]: score };
-      setTransitioning(true);
-      setTimeout(() => {
-        if (currentQ < questions.length - 1) {
-          setCurrentQ((p) => p + 1);
-        } else {
-          const result = computeResult(next);
-          if (isInconclusiveResult(result)) {
-            setPhase("inconclusive");
-          } else if (diagnosticMode) {
-            submitDiagnostic(next);
-          } else {
-            setPhase("gate");
-          }
-        }
-        setTransitioning(false);
-      }, 400);
-      return next;
-    });
-  }, [currentQ, diagnosticMode, submitDiagnostic]);
-
-  const restartQuiz = useCallback(() => {
-    setAnswers({});
-    setCurrentQ(0);
-    setPhase("quiz");
+  /**
+   * Shared marketing-quiz submission logic. Used by both the form-driven
+   * handleSubmit (anonymous taker) and the auto-submit path for logged-in
+   * users (Phase 5 fix #3 / launch-blocker #57).
+   *
+   * Always writes to:
+   *   1. resend-waitlist (audience capture + nurture queue enrollment)
+   *   2. record-quiz-completion (quiz_completions row; trigger then
+   *      backfills profiles.constitution_type + display_name when the
+   *      email-keyed match resolves to a user_id)
+   *
+   * Per Locked Decision §0.8 #15 the two writes are independent — a
+   * record-quiz-completion failure does not roll back the audience
+   * subscription, and a resend-waitlist failure does block proceeding
+   * because that's the user's primary feedback signal ("results on the way").
+   */
+  const submitMarketingQuiz = useCallback(async (
+    submittedEmail: string,
+    submittedFirstName: string,
+    submittedConstitution: string,
+  ) => {
+    if (!submittedEmail || !submittedConstitution) {
+      setError("Missing email or quiz result. Please try again.");
+      return;
+    }
     setError("");
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-
     try {
+      const profileForSubmit = constitutionProfiles[submittedConstitution];
       const { data, error: fnError } = await supabase.functions.invoke("resend-waitlist", {
         body: {
-          firstName,
-          email,
-          constitutionType,
-          constitutionNickname: profile?.nickname,
+          firstName: submittedFirstName,
+          email: submittedEmail,
+          constitutionType: submittedConstitution,
+          constitutionNickname: profileForSubmit?.nickname,
           source: "constitution_assessment",
         },
       });
@@ -231,14 +239,16 @@ const Assessment = () => {
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
 
+      // Independent record-quiz-completion call. Best-effort — failures here
+      // do NOT block the user's results; logged for diagnostic follow-up.
       try {
         const { data: recordData, error: recordError } =
           await supabase.functions.invoke("record-quiz-completion", {
             body: {
-              email,
-              first_name: firstName,
-              constitution_type: constitutionType,
-              constitution_nickname: profile?.nickname,
+              email: submittedEmail,
+              first_name: submittedFirstName,
+              constitution_type: submittedConstitution,
+              constitution_nickname: profileForSubmit?.nickname,
             },
           });
         if (recordError) {
@@ -254,6 +264,59 @@ const Assessment = () => {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
       setError(message);
+      // For the auto-submit path, surface the gate as a fallback so the
+      // user can still complete capture if the auto-submit failed.
+      setPhase("gate");
+    }
+  }, []);
+
+  const handleAnswer = useCallback((questionId: number, score: string) => {
+    setAnswers((prev) => {
+      const next = { ...prev, [questionId]: score };
+      setTransitioning(true);
+      setTimeout(() => {
+        if (currentQ < questions.length - 1) {
+          setCurrentQ((p) => p + 1);
+        } else {
+          const result = computeResult(next);
+          if (isInconclusiveResult(result)) {
+            setPhase("inconclusive");
+          } else if (diagnosticMode) {
+            submitDiagnostic(next);
+          } else if (user?.email && !authLoading) {
+            // Phase 5 fix #3 / launch-blocker #57 — logged-in user taking the
+            // marketing quiz skips the email gate entirely. Pre-fill from auth,
+            // submit immediately, render results.
+            setPhase("auto-submitting");
+            const submitEmail = user.email;
+            const metaFirstName = (user.user_metadata as Record<string, unknown> | undefined)?.first_name;
+            const submitFirstName =
+              typeof metaFirstName === "string" && metaFirstName.trim()
+                ? metaFirstName.trim()
+                : firstName;
+            void submitMarketingQuiz(submitEmail, submitFirstName, result);
+          } else {
+            setPhase("gate");
+          }
+        }
+        setTransitioning(false);
+      }, 400);
+      return next;
+    });
+  }, [currentQ, diagnosticMode, submitDiagnostic, user, authLoading, firstName, submitMarketingQuiz]);
+
+  const restartQuiz = useCallback(() => {
+    setAnswers({});
+    setCurrentQ(0);
+    setPhase("quiz");
+    setError("");
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await submitMarketingQuiz(email, firstName, constitutionType);
     } finally {
       setLoading(false);
     }
@@ -367,6 +430,17 @@ const Assessment = () => {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {phase === "auto-submitting" && (
+        <div className="max-w-xl mx-auto px-6 py-16 text-center">
+          <p className="font-accent text-sm tracking-[0.3em] uppercase mb-3" style={{ color: "#C9A84C" }}>
+            Recording your Pattern
+          </p>
+          <p className="font-body text-base" style={{ color: "#1C3A2E" }}>
+            One moment — saving your results to your account…
+          </p>
         </div>
       )}
 
@@ -500,11 +574,13 @@ const Assessment = () => {
         <div className="max-w-3xl mx-auto px-6 py-16">
           <div className="text-center mb-12">
             <p className="font-body text-sm mb-1" style={{ color: "#C9A84C" }}>
-              ✓ Your results are on their way. Check your inbox.
+              {user ? "✓ Your Pattern is saved to your account." : "✓ Your results are on their way. Check your inbox."}
             </p>
-            <p className="font-body text-xs italic mb-4" style={{ color: "#C9A84C", opacity: 0.8 }}>
-              Using Gmail? Your first email may arrive in your Promotions or Spam folder. Please move it to your Primary inbox so you don't miss anything from us.
-            </p>
+            {!user && (
+              <p className="font-body text-xs italic mb-4" style={{ color: "#C9A84C", opacity: 0.8 }}>
+                Using Gmail? Your first email may arrive in your Promotions or Spam folder. Please move it to your Primary inbox so you don't miss anything from us.
+              </p>
+            )}
             <h1 className="font-serif text-4xl md:text-5xl font-bold mt-4 mb-2" style={{ color: "#1C3A2E" }}>
               {profile.nickname}
             </h1>
@@ -577,6 +653,7 @@ const Assessment = () => {
             >
               {checkoutLoading ? "Redirecting to checkout…" : `Get Your Full ${profile.nickname} Guide — $14`}
             </Button>
+            {error && <p className="font-body text-sm text-destructive mt-3">{error}</p>}
           </div>
 
           <div className="p-6 md:p-8 rounded mb-12" style={{ backgroundColor: "#F5F0E8" }}>
