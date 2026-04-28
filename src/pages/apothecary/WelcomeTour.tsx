@@ -108,7 +108,8 @@ export default function WelcomeTour() {
 const STEPS = [
   {
     kicker: "Welcome",
-    title: "A clinical reasoning partner.",
+    // PR #50 (v3.33 Pass 2 marketing): "partner" -> "app" per Lock #47.
+    title: "A clinical reasoning app.",
     body: [
       "Eden Apothecary is built around how the body actually organizes itself — temperature, moisture, tone, tissue state, organ system — not around symptom-to-herb shortcuts.",
       "Every herb is taught against a terrain. Every terrain is taught against a pattern.",
