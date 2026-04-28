@@ -1,1 +1,15 @@
-{"redirects":[{"source":"/app","destination":"/apothecary","permanent":true},{"source":"/app/:path*","destination":"/apothecary/:path*","permanent":true}],"rewrites":[{"source":"/((?!api/|_next/|_static/|assets/|favicon\\.ico|robots\\.txt|sitemap\\.xml).*)","destination":"/index.html"}]}
+{
+  "redirects": [
+    { "source": "/app", "destination": "/apothecary", "permanent": true },
+    { "source": "/app/:path*", "destination": "/apothecary/:path*", "permanent": true }
+  ],
+  "rewrites": [
+    { "source": "/((?!api/|_next/|_static/|assets/|favicon\\.ico|robots\\.txt|sitemap\\.xml).*)", "destination": "/index.html" }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/drain-nurture-queue",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}
