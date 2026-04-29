@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrentTier, Tier } from "@/hooks/useCurrentTier";
 import { ProfilePicker } from "./ProfilePicker";
+import { ROUTES } from "@/lib/routes";
 
 type NavItem = { to: string; label: string; end?: boolean };
 
@@ -13,9 +14,9 @@ type NavItem = { to: string; label: string; end?: boolean };
  * middle nav surface is empty for them by design.
  */
 const AUTHED_NAV_LINKS: NavItem[] = [
-  { to: "/apothecary", label: "Home", end: true },
-  { to: "/apothecary/pricing", label: "Pricing" },
-  { to: "/apothecary/account", label: "Account" },
+  { to: ROUTES.APOTHECARY, label: "Home", end: true },
+  { to: ROUTES.APOTHECARY_PRICING, label: "Pricing" },
+  { to: ROUTES.APOTHECARY_ACCOUNT, label: "Account" },
 ];
 
 const tierLabel: Record<Tier, string> = {
@@ -32,7 +33,7 @@ export function ApothecaryNav() {
 
   // Logo routes to the directory for authed users, to the public landing
   // for everyone else. Keeps the nav self-consistent with the auth wall.
-  const logoTo = user ? "/apothecary" : "/apothecary/start";
+  const logoTo = user ? ROUTES.APOTHECARY : ROUTES.APOTHECARY_START;
 
   return (
     <nav className="border-b border-border/40 bg-background sticky top-0 z-50">
@@ -91,7 +92,7 @@ export function ApothecaryNav() {
             </Button>
           ) : (
             <Button variant="eden" size="sm" asChild>
-              <Link to="/apothecary/auth/signin">Sign in</Link>
+              <Link to={ROUTES.APOTHECARY_SIGNIN}>Sign in</Link>
             </Button>
           )}
         </div>

@@ -3,17 +3,18 @@ import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEdenPattern } from "@/hooks/useEdenPattern";
+import { ROUTES } from "@/lib/routes";
 
 // PR #52 v3.33: Apothecary nav entry added between "Why Eden" and the
 // CTA per founder Q3 authorization. Links to the public marketing landing
 // /apothecary/start (Lock #47 framing surface).
 const navLinks = [
-  { label: "Home", href: "/" },
-  { label: "Courses", href: "/courses" },
-  { label: "Homeschool", href: "/homeschool" },
-  { label: "Community", href: "/community" },
-  { label: "Why Eden", href: "/why-eden" },
-  { label: "Apothecary", href: "/apothecary/start" },
+  { label: "Home", href: ROUTES.HOME },
+  { label: "Courses", href: ROUTES.COURSES },
+  { label: "Homeschool", href: ROUTES.HOMESCHOOL },
+  { label: "Community", href: ROUTES.COMMUNITY },
+  { label: "Why Eden", href: ROUTES.WHY_EDEN },
+  { label: "Apothecary", href: ROUTES.APOTHECARY_START },
 ];
 
 /**
@@ -50,12 +51,12 @@ export default function Navbar() {
   const { user } = useAuth();
   const { data: pattern } = useEdenPattern();
   const ctaLabel = user && pattern ? "Open Apothecary" : "Take the Quiz";
-  const ctaHref = user && pattern ? "/apothecary" : "/assessment";
+  const ctaHref = user && pattern ? ROUTES.APOTHECARY : ROUTES.ASSESSMENT;
 
   return (
     <header className="w-full bg-[#FAF8F3] border-b border-[#D6CDB8] sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-        <Link to="/" className="flex flex-col leading-tight">
+        <Link to={ROUTES.HOME} className="flex flex-col leading-tight">
           <span className="font-serif text-xl text-[#3B4A3F] tracking-wide">The Eden Institute</span>
           <span className="text-xs text-[#7A8C7E] tracking-widest uppercase font-sans">Biblical Herbalism Education</span>
         </Link>

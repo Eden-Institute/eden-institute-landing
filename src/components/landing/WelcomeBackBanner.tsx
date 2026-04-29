@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEdenPattern } from "@/hooks/useEdenPattern";
+import { ROUTES } from "@/lib/routes";
 
 /**
  * §8.1.1 (Manual v4.0) — State-aware welcome strip for marketing surfaces.
@@ -57,7 +58,7 @@ export function WelcomeBackBanner() {
           </span>
         </div>
         <Link
-          to="/apothecary"
+          to={ROUTES.APOTHECARY}
           className="font-body text-sm font-medium px-4 py-1.5 rounded-sm tracking-wide transition-colors duration-200 min-h-[44px] flex items-center"
           style={{
             backgroundColor: "hsl(var(--eden-forest))",

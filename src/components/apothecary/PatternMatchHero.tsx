@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useDiagnosticProfile } from "@/hooks/useDiagnosticProfile";
 import { PATTERN_PROFILES } from "@/lib/edenPattern";
 import { type DiagnosticProfile, hasFullDiagnosticDepth } from "@/lib/diagnosticProfile";
+import { ROUTES } from "@/lib/routes";
 
 /**
  * PatternMatchHero — personalization card on the Apothecary directory home.
@@ -90,7 +91,7 @@ export function PatternMatchHero() {
           </div>
           <div className="mt-6 md:mt-0 md:flex-shrink-0">
             <Button asChild variant="eden" size="xl" className="min-h-[44px]">
-              <Link to="/assessment">→ Take the Body Pattern Quiz</Link>
+              <Link to={ROUTES.ASSESSMENT}>→ Take the Body Pattern Quiz</Link>
             </Button>
           </div>
         </div>
