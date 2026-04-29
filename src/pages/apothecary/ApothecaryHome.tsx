@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,6 +13,7 @@ import {
   type HerbFilterState,
 } from "@/components/apothecary/HerbDirectoryFilters";
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
+import { computeMatchRelationship } from "@/lib/edenPattern";
 
 /**
  * Eden Apothecary index (`/apothecary`).
@@ -27,11 +28,26 @@ import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
  * `HerbDirectoryFilters`. Pattern matching is computed client-side in
  * `@/lib/edenPattern` from herbs.temperature × moisture × tissue states.
  *
+ * §8.1.2 (Manual v4.0) — Matched-Herbs Scoring + Sort + Reasons.
+ * When the active user has a resolved Eden Pattern, the directory now:
+ *   1. Sorts the visible array by `MatchRelationshipDetail.sortKey` desc —
+ *      match rows surface first, then neutral, then avoid (least-aggravating
+ *      avoids on top of the avoid block for a readable gradient).
+ *   2. Defaults `patternHideAvoid` ON for the first page render — terrain-
+ *      first means a Pattern-aware user sees a Pattern-aligned directory by
+ *      default. The "Hide aggravators" chip stays user-toggleable; flipping
+ *      it off restores the full sorted set with avoid badges intact.
+ * Default-flip is per-mount, not persisted. Once the user touches any
+ * filter (including toggling the chip back on), `EMPTY_FILTERS` is the
+ * baseline going forward.
+ *
  * Active user's Eden Pattern (when known) drives both the filter overlay
- * UI and the per-card Match/Avoid badges. The pattern is read from
- * `profiles.constitution_type` via `useEdenPattern`. Unknown / unmapped
- * values resolve to null — the UI degrades gracefully (no badge, take-the-
- * quiz affordance surfaces in the upgrade aside).
+ * UI, the sort order, the per-card Match/Avoid badges, AND the new
+ * "matches because…" stewardship-language reasons surfaced under the
+ * badge. The pattern is read from `profiles.constitution_type` via
+ * `useEdenPattern`. Unknown / unmapped values resolve to null — the UI
+ * degrades gracefully (no badge, no sort, take-the-quiz affordance
+ * surfaces in the upgrade aside).
  *
  * Per Locked Decision §0.8 #4 the DB view is the sole read surface; RLS
  * and the view's CASE expressions enforce gating server-side.
@@ -50,12 +66,64 @@ export default function ApothecaryHome() {
     error,
   } = useApothecaryHerbs();
   const { data: activePattern } = useEdenPattern();
-  const [filters, setFilters] = useState<HerbFilterState>(EMPTY_FILTERS);
 
-  const visible = useMemo(
-    () => herbs.filter((h) => matchesFilters(h, { filters, activePattern })),
-    [herbs, filters, activePattern]
-  );
+  // Per-mount default: when an active Pattern is known, hide aggravators by
+  // default. The user can toggle this off — once any filter touch happens
+  // they own the state going forward (no further auto-flips). Implemented
+  // as a state-init function so it runs once at mount.
+  const [filters, setFilters] = useState<HerbFilterState>(() => EMPTY_FILTERS);
+
+  // Apply the default-flip the first time activePattern resolves to non-null
+  // (the hook returns null synchronously, then async-resolves). Guard with a
+  // local flag so subsequent activePattern changes (e.g., picker switch)
+  // don't override the user's manual filter state.
+  const [hasAppliedPatternDefault, setHasAppliedPatternDefault] = useState(false);
+  useEffect(() => {
+    if (hasAppliedPatternDefault) return;
+    if (!activePattern) return;
+    setFilters((prev) => {
+      // Don't override if the user has already touched filters between mount
+      // and pattern-resolve (rare race, but cheap to guard).
+      const isPristine =
+        prev.query === EMPTY_FILTERS.query &&
+        prev.symptom === EMPTY_FILTERS.symptom &&
+        prev.action === EMPTY_FILTERS.action &&
+        prev.bodySystem === EMPTY_FILTERS.bodySystem &&
+        prev.tissueState === EMPTY_FILTERS.tissueState &&
+        prev.populationSafety === EMPTY_FILTERS.populationSafety &&
+        prev.patternMatchOnly === EMPTY_FILTERS.patternMatchOnly &&
+        prev.patternHideAvoid === EMPTY_FILTERS.patternHideAvoid;
+      if (!isPristine) return prev;
+      return { ...prev, patternHideAvoid: true };
+    });
+    setHasAppliedPatternDefault(true);
+  }, [activePattern, hasAppliedPatternDefault]);
+
+  const visible = useMemo(() => {
+    const filtered = herbs.filter((h) =>
+      matchesFilters(h, { filters, activePattern })
+    );
+    if (!activePattern) return filtered;
+    // Pattern-aware sort. Score each unlocked row; locked rows score as
+    // neutral (sortKey 1000) so they stay grouped in the middle band rather
+    // than promoted/demoted by guesswork.
+    const scored = filtered.map((herb) => {
+      if (herb.is_locked) {
+        return { herb, sortKey: 1000 };
+      }
+      const detail = computeMatchRelationship(
+        {
+          temperature: herb.temperature ?? null,
+          moisture: herb.moisture ?? null,
+          tissue_states_indicated: herb.tissue_states_indicated ?? null,
+        },
+        activePattern
+      );
+      return { herb, sortKey: detail.sortKey };
+    });
+    scored.sort((a, b) => b.sortKey - a.sortKey);
+    return scored.map((x) => x.herb);
+  }, [herbs, filters, activePattern]);
 
   if (isLoading) return <PageSkeleton />;
 

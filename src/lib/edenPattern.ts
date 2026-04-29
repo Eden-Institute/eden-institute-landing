@@ -12,7 +12,8 @@
  * This module is the single source of truth for:
  *   • the eight Pattern names + their 3-axis composition
  *   • free-text → axis classifiers tolerant of the herb DB's descriptive prose
- *   • `computeMatchRelationship(herb, pattern)` — returns 'match' | 'avoid' | 'neutral'
+ *   • `computeMatchRelationship(herb, pattern)` — returns a structured
+ *     {relationship, rebalancingAxes, aggravatingAxes, reasons, sortKey}
  *
  * The relationship semantics:
  *   • A herb MATCHES a Pattern when its energetics are *opposite* to the
@@ -23,6 +24,18 @@
  *     axes — a Hot herb aggravates a Hot pattern. Avoid badge.
  *   • Score is 0–3 across the three axes; ≥2 axes opposite = match,
  *     ≥2 axes same = avoid, otherwise neutral.
+ *
+ * §8.1.2 (Manual v4.0) extends the result with:
+ *   • `reasons[]` — stewardship-language phrases naming WHICH axes contribute
+ *     ("Cools your Hot pattern", "Moistens your Dry pattern"). Surface in
+ *     HerbCard so the user sees terrain reasoning, not just a badge color.
+ *   • `sortKey` — single number for stable directory sorting:
+ *         match:   2000 + 10 * (rebalancing − aggravating)
+ *         neutral: 1000
+ *         avoid:    0    + 10 * (rebalancing − aggravating)
+ *     Higher is better; sort desc gives match → neutral → avoid, with
+ *     least-aggravating avoids on top of the avoid block (readable gradient,
+ *     not a punishment list).
  *
  * This is intentionally a fuzzy classifier. The herb DB's temperature and
  * moisture columns are descriptive prose ("Cool to neutral", "Drying
@@ -204,10 +217,26 @@ export function classifyMoisture(value: string | null | undefined): MoistureAxis
 
 /**
  * Classify a herb's `tissue_states_indicated` (comma-separated names) onto
- * the Tense/Relaxed/Neutral axis. A herb whose indications include
- * tension/constriction/stagnation states resolves Tense patterns
- * (relaxant); a herb whose indications include laxity/atrophy/deficiency
- * states resolves Relaxed patterns (tonifying).
+ * the Tense/Relaxed/Neutral axis.
+ *
+ * Returns the herb's INTRINSIC ACTION axis (the opposite of what tissue
+ * states it resolves), so the unified `axis === pattern → aggravating`
+ * rule applies symmetrically across all three axes:
+ *
+ *   • A herb indicated for tension/constriction/stagnation states is a
+ *     RELAXANT (its action is to relax tense tissue) → returns "Relaxed".
+ *     Against a Relaxed pattern, this herb aggravates (loosens an already-
+ *     loose body); against a Tense pattern, it rebalances.
+ *
+ *   • A herb indicated for laxity/atrophy/deficiency states is a TONIC
+ *     (its action is to tonify relaxed tissue) → returns "Tense".
+ *     Against a Tense pattern, this herb aggravates (tightens an already-
+ *     tight body); against a Relaxed pattern, it rebalances.
+ *
+ * §8.1.2 (Manual v4.0) corrects an earlier inverted convention here that
+ * caused matched-herbs scoring to misclassify relaxant + tonic herbs.
+ * `classifyTone` is internal to this module (verified via repo search), so
+ * the flip is non-breaking elsewhere.
  */
 export function classifyTone(tissueStatesIndicated: string | null | undefined): ToneAxis {
   if (!tissueStatesIndicated) return "Neutral";
@@ -216,8 +245,10 @@ export function classifyTone(tissueStatesIndicated: string | null | undefined): 
   const relaxedTokens = ["laxity", "atrophy", "deficiency", "torpor", "exhaustion"];
   const tenseHit = tenseTokens.some((t) => lower.includes(t));
   const relaxedHit = relaxedTokens.some((t) => lower.includes(t));
-  if (tenseHit && !relaxedHit) return "Tense";
-  if (relaxedHit && !tenseHit) return "Relaxed";
+  // Herb is indicated for Tense states → herb's action is RELAXANT → "Relaxed".
+  if (tenseHit && !relaxedHit) return "Relaxed";
+  // Herb is indicated for Relaxed states → herb's action is TONIC → "Tense".
+  if (relaxedHit && !tenseHit) return "Tense";
   return "Neutral";
 }
 
@@ -229,6 +260,72 @@ export interface MatchRelationshipDetail {
   rebalancingAxes: number;
   /** How many of the 3 axes the herb stands the same as the Pattern (aggravating). */
   aggravatingAxes: number;
+  /**
+   * Stewardship-language phrases naming each contributing axis. Empty array
+   * when relationship is 'neutral'. For 'match' these read as rebalancing
+   * actions ("Cools your Hot pattern"); for 'avoid' they read as
+   * aggravations ("Adds more heat to your Hot pattern"). Surface in HerbCard
+   * under the relationship badge so the reader sees terrain reasoning, not
+   * just a color.
+   */
+  reasons: string[];
+  /**
+   * Single numeric key for stable directory sorting.
+   *   match:   2000 + 10 * (rebalancing − aggravating)   → range ~2010..2030
+   *   neutral: 1000                                       → constant 1000
+   *   avoid:      0 + 10 * (rebalancing − aggravating)    → range ~ −30 .. −10
+   * Sort descending. Higher = more match-aligned. Within match block,
+   * higher rebalancing axes / lower aggravating axes float to top. Within
+   * avoid block, least-aggravating avoids float to top (readable gradient).
+   */
+  sortKey: number;
+}
+
+/**
+ * Build the per-axis stewardship-language reason for a single axis where
+ * the herb stands OPPOSITE to the Pattern (rebalancing). Returns the
+ * empty string if the axis doesn't qualify. Reasons read terrain-first
+ * (Lock #11): the herb is named for what it does to the body, not for a
+ * symptom it treats.
+ */
+function rebalancingReason(
+  axis: "temperature" | "moisture" | "tone",
+  herb: TemperatureAxis | MoistureAxis | ToneAxis,
+  pattern: "Hot" | "Cold" | "Dry" | "Damp" | "Tense" | "Relaxed",
+): string {
+  if (axis === "temperature") {
+    if (herb === "Cold" && pattern === "Hot") return "Cools your Hot pattern";
+    if (herb === "Hot" && pattern === "Cold") return "Warms your Cold pattern";
+  } else if (axis === "moisture") {
+    if (herb === "Damp" && pattern === "Dry") return "Moistens your Dry pattern";
+    if (herb === "Dry" && pattern === "Damp") return "Dries your Damp pattern";
+  } else if (axis === "tone") {
+    if (herb === "Relaxed" && pattern === "Tense") return "Relaxes your Tense pattern";
+    if (herb === "Tense" && pattern === "Relaxed") return "Tonifies your Relaxed pattern";
+  }
+  return "";
+}
+
+/**
+ * Aggravation reason — same axis, same direction. Read as a soft warning,
+ * not a scold; the directory sort + Avoid badge already do the heavy
+ * lifting visually.
+ */
+function aggravatingReason(
+  axis: "temperature" | "moisture" | "tone",
+  pattern: "Hot" | "Cold" | "Dry" | "Damp" | "Tense" | "Relaxed",
+): string {
+  if (axis === "temperature") {
+    if (pattern === "Hot") return "Adds more heat to your Hot pattern";
+    if (pattern === "Cold") return "Adds more cold to your Cold pattern";
+  } else if (axis === "moisture") {
+    if (pattern === "Damp") return "Adds more dampness to your Damp pattern";
+    if (pattern === "Dry") return "Adds more dryness to your Dry pattern";
+  } else if (axis === "tone") {
+    if (pattern === "Tense") return "Tightens your already-Tense pattern";
+    if (pattern === "Relaxed") return "Loosens your already-Relaxed pattern";
+  }
+  return "";
 }
 
 /**
@@ -242,9 +339,9 @@ export interface MatchRelationshipDetail {
  * the badge.
  *
  * Decision rule: count rebalancing axes (herb opposite to pattern) and
- * aggravating axes (herb same as pattern). ≥2 rebalancing → match.
- * ≥2 aggravating → avoid. Otherwise neutral. Neutral axes count toward
- * neither bucket.
+ * aggravating axes (herb same as pattern). ≥2 rebalancing AND > aggravating
+ * → match. ≥2 aggravating AND > rebalancing → avoid. Otherwise neutral.
+ * Neutral axes count toward neither bucket.
  */
 export function computeMatchRelationship(
   herb: {
@@ -261,28 +358,78 @@ export function computeMatchRelationship(
 
   let rebalancing = 0;
   let aggravating = 0;
+  const rebalancingReasons: string[] = [];
+  const aggravatingReasons: string[] = [];
 
   // Temperature axis
   if (t !== "Neutral") {
-    if (t !== profile.temperature) rebalancing++;
-    else aggravating++;
+    if (t !== profile.temperature) {
+      rebalancing++;
+      const reason = rebalancingReason("temperature", t, profile.temperature);
+      if (reason) rebalancingReasons.push(reason);
+    } else {
+      aggravating++;
+      const reason = aggravatingReason("temperature", profile.temperature);
+      if (reason) aggravatingReasons.push(reason);
+    }
   }
   // Moisture axis
   if (m !== "Neutral") {
-    if (m !== profile.moisture) rebalancing++;
-    else aggravating++;
+    if (m !== profile.moisture) {
+      rebalancing++;
+      const reason = rebalancingReason("moisture", m, profile.moisture);
+      if (reason) rebalancingReasons.push(reason);
+    } else {
+      aggravating++;
+      const reason = aggravatingReason("moisture", profile.moisture);
+      if (reason) aggravatingReasons.push(reason);
+    }
   }
   // Tone axis
   if (tone !== "Neutral") {
-    if (tone !== profile.tone) rebalancing++;
-    else aggravating++;
+    if (tone !== profile.tone) {
+      rebalancing++;
+      const reason = rebalancingReason("tone", tone, profile.tone);
+      if (reason) rebalancingReasons.push(reason);
+    } else {
+      aggravating++;
+      const reason = aggravatingReason("tone", profile.tone);
+      if (reason) aggravatingReasons.push(reason);
+    }
   }
 
   let relationship: MatchRelationship = "neutral";
   if (rebalancing >= 2 && rebalancing > aggravating) relationship = "match";
   else if (aggravating >= 2 && aggravating > rebalancing) relationship = "avoid";
 
-  return { relationship, rebalancingAxes: rebalancing, aggravatingAxes: aggravating };
+  // Sort key — single numeric for stable directory ordering.
+  // Match band (2000s): higher net rebalancing → higher key.
+  // Neutral band (1000): constant.
+  // Avoid band (negative): least-net-aggravating → highest key (least bad on top).
+  const net = rebalancing - aggravating;
+  let sortKey: number;
+  if (relationship === "match") sortKey = 2000 + 10 * net;
+  else if (relationship === "avoid") sortKey = 10 * net;
+  else sortKey = 1000;
+
+  // Surface only the side that wins. For match, show rebalancing reasons
+  // (the user wants to know WHY a herb suits them). For avoid, show
+  // aggravating reasons (the user needs to know WHY to step around it).
+  // For neutral, no reasons — keep the card clean.
+  const reasons =
+    relationship === "match"
+      ? rebalancingReasons
+      : relationship === "avoid"
+        ? aggravatingReasons
+        : [];
+
+  return {
+    relationship,
+    rebalancingAxes: rebalancing,
+    aggravatingAxes: aggravating,
+    reasons,
+    sortKey,
+  };
 }
 
 /**
@@ -315,6 +462,18 @@ export function resolveEdenPattern(value: string | null | undefined): EdenPatter
   const norm = value.replace(/^the\s+/i, "").toLowerCase().trim();
   for (const name of EDEN_PATTERNS) {
     if (name.replace(/^the\s+/i, "").toLowerCase() === norm) return name;
+  }
+
+  // Pattern-slug match (kebab-case from quiz-followup pipeline) — strip
+  // leading "the-", join words. "pressure-cooker" → "The Pressure Cooker".
+  const slug = value.replace(/^the[-_\s]+/i, "").toLowerCase().trim();
+  for (const name of EDEN_PATTERNS) {
+    const nameSlug = name
+      .replace(/^the\s+/i, "")
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .trim();
+    if (nameSlug === slug) return name;
   }
 
   // Per worldview lock §0.8, no Eastern-framework labels are mapped here.
