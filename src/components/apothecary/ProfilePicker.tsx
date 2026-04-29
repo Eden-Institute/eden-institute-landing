@@ -14,6 +14,7 @@ import { useCurrentTier, type Tier } from "@/hooks/useCurrentTier";
 import { useActiveProfile } from "@/contexts/ActiveProfileContext";
 import { resolveEdenPattern, PATTERN_PROFILES } from "@/lib/edenPattern";
 import { ProfileFormDialog } from "./ProfileFormDialog";
+import { ROUTES } from "@/lib/routes";
 
 /**
  * Tier caps per Locked Decision §0.8 #19. Free=0 / Seed=1 mean those tiers
@@ -138,7 +139,7 @@ export function ProfilePicker() {
             </span>
           </DropdownMenuItem>
           <DropdownMenuItem asChild className="min-h-[44px] cursor-pointer">
-            <Link to="/apothecary/profiles" className="flex items-center w-full">
+            <Link to={ROUTES.APOTHECARY_PROFILES} className="flex items-center w-full">
               <Settings className="w-4 h-4 mr-2" />
               <span className="font-body text-sm">Manage profiles</span>
             </Link>

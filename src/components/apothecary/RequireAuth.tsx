@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageSkeleton } from "./PageSkeleton";
+import { ROUTES } from "@/lib/routes";
 
 /**
  * Redirects unauthenticated visitors to /apothecary/auth/signin with a
@@ -18,7 +19,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     const returnTo = location.pathname + location.search;
     return (
       <Navigate
-        to={`/apothecary/auth/signin?return_to=${encodeURIComponent(returnTo)}`}
+        to={`${ROUTES.APOTHECARY_SIGNIN}?return_to=${encodeURIComponent(returnTo)}`}
         replace
       />
     );

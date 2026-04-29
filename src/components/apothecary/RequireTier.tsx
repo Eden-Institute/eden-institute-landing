@@ -4,6 +4,7 @@ import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCurrentTier, Tier } from "@/hooks/useCurrentTier";
 import { PageSkeleton } from "./PageSkeleton";
+import { ROUTES } from "@/lib/routes";
 
 interface Props {
   allow: Tier[];
@@ -51,7 +52,7 @@ export function RequireTier({ allow, children, fallback }: Props) {
             {tierCopy[minTier]} or higher. Choose a plan to continue.
           </p>
           <Button variant="eden" asChild>
-            <Link to="/apothecary/pricing">View plans</Link>
+            <Link to={ROUTES.APOTHECARY_PRICING}>View plans</Link>
           </Button>
         </div>
       </div>
