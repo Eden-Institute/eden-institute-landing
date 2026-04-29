@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ROUTES } from "@/lib/routes";
 import Index from "./pages/Index";
 import WhyEden from "./pages/WhyEden";
 import Assessment from "./pages/Assessment";
@@ -46,9 +47,9 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/why-eden" element={<WhyEden />} />
-            <Route path="/assessment" element={<Assessment />} />
+            <Route path={ROUTES.HOME} element={<Index />} />
+            <Route path={ROUTES.WHY_EDEN} element={<WhyEden />} />
+            <Route path={ROUTES.ASSESSMENT} element={<Assessment />} />
             {/* v4.1.1 hotfix — defensive alias for the public quiz route.
                 The Navbar's state-aware CTA briefly pointed at /quiz (PR #65)
                 and PR #74 mounted the Navbar globally, exposing the dead
@@ -59,27 +60,27 @@ const App = () => (
                 externally-shared link, or future stray reference is
                 non-fatal. Replaces a missing-route 404 with a route the
                 router knows exists. */}
-            <Route path="/quiz" element={<Navigate to="/assessment" replace />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/cookies" element={<Cookies />} />
+            <Route path={ROUTES.QUIZ_ALIAS} element={<Navigate to={ROUTES.ASSESSMENT} replace />} />
+            <Route path={ROUTES.TERMS} element={<Terms />} />
+            <Route path={ROUTES.PRIVACY} element={<Privacy />} />
+            <Route path={ROUTES.COOKIES} element={<Cookies />} />
             <Route
-              path="/constitutional-herbalism"
+              path={ROUTES.CONSTITUTIONAL_HERBALISM}
               element={<ConstitutionalHerbalism />}
             />
-            <Route path="/guide/success" element={<GuideSuccess />} />
+            <Route path={ROUTES.GUIDE_SUCCESS} element={<GuideSuccess />} />
             <Route path="/guide/:constitutionSlug" element={<GuideLanding />} />
             <Route path="/results/:constitutionSlug" element={<Results />} />
-            <Route path="/courses" element={<Courses />} />
-            <Route path="/apothecary" element={<AppPage />} />
-            <Route path="/homeschool" element={<Homeschool />} />
-            <Route path="/community" element={<Community />} />
-            <Route path="/tier-2-waitlist" element={<TierTwoWaitlist />} />
+            <Route path={ROUTES.COURSES} element={<Courses />} />
+            <Route path={ROUTES.APOTHECARY} element={<AppPage />} />
+            <Route path={ROUTES.HOMESCHOOL} element={<Homeschool />} />
+            <Route path={ROUTES.COMMUNITY} element={<Community />} />
+            <Route path={ROUTES.TIER_TWO_WAITLIST} element={<TierTwoWaitlist />} />
             {/* Apothecary application — Lane C Stage 6.3.4: auth-walled per §0.8 v3.3 #21.
                 v3.33 amendment (PR #51): Lock #21 RETIRED for pricing surface only —
                 /apothecary/pricing is now public per founder Q2 authorization to open
                 pricing pre-signup for conversion. All other auth-walled surfaces preserved. */}
-            <Route path="/apothecary" element={<ApothecaryLayout />}>
+            <Route path={ROUTES.APOTHECARY} element={<ApothecaryLayout />}>
               {/* Public surfaces */}
               <Route path="start" element={<Start />} />
               <Route path="auth/signup" element={<SignUp />} />
