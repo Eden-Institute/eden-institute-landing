@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { ROUTES } from "@/lib/routes";
 
 export type AuthMode = "signup" | "signin" | "reset";
 
@@ -61,7 +62,7 @@ export function AuthForm({ mode }: Props) {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const returnToParam = params.get("return_to");
-  const signinReturnTo = returnToParam ?? "/apothecary";
+  const signinReturnTo = returnToParam ?? ROUTES.APOTHECARY;
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -89,7 +90,7 @@ export function AuthForm({ mode }: Props) {
           email: values.email,
           password: values.password ?? "",
           options: {
-            emailRedirectTo: `${window.location.origin}/apothecary/welcome-tour`,
+            emailRedirectTo: `${window.location.origin}${ROUTES.APOTHECARY_WELCOME_TOUR}`,
           },
         });
         if (error) throw error;
@@ -98,7 +99,7 @@ export function AuthForm({ mode }: Props) {
           // Honor explicit intent (deep link or paid-tier card with
           // return_to=/apothecary/pricing); otherwise route first-time
           // signups through the welcome tour.
-          const target = returnToParam ?? "/apothecary/welcome-tour";
+          const target = returnToParam ?? ROUTES.APOTHECARY_WELCOME_TOUR;
           navigate(target, { replace: true });
         } else {
           setSubmitted(true);
@@ -116,7 +117,7 @@ export function AuthForm({ mode }: Props) {
         const { error } = await supabase.auth.resetPasswordForEmail(
           values.email,
           {
-            redirectTo: `${window.location.origin}/apothecary/auth/update-password`,
+            redirectTo: `${window.location.origin}${ROUTES.APOTHECARY_UPDATE_PASSWORD}`,
           },
         );
         if (error) throw error;
@@ -146,7 +147,7 @@ export function AuthForm({ mode }: Props) {
             : "We've sent a reset link. Click it to choose a new password."}
         </p>
         <Button variant="outline" asChild>
-          <Link to="/apothecary/auth/signin">Back to sign in</Link>
+          <Link to={ROUTES.APOTHECARY_SIGNIN}>Back to sign in</Link>
         </Button>
       </div>
     );
@@ -222,7 +223,7 @@ export function AuthForm({ mode }: Props) {
           <>
             <p>
               <Link
-                to="/apothecary/auth/reset"
+                to={ROUTES.APOTHECARY_RESET}
                 className="underline hover:opacity-70"
               >
                 Forgot your password?
@@ -231,7 +232,7 @@ export function AuthForm({ mode }: Props) {
             <p>
               Don't have an account?{" "}
               <Link
-                to="/apothecary/auth/signup"
+                to={ROUTES.APOTHECARY_SIGNUP}
                 className="underline hover:opacity-70"
               >
                 Create one
@@ -243,7 +244,7 @@ export function AuthForm({ mode }: Props) {
           <p>
             Already have an account?{" "}
             <Link
-              to="/apothecary/auth/signin"
+              to={ROUTES.APOTHECARY_SIGNIN}
               className="underline hover:opacity-70"
             >
               Sign in
@@ -254,7 +255,7 @@ export function AuthForm({ mode }: Props) {
           <p>
             Back to{" "}
             <Link
-              to="/apothecary/auth/signin"
+              to={ROUTES.APOTHECARY_SIGNIN}
               className="underline hover:opacity-70"
             >
               sign in
