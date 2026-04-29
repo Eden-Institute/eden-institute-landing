@@ -13,6 +13,7 @@ import {
 import { useCurrentTier, type Tier } from "@/hooks/useCurrentTier";
 import { useActiveProfile } from "@/contexts/ActiveProfileContext";
 import { resolveEdenPattern, PATTERN_PROFILES } from "@/lib/edenPattern";
+import { ROUTES } from "@/lib/routes";
 import { ProfileFormDialog } from "./ProfileFormDialog";
 
 /**
@@ -138,7 +139,7 @@ export function ProfilePicker() {
             </span>
           </DropdownMenuItem>
           <DropdownMenuItem asChild className="min-h-[44px] cursor-pointer">
-            <Link to="/apothecary/profiles" className="flex items-center w-full">
+            <Link to={ROUTES.APOTHECARY_PROFILES} className="flex items-center w-full">
               <Settings className="w-4 h-4 mr-2" />
               <span className="font-body text-sm">Manage profiles</span>
             </Link>
