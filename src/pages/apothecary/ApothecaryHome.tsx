@@ -6,6 +6,7 @@ import { useApothecaryHerbs } from "@/hooks/useApothecaryHerbs";
 import { useEdenPattern } from "@/hooks/useEdenPattern";
 import { HerbCard } from "@/components/apothecary/HerbCard";
 import { PatternMatchHero } from "@/components/apothecary/PatternMatchHero";
+import { MatchedHerbsCtaPair } from "@/components/apothecary/MatchedHerbsCtaPair";
 import {
   HerbDirectoryFilters,
   EMPTY_FILTERS,
@@ -40,6 +41,13 @@ import { computeMatchRelationship } from "@/lib/edenPattern";
  * Default-flip is per-mount, not persisted. Once the user touches any
  * filter (including toggling the chip back on), `EMPTY_FILTERS` is the
  * baseline going forward.
+ *
+ * §8.1.4 PR 4 — Matched-Herbs CTA Pair.
+ * When activePattern resolves, render <MatchedHerbsCtaPair> below the grid
+ * (and below the upgrade aside for non-subscribers). The component
+ * self-suppresses when activePattern is null. Replaces the removed §8.1.5
+ * formulary slot — formularies are now Practitioner-tier-only per the
+ * 2026-04-29 binding decision.
  *
  * Active user's Eden Pattern (when known) drives both the filter overlay
  * UI, the sort order, the per-card Match/Avoid badges, AND the new
@@ -255,7 +263,7 @@ export default function ApothecaryHome() {
                   className="font-accent text-[11px] tracking-[0.3em] uppercase mb-2"
                   style={{ color: "hsl(var(--eden-gold))" }}
                 >
-                  Unlock the full materia medica
+                  Open the full materia medica
                 </p>
                 <h2
                   className="font-serif text-xl md:text-2xl font-semibold leading-tight mb-2"
@@ -278,6 +286,12 @@ export default function ApothecaryHome() {
               </div>
             </aside>
           )}
+
+          {/* §8.1.4 PR 4 — bottom CTA pair (Practitioner waitlist + Amazon kit).
+              Self-suppresses when no Pattern is resolved. Replaces removed
+              §8.1.5 formulary slot per the 2026-04-29 Practitioner-tier
+              scoping decision. */}
+          <MatchedHerbsCtaPair activePattern={activePattern} />
         </div>
       </section>
     </div>
