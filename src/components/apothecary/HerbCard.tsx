@@ -14,7 +14,7 @@ import { type HerbRow } from "@/hooks/useApothecaryHerbs";
 import {
   type EdenPatternName,
   computeMatchRelationship,
-  type MatchRelationship,
+  type MatchRelationshipDetail,
 } from "@/lib/edenPattern";
 import {
   type PrimaryTextCitation,
@@ -29,6 +29,10 @@ interface HerbCardProps {
    * Match (green) or Avoid (amber) badge for unlocked rows, computed from
    * `temperature × moisture × tissue_states_indicated`. Locked rows are
    * skipped — the lock affordance owns that visual slot.
+   *
+   * §8.1.2 (Manual v4.0): the same compute also drives a stewardship-
+   * language "matches because…" reason list rendered under the chip row,
+   * so the reader sees terrain reasoning, not just a color.
    */
   activePattern?: EdenPatternName | null;
 }
@@ -189,7 +193,10 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
   // active pattern is set. For locked rows the lock affordance owns the
   // header visual slot, so the badge is suppressed (visible-but-gated stays
   // primary). Neutral relationships also suppress the badge to avoid noise.
-  const matchRelationship: MatchRelationship | null =
+  // §8.1.2: the full detail (including stewardship-language reasons) is
+  // captured here so the card can render WHY a herb matches/avoids beneath
+  // the chip row.
+  const matchDetail: MatchRelationshipDetail | null =
     !isLocked && activePattern
       ? computeMatchRelationship(
           {
@@ -198,8 +205,10 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
             tissue_states_indicated: herb.tissue_states_indicated ?? null,
           },
           activePattern
-        ).relationship
+        )
       : null;
+  const matchRelationship = matchDetail?.relationship ?? null;
+  const matchReasons = matchDetail?.reasons ?? [];
 
   // -------------------------------------------------------------------------
   // STATE 1: LOCKED — identity + lock affordance + CTA
@@ -403,6 +412,40 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
           </span>
         )}
       </div>
+
+      {/*
+        §8.1.2 — stewardship-language reasons under the chip row. Surfaces
+        WHY this herb matches or avoids the user's Pattern, in terrain-first
+        prose. Skipped on neutral relationships to keep the card clean.
+      */}
+      {matchReasons.length > 0 && (
+        <ul
+          className="mt-3 space-y-0.5"
+          aria-label={
+            matchRelationship === "match"
+              ? "Why this herb matches your Pattern"
+              : "Why this herb may aggravate your Pattern"
+          }
+        >
+          {matchReasons.map((reason) => (
+            <li
+              key={reason}
+              className="font-body text-xs italic leading-relaxed flex items-start gap-1.5"
+              style={{
+                color:
+                  matchRelationship === "match"
+                    ? "hsl(var(--eden-gold))"
+                    : "hsl(var(--destructive))",
+              }}
+            >
+              <span aria-hidden="true" className="mt-[3px] shrink-0">
+                {matchRelationship === "match" ? "·" : "·"}
+              </span>
+              <span>{reason}</span>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {herb.taste && (
         <p className="font-body text-xs text-muted-foreground mt-3">
