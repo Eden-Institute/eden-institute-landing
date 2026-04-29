@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
+import { ROUTES } from "@/lib/routes";
 
 const schema = z.object({
   password: z
@@ -42,7 +43,7 @@ export default function UpdatePassword() {
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate("/apothecary/auth/signin", { replace: true });
+      navigate(ROUTES.APOTHECARY_SIGNIN, { replace: true });
     }
   }, [loading, user, navigate]);
 
@@ -56,7 +57,7 @@ export default function UpdatePassword() {
       });
       if (error) throw error;
       toast.success("Password updated.");
-      navigate("/apothecary", { replace: true });
+      navigate(ROUTES.APOTHECARY, { replace: true });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong";
       toast.error(msg);

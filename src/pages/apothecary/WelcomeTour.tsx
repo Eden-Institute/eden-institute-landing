@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { ROUTES } from "@/lib/routes";
 
 /**
  * Three-step onboarding tour for first-time signed-in users.
@@ -19,7 +20,7 @@ export default function WelcomeTour() {
   const [step, setStep] = useState(0);
   const navigate = useNavigate();
 
-  const finish = () => navigate("/apothecary", { replace: true });
+  const finish = () => navigate(ROUTES.APOTHECARY, { replace: true });
 
   const card = STEPS[step];
 
@@ -95,7 +96,7 @@ export default function WelcomeTour() {
               </Button>
             ) : (
               <Button variant="eden" size="lg" asChild>
-                <Link to="/apothecary">Enter the directory</Link>
+                <Link to={ROUTES.APOTHECARY}>Enter the directory</Link>
               </Button>
             )}
           </div>
