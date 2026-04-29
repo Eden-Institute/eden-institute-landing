@@ -204,7 +204,7 @@ export default function Account() {
                   {constitutionPretty}
                 </h2>
                 <p className="font-body text-sm text-muted-foreground mt-1">
-                  Your body type (constitution) shapes how every herb works
+                  Your body pattern (constitution) shapes how every herb works
                   for you. Your matched herbs are highlighted in the
                   Apothecary directory.
                 </p>
@@ -218,8 +218,9 @@ export default function Account() {
                   Not yet known
                 </h2>
                 <p className="font-body text-sm text-muted-foreground mt-1">
-                  Take the body type quiz to unlock matched herbs and
-                  personalized recommendations across the Apothecary.
+                  Take the Pattern of Eden quiz to find your body pattern.
+                  We&apos;ll highlight the herbs that meet your terrain across
+                  the Apothecary.
                 </p>
               </>
             )}
@@ -236,7 +237,7 @@ export default function Account() {
               </>
             ) : (
               <Button variant="eden" asChild>
-                <Link to="/assessment">Take the body type quiz</Link>
+                <Link to="/assessment">Take the Pattern of Eden quiz</Link>
               </Button>
             )}
           </div>
