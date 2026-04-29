@@ -803,9 +803,17 @@ Deno.serve(async (req) => {
       utm_content,
     } = body;
 
-    if (!firstName || !email) {
-      return json(400, { error: 'Name and email are required' });
+    if (!email) {
+      return json(400, { error: 'Email is required' });
     }
+
+    // v3.34: tolerate empty firstName for auto-submit logged-in path (Phase 5
+    // fix #3 / launch-blocker #57). Logged-in user_metadata.first_name may be
+    // null and profiles.display_name may not yet be populated. Default to a
+    // personable fallback rather than 400-ing the request — nurture email
+    // greetings render "Hi Friend," in this edge case, which is acceptable.
+    const firstNameRaw = typeof firstName === 'string' ? firstName.trim() : '';
+    const firstNameSafe = firstNameRaw || 'Friend';
 
     const normalizedEmail = String(email).trim().toLowerCase();
 
@@ -840,7 +848,7 @@ Deno.serve(async (req) => {
     if (entry_funnel !== 'quiz_funnel') {
       const upsertResult = await waitlistUpsert({
         email: normalizedEmail,
-        first_name: firstName,
+        first_name: firstNameSafe,
         entry_funnel,
         source_url: source_url ?? null,
         referrer: referrer ?? null,
@@ -874,7 +882,7 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify({
               email: normalizedEmail,
-              first_name: firstName,
+              first_name: firstNameSafe,
               unsubscribed: false,
             }),
           }
@@ -994,7 +1002,7 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify({
               email: normalizedEmail,
-              first_name: firstName,
+              first_name: firstNameSafe,
               constitution_type: slug,
               constitution_name: name,
               constitution_nickname: name,
@@ -1007,8 +1015,14 @@ Deno.serve(async (req) => {
         }
         console.log('Quiz completion recorded, scheduling nurture emails');
 
-        // Schedule nurture emails 1-4 (fire-and-forget).
-        const scheduleNurture = async () => {
+        // Producer side of Lock #48 (v3.34 Item A): Email 1 ships synchronously
+        // via Resend (immediate user-facing signal). Emails 2-4 are enqueued
+        // into public.nurture_email_queue; the cron-driven nurture-emails EF
+        // (consumer) drains the queue and sends synchronously using the CURRENT
+        // Sending API key. Replaces Resend `scheduled_at` which binds each
+        // pre-scheduled send to the originating API key — see
+        // feedback_resend_scheduled_at_brittle.md and the coliveira77 incident.
+        const enqueueNurture = async () => {
           try {
             const sendHeaders = {
               'Authorization': `Bearer ${RESEND_API_KEY}`,
@@ -1017,7 +1031,8 @@ Deno.serve(async (req) => {
             const from = 'Camila at The Eden Institute <hello@edeninstitute.health>';
             const replyTo = 'hello@edeninstitute.health';
 
-            const e1 = buildNurtureEmail1(firstName, name, slug);
+            // Email 1: synchronous send (unchanged)
+            const e1 = buildNurtureEmail1(firstNameSafe, name, slug);
             await fetch('https://api.resend.com/emails', {
               method: 'POST',
               headers: sendHeaders,
@@ -1025,40 +1040,38 @@ Deno.serve(async (req) => {
             });
             console.log('Nurture Email 1 sent to', normalizedEmail);
 
-            const e2 = buildNurtureEmail2(firstName, name, slug);
+            // Emails 2/3/4: UPSERT into nurture_email_queue
             const day2 = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString();
-            await fetch('https://api.resend.com/emails', {
-              method: 'POST',
-              headers: sendHeaders,
-              body: JSON.stringify({ from, reply_to: replyTo, to: [normalizedEmail], subject: e2.subject, html: e2.html, scheduled_at: day2 }),
-            });
-            console.log('Nurture Email 2 scheduled for', day2);
-
-            const e3 = buildNurtureEmail3(firstName, name, slug);
             const day4 = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000).toISOString();
-            await fetch('https://api.resend.com/emails', {
-              method: 'POST',
-              headers: sendHeaders,
-              body: JSON.stringify({ from, reply_to: replyTo, to: [normalizedEmail], subject: e3.subject, html: e3.html, scheduled_at: day4 }),
-            });
-            console.log('Nurture Email 3 scheduled for', day4);
-
-            const e4 = buildNurtureEmail4(firstName, name, slug);
             const day6 = new Date(now.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString();
-            await fetch('https://api.resend.com/emails', {
+            const queueRows = [
+              { recipient_email: normalizedEmail, sequence_position: 2, constitution_pattern: name, scheduled_for: day2, status: 'pending' },
+              { recipient_email: normalizedEmail, sequence_position: 3, constitution_pattern: name, scheduled_for: day4, status: 'pending' },
+              { recipient_email: normalizedEmail, sequence_position: 4, constitution_pattern: name, scheduled_for: day6, status: 'pending' },
+            ];
+            const queueRes = await fetch(`${SUPABASE_URL}/rest/v1/nurture_email_queue`, {
               method: 'POST',
-              headers: sendHeaders,
-              body: JSON.stringify({ from, reply_to: replyTo, to: [normalizedEmail], subject: e4.subject, html: e4.html, scheduled_at: day6 }),
+              headers: {
+                'apikey': SUPABASE_SERVICE_ROLE_KEY,
+                'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal,resolution=merge-duplicates',
+              },
+              body: JSON.stringify(queueRows),
             });
-            console.log('Nurture Email 4 scheduled for', day6);
+            if (!queueRes.ok) {
+              const errText = await queueRes.text().catch(() => '<unreadable>');
+              console.error('nurture_email_queue UPSERT failed', { status: queueRes.status, body: errText, email: normalizedEmail });
+            } else {
+              console.log('Nurture Emails 2-4 enqueued for', normalizedEmail, '(days 2/4/6)');
+            }
           } catch (nurtureErr) {
-            console.error('Nurture scheduling error:', String(nurtureErr));
+            console.error('Nurture enqueue error:', String(nurtureErr));
           }
         };
 
-        // Fire-and-forget: don't block the response on nurture scheduling.
-        scheduleNurture().catch((err) =>
-          console.error('Nurture scheduling failed:', String(err))
+        enqueueNurture().catch((err) =>
+          console.error('Nurture enqueueing failed:', String(err))
         );
       }
 
@@ -1074,13 +1087,13 @@ Deno.serve(async (req) => {
     // ── Step 5: Welcome email dispatch (non-quiz paths) ──
     let emailContent: { subject: string; html: string } | null = null;
     if (entry_funnel === 'course_tier2') {
-      emailContent = buildFoundationsEmail(firstName);
+      emailContent = buildFoundationsEmail(firstNameSafe);
     } else if (entry_funnel === 'app_beta') {
-      emailContent = buildAppBetaEmail(firstName);
+      emailContent = buildAppBetaEmail(firstNameSafe);
     } else if (entry_funnel === 'homeschool') {
-      emailContent = buildHomeschoolEmail(firstName);
+      emailContent = buildHomeschoolEmail(firstNameSafe);
     } else if (entry_funnel === 'community') {
-      emailContent = buildCommunityEmail(firstName);
+      emailContent = buildCommunityEmail(firstNameSafe);
     }
     // edens_table currently has no welcome email.
     // quiz_funnel is handled by the nurture sequence above.
