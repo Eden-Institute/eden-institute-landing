@@ -6,6 +6,7 @@ import { useCurrentTier, Tier } from "@/hooks/useCurrentTier";
 import { Button } from "@/components/ui/button";
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
 import { ManageSubscriptionButton } from "@/components/apothecary/ManageSubscriptionButton";
+import { ROUTES } from "@/lib/routes";
 
 /**
  * Columns we read from public.profiles for the Account page. Source: PR #7
@@ -229,15 +230,15 @@ export default function Account() {
             {constitutionPretty ? (
               <>
                 <Button variant="eden" asChild>
-                  <Link to="/apothecary">View matched herbs</Link>
+                  <Link to={ROUTES.APOTHECARY}>View matched herbs</Link>
                 </Button>
                 <Button variant="eden-outline" asChild>
-                  <Link to="/assessment">Retake the quiz</Link>
+                  <Link to={ROUTES.ASSESSMENT}>Retake the quiz</Link>
                 </Button>
               </>
             ) : (
               <Button variant="eden" asChild>
-                <Link to="/assessment">Take the Pattern of Eden quiz</Link>
+                <Link to={ROUTES.ASSESSMENT}>Take the Pattern of Eden quiz</Link>
               </Button>
             )}
           </div>
@@ -330,7 +331,7 @@ export default function Account() {
             )}
             {!hasPaidTier && (
               <Button variant={hasStripeCustomer ? "eden-outline" : "eden"} asChild>
-                <Link to="/apothecary/pricing">
+                <Link to={ROUTES.APOTHECARY_PRICING}>
                   {hasStripeCustomer ? "Choose a new plan" : "Choose a plan"}
                 </Link>
               </Button>
