@@ -8,6 +8,7 @@ import AssessmentModal from "@/components/landing/AssessmentModal";
 import { BotanicalLeafTopRight, BotanicalLeafBottomLeft, GoldDivider } from "@/components/landing/BotanicalAccents";
 import ScrollReveal from "@/components/landing/ScrollReveal";
 import { WorldviewBand } from "@/components/landing/WorldviewBand";
+import { WelcomeBackBanner } from "@/components/landing/WelcomeBackBanner";
 
 // Unsplash photography
 const HERO_IMG = "https://images.unsplash.com/photo-1659328376647-52ec39d1a5cf?auto=format&fit=crop&w=1920&q=80";
@@ -41,6 +42,13 @@ const Index = () => {
   return (
     <main className="min-h-screen overflow-x-hidden">
       <Navbar />
+
+      {/* §8.1.1 (Manual v4.0) — state-aware welcome strip. Renders only for
+          authed users with a resolved Eden Pattern; gives them a one-tap
+          path into /apothecary instead of crowding into another marketing
+          CTA. Anon and authed-without-Pattern visitors see nothing here
+          and continue down the existing acquisition path. */}
+      <WelcomeBackBanner />
 
       {/* ─── SECTION 1: HERO ─── */}
       <section id="hero" className="pt-20 relative overflow-hidden min-h-[90vh] flex items-center">
