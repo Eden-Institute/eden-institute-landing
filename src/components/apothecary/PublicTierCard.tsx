@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ROUTES } from "@/lib/routes";
 
 interface Props {
   tier: "free" | "seed" | "root";
@@ -43,8 +44,8 @@ export function PublicTierCard({
   // paid tiers deep-link to public pricing with ?tier= preselection.
   const ctaTo =
     tier === "free"
-      ? "/apothecary/auth/signup"
-      : `/apothecary/pricing?tier=${tier}`;
+      ? ROUTES.APOTHECARY_SIGNUP
+      : `${ROUTES.APOTHECARY_PRICING}?tier=${tier}`;
 
   return (
     <div

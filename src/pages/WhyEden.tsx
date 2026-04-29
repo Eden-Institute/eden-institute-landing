@@ -5,6 +5,7 @@ import Footer from "@/components/landing/Footer";
 import ScrollReveal from "@/components/landing/ScrollReveal";
 import { GoldDivider } from "@/components/landing/BotanicalAccents";
 import { WorldviewBand } from "@/components/landing/WorldviewBand";
+import { ROUTES } from "@/lib/routes";
 
 const WhyEden = () => {
   useEffect(() => {
@@ -163,7 +164,7 @@ const WhyEden = () => {
                 <Link to="/#assessment" className="font-body text-sm font-semibold px-8 py-3 rounded-sm" style={{ backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-parchment))" }}>
                   Take the Free Body Pattern Quiz →
                 </Link>
-                <Link to="/courses" className="font-body text-sm font-semibold px-8 py-3 rounded-sm" style={{ backgroundColor: "transparent", color: "hsl(var(--eden-forest))", border: "1px solid hsl(var(--eden-forest))" }}>
+                <Link to={ROUTES.COURSES} className="font-body text-sm font-semibold px-8 py-3 rounded-sm" style={{ backgroundColor: "transparent", color: "hsl(var(--eden-forest))", border: "1px solid hsl(var(--eden-forest))" }}>
                   View Our Courses
                 </Link>
               </div>

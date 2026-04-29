@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { ROUTES } from "@/lib/routes";
 
 interface Props {
   lookupKey: string;
@@ -32,7 +33,7 @@ export function CheckoutButton({
   size = "lg",
   className,
   disabled,
-  unauthRedirect = "/apothecary/auth/signup?return_to=/apothecary/pricing",
+  unauthRedirect = `${ROUTES.APOTHECARY_SIGNUP}?return_to=${ROUTES.APOTHECARY_PRICING}`,
 }: Props) {
   const { session, user } = useAuth();
   const navigate = useNavigate();

@@ -15,6 +15,7 @@ import {
 } from "@/components/apothecary/HerbDirectoryFilters";
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
 import { computeMatchRelationship } from "@/lib/edenPattern";
+import { ROUTES } from "@/lib/routes";
 
 /**
  * Eden Apothecary index (`/apothecary`).
@@ -279,7 +280,7 @@ export default function ApothecaryHome() {
               </div>
               <div className="flex gap-3 shrink-0">
                 <Button variant="eden" size="lg" asChild>
-                  <Link to="/apothecary/pricing">
+                  <Link to={ROUTES.APOTHECARY_PRICING}>
                     {user ? "Choose a plan" : "Start with Seed"}
                   </Link>
                 </Button>

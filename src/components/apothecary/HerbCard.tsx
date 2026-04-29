@@ -21,6 +21,7 @@ import {
   type SecondaryCitation,
   type TraditionalObservation,
 } from "@/lib/contentEntry";
+import { ROUTES } from "@/lib/routes";
 
 interface HerbCardProps {
   herb: HerbRow;
@@ -291,7 +292,7 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
             subscription.
           </p>
           <Button variant="eden" size="sm" asChild>
-            <Link to="/apothecary/pricing">Unlock with Seed</Link>
+            <Link to={ROUTES.APOTHECARY_PRICING}>Unlock with Seed</Link>
           </Button>
         </div>
       </article>

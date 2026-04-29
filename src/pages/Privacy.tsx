@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import { Link } from "react-router-dom";
+import { ROUTES } from "@/lib/routes";
 
 const HEADER_IMG = "https://images.unsplash.com/photo-1771128264855-1c032332cbc8?auto=format&fit=crop&w=1920&q=80";
 
@@ -48,7 +49,7 @@ const Privacy = () => {
               <li>IP address and approximate location.</li>
               <li>Browser type, device type, and operating system.</li>
               <li>Pages visited, time spent on pages, and navigation patterns.</li>
-              <li>Cookies and similar tracking technologies (see our <Link to="/cookies" className="text-accent underline hover:text-accent/80">Cookie Policy</Link>).</li>
+              <li>Cookies and similar tracking technologies (see our <Link to={ROUTES.COOKIES} className="text-accent underline hover:text-accent/80">Cookie Policy</Link>).</li>
             </ul>
           </section>
 

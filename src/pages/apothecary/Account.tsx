@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrentTier, Tier } from "@/hooks/useCurrentTier";
 import { Button } from "@/components/ui/button";
+import { ROUTES } from "@/lib/routes";
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
 import { ManageSubscriptionButton } from "@/components/apothecary/ManageSubscriptionButton";
 
@@ -88,12 +89,12 @@ function formatDate(iso: string | null): string {
  *
  * Composition (v3.33.2 update):
  *   - Header: display_name + email
- *   - **NEW: Body Pattern card** — surfaces user’s constitution result
+ *   - **NEW: Body Pattern card** — surfaces user's constitution result
  *     from the quiz, with a CTA to the directory or to retake the quiz
  *   - Subscription card: current tier, status, renewal / cancel-at date,
  *     founding-member badge, and one of:
  *       · ManageSubscriptionButton (any user with a Stripe customer record)
- *       · “Choose a plan” CTA (users on the free tier with no prior subscription)
+ *       · "Choose a plan" CTA (users on the free tier with no prior subscription)
  *   - Sign-out row
  *
  * Gated by <RequireAuth> at the route level (App.tsx).
@@ -178,9 +179,9 @@ export default function Account() {
           </div>
         )}
 
-        {/* v3.33.2 NEW: Body Pattern card. Surfaces the user’s quiz result
-            so their account page reflects the work they’ve already done.
-            Fixes Phase 5 #5 (“quiz responses didn’t seem to register”). */}
+        {/* v3.33.2 NEW: Body Pattern card. Surfaces the user's quiz result
+            so their account page reflects the work they've already done.
+            Fixes Phase 5 #5 ("quiz responses didn't seem to register"). */}
         <section
           className="rounded-lg border p-6 space-y-4"
           style={{
@@ -229,15 +230,15 @@ export default function Account() {
             {constitutionPretty ? (
               <>
                 <Button variant="eden" asChild>
-                  <Link to="/apothecary">View matched herbs</Link>
+                  <Link to={ROUTES.APOTHECARY}>View matched herbs</Link>
                 </Button>
                 <Button variant="eden-outline" asChild>
-                  <Link to="/assessment">Retake the quiz</Link>
+                  <Link to={ROUTES.ASSESSMENT}>Retake the quiz</Link>
                 </Button>
               </>
             ) : (
               <Button variant="eden" asChild>
-                <Link to="/assessment">Take the Pattern of Eden quiz</Link>
+                <Link to={ROUTES.ASSESSMENT}>Take the Pattern of Eden quiz</Link>
               </Button>
             )}
           </div>
@@ -330,7 +331,7 @@ export default function Account() {
             )}
             {!hasPaidTier && (
               <Button variant={hasStripeCustomer ? "eden-outline" : "eden"} asChild>
-                <Link to="/apothecary/pricing">
+                <Link to={ROUTES.APOTHECARY_PRICING}>
                   {hasStripeCustomer ? "Choose a new plan" : "Choose a plan"}
                 </Link>
               </Button>
