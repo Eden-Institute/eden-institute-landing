@@ -186,7 +186,7 @@ const GuideLanding = () => {
         {/* Herb teaser */}
         <div className="mb-8">
           <h2 className="font-serif text-xl font-bold mb-4" style={{ color: "#2C3E2D" }}>
-            Your Top 3 Herbs
+            Three herbs matched to your Pattern
           </h2>
           <div className="space-y-3">
             {profile.herbs.slice(0, 3).map((herb, i) => (

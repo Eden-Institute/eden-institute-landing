@@ -214,7 +214,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
               className="min-h-[48px] w-full sm:w-auto"
               onClick={() => setPhase("quiz")}
             >
-              → Begin the Quiz
+              Begin the quiz
             </Button>
           </div>
         )}
@@ -296,7 +296,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
                 Get Your Full Body Pattern Profile
               </h3>
               <p className="font-body text-sm mb-5" style={{ color: "hsl(30, 10%, 40%)" }}>
-                Enter your name and email to unlock your full profile, personalized herb recommendations, and join our community.
+                Enter your name and email to see the full pattern profile and the herbs that meet your terrain. We'll save your result so you can come back to it.
               </p>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -329,7 +329,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
                 </div>
                 {error && <p className="font-body text-sm text-destructive">{error}</p>}
                 <Button variant="eden" size="xl" className="w-full min-h-[48px]" disabled={loading}>
-                  {loading ? "Submitting…" : "→ Send Me My Results"}
+                  {loading ? "Submitting…" : "Send my results"}
                 </Button>
                 <p className="text-center font-body text-xs" style={{ color: "hsl(30, 10%, 40%, 0.6)" }}>
                   No spam. Unsubscribe anytime.
@@ -344,7 +344,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
             {/* Section A: Type Header */}
             <div className="text-center mb-6 md:mb-8">
               <p className="font-body text-sm mb-1" style={{ color: "#C9A84C" }}>
-                ✓ Your results are on their way. Check your inbox.
+                Your results are on their way. Check your inbox.
               </p>
               <p className="font-body text-xs italic mb-3" style={{ color: "#C9A84C", opacity: 0.8 }}>
                 Using Gmail? Your first email may arrive in your Promotions or Spam folder. Please move it to your Primary inbox so you don't miss anything from us.
@@ -369,9 +369,9 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
               ))}
             </div>
 
-            {/* Section C: Top 3 Herbs */}
+            {/* Section C: Three herbs matched to your Pattern */}
             <h3 className="font-serif text-xl font-bold mb-4" style={{ color: "#1C3A2E" }}>
-              Your Top 3 Herbs
+              Three herbs matched to your Pattern
             </h3>
             <div className="space-y-3 mb-8">
               {profile.herbs.slice(0, 3).map((herb, i) => (
@@ -432,7 +432,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
                 Your Starter Herb Kit
               </h3>
               <p className="font-body text-sm leading-relaxed mb-4" style={{ color: "#1C3A2E" }}>
-                We curated the exact herbs for your body pattern on Amazon. One-click shopping list — everything you need to get started.
+                A starter set on Amazon — herbs aligned to your pattern so you can begin practicing in your own kitchen.
               </p>
               <a
                 href={profile.amazonUrl}

@@ -31,7 +31,7 @@ const Results = () => {
     if (!profile || !constitutionType) return;
 
     const title = `Your Body Pattern: ${profile.nickname} — The Eden Institute`;
-    const description = `Your body pattern is ${profile.nickname} (${constitutionType}). ${profile.tagline} Discover your top herbs and your full plan.`;
+    const description = `Your body pattern is ${profile.nickname} (${constitutionType}). ${profile.tagline} See the herbs that meet this pattern and how to begin.`;
     const url = `https://edeninstitute.health/results/${constitutionSlug}`;
 
     document.title = title;
@@ -69,10 +69,10 @@ const Results = () => {
             Body Pattern Not Found
           </h1>
           <p className="font-body text-lg mb-8" style={{ color: "#1C3A2E" }}>
-            We couldn't find that body pattern. Take the free quiz to discover yours.
+            We couldn't find that body pattern. Take the Pattern of Eden quiz to find yours.
           </p>
           <Link to="/assessment">
-            <Button variant="eden" size="xl">Take the Free Quiz</Button>
+            <Button variant="eden" size="xl">Take the Pattern of Eden Quiz</Button>
           </Link>
         </div>
       </div>
@@ -88,7 +88,7 @@ const Results = () => {
         {user ? (
           <div className="text-center mb-8">
             <p className="font-accent text-sm tracking-[0.2em] uppercase mb-1" style={{ color: "#C9A84C" }}>
-              ✓ Your Pattern is saved to your account
+              Your Pattern is saved to your account
             </p>
           </div>
         ) : (
@@ -98,7 +98,7 @@ const Results = () => {
             </p>
             <Link to="/apothecary/auth/signup">
               <Button variant="eden-outline" size="sm">
-                Sign up free to save →
+                Sign up to save
               </Button>
             </Link>
           </div>
@@ -138,7 +138,7 @@ const Results = () => {
               className="w-full"
               onClick={() => navigate("/apothecary")}
             >
-              Continue to the Apothecary →
+              Continue to the Apothecary
             </Button>
             <p className="font-body text-xs text-center mt-3" style={{ color: "hsl(30, 10%, 40%, 0.7)" }}>
               Your full directory of 100 herbs, with match badges based on your Pattern.
@@ -146,10 +146,10 @@ const Results = () => {
           </div>
         )}
 
-        {/* Top 3 Herbs */}
+        {/* Three herbs matched to your Pattern */}
         <div className="mb-12">
           <h2 className="font-serif text-2xl font-bold mb-6" style={{ color: "#1C3A2E" }}>
-            Your Top 3 Herbs
+            Three herbs matched to your Pattern
           </h2>
           <div className="space-y-4">
             {profile.herbs.slice(0, 3).map((herb, i) => (
@@ -215,7 +215,7 @@ const Results = () => {
             Your Starter Herb Kit
           </h2>
           <p className="font-body text-base leading-relaxed mb-6" style={{ color: "#1C3A2E" }}>
-            We curated the exact herbs for your body pattern on Amazon. One-click shopping list — everything you need to get started.
+            A starter set on Amazon — herbs aligned to your pattern so you can begin practicing in your own kitchen.
           </p>
           <a
             href={profile.amazonUrl}
