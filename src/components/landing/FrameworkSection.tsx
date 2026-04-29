@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { ROUTES } from "@/lib/routes";
 
 const axes = [
   {
@@ -61,7 +62,7 @@ const FrameworkSection = () => {
         </div>
 
         <div className="text-center mt-16">
-          <a href="/assessment">
+          <a href={ROUTES.ASSESSMENT}>
             <Button variant="eden" size="xl">
               → Take the Assessment
             </Button>

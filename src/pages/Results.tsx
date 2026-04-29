@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { constitutionProfiles } from "@/lib/constitution-data";
 import Navbar from "@/components/landing/Navbar";
+import { ROUTES } from "@/lib/routes";
 
 const slugToType: Record<string, string> = {
   "burning-bowstring": "Hot / Dry / Tense",
@@ -71,7 +72,7 @@ const Results = () => {
           <p className="font-body text-lg mb-8" style={{ color: "#1C3A2E" }}>
             We couldn't find that body pattern. Take the Pattern of Eden quiz to find yours.
           </p>
-          <Link to="/assessment">
+          <Link to={ROUTES.ASSESSMENT}>
             <Button variant="eden" size="xl">Take the Pattern of Eden Quiz</Button>
           </Link>
         </div>
@@ -96,7 +97,7 @@ const Results = () => {
             <p className="font-body text-sm mb-3" style={{ color: "#1C3A2E" }}>
               Save this Pattern to your Apothecary account so you can come back to it any time.
             </p>
-            <Link to="/apothecary/auth/signup">
+            <Link to={ROUTES.APOTHECARY_SIGNUP}>
               <Button variant="eden-outline" size="sm">
                 Sign up to save
               </Button>
@@ -136,7 +137,7 @@ const Results = () => {
               variant="eden"
               size="xl"
               className="w-full"
-              onClick={() => navigate("/apothecary")}
+              onClick={() => navigate(ROUTES.APOTHECARY)}
             >
               Continue to the Apothecary
             </Button>

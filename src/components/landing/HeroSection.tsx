@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import heroBg from "@/assets/hero-botanical.jpg";
 import WaitlistModal from "./WaitlistModal";
 import AssessmentModal from "./AssessmentModal";
+import { ROUTES } from "@/lib/routes";
 
 const APP_AUDIENCE_ID = "cebd3478-b344-41b7-98c8-8bcf0e0108da";
 
@@ -72,7 +73,7 @@ const HeroSection = () => {
         {/* Why Eden Banner */}
         <div className="mt-10 md:mt-14 animate-fade-in" style={{ animationDelay: "0.8s" }}>
           <a
-            href="/why-eden"
+            href={ROUTES.WHY_EDEN}
             className="inline-flex items-center gap-2 px-6 py-3 rounded border-2 font-serif text-sm md:text-base font-semibold tracking-wide transition-all hover:shadow-lg"
             style={{ borderColor: "#C5A44E", color: "#C5A44E", backgroundColor: "rgba(197,164,78,0.08)" }}
           >
