@@ -4,7 +4,12 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { X } from "lucide-react";
-import { constitutionProfiles, computeResult } from "@/lib/constitution-data";
+import {
+  constitutionProfiles,
+  computeResult,
+  isInconclusiveResult,
+  inconclusiveAxes,
+} from "@/lib/constitution-data";
 import { getNameFromType, getSlugFromType } from "@/lib/constitution-utils";
 
 interface Question {
@@ -89,6 +94,63 @@ const questions: Question[] = [
   ]},
 ];
 
+// Compute axis positions from -1.0 (fully one side) to +1.0 (fully other side)
+// for the inconclusive AxisSpectrum visual. Mirrors Assessment.tsx so the
+// same numeric scale renders identically across both quiz entry points.
+function computeAxisPositions(answers: Record<number, string>) {
+  let hot = 0, cold = 0, damp = 0, dry = 0, tense = 0, relaxed = 0;
+  for (const q of questions) {
+    const a = answers[q.id];
+    if (a === "Hot") hot++;
+    else if (a === "Cold") cold++;
+    else if (a === "Damp") damp++;
+    else if (a === "Dry") dry++;
+    else if (a === "Tense") tense++;
+    else if (a === "Relaxed") relaxed++;
+  }
+  return {
+    temperature: (hot - cold) / 4,
+    fluid: (damp - dry) / 4,
+    tone: (tense - relaxed) / 4,
+  };
+}
+
+interface AxisSpectrumProps {
+  axisLabel: string;
+  leftLabel: string;
+  rightLabel: string;
+  position: number;
+  isInconclusive: boolean;
+}
+
+function AxisSpectrum({ axisLabel, leftLabel, rightLabel, position, isInconclusive }: AxisSpectrumProps) {
+  const leftPct = 50 + position * 40;
+  const markerColor = isInconclusive ? "#C9A84C" : "#1C3A2E";
+  return (
+    <div className="mb-5">
+      <div className="flex items-baseline justify-between mb-1.5">
+        <span className="font-accent text-xs tracking-[0.15em] uppercase" style={{ color: "#1C3A2E" }}>{leftLabel}</span>
+        <span className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: isInconclusive ? "#C9A84C" : "hsl(30, 10%, 40%)" }}>
+          {axisLabel}{isInconclusive ? " — inconclusive" : ""}
+        </span>
+        <span className="font-accent text-xs tracking-[0.15em] uppercase" style={{ color: "#1C3A2E" }}>{rightLabel}</span>
+      </div>
+      <div className="relative h-3 rounded-full" style={{ backgroundColor: "hsl(40, 20%, 80%)" }}>
+        <div className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 w-px h-3" style={{ backgroundColor: "hsl(30, 10%, 40%)", opacity: 0.3 }} />
+        <div
+          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full transition-all"
+          style={{
+            left: `${leftPct}%`,
+            backgroundColor: markerColor,
+            border: "2px solid white",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
 interface AssessmentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -98,7 +160,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
   const navigate = useNavigate();
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [phase, setPhase] = useState<"intro" | "quiz" | "gate" | "results">("intro");
+  const [phase, setPhase] = useState<"intro" | "quiz" | "gate" | "inconclusive" | "results">("intro");
   const [transitioning, setTransitioning] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
@@ -106,8 +168,17 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Compute the result (and inconclusive metadata) when we're showing a
+  // result-bearing phase. The result is computed during quiz progression
+  // for the inconclusive branch as well — see handleAnswer.
   const constitutionType = (phase === "gate" || phase === "results") ? computeResult(answers) : "";
   const profile = constitutionType ? constitutionProfiles[constitutionType] : null;
+
+  // Inconclusive-phase metadata. computed regardless of phase so the
+  // axis-spectrum can render based on current answers state.
+  const currentResult = phase === "inconclusive" ? computeResult(answers) : "";
+  const neutralAxes = currentResult ? inconclusiveAxes(currentResult) : [];
+  const axisPositions = computeAxisPositions(answers);
 
   const q = questions[currentQ];
   const progress = phase === "quiz" ? ((currentQ + (answers[q.id] ? 1 : 0)) / questions.length) * 100 : 100;
@@ -117,17 +188,34 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
     if (currentQ === 0) {
       (window as any).gtag?.('event', 'quiz_start', { event_category: 'engagement' });
     }
-    setAnswers((prev) => ({ ...prev, [questionId]: score }));
-    setTransitioning(true);
-    setTimeout(() => {
-      if (currentQ < questions.length - 1) {
-        setCurrentQ((prev) => prev + 1);
-      } else {
-        setPhase("gate");
-      }
-      setTransitioning(false);
-    }, 400);
+    setAnswers((prev) => {
+      const next = { ...prev, [questionId]: score };
+      setTransitioning(true);
+      setTimeout(() => {
+        if (currentQ < questions.length - 1) {
+          setCurrentQ((p) => p + 1);
+        } else {
+          // Lock #39 — never silently default. If any axis is tied,
+          // route to the inconclusive surface instead of the gate.
+          const result = computeResult(next);
+          if (isInconclusiveResult(result)) {
+            setPhase("inconclusive");
+          } else {
+            setPhase("gate");
+          }
+        }
+        setTransitioning(false);
+      }, 400);
+      return next;
+    });
   }, [currentQ]);
+
+  const restartQuiz = useCallback(() => {
+    setAnswers({});
+    setCurrentQ(0);
+    setPhase("quiz");
+    setError("");
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -273,6 +361,73 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
                 ))}
               </div>
             </div>
+          </div>
+        )}
+
+        {phase === "inconclusive" && (
+          <div className="px-5 md:px-6 py-8 md:py-10">
+            <div className="text-center">
+              <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>
+                Pattern Inconclusive
+              </span>
+              <h2 className="font-serif text-xl md:text-2xl lg:text-3xl font-bold mt-3 mb-4" style={{ color: "#1C3A2E" }}>
+                Your responses didn't resolve to a clear Pattern.
+              </h2>
+            </div>
+
+            <div className="my-8 p-5 md:p-6 rounded" style={{ backgroundColor: "white", border: "1px solid hsl(40, 20%, 80%)" }}>
+              <p className="font-accent text-xs tracking-[0.2em] uppercase mb-5 text-center" style={{ color: "hsl(30, 10%, 40%)" }}>
+                Where you landed on each axis
+              </p>
+              <AxisSpectrum
+                axisLabel="Temperature"
+                leftLabel="Hot"
+                rightLabel="Cold"
+                position={axisPositions.temperature}
+                isInconclusive={neutralAxes.includes("temperature")}
+              />
+              <AxisSpectrum
+                axisLabel="Fluid"
+                leftLabel="Damp"
+                rightLabel="Dry"
+                position={axisPositions.fluid}
+                isInconclusive={neutralAxes.includes("fluid")}
+              />
+              <AxisSpectrum
+                axisLabel="Tone"
+                leftLabel="Tense"
+                rightLabel="Relaxed"
+                position={axisPositions.tone}
+                isInconclusive={neutralAxes.includes("tone")}
+              />
+            </div>
+
+            <div className="space-y-4 mb-8 text-left">
+              <p className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>
+                {neutralAxes.length === 1 ? (
+                  <>The <strong>{neutralAxes[0]}</strong> axis didn't resolve clearly — your marker landed near center because "varies" or "no preference" answers clustered there. Your body may genuinely be balanced on that axis, or the quiz may benefit from a more deliberate retake.</>
+                ) : (
+                  <>Multiple axes didn't resolve clearly (here: <strong>{neutralAxes.join(", ")}</strong>). Their markers landed near center because "varies" or "no preference" answers clustered there. Your body may genuinely be balanced on one or more of these axes, or the quiz may benefit from a more deliberate retake.</>
+                )}
+              </p>
+              <p className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>
+                We never default you to a Pattern when your responses don't clearly indicate one. The honest answer is: take a closer look at the questions and pick A or B whenever you can — the resolution improves quickly.
+              </p>
+            </div>
+
+            <Button
+              type="button"
+              variant="eden"
+              size="xl"
+              className="w-full min-h-[48px]"
+              onClick={restartQuiz}
+            >
+              Retake the quiz with more deliberate answers
+            </Button>
+
+            <p className="font-body text-xs italic mt-4 text-center" style={{ color: "hsl(30, 10%, 40%, 0.7)" }}>
+              Some constitutions are genuinely balanced on an axis — this is itself a clinical category, not a quiz failure. The Root-tier deeper diagnostic is built to resolve cases like this.
+            </p>
           </div>
         )}
 
