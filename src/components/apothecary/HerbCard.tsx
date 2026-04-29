@@ -306,6 +306,53 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
       className="rounded-lg border p-5 bg-background flex flex-col h-full"
       style={{ borderColor: "hsl(var(--border))" }}
     >
+      {/*
+        §8.1.3 (Manual v4.0) — Pattern-specific aggravation banner.
+        Promotes the chip-row Avoid badge into a top-of-card warning when
+        the herb's energetics oppose the user's resolved Eden Pattern. The
+        chip-row badge stays as the at-a-glance indicator; this banner is
+        the "you stopped to read this card, here's why" treatment. Reasons
+        live HERE for the avoid case (suppressed from the under-chip-row
+        list below) so the warning isn't duplicated.
+      */}
+      {matchRelationship === "avoid" &&
+        activePattern &&
+        matchReasons.length > 0 && (
+          <aside
+            role="note"
+            aria-label={`May aggravate your ${activePattern} pattern`}
+            className="-mx-5 -mt-5 mb-4 px-5 py-3 rounded-t-lg flex items-start gap-2.5 border-b"
+            style={{
+              backgroundColor: "hsl(var(--destructive) / 0.08)",
+              borderColor: "hsl(var(--destructive) / 0.25)",
+            }}
+          >
+            <ShieldAlert
+              className="w-4 h-4 mt-0.5 shrink-0"
+              style={{ color: "hsl(var(--destructive))" }}
+              aria-hidden="true"
+            />
+            <div className="flex-1 min-w-0">
+              <p
+                className="font-accent text-[10px] tracking-[0.25em] uppercase mb-1"
+                style={{ color: "hsl(var(--destructive))" }}
+              >
+                May aggravate your {activePattern}
+              </p>
+              <ul className="font-body text-xs leading-relaxed space-y-0.5">
+                {matchReasons.map((reason) => (
+                  <li
+                    key={reason}
+                    style={{ color: "hsl(var(--destructive))" }}
+                  >
+                    {reason}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </aside>
+        )}
+
       <header>
         <h3
           className="font-serif text-xl font-semibold leading-tight"
@@ -414,32 +461,25 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
       </div>
 
       {/*
-        §8.1.2 — stewardship-language reasons under the chip row. Surfaces
-        WHY this herb matches or avoids the user's Pattern, in terrain-first
-        prose. Skipped on neutral relationships to keep the card clean.
+        §8.1.2 + §8.1.3 — stewardship-language reasons under the chip row.
+        For MATCH: surfaces WHY this herb suits the user's Pattern in
+        terrain-first prose, beneath the Match badge. For AVOID: reasons
+        live in the §8.1.3 top-of-card aggravation banner above and are
+        suppressed here to avoid duplication. For NEUTRAL: nothing to say.
       */}
-      {matchReasons.length > 0 && (
+      {matchReasons.length > 0 && matchRelationship === "match" && (
         <ul
           className="mt-3 space-y-0.5"
-          aria-label={
-            matchRelationship === "match"
-              ? "Why this herb matches your Pattern"
-              : "Why this herb may aggravate your Pattern"
-          }
+          aria-label="Why this herb matches your Pattern"
         >
           {matchReasons.map((reason) => (
             <li
               key={reason}
               className="font-body text-xs italic leading-relaxed flex items-start gap-1.5"
-              style={{
-                color:
-                  matchRelationship === "match"
-                    ? "hsl(var(--eden-gold))"
-                    : "hsl(var(--destructive))",
-              }}
+              style={{ color: "hsl(var(--eden-gold))" }}
             >
               <span aria-hidden="true" className="mt-[3px] shrink-0">
-                {matchRelationship === "match" ? "·" : "·"}
+                ·
               </span>
               <span>{reason}</span>
             </li>
