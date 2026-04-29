@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { PublicTierCard } from "@/components/apothecary/PublicTierCard";
 import { Button } from "@/components/ui/button";
+import { ROUTES } from "@/lib/routes";
 
 /**
  * Public tier-select landing page (`/apothecary/start`).
@@ -24,7 +25,7 @@ export default function Start() {
 
   useEffect(() => {
     if (!loading && user) {
-      navigate("/apothecary", { replace: true });
+      navigate(ROUTES.APOTHECARY, { replace: true });
     }
   }, [user, loading, navigate]);
 
@@ -56,10 +57,10 @@ export default function Start() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button variant="eden" size="lg" asChild>
-              <Link to="/apothecary/auth/signup">Open the app — free</Link>
+              <Link to={ROUTES.APOTHECARY_SIGNUP}>Open the app — free</Link>
             </Button>
             <Button variant="eden-outline" size="lg" asChild>
-              <Link to="/apothecary/auth/signin">Sign in</Link>
+              <Link to={ROUTES.APOTHECARY_SIGNIN}>Sign in</Link>
             </Button>
           </div>
           <p className="font-body text-xs text-muted-foreground mt-4">
@@ -283,7 +284,7 @@ export default function Start() {
           </dl>
           <div className="text-center mt-12">
             <Button variant="eden" size="lg" asChild>
-              <Link to="/apothecary/auth/signup">
+              <Link to={ROUTES.APOTHECARY_SIGNUP}>
                 Open the app — free
               </Link>
             </Button>
