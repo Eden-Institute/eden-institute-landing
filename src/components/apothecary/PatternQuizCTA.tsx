@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { ROUTES } from "@/lib/routes";
 import type { PersonProfile } from "@/contexts/ActiveProfileContext";
 
 /**
@@ -26,7 +27,7 @@ import type { PersonProfile } from "@/contexts/ActiveProfileContext";
  * the apothecary surfaces; no urgency tactics (Manual §0.8 #19).
  */
 export function PatternQuizCTA({ profile }: { profile: PersonProfile }) {
-  const href = `/apothecary/quiz?profileId=${encodeURIComponent(profile.id)}`;
+  const href = `${ROUTES.APOTHECARY_QUIZ}?profileId=${encodeURIComponent(profile.id)}`;
   const isSelf = profile.is_self;
 
   return (

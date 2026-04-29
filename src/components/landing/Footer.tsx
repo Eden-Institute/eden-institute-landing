@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { ROUTES } from "@/lib/routes";
 
 const FOOTER_BG_IMG = "https://images.unsplash.com/photo-1726996155615-e986ed87c9d4?auto=format&fit=crop&w=1920&q=80";
 
@@ -31,19 +32,19 @@ const Footer = () => {
             </p>
 
             <div className="mt-6 flex items-center justify-center gap-2 text-xs font-body flex-wrap" style={{ color: "hsl(var(--eden-parchment) / 0.3)" }}>
-              <Link to="/why-eden" className="hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
+              <Link to={ROUTES.WHY_EDEN} className="hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
                 Why Eden
               </Link>
               <span>|</span>
-              <Link to="/terms" className="hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
+              <Link to={ROUTES.TERMS} className="hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
                 Terms &amp; Conditions
               </Link>
               <span>|</span>
-              <Link to="/privacy" className="hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
+              <Link to={ROUTES.PRIVACY} className="hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
                 Privacy Policy
               </Link>
               <span>|</span>
-              <Link to="/cookies" className="hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
+              <Link to={ROUTES.COOKIES} className="hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
                 Cookie Policy
               </Link>
             </div>

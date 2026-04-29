@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import type { Session, User } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { ROUTES } from "@/lib/routes";
 
 interface AuthContextValue {
   session: Session | null;
@@ -32,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange((event, newSession) => {
       setSession(newSession);
       if (event === "PASSWORD_RECOVERY") {
-        navigate("/apothecary/auth/update-password", { replace: true });
+        navigate(ROUTES.APOTHECARY_UPDATE_PASSWORD, { replace: true });
       }
     });
 
