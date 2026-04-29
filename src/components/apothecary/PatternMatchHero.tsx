@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDiagnosticProfile } from "@/hooks/useDiagnosticProfile";
 import { PATTERN_PROFILES } from "@/lib/edenPattern";
+import { ROUTES } from "@/lib/routes";
 import { type DiagnosticProfile, hasFullDiagnosticDepth } from "@/lib/diagnosticProfile";
 
 /**
@@ -90,7 +91,7 @@ export function PatternMatchHero() {
           </div>
           <div className="mt-6 md:mt-0 md:flex-shrink-0">
             <Button asChild variant="eden" size="xl" className="min-h-[44px]">
-              <Link to="/assessment">→ Take the Body Pattern Quiz</Link>
+              <Link to={ROUTES.ASSESSMENT}>→ Take the Body Pattern Quiz</Link>
             </Button>
           </div>
         </div>

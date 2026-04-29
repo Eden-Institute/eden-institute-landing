@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getFullGuide } from "@/lib/guide-registry";
 import GuideTemplate from "@/components/guide/GuideTemplate";
 import Navbar from "@/components/landing/Navbar";
+import { ROUTES } from "@/lib/routes";
 
 const GuideSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -15,7 +16,7 @@ const GuideSuccess = () => {
   useEffect(() => {
     const sessionId = searchParams.get("session_id");
     if (!sessionId) {
-      navigate("/assessment");
+      navigate(ROUTES.ASSESSMENT);
       return;
     }
 
@@ -31,7 +32,7 @@ const GuideSuccess = () => {
         setNickname(data.constitution_nickname);
       } catch (err: any) {
         setError(err.message || "Payment verification failed");
-        setTimeout(() => navigate("/assessment"), 3000);
+        setTimeout(() => navigate(ROUTES.ASSESSMENT), 3000);
       } finally {
         setLoading(false);
       }

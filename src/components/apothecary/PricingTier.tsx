@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { CheckoutButton } from "./CheckoutButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrentTier, Tier } from "@/hooks/useCurrentTier";
+import { ROUTES } from "@/lib/routes";
 
 interface Props {
   tier: "free" | "seed" | "root";
@@ -63,7 +64,7 @@ export function PricingTier({
     if (!isAuthed) {
       cta = (
         <Button variant="eden-outline" size="lg" className="w-full" asChild>
-          <Link to="/apothecary/auth/signup">Create a free account</Link>
+          <Link to={ROUTES.APOTHECARY_SIGNUP}>Create a free account</Link>
         </Button>
       );
     } else if (thisIsCurrent) {
