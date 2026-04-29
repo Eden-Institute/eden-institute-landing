@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import WhyEden from "./pages/WhyEden";
@@ -49,6 +49,17 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/why-eden" element={<WhyEden />} />
             <Route path="/assessment" element={<Assessment />} />
+            {/* v4.1.1 hotfix — defensive alias for the public quiz route.
+                The Navbar's state-aware CTA briefly pointed at /quiz (PR #65)
+                and PR #74 mounted the Navbar globally, exposing the dead
+                URL on every page. Real visitors clicking the CTA landed on
+                <NotFound /> and lost their attempts before any payload was
+                ever sent. /assessment is the canonical route per this file;
+                /quiz now redirects there so any stale browser cache,
+                externally-shared link, or future stray reference is
+                non-fatal. Replaces a missing-route 404 with a route the
+                router knows exists. */}
+            <Route path="/quiz" element={<Navigate to="/assessment" replace />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/cookies" element={<Cookies />} />
