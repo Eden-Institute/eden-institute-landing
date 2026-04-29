@@ -129,7 +129,7 @@ export default function Welcome() {
             </h1>
             <p className="font-body text-muted-foreground">
               Give us a moment — we're verifying the payment with Stripe and
-              unlocking your access.
+              opening the full library to you.
             </p>
           </>
         )}
