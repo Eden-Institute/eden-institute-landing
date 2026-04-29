@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useActiveProfileOptional } from "@/contexts/ActiveProfileContext";
 import { useQueryClient } from "@tanstack/react-query";
 import Navbar from "@/components/landing/Navbar";
+import { ROUTES } from "@/lib/routes";
 
 interface Question {
   id: number;
@@ -250,7 +251,7 @@ const Assessment = () => {
   useEffect(() => {
     if (phase === "diagnostic-saved") {
       const t = setTimeout(() => {
-        navigate("/apothecary/start", { replace: true });
+        navigate(ROUTES.APOTHECARY_START, { replace: true });
       }, 2000);
       return () => clearTimeout(t);
     }
@@ -304,7 +305,7 @@ const Assessment = () => {
         .replace(/^The\s+/i, "")
         .toLowerCase()
         .replace(/\s+/g, "-");
-      navigate(`/results/${slugForRedirect}`, { replace: true });
+      navigate(ROUTES.RESULTS(slugForRedirect), { replace: true });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
       setError(message);
@@ -384,7 +385,7 @@ const Assessment = () => {
         <p className="font-body text-base mb-6" style={{ color: "#1C3A2E" }}>
           The profile you tried to take the quiz for doesn't belong to your account or no longer exists.
         </p>
-        <Button variant="eden" size="lg" onClick={() => navigate("/apothecary/profiles")}>
+        <Button variant="eden" size="lg" onClick={() => navigate(ROUTES.APOTHECARY_PROFILES)}>
           Manage profiles
         </Button>
       </div>
