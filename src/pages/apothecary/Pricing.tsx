@@ -25,11 +25,11 @@ export default function Pricing() {
           >
             App plans for every stage
             <br />
-            <span className="italic">of the journey.</span>
+            <span className="italic">of the practice.</span>
           </h1>
           <p className="font-body text-lg text-muted-foreground max-w-2xl mx-auto">
             Free access to the herb directory and constitutional quiz. Paid
-            tiers unlock the full clinical depth — actions, tissue states, and
+            tiers open the full clinical depth — actions, tissue states, and
             contraindications for every herb.
           </p>
         </div>
