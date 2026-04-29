@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrentTier, Tier } from "@/hooks/useCurrentTier";
+import { ROUTES } from "@/lib/routes";
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
 
 type Status = "verifying" | "confirmed" | "not_paid" | "missing_session" | "error";
@@ -108,7 +109,7 @@ export default function Welcome() {
 
   if (!user) {
     // A rare edge case: not signed in but hit /welcome. Redirect to signin.
-    navigate("/apothecary/auth/signin", { replace: true });
+    navigate(ROUTES.APOTHECARY_SIGNIN, { replace: true });
     return null;
   }
 
@@ -163,10 +164,10 @@ export default function Welcome() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
               <Button variant="eden" size="lg" asChild>
-                <Link to="/apothecary">Go to Apothecary home</Link>
+                <Link to={ROUTES.APOTHECARY}>Go to Apothecary home</Link>
               </Button>
               <Button variant="eden-outline" size="lg" asChild>
-                <Link to="/apothecary/pricing">View plan details</Link>
+                <Link to={ROUTES.APOTHECARY_PRICING}>View plan details</Link>
               </Button>
             </div>
           </>
@@ -189,7 +190,7 @@ export default function Welcome() {
               You can try again from the pricing page.
             </p>
             <Button variant="eden" size="lg" asChild>
-              <Link to="/apothecary/pricing">Back to pricing</Link>
+              <Link to={ROUTES.APOTHECARY_PRICING}>Back to pricing</Link>
             </Button>
           </>
         )}
@@ -211,7 +212,7 @@ export default function Welcome() {
               here another way, head back to the Apothecary home.
             </p>
             <Button variant="eden" size="lg" asChild>
-              <Link to="/apothecary">Go to Apothecary home</Link>
+              <Link to={ROUTES.APOTHECARY}>Go to Apothecary home</Link>
             </Button>
           </>
         )}
@@ -233,7 +234,7 @@ export default function Welcome() {
                 "Something went wrong on our side. Your payment may still have processed — check your email for a Stripe receipt, or contact us at hello@edeninstitute.health."}
             </p>
             <Button variant="eden" size="lg" asChild>
-              <Link to="/apothecary">Back to Apothecary home</Link>
+              <Link to={ROUTES.APOTHECARY}>Back to Apothecary home</Link>
             </Button>
           </>
         )}
