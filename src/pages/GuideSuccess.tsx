@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { getFullGuide } from "@/lib/guide-registry";
 import GuideTemplate from "@/components/guide/GuideTemplate";
+import Navbar from "@/components/landing/Navbar";
 
 const GuideSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -41,38 +42,52 @@ const GuideSuccess = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#F5F0E8" }}>
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 rounded-full animate-spin mx-auto mb-4" style={{ borderColor: "#C5A44E", borderTopColor: "transparent" }} />
-          <p className="font-serif text-lg" style={{ color: "#2C3E2D" }}>Verifying your purchase…</p>
+      <>
+        <Navbar />
+        <div className="min-h-[calc(100vh-72px)] flex items-center justify-center" style={{ backgroundColor: "#F5F0E8" }}>
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 rounded-full animate-spin mx-auto mb-4" style={{ borderColor: "#C5A44E", borderTopColor: "transparent" }} />
+            <p className="font-serif text-lg" style={{ color: "#2C3E2D" }}>Verifying your purchase…</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   if (error || !nickname) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#F5F0E8" }}>
-        <div className="text-center max-w-md px-6">
-          <p className="font-serif text-xl mb-4" style={{ color: "#2C3E2D" }}>Payment verification failed</p>
-          <p className="font-body text-sm" style={{ color: "#6B6560" }}>Redirecting you back to the assessment…</p>
+      <>
+        <Navbar />
+        <div className="min-h-[calc(100vh-72px)] flex items-center justify-center" style={{ backgroundColor: "#F5F0E8" }}>
+          <div className="text-center max-w-md px-6">
+            <p className="font-serif text-xl mb-4" style={{ color: "#2C3E2D" }}>Payment verification failed</p>
+            <p className="font-body text-sm" style={{ color: "#6B6560" }}>Redirecting you back to the assessment…</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   const fullGuide = getFullGuide(nickname);
   if (fullGuide) {
-    return <GuideTemplate guide={fullGuide} />;
+    return (
+      <>
+        <Navbar />
+        <GuideTemplate guide={fullGuide} />
+      </>
+    );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#F5F0E8" }}>
-      <div className="text-center max-w-md px-6">
-        <p className="font-serif text-xl mb-4" style={{ color: "#2C3E2D" }}>Guide not found</p>
-        <p className="font-body text-sm" style={{ color: "#6B6560" }}>We couldn't load your guide. Please contact support.</p>
+    <>
+      <Navbar />
+      <div className="min-h-[calc(100vh-72px)] flex items-center justify-center" style={{ backgroundColor: "#F5F0E8" }}>
+        <div className="text-center max-w-md px-6">
+          <p className="font-serif text-xl mb-4" style={{ color: "#2C3E2D" }}>Guide not found</p>
+          <p className="font-body text-sm" style={{ color: "#6B6560" }}>We couldn't load your guide. Please contact support.</p>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

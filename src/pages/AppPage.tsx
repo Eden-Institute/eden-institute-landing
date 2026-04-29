@@ -1,47 +1,18 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import WaitlistModal from "@/components/landing/WaitlistModal";
 import { Smartphone, Leaf, Shield, Star } from "lucide-react";
 import { WorldviewBand } from "@/components/landing/WorldviewBand";
 
 const APP_AUD = "cebd3478-b344-41b7-98c8-8bcf0e0108da";
-const NAV = [
-  { to: "/", label: "Home" },
-  { to: "/courses", label: "Courses" },
-  { to: "/app", label: "App" },
-  { to: "/homeschool", label: "Homeschool" },
-  { to: "/community", label: "Community" },
-  { to: "/why-eden", label: "Why Eden" },
-];
 
 const AppPage = () => {
   const [open, setOpen] = useState(false);
   return (
     <div className="min-h-screen bg-background">
-      <nav className="border-b border-border/40 bg-background sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="font-serif text-xl font-semibold" style={{ color: "hsl(var(--eden-bark))" }}>
-            The Eden Institute
-          </Link>
-          <div className="hidden md:flex items-center gap-6">
-            {NAV.map((n) => (
-              <Link
-                key={n.to}
-                to={n.to}
-                className={`font-body text-sm transition-colors ${n.to === "/app" ? "font-medium" : "text-muted-foreground hover:text-foreground"}`}
-                style={n.to === "/app" ? { color: "hsl(var(--eden-bark))" } : {}}
-              >
-                {n.label}
-              </Link>
-            ))}
-          </div>
-          <Button variant="eden" size="sm" onClick={() => setOpen(true)}>
-            Join Beta
-          </Button>
-        </div>
-      </nav>
+      <Navbar />
 
       <section className="py-20 md:py-28 px-6" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
         <div className="max-w-4xl mx-auto text-center">

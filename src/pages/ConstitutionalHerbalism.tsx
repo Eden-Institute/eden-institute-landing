@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import AssessmentModal from "@/components/landing/AssessmentModal";
+import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import ScrollReveal from "@/components/landing/ScrollReveal";
 import { GoldDivider } from "@/components/landing/BotanicalAccents";
@@ -54,35 +54,13 @@ const ConstitutionalHerbalism = () => {
 
   return (
     <main className="min-h-screen overflow-x-hidden">
-      {/* NAV BAR */}
-      <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-sm border-b" style={{ backgroundColor: "hsla(40, 40%, 97%, 0.95)", borderColor: "hsl(var(--eden-gold) / 0.2)" }}>
-        <div className="eden-container flex items-center justify-between py-3 px-6">
-          <Link to="/" className="font-serif text-lg font-semibold" style={{ color: "hsl(var(--eden-forest))" }}>
-            The Eden Institute
-          </Link>
-          <div className="flex items-center gap-6">
-            <Link to="/" className="font-body text-sm hover:opacity-80 transition-colors hidden sm:inline" style={{ color: "hsl(var(--eden-forest))" }}>
-              Home
-            </Link>
-            <Link to="/why-eden" className="font-body text-sm hover:opacity-80 transition-colors hidden sm:inline" style={{ color: "hsl(var(--eden-forest))" }}>
-              Why Eden
-            </Link>
-            <button
-              onClick={() => setAssessmentModal(true)}
-              className="font-body text-sm font-semibold px-4 py-1.5 rounded transition-all hover:opacity-90"
-              style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}
-            >
-              Free Quiz
-            </button>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* HERO */}
       <section className="relative min-h-[55vh] flex items-center overflow-hidden">
         <img src={HERO_IMG} alt="Rustic apothecary with dried herbs" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, hsla(40, 33%, 93%, 0.88) 0%, hsla(40, 33%, 93%, 0.82) 60%, hsla(40, 33%, 93%, 0.92) 100%)" }} />
-        <div className="relative z-10 eden-container text-center max-w-4xl mx-auto px-6 pt-28 pb-20 md:pt-36 md:pb-24">
+        <div className="relative z-10 eden-container text-center max-w-4xl mx-auto px-6 pt-20 pb-20 md:pt-24 md:pb-24">
           <ScrollReveal>
             <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6" style={{ color: "hsl(var(--eden-bark))" }}>
               What Is Constitutional Herbalism?

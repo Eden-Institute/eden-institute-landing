@@ -5,6 +5,7 @@ import { getFullGuide } from "@/lib/guide-registry";
 import GuideTemplate from "@/components/guide/GuideTemplate";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import Navbar from "@/components/landing/Navbar";
 
 // Map slug → constitution type key
 const slugToType: Record<string, string> = {};
@@ -95,12 +96,15 @@ const GuideLanding = () => {
   // Show loading spinner during verification
   if (verifying) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#F5F0E8" }}>
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 rounded-full animate-spin mx-auto mb-4" style={{ borderColor: "#C5A44E", borderTopColor: "transparent" }} />
-          <p className="font-serif text-lg" style={{ color: "#2C3E2D" }}>Verifying your purchase…</p>
+      <>
+        <Navbar />
+        <div className="min-h-[calc(100vh-72px)] flex items-center justify-center" style={{ backgroundColor: "#F5F0E8" }}>
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 rounded-full animate-spin mx-auto mb-4" style={{ borderColor: "#C5A44E", borderTopColor: "transparent" }} />
+            <p className="font-serif text-lg" style={{ color: "#2C3E2D" }}>Verifying your purchase…</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -108,7 +112,12 @@ const GuideLanding = () => {
   if (paid) {
     const fullGuide = getFullGuide(profile.nickname);
     if (fullGuide) {
-      return <GuideTemplate guide={fullGuide} />;
+      return (
+        <>
+          <Navbar />
+          <GuideTemplate guide={fullGuide} />
+        </>
+      );
     }
   }
 
@@ -146,115 +155,118 @@ const GuideLanding = () => {
   const displayName = profile.nickname.replace(/^The\s+/i, "");
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#F5F0E8" }}>
-      {/* Header */}
-      <header className="py-6 border-b" style={{ borderColor: "hsl(40, 20%, 80%)" }}>
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <p className="font-serif text-xs tracking-[0.25em] uppercase" style={{ color: "#C5A44E" }}>
-            The Eden Institute
-          </p>
-        </div>
-      </header>
-
-      <main className="max-w-2xl mx-auto px-6 py-12">
-        {/* Type badge */}
-        <div className="text-center mb-8">
-          <span
-            className="inline-block text-xs tracking-[0.2em] uppercase font-bold px-4 py-1.5 rounded-full"
-            style={{ backgroundColor: "#2C3E2D", color: "#C5A44E" }}
-          >
-            Your Body Pattern
-          </span>
-        </div>
-
-        <h1 className="font-serif text-3xl md:text-4xl font-bold text-center mb-3" style={{ color: "#2C3E2D" }}>
-          {profile.nickname}
-        </h1>
-        <p className="font-serif text-lg text-center italic mb-8" style={{ color: "#5C7A5C" }}>
-          {profile.tagline}
-        </p>
-
-        {/* Description */}
-        <div className="rounded-lg p-6 mb-8" style={{ backgroundColor: "#FFFFFF", border: "1px solid hsl(40, 20%, 85%)" }}>
-          {profile.description.map((para, i) => (
-            <p key={i} className="font-body text-base leading-relaxed mb-4 last:mb-0" style={{ color: "#3D3832" }}>
-              {para}
+    <>
+      <Navbar />
+      <div className="min-h-screen" style={{ backgroundColor: "#F5F0E8" }}>
+        {/* Header */}
+        <header className="py-6 border-b" style={{ borderColor: "hsl(40, 20%, 80%)" }}>
+          <div className="max-w-3xl mx-auto px-6 text-center">
+            <p className="font-serif text-xs tracking-[0.25em] uppercase" style={{ color: "#C5A44E" }}>
+              The Eden Institute
             </p>
-          ))}
-        </div>
+          </div>
+        </header>
 
-        {/* Herb teaser */}
-        <div className="mb-8">
-          <h2 className="font-serif text-xl font-bold mb-4" style={{ color: "#2C3E2D" }}>
-            Three herbs matched to your Pattern
-          </h2>
-          <div className="space-y-3">
-            {profile.herbs.slice(0, 3).map((herb, i) => (
-              <div
-                key={i}
-                className="rounded-lg p-4 flex items-start gap-3"
-                style={{ backgroundColor: "#FFFFFF", border: "1px solid hsl(40, 20%, 85%)" }}
-              >
-                <span className="font-serif font-bold text-lg" style={{ color: "#C5A44E" }}>{i + 1}</span>
-                <div>
-                  <p className="font-serif font-bold" style={{ color: "#2C3E2D" }}>{herb.name}</p>
-                  <p className="text-sm" style={{ color: "#6B6560" }}>{herb.note}</p>
-                </div>
-              </div>
+        <main className="max-w-2xl mx-auto px-6 py-12">
+          {/* Type badge */}
+          <div className="text-center mb-8">
+            <span
+              className="inline-block text-xs tracking-[0.2em] uppercase font-bold px-4 py-1.5 rounded-full"
+              style={{ backgroundColor: "#2C3E2D", color: "#C5A44E" }}
+            >
+              Your Body Pattern
+            </span>
+          </div>
+
+          <h1 className="font-serif text-3xl md:text-4xl font-bold text-center mb-3" style={{ color: "#2C3E2D" }}>
+            {profile.nickname}
+          </h1>
+          <p className="font-serif text-lg text-center italic mb-8" style={{ color: "#5C7A5C" }}>
+            {profile.tagline}
+          </p>
+
+          {/* Description */}
+          <div className="rounded-lg p-6 mb-8" style={{ backgroundColor: "#FFFFFF", border: "1px solid hsl(40, 20%, 85%)" }}>
+            {profile.description.map((para, i) => (
+              <p key={i} className="font-body text-base leading-relaxed mb-4 last:mb-0" style={{ color: "#3D3832" }}>
+                {para}
+              </p>
             ))}
           </div>
-        </div>
 
-        {/* Upsell CTA */}
-        <div
-          className="rounded-lg p-8 text-center mb-8"
-          style={{ backgroundColor: "#2C3E2D" }}
-        >
-          <p className="text-xs tracking-[0.2em] uppercase font-bold mb-3" style={{ color: "#C5A44E" }}>
-            Want the full picture?
-          </p>
-          <h3 className="font-serif text-2xl font-bold mb-3" style={{ color: "#F5F0E8" }}>
-            Your Complete Deep-Dive Guide
-          </h3>
-          <p className="font-body text-sm mb-2" style={{ color: "#C5C0B8" }}>
-            All 10 herbs with preparation methods • Biblical framework for your type
-          </p>
-          <p className="font-body text-sm mb-6" style={{ color: "#C5C0B8" }}>
-            Lifestyle protocol • Historical context • Printable PDF
-          </p>
+          {/* Herb teaser */}
+          <div className="mb-8">
+            <h2 className="font-serif text-xl font-bold mb-4" style={{ color: "#2C3E2D" }}>
+              Three herbs matched to your Pattern
+            </h2>
+            <div className="space-y-3">
+              {profile.herbs.slice(0, 3).map((herb, i) => (
+                <div
+                  key={i}
+                  className="rounded-lg p-4 flex items-start gap-3"
+                  style={{ backgroundColor: "#FFFFFF", border: "1px solid hsl(40, 20%, 85%)" }}
+                >
+                  <span className="font-serif font-bold text-lg" style={{ color: "#C5A44E" }}>{i + 1}</span>
+                  <div>
+                    <p className="font-serif font-bold" style={{ color: "#2C3E2D" }}>{herb.name}</p>
+                    <p className="text-sm" style={{ color: "#6B6560" }}>{herb.note}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
-          <button
-            onClick={handleCheckout}
-            disabled={checkoutLoading}
-            className="inline-block font-serif text-sm font-bold tracking-[0.15em] uppercase px-8 py-4 rounded transition-opacity disabled:opacity-60"
-            style={{ backgroundColor: "#C5A44E", color: "#2C3E2D" }}
+          {/* Upsell CTA */}
+          <div
+            className="rounded-lg p-8 text-center mb-8"
+            style={{ backgroundColor: "#2C3E2D" }}
           >
-            {checkoutLoading ? "Loading…" : `Get Your ${displayName} Guide — $14`}
-          </button>
+            <p className="text-xs tracking-[0.2em] uppercase font-bold mb-3" style={{ color: "#C5A44E" }}>
+              Want the full picture?
+            </p>
+            <h3 className="font-serif text-2xl font-bold mb-3" style={{ color: "#F5F0E8" }}>
+              Your Complete Deep-Dive Guide
+            </h3>
+            <p className="font-body text-sm mb-2" style={{ color: "#C5C0B8" }}>
+              All 10 herbs with preparation methods • Biblical framework for your type
+            </p>
+            <p className="font-body text-sm mb-6" style={{ color: "#C5C0B8" }}>
+              Lifestyle protocol • Historical context • Printable PDF
+            </p>
 
-          {error && (
-            <p className="text-sm mt-3" style={{ color: "#E57373" }}>{error}</p>
-          )}
-        </div>
+            <button
+              onClick={handleCheckout}
+              disabled={checkoutLoading}
+              className="inline-block font-serif text-sm font-bold tracking-[0.15em] uppercase px-8 py-4 rounded transition-opacity disabled:opacity-60"
+              style={{ backgroundColor: "#C5A44E", color: "#2C3E2D" }}
+            >
+              {checkoutLoading ? "Loading…" : `Get Your ${displayName} Guide — $14`}
+            </button>
 
-        {/* Amazon kit link */}
-        <div className="text-center">
-          <a
-            href={profile.amazonUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block font-serif text-sm font-bold tracking-[0.1em] uppercase px-6 py-3 rounded transition-colors"
-            style={{
-              backgroundColor: "transparent",
-              color: "#2C3E2D",
-              border: "2px solid #2C3E2D",
-            }}
-          >
-            Shop Your Starter Herb Kit →
-          </a>
-        </div>
-      </main>
-    </div>
+            {error && (
+              <p className="text-sm mt-3" style={{ color: "#E57373" }}>{error}</p>
+            )}
+          </div>
+
+          {/* Amazon kit link */}
+          <div className="text-center">
+            <a
+              href={profile.amazonUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block font-serif text-sm font-bold tracking-[0.1em] uppercase px-6 py-3 rounded transition-colors"
+              style={{
+                backgroundColor: "transparent",
+                color: "#2C3E2D",
+                border: "2px solid #2C3E2D",
+              }}
+            >
+              Shop Your Starter Herb Kit →
+            </a>
+          </div>
+        </main>
+      </div>
+    </>
   );
 };
 
