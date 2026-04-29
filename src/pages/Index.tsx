@@ -9,6 +9,7 @@ import { BotanicalLeafTopRight, BotanicalLeafBottomLeft, GoldDivider } from "@/c
 import ScrollReveal from "@/components/landing/ScrollReveal";
 import { WorldviewBand } from "@/components/landing/WorldviewBand";
 import { WelcomeBackBanner } from "@/components/landing/WelcomeBackBanner";
+import { ROUTES } from "@/lib/routes";
 
 // Unsplash photography
 const HERO_IMG = "https://images.unsplash.com/photo-1659328376647-52ec39d1a5cf?auto=format&fit=crop&w=1920&q=80";
@@ -231,7 +232,7 @@ const Index = () => {
       {/* ─── BANNER: What Makes Us Different ─── */}
       <section className="py-5 md:py-6 px-6" style={{ backgroundColor: "hsl(var(--eden-gold))" }}>
         <div className="eden-container">
-          <Link to="/why-eden" className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 group text-center">
+          <Link to={ROUTES.WHY_EDEN} className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 group text-center">
             <span
               className="font-serif text-base sm:text-lg md:text-xl font-semibold tracking-wide"
               style={{ color: "hsl(var(--eden-bark))" }}
@@ -296,7 +297,7 @@ const Index = () => {
                 <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.8)" }}>
                   Go clinical. 14 modules. 127 lessons. Every major body system studied through a terrain lens with Scripture as the anchor. This is where students stop dabbling and start practicing.
                 </p>
-                <Link to="/courses" className="font-body text-sm font-semibold mt-6 block" style={{ color: "hsl(var(--eden-forest))" }}>
+                <Link to={ROUTES.COURSES} className="font-body text-sm font-semibold mt-6 block" style={{ color: "hsl(var(--eden-forest))" }}>
                   Join the Waitlist →
                 </Link>
               </div>
@@ -304,7 +305,7 @@ const Index = () => {
 
             {/* Card 3 — Homeschool */}
             <ScrollReveal delay={300}>
-              <Link to="/homeschool"
+              <Link to={ROUTES.HOMESCHOOL}
                 className="block rounded-sm border p-8 hover:shadow-md transition-shadow duration-300 h-full"
                 style={{ backgroundColor: "hsl(var(--eden-parchment))", borderColor: "hsl(var(--eden-gold) / 0.3)" }}>
                 <ClipboardList className="mb-4 w-7 h-7" style={{ color: "hsl(var(--eden-gold))" }} />
@@ -603,7 +604,7 @@ const Index = () => {
                     built with academic rigor. We don't sell supplement stacks or weekend certifications. We teach you
                     to read the body, understand the terrain, and match the person to the plant.
                   </p>
-                  <Link to="/why-eden">
+                  <Link to={ROUTES.WHY_EDEN}>
                     <Button variant="eden" size="xl" className="min-h-[48px] text-sm sm:text-base px-8">
                       Learn More About the Program →
                     </Button>
