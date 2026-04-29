@@ -1,11 +1,18 @@
-// replay-quiz-completion-failures v1 — cron-driven worker that drains the
+// replay-quiz-completion-failures v2 — cron-driven worker that drains the
 // quiz_completion_failures dead-letter queue.
 //
+// v2 (2026-04-29): aligned auth pattern with the existing nurture-emails Lock #48
+// consumer. v1 had defense-in-depth CRON_SECRET check at this layer too, but
+// CRON_SECRET is only set in Vercel env (not Supabase EF secrets), so v1 returned
+// 500 'Server misconfigured' on every call. v2 drops the EF-layer CRON_SECRET
+// check; the Vercel Edge fn at /api/cron/replay-quiz-failures already enforces
+// CRON_SECRET on its incoming request. Same auth posture as nurture-emails.
+//
 // Architecture (mirror of Lock #48 nurture-emails consumer):
-//   - Vercel cron POSTs every 30 min to /api/cron/replay-quiz-failures with
-//     Authorization: Bearer ${CRON_SECRET}.
-//   - That Vercel Edge function forwards the request here with the service-role
-//     key. We re-verify CRON_SECRET defensively (defense in depth) and drain.
+//   - Vercel cron POSTs every 30 min to /api/cron/replay-quiz-failures with the
+//     auto-injected `Authorization: Bearer ${CRON_SECRET}` header. That Vercel
+//     Edge fn verifies CRON_SECRET, then forwards here with the service-role
+//     key in Authorization.
 //
 // Drain semantics:
 //   - Pull oldest 10 unresolved rows.
@@ -15,13 +22,6 @@
 //     bump retry counters.
 //   - On non-2xx: increment retry_count, record last_retry_status + body. Row
 //     stays unresolved — next cron tick retries.
-//   - Defensive: if a row hits retry_count ≥ 20 (10 hours of retries at 30-min
-//     cadence), still retry but leave a note suggesting manual triage.
-//
-// Auth:
-//   - verify_jwt = false on this EF (Supabase platform check disabled).
-//   - We enforce CRON_SECRET match in the handler itself — same pattern as
-//     nurture-emails. Required to prevent random POSTs from draining the queue.
 //
 // Lock alignment: Lock #48 producer/consumer pattern (queue + cron-driven sync
 // sender) extended to quiz-completion failures. Pairs with Lock #15 (Supabase
@@ -29,7 +29,6 @@
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-const CRON_SECRET = Deno.env.get('CRON_SECRET');
 
 const BATCH_SIZE = 10;
 
@@ -90,10 +89,6 @@ async function replayInsert(row: FailureRow): Promise<{
   const payload = row.raw_payload || {};
   const body = payload as Record<string, unknown>;
 
-  // Mirror the v12 EF's normalization. We do NOT re-validate the constitution_type
-  // allowlist — if it was valid enough to land in dead-letter, we trust it. If
-  // the underlying schema rejects it now, that surfaces as a non-2xx and the row
-  // stays unresolved.
   const email = normalizeEmail(body.email);
   if (!email) {
     return { ok: false, status: 400, body: 'invalid email in raw_payload', insertedId: null };
@@ -206,7 +201,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !CRON_SECRET) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     console.error('replay-quiz-completion-failures: missing env vars');
     return new Response(JSON.stringify({ error: 'Server misconfigured' }), {
       status: 500,
@@ -214,9 +209,13 @@ Deno.serve(async (req) => {
     });
   }
 
+  // Auth: require service-role JWT in Authorization header. Mirrors nurture-emails
+  // pattern. The Vercel Edge fn at /api/cron/replay-quiz-failures forwards
+  // service-role key in Authorization after enforcing CRON_SECRET on its incoming
+  // request — so the practical auth gate is at the Vercel layer.
   const authHeader = req.headers.get('authorization') ?? '';
-  if (authHeader !== `Bearer ${CRON_SECRET}`) {
-    console.warn('replay-quiz-completion-failures: unauthorized invocation attempt');
+  if (!authHeader.startsWith('Bearer ') || authHeader.slice(7) !== SUPABASE_SERVICE_ROLE_KEY) {
+    console.warn('replay-quiz-completion-failures: unauthorized invocation — missing or wrong service-role JWT');
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },
