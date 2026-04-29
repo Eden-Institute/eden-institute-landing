@@ -11,6 +11,7 @@ import {
   inconclusiveAxes,
 } from "@/lib/constitution-data";
 import { getNameFromType, getSlugFromType } from "@/lib/constitution-utils";
+import { ROUTES } from "@/lib/routes";
 
 interface Question {
   id: number;
@@ -240,7 +241,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
       (window as any).gtag?.('event', 'quiz_complete', { event_category: 'engagement', quiz_result: constitutionType });
       const slug = getSlugFromType(constitutionType);
       handleClose(false);
-      navigate(`/results/${slug}`);
+      navigate(ROUTES.RESULTS(slug));
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
