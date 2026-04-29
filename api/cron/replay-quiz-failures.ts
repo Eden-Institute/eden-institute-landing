@@ -1,9 +1,15 @@
-// PR (2026-04-29) — Vercel Cron entry point that drains quiz_completion_failures
+// PR (2026-04-29) v2 — Vercel Cron entry point that drains quiz_completion_failures
 // via the replay-quiz-completion-failures Supabase Edge Function. Runs every 30
 // min per vercel.json crons[1].schedule.
 //
 // Architecture: mirrors api/cron/drain-nurture-queue.ts (Lock #48 consumer for the
 // nurture-email queue). Same auth chain, same env vars, same edge runtime.
+//
+// v2 hotfix (2026-04-29): Authorization header now sends service-role key
+// (matches nurture-emails / drain-nurture-queue exactly). v1 was sending
+// CRON_SECRET in Authorization which the Supabase EF replay-quiz-completion-
+// failures v2 doesn't accept (it requires service-role JWT, same as
+// nurture-emails).
 //
 // Why 30 minutes (vs nurture's 15): quiz-completion failures are recoverable but
 // not time-sensitive in the same way email drips are. A 30-min recovery window is
@@ -14,8 +20,8 @@
 //   1. Vercel Cron auto-injects `Authorization: Bearer ${CRON_SECRET}` on cron-
 //      triggered requests. We verify that header matches the env var. This
 //      prevents arbitrary POSTs from draining the queue.
-//   2. We then call the Supabase EF with the service-role key in its own
-//      Authorization header. The EF re-verifies CRON_SECRET defensively too.
+//   2. We then call the Supabase EF with the service-role key in Authorization.
+//      Same posture as the existing drain-nurture-queue cron.
 //
 // Required env vars (set in Vercel project settings):
 //   CRON_SECRET                  random string, must match Vercel injection
@@ -64,7 +70,8 @@ export default async function handler(req: Request): Promise<Response> {
     );
   }
 
-  // 3. Invoke the EF
+  // 3. Invoke the EF — v2 forwards service-role key in Authorization (matches
+  // nurture-emails / drain-nurture-queue auth posture).
   const efUrl = `${supabaseUrl.replace(/\/$/, '')}/functions/v1/replay-quiz-completion-failures`;
   const startedAt = Date.now();
   let efRes: Response;
@@ -72,10 +79,7 @@ export default async function handler(req: Request): Promise<Response> {
     efRes = await fetch(efUrl, {
       method: 'POST',
       headers: {
-        // The Supabase EF re-verifies CRON_SECRET on its own (defense in depth),
-        // so we forward that header in addition to the service-role key.
-        Authorization: `Bearer ${cronSecret}`,
-        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ source: 'vercel-cron', invoked_at: new Date().toISOString() }),
