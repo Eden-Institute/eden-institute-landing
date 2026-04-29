@@ -25,7 +25,7 @@ const navLinks = [
  *
  * Two states now:
  *   • No resolved Pattern (anon, or authed without quiz) → "Take the Quiz"
- *     → /quiz (current behavior; primary acquisition CTA).
+ *     → /assessment (canonical public quiz route per App.tsx).
  *   • Resolved Pattern (authed, any tier) → "Open Apothecary"
  *     → /apothecary (sends them to where their Pattern matters).
  *
@@ -38,13 +38,19 @@ const navLinks = [
  * synchronously, so no auth bounce. `useActiveProfileOptional` returns null
  * when ActiveProfileContext isn't mounted (which is the case on every
  * non-apothecary surface), and the hook falls back to a user-level read.
+ *
+ * v4.1.1 hotfix (this commit): ctaHref previously pointed at /quiz, which
+ * is NOT a registered route in App.tsx — visitors clicking the CTA from
+ * any page (Navbar is now mounted globally per PR #74) hit the catch-all
+ * <NotFound /> 404. The canonical public quiz route is /assessment. App.tsx
+ * also adds a /quiz → /assessment <Navigate> alias as a defensive guard.
  */
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
   const { data: pattern } = useEdenPattern();
   const ctaLabel = user && pattern ? "Open Apothecary" : "Take the Quiz";
-  const ctaHref = user && pattern ? "/apothecary" : "/quiz";
+  const ctaHref = user && pattern ? "/apothecary" : "/assessment";
 
   return (
     <header className="w-full bg-[#FAF8F3] border-b border-[#D6CDB8] sticky top-0 z-50">
