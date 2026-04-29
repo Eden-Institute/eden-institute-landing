@@ -6,6 +6,7 @@ import GuideTemplate from "@/components/guide/GuideTemplate";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/landing/Navbar";
+import { ROUTES } from "@/lib/routes";
 
 // Map slug → constitution type key
 const slugToType: Record<string, string> = {};
@@ -81,7 +82,7 @@ const GuideLanding = () => {
 
   useEffect(() => {
     if (constitutionSlug && !profile) {
-      navigate("/assessment");
+      navigate(ROUTES.ASSESSMENT);
     }
   }, [constitutionSlug, profile, navigate]);
 
