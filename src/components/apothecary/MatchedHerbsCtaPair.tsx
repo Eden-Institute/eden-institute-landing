@@ -1,0 +1,289 @@
+import { useState } from "react";
+import { Loader2, ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import type { EdenPatternName } from "@/lib/edenPattern";
+import {
+  getAmazonKitUrl,
+  patternNameToSlug,
+} from "@/lib/amazonKitUrls";
+
+/**
+ * §8.1.4 PR 4 — Matched-Herbs CTA Pair.
+ *
+ * Replaces the §8.1.5 formulary slot at the bottom of the matched-herbs
+ * directory on /apothecary, after the binding decision (2026-04-29) that
+ * formularies are Practitioner-tier-only and deferred from pre-launch.
+ *
+ * Two cards, side-by-side on md+, stacked on mobile:
+ *   1. Practitioner Waitlist signup (form → practitioner-waitlist-signup EF)
+ *   2. Pattern-aligned Amazon affiliate kit (link)
+ *
+ * Suppression rules:
+ *   • activePattern null → component returns null (no Pattern context to
+ *     anchor either card).
+ *   • Amazon URL missing for Pattern → suppress that card only; render
+ *     Practitioner card alone (defensive — should never happen for the 8).
+ *
+ * Mobile behaviour:
+ *   • md:grid-cols-2 → single column on small screens, side-by-side on md+.
+ *   • All tap targets ≥44px (mobile-aware per project_mobile_wrapping_roadmap).
+ */
+
+interface MatchedHerbsCtaPairProps {
+  activePattern: EdenPatternName | null;
+}
+
+export function MatchedHerbsCtaPair({
+  activePattern,
+}: MatchedHerbsCtaPairProps) {
+  const { user } = useAuth();
+  if (!activePattern) return null;
+
+  const amazonUrl = getAmazonKitUrl(activePattern);
+  const patternSlug = patternNameToSlug(activePattern);
+
+  return (
+    <section
+      aria-label="Continuing the practice"
+      className="grid gap-6 md:grid-cols-2"
+    >
+      <PractitionerWaitlistCard
+        activePattern={activePattern}
+        patternSlug={patternSlug}
+        defaultEmail={user?.email ?? ""}
+      />
+      {amazonUrl && (
+        <AmazonKitCard activePattern={activePattern} amazonUrl={amazonUrl} />
+      )}
+    </section>
+  );
+}
+
+// ── Card 1: Practitioner Waitlist ──────────────────────────────────────────
+
+interface PractitionerWaitlistCardProps {
+  activePattern: EdenPatternName;
+  patternSlug: string;
+  defaultEmail: string;
+}
+
+function PractitionerWaitlistCard({
+  activePattern,
+  patternSlug,
+  defaultEmail,
+}: PractitionerWaitlistCardProps) {
+  const [email, setEmail] = useState(defaultEmail);
+  const [firstName, setFirstName] = useState("");
+  const [status, setStatus] = useState<
+    "idle" | "submitting" | "success" | "error"
+  >("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (status === "submitting" || status === "success") return;
+    setStatus("submitting");
+    setErrorMessage(null);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "practitioner-waitlist-signup",
+        {
+          body: {
+            email: email.trim(),
+            first_name: firstName.trim() || undefined,
+            pattern_slug: patternSlug,
+            pattern_name: activePattern,
+            source_url:
+              typeof window !== "undefined" ? window.location.href : undefined,
+          },
+        },
+      );
+      if (error) throw error;
+      if (!data?.ok) {
+        throw new Error(
+          (data as { error?: string } | null)?.error ?? "Could not record signup",
+        );
+      }
+      setStatus("success");
+    } catch (err) {
+      setStatus("error");
+      setErrorMessage(
+        err instanceof Error ? err.message : "Could not record signup",
+      );
+    }
+  }
+
+  return (
+    <div
+      className="rounded-lg border p-6 md:p-8 flex flex-col"
+      style={{
+        borderColor: "hsl(var(--eden-gold) / 0.4)",
+        backgroundColor: "hsl(var(--eden-cream) / 0.5)",
+      }}
+    >
+      <p
+        className="font-accent text-[11px] tracking-[0.3em] uppercase mb-2"
+        style={{ color: "hsl(var(--eden-gold))" }}
+      >
+        Practitioner tier — opens end of 2027
+      </p>
+      <h2
+        className="font-serif text-xl md:text-2xl font-semibold leading-tight mb-3"
+        style={{ color: "hsl(var(--eden-bark))" }}
+      >
+        Tell me when the clinical practice tier opens.
+      </h2>
+      <p className="font-body text-sm text-muted-foreground mb-5">
+        Formula builder, dose schedules, exportable case files, and the full
+        contraindication apparatus — for clinicians and serious practitioners.
+        Be first in line.
+      </p>
+
+      {status === "success" ? (
+        <div
+          className="rounded-md border p-4 mt-auto"
+          style={{
+            borderColor: "hsl(var(--eden-gold) / 0.5)",
+            backgroundColor: "hsl(var(--eden-cream) / 0.7)",
+          }}
+        >
+          <p
+            className="font-serif text-base font-semibold mb-1"
+            style={{ color: "hsl(var(--eden-bark))" }}
+          >
+            You're on the list.
+          </p>
+          <p className="font-body text-sm text-muted-foreground">
+            We'll email you when Practitioner-tier opens for enrollment.
+          </p>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-3 mt-auto" noValidate>
+          <div>
+            <Label htmlFor="practitioner-waitlist-email" className="sr-only">
+              Email
+            </Label>
+            <Input
+              id="practitioner-waitlist-email"
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="h-11"
+              disabled={status === "submitting"}
+            />
+          </div>
+          <div>
+            <Label htmlFor="practitioner-waitlist-name" className="sr-only">
+              First name (optional)
+            </Label>
+            <Input
+              id="practitioner-waitlist-name"
+              type="text"
+              autoComplete="given-name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="First name (optional)"
+              className="h-11"
+              disabled={status === "submitting"}
+            />
+          </div>
+          <Button
+            type="submit"
+            variant="eden"
+            size="lg"
+            className="w-full h-11"
+            disabled={status === "submitting"}
+          >
+            {status === "submitting" ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Adding you to the list…
+              </>
+            ) : (
+              "Add me to the Practitioner waitlist"
+            )}
+          </Button>
+          {status === "error" && errorMessage && (
+            <p
+              className="font-body text-sm"
+              style={{ color: "hsl(var(--destructive))" }}
+            >
+              {errorMessage}. Please try again or email
+              hello@edeninstitute.health.
+            </p>
+          )}
+        </form>
+      )}
+    </div>
+  );
+}
+
+// ── Card 2: Amazon Kit ─────────────────────────────────────────────────────
+
+interface AmazonKitCardProps {
+  activePattern: EdenPatternName;
+  amazonUrl: string;
+}
+
+function AmazonKitCard({ activePattern, amazonUrl }: AmazonKitCardProps) {
+  const patternShort = activePattern.replace(/^The\s+/i, "");
+  return (
+    <div
+      className="rounded-lg border p-6 md:p-8 flex flex-col"
+      style={{
+        borderColor: "hsl(var(--border))",
+        backgroundColor: "hsl(var(--eden-cream) / 0.3)",
+      }}
+    >
+      <p
+        className="font-accent text-[11px] tracking-[0.3em] uppercase mb-2"
+        style={{ color: "hsl(var(--eden-gold))" }}
+      >
+        Begin in your own kitchen
+      </p>
+      <h2
+        className="font-serif text-xl md:text-2xl font-semibold leading-tight mb-3"
+        style={{ color: "hsl(var(--eden-bark))" }}
+      >
+        A starter set on Amazon for {patternShort}.
+      </h2>
+      <p className="font-body text-sm text-muted-foreground mb-5">
+        Herbs aligned to your pattern so you can begin practicing — teas,
+        tinctures, dry herb. We curated the kit; preparation and use are yours
+        to learn through the Apothecary.
+      </p>
+      <Button
+        variant="eden-outline"
+        size="lg"
+        className="w-full h-11 mt-auto"
+        asChild
+      >
+        <a
+          href={amazonUrl}
+          target="_blank"
+          rel="noopener noreferrer sponsored"
+          aria-label={`Open the Amazon starter set for ${patternShort} in a new tab`}
+        >
+          See the {patternShort} starter set
+          <ExternalLink className="w-4 h-4 ml-2" aria-hidden="true" />
+        </a>
+      </Button>
+      <p
+        className="font-body text-xs mt-3 italic"
+        style={{ color: "hsl(var(--muted-foreground))" }}
+      >
+        Affiliate links — Eden Institute earns a small commission if you
+        purchase through them, at no extra cost to you.
+      </p>
+    </div>
+  );
+}
+
+export default MatchedHerbsCtaPair;
