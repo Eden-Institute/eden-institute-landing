@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import { Link } from "react-router-dom";
+import { ROUTES } from "@/lib/routes";
 
 const HEADER_IMG = "https://images.unsplash.com/photo-1726996155615-e986ed87c9d4?auto=format&fit=crop&w=1920&q=80";
 
@@ -128,7 +129,7 @@ const Terms = () => {
 
           <section>
             <h2 className="font-serif text-xl font-semibold text-primary mb-3">17. Privacy</h2>
-            <p>Your use of the website is also governed by our <Link to="/privacy" className="text-accent underline hover:text-accent/80">Privacy Policy</Link>. By using our Services, you consent to the collection and use of information as described therein.</p>
+            <p>Your use of the website is also governed by our <Link to={ROUTES.PRIVACY} className="text-accent underline hover:text-accent/80">Privacy Policy</Link>. By using our Services, you consent to the collection and use of information as described therein.</p>
           </section>
 
           <section>
@@ -148,7 +149,7 @@ const Terms = () => {
 
           <section>
             <h2 className="font-serif text-xl font-semibold text-primary mb-3">21. Entire Agreement</h2>
-            <p>These Terms and Conditions, together with our <Link to="/privacy" className="text-accent underline hover:text-accent/80">Privacy Policy</Link> and <Link to="/cookies" className="text-accent underline hover:text-accent/80">Cookie Policy</Link>, constitute the entire agreement between you and The Eden Institute regarding your use of the website and Services.</p>
+            <p>These Terms and Conditions, together with our <Link to={ROUTES.PRIVACY} className="text-accent underline hover:text-accent/80">Privacy Policy</Link> and <Link to={ROUTES.COOKIES} className="text-accent underline hover:text-accent/80">Cookie Policy</Link>, constitute the entire agreement between you and The Eden Institute regarding your use of the website and Services.</p>
           </section>
 
           <section>
