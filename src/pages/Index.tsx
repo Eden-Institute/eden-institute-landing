@@ -9,6 +9,9 @@ import { BotanicalLeafTopRight, BotanicalLeafBottomLeft, GoldDivider } from "@/c
 import ScrollReveal from "@/components/landing/ScrollReveal";
 import { WorldviewBand } from "@/components/landing/WorldviewBand";
 import { WelcomeBackBanner } from "@/components/landing/WelcomeBackBanner";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEdenPattern } from "@/hooks/useEdenPattern";
+import { useTierAwareCTA } from "@/hooks/useTierAwareCTA";
 import { ROUTES } from "@/lib/routes";
 
 // Unsplash photography
@@ -21,6 +24,22 @@ const QUIZ_CTA = "Find Out How Your Body Works — Take the Free Quiz (2 min)";
 
 const Index = () => {
   const [assessmentModal, setAssessmentModal] = useState(false);
+
+  // Tier-aware CTA propagation (Camila's 2026-04-30 regression fix). The
+  // homepage previously hard-coded "Take the Quiz" / openQuiz across every
+  // CTA surface — wrong for authed users who have already resolved their
+  // Eden Pattern. We now pivot every quiz-bound CTA to a Pattern-aware
+  // alternative when the visitor is authed AND has a resolved Pattern.
+  // The trio (upgrade/guide/amazonKit) lives in the Navbar hamburger;
+  // the homepage CTAs surface the simpler binary pivot:
+  //   anon / no-Pattern → keep existing openQuiz modal (acquisition)
+  //   authed + Pattern  → "Open Your Apothecary →" → /apothecary (return)
+  // Plus the Value Ladder Deep-Dive Guide card uses useTierAwareCTA().guide
+  // directly so the price + label match the user's purchase state.
+  const { user } = useAuth();
+  const { data: pattern } = useEdenPattern();
+  const { guide: guideCta } = useTierAwareCTA();
+  const hasPattern = !!user && !!pattern;
 
   useEffect(() => {
     document.title = "The Eden Institute — Biblical Clinical Herbalism Education";
@@ -101,19 +120,33 @@ const Index = () => {
           <div className="eden-divider" />
 
           <ScrollReveal delay={200}>
-            <Button
-              variant="eden"
-              size="xl"
-              className="min-h-[48px] text-sm sm:text-base px-4 sm:px-8 max-w-[90vw] whitespace-normal leading-snug"
-              onClick={openQuiz}
-              style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}
-            >
-              {QUIZ_CTA}
-            </Button>
+            {hasPattern ? (
+              <Button
+                asChild
+                variant="eden"
+                size="xl"
+                className="min-h-[48px] text-sm sm:text-base px-4 sm:px-8 max-w-[90vw] whitespace-normal leading-snug"
+                style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}
+              >
+                <Link to={ROUTES.APOTHECARY}>Open Your Apothecary →</Link>
+              </Button>
+            ) : (
+              <Button
+                variant="eden"
+                size="xl"
+                className="min-h-[48px] text-sm sm:text-base px-4 sm:px-8 max-w-[90vw] whitespace-normal leading-snug"
+                onClick={openQuiz}
+                style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}
+              >
+                {QUIZ_CTA}
+              </Button>
+            )}
 
-            <p className="mt-4 font-body text-sm" style={{ color: "hsl(var(--eden-sage))" }}>
-              No email required to start.
-            </p>
+            {!hasPattern && (
+              <p className="mt-4 font-body text-sm" style={{ color: "hsl(var(--eden-sage))" }}>
+                No email required to start.
+              </p>
+            )}
           </ScrollReveal>
         </div>
       </section>
@@ -218,11 +251,19 @@ const Index = () => {
             </div>
             <ScrollReveal delay={500}>
               <div className="text-center mt-10">
-                <button onClick={openQuiz}
-                  className="font-body text-sm font-semibold px-8 py-3 rounded-sm"
-                  style={{ backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-parchment))" }}>
-                  Yes — Find My Body Pattern Free →
-                </button>
+                {hasPattern ? (
+                  <Link to={ROUTES.APOTHECARY}
+                    className="inline-block font-body text-sm font-semibold px-8 py-3 rounded-sm"
+                    style={{ backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-parchment))" }}>
+                    View Your Matched Herbs →
+                  </Link>
+                ) : (
+                  <button onClick={openQuiz}
+                    className="font-body text-sm font-semibold px-8 py-3 rounded-sm"
+                    style={{ backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-parchment))" }}>
+                    Yes — Find My Body Pattern Free →
+                  </button>
+                )}
               </div>
             </ScrollReveal>
           </div>
@@ -328,25 +369,48 @@ const Index = () => {
               </Link>
             </ScrollReveal>
 
-            {/* Card 4 — Quiz */}
+            {/* Card 4 — Quiz / Pattern card. Pivots based on hasPattern:
+                authed+Pattern users see "Your Pattern: [name]" with a route
+                into /apothecary; anon / no-Pattern users see the original
+                quiz CTA which opens the AssessmentModal. */}
             <ScrollReveal delay={400}>
-              <button onClick={openQuiz}
-                className="block w-full text-left rounded-sm border p-8 hover:shadow-md transition-shadow duration-300 h-full cursor-pointer"
-                style={{ backgroundColor: "hsl(var(--eden-forest))", borderColor: "hsl(var(--eden-gold) / 0.3)" }}>
-                <Compass className="mb-4 w-7 h-7" style={{ color: "hsl(var(--eden-gold))" }} />
-                <h3 className="font-serif text-xl font-bold mb-2" style={{ color: "hsl(var(--eden-parchment))" }}>
-                  Know Your Body Pattern
-                </h3>
-                <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>
-                  Free · 2 Minutes
-                </p>
-                <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-parchment) / 0.8)" }}>
-                  Two minutes. Eight possible body patterns. One result that explains why your sister thrives on ginger and you can't touch it. Start here — it's free.
-                </p>
-                <p className="font-body text-sm font-semibold mt-6" style={{ color: "hsl(var(--eden-gold))" }}>
-                  Take the free quiz →
-                </p>
-              </button>
+              {hasPattern ? (
+                <Link to={ROUTES.APOTHECARY}
+                  className="block w-full text-left rounded-sm border p-8 hover:shadow-md transition-shadow duration-300 h-full cursor-pointer"
+                  style={{ backgroundColor: "hsl(var(--eden-forest))", borderColor: "hsl(var(--eden-gold) / 0.3)" }}>
+                  <Compass className="mb-4 w-7 h-7" style={{ color: "hsl(var(--eden-gold))" }} />
+                  <h3 className="font-serif text-xl font-bold mb-2" style={{ color: "hsl(var(--eden-parchment))" }}>
+                    Your Pattern: <span className="italic">{pattern}</span>
+                  </h3>
+                  <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>
+                    Pattern Resolved · Open Apothecary
+                  </p>
+                  <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-parchment) / 0.8)" }}>
+                    Your matched herbs are highlighted across the Eden Apothecary directory. Open your dashboard to begin clinical study.
+                  </p>
+                  <p className="font-body text-sm font-semibold mt-6" style={{ color: "hsl(var(--eden-gold))" }}>
+                    Open Your Apothecary →
+                  </p>
+                </Link>
+              ) : (
+                <button onClick={openQuiz}
+                  className="block w-full text-left rounded-sm border p-8 hover:shadow-md transition-shadow duration-300 h-full cursor-pointer"
+                  style={{ backgroundColor: "hsl(var(--eden-forest))", borderColor: "hsl(var(--eden-gold) / 0.3)" }}>
+                  <Compass className="mb-4 w-7 h-7" style={{ color: "hsl(var(--eden-gold))" }} />
+                  <h3 className="font-serif text-xl font-bold mb-2" style={{ color: "hsl(var(--eden-parchment))" }}>
+                    Know Your Body Pattern
+                  </h3>
+                  <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>
+                    Free · 2 Minutes
+                  </p>
+                  <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-parchment) / 0.8)" }}>
+                    Two minutes. Eight possible body patterns. One result that explains why your sister thrives on ginger and you can't touch it. Start here — it's free.
+                  </p>
+                  <p className="font-body text-sm font-semibold mt-6" style={{ color: "hsl(var(--eden-gold))" }}>
+                    Take the free quiz →
+                  </p>
+                </button>
+              )}
             </ScrollReveal>
 
           </div>
@@ -417,14 +481,25 @@ const Index = () => {
             </ScrollReveal>
 
             <div className="text-center mt-8">
-              <Button
-                variant="eden"
-                size="xl"
-                className="min-h-[48px] text-sm sm:text-base px-8 max-w-[90vw] whitespace-normal leading-snug"
-                onClick={openQuiz}
-              >
-                {QUIZ_CTA}
-              </Button>
+              {hasPattern ? (
+                <Button
+                  asChild
+                  variant="eden"
+                  size="xl"
+                  className="min-h-[48px] text-sm sm:text-base px-8 max-w-[90vw] whitespace-normal leading-snug"
+                >
+                  <Link to={ROUTES.APOTHECARY}>Open Your Apothecary →</Link>
+                </Button>
+              ) : (
+                <Button
+                  variant="eden"
+                  size="xl"
+                  className="min-h-[48px] text-sm sm:text-base px-8 max-w-[90vw] whitespace-normal leading-snug"
+                  onClick={openQuiz}
+                >
+                  {QUIZ_CTA}
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -481,24 +556,39 @@ const Index = () => {
           <div className="grid md:grid-cols-3 gap-6 md:gap-8 max-w-4xl mx-auto mt-12">
             {[
               {
+                // Step 1: Free Quiz card. For authed+Pattern users the
+                // step is "done" — we route them to /apothecary directly
+                // rather than re-opening the modal they've already
+                // completed. Label flips to celebrate the resolution.
                 icon: <ClipboardList className="w-10 h-10" style={{ color: "hsl(var(--eden-gold))" }} />,
-                label: "Free Quiz",
-                description: "Discover your body pattern in 2 minutes",
-                price: "FREE",
-                onClick: openQuiz,
-                href: null as string | null,
+                label: hasPattern ? "Pattern Resolved" : "Free Quiz",
+                description: hasPattern
+                  ? `Your Pattern is named: ${pattern}. Open your Apothecary to study your matched herbs.`
+                  : "Discover your body pattern in 2 minutes",
+                price: hasPattern ? "DONE ✓" : "FREE",
+                onClick: hasPattern ? null : openQuiz,
+                href: hasPattern ? ROUTES.APOTHECARY : (null as string | null),
                 external: false,
-                ariaLabel: "Take the free constitutional quiz",
+                ariaLabel: hasPattern
+                  ? "Open your Apothecary"
+                  : "Take the free constitutional quiz",
               },
               {
+                // Step 2: Deep-Dive Guide card. For authed+Pattern users
+                // we surface useTierAwareCTA().guide, which already
+                // handles the (Pattern, purchased?) state machine —
+                // routing to /guide/[slug] with the correct label
+                // ("Get your X guide — $14" vs "View your X guide").
                 icon: <BookOpen className="w-10 h-10" style={{ color: "hsl(var(--eden-gold))" }} />,
                 label: "Deep-Dive Guide",
                 description: "Your personalized herb guide — 10 matched herbs, nutrition, lifestyle, and Scripture",
                 price: "$14",
-                onClick: openQuiz,
-                href: null as string | null,
+                onClick: hasPattern ? null : openQuiz,
+                href: hasPattern ? guideCta.href : (null as string | null),
                 external: false,
-                ariaLabel: "Take the quiz to unlock your $14 Deep-Dive Guide",
+                ariaLabel: hasPattern
+                  ? guideCta.label
+                  : "Take the quiz to unlock your $14 Deep-Dive Guide",
               },
               {
                 icon: <GraduationCap className="w-10 h-10" style={{ color: "hsl(var(--eden-gold))" }} />,
@@ -540,15 +630,25 @@ const Index = () => {
               return (
                 <ScrollReveal key={step.label} delay={i * 120}>
                   {step.href ? (
-                    <a
-                      href={step.href}
-                      target={step.external ? "_blank" : undefined}
-                      rel={step.external ? "noopener noreferrer" : undefined}
-                      aria-label={step.ariaLabel}
-                      className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--eden-gold))] rounded-lg"
-                    >
-                      {cardInner}
-                    </a>
+                    step.external ? (
+                      <a
+                        href={step.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={step.ariaLabel}
+                        className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--eden-gold))] rounded-lg"
+                      >
+                        {cardInner}
+                      </a>
+                    ) : (
+                      <Link
+                        to={step.href}
+                        aria-label={step.ariaLabel}
+                        className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--eden-gold))] rounded-lg"
+                      >
+                        {cardInner}
+                      </Link>
+                    )
                   ) : (
                     <button
                       type="button"
@@ -656,21 +756,37 @@ const Index = () => {
                 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold mb-4"
                 style={{ color: "hsl(var(--eden-parchment))" }}
               >
-                Two Minutes Could Change How You Use Herbs Forever.
+                {hasPattern
+                  ? "Your Pattern Is Just the Beginning."
+                  : "Two Minutes Could Change How You Use Herbs Forever."}
               </h2>
               <p className="font-body text-lg md:text-xl mb-10" style={{ color: "hsl(var(--eden-parchment) / 0.85)" }}>
-                It takes 2 minutes. And it changes how you think about every herb you'll ever use.
+                {hasPattern
+                  ? "You know your Pattern. Now study how every herb in God's provision meets your terrain — open your Apothecary."
+                  : "It takes 2 minutes. And it changes how you think about every herb you'll ever use."}
               </p>
 
-              <Button
-                variant="eden"
-                size="xl"
-                className="min-h-[48px] text-sm sm:text-base px-4 sm:px-8 max-w-[90vw] whitespace-normal leading-snug"
-                onClick={openQuiz}
-                style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}
-              >
-                {QUIZ_CTA}
-              </Button>
+              {hasPattern ? (
+                <Button
+                  asChild
+                  variant="eden"
+                  size="xl"
+                  className="min-h-[48px] text-sm sm:text-base px-4 sm:px-8 max-w-[90vw] whitespace-normal leading-snug"
+                  style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}
+                >
+                  <Link to={ROUTES.APOTHECARY}>Open Your Apothecary →</Link>
+                </Button>
+              ) : (
+                <Button
+                  variant="eden"
+                  size="xl"
+                  className="min-h-[48px] text-sm sm:text-base px-4 sm:px-8 max-w-[90vw] whitespace-normal leading-snug"
+                  onClick={openQuiz}
+                  style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}
+                >
+                  {QUIZ_CTA}
+                </Button>
+              )}
             </ScrollReveal>
 
             {/* Social links */}
