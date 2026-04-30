@@ -5,11 +5,17 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { X } from "lucide-react";
 import {
+  axisDisplayLabel,
   constitutionProfiles,
   computeResult,
+  computeResultWithFollowups,
   isInconclusiveResult,
   inconclusiveAxes,
 } from "@/lib/constitution-data";
+import {
+  getFollowupQuestionsForAxes,
+  type FollowupQuestion,
+} from "@/lib/quiz-followup";
 import { getNameFromType, getSlugFromType } from "@/lib/constitution-utils";
 import { ROUTES } from "@/lib/routes";
 
@@ -132,7 +138,7 @@ function AxisSpectrum({ axisLabel, leftLabel, rightLabel, position, isInconclusi
       <div className="flex items-baseline justify-between mb-1.5">
         <span className="font-accent text-xs tracking-[0.15em] uppercase" style={{ color: "#1C3A2E" }}>{leftLabel}</span>
         <span className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: isInconclusive ? "#C9A84C" : "hsl(30, 10%, 40%)" }}>
-          {axisLabel}{isInconclusive ? " — inconclusive" : ""}
+          {axisLabel}{isInconclusive ? " — balanced" : ""}
         </span>
         <span className="font-accent text-xs tracking-[0.15em] uppercase" style={{ color: "#1C3A2E" }}>{rightLabel}</span>
       </div>
@@ -161,7 +167,12 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
   const navigate = useNavigate();
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [phase, setPhase] = useState<"intro" | "quiz" | "gate" | "inconclusive" | "results">("intro");
+  // v4.3 (PR #86) — followup phase wiring mirrored from Assessment.tsx.
+  const [phase, setPhase] = useState<
+    "intro" | "quiz" | "followup" | "gate" | "inconclusive" | "results"
+  >("intro");
+  const [followupQueue, setFollowupQueue] = useState<FollowupQuestion[]>([]);
+  const [followupIdx, setFollowupIdx] = useState(0);
   const [transitioning, setTransitioning] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
@@ -169,24 +180,28 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Compute the result (and inconclusive metadata) when we're showing a
-  // result-bearing phase. The result is computed during quiz progression
-  // for the inconclusive branch as well — see handleAnswer.
-  const constitutionType = (phase === "gate" || phase === "results") ? computeResult(answers) : "";
+  // Compute the result when we're in a result-bearing phase (post-followup).
+  const constitutionType = (phase === "gate" || phase === "results") ? computeResultWithFollowups(answers) : "";
   const profile = constitutionType ? constitutionProfiles[constitutionType] : null;
 
-  // Inconclusive-phase metadata. computed regardless of phase so the
-  // axis-spectrum can render based on current answers state.
-  const currentResult = phase === "inconclusive" ? computeResult(answers) : "";
+  // Inconclusive-phase metadata. Always uses the post-followup tally so the
+  // axes that resolved during followup don't surface as inconclusive.
+  const currentResult = phase === "inconclusive" ? computeResultWithFollowups(answers) : "";
   const neutralAxes = currentResult ? inconclusiveAxes(currentResult) : [];
   const axisPositions = computeAxisPositions(answers);
 
-  // v4.2.1 (PR #85) — q access is render-safe even if currentQ ever falls
-  // outside [0, questions.length-1]. See Assessment.tsx for the same guard
-  // and the matching setter clamp in handleAnswer below.
+  // v4.2.1 (PR #85) — q access is render-safe. See Assessment.tsx for the
+  // long-form rationale; same setter clamp + render guard applied here.
   const q = questions[currentQ];
   const progress = phase === "quiz" && q ? ((currentQ + (answers[q.id] ? 1 : 0)) / questions.length) * 100 : 100;
   const axisLabel = q?.axis === "temperature" ? "Temperature Axis" : q?.axis === "fluid" ? "Fluid Axis" : "Tone Axis";
+
+  // Followup-phase derived values.
+  const currentFollowup: FollowupQuestion | undefined = phase === "followup" ? followupQueue[followupIdx] : undefined;
+  const followupProgress =
+    phase === "followup" && followupQueue.length > 0
+      ? ((followupIdx + (currentFollowup && answers[currentFollowup.id] ? 1 : 0)) / followupQueue.length) * 100
+      : 0;
 
   const handleAnswer = useCallback((questionId: number, score: string) => {
     if (currentQ === 0) {
@@ -201,11 +216,15 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
           // double-fire can never push currentQ past the last index.
           setCurrentQ((p) => Math.min(p + 1, questions.length - 1));
         } else {
-          // Lock #39 — never silently default. If any axis is tied,
-          // route to the inconclusive surface instead of the gate.
+          // v4.3 (PR #86) — if any axis tied after the initial pass, route
+          // through the targeted followup phase before resolving.
           const result = computeResult(next);
           if (isInconclusiveResult(result)) {
-            setPhase("inconclusive");
+            const tiedAxes = inconclusiveAxes(result);
+            const queue = getFollowupQuestionsForAxes(tiedAxes);
+            setFollowupQueue(queue);
+            setFollowupIdx(0);
+            setPhase("followup");
           } else {
             setPhase("gate");
           }
@@ -216,9 +235,36 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
     });
   }, [currentQ]);
 
+  // v4.3 (PR #86) — followup answer handler. On queue exhaustion, recompute
+  // and route to gate (decisive) or inconclusive (still tied).
+  const handleFollowupAnswer = useCallback((questionId: number, score: string) => {
+    setAnswers((prev) => {
+      const next = { ...prev, [questionId]: score };
+      setTransitioning(true);
+      setTimeout(() => {
+        const queueLen = followupQueue.length;
+        const nextIdx = followupIdx + 1;
+        if (nextIdx < queueLen) {
+          setFollowupIdx(nextIdx);
+        } else {
+          const result = computeResultWithFollowups(next);
+          if (isInconclusiveResult(result)) {
+            setPhase("inconclusive");
+          } else {
+            setPhase("gate");
+          }
+        }
+        setTransitioning(false);
+      }, 400);
+      return next;
+    });
+  }, [followupQueue, followupIdx]);
+
   const restartQuiz = useCallback(() => {
     setAnswers({});
     setCurrentQ(0);
+    setFollowupQueue([]);
+    setFollowupIdx(0);
     setPhase("quiz");
     setError("");
   }, []);
@@ -258,6 +304,8 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
     if (!val) {
       setCurrentQ(0);
       setAnswers({});
+      setFollowupQueue([]);
+      setFollowupIdx(0);
       setPhase("intro");
       setTransitioning(false);
       setFirstName("");
@@ -370,14 +418,78 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
           </div>
         )}
 
+        {/* v4.3 (PR #86) — followup phase, mirrored from Assessment.tsx. */}
+        {phase === "followup" && currentFollowup && (
+          <div className="px-5 md:px-6 py-6 md:py-8">
+            <div className="mb-6 text-center">
+              <p className="font-accent text-xs tracking-[0.3em] uppercase mb-1" style={{ color: "#C9A84C" }}>
+                Targeted Follow-Up
+              </p>
+              <p className="font-body text-sm" style={{ color: "#1C3A2E" }}>
+                A few sharper questions to resolve your {axisDisplayLabel(currentFollowup.axis)} axis.
+              </p>
+            </div>
+            <div className="mb-6 md:mb-8">
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: "#C9A84C" }}>
+                  {axisDisplayLabel(currentFollowup.axis)} Axis
+                </span>
+                <span className="font-body text-sm" style={{ color: "#1C3A2E" }}>
+                  Follow-up {followupIdx + 1} / {followupQueue.length}
+                </span>
+              </div>
+              <div className="w-full h-2 rounded-full" style={{ backgroundColor: "hsl(40, 20%, 80%)" }}>
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${followupProgress}%`, backgroundColor: "#C9A84C" }}
+                />
+              </div>
+            </div>
+
+            <div className={`transition-all duration-400 ${transitioning ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"}`}>
+              <h2 className="font-serif text-lg md:text-xl lg:text-2xl font-bold mb-5 md:mb-6" style={{ color: "#1C3A2E" }}>
+                {currentFollowup.question}
+              </h2>
+              <div className="space-y-3">
+                {currentFollowup.options.map((opt) => (
+                  <button
+                    key={opt.label}
+                    onClick={() => handleFollowupAnswer(currentFollowup.id, opt.score)}
+                    className="w-full text-left p-4 border-2 rounded transition-all duration-200 hover:border-[#C9A84C] hover:shadow-md group min-h-[48px]"
+                    style={{
+                      borderColor: answers[currentFollowup.id] === opt.score ? "#C9A84C" : "hsl(40, 20%, 80%)",
+                      backgroundColor: answers[currentFollowup.id] === opt.score ? "hsl(40, 55%, 50%, 0.08)" : "white",
+                    }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span
+                        className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full font-serif font-bold text-xs border-2 group-hover:border-[#C9A84C] group-hover:text-[#C9A84C] transition-colors"
+                        style={{
+                          borderColor: answers[currentFollowup.id] === opt.score ? "#C9A84C" : "#1C3A2E",
+                          color: answers[currentFollowup.id] === opt.score ? "#C9A84C" : "#1C3A2E",
+                        }}
+                      >
+                        {opt.label}
+                      </span>
+                      <span className="font-body text-sm md:text-base leading-relaxed" style={{ color: "#1C3A2E" }}>
+                        {opt.text}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {phase === "inconclusive" && (
           <div className="px-5 md:px-6 py-8 md:py-10">
             <div className="text-center">
               <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>
-                Pattern Inconclusive
+                Genuinely Balanced Terrain
               </span>
               <h2 className="font-serif text-xl md:text-2xl lg:text-3xl font-bold mt-3 mb-4" style={{ color: "#1C3A2E" }}>
-                Your responses didn't resolve to a clear Pattern.
+                Your terrain doesn't lean to one side on {neutralAxes.length === 1 ? "this axis" : "these axes"}.
               </h2>
             </div>
 
@@ -410,29 +522,19 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
 
             <div className="space-y-4 mb-8 text-left">
               <p className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>
-                {neutralAxes.length === 1 ? (
-                  <>The <strong>{neutralAxes[0]}</strong> axis didn't resolve clearly — your marker landed near center because "varies" or "no preference" answers clustered there. Your body may genuinely be balanced on that axis, or the quiz may benefit from a more deliberate retake.</>
+                You answered the original twelve questions and the targeted follow-ups for the {neutralAxes.length === 1 ? "axis" : "axes"} that didn't resolve. {neutralAxes.length === 1 ? (
+                  <>Your <strong>{neutralAxes[0]}</strong> axis still sits balanced — neither side dominant.</>
                 ) : (
-                  <>Multiple axes didn't resolve clearly (here: <strong>{neutralAxes.join(", ")}</strong>). Their markers landed near center because "varies" or "no preference" answers clustered there. Your body may genuinely be balanced on one or more of these axes, or the quiz may benefit from a more deliberate retake.</>
+                  <>Multiple axes still sit balanced (<strong>{neutralAxes.join(", ")}</strong>) — neither side dominant on each.</>
                 )}
               </p>
               <p className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>
-                We never default you to a Pattern when your responses don't clearly indicate one. The honest answer is: take a closer look at the questions and pick A or B whenever you can — the resolution improves quickly.
+                This is itself a clinical category — not a quiz failure. Some constitutions are genuinely balanced on an axis, and the deeper diagnostic at the Practitioner tier (40 questions across four classical Western frameworks) is built to resolve cases like yours.
               </p>
             </div>
 
-            <Button
-              type="button"
-              variant="eden"
-              size="xl"
-              className="w-full min-h-[48px]"
-              onClick={restartQuiz}
-            >
-              Retake the quiz with more deliberate answers
-            </Button>
-
             <p className="font-body text-xs italic mt-4 text-center" style={{ color: "hsl(30, 10%, 40%, 0.7)" }}>
-              Some constitutions are genuinely balanced on an axis — this is itself a clinical category, not a quiz failure. The Root-tier deeper diagnostic is built to resolve cases like this.
+              Close this dialog and reopen to retake from scratch if you'd like.
             </p>
           </div>
         )}
