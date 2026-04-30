@@ -319,7 +319,10 @@ const Assessment = () => {
       setTransitioning(true);
       setTimeout(() => {
         if (currentQ < questions.length - 1) {
-          setCurrentQ((p) => p + 1);
+          // v4.2.1 (PR #85) — clamp via functional updater so a stale-closure
+          // double-fire can never push currentQ past the last index. Render
+          // guards below also tolerate undefined q as a defense in depth.
+          setCurrentQ((p) => Math.min(p + 1, questions.length - 1));
         } else {
           const result = computeResult(next);
           if (isInconclusiveResult(result)) {
@@ -362,9 +365,15 @@ const Assessment = () => {
     }
   };
 
+  // v4.2.1 (PR #85) — q access is render-safe even if currentQ ever falls
+  // outside [0, questions.length-1]. The unconditional `q.axis` and `q.id`
+  // accesses below previously crashed the entire React tree if a stale
+  // setCurrentQ closure pushed currentQ past the last question. With the
+  // setter clamp above plus these guards, the page falls back to a
+  // benign cosmetic state instead of blanking out.
   const q = questions[currentQ];
-  const progress = phase === "quiz" ? ((currentQ + (answers[q.id] ? 1 : 0)) / questions.length) * 100 : 100;
-  const axisLabel = q.axis === "temperature" ? "Temperature Axis" : q.axis === "fluid" ? "Fluid Axis" : "Tone Axis";
+  const progress = phase === "quiz" && q ? ((currentQ + (answers[q.id] ? 1 : 0)) / questions.length) * 100 : 100;
+  const axisLabel = q?.axis === "temperature" ? "Temperature Axis" : q?.axis === "fluid" ? "Fluid Axis" : "Tone Axis";
 
   if (profileLookupPending) {
     return (
@@ -407,7 +416,7 @@ const Assessment = () => {
         </div>
       )}
 
-      {phase === "quiz" && (
+      {phase === "quiz" && q && (
         <div className="max-w-2xl mx-auto px-6 py-12">
           <div className="mb-10">
             <div className="flex items-center justify-between mb-3">
