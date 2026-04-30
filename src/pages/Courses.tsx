@@ -106,15 +106,19 @@ const Courses = () => {
                   more books in the series ship; single-book Kindle URLs
                   would drift the moment Tier 2's companion textbook
                   appears, so route to the series and let Amazon's own UI
-                  surface the latest). Bare URL for now; the Amazon
-                  Associates affiliate tag follows in a 1-line PR once
-                  Camila pulls her tag from mobile. The `sponsored` rel
-                  attribute is Google's recommended honest-disclosure for
-                  affiliate-style links (avoids PageRank-passing penalties),
-                  applied pre-tag since the surface is intentionally
-                  affiliate. */}
+                  surface the latest). The `sponsored` rel attribute is
+                  Google's recommended honest-disclosure for affiliate-style
+                  links (avoids PageRank-passing penalties).
+
+                  Round 3 (this commit): Amazon Associates Tracking ID
+                  appended — `?tag=mobile088c05e-20`. This is Amazon's
+                  auto-generated default; Camila couldn't create a custom
+                  tracking ID because her tax interview is incomplete
+                  (Amazon blocks new tracking IDs until that's done).
+                  Swap to a custom tag (e.g. edeninstitute-20) once the
+                  tax interview is complete. */}
               <a
-                href="https://www.amazon.com/dp/B0GPT81RDF"
+                href="https://www.amazon.com/dp/B0GPT81RDF?tag=mobile088c05e-20"
                 target="_blank"
                 rel="noopener noreferrer sponsored"
                 aria-label="Browse the Eden Institute book series on Amazon (opens in a new tab)"
