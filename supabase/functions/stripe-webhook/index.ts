@@ -1,6 +1,8 @@
 // supabase/functions/stripe-webhook/index.ts
 // Eden Apothecary — Stripe webhook handler
-// Listens for subscription lifecycle events and reconciles the `profiles` table.
+// Listens for subscription lifecycle events AND one-time payment completion,
+// reconciling the `profiles` table for subscriptions and the
+// `quiz_completions` table for one-off purchases (guide / course flags).
 //
 // Auth model: webhooks are NOT user-authenticated. Stripe signs every request with
 // an HMAC-SHA256 signature using the STRIPE_WEBHOOK_SECRET. We verify that
@@ -13,9 +15,12 @@
 //   customer.subscription.created  → initial profile write (tier, status, period)
 //   customer.subscription.updated  → plan change, cancellation scheduled, status change
 //   customer.subscription.deleted  → subscription ended → downgrade to 'free'
-//
-// One-time payments (Eden's Table curriculum) will be added in Phase 2 via
-// checkout.session.completed (payment mode). Not handled here yet.
+//   checkout.session.completed     → one-time payment completion (mode='payment')
+//                                     → flip quiz_completions.purchased_guide
+//                                       or quiz_completions.purchased_course
+//                                     → mode='subscription' is skipped here;
+//                                       customer.subscription.* events handle that
+//                                       (avoids double-firing on plan changes)
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext"
@@ -29,7 +34,7 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
 const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET")!
 
 // Admin client — webhook has no user context, so we use the service role key
-// to write freely to `profiles` (bypasses RLS).
+// to write freely to `profiles` and `quiz_completions` (bypasses RLS).
 const adminClient = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -80,6 +85,30 @@ serve(async (req) => {
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription
         await handleSubscriptionDeleted(subscription)
+        break
+      }
+
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session
+        // checkout.session.completed fires for BOTH modes. Subscription-mode
+        // sessions are reconciled by customer.subscription.created/updated,
+        // which we already handle above — handling them here too would
+        // double-fire write paths. Only payment-mode sessions need this case.
+        if (session.mode === "subscription") {
+          console.log(
+            `Skipping checkout.session.completed for subscription session ${session.id} ` +
+              `(reconciled by customer.subscription.* events)`,
+          )
+          break
+        }
+        if (session.mode !== "payment") {
+          console.log(
+            `Skipping checkout.session.completed with unexpected mode=${session.mode} ` +
+              `(session ${session.id})`,
+          )
+          break
+        }
+        await handleOneOffPayment(session)
         break
       }
 
@@ -240,6 +269,144 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   }
 
   console.log(`Downgraded user ${userId} to free (subscription ${subscription.id} ended)`)
+}
+
+/**
+ * One-time (mode='payment') checkout session completed.
+ *
+ * Foundation for the customer-journey state machine: without flipping these
+ * flags, the journey hook would surface "Buy the guide" CTAs after a user
+ * has already paid. Reads the lookup_key, dispatches by product class, and
+ * idempotently flips the corresponding flag on quiz_completions for every
+ * row owned by the purchaser's email.
+ *
+ * Resolution priority for the purchased product:
+ *   1. session.metadata.lookup_key   (set by our create-checkout EF)
+ *   2. line_items.data[].price.lookup_key  (fallback for purchases made
+ *      via Stripe payment links or dashboard manual sessions where our
+ *      create-checkout EF didn't author the metadata)
+ *
+ * Email priority for attribution:
+ *   1. session.customer_details.email   (canonical post-checkout — what
+ *      Stripe captured during the buyer's session)
+ *   2. session.customer_email           (set by our create-checkout EF
+ *      when the buyer is anonymous-with-email)
+ *   3. session.metadata.email           (last resort — same metadata bag
+ *      our EF mirrors)
+ *
+ * Match is case-insensitive (lower(email) = lower(stripe_email)) per the
+ * canonical pattern; the column ILIKE behaves as a case-insensitive exact
+ * match for any email without literal `_` or `%` characters (RFC-permitted
+ * but vanishingly rare in practice; logged for follow-up if observed).
+ *
+ * Idempotency: re-running the update keeps the boolean true; Stripe retries
+ * are safe.
+ *
+ * Multi-row case: a single email may have multiple quiz_completions rows
+ * (re-takes over time). The flag describes "did this person pay?" not
+ * "did this submission pay?" so we flip every matching row, keeping reads
+ * consistent regardless of which row the journey hook fetches.
+ */
+async function handleOneOffPayment(session: Stripe.Checkout.Session) {
+  // ---- 1. Resolve email (purchaser identity for attribution) ----
+  const rawEmail =
+    session.customer_details?.email ??
+    session.customer_email ??
+    (session.metadata?.email as string | undefined) ??
+    null
+
+  const email = rawEmail?.toLowerCase().trim() || null
+
+  if (!email) {
+    console.warn(
+      `checkout.session.completed (mode=payment) without email; cannot attribute purchase. ` +
+        `session=${session.id} payment_status=${session.payment_status}`,
+    )
+    return
+  }
+
+  // ---- 2. Resolve lookup_key (which product was bought) ----
+  let lookupKey: string | null =
+    (session.metadata?.lookup_key as string | undefined) ?? null
+
+  if (!lookupKey) {
+    // Fallback: expand line_items and read the price's lookup_key.
+    // Covers payment-link and dashboard-manual sessions where our
+    // create-checkout EF didn't author session.metadata.
+    try {
+      const expanded = await stripe.checkout.sessions.retrieve(session.id, {
+        expand: ["line_items.data.price"],
+      })
+      const firstItem = expanded.line_items?.data?.[0]
+      // Stripe types: line_items.data[].price is a Price object when expanded.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      lookupKey = (firstItem?.price as any)?.lookup_key ?? null
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error"
+      console.warn(
+        `Failed to expand line_items for session ${session.id}: ${message}`,
+      )
+    }
+  }
+
+  if (!lookupKey) {
+    console.warn(
+      `checkout.session.completed (mode=payment) without resolvable lookup_key; ` +
+        `cannot dispatch product. session=${session.id} email=${email}`,
+    )
+    return
+  }
+
+  // ---- 3. Dispatch by product class ----
+  // - "deep_dive_guide" → purchased_guide (today's $14 Pattern Deep-Dive Guide)
+  // - "course_*" prefix → purchased_course (forward-compat: when the $97
+  //   Foundations Course migrates from Thinkific to Eden's Stripe in Phase 2
+  //   of the value ladder, this branch already handles it)
+  // - else: log + return; Stripe should not retry unhandled product types.
+  let column: "purchased_guide" | "purchased_course" | null = null
+  if (lookupKey === "deep_dive_guide") {
+    column = "purchased_guide"
+  } else if (lookupKey.startsWith("course_")) {
+    column = "purchased_course"
+  }
+
+  if (!column) {
+    console.log(
+      `checkout.session.completed with unhandled lookup_key='${lookupKey}'; ` +
+        `session=${session.id} email=${email}`,
+    )
+    return
+  }
+
+  // ---- 4. Idempotent flag flip on quiz_completions ----
+  const { data: updated, error } = await adminClient
+    .from("quiz_completions")
+    .update({ [column]: true })
+    .ilike("email", email)
+    .select("id")
+
+  if (error) {
+    throw new Error(
+      `quiz_completions ${column} flip failed for email=${email}: ${error.message}`,
+    )
+  }
+
+  const updatedCount = updated?.length ?? 0
+  if (updatedCount === 0) {
+    // No quiz_completions row matched. Possible if the purchaser bought the
+    // guide without ever taking the quiz (e.g., gift purchase, direct payment
+    // link). Log for audit; not an error — Stripe should still get a 200.
+    console.warn(
+      `checkout.session.completed: no quiz_completions row matched email=${email}; ` +
+        `${column} not flipped. session=${session.id} lookup_key=${lookupKey}`,
+    )
+    return
+  }
+
+  console.log(
+    `checkout.session.completed: flipped ${column}=true on ${updatedCount} ` +
+      `quiz_completions row(s) for email=${email}, lookup_key=${lookupKey}, session=${session.id}`,
+  )
 }
 
 // ---------- Helpers ----------
