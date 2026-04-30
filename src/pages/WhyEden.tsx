@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
@@ -6,17 +5,15 @@ import ScrollReveal from "@/components/landing/ScrollReveal";
 import { GoldDivider } from "@/components/landing/BotanicalAccents";
 import { WorldviewBand } from "@/components/landing/WorldviewBand";
 import { ROUTES } from "@/lib/routes";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 
 const WhyEden = () => {
-  useEffect(() => {
-    document.title = "Why Eden Institute — Biblical Clinical Herbalism";
-    document
-      .querySelector('meta[name="description"]')
-      ?.setAttribute(
-        "content",
-        "There is no other program like this one. Eden Institute offers clinically rigorous, Scripture-anchored herbalism education — free from Eastern spiritual frameworks.",
-      );
-  }, []);
+  useDocumentMeta({
+    title: "Why Eden Institute — Biblical Clinical Herbalism",
+    description:
+      "There is no other program like this one. Eden Institute offers clinically rigorous, Scripture-anchored herbalism education — free from Eastern spiritual frameworks.",
+    canonical: "https://edeninstitute.health/why-eden",
+  });
 
   return (
     <main className="min-h-screen overflow-x-hidden">
