@@ -14,6 +14,28 @@ export function toSlug(nickname: string): string {
   return nickname.replace(/^The /, '').toLowerCase().replace(/\s+/g, '-');
 }
 
+// ── Amazon affiliate tag ──
+//
+// Mirror of the React-side helper in src/lib/amazonKitUrls.ts. The Deno
+// EF runtime can't share imports with the React app, so the tag value
+// and the append helper are duplicated here. When Camila swaps to a
+// custom Associates tag (post-tax-interview), update the constant in
+// BOTH files in lockstep.
+//
+// Rationale for keeping AMAZON_URLS as a bare-URL constant: the
+// canonical mapping documented in src/lib/amazonKitUrls.ts asks the EF
+// mirror to stay byte-identical so the two tables can be diff-checked
+// for drift. Applying the tag at consumption (rather than at
+// constant-definition) preserves that property.
+const AMAZON_AFFILIATE_TAG = 'mobile088c05e-20';
+
+function withAffiliateTag(url: string): string {
+  if (!url) return url;
+  if (/[?&]tag=/.test(url)) return url; // idempotent
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}tag=${AMAZON_AFFILIATE_TAG}`;
+}
+
 // ── Data mappings ──
 const TOP_HERBS: Record<string, { name: string; note: string }[]> = {
   'burning-bowstring': [
@@ -58,6 +80,8 @@ const TOP_HERBS: Record<string, { name: string; note: string }[]> = {
   ],
 };
 
+// Bare URLs — MUST stay in lockstep with src/lib/amazonKitUrls.ts.
+// Affiliate tag is applied at consumption via withAffiliateTag().
 const AMAZON_URLS: Record<string, string> = {
   'burning-bowstring': 'https://www.amazon.com/hz/wishlist/ls/3SVZB0BRV2IE3?ref_=wl_share',
   'open-flame': 'https://www.amazon.com/hz/wishlist/ls/1ELQEQ7OEN6V6?ref_=wl_share',
@@ -355,7 +379,12 @@ export function buildNurtureEmail5(
   constitutionName: string,
   constitutionSlug: string,
 ): { subject: string; html: string } {
-  const amazonUrl = AMAZON_URLS[constitutionSlug] || AMAZON_URLS['frozen-knot'];
+  // Apply Camila's Amazon Associates affiliate tag at the consumption point.
+  // AMAZON_URLS stays bare (lockstep with src/lib/amazonKitUrls.ts table);
+  // withAffiliateTag() appends ?tag=mobile088c05e-20 idempotently.
+  const amazonUrl = withAffiliateTag(
+    AMAZON_URLS[constitutionSlug] || AMAZON_URLS['frozen-knot'],
+  );
 
   const body = `
 ${p("No pressure. Truly. Not everyone is ready for a full course — and that's okay. Herbs meet you where you are.")}
