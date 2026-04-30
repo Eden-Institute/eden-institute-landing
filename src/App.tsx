@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ROUTES } from "@/lib/routes";
+import ScrollToTop from "@/components/utils/ScrollToTop";
 import Index from "./pages/Index";
 import WhyEden from "./pages/WhyEden";
 import Assessment from "./pages/Assessment";
@@ -46,6 +47,10 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          {/* ScrollToTop — reset scroll on every route navigation. Lives
+              inside BrowserRouter so useLocation is available. Sibling to
+              <Routes> so it doesn't unmount with route transitions. */}
+          <ScrollToTop />
           <Routes>
             <Route path={ROUTES.HOME} element={<Index />} />
             <Route path={ROUTES.WHY_EDEN} element={<WhyEden />} />
