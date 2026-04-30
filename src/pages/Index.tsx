@@ -297,7 +297,11 @@ const Index = () => {
                 <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.8)" }}>
                   Go clinical. 14 modules. 127 lessons. Every major body system studied through a terrain lens with Scripture as the anchor. This is where students stop dabbling and start practicing.
                 </p>
-                <Link to={ROUTES.COURSES} className="font-body text-sm font-semibold mt-6 block" style={{ color: "hsl(var(--eden-forest))" }}>
+                {/* CTA cleanup 2026-04-30: was ROUTES.COURSES, which sent the user to the
+                    courses overview page rather than the dedicated Tier 2 launch waitlist
+                    where the $497 founding code is captured. Label promises "waitlist";
+                    destination must be the actual waitlist. */}
+                <Link to={ROUTES.TIER_TWO_WAITLIST} className="font-body text-sm font-semibold mt-6 block" style={{ color: "hsl(var(--eden-forest))" }}>
                   Join the Waitlist →
                 </Link>
               </div>
