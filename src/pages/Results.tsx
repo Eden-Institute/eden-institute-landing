@@ -1,10 +1,11 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { constitutionProfiles } from "@/lib/constitution-data";
 import { ROUTES } from "@/lib/routes";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import Navbar from "@/components/landing/Navbar";
 
 const slugToType: Record<string, string> = {
@@ -28,38 +29,22 @@ const Results = () => {
   const constitutionType = constitutionSlug ? slugToType[constitutionSlug] : undefined;
   const profile = constitutionType ? constitutionProfiles[constitutionType] : undefined;
 
-  useEffect(() => {
-    if (!profile || !constitutionType) return;
-
-    const title = `Your Body Pattern: ${profile.nickname} — The Eden Institute`;
-    const description = `Your body pattern is ${profile.nickname} (${constitutionType}). ${profile.tagline} See the herbs that meet this pattern and how to begin.`;
-    const url = `https://edeninstitute.health/results/${constitutionSlug}`;
-
-    document.title = title;
-
-    const setMeta = (attr: string, key: string, content: string) => {
-      let el = document.querySelector(`meta[${attr}="${key}"]`) as HTMLMetaElement | null;
-      if (!el) {
-        el = document.createElement("meta");
-        el.setAttribute(attr, key);
-        document.head.appendChild(el);
-      }
-      el.setAttribute("content", content);
-    };
-
-    setMeta("name", "description", description);
-    setMeta("property", "og:title", title);
-    setMeta("property", "og:description", description);
-    setMeta("property", "og:url", url);
-    setMeta("property", "og:type", "article");
-    setMeta("name", "twitter:title", title);
-    setMeta("name", "twitter:description", description);
-    setMeta("name", "twitter:card", "summary_large_image");
-
-    return () => {
-      document.title = "The Eden Institute — Biblical Clinical Herbalism Education";
-    };
-  }, [profile, constitutionType, constitutionSlug]);
+  // Per-route meta. The 8 Pattern result pages are individually indexable
+  // and need distinct title/description/canonical for the SERP. og:type =
+  // "article" so social previews render the editorial card layout rather
+  // than the generic website summary.
+  useDocumentMeta({
+    title: profile
+      ? `Your Body Pattern: ${profile.nickname} — The Eden Institute`
+      : "Body Pattern Not Found — The Eden Institute",
+    description: profile && constitutionType
+      ? `Your body pattern is ${profile.nickname} (${constitutionType}). ${profile.tagline} See the herbs that meet this pattern and how to begin.`
+      : "We couldn't find that body pattern. Take the Pattern of Eden quiz to find yours.",
+    canonical: constitutionSlug
+      ? `https://edeninstitute.health/results/${constitutionSlug}`
+      : "https://edeninstitute.health/assessment",
+    ogType: "article",
+  });
 
   if (!profile || !constitutionType) {
     return (
