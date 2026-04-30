@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { BookOpen, CheckCircle, Clock, GraduationCap, Users } from "lucide-react";
 
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import AssessmentModal from "@/components/landing/AssessmentModal";
 import { Button } from "@/components/ui/button";
+import { ROUTES } from "@/lib/routes";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 
 const T1 = "https://learn.edeninstitute.health/course/back-to-eden1";
@@ -99,9 +101,14 @@ const Courses = () => {
                 <h3 className="font-serif text-xl font-bold mb-1" style={{ color: "hsl(var(--eden-forest))" }}>Back to Eden: Foundations of Biblical Herbalism</h3>
                 <p className="font-body text-sm" style={{ color: "hsl(var(--eden-bark) / 0.75)" }}>The print companion to the Tier 1 course. Read it alongside the lessons or give it as a gift to someone beginning their herbal journey.</p>
               </div>
-              <a href="https://edeninstitute.health" target="_blank" rel="noopener noreferrer" className="shrink-0 font-body text-sm font-semibold px-6 py-3 rounded-sm text-center" style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}>
-                Get the Book →
-              </a>
+              {/* CTA cleanup 2026-04-30: was <a href="https://edeninstitute.health">,
+                  which is a circular redirect to the brand homepage — broken UX.
+                  Until Camila supplies the real textbook URL (Amazon listing,
+                  direct-sales page, pre-order, etc.), render a non-clickable
+                  "Coming soon" badge instead of a misleading link. */}
+              <span className="shrink-0 font-body text-xs tracking-widest uppercase font-semibold px-4 py-2 rounded-sm text-center" style={{ backgroundColor: "hsl(var(--eden-gold) / 0.25)", color: "hsl(var(--eden-bark))" }}>
+                Coming soon
+              </span>
             </div>
 
             <div className="relative rounded-lg border p-8" style={{ borderColor: "hsl(var(--eden-sage))" }}>
@@ -126,7 +133,14 @@ const Courses = () => {
                 <p className="font-accent text-xs tracking-widest uppercase mb-1" style={{ color: "hsl(var(--eden-gold))" }}>Companion Textbook · Tier 2 · Coming Fall 2026</p>
                 <h3 className="font-serif text-lg font-bold mb-2" style={{ color: "hsl(var(--eden-forest))" }}>Back to Eden: Body Systems &amp; Clinical Literacy</h3>
                 <p className="font-body text-sm mb-4" style={{ color: "hsl(var(--eden-bark) / 0.75)" }}>A comprehensive 14-module clinical reference covering every major body system. Terrain-based, Scripture-anchored, practitioner-grade. Join the waitlist to be notified when it's available.</p>
-                <Button variant="eden" size="sm" onClick={() => setQuiz(true)}>Join the Textbook Waitlist</Button>
+                {/* CTA cleanup 2026-04-30: was onClick={() => setQuiz(true)}, which
+                    opened the body-pattern quiz modal — totally wrong action for a
+                    button labeled "Join the Textbook Waitlist". Tier 2 textbook ships
+                    alongside the Tier 2 course launch (Oct 8, 2026), so the existing
+                    /tier-2-waitlist page captures interest in both. */}
+                <Button variant="eden" size="sm" asChild>
+                  <Link to={ROUTES.TIER_TWO_WAITLIST}>Join the Textbook Waitlist</Link>
+                </Button>
               </div>
             </div>
 
