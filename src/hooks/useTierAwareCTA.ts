@@ -40,9 +40,15 @@ export interface TierAwareCTA {
 export interface TierAwareCTAs {
   /**
    * Tier-step-up prompt. Null when the visitor is at the top of the
-   * currently-available tier ladder (Root or Practitioner). The hamburger
-   * menu hides the slot entirely when this is null — don't render an
-   * empty button.
+   * currently-available tier ladder (Practitioner once it ships, or
+   * unauthed states with no Pattern — wait, those still get a Take-the-
+   * Quiz upgrade prompt). The hamburger menu hides the slot entirely
+   * when this is null — don't render an empty button.
+   *
+   * Root tier surfaces the Practitioner Waitlist CTA (the practitioner
+   * tier is the next step up, but it isn't open yet — Lock #49 says
+   * end of 2027). Once Practitioner enrollment opens, flip this to
+   * an actual upgrade route.
    */
   upgrade: TierAwareCTA | null;
   /**
@@ -102,6 +108,21 @@ export function computeTierAwareCTAs(
       label: "Upgrade to Root — 5 family profiles + deeper diagnostic",
       href: "/apothecary/pricing#tier-root",
     };
+  } else if (tier === "root") {
+    // Root user with Pattern — already at the top of the OPEN tier
+    // ladder. The next step (Practitioner) doesn't open until end of
+    // 2027 per Lock #49, so we route them to the existing Practitioner
+    // Waitlist signup form on /apothecary (rendered by
+    // MatchedHerbsCtaPair, anchored at #practitioner-waitlist).
+    //
+    // When Practitioner enrollment actually opens, flip this href to
+    // "/apothecary/pricing#tier-practitioner" and label to
+    // "Upgrade to Practitioner — …".
+    upgrade = {
+      label:
+        "Join the Practitioner Waitlist — clinical formulas + dose schedules + contraindications",
+      href: "/apothecary#practitioner-waitlist",
+    };
   } else if (tier === "free" || tier === null) {
     // Free (or tier query still loading after auth resolves) with
     // Pattern — next step up is Seed. We surface ONE feature only per
@@ -112,8 +133,8 @@ export function computeTierAwareCTAs(
       href: "/apothecary/pricing#tier-seed",
     };
   } else {
-    // Root or Practitioner — already at the top of the available tier
-    // ladder. No upgrade prompt; the slot is suppressed in the UI.
+    // Practitioner — already at the top of the tier ladder. No
+    // upgrade prompt; the slot is suppressed in the UI.
     upgrade = null;
   }
 
