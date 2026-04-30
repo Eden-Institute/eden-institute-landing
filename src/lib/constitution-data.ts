@@ -6,6 +6,13 @@ export interface ConstitutionProfile {
   amazonUrl: string;
 }
 
+/**
+ * Axis — the three constitutional axes the Pattern of Eden quiz resolves.
+ * Exported so sibling modules (quiz-followup.ts) can type their per-axis
+ * data structures against the same union.
+ */
+export type Axis = "temperature" | "fluid" | "tone";
+
 export const constitutionProfiles: Record<string, ConstitutionProfile> = {
   "Hot / Dry / Tense": {
     nickname: "The Burning Bowstring",
@@ -181,42 +188,113 @@ export function getNickname(constitutionType: string): string {
   return constitutionProfiles[constitutionType]?.nickname ?? constitutionType;
 }
 
-export function computeResult(answers: Record<number, string>): string {
-  const axes = {
-    temperature: { first: "Hot", second: "Cold", questions: [1, 2, 3, 4] },
-    fluid: { first: "Damp", second: "Dry", questions: [5, 6, 7, 8] },
-    tone: { first: "Tense", second: "Relaxed", questions: [9, 10, 11, 12] },
-  };
-  const results: string[] = [];
-  for (const axis of Object.values(axes)) {
-    let firstCount = 0;
-    let secondCount = 0;
-    for (const qId of axis.questions) {
-      const score = answers[qId];
-      if (score === axis.first) firstCount++;
-      if (score === axis.second) secondCount++;
-    }
-    if (firstCount > secondCount) results.push(axis.first);
-    else if (secondCount > firstCount) results.push(axis.second);
-    else results.push("Neutral");
+/**
+ * Per-axis configuration. Single source of truth for which question IDs
+ * map to which axis (initial pass + targeted follow-ups).
+ *
+ * Initial pass (1–12): asked of every visitor.
+ * Follow-up pass (13–21): asked ONLY for axes that came back tied after
+ * the initial pass. The mapping is mirrored in src/lib/quiz-followup.ts;
+ * if you change one, change the other.
+ */
+const AXIS_CONFIG: Record<
+  Axis,
+  {
+    first: string;
+    second: string;
+    initialQuestions: number[];
+    followupQuestions: number[];
   }
-  return results.join(" / ");
+> = {
+  temperature: {
+    first: "Hot",
+    second: "Cold",
+    initialQuestions: [1, 2, 3, 4],
+    followupQuestions: [13, 14, 15],
+  },
+  fluid: {
+    first: "Damp",
+    second: "Dry",
+    initialQuestions: [5, 6, 7, 8],
+    followupQuestions: [16, 17, 18],
+  },
+  tone: {
+    first: "Tense",
+    second: "Relaxed",
+    initialQuestions: [9, 10, 11, 12],
+    followupQuestions: [19, 20, 21],
+  },
+};
+
+const AXIS_ORDER: Axis[] = ["temperature", "fluid", "tone"];
+
+function tallyAxis(
+  axis: Axis,
+  answers: Record<number, string>,
+  questionIds: number[],
+): string {
+  const cfg = AXIS_CONFIG[axis];
+  let firstCount = 0;
+  let secondCount = 0;
+  for (const qId of questionIds) {
+    const score = answers[qId];
+    if (score === cfg.first) firstCount++;
+    if (score === cfg.second) secondCount++;
+  }
+  if (firstCount > secondCount) return cfg.first;
+  if (secondCount > firstCount) return cfg.second;
+  return "Neutral";
 }
 
-export function inconclusiveAxes(result: string): Array<"temperature" | "fluid" | "tone"> {
+/**
+ * Initial-pass result: tallies only Q1–12 per axis. Returns the canonical
+ * "X / Y / Z" axis-label string consumed by constitutionProfiles[] and the
+ * Edge Functions.
+ */
+export function computeResult(answers: Record<number, string>): string {
+  return AXIS_ORDER.map((axis) =>
+    tallyAxis(axis, answers, AXIS_CONFIG[axis].initialQuestions),
+  ).join(" / ");
+}
+
+/**
+ * Post-followup result: tallies the initial pass AND the targeted follow-up
+ * questions for every axis. Untied axes' follow-up IDs return undefined from
+ * the answers map (we never asked them — getFollowupQuestionsForAxes only
+ * emits questions for tied axes), so untied axes' tallies are byte-identical
+ * to computeResult's. Tied axes pick up their additional 3 votes per axis.
+ *
+ * Used by Assessment.tsx and AssessmentModal.tsx after the followup queue
+ * is exhausted, to decide whether the result is now decisive (→ gate) or
+ * still genuinely balanced (→ inconclusive surface, Lock #39).
+ */
+export function computeResultWithFollowups(
+  answers: Record<number, string>,
+): string {
+  return AXIS_ORDER.map((axis) =>
+    tallyAxis(axis, answers, [
+      ...AXIS_CONFIG[axis].initialQuestions,
+      ...AXIS_CONFIG[axis].followupQuestions,
+    ]),
+  ).join(" / ");
+}
+
+export function inconclusiveAxes(result: string): Axis[] {
   const parts = result.split(" / ");
-  const axisNames: Array<"temperature" | "fluid" | "tone"> = [
-    "temperature",
-    "fluid",
-    "tone",
-  ];
-  const out: Array<"temperature" | "fluid" | "tone"> = [];
+  const out: Axis[] = [];
   parts.forEach((p, i) => {
-    if (p === "Neutral" && axisNames[i]) out.push(axisNames[i]);
+    if (p === "Neutral" && AXIS_ORDER[i]) out.push(AXIS_ORDER[i]);
   });
   return out;
 }
 
 export function isInconclusiveResult(result: string): boolean {
   return result.split(" / ").includes("Neutral");
+}
+
+/** Human-readable axis label for UI surfaces (followup phase header, etc). */
+export function axisDisplayLabel(axis: Axis): string {
+  if (axis === "temperature") return "Temperature";
+  if (axis === "fluid") return "Fluid";
+  return "Tone";
 }
