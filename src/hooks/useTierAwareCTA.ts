@@ -79,10 +79,12 @@ export function computeTierAwareCTAs(
       href: ROUTES.ASSESSMENT,
     };
   } else if (tier === "seed") {
-    // Seed user with Pattern — next step up is Root.
+    // Seed user with Pattern — next step up is Root. Hash anchor uses
+    // the `tier-` prefix to avoid colliding with index.html's React
+    // mount point <div id="root">.
     upgrade = {
       label: "Upgrade to Root — 5 family profiles + deeper diagnostic",
-      href: "/apothecary/pricing#root",
+      href: "/apothecary/pricing#tier-root",
     };
   } else if (tier === "free" || tier === null) {
     // Free (or tier query still loading after auth resolves) with
@@ -91,7 +93,7 @@ export function computeTierAwareCTAs(
     upgrade = {
       label:
         "Upgrade to Seed — full clinical study for all 100 herbs",
-      href: "/apothecary/pricing#seed",
+      href: "/apothecary/pricing#tier-seed",
     };
   } else {
     // Root or Practitioner — already at the top of the available tier
