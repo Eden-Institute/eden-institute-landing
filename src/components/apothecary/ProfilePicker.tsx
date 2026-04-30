@@ -17,30 +17,43 @@ import { ROUTES } from "@/lib/routes";
 import { ProfileFormDialog } from "./ProfileFormDialog";
 
 /**
- * Tier caps per Locked Decision §0.8 #19. Free=0 / Seed=1 mean those tiers
- * cannot have a switcher (nothing to switch between); Practitioner is deferred
- * to Phase 3 (end of 2027) but the tier-gate handles it for forward-compat.
+ * Tier caps — v2 schedule (2026-04-30) per tier-cap restructure migration
+ * (supabase/migrations/20260430140000_tier_cap_restructure_v2.sql).
+ * Mirror of the SQL function public.person_profile_cap_for_tier; single
+ * source of truth for the BACKEND remains the SQL function (BEFORE INSERT
+ * trigger enforces). This constant is for UX gating only — the dropdown
+ * "Cap reached (X)" label and the count readout in the menu header.
+ *
+ *   Free=0, Seed=5, Root=10, Practitioner=500.
+ *
+ * Free still excluded by the tier gate below (cap=0, nothing to switch
+ * between). Practitioner is deferred to Phase 3 (end of 2027) but the
+ * tier-gate handles it for forward-compat.
  */
 const TIER_CAP: Record<Tier, number> = {
   anon: 0,
   free: 0,
-  seed: 1,
-  root: 6,
+  seed: 5,
+  root: 10,
   practitioner: 500,
 };
 
 /**
- * Persistent profile picker pill — top-right nav, Root tier and above.
+ * Persistent profile picker pill — top-right nav, Seed tier and above.
  *
  * Per Locked Decision §0.8 #18: "Persistent profile picker pill in top-right
- * nav (Root tier). Switching profile re-filters directory immediately to the
- * active profile's constitution. Reason: 'whose info am I looking at?' must
+ * nav. Switching profile re-filters directory immediately to the active
+ * profile's constitution. Reason: 'whose info am I looking at?' must
  * always be unambiguous."
  *
- * Renders nothing for tiers with cap < 2 (anon, free, seed). Switching active
- * profile updates ActiveProfileContext, which downstream consumers
- * (useDiagnosticProfile, useEdenPattern, HerbDirectoryFilters, HerbCard)
- * read on next render.
+ * Tier-cap restructure v2 (2026-04-30): picker ungated from Root+ to
+ * Seed+ since Seed users now have a 5-cap and need a switcher between
+ * their multiple profiles. Free remains gated out (cap=0). Anon is
+ * unauthenticated and never sees this surface.
+ *
+ * Switching active profile updates ActiveProfileContext, which downstream
+ * consumers (useDiagnosticProfile, useEdenPattern, HerbDirectoryFilters,
+ * HerbCard, useTierAwareCTA) read on next render.
  *
  * Mobile-aware per project_mobile_wrapping_roadmap.md:
  *   - All interactive elements are click/tap-only, no hover-only behavior.
@@ -52,8 +65,13 @@ export function ProfilePicker() {
   const { profiles, activeProfile, setActiveProfileId } = useActiveProfile();
   const [showAddForm, setShowAddForm] = useState(false);
 
-  // Tier gate: only Root + Practitioner see the picker.
-  if (!tier || (tier !== "root" && tier !== "practitioner")) {
+  // Tier gate: Seed, Root, Practitioner see the picker (cap ≥ 1 by v2
+  // schedule). Anon and Free see nothing — anon can't auth, Free has
+  // cap=0 so there's nothing to switch between.
+  if (
+    !tier ||
+    (tier !== "seed" && tier !== "root" && tier !== "practitioner")
+  ) {
     return null;
   }
 
