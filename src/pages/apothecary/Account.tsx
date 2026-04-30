@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrentTier, Tier } from "@/hooks/useCurrentTier";
+import { useTierAwareCTA } from "@/hooks/useTierAwareCTA";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
@@ -90,7 +91,14 @@ function formatDate(iso: string | null): string {
  * Composition (v3.33.2 update):
  *   - Header: display_name + email
  *   - **NEW: Body Pattern card** — surfaces user's constitution result
- *     from the quiz, with a CTA to the directory or to retake the quiz
+ *     from the quiz, with a CTA to the directory and a state-aware guide
+ *     CTA derived from useTierAwareCTA() (Camila 2026-04-30 fix). The
+ *     prior unconditional "Retake the quiz" button has been demoted to a
+ *     small text link below the primary actions, since a user with a
+ *     resolved Pattern shouldn't be prompted to redo the quiz as a
+ *     primary affordance — the next step is the Pattern-specific
+ *     Deep-Dive Guide. The retake link is preserved (patterns can shift
+ *     over time per the terrain framing — Lock #14).
  *   - Subscription card: current tier, status, renewal / cancel-at date,
  *     founding-member badge, and one of:
  *       · ManageSubscriptionButton (any user with a Stripe customer record)
@@ -107,6 +115,13 @@ function formatDate(iso: string | null): string {
 export default function Account() {
   const { user, signOut } = useAuth();
   const { data: tier } = useCurrentTier();
+  // State-aware guide CTA. The hook returns the correct (label, href)
+  // for the user's (Pattern, guide-purchased) state — e.g. for a Frozen
+  // Knot user who hasn't bought the guide: "Get your Frozen Knot guide
+  // — $14" → /guide/frozen-knot. For a user with no Pattern (rare on
+  // Account.tsx since constitutionPretty handles that branch separately),
+  // it falls back to /assessment.
+  const { guide: guideCta } = useTierAwareCTA();
 
   const {
     data: profile,
@@ -181,7 +196,13 @@ export default function Account() {
 
         {/* v3.33.2 NEW: Body Pattern card. Surfaces the user's quiz result
             so their account page reflects the work they've already done.
-            Fixes Phase 5 #5 ("quiz responses didn't seem to register"). */}
+            Fixes Phase 5 #5 ("quiz responses didn't seem to register").
+
+            2026-04-30 (tier-aware CTA propagation): the secondary CTA in
+            the with-Pattern branch has been swapped from "Retake the quiz"
+            to the state-aware guide CTA from useTierAwareCTA(). A small
+            text link below the buttons preserves the retake affordance —
+            patterns can shift over time per the terrain framing. */}
         <section
           className="rounded-lg border p-6 space-y-4"
           style={{
@@ -232,8 +253,12 @@ export default function Account() {
                 <Button variant="eden" asChild>
                   <Link to={ROUTES.APOTHECARY}>View matched herbs</Link>
                 </Button>
+                {/* State-aware guide CTA (replaces unconditional "Retake
+                    the quiz" button per Camila's 2026-04-30 directive).
+                    Surfaces the user's (Pattern, guide-purchased) state
+                    machine via useTierAwareCTA(). */}
                 <Button variant="eden-outline" asChild>
-                  <Link to={ROUTES.ASSESSMENT}>Retake the quiz</Link>
+                  <Link to={guideCta.href}>{guideCta.label}</Link>
                 </Button>
               </>
             ) : (
@@ -242,6 +267,22 @@ export default function Account() {
               </Button>
             )}
           </div>
+          {/* De-prioritized retake affordance. Patterns can shift over time
+              (terrain framing), so we preserve the retake path — but as a
+              small text link rather than a primary button. Only rendered
+              when the user already has a Pattern; the no-Pattern branch
+              already points them at the quiz as the primary action. */}
+          {constitutionPretty && (
+            <p className="font-body text-xs italic text-muted-foreground pt-1">
+              Patterns shift over time.{" "}
+              <Link
+                to={ROUTES.ASSESSMENT}
+                className="underline underline-offset-2 hover:text-foreground"
+              >
+                Retake the quiz →
+              </Link>
+            </p>
+          )}
         </section>
 
         {/* Subscription card */}
