@@ -13,11 +13,17 @@ import { useCurrentTier, type Tier } from "@/hooks/useCurrentTier";
 import { ProfileFormDialog } from "@/components/apothecary/ProfileFormDialog";
 import { resolveEdenPattern, PATTERN_PROFILES } from "@/lib/edenPattern";
 
+// Tier-cap restructure v2 (2026-04-30) — mirror of
+// public.person_profile_cap_for_tier(tier text) in the corresponding
+// migration file. Single source of truth for the BACKEND is the SQL
+// function (BEFORE INSERT trigger enforces). This constant is for
+// UX gating only — "Add profile" disabled-state, header count
+// readout. Keep in lockstep with the SQL function.
 const TIER_CAP: Record<Tier, number> = {
   anon: 0,
   free: 0,
-  seed: 1,
-  root: 6,
+  seed: 5,
+  root: 10,
   practitioner: 500,
 };
 
@@ -275,16 +281,17 @@ function ProfilesPageContent() {
 }
 
 /**
- * /apothecary/profiles — Root+ multi-profile management surface.
+ * /apothecary/profiles — multi-profile management surface.
  *
- * Per Locked Decision §0.8 #19 (profile caps): Free=0, Seed=1, Root=6,
- * Practitioner=500. The picker in ApothecaryNav and this page are visible
- * only at Root+; Seed users have one profile (self) which isn't worth a
- * dedicated management surface; Free has zero profiles.
+ * Tier-cap restructure v2 (2026-04-30): Free=0, Seed=5, Root=10,
+ * Practitioner=500. Page ungated from {root, practitioner} to
+ * {seed, root, practitioner} so Seed users with their new 5-cap
+ * can actually reach the management surface. Free still excluded
+ * (cap=0, nothing to manage) per Decision 2.
  *
  * Auth + tier gating is enforced at three layers:
  *   1. RequireAuth — must be authenticated to reach this route.
- *   2. RequireTier — must be Root+ tier; lower tiers see the paywall fallback.
+ *   2. RequireTier — must be Seed+ tier; lower tiers see the paywall fallback.
  *   3. RLS — Postgres row-level security on person_profiles enforces
  *      user_id = auth.uid() so even a misconfigured client can't see
  *      another user's profiles.
@@ -292,7 +299,7 @@ function ProfilesPageContent() {
 export default function ProfilesPage() {
   return (
     <RequireAuth>
-      <RequireTier allow={["root", "practitioner"]}>
+      <RequireTier allow={["seed", "root", "practitioner"]}>
         <ProfilesPageContent />
       </RequireTier>
     </RequireAuth>
