@@ -1,30 +1,26 @@
-// record-quiz-completion v13 — captures one quiz submission into public.quiz_completions.
+// record-quiz-completion v14 — captures one quiz submission into public.quiz_completions.
 //
-// v13 (2026-04-29): EXTEND the validation allowlist to also accept kebab-case slugs
-// (e.g. 'pressure-cooker', 'frozen-knot'). v12 only accepted Pattern names
-// ("The Pressure Cooker") and axis labels ("Hot / Damp / Tense"); but production data
-// + resend-waitlist's internal normalization both use kebab-case. v12's strict
-// rejection of kebab-case was a brittle compatibility gap masked by the frontend's
-// silent error swallow on the secondary record-quiz-completion call. v13 closes the
-// gap by accepting all three canonical shapes the system uses.
+// v14 (2026-04-30): handle PostgREST 409 (UNIQUE conflict) as no-op success.
+// Background — Assessment.tsx calls resend-waitlist FIRST, which already inserts a
+// quiz_completions row for the visitor; then calls record-quiz-completion SECOND,
+// whose INSERT now collides on the unique constraint (PostgREST returns 409). v13
+// captured the conflict payload to quiz_completion_failures and returned 502, which
+// (a) Assessment.tsx swallowed, (b) drowned the dead-letter table with one row per
+// successful submission, and (c) made it impossible to triage real failures. v14
+// detects 409 explicitly and treats it as a successful no-op: the row exists, by
+// definition recorded by the prior writer, so there is nothing to record.
 //
-// Allowlist v13 covers (case-insensitive, whitespace-normalized):
-//   - 8 Pattern names ("The Burning Bowstring", ...)
-//   - 8 axis labels ("Hot / Dry / Tense", ...)
-//   - 8 kebab-case slugs ("burning-bowstring", "open-flame", "pressure-cooker",
-//     "overflowing-cup", "drawn-bowstring", "spent-candle", "frozen-knot",
-//     "still-water")
+// All other v13 behavior preserved:
+//   - allowlist accepts Pattern names, axis labels, and kebab-case slugs
+//     (case-insensitive, whitespace-normalized)
+//   - retry-once on PostgREST 5xx, then dead-letter to public.quiz_completion_failures
+//     and return 502 to caller
+//   - validation 4xx unchanged
 //
-// Architectural note: the deeper redundancy (resend-waitlist ALSO writes
-// quiz_completions, with kebab-case) is acknowledged but not addressed here.
-// Single-canonical-writer cleanup is queued for post-launch §8.2. v13 is the
-// surgical fix that eliminates the silent-failure mode without changing the
-// dual-write architecture; duplicate-row tolerability holds because all
-// downstream side effects (quiz_completions_to_waitlist trigger ON CONFLICT,
-// tg_quiz_completion_sync_constitution UPDATE) are idempotent.
-//
-// All v12 behavior preserved: one retry on PostgREST 5xx, then dead-letter
-// capture to public.quiz_completion_failures (Lock #52) before returning 502.
+// Architectural note. The dual-write between resend-waitlist and record-quiz-completion
+// is real redundancy and is the right thing to clean up in §8.2 (single canonical writer).
+// v14 is the surgical fix that unblocks today's launch verification without changing the
+// dual-write architecture; once the cleanup ships, the 409 path will simply never fire.
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -134,7 +130,7 @@ async function writeDeadLetter(
       if (Array.isArray(parsed) && parsed[0]?.id) {
         id = String(parsed[0].id);
       }
-    } catch {}
+    } catch { /* best-effort id extract */ }
     return { deadLetterId: id, deadLetterError: null };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -221,12 +217,39 @@ Deno.serve(async (req) => {
 
     let insertRes = await postgrestInsert(insertPayload);
 
+    // ── v14 — 409 = no-op success ──────────────────────────────────────
+    // PostgREST returns 409 when the secondary INSERT collides with a row
+    // resend-waitlist already wrote for this email. The row exists; by
+    // definition, it has been recorded. Treat as success with a hint flag
+    // so the caller can distinguish first-write from already-recorded if
+    // it cares. No retry, no dead-letter, no 502 — those are reserved for
+    // genuine failures (5xx and unexpected statuses).
+    if (insertRes.status === 409) {
+      console.log('quiz_completions row already exists (dual-write conflict — no-op success)', { email, constitution_type });
+      return new Response(JSON.stringify({ ok: true, note: 'already-recorded' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ── 5xx — retry once ───────────────────────────────────────────────
     if (!insertRes.ok && insertRes.status >= 500 && insertRes.status < 600) {
       console.warn(`quiz_completions INSERT first attempt 5xx (${insertRes.status}) — retrying once`);
       await new Promise((r) => setTimeout(r, 250));
       insertRes = await postgrestInsert(insertPayload);
+
+      // Retry might surface a 409 too (e.g. race with a concurrent writer).
+      // Same no-op semantics apply on retry.
+      if (insertRes.status === 409) {
+        console.log('quiz_completions row exists on retry (no-op success)', { email, constitution_type });
+        return new Response(JSON.stringify({ ok: true, note: 'already-recorded' }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
+    // ── Genuine failure — capture to dead-letter and 502 ──────────────
     if (!insertRes.ok) {
       const errText = await insertRes.text().catch(() => '<unreadable response body>');
       console.error('quiz_completions INSERT failed (after retry)', {
