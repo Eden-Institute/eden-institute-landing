@@ -11,13 +11,23 @@
       gtag('config', 'G-5DVHEZPKL0');
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1C3A2E" />
     <title>The Eden Institute &amp; Eden Apothecary — Biblical Clinical Herbalism</title>
     <meta name="description" content="Eden Apothecary is a clinical reasoning app for terrain-based herbalism — 100 monographs anchored to constitutional patterns, tissue states, and stewardship. Built by The Eden Institute. Take the free Pattern of Eden quiz to find your constitutional pattern.">
     <meta name="author" content="The Eden Institute" />
     <meta name="p:domain_verify" content="590bb4ccc9cb42cfe49a5d33b3e7c57a"/>
 
+    <!-- Canonical — homepage. Per-route canonicals are set via
+         the useDocumentMeta hook on each public page. -->
+    <link rel="canonical" href="https://edeninstitute.health/" />
+
+    <!-- Apple touch icon — fallback to favicon.ico until a 180x180 PNG ships. -->
+    <link rel="apple-touch-icon" href="/favicon.ico" />
 
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="The Eden Institute" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:url" content="https://edeninstitute.health/" />
     <meta property="og:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/885c26d7-47fa-44a2-8cbe-2fb65fe2ac1d/id-preview-76fd0110--2c0295c8-d605-4e05-b894-d14a43a38181.lovable.app-1771968635738.png">
 
     <meta name="twitter:card" content="summary_large_image" />
@@ -57,6 +67,26 @@
           "name": "Rooted in Faith Ventures"
         }
       }
+    }
+    </script>
+
+    <!-- Organization schema — names the publisher, links social profiles,
+         points search engines at the canonical org identity. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "The Eden Institute",
+      "url": "https://edeninstitute.health",
+      "logo": "https://edeninstitute.health/favicon.ico",
+      "description": "A structured, worldview-anchored, terrain-based clinical herbalism institute.",
+      "parentOrganization": {
+        "@type": "Organization",
+        "name": "Rooted in Faith Ventures"
+      },
+      "sameAs": [
+        "https://twitter.com/edeninstitute"
+      ]
     }
     </script>
 </head>

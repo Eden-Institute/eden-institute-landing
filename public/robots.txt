@@ -1,16 +1,23 @@
-User-agent: Googlebot
-Allow: /
+# Eden Institute — robots.txt
+# Allow general crawling. Disallow auth-walled application surfaces
+# and Vercel API endpoints which serve no useful indexable content.
 
-User-agent: Bingbot
+User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /apothecary/auth/
+Disallow: /apothecary/account
+Disallow: /apothecary/profiles
+Disallow: /apothecary/welcome-tour
+Disallow: /apothecary/welcome
+Disallow: /apothecary/quiz
 
+# Social-preview bots — explicit Allow so OG/Twitter card scrapers can
+# always reach our pages, even if they ever overlap with a Disallow above.
 User-agent: Twitterbot
 Allow: /
 
 User-agent: facebookexternalhit
-Allow: /
-
-User-agent: *
 Allow: /
 
 Sitemap: https://edeninstitute.health/sitemap.xml
