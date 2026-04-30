@@ -1,39 +1,30 @@
-// record-quiz-completion v12 — captures one quiz submission into public.quiz_completions.
-// Source of truth for constitution-quiz results. Two AFTER INSERT triggers then propagate:
-//   1. tg_quiz_completion_sync_constitution → profiles.constitution_type + display_name (v3.33.2),
-//      person_profiles.eden_constitution for the user's is_self profile.
-//   2. quiz_completions_to_waitlist → waitlist_signups (entry_funnel='quiz_funnel') with metadata.
+// record-quiz-completion v13 — captures one quiz submission into public.quiz_completions.
 //
-// v12 (2026-04-29) — Dead-letter recovery for visitor submissions whose database
-// INSERT fails. Closes a launch-blocker surfaced by four real-traffic 502s with no
-// recoverable payload data.
+// v13 (2026-04-29): EXTEND the validation allowlist to also accept kebab-case slugs
+// (e.g. 'pressure-cooker', 'frozen-knot'). v12 only accepted Pattern names
+// ("The Pressure Cooker") and axis labels ("Hot / Damp / Tense"); but production data
+// + resend-waitlist's internal normalization both use kebab-case. v12's strict
+// rejection of kebab-case was a brittle compatibility gap masked by the frontend's
+// silent error swallow on the secondary record-quiz-completion call. v13 closes the
+// gap by accepting all three canonical shapes the system uses.
 //
-// Behavior:
-//   1. Validate as before (same allowlist of Pattern names + axis labels).
-//   2. Attempt PostgREST INSERT to quiz_completions.
-//   3. On 5xx: ONE immediate retry (handles transient deadlock / connection-pool blips).
-//   4. On still-failing (any non-2xx): write the raw payload + diagnostic
-//      detail to public.quiz_completion_failures BEFORE returning 502 to the caller.
-//      The Vercel-cron-driven replay-quiz-completion-failures EF will replay
-//      this row every 30 min until it succeeds.
-//   5. If the dead-letter write itself fails, log loudly but still return 502 — the
-//      EF never crashes silently.
+// Allowlist v13 covers (case-insensitive, whitespace-normalized):
+//   - 8 Pattern names ("The Burning Bowstring", ...)
+//   - 8 axis labels ("Hot / Dry / Tense", ...)
+//   - 8 kebab-case slugs ("burning-bowstring", "open-flame", "pressure-cooker",
+//     "overflowing-cup", "drawn-bowstring", "spent-candle", "frozen-knot",
+//     "still-water")
 //
-// v11 retained the `Prefer: return=minimal` fix from v3.33.4 (eliminated the
-// false-positive 502 path where rows were inserted but EF still 502'd). v12 builds
-// on v11 — keep return=minimal, add retry + dead-letter on top.
+// Architectural note: the deeper redundancy (resend-waitlist ALSO writes
+// quiz_completions, with kebab-case) is acknowledged but not addressed here.
+// Single-canonical-writer cleanup is queued for post-launch §8.2. v13 is the
+// surgical fix that eliminates the silent-failure mode without changing the
+// dual-write architecture; duplicate-row tolerability holds because all
+// downstream side effects (quiz_completions_to_waitlist trigger ON CONFLICT,
+// tg_quiz_completion_sync_constitution UPDATE) are idempotent.
 //
-// Architectural rationale (unchanged):
-//   - quiz_completions has RLS enabled with no policies — anon/authenticated cannot
-//     insert directly. Service-role mediation prevents browser-spam writes and
-//     centralizes server-side validation.
-//   - Validates against the canonical 8 Eden Patterns AND 8 axis-label shapes.
-//     resolveEdenPattern in src/lib/edenPattern.ts resolves either shape.
-//   - Independent of resend-waitlist by design — see Locked Decision §0.8 #15.
-//
-// Mapping cross-reference: any addition to the allowlist below MUST be mirrored in
-// src/lib/edenPattern.ts (EDEN_PATTERNS + PATTERN_PROFILES) so resolveEdenPattern
-// accepts the new shape end-to-end.
+// All v12 behavior preserved: one retry on PostgREST 5xx, then dead-letter
+// capture to public.quiz_completion_failures (Lock #52) before returning 502.
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -66,12 +57,24 @@ const AXIS_LABELS = [
   'Cold / Damp / Relaxed',
 ];
 
+// v13: kebab-case slugs that resend-waitlist + production data already use.
+const KEBAB_SLUGS = [
+  'burning-bowstring',
+  'open-flame',
+  'pressure-cooker',
+  'overflowing-cup',
+  'drawn-bowstring',
+  'spent-candle',
+  'frozen-knot',
+  'still-water',
+];
+
 function normalizeForCompare(s: string): string {
   return s.replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
 const VALID_CONSTITUTIONS = new Set(
-  [...EDEN_PATTERN_NAMES, ...AXIS_LABELS].map(normalizeForCompare),
+  [...EDEN_PATTERN_NAMES, ...AXIS_LABELS, ...KEBAB_SLUGS].map(normalizeForCompare),
 );
 
 function isValidConstitution(raw: unknown): raw is string {
@@ -95,8 +98,6 @@ function normalizeOptionalString(raw: unknown, maxLen: number): string | null {
   return trimmed.slice(0, maxLen);
 }
 
-// Best-effort dead-letter capture. Never throws. If this itself fails, log loudly
-// but let the caller still return 502 — we want the EF to never crash silently.
 async function writeDeadLetter(
   rawBody: unknown,
   postgrestStatus: number | null,
@@ -124,10 +125,7 @@ async function writeDeadLetter(
     });
     if (!dlRes.ok) {
       const errText = await dlRes.text().catch(() => '<unreadable>');
-      console.error('quiz_completion_failures dead-letter write FAILED', {
-        status: dlRes.status,
-        body: errText,
-      });
+      console.error('quiz_completion_failures dead-letter write FAILED', { status: dlRes.status, body: errText });
       return { deadLetterId: null, deadLetterError: `dead-letter status=${dlRes.status} body=${errText}` };
     }
     let id: string | null = null;
@@ -136,9 +134,7 @@ async function writeDeadLetter(
       if (Array.isArray(parsed) && parsed[0]?.id) {
         id = String(parsed[0].id);
       }
-    } catch {
-      // representation parse fail is non-fatal — row was still inserted (status 201)
-    }
+    } catch {}
     return { deadLetterId: id, deadLetterError: null };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -164,7 +160,6 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
-
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
@@ -177,10 +172,10 @@ Deno.serve(async (req) => {
   try {
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       console.error('Missing env vars');
-      return new Response(
-        JSON.stringify({ error: 'Server configuration error' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+      return new Response(JSON.stringify({ error: 'Server configuration error' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     rawBody = await req.json().catch(() => null);
@@ -202,10 +197,10 @@ Deno.serve(async (req) => {
     }
 
     if (!isValidConstitution(body.constitution_type)) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid constitution_type' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+      return new Response(JSON.stringify({ error: 'Invalid constitution_type' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const constitution_type = (body.constitution_type as string).trim();
@@ -224,13 +219,10 @@ Deno.serve(async (req) => {
       purchased_guide: false,
     };
 
-    // First attempt.
     let insertRes = await postgrestInsert(insertPayload);
 
-    // One retry on 5xx — handles transient deadlock / connection-pool blips.
     if (!insertRes.ok && insertRes.status >= 500 && insertRes.status < 600) {
       console.warn(`quiz_completions INSERT first attempt 5xx (${insertRes.status}) — retrying once`);
-      // Brief jitter before retry.
       await new Promise((r) => setTimeout(r, 250));
       insertRes = await postgrestInsert(insertPayload);
     }
@@ -243,20 +235,12 @@ Deno.serve(async (req) => {
         body: errText,
         email,
       });
-
-      // Dead-letter capture — best-effort, never throws.
-      const { deadLetterId, deadLetterError } = await writeDeadLetter(
-        rawBody,
-        insertRes.status,
-        errText,
-        null,
-      );
+      const { deadLetterId, deadLetterError } = await writeDeadLetter(rawBody, insertRes.status, errText, null);
       if (deadLetterId) {
         console.log(`quiz_completion_failures captured row=${deadLetterId} for email=${email}`);
       } else {
         console.error('CRITICAL: dead-letter ALSO failed', { email, deadLetterError });
       }
-
       return new Response(
         JSON.stringify({
           error: 'Failed to record quiz completion — submission was captured for automatic retry',
@@ -269,26 +253,22 @@ Deno.serve(async (req) => {
 
     console.log('quiz_completions INSERT ok', { email, constitution_type, status: insertRes.status });
 
-    return new Response(
-      JSON.stringify({ ok: true }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    );
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('record-quiz-completion uncaught', message);
-
-    // Best-effort dead-letter on uncaught throws too — captures payload-parse-related
-    // edge cases that would otherwise be lost.
     if (rawBody) {
       const { deadLetterId } = await writeDeadLetter(rawBody, null, null, message);
       if (deadLetterId) {
         console.log(`quiz_completion_failures captured uncaught throw row=${deadLetterId}`);
       }
     }
-
-    return new Response(
-      JSON.stringify({ error: 'Internal error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    );
+    return new Response(JSON.stringify({ error: 'Internal error' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
