@@ -5,10 +5,18 @@ import Footer from "@/components/landing/Footer";
 import WaitlistModal from "@/components/landing/WaitlistModal";
 import { Smartphone, Leaf, Shield, Star } from "lucide-react";
 import { WorldviewBand } from "@/components/landing/WorldviewBand";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 
 const APP_AUD = "cebd3478-b344-41b7-98c8-8bcf0e0108da";
 
 const AppPage = () => {
+  useDocumentMeta({
+    title: "Eden Apothecary — Constitutional Herb Guide | The Eden Institute",
+    description:
+      "Eden Apothecary matches herbs to your body pattern — your body's innate constitution — so you're never guessing. Rooted in Biblical terrain medicine. Built for Christian families.",
+    canonical: "https://edeninstitute.health/apothecary",
+  });
+
   const [open, setOpen] = useState(false);
   return (
     <div className="min-h-screen bg-background">
@@ -50,7 +58,6 @@ const AppPage = () => {
         </div>
       </section>
 
-      {/* WORLDVIEW BAND — the positioning thesis (Manual v3.17 Lock #14 + #44) */}
       <WorldviewBand caption="On the source of vital force" headline={null} />
 
       <section className="py-16 px-6 bg-background">
@@ -64,10 +71,7 @@ const AppPage = () => {
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div
-              className="rounded-lg p-6 border"
-              style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--eden-cream) / 0.4)" }}
-            >
+            <div className="rounded-lg p-6 border" style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--eden-cream) / 0.4)" }}>
               <Smartphone className="w-7 h-7 mb-4" style={{ color: "hsl(var(--eden-gold))" }} />
               <h3 className="font-serif text-base font-semibold mb-2" style={{ color: "hsl(var(--eden-bark))" }}>
                 Body Pattern Quiz
@@ -76,23 +80,16 @@ const AppPage = () => {
                 Discover your innate body pattern in 2 minutes. All 8 patterns mapped to herbs, tissues, and tendencies.
               </p>
             </div>
-            <div
-              className="rounded-lg p-6 border"
-              style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--eden-cream) / 0.4)" }}
-            >
+            <div className="rounded-lg p-6 border" style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--eden-cream) / 0.4)" }}>
               <Leaf className="w-7 h-7 mb-4" style={{ color: "hsl(var(--eden-gold))" }} />
               <h3 className="font-serif text-base font-semibold mb-2" style={{ color: "hsl(var(--eden-bark))" }}>
                 Herb Library
               </h3>
               <p className="font-body text-sm text-muted-foreground leading-relaxed">
-                70+ herbs with terrain intelligence — energetics, tissue affinities, body pattern matches, and safety
-                notes.
+                70+ herbs with terrain intelligence — energetics, tissue affinities, body pattern matches, and safety notes.
               </p>
             </div>
-            <div
-              className="rounded-lg p-6 border"
-              style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--eden-cream) / 0.4)" }}
-            >
+            <div className="rounded-lg p-6 border" style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--eden-cream) / 0.4)" }}>
               <Shield className="w-7 h-7 mb-4" style={{ color: "hsl(var(--eden-gold))" }} />
               <h3 className="font-serif text-base font-semibold mb-2" style={{ color: "hsl(var(--eden-bark))" }}>
                 Biblical Foundation
@@ -101,17 +98,13 @@ const AppPage = () => {
                 Yahweh as the source of vital force, named plainly. Classical pattern observation across traditions, with theological attribution stripped per Lock #44.
               </p>
             </div>
-            <div
-              className="rounded-lg p-6 border"
-              style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--eden-cream) / 0.4)" }}
-            >
+            <div className="rounded-lg p-6 border" style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--eden-cream) / 0.4)" }}>
               <Star className="w-7 h-7 mb-4" style={{ color: "hsl(var(--eden-gold))" }} />
               <h3 className="font-serif text-base font-semibold mb-2" style={{ color: "hsl(var(--eden-bark))" }}>
                 Course Integration
               </h3>
               <p className="font-body text-sm text-muted-foreground leading-relaxed">
-                Eden Institute graduates unlock deeper clinical herb data — making the app a living practicum, not just
-                a reference.
+                Eden Institute graduates unlock deeper clinical herb data — making the app a living practicum, not just a reference.
               </p>
             </div>
           </div>

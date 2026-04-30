@@ -1,22 +1,21 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/landing/Footer";
 import WaitlistModal from "@/components/landing/WaitlistModal";
 import Navbar from "@/components/landing/Navbar";
 import { MapPin, Sprout, Users, BookOpen } from "lucide-react";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 
 const COMM_AUD = "a48cb66e-b2a9-461d-98a6-bb1b12f72693";
-const NAV = [
-  { to: "/", label: "Home" },
-  { to: "/courses", label: "Courses" },
-  { to: "/app", label: "App" },
-  { to: "/homeschool", label: "Homeschool" },
-  { to: "/community", label: "Community" },
-  { to: "/why-eden", label: "Why Eden" },
-];
 
 const Community = () => {
+  useDocumentMeta({
+    title: "The Rooted Community | The Eden Institute",
+    description:
+      "A private network for homesteaders, homeschool families, and liberty-minded believers building lives connected to the land, the body, and each other.",
+    canonical: "https://edeninstitute.health/community",
+  });
+
   const [open, setOpen] = useState(false);
   return (
     <div className="min-h-screen bg-background">
@@ -43,10 +42,7 @@ const Community = () => {
           </p>
           <blockquote className="scripture-block text-sm text-muted-foreground max-w-xl mx-auto mb-10 text-left">
             "They shall build houses and inhabit them; they shall plant vineyards and eat their fruit."
-            <footer
-              className="mt-2 text-xs tracking-wider uppercase font-body font-medium not-italic"
-              style={{ color: "hsl(var(--eden-forest))" }}
-            >
+            <footer className="mt-2 text-xs tracking-wider uppercase font-body font-medium not-italic" style={{ color: "hsl(var(--eden-forest))" }}>
               — Isaiah 65:21 (NASB)
             </footer>
           </blockquote>
@@ -64,10 +60,7 @@ const Community = () => {
             </h2>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div
-              className="rounded-lg p-6 border"
-              style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--eden-cream) / 0.4)" }}
-            >
+            <div className="rounded-lg p-6 border" style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--eden-cream) / 0.4)" }}>
               <MapPin className="w-7 h-7 mb-4" style={{ color: "hsl(var(--eden-gold))" }} />
               <h3 className="font-serif text-base font-semibold mb-2" style={{ color: "hsl(var(--eden-bark))" }}>
                 Land and Homestead
@@ -77,10 +70,7 @@ const Community = () => {
                 resources.
               </p>
             </div>
-            <div
-              className="rounded-lg p-6 border"
-              style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--eden-cream) / 0.4)" }}
-            >
+            <div className="rounded-lg p-6 border" style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--eden-cream) / 0.4)" }}>
               <Sprout className="w-7 h-7 mb-4" style={{ color: "hsl(var(--eden-gold))" }} />
               <h3 className="font-serif text-base font-semibold mb-2" style={{ color: "hsl(var(--eden-bark))" }}>
                 Herbal Practice
@@ -89,10 +79,7 @@ const Community = () => {
                 Community herb gardens, seasonal planting guides, bulk buying co-ops, and practitioner spotlights.
               </p>
             </div>
-            <div
-              className="rounded-lg p-6 border"
-              style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--eden-cream) / 0.4)" }}
-            >
+            <div className="rounded-lg p-6 border" style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--eden-cream) / 0.4)" }}>
               <Users className="w-7 h-7 mb-4" style={{ color: "hsl(var(--eden-gold))" }} />
               <h3 className="font-serif text-base font-semibold mb-2" style={{ color: "hsl(var(--eden-bark))" }}>
                 Family Network
@@ -102,10 +89,7 @@ const Community = () => {
                 differently.
               </p>
             </div>
-            <div
-              className="rounded-lg p-6 border"
-              style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--eden-cream) / 0.4)" }}
-            >
+            <div className="rounded-lg p-6 border" style={{ borderColor: "hsl(var(--border))", backgroundColor: "hsl(var(--eden-cream) / 0.4)" }}>
               <BookOpen className="w-7 h-7 mb-4" style={{ color: "hsl(var(--eden-gold))" }} />
               <h3 className="font-serif text-base font-semibold mb-2" style={{ color: "hsl(var(--eden-bark))" }}>
                 Weekly Dispatch

@@ -1,9 +1,17 @@
 import { useState } from "react";
 import { PricingTier } from "@/components/apothecary/PricingTier";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 
 type BillingCycle = "monthly" | "yearly";
 
 export default function Pricing() {
+  useDocumentMeta({
+    title: "Pricing | Eden Apothecary",
+    description:
+      "Free access to the herb directory and constitutional quiz. Seed and Root tiers open the full clinical depth — actions, tissue states, and contraindications for every herb.",
+    canonical: "https://edeninstitute.health/apothecary/pricing",
+  });
+
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
 
   return (

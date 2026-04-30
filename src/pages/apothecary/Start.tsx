@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { PublicTierCard } from "@/components/apothecary/PublicTierCard";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 
 /**
  * Public tier-select landing page (`/apothecary/start`).
@@ -20,6 +21,13 @@ import { ROUTES } from "@/lib/routes";
  * directory so the tier-select isn't shown to people who already chose.
  */
 export default function Start() {
+  useDocumentMeta({
+    title: "Get Started | Eden Apothecary",
+    description:
+      "One hundred herbs anchored to constitutional patterns, tissue states, and stewardship — taught the way the body actually organizes itself. Free for as long as you'd like.",
+    canonical: "https://edeninstitute.health/apothecary/start",
+  });
+
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
