@@ -92,13 +92,14 @@ export default function Pricing() {
           </div>
 
           {/* Tier card wrappers carry id attributes so deep-link hashes
-              (#free / #seed / #root) scroll directly to the right card
-              via the global ScrollToTop hook (PR #92). The Navbar's
-              tier-aware CTA pair points at /apothecary/pricing#seed and
-              #root for Free/Seed users; without these IDs the hash
-              would resolve to nothing and stay at page top. */}
+              (#tier-free / #tier-seed / #tier-root) scroll directly to
+              the right card via the global ScrollToTop hook (PR #92).
+              The `tier-` prefix avoids collision with index.html's
+              <div id="root"> React mount point — a bare id="root" here
+              would resolve to the React root container (scrollY=0)
+              rather than the Root pricing card. */}
           <div className="grid md:grid-cols-3 gap-6">
-            <div id="free">
+            <div id="tier-free">
               <PricingTier
                 tier="free"
                 displayName="Free"
@@ -115,7 +116,7 @@ export default function Pricing() {
               />
             </div>
 
-            <div id="seed">
+            <div id="tier-seed">
               <PricingTier
                 tier="seed"
                 displayName="Seed"
@@ -135,7 +136,7 @@ export default function Pricing() {
               />
             </div>
 
-            <div id="root">
+            <div id="tier-root">
               <PricingTier
                 tier="root"
                 displayName="Root"
