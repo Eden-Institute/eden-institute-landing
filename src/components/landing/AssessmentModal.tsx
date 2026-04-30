@@ -181,9 +181,12 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
   const neutralAxes = currentResult ? inconclusiveAxes(currentResult) : [];
   const axisPositions = computeAxisPositions(answers);
 
+  // v4.2.1 (PR #85) — q access is render-safe even if currentQ ever falls
+  // outside [0, questions.length-1]. See Assessment.tsx for the same guard
+  // and the matching setter clamp in handleAnswer below.
   const q = questions[currentQ];
-  const progress = phase === "quiz" ? ((currentQ + (answers[q.id] ? 1 : 0)) / questions.length) * 100 : 100;
-  const axisLabel = q.axis === "temperature" ? "Temperature Axis" : q.axis === "fluid" ? "Fluid Axis" : "Tone Axis";
+  const progress = phase === "quiz" && q ? ((currentQ + (answers[q.id] ? 1 : 0)) / questions.length) * 100 : 100;
+  const axisLabel = q?.axis === "temperature" ? "Temperature Axis" : q?.axis === "fluid" ? "Fluid Axis" : "Tone Axis";
 
   const handleAnswer = useCallback((questionId: number, score: string) => {
     if (currentQ === 0) {
@@ -194,7 +197,9 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
       setTransitioning(true);
       setTimeout(() => {
         if (currentQ < questions.length - 1) {
-          setCurrentQ((p) => p + 1);
+          // v4.2.1 (PR #85) — clamp via functional updater so a stale-closure
+          // double-fire can never push currentQ past the last index.
+          setCurrentQ((p) => Math.min(p + 1, questions.length - 1));
         } else {
           // Lock #39 — never silently default. If any axis is tied,
           // route to the inconclusive surface instead of the gate.
@@ -308,7 +313,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
           </div>
         )}
 
-        {phase === "quiz" && (
+        {phase === "quiz" && q && (
           <div className="px-5 md:px-6 py-6 md:py-8">
             {/* Progress */}
             <div className="mb-6 md:mb-8">
