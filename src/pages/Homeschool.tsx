@@ -1,22 +1,21 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/landing/Footer";
 import WaitlistModal from "@/components/landing/WaitlistModal";
 import Navbar from "@/components/landing/Navbar";
 import { BookOpen, Sprout, Users } from "lucide-react";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 
 const HS_AUD = "a48cb66e-b2a9-461d-98a6-bb1b12f72693";
-const NAV = [
-  { to: "/", label: "Home" },
-  { to: "/courses", label: "Courses" },
-  { to: "/app", label: "App" },
-  { to: "/homeschool", label: "Homeschool" },
-  { to: "/community", label: "Community" },
-  { to: "/why-eden", label: "Why Eden" },
-];
 
 const Homeschool = () => {
+  useDocumentMeta({
+    title: "Eden's Table — K-12 Homeschool Herbalism Curriculum | The Eden Institute",
+    description:
+      "A K-12 Biblical herbalism curriculum for homeschool families. Open-and-go lesson plans, memory songs, kitchen labs, and garden activities — rooted in Scripture and creation stewardship.",
+    canonical: "https://edeninstitute.health/homeschool",
+  });
+
   const [open, setOpen] = useState(false);
   return (
     <div className="min-h-screen bg-background">
@@ -70,19 +69,13 @@ const Homeschool = () => {
               <h3 className="font-serif text-lg font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>
                 Sprouts
               </h3>
-              <p
-                className="font-accent text-xs tracking-widest uppercase mb-3"
-                style={{ color: "hsl(var(--eden-gold))" }}
-              >
+              <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>
                 Grades K-3
               </p>
               <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">
                 Wonder, stories, and simple plant identification. Kitchen labs and memory songs.
               </p>
-              <span
-                className="text-xs font-body px-2 py-1 rounded"
-                style={{ backgroundColor: "hsl(var(--eden-gold) / 0.15)", color: "hsl(var(--eden-gold))" }}
-              >
+              <span className="text-xs font-body px-2 py-1 rounded" style={{ backgroundColor: "hsl(var(--eden-gold) / 0.15)", color: "hsl(var(--eden-gold))" }}>
                 Nov 2026
               </span>
             </div>
