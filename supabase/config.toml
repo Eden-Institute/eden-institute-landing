@@ -1,11 +1,100 @@
 project_id = "noeqztssupewjidpvhar"
 
-# Webhook endpoints authenticate via provider-specific signatures (Stripe HMAC,
-# Resend svix), not Supabase JWT. They MUST be deployed with verify_jwt=false,
-# otherwise the Supabase gateway 401s every request before the function runs.
+# ──────────────────────────────────────────────────────────────────────────
+# Edge Function gateway auth posture
+# ──────────────────────────────────────────────────────────────────────────
+#
+# Background. The Supabase project's anon key is the new publishable-key
+# format (sb_publishable_...). The supabase-js v2.105.1 client sends this
+# as both `apikey` and `Authorization: Bearer ...` for anon callers. Edge
+# Functions default to verify_jwt = true, which makes the gateway reject
+# any Authorization header that isn't a JWT (eyJ... prefix). Result:
+# every anonymous call returns 401 UNAUTHORIZED_INVALID_JWT_FORMAT *before*
+# the function code runs.
+#
+# Posture per function:
+#
+#   verify_jwt = false  → public surface. Anyone with the URL can call.
+#                         The function body must validate input and use
+#                         the service-role key for any privileged DB
+#                         work. RLS still protects the database.
+#                         Required for any EF the unauthenticated frontend
+#                         is supposed to be able to call.
+#
+#   verify_jwt = true   → authed-only surface. Caller must present a
+#                         valid Supabase user JWT in Authorization.
+#                         Use for EFs that mirror RequireAuth-walled
+#                         routes or that perform user-scoped actions on
+#                         behalf of a known signed-in user.
+#
+# When adding a new EF: decide which bucket it belongs to and add it
+# below. Default (no entry) = verify_jwt = true.
 
+# ──────────────────────────────────────────────────────────────────────────
+# Public surface (anon-callable)
+# ──────────────────────────────────────────────────────────────────────────
+
+# Quiz email-gate, all waitlist signups (constitution_assessment +
+# legacy audience funnels). Called from Assessment.tsx, AssessmentModal.tsx,
+# and the practitioner / tier-2 / Eden's Table waitlist forms.
+[functions.resend-waitlist]
+verify_jwt = false
+
+# Anon quiz submission canonical writer. Called from Assessment.tsx
+# alongside resend-waitlist; record-quiz-completion is the canonical
+# quiz_completions writer (resend-waitlist also writes today; that
+# duplication is queued for the dual-write cleanup PR).
+[functions.record-quiz-completion]
+verify_jwt = false
+
+# Practitioner waitlist signup. Called from the practitioner waitlist
+# form on the marketing landing.
+[functions.practitioner-waitlist-signup]
+verify_jwt = false
+
+# Tier 2 founding waitlist signup. Called from /tier-2-waitlist.
+[functions.tier-2-waitlist-signup]
+verify_jwt = false
+
+# $14 Pattern Deep-Dive Guide checkout. Called from anon visitors on
+# AssessmentModal Section D and on /guide/:slug.
+[functions.create-checkout]
+verify_jwt = false
+
+# In-app feedback widget. Mounted globally; widget includes the user's
+# bearer token if present, but the EF itself accepts both anon and
+# authed callers.
+[functions.submit-feedback]
+verify_jwt = false
+
+# Post-Stripe-checkout redirect target. Stripe redirects the visitor
+# back to the site with a session_id; the frontend invokes this EF to
+# verify the session and surface the success page. The redirect happens
+# in an anon browser context (Stripe's hosted checkout signed the user
+# out for that hop), so the gateway must allow anon.
+[functions.verify-session]
+verify_jwt = false
+
+# Webhook endpoints — providers sign their own requests (Stripe HMAC,
+# Resend svix). They MUST be deployed with verify_jwt = false; otherwise
+# the Supabase gateway 401s every webhook delivery before the function
+# body can verify the provider signature.
 [functions.resend-webhook]
 verify_jwt = false
 
 [functions.stripe-webhook]
 verify_jwt = false
+
+# ──────────────────────────────────────────────────────────────────────────
+# Authed-only surfaces (default verify_jwt = true; listed here for clarity)
+# ──────────────────────────────────────────────────────────────────────────
+#
+# - record-diagnostic-completion : RequireAuth-walled, called from
+#   Assessment.tsx in diagnostic mode (logged-in user taking the in-app
+#   quiz against a person profile they own).
+# - customer-portal              : authed paid customer.
+# - constitution-pdf             : tier-gated.
+# - nurture-emails               : cron-driven; runs with service-role.
+#
+# These intentionally omit a [functions.X] block and inherit
+# verify_jwt = true.
