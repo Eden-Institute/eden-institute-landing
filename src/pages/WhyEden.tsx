@@ -158,7 +158,11 @@ const WhyEden = () => {
                 Start with the free body pattern quiz. Two minutes. Eight possible results. It will change how you think about every herb you'll ever use.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link to={`${ROUTES.HOME}#assessment`} className="font-body text-sm font-semibold px-8 py-3 rounded-sm" style={{ backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-parchment))" }}>
+                {/* CTA cleanup 2026-04-30: was {`${ROUTES.HOME}#assessment`}, which depends on
+                    Index.tsx's useEffect-on-mount race to open the quiz modal. Routing
+                    direct to /assessment (the canonical quiz endpoint) is more reliable
+                    and matches what the label promises. */}
+                <Link to={ROUTES.ASSESSMENT} className="font-body text-sm font-semibold px-8 py-3 rounded-sm" style={{ backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-parchment))" }}>
                   Take the Free Body Pattern Quiz →
                 </Link>
                 <Link to={ROUTES.COURSES} className="font-body text-sm font-semibold px-8 py-3 rounded-sm" style={{ backgroundColor: "transparent", color: "hsl(var(--eden-forest))", border: "1px solid hsl(var(--eden-forest))" }}>
