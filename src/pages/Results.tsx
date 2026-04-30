@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { constitutionProfiles } from "@/lib/constitution-data";
 import { ROUTES } from "@/lib/routes";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
+import { useStructuredData } from "@/lib/useStructuredData";
 import Navbar from "@/components/landing/Navbar";
 
 const slugToType: Record<string, string> = {
@@ -31,20 +32,96 @@ const Results = () => {
 
   // Per-route meta. The 8 Pattern result pages are individually indexable
   // and need distinct title/description/canonical for the SERP. og:type =
-  // "article" so social previews render the editorial card layout rather
-  // than the generic website summary.
+  // "article" so social previews render the editorial card layout.
+  const canonical = constitutionSlug
+    ? `https://edeninstitute.health/results/${constitutionSlug}`
+    : "https://edeninstitute.health/assessment";
+
+  const title = profile
+    ? `Your Body Pattern: ${profile.nickname} — The Eden Institute`
+    : "Body Pattern Not Found — The Eden Institute";
+  const description = profile && constitutionType
+    ? `Your body pattern is ${profile.nickname} (${constitutionType}). ${profile.tagline} See the herbs that meet this pattern and how to begin.`
+    : "We couldn't find that body pattern. Take the Pattern of Eden quiz to find yours.";
+
   useDocumentMeta({
-    title: profile
-      ? `Your Body Pattern: ${profile.nickname} — The Eden Institute`
-      : "Body Pattern Not Found — The Eden Institute",
-    description: profile && constitutionType
-      ? `Your body pattern is ${profile.nickname} (${constitutionType}). ${profile.tagline} See the herbs that meet this pattern and how to begin.`
-      : "We couldn't find that body pattern. Take the Pattern of Eden quiz to find yours.",
-    canonical: constitutionSlug
-      ? `https://edeninstitute.health/results/${constitutionSlug}`
-      : "https://edeninstitute.health/assessment",
+    title,
+    description,
+    canonical,
     ogType: "article",
   });
+
+  // JSON-LD structured data — only emit on a valid Pattern slug. The
+  // not-found branch returns null for both, so useStructuredData
+  // skips injection (no misleading 404-on-Article-schema in the index).
+  useStructuredData(
+    "article",
+    profile && constitutionType
+      ? {
+          "@context": "https://schema.org",
+          "@type": "Article",
+          headline: title,
+          description,
+          url: canonical,
+          mainEntityOfPage: canonical,
+          datePublished: "2026-04-30",
+          dateModified: "2026-04-30",
+          author: {
+            "@type": "Organization",
+            name: "The Eden Institute",
+            url: "https://edeninstitute.health",
+          },
+          publisher: {
+            "@type": "Organization",
+            name: "The Eden Institute",
+            url: "https://edeninstitute.health",
+            logo: {
+              "@type": "ImageObject",
+              url: "https://edeninstitute.health/favicon.ico",
+            },
+          },
+          about: {
+            "@type": "Thing",
+            name: profile.nickname,
+            alternateName: constitutionType,
+          },
+          articleSection: "Pattern of Eden — Constitutional Patterns",
+          inLanguage: "en-US",
+        }
+      : null,
+  );
+
+  useStructuredData(
+    "breadcrumbs",
+    profile
+      ? {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            {
+              "@type": "ListItem",
+              position: 1,
+              name: "Home",
+              item: "https://edeninstitute.health/",
+            },
+            {
+              "@type": "ListItem",
+              position: 2,
+              name: "Pattern of Eden Quiz",
+              item: "https://edeninstitute.health/assessment",
+            },
+            {
+              "@type": "ListItem",
+              position: 3,
+              name: profile.nickname,
+              // No `item` for the current page — per schema.org spec, the
+              // last breadcrumb omits the URL because it IS the current
+              // page.
+            },
+          ],
+        }
+      : null,
+  );
 
   if (!profile || !constitutionType) {
     return (
