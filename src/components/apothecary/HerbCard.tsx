@@ -22,6 +22,7 @@ import {
   type TraditionalObservation,
 } from "@/lib/contentEntry";
 import { ROUTES } from "@/lib/routes";
+import { HerbFavoriteHeart } from "./HerbFavoriteHeart";
 
 interface HerbCardProps {
   herb: HerbRow;
@@ -176,6 +177,11 @@ const TRADITION_LABELS: Record<TraditionalObservation["tradition"], string> = {
  *    Full monograph: tissue states, organ system affinity, chief complaints,
  *    constitutional matches, drug interactions, preparation & dosage, refer
  *    threshold, plus identity + body. Footer teaser suppressed.
+ *
+ * Save-favorites (PR #103/#104, 2026-04-30): unlocked states render a
+ * <HerbFavoriteHeart /> button at top-right of the card. Locked state
+ * does NOT render the heart — Free users have person_profiles cap=0 and
+ * can't favorite anything, so the heart would be dead UI.
  */
 export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
   const [expanded, setExpanded] = useState(false);
@@ -304,9 +310,17 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
   // -------------------------------------------------------------------------
   return (
     <article
-      className="rounded-lg border p-5 bg-background flex flex-col h-full"
+      className="relative rounded-lg border p-5 bg-background flex flex-col h-full"
       style={{ borderColor: "hsl(var(--border))" }}
     >
+      {/*
+        Save-favorites heart (PR #103/#104, 2026-04-30). Absolute-positioned
+        top-right via the article's `relative`. Self-contained: handles its
+        own tier check (Free → upgrade prompt; Seed+ → toggle) and stops
+        event propagation so it doesn't trigger the expand/collapse handler.
+      */}
+      <HerbFavoriteHeart herbId={herb.herb_id} />
+
       {/*
         §8.1.3 (Manual v4.0) — Pattern-specific aggravation banner.
         Promotes the chip-row Avoid badge into a top-of-card warning when
