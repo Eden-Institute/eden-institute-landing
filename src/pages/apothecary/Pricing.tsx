@@ -91,56 +91,68 @@ export default function Pricing() {
             </div>
           </div>
 
+          {/* Tier card wrappers carry id attributes so deep-link hashes
+              (#free / #seed / #root) scroll directly to the right card
+              via the global ScrollToTop hook (PR #92). The Navbar's
+              tier-aware CTA pair points at /apothecary/pricing#seed and
+              #root for Free/Seed users; without these IDs the hash
+              would resolve to nothing and stay at page top. */}
           <div className="grid md:grid-cols-3 gap-6">
-            <PricingTier
-              tier="free"
-              displayName="Free"
-              tagline="Start exploring the framework."
-              monthlyPrice="$0"
-              yearlyPrice="$0"
-              features={[
-                "50 herb monographs (basic profile)",
-                "Constitutional quiz + result",
-                "The Five Tenets overview",
-                "Read-only contraindications (high + absolute)",
-              ]}
-              billingCycle={cycle}
-            />
+            <div id="free">
+              <PricingTier
+                tier="free"
+                displayName="Free"
+                tagline="Start exploring the framework."
+                monthlyPrice="$0"
+                yearlyPrice="$0"
+                features={[
+                  "50 herb monographs (basic profile)",
+                  "Constitutional quiz + result",
+                  "The Five Tenets overview",
+                  "Read-only contraindications (high + absolute)",
+                ]}
+                billingCycle={cycle}
+              />
+            </div>
 
-            <PricingTier
-              tier="seed"
-              displayName="Seed"
-              tagline="Clinical depth for students and self-directed learners."
-              monthlyPrice="$7.99"
-              yearlyPrice="$79.99"
-              monthlyLookupKey="seed_monthly"
-              yearlyLookupKey="seed_yearly"
-              features={[
-                "All 100 herbs with clinical depth",
-                "Actions, tissue states, energetics",
-                "Full contraindication library",
-                "Save and revisit your constitutional result",
-              ]}
-              billingCycle={cycle}
-              highlighted
-            />
+            <div id="seed">
+              <PricingTier
+                tier="seed"
+                displayName="Seed"
+                tagline="Clinical depth for students and self-directed learners."
+                monthlyPrice="$7.99"
+                yearlyPrice="$79.99"
+                monthlyLookupKey="seed_monthly"
+                yearlyLookupKey="seed_yearly"
+                features={[
+                  "All 100 herbs with clinical depth",
+                  "Actions, tissue states, energetics",
+                  "Full contraindication library",
+                  "Save and revisit your constitutional result",
+                ]}
+                billingCycle={cycle}
+                highlighted
+              />
+            </div>
 
-            <PricingTier
-              tier="root"
-              displayName="Root"
-              tagline="Deeper practice — full junctions, dimensions, and citations."
-              monthlyPrice="$24.99"
-              yearlyPrice="$249.99"
-              monthlyLookupKey="root_monthly"
-              yearlyLookupKey="root_yearly"
-              features={[
-                "Everything in Seed",
-                "All 12 herb-to-dimension junction tables",
-                "Source citations and classical materia medica links",
-                "Priority access to new herbs and clinical overlays",
-              ]}
-              billingCycle={cycle}
-            />
+            <div id="root">
+              <PricingTier
+                tier="root"
+                displayName="Root"
+                tagline="Deeper practice — full junctions, dimensions, and citations."
+                monthlyPrice="$24.99"
+                yearlyPrice="$249.99"
+                monthlyLookupKey="root_monthly"
+                yearlyLookupKey="root_yearly"
+                features={[
+                  "Everything in Seed",
+                  "All 12 herb-to-dimension junction tables",
+                  "Source citations and classical materia medica links",
+                  "Priority access to new herbs and clinical overlays",
+                ]}
+                billingCycle={cycle}
+              />
+            </div>
           </div>
 
           <div className="text-center mt-12">
