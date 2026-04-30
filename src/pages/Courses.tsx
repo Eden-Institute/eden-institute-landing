@@ -102,18 +102,22 @@ const Courses = () => {
                 <p className="font-body text-sm" style={{ color: "hsl(var(--eden-bark) / 0.75)" }}>The print companion to the Tier 1 course. Read it alongside the lessons or give it as a gift to someone beginning their herbal journey.</p>
               </div>
               {/* CTA cleanup 2026-04-30 (round 2): textbook URL confirmed by
-                  Camila — Amazon Kindle listing. Bare URL for now; the
-                  Amazon Associates affiliate tag follows in a 1-line PR once
+                  Camila — Amazon Eden Institute SERIES page (evergreen as
+                  more books in the series ship; single-book Kindle URLs
+                  would drift the moment Tier 2's companion textbook
+                  appears, so route to the series and let Amazon's own UI
+                  surface the latest). Bare URL for now; the Amazon
+                  Associates affiliate tag follows in a 1-line PR once
                   Camila pulls her tag from mobile. The `sponsored` rel
                   attribute is Google's recommended honest-disclosure for
                   affiliate-style links (avoids PageRank-passing penalties),
-                  applied pre-tag too since the surface is intentionally
+                  applied pre-tag since the surface is intentionally
                   affiliate. */}
               <a
-                href="https://www.amazon.com/Back-Eden-Biblical-Foundation-Institute-ebook/dp/B0GPW5BZ32"
+                href="https://www.amazon.com/dp/B0GPT81RDF"
                 target="_blank"
                 rel="noopener noreferrer sponsored"
-                aria-label="Buy Back to Eden: Foundations of Biblical Herbalism on Amazon (opens in a new tab)"
+                aria-label="Browse the Eden Institute book series on Amazon (opens in a new tab)"
                 className="shrink-0 font-body text-xs tracking-widest uppercase font-semibold px-4 py-2 rounded-sm text-center transition-opacity hover:opacity-90"
                 style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}
               >
