@@ -70,6 +70,7 @@ export const ROUTES = {
   APOTHECARY_WELCOME: "/apothecary/welcome",
   APOTHECARY_ACCOUNT: "/apothecary/account",
   APOTHECARY_PROFILES: "/apothecary/profiles",
+  APOTHECARY_FAVORITES: "/apothecary/favorites",  // Stage 7.X save-favorites (Seed+)
   APOTHECARY_QUIZ: "/apothecary/quiz",  // Root + Practitioner only
 
   // ── Aliases & redirects (declared here, redirected in App.tsx) ──
