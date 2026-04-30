@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import AssessmentModal from "@/components/landing/AssessmentModal";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import ScrollReveal from "@/components/landing/ScrollReveal";
 import { GoldDivider } from "@/components/landing/BotanicalAccents";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 
 const HERO_IMG = "https://images.unsplash.com/photo-1771128264855-1c032332cbc8?auto=format&fit=crop&w=1920&q=80";
 const HERBS_IMG = "https://images.unsplash.com/photo-1580116270858-8a0d62b15426?auto=format&fit=crop&w=1200&q=80";
@@ -41,16 +42,14 @@ const tiers = [
 ];
 
 const ConstitutionalHerbalism = () => {
+  useDocumentMeta({
+    title: "What Is Constitutional Herbalism? | The Eden Institute",
+    description:
+      "Learn how constitutional herbalism matches herbs to your unique body pattern. Discover the six tissue states and the Biblical foundation for terrain-based plant medicine.",
+    canonical: "https://edeninstitute.health/constitutional-herbalism",
+  });
+
   const [assessmentModal, setAssessmentModal] = useState(false);
-
-  useEffect(() => {
-    document.title = "What Is Constitutional Herbalism? | The Eden Institute";
-    document.querySelector('meta[name="description"]')?.setAttribute("content", "Learn how constitutional herbalism matches herbs to your unique body pattern. Discover the six tissue states and the Biblical foundation for terrain-based plant medicine.");
-  }, []);
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
 
   return (
     <main className="min-h-screen overflow-x-hidden">
