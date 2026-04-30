@@ -30,7 +30,13 @@ import {
  *
  * Mobile behaviour:
  *   • md:grid-cols-2 → single column on small screens, side-by-side on md+.
- *   • All tap targets ≥44px (mobile-aware per project_mobile_wrapping_roadmap).
+ *   • Card divs carry `min-w-0` so grid children respect the track width
+ *     instead of overflowing to their intrinsic content width.
+ *   • Buttons use `min-h-11 h-auto whitespace-normal` so long CTA labels
+ *     wrap on phones rather than pushing past the card edge. Tap-target
+ *     rule (≥44px) preserved via min-h-11.
+ *   • h2 + body p use `break-words` defensively for long Pattern names
+ *     that get interpolated into the heading.
  */
 
 interface MatchedHerbsCtaPairProps {
@@ -119,25 +125,25 @@ function PractitionerWaitlistCard({
 
   return (
     <div
-      className="rounded-lg border p-6 md:p-8 flex flex-col"
+      className="rounded-lg border p-6 md:p-8 flex flex-col min-w-0"
       style={{
         borderColor: "hsl(var(--eden-gold) / 0.4)",
         backgroundColor: "hsl(var(--eden-cream) / 0.5)",
       }}
     >
       <p
-        className="font-accent text-[11px] tracking-[0.3em] uppercase mb-2"
+        className="font-accent text-[11px] tracking-[0.3em] uppercase mb-2 break-words"
         style={{ color: "hsl(var(--eden-gold))" }}
       >
         Practitioner tier — opens end of 2027
       </p>
       <h2
-        className="font-serif text-xl md:text-2xl font-semibold leading-tight mb-3"
+        className="font-serif text-xl md:text-2xl font-semibold leading-tight mb-3 break-words"
         style={{ color: "hsl(var(--eden-bark))" }}
       >
         Tell me when the clinical practice tier opens.
       </h2>
-      <p className="font-body text-sm text-muted-foreground mb-5">
+      <p className="font-body text-sm text-muted-foreground mb-5 break-words">
         Formula builder, dose schedules, exportable case files, and the full
         contraindication apparatus — for clinicians and serious practitioners.
         Be first in line.
@@ -198,12 +204,12 @@ function PractitionerWaitlistCard({
             type="submit"
             variant="eden"
             size="lg"
-            className="w-full h-11"
+            className="w-full min-h-11 h-auto whitespace-normal text-sm leading-tight py-2 px-3 text-center"
             disabled={status === "submitting"}
           >
             {status === "submitting" ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="w-4 h-4 mr-2 animate-spin shrink-0" />
                 Adding you to the list…
               </>
             ) : (
@@ -212,7 +218,7 @@ function PractitionerWaitlistCard({
           </Button>
           {status === "error" && errorMessage && (
             <p
-              className="font-body text-sm"
+              className="font-body text-sm break-words"
               style={{ color: "hsl(var(--destructive))" }}
             >
               {errorMessage}. Please try again or email
@@ -236,25 +242,25 @@ function AmazonKitCard({ activePattern, amazonUrl }: AmazonKitCardProps) {
   const patternShort = activePattern.replace(/^The\s+/i, "");
   return (
     <div
-      className="rounded-lg border p-6 md:p-8 flex flex-col"
+      className="rounded-lg border p-6 md:p-8 flex flex-col min-w-0"
       style={{
         borderColor: "hsl(var(--border))",
         backgroundColor: "hsl(var(--eden-cream) / 0.3)",
       }}
     >
       <p
-        className="font-accent text-[11px] tracking-[0.3em] uppercase mb-2"
+        className="font-accent text-[11px] tracking-[0.3em] uppercase mb-2 break-words"
         style={{ color: "hsl(var(--eden-gold))" }}
       >
         Begin in your own kitchen
       </p>
       <h2
-        className="font-serif text-xl md:text-2xl font-semibold leading-tight mb-3"
+        className="font-serif text-xl md:text-2xl font-semibold leading-tight mb-3 break-words"
         style={{ color: "hsl(var(--eden-bark))" }}
       >
         A starter set on Amazon for {patternShort}.
       </h2>
-      <p className="font-body text-sm text-muted-foreground mb-5">
+      <p className="font-body text-sm text-muted-foreground mb-5 break-words">
         Herbs aligned to your pattern so you can begin practicing — teas,
         tinctures, dry herb. We curated the kit; preparation and use are yours
         to learn through the Apothecary.
@@ -262,7 +268,7 @@ function AmazonKitCard({ activePattern, amazonUrl }: AmazonKitCardProps) {
       <Button
         variant="eden-outline"
         size="lg"
-        className="w-full h-11 mt-auto"
+        className="w-full min-h-11 h-auto whitespace-normal text-sm leading-tight py-2 px-3 text-center mt-auto"
         asChild
       >
         <a
@@ -271,12 +277,14 @@ function AmazonKitCard({ activePattern, amazonUrl }: AmazonKitCardProps) {
           rel="noopener noreferrer sponsored"
           aria-label={`Open the Amazon starter set for ${patternShort} in a new tab`}
         >
-          See the {patternShort} starter set
-          <ExternalLink className="w-4 h-4 ml-2" aria-hidden="true" />
+          <span className="break-words">
+            See the {patternShort} starter set
+          </span>
+          <ExternalLink className="w-4 h-4 ml-2 shrink-0" aria-hidden="true" />
         </a>
       </Button>
       <p
-        className="font-body text-xs mt-3 italic"
+        className="font-body text-xs mt-3 italic break-words"
         style={{ color: "hsl(var(--muted-foreground))" }}
       >
         Affiliate links — Eden Institute earns a small commission if you
