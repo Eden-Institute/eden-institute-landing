@@ -26,17 +26,22 @@ const navLinks = [
  * v4.1.1 — desktop scope is intentional per Camila's 2026-04-30
  * mobile-only spec for the new tier-aware CTAs.
  *
- * Mobile hamburger drawer (this commit): adds two state-aware CTAs
- * — Upgrade + Guide — above the existing primary button. Driven by
+ * Mobile hamburger drawer: renders three state-aware CTAs (Upgrade +
+ * Guide + Amazon Kit) above the existing primary button. Driven by
  * useTierAwareCTA() which centralizes the (auth, Pattern, tier,
- * guide-purchased) → (upgradeCta, guideCta) state machine. See
- * src/hooks/useTierAwareCTA.ts for the matrix.
+ * guide-purchased, amazonKitUrl) → (upgrade, guide, amazonKit) state
+ * machine. See src/hooks/useTierAwareCTA.ts for the matrix.
+ *
+ * The Amazon kit slot is the only external-link CTA in the trio —
+ * opens in a new tab with rel="noopener noreferrer sponsored" (Google's
+ * affiliate-disclosure attribute) and is followed by an FTC affiliate
+ * disclosure footer.
  */
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
   const { data: pattern } = useEdenPattern();
-  const { upgrade, guide } = useTierAwareCTA();
+  const { upgrade, guide, amazonKit } = useTierAwareCTA();
 
   const ctaLabel = user && pattern ? "Open Apothecary" : "Take the Quiz";
   const ctaHref = user && pattern ? ROUTES.APOTHECARY : ROUTES.ASSESSMENT;
@@ -73,10 +78,11 @@ export default function Navbar() {
             </Link>
           ))}
 
-          {/* Tier-aware CTA pair (Camila's 2026-04-30 spec). Visually
+          {/* Tier-aware CTA trio (Camila's 2026-04-30 spec). Visually
               distinct from plain nav links via gold border + tinted
               background. Upgrade slot is suppressed when null (Root /
-              Practitioner). */}
+              Practitioner). Amazon kit slot is suppressed when null
+              (anon / no-Pattern). */}
           <div className="border-t border-[#D6CDB8] pt-4 flex flex-col gap-3">
             {upgrade && (
               <Link
@@ -96,6 +102,26 @@ export default function Navbar() {
             >
               {guide.label}
             </Link>
+            {amazonKit && (
+              <>
+                <a
+                  href={amazonKit.href}
+                  target="_blank"
+                  rel="noopener noreferrer sponsored"
+                  onClick={() => setOpen(false)}
+                  data-cta="tier-aware-amazon-kit"
+                  aria-label={`${amazonKit.label} (opens in a new tab)`}
+                  className="text-sm font-sans text-[#3B4A3F] border border-[#C9A84C] bg-[#C9A84C]/10 px-4 py-3 rounded-sm tracking-wide text-center hover:bg-[#C9A84C]/20 transition-colors duration-200 leading-snug"
+                >
+                  {amazonKit.label}
+                </a>
+                {/* FTC affiliate disclosure (matches MatchedHerbsCtaPair
+                    wording in PR #72 for cross-surface consistency). */}
+                <p className="text-[11px] text-[#7A8C7E] italic text-center leading-snug px-2">
+                  Affiliate links — Eden Institute earns a small commission at no extra cost to you.
+                </p>
+              </>
+            )}
           </div>
 
           {/* Existing primary CTA (preserved) — the simpler

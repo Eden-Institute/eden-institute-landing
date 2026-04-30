@@ -37,6 +37,12 @@ import {
  *     rule (≥44px) preserved via min-h-11.
  *   • h2 + body p use `break-words` defensively for long Pattern names
  *     that get interpolated into the heading.
+ *
+ * Hash-anchor scroll target:
+ *   The PractitionerWaitlistCard root div carries id="practitioner-
+ *   waitlist" so the hamburger menu's tier-aware Root upgrade CTA can
+ *   navigate to /apothecary#practitioner-waitlist and the global
+ *   ScrollToTop hook (PR #92) scrolls the form into view.
  */
 
 interface MatchedHerbsCtaPairProps {
@@ -69,7 +75,7 @@ export function MatchedHerbsCtaPair({
   );
 }
 
-// ── Card 1: Practitioner Waitlist ──────────────────────────────────────────
+// ── Card 1: Practitioner Waitlist ─────────────────────────────────────
 
 interface PractitionerWaitlistCardProps {
   activePattern: EdenPatternName;
@@ -125,7 +131,8 @@ function PractitionerWaitlistCard({
 
   return (
     <div
-      className="rounded-lg border p-6 md:p-8 flex flex-col min-w-0"
+      id="practitioner-waitlist"
+      className="rounded-lg border p-6 md:p-8 flex flex-col min-w-0 scroll-mt-20"
       style={{
         borderColor: "hsl(var(--eden-gold) / 0.4)",
         backgroundColor: "hsl(var(--eden-cream) / 0.5)",
@@ -231,7 +238,7 @@ function PractitionerWaitlistCard({
   );
 }
 
-// ── Card 2: Amazon Kit ─────────────────────────────────────────────────────
+// ── Card 2: Amazon Kit ─────────────────────────────────────────────
 
 interface AmazonKitCardProps {
   activePattern: EdenPatternName;

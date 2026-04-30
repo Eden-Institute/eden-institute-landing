@@ -15,6 +15,11 @@
  *     shape used here.
  *   • Helper `getAmazonKitUrl` returns null when no mapping exists; callers
  *     suppress the Amazon card rather than ship a broken or generic link.
+ *   • Helper `getAmazonKitUrl` automatically appends Camila's Amazon
+ *     Associates affiliate tag (?tag=mobile088c05e-20) so all on-app
+ *     surfaces consistently attribute affiliate revenue. The EF mirror
+ *     in nurture-email-templates.ts is NOT covered by this helper — ship
+ *     a parallel update there if the email surface should also tag.
  *
  * Why this lives at /lib (not /constants): the slugifier is a pure
  * function; co-locating it with its lookup table keeps the API one import
@@ -28,6 +33,9 @@ import type { EdenPatternName } from "@/lib/edenPattern";
  *
  * MUST stay in sync with `AMAZON_URLS` in
  * `supabase/functions/_shared/nurture-email-templates.ts`.
+ *
+ * Bare URLs (without affiliate tag). Use `getAmazonKitUrl` to resolve
+ * a tagged URL ready to ship to a user.
  */
 export const AMAZON_KIT_URLS: Readonly<Record<string, string>> = Object.freeze({
   "burning-bowstring":
@@ -49,6 +57,26 @@ export const AMAZON_KIT_URLS: Readonly<Record<string, string>> = Object.freeze({
 });
 
 /**
+ * Camila's Amazon Associates Tracking ID (per PR #95). Auto-generated
+ * default; she'll create a custom tag (e.g. edeninstitute-20) once her
+ * tax interview is complete and amazonKitUrls.ts swaps in the new value
+ * site-wide — every consumer goes through getAmazonKitUrl().
+ */
+const AMAZON_AFFILIATE_TAG = "mobile088c05e-20";
+
+/**
+ * Append the affiliate tag to an Amazon URL. Idempotent — if the URL
+ * already carries a `tag=` query param (e.g. for some future per-Pattern
+ * tag override) we don't double-append.
+ */
+function appendAffiliateTag(url: string): string {
+  if (!url) return url;
+  if (/[?&]tag=/.test(url)) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}tag=${AMAZON_AFFILIATE_TAG}`;
+}
+
+/**
  * Convert a canonical EdenPatternName to its kebab-case slug used as the
  * key in AMAZON_KIT_URLS (and in /results/[slug] routes, and in the EF
  * email templates' constitutionSlug parameter).
@@ -64,15 +92,17 @@ export function patternNameToSlug(name: EdenPatternName): string {
 }
 
 /**
- * Resolve an Amazon kit URL for a Pattern. Returns null when no Pattern
- * is set or when the Pattern has no mapping (defensive — should never
- * happen for the canonical 8). Callers should suppress the Amazon card
- * when null rather than ship a broken or generic link.
+ * Resolve an Amazon kit URL for a Pattern, with the affiliate tag
+ * automatically appended. Returns null when no Pattern is set or when
+ * the Pattern has no mapping (defensive — should never happen for the
+ * canonical 8). Callers should suppress the Amazon card when null
+ * rather than ship a broken or generic link.
  */
 export function getAmazonKitUrl(
   patternName: EdenPatternName | null,
 ): string | null {
   if (!patternName) return null;
   const slug = patternNameToSlug(patternName);
-  return AMAZON_KIT_URLS[slug] ?? null;
+  const bareUrl = AMAZON_KIT_URLS[slug];
+  return bareUrl ? appendAffiliateTag(bareUrl) : null;
 }
