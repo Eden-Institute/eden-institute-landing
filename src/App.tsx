@@ -36,6 +36,7 @@ import Pricing from "./pages/apothecary/Pricing";
 import Welcome from "./pages/apothecary/Welcome";
 import Account from "./pages/apothecary/Account";
 import ProfilesPage from "./pages/apothecary/ProfilesPage";
+import Favorites from "./pages/apothecary/Favorites";
 import { FeedbackButton } from "@/components/FeedbackButton";
 
 const queryClient = new QueryClient();
@@ -129,8 +130,16 @@ const App = () => (
               />
               {/* Stage 6.3.5 Phase B sub-task 4: Root multi-profile management.
                   Auth + tier gating is enforced by the page itself
-                  (RequireAuth + RequireTier allow={["root","practitioner"]}). */}
+                  (RequireAuth + RequireTier allow={["seed","root","practitioner"]}
+                  per tier-cap restructure v2). */}
               <Route path="profiles" element={<ProfilesPage />} />
+              {/* Stage 7.X save-favorites listing page (PR 5 of 3 in the
+                  save-favorites build sequence). Auth + tier gating is
+                  enforced by the page itself (RequireAuth + RequireTier
+                  allow={["seed","root","practitioner"]}). Schema in
+                  herb_favorites table; hook + heart icon on HerbCard
+                  shipped in PR #103 + #104. */}
+              <Route path="favorites" element={<Favorites />} />
               {/* Stage 6.3.5 Phase B sub-task 4 Layer 1+2: in-app Pattern of
                   Eden quiz, mounted under ApothecaryLayout so the picker
                   pill is visible during the quiz. Root+ only — the Pattern

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown, Plus, Settings, User } from "lucide-react";
+import { ChevronDown, Heart, Plus, Settings, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -51,9 +51,14 @@ const TIER_CAP: Record<Tier, number> = {
  * their multiple profiles. Free remains gated out (cap=0). Anon is
  * unauthenticated and never sees this surface.
  *
+ * Stage 7.X save-favorites (2026-04-30): added "View favorites" entry
+ * below "Manage profiles" so users can hop from any apothecary surface
+ * to their saved-herbs list in two taps. Same Seed+ visibility — the
+ * picker itself is already Seed-gated.
+ *
  * Switching active profile updates ActiveProfileContext, which downstream
- * consumers (useDiagnosticProfile, useEdenPattern, HerbDirectoryFilters,
- * HerbCard, useTierAwareCTA) read on next render.
+ * consumers (useDiagnosticProfile, useEdenPattern, useHerbFavorites,
+ * HerbDirectoryFilters, HerbCard, useTierAwareCTA) read on next render.
  *
  * Mobile-aware per project_mobile_wrapping_roadmap.md:
  *   - All interactive elements are click/tap-only, no hover-only behavior.
@@ -155,6 +160,15 @@ export function ProfilePicker() {
             <span className="font-body text-sm">
               {canAddMore ? "Add profile" : `Cap reached (${cap})`}
             </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild className="min-h-[44px] cursor-pointer">
+            <Link
+              to={ROUTES.APOTHECARY_FAVORITES}
+              className="flex items-center w-full"
+            >
+              <Heart className="w-4 h-4 mr-2" />
+              <span className="font-body text-sm">View favorites</span>
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild className="min-h-[44px] cursor-pointer">
             <Link to={ROUTES.APOTHECARY_PROFILES} className="flex items-center w-full">
