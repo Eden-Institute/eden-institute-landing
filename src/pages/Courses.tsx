@@ -101,14 +101,24 @@ const Courses = () => {
                 <h3 className="font-serif text-xl font-bold mb-1" style={{ color: "hsl(var(--eden-forest))" }}>Back to Eden: Foundations of Biblical Herbalism</h3>
                 <p className="font-body text-sm" style={{ color: "hsl(var(--eden-bark) / 0.75)" }}>The print companion to the Tier 1 course. Read it alongside the lessons or give it as a gift to someone beginning their herbal journey.</p>
               </div>
-              {/* CTA cleanup 2026-04-30: was <a href="https://edeninstitute.health">,
-                  which is a circular redirect to the brand homepage — broken UX.
-                  Until Camila supplies the real textbook URL (Amazon listing,
-                  direct-sales page, pre-order, etc.), render a non-clickable
-                  "Coming soon" badge instead of a misleading link. */}
-              <span className="shrink-0 font-body text-xs tracking-widest uppercase font-semibold px-4 py-2 rounded-sm text-center" style={{ backgroundColor: "hsl(var(--eden-gold) / 0.25)", color: "hsl(var(--eden-bark))" }}>
-                Coming soon
-              </span>
+              {/* CTA cleanup 2026-04-30 (round 2): textbook URL confirmed by
+                  Camila — Amazon Kindle listing. Bare URL for now; the
+                  Amazon Associates affiliate tag follows in a 1-line PR once
+                  Camila pulls her tag from mobile. The `sponsored` rel
+                  attribute is Google's recommended honest-disclosure for
+                  affiliate-style links (avoids PageRank-passing penalties),
+                  applied pre-tag too since the surface is intentionally
+                  affiliate. */}
+              <a
+                href="https://www.amazon.com/Back-Eden-Biblical-Foundation-Institute-ebook/dp/B0GPW5BZ32"
+                target="_blank"
+                rel="noopener noreferrer sponsored"
+                aria-label="Buy Back to Eden: Foundations of Biblical Herbalism on Amazon (opens in a new tab)"
+                className="shrink-0 font-body text-xs tracking-widest uppercase font-semibold px-4 py-2 rounded-sm text-center transition-opacity hover:opacity-90"
+                style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}
+              >
+                Buy the Book
+              </a>
             </div>
 
             <div className="relative rounded-lg border p-8" style={{ borderColor: "hsl(var(--eden-sage))" }}>
