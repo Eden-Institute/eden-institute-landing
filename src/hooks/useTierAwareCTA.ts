@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEdenPattern } from "@/hooks/useEdenPattern";
 import { useApothecaryHerbs } from "@/hooks/useApothecaryHerbs";
 import { ROUTES } from "@/lib/routes";
-import { patternNameToSlug } from "@/lib/amazonKitUrls";
+import { patternNameToSlug, getAmazonKitUrl } from "@/lib/amazonKitUrls";
 import type { EdenPatternName } from "@/lib/edenPattern";
 
 /**
@@ -22,7 +22,8 @@ import type { EdenPatternName } from "@/lib/edenPattern";
  *
  * Constraint per spec: ONE upgrade CTA per menu open. The label
  * highlights ONE feature (not a multi-feature list) so the visitor
- * isn't overwhelmed.
+ * isn't overwhelmed. The Amazon kit slot also surfaces ONE link —
+ * the per-Pattern affiliate URL.
  */
 
 export type SubscriptionTier = "free" | "seed" | "root" | "practitioner";
@@ -30,8 +31,10 @@ export type SubscriptionTier = "free" | "seed" | "root" | "practitioner";
 export interface TierAwareCTA {
   /** Visible CTA copy. May interpolate the visitor's Pattern name. */
   label: string;
-  /** Destination URL (internal route or hash anchor; not external). */
+  /** Destination URL (internal route, hash anchor, or external). */
   href: string;
+  /** True for external destinations (e.g. Amazon affiliate links). */
+  external?: boolean;
 }
 
 export interface TierAwareCTAs {
@@ -48,6 +51,12 @@ export interface TierAwareCTAs {
    * (because the guide is Pattern-specific).
    */
   guide: TierAwareCTA;
+  /**
+   * Per-Pattern Amazon affiliate kit link. Null for anon / no-Pattern
+   * visitors (no Pattern → no specific kit to point at). Otherwise
+   * carries the tagged Amazon URL.
+   */
+  amazonKit: TierAwareCTA | null;
 }
 
 export interface ComputeTierAwareCTAsArgs {
@@ -56,17 +65,24 @@ export interface ComputeTierAwareCTAsArgs {
   tier: SubscriptionTier | null;
   /** Whether the visitor has already purchased the guide for their Pattern. */
   guidePurchased: boolean;
+  /**
+   * Resolved Amazon kit URL (with affiliate tag appended). Null when no
+   * Pattern, or no mapping for the Pattern. Computed by the React hook
+   * via getAmazonKitUrl() so the pure reducer below stays free of
+   * cross-module side effects.
+   */
+  amazonKitUrl: string | null;
 }
 
 /**
- * Pure state-machine reducer. Given the four inputs, return the
- * (upgrade, guide) CTA pair the hamburger should render. Trivially
- * unit-testable; the React hook below is a thin wrapper.
+ * Pure state-machine reducer. Given the inputs, return the
+ * (upgrade, guide, amazonKit) CTA tuple the hamburger should render.
+ * Trivially unit-testable; the React hook below is a thin wrapper.
  */
 export function computeTierAwareCTAs(
   args: ComputeTierAwareCTAsArgs,
 ): TierAwareCTAs {
-  const { hasUser, pattern, tier, guidePurchased } = args;
+  const { hasUser, pattern, tier, guidePurchased, amazonKitUrl } = args;
   const hasPattern = !!pattern;
 
   // ─── Upgrade CTA ───
@@ -126,7 +142,18 @@ export function computeTierAwareCTAs(
     }
   }
 
-  return { upgrade, guide };
+  // ─── Amazon Kit CTA ───
+  let amazonKit: TierAwareCTA | null = null;
+  if (hasUser && hasPattern && pattern && amazonKitUrl) {
+    const patternShort = pattern.replace(/^The\s+/i, "");
+    amazonKit = {
+      label: `Shop your ${patternShort} kit on Amazon`,
+      href: amazonKitUrl,
+      external: true,
+    };
+  }
+
+  return { upgrade, guide, amazonKit };
 }
 
 /**
@@ -142,6 +169,14 @@ export function computeTierAwareCTAs(
  * writes after a successful verify-session call. The actual paywall
  * is still enforced server-side inside GuideLanding regardless of
  * what label the Navbar shows.
+ *
+ * Amazon kit URL: getAmazonKitUrl() inherits Pattern resolution from
+ * useEdenPattern() — which IS profile-aware (reads the active profile's
+ * eden_constitution when the picker context is mounted). On marketing
+ * surfaces where the picker isn't mounted, the user-level
+ * profiles.constitution_type is the source. Both branches return a
+ * valid Pattern → valid kit URL, so the hamburger CTA "just works"
+ * across surfaces.
  */
 export function useTierAwareCTA(): TierAwareCTAs {
   const { user } = useAuth();
@@ -153,11 +188,13 @@ export function useTierAwareCTA(): TierAwareCTAs {
     typeof window !== "undefined" && slug
       ? window.localStorage.getItem(`guide_purchased_${slug}`) === "true"
       : false;
+  const amazonKitUrl = getAmazonKitUrl(pattern ?? null);
 
   return computeTierAwareCTAs({
     hasUser: !!user,
     pattern: pattern ?? null,
     tier: (tier as SubscriptionTier | null) ?? null,
     guidePurchased,
+    amazonKitUrl,
   });
 }
