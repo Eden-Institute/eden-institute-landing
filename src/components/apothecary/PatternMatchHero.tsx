@@ -5,6 +5,7 @@ import { useDiagnosticProfile } from "@/hooks/useDiagnosticProfile";
 import { PATTERN_PROFILES } from "@/lib/edenPattern";
 import { ROUTES } from "@/lib/routes";
 import { type DiagnosticProfile, hasFullDiagnosticDepth } from "@/lib/diagnosticProfile";
+import { useActiveProfileOptional } from "@/contexts/ActiveProfileContext";
 
 /**
  * PatternMatchHero — personalization card on the Apothecary directory home.
@@ -18,11 +19,23 @@ import { type DiagnosticProfile, hasFullDiagnosticDepth } from "@/lib/diagnostic
  * Zero rip-out when the deeper layers ship — the consuming JSX already
  * handles them.
  *
+ * v3 (2026-05-02 PR #83) — empty-state branch is now active-profile-aware:
+ *   - Reads useActiveProfileOptional + the isEmptyForActiveProfile signal
+ *     from useDiagnosticProfile (signal was previously ignored, causing the
+ *     empty-state UI to render identically whether the user themselves had
+ *     no Pattern or whether a non-self active profile lacked a Pattern).
+ *   - When active profile is non-self AND empty: heading + CTA name the
+ *     active profile by name, and the CTA URL passes
+ *     ?profileId={activeProfile.id} so Assessment.tsx routes the submission
+ *     through record-diagnostic-completion (Lock #40 id-keyed write) instead
+ *     of the marketing-mode email-keyed write (which would silently
+ *     overwrite the user's own constitution_type).
+ *
  * Three render branches by user state:
  *   • Anon visitor: noop (the apothecary surface itself is auth-walled per
  *     §0.8 #19 — anon will never see this).
- *   • Authed user without resolved Pattern: take-the-quiz CTA (12-q quiz
- *     at /assessment).
+ *   • Authed user without resolved Pattern (or non-self active profile
+ *     without one): take-the-quiz CTA, active-profile-aware copy + URL.
  *   • Authed user with resolved Pattern: Pattern card with axis readings,
  *     plus conditional Layer 2-4 cards when populated, plus Root-tier
  *     upgrade affordance for non-Root users (deferred until /apothecary/
@@ -35,7 +48,9 @@ import { type DiagnosticProfile, hasFullDiagnosticDepth } from "@/lib/diagnostic
  */
 export function PatternMatchHero() {
   const { user } = useAuth();
-  const { data: profile, isLoading } = useDiagnosticProfile();
+  const { data: profile, isLoading, isEmptyForActiveProfile } = useDiagnosticProfile();
+  const profileCtx = useActiveProfileOptional();
+  const activeProfile = profileCtx?.activeProfile ?? null;
 
   // Anon: this surface is auth-walled per §0.8 #19. Return null and let the
   // route's RequireAuth handle the unauthenticated case.
@@ -59,6 +74,35 @@ export function PatternMatchHero() {
 
   // Authed without a resolved Pattern — surface the take-the-quiz affordance.
   if (!profile) {
+    // Empty state has two flavors:
+    //   1. Non-self active profile lacks a Pattern → "Take the quiz for
+    //      {name}" + URL with profileId so Assessment.tsx enters
+    //      diagnosticMode and writes via record-diagnostic-completion.
+    //   2. User themselves has no Pattern (or no active-profile context) →
+    //      generic copy + URL without profileId (marketing-mode flow).
+    const isNonSelfEmpty =
+      isEmptyForActiveProfile &&
+      activeProfile !== null &&
+      activeProfile.is_self === false;
+
+    const targetName = isNonSelfEmpty ? activeProfile?.name ?? "this profile" : null;
+
+    const ctaHref = isNonSelfEmpty
+      ? `${ROUTES.ASSESSMENT}?profileId=${activeProfile!.id}`
+      : ROUTES.ASSESSMENT;
+
+    const ctaLabel = isNonSelfEmpty
+      ? `→ Take the Quiz for ${targetName}`
+      : "→ Take the Body Pattern Quiz";
+
+    const heading = isNonSelfEmpty
+      ? `Discover ${targetName}'s Pattern to unlock match badges across all 100 herbs.`
+      : "Discover your Pattern to unlock match badges across all 100 herbs.";
+
+    const subhead = isNonSelfEmpty
+      ? `Two minutes. Twelve questions across three classical axes (Temperature, Moisture, Tone). The result reveals which of the eight Eden Patterns governs ${targetName}'s terrain — and from there, every herb in the directory shows whether it rebalances or aggravates ${targetName}'s specific Pattern.`
+      : "Two minutes. Twelve questions across three classical axes (Temperature, Moisture, Tone). Your result reveals which of the eight Eden Patterns governs your terrain — and from there, every herb in the directory shows whether it rebalances or aggravates your specific Pattern.";
+
     return (
       <section
         className="px-6 py-10 md:py-12 mb-8 rounded"
@@ -70,28 +114,26 @@ export function PatternMatchHero() {
               className="font-accent text-xs tracking-[0.3em] uppercase mb-3"
               style={{ color: "hsl(var(--eden-gold))" }}
             >
-              Personalize your directory
+              {isNonSelfEmpty
+                ? `Personalize ${targetName}'s view`
+                : "Personalize your directory"}
             </p>
             <h2
               className="font-serif text-2xl md:text-3xl font-bold mb-3"
               style={{ color: "hsl(var(--eden-bark))" }}
             >
-              Discover your Pattern to unlock match badges across all 100 herbs.
+              {heading}
             </h2>
             <p
               className="font-body text-sm md:text-base leading-relaxed"
               style={{ color: "hsl(var(--eden-bark))" }}
             >
-              Two minutes. Twelve questions across three classical axes
-              (Temperature, Moisture, Tone). Your result reveals which of the
-              eight Eden Patterns governs your terrain — and from there, every
-              herb in the directory shows whether it rebalances or aggravates
-              your specific Pattern.
+              {subhead}
             </p>
           </div>
           <div className="mt-6 md:mt-0 md:flex-shrink-0">
             <Button asChild variant="eden" size="xl" className="min-h-[44px]">
-              <Link to={ROUTES.ASSESSMENT}>→ Take the Body Pattern Quiz</Link>
+              <Link to={ctaHref}>{ctaLabel}</Link>
             </Button>
           </div>
         </div>
