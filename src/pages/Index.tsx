@@ -11,6 +11,8 @@ import { WorldviewBand } from "@/components/landing/WorldviewBand";
 import { WelcomeBackBanner } from "@/components/landing/WelcomeBackBanner";
 import { JourneyCTA } from "@/components/journey/JourneyCTA";
 import { FOUNDATIONS_COURSE_URL } from "@/hooks/useTierAwareCTA";
+import { useEdenPattern } from "@/hooks/useEdenPattern";
+import { patternNameToSlug } from "@/lib/amazonKitUrls";
 import { ROUTES } from "@/lib/routes";
 
 // Unsplash photography
@@ -25,31 +27,43 @@ const Index = () => {
   // backwards-compatible inbound links that still target the hash.
   const [assessmentModal, setAssessmentModal] = useState(false);
 
+  // PR ε (2026-05-02) — value-ladder journey awareness.
+  //
+  // The JourneyCTA hero already consumes useEdenPattern via
+  // useTierAwareCTA. The value-ladder section further down the page
+  // ("Start Free. Go Deep When You're Ready.") was static after PR β,
+  // so when Olivia (a non-self person-profile) is active the tiles
+  // didn't reflect that her quiz is complete and didn't surface a
+  // per-Pattern buy CTA for her Frozen Knot guide. Per Camila's spec
+  // we now read the active-profile Pattern here too, and the value-
+  // ladder cards flip between empty / completed / buy states.
+  //
+  // useEdenPattern is gated on the ActiveProfileContext's isLoading
+  // (PR δ), so the value-ladder gets the correct active-profile Pattern
+  // on first render with no wrong-Pattern flash. The slug + short
+  // (without leading "The") name match the canonical strings used by
+  // useTierAwareCTA's journey.next — same checkout route, same copy
+  // shape — so the value-ladder buy CTA and the JourneyCTA hero buy CTA
+  // resolve to the same destination for the same Pattern.
+  const { data: activePattern } = useEdenPattern();
+  const activePatternSlug = activePattern
+    ? patternNameToSlug(activePattern)
+    : null;
+  const activePatternShort = activePattern
+    ? activePattern.replace(/^The\s+/i, "")
+    : null;
+
   // PR β (2026-05-02) — homepage CTA restructure.
   //
   // Predecessor PR #106 had wired 7 scattered Index.tsx CTAs to pivot on
-  // hasPattern = !!user && !!pattern. That stopgap is removed here. The
-  // page now surfaces ONE dominant next-step CTA via <JourneyCTA />,
-  // mounted inside the Hero. JourneyCTA reads the customer-journey state
-  // machine in useTierAwareCTA — which itself consults useEdenPattern,
-  // and (per PR β's ActiveProfileProvider hoist to App.tsx) resolves the
-  // active person_profile's Pattern even on /. Camila's repro of the
-  // "Olivia switches to Burning Bowstring on Home" bug is closed by
-  // that hoist, not by anything in this file.
-  //
-  // This page no longer derives `hasPattern` or imports useAuth /
-  // useEdenPattern / useTierAwareCTA. The 7 conditional CTAs are gone:
-  //   1. Hero conditional Button         → replaced by <JourneyCTA />
-  //   2. "For You" section bottom button → removed
-  //   3. Path Cards "Quiz/Pattern" card  → removed (grid restructured)
-  //   4. "Why Herbs Fail" bottom button  → removed
-  //   5. Value-Ladder "Free Quiz" card   → reverted to static info
-  //   6. Value-Ladder "$14 Guide" card   → reverted to static info
-  //   7. Bottom CTA conditional Button   → removed (heading + body kept)
-  //
-  // The WelcomeBackBanner above the hero already handles the "you're
-  // signed in, here's a one-tap link to your Apothecary" affordance for
-  // returning users. JourneyCTA layers the journey progression on top.
+  // hasPattern = !!user && !!pattern. That stopgap is removed. The page
+  // now surfaces ONE dominant next-step CTA via <JourneyCTA />, mounted
+  // inside the Hero. JourneyCTA reads the customer-journey state machine
+  // in useTierAwareCTA — which itself consults useEdenPattern, and (per
+  // PR β's ActiveProfileProvider hoist + PR δ's hydration gate) resolves
+  // the active person_profile's Pattern even on /. The value-ladder
+  // section (PR ε) layers per-step journey awareness on the same
+  // resolver.
 
   useEffect(() => {
     document.title = "The Eden Institute — Biblical Clinical Herbalism Education";
@@ -66,6 +80,113 @@ const Index = () => {
       setAssessmentModal(true);
     }
   }, []);
+
+  // Value-ladder step descriptors. Per PR ε, each step has:
+  //   - completed: visually grays the card and flips the step indicator
+  //     to a checkmark. Currently only Free Quiz toggles this when
+  //     active-profile has a Pattern.
+  //   - cta: the primary button at the bottom of the card. Routed via
+  //     internal Link or external <a> based on `external`.
+  //   - hint: a soft italic muted secondary link rendered when there's
+  //     no primary CTA but we still want to point the visitor at the
+  //     funnel entry (e.g. Deep-Dive Guide tile when no Pattern).
+  //
+  // Free Quiz tile: completed when activePattern resolves; no CTA in
+  // either state (the JourneyCTA hero is the dominant quiz entry).
+  //
+  // Deep-Dive Guide tile: per-Pattern buy CTA when active-profile has a
+  // Pattern; soft "take the quiz first" hint otherwise. Per spec we do
+  // NOT consult quiz_completions.purchased_guide — that column is
+  // email-keyed and can't distinguish per-Pattern purchases. Olivia's
+  // Frozen Knot guide is a separate purchase from Camila's Burning
+  // Bowstring guide; suppress only when we have per-Pattern purchase
+  // tracking (separate follow-up).
+  //
+  // Foundations Course tile: always shows the buy CTA. LearnWorlds
+  // enrollment is untrackable in our funnel (LearnWorlds runs charges
+  // through its own Stripe and never fires events to our stripe-webhook
+  // EF; confirmed 2026-05-02 by live $0-test), so no completion pivot.
+  type StepCta = {
+    label: string;
+    href: string;
+    external: boolean;
+    ariaLabel: string;
+  };
+  type StepHint = { label: string; href: string };
+  const valueLadderSteps: Array<{
+    icon: JSX.Element;
+    label: string;
+    description: string;
+    price: string;
+    completed: boolean;
+    cta: StepCta | null;
+    hint: StepHint | null;
+  }> = [
+    {
+      icon: (
+        <ClipboardList
+          className="w-10 h-10"
+          style={{ color: "hsl(var(--eden-gold))" }}
+        />
+      ),
+      label: activePattern ? "Pattern Resolved" : "Free Quiz",
+      description: activePattern
+        ? `Your Pattern is named: ${activePattern}.`
+        : "Discover your body pattern in 2 minutes",
+      price: activePattern ? "✓ COMPLETED" : "FREE",
+      completed: !!activePattern,
+      cta: null,
+      hint: null,
+    },
+    {
+      icon: (
+        <BookOpen
+          className="w-10 h-10"
+          style={{ color: "hsl(var(--eden-gold))" }}
+        />
+      ),
+      label: "Deep-Dive Guide",
+      description:
+        "Your personalized herb guide — 10 matched herbs, nutrition, lifestyle, and Scripture",
+      price: "$14",
+      completed: false,
+      cta:
+        activePattern && activePatternSlug && activePatternShort
+          ? {
+              label: `Get your ${activePatternShort} Deep-Dive Guide — $14 →`,
+              href: `/guide/${activePatternSlug}`,
+              external: false,
+              ariaLabel: `Buy the ${activePatternShort} Deep-Dive Guide for $14`,
+            }
+          : null,
+      hint: !activePattern
+        ? {
+            label: "Take the free quiz to unlock",
+            href: ROUTES.ASSESSMENT,
+          }
+        : null,
+    },
+    {
+      icon: (
+        <GraduationCap
+          className="w-10 h-10"
+          style={{ color: "hsl(var(--eden-gold))" }}
+        />
+      ),
+      label: "Foundations Course",
+      description:
+        "Learn to read your body pattern and match it to God's provision in the plant world",
+      price: "$97",
+      completed: false,
+      cta: {
+        label: "Enroll now →",
+        href: FOUNDATIONS_COURSE_URL,
+        external: true,
+        ariaLabel: "Enroll in the Foundations Course",
+      },
+      hint: null,
+    },
+  ];
 
   return (
     <main className="min-h-screen overflow-x-hidden">
@@ -462,12 +583,16 @@ const Index = () => {
       <GoldDivider />
 
       {/* ─── VALUE LADDER SECTION ───
-          PR β: cards 1 & 2 reverted to static informational divs (no
-          Link/button wrappers, no onClick / hasPattern pivots). They
-          show the journey progression visually — Free quiz → $14 guide
-          → $97 course — but the dominant action lives in JourneyCTA at
-          the top of the page. Card 3 (Foundations Course) keeps its
-          external link to LearnWorlds. */}
+          PR ε (2026-05-02): each step is journey-aware. Free Quiz tile
+          flips to a completed/grayed state when active-profile has a
+          Pattern; Deep-Dive Guide tile surfaces the per-Pattern buy CTA
+          (matching JourneyCTA's primary route exactly) when a Pattern
+          resolves, otherwise renders a soft "take the quiz first" hint;
+          Foundations Course tile always shows the Enroll-now external
+          link to LearnWorlds (untrackable enrollment per the standing
+          decision). The active-profile Pattern is the same one driving
+          JourneyCTA at the top of the page — same useEdenPattern hook,
+          gated on ActiveProfileContext hydration per PR δ. */}
       <section className="section-padding-lg parchment-texture relative overflow-hidden">
         <div className="eden-container px-6 relative z-10">
           <ScrollReveal>
@@ -478,83 +603,99 @@ const Index = () => {
           </ScrollReveal>
 
           <div className="grid md:grid-cols-3 gap-6 md:gap-8 max-w-4xl mx-auto mt-12">
-            {[
-              {
-                icon: <ClipboardList className="w-10 h-10" style={{ color: "hsl(var(--eden-gold))" }} />,
-                label: "Free Quiz",
-                description: "Discover your body pattern in 2 minutes",
-                price: "FREE",
-                href: null as string | null,
-                external: false,
-                ariaLabel: undefined as string | undefined,
-              },
-              {
-                icon: <BookOpen className="w-10 h-10" style={{ color: "hsl(var(--eden-gold))" }} />,
-                label: "Deep-Dive Guide",
-                description: "Your personalized herb guide — 10 matched herbs, nutrition, lifestyle, and Scripture",
-                price: "$14",
-                href: null as string | null,
-                external: false,
-                ariaLabel: undefined as string | undefined,
-              },
-              {
-                icon: <GraduationCap className="w-10 h-10" style={{ color: "hsl(var(--eden-gold))" }} />,
-                label: "Foundations Course",
-                description: "Learn to read your body pattern and match it to God's provision in the plant world",
-                price: "$97",
-                href: FOUNDATIONS_COURSE_URL,
-                external: true,
-                ariaLabel: "Enroll in the Foundations Course",
-              },
-            ].map((step, i) => {
-              const cardInner = (
+            {valueLadderSteps.map((step, i) => (
+              <ScrollReveal key={step.label} delay={i * 120}>
                 <div
-                  className="rounded-lg p-6 md:p-8 text-center shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center hover:-translate-y-1 h-full"
+                  className="rounded-lg p-6 md:p-8 text-center shadow-md transition-all duration-300 flex flex-col items-center h-full"
                   style={{
                     backgroundColor: "hsl(var(--eden-cream))",
                     border: "1.5px solid hsl(var(--eden-gold) / 0.4)",
+                    opacity: step.completed ? 0.65 : 1,
                   }}
+                  data-step-label={step.label}
+                  data-step-completed={step.completed ? "true" : "false"}
                 >
-                  {/* Step number */}
+                  {/* Step indicator: number for active steps, checkmark
+                      for completed. The completed treatment uses the
+                      eden-forest fill (vs the default eden-gold) so it
+                      visually reads as a different tile state, not just
+                      a numbered tile that happens to be grayed. */}
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center font-serif text-sm font-bold mb-4"
-                    style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}
+                    style={{
+                      backgroundColor: step.completed
+                        ? "hsl(var(--eden-forest))"
+                        : "hsl(var(--eden-gold))",
+                      color: step.completed
+                        ? "hsl(var(--eden-parchment))"
+                        : "hsl(var(--eden-bark))",
+                    }}
+                    aria-hidden="true"
                   >
-                    {i + 1}
+                    {step.completed ? "✓" : i + 1}
                   </div>
                   {step.icon}
-                  <h3 className="font-serif text-xl md:text-2xl font-bold text-foreground mt-4 mb-2">{step.label}</h3>
+                  <h3 className="font-serif text-xl md:text-2xl font-bold text-foreground mt-4 mb-2">
+                    {step.label}
+                  </h3>
                   <p className="font-body text-base text-muted-foreground leading-relaxed mb-4 flex-1">
                     {step.description}
                   </p>
-                  <p className="font-serif text-2xl font-bold" style={{ color: "hsl(var(--eden-gold))" }}>
+                  <p
+                    className="font-serif text-2xl font-bold mb-4"
+                    style={{
+                      color: step.completed
+                        ? "hsl(var(--eden-forest))"
+                        : "hsl(var(--eden-gold))",
+                    }}
+                  >
                     {step.price}
                   </p>
-                </div>
-              );
-
-              return (
-                <ScrollReveal key={step.label} delay={i * 120}>
-                  {step.href && step.external ? (
-                    <a
-                      href={step.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={step.ariaLabel}
-                      className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--eden-gold))] rounded-lg"
+                  {step.cta &&
+                    (step.cta.external ? (
+                      <a
+                        href={step.cta.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={step.cta.ariaLabel}
+                        data-cta="value-ladder-step"
+                        data-step-label={step.label}
+                        className="inline-flex items-center justify-center w-full text-center font-body text-sm font-semibold px-4 py-3 rounded-sm tracking-wide transition-colors duration-200 min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--eden-gold))]"
+                        style={{
+                          backgroundColor: "hsl(var(--eden-gold))",
+                          color: "hsl(var(--eden-bark))",
+                        }}
+                      >
+                        {step.cta.label}
+                      </a>
+                    ) : (
+                      <Link
+                        to={step.cta.href}
+                        aria-label={step.cta.ariaLabel}
+                        data-cta="value-ladder-step"
+                        data-step-label={step.label}
+                        className="inline-flex items-center justify-center w-full text-center font-body text-sm font-semibold px-4 py-3 rounded-sm tracking-wide transition-colors duration-200 min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--eden-gold))]"
+                        style={{
+                          backgroundColor: "hsl(var(--eden-gold))",
+                          color: "hsl(var(--eden-bark))",
+                        }}
+                      >
+                        {step.cta.label}
+                      </Link>
+                    ))}
+                  {step.hint && !step.cta && (
+                    <Link
+                      to={step.hint.href}
+                      data-cta="value-ladder-hint"
+                      data-step-label={step.label}
+                      className="font-body text-sm italic text-muted-foreground hover:underline underline-offset-4"
                     >
-                      {cardInner}
-                    </a>
-                  ) : (
-                    // Static informational card. The dominant action lives
-                    // in JourneyCTA at the top of the page; these tiles
-                    // illustrate the value-ladder progression but are not
-                    // themselves CTAs.
-                    <div className="block h-full">{cardInner}</div>
+                      {step.hint.label} →
+                    </Link>
                   )}
-                </ScrollReveal>
-              );
-            })}
+                </div>
+              </ScrollReveal>
+            ))}
           </div>
 
           <ScrollReveal delay={200}>
