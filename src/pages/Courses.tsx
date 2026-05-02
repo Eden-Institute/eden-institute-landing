@@ -1,10 +1,9 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { BookOpen, CheckCircle, Clock, GraduationCap, Users } from "lucide-react";
 
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
-import AssessmentModal from "@/components/landing/AssessmentModal";
+import { JourneyAwareQuizCTA } from "@/components/journey/JourneyAwareQuizCTA";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
@@ -19,7 +18,15 @@ const Courses = () => {
     canonical: "https://edeninstitute.health/courses",
   });
 
-  const [quiz, setQuiz] = useState(false);
+  // PR ζ: Hero secondary CTA "Take the Free Quiz First" and bottom
+  // "Not Sure Where to Start?" CTA were journey-blind — they opened the
+  // AssessmentModal even when the active person-profile already had a
+  // resolved Pattern. Both are now <JourneyAwareQuizCTA /> which routes
+  // to /assessment with the original copy when no Pattern, or to
+  // /guide/<slug> with the per-Pattern Deep-Dive Guide buy copy when a
+  // Pattern is active. The AssessmentModal mount and useState are
+  // removed since they're now dead code (no on-page handler opens the
+  // modal; the route is the canonical entry point).
 
   return (
     <div className="min-h-screen bg-background">
@@ -52,9 +59,11 @@ const Courses = () => {
                 Enroll in Tier 1 — $197
               </Button>
             </a>
-            <Button variant="eden-outline" size="xl" onClick={() => setQuiz(true)}>
-              Take the Free Quiz First
-            </Button>
+            <JourneyAwareQuizCTA
+              variant="eden-outline"
+              size="xl"
+              noPatternLabel="Take the Free Quiz First"
+            />
           </div>
         </div>
       </section>
@@ -208,7 +217,11 @@ const Courses = () => {
           <h2 className="mb-4 font-serif text-3xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>Not Sure Where to Start?</h2>
           <p className="mb-8 font-body text-muted-foreground">Take the 2-minute Body Pattern Quiz. Discover your body pattern first.</p>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
-            <Button variant="eden" size="xl" onClick={() => setQuiz(true)}>Take the Free Quiz</Button>
+            <JourneyAwareQuizCTA
+              variant="eden"
+              size="xl"
+              noPatternLabel="Take the Free Quiz"
+            />
             <a href={T1} target="_blank" rel="noopener noreferrer">
               <Button variant="eden-outline" size="xl">Enroll in Tier 1 — $197</Button>
             </a>
@@ -217,7 +230,6 @@ const Courses = () => {
       </section>
 
       <Footer />
-      <AssessmentModal open={quiz} onOpenChange={setQuiz} />
     </div>
   );
 };

@@ -1,10 +1,8 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import AssessmentModal from "@/components/landing/AssessmentModal";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import ScrollReveal from "@/components/landing/ScrollReveal";
 import { GoldDivider } from "@/components/landing/BotanicalAccents";
+import { JourneyAwareQuizCTA } from "@/components/journey/JourneyAwareQuizCTA";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 
 const HERO_IMG = "https://images.unsplash.com/photo-1771128264855-1c032332cbc8?auto=format&fit=crop&w=1920&q=80";
@@ -49,7 +47,14 @@ const ConstitutionalHerbalism = () => {
     canonical: "https://edeninstitute.health/constitutional-herbalism",
   });
 
-  const [assessmentModal, setAssessmentModal] = useState(false);
+  // PR ζ: Both "Discover Your Body Pattern — Take the Free Quiz" CTAs
+  // (mid-page and final) were journey-blind, opening AssessmentModal
+  // even when the active person-profile already had a resolved Pattern.
+  // Both are now <JourneyAwareQuizCTA /> which routes to /assessment
+  // with the original copy when no Pattern, or to /guide/<slug> with
+  // the per-Pattern Deep-Dive Guide buy copy when a Pattern is active.
+  // The AssessmentModal mount and useState are removed since they're
+  // now dead code on this surface.
 
   return (
     <main className="min-h-screen overflow-x-hidden">
@@ -260,14 +265,12 @@ const ConstitutionalHerbalism = () => {
             </div>
           </ScrollReveal>
           <ScrollReveal delay={200}>
-            <Button
+            <JourneyAwareQuizCTA
               variant="eden-gold"
               size="xl"
-              onClick={() => setAssessmentModal(true)}
               className="text-sm md:text-base"
-            >
-              Discover Your Body Pattern — Take the Free Quiz
-            </Button>
+              noPatternLabel="Discover Your Body Pattern — Take the Free Quiz"
+            />
           </ScrollReveal>
         </div>
       </section>
@@ -330,21 +333,17 @@ const ConstitutionalHerbalism = () => {
       <section className="section-padding parchment-texture text-center">
         <div className="eden-container max-w-2xl mx-auto px-6">
           <ScrollReveal>
-            <Button
+            <JourneyAwareQuizCTA
               variant="eden-gold"
               size="xl"
-              onClick={() => setAssessmentModal(true)}
               className="text-sm md:text-base"
-            >
-              Discover Your Body Pattern — Take the Free Quiz
-            </Button>
+              noPatternLabel="Discover Your Body Pattern — Take the Free Quiz"
+            />
           </ScrollReveal>
         </div>
       </section>
 
       <Footer />
-
-      <AssessmentModal open={assessmentModal} onOpenChange={setAssessmentModal} />
     </main>
   );
 };
