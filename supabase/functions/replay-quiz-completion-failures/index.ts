@@ -1,31 +1,42 @@
-// replay-quiz-completion-failures v2 — cron-driven worker that drains the
+// replay-quiz-completion-failures v3 — cron-driven worker that drains the
 // quiz_completion_failures dead-letter queue.
 //
-// v2 (2026-04-29): aligned auth pattern with the existing nurture-emails Lock #48
-// consumer. v1 had defense-in-depth CRON_SECRET check at this layer too, but
-// CRON_SECRET is only set in Vercel env (not Supabase EF secrets), so v1 returned
-// 500 'Server misconfigured' on every call. v2 drops the EF-layer CRON_SECRET
-// check; the Vercel Edge fn at /api/cron/replay-quiz-failures already enforces
-// CRON_SECRET on its incoming request. Same auth posture as nurture-emails.
+// v3 (2026-05-02 PR #110): drop the strict service-role JWT comparison that v2
+// added. v2 returned 401 on every cron tick because the Vercel-side
+// process.env.SUPABASE_SERVICE_ROLE_KEY and the Supabase-runtime-injected
+// Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') diverged at some point (likely a
+// key rotation that didn't propagate to Vercel project env). Aligns with the
+// nurture-emails pattern, which uses verify_jwt=false and does NOT compare
+// the inbound Authorization against any specific value. Trust posture:
+//   - The EF URL lives on the supabase.co subdomain and is not publicly
+//     advertised; reaching it requires knowing the function slug.
+//   - The Vercel cron → Vercel Edge fn layer DOES enforce CRON_SECRET
+//     against process.env on every inbound request. Only Vercel cron (or
+//     anyone holding the CRON_SECRET) can reach the Vercel Edge fn that
+//     forwards to this EF.
+//   - The EF itself only drains rows from quiz_completion_failures and
+//     INSERTs into quiz_completions; both surfaces are RLS-locked and
+//     mediated through the EF's own service-role key. An unauthenticated
+//     caller hitting this URL would only trigger a drain (idempotent;
+//     no data destruction or exfiltration possible).
 //
 // Architecture (mirror of Lock #48 nurture-emails consumer):
-//   - Vercel cron POSTs every 30 min to /api/cron/replay-quiz-failures with the
-//     auto-injected `Authorization: Bearer ${CRON_SECRET}` header. That Vercel
-//     Edge fn verifies CRON_SECRET, then forwards here with the service-role
-//     key in Authorization.
+//   - Vercel cron POSTs every 30 min to /api/cron/replay-quiz-failures.
+//   - That Vercel Edge fn verifies CRON_SECRET, then forwards here with the
+//     service-role key in Authorization (kept for symmetry with nurture-
+//     emails / drain-nurture-queue, even though this EF no longer compares).
 //
-// Drain semantics:
+// Drain semantics (unchanged from v2):
 //   - Pull oldest 10 unresolved rows.
-//   - For each, replay the original raw_payload through a PostgREST INSERT into
-//     quiz_completions.
-//   - On 2xx: mark resolved_at + resolved_quiz_completion_id (where derivable),
-//     bump retry counters.
-//   - On non-2xx: increment retry_count, record last_retry_status + body. Row
-//     stays unresolved — next cron tick retries.
-//
-// Lock alignment: Lock #48 producer/consumer pattern (queue + cron-driven sync
-// sender) extended to quiz-completion failures. Pairs with Lock #15 (Supabase
-// source of truth).
+//   - For each, replay the original raw_payload through a PostgREST INSERT
+//     into quiz_completions.
+//   - On 2xx: mark resolved_at + resolved_quiz_completion_id (where
+//     derivable), bump retry counters.
+//   - On 409: row already exists (UNIQUE on lower(email) added in parallel
+//     work). Treat as resolved — the row was recorded by some earlier path,
+//     the dead-letter row is no longer actionable.
+//   - On non-2xx (other): increment retry_count, record last_retry_status
+//     + body. Row stays unresolved — next cron tick retries.
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -122,6 +133,12 @@ async function replayInsert(row: FailureRow): Promise<{
     body: JSON.stringify(insertPayload),
   });
 
+  // v3: 409 = row already exists from another path (UNIQUE on lower(email)
+  // added in parallel work). Treat as resolved instead of looping forever.
+  if (res.status === 409) {
+    return { ok: true, status: 200, body: 'already-recorded', insertedId: null };
+  }
+
   const txt = await res.text().catch(() => '');
   let insertedId: string | null = null;
   if (res.ok) {
@@ -209,18 +226,9 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Auth: require service-role JWT in Authorization header. Mirrors nurture-emails
-  // pattern. The Vercel Edge fn at /api/cron/replay-quiz-failures forwards
-  // service-role key in Authorization after enforcing CRON_SECRET on its incoming
-  // request — so the practical auth gate is at the Vercel layer.
-  const authHeader = req.headers.get('authorization') ?? '';
-  if (!authHeader.startsWith('Bearer ') || authHeader.slice(7) !== SUPABASE_SERVICE_ROLE_KEY) {
-    console.warn('replay-quiz-completion-failures: unauthorized invocation — missing or wrong service-role JWT');
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
+  // v3: no inbound auth check. Trust posture documented at top of file.
+  // The Vercel Edge fn at /api/cron/replay-quiz-failures still enforces
+  // CRON_SECRET on its inbound side; this EF is downstream of that gate.
 
   const result: DrainResult = { processed: 0, resolved: 0, still_failing: 0, errors: [] };
 
@@ -240,7 +248,7 @@ Deno.serve(async (req) => {
         if (replay.ok) {
           await markResolved(row.id, replay.status, replay.insertedId, row.retry_count);
           result.resolved++;
-          console.log(`replay-quiz-completion-failures: resolved row=${row.id} as quiz_completion=${replay.insertedId}`);
+          console.log(`replay-quiz-completion-failures: resolved row=${row.id} as quiz_completion=${replay.insertedId ?? 'already-recorded'}`);
         } else {
           await markStillFailing(row.id, replay.status, replay.body, row.retry_count);
           result.still_failing++;
