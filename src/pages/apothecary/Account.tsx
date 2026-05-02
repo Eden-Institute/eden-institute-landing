@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
 import { ManageSubscriptionButton } from "@/components/apothecary/ManageSubscriptionButton";
+import { JourneyCTA } from "@/components/journey/JourneyCTA";
 
 /**
  * Columns we read from public.profiles for the Account page. Source: PR #7
@@ -88,17 +89,29 @@ function formatDate(iso: string | null): string {
 /**
  * Account / self-serve subscription management surface.
  *
- * Composition (v3.33.2 update):
+ * Composition (PR γ — 2026-05-02 update):
  *   - Header: display_name + email
- *   - **NEW: Body Pattern card** — surfaces user's constitution result
- *     from the quiz, with a CTA to the directory and a state-aware guide
- *     CTA derived from useTierAwareCTA() (Camila 2026-04-30 fix). The
- *     prior unconditional "Retake the quiz" button has been demoted to a
- *     small text link below the primary actions, since a user with a
- *     resolved Pattern shouldn't be prompted to redo the quiz as a
- *     primary affordance — the next step is the Pattern-specific
- *     Deep-Dive Guide. The retake link is preserved (patterns can shift
- *     over time per the terrain framing — Lock #14).
+ *   - **NEW (PR γ): JourneyCTA** — surfaces the dominant next step in
+ *     the customer-journey state machine (Pattern quiz → $14 Deep-Dive
+ *     Guide → Foundations Course → Seed → Root → Practitioner waitlist),
+ *     mirroring the homepage placement shipped in PR β (commit 56cdddb).
+ *     Same component, no prop wiring — JourneyCTA reads useTierAwareCTA
+ *     internally and resolves the active person-profile's Pattern via
+ *     the App-scoped ActiveProfileContext. The user sees the same
+ *     one-step-at-a-time guidance whether they enter via / or directly
+ *     into /apothecary/account.
+ *   - Body Pattern card — surfaces the user's constitution result from
+ *     the quiz, with a CTA to the directory and a state-aware guide
+ *     CTA derived from useTierAwareCTA(). PR γ removes the no-Pattern
+ *     branch's "Take the Pattern of Eden quiz" Button (a clean
+ *     duplicate of JourneyCTA's quiz step); the no-Pattern branch is
+ *     now purely descriptive and the dominant quiz action lives in
+ *     JourneyCTA at the top of the page. The contextual guide CTA in
+ *     the with-Pattern branch (PR #106 / 2026-04-30 state-aware
+ *     restructure) is preserved — it anchors the visual Pattern →
+ *     guide relationship within the Pattern card. The small italic
+ *     "Retake the quiz" link is preserved (Lock #14: patterns shift
+ *     over time).
  *   - Subscription card: current tier, status, renewal / cancel-at date,
  *     founding-member badge, and one of:
  *       · ManageSubscriptionButton (any user with a Stripe customer record)
@@ -115,12 +128,11 @@ function formatDate(iso: string | null): string {
 export default function Account() {
   const { user, signOut } = useAuth();
   const { data: tier } = useCurrentTier();
-  // State-aware guide CTA. The hook returns the correct (label, href)
-  // for the user's (Pattern, guide-purchased) state — e.g. for a Frozen
-  // Knot user who hasn't bought the guide: "Get your Frozen Knot guide
-  // — $14" → /guide/frozen-knot. For a user with no Pattern (rare on
-  // Account.tsx since constitutionPretty handles that branch separately),
-  // it falls back to /assessment.
+  // State-aware guide CTA for the Body Pattern card's with-Pattern
+  // branch. Same hook JourneyCTA uses internally, but here scoped to
+  // the contextual Pattern → guide affordance (PR #106 / 2026-04-30
+  // restructure). The dominant journey progression lives in
+  // <JourneyCTA /> at the top of the page (PR γ).
   const { guide: guideCta } = useTierAwareCTA();
 
   const {
@@ -194,15 +206,32 @@ export default function Account() {
           </div>
         )}
 
-        {/* v3.33.2 NEW: Body Pattern card. Surfaces the user's quiz result
-            so their account page reflects the work they've already done.
-            Fixes Phase 5 #5 ("quiz responses didn't seem to register").
+        {/* PR γ (2026-05-02): dominant journey CTA at the top of the
+            authed surface. Mirrors the homepage placement from PR β
+            (commit 56cdddb) so the user sees the same one-step-at-a-time
+            guidance whether they enter via / or directly into
+            /apothecary/account. JourneyCTA is self-contained — it
+            consumes useTierAwareCTA and the App-scoped
+            ActiveProfileContext internally, so switching the active
+            person-profile picker propagates here without prop wiring. */}
+        <section aria-label="Your next step at Eden Institute">
+          <JourneyCTA />
+        </section>
+
+        {/* Body Pattern card. Surfaces the user's quiz result so their
+            account page reflects the work they've already done. Fixes
+            Phase 5 #5 ("quiz responses didn't seem to register").
 
             2026-04-30 (tier-aware CTA propagation): the secondary CTA in
-            the with-Pattern branch has been swapped from "Retake the quiz"
-            to the state-aware guide CTA from useTierAwareCTA(). A small
-            text link below the buttons preserves the retake affordance —
-            patterns can shift over time per the terrain framing. */}
+            the with-Pattern branch is the state-aware guide CTA from
+            useTierAwareCTA(). A small text link below the buttons
+            preserves the retake affordance — patterns can shift over
+            time per the terrain framing (Lock #14).
+
+            PR γ (2026-05-02): no-Pattern branch's "Take the Pattern of
+            Eden quiz" Button removed (duplicated JourneyCTA's quiz
+            step). Body copy preserved as descriptive context; the
+            dominant action lives in JourneyCTA above. */}
         <section
           className="rounded-lg border p-6 space-y-4"
           style={{
@@ -247,31 +276,30 @@ export default function Account() {
               </>
             )}
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 pt-2">
-            {constitutionPretty ? (
-              <>
-                <Button variant="eden" asChild>
-                  <Link to={ROUTES.APOTHECARY}>View matched herbs</Link>
-                </Button>
-                {/* State-aware guide CTA (replaces unconditional "Retake
-                    the quiz" button per Camila's 2026-04-30 directive).
-                    Surfaces the user's (Pattern, guide-purchased) state
-                    machine via useTierAwareCTA(). */}
-                <Button variant="eden-outline" asChild>
-                  <Link to={guideCta.href}>{guideCta.label}</Link>
-                </Button>
-              </>
-            ) : (
+          {/* PR γ: the contextual button row only renders in the
+              with-Pattern branch. The no-Pattern branch's quiz Button
+              was removed — JourneyCTA at the top of the page is the
+              dominant quiz action. */}
+          {constitutionPretty && (
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button variant="eden" asChild>
-                <Link to={ROUTES.ASSESSMENT}>Take the Pattern of Eden quiz</Link>
+                <Link to={ROUTES.APOTHECARY}>View matched herbs</Link>
               </Button>
-            )}
-          </div>
+              {/* State-aware guide CTA (PR #106 / 2026-04-30). Surfaces
+                  the user's (Pattern, guide-purchased) state machine via
+                  useTierAwareCTA(). Anchors the visual Pattern → guide
+                  relationship within the Pattern card; the dominant
+                  cross-page journey CTA lives in <JourneyCTA /> above. */}
+              <Button variant="eden-outline" asChild>
+                <Link to={guideCta.href}>{guideCta.label}</Link>
+              </Button>
+            </div>
+          )}
           {/* De-prioritized retake affordance. Patterns can shift over time
-              (terrain framing), so we preserve the retake path — but as a
-              small text link rather than a primary button. Only rendered
-              when the user already has a Pattern; the no-Pattern branch
-              already points them at the quiz as the primary action. */}
+              (terrain framing, Lock #14), so we preserve the retake path —
+              but as a small text link rather than a primary button. Only
+              rendered when the user already has a Pattern; the no-Pattern
+              branch's primary action lives in JourneyCTA at the top. */}
           {constitutionPretty && (
             <p className="font-body text-xs italic text-muted-foreground pt-1">
               Patterns shift over time.{" "}
