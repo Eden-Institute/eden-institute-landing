@@ -10,6 +10,37 @@ import { useActiveProfileOptional } from "@/contexts/ActiveProfileContext";
 /**
  * PatternMatchHero — personalization card on the Apothecary directory home.
  *
+ * v4 (2026-05-02 PR #109) — non-self CTA URL routing fix. PR #108 added the
+ * active-profile-aware copy + ?profileId=... query string but pointed the
+ * URL at ROUTES.ASSESSMENT (= /assessment, the PUBLIC marketing-quiz route
+ * which is NOT wrapped in ApothecaryLayout and therefore has no
+ * ActiveProfileContext provider). With profileCtx always null on
+ * /assessment, Assessment.tsx's targetProfile resolution returned null,
+ * diagnosticMode evaluated to false, and the page silently fell through to
+ * marketing-mode auto-submit — writing via resend-waitlist +
+ * record-quiz-completion using user.email instead of the sub-profile id.
+ * The new v14 record-quiz-completion treats UNIQUE(lower(email)) conflicts
+ * as 200 no-op, so the silent failure left zero data captured for the
+ * sub-profile. Net effect: the apothecary kept asking the user to take the
+ * quiz again forever for non-self profiles.
+ *
+ * v4 fix: route non-self CTA at ROUTES.APOTHECARY_QUIZ (= /apothecary/quiz)
+ * instead. That route IS wrapped in ApothecaryLayout (so ActiveProfileContext
+ * is available, targetProfile resolves, diagnosticMode engages, and the
+ * record-diagnostic-completion id-keyed write fires per Lock #40). It is
+ * also gated by RequireTier(["root","practitioner"]) which matches the
+ * design intent: sub-profile clinical writes are a Root-tier feature.
+ *
+ * Self-profile CTA keeps ROUTES.ASSESSMENT — the public marketing quiz is
+ * correct for first-time self Pattern resolution by anon visitors and by
+ * authed users on any tier.
+ *
+ * v3 (2026-05-02 PR #83) — empty-state branch is active-profile-aware:
+ *   - Reads useActiveProfileOptional + the isEmptyForActiveProfile signal
+ *     from useDiagnosticProfile (signal was previously ignored, causing the
+ *     empty-state UI to render identically whether the user themselves had
+ *     no Pattern or whether a non-self active profile lacked a Pattern).
+ *
  * Stage 6.3.5 Phase B sub-task 3 (v1). Per the strategic-pivot architecture
  * in Manual v3.8, this hero ships as a FORWARD-COMPATIBLE SHELL: it reads
  * from the layered DiagnosticProfile contract and renders whichever layers
@@ -18,29 +49,6 @@ import { useActiveProfileOptional } from "@/contexts/ActiveProfileContext";
  * conditionally rendered when the Root-tier deep diagnostic populates them.
  * Zero rip-out when the deeper layers ship — the consuming JSX already
  * handles them.
- *
- * v3 (2026-05-02 PR #83) — empty-state branch is now active-profile-aware:
- *   - Reads useActiveProfileOptional + the isEmptyForActiveProfile signal
- *     from useDiagnosticProfile (signal was previously ignored, causing the
- *     empty-state UI to render identically whether the user themselves had
- *     no Pattern or whether a non-self active profile lacked a Pattern).
- *   - When active profile is non-self AND empty: heading + CTA name the
- *     active profile by name, and the CTA URL passes
- *     ?profileId={activeProfile.id} so Assessment.tsx routes the submission
- *     through record-diagnostic-completion (Lock #40 id-keyed write) instead
- *     of the marketing-mode email-keyed write (which would silently
- *     overwrite the user's own constitution_type).
- *
- * Three render branches by user state:
- *   • Anon visitor: noop (the apothecary surface itself is auth-walled per
- *     §0.8 #19 — anon will never see this).
- *   • Authed user without resolved Pattern (or non-self active profile
- *     without one): take-the-quiz CTA, active-profile-aware copy + URL.
- *   • Authed user with resolved Pattern: Pattern card with axis readings,
- *     plus conditional Layer 2-4 cards when populated, plus Root-tier
- *     upgrade affordance for non-Root users (deferred until /apothecary/
- *     profile/quiz exists; v1 surfaces only the conservative "deeper
- *     diagnostic coming" copy).
  *
  * Mobile-aware per project_mobile_wrapping_roadmap.md: no hover-only
  * interactions, no right-clicks, all tap targets ≥ 44px, responsive Tailwind
@@ -76,10 +84,11 @@ export function PatternMatchHero() {
   if (!profile) {
     // Empty state has two flavors:
     //   1. Non-self active profile lacks a Pattern → "Take the quiz for
-    //      {name}" + URL with profileId so Assessment.tsx enters
-    //      diagnosticMode and writes via record-diagnostic-completion.
+    //      {name}" + URL pointing at /apothecary/quiz?profileId=... so the
+    //      diagnostic-mode pipeline (record-diagnostic-completion, id-keyed)
+    //      writes the result to the sub-profile's person_profiles row.
     //   2. User themselves has no Pattern (or no active-profile context) →
-    //      generic copy + URL without profileId (marketing-mode flow).
+    //      generic copy + URL at /assessment (marketing-mode flow).
     const isNonSelfEmpty =
       isEmptyForActiveProfile &&
       activeProfile !== null &&
@@ -87,8 +96,13 @@ export function PatternMatchHero() {
 
     const targetName = isNonSelfEmpty ? activeProfile?.name ?? "this profile" : null;
 
+    // v4 (PR #109): non-self CTA routes to the in-app diagnostic quiz
+    // (/apothecary/quiz) instead of the public marketing quiz (/assessment).
+    // The in-app route is the only one wrapped in ApothecaryLayout (which
+    // provides ActiveProfileContext) and is gated to root/practitioner
+    // tier per Lock #40. Self CTA keeps the public route.
     const ctaHref = isNonSelfEmpty
-      ? `${ROUTES.ASSESSMENT}?profileId=${activeProfile!.id}`
+      ? `${ROUTES.APOTHECARY_QUIZ}?profileId=${activeProfile!.id}`
       : ROUTES.ASSESSMENT;
 
     const ctaLabel = isNonSelfEmpty
@@ -188,92 +202,36 @@ function ResolvedProfileCard({ profile }: { profile: DiagnosticProfile }) {
           </div>
         </div>
 
-        {/* LAYER 2 — Galenic Temperament (conditional, undefined in v1) */}
         {profile.galenicTemperament && (
-          <div
-            className="mt-6 pt-6 border-t"
-            style={{ borderColor: "hsl(40, 20%, 80%)" }}
-          >
-            <p
-              className="font-accent text-xs tracking-[0.3em] uppercase mb-2"
-              style={{ color: "hsl(var(--eden-gold))" }}
-            >
-              Galenic Temperament
-            </p>
-            <p
-              className="font-body text-sm md:text-base"
-              style={{ color: "hsl(var(--eden-bark))" }}
-            >
-              {profile.galenicTemperament}
-            </p>
+          <div className="mt-6 pt-6 border-t" style={{ borderColor: "hsl(40, 20%, 80%)" }}>
+            <p className="font-accent text-xs tracking-[0.3em] uppercase mb-2" style={{ color: "hsl(var(--eden-gold))" }}>Galenic Temperament</p>
+            <p className="font-body text-sm md:text-base" style={{ color: "hsl(var(--eden-bark))" }}>{profile.galenicTemperament}</p>
           </div>
         )}
 
-        {/* LAYER 3 — Tissue State Profile (conditional, undefined in v1) */}
-        {profile.tissueStateProfile &&
-          Object.keys(profile.tissueStateProfile).length > 0 && (
-            <div
-              className="mt-6 pt-6 border-t"
-              style={{ borderColor: "hsl(40, 20%, 80%)" }}
-            >
-              <p
-                className="font-accent text-xs tracking-[0.3em] uppercase mb-2"
-                style={{ color: "hsl(var(--eden-gold))" }}
-              >
-                Tissue State Profile
-              </p>
-              <dl className="font-body text-sm md:text-base grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
-                {Object.entries(profile.tissueStateProfile).map(
-                  ([system, state]) => (
-                    <div key={system}>
-                      <dt className="inline font-medium capitalize">
-                        {system}:{" "}
-                      </dt>
-                      <dd
-                        className="inline"
-                        style={{ color: "hsl(var(--eden-bark))" }}
-                      >
-                        {state}
-                      </dd>
-                    </div>
-                  ),
-                )}
-              </dl>
-            </div>
-          )}
+        {profile.tissueStateProfile && Object.keys(profile.tissueStateProfile).length > 0 && (
+          <div className="mt-6 pt-6 border-t" style={{ borderColor: "hsl(40, 20%, 80%)" }}>
+            <p className="font-accent text-xs tracking-[0.3em] uppercase mb-2" style={{ color: "hsl(var(--eden-gold))" }}>Tissue State Profile</p>
+            <dl className="font-body text-sm md:text-base grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+              {Object.entries(profile.tissueStateProfile).map(([system, state]) => (
+                <div key={system}>
+                  <dt className="inline font-medium capitalize">{system}: </dt>
+                  <dd className="inline" style={{ color: "hsl(var(--eden-bark))" }}>{state}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        )}
 
-        {/* LAYER 4 — Vital Force (conditional, undefined in v1) */}
         {profile.vitalForce && (
-          <div
-            className="mt-6 pt-6 border-t"
-            style={{ borderColor: "hsl(40, 20%, 80%)" }}
-          >
-            <p
-              className="font-accent text-xs tracking-[0.3em] uppercase mb-2"
-              style={{ color: "hsl(var(--eden-gold))" }}
-            >
-              Vital Force
-            </p>
-            <p
-              className="font-body text-sm md:text-base capitalize"
-              style={{ color: "hsl(var(--eden-bark))" }}
-            >
-              {profile.vitalForce}
-            </p>
+          <div className="mt-6 pt-6 border-t" style={{ borderColor: "hsl(40, 20%, 80%)" }}>
+            <p className="font-accent text-xs tracking-[0.3em] uppercase mb-2" style={{ color: "hsl(var(--eden-gold))" }}>Vital Force</p>
+            <p className="font-body text-sm md:text-base capitalize" style={{ color: "hsl(var(--eden-bark))" }}>{profile.vitalForce}</p>
           </div>
         )}
 
-        {/* Upgrade narrative when not yet on deep diagnostic. v1 surfaces
-            conservative copy only — the deep-diagnostic upgrade endpoint
-            ships in a later PR (Manual v3.8 strategic pivot). */}
         {!hasFullDiagnosticDepth(profile) && (
-          <p
-            className="font-body text-xs italic mt-6 pt-4 border-t"
-            style={{
-              color: "hsl(30, 10%, 40%, 0.8)",
-              borderColor: "hsl(40, 20%, 80%)",
-            }}
-          >
+          <p className="font-body text-xs italic mt-6 pt-4 border-t" style={{ color: "hsl(30, 10%, 40%, 0.8)", borderColor: "hsl(40, 20%, 80%)" }}>
             Your Pattern is the entry-tier reading. A deeper four-layer
             diagnostic — Galenic temperament, tissue state profile by organ
             system, and vital force overlay — is in active development for
