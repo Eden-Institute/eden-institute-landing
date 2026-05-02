@@ -77,7 +77,7 @@ function storeId(id: string | null): void {
 }
 
 /**
- * ActiveProfileProvider wraps the apothecary route subtree.
+ * ActiveProfileProvider wraps the entire App tree (per PR β hoist).
  *
  * Per Locked Decision §0.8 #18: "Persistent profile picker pill in top-right
  * nav (Root tier). Switching profile re-filters directory immediately to the
@@ -87,9 +87,11 @@ function storeId(id: string | null): void {
  * Provides:
  * - profiles: all person_profiles for the current user (via React Query;
  *   RLS scopes to user_id = auth.uid() so a plain SELECT * is safe).
- * - activeProfile: currently selected. Hydrated from localStorage on
- *   profile-list load; defaults to is_self if no valid stored value;
- *   defaults to first profile if no self exists; null if user has no profiles.
+ * - activeProfile: currently selected. Hydrated synchronously from
+ *   localStorage at first render; defensively re-validated against the
+ *   loaded profile list and defaulted to is_self if the stored value
+ *   doesn't match (deleted profile, fresh device, cross-account
+ *   collision); null if user has no profiles.
  * - setActiveProfileId: switch active and persist to localStorage.
  *
  * Tier-blind: every authed tier gets the provider. The picker UI gates itself
@@ -101,6 +103,17 @@ function storeId(id: string | null): void {
  * Losing it on a new device or clean storage degrades gracefully to the
  * is_self default. All localStorage access is wrapped in try/catch so
  * Capacitor private-mode contexts don't throw.
+ *
+ * PR δ (2026-05-02) hydration race fix: activeProfileIdState is now
+ * initialized synchronously from localStorage in the useState lazy
+ * initializer rather than reset to null and hydrated via useEffect.
+ * This closes a one-render window where activeProfileIdState was null
+ * but profiles had already loaded — during that gap, useEdenPattern's
+ * "no active profile → user-level read" branch returned the
+ * signed-in user's primary Pattern (Camila's Burning Bowstring) even
+ * when a non-self profile (Olivia's Frozen Knot) was actually selected.
+ * Combined with the useEdenPattern context-isLoading gate, this makes
+ * the active-profile resolution deterministic across all timing paths.
  */
 export function ActiveProfileProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
@@ -129,25 +142,42 @@ export function ActiveProfileProvider({ children }: { children: ReactNode }) {
 
   const profiles = profilesQuery.data ?? [];
 
+  // PR δ: synchronous localStorage init via useState lazy initializer.
+  // Earlier versions started at null and hydrated in a useEffect AFTER
+  // profilesQuery resolved — which left a one-render gap where state was
+  // null but profiles were loaded, during which useEdenPattern fell
+  // through to the user-level read and returned the wrong Pattern for
+  // non-self active profiles.
   const [activeProfileId, setActiveProfileIdState] = useState<string | null>(
-    null,
+    () => loadStoredId(),
   );
 
-  // Hydrate active id from localStorage on profile-list load.
-  // Default to is_self if no valid stored value.
+  // Defensive validation pass: once profiles arrive, confirm the
+  // synchronously-hydrated stored ID is still valid against the loaded
+  // list (the profile may have been deleted, RLS may have rejected it,
+  // or this device's localStorage may carry an ID from a different
+  // signed-in account). If the stored ID isn't in the list, fall back to
+  // is_self — or the first profile if no self exists.
   useEffect(() => {
     if (profilesQuery.isLoading) return;
     if (profiles.length === 0) {
-      setActiveProfileIdState(null);
+      if (activeProfileId !== null) setActiveProfileIdState(null);
       return;
     }
-    const stored = loadStoredId();
-    if (stored && profiles.some((p) => p.id === stored)) {
-      setActiveProfileIdState(stored);
+    if (activeProfileId && profiles.some((p) => p.id === activeProfileId)) {
+      // Stored ID is valid against the loaded profile list — nothing to do.
       return;
     }
+    // Either no stored ID, or the stored ID isn't in this user's profiles.
+    // Fall back to is_self, then to first profile.
     const self = profiles.find((p) => p.is_self);
     setActiveProfileIdState(self?.id ?? profiles[0].id);
+    // We intentionally don't include activeProfileId in the deps array —
+    // it's read inside the effect for the validity check, but we want this
+    // effect to fire only when the profile list itself changes. If a
+    // consumer calls setActiveProfileId() that's the source of the change,
+    // not this effect's purpose to react to.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profiles, profilesQuery.isLoading]);
 
   const setActiveProfileId = (id: string | null) => {
@@ -182,7 +212,7 @@ export function ActiveProfileProvider({ children }: { children: ReactNode }) {
 
 /**
  * useActiveProfile — strict consumer hook. Must be used inside
- * ActiveProfileProvider (mounted at ApothecaryLayout). Throws if used
+ * ActiveProfileProvider (mounted at App scope per PR β). Throws if used
  * outside the provider so the mistake surfaces at component-mount time
  * rather than as a silent null-deref.
  */
@@ -198,15 +228,10 @@ export function useActiveProfile(): ActiveProfileContextValue {
 
 /**
  * useActiveProfileOptional — non-throwing variant. Returns null when used
- * outside ActiveProfileProvider (e.g. on the marketing /assessment route,
- * which is not mounted under ApothecaryLayout).
- *
- * Rationale: hooks like useEdenPattern and useDiagnosticProfile are
- * consumed both inside the apothecary subtree (where the picker exists)
- * AND in places that pre-date the picker. The strict useActiveProfile
- * throw would force every consumer to gate itself on route, which is
- * brittle. The optional variant lets the hook decide its behavior based
- * on context availability rather than caller routing.
+ * outside ActiveProfileProvider. Post-PR β the provider is mounted at App
+ * scope so this should rarely be null in practice, but the optional
+ * variant is preserved for tests and future surfaces that intentionally
+ * mount outside the provider tree.
  */
 export function useActiveProfileOptional(): ActiveProfileContextValue | null {
   return useContext(ActiveProfileContext);
