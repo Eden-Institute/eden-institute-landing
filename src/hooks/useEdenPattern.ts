@@ -39,6 +39,19 @@ import {
  *        Pattern. Consumers branch on `isEmptyForActiveProfile` to render
  *        the PatternQuizCTA.
  *
+ * PR δ (2026-05-02) hydration race fix: when an ActiveProfileProvider is
+ * mounted but its profile list is still loading, this hook now defers
+ * resolution rather than short-circuiting through Case 2's user-level
+ * read. The previous behavior produced Camila's reproducible "Olivia
+ * reverts to Burning Bowstring on /" launch-blocker bug — during the
+ * brief window before the provider hydrated, the homepage's
+ * WelcomeBackBanner and JourneyCTA both rendered the signed-in user's
+ * primary Pattern, even though the picker was pointed at a non-self
+ * profile. The gate is implemented via TanStack Query's `enabled` flag
+ * keyed on the context's isLoading; when no provider is mounted at all,
+ * the gate defaults to enabled and Case 2's user-level read continues
+ * to fire as before (backward-compat for legacy surfaces).
+ *
  * Cache duration matches `useCurrentTier` (30 min stale, 4 hr GC) — a
  * Pattern doesn't change between page loads in practice; the hook
  * invalidates on the user.id and active person_profile id keys, so a
@@ -54,6 +67,13 @@ export function useEdenPattern(): {
   const { user } = useAuth();
   const profileCtx = useActiveProfileOptional();
   const activeProfile = profileCtx?.activeProfile ?? null;
+  // PR δ: gate the Pattern query on the context's hydration state. While
+  // the profile list is loading, we don't yet know whether a non-self
+  // profile will resolve as active — firing a user-level read in that
+  // window risks rendering the WRONG Pattern for the visible UI. When
+  // there's no provider at all (profileCtx === null) we default to
+  // "ready" so Case 2 (user-level marketing read) continues to fire.
+  const profileCtxLoading = profileCtx?.isLoading ?? false;
 
   const query = useQuery({
     queryKey: [
@@ -112,7 +132,13 @@ export function useEdenPattern(): {
         isEmptyForActiveProfile: true,
       };
     },
-    enabled: true, // anon path returns null synchronously inside queryFn
+    // PR δ: hold the query in pending state until the active-profile
+    // context finishes hydrating its profile list. This prevents the
+    // brief wrong-Pattern flash that surfaced as Camila's launch-blocker.
+    // When no provider is mounted (profileCtx === null → profileCtxLoading
+    // === false), the gate is open and the legacy user-level read fires
+    // immediately as before.
+    enabled: !profileCtxLoading,
     staleTime: 30 * 60 * 1000,
     gcTime: 4 * 60 * 60 * 1000,
   });
@@ -120,7 +146,10 @@ export function useEdenPattern(): {
   return {
     data: query.data?.pattern ?? null,
     rawValue: query.data?.raw ?? null,
-    isLoading: query.isLoading,
+    // Surface either context-hydration loading OR query loading so
+    // consumers (PatternQuizCTA, skeleton-rendering surfaces) can render
+    // a single coherent loading state.
+    isLoading: profileCtxLoading || query.isLoading,
     isEmptyForActiveProfile: query.data?.isEmptyForActiveProfile ?? false,
     activeProfile,
   };
