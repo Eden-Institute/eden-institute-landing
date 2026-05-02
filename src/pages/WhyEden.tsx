@@ -4,6 +4,7 @@ import Footer from "@/components/landing/Footer";
 import ScrollReveal from "@/components/landing/ScrollReveal";
 import { GoldDivider } from "@/components/landing/BotanicalAccents";
 import { WorldviewBand } from "@/components/landing/WorldviewBand";
+import { useJourneyAwareQuizCTA } from "@/hooks/useJourneyAwareQuizCTA";
 import { ROUTES } from "@/lib/routes";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 
@@ -14,6 +15,16 @@ const WhyEden = () => {
       "There is no other program like this one. Eden Institute offers clinically rigorous, Scripture-anchored herbalism education — free from Eastern spiritual frameworks.",
     canonical: "https://edeninstitute.health/why-eden",
   });
+
+  // PR ζ: "Ready to Begin?" section's quiz CTA was journey-blind — even
+  // when the active profile had a resolved Pattern, this prompt still
+  // told them to take a quiz they'd already completed. Now consumes
+  // useJourneyAwareQuizCTA so the label and route swap to the
+  // per-Pattern Deep-Dive Guide checkout when a Pattern resolves
+  // (matches JourneyCTA's primary on Index.tsx exactly). Custom
+  // non-Button "forest-pill" styling preserved — the hook returns just
+  // the label/href tuple so the existing Link styling can wrap.
+  const journeyCta = useJourneyAwareQuizCTA();
 
   return (
     <main className="min-h-screen overflow-x-hidden">
@@ -155,15 +166,33 @@ const WhyEden = () => {
                 Ready to Begin?
               </h2>
               <p className="font-body text-base leading-relaxed mb-8" style={{ color: "hsl(var(--eden-bark) / 0.85)" }}>
-                Start with the free body pattern quiz. Two minutes. Eight possible results. It will change how you think about every herb you'll ever use.
+                {journeyCta.hasPattern
+                  ? "You've already completed the Pattern quiz. Continue with your personalized Deep-Dive Guide — ten matched herbs, nutrition, lifestyle, and Scripture, all aligned to your terrain."
+                  : "Start with the free body pattern quiz. Two minutes. Eight possible results. It will change how you think about every herb you'll ever use."}
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                {/* CTA cleanup 2026-04-30: was {`${ROUTES.HOME}#assessment`}, which depends on
-                    Index.tsx's useEffect-on-mount race to open the quiz modal. Routing
-                    direct to /assessment (the canonical quiz endpoint) is more reliable
-                    and matches what the label promises. */}
-                <Link to={ROUTES.ASSESSMENT} className="font-body text-sm font-semibold px-8 py-3 rounded-sm" style={{ backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-parchment))" }}>
-                  Take the Free Body Pattern Quiz →
+                {/* PR ζ: was a static Link to ROUTES.ASSESSMENT with the
+                    "Take the Free Body Pattern Quiz →" copy regardless of
+                    journey state. Now journey-aware via
+                    useJourneyAwareQuizCTA — routes to /assessment with
+                    the original quiz copy when no Pattern, or to
+                    /guide/<slug> with the per-Pattern Deep-Dive Guide buy
+                    copy when active-profile has a Pattern. Forest-pill
+                    styling preserved by wrapping a Link directly (the hook
+                    returns just the tuple; styling is the consumer's job).
+                    Earlier cleanup (2026-04-30): the route used to be
+                    `${ROUTES.HOME}#assessment` which depended on Index's
+                    useEffect-on-mount race to open the quiz modal. The
+                    direct /assessment route is more reliable and matches
+                    the label promise. */}
+                <Link
+                  to={journeyCta.href}
+                  data-cta="journey-aware-quiz"
+                  data-journey-kind={journeyCta.kind}
+                  className="font-body text-sm font-semibold px-8 py-3 rounded-sm"
+                  style={{ backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-parchment))" }}
+                >
+                  {journeyCta.label}
                 </Link>
                 <Link to={ROUTES.COURSES} className="font-body text-sm font-semibold px-8 py-3 rounded-sm" style={{ backgroundColor: "transparent", color: "hsl(var(--eden-forest))", border: "1px solid hsl(var(--eden-forest))" }}>
                   View Our Courses
