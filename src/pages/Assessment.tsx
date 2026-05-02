@@ -102,8 +102,6 @@ const questions: Question[] = [
   ]},
 ];
 
-// v3.34 #2: compute axis positions from -1.0 (fully one side) to +1.0 (fully other side)
-// for the inconclusive AxisSpectrum visual.
 function computeAxisPositions(answers: Record<number, string>) {
   let hot = 0, cold = 0, damp = 0, dry = 0, tense = 0, relaxed = 0;
   for (const q of questions) {
@@ -115,7 +113,6 @@ function computeAxisPositions(answers: Record<number, string>) {
     else if (a === "Tense") tense++;
     else if (a === "Relaxed") relaxed++;
   }
-  // 4 questions per axis; net position normalized to [-1, +1]
   return {
     temperature: (hot - cold) / 4,
     fluid: (damp - dry) / 4,
@@ -127,12 +124,11 @@ interface AxisSpectrumProps {
   axisLabel: string;
   leftLabel: string;
   rightLabel: string;
-  position: number; // -1.0 to +1.0; 0 = middle/inconclusive
+  position: number;
   isInconclusive: boolean;
 }
 
 function AxisSpectrum({ axisLabel, leftLabel, rightLabel, position, isInconclusive }: AxisSpectrumProps) {
-  // Map [-1, +1] to [10%, 90%] left-position so marker stays inside the bar.
   const leftPct = 50 + position * 40;
   const markerColor = isInconclusive ? "#C9A84C" : "#1C3A2E";
   return (
@@ -145,17 +141,10 @@ function AxisSpectrum({ axisLabel, leftLabel, rightLabel, position, isInconclusi
         <span className="font-accent text-xs tracking-[0.15em] uppercase" style={{ color: "#1C3A2E" }}>{rightLabel}</span>
       </div>
       <div className="relative h-3 rounded-full" style={{ backgroundColor: "hsl(40, 20%, 80%)" }}>
-        {/* Center tick mark */}
         <div className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 w-px h-3" style={{ backgroundColor: "hsl(30, 10%, 40%)", opacity: 0.3 }} />
-        {/* Position marker */}
         <div
           className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full transition-all"
-          style={{
-            left: `${leftPct}%`,
-            backgroundColor: markerColor,
-            border: "2px solid white",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-          }}
+          style={{ left: `${leftPct}%`, backgroundColor: markerColor, border: "2px solid white", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }}
         />
       </div>
     </div>
@@ -181,9 +170,12 @@ const Assessment = () => {
 
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
-  // v4.3 (PR #86) — followup phase wiring. The targeted-followup pass routes
-  // tied-axis cases through 3 × N sharper questions before falling through
-  // to the email gate (decisive) or the inconclusive surface (still tied).
+  // v4.3.1 (PR #109) — added "profile-resolution-error" for the
+  // defensive-guard branch in routePostResolution: if profileIdParam is in
+  // URL but diagnosticMode didn't engage (ActiveProfileContext missing or
+  // targetProfile didn't resolve), surface an error instead of silently
+  // falling through to marketing-mode auto-submit (which would write to
+  // user.email and silently corrupt sub-profile data).
   const [phase, setPhase] = useState<
     | "quiz"
     | "followup"
@@ -193,6 +185,7 @@ const Assessment = () => {
     | "diagnostic-saving"
     | "diagnostic-saved"
     | "auto-submitting"
+    | "profile-resolution-error"
   >("quiz");
   const [followupQueue, setFollowupQueue] = useState<FollowupQuestion[]>([]);
   const [followupIdx, setFollowupIdx] = useState(0);
@@ -200,14 +193,12 @@ const Assessment = () => {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState("");
 
   const constitutionType = phase !== "quiz" && phase !== "followup" ? computeResultWithFollowups(answers) : "";
   const isInconclusive = constitutionType ? isInconclusiveResult(constitutionType) : false;
   const neutralAxes = constitutionType && isInconclusive ? inconclusiveAxes(constitutionType) : [];
   const profile = constitutionType ? constitutionProfiles[constitutionType] : null;
-  // Compute axis positions for the inconclusive spectrum visual.
   const axisPositions = useMemo(() => computeAxisPositions(answers), [answers]);
 
   useEffect(() => {
@@ -331,11 +322,13 @@ const Assessment = () => {
     }
   }, [navigate]);
 
-  // v4.3 (PR #86) — shared post-resolution router. Called from BOTH the
-  // initial Q12-completion path (when no axes are tied) AND the followup
-  // queue exhaustion path (after the 3 × N sharper questions). Branches
-  // to inconclusive / diagnostic / auto-submit / gate per the user's
-  // auth state and the recomputed result.
+  // v4.3.1 (PR #109) — routePostResolution adds a defensive guard branch
+  // BEFORE the diagnosticMode check. If profileIdParam is in URL but
+  // diagnosticMode didn't engage (ActiveProfileContext missing or
+  // targetProfile didn't resolve), surface an error instead of silently
+  // falling through to marketing-mode auto-submit. The marketing-mode
+  // pipeline writes to user.email — NEVER a sub-profile — so falling
+  // through corrupts data while looking like success.
   const routePostResolution = useCallback(
     (currentAnswers: Record<number, string>, fromFollowup: boolean) => {
       const result = fromFollowup
@@ -343,6 +336,14 @@ const Assessment = () => {
         : computeResult(currentAnswers);
       if (isInconclusiveResult(result)) {
         setPhase("inconclusive");
+      } else if (profileIdParam !== null && !diagnosticMode) {
+        // GUARD: profileId requested but diagnosticMode failed. Do not
+        // silently fall to marketing mode. Surface an actionable error.
+        setError(
+          "The selected profile didn't load on this page. Please go back to the apothecary, " +
+          "confirm the profile picker shows the right person, and click the quiz button again."
+        );
+        setPhase("profile-resolution-error");
       } else if (diagnosticMode) {
         submitDiagnostic(currentAnswers);
       } else if (user?.email && !authLoading) {
@@ -358,7 +359,7 @@ const Assessment = () => {
         setPhase("gate");
       }
     },
-    [diagnosticMode, submitDiagnostic, user, authLoading, firstName, submitMarketingQuiz],
+    [profileIdParam, diagnosticMode, submitDiagnostic, user, authLoading, firstName, submitMarketingQuiz],
   );
 
   const handleAnswer = useCallback((questionId: number, score: string) => {
@@ -367,13 +368,8 @@ const Assessment = () => {
       setTransitioning(true);
       setTimeout(() => {
         if (currentQ < questions.length - 1) {
-          // v4.2.1 (PR #85) — clamp via functional updater so a stale-closure
-          // double-fire can never push currentQ past the last index. Render
-          // guards below also tolerate undefined q as a defense in depth.
           setCurrentQ((p) => Math.min(p + 1, questions.length - 1));
         } else {
-          // v4.3 (PR #86) — if any axis tied after the initial pass, route
-          // through the targeted followup phase before resolving.
           const result = computeResult(next);
           if (isInconclusiveResult(result)) {
             const tiedAxes = inconclusiveAxes(result);
@@ -382,7 +378,7 @@ const Assessment = () => {
             setFollowupIdx(0);
             setPhase("followup");
           } else {
-            routePostResolution(next, /* fromFollowup */ false);
+            routePostResolution(next, false);
           }
         }
         setTransitioning(false);
@@ -391,10 +387,6 @@ const Assessment = () => {
     });
   }, [currentQ, routePostResolution]);
 
-  // v4.3 (PR #86) — handler for the targeted-followup phase. Same shape as
-  // handleAnswer but iterates through followupQueue instead of the original
-  // 12 questions, and on queue exhaustion calls routePostResolution with
-  // fromFollowup=true so computeResultWithFollowups is used.
   const handleFollowupAnswer = useCallback((questionId: number, score: string) => {
     setAnswers((prev) => {
       const next = { ...prev, [questionId]: score };
@@ -405,8 +397,7 @@ const Assessment = () => {
         if (nextIdx < queueLen) {
           setFollowupIdx(nextIdx);
         } else {
-          // All followups answered — recompute and route.
-          routePostResolution(next, /* fromFollowup */ true);
+          routePostResolution(next, true);
         }
         setTransitioning(false);
       }, 400);
@@ -433,17 +424,10 @@ const Assessment = () => {
     }
   };
 
-  // v4.2.1 (PR #85) — q access is render-safe even if currentQ ever falls
-  // outside [0, questions.length-1]. The unconditional `q.axis` and `q.id`
-  // accesses below previously crashed the entire React tree if a stale
-  // setCurrentQ closure pushed currentQ past the last question. With the
-  // setter clamp in handleAnswer plus these guards, the page falls back to
-  // a benign cosmetic state instead of blanking out.
   const q = questions[currentQ];
   const progress = phase === "quiz" && q ? ((currentQ + (answers[q.id] ? 1 : 0)) / questions.length) * 100 : 100;
   const axisLabel = q?.axis === "temperature" ? "Temperature Axis" : q?.axis === "fluid" ? "Fluid Axis" : "Tone Axis";
 
-  // Followup-phase derived values.
   const currentFollowup: FollowupQuestion | undefined = phase === "followup" ? followupQueue[followupIdx] : undefined;
   const followupProgress =
     phase === "followup" && followupQueue.length > 0
@@ -495,49 +479,21 @@ const Assessment = () => {
         <div className="max-w-2xl mx-auto px-6 py-12">
           <div className="mb-10">
             <div className="flex items-center justify-between mb-3">
-              <span className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: "#C9A84C" }}>
-                {axisLabel}
-              </span>
-              <span className="font-body text-sm" style={{ color: "#1C3A2E" }}>
-                Question {currentQ + 1} of {questions.length}
-              </span>
+              <span className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: "#C9A84C" }}>{axisLabel}</span>
+              <span className="font-body text-sm" style={{ color: "#1C3A2E" }}>Question {currentQ + 1} of {questions.length}</span>
             </div>
             <div className="w-full h-2 rounded-full" style={{ backgroundColor: "hsl(40, 20%, 80%)" }}>
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{ width: `${progress}%`, backgroundColor: "#C9A84C" }}
-              />
+              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress}%`, backgroundColor: "#C9A84C" }} />
             </div>
           </div>
-
           <div className={`transition-all duration-400 ${transitioning ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"}`}>
-            <h2 className="font-serif text-2xl md:text-3xl font-bold mb-8" style={{ color: "#1C3A2E" }}>
-              {q.question}
-            </h2>
+            <h2 className="font-serif text-2xl md:text-3xl font-bold mb-8" style={{ color: "#1C3A2E" }}>{q.question}</h2>
             <div className="space-y-4">
               {q.options.map((opt) => (
-                <button
-                  key={opt.label}
-                  onClick={() => handleAnswer(q.id, opt.score)}
-                  className="w-full text-left p-5 border-2 rounded transition-all duration-200 hover:border-[#C9A84C] hover:shadow-md group min-h-[44px]"
-                  style={{
-                    borderColor: answers[q.id] === opt.score ? "#C9A84C" : "hsl(40, 20%, 80%)",
-                    backgroundColor: answers[q.id] === opt.score ? "hsl(40, 55%, 50%, 0.08)" : "white",
-                  }}
-                >
+                <button key={opt.label} onClick={() => handleAnswer(q.id, opt.score)} className="w-full text-left p-5 border-2 rounded transition-all duration-200 hover:border-[#C9A84C] hover:shadow-md group min-h-[44px]" style={{ borderColor: answers[q.id] === opt.score ? "#C9A84C" : "hsl(40, 20%, 80%)", backgroundColor: answers[q.id] === opt.score ? "hsl(40, 55%, 50%, 0.08)" : "white" }}>
                   <div className="flex items-start gap-4">
-                    <span
-                      className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full font-serif font-bold text-sm border-2 group-hover:border-[#C9A84C] group-hover:text-[#C9A84C] transition-colors"
-                      style={{
-                        borderColor: answers[q.id] === opt.score ? "#C9A84C" : "#1C3A2E",
-                        color: answers[q.id] === opt.score ? "#C9A84C" : "#1C3A2E",
-                      }}
-                    >
-                      {opt.label}
-                    </span>
-                    <span className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>
-                      {opt.text}
-                    </span>
+                    <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full font-serif font-bold text-sm border-2 group-hover:border-[#C9A84C] group-hover:text-[#C9A84C] transition-colors" style={{ borderColor: answers[q.id] === opt.score ? "#C9A84C" : "#1C3A2E", color: answers[q.id] === opt.score ? "#C9A84C" : "#1C3A2E" }}>{opt.label}</span>
+                    <span className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>{opt.text}</span>
                   </div>
                 </button>
               ))}
@@ -546,63 +502,29 @@ const Assessment = () => {
         </div>
       )}
 
-      {/* v4.3 (PR #86) — targeted-followup phase. Same UX shape as the quiz
-          phase, iterating the per-tied-axis follow-up question queue. */}
       {phase === "followup" && currentFollowup && (
         <div className="max-w-2xl mx-auto px-6 py-12">
           <div className="mb-8 text-center">
-            <p className="font-accent text-xs tracking-[0.3em] uppercase mb-2" style={{ color: "#C9A84C" }}>
-              Targeted Follow-Up
-            </p>
-            <p className="font-body text-sm" style={{ color: "#1C3A2E" }}>
-              A few sharper questions to resolve your {axisDisplayLabel(currentFollowup.axis)} axis.
-            </p>
+            <p className="font-accent text-xs tracking-[0.3em] uppercase mb-2" style={{ color: "#C9A84C" }}>Targeted Follow-Up</p>
+            <p className="font-body text-sm" style={{ color: "#1C3A2E" }}>A few sharper questions to resolve your {axisDisplayLabel(currentFollowup.axis)} axis.</p>
           </div>
           <div className="mb-10">
             <div className="flex items-center justify-between mb-3">
-              <span className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: "#C9A84C" }}>
-                {axisDisplayLabel(currentFollowup.axis)} Axis
-              </span>
-              <span className="font-body text-sm" style={{ color: "#1C3A2E" }}>
-                Follow-up {followupIdx + 1} of {followupQueue.length}
-              </span>
+              <span className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: "#C9A84C" }}>{axisDisplayLabel(currentFollowup.axis)} Axis</span>
+              <span className="font-body text-sm" style={{ color: "#1C3A2E" }}>Follow-up {followupIdx + 1} of {followupQueue.length}</span>
             </div>
             <div className="w-full h-2 rounded-full" style={{ backgroundColor: "hsl(40, 20%, 80%)" }}>
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{ width: `${followupProgress}%`, backgroundColor: "#C9A84C" }}
-              />
+              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${followupProgress}%`, backgroundColor: "#C9A84C" }} />
             </div>
           </div>
-
           <div className={`transition-all duration-400 ${transitioning ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"}`}>
-            <h2 className="font-serif text-2xl md:text-3xl font-bold mb-8" style={{ color: "#1C3A2E" }}>
-              {currentFollowup.question}
-            </h2>
+            <h2 className="font-serif text-2xl md:text-3xl font-bold mb-8" style={{ color: "#1C3A2E" }}>{currentFollowup.question}</h2>
             <div className="space-y-4">
               {currentFollowup.options.map((opt) => (
-                <button
-                  key={opt.label}
-                  onClick={() => handleFollowupAnswer(currentFollowup.id, opt.score)}
-                  className="w-full text-left p-5 border-2 rounded transition-all duration-200 hover:border-[#C9A84C] hover:shadow-md group min-h-[44px]"
-                  style={{
-                    borderColor: answers[currentFollowup.id] === opt.score ? "#C9A84C" : "hsl(40, 20%, 80%)",
-                    backgroundColor: answers[currentFollowup.id] === opt.score ? "hsl(40, 55%, 50%, 0.08)" : "white",
-                  }}
-                >
+                <button key={opt.label} onClick={() => handleFollowupAnswer(currentFollowup.id, opt.score)} className="w-full text-left p-5 border-2 rounded transition-all duration-200 hover:border-[#C9A84C] hover:shadow-md group min-h-[44px]" style={{ borderColor: answers[currentFollowup.id] === opt.score ? "#C9A84C" : "hsl(40, 20%, 80%)", backgroundColor: answers[currentFollowup.id] === opt.score ? "hsl(40, 55%, 50%, 0.08)" : "white" }}>
                   <div className="flex items-start gap-4">
-                    <span
-                      className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full font-serif font-bold text-sm border-2 group-hover:border-[#C9A84C] group-hover:text-[#C9A84C] transition-colors"
-                      style={{
-                        borderColor: answers[currentFollowup.id] === opt.score ? "#C9A84C" : "#1C3A2E",
-                        color: answers[currentFollowup.id] === opt.score ? "#C9A84C" : "#1C3A2E",
-                      }}
-                    >
-                      {opt.label}
-                    </span>
-                    <span className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>
-                      {opt.text}
-                    </span>
+                    <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full font-serif font-bold text-sm border-2 group-hover:border-[#C9A84C] group-hover:text-[#C9A84C] transition-colors" style={{ borderColor: answers[currentFollowup.id] === opt.score ? "#C9A84C" : "#1C3A2E", color: answers[currentFollowup.id] === opt.score ? "#C9A84C" : "#1C3A2E" }}>{opt.label}</span>
+                    <span className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>{opt.text}</span>
                   </div>
                 </button>
               ))}
@@ -613,164 +535,80 @@ const Assessment = () => {
 
       {phase === "auto-submitting" && (
         <div className="max-w-xl mx-auto px-6 py-16 text-center">
-          <p className="font-accent text-sm tracking-[0.3em] uppercase mb-3" style={{ color: "#C9A84C" }}>
-            Recording your Pattern
-          </p>
-          <p className="font-body text-base" style={{ color: "#1C3A2E" }}>
-            One moment — saving your results to your account…
-          </p>
+          <p className="font-accent text-sm tracking-[0.3em] uppercase mb-3" style={{ color: "#C9A84C" }}>Recording your Pattern</p>
+          <p className="font-body text-base" style={{ color: "#1C3A2E" }}>One moment — saving your results to your account…</p>
         </div>
       )}
 
       {phase === "diagnostic-saving" && (
         <div className="max-w-xl mx-auto px-6 py-16 text-center">
-          <p className="font-body text-base" style={{ color: "#1C3A2E" }}>
-            Recording your Pattern…
-          </p>
+          <p className="font-body text-base" style={{ color: "#1C3A2E" }}>Recording your Pattern…</p>
         </div>
       )}
       {phase === "diagnostic-saved" && profile && targetProfile && (
         <div className="max-w-xl mx-auto px-6 py-16 text-center">
-          <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>
-            Pattern Recorded
-          </span>
-          <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-2" style={{ color: "#1C3A2E" }}>
-            {profile.nickname}
-          </h2>
-          <p className="font-body text-base mb-1" style={{ color: "#1C3A2E" }}>
-            {constitutionType}
-          </p>
-          <p className="font-accent text-lg italic mb-8" style={{ color: "#C9A84C" }}>
-            {profile.tagline}
-          </p>
-          <p className="font-body text-base" style={{ color: "#1C3A2E" }}>
-            Saved to {targetProfile.is_self ? "your profile" : targetProfile.name + "'s profile"}. Returning to the directory…
-          </p>
+          <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>Pattern Recorded</span>
+          <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-2" style={{ color: "#1C3A2E" }}>{profile.nickname}</h2>
+          <p className="font-body text-base mb-1" style={{ color: "#1C3A2E" }}>{constitutionType}</p>
+          <p className="font-accent text-lg italic mb-8" style={{ color: "#C9A84C" }}>{profile.tagline}</p>
+          <p className="font-body text-base" style={{ color: "#1C3A2E" }}>Saved to {targetProfile.is_self ? "your profile" : targetProfile.name + "'s profile"}. Returning to the directory…</p>
+        </div>
+      )}
+
+      {/* v4.3.1 (PR #109) — profile-resolution-error: defensive-guard surface
+          when profileIdParam is in URL but diagnosticMode didn't engage. */}
+      {phase === "profile-resolution-error" && (
+        <div className="max-w-xl mx-auto px-6 py-16 text-center">
+          <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>Profile didn't load</span>
+          <h2 className="font-serif text-2xl md:text-3xl font-bold mt-4 mb-4" style={{ color: "#1C3A2E" }}>The selected profile didn't load on this page.</h2>
+          <p className="font-body text-base mb-2" style={{ color: "#1C3A2E" }}>{error || "Please go back to the apothecary, confirm the profile picker shows the right person, and click the quiz button again."}</p>
+          <p className="font-body text-sm italic mb-8" style={{ color: "hsl(30, 10%, 40%)" }}>Your answers were not saved. Nothing was written to any account.</p>
+          <Button variant="eden" size="lg" onClick={() => navigate(ROUTES.APOTHECARY)}>Back to apothecary</Button>
         </div>
       )}
 
       {phase === "gate" && profile && !diagnosticMode && (
         <div className="max-w-xl mx-auto px-6 py-16 text-center">
-          <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>
-            Your Body Pattern
-          </span>
-          <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-2" style={{ color: "#1C3A2E" }}>
-            {profile.nickname}
-          </h2>
-          <p className="font-body text-base mb-1" style={{ color: "#1C3A2E" }}>
-            {constitutionType}
-          </p>
-          <p className="font-accent text-lg italic mb-8" style={{ color: "#C9A84C" }}>
-            {profile.tagline}
-          </p>
-
+          <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>Your Body Pattern</span>
+          <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-2" style={{ color: "#1C3A2E" }}>{profile.nickname}</h2>
+          <p className="font-body text-base mb-1" style={{ color: "#1C3A2E" }}>{constitutionType}</p>
+          <p className="font-accent text-lg italic mb-8" style={{ color: "#C9A84C" }}>{profile.tagline}</p>
           <div className="p-8 border rounded" style={{ borderColor: "hsl(40, 20%, 80%)", backgroundColor: "white" }}>
-            <h3 className="font-serif text-xl font-bold mb-2" style={{ color: "#1C3A2E" }}>
-              Get Your Full Body Pattern Profile
-            </h3>
-            <p className="font-body text-sm mb-6" style={{ color: "hsl(30, 10%, 40%)" }}>
-              Enter your name and email to receive your full body pattern profile and personalized herb recommendations.
-            </p>
-
+            <h3 className="font-serif text-xl font-bold mb-2" style={{ color: "#1C3A2E" }}>Get Your Full Body Pattern Profile</h3>
+            <p className="font-body text-sm mb-6" style={{ color: "hsl(30, 10%, 40%)" }}>Enter your name and email to receive your full body pattern profile and personalized herb recommendations.</p>
             <form onSubmit={handleSubmit} className="space-y-4 text-left">
               <div>
-                <label className="block font-accent text-xs tracking-[0.2em] uppercase mb-2" style={{ color: "hsl(30, 10%, 40%)" }}>
-                  First Name
-                </label>
-                <input
-                  type="text"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  required
-                  placeholder="Your first name"
-                  className="w-full px-4 py-3 border font-body focus:outline-none transition-colors"
-                  style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }}
-                />
+                <label className="block font-accent text-xs tracking-[0.2em] uppercase mb-2" style={{ color: "hsl(30, 10%, 40%)" }}>First Name</label>
+                <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required placeholder="Your first name" className="w-full px-4 py-3 border font-body focus:outline-none transition-colors" style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }} />
               </div>
               <div>
-                <label className="block font-accent text-xs tracking-[0.2em] uppercase mb-2" style={{ color: "hsl(30, 10%, 40%)" }}>
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="your@email.com"
-                  className="w-full px-4 py-3 border font-body focus:outline-none transition-colors"
-                  style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }}
-                />
+                <label className="block font-accent text-xs tracking-[0.2em] uppercase mb-2" style={{ color: "hsl(30, 10%, 40%)" }}>Email Address</label>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="your@email.com" className="w-full px-4 py-3 border font-body focus:outline-none transition-colors" style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }} />
               </div>
               {error && <p className="font-body text-sm text-destructive">{error}</p>}
-              <Button type="submit" variant="eden" size="xl" className="w-full" disabled={loading}>
-                {loading ? "Submitting…" : "→ Send Me My Results"}
-              </Button>
+              <Button type="submit" variant="eden" size="xl" className="w-full" disabled={loading}>{loading ? "Submitting…" : "→ Send Me My Results"}</Button>
             </form>
           </div>
         </div>
       )}
 
-      {/* v4.3 (PR #86) — inconclusive surface, post-followup. By the time we
-          land here, the user has already taken the original 12 questions PLUS
-          the 3 × N targeted follow-ups for the tied axes. The result is still
-          balanced — that's a clinical category, not a quiz failure. Lock #39
-          honored: no silent default, no retake button (they already retook the
-          targeted questions). Footer points at the Practitioner-tier deeper
-          diagnostic. */}
       {phase === "inconclusive" && (
         <div className="max-w-xl mx-auto px-6 py-16">
           <div className="text-center">
-            <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>
-              Genuinely Balanced Terrain
-            </span>
-            <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-6" style={{ color: "#1C3A2E" }}>
-              Your terrain doesn't lean to one side on {neutralAxes.length === 1 ? "this axis" : "these axes"}.
-            </h2>
+            <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>Genuinely Balanced Terrain</span>
+            <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-6" style={{ color: "#1C3A2E" }}>Your terrain doesn't lean to one side on {neutralAxes.length === 1 ? "this axis" : "these axes"}.</h2>
           </div>
-
           <div className="my-10 p-6 rounded" style={{ backgroundColor: "white", border: "1px solid hsl(40, 20%, 80%)" }}>
-            <p className="font-accent text-xs tracking-[0.2em] uppercase mb-5 text-center" style={{ color: "hsl(30, 10%, 40%)" }}>
-              Where you landed on each axis
-            </p>
-            <AxisSpectrum
-              axisLabel="Temperature"
-              leftLabel="Hot"
-              rightLabel="Cold"
-              position={axisPositions.temperature}
-              isInconclusive={neutralAxes.includes("temperature")}
-            />
-            <AxisSpectrum
-              axisLabel="Fluid"
-              leftLabel="Damp"
-              rightLabel="Dry"
-              position={axisPositions.fluid}
-              isInconclusive={neutralAxes.includes("fluid")}
-            />
-            <AxisSpectrum
-              axisLabel="Tone"
-              leftLabel="Tense"
-              rightLabel="Relaxed"
-              position={axisPositions.tone}
-              isInconclusive={neutralAxes.includes("tone")}
-            />
+            <p className="font-accent text-xs tracking-[0.2em] uppercase mb-5 text-center" style={{ color: "hsl(30, 10%, 40%)" }}>Where you landed on each axis</p>
+            <AxisSpectrum axisLabel="Temperature" leftLabel="Hot" rightLabel="Cold" position={axisPositions.temperature} isInconclusive={neutralAxes.includes("temperature")} />
+            <AxisSpectrum axisLabel="Fluid" leftLabel="Damp" rightLabel="Dry" position={axisPositions.fluid} isInconclusive={neutralAxes.includes("fluid")} />
+            <AxisSpectrum axisLabel="Tone" leftLabel="Tense" rightLabel="Relaxed" position={axisPositions.tone} isInconclusive={neutralAxes.includes("tone")} />
           </div>
-
           <div className="space-y-5 mb-10 text-left">
-            <p className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>
-              You answered the original twelve questions and the targeted follow-ups for the {neutralAxes.length === 1 ? "axis" : "axes"} that didn't resolve. {neutralAxes.length === 1 ? (
-                <>Your <strong>{neutralAxes[0]}</strong> axis still sits balanced — neither side dominant.</>
-              ) : (
-                <>Multiple axes still sit balanced (<strong>{neutralAxes.join(", ")}</strong>) — neither side dominant on each.</>
-              )}
-            </p>
-            <p className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>
-              This is itself a clinical category — not a quiz failure. Some constitutions are genuinely balanced on an axis, and the deeper diagnostic at the Practitioner tier (40 questions across four classical Western frameworks) is built to resolve cases like yours.
-            </p>
+            <p className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>You answered the original twelve questions and the targeted follow-ups for the {neutralAxes.length === 1 ? "axis" : "axes"} that didn't resolve. {neutralAxes.length === 1 ? (<>Your <strong>{neutralAxes[0]}</strong> axis still sits balanced — neither side dominant.</>) : (<>Multiple axes still sit balanced (<strong>{neutralAxes.join(", ")}</strong>) — neither side dominant on each.</>)}</p>
+            <p className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>This is itself a clinical category — not a quiz failure. Some constitutions are genuinely balanced on an axis, and the deeper diagnostic at the Practitioner tier (40 questions across four classical Western frameworks) is built to resolve cases like yours.</p>
           </div>
-
-          <p className="font-body text-xs italic mt-4 text-center" style={{ color: "hsl(30, 10%, 40%, 0.7)" }}>
-            If you'd like to retake the quiz from scratch, refresh the page or navigate back to the home page.
-          </p>
+          <p className="font-body text-xs italic mt-4 text-center" style={{ color: "hsl(30, 10%, 40%, 0.7)" }}>If you'd like to retake the quiz from scratch, refresh the page or navigate back to the home page.</p>
         </div>
       )}
     </div>
