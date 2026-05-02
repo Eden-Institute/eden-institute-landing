@@ -321,6 +321,15 @@ export function buildNurtureEmail4(
   constitutionName: string,
   constitutionSlug: string,
 ): { subject: string; html: string } {
+  // 2026-04-30 (revenue-loss bug fix): the FIRSTFRUITS coupon previously
+  // promoted in this email body STACKED on top of LearnWorlds'
+  // already-applied $100 founding-student discount, dropping the $97
+  // course to $0 at checkout. Remediation: remove the explicit price
+  // and the FIRSTFRUITS coupon copy from the email body. The
+  // LearnWorlds enrollment page becomes the single source of truth for
+  // the live price; the email no longer asserts a number that could
+  // double-discount. The button label also drops the "($97)" so the
+  // email's price assertion is fully retired.
   const body = `
 ${p(`Six days ago, you discovered your constitutional type: <strong>${constitutionName}</strong>. Since then, you've learned why herbs work differently in different bodies. Now it's time to go deeper.`)}
 ${goldDivider()}
@@ -347,8 +356,8 @@ ${bullet("Lifetime access")}
 ${spacer(12)}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;background-color:${BRAND.bgOuter};padding:20px;text-align:center;">
 <tr><td style="padding:20px;">
-<p style="font-family:Georgia,serif;font-size:28px;font-weight:bold;color:${BRAND.forest};margin:0 0 8px 0;">$97 founding student pricing</p>
-<p style="font-family:Georgia,serif;font-size:15px;color:${BRAND.text};margin:0 0 8px 0;">Use code <strong>FIRSTFRUITS</strong> at checkout for early enrollment pricing.</p>
+<p style="font-family:Georgia,serif;font-size:22px;font-weight:bold;color:${BRAND.forest};margin:0 0 8px 0;">Limited-time founding student pricing</p>
+<p style="font-family:Georgia,serif;font-size:15px;color:${BRAND.text};margin:0 0 8px 0;">Click below to enroll — current price is shown on the enrollment page.</p>
 <p style="font-family:Georgia,serif;font-size:14px;color:${BRAND.gold};font-weight:bold;margin:0;">Price raises to $147 on July 7, 2026</p>
 </td></tr>
 </table>
@@ -360,7 +369,7 @@ ${subheading("\"Is this faith-based?\"")}
 ${p("Yes. Grounded in Scripture, with Yahweh as healer. Clinical rigor within a Biblical worldview.")}
 ${subheading("\"What if I can't finish in time?\"")}
 ${p("The course is entirely self-paced with lifetime access. There is no deadline.")}
-${brandButton("ENROLL NOW — THE FOUNDATIONS COURSE ($97)", "https://learn.edeninstitute.health/course/back-to-eden1")}
+${brandButton("ENROLL NOW — THE FOUNDATIONS COURSE", "https://learn.edeninstitute.health/course/back-to-eden1")}
 ${goldDivider()}
 ${p("<strong>P.S.</strong> Tier 2 — Body Systems & Clinical Literacy — opens to the public October 8, 2026 at $1,497. Join the free waitlist now and you'll receive a founding access code for $497 (valid 14 days) when Tier 2 launches July 7. " + link("Join the waitlist →", "https://edeninstitute.health/tier-2-waitlist"))}
 ${signature()}`;
