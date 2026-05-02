@@ -439,6 +439,23 @@ export function computeMatchRelationship(
  * scope for any Apothecary surface. Returns null when no clean mapping is
  * possible — the badge UI then renders "Take the quiz to see your Pattern"
  * rather than a wrong badge.
+ *
+ * Slug tolerance (PR #112, fix/resolve-eden-pattern-snake-case):
+ *   The marketing-quiz pipeline (record-quiz-completion + resend-waitlist)
+ *   stores kebab-case slugs WITHOUT the "the_" prefix ("pressure-cooker").
+ *   The in-app diagnostic pipeline (record-diagnostic-completion EF) stores
+ *   the canonical snake_case form WITH the prefix ("the_pressure_cooker").
+ *   Both forms reach this resolver via the per-profile picker context, so
+ *   the slug branch normalizes underscores → hyphens after stripping the
+ *   optional "the[-_\s]+" prefix. Net acceptance:
+ *     pressure-cooker         (legacy kebab-case from marketing pipeline)
+ *     the-pressure-cooker     (kebab-case with prefix)
+ *     pressure_cooker         (snake_case without prefix)
+ *     the_pressure_cooker     (canonical snake_case with prefix — in-app writer)
+ *   Companion data migration canonicalizes existing rows to the the_*
+ *   snake_case form going forward; resolver permissiveness remains a
+ *   defensive belt-and-braces in case any legacy code path still emits an
+ *   old form.
  */
 export function resolveEdenPattern(value: string | null | undefined): EdenPatternName | null {
   if (!value) return null;
@@ -464,9 +481,15 @@ export function resolveEdenPattern(value: string | null | undefined): EdenPatter
     if (name.replace(/^the\s+/i, "").toLowerCase() === norm) return name;
   }
 
-  // Pattern-slug match (kebab-case from quiz-followup pipeline) — strip
-  // leading "the-", join words. "pressure-cooker" → "The Pressure Cooker".
-  const slug = value.replace(/^the[-_\s]+/i, "").toLowerCase().trim();
+  // Pattern-slug match — strip leading "the[-_\s]+" prefix, then normalize
+  // underscores to hyphens so both kebab-case and snake_case writers resolve.
+  // "pressure-cooker", "the-pressure-cooker", "pressure_cooker", and
+  // "the_pressure_cooker" all collapse to "pressure-cooker" → "The Pressure Cooker".
+  const slug = value
+    .replace(/^the[-_\s]+/i, "")
+    .replace(/_/g, "-")
+    .toLowerCase()
+    .trim();
   for (const name of EDEN_PATTERNS) {
     const nameSlug = name
       .replace(/^the\s+/i, "")
