@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ActiveProfileProvider } from "@/contexts/ActiveProfileContext";
 import { ROUTES } from "@/lib/routes";
 import ScrollToTop from "@/components/utils/ScrollToTop";
 import Index from "./pages/Index";
@@ -48,120 +49,145 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          {/* ScrollToTop — reset scroll on every route navigation. Lives
-              inside BrowserRouter so useLocation is available. Sibling to
-              <Routes> so it doesn't unmount with route transitions. */}
-          <ScrollToTop />
-          <Routes>
-            <Route path={ROUTES.HOME} element={<Index />} />
-            <Route path={ROUTES.WHY_EDEN} element={<WhyEden />} />
-            <Route path={ROUTES.ASSESSMENT} element={<Assessment />} />
-            {/* v4.1.1 hotfix — defensive alias for the public quiz route.
-                The Navbar's state-aware CTA briefly pointed at /quiz (PR #65)
-                and PR #74 mounted the Navbar globally, exposing the dead
-                URL on every page. Real visitors clicking the CTA landed on
-                <NotFound /> and lost their attempts before any payload was
-                ever sent. /assessment is the canonical route per this file;
-                /quiz now redirects there so any stale browser cache,
-                externally-shared link, or future stray reference is
-                non-fatal. Replaces a missing-route 404 with a route the
-                router knows exists. */}
-            <Route path={ROUTES.QUIZ_ALIAS} element={<Navigate to={ROUTES.ASSESSMENT} replace />} />
-            <Route path={ROUTES.TERMS} element={<Terms />} />
-            <Route path={ROUTES.PRIVACY} element={<Privacy />} />
-            <Route path={ROUTES.COOKIES} element={<Cookies />} />
-            <Route
-              path={ROUTES.CONSTITUTIONAL_HERBALISM}
-              element={<ConstitutionalHerbalism />}
-            />
-            <Route path={ROUTES.GUIDE_SUCCESS} element={<GuideSuccess />} />
-            <Route path="/guide/:constitutionSlug" element={<GuideLanding />} />
-            <Route path="/results/:constitutionSlug" element={<Results />} />
-            <Route path={ROUTES.COURSES} element={<Courses />} />
-            <Route path={ROUTES.APOTHECARY} element={<AppPage />} />
-            <Route path={ROUTES.HOMESCHOOL} element={<Homeschool />} />
-            <Route path={ROUTES.COMMUNITY} element={<Community />} />
-            <Route path={ROUTES.TIER_TWO_WAITLIST} element={<TierTwoWaitlist />} />
-            {/* Apothecary application — Lane C Stage 6.3.4: auth-walled per §0.8 v3.3 #21.
-                v3.33 amendment (PR #51): Lock #21 RETIRED for pricing surface only —
-                /apothecary/pricing is now public per founder Q2 authorization to open
-                pricing pre-signup for conversion. All other auth-walled surfaces preserved. */}
-            <Route path={ROUTES.APOTHECARY} element={<ApothecaryLayout />}>
-              {/* Public surfaces */}
-              <Route path="start" element={<Start />} />
-              <Route path="auth/signup" element={<SignUp />} />
-              <Route path="auth/signin" element={<SignIn />} />
-              <Route path="auth/reset" element={<Reset />} />
-              <Route path="auth/update-password" element={<UpdatePassword />} />
-              {/* PR #51 v3.33: pricing made PUBLIC — retires Lock #21 for this surface. */}
-              <Route path="pricing" element={<Pricing />} />
-              {/* Auth-walled surfaces */}
+          {/* PR β (2026-05-02) — ActiveProfileProvider hoisted from
+              ApothecaryLayout to global App scope.
+
+              Why: the provider was previously mounted only inside the
+              /apothecary/* layout, so navigating /apothecary → / unmounted
+              it and wiped the active-profile selection in memory. Camila
+              repro'd this on production: she switched the picker to her
+              person-profile "Olivia" (Pattern: Frozen Knot), then clicked
+              hamburger → Home, and the homepage rendered her primary
+              user's Pattern (Burning Bowstring) instead of Olivia's.
+
+              The localStorage key (eden.active_profile_id) already gave
+              durable cross-session persistence; the in-memory React
+              state just needed a provider that survives every route
+              transition. Hoisting here makes the picker's selection
+              authoritative across all surfaces — marketing, apothecary,
+              guide pages — and means useEdenPattern resolves the Pattern
+              of the active profile uniformly everywhere it's consumed.
+
+              Order: AuthProvider must be ABOVE ActiveProfileProvider
+              because the latter calls useAuth() to scope its
+              person_profiles query to the signed-in user. Both must be
+              inside QueryClientProvider for TanStack Query to work. */}
+          <ActiveProfileProvider>
+            {/* ScrollToTop — reset scroll on every route navigation. Lives
+                inside BrowserRouter so useLocation is available. Sibling to
+                <Routes> so it doesn't unmount with route transitions. */}
+            <ScrollToTop />
+            <Routes>
+              <Route path={ROUTES.HOME} element={<Index />} />
+              <Route path={ROUTES.WHY_EDEN} element={<WhyEden />} />
+              <Route path={ROUTES.ASSESSMENT} element={<Assessment />} />
+              {/* v4.1.1 hotfix — defensive alias for the public quiz route.
+                  The Navbar's state-aware CTA briefly pointed at /quiz (PR #65)
+                  and PR #74 mounted the Navbar globally, exposing the dead
+                  URL on every page. Real visitors clicking the CTA landed on
+                  <NotFound /> and lost their attempts before any payload was
+                  ever sent. /assessment is the canonical route per this file;
+                  /quiz now redirects there so any stale browser cache,
+                  externally-shared link, or future stray reference is
+                  non-fatal. Replaces a missing-route 404 with a route the
+                  router knows exists. */}
+              <Route path={ROUTES.QUIZ_ALIAS} element={<Navigate to={ROUTES.ASSESSMENT} replace />} />
+              <Route path={ROUTES.TERMS} element={<Terms />} />
+              <Route path={ROUTES.PRIVACY} element={<Privacy />} />
+              <Route path={ROUTES.COOKIES} element={<Cookies />} />
               <Route
-                index
-                element={
-                  <RequireAuth>
-                    <ApothecaryHome />
-                  </RequireAuth>
-                }
+                path={ROUTES.CONSTITUTIONAL_HERBALISM}
+                element={<ConstitutionalHerbalism />}
               />
-              <Route
-                path="welcome-tour"
-                element={
-                  <RequireAuth>
-                    <WelcomeTour />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="welcome"
-                element={
-                  <RequireAuth>
-                    <Welcome />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="account"
-                element={
-                  <RequireAuth>
-                    <Account />
-                  </RequireAuth>
-                }
-              />
-              {/* Stage 6.3.5 Phase B sub-task 4: Root multi-profile management.
-                  Auth + tier gating is enforced by the page itself
-                  (RequireAuth + RequireTier allow={["seed","root","practitioner"]}
-                  per tier-cap restructure v2). */}
-              <Route path="profiles" element={<ProfilesPage />} />
-              {/* Stage 7.X save-favorites listing page (PR 5 of 3 in the
-                  save-favorites build sequence). Auth + tier gating is
-                  enforced by the page itself (RequireAuth + RequireTier
-                  allow={["seed","root","practitioner"]}). Schema in
-                  herb_favorites table; hook + heart icon on HerbCard
-                  shipped in PR #103 + #104. */}
-              <Route path="favorites" element={<Favorites />} />
-              {/* Stage 6.3.5 Phase B sub-task 4 Layer 1+2: in-app Pattern of
-                  Eden quiz, mounted under ApothecaryLayout so the picker
-                  pill is visible during the quiz. Root+ only — the Pattern
-                  of Eden write path is a Root-tier clinical action per
-                  Lock #40 (id-keyed Edge Functions to diagnostic_completions). */}
-              <Route
-                path="quiz"
-                element={
-                  <RequireAuth>
-                    <RequireTier allow={["root", "practitioner"]}>
-                      <Assessment />
-                    </RequireTier>
-                  </RequireAuth>
-                }
-              />
-            </Route>
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          {/* v3.34 — global feedback affordance, mounted inside AuthProvider so the
-              widget can include the signed-in user's email + bearer token when present. */}
-          <FeedbackButton />
+              <Route path={ROUTES.GUIDE_SUCCESS} element={<GuideSuccess />} />
+              <Route path="/guide/:constitutionSlug" element={<GuideLanding />} />
+              <Route path="/results/:constitutionSlug" element={<Results />} />
+              <Route path={ROUTES.COURSES} element={<Courses />} />
+              <Route path={ROUTES.APOTHECARY} element={<AppPage />} />
+              <Route path={ROUTES.HOMESCHOOL} element={<Homeschool />} />
+              <Route path={ROUTES.COMMUNITY} element={<Community />} />
+              <Route path={ROUTES.TIER_TWO_WAITLIST} element={<TierTwoWaitlist />} />
+              {/* Apothecary application — Lane C Stage 6.3.4: auth-walled per §0.8 v3.3 #21.
+                  v3.33 amendment (PR #51): Lock #21 RETIRED for pricing surface only —
+                  /apothecary/pricing is now public per founder Q2 authorization to open
+                  pricing pre-signup for conversion. All other auth-walled surfaces preserved. */}
+              <Route path={ROUTES.APOTHECARY} element={<ApothecaryLayout />}>
+                {/* Public surfaces */}
+                <Route path="start" element={<Start />} />
+                <Route path="auth/signup" element={<SignUp />} />
+                <Route path="auth/signin" element={<SignIn />} />
+                <Route path="auth/reset" element={<Reset />} />
+                <Route path="auth/update-password" element={<UpdatePassword />} />
+                {/* PR #51 v3.33: pricing made PUBLIC — retires Lock #21 for this surface. */}
+                <Route path="pricing" element={<Pricing />} />
+                {/* Auth-walled surfaces */}
+                <Route
+                  index
+                  element={
+                    <RequireAuth>
+                      <ApothecaryHome />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="welcome-tour"
+                  element={
+                    <RequireAuth>
+                      <WelcomeTour />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="welcome"
+                  element={
+                    <RequireAuth>
+                      <Welcome />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="account"
+                  element={
+                    <RequireAuth>
+                      <Account />
+                    </RequireAuth>
+                  }
+                />
+                {/* Stage 6.3.5 Phase B sub-task 4: Root multi-profile management.
+                    Auth + tier gating is enforced by the page itself
+                    (RequireAuth + RequireTier allow={["seed","root","practitioner"]}
+                    per tier-cap restructure v2). */}
+                <Route path="profiles" element={<ProfilesPage />} />
+                {/* Stage 7.X save-favorites listing page (PR 5 of 3 in the
+                    save-favorites build sequence). Auth + tier gating is
+                    enforced by the page itself (RequireAuth + RequireTier
+                    allow={["seed","root","practitioner"]}). Schema in
+                    herb_favorites table; hook + heart icon on HerbCard
+                    shipped in PR #103 + #104. */}
+                <Route path="favorites" element={<Favorites />} />
+                {/* Stage 6.3.5 Phase B sub-task 4 Layer 1+2: in-app Pattern of
+                    Eden quiz, mounted under ApothecaryLayout so the picker
+                    pill is visible during the quiz. Root+ only — the Pattern
+                    of Eden write path is a Root-tier clinical action per
+                    Lock #40 (id-keyed Edge Functions to diagnostic_completions). */}
+                <Route
+                  path="quiz"
+                  element={
+                    <RequireAuth>
+                      <RequireTier allow={["root", "practitioner"]}>
+                        <Assessment />
+                      </RequireTier>
+                    </RequireAuth>
+                  }
+                />
+              </Route>
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            {/* v3.34 — global feedback affordance, mounted inside AuthProvider so the
+                widget can include the signed-in user's email + bearer token when present. */}
+            <FeedbackButton />
+          </ActiveProfileProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

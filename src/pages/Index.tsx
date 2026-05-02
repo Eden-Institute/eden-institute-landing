@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Facebook, Instagram, Compass, ClipboardList, BookOpen, GraduationCap } from "lucide-react";
+import { Facebook, Instagram, ClipboardList, BookOpen, GraduationCap } from "lucide-react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import AssessmentModal from "@/components/landing/AssessmentModal";
@@ -9,37 +9,47 @@ import { BotanicalLeafTopRight, BotanicalLeafBottomLeft, GoldDivider } from "@/c
 import ScrollReveal from "@/components/landing/ScrollReveal";
 import { WorldviewBand } from "@/components/landing/WorldviewBand";
 import { WelcomeBackBanner } from "@/components/landing/WelcomeBackBanner";
-import { useAuth } from "@/contexts/AuthContext";
-import { useEdenPattern } from "@/hooks/useEdenPattern";
-import { useTierAwareCTA } from "@/hooks/useTierAwareCTA";
+import { JourneyCTA } from "@/components/journey/JourneyCTA";
+import { FOUNDATIONS_COURSE_URL } from "@/hooks/useTierAwareCTA";
 import { ROUTES } from "@/lib/routes";
 
 // Unsplash photography
 const HERO_IMG = "https://images.unsplash.com/photo-1659328376647-52ec39d1a5cf?auto=format&fit=crop&w=1920&q=80";
 const HERBS_SHELF_IMG = "https://images.unsplash.com/photo-1726303238727-1762e3108ed6?auto=format&fit=crop&w=1200&q=80";
 const MORTAR_IMG = "https://images.unsplash.com/photo-EHG22u_SIfI?auto=format&fit=crop&w=1200&q=80";
-const HERBS_TABLE_IMG = "https://images.unsplash.com/photo-Iokj6jEwkxM?auto=format&fit=crop&w=1200&q=80";
-
-const QUIZ_CTA = "Find Out How Your Body Works — Take the Free Quiz (2 min)";
 
 const Index = () => {
+  // Local state for the legacy /#assessment hash deep-link → AssessmentModal
+  // pathway. JourneyCTA now drives the page's primary action via
+  // /assessment route navigation; the modal is preserved only for
+  // backwards-compatible inbound links that still target the hash.
   const [assessmentModal, setAssessmentModal] = useState(false);
 
-  // Tier-aware CTA propagation (Camila's 2026-04-30 regression fix). The
-  // homepage previously hard-coded "Take the Quiz" / openQuiz across every
-  // CTA surface — wrong for authed users who have already resolved their
-  // Eden Pattern. We now pivot every quiz-bound CTA to a Pattern-aware
-  // alternative when the visitor is authed AND has a resolved Pattern.
-  // The trio (upgrade/guide/amazonKit) lives in the Navbar hamburger;
-  // the homepage CTAs surface the simpler binary pivot:
-  //   anon / no-Pattern → keep existing openQuiz modal (acquisition)
-  //   authed + Pattern  → "Open Your Apothecary →" → /apothecary (return)
-  // Plus the Value Ladder Deep-Dive Guide card uses useTierAwareCTA().guide
-  // directly so the price + label match the user's purchase state.
-  const { user } = useAuth();
-  const { data: pattern } = useEdenPattern();
-  const { guide: guideCta } = useTierAwareCTA();
-  const hasPattern = !!user && !!pattern;
+  // PR β (2026-05-02) — homepage CTA restructure.
+  //
+  // Predecessor PR #106 had wired 7 scattered Index.tsx CTAs to pivot on
+  // hasPattern = !!user && !!pattern. That stopgap is removed here. The
+  // page now surfaces ONE dominant next-step CTA via <JourneyCTA />,
+  // mounted inside the Hero. JourneyCTA reads the customer-journey state
+  // machine in useTierAwareCTA — which itself consults useEdenPattern,
+  // and (per PR β's ActiveProfileProvider hoist to App.tsx) resolves the
+  // active person_profile's Pattern even on /. Camila's repro of the
+  // "Olivia switches to Burning Bowstring on Home" bug is closed by
+  // that hoist, not by anything in this file.
+  //
+  // This page no longer derives `hasPattern` or imports useAuth /
+  // useEdenPattern / useTierAwareCTA. The 7 conditional CTAs are gone:
+  //   1. Hero conditional Button         → replaced by <JourneyCTA />
+  //   2. "For You" section bottom button → removed
+  //   3. Path Cards "Quiz/Pattern" card  → removed (grid restructured)
+  //   4. "Why Herbs Fail" bottom button  → removed
+  //   5. Value-Ladder "Free Quiz" card   → reverted to static info
+  //   6. Value-Ladder "$14 Guide" card   → reverted to static info
+  //   7. Bottom CTA conditional Button   → removed (heading + body kept)
+  //
+  // The WelcomeBackBanner above the hero already handles the "you're
+  // signed in, here's a one-tap link to your Apothecary" affordance for
+  // returning users. JourneyCTA layers the journey progression on top.
 
   useEffect(() => {
     document.title = "The Eden Institute — Biblical Clinical Herbalism Education";
@@ -57,17 +67,16 @@ const Index = () => {
     }
   }, []);
 
-  const openQuiz = () => setAssessmentModal(true);
-
   return (
     <main className="min-h-screen overflow-x-hidden">
       <Navbar />
 
       {/* §8.1.1 (Manual v4.0) — state-aware welcome strip. Renders only for
           authed users with a resolved Eden Pattern; gives them a one-tap
-          path into /apothecary instead of crowding into another marketing
-          CTA. Anon and authed-without-Pattern visitors see nothing here
-          and continue down the existing acquisition path. */}
+          path into /apothecary. Anon and authed-without-Pattern visitors
+          see nothing here. Per PR β the resolved Pattern reflects the
+          active person_profile, not the signed-in user's primary, so
+          switching the picker to Olivia surfaces Olivia's Pattern here. */}
       <WelcomeBackBanner />
 
       {/* ─── SECTION 1: HERO ─── */}
@@ -119,34 +128,14 @@ const Index = () => {
 
           <div className="eden-divider" />
 
+          {/* PR β: single dominant next-step CTA + 2 always-visible secondary
+              CTAs (Foundations Course always; per-Pattern Amazon kit when
+              a Pattern is resolved on the active profile). Replaces the
+              prior Hero conditional Button and the "No email required"
+              tagline (which JourneyCTA reproduces internally for the
+              quiz step). */}
           <ScrollReveal delay={200}>
-            {hasPattern ? (
-              <Button
-                asChild
-                variant="eden"
-                size="xl"
-                className="min-h-[48px] text-sm sm:text-base px-4 sm:px-8 max-w-[90vw] whitespace-normal leading-snug"
-                style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}
-              >
-                <Link to={ROUTES.APOTHECARY}>Open Your Apothecary →</Link>
-              </Button>
-            ) : (
-              <Button
-                variant="eden"
-                size="xl"
-                className="min-h-[48px] text-sm sm:text-base px-4 sm:px-8 max-w-[90vw] whitespace-normal leading-snug"
-                onClick={openQuiz}
-                style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}
-              >
-                {QUIZ_CTA}
-              </Button>
-            )}
-
-            {!hasPattern && (
-              <p className="mt-4 font-body text-sm" style={{ color: "hsl(var(--eden-sage))" }}>
-                No email required to start.
-              </p>
-            )}
+            <JourneyCTA />
           </ScrollReveal>
         </div>
       </section>
@@ -249,23 +238,10 @@ const Index = () => {
                 </ScrollReveal>
               ))}
             </div>
-            <ScrollReveal delay={500}>
-              <div className="text-center mt-10">
-                {hasPattern ? (
-                  <Link to={ROUTES.APOTHECARY}
-                    className="inline-block font-body text-sm font-semibold px-8 py-3 rounded-sm"
-                    style={{ backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-parchment))" }}>
-                    View Your Matched Herbs →
-                  </Link>
-                ) : (
-                  <button onClick={openQuiz}
-                    className="font-body text-sm font-semibold px-8 py-3 rounded-sm"
-                    style={{ backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-parchment))" }}>
-                    Yes — Find My Body Pattern Free →
-                  </button>
-                )}
-              </div>
-            </ScrollReveal>
+            {/* PR β: section-end conditional CTA removed. JourneyCTA at the
+                top of the page is the dominant action; trailing acquisition
+                buttons add visual clutter without doing more conversion
+                work. */}
           </div>
         </div>
       </section>
@@ -290,22 +266,27 @@ const Index = () => {
         </div>
       </section>
 
-      {/* ─── PATH CARDS SECTION ─── */}
+      {/* ─── PATH CARDS SECTION ───
+          PR β: removed the 4th "Quiz/Pattern" card — it was one of the
+          7 hasPattern-pivoted CTAs and is replaced by JourneyCTA at the
+          top of the page. Heading rephrased "Four Ways In" → "Three
+          Ways In" and the grid restructured from 2-up to 3-up so the
+          remaining cards lay out evenly on desktop. */}
       <section className="section-padding-lg" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
         <div className="eden-container px-6">
           <ScrollReveal>
             <h2 className="font-serif text-3xl md:text-4xl font-bold text-center mb-4" style={{ color: "hsl(var(--eden-forest))" }}>
-              One Vision. Four Ways In.
+              One Vision. Three Ways In.
             </h2>
             <p className="font-body text-center text-base mb-12" style={{ color: "hsl(var(--eden-bark) / 0.7)" }}>
               Every path leads to the same foundation — Yahweh as the ultimate healer, your body as His design.
             </p>
           </ScrollReveal>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
 
             {/* Card 1 — Tier 1 */}
             <ScrollReveal delay={100}>
-              <a href="https://learn.edeninstitute.health/course/back-to-eden1" target="_blank" rel="noopener noreferrer"
+              <a href={FOUNDATIONS_COURSE_URL} target="_blank" rel="noopener noreferrer"
                 className="block rounded-sm border p-8 hover:shadow-md transition-shadow duration-300 h-full"
                 style={{ backgroundColor: "hsl(var(--eden-parchment))", borderColor: "hsl(var(--eden-gold) / 0.3)" }}>
                 <BookOpen className="mb-4 w-7 h-7" style={{ color: "hsl(var(--eden-gold))" }} />
@@ -367,50 +348,6 @@ const Index = () => {
                   Join the waitlist →
                 </p>
               </Link>
-            </ScrollReveal>
-
-            {/* Card 4 — Quiz / Pattern card. Pivots based on hasPattern:
-                authed+Pattern users see "Your Pattern: [name]" with a route
-                into /apothecary; anon / no-Pattern users see the original
-                quiz CTA which opens the AssessmentModal. */}
-            <ScrollReveal delay={400}>
-              {hasPattern ? (
-                <Link to={ROUTES.APOTHECARY}
-                  className="block w-full text-left rounded-sm border p-8 hover:shadow-md transition-shadow duration-300 h-full cursor-pointer"
-                  style={{ backgroundColor: "hsl(var(--eden-forest))", borderColor: "hsl(var(--eden-gold) / 0.3)" }}>
-                  <Compass className="mb-4 w-7 h-7" style={{ color: "hsl(var(--eden-gold))" }} />
-                  <h3 className="font-serif text-xl font-bold mb-2" style={{ color: "hsl(var(--eden-parchment))" }}>
-                    Your Pattern: <span className="italic">{pattern}</span>
-                  </h3>
-                  <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>
-                    Pattern Resolved · Open Apothecary
-                  </p>
-                  <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-parchment) / 0.8)" }}>
-                    Your matched herbs are highlighted across the Eden Apothecary directory. Open your dashboard to begin clinical study.
-                  </p>
-                  <p className="font-body text-sm font-semibold mt-6" style={{ color: "hsl(var(--eden-gold))" }}>
-                    Open Your Apothecary →
-                  </p>
-                </Link>
-              ) : (
-                <button onClick={openQuiz}
-                  className="block w-full text-left rounded-sm border p-8 hover:shadow-md transition-shadow duration-300 h-full cursor-pointer"
-                  style={{ backgroundColor: "hsl(var(--eden-forest))", borderColor: "hsl(var(--eden-gold) / 0.3)" }}>
-                  <Compass className="mb-4 w-7 h-7" style={{ color: "hsl(var(--eden-gold))" }} />
-                  <h3 className="font-serif text-xl font-bold mb-2" style={{ color: "hsl(var(--eden-parchment))" }}>
-                    Know Your Body Pattern
-                  </h3>
-                  <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>
-                    Free · 2 Minutes
-                  </p>
-                  <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-parchment) / 0.8)" }}>
-                    Two minutes. Eight possible body patterns. One result that explains why your sister thrives on ginger and you can't touch it. Start here — it's free.
-                  </p>
-                  <p className="font-body text-sm font-semibold mt-6" style={{ color: "hsl(var(--eden-gold))" }}>
-                    Take the free quiz →
-                  </p>
-                </button>
-              )}
             </ScrollReveal>
 
           </div>
@@ -480,27 +417,8 @@ const Index = () => {
               </p>
             </ScrollReveal>
 
-            <div className="text-center mt-8">
-              {hasPattern ? (
-                <Button
-                  asChild
-                  variant="eden"
-                  size="xl"
-                  className="min-h-[48px] text-sm sm:text-base px-8 max-w-[90vw] whitespace-normal leading-snug"
-                >
-                  <Link to={ROUTES.APOTHECARY}>Open Your Apothecary →</Link>
-                </Button>
-              ) : (
-                <Button
-                  variant="eden"
-                  size="xl"
-                  className="min-h-[48px] text-sm sm:text-base px-8 max-w-[90vw] whitespace-normal leading-snug"
-                  onClick={openQuiz}
-                >
-                  {QUIZ_CTA}
-                </Button>
-              )}
-            </div>
+            {/* PR β: section-end conditional CTA removed. JourneyCTA at
+                the top of the page is the dominant action. */}
           </div>
         </div>
       </section>
@@ -543,7 +461,13 @@ const Index = () => {
 
       <GoldDivider />
 
-      {/* ─── VALUE LADDER SECTION ─── */}
+      {/* ─── VALUE LADDER SECTION ───
+          PR β: cards 1 & 2 reverted to static informational divs (no
+          Link/button wrappers, no onClick / hasPattern pivots). They
+          show the journey progression visually — Free quiz → $14 guide
+          → $97 course — but the dominant action lives in JourneyCTA at
+          the top of the page. Card 3 (Foundations Course) keeps its
+          external link to LearnWorlds. */}
       <section className="section-padding-lg parchment-texture relative overflow-hidden">
         <div className="eden-container px-6 relative z-10">
           <ScrollReveal>
@@ -556,54 +480,36 @@ const Index = () => {
           <div className="grid md:grid-cols-3 gap-6 md:gap-8 max-w-4xl mx-auto mt-12">
             {[
               {
-                // Step 1: Free Quiz card. For authed+Pattern users the
-                // step is "done" — we route them to /apothecary directly
-                // rather than re-opening the modal they've already
-                // completed. Label flips to celebrate the resolution.
                 icon: <ClipboardList className="w-10 h-10" style={{ color: "hsl(var(--eden-gold))" }} />,
-                label: hasPattern ? "Pattern Resolved" : "Free Quiz",
-                description: hasPattern
-                  ? `Your Pattern is named: ${pattern}. Open your Apothecary to study your matched herbs.`
-                  : "Discover your body pattern in 2 minutes",
-                price: hasPattern ? "DONE ✓" : "FREE",
-                onClick: hasPattern ? null : openQuiz,
-                href: hasPattern ? ROUTES.APOTHECARY : (null as string | null),
+                label: "Free Quiz",
+                description: "Discover your body pattern in 2 minutes",
+                price: "FREE",
+                href: null as string | null,
                 external: false,
-                ariaLabel: hasPattern
-                  ? "Open your Apothecary"
-                  : "Take the free constitutional quiz",
+                ariaLabel: undefined as string | undefined,
               },
               {
-                // Step 2: Deep-Dive Guide card. For authed+Pattern users
-                // we surface useTierAwareCTA().guide, which already
-                // handles the (Pattern, purchased?) state machine —
-                // routing to /guide/[slug] with the correct label
-                // ("Get your X guide — $14" vs "View your X guide").
                 icon: <BookOpen className="w-10 h-10" style={{ color: "hsl(var(--eden-gold))" }} />,
                 label: "Deep-Dive Guide",
                 description: "Your personalized herb guide — 10 matched herbs, nutrition, lifestyle, and Scripture",
                 price: "$14",
-                onClick: hasPattern ? null : openQuiz,
-                href: hasPattern ? guideCta.href : (null as string | null),
+                href: null as string | null,
                 external: false,
-                ariaLabel: hasPattern
-                  ? guideCta.label
-                  : "Take the quiz to unlock your $14 Deep-Dive Guide",
+                ariaLabel: undefined as string | undefined,
               },
               {
                 icon: <GraduationCap className="w-10 h-10" style={{ color: "hsl(var(--eden-gold))" }} />,
                 label: "Foundations Course",
                 description: "Learn to read your body pattern and match it to God's provision in the plant world",
                 price: "$97",
-                onClick: null as null | (() => void),
-                href: "https://learn.edeninstitute.health/course/back-to-eden1",
+                href: FOUNDATIONS_COURSE_URL,
                 external: true,
                 ariaLabel: "Enroll in the Foundations Course",
               },
             ].map((step, i) => {
               const cardInner = (
                 <div
-                  className="rounded-lg p-6 md:p-8 text-center shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center hover:-translate-y-1 cursor-pointer h-full"
+                  className="rounded-lg p-6 md:p-8 text-center shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center hover:-translate-y-1 h-full"
                   style={{
                     backgroundColor: "hsl(var(--eden-cream))",
                     border: "1.5px solid hsl(var(--eden-gold) / 0.4)",
@@ -629,35 +535,22 @@ const Index = () => {
 
               return (
                 <ScrollReveal key={step.label} delay={i * 120}>
-                  {step.href ? (
-                    step.external ? (
-                      <a
-                        href={step.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={step.ariaLabel}
-                        className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--eden-gold))] rounded-lg"
-                      >
-                        {cardInner}
-                      </a>
-                    ) : (
-                      <Link
-                        to={step.href}
-                        aria-label={step.ariaLabel}
-                        className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--eden-gold))] rounded-lg"
-                      >
-                        {cardInner}
-                      </Link>
-                    )
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={step.onClick ?? undefined}
+                  {step.href && step.external ? (
+                    <a
+                      href={step.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       aria-label={step.ariaLabel}
-                      className="block w-full h-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--eden-gold))] rounded-lg"
+                      className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--eden-gold))] rounded-lg"
                     >
                       {cardInner}
-                    </button>
+                    </a>
+                  ) : (
+                    // Static informational card. The dominant action lives
+                    // in JourneyCTA at the top of the page; these tiles
+                    // illustrate the value-ladder progression but are not
+                    // themselves CTAs.
+                    <div className="block h-full">{cardInner}</div>
                   )}
                 </ScrollReveal>
               );
@@ -735,7 +628,11 @@ const Index = () => {
 
       <GoldDivider />
 
-      {/* ─── BOTTOM CTA ─── */}
+      {/* ─── BOTTOM CTA ───
+          PR β: conditional Button removed. The closing heading + body
+          remain as a sectional sign-off, but the dominant action lives
+          in JourneyCTA at the top of the page so we don't repeat it
+          here. Social links preserved. */}
       <section className="relative overflow-hidden" style={{ backgroundColor: "hsl(var(--eden-forest))" }}>
         <img
           src={HERO_IMG}
@@ -756,37 +653,11 @@ const Index = () => {
                 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold mb-4"
                 style={{ color: "hsl(var(--eden-parchment))" }}
               >
-                {hasPattern
-                  ? "Your Pattern Is Just the Beginning."
-                  : "Two Minutes Could Change How You Use Herbs Forever."}
+                Two Minutes Could Change How You Use Herbs Forever.
               </h2>
-              <p className="font-body text-lg md:text-xl mb-10" style={{ color: "hsl(var(--eden-parchment) / 0.85)" }}>
-                {hasPattern
-                  ? "You know your Pattern. Now study how every herb in God's provision meets your terrain — open your Apothecary."
-                  : "It takes 2 minutes. And it changes how you think about every herb you'll ever use."}
+              <p className="font-body text-lg md:text-xl mb-2" style={{ color: "hsl(var(--eden-parchment) / 0.85)" }}>
+                It takes 2 minutes. And it changes how you think about every herb you'll ever use.
               </p>
-
-              {hasPattern ? (
-                <Button
-                  asChild
-                  variant="eden"
-                  size="xl"
-                  className="min-h-[48px] text-sm sm:text-base px-4 sm:px-8 max-w-[90vw] whitespace-normal leading-snug"
-                  style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}
-                >
-                  <Link to={ROUTES.APOTHECARY}>Open Your Apothecary →</Link>
-                </Button>
-              ) : (
-                <Button
-                  variant="eden"
-                  size="xl"
-                  className="min-h-[48px] text-sm sm:text-base px-4 sm:px-8 max-w-[90vw] whitespace-normal leading-snug"
-                  onClick={openQuiz}
-                  style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}
-                >
-                  {QUIZ_CTA}
-                </Button>
-              )}
             </ScrollReveal>
 
             {/* Social links */}
