@@ -5,6 +5,8 @@ import WaitlistModal from "@/components/landing/WaitlistModal";
 import Navbar from "@/components/landing/Navbar";
 import { BookOpen, Sprout, Users } from "lucide-react";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
+import { useEdenPattern } from "@/hooks/useEdenPattern";
+import { patternNameToSlug } from "@/lib/amazonKitUrls";
 
 const HS_AUD = "a48cb66e-b2a9-461d-98a6-bb1b12f72693";
 
@@ -17,6 +19,21 @@ const Homeschool = () => {
   });
 
   const [open, setOpen] = useState(false);
+
+  // PR η fix #8 + #9: Eden's Table IS the homeschool curriculum
+  // (Camila's 2026-05-02 decision). Two redundant entry_funnel enum
+  // values existed: 'edens_table' (1 historical row) and 'homeschool'
+  // (0 rows). Per the consolidation, all new signups write
+  // 'edens_table' as the canonical name. The Postgres enum value
+  // 'homeschool' is left in place to preserve referential integrity;
+  // it just stops being emitted by any frontend caller.
+  const { data: pattern } = useEdenPattern();
+  const metadata: Record<string, unknown> = { surface: "edens_table_page" };
+  if (pattern) {
+    metadata.pattern_name = pattern;
+    metadata.pattern_slug = patternNameToSlug(pattern);
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -41,7 +58,7 @@ const Homeschool = () => {
             stewardship.
           </p>
           <p className="font-accent text-sm tracking-wider uppercase mb-8" style={{ color: "hsl(var(--eden-sage))" }}>
-            Launching November 2026 — Sprouts (K-3) first
+            Early Access — Sprouts (K-3) first
           </p>
           <Button variant="eden" size="xl" onClick={() => setOpen(true)}>
             Get Early Access
@@ -76,7 +93,7 @@ const Homeschool = () => {
                 Wonder, stories, and simple plant identification. Kitchen labs and memory songs.
               </p>
               <span className="text-xs font-body px-2 py-1 rounded" style={{ backgroundColor: "hsl(var(--eden-gold) / 0.15)", color: "hsl(var(--eden-gold))" }}>
-                Nov 2026
+                Early Access
               </span>
             </div>
             <div className="rounded-lg p-6 border opacity-75" style={{ borderColor: "hsl(var(--border))" }}>
@@ -165,6 +182,12 @@ const Homeschool = () => {
         onOpenChange={setOpen}
         audienceId={HS_AUD}
         title="Join Eden's Table Early Access List"
+        // PR η fix #8: explicit canonical funnel. Even though the legacy
+        // audienceId mapping happens to resolve to 'edens_table' for
+        // this surface, passing it explicitly future-proofs against any
+        // change to that mapping and makes the intent unambiguous.
+        funnel="edens_table"
+        metadata={metadata}
       />
     </div>
   );

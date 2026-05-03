@@ -5,6 +5,8 @@ import WaitlistModal from "@/components/landing/WaitlistModal";
 import Navbar from "@/components/landing/Navbar";
 import { MapPin, Sprout, Users, BookOpen } from "lucide-react";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
+import { useEdenPattern } from "@/hooks/useEdenPattern";
+import { patternNameToSlug } from "@/lib/amazonKitUrls";
 
 const COMM_AUD = "a48cb66e-b2a9-461d-98a6-bb1b12f72693";
 
@@ -17,6 +19,20 @@ const Community = () => {
   });
 
   const [open, setOpen] = useState(false);
+
+  // PR η fix #1 + #9: pull active-profile Pattern (when present) so the
+  // metadata enrichment pattern matches practitioner-waitlist-signup —
+  // every Community submit carries surface + Pattern context. Anonymous
+  // visitors (no Pattern) just submit surface; that's still richer than
+  // the previous empty-{} metadata that made post-launch segmentation
+  // impossible.
+  const { data: pattern } = useEdenPattern();
+  const metadata: Record<string, unknown> = { surface: "community_page" };
+  if (pattern) {
+    metadata.pattern_name = pattern;
+    metadata.pattern_slug = patternNameToSlug(pattern);
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -136,6 +152,14 @@ const Community = () => {
         onOpenChange={setOpen}
         audienceId={COMM_AUD}
         title="Join the Rooted Community Founding Waitlist"
+        // PR η fix #1: explicit funnel override. Both Community and
+        // Eden's Table currently share the legacy audienceId
+        // 'a48cb66e-…', which the resend-waitlist EF unconditionally
+        // maps to 'edens_table'. Without this prop, every Community
+        // signup was silently writing entry_funnel='edens_table' and
+        // collapsing the segmentation.
+        funnel="community"
+        metadata={metadata}
       />
     </div>
   );

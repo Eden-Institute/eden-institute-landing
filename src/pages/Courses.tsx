@@ -4,6 +4,7 @@ import { BookOpen, CheckCircle, Clock, GraduationCap, Users } from "lucide-react
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import { JourneyAwareQuizCTA } from "@/components/journey/JourneyAwareQuizCTA";
+import { useJourneyAwareQuizCTA } from "@/hooks/useJourneyAwareQuizCTA";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
@@ -14,19 +15,13 @@ const Courses = () => {
   useDocumentMeta({
     title: "Courses — Biblical Clinical Herbalism | The Eden Institute",
     description:
-      "A three-tier, faith-rooted curriculum for Christian families — from the Biblical foundations of plant medicine through terrain-based clinical herbalism. Tier 1 enrolling now.",
+      "A three-tier, faith-rooted curriculum for Christian families — from the Biblical foundations of plant medicine through terrain-based clinical herbalism. Tier 1 enrolling now at $97 founding price.",
     canonical: "https://edeninstitute.health/courses",
   });
 
-  // PR ζ: Hero secondary CTA "Take the Free Quiz First" and bottom
-  // "Not Sure Where to Start?" CTA were journey-blind — they opened the
-  // AssessmentModal even when the active person-profile already had a
-  // resolved Pattern. Both are now <JourneyAwareQuizCTA /> which routes
-  // to /assessment with the original copy when no Pattern, or to
-  // /guide/<slug> with the per-Pattern Deep-Dive Guide buy copy when a
-  // Pattern is active. The AssessmentModal mount and useState are
-  // removed since they're now dead code (no on-page handler opens the
-  // modal; the route is the canonical entry point).
+  // PR η fix #6 (small): the bottom "Not Sure Where to Start?" section's
+  // heading + paragraph also pivot when a Pattern is resolved.
+  const journeyCta = useJourneyAwareQuizCTA();
 
   return (
     <div className="min-h-screen bg-background">
@@ -54,15 +49,17 @@ const Courses = () => {
             </footer>
           </blockquote>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
+            {/* PR η fix #3: hero Tier 1 CTA reflects the founding price. */}
             <a href={T1} target="_blank" rel="noopener noreferrer">
-              <Button variant="eden" size="xl">
-                Enroll in Tier 1 — $197
+              <Button variant="eden" size="xl" className="whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] h-auto py-3 px-6">
+                Enroll in Tier 1 — $97 Founding
               </Button>
             </a>
             <JourneyAwareQuizCTA
               variant="eden-outline"
               size="xl"
               noPatternLabel="Take the Free Quiz First"
+              className="whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] h-auto py-3 px-6"
             />
           </div>
         </div>
@@ -80,9 +77,10 @@ const Courses = () => {
           </div>
 
           <div className="grid gap-6 md:grid-cols-3">
+            {/* PR η fix #3: Tier 1 founding pricing. */}
             <div className="relative rounded-lg border-2 p-8" style={{ borderColor: "hsl(var(--eden-gold))", backgroundColor: "hsl(var(--eden-cream))" }}>
               <span className="absolute -top-3 left-6 rounded px-3 py-1 text-xs font-semibold uppercase tracking-widest" style={{ backgroundColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }}>
-                Available Now
+                Now Enrolling
               </span>
               <BookOpen className="mb-4 h-8 w-8" style={{ color: "hsl(var(--eden-gold))" }} />
               <h3 className="mb-1 font-serif text-xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>
@@ -98,7 +96,10 @@ const Courses = () => {
                 <li className="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "hsl(var(--eden-forest))" }} />Certificate of completion</li>
                 <li className="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "hsl(var(--eden-forest))" }} />Lifetime access</li>
               </ul>
-              <p className="mb-4 text-center font-serif text-3xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>$197</p>
+              <p className="mb-1 text-center font-serif text-3xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>$97</p>
+              <p className="mb-4 text-center font-body text-xs leading-snug" style={{ color: "hsl(var(--eden-bark) / 0.65)" }}>
+                Founding student price · first 100 students · regularly $197
+              </p>
               <a href={T1} target="_blank" rel="noopener noreferrer" className="block">
                 <Button variant="eden" className="w-full">Enroll Now</Button>
               </a>
@@ -110,22 +111,6 @@ const Courses = () => {
                 <h3 className="font-serif text-xl font-bold mb-1" style={{ color: "hsl(var(--eden-forest))" }}>Back to Eden: Foundations of Biblical Herbalism</h3>
                 <p className="font-body text-sm" style={{ color: "hsl(var(--eden-bark) / 0.75)" }}>The print companion to the Tier 1 course. Read it alongside the lessons or give it as a gift to someone beginning their herbal journey.</p>
               </div>
-              {/* CTA cleanup 2026-04-30 (round 2): textbook URL confirmed by
-                  Camila — Amazon Eden Institute SERIES page (evergreen as
-                  more books in the series ship; single-book Kindle URLs
-                  would drift the moment Tier 2's companion textbook
-                  appears, so route to the series and let Amazon's own UI
-                  surface the latest). The `sponsored` rel attribute is
-                  Google's recommended honest-disclosure for affiliate-style
-                  links (avoids PageRank-passing penalties).
-
-                  Round 3 (this commit): Amazon Associates Tracking ID
-                  appended — `?tag=mobile088c05e-20`. This is Amazon's
-                  auto-generated default; Camila couldn't create a custom
-                  tracking ID because her tax interview is incomplete
-                  (Amazon blocks new tracking IDs until that's done).
-                  Swap to a custom tag (e.g. edeninstitute-20) once the
-                  tax interview is complete. */}
               <a
                 href="https://www.amazon.com/dp/B0GPT81RDF?tag=mobile088c05e-20"
                 target="_blank"
@@ -138,9 +123,10 @@ const Courses = () => {
               </a>
             </div>
 
+            {/* PR η fix #3: Tier 2 "Coming 2027". */}
             <div className="relative rounded-lg border p-8" style={{ borderColor: "hsl(var(--eden-sage))" }}>
               <span className="absolute -top-3 left-6 rounded px-3 py-1 text-xs font-semibold uppercase tracking-widest text-white" style={{ backgroundColor: "hsl(var(--eden-sage))" }}>
-                Coming Fall 2026
+                Coming 2027
               </span>
               <GraduationCap className="mb-4 h-8 w-8" style={{ color: "hsl(var(--eden-sage))" }} />
               <h3 className="mb-1 font-serif text-xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>Tier 2 — Body Systems</h3>
@@ -149,24 +135,23 @@ const Courses = () => {
                 <li className="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "hsl(var(--eden-sage))" }} />127 lessons across 14 modules</li>
                 <li className="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "hsl(var(--eden-sage))" }} />Full clinical textbook included</li>
                 <li className="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "hsl(var(--eden-sage))" }} />Herb-matching protocols</li>
-                <li className="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "hsl(var(--eden-sage))" }} />Early bird for Tier 1 students</li>
+                <li className="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "hsl(var(--eden-sage))" }} />Founding member coupon for waitlist</li>
               </ul>
-              <p className="mb-4 text-center font-body text-sm text-muted-foreground">Coming Fall 2026</p>
-              <a href={T1} target="_blank" rel="noopener noreferrer" className="block">
-                <Button variant="eden-outline" className="w-full">Enroll Tier 1 for Priority Access</Button>
-              </a>
+              <p className="mb-1 text-center font-serif text-2xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>$1,497</p>
+              <p className="mb-4 text-center font-body text-xs leading-snug" style={{ color: "hsl(var(--eden-bark) / 0.65)" }}>
+                Public price — waitlist members get a founding coupon that drops it by $1,000.
+              </p>
+              <Button variant="eden-outline" className="w-full whitespace-normal h-auto leading-snug py-2.5" asChild>
+                <Link to={ROUTES.TIER_TWO_WAITLIST}>Join the Tier 2 Waitlist</Link>
+              </Button>
 
+              {/* PR η fix #3: Tier 2 textbook "Coming 2028". */}
               <div className="mt-6 rounded-sm border p-6" style={{ backgroundColor: "hsl(var(--eden-parchment))", borderColor: "hsl(var(--eden-gold) / 0.3)" }}>
-                <p className="font-accent text-xs tracking-widest uppercase mb-1" style={{ color: "hsl(var(--eden-gold))" }}>Companion Textbook · Tier 2 · Coming Fall 2026</p>
+                <p className="font-accent text-xs tracking-widest uppercase mb-1" style={{ color: "hsl(var(--eden-gold))" }}>Companion Textbook · Tier 2 · Coming 2028</p>
                 <h3 className="font-serif text-lg font-bold mb-2" style={{ color: "hsl(var(--eden-forest))" }}>Back to Eden: Body Systems &amp; Clinical Literacy</h3>
-                <p className="font-body text-sm mb-4" style={{ color: "hsl(var(--eden-bark) / 0.75)" }}>A comprehensive 14-module clinical reference covering every major body system. Terrain-based, Scripture-anchored, practitioner-grade. Join the waitlist to be notified when it's available.</p>
-                {/* CTA cleanup 2026-04-30: was onClick={() => setQuiz(true)}, which
-                    opened the body-pattern quiz modal — totally wrong action for a
-                    button labeled "Join the Textbook Waitlist". Tier 2 textbook ships
-                    alongside the Tier 2 course launch (Oct 8, 2026), so the existing
-                    /tier-2-waitlist page captures interest in both. */}
+                <p className="font-body text-sm mb-4" style={{ color: "hsl(var(--eden-bark) / 0.75)" }}>A comprehensive 14-module clinical reference covering every major body system. Terrain-based, Scripture-anchored, practitioner-grade. Join the Tier 2 waitlist to be notified when both the course and textbook are available.</p>
                 <Button variant="eden" size="sm" asChild>
-                  <Link to={ROUTES.TIER_TWO_WAITLIST}>Join the Textbook Waitlist</Link>
+                  <Link to={ROUTES.TIER_TWO_WAITLIST}>Join the Tier 2 Waitlist</Link>
                 </Button>
               </div>
             </div>
@@ -212,18 +197,28 @@ const Courses = () => {
         </div>
       </section>
 
+      {/* PR η fix #6 (small): section-level pivot. */}
       <section className="px-6 py-20" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="mb-4 font-serif text-3xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>Not Sure Where to Start?</h2>
-          <p className="mb-8 font-body text-muted-foreground">Take the 2-minute Body Pattern Quiz. Discover your body pattern first.</p>
+          <h2 className="mb-4 font-serif text-3xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>
+            {journeyCta.hasPattern ? "Continue Your Studies" : "Not Sure Where to Start?"}
+          </h2>
+          <p className="mb-8 font-body text-muted-foreground">
+            {journeyCta.hasPattern
+              ? "Your Pattern is already resolved. The next step is the Deep-Dive Guide for your terrain — ten matched herbs, nutrition, lifestyle, and Scripture, all aligned to your body pattern."
+              : "Take the 2-minute Body Pattern Quiz. Discover your body pattern first."}
+          </p>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
             <JourneyAwareQuizCTA
               variant="eden"
               size="xl"
               noPatternLabel="Take the Free Quiz"
+              className="whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] h-auto py-3 px-6"
             />
             <a href={T1} target="_blank" rel="noopener noreferrer">
-              <Button variant="eden-outline" size="xl">Enroll in Tier 1 — $197</Button>
+              <Button variant="eden-outline" size="xl" className="whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] h-auto py-3 px-6">
+                Enroll in Tier 1 — $97
+              </Button>
             </a>
           </div>
         </div>

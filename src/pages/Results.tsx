@@ -1,8 +1,10 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEdenPattern } from "@/hooks/useEdenPattern";
+import { patternNameToSlug } from "@/lib/amazonKitUrls";
 import { constitutionProfiles } from "@/lib/constitution-data";
 import { ROUTES } from "@/lib/routes";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
@@ -27,12 +29,45 @@ const Results = () => {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // PR η fix #7 — Pattern Detail page active-profile awareness.
+  //
+  // The /results/:slug route is intentionally URL-slug-driven for SEO
+  // (one canonical URL per Pattern, indexable individually). Camila
+  // reproduced the bug on production: she switched the picker to her
+  // person-profile "Olivia" (Pattern: Frozen Knot), navigated to her
+  // own /results/pressure-cooker page, and the page kept showing
+  // Pressure Cooker — the previous active profile's Pattern — instead
+  // of redirecting to Olivia's Frozen Knot page.
+  //
+  // Approach: rather than abandoning the slug-driven canonical URL
+  // (which would hurt SEO), the page redirects when the signed-in
+  // user has an active profile whose Pattern slug differs from the URL
+  // slug. Anonymous visitors arriving from email links, SERP results,
+  // or social shares are NOT redirected — they see whichever Pattern
+  // they linked to. The redirect only fires for signed-in users with
+  // an actively-resolved Pattern (i.e. a real active-profile context
+  // exists), so the SEO/share semantics stay intact.
+  //
+  // Race-safe: useEdenPattern is gated on the ActiveProfileContext's
+  // hydration (per PR δ), so we don't redirect before the context has
+  // had a chance to resolve the active profile's Pattern.
+  const { data: activePattern, activeProfile, isLoading: patternLoading } =
+    useEdenPattern();
+  useEffect(() => {
+    if (!user) return; // anon visitor — never redirect
+    if (patternLoading) return; // wait for context to hydrate
+    if (!activePattern) return; // active profile has no Pattern yet
+    if (!activeProfile) return; // no picker context, leave URL alone
+    if (!constitutionSlug) return; // /results/* with no slug — let the not-found render
+    const desiredSlug = patternNameToSlug(activePattern);
+    if (desiredSlug && desiredSlug !== constitutionSlug) {
+      navigate(`/results/${desiredSlug}`, { replace: true });
+    }
+  }, [user, patternLoading, activePattern, activeProfile, constitutionSlug, navigate]);
+
   const constitutionType = constitutionSlug ? slugToType[constitutionSlug] : undefined;
   const profile = constitutionType ? constitutionProfiles[constitutionType] : undefined;
 
-  // Per-route meta. The 8 Pattern result pages are individually indexable
-  // and need distinct title/description/canonical for the SERP. og:type =
-  // "article" so social previews render the editorial card layout.
   const canonical = constitutionSlug
     ? `https://edeninstitute.health/results/${constitutionSlug}`
     : "https://edeninstitute.health/assessment";
@@ -51,9 +86,6 @@ const Results = () => {
     ogType: "article",
   });
 
-  // JSON-LD structured data — only emit on a valid Pattern slug. The
-  // not-found branch returns null for both, so useStructuredData
-  // skips injection (no misleading 404-on-Article-schema in the index).
   useStructuredData(
     "article",
     profile && constitutionType
@@ -114,9 +146,6 @@ const Results = () => {
               "@type": "ListItem",
               position: 3,
               name: profile.nickname,
-              // No `item` for the current page — per schema.org spec, the
-              // last breadcrumb omits the URL because it IS the current
-              // page.
             },
           ],
         }
@@ -142,12 +171,14 @@ const Results = () => {
     );
   }
 
+  // PR η fix #4: short Pattern label without leading "The".
+  const patternShort = profile.nickname.replace(/^The\s+/i, "");
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F5F0E8" }}>
       <Navbar />
 
       <div className="max-w-3xl mx-auto px-6 py-16">
-        {/* User-aware top banner — saved-to-account or sign-up-to-save */}
         {user ? (
           <div className="text-center mb-8">
             <p className="font-accent text-sm tracking-[0.2em] uppercase mb-1" style={{ color: "#C9A84C" }}>
@@ -192,7 +223,6 @@ const Results = () => {
           ))}
         </div>
 
-        {/* Continue to Apothecary CTA — prominent, primary action for logged-in users */}
         {user && (
           <div className="mb-12">
             <Button
@@ -209,7 +239,6 @@ const Results = () => {
           </div>
         )}
 
-        {/* Three herbs matched to your Pattern */}
         <div className="mb-12">
           <h2 className="font-serif text-2xl font-bold mb-6" style={{ color: "#1C3A2E" }}>
             Three herbs matched to your Pattern
@@ -228,7 +257,7 @@ const Results = () => {
           </div>
         </div>
 
-        {/* $14 Deep-Dive Guide Upsell — fixed CTA with lookup_key + success_url */}
+        {/* $14 Deep-Dive Guide Upsell */}
         <div className="p-6 md:p-8 border-2 rounded mb-12" style={{ borderColor: "#C9A84C", backgroundColor: "white" }}>
           <h2 className="font-serif text-2xl font-bold mb-4" style={{ color: "#1C3A2E" }}>
             Want the full picture?
@@ -237,17 +266,20 @@ const Results = () => {
             Your complete Deep-Dive Guide includes all 10 matched herbs with clinical preparation methods, dosages, and safety notes — plus caution lists, lifestyle and nutrition guidance, and a Biblical framework for your body pattern.
           </p>
           {error && <p className="font-body text-sm text-destructive mb-4">{error}</p>}
+          {/* PR η fix #4: shortened button label and added wrapping classes
+              so longer Pattern names don't overflow the full-width
+              button on a 375px viewport. */}
           <Button
             variant="eden"
             size="xl"
-            className="w-full"
+            className="w-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] h-auto py-3 px-4"
             data-product="constitution-guide"
             disabled={checkoutLoading}
             onClick={async () => {
               setCheckoutLoading(true);
               setError("");
               try {
-                const slug = (profile.nickname).replace(/^The\s+/i, "").toLowerCase().replace(/\s+/g, "-");
+                const slug = patternNameToSlug(profile.nickname);
                 const { data, error: fnError } = await supabase.functions.invoke("create-checkout", {
                   body: {
                     lookup_key: "deep_dive_guide",
@@ -268,7 +300,7 @@ const Results = () => {
               }
             }}
           >
-            {checkoutLoading ? "Redirecting to checkout…" : `Get Your Full ${profile.nickname.replace(/^The\s+/i, "")} Guide — $14`}
+            {checkoutLoading ? "Redirecting to checkout…" : `Get the ${patternShort} Guide — $14`}
           </Button>
         </div>
 
@@ -294,7 +326,7 @@ const Results = () => {
           </p>
         </div>
 
-        {/* Foundations Course CTA — fixed price ($97 not $197) */}
+        {/* Foundations Course CTA */}
         <div className="text-center p-10 rounded" style={{ backgroundColor: "#1C3A2E" }}>
           <h3 className="font-serif text-2xl font-bold mb-4" style={{ color: "#C9A84C" }}>
             Ready to Go Deeper?

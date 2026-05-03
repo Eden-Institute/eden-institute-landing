@@ -8,14 +8,52 @@ import {
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
+/**
+ * PR η — entry_funnel canonical values accepted by resend-waitlist EF.
+ * Matches the public.entry_funnel Postgres enum (sans the deprecated
+ * 'homeschool' value, which PR η consolidates into 'edens_table' per
+ * Camila's 2026-05-02 decision that "Eden's Table IS the homeschool
+ * curriculum"). 'homeschool' enum value remains in the database for the
+ * single historical legacy row's referential integrity but is not
+ * surfaced to new callers.
+ */
+export type WaitlistFunnel =
+  | "edens_table"
+  | "community"
+  | "app_beta"
+  | "course_tier2"
+  | "practitioner_waitlist"
+  | "quiz_funnel";
+
 interface WaitlistModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   audienceId: string;
   title: string;
+  /**
+   * PR η: optional explicit entry_funnel. The resend-waitlist EF resolves
+   * funnel via precedence (providedFunnel → audienceId mapping → source
+   * keyword). Two pages — Community and Homeschool/Eden's Table — share
+   * the legacy audienceId 'a48cb66e-…', which the EF unconditionally
+   * maps to entry_funnel='edens_table'. Without the explicit funnel
+   * override, Community signups silently get tagged 'edens_table' and
+   * the post-launch Leads Intelligence segmentation collapses into one
+   * bucket. Always pass `funnel` for new surfaces.
+   */
+  funnel?: WaitlistFunnel;
+  /**
+   * PR η: per-surface metadata enrichment. Matches the metadata pattern
+   * established by practitioner-waitlist-signup
+   * ({ surface, pattern_slug, pattern_name }) so the post-launch Leads
+   * Intelligence dashboard can segment by entry-point surface and
+   * Pattern context. The EF writes this to waitlist_signups.metadata
+   * JSONB. Anything serializable is permitted; the established keys
+   * are surface, pattern_slug, pattern_name, plus optional UTM fields.
+   */
+  metadata?: Record<string, unknown>;
 }
 
-const WaitlistModal = ({ open, onOpenChange, audienceId, title }: WaitlistModalProps) => {
+const WaitlistModal = ({ open, onOpenChange, audienceId, title, funnel, metadata }: WaitlistModalProps) => {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,8 +66,26 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title }: WaitlistModalP
     setError("");
 
     try {
+      // PR η: pass funnel + metadata + source_url so the EF can write
+      // a fully-instrumented waitlist_signups row. Falsy values are
+      // omitted (rather than sent as null/{}) so the EF's existing
+      // resolver precedence still works for callers that don't supply
+      // a funnel — the audienceId-based legacy mapping continues to
+      // catch them.
+      const body: Record<string, unknown> = {
+        firstName,
+        email,
+        audienceId,
+        source: "waitlist",
+      };
+      if (funnel) body.entry_funnel = funnel;
+      if (metadata && Object.keys(metadata).length > 0) body.metadata = metadata;
+      if (typeof window !== "undefined") {
+        body.source_url = window.location.pathname;
+      }
+
       const { data, error: fnError } = await supabase.functions.invoke("resend-waitlist", {
-        body: { firstName, email, audienceId, source: "waitlist" },
+        body,
       });
 
       if (fnError) throw fnError;
