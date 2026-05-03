@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { BookOpen, CheckCircle, Clock, GraduationCap, Users } from "lucide-react";
 
@@ -6,6 +7,7 @@ import Footer from "@/components/landing/Footer";
 import { JourneyAwareQuizCTA } from "@/components/journey/JourneyAwareQuizCTA";
 import { useJourneyAwareQuizCTA } from "@/hooks/useJourneyAwareQuizCTA";
 import { Button } from "@/components/ui/button";
+import { TierTwoWaitlistModal } from "@/components/landing/TierTwoWaitlistModal";
 import { ROUTES } from "@/lib/routes";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 
@@ -15,13 +17,23 @@ const Courses = () => {
   useDocumentMeta({
     title: "Courses — Biblical Clinical Herbalism | The Eden Institute",
     description:
-      "A three-tier, faith-rooted curriculum for Christian families — from the Biblical foundations of plant medicine through terrain-based clinical herbalism. Tier 1 enrolling now at $97 founding price.",
+      "A three-tier, faith-rooted curriculum for Christian families — from the biblical foundations of plant medicine through terrain-based clinical herbalism. Tier 1 enrolling now at $97 founding price.",
     canonical: "https://edeninstitute.health/courses",
   });
 
   // PR η fix #6 (small): the bottom "Not Sure Where to Start?" section's
   // heading + paragraph also pivot when a Pattern is resolved.
   const journeyCta = useJourneyAwareQuizCTA();
+
+  // PR ι (iota): both Tier 2 waitlist CTAs on this page (the Tier 2 card
+  // primary action + the companion textbook block) now open the
+  // TierTwoWaitlistModal directly instead of routing to
+  // /tier-2-waitlist. Each pair gets a "Learn More" sibling that
+  // points at /tier-2-waitlist for visitors who want the full info
+  // page before signing up. Single shared state for both because both
+  // surfaces submit through the same EF and we want only one modal
+  // mounted at a time.
+  const [tier2Modal, setTier2Modal] = useState(false);
 
   return (
     <div className="min-h-screen bg-background">
@@ -141,18 +153,66 @@ const Courses = () => {
               <p className="mb-4 text-center font-body text-xs leading-snug" style={{ color: "hsl(var(--eden-bark) / 0.65)" }}>
                 Public price — waitlist members get a founding coupon that drops it by $1,000.
               </p>
-              <Button variant="eden-outline" className="w-full whitespace-normal h-auto leading-snug py-2.5" asChild>
-                <Link to={ROUTES.TIER_TWO_WAITLIST}>Join the Tier 2 Waitlist</Link>
-              </Button>
+              {/* PR ι (iota): dual-CTA pair. Primary opens the
+                  TierTwoWaitlistModal directly (1-click signup);
+                  secondary "Learn More" routes to the full
+                  /tier-2-waitlist info page for visitors who want to
+                  read the timeline + founding-benefits copy first. */}
+              <div className="flex flex-col gap-2 w-full">
+                <Button
+                  type="button"
+                  variant="eden"
+                  className="w-full whitespace-normal h-auto leading-snug py-2.5"
+                  onClick={() => setTier2Modal(true)}
+                  data-cta="tier-two-waitlist-courses"
+                >
+                  Join the Tier 2 Waitlist
+                </Button>
+                <Button
+                  variant="eden-outline"
+                  className="w-full whitespace-normal h-auto leading-snug py-2.5"
+                  asChild
+                >
+                  <Link
+                    to={ROUTES.TIER_TWO_WAITLIST}
+                    data-cta="tier-two-waitlist-courses-learn-more"
+                  >
+                    Learn More
+                  </Link>
+                </Button>
+              </div>
 
               {/* PR η fix #3: Tier 2 textbook "Coming 2028". */}
               <div className="mt-6 rounded-sm border p-6" style={{ backgroundColor: "hsl(var(--eden-parchment))", borderColor: "hsl(var(--eden-gold) / 0.3)" }}>
                 <p className="font-accent text-xs tracking-widest uppercase mb-1" style={{ color: "hsl(var(--eden-gold))" }}>Companion Textbook · Tier 2 · Coming 2028</p>
                 <h3 className="font-serif text-lg font-bold mb-2" style={{ color: "hsl(var(--eden-forest))" }}>Back to Eden: Body Systems &amp; Clinical Literacy</h3>
                 <p className="font-body text-sm mb-4" style={{ color: "hsl(var(--eden-bark) / 0.75)" }}>A comprehensive 14-module clinical reference covering every major body system. Terrain-based, Scripture-anchored, practitioner-grade. Join the Tier 2 waitlist to be notified when both the course and textbook are available.</p>
-                <Button variant="eden" size="sm" asChild>
-                  <Link to={ROUTES.TIER_TWO_WAITLIST}>Join the Tier 2 Waitlist</Link>
-                </Button>
+                {/* PR ι (iota): companion-textbook waitlist CTA also
+                    upgraded to dual-CTA pair. Same modal trigger as
+                    the primary card above (single shared state). */}
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    type="button"
+                    variant="eden"
+                    size="sm"
+                    onClick={() => setTier2Modal(true)}
+                    data-cta="tier-two-waitlist-courses-textbook"
+                  >
+                    Join the Tier 2 Waitlist
+                  </Button>
+                  <Button
+                    variant="eden-outline"
+                    size="sm"
+                    asChild
+                  >
+                    <Link
+                      to={ROUTES.TIER_TWO_WAITLIST}
+                      data-cta="tier-two-waitlist-courses-textbook-learn-more"
+                    >
+                      Learn More
+                    </Link>
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -227,6 +287,16 @@ const Courses = () => {
       </section>
 
       <Footer />
+
+      {/* PR ι (iota): single TierTwoWaitlistModal mount serves both
+          waitlist CTAs above (Tier 2 card + companion textbook). The
+          surface tag distinguishes which CTA opened it for post-launch
+          Leads Intelligence segmentation. */}
+      <TierTwoWaitlistModal
+        open={tier2Modal}
+        onOpenChange={setTier2Modal}
+        surface="courses_tier_two_card"
+      />
     </div>
   );
 };
