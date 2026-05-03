@@ -223,26 +223,48 @@ export function classifyMoisture(value: string | null | undefined): MoistureAxis
  * states it resolves), so the unified `axis === pattern → aggravating`
  * rule applies symmetrically across all three axes:
  *
- *   • A herb indicated for tension/constriction/stagnation states is a
- *     RELAXANT (its action is to relax tense tissue) → returns "Relaxed".
+ *   • A herb indicated for tension/constriction/stagnation/excitation states
+ *     is a RELAXANT (its action is to relax tense tissue) → returns "Relaxed".
  *     Against a Relaxed pattern, this herb aggravates (loosens an already-
  *     loose body); against a Tense pattern, it rebalances.
  *
- *   • A herb indicated for laxity/atrophy/deficiency states is a TONIC
- *     (its action is to tonify relaxed tissue) → returns "Tense".
- *     Against a Tense pattern, this herb aggravates (tightens an already-
- *     tight body); against a Relaxed pattern, it rebalances.
+ *   • A herb indicated for laxity/atony/atrophy/deficiency/torpor/exhaustion
+ *     states is a TONIC (its action is to tonify relaxed tissue) → returns
+ *     "Tense". Against a Tense pattern, this herb aggravates (tightens an
+ *     already-tight body); against a Relaxed pattern, it rebalances.
  *
  * §8.1.2 (Manual v4.0) corrects an earlier inverted convention here that
  * caused matched-herbs scoring to misclassify relaxant + tonic herbs.
  * `classifyTone` is internal to this module (verified via repo search), so
  * the flip is non-breaking elsewhere.
+ *
+ * v4.3.3 refinement (PR #114, full-audit findings):
+ *   • Added "atony" to the relaxed-token list. Classical Western (Cook,
+ *     Felter) uses "atony" as a near-synonym of "laxity" for atonic tissue —
+ *     muscular, vascular, mucous-membrane, or digestive. Bayberry, Black
+ *     Pepper, Juniper Berry, Prickly Ash, and White Oak Bark all carry this
+ *     term. Each happens to also carry "laxity" or "atrophy" so the existing
+ *     classifier hit the right axis, but a future herb added with ONLY
+ *     "atony" would otherwise mis-classify to Neutral. Defensive.
+ *
+ * Stagnation-implies-relaxant convention (documented per audit, no code
+ * change). A herb indicated for "stagnation" classifies as Relaxed
+ * (relaxant action) regardless of whether classical sources describe it
+ * primarily as a stimulant (Black Pepper, Juniper Berry, Prickly Ash) or
+ * primarily as a relaxant (Lavender, Skullcap). This is the explicit
+ * design: stagnation IS resolved by movement, and movement IS the
+ * relaxant action axis in the Eden 3-axis model. Stimulants whose action
+ * is to move stuck tissue are correctly characterized as relaxant on this
+ * axis even though their broader action profile reads as "stimulating."
+ * The label is about what the herb DOES to the tissue (releases
+ * stagnation = relaxant) rather than what it FEELS like in the body
+ * (warming, dispersing, aromatic).
  */
 export function classifyTone(tissueStatesIndicated: string | null | undefined): ToneAxis {
   if (!tissueStatesIndicated) return "Neutral";
   const lower = tissueStatesIndicated.toLowerCase();
   const tenseTokens = ["tension", "constriction", "stagnation", "excitation"];
-  const relaxedTokens = ["laxity", "atrophy", "deficiency", "torpor", "exhaustion"];
+  const relaxedTokens = ["laxity", "atony", "atrophy", "deficiency", "torpor", "exhaustion"];
   const tenseHit = tenseTokens.some((t) => lower.includes(t));
   const relaxedHit = relaxedTokens.some((t) => lower.includes(t));
   // Herb is indicated for Tense states → herb's action is RELAXANT → "Relaxed".
