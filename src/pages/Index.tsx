@@ -5,6 +5,8 @@ import { Facebook, Instagram, ClipboardList, BookOpen, GraduationCap } from "luc
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import AssessmentModal from "@/components/landing/AssessmentModal";
+import WaitlistModal from "@/components/landing/WaitlistModal";
+import { TierTwoWaitlistModal } from "@/components/landing/TierTwoWaitlistModal";
 import { BotanicalLeafTopRight, BotanicalLeafBottomLeft, GoldDivider } from "@/components/landing/BotanicalAccents";
 import ScrollReveal from "@/components/landing/ScrollReveal";
 import { WorldviewBand } from "@/components/landing/WorldviewBand";
@@ -18,33 +20,35 @@ import { ROUTES } from "@/lib/routes";
 // Unsplash photography
 const HERO_IMG = "https://images.unsplash.com/photo-1659328376647-52ec39d1a5cf?auto=format&fit=crop&w=1920&q=80";
 const HERBS_SHELF_IMG = "https://images.unsplash.com/photo-1726303238727-1762e3108ed6?auto=format&fit=crop&w=1200&q=80";
-const MORTAR_IMG = "https://images.unsplash.com/photo-EHG22u_SIfI?auto=format&fit=crop&w=1200&q=80";
+// PR η fix #5: MORTAR_IMG previously pointed at
+//   https://images.unsplash.com/photo-EHG22u_SIfI
+// which is malformed (Unsplash photo IDs are numeric-prefixed hashes,
+// not bare slugs) and rendered as a broken-image icon under the
+// "LEARN MORE ABOUT THE PROGRAM" CTA. Swapped to the same canonical
+// botanical/mortar Unsplash photo used by ConstitutionalHerbalism's
+// BOTANICAL_IMG so we have one known-good asset shared across both
+// pages — no risk of cache drift, same alt-text intent.
+const MORTAR_IMG = "https://images.unsplash.com/photo-1492552085122-36706c238263?auto=format&fit=crop&w=1200&q=80";
+
+// PR η: legacy audienceId for Eden's Table modal — same UUID Homeschool
+// uses, kept here as a constant so the homepage and the standalone
+// /homeschool page submit through the same Resend audience but with
+// the explicit funnel='edens_table' override (the EF's audienceId
+// fallback also resolves this to 'edens_table', but the explicit prop
+// future-proofs against any change to that mapping).
+const EDENS_TABLE_AUD = "a48cb66e-b2a9-461d-98a6-bb1b12f72693";
 
 const Index = () => {
-  // Local state for the legacy /#assessment hash deep-link → AssessmentModal
-  // pathway. JourneyCTA now drives the page's primary action via
-  // /assessment route navigation; the modal is preserved only for
-  // backwards-compatible inbound links that still target the hash.
   const [assessmentModal, setAssessmentModal] = useState(false);
 
-  // PR ε (2026-05-02) — value-ladder journey awareness.
-  //
-  // The JourneyCTA hero already consumes useEdenPattern via
-  // useTierAwareCTA. The value-ladder section further down the page
-  // ("Start Free. Go Deep When You're Ready.") was static after PR β,
-  // so when Olivia (a non-self person-profile) is active the tiles
-  // didn't reflect that her quiz is complete and didn't surface a
-  // per-Pattern buy CTA for her Frozen Knot guide. Per Camila's spec
-  // we now read the active-profile Pattern here too, and the value-
-  // ladder cards flip between empty / completed / buy states.
-  //
-  // useEdenPattern is gated on the ActiveProfileContext's isLoading
-  // (PR δ), so the value-ladder gets the correct active-profile Pattern
-  // on first render with no wrong-Pattern flash. The slug + short
-  // (without leading "The") name match the canonical strings used by
-  // useTierAwareCTA's journey.next — same checkout route, same copy
-  // shape — so the value-ladder buy CTA and the JourneyCTA hero buy CTA
-  // resolve to the same destination for the same Pattern.
+  // PR η fix #2: collapse the homepage Tier 2 + Eden's Table cards from
+  // a 2-click pattern (homepage CTA → landing page → form) into a
+  // 1-click modal. The standalone /tier-2-waitlist and /homeschool
+  // pages remain reachable via direct URLs and keep the informational
+  // content for unauthed visitors who arrive from external links.
+  const [tier2Modal, setTier2Modal] = useState(false);
+  const [edensTableModal, setEdensTableModal] = useState(false);
+
   const { data: activePattern } = useEdenPattern();
   const activePatternSlug = activePattern
     ? patternNameToSlug(activePattern)
@@ -53,17 +57,14 @@ const Index = () => {
     ? activePattern.replace(/^The\s+/i, "")
     : null;
 
-  // PR β (2026-05-02) — homepage CTA restructure.
-  //
-  // Predecessor PR #106 had wired 7 scattered Index.tsx CTAs to pivot on
-  // hasPattern = !!user && !!pattern. That stopgap is removed. The page
-  // now surfaces ONE dominant next-step CTA via <JourneyCTA />, mounted
-  // inside the Hero. JourneyCTA reads the customer-journey state machine
-  // in useTierAwareCTA — which itself consults useEdenPattern, and (per
-  // PR β's ActiveProfileProvider hoist + PR δ's hydration gate) resolves
-  // the active person_profile's Pattern even on /. The value-ladder
-  // section (PR ε) layers per-step journey awareness on the same
-  // resolver.
+  // PR η fix #9: per-surface metadata for the Eden's Table modal submit.
+  const edensTableMetadata: Record<string, unknown> = {
+    surface: "homepage_edens_table_card",
+  };
+  if (activePattern) {
+    edensTableMetadata.pattern_name = activePattern;
+    edensTableMetadata.pattern_slug = activePatternSlug;
+  }
 
   useEffect(() => {
     document.title = "The Eden Institute — Biblical Clinical Herbalism Education";
@@ -81,31 +82,9 @@ const Index = () => {
     }
   }, []);
 
-  // Value-ladder step descriptors. Per PR ε, each step has:
-  //   - completed: visually grays the card and flips the step indicator
-  //     to a checkmark. Currently only Free Quiz toggles this when
-  //     active-profile has a Pattern.
-  //   - cta: the primary button at the bottom of the card. Routed via
-  //     internal Link or external <a> based on `external`.
-  //   - hint: a soft italic muted secondary link rendered when there's
-  //     no primary CTA but we still want to point the visitor at the
-  //     funnel entry (e.g. Deep-Dive Guide tile when no Pattern).
-  //
-  // Free Quiz tile: completed when activePattern resolves; no CTA in
-  // either state (the JourneyCTA hero is the dominant quiz entry).
-  //
-  // Deep-Dive Guide tile: per-Pattern buy CTA when active-profile has a
-  // Pattern; soft "take the quiz first" hint otherwise. Per spec we do
-  // NOT consult quiz_completions.purchased_guide — that column is
-  // email-keyed and can't distinguish per-Pattern purchases. Olivia's
-  // Frozen Knot guide is a separate purchase from Camila's Burning
-  // Bowstring guide; suppress only when we have per-Pattern purchase
-  // tracking (separate follow-up).
-  //
-  // Foundations Course tile: always shows the buy CTA. LearnWorlds
-  // enrollment is untrackable in our funnel (LearnWorlds runs charges
-  // through its own Stripe and never fires events to our stripe-webhook
-  // EF; confirmed 2026-05-02 by live $0-test), so no completion pivot.
+  // Value-ladder step descriptors. PR η fix #4: shortened the
+  // Deep-Dive Guide tile label so longer pattern names don't overflow
+  // the value-ladder tile width on a 375px viewport.
   type StepCta = {
     label: string;
     href: string;
@@ -153,7 +132,7 @@ const Index = () => {
       cta:
         activePattern && activePatternSlug && activePatternShort
           ? {
-              label: `Get your ${activePatternShort} Deep-Dive Guide — $14 →`,
+              label: `Get the ${activePatternShort} Guide — $14 →`,
               href: `/guide/${activePatternSlug}`,
               external: false,
               ariaLabel: `Buy the ${activePatternShort} Deep-Dive Guide for $14`,
@@ -192,12 +171,6 @@ const Index = () => {
     <main className="min-h-screen overflow-x-hidden">
       <Navbar />
 
-      {/* §8.1.1 (Manual v4.0) — state-aware welcome strip. Renders only for
-          authed users with a resolved Eden Pattern; gives them a one-tap
-          path into /apothecary. Anon and authed-without-Pattern visitors
-          see nothing here. Per PR β the resolved Pattern reflects the
-          active person_profile, not the signed-in user's primary, so
-          switching the picker to Olivia surfaces Olivia's Pattern here. */}
       <WelcomeBackBanner />
 
       {/* ─── SECTION 1: HERO ─── */}
@@ -249,12 +222,6 @@ const Index = () => {
 
           <div className="eden-divider" />
 
-          {/* PR β: single dominant next-step CTA + 2 always-visible secondary
-              CTAs (Foundations Course always; per-Pattern Amazon kit when
-              a Pattern is resolved on the active profile). Replaces the
-              prior Hero conditional Button and the "No email required"
-              tagline (which JourneyCTA reproduces internally for the
-              quiz step). */}
           <ScrollReveal delay={200}>
             <JourneyCTA />
           </ScrollReveal>
@@ -329,7 +296,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* ─── WORLDVIEW BAND (Manual v3.17 Lock #14 + #44 — the source-of-vital-force thesis) ─── */}
       <WorldviewBand />
 
       {/* ─── FOR YOU SECTION ─── */}
@@ -359,10 +325,6 @@ const Index = () => {
                 </ScrollReveal>
               ))}
             </div>
-            {/* PR β: section-end conditional CTA removed. JourneyCTA at the
-                top of the page is the dominant action; trailing acquisition
-                buttons add visual clutter without doing more conversion
-                work. */}
           </div>
         </div>
       </section>
@@ -388,11 +350,10 @@ const Index = () => {
       </section>
 
       {/* ─── PATH CARDS SECTION ───
-          PR β: removed the 4th "Quiz/Pattern" card — it was one of the
-          7 hasPattern-pivoted CTAs and is replaced by JourneyCTA at the
-          top of the page. Heading rephrased "Four Ways In" → "Three
-          Ways In" and the grid restructured from 2-up to 3-up so the
-          remaining cards lay out evenly on desktop. */}
+          PR η fix #2 + #3: Card 2 (Tier 2) and Card 3 (Eden's Table) now
+          open one-click waitlist modals instead of bouncing to the
+          landing pages. Card 2 status updated to "Coming 2027". Card 3
+          retains the Eden's Table funnel. */}
       <section className="section-padding-lg" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
         <div className="eden-container px-6">
           <ScrollReveal>
@@ -405,7 +366,6 @@ const Index = () => {
           </ScrollReveal>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
 
-            {/* Card 1 — Tier 1 */}
             <ScrollReveal delay={100}>
               <a href={FOUNDATIONS_COURSE_URL} target="_blank" rel="noopener noreferrer"
                 className="block rounded-sm border p-8 hover:shadow-md transition-shadow duration-300 h-full"
@@ -420,40 +380,52 @@ const Index = () => {
                 <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.8)" }}>
                   The foundation every Christian herbalist needs. Ten lessons covering Biblical health theology, your body's terrain, and how God designed provision in the plant world. This is where everything starts.
                 </p>
+                <p className="font-body text-sm mt-4" style={{ color: "hsl(var(--eden-bark) / 0.7)" }}>
+                  <span className="font-semibold" style={{ color: "hsl(var(--eden-bark))" }}>$97</span> founding student price · first 100 students · regularly $197
+                </p>
                 <p className="font-body text-sm font-semibold mt-6" style={{ color: "hsl(var(--eden-forest))" }}>
                   Enroll now →
                 </p>
               </a>
             </ScrollReveal>
 
-            {/* Card 2 — Tier 2 */}
             <ScrollReveal delay={200}>
-              <div className="block rounded-sm border p-8 h-full"
-                style={{ backgroundColor: "hsl(var(--eden-parchment))", borderColor: "hsl(var(--eden-gold) / 0.3)", opacity: 0.75 }}>
+              <div className="block rounded-sm border p-8 h-full flex flex-col"
+                style={{ backgroundColor: "hsl(var(--eden-parchment))", borderColor: "hsl(var(--eden-gold) / 0.3)", opacity: 0.95 }}>
                 <GraduationCap className="mb-4 w-7 h-7" style={{ color: "hsl(var(--eden-gold))" }} />
                 <h3 className="font-serif text-xl font-bold mb-2" style={{ color: "hsl(var(--eden-forest))" }}>
                   Body Systems & Clinical Literacy
                 </h3>
                 <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>
-                  Tier 2 · Coming Fall 2026
+                  Tier 2 · Coming 2027
                 </p>
                 <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.8)" }}>
                   Go clinical. 14 modules. 127 lessons. Every major body system studied through a terrain lens with Scripture as the anchor. This is where students stop dabbling and start practicing.
                 </p>
-                {/* CTA cleanup 2026-04-30: was ROUTES.COURSES, which sent the user to the
-                    courses overview page rather than the dedicated Tier 2 launch waitlist
-                    where the $497 founding code is captured. Label promises "waitlist";
-                    destination must be the actual waitlist. */}
-                <Link to={ROUTES.TIER_TWO_WAITLIST} className="font-body text-sm font-semibold mt-6 block" style={{ color: "hsl(var(--eden-forest))" }}>
+                <p className="font-body text-sm mt-4" style={{ color: "hsl(var(--eden-bark) / 0.7)" }}>
+                  <span className="font-semibold" style={{ color: "hsl(var(--eden-bark))" }}>$1,497</span> public price — waitlist members get a founding coupon that drops it by $1,000.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setTier2Modal(true)}
+                  data-cta="tier-two-waitlist-homepage"
+                  className="font-body text-sm font-semibold mt-6 text-left underline-offset-4 hover:underline focus:outline-none focus-visible:underline"
+                  style={{ color: "hsl(var(--eden-forest))" }}
+                >
                   Join the Waitlist →
+                </button>
+                <Link
+                  to={ROUTES.TIER_TWO_WAITLIST}
+                  className="font-body text-xs italic mt-2 underline-offset-4 hover:underline"
+                  style={{ color: "hsl(var(--eden-bark) / 0.6)" }}
+                >
+                  or read the full Tier 2 overview →
                 </Link>
               </div>
             </ScrollReveal>
 
-            {/* Card 3 — Homeschool */}
             <ScrollReveal delay={300}>
-              <Link to={ROUTES.HOMESCHOOL}
-                className="block rounded-sm border p-8 hover:shadow-md transition-shadow duration-300 h-full"
+              <div className="block rounded-sm border p-8 hover:shadow-md transition-shadow duration-300 h-full flex flex-col"
                 style={{ backgroundColor: "hsl(var(--eden-parchment))", borderColor: "hsl(var(--eden-gold) / 0.3)" }}>
                 <ClipboardList className="mb-4 w-7 h-7" style={{ color: "hsl(var(--eden-gold))" }} />
                 <h3 className="font-serif text-xl font-bold mb-2" style={{ color: "hsl(var(--eden-forest))" }}>
@@ -465,10 +437,23 @@ const Index = () => {
                 <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.8)" }}>
                   K–12 curriculum that turns your kitchen into a classroom. Memory songs, hands-on herb labs, Scripture at every turn. Open-and-go. Built for the family that wants to pass this down.
                 </p>
-                <p className="font-body text-sm font-semibold mt-6" style={{ color: "hsl(var(--eden-forest))" }}>
+                <button
+                  type="button"
+                  onClick={() => setEdensTableModal(true)}
+                  data-cta="edens-table-waitlist-homepage"
+                  className="font-body text-sm font-semibold mt-6 text-left underline-offset-4 hover:underline focus:outline-none focus-visible:underline"
+                  style={{ color: "hsl(var(--eden-forest))" }}
+                >
                   Join the waitlist →
-                </p>
-              </Link>
+                </button>
+                <Link
+                  to={ROUTES.HOMESCHOOL}
+                  className="font-body text-xs italic mt-2 underline-offset-4 hover:underline"
+                  style={{ color: "hsl(var(--eden-bark) / 0.6)" }}
+                >
+                  or read the full Eden's Table overview →
+                </Link>
+              </div>
             </ScrollReveal>
 
           </div>
@@ -537,9 +522,6 @@ const Index = () => {
                 None of that is your fault. You were never taught to read your own terrain.
               </p>
             </ScrollReveal>
-
-            {/* PR β: section-end conditional CTA removed. JourneyCTA at
-                the top of the page is the dominant action. */}
           </div>
         </div>
       </section>
@@ -583,16 +565,12 @@ const Index = () => {
       <GoldDivider />
 
       {/* ─── VALUE LADDER SECTION ───
-          PR ε (2026-05-02): each step is journey-aware. Free Quiz tile
-          flips to a completed/grayed state when active-profile has a
-          Pattern; Deep-Dive Guide tile surfaces the per-Pattern buy CTA
-          (matching JourneyCTA's primary route exactly) when a Pattern
-          resolves, otherwise renders a soft "take the quiz first" hint;
-          Foundations Course tile always shows the Enroll-now external
-          link to LearnWorlds (untrackable enrollment per the standing
-          decision). The active-profile Pattern is the same one driving
-          JourneyCTA at the top of the page — same useEdenPattern hook,
-          gated on ActiveProfileContext hydration per PR δ. */}
+          PR η fix #4: Deep-Dive Guide tile label shortened so longer
+          Pattern names (OVERFLOWING CUP, SPENT CANDLE, etc.) don't
+          overflow the tile width on a 375px viewport once the eden
+          variant uppercases the label. Tile button also carries
+          whitespace-normal + leading-snug so wrapping is graceful for
+          all 8 patterns. */}
       <section className="section-padding-lg parchment-texture relative overflow-hidden">
         <div className="eden-container px-6 relative z-10">
           <ScrollReveal>
@@ -615,11 +593,6 @@ const Index = () => {
                   data-step-label={step.label}
                   data-step-completed={step.completed ? "true" : "false"}
                 >
-                  {/* Step indicator: number for active steps, checkmark
-                      for completed. The completed treatment uses the
-                      eden-forest fill (vs the default eden-gold) so it
-                      visually reads as a different tile state, not just
-                      a numbered tile that happens to be grayed. */}
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center font-serif text-sm font-bold mb-4"
                     style={{
@@ -660,7 +633,7 @@ const Index = () => {
                         aria-label={step.cta.ariaLabel}
                         data-cta="value-ladder-step"
                         data-step-label={step.label}
-                        className="inline-flex items-center justify-center w-full text-center font-body text-sm font-semibold px-4 py-3 rounded-sm tracking-wide transition-colors duration-200 min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--eden-gold))]"
+                        className="inline-flex items-center justify-center w-full text-center font-body text-xs sm:text-sm font-semibold px-3 py-3 rounded-sm tracking-wide transition-colors duration-200 min-h-[44px] whitespace-normal leading-snug focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--eden-gold))]"
                         style={{
                           backgroundColor: "hsl(var(--eden-gold))",
                           color: "hsl(var(--eden-bark))",
@@ -674,7 +647,7 @@ const Index = () => {
                         aria-label={step.cta.ariaLabel}
                         data-cta="value-ladder-step"
                         data-step-label={step.label}
-                        className="inline-flex items-center justify-center w-full text-center font-body text-sm font-semibold px-4 py-3 rounded-sm tracking-wide transition-colors duration-200 min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--eden-gold))]"
+                        className="inline-flex items-center justify-center w-full text-center font-body text-xs sm:text-sm font-semibold px-3 py-3 rounded-sm tracking-wide transition-colors duration-200 min-h-[44px] whitespace-normal leading-snug focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--eden-gold))]"
                         style={{
                           backgroundColor: "hsl(var(--eden-gold))",
                           color: "hsl(var(--eden-bark))",
@@ -743,12 +716,13 @@ const Index = () => {
                     to read the body, understand the terrain, and match the person to the plant.
                   </p>
                   <Link to={ROUTES.WHY_EDEN}>
-                    <Button variant="eden" size="xl" className="min-h-[48px] text-sm sm:text-base px-8">
+                    <Button variant="eden" size="xl" className="min-h-[48px] text-sm sm:text-base px-8 whitespace-normal leading-snug h-auto py-3">
                       Learn More About the Program →
                     </Button>
                   </Link>
+                  {/* PR η fix #3: status-only timing line. */}
                   <p className="mt-4 font-body text-sm" style={{ color: "hsl(var(--eden-parchment) / 0.7)" }}>
-                    Enrollment opens June 2026. Course launches July 7, 2026.
+                    Now enrolling — first 100 students at $97. Course content launches July 7, 2026.
                   </p>
                 </div>
               </ScrollReveal>
@@ -769,11 +743,7 @@ const Index = () => {
 
       <GoldDivider />
 
-      {/* ─── BOTTOM CTA ───
-          PR β: conditional Button removed. The closing heading + body
-          remain as a sectional sign-off, but the dominant action lives
-          in JourneyCTA at the top of the page so we don't repeat it
-          here. Social links preserved. */}
+      {/* ─── BOTTOM CTA ─── */}
       <section className="relative overflow-hidden" style={{ backgroundColor: "hsl(var(--eden-forest))" }}>
         <img
           src={HERO_IMG}
@@ -801,7 +771,6 @@ const Index = () => {
               </p>
             </ScrollReveal>
 
-            {/* Social links */}
             <div className="flex items-center justify-center gap-5 mt-10">
               <a
                 href="https://www.facebook.com/share/1CRzWj7wmz/?mibextid=wwXIfr"
@@ -847,6 +816,20 @@ const Index = () => {
       <Footer />
 
       <AssessmentModal open={assessmentModal} onOpenChange={setAssessmentModal} />
+      {/* PR η fix #2: homepage one-click waitlist modals. */}
+      <TierTwoWaitlistModal
+        open={tier2Modal}
+        onOpenChange={setTier2Modal}
+        surface="homepage_tier_two_card"
+      />
+      <WaitlistModal
+        open={edensTableModal}
+        onOpenChange={setEdensTableModal}
+        audienceId={EDENS_TABLE_AUD}
+        title="Join Eden's Table Early Access List"
+        funnel="edens_table"
+        metadata={edensTableMetadata}
+      />
     </main>
   );
 };
