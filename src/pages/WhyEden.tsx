@@ -16,14 +16,11 @@ const WhyEden = () => {
     canonical: "https://edeninstitute.health/why-eden",
   });
 
-  // PR ζ: "Ready to Begin?" section's quiz CTA was journey-blind — even
-  // when the active profile had a resolved Pattern, this prompt still
-  // told them to take a quiz they'd already completed. Now consumes
-  // useJourneyAwareQuizCTA so the label and route swap to the
-  // per-Pattern Deep-Dive Guide checkout when a Pattern resolves
-  // (matches JourneyCTA's primary on Index.tsx exactly). Custom
-  // non-Button "forest-pill" styling preserved — the hook returns just
-  // the label/href tuple so the existing Link styling can wrap.
+  // PR η fix #6: section-LEVEL swap, not just the button. The heading
+  // ("Ready to Begin?") and the surrounding paragraph already pivot in
+  // the body copy below; the heading itself now also swaps so a
+  // returning visitor with a resolved Pattern doesn't see "Ready to
+  // Begin?" as the prompt above their Continue-Your-Studies action.
   const journeyCta = useJourneyAwareQuizCTA();
 
   return (
@@ -51,7 +48,6 @@ const WhyEden = () => {
 
       <GoldDivider />
 
-      {/* WORLDVIEW BAND — the thesis the page builds out from (Manual v3.17 Lock #14 + #44) */}
       <WorldviewBand caption="What we believe and what we don’t" headline={null} />
       <GoldDivider />
 
@@ -157,13 +153,13 @@ const WhyEden = () => {
 
       <GoldDivider />
 
-      {/* FINAL CTA */}
+      {/* FINAL CTA — PR η fix #6 section-LEVEL pivot. */}
       <section className="section-padding-lg" style={{ backgroundColor: "hsl(var(--eden-parchment))" }}>
         <div className="eden-container px-6">
           <div className="max-w-3xl mx-auto text-center">
             <ScrollReveal>
               <h2 className="font-serif text-3xl md:text-4xl font-bold mb-6" style={{ color: "hsl(var(--eden-forest))" }}>
-                Ready to Begin?
+                {journeyCta.hasPattern ? "Continue Your Studies" : "Ready to Begin?"}
               </h2>
               <p className="font-body text-base leading-relaxed mb-8" style={{ color: "hsl(var(--eden-bark) / 0.85)" }}>
                 {journeyCta.hasPattern
@@ -171,25 +167,11 @@ const WhyEden = () => {
                   : "Start with the free body pattern quiz. Two minutes. Eight possible results. It will change how you think about every herb you'll ever use."}
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                {/* PR ζ: was a static Link to ROUTES.ASSESSMENT with the
-                    "Take the Free Body Pattern Quiz →" copy regardless of
-                    journey state. Now journey-aware via
-                    useJourneyAwareQuizCTA — routes to /assessment with
-                    the original quiz copy when no Pattern, or to
-                    /guide/<slug> with the per-Pattern Deep-Dive Guide buy
-                    copy when active-profile has a Pattern. Forest-pill
-                    styling preserved by wrapping a Link directly (the hook
-                    returns just the tuple; styling is the consumer's job).
-                    Earlier cleanup (2026-04-30): the route used to be
-                    `${ROUTES.HOME}#assessment` which depended on Index's
-                    useEffect-on-mount race to open the quiz modal. The
-                    direct /assessment route is more reliable and matches
-                    the label promise. */}
                 <Link
                   to={journeyCta.href}
                   data-cta="journey-aware-quiz"
                   data-journey-kind={journeyCta.kind}
-                  className="font-body text-sm font-semibold px-8 py-3 rounded-sm"
+                  className="font-body text-sm font-semibold px-8 py-3 rounded-sm whitespace-normal leading-snug text-center max-w-full"
                   style={{ backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-parchment))" }}
                 >
                   {journeyCta.label}
