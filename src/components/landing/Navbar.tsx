@@ -10,11 +10,16 @@ import PractitionerWaitlistModal from "@/components/landing/PractitionerWaitlist
 // PR #52 v3.33: Apothecary nav entry added between "Why Eden" and the
 // CTA per founder Q3 authorization. Links to the public marketing landing
 // /apothecary/start (Lock #47 framing surface).
+//
+// 2026-05-03: "Community" removed per founder direction. The /community
+// route is preserved in the routing layer (so existing inbound links don't
+// 404), but is no longer surfaced from the primary navigation. Camila is
+// pivoting to a different community model that will be announced
+// separately.
 const navLinks = [
   { label: "Home", href: ROUTES.HOME },
   { label: "Courses", href: ROUTES.COURSES },
   { label: "Homeschool", href: ROUTES.HOMESCHOOL },
-  { label: "Community", href: ROUTES.COMMUNITY },
   { label: "Why Eden", href: ROUTES.WHY_EDEN },
   { label: "Apothecary", href: ROUTES.APOTHECARY_START },
 ];
