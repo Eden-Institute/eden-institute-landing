@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEdenPattern } from "@/hooks/useEdenPattern";
 import { useTierAwareCTA } from "@/hooks/useTierAwareCTA";
 import { ROUTES } from "@/lib/routes";
+import PractitionerWaitlistModal from "@/components/landing/PractitionerWaitlistModal";
 
 // PR #52 v3.33: Apothecary nav entry added between "Why Eden" and the
 // CTA per founder Q3 authorization. Links to the public marketing landing
@@ -17,6 +18,15 @@ const navLinks = [
   { label: "Why Eden", href: ROUTES.WHY_EDEN },
   { label: "Apothecary", href: ROUTES.APOTHECARY_START },
 ];
+
+// PR ι (iota): the canonical anchor used by useTierAwareCTA() for the
+// practitioner-waitlist upgrade step. Detecting via href (rather than
+// adding a "kind" discriminator to the upgrade slot) keeps the change
+// narrow and tier-agnostic — any tier whose upgrade slot resolves to
+// this anchor (Seed/Root/Practitioner today and going forward per
+// Camila's PR ι clarification on multi-profile tier coverage) gets
+// the modal-trigger treatment automatically.
+const PRACTITIONER_WAITLIST_ANCHOR = "/apothecary#practitioner-waitlist";
 
 /**
  * §8.1.1 (Manual v4.0) — State-aware Navbar CTA.
@@ -36,15 +46,45 @@ const navLinks = [
  * opens in a new tab with rel="noopener noreferrer sponsored" (Google's
  * affiliate-disclosure attribute) and is followed by an FTC affiliate
  * disclosure footer.
+ *
+ * ─────────────────────────────────────────────────────────────────
+ * PR ι (iota) — dual-CTA practitioner waitlist.
+ * ─────────────────────────────────────────────────────────────────
+ *
+ * The tier-aware upgrade slot, when its href resolves to the
+ * practitioner-waitlist anchor, switches from a single Link to a
+ * primary modal-trigger button + secondary "Learn more about the
+ * Practitioner tier" link. Collapses the structural 2-click flow
+ * (drawer Link → /apothecary navigation → scroll past the full herb
+ * directory → reach the inline form → submit) into 1-click direct
+ * modal open.
+ *
+ * Tier-agnostic by design: detects on href, not the user's tier.
+ * Per Camila's PR ι clarification (2026-05-02), the 2-click flow
+ * shows up on every tier that supports multi-profile switching —
+ * Seed (up to 5 profiles), Root (up to 10), and Practitioner
+ * (up to 500). Today the practitioner-waitlist anchor only resolves
+ * for Root in useTierAwareCTA, but this branch fires for any tier
+ * the state machine surfaces it to without further changes here.
  */
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  // PR ι: separate modal-open state. Decoupled from drawer-open so the
+  // modal stays interactive after we close the drawer on the same
+  // click (drawer collapses, modal appears, focus moves into form).
+  const [practitionerModalOpen, setPractitionerModalOpen] = useState(false);
   const { user } = useAuth();
   const { data: pattern } = useEdenPattern();
   const { upgrade, guide, amazonKit } = useTierAwareCTA();
 
   const ctaLabel = user && pattern ? "Open Apothecary" : "Take the Quiz";
   const ctaHref = user && pattern ? ROUTES.APOTHECARY : ROUTES.ASSESSMENT;
+
+  // PR ι: tier-agnostic detection via href. Future state-machine
+  // tweaks that add Seed/Practitioner to the practitioner-waitlist
+  // step inherit the modal-trigger behaviour automatically.
+  const upgradeIsPractitionerWaitlist =
+    upgrade?.href === PRACTITIONER_WAITLIST_ANCHOR;
 
   return (
     <header className="w-full bg-[#FAF8F3] border-b border-[#D6CDB8] sticky top-0 z-50">
@@ -82,9 +122,37 @@ export default function Navbar() {
               distinct from plain nav links via gold border + tinted
               background. Upgrade slot is suppressed when null (Root /
               Practitioner). Amazon kit slot is suppressed when null
-              (anon / no-Pattern). */}
+              (anon / no-Pattern).
+
+              PR ι (iota): when the upgrade slot resolves to the
+              practitioner-waitlist anchor, render a dual-CTA pair —
+              primary modal-trigger button + secondary "Learn more"
+              link — instead of a single Link. */}
           <div className="border-t border-[#D6CDB8] pt-4 flex flex-col gap-3">
-            {upgrade && (
+            {upgrade && upgradeIsPractitionerWaitlist ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    setPractitionerModalOpen(true);
+                  }}
+                  data-cta="tier-aware-upgrade"
+                  data-cta-kind="practitioner-waitlist-modal"
+                  className="text-sm font-sans text-[#3B4A3F] border border-[#C9A84C] bg-[#C9A84C]/10 px-4 py-3 rounded-sm tracking-wide text-center hover:bg-[#C9A84C]/20 transition-colors duration-200 leading-snug"
+                >
+                  {upgrade.label}
+                </button>
+                <Link
+                  to={PRACTITIONER_WAITLIST_ANCHOR}
+                  onClick={() => setOpen(false)}
+                  data-cta="tier-aware-upgrade-learn-more"
+                  className="text-xs font-sans text-[#7A8C7E] hover:text-[#3B4A3F] tracking-wide text-center underline-offset-4 hover:underline transition-colors duration-200"
+                >
+                  Learn more about the Practitioner tier →
+                </Link>
+              </>
+            ) : upgrade ? (
               <Link
                 to={upgrade.href}
                 onClick={() => setOpen(false)}
@@ -93,7 +161,7 @@ export default function Navbar() {
               >
                 {upgrade.label}
               </Link>
-            )}
+            ) : null}
             <Link
               to={guide.href}
               onClick={() => setOpen(false)}
@@ -132,6 +200,14 @@ export default function Navbar() {
           </Link>
         </div>
       )}
+      {/* PR ι (iota): mounted at navbar root so the modal is reachable
+          whenever the upgrade slot above resolves to the practitioner
+          waitlist. Only opens via the modal-trigger button branch. */}
+      <PractitionerWaitlistModal
+        open={practitionerModalOpen}
+        onOpenChange={setPractitionerModalOpen}
+        surface="navbar_tier_aware_upgrade"
+      />
     </header>
   );
 }
