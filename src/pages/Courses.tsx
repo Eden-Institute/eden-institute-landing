@@ -156,8 +156,10 @@ const Courses = () => {
               </div>
             </div>
 
+            {/* Tier 3 timing → TBD per Camila (was "Coming 2027"). Ship date is
+                unknown; prefer vague over a date she might miss. */}
             <div className="relative rounded-lg border p-8 opacity-65" style={{ borderColor: "hsl(var(--border))" }}>
-              <span className="absolute -top-3 left-6 rounded bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Coming 2027</span>
+              <span className="absolute -top-3 left-6 rounded bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">TBD</span>
               <Users className="mb-4 h-8 w-8 text-muted-foreground" />
               <h3 className="mb-1 font-serif text-xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>Tier 3 — Clinical Practice</h3>
               <p className="my-4 font-body text-sm leading-relaxed text-muted-foreground">Advanced clinical application — tissue states, body pattern prescribing, and supervised practice.</p>
@@ -167,7 +169,7 @@ const Courses = () => {
                 <li className="flex gap-2"><Clock className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />Case study library</li>
                 <li className="flex gap-2"><Clock className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />Practitioner credential</li>
               </ul>
-              <Button variant="eden-outline" className="w-full opacity-50" disabled>Coming 2027</Button>
+              <Button variant="eden-outline" className="w-full opacity-50" disabled>TBD</Button>
             </div>
           </div>
         </div>
