@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
@@ -6,6 +7,7 @@ import WaitlistModal from "@/components/landing/WaitlistModal";
 import { Smartphone, Leaf, Shield, Star } from "lucide-react";
 import { WorldviewBand } from "@/components/landing/WorldviewBand";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
+import { ROUTES } from "@/lib/routes";
 
 const APP_AUD = "cebd3478-b344-41b7-98c8-8bcf0e0108da";
 
@@ -50,9 +52,31 @@ const AppPage = () => {
             />
             Beta launching July 7, 2026
           </div>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button variant="eden" size="xl" onClick={() => setOpen(true)}>
+          {/* PR ι (iota): dual-CTA pair. Primary opens the Beta
+              Waitlist modal directly (1-click); secondary "Learn More"
+              routes to /apothecary/start — the public Apothecary
+              tier-select / FAQ surface — so visitors can read tier
+              comparisons and the FAQ before deciding to sign up. */}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button
+              variant="eden"
+              size="xl"
+              onClick={() => setOpen(true)}
+              data-cta="apothecary-beta-waitlist-hero"
+            >
               Join the Beta Waitlist
+            </Button>
+            <Button
+              variant="eden-outline"
+              size="xl"
+              asChild
+            >
+              <Link
+                to={ROUTES.APOTHECARY_START}
+                data-cta="apothecary-beta-waitlist-hero-learn-more"
+              >
+                Learn More
+              </Link>
             </Button>
           </div>
         </div>
@@ -118,14 +142,30 @@ const AppPage = () => {
             Beta opens July 7 alongside the Tier 2 course launch. Founding members get first access and founding pricing
             locked for life.
           </p>
-          <Button
-            variant="eden-outline"
-            size="xl"
-            className="border-white text-white hover:bg-white hover:text-foreground"
-            onClick={() => setOpen(true)}
-          >
-            Join the Beta Waitlist
-          </Button>
+          {/* PR ι (iota): dual-CTA pair on the dark forest section.
+              Primary keeps the existing white-outline-on-dark styling;
+              secondary is a small text link in the parchment color so
+              both surfaces stay legible against the forest background.
+              "Learn More" routes to /apothecary/start. */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Button
+              variant="eden-outline"
+              size="xl"
+              className="border-white text-white hover:bg-white hover:text-foreground"
+              onClick={() => setOpen(true)}
+              data-cta="apothecary-beta-waitlist-bottom"
+            >
+              Join the Beta Waitlist
+            </Button>
+            <Link
+              to={ROUTES.APOTHECARY_START}
+              data-cta="apothecary-beta-waitlist-bottom-learn-more"
+              className="font-body text-sm font-semibold underline-offset-4 hover:underline"
+              style={{ color: "rgba(255,255,255,0.85)" }}
+            >
+              Learn More →
+            </Link>
+          </div>
         </div>
       </section>
 
