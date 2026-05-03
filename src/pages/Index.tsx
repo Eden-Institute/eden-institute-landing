@@ -353,7 +353,15 @@ const Index = () => {
           PR η fix #2 + #3: Card 2 (Tier 2) and Card 3 (Eden's Table) now
           open one-click waitlist modals instead of bouncing to the
           landing pages. Card 2 status updated to "Coming 2027". Card 3
-          retains the Eden's Table funnel. */}
+          retains the Eden's Table funnel.
+
+          PR ι (iota): the Tier 2 + Eden's Table card CTAs now render as
+          a visually-paired dual-CTA stack — primary modal-trigger
+          button + secondary "Learn More" outline button — instead of
+          the previous primary text-link + small italic secondary. The
+          modal-direct conversion path from PR η is preserved; the
+          visual upgrade is so users perceive the choice between
+          immediate signup and reading first as a real dual-CTA pair. */}
       <section className="section-padding-lg" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
         <div className="eden-container px-6">
           <ScrollReveal>
@@ -405,22 +413,38 @@ const Index = () => {
                 <p className="font-body text-sm mt-4" style={{ color: "hsl(var(--eden-bark) / 0.7)" }}>
                   <span className="font-semibold" style={{ color: "hsl(var(--eden-bark))" }}>$1,497</span> public price — waitlist members get a founding coupon that drops it by $1,000.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => setTier2Modal(true)}
-                  data-cta="tier-two-waitlist-homepage"
-                  className="font-body text-sm font-semibold mt-6 text-left underline-offset-4 hover:underline focus:outline-none focus-visible:underline"
-                  style={{ color: "hsl(var(--eden-forest))" }}
-                >
-                  Join the Waitlist →
-                </button>
-                <Link
-                  to={ROUTES.TIER_TWO_WAITLIST}
-                  className="font-body text-xs italic mt-2 underline-offset-4 hover:underline"
-                  style={{ color: "hsl(var(--eden-bark) / 0.6)" }}
-                >
-                  or read the full Tier 2 overview →
-                </Link>
+                {/* PR ι (iota): dual-CTA pair styling. Primary opens the
+                    Tier 2 modal directly (1-click, preserved from PR η);
+                    secondary "Learn More" routes to the /tier-2-waitlist
+                    info page for visitors who want to read first.
+                    Stacked column inside the card (cards are narrow);
+                    both surfaces respect the 44px tap target. */}
+                <div className="flex flex-col gap-2 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setTier2Modal(true)}
+                    data-cta="tier-two-waitlist-homepage"
+                    className="inline-flex items-center justify-center font-body text-sm font-semibold px-4 py-3 rounded-sm tracking-wide transition-opacity duration-200 min-h-[44px] whitespace-normal leading-snug hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--eden-gold))]"
+                    style={{
+                      backgroundColor: "hsl(var(--eden-gold))",
+                      color: "hsl(var(--eden-bark))",
+                    }}
+                  >
+                    Join the Waitlist
+                  </button>
+                  <Link
+                    to={ROUTES.TIER_TWO_WAITLIST}
+                    data-cta="tier-two-waitlist-homepage-learn-more"
+                    className="inline-flex items-center justify-center font-body text-sm font-semibold px-4 py-3 rounded-sm tracking-wide transition-colors duration-200 min-h-[44px] whitespace-normal leading-snug focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--eden-gold))]"
+                    style={{
+                      backgroundColor: "transparent",
+                      color: "hsl(var(--eden-forest))",
+                      border: "1px solid hsl(var(--eden-forest))",
+                    }}
+                  >
+                    Learn More
+                  </Link>
+                </div>
               </div>
             </ScrollReveal>
 
@@ -437,22 +461,36 @@ const Index = () => {
                 <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.8)" }}>
                   K–12 curriculum that turns your kitchen into a classroom. Memory songs, hands-on herb labs, Scripture at every turn. Open-and-go. Built for the family that wants to pass this down.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => setEdensTableModal(true)}
-                  data-cta="edens-table-waitlist-homepage"
-                  className="font-body text-sm font-semibold mt-6 text-left underline-offset-4 hover:underline focus:outline-none focus-visible:underline"
-                  style={{ color: "hsl(var(--eden-forest))" }}
-                >
-                  Join the waitlist →
-                </button>
-                <Link
-                  to={ROUTES.HOMESCHOOL}
-                  className="font-body text-xs italic mt-2 underline-offset-4 hover:underline"
-                  style={{ color: "hsl(var(--eden-bark) / 0.6)" }}
-                >
-                  or read the full Eden's Table overview →
-                </Link>
+                {/* PR ι (iota): same dual-CTA pair pattern as the Tier 2
+                    card above. Primary opens the Eden's Table modal
+                    directly; secondary "Learn More" routes to the
+                    /homeschool info page. */}
+                <div className="flex flex-col gap-2 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setEdensTableModal(true)}
+                    data-cta="edens-table-waitlist-homepage"
+                    className="inline-flex items-center justify-center font-body text-sm font-semibold px-4 py-3 rounded-sm tracking-wide transition-opacity duration-200 min-h-[44px] whitespace-normal leading-snug hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--eden-gold))]"
+                    style={{
+                      backgroundColor: "hsl(var(--eden-gold))",
+                      color: "hsl(var(--eden-bark))",
+                    }}
+                  >
+                    Join the Waitlist
+                  </button>
+                  <Link
+                    to={ROUTES.HOMESCHOOL}
+                    data-cta="edens-table-waitlist-homepage-learn-more"
+                    className="inline-flex items-center justify-center font-body text-sm font-semibold px-4 py-3 rounded-sm tracking-wide transition-colors duration-200 min-h-[44px] whitespace-normal leading-snug focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--eden-gold))]"
+                    style={{
+                      backgroundColor: "transparent",
+                      color: "hsl(var(--eden-forest))",
+                      border: "1px solid hsl(var(--eden-forest))",
+                    }}
+                  >
+                    Learn More
+                  </Link>
+                </div>
               </div>
             </ScrollReveal>
 
