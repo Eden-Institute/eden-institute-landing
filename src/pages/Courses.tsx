@@ -10,8 +10,19 @@ import { Button } from "@/components/ui/button";
 import { TierTwoWaitlistModal } from "@/components/landing/TierTwoWaitlistModal";
 import { ROUTES } from "@/lib/routes";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
+import { useEdenPattern } from "@/hooks/useEdenPattern";
+import { getAmazonKitUrl } from "@/lib/amazonKitUrls";
 
 const T1 = "https://learn.edeninstitute.health/course/back-to-eden1";
+
+// 2026-05-03 PR (this commit): Eden Foundations book Amazon link.
+// Used both by the existing companion-textbook block and as the
+// fallback target for the new top+bottom Amazon-Kit CTAs when the
+// visitor does not yet have a resolved Pattern (so the affiliate
+// revenue path is live for anonymous visitors too). Same affiliate
+// tag as amazonKitUrls (mobile088c05e-20).
+const EDEN_FOUNDATIONS_BOOK_URL =
+  "https://www.amazon.com/dp/B0GPT81RDF?tag=mobile088c05e-20";
 
 const Courses = () => {
   useDocumentMeta({
@@ -24,6 +35,20 @@ const Courses = () => {
   // PR η fix #6 (small): the bottom "Not Sure Where to Start?" section's
   // heading + paragraph also pivot when a Pattern is resolved.
   const journeyCta = useJourneyAwareQuizCTA();
+
+  // 2026-05-03 PR: Pattern-aware Amazon Kit CTA. When the visitor
+  // has a resolved Pattern, getAmazonKitUrl returns that Pattern's
+  // matched Amazon wishlist (8 personalized kits, one per Pattern,
+  // affiliate-tagged). When no Pattern, fall back to the Eden
+  // Foundations book — never absent on the /courses page per
+  // founder direction (revenue surface should always render).
+  const { data: activePattern } = useEdenPattern();
+  const patternKitUrl = getAmazonKitUrl(activePattern);
+  const amazonKitUrl = patternKitUrl ?? EDEN_FOUNDATIONS_BOOK_URL;
+  const amazonKitLabel = activePattern
+    ? `Get the ${activePattern.replace(/^The\s+/i, "")} Starter Kit`
+    : "Get the Eden Foundations Book";
+  const amazonKitAriaLabel = `${amazonKitLabel} on Amazon (opens in a new tab)`;
 
   // PR ι (iota): both Tier 2 waitlist CTAs on this page (the Tier 2 card
   // primary action + the companion textbook block) now open the
@@ -60,10 +85,21 @@ const Courses = () => {
               — Psalm 104:14 (KJV)
             </footer>
           </blockquote>
-          <div className="flex flex-col justify-center gap-4 sm:flex-row">
+          {/* 2026-05-03 PR: CTA cluster restructured for equal-height
+              alignment across all variants. Each <a> wrapper is now
+              inline-flex w-full sm:w-auto so it participates as a
+              flex item; Button h-full stretches the inner button to
+              fill the wrapper. New 3rd button (Amazon Kit) sits to
+              the right of the existing two. */}
+          <div className="flex flex-col items-stretch justify-center gap-4 sm:flex-row sm:flex-wrap">
             {/* PR η fix #3: hero Tier 1 CTA reflects the founding price. */}
-            <a href={T1} target="_blank" rel="noopener noreferrer">
-              <Button variant="eden" size="xl" className="whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] h-auto py-3 px-6">
+            <a
+              href={T1}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex w-full sm:w-auto"
+            >
+              <Button variant="eden" size="xl" className="w-full h-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6">
                 Enroll in Tier 1 — $97 Founding
               </Button>
             </a>
@@ -71,9 +107,30 @@ const Courses = () => {
               variant="eden-outline"
               size="xl"
               noPatternLabel="Take the Free Quiz First"
-              className="whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] h-auto py-3 px-6"
+              className="w-full sm:w-auto h-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6"
             />
+            {/* 2026-05-03 PR: top-of-page Amazon Kit CTA. Pattern-aware
+                with book fallback. Affiliate-tagged via amazonKitUrls
+                helper (or the explicit EDEN_FOUNDATIONS_BOOK_URL). */}
+            <a
+              href={amazonKitUrl}
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+              aria-label={amazonKitAriaLabel}
+              data-cta="courses-hero-amazon-kit"
+              className="inline-flex w-full sm:w-auto"
+            >
+              <Button variant="eden-outline" size="xl" className="w-full h-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6">
+                {amazonKitLabel} →
+              </Button>
+            </a>
           </div>
+          {/* FTC affiliate disclosure — present whenever the Amazon
+              CTA is rendered (always on this page). Matches Navbar +
+              MatchedHerbsCtaPair wording for cross-surface consistency. */}
+          <p className="mt-4 font-body text-[11px] italic text-muted-foreground">
+            Amazon links are affiliate links — Eden Institute earns a small commission at no extra cost to you.
+          </p>
         </div>
       </section>
 
@@ -124,7 +181,7 @@ const Courses = () => {
                 <p className="font-body text-sm" style={{ color: "hsl(var(--eden-bark) / 0.75)" }}>The print companion to the Tier 1 course. Read it alongside the lessons or give it as a gift to someone beginning their herbal journey.</p>
               </div>
               <a
-                href="https://www.amazon.com/dp/B0GPT81RDF?tag=mobile088c05e-20"
+                href={EDEN_FOUNDATIONS_BOOK_URL}
                 target="_blank"
                 rel="noopener noreferrer sponsored"
                 aria-label="Browse the Eden Institute book series on Amazon (opens in a new tab)"
@@ -259,7 +316,11 @@ const Courses = () => {
         </div>
       </section>
 
-      {/* PR η fix #6 (small): section-level pivot. */}
+      {/* PR η fix #6 (small): section-level pivot.
+          2026-05-03 PR: same CTA-cluster restructure as hero — wrap each
+          <a> in inline-flex w-full sm:w-auto, Button h-full, and add
+          the Pattern-aware Amazon Kit CTA as a 3rd button so the
+          revenue surface is present on the bottom of the page too. */}
       <section className="px-6 py-20" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="mb-4 font-serif text-3xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>
@@ -270,19 +331,40 @@ const Courses = () => {
               ? "Your Pattern is already resolved. The next step is the Deep-Dive Guide for your terrain — ten matched herbs, nutrition, lifestyle, and Scripture, all aligned to your body pattern."
               : "Take the 2-minute Body Pattern Quiz. Discover your body pattern first."}
           </p>
-          <div className="flex flex-col justify-center gap-4 sm:flex-row">
+          <div className="flex flex-col items-stretch justify-center gap-4 sm:flex-row sm:flex-wrap">
             <JourneyAwareQuizCTA
               variant="eden"
               size="xl"
               noPatternLabel="Take the Free Quiz"
-              className="whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] h-auto py-3 px-6"
+              className="w-full sm:w-auto h-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6"
             />
-            <a href={T1} target="_blank" rel="noopener noreferrer">
-              <Button variant="eden-outline" size="xl" className="whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] h-auto py-3 px-6">
+            <a
+              href={T1}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex w-full sm:w-auto"
+            >
+              <Button variant="eden-outline" size="xl" className="w-full h-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6">
                 Enroll in Tier 1 — $97
               </Button>
             </a>
+            <a
+              href={amazonKitUrl}
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+              aria-label={amazonKitAriaLabel}
+              data-cta="courses-bottom-amazon-kit"
+              className="inline-flex w-full sm:w-auto"
+            >
+              <Button variant="eden-outline" size="xl" className="w-full h-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6">
+                {amazonKitLabel} →
+              </Button>
+            </a>
           </div>
+          {/* FTC affiliate disclosure (mirrors hero cluster). */}
+          <p className="mt-4 font-body text-[11px] italic text-muted-foreground">
+            Amazon links are affiliate links — Eden Institute earns a small commission at no extra cost to you.
+          </p>
         </div>
       </section>
 
