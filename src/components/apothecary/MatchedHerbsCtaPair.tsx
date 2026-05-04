@@ -186,7 +186,11 @@ function PractitionerWaitlistCard({
               required
               autoComplete="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              // PR κ: strip ALL whitespace (incl. internal spaces some
+              // mobile autocomplete engines insert between '@' and the
+              // domain) and lowercase. Defensive frontend layer; the
+              // EF normalizes on its end too.
+              onChange={(e) => setEmail(e.target.value.replace(/\s+/g, "").toLowerCase().trim())}
               placeholder="you@example.com"
               className="h-11"
               disabled={status === "submitting"}
