@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import WaitlistModal from "./WaitlistModal";
+import { ROUTES } from "@/lib/routes";
 
 const APP_AUDIENCE_ID = "cebd3478-b344-41b7-98c8-8bcf0e0108da";
 
@@ -139,6 +141,22 @@ const AppSection = () => {
           >
             → Join the App Beta Waitlist
           </Button>
+          {/* feat: public Apothecary tier pricing — secondary link to
+              the live, public Free/Seed/Root/Practitioner ladder on
+              /apothecary#tiers. The beta-tester pricing above is the
+              founder-locked-in cohort pricing; the link below routes
+              visitors to the live public pricing they can subscribe to
+              today. Stale beta pricing display left as-is by design
+              (separate cleanup, out of scope of this PR). */}
+          <div className="mt-4">
+            <Link
+              to={`${ROUTES.APOTHECARY}#tiers`}
+              data-cta="homepage-app-section-see-pricing"
+              className="font-body text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+            >
+              See current public pricing →
+            </Link>
+          </div>
         </div>
       </div>
 

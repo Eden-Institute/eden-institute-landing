@@ -33,6 +33,11 @@ const navLinks = [
 // the modal-trigger treatment automatically.
 const PRACTITIONER_WAITLIST_ANCHOR = "/apothecary#practitioner-waitlist";
 
+// feat: public Apothecary tier pricing — anchor for the secondary
+// "See pricing" link surfaced on the desktop nav for unauthed
+// visitors. Resolves to the <TierComparison /> section on AppPage.tsx.
+const SEE_PRICING_HREF = `${ROUTES.APOTHECARY}#tiers`;
+
 /**
  * §8.1.1 (Manual v4.0) — State-aware Navbar CTA.
  *
@@ -71,6 +76,15 @@ const PRACTITIONER_WAITLIST_ANCHOR = "/apothecary#practitioner-waitlist";
  * (up to 500). Today the practitioner-waitlist anchor only resolves
  * for Root in useTierAwareCTA, but this branch fires for any tier
  * the state machine surfaces it to without further changes here.
+ *
+ * ─────────────────────────────────────────────────────────────────
+ * feat: public Apothecary tier pricing — "See pricing" secondary
+ * link in the desktop CTA area. Surfaced to unauthed visitors only
+ * (authed visitors have their own tier-aware journey via the
+ * useTierAwareCTA hook below). Routes to the <TierComparison />
+ * section on AppPage.tsx so visitors can see the four-tier ladder
+ * before they're asked to sign up. Mobile drawer untouched — already
+ * carries the tier-aware CTA trio above the primary button.
  */
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -105,7 +119,22 @@ export default function Navbar() {
             </Link>
           ))}
         </nav>
-        <div className="hidden md:block">
+        <div className="hidden md:flex items-center gap-4">
+          {/* feat: public Apothecary tier pricing — secondary "See
+              pricing" link surfaced to unauthed visitors only.
+              Authed visitors get their own tier-aware journey via
+              the mobile drawer trio above; this is the desktop
+              equivalent for setting price expectation before they
+              tap into the quiz funnel. */}
+          {!user && (
+            <Link
+              to={SEE_PRICING_HREF}
+              data-cta="navbar-see-pricing"
+              className="text-sm font-sans text-[#4A5C4E] hover:text-[#2E3D32] tracking-wide transition-colors duration-200"
+            >
+              See pricing
+            </Link>
+          )}
           <Link to={ctaHref} className="bg-[#3B4A3F] text-[#FAF8F3] text-sm font-sans px-5 py-2 rounded-sm tracking-wide hover:bg-[#2E3D32] transition-colors duration-200">
             {ctaLabel}
           </Link>
@@ -122,6 +151,21 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
+
+          {/* feat: public Apothecary tier pricing — "See pricing" entry
+              in the mobile drawer for unauthed visitors only. Sits in
+              the plain-link region above the tier-aware CTA trio so it
+              reads as informational nav, not a conversion CTA. */}
+          {!user && (
+            <Link
+              to={SEE_PRICING_HREF}
+              onClick={() => setOpen(false)}
+              data-cta="navbar-see-pricing-mobile"
+              className="text-sm font-sans text-[#4A5C4E] hover:text-[#2E3D32] tracking-wide"
+            >
+              See pricing
+            </Link>
+          )}
 
           {/* Tier-aware CTA trio (Camila's 2026-04-30 spec). Visually
               distinct from plain nav links via gold border + tinted
