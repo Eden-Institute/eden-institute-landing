@@ -583,7 +583,10 @@ const Assessment = () => {
               </div>
               <div>
                 <label className="block font-accent text-xs tracking-[0.2em] uppercase mb-2" style={{ color: "hsl(30, 10%, 40%)" }}>Email Address</label>
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="your@email.com" className="w-full px-4 py-3 border font-body focus:outline-none transition-colors" style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }} />
+                {/* PR κ: strip ALL whitespace (incl. internal spaces some
+                    mobile autocomplete engines insert between '@' and the
+                    domain) and lowercase before HTML5 type=email validation. */}
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value.replace(/\s+/g, "").toLowerCase().trim())} required placeholder="your@email.com" className="w-full px-4 py-3 border font-body focus:outline-none transition-colors" style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }} />
               </div>
               {error && <p className="font-body text-sm text-destructive">{error}</p>}
               <Button type="submit" variant="eden" size="xl" className="w-full" disabled={loading}>{loading ? "Submitting…" : "→ Send Me My Results"}</Button>
