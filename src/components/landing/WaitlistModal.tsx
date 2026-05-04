@@ -148,7 +148,11 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, funnel, metadata
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                // PR κ: strip ALL whitespace (incl. internal spaces some
+                // mobile autocomplete engines insert between '@' and the
+                // domain) and lowercase before HTML5/EF validation. Repro
+                // on iOS Safari 2026-05-03 — Eden's Table waitlist modal.
+                onChange={(e) => setEmail(e.target.value.replace(/\s+/g, "").toLowerCase().trim())}
                 placeholder="your@email.com"
                 required
                 className="w-full px-4 py-3 bg-background border border-border font-body text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-eden-gold transition-colors"

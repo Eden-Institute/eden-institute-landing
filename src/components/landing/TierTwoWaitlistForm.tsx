@@ -182,7 +182,10 @@ export function TierTwoWaitlistForm({
           autoComplete="email"
           maxLength={255}
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          // PR κ: strip ALL whitespace (incl. internal spaces some
+          // mobile autocomplete engines insert between '@' and the
+          // domain) and lowercase before HTML5 + zod validation.
+          onChange={(e) => setEmail(e.target.value.replace(/\s+/g, "").toLowerCase().trim())}
           placeholder="you@example.com"
           disabled={submitting}
         />
