@@ -6,6 +6,7 @@ import Footer from "@/components/landing/Footer";
 import WaitlistModal from "@/components/landing/WaitlistModal";
 import { Smartphone, Leaf, Shield, Star } from "lucide-react";
 import { WorldviewBand } from "@/components/landing/WorldviewBand";
+import { TierComparison } from "@/components/apothecary/TierComparison";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { ROUTES } from "@/lib/routes";
 
@@ -79,6 +80,21 @@ const AppPage = () => {
               </Link>
             </Button>
           </div>
+          {/* feat: public Apothecary tier pricing — secondary affordance
+              under the hero CTA pair so visitors can jump directly to
+              the tier comparison without scrolling past the
+              body-pattern grid. Anchor #tiers is rendered by
+              <TierComparison /> below. */}
+          <div className="mt-6">
+            <a
+              href="#tiers"
+              data-cta="apothecary-hero-see-pricing"
+              className="font-body text-sm underline-offset-4 hover:underline"
+              style={{ color: "hsl(var(--eden-bark))" }}
+            >
+              See pricing first →
+            </a>
+          </div>
         </div>
       </section>
 
@@ -134,6 +150,26 @@ const AppPage = () => {
           </div>
         </div>
       </section>
+
+      {/* feat: public Apothecary tier pricing — four-tier comparison
+          (Free / Seed / Root / Practitioner) with prices, persona
+          labels, taglines, and feature lists. Anchored by
+          id="tier-{free|seed|root|practitioner}" so existing
+          useTierAwareCTA upgrade hrefs continue to resolve.
+          Practitioner CTA opens the PractitionerWaitlistModal in
+          place — matches the PR ι (iota) dual-CTA pattern in Navbar
+          so the waitlist conversion path is single-click. */}
+      <TierComparison
+        eyebrow="Pricing"
+        heading={
+          <>
+            Pricing for every season{" "}
+            <span className="italic">of stewardship.</span>
+          </>
+        }
+        lead="See exactly what's inside each tier before you sign up. Hundred herbs at every tier. Depth is what you unlock."
+        background="cream"
+      />
 
       <section className="py-20 px-6" style={{ backgroundColor: "hsl(var(--eden-forest))" }}>
         <div className="max-w-2xl mx-auto text-center">
