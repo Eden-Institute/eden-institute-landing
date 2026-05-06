@@ -176,11 +176,18 @@ const Assessment = () => {
   // targetProfile didn't resolve), surface an error instead of silently
   // falling through to marketing-mode auto-submit (which would write to
   // user.email and silently corrupt sub-profile data).
+  //
+  // v4.5 (Lock #56) — added "balanced-thanks" for the post-submission
+  // closure of the Genuinely Balanced terrain branch. The balanced
+  // result has no Pattern profile and therefore no /results/{slug}
+  // destination; we close the funnel in-place after the email gate
+  // fires so no anonymous balanced-result session exits uncaptured.
   const [phase, setPhase] = useState<
     | "quiz"
     | "followup"
     | "gate"
     | "inconclusive"
+    | "balanced-thanks"
     | "results"
     | "diagnostic-saving"
     | "diagnostic-saved"
@@ -278,13 +285,18 @@ const Assessment = () => {
     setError("");
     try {
       const profileForSubmit = constitutionProfiles[submittedConstitution];
+      // v4.5 (Lock #56) — Balanced results carry no Pattern profile.
+      // Tag the source distinctly so downstream Resend nurture sequences
+      // can route balanced submissions to the Practitioner-tier deeper-
+      // diagnostic invitation track instead of the resolved-Pattern track.
+      const isBalanced = !profileForSubmit;
       const { data, error: fnError } = await supabase.functions.invoke("resend-waitlist", {
         body: {
           firstName: submittedFirstName,
           email: submittedEmail,
           constitutionType: submittedConstitution,
           constitutionNickname: profileForSubmit?.nickname,
-          source: "constitution_assessment",
+          source: isBalanced ? "constitution_assessment_balanced" : "constitution_assessment",
         },
       });
 
@@ -310,15 +322,26 @@ const Assessment = () => {
         console.error("record-quiz-completion threw", recordErr);
       }
 
-      const slugForRedirect = (profileForSubmit?.nickname ?? "")
-        .replace(/^The\s+/i, "")
-        .toLowerCase()
-        .replace(/\s+/g, "-");
-      navigate(ROUTES.RESULTS(slugForRedirect), { replace: true });
+      // v4.5 (Lock #56) — Balanced results have no Pattern profile and
+      // therefore no /results/{slug} destination. Close the funnel
+      // in-place via the balanced-thanks phase. Resolved results keep
+      // their existing /results/{slug} navigation.
+      if (isBalanced) {
+        setPhase("balanced-thanks");
+      } else {
+        const slugForRedirect = (profileForSubmit?.nickname ?? "")
+          .replace(/^The\s+/i, "")
+          .toLowerCase()
+          .replace(/\s+/g, "-");
+        navigate(ROUTES.RESULTS(slugForRedirect), { replace: true });
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
       setError(message);
-      setPhase("gate");
+      // v4.5 (Lock #56) — On error, return to the phase that has a form.
+      // Balanced submissions: the inconclusive phase carries the form.
+      // Resolved submissions: the gate phase carries the form.
+      setPhase(constitutionProfiles[submittedConstitution] ? "gate" : "inconclusive");
     }
   }, [navigate]);
 
@@ -329,24 +352,51 @@ const Assessment = () => {
   // falling through to marketing-mode auto-submit. The marketing-mode
   // pipeline writes to user.email — NEVER a sub-profile — so falling
   // through corrupts data while looking like success.
+  //
+  // v4.5 (Lock #56) — When the result is inconclusive (Genuinely
+  // Balanced terrain), route by auth status the same way as resolved
+  // results do. Authenticated users auto-submit; anonymous users
+  // enter the inconclusive phase, which now carries an email gate.
+  // The previous code unconditionally set "inconclusive" for ALL
+  // user types, which let anonymous balanced sessions exit the
+  // funnel uncaptured (the bug Naomi reported on 2026-05-06).
+  // diagnosticMode keeps the no-email behavior because the in-app
+  // diagnostic flow has no marketing-funnel role.
   const routePostResolution = useCallback(
     (currentAnswers: Record<number, string>, fromFollowup: boolean) => {
       const result = fromFollowup
         ? computeResultWithFollowups(currentAnswers)
         : computeResult(currentAnswers);
-      if (isInconclusiveResult(result)) {
-        setPhase("inconclusive");
-      } else if (profileIdParam !== null && !diagnosticMode) {
-        // GUARD: profileId requested but diagnosticMode failed. Do not
-        // silently fall to marketing mode. Surface an actionable error.
+      const resultIsInconclusive = isInconclusiveResult(result);
+
+      // GUARD: profileId requested but diagnosticMode failed. Do not
+      // silently fall to marketing mode. Surface an actionable error.
+      if (profileIdParam !== null && !diagnosticMode) {
         setError(
           "The selected profile didn't load on this page. Please go back to the apothecary, " +
           "confirm the profile picker shows the right person, and click the quiz button again."
         );
         setPhase("profile-resolution-error");
-      } else if (diagnosticMode) {
-        submitDiagnostic(currentAnswers);
-      } else if (user?.email && !authLoading) {
+        return;
+      }
+
+      if (diagnosticMode) {
+        if (resultIsInconclusive) {
+          // In-app diagnostic balanced result — show inconclusive surface,
+          // no email capture (already authed in-app, no marketing role).
+          setPhase("inconclusive");
+        } else {
+          submitDiagnostic(currentAnswers);
+        }
+        return;
+      }
+
+      // Marketing-funnel modes (anon or authed-on-public-quiz).
+      if (user?.email && !authLoading) {
+        // Authed user on public quiz — auto-submit regardless of whether
+        // the result is resolved or balanced. submitMarketingQuiz tags
+        // balanced submissions with source="constitution_assessment_balanced"
+        // and closes the funnel via setPhase("balanced-thanks").
         setPhase("auto-submitting");
         const submitEmail = user.email;
         const metaFirstName = (user.user_metadata as Record<string, unknown> | undefined)?.first_name;
@@ -355,7 +405,16 @@ const Assessment = () => {
             ? metaFirstName.trim()
             : firstName;
         void submitMarketingQuiz(submitEmail, submitFirstName, result);
+        return;
+      }
+
+      // Anonymous user on public quiz.
+      if (resultIsInconclusive) {
+        // Balanced — render inconclusive surface WITH the email gate.
+        // No DB write or Resend call yet; that fires from handleSubmit.
+        setPhase("inconclusive");
       } else {
+        // Resolved Pattern — render the standard email gate.
         setPhase("gate");
       }
     },
@@ -595,12 +654,39 @@ const Assessment = () => {
         </div>
       )}
 
+      {/* v4.5 (Lock #56) — Genuinely Balanced terrain surface.
+          For diagnosticMode (in-app), renders explanation only — no email
+          capture (no marketing role). For all other modes (anon public
+          quiz), renders an inline email gate FIRST so balanced sessions
+          do not exit the funnel uncaptured. The previous build had no
+          email gate on this surface for any mode, which is the bug
+          Naomi reported on 2026-05-06. */}
       {phase === "inconclusive" && (
         <div className="max-w-xl mx-auto px-6 py-16">
           <div className="text-center">
             <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>Genuinely Balanced Terrain</span>
             <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-6" style={{ color: "#1C3A2E" }}>Your terrain doesn't lean to one side on {neutralAxes.length === 1 ? "this axis" : "these axes"}.</h2>
           </div>
+
+          {!diagnosticMode && (
+            <div className="p-8 border rounded mb-10" style={{ borderColor: "hsl(40, 20%, 80%)", backgroundColor: "white" }}>
+              <h3 className="font-serif text-xl font-bold mb-2" style={{ color: "#1C3A2E" }}>Save your reading</h3>
+              <p className="font-body text-sm mb-6" style={{ color: "hsl(30, 10%, 40%)" }}>Enter your name and email to save your Genuinely Balanced reading and get notified when the Practitioner-tier deeper diagnostic opens.</p>
+              <form onSubmit={handleSubmit} className="space-y-4 text-left">
+                <div>
+                  <label className="block font-accent text-xs tracking-[0.2em] uppercase mb-2" style={{ color: "hsl(30, 10%, 40%)" }}>First Name</label>
+                  <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required placeholder="Your first name" className="w-full px-4 py-3 border font-body focus:outline-none transition-colors" style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }} />
+                </div>
+                <div>
+                  <label className="block font-accent text-xs tracking-[0.2em] uppercase mb-2" style={{ color: "hsl(30, 10%, 40%)" }}>Email Address</label>
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value.replace(/\s+/g, "").toLowerCase().trim())} required placeholder="your@email.com" className="w-full px-4 py-3 border font-body focus:outline-none transition-colors" style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }} />
+                </div>
+                {error && <p className="font-body text-sm text-destructive">{error}</p>}
+                <Button type="submit" variant="eden" size="xl" className="w-full" disabled={loading}>{loading ? "Saving…" : "→ Save My Reading"}</Button>
+              </form>
+            </div>
+          )}
+
           <div className="my-10 p-6 rounded" style={{ backgroundColor: "white", border: "1px solid hsl(40, 20%, 80%)" }}>
             <p className="font-accent text-xs tracking-[0.2em] uppercase mb-5 text-center" style={{ color: "hsl(30, 10%, 40%)" }}>Where you landed on each axis</p>
             <AxisSpectrum axisLabel="Temperature" leftLabel="Hot" rightLabel="Cold" position={axisPositions.temperature} isInconclusive={neutralAxes.includes("temperature")} />
@@ -612,6 +698,20 @@ const Assessment = () => {
             <p className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>This is itself a clinical category — not a quiz failure. Some constitutions are genuinely balanced on an axis, and the deeper diagnostic at the Practitioner tier (40 questions across four classical Western frameworks) is built to resolve cases like yours.</p>
           </div>
           <p className="font-body text-xs italic mt-4 text-center" style={{ color: "hsl(30, 10%, 40%, 0.7)" }}>If you'd like to retake the quiz from scratch, refresh the page or navigate back to the home page.</p>
+        </div>
+      )}
+
+      {/* v4.5 (Lock #56) — Closure state for the Genuinely Balanced
+          terrain branch after the email gate fires. Balanced results
+          have no Pattern profile and therefore no /results/{slug}
+          destination, so we close the funnel in-place. */}
+      {phase === "balanced-thanks" && (
+        <div className="max-w-xl mx-auto px-6 py-16 text-center">
+          <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>Reading Saved</span>
+          <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-6" style={{ color: "#1C3A2E" }}>Thanks — your reading is captured.</h2>
+          <p className="font-body text-base leading-relaxed mb-4" style={{ color: "#1C3A2E" }}>We've recorded your Genuinely Balanced terrain reading. When the Practitioner-tier deeper diagnostic opens — 40 questions across four classical Western frameworks, built to resolve cases like yours — we'll let you know.</p>
+          <p className="font-body text-sm italic mt-8" style={{ color: "hsl(30, 10%, 40%, 0.7)" }}>You can return to the home page or close this tab.</p>
+          <Button variant="eden" size="lg" className="mt-6" onClick={() => navigate(ROUTES.HOME)}>Back to home</Button>
         </div>
       )}
     </div>
