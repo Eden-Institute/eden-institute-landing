@@ -35,7 +35,7 @@ const biblicalDifferences = [
 ];
 
 const tiers = [
-  { tier: "Tier 1", title: "Biblical Framework and Foundations", desc: "Learn the theological and scientific basis for constitutional herbalism. Understand the six tissue states, the Five Tenets of Health, and how to begin reading your body's patterns. Enrollment opens June 2026." },
+  { tier: "Tier 1", title: "Biblical Framework and Foundations", desc: "Learn the theological and scientific basis for constitutional herbalism. Understand the six tissue states, the Five Tenets of Health, and how to begin reading your body's patterns. Currently seeking aligned partners and collaborators." },
   { tier: "Tier 2", title: "Body Systems and Clinical Literacy", desc: "A comprehensive study of each body system through the lens of terrain-based assessment, herbal actions, materia medica, and clinical formulation." },
   { tier: "Tier 3", title: "Clinical Application and Mentorship", desc: "Advanced clinical training with real-world case studies, practitioner ethics, and mentored practice." },
 ];

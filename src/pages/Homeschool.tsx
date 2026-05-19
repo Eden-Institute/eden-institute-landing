@@ -48,11 +48,13 @@ const Homeschool = () => {
             stewardship.
           </p>
           <p className="font-accent text-sm tracking-wider uppercase mb-8" style={{ color: "hsl(var(--eden-sage))" }}>
-            Launching November 2026 — Sprouts (K-3) first
+            Looking for Partners to Help Build the Next Stage
           </p>
-          <Button variant="eden" size="xl" onClick={() => setOpen(true)}>
-            Get Early Access
-          </Button>
+          <a href="mailto:hello@edeninstitute.health">
+            <Button variant="eden" size="xl">
+              Connect With Us
+            </Button>
+          </a>
         </div>
       </section>
 
@@ -89,7 +91,7 @@ const Homeschool = () => {
                 className="text-xs font-body px-2 py-1 rounded"
                 style={{ backgroundColor: "hsl(var(--eden-gold) / 0.15)", color: "hsl(var(--eden-gold))" }}
               >
-                Nov 2026
+                Seeking Partners
               </span>
             </div>
             <div className="rounded-lg p-6 border opacity-75" style={{ borderColor: "hsl(var(--border))" }}>
@@ -101,7 +103,7 @@ const Homeschool = () => {
               <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">
                 Body systems basics, herb profiles, and family dinner discussions.
               </p>
-              <span className="text-xs font-body px-2 py-1 rounded bg-muted text-muted-foreground">2027</span>
+              <span className="text-xs font-body px-2 py-1 rounded bg-muted text-muted-foreground">Seeking Partners</span>
             </div>
             <div className="rounded-lg p-6 border opacity-75" style={{ borderColor: "hsl(var(--border))" }}>
               <BookOpen className="w-6 h-6 mb-3 text-muted-foreground" />
@@ -112,7 +114,7 @@ const Homeschool = () => {
               <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">
                 Body type thinking, terrain basics, and garden-to-remedy workflows.
               </p>
-              <span className="text-xs font-body px-2 py-1 rounded bg-muted text-muted-foreground">2027</span>
+              <span className="text-xs font-body px-2 py-1 rounded bg-muted text-muted-foreground">Seeking Partners</span>
             </div>
             <div className="rounded-lg p-6 border opacity-75" style={{ borderColor: "hsl(var(--border))" }}>
               <Users className="w-6 h-6 mb-3 text-muted-foreground" />
@@ -123,7 +125,7 @@ const Homeschool = () => {
               <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">
                 Clinical literacy, materia medica, and real-world application.
               </p>
-              <span className="text-xs font-body px-2 py-1 rounded bg-muted text-muted-foreground">2028</span>
+              <span className="text-xs font-body px-2 py-1 rounded bg-muted text-muted-foreground">Seeking Partners</span>
             </div>
           </div>
         </div>
@@ -161,14 +163,16 @@ const Homeschool = () => {
       <section className="py-20 px-6" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="font-serif text-3xl font-bold mb-4" style={{ color: "hsl(var(--eden-bark))" }}>
-            Be First at the Table
+            Looking for Partners to Help Build the Next Stage
           </h2>
           <p className="font-body text-muted-foreground mb-8">
-            Founding families receive first access, launch pricing, and the opportunity to shape the curriculum.
+            We are currently seeking aligned partners, investors, and collaborators to help bring this stage of Eden Institute to life. If you share our vision for faith-grounded, terrain-based health education, we would love to connect.
           </p>
-          <Button variant="eden" size="xl" onClick={() => setOpen(true)}>
-            Join the Early Access List
-          </Button>
+          <a href="mailto:hello@edeninstitute.health">
+            <Button variant="eden" size="xl">
+              Connect With Us
+            </Button>
+          </a>
         </div>
       </section>
 
