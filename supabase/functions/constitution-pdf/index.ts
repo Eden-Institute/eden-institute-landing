@@ -1078,10 +1078,46 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Require a valid paid Stripe session_id before generating the paid PDF.
     const url = new URL(req.url);
+    const sessionId = url.searchParams.get('session_id');
     const type = url.searchParams.get('type');
-    const validTypes = ['hot-dry', 'cold-damp', 'hot-damp', 'cold-dry'];
 
+    if (!sessionId) {
+      return new Response(
+        JSON.stringify({ error: 'Missing session_id' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
+    if (!stripeKey) {
+      console.error('STRIPE_SECRET_KEY not configured');
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify session is paid via Stripe REST API (avoids extra deps)
+    const stripeRes = await fetch(`https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(sessionId)}`, {
+      headers: { Authorization: `Bearer ${stripeKey}` },
+    });
+    if (!stripeRes.ok) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid session' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const session = await stripeRes.json();
+    if (session.payment_status !== 'paid') {
+      return new Response(
+        JSON.stringify({ error: 'Payment not completed' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const validTypes = ['hot-dry', 'cold-damp', 'hot-damp', 'cold-dry'];
     if (!type || !validTypes.includes(type)) {
       return new Response(
         JSON.stringify({ error: `Invalid type. Valid types: ${validTypes.join(', ')}` }),
@@ -1114,9 +1150,9 @@ Deno.serve(async (req) => {
       },
     });
   } catch (err) {
-    console.error('PDF generation error:', err.message, err.stack);
+    console.error('PDF generation error:', err?.message, err?.stack);
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ error: 'Unable to generate guide.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

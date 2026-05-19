@@ -601,7 +601,7 @@ Deno.serve(async (req) => {
     const unhandledStack = err instanceof Error ? err.stack : undefined;
     console.error('Unhandled error:', unhandledMessage, unhandledStack);
     return new Response(
-      JSON.stringify({ error: unhandledMessage }),
+      JSON.stringify({ error: 'Failed to process your request. Please try again.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
