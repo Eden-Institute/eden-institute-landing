@@ -58,11 +58,13 @@ const Homeschool = () => {
             stewardship.
           </p>
           <p className="font-accent text-sm tracking-wider uppercase mb-8" style={{ color: "hsl(var(--eden-sage))" }}>
-            Early Access — Sprouts (K-3) first
+            Looking for Partners to Help Build the Next Stage
           </p>
-          <Button variant="eden" size="xl" onClick={() => setOpen(true)}>
-            Get Early Access
-          </Button>
+          <a href="mailto:hello@edeninstitute.health">
+            <Button variant="eden" size="xl">
+              Connect With Us
+            </Button>
+          </a>
         </div>
       </section>
 
@@ -165,14 +167,16 @@ const Homeschool = () => {
       <section className="py-20 px-6" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="font-serif text-3xl font-bold mb-4" style={{ color: "hsl(var(--eden-bark))" }}>
-            Be First at the Table
+            Partner With Us
           </h2>
           <p className="font-body text-muted-foreground mb-8">
-            Founding families receive first access, launch pricing, and the opportunity to shape the curriculum.
+            We are currently seeking aligned partners and families to help build this stage of the curriculum — first-access pricing, voice in shaping the lessons, and a seat at the table from the beginning.
           </p>
-          <Button variant="eden" size="xl" onClick={() => setOpen(true)}>
-            Join the Early Access List
-          </Button>
+          <a href="mailto:hello@edeninstitute.health">
+            <Button variant="eden" size="xl">
+              Connect With Us
+            </Button>
+          </a>
         </div>
       </section>
 

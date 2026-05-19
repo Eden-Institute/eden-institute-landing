@@ -38,9 +38,11 @@ const CourseSection = () => {
             )}
           </div>
 
-          <Button variant="eden-light" size="xl" onClick={() => setCourseModal(true)}>
-            → Join the Foundations Course Waitlist
-          </Button>
+          <a href="mailto:hello@edeninstitute.health">
+            <Button variant="eden-light" size="xl">
+              → Connect With Us
+            </Button>
+          </a>
         </div>
       </div>
 
