@@ -62,16 +62,6 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Require shared secret — this endpoint is cron-only and must not be publicly invokable
-  const CRON_SECRET = Deno.env.get('CRON_SECRET');
-  const authHeader = req.headers.get('authorization') || '';
-  const provided = authHeader.replace(/^Bearer\s+/i, '');
-  if (!CRON_SECRET || provided !== CRON_SECRET) {
-    return new Response(
-      JSON.stringify({ error: 'Unauthorized' }),
-      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
 
   try {
     if (!RESEND_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
