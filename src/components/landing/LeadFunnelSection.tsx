@@ -27,9 +27,11 @@ const LeadFunnelSection = () => {
               → Purchase Book One
             </Button>
           </a>
-          <Button variant="eden-outline" size="xl" onClick={() => setCourseModal(true)}>
-            → Join the Foundations Course Waitlist
-          </Button>
+          <a href="mailto:hello@edeninstitute.health">
+            <Button variant="eden-outline" size="xl">
+              → Connect With Us
+            </Button>
+          </a>
         </div>
 
         <p className="mt-8 font-body text-xs text-muted-foreground/60">
