@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSEO } from "@/hooks/use-seo";
 import { Link } from "react-router-dom";
 import { BookOpen, CheckCircle, Clock, GraduationCap, Users } from "lucide-react";
 
@@ -20,9 +21,47 @@ const NAV = [
 
 const Courses = () => {
   const [quiz, setQuiz] = useState(false);
+  useSEO({
+    title: "Courses — Tier 1 Foundations | The Eden Institute",
+    description: "Tier 1 Biblical Framework — constitutional clinical herbalism education. Self-paced course in terrain-based herbal medicine, anchored in Scripture.",
+    path: "/courses",
+  });
 
   return (
     <div className="min-h-screen bg-background">
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify([
+            {
+              "@context": "https://schema.org",
+              "@type": "Course",
+              name: "Tier 1: Biblical Framework — Foundations of Constitutional Herbalism",
+              description:
+                "Self-paced introduction to terrain-based, Scripture-anchored clinical herbalism. Tissue states, constitutions, and the biblical framework for herbal medicine.",
+              provider: {
+                "@type": "Organization",
+                name: "The Eden Institute",
+                sameAs: "https://edeninstitute.health",
+              },
+            },
+            {
+              "@context": "https://schema.org",
+              "@type": "Course",
+              name: "Tier 2: Body Systems & Clinical Literacy",
+              description:
+                "Twelve body-system modules covering clinical assessment, materia medica, and terrain-matched protocols. Currently on waitlist.",
+              provider: {
+                "@type": "Organization",
+                name: "The Eden Institute",
+                sameAs: "https://edeninstitute.health",
+              },
+            },
+          ]),
+        }}
+      />
+
       <Navbar />
 
       <section className="px-6 py-20 md:py-28" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>

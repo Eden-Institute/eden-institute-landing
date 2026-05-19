@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSEO } from "@/hooks/use-seo";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/landing/Footer";
@@ -18,6 +19,11 @@ const NAV = [
 
 const Community = () => {
   const [open, setOpen] = useState(false);
+  useSEO({
+    title: "The Rooted Community | The Eden Institute",
+    description: "The Rooted Community — local fellowship and study groups for students of Scripture-anchored, terrain-based herbalism.",
+    path: "/community",
+  });
   return (
     <div className="min-h-screen bg-background">
       <Navbar />

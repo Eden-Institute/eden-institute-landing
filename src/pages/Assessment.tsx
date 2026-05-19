@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useSEO } from "@/hooks/use-seo";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { constitutionProfiles, computeResult } from "@/lib/constitution-data";
@@ -86,6 +87,11 @@ const questions: Question[] = [
 ];
 
 const Assessment = () => {
+  useSEO({
+    title: "Free Constitutional Quiz — Find Your Body Type | Eden Institute",
+    description: "Take the free 2-minute constitutional quiz. Discover your tissue-state pattern across temperature, fluid, and tone — the foundation of terrain-based herbalism.",
+    path: "/assessment",
+  });
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [phase, setPhase] = useState<"quiz" | "gate" | "results">("quiz");

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSEO } from "@/hooks/use-seo";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/landing/Footer";
@@ -17,6 +18,11 @@ const NAV = [
 
 const AppPage = () => {
   const [open, setOpen] = useState(false);
+  useSEO({
+    title: "Eden Apothecary — Clinical Herb Decision Support | Eden Institute",
+    description: "Eden Apothecary: a terrain-based clinical decision-support web app for herbalists. Herb monographs, constitutional matching, safety data. Launching July 7, 2026.",
+    path: "/app",
+  });
   return (
     <div className="min-h-screen bg-background">
       <nav className="border-b border-border/40 bg-background sticky top-0 z-50">

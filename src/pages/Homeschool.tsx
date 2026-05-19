@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSEO } from "@/hooks/use-seo";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/landing/Footer";
@@ -18,6 +19,11 @@ const NAV = [
 
 const Homeschool = () => {
   const [open, setOpen] = useState(false);
+  useSEO({
+    title: "Homeschool Herbalism Curriculum | The Eden Institute",
+    description: "Eden's Table homeschool herbalism — Scripture-rooted, family-centered botanical education for raising stewards of God's design.",
+    path: "/homeschool",
+  });
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
