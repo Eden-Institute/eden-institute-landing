@@ -312,7 +312,7 @@ const GuideTemplate = ({ guide }: Props) => {
                 A personalized session to translate this guide into a protocol built for your body, your life, and your season.
               </p>
               <span className="inline-block px-6 py-3 rounded text-sm uppercase tracking-wider font-semibold" style={{ backgroundColor: COLORS.creamDark, color: COLORS.sage, fontFamily: "'Playfair Display', serif" }}>
-                Coming Soon
+                Seeking Partners
               </span>
             </div>
           </section>

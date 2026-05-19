@@ -102,7 +102,7 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title }: WaitlistModalP
               <p className="font-body text-sm text-destructive">{error}</p>
             )}
             <Button variant="eden" size="xl" className="w-full" disabled={loading}>
-              {loading ? "Submitting…" : "→ Join the Waitlist"}
+              {loading ? "Submitting…" : "Connect With Us"}
             </Button>
             <p className="text-center font-body text-xs text-muted-foreground/60">
               No spam. Unsubscribe anytime.

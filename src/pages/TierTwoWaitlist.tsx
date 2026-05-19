@@ -8,9 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle2, Sparkles, Lock, Calendar } from "lucide-react";
 import { z } from "zod";
 
-const PAGE_TITLE = "Tier 2 Waitlist — The Eden Institute";
+const PAGE_TITLE = "Tier 2 — Seeking Partners | The Eden Institute";
 const PAGE_DESCRIPTION =
-  "Join the free waitlist for Tier 2: Body Systems & Clinical Literacy. Waitlist members get $1,000 off the public price when enrollment opens July 7, 2026.";
+  "Tier 2: Body Systems & Clinical Literacy. We are currently seeking aligned partners, investors, and collaborators to help bring this stage of Eden Institute to life.";
 
 const signupSchema = z.object({
   firstName: z
@@ -69,17 +69,15 @@ const TierTwoWaitlist = () => {
       if (invokeError) throw invokeError;
       if (data?.error) throw new Error(data.error);
 
-      // Analytics (graceful — no-op if gtag not loaded)
       try {
-        (window as any).gtag?.("event", "tier_2_waitlist_signup", {
+        (window as any).gtag?.("event", "tier_2_partner_inquiry", {
           event_category: "lead",
         });
       } catch { /* noop */ }
 
       setSubmitted(true);
     } catch (err) {
-      // Silent log per project convention; show friendly message to user
-      console.error("Tier 2 waitlist signup failed:", err);
+      console.error("Tier 2 partner inquiry failed:", err);
       setError("Something went wrong. Please try again in a moment.");
     } finally {
       setSubmitting(false);
@@ -100,7 +98,7 @@ const TierTwoWaitlist = () => {
             className="font-accent text-sm tracking-[0.3em] uppercase mb-6"
             style={{ color: "hsl(var(--eden-gold))" }}
           >
-            Tier 2 · Free Waitlist
+            Tier 2 · Seeking Partners
           </p>
           <h1
             className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6"
@@ -115,8 +113,9 @@ const TierTwoWaitlist = () => {
             style={{ backgroundColor: "hsl(var(--eden-gold))" }}
           />
           <p className="font-body text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Tier 2 — <em>Body Systems &amp; Clinical Literacy</em> — opens to the public October 8, 2026 at <strong>$1,497</strong>.
-            Waitlist members get access first — and a <strong>$497 founding code</strong> that saves $1,000 off the public price.
+            Tier 2 — <em>Body Systems &amp; Clinical Literacy</em> — is the next stage of the Eden Institute curriculum.
+            We are currently seeking aligned partners, investors, and collaborators to help bring it to life. If you
+            share our vision for faith-grounded, terrain-based health education, we would love to connect.
           </p>
           <div className="mt-10">
             <a
@@ -124,7 +123,7 @@ const TierTwoWaitlist = () => {
               className="inline-block"
             >
               <Button variant="eden" size="xl">
-                Reserve My Founding Access
+                Connect With Us
               </Button>
             </a>
           </div>
@@ -153,7 +152,7 @@ const TierTwoWaitlist = () => {
         </div>
       </section>
 
-      {/* WHAT WAITLIST MEMBERS GET — 3 CARDS */}
+      {/* WHAT PARTNERS GET — 3 CARDS */}
       <section
         className="py-20 px-6"
         style={{ backgroundColor: "hsl(var(--eden-cream))" }}
@@ -164,13 +163,13 @@ const TierTwoWaitlist = () => {
               className="font-accent text-sm tracking-[0.3em] uppercase mb-4"
               style={{ color: "hsl(var(--eden-gold))" }}
             >
-              Founding Member Benefits
+              Partnership Opportunities
             </p>
             <h2
               className="font-serif text-3xl md:text-4xl font-bold"
               style={{ color: "hsl(var(--eden-bark))" }}
             >
-              What Waitlist Members Get
+              How Partners Help Build the Next Stage
             </h2>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
@@ -180,11 +179,11 @@ const TierTwoWaitlist = () => {
             >
               <Sparkles className="w-7 h-7 mb-4" style={{ color: "hsl(var(--eden-gold))" }} />
               <h3 className="font-serif text-xl font-bold mb-3" style={{ color: "hsl(var(--eden-bark))" }}>
-                First Access
+                Shape the Curriculum
               </h3>
               <p className="font-body text-base leading-relaxed text-muted-foreground">
-                Early access opens July 7, 2026 — a full 3 months before the public launch. You'll be building clinical
-                literacy while everyone else is still waiting in line.
+                Aligned partners get a seat at the table while Tier 2 is being built — helping shape the modules, the
+                clinical case framing, and the pedagogy from the inside.
               </p>
             </article>
             <article
@@ -193,11 +192,11 @@ const TierTwoWaitlist = () => {
             >
               <Lock className="w-7 h-7 mb-4" style={{ color: "hsl(var(--eden-gold))" }} />
               <h3 className="font-serif text-xl font-bold mb-3" style={{ color: "hsl(var(--eden-bark))" }}>
-                $497 Founding Code
+                Lasting Recognition
               </h3>
               <p className="font-body text-base leading-relaxed text-muted-foreground">
-                Waitlist members receive a founding access code for $497 when early access opens. That's a $1,000 savings off
-                the $1,497 public price. The code is valid for 14 days from July 7.
+                Founding partners are recognized inside the program and across Eden Institute materials. This is for
+                people who want to help build something that lasts — not just buy a course.
               </p>
             </article>
             <article
@@ -206,18 +205,18 @@ const TierTwoWaitlist = () => {
             >
               <CheckCircle2 className="w-7 h-7 mb-4" style={{ color: "hsl(var(--eden-sage))" }} />
               <h3 className="font-serif text-xl font-bold mb-3" style={{ color: "hsl(var(--eden-bark))" }}>
-                No Obligation
+                A Real Conversation
               </h3>
               <p className="font-body text-base leading-relaxed text-muted-foreground">
-                This is a free waitlist. You're not paying anything today. You're just letting us know you're interested, so we
-                can send your founding code when Tier 2 opens.
+                Reach out and we'll set up a real conversation. No obligation. We're looking for people whose vision
+                aligns with ours — faith-grounded, terrain-based, clinically serious.
               </p>
             </article>
           </div>
         </div>
       </section>
 
-      {/* TIMELINE */}
+      {/* WHAT WE'RE BUILDING */}
       <section
         className="py-20 px-6"
         style={{ backgroundColor: "hsl(var(--eden-forest))" }}
@@ -228,10 +227,10 @@ const TierTwoWaitlist = () => {
               className="font-accent text-sm tracking-[0.3em] uppercase mb-4"
               style={{ color: "hsl(var(--eden-gold))" }}
             >
-              The Timeline
+              The Vision
             </p>
             <h2 className="font-serif text-3xl md:text-4xl font-bold text-white">
-              Three Dates That Matter
+              Three Pillars of the Next Stage
             </h2>
           </div>
           <ol className="grid md:grid-cols-3 gap-6">
@@ -247,11 +246,11 @@ const TierTwoWaitlist = () => {
                 className="font-accent text-xs tracking-[0.2em] uppercase mb-2"
                 style={{ color: "hsl(var(--eden-gold))" }}
               >
-                Today
+                Curriculum
               </p>
-              <p className="font-serif text-lg font-semibold text-white mb-2">Free Waitlist Open</p>
+              <p className="font-serif text-lg font-semibold text-white mb-2">Clinical Body Systems</p>
               <p className="font-body text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>
-                Reserve your founding access. No payment, no obligation.
+                14 modules across every major body system, terrain-based and Scripture-anchored.
               </p>
             </li>
             <li
@@ -266,11 +265,11 @@ const TierTwoWaitlist = () => {
                 className="font-accent text-xs tracking-[0.2em] uppercase mb-2"
                 style={{ color: "hsl(var(--eden-gold))" }}
               >
-                July 7, 2026
+                Partnership
               </p>
-              <p className="font-serif text-lg font-semibold text-white mb-2">Early Access Opens</p>
+              <p className="font-serif text-lg font-semibold text-white mb-2">Seeking Aligned Partners</p>
               <p className="font-body text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.85)" }}>
-                $497 founding code sent to waitlist. Valid 14 days.
+                Investors, collaborators, and contributors who share our vision and want to help build it with us.
               </p>
             </li>
             <li
@@ -285,18 +284,18 @@ const TierTwoWaitlist = () => {
                 className="font-accent text-xs tracking-[0.2em] uppercase mb-2"
                 style={{ color: "hsl(var(--eden-gold))" }}
               >
-                October 8, 2026
+                Mission
               </p>
-              <p className="font-serif text-lg font-semibold text-white mb-2">Public Launch</p>
+              <p className="font-serif text-lg font-semibold text-white mb-2">Built to Last</p>
               <p className="font-body text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>
-                Tier 2 opens to the public at $1,497.
+                A serious, rigorous clinical herbalism education for Christian families and practitioners.
               </p>
             </li>
           </ol>
         </div>
       </section>
 
-      {/* EMAIL CAPTURE FORM */}
+      {/* CONTACT FORM */}
       <section
         id="waitlist-form"
         className="py-20 md:py-24 px-6"
@@ -310,10 +309,18 @@ const TierTwoWaitlist = () => {
                   className="font-serif text-3xl md:text-4xl font-bold mb-4"
                   style={{ color: "hsl(var(--eden-bark))" }}
                 >
-                  Join the Free Tier 2 Waitlist
+                  Connect With Us
                 </h2>
                 <p className="font-body text-base text-muted-foreground">
-                  We'll email you the moment early access opens on July 7, 2026.
+                  Share your name and email and we'll be in touch personally. Or email us directly at{" "}
+                  <a
+                    href="mailto:hello@edeninstitute.health"
+                    className="underline"
+                    style={{ color: "hsl(var(--eden-gold))" }}
+                  >
+                    hello@edeninstitute.health
+                  </a>
+                  .
                 </p>
               </div>
               <form
@@ -367,10 +374,10 @@ const TierTwoWaitlist = () => {
                   className="w-full"
                   disabled={submitting}
                 >
-                  {submitting ? "Reserving Your Spot…" : "Reserve My Founding Access"}
+                  {submitting ? "Sending…" : "Connect With Us"}
                 </Button>
                 <p className="font-body text-xs text-center text-muted-foreground">
-                  Free. No payment. Unsubscribe anytime.
+                  No spam. Unsubscribe anytime.
                 </p>
               </form>
             </>
@@ -390,20 +397,19 @@ const TierTwoWaitlist = () => {
                 className="font-serif text-3xl font-bold mb-4"
                 style={{ color: "hsl(var(--eden-bark))" }}
               >
-                You're on the list.
+                Thank you — we'll be in touch.
               </h2>
               <div
                 className="w-12 h-px mx-auto mb-6"
                 style={{ backgroundColor: "hsl(var(--eden-gold))" }}
               />
               <p className="font-body text-base leading-relaxed text-muted-foreground">
-                We'll email your founding access code the morning of July 7, 2026.
+                We received your note. A real person will reach out personally to continue the conversation.
               </p>
               <p className="font-body text-base leading-relaxed text-muted-foreground mt-4">
                 In the meantime, check your inbox — your confirmation is on its way.{" "}
                 <strong style={{ color: "hsl(var(--eden-bark))" }}>Using Gmail?</strong> Your first email may
-                arrive in Promotions or Spam — please move it to your Primary inbox so you don't miss your
-                founding code.
+                arrive in Promotions or Spam — please move it to your Primary inbox so you don't miss our reply.
               </p>
             </div>
           )}

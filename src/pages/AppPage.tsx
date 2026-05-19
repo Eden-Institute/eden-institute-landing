@@ -20,7 +20,7 @@ const AppPage = () => {
   const [open, setOpen] = useState(false);
   useSEO({
     title: "Eden Apothecary — Clinical Herb Decision Support | Eden Institute",
-    description: "Eden Apothecary: a terrain-based clinical decision-support web app for herbalists. Herb monographs, constitutional matching, safety data. Launching July 7, 2026.",
+    description: "Eden Apothecary: a terrain-based clinical decision-support web app for herbalists. Herb monographs, constitutional matching, safety data. Currently seeking aligned partners and collaborators.",
     path: "/app",
   });
   return (
@@ -42,9 +42,11 @@ const AppPage = () => {
               </Link>
             ))}
           </div>
-          <Button variant="eden" size="sm" onClick={() => setOpen(true)}>
-            Join Beta
-          </Button>
+          <a href="mailto:hello@edeninstitute.health">
+            <Button variant="eden" size="sm">
+              Connect
+            </Button>
+          </a>
         </div>
       </nav>
 
@@ -74,12 +76,14 @@ const AppPage = () => {
               className="w-2 h-2 rounded-full animate-pulse inline-block"
               style={{ backgroundColor: "hsl(var(--eden-gold))" }}
             />
-            Beta launching July 7, 2026
+            Seeking Partners
           </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button variant="eden" size="xl" onClick={() => setOpen(true)}>
-              Join the Beta Waitlist
-            </Button>
+            <a href="mailto:hello@edeninstitute.health">
+              <Button variant="eden" size="xl">
+                Connect With Us
+              </Button>
+            </a>
           </div>
         </div>
       </section>
@@ -151,19 +155,19 @@ const AppPage = () => {
 
       <section className="py-20 px-6" style={{ backgroundColor: "hsl(var(--eden-forest))" }}>
         <div className="max-w-2xl mx-auto text-center">
-          <h2 className="font-serif text-3xl font-bold mb-4 text-white">Get Early Access</h2>
+          <h2 className="font-serif text-3xl font-bold mb-4 text-white">Looking for Partners to Help Build the Next Stage</h2>
           <p className="font-body text-lg mb-8 leading-relaxed" style={{ color: "rgba(255,255,255,0.85)" }}>
-            Beta opens July 7 alongside the Tier 2 course launch. Founding members get first access and founding pricing
-            locked for life.
+            We are currently seeking aligned partners, investors, and collaborators to help bring this stage of Eden Institute to life. If you share our vision for faith-grounded, terrain-based health education, we would love to connect.
           </p>
-          <Button
-            variant="eden-outline"
-            size="xl"
-            className="border-white text-white hover:bg-white hover:text-foreground"
-            onClick={() => setOpen(true)}
-          >
-            Join the Beta Waitlist
-          </Button>
+          <a href="mailto:hello@edeninstitute.health">
+            <Button
+              variant="eden-outline"
+              size="xl"
+              className="border-white text-white hover:bg-white hover:text-foreground"
+            >
+              Connect With Us
+            </Button>
+          </a>
         </div>
       </section>
 

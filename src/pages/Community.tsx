@@ -56,9 +56,11 @@ const Community = () => {
               — Isaiah 65:21 (NASB)
             </footer>
           </blockquote>
-          <Button variant="eden" size="xl" onClick={() => setOpen(true)}>
-            Become a Founding Member
-          </Button>
+          <a href="mailto:hello@edeninstitute.health">
+            <Button variant="eden" size="xl">
+              Connect With Us
+            </Button>
+          </a>
         </div>
       </section>
 
@@ -132,7 +134,7 @@ const Community = () => {
             lasts. No algorithms. No surveillance. No compromised platforms.
           </p>
           <p className="font-body text-base" style={{ color: "rgba(255,255,255,0.7)" }}>
-            Founding member pricing is reserved for the waitlist. Once we open, it closes.
+            We are currently seeking aligned partners, investors, and collaborators to help bring this stage of Eden Institute to life. If you share our vision for faith-grounded, terrain-based health education, we would love to connect.
           </p>
         </div>
       </section>
@@ -140,15 +142,16 @@ const Community = () => {
       <section className="py-20 px-6" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="font-serif text-3xl font-bold mb-4" style={{ color: "hsl(var(--eden-bark))" }}>
-            Secure Your Founding Seat
+            Looking for Partners to Help Build the Next Stage
           </h2>
           <p className="font-body text-muted-foreground mb-8">
-            We are building toward a 500-person founding cohort. Join the waitlist to be notified the moment founding
-            membership opens.
+            We are currently seeking aligned partners, investors, and collaborators to help bring this stage of Eden Institute to life. If you share our vision for faith-grounded, terrain-based health education, we would love to connect.
           </p>
-          <Button variant="eden" size="xl" onClick={() => setOpen(true)}>
-            Join the Founding Waitlist
-          </Button>
+          <a href="mailto:hello@edeninstitute.health">
+            <Button variant="eden" size="xl">
+              Connect With Us
+            </Button>
+          </a>
         </div>
       </section>
 

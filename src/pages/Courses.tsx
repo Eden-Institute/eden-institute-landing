@@ -51,7 +51,7 @@ const Courses = () => {
               "@type": "Course",
               name: "Tier 2: Body Systems & Clinical Literacy",
               description:
-                "Twelve body-system modules covering clinical assessment, materia medica, and terrain-matched protocols. Currently on waitlist.",
+                "Twelve body-system modules covering clinical assessment, materia medica, and terrain-matched protocols. Currently seeking aligned partners and collaborators.",
               provider: {
                 "@type": "Organization",
                 name: "The Eden Institute",
@@ -211,7 +211,7 @@ const Courses = () => {
                 className="absolute -top-3 left-6 rounded px-3 py-1 text-xs font-semibold uppercase tracking-widest text-white"
                 style={{ backgroundColor: "hsl(var(--eden-sage))" }}
               >
-                Coming Fall 2026
+                Seeking Partners
               </span>
               <GraduationCap className="mb-4 h-8 w-8" style={{ color: "hsl(var(--eden-sage))" }} />
               <h3 className="mb-1 font-serif text-xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>
@@ -251,7 +251,7 @@ const Courses = () => {
                 </li>
               </ul>
               <p className="mb-4 text-center font-body text-sm text-muted-foreground">
-                Coming Fall 2026
+                Seeking Partners
               </p>
               <a href={T1} target="_blank" rel="noopener noreferrer" className="block">
                 <Button variant="eden-outline" className="w-full">
@@ -262,23 +262,25 @@ const Courses = () => {
               <div className="mt-6 rounded-sm border p-6"
                 style={{ backgroundColor: "hsl(var(--eden-parchment))", borderColor: "hsl(var(--eden-gold) / 0.3)" }}>
                 <p className="font-accent text-xs tracking-widest uppercase mb-1" style={{ color: "hsl(var(--eden-gold))" }}>
-                  Companion Textbook · Tier 2 · Coming Fall 2026
+                  Companion Textbook · Tier 2 · Seeking Partners
                 </p>
                 <h3 className="font-serif text-lg font-bold mb-2" style={{ color: "hsl(var(--eden-forest))" }}>
                   Back to Eden: Body Systems &amp; Clinical Literacy
                 </h3>
                 <p className="font-body text-sm mb-4" style={{ color: "hsl(var(--eden-bark) / 0.75)" }}>
-                  A comprehensive 14-module clinical reference covering every major body system. Terrain-based, Scripture-anchored, practitioner-grade. Join the waitlist to be notified when it's available.
+                  A comprehensive 14-module clinical reference covering every major body system. Terrain-based, Scripture-anchored, practitioner-grade. We are currently seeking aligned partners and collaborators to help bring this stage of Eden Institute to life.
                 </p>
-                <Button variant="eden" size="sm" onClick={() => setQuiz(true)}>
-                  Join the Textbook Waitlist
-                </Button>
+                <a href="mailto:hello@edeninstitute.health">
+                  <Button variant="eden" size="sm">
+                    Connect With Us
+                  </Button>
+                </a>
               </div>
             </div>
 
             <div className="relative rounded-lg border p-8 opacity-65" style={{ borderColor: "hsl(var(--border))" }}>
               <span className="absolute -top-3 left-6 rounded bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Coming 2027
+                Seeking Partners
               </span>
               <Users className="mb-4 h-8 w-8 text-muted-foreground" />
               <h3 className="mb-1 font-serif text-xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>
@@ -306,9 +308,11 @@ const Courses = () => {
                   Practitioner credential
                 </li>
               </ul>
-              <Button variant="eden-outline" className="w-full opacity-50" disabled>
-                Coming 2027
-              </Button>
+              <a href="mailto:hello@edeninstitute.health" className="block">
+                <Button variant="eden-outline" className="w-full">
+                  Connect With Us
+                </Button>
+              </a>
             </div>
           </div>
         </div>

@@ -123,7 +123,7 @@ const Index = () => {
                   "I've taken three herbal courses. This is the first one that treated me like I had a brain. The clinical depth is unlike anything else in this space."
                 </p>
                 <p className="font-accent text-xs tracking-wide" style={{ color: "hsl(var(--eden-gold))" }}>
-                  — Beta Student, Tennessee
+                  — Student, Tennessee
                 </p>
               </div>
             </ScrollReveal>
@@ -279,14 +279,14 @@ const Index = () => {
                   Body Systems & Clinical Literacy
                 </h3>
                 <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>
-                  Tier 2 · Coming Fall 2026
+                  Tier 2 · Seeking Partners
                 </p>
                 <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.8)" }}>
                   Go clinical. 14 modules. 127 lessons. Every major body system studied through a terrain lens with Scripture as the anchor. This is where students stop dabbling and start practicing.
                 </p>
-                <Link to="/courses" className="font-body text-sm font-semibold mt-6 block" style={{ color: "hsl(var(--eden-forest))" }}>
-                  Join the Waitlist →
-                </Link>
+                <a href="mailto:hello@edeninstitute.health" className="font-body text-sm font-semibold mt-6 block" style={{ color: "hsl(var(--eden-forest))" }}>
+                  Connect With Us →
+                </a>
               </div>
             </ScrollReveal>
 
@@ -300,13 +300,13 @@ const Index = () => {
                   Eden's Table Curriculum
                 </h3>
                 <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>
-                  K–12 Homeschool · Early Access
+                  K–12 Homeschool · Seeking Partners
                 </p>
                 <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.8)" }}>
                   K–12 curriculum that turns your kitchen into a classroom. Memory songs, hands-on herb labs, Scripture at every turn. Open-and-go. Built for the family that wants to pass this down.
                 </p>
                 <p className="font-body text-sm font-semibold mt-6" style={{ color: "hsl(var(--eden-forest))" }}>
-                  Join the waitlist →
+                  Connect with us →
                 </p>
               </Link>
             </ScrollReveal>
@@ -597,7 +597,7 @@ const Index = () => {
                     </Button>
                   </Link>
                   <p className="mt-4 font-body text-sm" style={{ color: "hsl(var(--eden-parchment) / 0.7)" }}>
-                    Enrollment opens June 2026. Course launches July 7, 2026.
+                    We are currently seeking aligned partners, investors, and collaborators to help bring this stage of Eden Institute to life.
                   </p>
                 </div>
               </ScrollReveal>
