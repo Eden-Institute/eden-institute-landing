@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSEO } from "@/hooks/use-seo";
 import { Link } from "react-router-dom";
 import { BookOpen, CheckCircle, Clock, GraduationCap, Users } from "lucide-react";
 

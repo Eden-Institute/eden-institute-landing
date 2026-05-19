@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useSEO } from "@/hooks/use-seo";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { constitutionProfiles, computeResult } from "@/lib/constitution-data";
