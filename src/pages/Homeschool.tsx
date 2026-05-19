@@ -181,7 +181,7 @@ const Homeschool = () => {
         open={open}
         onOpenChange={setOpen}
         audienceId={HS_AUD}
-        title="Join Eden's Table Early Access List"
+        title="Connect With The Eden Institute"
       />
     </div>
   );
