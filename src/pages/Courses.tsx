@@ -21,6 +21,11 @@ const NAV = [
 
 const Courses = () => {
   const [quiz, setQuiz] = useState(false);
+  useSEO({
+    title: "Courses — Tier 1 Foundations | The Eden Institute",
+    description: "Tier 1 Biblical Framework — constitutional clinical herbalism education. Self-paced course in terrain-based herbal medicine, anchored in Scripture.",
+    path: "/courses",
+  });
 
   return (
     <div className="min-h-screen bg-background">

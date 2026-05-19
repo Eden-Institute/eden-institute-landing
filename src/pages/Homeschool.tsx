@@ -19,6 +19,11 @@ const NAV = [
 
 const Homeschool = () => {
   const [open, setOpen] = useState(false);
+  useSEO({
+    title: "Homeschool Herbalism Curriculum | The Eden Institute",
+    description: "Eden's Table homeschool herbalism — Scripture-rooted, family-centered botanical education for raising stewards of God's design.",
+    path: "/homeschool",
+  });
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
