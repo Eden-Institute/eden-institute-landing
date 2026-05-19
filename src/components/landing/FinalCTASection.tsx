@@ -32,9 +32,11 @@ const FinalCTASection = () => {
               → Purchase Book One
             </Button>
           </a>
-          <Button variant="eden-light" size="xl" onClick={() => setAppModal(true)}>
-            → Join the App Beta Waitlist
-          </Button>
+          <a href="mailto:hello@edeninstitute.health">
+            <Button variant="eden-light" size="xl">
+              → Connect With Us
+            </Button>
+          </a>
         </div>
       </div>
 

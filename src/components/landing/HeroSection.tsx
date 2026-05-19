@@ -65,9 +65,11 @@ const HeroSection = () => {
               → Explore the Books
             </Button>
           </a>
-          <Button variant="eden-outline" size="xl" className="w-full sm:w-auto min-h-[48px]" onClick={() => setAppModal(true)}>
-            → Join the App Beta
-          </Button>
+          <a href="mailto:hello@edeninstitute.health" className="w-full sm:w-auto">
+            <Button variant="eden-outline" size="xl" className="w-full min-h-[48px]">
+              → Connect With Us
+            </Button>
+          </a>
         </div>
 
         {/* Why Eden Banner */}
