@@ -62,6 +62,7 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+
   try {
     if (!RESEND_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       console.error('Missing env vars');
@@ -126,7 +127,7 @@ Deno.serve(async (req) => {
     const stack = err instanceof Error ? err.stack : undefined;
     console.error('Nurture email 5 error:', message, stack);
     return new Response(
-      JSON.stringify({ error: message }),
+      JSON.stringify({ error: 'Internal error processing nurture batch.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
