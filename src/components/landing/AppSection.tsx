@@ -25,8 +25,8 @@ const tiers = [
       "Deep energetics, body pattern matching, tissue state analysis, and full materia medica access across 100+ herbs.",
     price: null,
     fullPrice: "$19.99/month",
-    betaPrice: "$4.99/month during beta",
-    betaNote: "Lock in this price for life when you join as a beta tester.",
+    betaPrice: "$4.99/month founding partner rate",
+    betaNote: "Lock in this price for life when you partner with us at this stage.",
     dark: false,
   },
   {
@@ -36,8 +36,8 @@ const tiers = [
       "Client profiles, saved body patterns, intelligent herb surfacing based on pattern recognition, and clinical workflow tools.",
     price: null,
     fullPrice: "$99.99/month",
-    betaPrice: "$19.99/month during beta",
-    betaNote: "Lock in this price for life when you join as a beta tester.",
+    betaPrice: "$19.99/month founding partner rate",
+    betaNote: "Lock in this price for life when you partner with us at this stage.",
     dark: true,
   },
 ];
@@ -61,8 +61,9 @@ const AppSection = () => {
           <div className="eden-divider" />
           <p className="font-body text-base md:text-lg text-muted-foreground max-w-3xl mx-auto">
             The Eden Apothecary App is a multi-tiered body pattern quiz and herb matching
-            system — from the home kitchen to the clinical practice. Beta testers get locked-in
-            discounted pricing for life. Join now before we launch.
+            system — from the home kitchen to the clinical practice. We are currently seeking aligned partners, investors, and collaborators to help bring this stage
+            of Eden Institute to life. If you share our vision for faith-grounded, terrain-based health
+            education, we would love to connect.
           </p>
         </div>
 
@@ -133,14 +134,15 @@ const AppSection = () => {
         </div>
 
         <div className="text-center">
-          <Button
-            variant="eden"
-            size="xl"
-            className="w-full md:w-auto"
-            onClick={() => setAppModal(true)}
-          >
-            → Join the App Beta Waitlist
-          </Button>
+          <a href="mailto:hello@edeninstitute.health">
+            <Button
+              variant="eden"
+              size="xl"
+              className="w-full md:w-auto"
+            >
+              → Connect With Us
+            </Button>
+          </a>
           {/* feat: public Apothecary tier pricing — secondary link to
               the live, public Free/Seed/Root/Practitioner ladder on
               /apothecary#tiers. The beta-tester pricing above is the

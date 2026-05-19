@@ -17,7 +17,7 @@ const books = [
   },
   {
     title: "Constitution & Terrain",
-    label: "COMING SOON",
+    label: "SEEKING PARTNERS",
     labelActive: false,
     summary:
       "A deep exploration of the constitutional axes — temperature, fluid, and tone — and how terrain assessment informs every herbal decision. The practitioner's guide to pattern recognition.",
@@ -25,7 +25,7 @@ const books = [
   },
   {
     title: "Biblical Clinical Herbalism",
-    label: "COMING SOON",
+    label: "SEEKING PARTNERS",
     labelActive: false,
     summary:
       "The clinical application text. System-by-system herbal protocols grounded in body pattern matching, energetic assessment, and a scriptural framework for stewarding health.",
@@ -89,25 +89,26 @@ const BooksSection = () => {
                   </a>
                 )}
                 {book.action === "waitlist" && (
-                  <Button
-                    variant="eden-outline"
-                    size="lg"
-                    className="w-full md:w-auto"
-                    onClick={() => setCourseModal(true)}
-                  >
-                    → Join the Waitlist
-                  </Button>
+                  <a href="mailto:hello@edeninstitute.health" className="block">
+                    <Button
+                      variant="eden-outline"
+                      size="lg"
+                      className="w-full md:w-auto"
+                    >
+                      → Connect With Us
+                    </Button>
+                  </a>
                 )}
                 {book.action === "none" && (
                   <p className="font-body text-sm italic text-foreground/60">
-                    Notify me when available —{" "}
-                    <button
-                      onClick={() => setCourseModal(true)}
+                    We are currently seeking aligned partners, investors, and collaborators to help bring this stage of Eden Institute to life. If you share our vision for faith-grounded, terrain-based health education, we would love to{" "}
+                    <a
+                      href="mailto:hello@edeninstitute.health"
                       className="underline hover:opacity-80 transition-opacity not-italic"
                       style={{ color: "#C9A84C" }}
                     >
-                      join the waitlist above
-                    </button>
+                      connect with us
+                    </a>
                     .
                   </p>
                 )}
