@@ -48,6 +48,15 @@
     --eden-cream: 40 40% 97%;
     --eden-sage: 140 15% 55%;
 
+    /* Homepage semantic tokens */
+    --cream: 40 33% 95%;
+    --green-mid: 140 15% 42%;
+    --green-deep: 150 35% 18%;
+    --honey: 40 55% 50%;
+    --rust: 15 50% 42%;
+    --ink: 30 25% 12%;
+    --green-dark: 150 30% 22%;
+
     --sidebar-background: 40 30% 96%;
     --sidebar-foreground: 30 25% 12%;
     --sidebar-primary: 150 35% 18%;

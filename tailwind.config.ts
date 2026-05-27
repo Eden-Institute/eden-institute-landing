@@ -59,6 +59,15 @@ export default {
           cream: "hsl(var(--eden-cream))",
           sage: "hsl(var(--eden-sage))",
         },
+        home: {
+          cream: "hsl(var(--cream))",
+          "green-mid": "hsl(var(--green-mid))",
+          "green-deep": "hsl(var(--green-deep))",
+          honey: "hsl(var(--honey))",
+          rust: "hsl(var(--rust))",
+          ink: "hsl(var(--ink))",
+          "green-dark": "hsl(var(--green-dark))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
