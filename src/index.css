@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Caveat:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -47,6 +47,22 @@
     --eden-bark-light: 30 15% 30%;
     --eden-cream: 40 40% 97%;
     --eden-sage: 140 15% 55%;
+
+    /* Homepage semantic tokens */
+    --cream: 40 33% 95%;
+    --cream-light: 40 40% 97%;
+    --green-mid: 140 15% 42%;
+    --green-deep: 150 35% 18%;
+    --green-dark: 150 30% 22%;
+    --honey: 40 55% 50%;
+    --rust: 15 50% 42%;
+    --ink: 30 25% 12%;
+    --ink-soft: 30 15% 30%;
+    --sage-border: 140 15% 55%;
+    --sage-pale: 140 20% 80%;
+    --honey-pale: 40 60% 78%;
+    --cream-warm: 38 45% 92%;
+    --footer-bg: 150 35% 12%;
 
     --sidebar-background: 40 30% 96%;
     --sidebar-foreground: 30 25% 12%;
