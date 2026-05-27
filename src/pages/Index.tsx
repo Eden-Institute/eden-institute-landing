@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import Navbar from "@/components/landing/Navbar";
 import { getAmazonKitUrl } from "@/lib/amazonKitUrls";
 import { supabase } from "@/integrations/supabase/client";
-import { getAmazonKitUrl } from "@/lib/amazonKitUrls";
 
 function Arrow() {
   return (
@@ -929,7 +928,251 @@ const Index = () => {
         {/* TODO Chunk 7 — final CTA */}
       </section>
 
-      <Footer />
+      {/* ─── SECTION: FOOTER ─── */}
+      <section
+        id="footer"
+        aria-label="Footer"
+        className="px-8"
+        style={{
+          backgroundColor: "hsl(var(--footer-bg))",
+          paddingTop: "clamp(48px, 6vw, 80px)",
+          paddingBottom: "24px",
+        }}
+      >
+        <div className="max-w-[1120px] mx-auto">
+          {/* 4-column grid */}
+          <div className="grid grid-cols-1 min-[880px]:grid-cols-4 gap-10">
+            {/* Column 1 — Brand */}
+            <div>
+              <p
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontWeight: 400,
+                  fontSize: "32px",
+                  color: "hsl(var(--cream))",
+                  lineHeight: 1.2,
+                  marginBottom: "8px",
+                }}
+              >
+                Eden Institute
+              </p>
+              <p
+                style={{
+                  fontFamily: "'Caveat', cursive",
+                  fontSize: "22px",
+                  color: "hsl(var(--honey))",
+                  lineHeight: 1.2,
+                  marginBottom: "16px",
+                }}
+              >
+                Back to Eden. Back to Truth.
+              </p>
+              <p
+                style={{
+                  fontFamily: "'EB Garamond', Georgia, serif",
+                  fontSize: "14px",
+                  lineHeight: 1.6,
+                  color: "hsl(var(--sage-pale))",
+                }}
+              >
+                The Eden Institute teaches Scripture-anchored, terrain-based clinical herbalism. A framework forgotten by mainstream wellness — taught back, one family at a time. Built by Rooted in Faith Ventures.
+              </p>
+            </div>
+
+            {/* Column 2 — The Work */}
+            <div>
+              <p
+                className="uppercase mb-5"
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontWeight: 600,
+                  fontSize: "11px",
+                  letterSpacing: "0.18em",
+                  color: "hsl(var(--green-mid))",
+                }}
+              >
+                THE WORK
+              </p>
+              <ul className="space-y-3">
+                <li>
+                  <a
+                    href="/homeschool"
+                    className="inline-flex items-center min-h-[44px]"
+                    style={{
+                      fontFamily: "'EB Garamond', Georgia, serif",
+                      fontSize: "15px",
+                      color: "hsl(var(--sage-pale))",
+                    }}
+                  >
+                    Eden's Table
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/courses"
+                    className="inline-flex items-center min-h-[44px]"
+                    style={{
+                      fontFamily: "'EB Garamond', Georgia, serif",
+                      fontSize: "15px",
+                      color: "hsl(var(--sage-pale))",
+                    }}
+                  >
+                    Eden Institute Courses
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/apothecary/start"
+                    className="inline-flex items-center min-h-[44px]"
+                    style={{
+                      fontFamily: "'EB Garamond', Georgia, serif",
+                      fontSize: "15px",
+                      color: "hsl(var(--sage-pale))",
+                    }}
+                  >
+                    Apothecary App
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://www.amazon.com/dp/B0GPW5BZ32?tag=theedeninstit-20"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center min-h-[44px]"
+                    style={{
+                      fontFamily: "'EB Garamond', Georgia, serif",
+                      fontSize: "15px",
+                      color: "hsl(var(--sage-pale))",
+                    }}
+                  >
+                    The Book
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 3 — Begin Here */}
+            <div>
+              <p
+                className="uppercase mb-5"
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontWeight: 600,
+                  fontSize: "11px",
+                  letterSpacing: "0.18em",
+                  color: "hsl(var(--green-mid))",
+                }}
+              >
+                BEGIN HERE
+              </p>
+              <ul className="space-y-3">
+                <li>
+                  <a
+                    href="/assessment"
+                    className="inline-flex items-center min-h-[44px]"
+                    style={{
+                      fontFamily: "'EB Garamond', Georgia, serif",
+                      fontSize: "15px",
+                      color: "hsl(var(--sage-pale))",
+                    }}
+                  >
+                    Pattern Quiz
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={guideUrl}
+                    className="inline-flex items-center min-h-[44px]"
+                    style={{
+                      fontFamily: "'EB Garamond', Georgia, serif",
+                      fontSize: "15px",
+                      color: "hsl(var(--sage-pale))",
+                    }}
+                  >
+                    Deep Dive Guide
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/homeschool"
+                    className="inline-flex items-center min-h-[44px]"
+                    style={{
+                      fontFamily: "'EB Garamond', Georgia, serif",
+                      fontSize: "15px",
+                      color: "hsl(var(--sage-pale))",
+                    }}
+                  >
+                    Founders Edition
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/why-eden"
+                    className="inline-flex items-center min-h-[44px]"
+                    style={{
+                      fontFamily: "'EB Garamond', Georgia, serif",
+                      fontSize: "15px",
+                      color: "hsl(var(--sage-pale))",
+                    }}
+                  >
+                    Why Eden
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 4 — Contact */}
+            <div>
+              <p
+                className="uppercase mb-5"
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontWeight: 600,
+                  fontSize: "11px",
+                  letterSpacing: "0.18em",
+                  color: "hsl(var(--green-mid))",
+                }}
+              >
+                CONTACT
+              </p>
+              <ul className="space-y-3">
+                <li>
+                  <a
+                    href="mailto:hello@edeninstitute.health"
+                    className="inline-flex items-center min-h-[44px]"
+                    style={{
+                      fontFamily: "'EB Garamond', Georgia, serif",
+                      fontSize: "15px",
+                      color: "hsl(var(--sage-pale))",
+                    }}
+                  >
+                    hello@edeninstitute.health
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Legal row */}
+          <div
+            className="mt-12 pt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center"
+            style={{
+              borderTop: "1px solid hsl(var(--sage-pale) / 0.25)",
+              fontFamily: "'EB Garamond', Georgia, serif",
+              fontSize: "12px",
+              color: "hsl(var(--ink-soft))",
+            }}
+          >
+            <span>© 2026 The Eden Institute · Rooted in Faith Ventures · Clarksville, Tennessee</span>
+            <span className="hidden sm:inline">|</span>
+            <a href="/terms" style={{ color: "hsl(var(--ink-soft))" }}>Terms</a>
+            <span>·</span>
+            <a href="/privacy" style={{ color: "hsl(var(--ink-soft))" }}>Privacy</a>
+            <span>·</span>
+            <a href="/cookies" style={{ color: "hsl(var(--ink-soft))" }}>Cookies</a>
+          </div>
+        </div>
+      </section>
     </main>
   );
 };
