@@ -4,6 +4,125 @@ import Footer from "@/components/landing/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { getAmazonKitUrl } from "@/lib/amazonKitUrls";
 
+function Arrow() {
+  return (
+    <div
+      className="three-steps-arrow hidden items-center justify-center"
+      aria-hidden="true"
+      style={{
+        fontFamily: "'Cormorant Garamond', Georgia, serif",
+        fontSize: "32px",
+        color: "hsl(var(--honey))",
+        lineHeight: 1,
+      }}
+    >
+      →
+    </div>
+  );
+}
+
+interface StepCardProps {
+  num: string;
+  title: string;
+  price: string;
+  body: string;
+  ctaLabel: string;
+  ctaHref: string;
+  ctaVariant: "honey" | "outline";
+  ctaExternal?: boolean;
+}
+
+function StepCard({
+  num,
+  title,
+  price,
+  body,
+  ctaLabel,
+  ctaHref,
+  ctaVariant,
+  ctaExternal,
+}: StepCardProps) {
+  const isHoney = ctaVariant === "honey";
+  return (
+    <article
+      className="flex flex-col bg-white"
+      style={{
+        borderRadius: "4px",
+        border: "0.5px solid hsl(var(--sage-border) / 0.6)",
+        borderTop: "3px solid hsl(var(--green-deep))",
+        padding: "32px",
+      }}
+    >
+      <div
+        className="italic mb-3"
+        style={{
+          fontFamily: "'Cormorant Garamond', Georgia, serif",
+          fontWeight: 300,
+          fontSize: "48px",
+          lineHeight: 1,
+          color: "hsl(var(--honey))",
+        }}
+      >
+        {num}
+      </div>
+      <h3
+        style={{
+          fontFamily: "'Cormorant Garamond', Georgia, serif",
+          fontWeight: 500,
+          fontSize: "26px",
+          lineHeight: 1.2,
+          color: "hsl(var(--green-deep))",
+          marginBottom: "6px",
+        }}
+      >
+        {title}
+      </h3>
+      <p
+        className="italic mb-4"
+        style={{
+          fontFamily: "'Cormorant Garamond', Georgia, serif",
+          fontSize: "16px",
+          color: "hsl(var(--green-mid))",
+        }}
+      >
+        {price}
+      </p>
+      <p
+        className="flex-1"
+        style={{
+          fontFamily: "'EB Garamond', Georgia, serif",
+          fontSize: "16px",
+          lineHeight: 1.65,
+          color: "hsl(var(--ink-soft))",
+          marginBottom: "24px",
+        }}
+      >
+        {body}
+      </p>
+      <a
+        href={ctaHref}
+        {...(ctaExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+        className="self-start inline-flex items-center justify-center transition-colors duration-200 min-h-[44px]"
+        style={{
+          fontFamily: "'Cormorant Garamond', Georgia, serif",
+          fontWeight: 600,
+          fontSize: "14px",
+          letterSpacing: "0.06em",
+          padding: "10px 20px",
+          borderRadius: "2px",
+          backgroundColor: isHoney ? "hsl(var(--honey))" : "transparent",
+          color: isHoney ? "hsl(var(--green-deep))" : "hsl(var(--green-deep))",
+          border: isHoney
+            ? "1px solid hsl(var(--honey))"
+            : "1px solid hsl(var(--green-deep))",
+        }}
+      >
+        {ctaLabel}
+      </a>
+    </article>
+  );
+}
+
 const Index = () => {
   // Resolved Eden Pattern slug for the current viewer, if any.
   // Source of truth on the client is localStorage (written by the quiz flow
