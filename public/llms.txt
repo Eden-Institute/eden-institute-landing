@@ -1,0 +1,34 @@
+# The Eden Institute
+
+> Biblical clinical herbalism education. Constitutional, terrain-based herbal medicine anchored in Scripture.
+
+The Eden Institute trains students in constitutional and energetics-based herbalism — reading the body's tissue states (temperature, fluid, tone) and matching plants according to design rather than treating symptoms. Curriculum is structured in three tiers; Tier 1 (Biblical Framework) is live, Tier 2 (Body Systems & Clinical Literacy) is on waitlist, Tier 3 (Terrain-Based Clinical Herbalism) ships in 2027.
+
+## Pages
+
+- [Home](/): Overview of the Institute, free constitutional quiz, and program ladder.
+- [Why Eden](/why-eden): Long-form manifesto on terrain-based, Scripture-anchored herbalism.
+- [Constitutional Herbalism](/constitutional-herbalism): Primer on the six tissue states and three-axis constitutional framework.
+- [Courses](/courses): Tier 1 Foundations course, pricing, and curriculum overview.
+- [App](/app): Eden Apothecary — terrain-based clinical decision-support web app (launching July 7, 2026).
+- [Homeschool](/homeschool): Eden's Table homeschool herbalism curriculum.
+- [Community](/community): The Rooted Community — local fellowship and study groups.
+- [Tier 2 Waitlist](/tier-2-waitlist): Free waitlist for Body Systems & Clinical Literacy.
+- [Constitutional Quiz](/assessment): Free 2-minute quiz to identify your constitutional pattern.
+
+## Constitutional Results
+
+- [Burning Bowstring](/results/burning-bowstring)
+- [Open Flame](/results/open-flame)
+- [Pressure Cooker](/results/pressure-cooker)
+- [Overflowing Cup](/results/overflowing-cup)
+- [Drawn Bowstring](/results/drawn-bowstring)
+- [Spent Candle](/results/spent-candle)
+- [Frozen Knot](/results/frozen-knot)
+- [Still Water](/results/still-water)
+
+## Optional
+
+- [Terms](/terms)
+- [Privacy](/privacy)
+- [Cookies](/cookies)
