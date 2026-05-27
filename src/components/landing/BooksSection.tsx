@@ -6,124 +6,28 @@ import WaitlistModal from "./WaitlistModal";
 const COURSE_AUDIENCE_ID = "4860c1c5-8e2b-4d02-838a-60ef09b789bf";
 
 const books = [
-  {
-    title: "Back to Eden: A Biblical Foundation for Herbal Healing",
-    label: "AVAILABLE NOW",
-    labelActive: true,
-    summary:
-      "The foundational text restoring herbal medicine to its theological and constitutional roots. Establishes the scriptural basis for plant medicine, the doctrine of signatures, and the framework for reading the body before reaching for the herb.",
-    action: "purchase" as const,
-    link: "https://www.amazon.com/dp/B0GPW5BZ32",
-  },
-  {
-    title: "Constitution & Terrain",
-    label: "SEEKING PARTNERS",
-    labelActive: false,
-    summary:
-      "A deep exploration of the constitutional axes — temperature, fluid, and tone — and how terrain assessment informs every herbal decision. The practitioner's guide to pattern recognition.",
-    action: "waitlist" as const,
-  },
-  {
-    title: "Biblical Clinical Herbalism",
-    label: "SEEKING PARTNERS",
-    labelActive: false,
-    summary:
-      "The clinical application text. System-by-system herbal protocols grounded in body pattern matching, energetic assessment, and a scriptural framework for stewarding health.",
-    action: "none" as const,
-  },
+  { title: "Back to Eden: A Biblical Foundation for Herbal Healing", label: "AVAILABLE NOW", labelActive: true, summary: "The foundational text restoring herbal medicine to its theological and constitutional roots. Establishes the scriptural basis for plant medicine, the doctrine of signatures, and the framework for reading the body before reaching for the herb.", action: "purchase" as const, link: "https://www.amazon.com/dp/B0GPW5BZ32" },
+  { title: "Constitution & Terrain", label: "SEEKING PARTNERS", labelActive: false, summary: "A deep exploration of the constitutional axes — temperature, fluid, and tone — and how terrain assessment informs every herbal decision. The practitioner's guide to pattern recognition.", action: "waitlist" as const },
+  { title: "Biblical Clinical Herbalism", label: "SEEKING PARTNERS", labelActive: false, summary: "The clinical application text. System-by-system herbal protocols grounded in body type matching, energetic assessment, and a scriptural framework for stewarding health.", action: "none" as const },
 ];
 
 const BooksSection = () => {
   const [courseModal, setCourseModal] = useState(false);
-
   return (
     <section id="books" className="section-padding-lg bg-secondary overflow-hidden w-full">
       <div className="eden-container">
-        <p className="font-accent text-sm tracking-[0.3em] uppercase gold-text mb-4 text-center">
-          THE LIBRARY
-        </p>
-        <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-foreground text-center mb-2">
-          The Back to Eden Series
-        </h2>
-        <p className="font-body text-base md:text-lg text-muted-foreground text-center max-w-2xl mx-auto mb-4">
-          A complete framework for biblical herbal medicine — from theological foundation to clinical practice.
-        </p>
+        <p className="font-accent text-sm tracking-[0.3em] uppercase gold-text mb-4 text-center">THE LIBRARY</p>
+        <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-foreground text-center mb-2">The Back to Eden Series</h2>
+        <p className="font-body text-base md:text-lg text-muted-foreground text-center max-w-2xl mx-auto mb-4">A complete framework for biblical herbal medicine — from theological foundation to clinical practice.</p>
         <div className="eden-divider" />
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 mt-10 md:mt-16 items-start">
-          {/* Book cover image */}
-          <div className="flex justify-center lg:sticky lg:top-24">
-            <a href="https://www.amazon.com/dp/B0GPW5BZ32" target="_blank" rel="noopener noreferrer">
-              <img
-                src={bookCover}
-                alt="Back to Eden: A Biblical Foundation for Herbal Healing by Camila Johnson"
-                className="w-48 sm:w-56 md:w-72 lg:w-80 max-w-full shadow-2xl border border-border hover:shadow-eden-gold/20 transition-shadow duration-500"
-              />
-            </a>
-          </div>
-
-          {/* Books list */}
+          <div className="flex justify-center lg:sticky lg:top-24"><a href="https://www.amazon.com/dp/B0GPW5BZ32" target="_blank" rel="noopener noreferrer"><img src={bookCover} alt="Back to Eden: A Biblical Foundation for Herbal Healing by Camila Johnson" className="w-48 sm:w-56 md:w-72 lg:w-80 max-w-full shadow-2xl border border-border hover:shadow-eden-gold/20 transition-shadow duration-500" /></a></div>
           <div className="space-y-8 md:space-y-10">
-            {books.map((book, i) => (
-              <div key={i} className="border-b border-border pb-8 md:pb-10 last:border-0">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4 mb-1">
-                  <h3 className="font-serif text-xl md:text-2xl font-semibold text-foreground">
-                    {book.title}
-                  </h3>
-                  <span
-                    className={`font-accent text-xs tracking-[0.2em] uppercase whitespace-nowrap ${
-                      book.labelActive ? "gold-text" : "text-muted-foreground"
-                    }`}
-                  >
-                    {book.label}
-                  </span>
-                </div>
-                <p className="font-body text-base text-muted-foreground leading-relaxed mb-4">
-                  {book.summary}
-                </p>
-                {book.action === "purchase" && (
-                  <a href={book.link} target="_blank" rel="noopener noreferrer" className="block">
-                    <Button variant="eden" size="lg" className="w-full md:w-auto">
-                      → Purchase Book One
-                    </Button>
-                  </a>
-                )}
-                {book.action === "waitlist" && (
-                  <a href="mailto:hello@edeninstitute.health" className="block">
-                    <Button
-                      variant="eden-outline"
-                      size="lg"
-                      className="w-full md:w-auto"
-                    >
-                      → Connect With Us
-                    </Button>
-                  </a>
-                )}
-                {book.action === "none" && (
-                  <p className="font-body text-sm italic text-foreground/60">
-                    We are currently seeking aligned partners, investors, and collaborators to help bring this stage of Eden Institute to life. If you share our vision for faith-grounded, terrain-based health education, we would love to{" "}
-                    <a
-                      href="mailto:hello@edeninstitute.health"
-                      className="underline hover:opacity-80 transition-opacity not-italic"
-                      style={{ color: "#C9A84C" }}
-                    >
-                      connect with us
-                    </a>
-                    .
-                  </p>
-                )}
-              </div>
-            ))}
+            {books.map((book, i) => (<div key={i} className="border-b border-border pb-8 md:pb-10 last:border-0"><div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4 mb-1"><h3 className="font-serif text-xl md:text-2xl font-semibold text-foreground">{book.title}</h3><span className={`font-accent text-xs tracking-[0.2em] uppercase whitespace-nowrap ${book.labelActive ? "gold-text" : "text-muted-foreground"}`}>{book.label}</span></div><p className="font-body text-base text-muted-foreground leading-relaxed mb-4">{book.summary}</p>{book.action === "purchase" && (<a href={book.link} target="_blank" rel="noopener noreferrer" className="block"><Button variant="eden" size="lg" className="w-full md:w-auto">→ Purchase Book One</Button></a>)}{book.action === "waitlist" && (<a href="mailto:hello@edeninstitute.health" className="block"><Button variant="eden-outline" size="lg" className="w-full md:w-auto">→ Connect With Us</Button></a>)}{book.action === "none" && (<p className="font-body text-sm italic text-foreground/60">We are currently seeking aligned partners, investors, and collaborators to help bring this stage of Eden Institute to life. If you share our vision for faith-grounded, terrain-based health education, we would love to <a href="mailto:hello@edeninstitute.health" className="underline hover:opacity-80 transition-opacity not-italic" style={{ color: "#C9A84C" }}>connect with us</a>.</p>)}</div>))}
           </div>
         </div>
       </div>
-
-      <WaitlistModal
-        open={courseModal}
-        onOpenChange={setCourseModal}
-        audienceId={COURSE_AUDIENCE_ID}
-        title="Join the Foundations Course Waitlist"
-      />
+      <WaitlistModal open={courseModal} onOpenChange={setCourseModal} audienceId={COURSE_AUDIENCE_ID} title="Join the Foundations Course Waitlist" />
     </section>
   );
 };
