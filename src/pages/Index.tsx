@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Navbar from "@/components/landing/Navbar";
-import Footer from "@/components/landing/Footer";
+import { getAmazonKitUrl } from "@/lib/amazonKitUrls";
 import { supabase } from "@/integrations/supabase/client";
 import { getAmazonKitUrl } from "@/lib/amazonKitUrls";
 
@@ -807,8 +807,121 @@ const Index = () => {
       </section>
 
       {/* ─── SECTION 4: FOUNDER ─── */}
-      <section id="founder" aria-label="Founder">
-        {/* TODO Chunk 6 — founder */}
+      <section
+        id="founder"
+        aria-label="Founder"
+        className="px-8"
+        style={{
+          backgroundColor: "hsl(var(--cream))",
+          paddingTop: "clamp(60px, 8vw, 120px)",
+          paddingBottom: "clamp(60px, 8vw, 120px)",
+        }}
+      >
+        <div className="max-w-[820px] mx-auto text-center">
+          {/* Eyebrow */}
+          <p
+            className="uppercase tracking-[0.18em] mb-6"
+            style={{
+              fontFamily: "'Cormorant Garamond', Georgia, serif",
+              fontWeight: 600,
+              fontSize: "11px",
+              color: "hsl(var(--green-mid))",
+            }}
+          >
+            FROM THE FOUNDER
+          </p>
+
+          {/* H2 */}
+          <h2
+            className="italic mb-8"
+            style={{
+              fontFamily: "'Cormorant Garamond', Georgia, serif",
+              fontWeight: 400,
+              fontSize: "clamp(28px, 3vw, 36px)",
+              lineHeight: 1.3,
+              color: "hsl(var(--green-deep))",
+            }}
+          >
+            "I built this because I couldn't find it. And I needed it to exist."
+          </h2>
+
+          {/* Body paragraphs */}
+          <div
+            className="text-left mx-auto"
+            style={{ maxWidth: "720px" }}
+          >
+            <p
+              style={{
+                fontFamily: "'EB Garamond', Georgia, serif",
+                fontSize: "16px",
+                lineHeight: 1.85,
+                color: "hsl(var(--ink))",
+                marginBottom: "20px",
+              }}
+            >
+              I'm Camila — a credentialed teacher with a Master's in education. I spent years studying herbalism formally. Every school I attended was rooted in Far Eastern mysticism — chakras, doshas, energy paradigms I don't share.
+            </p>
+            <p
+              style={{
+                fontFamily: "'EB Garamond', Georgia, serif",
+                fontSize: "16px",
+                lineHeight: 1.85,
+                color: "hsl(var(--ink))",
+                marginBottom: "20px",
+              }}
+            >
+              I didn't want to quit. The plants are real. The clinical lineage of Western herbalism is real. The body's design is real. But I refused to learn it through a paradigm contrary to my faith.
+            </p>
+            <p
+              style={{
+                fontFamily: "'EB Garamond', Georgia, serif",
+                fontSize: "16px",
+                lineHeight: 1.85,
+                color: "hsl(var(--ink))",
+                marginBottom: "20px",
+              }}
+            >
+              So I built a framework that begins with Yahweh — the source of vital force — and threads Scripture through every plant, every body system, every clinical decision. Then I built the curriculum to teach it to children. Then the courses to teach it to adults. Then the app to make the materia medica portable. Then the book where it's all written out.
+            </p>
+            <p
+              style={{
+                fontFamily: "'EB Garamond', Georgia, serif",
+                fontSize: "16px",
+                lineHeight: 1.85,
+                color: "hsl(var(--ink))",
+                marginBottom: "32px",
+              }}
+            >
+              If you've ever picked up an herbal book and quietly noticed Eastern frameworks beneath the surface — this is the alternative you've been waiting for.
+            </p>
+          </div>
+
+          {/* Signature */}
+          <div className="text-right">
+            <p
+              style={{
+                fontFamily: "'Caveat', cursive",
+                fontSize: "36px",
+                color: "hsl(var(--green-deep))",
+                lineHeight: 1.2,
+              }}
+            >
+              — Camila
+            </p>
+            <p
+              className="uppercase mt-2"
+              style={{
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontWeight: 400,
+                fontSize: "13px",
+                letterSpacing: "0.12em",
+                color: "hsl(var(--ink-soft))",
+              }}
+            >
+              MASTER'S IN EDUCATION · CREDENTIALED TEACHER · FOUNDER, EDEN INSTITUTE
+            </p>
+          </div>
+        </div>
       </section>
 
       {/* ─── SECTION 5: CTA ─── */}
