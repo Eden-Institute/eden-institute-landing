@@ -573,6 +573,118 @@ const Index = () => {
             </p>
           </div>
         </div>
+
+        {/* §5.3 — Three Steps */}
+        <div
+          className="px-8"
+          style={{
+            backgroundColor: "hsl(var(--cream-warm))",
+            paddingTop: "clamp(60px, 8vw, 120px)",
+            paddingBottom: "clamp(60px, 8vw, 120px)",
+          }}
+        >
+          <div className="max-w-[1120px] mx-auto">
+            {/* Header */}
+            <div className="text-center mb-16">
+              <p
+                className="uppercase tracking-[0.18em] mb-6"
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontWeight: 600,
+                  fontSize: "11px",
+                  color: "hsl(var(--green-mid))",
+                }}
+              >
+                BEGIN WHERE YOU ARE
+              </p>
+              <h2
+                className="mb-6"
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontWeight: 400,
+                  fontSize: "clamp(28px, 4vw, 48px)",
+                  lineHeight: 1.2,
+                  color: "hsl(var(--green-deep))",
+                }}
+              >
+                Three steps. Free to start.
+              </h2>
+              <p
+                className="mx-auto"
+                style={{
+                  fontFamily: "'EB Garamond', Georgia, serif",
+                  fontSize: "18px",
+                  color: "hsl(var(--ink-soft))",
+                  maxWidth: "720px",
+                  lineHeight: 1.6,
+                }}
+              >
+                Find your body's constitutional pattern. Get an herb guide written for you specifically. Source the plants your body is asking for.
+              </p>
+            </div>
+
+            {/* Steps grid: 1 → arrow → 2 → arrow → 3 (desktop), stack on mobile */}
+            <div
+              className="grid items-stretch gap-6"
+              style={{
+                gridTemplateColumns: "1fr",
+              }}
+            >
+              <div
+                className="grid items-stretch"
+                style={{
+                  gridTemplateColumns: "1fr",
+                  gap: "24px",
+                }}
+              >
+                <style>{`
+                  @media (min-width: 880px) {
+                    .three-steps-grid {
+                      grid-template-columns: 1fr 0.15fr 1fr 0.15fr 1fr !important;
+                      gap: 0 !important;
+                    }
+                    .three-steps-arrow { display: flex !important; }
+                  }
+                `}</style>
+                <div className="three-steps-grid grid items-stretch gap-6">
+                  {/* Step 1 */}
+                  <StepCard
+                    num="1"
+                    title="The Pattern Quiz"
+                    price="Free · 2 minutes"
+                    body="Discover the constitutional pattern God designed you with. No email required to start."
+                    ctaLabel="Take the Quiz"
+                    ctaHref="/assessment"
+                    ctaVariant="honey"
+                  />
+                  <Arrow />
+                  {/* Step 2 */}
+                  <StepCard
+                    num="2"
+                    title="The Deep Dive Guide"
+                    price="$14"
+                    body="Your personalized guide — 10 herbs matched to your pattern, plus nutrition, lifestyle, and Scripture written for you."
+                    ctaLabel={hasPattern ? "Unlock with Quiz" : "Take the quiz to unlock →"}
+                    ctaHref={hasPattern ? guideUrl : "/assessment"}
+                    ctaVariant="outline"
+                  />
+                  <Arrow />
+                  {/* Step 3 */}
+                  <StepCard
+                    num="3"
+                    title="Shop Your Bundle"
+                    price="Curated"
+                    body="Source the herbs your body is asking for. Curated Amazon bundles, organized by pattern, ready to deliver."
+                    ctaLabel={hasPattern && bundleUrl ? "Browse Bundles" : "Take the quiz to unlock →"}
+                    ctaHref={hasPattern && bundleUrl ? bundleUrl : "/assessment"}
+                    ctaExternal={hasPattern && !!bundleUrl}
+                    ctaVariant="outline"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* ─── SECTION 4: FOUNDER ─── */}
