@@ -1,17 +1,35 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import { supabase } from "@/integrations/supabase/client";
+import { getAmazonKitUrl } from "@/lib/amazonKitUrls";
 
 const Index = () => {
+  // Resolved Eden Pattern slug for the current viewer, if any.
+  // Source of truth on the client is localStorage (written by the quiz flow
+  // and Results page). RLS denies direct client reads of quiz_completions,
+  // so we degrade gracefully to the locked CTA state when absent.
+  const [patternSlug, setPatternSlug] = useState<string | null>(null);
+
   useEffect(() => {
-    // Resolve viewer tier on mount (preserved from prior implementation).
-    supabase.rpc("current_user_tier" as never).then(() => {
-      /* tier resolved — UI gating will consume in later chunks */
-    }, () => {
-      /* swallow — anon fallback handled downstream */
-    });
+    supabase.rpc("current_user_tier" as never).then(
+      () => {},
+      () => {}
+    );
+    try {
+      const stored =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("edenConstitutionSlug")
+          : null;
+      if (stored) setPatternSlug(stored);
+    } catch {
+      /* storage unavailable — stay locked */
+    }
   }, []);
+
+  const hasPattern = Boolean(patternSlug);
+  const bundleUrl = getAmazonKitUrl(patternSlug);
+  const guideUrl = patternSlug ? `/guide/${patternSlug}` : "/assessment";
 
   return (
     <main className="min-h-screen overflow-x-hidden">
