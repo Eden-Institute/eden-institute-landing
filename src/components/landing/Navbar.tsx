@@ -6,7 +6,7 @@ const navLinks = [
   { label: "Home", href: "/", external: false },
   { label: "Eden's Table", href: "/homeschool", external: false },
   { label: "Courses", href: "/courses", external: false },
-  { label: "Apothecary", href: "/apothecary", external: false },
+  { label: "Apothecary", href: "/apothecary/start", external: false },
   { label: "The Book", href: "https://www.amazon.com/dp/B0GPW5BZ32?tag=theedeninstit-20", external: true },
 ];
 
