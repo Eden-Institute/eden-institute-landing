@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSEO } from "@/hooks/use-seo";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,11 @@ const NAV = [
 
 const Homeschool = () => {
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.hash === "#early-access") {
+      setOpen(true);
+    }
+  }, []);
   useSEO({
     title: "Homeschool Herbalism Curriculum | The Eden Institute",
     description: "Eden's Table homeschool herbalism — Scripture-rooted, family-centered botanical education for raising stewards of God's design.",
@@ -181,7 +186,8 @@ const Homeschool = () => {
         open={open}
         onOpenChange={setOpen}
         audienceId={HS_AUD}
-        title="Connect With The Eden Institute"
+        title="Get the first two weeks free"
+        subtitle="We'll send the first two weeks of Eden's Table to your inbox, free."
       />
     </div>
   );

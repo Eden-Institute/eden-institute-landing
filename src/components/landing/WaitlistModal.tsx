@@ -13,9 +13,10 @@ interface WaitlistModalProps {
   onOpenChange: (open: boolean) => void;
   audienceId: string;
   title: string;
+  subtitle?: string;
 }
 
-const WaitlistModal = ({ open, onOpenChange, audienceId, title }: WaitlistModalProps) => {
+const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle }: WaitlistModalProps) => {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -59,6 +60,9 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title }: WaitlistModalP
       <DialogContent className="bg-card border-border max-w-md">
         <DialogHeader>
           <DialogTitle className="font-serif text-2xl text-foreground">{title}</DialogTitle>
+          {subtitle && (
+            <p className="font-body text-sm text-muted-foreground mt-2">{subtitle}</p>
+          )}
         </DialogHeader>
 
         {success ? (
