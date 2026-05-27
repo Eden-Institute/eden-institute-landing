@@ -186,7 +186,8 @@ const Homeschool = () => {
         open={open}
         onOpenChange={setOpen}
         audienceId={HS_AUD}
-        title="Connect With The Eden Institute"
+        title="Get the first two weeks free"
+        subtitle="We'll send the first two weeks of Eden's Table to your inbox, free."
       />
     </div>
   );
