@@ -8,52 +8,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
-/**
- * PR η — entry_funnel canonical values accepted by resend-waitlist EF.
- * Matches the public.entry_funnel Postgres enum (sans the deprecated
- * 'homeschool' value, which PR η consolidates into 'edens_table' per
- * Camila's 2026-05-02 decision that "Eden's Table IS the homeschool
- * curriculum"). 'homeschool' enum value remains in the database for the
- * single historical legacy row's referential integrity but is not
- * surfaced to new callers.
- */
-export type WaitlistFunnel =
-  | "edens_table"
-  | "community"
-  | "app_beta"
-  | "course_tier2"
-  | "practitioner_waitlist"
-  | "quiz_funnel";
-
 interface WaitlistModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   audienceId: string;
   title: string;
-  /**
-   * PR η: optional explicit entry_funnel. The resend-waitlist EF resolves
-   * funnel via precedence (providedFunnel → audienceId mapping → source
-   * keyword). Two pages — Community and Homeschool/Eden's Table — share
-   * the legacy audienceId 'a48cb66e-…', which the EF unconditionally
-   * maps to entry_funnel='edens_table'. Without the explicit funnel
-   * override, Community signups silently get tagged 'edens_table' and
-   * the post-launch Leads Intelligence segmentation collapses into one
-   * bucket. Always pass `funnel` for new surfaces.
-   */
-  funnel?: WaitlistFunnel;
-  /**
-   * PR η: per-surface metadata enrichment. Matches the metadata pattern
-   * established by practitioner-waitlist-signup
-   * ({ surface, pattern_slug, pattern_name }) so the post-launch Leads
-   * Intelligence dashboard can segment by entry-point surface and
-   * Pattern context. The EF writes this to waitlist_signups.metadata
-   * JSONB. Anything serializable is permitted; the established keys
-   * are surface, pattern_slug, pattern_name, plus optional UTM fields.
-   */
-  metadata?: Record<string, unknown>;
+  subtitle?: string;
 }
 
-const WaitlistModal = ({ open, onOpenChange, audienceId, title, funnel, metadata }: WaitlistModalProps) => {
+const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle }: WaitlistModalProps) => {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -66,26 +29,8 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, funnel, metadata
     setError("");
 
     try {
-      // PR η: pass funnel + metadata + source_url so the EF can write
-      // a fully-instrumented waitlist_signups row. Falsy values are
-      // omitted (rather than sent as null/{}) so the EF's existing
-      // resolver precedence still works for callers that don't supply
-      // a funnel — the audienceId-based legacy mapping continues to
-      // catch them.
-      const body: Record<string, unknown> = {
-        firstName,
-        email,
-        audienceId,
-        source: "waitlist",
-      };
-      if (funnel) body.entry_funnel = funnel;
-      if (metadata && Object.keys(metadata).length > 0) body.metadata = metadata;
-      if (typeof window !== "undefined") {
-        body.source_url = window.location.pathname;
-      }
-
       const { data, error: fnError } = await supabase.functions.invoke("resend-waitlist", {
-        body,
+        body: { firstName, email, audienceId, source: "waitlist" },
       });
 
       if (fnError) throw fnError;
@@ -115,58 +60,20 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, funnel, metadata
       <DialogContent className="bg-card border-border max-w-md">
         <DialogHeader>
           <DialogTitle className="font-serif text-2xl text-foreground">{title}</DialogTitle>
+          {subtitle && (<p className="font-body text-sm text-muted-foreground mt-2">{subtitle}</p>)}
         </DialogHeader>
-
         {success ? (
           <div className="py-8 text-center">
-            <p className="font-accent text-lg text-foreground italic mb-2">
-              You're on the list. We'll be in touch.
-            </p>
-            <p className="font-body text-xs text-muted-foreground/70 italic">
-              Using Gmail? Your first email may arrive in your Promotions or Spam folder. Please move it to your Primary inbox so you don't miss anything from us.
-            </p>
+            <p className="font-accent text-lg text-foreground italic mb-2">You're on the list. We'll be in touch.</p>
+            <p className="font-body text-xs text-muted-foreground/70 italic">Using Gmail? Your first email may arrive in your Promotions or Spam folder. Please move it to your Primary inbox so you don't miss anything from us.</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5 pt-2">
-            <div>
-              <label className="block font-accent text-xs tracking-[0.2em] uppercase text-muted-foreground mb-2">
-                First Name
-              </label>
-              <input
-                type="text"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="Your first name"
-                required
-                className="w-full px-4 py-3 bg-background border border-border font-body text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-eden-gold transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block font-accent text-xs tracking-[0.2em] uppercase text-muted-foreground mb-2">
-                Email Address
-              </label>
-              <input
-                type="email"
-                value={email}
-                // PR κ: strip ALL whitespace (incl. internal spaces some
-                // mobile autocomplete engines insert between '@' and the
-                // domain) and lowercase before HTML5/EF validation. Repro
-                // on iOS Safari 2026-05-03 — Eden's Table waitlist modal.
-                onChange={(e) => setEmail(e.target.value.replace(/\s+/g, "").toLowerCase().trim())}
-                placeholder="your@email.com"
-                required
-                className="w-full px-4 py-3 bg-background border border-border font-body text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-eden-gold transition-colors"
-              />
-            </div>
-            {error && (
-              <p className="font-body text-sm text-destructive">{error}</p>
-            )}
-            <Button variant="eden" size="xl" className="w-full" disabled={loading}>
-              {loading ? "Submitting…" : "→ Join the Waitlist"}
-            </Button>
-            <p className="text-center font-body text-xs text-muted-foreground/60">
-              No spam. Unsubscribe anytime.
-            </p>
+            <div><label className="block font-accent text-xs tracking-[0.2em] uppercase text-muted-foreground mb-2">First Name</label><input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Your first name" required className="w-full px-4 py-3 bg-background border border-border font-body text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-eden-gold transition-colors" /></div>
+            <div><label className="block font-accent text-xs tracking-[0.2em] uppercase text-muted-foreground mb-2">Email Address</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" required className="w-full px-4 py-3 bg-background border border-border font-body text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-eden-gold transition-colors" /></div>
+            {error && (<p className="font-body text-sm text-destructive">{error}</p>)}
+            <Button variant="eden" size="xl" className="w-full" disabled={loading}>{loading ? "Submitting…" : "Connect With Us"}</Button>
+            <p className="text-center font-body text-xs text-muted-foreground/60">No spam. Unsubscribe anytime.</p>
           </form>
         )}
       </DialogContent>
