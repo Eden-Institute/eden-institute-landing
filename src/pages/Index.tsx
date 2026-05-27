@@ -1,17 +1,154 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import { supabase } from "@/integrations/supabase/client";
+import { getAmazonKitUrl } from "@/lib/amazonKitUrls";
+
+function Arrow() {
+  return (
+    <div
+      className="three-steps-arrow hidden items-center justify-center"
+      aria-hidden="true"
+      style={{
+        fontFamily: "'Cormorant Garamond', Georgia, serif",
+        fontSize: "32px",
+        color: "hsl(var(--honey))",
+        lineHeight: 1,
+      }}
+    >
+      →
+    </div>
+  );
+}
+
+interface StepCardProps {
+  num: string;
+  title: string;
+  price: string;
+  body: string;
+  ctaLabel: string;
+  ctaHref: string;
+  ctaVariant: "honey" | "outline";
+  ctaExternal?: boolean;
+}
+
+function StepCard({
+  num,
+  title,
+  price,
+  body,
+  ctaLabel,
+  ctaHref,
+  ctaVariant,
+  ctaExternal,
+}: StepCardProps) {
+  const isHoney = ctaVariant === "honey";
+  return (
+    <article
+      className="flex flex-col bg-white"
+      style={{
+        borderRadius: "4px",
+        border: "0.5px solid hsl(var(--sage-border) / 0.6)",
+        borderTop: "3px solid hsl(var(--green-deep))",
+        padding: "32px",
+      }}
+    >
+      <div
+        className="italic mb-3"
+        style={{
+          fontFamily: "'Cormorant Garamond', Georgia, serif",
+          fontWeight: 300,
+          fontSize: "48px",
+          lineHeight: 1,
+          color: "hsl(var(--honey))",
+        }}
+      >
+        {num}
+      </div>
+      <h3
+        style={{
+          fontFamily: "'Cormorant Garamond', Georgia, serif",
+          fontWeight: 500,
+          fontSize: "26px",
+          lineHeight: 1.2,
+          color: "hsl(var(--green-deep))",
+          marginBottom: "6px",
+        }}
+      >
+        {title}
+      </h3>
+      <p
+        className="italic mb-4"
+        style={{
+          fontFamily: "'Cormorant Garamond', Georgia, serif",
+          fontSize: "16px",
+          color: "hsl(var(--green-mid))",
+        }}
+      >
+        {price}
+      </p>
+      <p
+        className="flex-1"
+        style={{
+          fontFamily: "'EB Garamond', Georgia, serif",
+          fontSize: "16px",
+          lineHeight: 1.65,
+          color: "hsl(var(--ink-soft))",
+          marginBottom: "24px",
+        }}
+      >
+        {body}
+      </p>
+      <a
+        href={ctaHref}
+        {...(ctaExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+        className="self-start inline-flex items-center justify-center transition-colors duration-200 min-h-[44px]"
+        style={{
+          fontFamily: "'Cormorant Garamond', Georgia, serif",
+          fontWeight: 600,
+          fontSize: "14px",
+          letterSpacing: "0.06em",
+          padding: "10px 20px",
+          borderRadius: "2px",
+          backgroundColor: isHoney ? "hsl(var(--honey))" : "transparent",
+          color: isHoney ? "hsl(var(--green-deep))" : "hsl(var(--green-deep))",
+          border: isHoney
+            ? "1px solid hsl(var(--honey))"
+            : "1px solid hsl(var(--green-deep))",
+        }}
+      >
+        {ctaLabel}
+      </a>
+    </article>
+  );
+}
 
 const Index = () => {
+  // Resolved Eden Pattern slug for the current viewer, if any.
+  // Source of truth on the client is localStorage (written by the quiz flow
+  // and Results page). RLS denies direct client reads of quiz_completions,
+  // so we degrade gracefully to the locked CTA state when absent.
+  const [patternSlug, setPatternSlug] = useState<string | null>(null);
+
   useEffect(() => {
-    // Resolve viewer tier on mount (preserved from prior implementation).
-    supabase.rpc("current_user_tier" as never).then(() => {
-      /* tier resolved — UI gating will consume in later chunks */
-    }, () => {
-      /* swallow — anon fallback handled downstream */
-    });
+    supabase.rpc("current_user_tier" as never).then(
+      () => {},
+      () => {}
+    );
+    try {
+      const stored =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("edenConstitutionSlug")
+          : null;
+      if (stored) setPatternSlug(stored);
+    } catch {
+      /* storage unavailable — stay locked */
+    }
   }, []);
+
+  const hasPattern = Boolean(patternSlug);
+  const bundleUrl = getAmazonKitUrl(patternSlug);
+  const guideUrl = patternSlug ? `/guide/${patternSlug}` : "/assessment";
 
   return (
     <main className="min-h-screen overflow-x-hidden">
@@ -553,6 +690,118 @@ const Index = () => {
             >
               This is where we begin. With your body. Specifically. The one He made.
             </p>
+          </div>
+        </div>
+
+        {/* §5.3 — Three Steps */}
+        <div
+          className="px-8"
+          style={{
+            backgroundColor: "hsl(var(--cream-warm))",
+            paddingTop: "clamp(60px, 8vw, 120px)",
+            paddingBottom: "clamp(60px, 8vw, 120px)",
+          }}
+        >
+          <div className="max-w-[1120px] mx-auto">
+            {/* Header */}
+            <div className="text-center mb-16">
+              <p
+                className="uppercase tracking-[0.18em] mb-6"
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontWeight: 600,
+                  fontSize: "11px",
+                  color: "hsl(var(--green-mid))",
+                }}
+              >
+                BEGIN WHERE YOU ARE
+              </p>
+              <h2
+                className="mb-6"
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontWeight: 400,
+                  fontSize: "clamp(28px, 4vw, 48px)",
+                  lineHeight: 1.2,
+                  color: "hsl(var(--green-deep))",
+                }}
+              >
+                Three steps. Free to start.
+              </h2>
+              <p
+                className="mx-auto"
+                style={{
+                  fontFamily: "'EB Garamond', Georgia, serif",
+                  fontSize: "18px",
+                  color: "hsl(var(--ink-soft))",
+                  maxWidth: "720px",
+                  lineHeight: 1.6,
+                }}
+              >
+                Find your body's constitutional pattern. Get an herb guide written for you specifically. Source the plants your body is asking for.
+              </p>
+            </div>
+
+            {/* Steps grid: 1 → arrow → 2 → arrow → 3 (desktop), stack on mobile */}
+            <div
+              className="grid items-stretch gap-6"
+              style={{
+                gridTemplateColumns: "1fr",
+              }}
+            >
+              <div
+                className="grid items-stretch"
+                style={{
+                  gridTemplateColumns: "1fr",
+                  gap: "24px",
+                }}
+              >
+                <style>{`
+                  @media (min-width: 880px) {
+                    .three-steps-grid {
+                      grid-template-columns: 1fr 0.15fr 1fr 0.15fr 1fr !important;
+                      gap: 0 !important;
+                    }
+                    .three-steps-arrow { display: flex !important; }
+                  }
+                `}</style>
+                <div className="three-steps-grid grid items-stretch gap-6">
+                  {/* Step 1 */}
+                  <StepCard
+                    num="1"
+                    title="The Pattern Quiz"
+                    price="Free · 2 minutes"
+                    body="Discover the constitutional pattern God designed you with. No email required to start."
+                    ctaLabel="Take the Quiz"
+                    ctaHref="/assessment"
+                    ctaVariant="honey"
+                  />
+                  <Arrow />
+                  {/* Step 2 */}
+                  <StepCard
+                    num="2"
+                    title="The Deep Dive Guide"
+                    price="$14"
+                    body="Your personalized guide — 10 herbs matched to your pattern, plus nutrition, lifestyle, and Scripture written for you."
+                    ctaLabel={hasPattern ? "Unlock with Quiz" : "Take the quiz to unlock →"}
+                    ctaHref={hasPattern ? guideUrl : "/assessment"}
+                    ctaVariant="outline"
+                  />
+                  <Arrow />
+                  {/* Step 3 */}
+                  <StepCard
+                    num="3"
+                    title="Shop Your Bundle"
+                    price="Curated"
+                    body="Source the herbs your body is asking for. Curated Amazon bundles, organized by pattern, ready to deliver."
+                    ctaLabel={hasPattern && bundleUrl ? "Browse Bundles" : "Take the quiz to unlock →"}
+                    ctaHref={hasPattern && bundleUrl ? bundleUrl : "/assessment"}
+                    ctaExternal={hasPattern && !!bundleUrl}
+                    ctaVariant="outline"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
