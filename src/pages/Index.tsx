@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Navbar from "@/components/landing/Navbar";
 import { getAmazonKitUrl } from "@/lib/amazonKitUrls";
 import { supabase } from "@/integrations/supabase/client";
+import heroBotanical from "@/assets/hero-botanical.jpg";
 
 function Arrow() {
   return (
@@ -151,7 +152,7 @@ const Index = () => {
       <section
         id="hero"
         aria-label="Hero"
-        className="relative flex items-center justify-center px-8"
+        className="relative flex items-center justify-center px-8 overflow-hidden"
         style={{
           backgroundColor: "hsl(var(--cream))",
           backgroundImage: `
@@ -162,7 +163,18 @@ const Index = () => {
           paddingBottom: "clamp(60px, 8vw, 120px)",
         }}
       >
-        <div className="max-w-[960px] w-full mx-auto text-center">
+        {/* Vintage botanical overlay — chamomile, lavender, echinacea engravings */}
+        <img
+          src={heroBotanical}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+          style={{
+            opacity: 0.32,
+            mixBlendMode: "multiply",
+          }}
+        />
+        <div className="relative z-10 max-w-[960px] w-full mx-auto text-center">
           <p
             className="uppercase tracking-[0.18em] mb-6"
             style={{
@@ -465,7 +477,7 @@ const Index = () => {
             <h2 className="italic mb-12" style={{fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 400, fontSize: "clamp(28px, 4vw, 48px)", lineHeight: 1.2, color: "hsl(var(--green-deep))"}}>We live in a one-size-fits-all medical system. You were not made one-size-fits-all.</h2>
             <div className="mb-4">
               <div className="mx-auto mb-8" style={{width: "80px", height: "1px", backgroundColor: "hsl(var(--sage-border) / 0.6)"}} />
-              <blockquote className="italic mx-auto" style={{fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "26px", lineHeight: 1.5, color: "hsl(var(--green-dark))", maxWidth: "720px"}}>“I will give thanks to You, for I am fearfully and wonderfully made… my frame was not hidden from You when I was made in secret, and skillfully wrought.”</blockquote>
+              <blockquote className="italic mx-auto" style={{fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "26px", lineHeight: 1.5, color: "hsl(var(--green-dark))", maxWidth: "720px"}}>"I will give thanks to You, for I am fearfully and wonderfully made… my frame was not hidden from You when I was made in secret, and skillfully wrought."</blockquote>
               <div className="mx-auto mt-8" style={{width: "80px", height: "1px", backgroundColor: "hsl(var(--sage-border) / 0.6)"}} />
             </div>
             <p className="mb-12" style={{fontFamily: "'Caveat', cursive", fontSize: "28px", color: "hsl(var(--honey))", lineHeight: 1.2}}>— Psalm 139:14–15</p>
