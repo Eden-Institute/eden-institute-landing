@@ -322,6 +322,241 @@ const Index = () => {
         </div>
       </section>
 
+      {/* ─── SECTION: WHY THIS EXISTS ─── */}
+      <section id="why-this-exists" aria-label="Why this exists">
+        {/* §5.1 — Manifesto (dark green, full-bleed) */}
+        <div
+          className="px-8"
+          style={{
+            backgroundColor: "hsl(var(--green-deep))",
+            paddingTop: "clamp(60px, 8vw, 120px)",
+            paddingBottom: "clamp(60px, 8vw, 120px)",
+          }}
+        >
+          <div className="max-w-[1120px] mx-auto">
+            <div className="text-center mb-16">
+              <p
+                className="uppercase tracking-[0.18em] mb-6"
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontWeight: 600,
+                  fontSize: "11px",
+                  color: "hsl(var(--honey-pale))",
+                }}
+              >
+                A FRAMEWORK OUR CULTURE FORGOT
+              </p>
+              <h2
+                className="italic mb-6"
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontWeight: 400,
+                  fontSize: "clamp(28px, 4vw, 48px)",
+                  lineHeight: 1.2,
+                  color: "hsl(var(--cream))",
+                }}
+              >
+                We outsourced our bodies — and chronic disease is at an all-time high.
+              </h2>
+              <p
+                className="mx-auto"
+                style={{
+                  fontFamily: "'EB Garamond', Georgia, serif",
+                  fontSize: "19px",
+                  color: "hsl(var(--sage-pale))",
+                  maxWidth: "720px",
+                  lineHeight: 1.6,
+                }}
+              >
+                Three thousand years of Western clinical herbalism, anchored in Scripture, hasn't disappeared. It just isn't being taught.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 min-[880px]:grid-cols-2 gap-x-12 gap-y-12 max-w-[960px] mx-auto">
+              {[
+                {
+                  n: "01",
+                  h: "The signals were silenced.",
+                  b: "Symptoms are information — your body telling you what it needs. A generation was taught to suppress the signal instead of asking what it means.",
+                },
+                {
+                  n: "02",
+                  h: "Stewardship became dependency.",
+                  b: "The garden, the kitchen, the family table — once where health was tended — were traded for prescriptions and protocols held by people who don't know your name.",
+                },
+                {
+                  n: "03",
+                  h: "The framework was forgotten.",
+                  b: "Scripture-anchored herbalism. Yahweh as the source of vital force. Western clinical lineage. None of it is gone. It is simply absent from the rooms where children are formed.",
+                },
+                {
+                  n: "04",
+                  h: "And the children inherited the gap.",
+                  b: "A generation is growing up unable to read their own bodies, unable to name the plants in God's creation, unable to imagine health as anything other than what is prescribed to them.",
+                },
+              ].map((item) => (
+                <div key={item.n}>
+                  <div
+                    className="italic mb-2"
+                    style={{
+                      fontFamily: "'Cormorant Garamond', Georgia, serif",
+                      fontWeight: 300,
+                      fontSize: "64px",
+                      lineHeight: 1,
+                      color: "hsl(var(--honey-pale))",
+                    }}
+                  >
+                    {item.n}
+                  </div>
+                  <h3
+                    className="italic mb-3"
+                    style={{
+                      fontFamily: "'Cormorant Garamond', Georgia, serif",
+                      fontWeight: 400,
+                      fontSize: "24px",
+                      lineHeight: 1.25,
+                      color: "hsl(var(--cream))",
+                    }}
+                  >
+                    {item.h}
+                  </h3>
+                  <p
+                    style={{
+                      fontFamily: "'EB Garamond', Georgia, serif",
+                      fontSize: "16px",
+                      color: "hsl(var(--sage-pale))",
+                      lineHeight: 1.7,
+                    }}
+                  >
+                    {item.b}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* §5.2 — A Body Like No Other (cream-light) */}
+        <div
+          className="px-8"
+          style={{
+            backgroundColor: "hsl(var(--cream-light))",
+            paddingTop: "clamp(60px, 8vw, 120px)",
+            paddingBottom: "clamp(60px, 8vw, 120px)",
+          }}
+        >
+          <div className="max-w-[820px] mx-auto text-center">
+            <p
+              className="uppercase tracking-[0.18em] mb-6"
+              style={{
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontWeight: 600,
+                fontSize: "11px",
+                color: "hsl(var(--green-mid))",
+              }}
+            >
+              A BODY LIKE NO OTHER
+            </p>
+            <h2
+              className="italic mb-12"
+              style={{
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontWeight: 400,
+                fontSize: "clamp(28px, 4vw, 48px)",
+                lineHeight: 1.2,
+                color: "hsl(var(--green-deep))",
+              }}
+            >
+              We live in a one-size-fits-all medical system. You were not made one-size-fits-all.
+            </h2>
+
+            {/* Scripture block */}
+            <div className="mb-4">
+              <div
+                className="mx-auto mb-8"
+                style={{
+                  width: "80px",
+                  height: "1px",
+                  backgroundColor: "hsl(var(--sage-border) / 0.6)",
+                }}
+              />
+              <blockquote
+                className="italic mx-auto"
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontSize: "26px",
+                  lineHeight: 1.5,
+                  color: "hsl(var(--green-dark))",
+                  maxWidth: "720px",
+                }}
+              >
+                &ldquo;I will give thanks to You, for I am fearfully and wonderfully made… my frame was not hidden from You when I was made in secret, and skillfully wrought.&rdquo;
+              </blockquote>
+              <div
+                className="mx-auto mt-8"
+                style={{
+                  width: "80px",
+                  height: "1px",
+                  backgroundColor: "hsl(var(--sage-border) / 0.6)",
+                }}
+              />
+            </div>
+
+            {/* Citation in Caveat */}
+            <p
+              className="mb-12"
+              style={{
+                fontFamily: "'Caveat', cursive",
+                fontSize: "28px",
+                color: "hsl(var(--honey))",
+                lineHeight: 1.2,
+              }}
+            >
+              — Psalm 139:14–15
+            </p>
+
+            {/* Body */}
+            <div className="mx-auto" style={{ maxWidth: "760px" }}>
+              <p
+                style={{
+                  fontFamily: "'EB Garamond', Georgia, serif",
+                  fontSize: "18px",
+                  color: "hsl(var(--ink))",
+                  lineHeight: 1.75,
+                  marginBottom: "24px",
+                }}
+              >
+                God did not knit His image in a mold. He knit you — distinctly, deliberately, by hand. Different sizes. Different shapes. Different personalities. Different body patterns. Different responses to heat and cold, stress and stillness, food and feeling.
+              </p>
+              <p
+                style={{
+                  fontFamily: "'EB Garamond', Georgia, serif",
+                  fontSize: "18px",
+                  color: "hsl(var(--ink))",
+                  lineHeight: 1.75,
+                }}
+              >
+                The plants He designed were not made one-size-fits-all either. The same chamomile that calms one body inflames another. The same elderberry that fortifies one immune system overwhelms another. There is no universal protocol — because there is no universal body.
+              </p>
+            </div>
+
+            {/* Pivot line */}
+            <p
+              className="italic"
+              style={{
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontSize: "24px",
+                color: "hsl(var(--green-deep))",
+                marginTop: "40px",
+                lineHeight: 1.4,
+              }}
+            >
+              This is where we begin. With your body. Specifically. The one He made.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* ─── SECTION 4: FOUNDER ─── */}
       <section id="founder" aria-label="Founder">
         {/* TODO Chunk 6 — founder */}
