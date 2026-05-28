@@ -21,6 +21,7 @@ import GuideLanding from "./pages/GuideLanding";
 import Courses from "./pages/Courses";
 import AppPage from "./pages/AppPage";
 import Homeschool from "./pages/Homeschool";
+import HomeschoolWelcome from "./pages/HomeschoolWelcome";
 import Community from "./pages/Community";
 import TierTwoWaitlist from "./pages/TierTwoWaitlist";
 import { ApothecaryLayout } from "@/components/apothecary/ApothecaryLayout";
@@ -105,6 +106,14 @@ const App = () => (
               <Route path={ROUTES.COURSES} element={<Courses />} />
               <Route path={ROUTES.APOTHECARY} element={<AppPage />} />
               <Route path={ROUTES.HOMESCHOOL} element={<Homeschool />} />
+              {/* /homeschool/welcome — Stripe Checkout success_url redirect
+                  target for homeschool product purchases (sprouts_complete,
+                  seedlings_complete, two_band_bundle). Receives session_id
+                  + lookup_key query params; renders order confirmation copy
+                  personalized by product. Visual confirmation only — the
+                  stripe-webhook EF handles fulfillment (Supabase user
+                  provisioning + bundle_buyer flag) server-side. */}
+              <Route path={ROUTES.HOMESCHOOL_WELCOME} element={<HomeschoolWelcome />} />
               <Route path={ROUTES.COMMUNITY} element={<Community />} />
               <Route path={ROUTES.TIER_TWO_WAITLIST} element={<TierTwoWaitlist />} />
               {/* Apothecary application — Lane C Stage 6.3.4: auth-walled per §0.8 v3.3 #21.
