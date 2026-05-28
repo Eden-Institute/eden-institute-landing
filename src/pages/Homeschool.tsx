@@ -1,198 +1,88 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import Footer from "@/components/landing/Footer";
-import WaitlistModal from "@/components/landing/WaitlistModal";
 import Navbar from "@/components/landing/Navbar";
-import { BookOpen, Sprout, Users } from "lucide-react";
+import Footer from "@/components/landing/Footer";
+import Hero from "@/components/homeschool/Hero";
+import FounderLetter from "@/components/homeschool/FounderLetter";
+import ThreePillars from "@/components/homeschool/ThreePillars";
+import CoLearnerPromise from "@/components/homeschool/CoLearnerPromise";
+import WeeklyRhythm from "@/components/homeschool/WeeklyRhythm";
+import EightProducts from "@/components/homeschool/EightProducts";
+import HatFramework from "@/components/homeschool/HatFramework";
+import FourBands from "@/components/homeschool/FourBands";
+import PricingCenterpiece from "@/components/homeschool/PricingCenterpiece";
+import AlaCarteTable from "@/components/homeschool/AlaCarteTable";
+import CoopLicense from "@/components/homeschool/CoopLicense";
+import Faq from "@/components/homeschool/Faq";
+import ParentTrack from "@/components/homeschool/ParentTrack";
+import FinalCta from "@/components/homeschool/FinalCta";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
-import { useEdenPattern } from "@/hooks/useEdenPattern";
-import { patternNameToSlug } from "@/lib/amazonKitUrls";
 
-const HS_AUD = "a48cb66e-b2a9-461d-98a6-bb1b12f72693";
-
+/**
+ * Homeschool (/homeschool) — Eden's Table revamp per
+ * Eden_Table_Homeschool_Page_Implementation_Spec v1.5.
+ *
+ * v1.5 supersedes the v1.4 partner-positioning stub (commit 791fcb8).
+ * The page is now a 15-section conversion surface for the August 1, 2026
+ * launch of Sprouts (K-2) and Seedlings (3-5).
+ *
+ * Composition: Navbar + 13 section components + landing Footer.
+ *  §0  Navbar (reused, has "Eden's Table" link to /homeschool already)
+ *  §1  Hero — dual lead-magnet CTAs
+ *  §2  FounderLetter
+ *  §3  ThreePillars
+ *  §4  CoLearnerPromise (key positioning)
+ *  §5  WeeklyRhythm (Mon-Fri from Wk 02 master)
+ *  §6  EightProducts (conversion engine)
+ *  §7  HatFramework
+ *  §8  FourBands (K-12 ladder)
+ *  §9  PricingCenterpiece (centerpiece, dark green band)
+ *  §10 AlaCarteTable
+ *  §11 CoopLicense (new SKU)
+ *  §12 Faq
+ *  §13 ParentTrack
+ *  §14 FinalCta (urgency close)
+ *  §15 Footer (reused from landing)
+ *
+ * SEO: useDocumentMeta sets title / description / canonical / theme.
+ * OG image hook + the founder photo + the 8 Canva product mockups all
+ * land in the asset delivery pass (target July 22, 2026 per spec
+ * Open Questions #6 + #7).
+ *
+ * Funnel signal: the entry funnel value remains canonical "edens_table"
+ * per Camila's 2026-05-02 consolidation decision. Per-CTA lead_magnet
+ * + band_waitlist + coop_license_application metadata fields let Resend
+ * segment without needing additional audience IDs.
+ *
+ * Stripe checkout IDs across the page are placeholders that surface a
+ * visible alert + console.warn on click. Phase 2 of the POD Setup
+ * Timeline wires the 26 live-mode price IDs (target July 22-28).
+ */
 const Homeschool = () => {
   useDocumentMeta({
-    title: "Eden's Table — K-12 Homeschool Herbalism Curriculum | The Eden Institute",
+    title:
+      "Eden's Table — A K-12 Herbalism Curriculum | The Eden Institute",
     description:
-      "A K-12 Biblical herbalism curriculum for homeschool families. Open-and-go lesson plans, memory songs, kitchen labs, and garden activities — rooted in Scripture and creation stewardship.",
+      "Open-and-go K-12 herbalism curriculum for the family. 36 weeks per year, Scripture at every turn, built by a credentialed teacher. Sprouts + Seedlings launch August 1, 2026.",
     canonical: "https://edeninstitute.health/homeschool",
   });
 
-  const [open, setOpen] = useState(false);
-
-  // PR η fix #8 + #9: Eden's Table IS the homeschool curriculum
-  // (Camila's 2026-05-02 decision). Two redundant entry_funnel enum
-  // values existed: 'edens_table' (1 historical row) and 'homeschool'
-  // (0 rows). Per the consolidation, all new signups write
-  // 'edens_table' as the canonical name. The Postgres enum value
-  // 'homeschool' is left in place to preserve referential integrity;
-  // it just stops being emitted by any frontend caller.
-  const { data: pattern } = useEdenPattern();
-  const metadata: Record<string, unknown> = { surface: "edens_table_page" };
-  if (pattern) {
-    metadata.pattern_name = pattern;
-    metadata.pattern_slug = patternNameToSlug(pattern);
-  }
-
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" id="top">
       <Navbar />
-
-      <section className="py-20 md:py-28 px-6" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
-        <div className="max-w-4xl mx-auto text-center">
-          <p className="font-accent text-sm tracking-[0.3em] uppercase mb-6" style={{ color: "hsl(var(--eden-gold))" }}>
-            Eden's Table
-          </p>
-          <h1
-            className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6"
-            style={{ color: "hsl(var(--eden-bark))" }}
-          >
-            Herbalism for the
-            <br />
-            <span className="italic">Whole Family Table.</span>
-          </h1>
-          <div className="w-16 h-px mx-auto my-8" style={{ backgroundColor: "hsl(var(--eden-gold))" }} />
-          <p className="font-body text-lg text-muted-foreground max-w-2xl mx-auto mb-6 leading-relaxed">
-            A K-12 Biblical herbalism curriculum for homeschool families. Open-and-go lesson plans, memory songs,
-            kitchen labs, garden activities, and a recurring family story — rooted in Scripture and creation
-            stewardship.
-          </p>
-          <p className="font-accent text-sm tracking-wider uppercase mb-8" style={{ color: "hsl(var(--eden-sage))" }}>
-            Looking for Partners to Help Build the Next Stage
-          </p>
-          <a href="mailto:hello@edeninstitute.health">
-            <Button variant="eden" size="xl">
-              Connect With Us
-            </Button>
-          </a>
-        </div>
-      </section>
-
-      <section className="py-16 px-6 bg-background">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="font-serif text-3xl font-bold mb-4" style={{ color: "hsl(var(--eden-bark))" }}>
-              Four Grade Bands. One Family Vision.
-            </h2>
-            <p className="font-body text-muted-foreground max-w-2xl mx-auto">
-              Eden's Table grows with your children — from wonder-filled kitchen labs to clinical reasoning in high
-              school.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
-            <div
-              className="rounded-lg p-6 border-2"
-              style={{ borderColor: "hsl(var(--eden-gold))", backgroundColor: "hsl(var(--eden-cream))" }}
-            >
-              <Sprout className="w-6 h-6 mb-3" style={{ color: "hsl(var(--eden-gold))" }} />
-              <h3 className="font-serif text-lg font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>
-                Sprouts
-              </h3>
-              <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>
-                Grades K-3
-              </p>
-              <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">
-                Wonder, stories, and simple plant identification. Kitchen labs and memory songs.
-              </p>
-              <span className="text-xs font-body px-2 py-1 rounded" style={{ backgroundColor: "hsl(var(--eden-gold) / 0.15)", color: "hsl(var(--eden-gold))" }}>
-                Early Access
-              </span>
-            </div>
-            <div className="rounded-lg p-6 border opacity-75" style={{ borderColor: "hsl(var(--border))" }}>
-              <BookOpen className="w-6 h-6 mb-3 text-muted-foreground" />
-              <h3 className="font-serif text-lg font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>
-                Seedlings
-              </h3>
-              <p className="font-accent text-xs tracking-widest uppercase mb-3 text-muted-foreground">Grades 4-6</p>
-              <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">
-                Body systems basics, herb profiles, and family dinner discussions.
-              </p>
-              <span className="text-xs font-body px-2 py-1 rounded bg-muted text-muted-foreground">2027</span>
-            </div>
-            <div className="rounded-lg p-6 border opacity-75" style={{ borderColor: "hsl(var(--border))" }}>
-              <BookOpen className="w-6 h-6 mb-3 text-muted-foreground" />
-              <h3 className="font-serif text-lg font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>
-                Cultivators
-              </h3>
-              <p className="font-accent text-xs tracking-widest uppercase mb-3 text-muted-foreground">Grades 7-9</p>
-              <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">
-                Body pattern thinking, terrain basics, and garden-to-remedy workflows.
-              </p>
-              <span className="text-xs font-body px-2 py-1 rounded bg-muted text-muted-foreground">2027</span>
-            </div>
-            <div className="rounded-lg p-6 border opacity-75" style={{ borderColor: "hsl(var(--border))" }}>
-              <Users className="w-6 h-6 mb-3 text-muted-foreground" />
-              <h3 className="font-serif text-lg font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>
-                Practitioners
-              </h3>
-              <p className="font-accent text-xs tracking-widest uppercase mb-3 text-muted-foreground">Grades 10-12</p>
-              <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">
-                Clinical literacy, materia medica, and real-world application.
-              </p>
-              <span className="text-xs font-body px-2 py-1 rounded bg-muted text-muted-foreground">2028</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-16 px-6" style={{ backgroundColor: "hsl(var(--eden-forest))" }}>
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="font-serif text-3xl font-bold mb-6 text-white">Open-and-Go. Family-Style. Faith-Rooted.</h2>
-          <div className="grid md:grid-cols-3 gap-6 text-left mt-8">
-            <div className="rounded-lg p-6" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
-              <h3 className="font-serif text-lg font-semibold mb-3 text-white">No Prep Required</h3>
-              <p className="font-body text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>
-                Every lesson includes a parent guide, student workbook, kitchen lab card, and garden activity card. Open
-                and teach.
-              </p>
-            </div>
-            <div className="rounded-lg p-6" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
-              <h3 className="font-serif text-lg font-semibold mb-3 text-white">Multi-Age by Design</h3>
-              <p className="font-body text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>
-                Lessons are written for the whole family to learn together. Older students go deeper; younger ones grow
-                into it.
-              </p>
-            </div>
-            <div className="rounded-lg p-6" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
-              <h3 className="font-serif text-lg font-semibold mb-3 text-white">Scripture Throughout</h3>
-              <p className="font-body text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>
-                Every unit anchored in Scripture. Herbalism presented as stewardship of Yahweh's creation, not
-                alternative medicine.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-20 px-6" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
-        <div className="max-w-2xl mx-auto text-center">
-          <h2 className="font-serif text-3xl font-bold mb-4" style={{ color: "hsl(var(--eden-bark))" }}>
-            Partner With Us
-          </h2>
-          <p className="font-body text-muted-foreground mb-8">
-            We are currently seeking aligned partners and families to help build this stage of the curriculum — first-access pricing, voice in shaping the lessons, and a seat at the table from the beginning.
-          </p>
-          <a href="mailto:hello@edeninstitute.health">
-            <Button variant="eden" size="xl">
-              Connect With Us
-            </Button>
-          </a>
-        </div>
-      </section>
-
+      <Hero />
+      <FounderLetter />
+      <ThreePillars />
+      <CoLearnerPromise />
+      <WeeklyRhythm />
+      <EightProducts />
+      <HatFramework />
+      <FourBands />
+      <PricingCenterpiece />
+      <AlaCarteTable />
+      <CoopLicense />
+      <Faq />
+      <ParentTrack />
+      <FinalCta />
       <Footer />
-      <WaitlistModal
-        open={open}
-        onOpenChange={setOpen}
-        audienceId={HS_AUD}
-        title="Join Eden's Table Early Access List"
-        // PR η fix #8: explicit canonical funnel. Even though the legacy
-        // audienceId mapping happens to resolve to 'edens_table' for
-        // this surface, passing it explicitly future-proofs against any
-        // change to that mapping and makes the intent unambiguous.
-        funnel="edens_table"
-        metadata={metadata}
-      />
     </div>
   );
 };
