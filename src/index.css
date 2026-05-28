@@ -64,6 +64,15 @@
     --cream-warm: 38 45% 92%;
     --footer-bg: 150 35% 12%;
 
+    /* Eden's Table HAT badge tokens (v1.5 /homeschool revamp).
+       Spec §6+§7 calls for 5 HAT colors. Science / ELA / Math reuse the
+       existing sage-border / honey / rust tokens. Theology + History
+       needed dedicated tokens — elderberry purple + garden earth, picked
+       to read alongside the existing palette without introducing a new
+       hue family. Mapping lives in src/lib/homeschool/data.ts. */
+    --hat-theology: 280 25% 38%;
+    --hat-history: 30 35% 30%;
+
     --sidebar-background: 40 30% 96%;
     --sidebar-foreground: 30 25% 12%;
     --sidebar-primary: 150 35% 18%;
