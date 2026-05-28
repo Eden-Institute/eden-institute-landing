@@ -1,1 +1,395 @@
-aW1wb3J0IHsgdXNlU3RhdGUgfSBmcm9tICJyZWFjdCI7CmltcG9ydCB7IEJ1dHRvbiB9IGZyb20gIkAvY29tcG9uZW50cy91aS9idXR0b24iOwppbXBvcnQgRm9vdGVyIGZyb20gIkAvY29tcG9uZW50cy9sYW5kaW5nL0Zvb3RlciI7CmltcG9ydCBXYWl0bGlzdE1vZGFsIGZyb20gIkAvY29tcG9uZW50cy9sYW5kaW5nL1dhaXRsaXN0TW9kYWwiOwppbXBvcnQgTmF2YmFyIGZyb20gIkAvY29tcG9uZW50cy9sYW5kaW5nL05hdmJhciI7CmltcG9ydCB7IEJvb2tPcGVuLCBTcHJvdXQsIFVzZXJzIH0gZnJvbSAibHVjaWRlLXJlYWN0IjsKaW1wb3J0IHsgdXNlRG9jdW1lbnRNZXRhIH0gZnJvbSAiQC9saWIvdXNlRG9jdW1lbnRNZXRhIjsKaW1wb3J0IHsgc3VwYWJhc2UgfSBmcm9tICJAL2ludGVncmF0aW9ucy9zdXBhYmFzZS9jbGllbnQiOwoKY29uc3QgSFNfQVVEID0gImE0OGNiNjZlLWIyYTktNDYxZC05OGE2LWJiMWIxMmY3MjY5MyI7Cgp0eXBlIFdhaXRsaXN0Q29uZmlnID0geyB0aXRsZTogc3RyaW5nOyBzdWJ0aXRsZT86IHN0cmluZyB9OwoKY29uc3QgSG9tZXNjaG9vbCA9ICgpID0+IHsKICB1c2VEb2N1bWVudE1ldGEoewogICAgdGl0bGU6ICJFZGVuJ3MgVGFibGUg4oCUIEstMTIgSG9tZXNjaG9vbCBIZXJiYWxpc20gQ3VycmljdWx1bSB8IFRoZSBFZGVuIEluc3RpdHV0ZSIsCiAgICBkZXNjcmlwdGlvbjogIkEgSy0xMiBCaWJsaWNhbCBoZXJiYWxpc20gY3VycmljdWx1bSBmb3IgaG9tZXNjaG9vbCBmYW1pbGllcy4gU3Byb3V0cyArIFNlZWRsaW5ncyBzaGlwIEF1Z3VzdCAxLCAyMDI2LiIsCiAgICBjYW5vbmljYWw6ICJodHRwczovL2VkZW5pbnN0aXR1dGUuaGVhbHRoL2hvbWVzY2hvb2wiLAogIH0pOwoKICBjb25zdCBbd2FpdGxpc3RPcGVuLCBzZXRXYWl0bGlzdE9wZW5dID0gdXNlU3RhdGUoZmFsc2UpOwogIGNvbnN0IFt3YWl0bGlzdENvbmZpZywgc2V0V2FpdGxpc3RDb25maWddID0gdXNlU3RhdGU8V2FpdGxpc3RDb25maWc+KHsgdGl0bGU6ICIiIH0pOwogIGNvbnN0IG9wZW5XYWl0bGlzdCA9IChjb25maWc6IFdhaXRsaXN0Q29uZmlnKSA9PiB7CiAgICBzZXRXYWl0bGlzdENvbmZpZyhjb25maWcpOwogICAgc2V0V2FpdGxpc3RPcGVuKHRydWUpOwogIH07CgogIGNvbnN0IFtjaGVja291dExvYWRpbmdLZXksIHNldENoZWNrb3V0TG9hZGluZ0tleV0gPSB1c2VTdGF0ZTxzdHJpbmcgfCBudWxsPihudWxsKTsKICBjb25zdCBbY2hlY2tvdXRFcnJvciwgc2V0Q2hlY2tvdXRFcnJvcl0gPSB1c2VTdGF0ZTxzdHJpbmc+KCIiKTsKCiAgY29uc3Qgc3RhcnRDaGVja291dCA9IGFzeW5jIChsb29rdXBLZXk6IHN0cmluZykgPT4gewogICAgc2V0Q2hlY2tvdXRMb2FkaW5nS2V5KGxvb2t1cEtleSk7CiAgICBzZXRDaGVja291dEVycm9yKCIiKTsKICAgIHRyeSB7CiAgICAgIGNvbnN0IHsgZGF0YSwgZXJyb3I6IGZuRXJyb3IgfSA9IGF3YWl0IHN1cGFiYXNlLmZ1bmN0aW9ucy5pbnZva2UoImNyZWF0ZS1jaGVja291dCIsIHsKICAgICAgICBib2R5OiB7CiAgICAgICAgICBsb29rdXBfa2V5OiBsb29rdXBLZXksCiAgICAgICAgICBzdWNjZXNzX3VybDogYGh0dHBzOi8vZWRlbmluc3RpdHV0ZS5oZWFsdGgvaG9tZXNjaG9vbC93ZWxjb21lP3Nlc3Npb25faWQ9e0NIRUNLT1VUX1NFU1NJT05fSUR9Jmxvb2t1cF9rZXk9JHtsb29rdXBLZXl9YCwKICAgICAgICAgIGNhbmNlbF91cmw6ICJodHRwczovL2VkZW5pbnN0aXR1dGUuaGVhbHRoL2hvbWVzY2hvb2wjcHJpY2luZyIsCiAgICAgICAgfSwKICAgICAgfSk7CiAgICAgIGlmIChmbkVycm9yKSB0aHJvdyBmbkVycm9yOwogICAgICBpZiAoZGF0YT8uZXJyb3IpIHRocm93IG5ldyBFcnJvcih0eXBlb2YgZGF0YS5lcnJvciA9PT0gInN0cmluZyIgPyBkYXRhLmVycm9yIDogIkNoZWNrb3V0IGZhaWxlZCIpOwogICAgICBpZiAoZGF0YT8udXJsKSB3aW5kb3cubG9jYXRpb24uaHJlZiA9IGRhdGEudXJsOwogICAgfSBjYXRjaCAoZXJyOiB1bmtub3duKSB7CiAgICAgIGNvbnN0IG1zZyA9IGVyciBpbnN0YW5jZW9mIEVycm9yID8gZXJyLm1lc3NhZ2UgOiAiU29tZXRoaW5nIHdlbnQgd3JvbmcuIjsKICAgICAgY29uc29sZS5lcnJvcigiQ2hlY2tvdXQgZXJyb3I6IiwgZXJyKTsKICAgICAgc2V0Q2hlY2tvdXRFcnJvcihtc2cpOwogICAgfSBmaW5hbGx5IHsKICAgICAgc2V0Q2hlY2tvdXRMb2FkaW5nS2V5KG51bGwpOwogICAgfQogIH07CgogIGNvbnN0IG9wZW5MZWFkTWFnbmV0ID0gKCkgPT4gb3BlbldhaXRsaXN0KHsKICAgIHRpdGxlOiAiR2V0IHRoZSBmaXJzdCB0d28gd2Vla3MgZnJlZSIsCiAgICBzdWJ0aXRsZTogIldlJ2xsIHNlbmQgV2Vla3MgMSBhbmQgMiBvZiBTcHJvdXRzIHRvIHlvdXIgaW5ib3gsIGZyZWUuIiwKICB9KTsKCiAgcmV0dXJuICgKICAgIDxkaXYgY2xhc3NOYW1lPSJtaW4taC1zY3JlZW4gYmctYmFja2dyb3VuZCI+CiAgICAgIDxOYXZiYXIgLz4KICAgICAgPHNlY3Rpb24gY2xhc3NOYW1lPSJweS0yMCBtZDpweS0yOCBweC02IiBzdHlsZT17eyBiYWNrZ3JvdW5kQ29sb3I6ICJoc2wodmFyKC0tZWRlbi1jcmVhbSkpIiB9fT4KICAgICAgICA8ZGl2IGNsYXNzTmFtZT0ibWF4LXctNHhsIG14LWF1dG8gdGV4dC1jZW50ZXIiPgogICAgICAgICAgPHAgY2xhc3NOYW1lPSJmb250LWFjY2VudCB0ZXh0LXNtIHRyYWNraW5nLVswLjNlbV0gdXBwZXJjYXNlIG1iLTYiIHN0eWxlPXt7IGNvbG9yOiAiaHNsKHZhcigtLWVkZW4tZ29sZCkpIiB9fT5FZGVuJ3MgVGFibGU8L3A+CiAgICAgICAgICA8aDEgY2xhc3NOYW1lPSJmb250LXNlcmlmIHRleHQtNHhsIG1kOnRleHQtNXhsIGxnOnRleHQtNnhsIGZvbnQtYm9sZCBsZWFkaW5nLXRpZ2h0IG1iLTYiIHN0eWxlPXt7IGNvbG9yOiAiaHNsKHZhcigtLWVkZW4tYmFyaykpIiB9fT4KICAgICAgICAgICAgSGVyYmFsaXNtIGZvciB0aGU8YnIgLz48c3BhbiBjbGFzc05hbWU9Iml0YWxpYyI+V2hvbGUgRmFtaWx5IFRhYmxlLjwvc3Bhbj4KICAgICAgICAgIDwvaDE+CiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0idy0xNiBoLXB4IG14LWF1dG8gbXktOCIgc3R5bGU9e3sgYmFja2dyb3VuZENvbG9yOiAiaHNsKHZhcigtLWVkZW4tZ29sZCkpIiB9fSAvPgogICAgICAgICAgPHAgY2xhc3NOYW1lPSJmb250LWJvZHkgdGV4dC1sZyB0ZXh0LW11dGVkLWZvcmVncm91bmQgbWF4LXctMnhsIG14LWF1dG8gbWItNiBsZWFkaW5nLXJlbGF4ZWQiPkEgSy0xMiBCaWJsaWNhbCBoZXJiYWxpc20gY3VycmljdWx1bSBmb3IgaG9tZXNjaG9vbCBmYW1pbGllcy4gT3Blbi1hbmQtZ28gbGVzc29uIHBsYW5zLCBtZW1vcnkgc29uZ3MsIGtpdGNoZW4gbGFicywgZ2FyZGVuIGFjdGl2aXRpZXMsIGFuZCBhIHJlY3VycmluZyBmYW1pbHkgc3Rvcnkg4oCUIHJvb3RlZCBpbiBTY3JpcHR1cmUgYW5kIGNyZWF0aW9uIHN0ZXdhcmRzaGlwLjwvcD4KICAgICAgICAgIDxwIGNsYXNzTmFtZT0iZm9udC1hY2NlbnQgdGV4dC1zbSB0cmFja2luZy13aWRlciB1cHBlcmNhc2UgbWItOCIgc3R5bGU9e3sgY29sb3I6ICJoc2wodmFyKC0tZWRlbi1zYWdlKSkiIH19PlNwcm91dHMgKEstMikgKyBTZWVkbGluZ3MgKDMtNSkgc2hpcCBBdWd1c3QgMSwgMjAyNiDCtyBGb3VuZGVycyBFZGl0aW9uIG9wZW48L3A+CiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBmbGV4LWNvbCBpdGVtcy1jZW50ZXIgZ2FwLTMiPgogICAgICAgICAgICA8QnV0dG9uIHZhcmlhbnQ9ImVkZW4iIHNpemU9InhsIiBvbkNsaWNrPXtvcGVuTGVhZE1hZ25ldH0+R2V0IFNwcm91dHMgV2Vla3MgMSArIDIg4oCUIEZyZWU8L0J1dHRvbj4KICAgICAgICAgICAgPGEgaHJlZj0iI3ByaWNpbmciIGNsYXNzTmFtZT0iZm9udC1hY2NlbnQgdGV4dC1zbSB0cmFja2luZy13aWRlciB1cHBlcmNhc2UgdW5kZXJsaW5lLW9mZnNldC00IGhvdmVyOnVuZGVybGluZSIgc3R5bGU9e3sgY29sb3I6ICJoc2wodmFyKC0tZWRlbi1nb2xkKSkiIH19PlJlc2VydmUgWW91ciBGb3VuZGVycyBFZGl0aW9uIFNlYXQg4oaSPC9hPgogICAgICAgICAgPC9kaXY+CiAgICAgICAgPC9kaXY+CiAgICAgIDwvc2VjdGlvbj4KICAgICAgPHNlY3Rpb24gaWQ9InByaWNpbmciIGNsYXNzTmFtZT0icHktMjAgcHgtNiIgc3R5bGU9e3sgYmFja2dyb3VuZENvbG9yOiAiaHNsKHZhcigtLWVkZW4tY3JlYW0pKSIgfX0+CiAgICAgICAgPGRpdiBjbGFzc05hbWU9Im1heC13LTZ4bCBteC1hdXRvIj4KICAgICAgICAgIDxoMiBjbGFzc05hbWU9ImZvbnQtc2VyaWYgdGV4dC0zeGwgZm9udC1ib2xkIHRleHQtY2VudGVyIG1iLTgiIHN0eWxlPXt7IGNvbG9yOiAiaHNsKHZhcigtLWVkZW4tYmFyaykpIiB9fT5SZXNlcnZlIHlvdXIgc2VhdCBhdCB0aGUgdGFibGUuPC9oMj4KICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJncmlkIG1kOmdyaWQtY29scy0zIGdhcC02Ij4KICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9InJvdW5kZWQtbGcgcC04IGJvcmRlci0yIGJnLXdoaXRlIiBzdHlsZT17eyBib3JkZXJDb2xvcjogImhzbCh2YXIoLS1lZGVuLWdvbGQpKSIgfX0+CiAgICAgICAgICAgICAgPHAgY2xhc3NOYW1lPSJmb250LWFjY2VudCB0ZXh0LXhzIHRyYWNraW5nLXdpZGVzdCB1cHBlcmNhc2UgbWItMiIgc3R5bGU9e3sgY29sb3I6ICJoc2wodmFyKC0tZWRlbi1nb2xkKSkiIH19PlNwcm91dHMgQ29tcGxldGUgwrcgRm91bmRlcnM8L3A+CiAgICAgICAgICAgICAgPGgzIGNsYXNzTmFtZT0iZm9udC1zZXJpZiB0ZXh0LTJ4bCBmb250LWJvbGQgbWItNCIgc3R5bGU9e3sgY29sb3I6ICJoc2wodmFyKC0tZWRlbi1iYXJrKSkiIH19PlNoaXBzIEF1Z3VzdCAxLCAyMDI2PC9oMz4KICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9ImZvbnQtc2VyaWYgdGV4dC0zeGwgZm9udC1ib2xkIG1iLTYiIHN0eWxlPXt7IGNvbG9yOiAiaHNsKHZhcigtLWVkZW4tYmFyaykpIiB9fT4kMjQ5PC9wPgogICAgICAgICAgICAgIDxCdXR0b24gdmFyaWFudD0iZWRlbiIgc2l6ZT0ieGwiIGNsYXNzTmFtZT0idy1mdWxsIiBkaXNhYmxlZD17Y2hlY2tvdXRMb2FkaW5nS2V5ID09PSAic3Byb3V0c19jb21wbGV0ZSJ9IG9uQ2xpY2s9eygpID0+IHN0YXJ0Q2hlY2tvdXQoInNwcm91dHNfY29tcGxldGUiKX0+UmVzZXJ2ZSBZb3VyIFNlYXQ8L0J1dHRvbj4KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJyb3VuZGVkLWxnIHAtOCBib3JkZXItMiBiZy13aGl0ZSIgc3R5bGU9e3sgYm9yZGVyQ29sb3I6ICJoc2wodmFyKC0tZWRlbi1nb2xkKSkiIH19PgogICAgICAgICAgICAgIDxwIGNsYXNzTmFtZT0iZm9udC1hY2NlbnQgdGV4dC14cyB0cmFja2luZy13aWRlc3QgdXBwZXJjYXNlIG1iLTIiIHN0eWxlPXt7IGNvbG9yOiAiaHNsKHZhcigtLWVkZW4tZ29sZCkpIiB9fT5TZWVkbGluZ3MgQ29tcGxldGUgwrcgRm91bmRlcnM8L3A+CiAgICAgICAgICAgICAgPGgzIGNsYXNzTmFtZT0iZm9udC1zZXJpZiB0ZXh0LTJ4bCBmb250LWJvbGQgbWItNCIgc3R5bGU9e3sgY29sb3I6ICJoc2wodmFyKC0tZWRlbi1iYXJrKSkiIH19PlNoaXBzIEF1Z3VzdCAxLCAyMDI2PC9oMz4KICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9ImZvbnQtc2VyaWYgdGV4dC0zeGwgZm9udC1ib2xkIG1iLTYiIHN0eWxlPXt7IGNvbG9yOiAiaHNsKHZhcigtLWVkZW4tYmFyaykpIiB9fT4kMjQ5PC9wPgogICAgICAgICAgICAgIDxCdXR0b24gdmFyaWFudD0iZWRlbiIgc2l6ZT0ieGwiIGNsYXNzTmFtZT0idy1mdWxsIiBkaXNhYmxlZD17Y2hlY2tvdXRMb2FkaW5nS2V5ID09PSAic2VlZGxpbmdzX2NvbXBsZXRlIn0gb25DbGljaz17KCkgPT4gc3RhcnRDaGVja291dCgic2VlZGxpbmdzX2NvbXBsZXRlIil9PlJlc2VydmUgWW91ciBTZWF0PC9CdXR0b24+CiAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0icm91bmRlZC1sZyBwLTggYm9yZGVyLTIgYmctd2hpdGUiIHN0eWxlPXt7IGJvcmRlckNvbG9yOiAiaHNsKHZhcigtLWVkZW4tc2FnZSkpIiB9fT4KICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9ImZvbnQtYWNjZW50IHRleHQteHMgdHJhY2tpbmctd2lkZXN0IHVwcGVyY2FzZSBtYi0yIiBzdHlsZT17eyBjb2xvcjogImhzbCh2YXIoLS1lZGVuLXNhZ2UpKSIgfX0+VHdvLUJhbmQgRmFtaWx5IEJ1bmRsZTwvcD4KICAgICAgICAgICAgICA8aDMgY2xhc3NOYW1lPSJmb250LXNlcmlmIHRleHQtMnhsIGZvbnQtYm9sZCBtYi00IiBzdHlsZT17eyBjb2xvcjogImhzbCh2YXIoLS1lZGVuLWJhcmspKSIgfX0+U3Byb3V0cyArIFNlZWRsaW5nczwvaDM+CiAgICAgICAgICAgICAgPHAgY2xhc3NOYW1lPSJmb250LXNlcmlmIHRleHQtM3hsIGZvbnQtYm9sZCBtYi02IiBzdHlsZT17eyBjb2xvcjogImhzbCh2YXIoLS1lZGVuLWJhcmspKSIgfX0+JDQ0OTwvcD4KICAgICAgICAgICAgICA8QnV0dG9uIHZhcmlhbnQ9ImVkZW4iIHNpemU9InhsIiBjbGFzc05hbWU9Inctc3VsbCIgZGlzYWJsZWQ9e2NoZWNrb3V0TG9hZGluZ0tleSA9PT0gInR3b19iYW5kX2J1bmRsZSJ9IG9uQ2xpY2s9eygpID0+IHN0YXJ0Q2hlY2tvdXQoInR3b19iYW5kX2J1bmRsZSIpfT5SZXNlcnZlIFlvdXIgU2VhdDwvQnV0dG9uPgogICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgIDwvZGl2PgogICAgICAgICAge2NoZWNrb3V0RXJyb3IgJiYgPHAgY2xhc3NOYW1lPSJ0ZXh0LWNlbnRlciB0ZXh0LWRlc3RydWN0aXZlIG10LTQiPntjaGVja291dEVycm9yfTwvcD59CiAgICAgICAgPC9kaXY+CiAgICAgIDwvc2VjdGlvbj4KICAgICAgPEZvb3RlciAvPgogICAgICA8V2FpdGxpc3RNb2RhbCBvcGVuPXt3YWl0bGlzdE9wZW59IG9uT3BlbkNoYW5nZT17c2V0V2FpdGxpc3RPcGVufSBhdWRpZW5jZUlkPXtIU19BVUR9IHRpdGxlPXt3YWl0bGlzdENvbmZpZy50aXRsZX0gc3VidGl0bGU9e3dhaXRsaXN0Q29uZmlnLnN1YnRpdGxlfSAvPgogICAgPC9kaXY+CiAgKTsKfTsKCmV4cG9ydCBkZWZhdWx0IEhvbWVzY2hvb2w7Cg==
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import Footer from "@/components/landing/Footer";
+import WaitlistModal from "@/components/landing/WaitlistModal";
+import Navbar from "@/components/landing/Navbar";
+import { BookOpen, Sprout, Users } from "lucide-react";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
+import { supabase } from "@/integrations/supabase/client";
+
+const HS_AUD = "a48cb66e-b2a9-461d-98a6-bb1b12f72693";
+
+type WaitlistConfig = { title: string; subtitle?: string };
+
+type ShowcaseSpec = {
+  id: string;
+  eyebrow: string;
+  title: string;
+  sproutsSrc: string;
+  seedlingsSrc: string;
+  sproutsAlt: string;
+  seedlingsAlt: string;
+  deepens: string;
+  body: string;
+  quote: string;
+  cta: "leadMagnet" | "bundle";
+};
+
+const SHOWCASES: ShowcaseSpec[] = [
+  {
+    id: "story",
+    eyebrow: "Showcase 1 · Storybook",
+    title: "The story that anchors the week.",
+    sproutsSrc: "/showcases/STORY1Sprouts.png",
+    seedlingsSrc: "/showcases/STORY7Seedlings.png",
+    sproutsAlt: "Sprouts Storybook hero — Story 1 chapter cover",
+    seedlingsAlt: "Seedlings Storybook hero — Story 7 chapter cover",
+    deepens: "From a simple parable at K-2 to multi-character ethical arcs at 3-5.",
+    body: "Every week opens with a story. At Sprouts, it's a single-character parable a six-year-old reads aloud. At Seedlings, the same family story grows into multi-character ethical arcs — characters face choices, scripture lands harder, the storybook becomes literature your child carries forward.",
+    quote: "The story is what your child remembers. Everything else is built around it.",
+    cta: "leadMagnet",
+  },
+  {
+    id: "tg",
+    eyebrow: "Showcase 2 · Teacher Guide",
+    title: "Open the page. Teach the week.",
+    sproutsSrc: "/showcases/TGSprouts.png",
+    seedlingsSrc: "/showcases/TGSeedlings.png",
+    sproutsAlt: "Sprouts Teacher Guide open on cream linen",
+    seedlingsAlt: "Seedlings Teacher Guide open on cream linen",
+    deepens: "Open-and-teach at K-2 → six disciplines woven into one week at 3-5.",
+    body: "You don't need to know herbalism to teach this. At Sprouts, each Monday's read-aloud is scripted; the kitchen lab is one preparation. At Seedlings, the same week weaves botany, chemistry, history, theology, and clinical safety — the page tells you exactly which day handles which discipline.",
+    quote: "You open the binder. The week unfolds.",
+    cta: "bundle",
+  },
+  {
+    id: "nb",
+    eyebrow: "Showcase 3 · Student Notebook",
+    title: "The page your child shows her grandfather.",
+    sproutsSrc: "/showcases/NBSprouts.png",
+    seedlingsSrc: "/showcases/NBSeedlings.png",
+    sproutsAlt: "Sprouts Student Notebook open — Tuesday Discovery and Wednesday Kitchen Lab",
+    seedlingsAlt: "Seedlings Student Notebook open — measurement, hypothesis, safety panels",
+    deepens: "Sensory observation at K-2 → measurement, hypothesis, and species verification at 3-5.",
+    body: "At Sprouts, your child draws the herb, lists what she smells, writes a one-line response to scripture. At Seedlings, the same Wednesday measures the dried plant in millimeters, runs a 4:1 decoction ratio, writes a hypothesis to check eight weeks later, verifies species. Same rhythm. Real chemistry.",
+    quote: "What your child fills in at the kitchen table — and what you submit to the state.",
+    cta: "bundle",
+  },
+  {
+    id: "fc",
+    eyebrow: "Showcase 4 · Herb Field Cards",
+    title: "What your child can identify in the wild.",
+    sproutsSrc: "/showcases/FCSprouts.png",
+    seedlingsSrc: "/showcases/FCSeedlings.png",
+    sproutsAlt: "Sprouts Herb Field Cards with rigid storage box",
+    seedlingsAlt: "Seedlings Herb Field Cards with rigid storage box",
+    deepens: "36 Sprouts herbs + 36 Seedlings herbs = 72 unique plants in your child's library by 5th grade.",
+    body: "Same heritage card format at both depths. Köhler-style botanical illustration on the front, four working zones on the back. Sprouts shows preparations a six-year-old can handle (tea, infusion). Seedlings shows preparations an eight-year-old can handle (decoction, oxymel, syrup). By the end of fifth grade, your child names and uses 72 plants — more than most adults you know.",
+    quote: "Same heritage card. Deeper library.",
+    cta: "leadMagnet",
+  },
+  {
+    id: "rc",
+    eyebrow: "Showcase 5 · Recipe Cards",
+    title: "What lives on your counter all year.",
+    sproutsSrc: "/showcases/RCSprouts.png",
+    seedlingsSrc: "/showcases/RCSeedlings.png",
+    sproutsAlt: "Sprouts Recipe Cards with display box — Chamomile Tea card visible",
+    seedlingsAlt: "Seedlings Recipe Cards with display box",
+    deepens: "Tea + infusion at K-2 → decoction, oxymel, and slow medicines at 3-5.",
+    body: "Same display-on-the-counter design at both depths. At Sprouts, the recipe is what a six-year-old can make with adult supervision — chamomile tea, honey water. At Seedlings, the child becomes a young apprentice — she measures, decoct, makes oxymels and elderberry syrup, all with safety call-outs in rust red.",
+    quote: "By the end of the year, she has thirty-six preparations from your kitchen.",
+    cta: "bundle",
+  },
+  {
+    id: "att",
+    eyebrow: "Showcase 6 · Around the Table",
+    title: "The conversation that turns dinner into memory.",
+    sproutsSrc: "/showcases/ATTSprouts.png",
+    seedlingsSrc: "/showcases/ATTSeedlings.png",
+    sproutsAlt: "Sprouts Around the Table Family deck with cards visible",
+    seedlingsAlt: "Seedlings Around the Table Family deck with cards visible",
+    deepens: "Same four categories. At 3-5, the questions add abstract reasoning and classical-tradition references.",
+    body: "Body. Faith. Family. Wonder. Same four conversations at both depths, color-coded by category. At Sprouts the Faith card asks 'does God see us when we're hurting?' At Seedlings the same week asks 'what does it mean for your body to be a temple of the Holy Spirit?' Same chair. Older question. Vovó closes both.",
+    quote: "The curriculum your husband notices — because it shows up at dinner.",
+    cta: "bundle",
+  },
+];
+
+const Homeschool = () => {
+  useDocumentMeta({
+    title: "Eden's Table — K-12 Homeschool Herbalism Curriculum | The Eden Institute",
+    description: "A K-12 Biblical herbalism curriculum for homeschool families. Sprouts (K-2) + Seedlings (3-5) Founders Edition ships August 1, 2026.",
+    canonical: "https://edeninstitute.health/homeschool",
+  });
+
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
+  const [waitlistConfig, setWaitlistConfig] = useState<WaitlistConfig>({ title: "" });
+  const openWaitlist = (config: WaitlistConfig) => {
+    setWaitlistConfig(config);
+    setWaitlistOpen(true);
+  };
+
+  const [checkoutLoadingKey, setCheckoutLoadingKey] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string>("");
+
+  const startCheckout = async (lookupKey: string) => {
+    setCheckoutLoadingKey(lookupKey);
+    setCheckoutError("");
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("create-checkout", {
+        body: {
+          lookup_key: lookupKey,
+          success_url: `https://edeninstitute.health/homeschool/welcome?session_id={CHECKOUT_SESSION_ID}&lookup_key=${lookupKey}`,
+          cancel_url: "https://edeninstitute.health/homeschool#pricing",
+        },
+      });
+      if (fnError) throw fnError;
+      if (data?.error) throw new Error(typeof data.error === "string" ? data.error : "Checkout failed");
+      if (data?.url) window.location.href = data.url;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      console.error("Checkout error:", err);
+      setCheckoutError(msg);
+    } finally {
+      setCheckoutLoadingKey(null);
+    }
+  };
+
+  const reserveBundle = () => startCheckout("two_band_bundle");
+  const reserveSprouts = () => startCheckout("sprouts_complete");
+  const reserveSeedlings = () => startCheckout("seedlings_complete");
+  const openLeadMagnet = () => openWaitlist({
+    title: "Get the first two weeks free",
+    subtitle: "We'll send Weeks 1 and 2 of Sprouts to your inbox, free.",
+  });
+
+  const renderShowcase = (s: ShowcaseSpec, idx: number) => {
+    const isBundle = s.cta === "bundle";
+    const ctaLabel = isBundle
+      ? (checkoutLoadingKey === "two_band_bundle" ? "Loading…" : "Reserve Your Founders Edition Seat")
+      : "Get Sprouts Weeks 1 + 2 — Free";
+    const ctaClick = isBundle ? reserveBundle : openLeadMagnet;
+    const altBg = idx % 2 === 0;
+    return (
+      <section
+        key={s.id}
+        id={`showcase-${s.id}`}
+        className="py-16 md:py-20 px-6"
+        style={{ backgroundColor: altBg ? "hsl(var(--background))" : "hsl(var(--eden-cream) / 0.4)" }}
+      >
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-10">
+            <p className="font-accent text-sm tracking-[0.3em] uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>{s.eyebrow}</p>
+            <h2 className="font-serif text-3xl md:text-4xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>{s.title}</h2>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4 md:gap-6 mb-8">
+            <div>
+              <p className="font-accent text-xs tracking-[0.25em] uppercase mb-2 text-center" style={{ color: "hsl(var(--eden-gold))" }}>Sprouts · K-2</p>
+              <div className="rounded-lg overflow-hidden bg-white shadow-sm">
+                <img src={s.sproutsSrc} alt={s.sproutsAlt} loading="lazy" className="w-full h-auto" />
+              </div>
+            </div>
+            <div>
+              <p className="font-accent text-xs tracking-[0.25em] uppercase mb-2 text-center" style={{ color: "hsl(var(--eden-gold))" }}>Seedlings · 3-5</p>
+              <div className="rounded-lg overflow-hidden bg-white shadow-sm">
+                <img src={s.seedlingsSrc} alt={s.seedlingsAlt} loading="lazy" className="w-full h-auto" />
+              </div>
+            </div>
+          </div>
+          <div className="max-w-3xl mx-auto mb-8 text-center rounded-lg p-6" style={{ backgroundColor: "hsl(var(--eden-cream))", border: "1px solid hsl(var(--eden-gold) / 0.3)" }}>
+            <p className="font-accent text-xs tracking-[0.25em] uppercase mb-2" style={{ color: "hsl(var(--eden-gold))" }}>What deepens at Seedlings</p>
+            <p className="font-serif text-lg italic" style={{ color: "hsl(var(--eden-bark))" }}>{s.deepens}</p>
+          </div>
+          <p className="font-body text-base md:text-lg max-w-3xl mx-auto leading-relaxed text-foreground mb-8 text-center">{s.body}</p>
+          <blockquote className="font-serif text-xl italic text-center mb-8 max-w-2xl mx-auto" style={{ color: "hsl(var(--eden-bark))" }}>“{s.quote}”</blockquote>
+          <div className="flex justify-center">
+            <Button variant="eden" size="xl" onClick={ctaClick}>{ctaLabel}</Button>
+          </div>
+        </div>
+      </section>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+
+      {/* §1 Hero */}
+      <section className="py-20 md:py-28 px-6" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
+        <div className="max-w-4xl mx-auto text-center">
+          <p className="font-accent text-sm tracking-[0.3em] uppercase mb-6" style={{ color: "hsl(var(--eden-gold))" }}>Eden's Table</p>
+          <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6" style={{ color: "hsl(var(--eden-bark))" }}>
+            Herbalism for the<br /><span className="italic">Whole Family Table.</span>
+          </h1>
+          <div className="w-16 h-px mx-auto my-8" style={{ backgroundColor: "hsl(var(--eden-gold))" }} />
+          <p className="font-body text-lg text-muted-foreground max-w-2xl mx-auto mb-6 leading-relaxed">
+            A K-12 Biblical herbalism curriculum for homeschool families. Open-and-go lesson plans, memory songs, kitchen labs, garden activities, and a recurring family story — rooted in Scripture and creation stewardship.
+          </p>
+          <p className="font-accent text-sm tracking-wider uppercase mb-8" style={{ color: "hsl(var(--eden-sage))" }}>
+            Sprouts (K-2) + Seedlings (3-5) ship August 1, 2026 · Founders Edition open
+          </p>
+          <div className="flex flex-col items-center gap-3">
+            <Button variant="eden" size="xl" onClick={openLeadMagnet}>Get Sprouts Weeks 1 + 2 — Free</Button>
+            <a href="#pricing" className="font-accent text-sm tracking-wider uppercase underline-offset-4 hover:underline" style={{ color: "hsl(var(--eden-gold))" }}>Reserve Your Founders Edition Seat →</a>
+          </div>
+        </div>
+      </section>
+
+      {/* §2 Four Grade Bands */}
+      <section className="py-16 px-6 bg-background">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="font-serif text-3xl font-bold mb-4" style={{ color: "hsl(var(--eden-bark))" }}>Four Grade Bands. One Family Vision.</h2>
+            <p className="font-body text-muted-foreground max-w-2xl mx-auto">Eden's Table grows with your children — from wonder-filled kitchen labs to clinical reasoning in high school.</p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="rounded-lg p-6 border-2" style={{ borderColor: "hsl(var(--eden-gold))", backgroundColor: "hsl(var(--eden-cream))" }}>
+              <Sprout className="w-6 h-6 mb-3" style={{ color: "hsl(var(--eden-gold))" }} />
+              <h3 className="font-serif text-lg font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>Sprouts</h3>
+              <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>Grades K-2</p>
+              <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">Wonder, stories, and simple plant identification. Kitchen labs and memory songs.</p>
+              <span className="text-xs font-body px-2 py-1 rounded" style={{ backgroundColor: "hsl(var(--eden-gold) / 0.15)", color: "hsl(var(--eden-gold))" }}>Ships August 1, 2026</span>
+            </div>
+            <div className="rounded-lg p-6 border-2" style={{ borderColor: "hsl(var(--eden-gold))", backgroundColor: "hsl(var(--eden-cream))" }}>
+              <BookOpen className="w-6 h-6 mb-3" style={{ color: "hsl(var(--eden-gold))" }} />
+              <h3 className="font-serif text-lg font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>Seedlings</h3>
+              <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>Grades 3-5</p>
+              <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">Body systems basics, herb profiles, and family dinner discussions.</p>
+              <span className="text-xs font-body px-2 py-1 rounded" style={{ backgroundColor: "hsl(var(--eden-gold) / 0.15)", color: "hsl(var(--eden-gold))" }}>Ships August 1, 2026</span>
+            </div>
+            <div className="rounded-lg p-6 border opacity-75" style={{ borderColor: "hsl(var(--border))" }}>
+              <BookOpen className="w-6 h-6 mb-3 text-muted-foreground" />
+              <h3 className="font-serif text-lg font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>Cultivators</h3>
+              <p className="font-accent text-xs tracking-widest uppercase mb-3 text-muted-foreground">Grades 6-8</p>
+              <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">Body pattern thinking, terrain basics, and garden-to-remedy workflows.</p>
+              <span className="text-xs font-body px-2 py-1 rounded bg-muted text-muted-foreground">Launches 2027</span>
+            </div>
+            <div className="rounded-lg p-6 border opacity-75" style={{ borderColor: "hsl(var(--border))" }}>
+              <Users className="w-6 h-6 mb-3 text-muted-foreground" />
+              <h3 className="font-serif text-lg font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>Practitioners</h3>
+              <p className="font-accent text-xs tracking-widest uppercase mb-3 text-muted-foreground">Grades 9-12</p>
+              <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">Clinical literacy, materia medica, and real-world application.</p>
+              <span className="text-xs font-body px-2 py-1 rounded bg-muted text-muted-foreground">Launches 2028</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* §3 Three Pillars */}
+      <section className="py-16 px-6" style={{ backgroundColor: "hsl(var(--eden-forest))" }}>
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="font-serif text-3xl font-bold mb-6 text-white">Open-and-Go. Family-Style. Faith-Rooted.</h2>
+          <div className="grid md:grid-cols-3 gap-6 text-left mt-8">
+            <div className="rounded-lg p-6" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
+              <h3 className="font-serif text-lg font-semibold mb-3 text-white">No Prep Required</h3>
+              <p className="font-body text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>Every lesson includes a parent guide, student workbook, kitchen lab card, and garden activity card. Open and teach.</p>
+            </div>
+            <div className="rounded-lg p-6" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
+              <h3 className="font-serif text-lg font-semibold mb-3 text-white">Multi-Age by Design</h3>
+              <p className="font-body text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>Lessons are written for the whole family to learn together. Older students go deeper; younger ones grow into it.</p>
+            </div>
+            <div className="rounded-lg p-6" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
+              <h3 className="font-serif text-lg font-semibold mb-3 text-white">Scripture Throughout</h3>
+              <p className="font-body text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>Every unit anchored in Scripture. Herbalism presented as stewardship of Yahweh's creation, not alternative medicine.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* §4-§9 Showcases */}
+      {SHOWCASES.map((s, idx) => renderShowcase(s, idx))}
+
+      {/* §10 Pricing */}
+      <section id="pricing" className="py-20 md:py-24 px-6" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-8">
+            <p className="font-accent text-sm tracking-[0.3em] uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>Founders Edition — limited seats</p>
+            <h2 className="font-serif text-3xl md:text-4xl font-bold mb-4" style={{ color: "hsl(var(--eden-bark))" }}>Reserve your seat at the table.</h2>
+          </div>
+
+          <div className="max-w-3xl mx-auto mb-12 text-center rounded-lg p-5" style={{ backgroundColor: "hsl(var(--eden-bark))" }}>
+            <p className="font-accent text-xs tracking-[0.25em] uppercase mb-2" style={{ color: "hsl(var(--eden-gold))" }}>Founders pricing through August 1, 2026</p>
+            <p className="font-body text-sm text-white leading-relaxed">A thank-you to the families who funded the first print run. Retail begins August 2: <strong>$329 Sprouts · $329 Seedlings · $649 Bundle</strong>.</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
+            {/* Sprouts Complete */}
+            <div className="rounded-lg overflow-hidden border-2 bg-white flex flex-col" style={{ borderColor: "hsl(var(--eden-gold))" }}>
+              <div className="aspect-[4/3] overflow-hidden bg-white">
+                <img src="/showcases/SproutsBundle.png" alt="Sprouts Complete bundle composition" loading="lazy" className="w-full h-full object-cover" />
+              </div>
+              <div className="p-6 flex flex-col flex-1">
+                <p className="font-accent text-xs tracking-widest uppercase mb-2" style={{ color: "hsl(var(--eden-gold))" }}>Sprouts Complete · Founders</p>
+                <h3 className="font-serif text-xl font-bold mb-3" style={{ color: "hsl(var(--eden-bark))" }}>Ships August 1, 2026</h3>
+                <p className="font-serif text-3xl font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>$249</p>
+                <p className="font-body text-xs text-muted-foreground mb-1">Charged today · Shipping calculated at checkout</p>
+                <p className="font-accent text-xs uppercase tracking-wider mb-4" style={{ color: "hsl(var(--eden-sage))" }}>Founders price · $80 below retail</p>
+                <ul className="font-body text-sm text-muted-foreground space-y-1.5 mb-6 flex-1">
+                  <li>· 36 weekly lessons</li>
+                  <li>· Teacher Guide + Student Notebook</li>
+                  <li>· 36 Herb Field Cards</li>
+                  <li>· 36 Recipe Cards</li>
+                  <li>· Around the Table deck (144 cards)</li>
+                </ul>
+                <Button variant="eden" size="xl" className="w-full" disabled={checkoutLoadingKey === "sprouts_complete"} onClick={reserveSprouts}>
+                  {checkoutLoadingKey === "sprouts_complete" ? "Loading…" : "Reserve Your Seat"}
+                </Button>
+              </div>
+            </div>
+
+            {/* Seedlings Complete */}
+            <div className="rounded-lg overflow-hidden border-2 bg-white flex flex-col" style={{ borderColor: "hsl(var(--eden-gold))" }}>
+              <div className="aspect-[4/3] overflow-hidden bg-white">
+                <img src="/showcases/SeedlingsBundle.png" alt="Seedlings Complete bundle composition" loading="lazy" className="w-full h-full object-cover" />
+              </div>
+              <div className="p-6 flex flex-col flex-1">
+                <p className="font-accent text-xs tracking-widest uppercase mb-2" style={{ color: "hsl(var(--eden-gold))" }}>Seedlings Complete · Founders</p>
+                <h3 className="font-serif text-xl font-bold mb-3" style={{ color: "hsl(var(--eden-bark))" }}>Ships August 1, 2026</h3>
+                <p className="font-serif text-3xl font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>$249</p>
+                <p className="font-body text-xs text-muted-foreground mb-1">Charged today · Shipping calculated at checkout</p>
+                <p className="font-accent text-xs uppercase tracking-wider mb-4" style={{ color: "hsl(var(--eden-sage))" }}>Founders price · $80 below retail</p>
+                <ul className="font-body text-sm text-muted-foreground space-y-1.5 mb-6 flex-1">
+                  <li>· 36 weekly lessons at Seedlings depth</li>
+                  <li>· Teacher Guide + Student Notebook</li>
+                  <li>· 36 Herb Field Cards</li>
+                  <li>· 36 Recipe Cards</li>
+                  <li>· Around the Table deck (144 cards)</li>
+                </ul>
+                <Button variant="eden" size="xl" className="w-full" disabled={checkoutLoadingKey === "seedlings_complete"} onClick={reserveSeedlings}>
+                  {checkoutLoadingKey === "seedlings_complete" ? "Loading…" : "Reserve Your Seat"}
+                </Button>
+              </div>
+            </div>
+
+            {/* Bundle */}
+            <div className="rounded-lg overflow-hidden border-2 bg-white relative flex flex-col" style={{ borderColor: "hsl(var(--eden-sage))" }}>
+              <span className="absolute top-3 right-3 z-10 font-accent text-xs tracking-widest uppercase text-white px-3 py-1 rounded" style={{ backgroundColor: "hsl(var(--eden-sage))" }}>Best value</span>
+              <div className="grid grid-cols-2 aspect-[4/3] bg-white">
+                <img src="/showcases/SproutsBundle.png" alt="Sprouts box" loading="lazy" className="w-full h-full object-cover border-r-2 border-white" />
+                <img src="/showcases/SeedlingsBundle.png" alt="Seedlings box" loading="lazy" className="w-full h-full object-cover" />
+              </div>
+              <div className="p-6 flex flex-col flex-1">
+                <p className="font-accent text-xs tracking-widest uppercase mb-2" style={{ color: "hsl(var(--eden-sage))" }}>Two-Band Family Bundle</p>
+                <h3 className="font-serif text-xl font-bold mb-3" style={{ color: "hsl(var(--eden-bark))" }}>Sprouts + Seedlings</h3>
+                <p className="font-serif text-3xl font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>$449</p>
+                <p className="font-body text-xs text-muted-foreground mb-1">Save $49 · Free shipping · Charged today</p>
+                <p className="font-accent text-xs uppercase tracking-wider mb-4" style={{ color: "hsl(var(--eden-sage))" }}>Founders price · $200 below retail</p>
+                <ul className="font-body text-sm text-muted-foreground space-y-1.5 mb-6 flex-1">
+                  <li>· Both bands ship together August 1, 2026</li>
+                  <li>· All materials from both bands</li>
+                  <li>· Add extra Student Notebooks for $39 each</li>
+                </ul>
+                <Button variant="eden" size="xl" className="w-full" disabled={checkoutLoadingKey === "two_band_bundle"} onClick={reserveBundle}>
+                  {checkoutLoadingKey === "two_band_bundle" ? "Loading…" : "Reserve Your Seat"}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {checkoutError && <p className="text-center font-body text-sm text-destructive mb-4">{checkoutError}</p>}
+
+          <div className="max-w-3xl mx-auto text-center space-y-3">
+            <p className="font-body text-sm text-muted-foreground leading-relaxed">All Founders Edition seats include a voice in shaping Seedlings and first-look at Cultivators (2027) and Practitioners (2028).</p>
+            <p className="font-serif italic text-base" style={{ color: "hsl(var(--eden-bark))" }}>If we miss August 1, 2026 for any reason, your seat is refundable in full — no questions asked.</p>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+      <WaitlistModal open={waitlistOpen} onOpenChange={setWaitlistOpen} audienceId={HS_AUD} title={waitlistConfig.title} subtitle={waitlistConfig.subtitle} />
+    </div>
+  );
+};
+
+export default Homeschool;
