@@ -5,194 +5,389 @@ import WaitlistModal from "@/components/landing/WaitlistModal";
 import Navbar from "@/components/landing/Navbar";
 import { BookOpen, Sprout, Users } from "lucide-react";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
-import { useEdenPattern } from "@/hooks/useEdenPattern";
-import { patternNameToSlug } from "@/lib/amazonKitUrls";
+import { supabase } from "@/integrations/supabase/client";
 
 const HS_AUD = "a48cb66e-b2a9-461d-98a6-bb1b12f72693";
+
+type WaitlistConfig = { title: string; subtitle?: string };
+
+type ShowcaseSpec = {
+  id: string;
+  eyebrow: string;
+  title: string;
+  sproutsSrc: string;
+  seedlingsSrc: string;
+  sproutsAlt: string;
+  seedlingsAlt: string;
+  deepens: string;
+  body: string;
+  quote: string;
+  cta: "leadMagnet" | "bundle";
+};
+
+const SHOWCASES: ShowcaseSpec[] = [
+  {
+    id: "story",
+    eyebrow: "Showcase 1 · Storybook",
+    title: "The story that anchors the week.",
+    sproutsSrc: "/showcases/STORY1Sprouts.png",
+    seedlingsSrc: "/showcases/STORY7Seedlings.png",
+    sproutsAlt: "Sprouts Storybook hero — Story 1 chapter cover",
+    seedlingsAlt: "Seedlings Storybook hero — Story 7 chapter cover",
+    deepens: "From a simple parable at K-2 to multi-character ethical arcs at 3-5.",
+    body: "Every week opens with a story. At Sprouts, it's a single-character parable a six-year-old reads aloud. At Seedlings, the same family story grows into multi-character ethical arcs — characters face choices, scripture lands harder, the storybook becomes literature your child carries forward.",
+    quote: "The story is what your child remembers. Everything else is built around it.",
+    cta: "leadMagnet",
+  },
+  {
+    id: "tg",
+    eyebrow: "Showcase 2 · Teacher Guide",
+    title: "Open the page. Teach the week.",
+    sproutsSrc: "/showcases/TGSprouts.png",
+    seedlingsSrc: "/showcases/TGSeedlings.png",
+    sproutsAlt: "Sprouts Teacher Guide open on cream linen",
+    seedlingsAlt: "Seedlings Teacher Guide open on cream linen",
+    deepens: "Open-and-teach at K-2 → six disciplines woven into one week at 3-5.",
+    body: "You don't need to know herbalism to teach this. At Sprouts, each Monday's read-aloud is scripted; the kitchen lab is one preparation. At Seedlings, the same week weaves botany, chemistry, history, theology, and clinical safety — the page tells you exactly which day handles which discipline.",
+    quote: "You open the binder. The week unfolds.",
+    cta: "bundle",
+  },
+  {
+    id: "nb",
+    eyebrow: "Showcase 3 · Student Notebook",
+    title: "The page your child shows her grandfather.",
+    sproutsSrc: "/showcases/NBSprouts.png",
+    seedlingsSrc: "/showcases/NBSeedlings.png",
+    sproutsAlt: "Sprouts Student Notebook open — Tuesday Discovery and Wednesday Kitchen Lab",
+    seedlingsAlt: "Seedlings Student Notebook open — measurement, hypothesis, safety panels",
+    deepens: "Sensory observation at K-2 → measurement, hypothesis, and species verification at 3-5.",
+    body: "At Sprouts, your child draws the herb, lists what she smells, writes a one-line response to scripture. At Seedlings, the same Wednesday measures the dried plant in millimeters, runs a 4:1 decoction ratio, writes a hypothesis to check eight weeks later, verifies species. Same rhythm. Real chemistry.",
+    quote: "What your child fills in at the kitchen table — and what you submit to the state.",
+    cta: "bundle",
+  },
+  {
+    id: "fc",
+    eyebrow: "Showcase 4 · Herb Field Cards",
+    title: "What your child can identify in the wild.",
+    sproutsSrc: "/showcases/FCSprouts.png",
+    seedlingsSrc: "/showcases/FCSeedlings.png",
+    sproutsAlt: "Sprouts Herb Field Cards with rigid storage box",
+    seedlingsAlt: "Seedlings Herb Field Cards with rigid storage box",
+    deepens: "36 Sprouts herbs + 36 Seedlings herbs = 72 unique plants in your child's library by 5th grade.",
+    body: "Same heritage card format at both depths. Köhler-style botanical illustration on the front, four working zones on the back. Sprouts shows preparations a six-year-old can handle (tea, infusion). Seedlings shows preparations an eight-year-old can handle (decoction, oxymel, syrup). By the end of fifth grade, your child names and uses 72 plants — more than most adults you know.",
+    quote: "Same heritage card. Deeper library.",
+    cta: "leadMagnet",
+  },
+  {
+    id: "rc",
+    eyebrow: "Showcase 5 · Recipe Cards",
+    title: "What lives on your counter all year.",
+    sproutsSrc: "/showcases/RCSprouts.png",
+    seedlingsSrc: "/showcases/RCSeedlings.png",
+    sproutsAlt: "Sprouts Recipe Cards with display box — Chamomile Tea card visible",
+    seedlingsAlt: "Seedlings Recipe Cards with display box",
+    deepens: "Tea + infusion at K-2 → decoction, oxymel, and slow medicines at 3-5.",
+    body: "Same display-on-the-counter design at both depths. At Sprouts, the recipe is what a six-year-old can make with adult supervision — chamomile tea, honey water. At Seedlings, the child becomes a young apprentice — she measures, decoct, makes oxymels and elderberry syrup, all with safety call-outs in rust red.",
+    quote: "By the end of the year, she has thirty-six preparations from your kitchen.",
+    cta: "bundle",
+  },
+  {
+    id: "att",
+    eyebrow: "Showcase 6 · Around the Table",
+    title: "The conversation that turns dinner into memory.",
+    sproutsSrc: "/showcases/ATTSprouts.png",
+    seedlingsSrc: "/showcases/ATTSeedlings.png",
+    sproutsAlt: "Sprouts Around the Table Family deck with cards visible",
+    seedlingsAlt: "Seedlings Around the Table Family deck with cards visible",
+    deepens: "Same four categories. At 3-5, the questions add abstract reasoning and classical-tradition references.",
+    body: "Body. Faith. Family. Wonder. Same four conversations at both depths, color-coded by category. At Sprouts the Faith card asks 'does God see us when we're hurting?' At Seedlings the same week asks 'what does it mean for your body to be a temple of the Holy Spirit?' Same chair. Older question. Vovó closes both.",
+    quote: "The curriculum your husband notices — because it shows up at dinner.",
+    cta: "bundle",
+  },
+];
 
 const Homeschool = () => {
   useDocumentMeta({
     title: "Eden's Table — K-12 Homeschool Herbalism Curriculum | The Eden Institute",
-    description:
-      "A K-12 Biblical herbalism curriculum for homeschool families. Open-and-go lesson plans, memory songs, kitchen labs, and garden activities — rooted in Scripture and creation stewardship.",
+    description: "A K-12 Biblical herbalism curriculum for homeschool families. Sprouts (K-2) + Seedlings (3-5) Founders Edition ships August 1, 2026.",
     canonical: "https://edeninstitute.health/homeschool",
   });
 
-  const [open, setOpen] = useState(false);
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
+  const [waitlistConfig, setWaitlistConfig] = useState<WaitlistConfig>({ title: "" });
+  const openWaitlist = (config: WaitlistConfig) => {
+    setWaitlistConfig(config);
+    setWaitlistOpen(true);
+  };
 
-  // PR η fix #8 + #9: Eden's Table IS the homeschool curriculum
-  // (Camila's 2026-05-02 decision). Two redundant entry_funnel enum
-  // values existed: 'edens_table' (1 historical row) and 'homeschool'
-  // (0 rows). Per the consolidation, all new signups write
-  // 'edens_table' as the canonical name. The Postgres enum value
-  // 'homeschool' is left in place to preserve referential integrity;
-  // it just stops being emitted by any frontend caller.
-  const { data: pattern } = useEdenPattern();
-  const metadata: Record<string, unknown> = { surface: "edens_table_page" };
-  if (pattern) {
-    metadata.pattern_name = pattern;
-    metadata.pattern_slug = patternNameToSlug(pattern);
-  }
+  const [checkoutLoadingKey, setCheckoutLoadingKey] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string>("");
+
+  const startCheckout = async (lookupKey: string) => {
+    setCheckoutLoadingKey(lookupKey);
+    setCheckoutError("");
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("create-checkout", {
+        body: {
+          lookup_key: lookupKey,
+          success_url: `https://edeninstitute.health/homeschool/welcome?session_id={CHECKOUT_SESSION_ID}&lookup_key=${lookupKey}`,
+          cancel_url: "https://edeninstitute.health/homeschool#pricing",
+        },
+      });
+      if (fnError) throw fnError;
+      if (data?.error) throw new Error(typeof data.error === "string" ? data.error : "Checkout failed");
+      if (data?.url) window.location.href = data.url;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      console.error("Checkout error:", err);
+      setCheckoutError(msg);
+    } finally {
+      setCheckoutLoadingKey(null);
+    }
+  };
+
+  const reserveBundle = () => startCheckout("two_band_bundle");
+  const reserveSprouts = () => startCheckout("sprouts_complete");
+  const reserveSeedlings = () => startCheckout("seedlings_complete");
+  const openLeadMagnet = () => openWaitlist({
+    title: "Get the first two weeks free",
+    subtitle: "We'll send Weeks 1 and 2 of Sprouts to your inbox, free.",
+  });
+
+  const renderShowcase = (s: ShowcaseSpec, idx: number) => {
+    const isBundle = s.cta === "bundle";
+    const ctaLabel = isBundle
+      ? (checkoutLoadingKey === "two_band_bundle" ? "Loading…" : "Reserve Your Founders Edition Seat")
+      : "Get Sprouts Weeks 1 + 2 — Free";
+    const ctaClick = isBundle ? reserveBundle : openLeadMagnet;
+    const altBg = idx % 2 === 0;
+    return (
+      <section
+        key={s.id}
+        id={`showcase-${s.id}`}
+        className="py-16 md:py-20 px-6"
+        style={{ backgroundColor: altBg ? "hsl(var(--background))" : "hsl(var(--eden-cream) / 0.4)" }}
+      >
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-10">
+            <p className="font-accent text-sm tracking-[0.3em] uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>{s.eyebrow}</p>
+            <h2 className="font-serif text-3xl md:text-4xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>{s.title}</h2>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4 md:gap-6 mb-8">
+            <div>
+              <p className="font-accent text-xs tracking-[0.25em] uppercase mb-2 text-center" style={{ color: "hsl(var(--eden-gold))" }}>Sprouts · K-2</p>
+              <div className="rounded-lg overflow-hidden bg-white shadow-sm">
+                <img src={s.sproutsSrc} alt={s.sproutsAlt} loading="lazy" className="w-full h-auto" />
+              </div>
+            </div>
+            <div>
+              <p className="font-accent text-xs tracking-[0.25em] uppercase mb-2 text-center" style={{ color: "hsl(var(--eden-gold))" }}>Seedlings · 3-5</p>
+              <div className="rounded-lg overflow-hidden bg-white shadow-sm">
+                <img src={s.seedlingsSrc} alt={s.seedlingsAlt} loading="lazy" className="w-full h-auto" />
+              </div>
+            </div>
+          </div>
+          <div className="max-w-3xl mx-auto mb-8 text-center rounded-lg p-6" style={{ backgroundColor: "hsl(var(--eden-cream))", border: "1px solid hsl(var(--eden-gold) / 0.3)" }}>
+            <p className="font-accent text-xs tracking-[0.25em] uppercase mb-2" style={{ color: "hsl(var(--eden-gold))" }}>What deepens at Seedlings</p>
+            <p className="font-serif text-lg italic" style={{ color: "hsl(var(--eden-bark))" }}>{s.deepens}</p>
+          </div>
+          <p className="font-body text-base md:text-lg max-w-3xl mx-auto leading-relaxed text-foreground mb-8 text-center">{s.body}</p>
+          <blockquote className="font-serif text-xl italic text-center mb-8 max-w-2xl mx-auto" style={{ color: "hsl(var(--eden-bark))" }}>“{s.quote}”</blockquote>
+          <div className="flex justify-center">
+            <Button variant="eden" size="xl" onClick={ctaClick}>{ctaLabel}</Button>
+          </div>
+        </div>
+      </section>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
 
+      {/* §1 Hero */}
       <section className="py-20 md:py-28 px-6" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
         <div className="max-w-4xl mx-auto text-center">
-          <p className="font-accent text-sm tracking-[0.3em] uppercase mb-6" style={{ color: "hsl(var(--eden-gold))" }}>
-            Eden's Table
-          </p>
-          <h1
-            className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6"
-            style={{ color: "hsl(var(--eden-bark))" }}
-          >
-            Herbalism for the
-            <br />
-            <span className="italic">Whole Family Table.</span>
+          <p className="font-accent text-sm tracking-[0.3em] uppercase mb-6" style={{ color: "hsl(var(--eden-gold))" }}>Eden's Table</p>
+          <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6" style={{ color: "hsl(var(--eden-bark))" }}>
+            Herbalism for the<br /><span className="italic">Whole Family Table.</span>
           </h1>
           <div className="w-16 h-px mx-auto my-8" style={{ backgroundColor: "hsl(var(--eden-gold))" }} />
           <p className="font-body text-lg text-muted-foreground max-w-2xl mx-auto mb-6 leading-relaxed">
-            A K-12 Biblical herbalism curriculum for homeschool families. Open-and-go lesson plans, memory songs,
-            kitchen labs, garden activities, and a recurring family story — rooted in Scripture and creation
-            stewardship.
+            A K-12 Biblical herbalism curriculum for homeschool families. Open-and-go lesson plans, memory songs, kitchen labs, garden activities, and a recurring family story — rooted in Scripture and creation stewardship.
           </p>
           <p className="font-accent text-sm tracking-wider uppercase mb-8" style={{ color: "hsl(var(--eden-sage))" }}>
-            Looking for Partners to Help Build the Next Stage
+            Sprouts (K-2) + Seedlings (3-5) ship August 1, 2026 · Founders Edition open
           </p>
-          <a href="mailto:hello@edeninstitute.health">
-            <Button variant="eden" size="xl">
-              Connect With Us
-            </Button>
-          </a>
+          <div className="flex flex-col items-center gap-3">
+            <Button variant="eden" size="xl" onClick={openLeadMagnet}>Get Sprouts Weeks 1 + 2 — Free</Button>
+            <a href="#pricing" className="font-accent text-sm tracking-wider uppercase underline-offset-4 hover:underline" style={{ color: "hsl(var(--eden-gold))" }}>Reserve Your Founders Edition Seat →</a>
+          </div>
         </div>
       </section>
 
+      {/* §2 Four Grade Bands */}
       <section className="py-16 px-6 bg-background">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="font-serif text-3xl font-bold mb-4" style={{ color: "hsl(var(--eden-bark))" }}>
-              Four Grade Bands. One Family Vision.
-            </h2>
-            <p className="font-body text-muted-foreground max-w-2xl mx-auto">
-              Eden's Table grows with your children — from wonder-filled kitchen labs to clinical reasoning in high
-              school.
-            </p>
+            <h2 className="font-serif text-3xl font-bold mb-4" style={{ color: "hsl(var(--eden-bark))" }}>Four Grade Bands. One Family Vision.</h2>
+            <p className="font-body text-muted-foreground max-w-2xl mx-auto">Eden's Table grows with your children — from wonder-filled kitchen labs to clinical reasoning in high school.</p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
-            <div
-              className="rounded-lg p-6 border-2"
-              style={{ borderColor: "hsl(var(--eden-gold))", backgroundColor: "hsl(var(--eden-cream))" }}
-            >
+            <div className="rounded-lg p-6 border-2" style={{ borderColor: "hsl(var(--eden-gold))", backgroundColor: "hsl(var(--eden-cream))" }}>
               <Sprout className="w-6 h-6 mb-3" style={{ color: "hsl(var(--eden-gold))" }} />
-              <h3 className="font-serif text-lg font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>
-                Sprouts
-              </h3>
-              <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>
-                Grades K-3
-              </p>
-              <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">
-                Wonder, stories, and simple plant identification. Kitchen labs and memory songs.
-              </p>
-              <span className="text-xs font-body px-2 py-1 rounded" style={{ backgroundColor: "hsl(var(--eden-gold) / 0.15)", color: "hsl(var(--eden-gold))" }}>
-                Early Access
-              </span>
+              <h3 className="font-serif text-lg font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>Sprouts</h3>
+              <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>Grades K-2</p>
+              <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">Wonder, stories, and simple plant identification. Kitchen labs and memory songs.</p>
+              <span className="text-xs font-body px-2 py-1 rounded" style={{ backgroundColor: "hsl(var(--eden-gold) / 0.15)", color: "hsl(var(--eden-gold))" }}>Ships August 1, 2026</span>
+            </div>
+            <div className="rounded-lg p-6 border-2" style={{ borderColor: "hsl(var(--eden-gold))", backgroundColor: "hsl(var(--eden-cream))" }}>
+              <BookOpen className="w-6 h-6 mb-3" style={{ color: "hsl(var(--eden-gold))" }} />
+              <h3 className="font-serif text-lg font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>Seedlings</h3>
+              <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>Grades 3-5</p>
+              <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">Body systems basics, herb profiles, and family dinner discussions.</p>
+              <span className="text-xs font-body px-2 py-1 rounded" style={{ backgroundColor: "hsl(var(--eden-gold) / 0.15)", color: "hsl(var(--eden-gold))" }}>Ships August 1, 2026</span>
             </div>
             <div className="rounded-lg p-6 border opacity-75" style={{ borderColor: "hsl(var(--border))" }}>
               <BookOpen className="w-6 h-6 mb-3 text-muted-foreground" />
-              <h3 className="font-serif text-lg font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>
-                Seedlings
-              </h3>
-              <p className="font-accent text-xs tracking-widest uppercase mb-3 text-muted-foreground">Grades 4-6</p>
-              <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">
-                Body systems basics, herb profiles, and family dinner discussions.
-              </p>
-              <span className="text-xs font-body px-2 py-1 rounded bg-muted text-muted-foreground">2027</span>
-            </div>
-            <div className="rounded-lg p-6 border opacity-75" style={{ borderColor: "hsl(var(--border))" }}>
-              <BookOpen className="w-6 h-6 mb-3 text-muted-foreground" />
-              <h3 className="font-serif text-lg font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>
-                Cultivators
-              </h3>
-              <p className="font-accent text-xs tracking-widest uppercase mb-3 text-muted-foreground">Grades 7-9</p>
-              <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">
-                Body pattern thinking, terrain basics, and garden-to-remedy workflows.
-              </p>
-              <span className="text-xs font-body px-2 py-1 rounded bg-muted text-muted-foreground">2027</span>
+              <h3 className="font-serif text-lg font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>Cultivators</h3>
+              <p className="font-accent text-xs tracking-widest uppercase mb-3 text-muted-foreground">Grades 6-8</p>
+              <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">Body pattern thinking, terrain basics, and garden-to-remedy workflows.</p>
+              <span className="text-xs font-body px-2 py-1 rounded bg-muted text-muted-foreground">Launches 2027</span>
             </div>
             <div className="rounded-lg p-6 border opacity-75" style={{ borderColor: "hsl(var(--border))" }}>
               <Users className="w-6 h-6 mb-3 text-muted-foreground" />
-              <h3 className="font-serif text-lg font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>
-                Practitioners
-              </h3>
-              <p className="font-accent text-xs tracking-widest uppercase mb-3 text-muted-foreground">Grades 10-12</p>
-              <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">
-                Clinical literacy, materia medica, and real-world application.
-              </p>
-              <span className="text-xs font-body px-2 py-1 rounded bg-muted text-muted-foreground">2028</span>
+              <h3 className="font-serif text-lg font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>Practitioners</h3>
+              <p className="font-accent text-xs tracking-widest uppercase mb-3 text-muted-foreground">Grades 9-12</p>
+              <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">Clinical literacy, materia medica, and real-world application.</p>
+              <span className="text-xs font-body px-2 py-1 rounded bg-muted text-muted-foreground">Launches 2028</span>
             </div>
           </div>
         </div>
       </section>
 
+      {/* §3 Three Pillars */}
       <section className="py-16 px-6" style={{ backgroundColor: "hsl(var(--eden-forest))" }}>
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="font-serif text-3xl font-bold mb-6 text-white">Open-and-Go. Family-Style. Faith-Rooted.</h2>
           <div className="grid md:grid-cols-3 gap-6 text-left mt-8">
             <div className="rounded-lg p-6" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
               <h3 className="font-serif text-lg font-semibold mb-3 text-white">No Prep Required</h3>
-              <p className="font-body text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>
-                Every lesson includes a parent guide, student workbook, kitchen lab card, and garden activity card. Open
-                and teach.
-              </p>
+              <p className="font-body text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>Every lesson includes a parent guide, student workbook, kitchen lab card, and garden activity card. Open and teach.</p>
             </div>
             <div className="rounded-lg p-6" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
               <h3 className="font-serif text-lg font-semibold mb-3 text-white">Multi-Age by Design</h3>
-              <p className="font-body text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>
-                Lessons are written for the whole family to learn together. Older students go deeper; younger ones grow
-                into it.
-              </p>
+              <p className="font-body text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>Lessons are written for the whole family to learn together. Older students go deeper; younger ones grow into it.</p>
             </div>
             <div className="rounded-lg p-6" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
               <h3 className="font-serif text-lg font-semibold mb-3 text-white">Scripture Throughout</h3>
-              <p className="font-body text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>
-                Every unit anchored in Scripture. Herbalism presented as stewardship of Yahweh's creation, not
-                alternative medicine.
-              </p>
+              <p className="font-body text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>Every unit anchored in Scripture. Herbalism presented as stewardship of Yahweh's creation, not alternative medicine.</p>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="py-20 px-6" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
-        <div className="max-w-2xl mx-auto text-center">
-          <h2 className="font-serif text-3xl font-bold mb-4" style={{ color: "hsl(var(--eden-bark))" }}>
-            Partner With Us
-          </h2>
-          <p className="font-body text-muted-foreground mb-8">
-            We are currently seeking aligned partners and families to help build this stage of the curriculum — first-access pricing, voice in shaping the lessons, and a seat at the table from the beginning.
-          </p>
-          <a href="mailto:hello@edeninstitute.health">
-            <Button variant="eden" size="xl">
-              Connect With Us
-            </Button>
-          </a>
+      {/* §4-§9 Showcases */}
+      {SHOWCASES.map((s, idx) => renderShowcase(s, idx))}
+
+      {/* §10 Pricing */}
+      <section id="pricing" className="py-20 md:py-24 px-6" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-8">
+            <p className="font-accent text-sm tracking-[0.3em] uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>Founders Edition — limited seats</p>
+            <h2 className="font-serif text-3xl md:text-4xl font-bold mb-4" style={{ color: "hsl(var(--eden-bark))" }}>Reserve your seat at the table.</h2>
+          </div>
+
+          <div className="max-w-3xl mx-auto mb-12 text-center rounded-lg p-5" style={{ backgroundColor: "hsl(var(--eden-bark))" }}>
+            <p className="font-accent text-xs tracking-[0.25em] uppercase mb-2" style={{ color: "hsl(var(--eden-gold))" }}>Founders pricing through August 1, 2026</p>
+            <p className="font-body text-sm text-white leading-relaxed">A thank-you to the families who funded the first print run. Retail begins August 2: <strong>$329 Sprouts · $329 Seedlings · $649 Bundle</strong>.</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
+            {/* Sprouts Complete */}
+            <div className="rounded-lg overflow-hidden border-2 bg-white flex flex-col" style={{ borderColor: "hsl(var(--eden-gold))" }}>
+              <div className="aspect-[4/3] overflow-hidden bg-white">
+                <img src="/showcases/SproutsBundle.png" alt="Sprouts Complete bundle composition" loading="lazy" className="w-full h-full object-cover" />
+              </div>
+              <div className="p-6 flex flex-col flex-1">
+                <p className="font-accent text-xs tracking-widest uppercase mb-2" style={{ color: "hsl(var(--eden-gold))" }}>Sprouts Complete · Founders</p>
+                <h3 className="font-serif text-xl font-bold mb-3" style={{ color: "hsl(var(--eden-bark))" }}>Ships August 1, 2026</h3>
+                <p className="font-serif text-3xl font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>$249</p>
+                <p className="font-body text-xs text-muted-foreground mb-1">Charged today · Shipping calculated at checkout</p>
+                <p className="font-accent text-xs uppercase tracking-wider mb-4" style={{ color: "hsl(var(--eden-sage))" }}>Founders price · $80 below retail</p>
+                <ul className="font-body text-sm text-muted-foreground space-y-1.5 mb-6 flex-1">
+                  <li>· 36 weekly lessons</li>
+                  <li>· Teacher Guide + Student Notebook</li>
+                  <li>· 36 Herb Field Cards</li>
+                  <li>· 36 Recipe Cards</li>
+                  <li>· Around the Table deck (144 cards)</li>
+                </ul>
+                <Button variant="eden" size="xl" className="w-full" disabled={checkoutLoadingKey === "sprouts_complete"} onClick={reserveSprouts}>
+                  {checkoutLoadingKey === "sprouts_complete" ? "Loading…" : "Reserve Your Seat"}
+                </Button>
+              </div>
+            </div>
+
+            {/* Seedlings Complete */}
+            <div className="rounded-lg overflow-hidden border-2 bg-white flex flex-col" style={{ borderColor: "hsl(var(--eden-gold))" }}>
+              <div className="aspect-[4/3] overflow-hidden bg-white">
+                <img src="/showcases/SeedlingsBundle.png" alt="Seedlings Complete bundle composition" loading="lazy" className="w-full h-full object-cover" />
+              </div>
+              <div className="p-6 flex flex-col flex-1">
+                <p className="font-accent text-xs tracking-widest uppercase mb-2" style={{ color: "hsl(var(--eden-gold))" }}>Seedlings Complete · Founders</p>
+                <h3 className="font-serif text-xl font-bold mb-3" style={{ color: "hsl(var(--eden-bark))" }}>Ships August 1, 2026</h3>
+                <p className="font-serif text-3xl font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>$249</p>
+                <p className="font-body text-xs text-muted-foreground mb-1">Charged today · Shipping calculated at checkout</p>
+                <p className="font-accent text-xs uppercase tracking-wider mb-4" style={{ color: "hsl(var(--eden-sage))" }}>Founders price · $80 below retail</p>
+                <ul className="font-body text-sm text-muted-foreground space-y-1.5 mb-6 flex-1">
+                  <li>· 36 weekly lessons at Seedlings depth</li>
+                  <li>· Teacher Guide + Student Notebook</li>
+                  <li>· 36 Herb Field Cards</li>
+                  <li>· 36 Recipe Cards</li>
+                  <li>· Around the Table deck (144 cards)</li>
+                </ul>
+                <Button variant="eden" size="xl" className="w-full" disabled={checkoutLoadingKey === "seedlings_complete"} onClick={reserveSeedlings}>
+                  {checkoutLoadingKey === "seedlings_complete" ? "Loading…" : "Reserve Your Seat"}
+                </Button>
+              </div>
+            </div>
+
+            {/* Bundle */}
+            <div className="rounded-lg overflow-hidden border-2 bg-white relative flex flex-col" style={{ borderColor: "hsl(var(--eden-sage))" }}>
+              <span className="absolute top-3 right-3 z-10 font-accent text-xs tracking-widest uppercase text-white px-3 py-1 rounded" style={{ backgroundColor: "hsl(var(--eden-sage))" }}>Best value</span>
+              <div className="grid grid-cols-2 aspect-[4/3] bg-white">
+                <img src="/showcases/SproutsBundle.png" alt="Sprouts box" loading="lazy" className="w-full h-full object-cover border-r-2 border-white" />
+                <img src="/showcases/SeedlingsBundle.png" alt="Seedlings box" loading="lazy" className="w-full h-full object-cover" />
+              </div>
+              <div className="p-6 flex flex-col flex-1">
+                <p className="font-accent text-xs tracking-widest uppercase mb-2" style={{ color: "hsl(var(--eden-sage))" }}>Two-Band Family Bundle</p>
+                <h3 className="font-serif text-xl font-bold mb-3" style={{ color: "hsl(var(--eden-bark))" }}>Sprouts + Seedlings</h3>
+                <p className="font-serif text-3xl font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>$449</p>
+                <p className="font-body text-xs text-muted-foreground mb-1">Save $49 · Free shipping · Charged today</p>
+                <p className="font-accent text-xs uppercase tracking-wider mb-4" style={{ color: "hsl(var(--eden-sage))" }}>Founders price · $200 below retail</p>
+                <ul className="font-body text-sm text-muted-foreground space-y-1.5 mb-6 flex-1">
+                  <li>· Both bands ship together August 1, 2026</li>
+                  <li>· All materials from both bands</li>
+                  <li>· Add extra Student Notebooks for $39 each</li>
+                </ul>
+                <Button variant="eden" size="xl" className="w-full" disabled={checkoutLoadingKey === "two_band_bundle"} onClick={reserveBundle}>
+                  {checkoutLoadingKey === "two_band_bundle" ? "Loading…" : "Reserve Your Seat"}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {checkoutError && <p className="text-center font-body text-sm text-destructive mb-4">{checkoutError}</p>}
+
+          <div className="max-w-3xl mx-auto text-center space-y-3">
+            <p className="font-body text-sm text-muted-foreground leading-relaxed">All Founders Edition seats include a voice in shaping Seedlings and first-look at Cultivators (2027) and Practitioners (2028).</p>
+            <p className="font-serif italic text-base" style={{ color: "hsl(var(--eden-bark))" }}>If we miss August 1, 2026 for any reason, your seat is refundable in full — no questions asked.</p>
+          </div>
         </div>
       </section>
 
       <Footer />
-      <WaitlistModal
-        open={open}
-        onOpenChange={setOpen}
-        audienceId={HS_AUD}
-        title="Join Eden's Table Early Access List"
-        // PR η fix #8: explicit canonical funnel. Even though the legacy
-        // audienceId mapping happens to resolve to 'edens_table' for
-        // this surface, passing it explicitly future-proofs against any
-        // change to that mapping and makes the intent unambiguous.
-        funnel="edens_table"
-        metadata={metadata}
-      />
+      <WaitlistModal open={waitlistOpen} onOpenChange={setWaitlistOpen} audienceId={HS_AUD} title={waitlistConfig.title} subtitle={waitlistConfig.subtitle} />
     </div>
   );
 };

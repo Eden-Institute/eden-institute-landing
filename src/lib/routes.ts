@@ -41,6 +41,7 @@ export const ROUTES = {
   CONSTITUTIONAL_HERBALISM: "/constitutional-herbalism",
   COURSES: "/courses",
   HOMESCHOOL: "/homeschool",
+  HOMESCHOOL_WELCOME: "/homeschool/welcome",
   COMMUNITY: "/community",
   TIER_TWO_WAITLIST: "/tier-2-waitlist",
 
