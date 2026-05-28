@@ -149,17 +149,17 @@ const Homeschool = () => {
   const reserveBundle = () => startCheckout("two_band_bundle");
   const reserveSprouts = () => startCheckout("sprouts_complete");
   const reserveSeedlings = () => startCheckout("seedlings_complete");
-  const openLeadMagnet = () => openWaitlist({
-    title: "Get the first two weeks free",
-    subtitle: "We'll send Weeks 1 and 2 of Sprouts to your inbox, free.",
+  const openSproutsLeadMagnet = () => openWaitlist({
+    title: "Get the first two weeks of Sprouts free",
+    subtitle: "We'll send Weeks 1 and 2 of Sprouts (K-2) to your inbox, free.",
+  });
+  const openSeedlingsLeadMagnet = () => openWaitlist({
+    title: "Get the first two weeks of Seedlings free",
+    subtitle: "We'll send Weeks 1 and 2 of Seedlings (3-5) to your inbox, free.",
   });
 
   const renderShowcase = (s: ShowcaseSpec, idx: number) => {
     const isBundle = s.cta === "bundle";
-    const ctaLabel = isBundle
-      ? (checkoutLoadingKey === "two_band_bundle" ? "Loading…" : "Reserve Your Founders Edition Seat")
-      : "Get Sprouts Weeks 1 + 2 — Free";
-    const ctaClick = isBundle ? reserveBundle : openLeadMagnet;
     const altBg = idx % 2 === 0;
     return (
       <section
@@ -193,9 +193,22 @@ const Homeschool = () => {
           </div>
           <p className="font-body text-base md:text-lg max-w-3xl mx-auto leading-relaxed text-foreground mb-8 text-center">{s.body}</p>
           <blockquote className="font-serif text-xl italic text-center mb-8 max-w-2xl mx-auto" style={{ color: "hsl(var(--eden-bark))" }}>“{s.quote}”</blockquote>
-          <div className="flex justify-center">
-            <Button variant="eden" size="xl" onClick={ctaClick}>{ctaLabel}</Button>
-          </div>
+          {isBundle ? (
+            <div className="flex justify-center">
+              <Button variant="eden" size="xl" onClick={reserveBundle} disabled={checkoutLoadingKey === "two_band_bundle"}>
+                {checkoutLoadingKey === "two_band_bundle" ? "Loading…" : "Reserve Your Founders Edition Seat"}
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+              <Button variant="eden" size="lg" onClick={openSproutsLeadMagnet}>
+                Free Sprouts (K-2) Wks 1 + 2
+              </Button>
+              <Button variant="eden" size="lg" onClick={openSeedlingsLeadMagnet}>
+                Free Seedlings (3-5) Wks 1 + 2
+              </Button>
+            </div>
+          )}
         </div>
       </section>
     );
@@ -219,9 +232,26 @@ const Homeschool = () => {
           <p className="font-accent text-sm tracking-wider uppercase mb-8" style={{ color: "hsl(var(--eden-sage))" }}>
             Sprouts (K-2) + Seedlings (3-5) ship August 1, 2026 · Founders Edition open
           </p>
-          <div className="flex flex-col items-center gap-3">
-            <Button variant="eden" size="xl" onClick={openLeadMagnet}>Get Sprouts Weeks 1 + 2 — Free</Button>
-            <a href="#pricing" className="font-accent text-sm tracking-wider uppercase underline-offset-4 hover:underline" style={{ color: "hsl(var(--eden-gold))" }}>Reserve Your Founders Edition Seat →</a>
+          <div className="flex flex-col items-center gap-5">
+            {/* Primary CTA — Reserve Founders Pricing */}
+            <div className="flex flex-col items-center gap-2">
+              <a href="#pricing" className="inline-block">
+                <Button variant="eden" size="xl">Reserve Founders Pricing →</Button>
+              </a>
+              <p className="font-body text-xs text-muted-foreground max-w-md text-center">
+                Founders pricing through August 1, 2026 — save $80 to $200 vs retail
+              </p>
+            </div>
+
+            {/* Secondary CTAs — free lead magnets, one per band, side by side */}
+            <div className="flex flex-col sm:flex-row gap-3 items-center mt-2">
+              <Button variant="eden" size="lg" onClick={openSproutsLeadMagnet}>
+                Free Sprouts (K-2) Wks 1 + 2
+              </Button>
+              <Button variant="eden" size="lg" onClick={openSeedlingsLeadMagnet}>
+                Free Seedlings (3-5) Wks 1 + 2
+              </Button>
+            </div>
           </div>
         </div>
       </section>
