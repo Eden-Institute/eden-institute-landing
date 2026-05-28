@@ -1,15 +1,24 @@
 import { useState } from "react";
 import WaitlistModal from "@/components/landing/WaitlistModal";
+import ProductMockup from "./ProductMockup";
 
 const HS_AUDIENCE_ID = "a48cb66e-b2a9-461d-98a6-bb1b12f72693";
+
+// Composite uses the TG Week-at-a-Glance + Storybook Chapter 1 mockups
+// as the two-piece visual per Camila's hero-composite recommendation.
+// When the PNGs land in /public/homeschool-mockups/, the composite
+// lights up automatically; until then, ProductMockup degrades each
+// slot to BotanicalPlaceholder.
+const HERO_LEFT_IMAGE = "/homeschool-mockups/Sprouts_W2_TG_Chamomile.png";
+const HERO_RIGHT_IMAGE = "/homeschool-mockups/Sprouts_W2_Storybook_Chapter1.png";
 
 /**
  * Hero (§1) — cream background w/ subtle sage radial gradient, split layout.
  *
- * Left: mockup composite (Sprouts Wk 02 TG cover + open NB + Storybook +
- * card fan). Asset deferred per spec Open Question #7; the slot renders
- * an accessible cream placeholder labeled "Eden's Table preview" until
- * the Canva PNG ships (target July 22, 2026).
+ * Left: two-piece composite (TG Week-at-a-Glance + Storybook Chapter 1).
+ * Slightly offset/rotated to read as a flat-lay rather than two boxes.
+ * Final wood-table flat-lay composite is a v2-post-launch asset per
+ * Camila's recommendation; this two-piece is the v1 launch visual.
  *
  * Right: eyebrow + H1 (with italic rust-colored "Not Dependent." close)
  * + subheadline + sub-detail + dual CTA. Both CTAs feed the same
@@ -31,24 +40,37 @@ export default function Hero() {
         }}
       >
         <div className="max-w-6xl mx-auto grid gap-12 min-[880px]:grid-cols-2 items-center">
-          {/* LEFT — mockup composite slot */}
+          {/* LEFT — two-piece composite */}
           <div className="order-2 min-[880px]:order-1">
-            <div
-              className="aspect-[4/3] w-full rounded-sm flex items-center justify-center"
-              style={{
-                backgroundColor: "hsl(var(--cream-warm))",
-                border: "1px solid hsl(var(--sage-pale))",
-              }}
-              role="img"
-              aria-label="Eden's Table curriculum preview — Teacher Guide, Student Notebook, Storybook, and card decks. Final composite image arrives July 22, 2026."
-            >
-              <p
-                className="text-center px-6 italic"
-                style={{ color: "hsl(var(--ink-soft))", fontFamily: "var(--font-accent)" }}
+            <div className="relative aspect-[4/3] w-full">
+              {/* Back piece — Storybook Chapter 1 (slightly rotated counter-clockwise) */}
+              <div
+                className="absolute top-0 right-0 w-[58%] h-[80%] rounded-sm overflow-hidden shadow-md"
+                style={{
+                  transform: "rotate(-3deg)",
+                  border: "1px solid hsl(var(--sage-pale))",
+                }}
               >
-                Curriculum preview composite<br />
-                <span className="text-sm not-italic">arriving July 22, 2026</span>
-              </p>
+                <ProductMockup
+                  imageSrc={HERO_RIGHT_IMAGE}
+                  productName="Storybook"
+                  aspect="aspect-auto h-full"
+                />
+              </div>
+              {/* Front piece — Teacher Guide (slightly rotated clockwise, in front) */}
+              <div
+                className="absolute bottom-0 left-0 w-[62%] h-[78%] rounded-sm overflow-hidden shadow-lg"
+                style={{
+                  transform: "rotate(2deg)",
+                  border: "1px solid hsl(var(--sage-pale))",
+                }}
+              >
+                <ProductMockup
+                  imageSrc={HERO_LEFT_IMAGE}
+                  productName="Teacher Guide"
+                  aspect="aspect-auto h-full"
+                />
+              </div>
             </div>
           </div>
 

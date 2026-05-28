@@ -31,7 +31,7 @@ export type HatName = "science" | "ela" | "math" | "theology" | "history" | "art
 /**
  * HAT_COLOR_MAP — maps each HAT to the CSS variable that backs its pill.
  * Science / ELA / Math reuse existing landing-page semantic tokens.
- * Theology + History got new tokens in this commit (src/index.css).
+ * Theology + History got new tokens in the foundation commit (src/index.css).
  * Art reuses the rust token (same family as Math in the spec's color logic).
  */
 export const HAT_COLOR_MAP: Record<HatName, { label: string; cssVar: string }> = {
@@ -133,6 +133,15 @@ export interface ProductSpec {
   publicPrice: number;
   /** À la carte table label (matches the worksheet's display name). */
   alaCarteLabel: string;
+  /**
+   * Product mockup paths. Resolve to /public/homeschool-mockups/<file>.png.
+   * null = no Canva master exists yet (GJ + FD per Camila's Option 1
+   * disposition); ProductMockup renders BotanicalPlaceholder permanently.
+   * If a path is present but the file 404s, ProductMockup's onError swap
+   * degrades the card gracefully to the placeholder.
+   */
+  imageSprouts: string | null;
+  imageSeedlings: string | null;
 }
 
 export const PRODUCTS: readonly ProductSpec[] = [
@@ -156,6 +165,8 @@ export const PRODUCTS: readonly ProductSpec[] = [
     foundersPrice: 69,
     publicPrice: 99,
     alaCarteLabel: "Teacher Guide",
+    imageSprouts: "/homeschool-mockups/Sprouts_W2_TG_Chamomile.png",
+    imageSeedlings: "/homeschool-mockups/Seedlings_W2_TG_Tulsi.png",
   },
   {
     code: "NB",
@@ -177,6 +188,8 @@ export const PRODUCTS: readonly ProductSpec[] = [
     foundersPrice: 59,
     publicPrice: 84,
     alaCarteLabel: "Student Notebook",
+    imageSprouts: "/homeschool-mockups/Sprouts_W2_NB_Chamomile.png",
+    imageSeedlings: "/homeschool-mockups/Seedlings_W2_NB_Tulsi.png",
   },
   {
     code: "SB",
@@ -198,6 +211,8 @@ export const PRODUCTS: readonly ProductSpec[] = [
     foundersPrice: 24,
     publicPrice: 34,
     alaCarteLabel: "Storybook",
+    imageSprouts: "/homeschool-mockups/Sprouts_W2_Storybook_Chapter1.png",
+    imageSeedlings: "/homeschool-mockups/Seedlings_W2_Storybook_Chapter1.png",
   },
   {
     code: "GJ",
@@ -218,6 +233,10 @@ export const PRODUCTS: readonly ProductSpec[] = [
     foundersPrice: 27,
     publicPrice: 39,
     alaCarteLabel: "Garden Journal",
+    // No Canva master exists yet — in launch scope but in production queue.
+    // Per Camila's Option 1: ship placeholder, build master before July 15.
+    imageSprouts: null,
+    imageSeedlings: null,
   },
   {
     code: "FD",
@@ -239,6 +258,9 @@ export const PRODUCTS: readonly ProductSpec[] = [
     foundersPrice: 17,
     publicPrice: 24,
     alaCarteLabel: "Family Devotional",
+    // No Canva master exists yet — same posture as Garden Journal.
+    imageSprouts: null,
+    imageSeedlings: null,
   },
   {
     code: "FC",
@@ -260,6 +282,8 @@ export const PRODUCTS: readonly ProductSpec[] = [
     foundersPrice: 24,
     publicPrice: 34,
     alaCarteLabel: "Herb Field Cards (set of 15)",
+    imageSprouts: "/homeschool-mockups/Sprouts_W2_FC_Chamomile.png",
+    imageSeedlings: "/homeschool-mockups/Seedlings_W2_FC_Tulsi.png",
   },
   {
     code: "RC",
@@ -281,6 +305,8 @@ export const PRODUCTS: readonly ProductSpec[] = [
     foundersPrice: 24,
     publicPrice: 34,
     alaCarteLabel: "Recipe Cards (set of 15)",
+    imageSprouts: "/homeschool-mockups/Sprouts_W2_RC_Chamomile.png",
+    imageSeedlings: "/homeschool-mockups/Seedlings_W2_RC_Tulsi.png",
   },
   {
     code: "ATT",
@@ -302,6 +328,8 @@ export const PRODUCTS: readonly ProductSpec[] = [
     foundersPrice: 44,
     publicPrice: 64,
     alaCarteLabel: "Around the Table (144-card deck)",
+    imageSprouts: "/homeschool-mockups/Sprouts_W2_ATT_Chamomile.png",
+    imageSeedlings: "/homeschool-mockups/Seedlings_W2_ATT_Tulsi.png",
   },
 ] as const;
 

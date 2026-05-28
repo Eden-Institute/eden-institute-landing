@@ -1,5 +1,6 @@
 import { PRODUCTS, type ProductSpec } from "@/lib/homeschool/data";
 import HatBadge from "./HatBadge";
+import ProductMockup from "./ProductMockup";
 
 /**
  * EightProducts (§6) — the conversion engine. 8 product cards in a
@@ -10,10 +11,17 @@ import HatBadge from "./HatBadge";
  * data module so the à la carte table (§10) and pricing centerpiece (§9)
  * can read the same source of truth.
  *
- * Mockup PNG slots are placeholders until the Canva exports from the
- * Wk 02 master ship (target July 22, 2026 per spec Open Question #7).
+ * Mockup slot uses ProductMockup atom: shows /public/homeschool-mockups/
+ * PNG when present, falls back to BotanicalPlaceholder otherwise (Garden
+ * Journal + Family Devotional permanently; others temporarily until
+ * Camila drops the 12 master PNGs into /public/homeschool-mockups/).
  */
 function ProductCard({ product }: { product: ProductSpec }) {
+  // GJ and FD don't have masters yet — force the placeholder with a
+  // production-status caption so the card reads as deliberate rather
+  // than missing. Per Camila's Option 1 disposition.
+  const noMasterYet = product.imageSprouts === null && product.imageSeedlings === null;
+
   return (
     <article
       className="rounded-sm overflow-hidden flex flex-col"
@@ -23,22 +31,13 @@ function ProductCard({ product }: { product: ProductSpec }) {
         borderTop: "3px solid hsl(var(--green-deep))",
       }}
     >
-      {/* Mockup slot */}
-      <div
-        className="aspect-[4/3] flex items-center justify-center"
-        style={{ backgroundColor: "hsl(var(--cream-warm))" }}
-        role="img"
-        aria-label={`${product.name} mockup — arriving July 22, 2026`}
-      >
-        <span
-          className="text-xs italic"
-          style={{ color: "hsl(var(--ink-soft))" }}
-        >
-          {product.name} preview
-        </span>
-      </div>
+      <ProductMockup
+        imageSrc={product.imageSprouts}
+        productName={product.name}
+        forcePlaceholder={noMasterYet}
+        placeholderCaption={noMasterYet ? "Mockup in production" : undefined}
+      />
 
-      {/* Body */}
       <div className="p-6 flex-1 flex flex-col">
         <h3
           className="font-serif text-[22px] font-bold mb-2"
