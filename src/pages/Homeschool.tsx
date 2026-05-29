@@ -141,12 +141,12 @@ const Homeschool = () => {
   });
   const openSproutsLeadMagnet = () => openWaitlist({
     title: "Get Sprouts Weeks 1 + 2 — Free",
-    subtitle: "We'll email you Week 1 (Lavender) today, and Week 2 (Chamomile) in seven days. Six artifacts each week.",
+    subtitle: "Your free preview of Sprouts Weeks 1 + 2 (Lavender + Chamomile) is on the way. We're finishing how we send these — you'll be among the first to receive when we open delivery.",
     source: "sprouts_magnet",
   });
   const openSeedlingsLeadMagnet = () => openWaitlist({
     title: "Get Seedlings Weeks 1 + 2 — Free",
-    subtitle: "We'll email you Week 1 (Elderberry) today, and Week 2 (Tulsi) in seven days. Six artifacts each week.",
+    subtitle: "Your free preview of Seedlings Weeks 1 + 2 (Elderberry + Tulsi) is on the way. We're finishing how we send these — you'll be among the first to receive when we open delivery.",
     source: "seedlings_magnet",
   });
 
