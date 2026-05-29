@@ -22,12 +22,17 @@ import { ROUTES } from "@/lib/routes";
  * No verify-session call here — Stripe only redirects on confirmed payment,
  * so the redirect itself is the verification. The receipt email Stripe sends
  * is the authoritative confirmation document.
+ *
+ * Phase 2 (PR #143) removed Stripe checkout from /homeschool entirely, so this
+ * page is currently unreachable through any visitor CTA. Retained for the
+ * future Founders Code redemption checkout flow (Phase 4+); copy kept in sync
+ * with the 2027 launch framing so re-wiring is a wiring change, not a copy edit.
  */
 const HomeschoolWelcome = () => {
   useDocumentMeta({
     title: "Order Confirmed — Eden's Table Founders Edition | The Eden Institute",
     description:
-      "Your Founders Edition seat is reserved. Check your email for the receipt; your box ships in two waves starting August 1, 2026.",
+      "Your Founders Edition seat is reserved. Check your email for the receipt; your box ships in 2027.",
     canonical: "https://edeninstitute.health/homeschool/welcome",
   });
 
@@ -41,14 +46,14 @@ const HomeschoolWelcome = () => {
       case "sprouts_complete":
         return {
           productName: "Sprouts Complete · Founders Edition",
-          shipWindow: "Your box ships August 1, 2026.",
+          shipWindow: "Your box ships in 2027.",
           nextStep:
             "Watch your inbox for your Founders welcome email — it carries the first two weeks of Sprouts as a PDF preview so you can start before the box arrives.",
         };
       case "seedlings_complete":
         return {
           productName: "Seedlings Complete · Founders Edition",
-          shipWindow: "Your box ships August 1, 2026.",
+          shipWindow: "Your box ships in 2027.",
           nextStep:
             "Watch your inbox for your Founders welcome email — it carries the first two weeks of Seedlings as a PDF preview so you can start before the box arrives.",
         };
@@ -56,7 +61,7 @@ const HomeschoolWelcome = () => {
         return {
           productName: "Two-Band Family Bundle · Founders Edition",
           shipWindow:
-            "Both bands ship together August 1, 2026. Free shipping is included.",
+            "Both bands ship together in 2027. Free shipping is included.",
           nextStep:
             "Watch your inbox for your Founders welcome email — and for an account setup link so you can manage your bundle, add extra Student Notebooks for additional children, and view your shipment status.",
         };
@@ -70,7 +75,7 @@ const HomeschoolWelcome = () => {
       default:
         return {
           productName: "Eden's Table Founders Edition",
-          shipWindow: "Your box ships in August 2026.",
+          shipWindow: "Your box ships in 2027.",
           nextStep: "Watch your inbox for your Founders welcome email with all the details.",
         };
     }
