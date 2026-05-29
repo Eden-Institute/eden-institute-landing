@@ -1,8 +1,47 @@
 project_id = "noeqztssupewjidpvhar"
 
-# Webhook endpoints authenticate via provider-specific signatures (Stripe HMAC,
-# Resend svix), not Supabase JWT. They MUST be deployed with verify_jwt=false,
-# otherwise the Supabase gateway 401s every request before the function runs.
+# ============================================================================
+# verify_jwt overrides
+# ============================================================================
+#
+# By default, `supabase functions deploy` sets verify_jwt=true per call,
+# OVERWRITING the function's previously-deployed setting. This config.toml
+# locks the correct setting at the file layer so the CLI honors it on every
+# deploy (no per-call `--no-verify-jwt` flag required). Closes Lock #72.
+#
+# Two categories need verify_jwt=false:
+#
+#   1. PUBLIC-FRONTEND FUNCTIONS — called from anonymous browsers (no
+#      authenticated session). Gateway JWT check would 401 every request.
+#      These functions perform their own input validation.
+#
+#   2. WEBHOOK ENDPOINTS — authenticate via provider-specific signatures
+#      (Stripe HMAC, Resend svix), not Supabase JWT.
+
+# --- Category 1: Public-frontend functions ---
+
+[functions.resend-waitlist]
+verify_jwt = false
+
+[functions.record-quiz-completion]
+verify_jwt = false
+
+[functions.record-diagnostic-completion]
+verify_jwt = false
+
+[functions.submit-feedback]
+verify_jwt = false
+
+[functions.constitution-pdf]
+verify_jwt = false
+
+[functions.practitioner-waitlist-signup]
+verify_jwt = false
+
+[functions.tier-2-waitlist-signup]
+verify_jwt = false
+
+# --- Category 2: Webhook endpoints ---
 
 [functions.resend-webhook]
 verify_jwt = false
