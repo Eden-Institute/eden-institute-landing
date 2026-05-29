@@ -604,6 +604,66 @@ function buildCommunityEmail(firstName: string): { subject: string; html: string
   };
 }
 
+
+// ── Phase 3.1 Day-1: source-branched email builders for edens_table funnel ──
+// One welcome email per /homeschool CTA. Day-7 Week-2 send is Phase 3.1.2.
+
+function buildFoundersClubEmail(firstName: string): { subject: string; html: string } {
+  const body = `
+<p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">You're in. Your seat at the Eden's Table Founders Club is reserved.</p>
+${goldDivider()}
+${goldLabel('HOW FOUNDERS PRICING WORKS')}
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Before launch in 2027, we'll email you your <strong>Founders Code</strong>. Use it at checkout to lock in Founders pricing &mdash; <strong>$249 per band ($249 Sprouts, $249 Seedlings) or $449 for the two-band bundle</strong>. Retail begins at launch: $349 / $349 / $699.</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 24px 0;">Until then, you'll hear from us once a month with progress notes &mdash; what's being built, what's being tested, what we're learning.</p>
+${goldDivider()}
+${goldLabel('WHILE WE BUILD')}
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Eden's Table is the children's curriculum. The Eden Institute's adult Tier 1 Course &mdash; the Biblical Framework &mdash; is the soil it grew from. Most parents who go through it tell us their reading of Scripture changes.</p>
+${ctaButton('EXPLORE TIER 1 COURSE', 'https://edeninstitute.health/courses')}
+${goldDivider()}
+${closingBlock()}`;
+  return { subject: "You're in the Founders Club — Eden's Table 2027", html: emailWrapper(body) };
+}
+
+function buildSproutsMagnetEmail(firstName: string): { subject: string; html: string } {
+  const body = `
+<p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Thank you for stepping into this work with us. What follows is a real week of curriculum &mdash; Week 1 of Sprouts, the band built for kindergarten through second grade. Not a sample stripped of substance. Five days with Lavender, a story your child will remember, and the small daily rhythms that turn a kitchen counter into a place of formation.</p>
+${goldDivider()}
+${goldLabel('YOUR SIX DOWNLOADS &mdash; SPROUTS WEEK 1 (LAVENDER)')}
+${ctaButton("TEACHER'S GUIDE", 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-tg-lavender.pdf')}
+${ctaButton('STUDENT NOTEBOOK', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-nb-lavender.pdf')}
+${ctaButton('FIELD CARDS', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-fc-lavender.pdf')}
+${ctaButton('RECIPE CARDS', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-rc-lavender.pdf')}
+${ctaButton('AROUND THE TABLE CARDS', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-att-lavender.pdf')}
+${ctaButton('STORY 1 (READ-ALOUD)', 'https://edeninstitute.health/lead-magnets/hs-sprouts-story-1.pdf')}
+${goldDivider()}
+${goldLabel('WEEK 2 ARRIVES IN ONE WEEK')}
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Seven days from today, you'll receive Week 2 &mdash; Chamomile, five more downloads, the same Sprouts rhythm. If it hasn't arrived by Day 8, just reply to this email and I'll send it manually.</p>
+${closingBlock()}`;
+  return { subject: 'Sprouts Week 1 (Lavender) — Your Free Preview', html: emailWrapper(body) };
+}
+
+function buildSeedlingsMagnetEmail(firstName: string): { subject: string; html: string } {
+  const body = `
+<p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Thank you for stepping into this work with us. What follows is a real week of curriculum from Seedlings, our band for third through fifth graders. Seedlings is built for the child who has begun to ask <em>why</em> and <em>how</em> &mdash; the one who has outgrown a worksheet and is ready to track a hypothesis across a week. Week 1 starts with Elderberry.</p>
+${goldDivider()}
+${goldLabel('YOUR SIX DOWNLOADS &mdash; SEEDLINGS WEEK 1 (ELDERBERRY)')}
+${ctaButton("TEACHER'S GUIDE", 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-tg-elderberry.pdf')}
+${ctaButton('STUDENT NOTEBOOK', 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-nb-elderberry.pdf')}
+${ctaButton('FIELD CARDS', 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-fc-elderberry.pdf')}
+${ctaButton('RECIPE CARDS', 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-rc-elderberry.pdf')}
+${ctaButton('AROUND THE TABLE CARDS', 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-att-elderberry.pdf')}
+${ctaButton('STORY 7 (READ-ALOUD)', 'https://edeninstitute.health/lead-magnets/hs-seedlings-story-7.pdf')}
+${goldDivider()}
+${goldLabel('WEEK 2 ARRIVES IN ONE WEEK')}
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Seven days from today, you'll receive Week 2 &mdash; Tulsi, five more downloads, the same Seedlings depth. If it hasn't arrived by Day 8, just reply to this email and I'll send it manually.</p>
+${closingBlock()}`;
+  return { subject: 'Seedlings Week 1 (Elderberry) — Your Free Preview', html: emailWrapper(body) };
+}
+
+
 // ── Constitutional profiles ──
 
 const constitutionProfiles: Record<string, { nickname: string; intro: string; patterns: string; needs: string; herbs: string; anchor: string }> = {
@@ -1094,8 +1154,26 @@ Deno.serve(async (req) => {
       emailContent = buildHomeschoolEmail(firstNameSafe);
     } else if (entry_funnel === 'community') {
       emailContent = buildCommunityEmail(firstNameSafe);
+    } else if (entry_funnel === 'edens_table') {
+      // Phase 3.1 Day-1: source-branched routing for /homeschool CTAs.
+      //   'reserve'           → Founders Club welcome (no PDFs)
+      //   'sprouts_magnet'    → Sprouts W1 (Lavender) with 6 PDF download buttons
+      //   'seedlings_magnet'  → Seedlings W1 (Elderberry) with 6 PDF download buttons
+      // Day-7 Week-2 send is Phase 3.1.2 (nurture_email_queue + Vercel cron sender);
+      // for now the email tells recipients to reply if Week 2 doesn't arrive by Day 8.
+      if (source === 'sprouts_magnet') {
+        emailContent = buildSproutsMagnetEmail(firstNameSafe);
+      } else if (source === 'seedlings_magnet') {
+        emailContent = buildSeedlingsMagnetEmail(firstNameSafe);
+      } else if (source === 'reserve') {
+        emailContent = buildFoundersClubEmail(firstNameSafe);
+      } else {
+        // Unknown source on edens_table funnel → legacy Homeschool welcome email
+        // (the "Early Access" copy currently deployed; safest fallback for any
+        // signups that hit this EF without a source we recognize).
+        emailContent = buildHomeschoolEmail(firstNameSafe);
+      }
     }
-    // edens_table currently has no welcome email.
     // quiz_funnel is handled by the nurture sequence above.
 
     let welcomeSent = false;
