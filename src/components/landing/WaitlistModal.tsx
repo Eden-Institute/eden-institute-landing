@@ -14,9 +14,16 @@ interface WaitlistModalProps {
   audienceId: string;
   title: string;
   subtitle?: string;
+  /**
+   * Intent tag forwarded to the resend-waitlist EF as the `source` field.
+   * Used for segmentation within a single Resend audience.
+   * Examples: "reserve" | "sprouts_magnet" | "seedlings_magnet" | "waitlist".
+   * Defaults to "waitlist" for backward compatibility with existing callers.
+   */
+  source?: string;
 }
 
-const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle }: WaitlistModalProps) => {
+const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source = "waitlist" }: WaitlistModalProps) => {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,13 +37,13 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle }: Wait
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke("resend-waitlist", {
-        body: { firstName, email, audienceId, source: "waitlist" },
+        body: { firstName, email, audienceId, source },
       });
 
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
 
-      (window as any).gtag?.('event', 'email_submit', { event_category: 'conversion' });
+      (window as any).gtag?.('event', 'email_submit', { event_category: 'conversion', event_label: source });
       setSuccess(true);
       setFirstName("");
       setEmail("");
