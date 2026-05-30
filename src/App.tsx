@@ -24,6 +24,7 @@ import Homeschool from "./pages/Homeschool";
 import HomeschoolWelcome from "./pages/HomeschoolWelcome";
 import Community from "./pages/Community";
 import TierTwoWaitlist from "./pages/TierTwoWaitlist";
+import FounderLeads from "./pages/FounderLeads";
 import { ApothecaryLayout } from "@/components/apothecary/ApothecaryLayout";
 import { RequireAuth } from "@/components/apothecary/RequireAuth";
 import { RequireTier } from "@/components/apothecary/RequireTier";
@@ -116,6 +117,20 @@ const App = () => (
               <Route path={ROUTES.HOMESCHOOL_WELCOME} element={<HomeschoolWelcome />} />
               <Route path={ROUTES.COMMUNITY} element={<Community />} />
               <Route path={ROUTES.TIER_TWO_WAITLIST} element={<TierTwoWaitlist />} />
+              {/* Founder-only lead-magnet dashboard. RequireAuth bounces anon
+                  visitors to sign-in (return_to=/founder); the page itself shows
+                  a restricted notice to logged-in non-founders. The real data
+                  boundary is server-side: founder_lead_feed() is gated by
+                  is_founder() (JWT email check), so the six other accounts get
+                  "Not authorized" from the RPC regardless of the UI. */}
+              <Route
+                path={ROUTES.FOUNDER_LEADS}
+                element={
+                  <RequireAuth>
+                    <FounderLeads />
+                  </RequireAuth>
+                }
+              />
               {/* Apothecary application — Lane C Stage 6.3.4: auth-walled per §0.8 v3.3 #21.
                   v3.33 amendment (PR #51): Lock #21 RETIRED for pricing surface only —
                   /apothecary/pricing is now public per founder Q2 authorization to open
