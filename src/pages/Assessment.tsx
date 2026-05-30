@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useActiveProfileOptional } from "@/contexts/ActiveProfileContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { ROUTES } from "@/lib/routes";
+import { metaTrack } from "@/lib/metaPixel";
 import Navbar from "@/components/landing/Navbar";
 
 interface Question {
@@ -296,6 +297,7 @@ const Assessment = () => {
         });
         if (fnError) throw fnError;
         if (data?.error) throw new Error(data.error);
+        metaTrack("Lead", { content_category: "constitution_quiz", content_name: "balanced" });
         setPhase("balanced-thanks");
         return;
       }
@@ -337,6 +339,7 @@ const Assessment = () => {
         .replace(/^The\s+/i, "")
         .toLowerCase()
         .replace(/\s+/g, "-");
+      metaTrack("Lead", { content_category: "constitution_quiz", content_name: submittedConstitution });
       navigate(ROUTES.RESULTS(slugForRedirect), { replace: true });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";

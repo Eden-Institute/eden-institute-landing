@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { metaTrack } from "@/lib/metaPixel";
 
 interface WaitlistModalProps {
   open: boolean;
@@ -44,6 +45,7 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
       if (data?.error) throw new Error(data.error);
 
       (window as any).gtag?.('event', 'email_submit', { event_category: 'conversion', event_label: source });
+      metaTrack("Lead", { content_name: source, content_category: "waitlist" });
       setSuccess(true);
       setFirstName("");
       setEmail("");

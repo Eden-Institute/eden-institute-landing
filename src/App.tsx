@@ -8,6 +8,7 @@ import { ActiveProfileProvider } from "@/contexts/ActiveProfileContext";
 import { ROUTES } from "@/lib/routes";
 import ScrollToTop from "@/components/utils/ScrollToTop";
 import PageViewTracker from "@/components/utils/PageViewTracker";
+import MetaPixelTracker from "@/components/utils/MetaPixelTracker";
 import Index from "./pages/Index";
 import WhyEden from "./pages/WhyEden";
 import Assessment from "./pages/Assessment";
@@ -42,6 +43,7 @@ import Account from "./pages/apothecary/Account";
 import ProfilesPage from "./pages/apothecary/ProfilesPage";
 import Favorites from "./pages/apothecary/Favorites";
 import { FeedbackButton } from "@/components/FeedbackButton";
+import ConsentBanner from "@/components/ConsentBanner";
 
 const queryClient = new QueryClient();
 
@@ -83,6 +85,9 @@ const App = () => (
             {/* Cookieless first-party page-view beacon (writes via record_page_view
                 RPC). Sibling to <Routes> so it sees every navigation. */}
             <PageViewTracker />
+            {/* Meta Pixel PageView on navigation — consent-gated (fires only
+                after the visitor accepts marketing cookies). */}
+            <MetaPixelTracker />
             <Routes>
               <Route path={ROUTES.HOME} element={<Index />} />
               <Route path={ROUTES.WHY_EDEN} element={<WhyEden />} />
@@ -215,6 +220,7 @@ const App = () => (
             {/* v3.34 — global feedback affordance, mounted inside AuthProvider so the
                 widget can include the signed-in user's email + bearer token when present. */}
             <FeedbackButton />
+            <ConsentBanner />
           </ActiveProfileProvider>
         </AuthProvider>
       </BrowserRouter>
