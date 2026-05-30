@@ -1,19 +1,14 @@
 // src/pages/FounderLeads.tsx
 //
-// Founder-only lead-magnet activity dashboard. Mounted at /founder, wrapped in
-// <RequireAuth> (App.tsx) so unauthenticated visitors are bounced to sign-in.
+// Founder-only dashboard at /founder. Two tabs:
+//   - Leads:   lead-magnet captures (founder_lead_feed RPC, includes PII)
+//   - Traffic: cookieless web analytics (founder_traffic RPC, aggregates)
 //
-// Security model:
-//   - The REAL access boundary is server-side: founder_lead_feed() is a
-//     SECURITY DEFINER RPC gated by is_founder() (JWT email check). Even the
-//     other authenticated accounts get "Not authorized" from the RPC.
-//   - The email check below is UX only — it shows a friendly restricted notice
-//     to a logged-in non-founder instead of a raw RPC error.
-//
-// Data: one RPC call returns the PII capture rows in a window; counts, the
-// per-magnet breakdown, and the daily strip are all derived client-side. No
-// dependence on the anon v_lead_magnet_stats view — the whole page is behind
-// founder auth (Lock #76 amendment).
+// Mounted in App.tsx wrapped in <RequireAuth>, so unauthenticated visitors are
+// bounced to sign-in. The REAL access boundary is server-side: both RPCs are
+// SECURITY DEFINER gated by is_founder() (JWT email check), so the other
+// authenticated accounts get "Not authorized" regardless of the UI. The email
+// check below is UX only.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -23,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 
 const FOUNDER_EMAIL = "hello@edeninstitute.health";
+
+type Tab = "leads" | "traffic";
 
 interface LeadRow {
   email: string;
@@ -34,6 +31,14 @@ interface LeadRow {
   utm_source: string | null;
   utm_campaign: string | null;
   unsubscribed: boolean;
+}
+
+interface Traffic {
+  totals: { views: number; visitors: number };
+  daily: { day: string; views: number; visitors: number }[];
+  top_pages: { path: string; views: number; visitors: number }[];
+  sources: { referrer: string; views: number }[];
+  campaigns: { campaign: string; views: number; signups: number }[];
 }
 
 interface WindowOption {
@@ -48,8 +53,13 @@ const WINDOWS: WindowOption[] = [
   { label: "All time", days: null },
 ];
 
-// Mirrors the (funnel, source) → label mapping in the notify-founder-digest EF.
-// Keep in lockstep with supabase/functions/notify-founder-digest/index.ts.
+function sinceISO(days: number | null): string {
+  return days == null
+    ? "2000-01-01T00:00:00Z"
+    : new Date(Date.now() - days * 86_400_000).toISOString();
+}
+
+// Mirrors the (funnel, source) → label mapping in notify-founder-digest/index.ts.
 function magnetLabel(funnel: string, source: string): string {
   if (funnel === "quiz_funnel") return "Constitution Quiz";
   if (funnel === "homeschool") {
@@ -77,12 +87,10 @@ function fmtDateTimeCT(iso: string): string {
 }
 
 function dayKeyCT(iso: string): string {
-  // en-CA yields YYYY-MM-DD; pin to Central so day buckets match the digest.
   return new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
 }
 
-function dayLabelCT(key: string): string {
-  // key is YYYY-MM-DD; render as "May 30" without TZ re-shift.
+function dayLabel(key: string): string {
   const [y, m, d] = key.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", {
     timeZone: "UTC",
@@ -93,8 +101,10 @@ function dayLabelCT(key: string): string {
 
 export default function FounderLeads() {
   const { user, loading: authLoading, signOut } = useAuth();
+  const [tab, setTab] = useState<Tab>("leads");
   const [windowIdx, setWindowIdx] = useState(1); // default 30 days
-  const [rows, setRows] = useState<LeadRow[] | null>(null);
+  const [leads, setLeads] = useState<LeadRow[] | null>(null);
+  const [traffic, setTraffic] = useState<Traffic | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchedAt, setFetchedAt] = useState<Date | null>(null);
@@ -102,73 +112,68 @@ export default function FounderLeads() {
   const isFounder = !!user && user.email?.toLowerCase() === FOUNDER_EMAIL;
 
   const load = useCallback(async () => {
-    const opt = WINDOWS[windowIdx];
-    const since =
-      opt.days == null
-        ? "2000-01-01T00:00:00Z"
-        : new Date(Date.now() - opt.days * 86_400_000).toISOString();
-
+    const since = sinceISO(WINDOWS[windowIdx].days);
     setLoading(true);
     setError(null);
-    // RPC isn't in the generated Database types; cast mirrors the existing
-    // `supabase.rpc("current_user_tier" as never)` pattern in this repo.
-    const { data, error: rpcError } = await supabase.rpc(
-      "founder_lead_feed" as never,
-      { p_since: since } as never,
-    );
-    if (rpcError) {
-      setError(rpcError.message || "Could not load lead activity.");
-      setRows(null);
-    } else {
-      setRows((data as LeadRow[] | null) ?? []);
+    try {
+      if (tab === "leads") {
+        const { data, error: e } = await supabase.rpc(
+          "founder_lead_feed" as never,
+          { p_since: since } as never,
+        );
+        if (e) throw e;
+        setLeads((data as LeadRow[] | null) ?? []);
+      } else {
+        const { data, error: e } = await supabase.rpc(
+          "founder_traffic" as never,
+          { p_since: since } as never,
+        );
+        if (e) throw e;
+        setTraffic((data as Traffic | null) ?? null);
+      }
       setFetchedAt(new Date());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load data.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [windowIdx]);
+  }, [tab, windowIdx]);
 
   useEffect(() => {
     if (isFounder) load();
   }, [isFounder, load]);
 
-  // ── Derived aggregates ──
-  const activeRows = useMemo(() => (rows ?? []).filter((r) => !r.unsubscribed), [rows]);
-  const total = activeRows.length;
-
+  // ── Lead aggregates ──
+  const activeLeads = useMemo(() => (leads ?? []).filter((r) => !r.unsubscribed), [leads]);
   const byMagnet = useMemo(() => {
     const m = new Map<string, { count: number; last: string }>();
-    for (const r of activeRows) {
+    for (const r of activeLeads) {
       const label = magnetLabel(r.funnel, r.source);
       const cur = m.get(label);
       if (cur) {
         cur.count += 1;
         if (r.entered_at > cur.last) cur.last = r.entered_at;
-      } else {
-        m.set(label, { count: 1, last: r.entered_at });
-      }
+      } else m.set(label, { count: 1, last: r.entered_at });
     }
     return Array.from(m.entries())
       .map(([label, v]) => ({ label, ...v }))
       .sort((a, b) => b.count - a.count);
-  }, [activeRows]);
-
-  const dailyStrip = useMemo(() => {
+  }, [activeLeads]);
+  const leadDaily = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const r of activeRows) {
-      const k = dayKeyCT(r.entered_at);
-      counts.set(k, (counts.get(k) ?? 0) + 1);
-    }
-    const keys = Array.from(counts.keys()).sort(); // ascending
-    const recent = keys.slice(-14);
-    const max = recent.reduce((mx, k) => Math.max(mx, counts.get(k) ?? 0), 0);
-    return { bars: recent.map((k) => ({ key: k, count: counts.get(k) ?? 0 })), max };
-  }, [activeRows]);
+    for (const r of activeLeads) counts.set(dayKeyCT(r.entered_at), (counts.get(dayKeyCT(r.entered_at)) ?? 0) + 1);
+    const keys = Array.from(counts.keys()).sort().slice(-14);
+    const max = keys.reduce((mx, k) => Math.max(mx, counts.get(k) ?? 0), 0);
+    return { bars: keys.map((k) => ({ key: k, count: counts.get(k) ?? 0 })), max };
+  }, [activeLeads]);
+  const unsubCount = useMemo(() => (leads ?? []).filter((r) => r.unsubscribed).length, [leads]);
 
-  const unsubscribedCount = useMemo(
-    () => (rows ?? []).filter((r) => r.unsubscribed).length,
-    [rows],
-  );
-
-  const lastCapture = activeRows[0]?.entered_at ?? null;
+  // ── Traffic daily strip ──
+  const trafficDaily = useMemo(() => {
+    const d = (traffic?.daily ?? []).slice(-14);
+    const max = d.reduce((mx, x) => Math.max(mx, x.views), 0);
+    return { bars: d, max };
+  }, [traffic]);
 
   // ── Auth gates ──
   if (authLoading) {
@@ -183,29 +188,19 @@ export default function FounderLeads() {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 bg-background">
         <div className="max-w-md text-center">
-          <p
-            className="font-accent text-xs tracking-[0.3em] uppercase mb-3"
-            style={{ color: "hsl(var(--eden-gold))" }}
-          >
+          <p className="font-accent text-xs tracking-[0.3em] uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>
             Restricted
           </p>
-          <h1
-            className="font-serif text-2xl font-bold mb-3"
-            style={{ color: "hsl(var(--eden-bark))" }}
-          >
+          <h1 className="font-serif text-2xl font-bold mb-3" style={{ color: "hsl(var(--eden-bark))" }}>
             Founder access only
           </h1>
           <p className="font-body text-muted-foreground mb-6">
-            This dashboard is limited to the Eden Institute founder account.
-            You're signed in as {user?.email ?? "an unknown account"}.
+            This dashboard is limited to the Eden Institute founder account. You're signed in as{" "}
+            {user?.email ?? "an unknown account"}.
           </p>
           <div className="flex gap-3 justify-center">
-            <Button variant="outline" onClick={() => signOut()}>
-              Sign out
-            </Button>
-            <Button asChild variant="eden">
-              <Link to={ROUTES.HOME}>Home</Link>
-            </Button>
+            <Button variant="outline" onClick={() => signOut()}>Sign out</Button>
+            <Button asChild variant="eden"><Link to={ROUTES.HOME}>Home</Link></Button>
           </div>
         </div>
       </div>
@@ -217,24 +212,36 @@ export default function FounderLeads() {
     <div className="min-h-screen bg-background px-4 sm:px-6 py-8">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="flex flex-wrap items-end justify-between gap-4 mb-2">
+        <div className="flex flex-wrap items-end justify-between gap-4 mb-4">
           <div>
-            <p
-              className="font-accent text-xs tracking-[0.3em] uppercase mb-2"
-              style={{ color: "hsl(var(--eden-gold))" }}
-            >
+            <p className="font-accent text-xs tracking-[0.3em] uppercase mb-2" style={{ color: "hsl(var(--eden-gold))" }}>
               The Eden Institute
             </p>
-            <h1
-              className="font-serif text-3xl font-bold"
-              style={{ color: "hsl(var(--eden-bark))" }}
-            >
-              Lead-magnet activity
+            <h1 className="font-serif text-3xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>
+              Founder dashboard
             </h1>
           </div>
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
             {loading ? "Refreshing…" : "Refresh"}
           </Button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 mb-4 border-b border-border">
+          {(["leads", "traffic"] as Tab[]).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className="font-accent text-xs tracking-[0.15em] uppercase px-4 py-2 -mb-px border-b-2 transition-colors"
+              style={
+                tab === t
+                  ? { borderColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }
+                  : { borderColor: "transparent", color: "hsl(var(--muted-foreground))" }
+              }
+            >
+              {t === "leads" ? "Lead magnets" : "Website traffic"}
+            </button>
+          ))}
         </div>
 
         {/* Window selector */}
@@ -261,55 +268,21 @@ export default function FounderLeads() {
           </div>
         )}
 
-        {/* Stat cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
-          <StatCard label="New leads" value={String(total)} />
-          <StatCard label="Active magnets" value={String(byMagnet.length)} />
-          <StatCard
-            label="Last capture"
-            value={lastCapture ? fmtDateTimeCT(lastCapture) : "—"}
-            small
-          />
-        </div>
-
-        {/* Daily strip */}
-        {dailyStrip.bars.length > 0 && (
-          <section className="mb-8">
-            <SectionLabel>Recent days (CT)</SectionLabel>
-            <div className="flex items-end gap-1.5 h-28 mt-3">
-              {dailyStrip.bars.map((b) => (
-                <div key={b.key} className="flex-1 flex flex-col items-center justify-end h-full">
-                  <span className="font-body text-[10px] text-muted-foreground mb-1">{b.count}</span>
-                  <div
-                    className="w-full rounded-t"
-                    style={{
-                      height: `${dailyStrip.max ? Math.max(6, (b.count / dailyStrip.max) * 88) : 6}px`,
-                      backgroundColor: "hsl(var(--eden-bark))",
-                    }}
-                    title={`${dayLabelCT(b.key)}: ${b.count}`}
-                  />
-                  <span className="font-body text-[9px] text-muted-foreground mt-1 whitespace-nowrap">
-                    {dayLabelCT(b.key)}
-                  </span>
-                </div>
-              ))}
+        {tab === "leads" ? (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
+              <StatCard label="New leads" value={String(activeLeads.length)} />
+              <StatCard label="Active magnets" value={String(byMagnet.length)} />
+              <StatCard label="Last capture" value={activeLeads[0] ? fmtDateTimeCT(activeLeads[0].entered_at) : "—"} small />
             </div>
-          </section>
-        )}
 
-        {/* By magnet */}
-        <section className="mb-8">
-          <SectionLabel>By magnet</SectionLabel>
-          <div className="mt-3 overflow-hidden rounded-lg border border-border">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-muted/40">
-                  <Th>Magnet</Th>
-                  <Th className="text-right">Leads</Th>
-                  <Th>Last capture (CT)</Th>
-                </tr>
-              </thead>
-              <tbody>
+            {leadDaily.bars.length > 0 && (
+              <BarStrip title="Signups · recent days (CT)" bars={leadDaily.bars} max={leadDaily.max} />
+            )}
+
+            <section className="mb-8">
+              <SectionLabel>By magnet</SectionLabel>
+              <Table head={["Magnet", "Leads", "Last capture (CT)"]} align={["", "right", ""]}>
                 {byMagnet.map((m) => (
                   <tr key={m.label} className="border-t border-border">
                     <Td>{m.label}</Td>
@@ -318,78 +291,122 @@ export default function FounderLeads() {
                   </tr>
                 ))}
                 {byMagnet.length === 0 && !loading && (
-                  <tr>
-                    <Td className="text-muted-foreground" colSpan={3}>
-                      No captures in this window.
-                    </Td>
-                  </tr>
+                  <tr><Td className="text-muted-foreground" colSpan={3}>No captures in this window.</Td></tr>
                 )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+              </Table>
+            </section>
 
-        {/* Recent captures */}
-        <section className="mb-10">
-          <SectionLabel>
-            All captures{rows ? ` (${rows.length})` : ""}
-            {unsubscribedCount > 0 ? ` · ${unsubscribedCount} unsubscribed` : ""}
-          </SectionLabel>
-          <div className="mt-3 overflow-x-auto rounded-lg border border-border">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-muted/40">
-                  <Th>Subscriber</Th>
-                  <Th>Magnet</Th>
-                  <Th>Captured (CT)</Th>
-                  <Th>Attribution</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {(rows ?? []).map((r, i) => {
+            <section className="mb-10">
+              <SectionLabel>
+                All captures{leads ? ` (${leads.length})` : ""}{unsubCount > 0 ? ` · ${unsubCount} unsubscribed` : ""}
+              </SectionLabel>
+              <Table head={["Subscriber", "Magnet", "Captured (CT)", "Attribution"]}>
+                {(leads ?? []).map((r, i) => {
                   const utm = [
                     r.utm_source ? `utm_source=${r.utm_source}` : "",
                     r.utm_campaign ? `utm_campaign=${r.utm_campaign}` : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" · ");
+                  ].filter(Boolean).join(" · ");
                   return (
                     <tr key={`${r.email}-${r.entered_at}-${i}`} className="border-t border-border align-top">
                       <Td>
-                        <span className={r.unsubscribed ? "line-through text-muted-foreground" : ""}>
-                          {r.email}
-                        </span>
-                        {r.unsubscribed && (
-                          <span className="ml-2 text-[10px] uppercase tracking-wide text-destructive">
-                            unsub
-                          </span>
-                        )}
+                        <span className={r.unsubscribed ? "line-through text-muted-foreground" : ""}>{r.email}</span>
+                        {r.unsubscribed && <span className="ml-2 text-[10px] uppercase tracking-wide text-destructive">unsub</span>}
                         <br />
                         <span className="text-xs text-muted-foreground">{r.first_name ?? "(no name)"}</span>
                       </Td>
                       <Td>{magnetLabel(r.funnel, r.source)}</Td>
                       <Td className="text-muted-foreground whitespace-nowrap">{fmtDateTimeCT(r.entered_at)}</Td>
-                      <Td className="text-xs text-muted-foreground">
-                        {utm || <span className="opacity-60">direct</span>}
-                      </Td>
+                      <Td className="text-xs text-muted-foreground">{utm || <span className="opacity-60">direct</span>}</Td>
                     </tr>
                   );
                 })}
-                {(rows ?? []).length === 0 && !loading && (
-                  <tr>
-                    <Td className="text-muted-foreground" colSpan={4}>
-                      No captures in this window.
+                {(leads ?? []).length === 0 && !loading && (
+                  <tr><Td className="text-muted-foreground" colSpan={4}>No captures in this window.</Td></tr>
+                )}
+              </Table>
+            </section>
+          </>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
+              <StatCard label="Page views" value={String(traffic?.totals?.views ?? 0)} />
+              <StatCard label="Visitors (approx.)" value={String(traffic?.totals?.visitors ?? 0)} />
+              <StatCard label="Tracked pages" value={String(traffic?.top_pages?.length ?? 0)} />
+            </div>
+
+            {trafficDaily.bars.length > 0 ? (
+              <BarStrip
+                title="Page views · recent days (CT)"
+                bars={trafficDaily.bars.map((d) => ({ key: d.day, count: d.views }))}
+                max={trafficDaily.max}
+              />
+            ) : (
+              <p className="font-body text-sm text-muted-foreground mb-8">
+                No visits recorded yet in this window. Data starts accumulating the moment this ships —
+                check back after the site sees traffic.
+              </p>
+            )}
+
+            <section className="mb-8">
+              <SectionLabel>Top pages</SectionLabel>
+              <Table head={["Page", "Views", "Visitors"]} align={["", "right", "right"]}>
+                {(traffic?.top_pages ?? []).map((p) => (
+                  <tr key={p.path} className="border-t border-border">
+                    <Td className="font-mono text-xs">{p.path}</Td>
+                    <Td className="text-right font-semibold">{p.views}</Td>
+                    <Td className="text-right text-muted-foreground">{p.visitors}</Td>
+                  </tr>
+                ))}
+                {(traffic?.top_pages ?? []).length === 0 && !loading && (
+                  <tr><Td className="text-muted-foreground" colSpan={3}>No data yet.</Td></tr>
+                )}
+              </Table>
+            </section>
+
+            <section className="mb-8">
+              <SectionLabel>Traffic sources (external referrers)</SectionLabel>
+              <Table head={["Referrer", "Views"]} align={["", "right"]}>
+                {(traffic?.sources ?? []).map((s) => (
+                  <tr key={s.referrer} className="border-t border-border">
+                    <Td>{s.referrer}</Td>
+                    <Td className="text-right font-semibold">{s.views}</Td>
+                  </tr>
+                ))}
+                {(traffic?.sources ?? []).length === 0 && !loading && (
+                  <tr><Td className="text-muted-foreground" colSpan={2}>No external referrers yet.</Td></tr>
+                )}
+              </Table>
+            </section>
+
+            <section className="mb-10">
+              <SectionLabel>Campaigns — visits → signups</SectionLabel>
+              <Table head={["Campaign (utm)", "Visits", "Signups", "Rate"]} align={["", "right", "right", "right"]}>
+                {(traffic?.campaigns ?? []).map((c) => (
+                  <tr key={c.campaign} className="border-t border-border">
+                    <Td>{c.campaign}</Td>
+                    <Td className="text-right">{c.views}</Td>
+                    <Td className="text-right font-semibold">{c.signups}</Td>
+                    <Td className="text-right text-muted-foreground">
+                      {c.views > 0 ? `${((c.signups / c.views) * 100).toFixed(1)}%` : "—"}
                     </Td>
                   </tr>
+                ))}
+                {(traffic?.campaigns ?? []).length === 0 && !loading && (
+                  <tr><Td className="text-muted-foreground" colSpan={4}>No campaign data yet.</Td></tr>
                 )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+              </Table>
+              <p className="font-body text-[11px] text-muted-foreground mt-2">
+                Rate = signups ÷ page views for that UTM campaign (rough — views are page loads, not unique visitors).
+              </p>
+            </section>
+          </>
+        )}
 
         <p className="font-body text-xs text-muted-foreground">
-          {fetchedAt ? `Updated ${fetchedAt.toLocaleString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit", hour12: true, month: "short", day: "numeric" })} CT · ` : ""}
-          Live data — reloads each visit. The daily digest email carries the same captures once per morning.
+          {fetchedAt
+            ? `Updated ${fetchedAt.toLocaleString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit", hour12: true, month: "short", day: "numeric" })} CT · `
+            : ""}
+          Live data — reloads each visit. Visit tracking is cookieless and stores no personal data.
         </p>
       </div>
     </div>
@@ -399,49 +416,74 @@ export default function FounderLeads() {
 function StatCard({ label, value, small }: { label: string; value: string; small?: boolean }) {
   return (
     <div className="rounded-lg border border-border p-4 bg-card">
-      <p className="font-accent text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-1">
-        {label}
-      </p>
-      <p
-        className={`font-serif font-bold ${small ? "text-base" : "text-2xl"}`}
-        style={{ color: "hsl(var(--eden-bark))" }}
-      >
+      <p className="font-accent text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-1">{label}</p>
+      <p className={`font-serif font-bold ${small ? "text-base" : "text-2xl"}`} style={{ color: "hsl(var(--eden-bark))" }}>
         {value}
       </p>
     </div>
   );
 }
 
+function BarStrip({ title, bars, max }: { title: string; bars: { key: string; count: number }[]; max: number }) {
+  return (
+    <section className="mb-8">
+      <SectionLabel>{title}</SectionLabel>
+      <div className="flex items-end gap-1.5 h-28 mt-3">
+        {bars.map((b) => (
+          <div key={b.key} className="flex-1 flex flex-col items-center justify-end h-full">
+            <span className="font-body text-[10px] text-muted-foreground mb-1">{b.count}</span>
+            <div
+              className="w-full rounded-t"
+              style={{ height: `${max ? Math.max(6, (b.count / max) * 88) : 6}px`, backgroundColor: "hsl(var(--eden-bark))" }}
+              title={`${dayLabel(b.key)}: ${b.count}`}
+            />
+            <span className="font-body text-[9px] text-muted-foreground mt-1 whitespace-nowrap">{dayLabel(b.key)}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p
-      className="font-accent text-xs tracking-[0.2em] uppercase"
-      style={{ color: "hsl(var(--eden-gold))" }}
-    >
+    <p className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: "hsl(var(--eden-gold))" }}>
       {children}
     </p>
   );
 }
 
-function Th({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+function Table({
+  head,
+  align = [],
+  children,
+}: {
+  head: string[];
+  align?: string[];
+  children: React.ReactNode;
+}) {
   return (
-    <th
-      className={`px-3 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground ${className}`}
-    >
-      {children}
-    </th>
+    <div className="mt-3 overflow-x-auto rounded-lg border border-border">
+      <table className="w-full text-left">
+        <thead>
+          <tr className="bg-muted/40">
+            {head.map((h, i) => (
+              <th
+                key={h}
+                className={`px-3 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground ${align[i] === "right" ? "text-right" : ""}`}
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>{children}</tbody>
+      </table>
+    </div>
   );
 }
 
-function Td({
-  children,
-  className = "",
-  colSpan,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  colSpan?: number;
-}) {
+function Td({ children, className = "", colSpan }: { children: React.ReactNode; className?: string; colSpan?: number }) {
   return (
     <td className={`px-3 py-2 font-body text-sm ${className}`} colSpan={colSpan}>
       {children}
