@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/landing/Footer";
 import WaitlistModal from "@/components/landing/WaitlistModal";
@@ -118,10 +118,43 @@ const SHOWCASES: ShowcaseSpec[] = [
 
 const Homeschool = () => {
   useDocumentMeta({
-    title: "Eden's Table — K-12 Homeschool Herbalism Curriculum | The Eden Institute",
-    description: "A K-12 Biblical herbalism curriculum for homeschool families. Sprouts (K-2) + Seedlings (3-5) Founders Edition ships in 2027. Reserve Founders pricing now.",
+    title: "Christian Homeschool Herbalism Curriculum (K-12) | Eden's Table",
+    description: "A Christ-centered homeschool curriculum that teaches Biblical herbalism and the body God designed — open-and-go weekly lessons for K-2 and 3-5, rooted in Scripture and creation stewardship.",
     canonical: "https://edeninstitute.health/homeschool",
   });
+
+  // Course structured data — rich-result eligibility for "Christian homeschool
+  // curriculum" / "Biblical herbalism curriculum" searches. Injected on mount,
+  // removed on unmount so it doesn't leak onto other routes.
+  useEffect(() => {
+    const ld = document.createElement("script");
+    ld.type = "application/ld+json";
+    ld.id = "homeschool-course-jsonld";
+    ld.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Course",
+      name: "Eden's Table — Christian Homeschool Herbalism Curriculum",
+      description:
+        "A Christ-centered, Scripture-anchored K-12 homeschool curriculum teaching herbalism and the body God designed. Open-and-go weekly lessons for Sprouts (K-2) and Seedlings (3-5).",
+      url: "https://edeninstitute.health/homeschool",
+      inLanguage: "en",
+      educationalLevel: "K-12",
+      about: ["Christian homeschool curriculum", "Biblical herbalism", "Faith-based science", "creation stewardship"],
+      provider: {
+        "@type": "Organization",
+        name: "The Eden Institute",
+        url: "https://edeninstitute.health",
+      },
+      audience: {
+        "@type": "EducationalAudience",
+        educationalRole: "homeschooling family",
+      },
+    });
+    document.head.appendChild(ld);
+    return () => {
+      document.getElementById("homeschool-course-jsonld")?.remove();
+    };
+  }, []);
 
   const [waitlistOpen, setWaitlistOpen] = useState(false);
   const [waitlistConfig, setWaitlistConfig] = useState<WaitlistConfig>({ title: "", source: "reserve" });
