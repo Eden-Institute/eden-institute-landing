@@ -21,8 +21,7 @@ insert into public.internal_testers (email, note) values
   ('grammarswag@gmail.com',                 'founder personal account'),
   ('coliveira77@hotmail.com',               'founder test account'),
   ('camila@unitedinpurpose.org',            'founder test account'),
-  ('camila.oliveira.cont@truplaygames.com', 'founder test account'),
-  ('nanjan329@gmail.com',                   'family tester (Naomi)')
+  ('camila.oliveira.cont@truplaygames.com', 'founder test account')
 on conflict (email) do nothing;
 
 create or replace function public.is_internal_tester(p_email text)
