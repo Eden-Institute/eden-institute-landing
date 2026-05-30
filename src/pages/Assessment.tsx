@@ -185,6 +185,7 @@ const Assessment = () => {
     | "diagnostic-saving"
     | "diagnostic-saved"
     | "auto-submitting"
+    | "balanced-thanks"
     | "profile-resolution-error"
   >("quiz");
   const [followupQueue, setFollowupQueue] = useState<FollowupQuestion[]>([]);
@@ -270,6 +271,7 @@ const Assessment = () => {
     submittedEmail: string,
     submittedFirstName: string,
     submittedConstitution: string,
+    balanced = false,
   ) => {
     if (!submittedEmail || !submittedConstitution) {
       setError("Missing email or quiz result. Please try again.");
@@ -277,6 +279,27 @@ const Assessment = () => {
     }
     setError("");
     try {
+      // Lock #56 — Genuinely Balanced terrain has no named Pattern, so it can't
+      // run the resolved-Pattern nurture (no matching content) and has no
+      // /results/{slug}. Capture the email to the master audience so the person
+      // is never lost (no constitutionType → resend-waitlist adds the contact
+      // and skips the Pattern drip), then show the balanced closure. Surfacing
+      // balanced leads on the dashboard + a tailored deeper-diagnostic email is
+      // a follow-up (needs an Edge Function + entry_funnel enum change).
+      if (balanced) {
+        const { data, error: fnError } = await supabase.functions.invoke("resend-waitlist", {
+          body: {
+            firstName: submittedFirstName,
+            email: submittedEmail,
+            source: "constitution_assessment",
+          },
+        });
+        if (fnError) throw fnError;
+        if (data?.error) throw new Error(data.error);
+        setPhase("balanced-thanks");
+        return;
+      }
+
       const profileForSubmit = constitutionProfiles[submittedConstitution];
       const { data, error: fnError } = await supabase.functions.invoke("resend-waitlist", {
         body: {
@@ -318,7 +341,9 @@ const Assessment = () => {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
       setError(message);
-      setPhase("gate");
+      // Return to the surface that carries a form so the user can retry without
+      // a blank screen: gate for resolved Patterns, inconclusive for balanced.
+      setPhase(balanced ? "inconclusive" : "gate");
     }
   }, [navigate]);
 
@@ -334,19 +359,30 @@ const Assessment = () => {
       const result = fromFollowup
         ? computeResultWithFollowups(currentAnswers)
         : computeResult(currentAnswers);
-      if (isInconclusiveResult(result)) {
-        setPhase("inconclusive");
-      } else if (profileIdParam !== null && !diagnosticMode) {
-        // GUARD: profileId requested but diagnosticMode failed. Do not
-        // silently fall to marketing mode. Surface an actionable error.
+      const balanced = isInconclusiveResult(result);
+
+      // GUARD (PR #109): profileId requested but diagnosticMode didn't engage.
+      // Do not silently fall to marketing mode (which writes to user.email).
+      // Applies to balanced results too — checked before any capture.
+      if (profileIdParam !== null && !diagnosticMode) {
         setError(
           "The selected profile didn't load on this page. Please go back to the apothecary, " +
           "confirm the profile picker shows the right person, and click the quiz button again."
         );
         setPhase("profile-resolution-error");
-      } else if (diagnosticMode) {
+        return;
+      }
+
+      // In-app diagnostic: submitDiagnostic handles balanced internally
+      // (renders the inconclusive surface, no marketing capture/form).
+      if (diagnosticMode) {
         submitDiagnostic(currentAnswers);
-      } else if (user?.email && !authLoading) {
+        return;
+      }
+
+      // Marketing quiz — Lock #56: every terminal state passes through capture,
+      // including Genuinely Balanced.
+      if (user?.email && !authLoading) {
         setPhase("auto-submitting");
         const submitEmail = user.email;
         const metaFirstName = (user.user_metadata as Record<string, unknown> | undefined)?.first_name;
@@ -354,9 +390,11 @@ const Assessment = () => {
           typeof metaFirstName === "string" && metaFirstName.trim()
             ? metaFirstName.trim()
             : firstName;
-        void submitMarketingQuiz(submitEmail, submitFirstName, result);
+        void submitMarketingQuiz(submitEmail, submitFirstName, result, balanced);
       } else {
-        setPhase("gate");
+        // Anon: resolved → gate form; balanced → inconclusive surface, which
+        // now carries its own capture form.
+        setPhase(balanced ? "inconclusive" : "gate");
       }
     },
     [profileIdParam, diagnosticMode, submitDiagnostic, user, authLoading, firstName, submitMarketingQuiz],
@@ -419,6 +457,16 @@ const Assessment = () => {
     setLoading(true);
     try {
       await submitMarketingQuiz(email, firstName, constitutionType);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBalancedSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await submitMarketingQuiz(email, firstName, constitutionType, true);
     } finally {
       setLoading(false);
     }
@@ -611,7 +659,37 @@ const Assessment = () => {
             <p className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>You answered the original twelve questions and the targeted follow-ups for the {neutralAxes.length === 1 ? "axis" : "axes"} that didn't resolve. {neutralAxes.length === 1 ? (<>Your <strong>{neutralAxes[0]}</strong> axis still sits balanced — neither side dominant.</>) : (<>Multiple axes still sit balanced (<strong>{neutralAxes.join(", ")}</strong>) — neither side dominant on each.</>)}</p>
             <p className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>This is itself a clinical category — not a quiz failure. Some constitutions are genuinely balanced on an axis, and the deeper diagnostic at the Practitioner tier (40 questions across four classical Western frameworks) is built to resolve cases like yours.</p>
           </div>
+          {/* Lock #56 — capture form so a Genuinely Balanced result no longer
+              dead-ends without an email. Marketing surface only; the in-app
+              diagnostic (diagnosticMode) stays form-free. */}
+          {!diagnosticMode && (
+            <div className="p-8 border rounded mb-8" style={{ borderColor: "hsl(40, 20%, 80%)", backgroundColor: "white" }}>
+              <h3 className="font-serif text-xl font-bold mb-2 text-center" style={{ color: "#1C3A2E" }}>Save your reading</h3>
+              <p className="font-body text-sm mb-6 text-center" style={{ color: "hsl(30, 10%, 40%)" }}>Enter your name and email — we'll save your balanced reading and let you know when the deeper Practitioner-tier diagnostic opens.</p>
+              <form onSubmit={handleBalancedSubmit} className="space-y-4 text-left">
+                <div>
+                  <label className="block font-accent text-xs tracking-[0.2em] uppercase mb-2" style={{ color: "hsl(30, 10%, 40%)" }}>First Name</label>
+                  <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required placeholder="Your first name" className="w-full px-4 py-3 border font-body focus:outline-none transition-colors" style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }} />
+                </div>
+                <div>
+                  <label className="block font-accent text-xs tracking-[0.2em] uppercase mb-2" style={{ color: "hsl(30, 10%, 40%)" }}>Email Address</label>
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value.replace(/\s+/g, "").toLowerCase().trim())} required placeholder="your@email.com" className="w-full px-4 py-3 border font-body focus:outline-none transition-colors" style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }} />
+                </div>
+                {error && <p className="font-body text-sm text-destructive">{error}</p>}
+                <Button type="submit" variant="eden" size="xl" className="w-full" disabled={loading}>{loading ? "Saving…" : "→ Save My Reading"}</Button>
+              </form>
+            </div>
+          )}
           <p className="font-body text-xs italic mt-4 text-center" style={{ color: "hsl(30, 10%, 40%, 0.7)" }}>If you'd like to retake the quiz from scratch, refresh the page or navigate back to the home page.</p>
+        </div>
+      )}
+
+      {phase === "balanced-thanks" && (
+        <div className="max-w-xl mx-auto px-6 py-16 text-center">
+          <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>Reading Saved</span>
+          <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-6" style={{ color: "#1C3A2E" }}>Thanks — your reading is captured.</h2>
+          <p className="font-body text-base leading-relaxed mb-8" style={{ color: "#1C3A2E" }}>Your terrain is genuinely balanced, which is its own clinical category. We've saved your email and will reach out when the deeper Practitioner-tier diagnostic — built to resolve balanced cases like yours — becomes available.</p>
+          <Button variant="eden" size="lg" onClick={() => navigate(ROUTES.HOME)}>Back to home</Button>
         </div>
       )}
     </div>
