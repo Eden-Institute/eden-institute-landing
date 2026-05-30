@@ -288,21 +288,24 @@ const Assessment = () => {
       // balanced leads on the dashboard + a tailored deeper-diagnostic email is
       // a follow-up (needs an Edge Function + entry_funnel enum change).
       if (balanced) {
+        const fbEventId = crypto.randomUUID();
         const { data, error: fnError } = await supabase.functions.invoke("resend-waitlist", {
           body: {
             firstName: submittedFirstName,
             email: submittedEmail,
             source: "constitution_assessment",
+            fbEventId,
           },
         });
         if (fnError) throw fnError;
         if (data?.error) throw new Error(data.error);
-        metaTrack("Lead", { content_category: "constitution_quiz", content_name: "balanced" });
+        metaTrack("Lead", { content_category: "constitution_quiz", content_name: "balanced" }, fbEventId);
         setPhase("balanced-thanks");
         return;
       }
 
       const profileForSubmit = constitutionProfiles[submittedConstitution];
+      const fbEventId = crypto.randomUUID();
       const { data, error: fnError } = await supabase.functions.invoke("resend-waitlist", {
         body: {
           firstName: submittedFirstName,
@@ -310,6 +313,7 @@ const Assessment = () => {
           constitutionType: submittedConstitution,
           constitutionNickname: profileForSubmit?.nickname,
           source: "constitution_assessment",
+          fbEventId,
         },
       });
 
@@ -339,7 +343,7 @@ const Assessment = () => {
         .replace(/^The\s+/i, "")
         .toLowerCase()
         .replace(/\s+/g, "-");
-      metaTrack("Lead", { content_category: "constitution_quiz", content_name: submittedConstitution });
+      metaTrack("Lead", { content_category: "constitution_quiz", content_name: submittedConstitution }, fbEventId);
       navigate(ROUTES.RESULTS(slugForRedirect), { replace: true });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";

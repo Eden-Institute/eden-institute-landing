@@ -861,6 +861,7 @@ Deno.serve(async (req) => {
       utm_campaign,
       utm_term,
       utm_content,
+      fbEventId,
     } = body;
 
     if (!email) {
@@ -1187,6 +1188,17 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── Meta Conversions API (server-side Lead) ──
+    // Dormant until META_CAPI_ACCESS_TOKEN is set as an EF secret. Deduped
+    // against the client Pixel Lead via the shared fbEventId. Wrapped so a Meta
+    // outage can never fail a signup.
+    await sendMetaCapiLead({
+      email: normalizedEmail,
+      eventId: typeof fbEventId === 'string' ? fbEventId : undefined,
+      sourceUrl: source_url ?? null,
+      headers: req.headers,
+    });
+
     return json(200, {
       success: true,
       waitlist_id: waitlistId,
@@ -1210,6 +1222,64 @@ function json(status: number, payload: unknown): Response {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+// ── Meta Conversions API (server-side, deduped with the client Pixel) ──
+const META_PIXEL_ID = '1535058498232762';
+const META_CAPI_ACCESS_TOKEN = Deno.env.get('META_CAPI_ACCESS_TOKEN') ?? '';
+
+async function sha256Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input.trim().toLowerCase());
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Sends a server-side "Lead" to Meta. No-op when the access token isn't set, so
+// the integration is inert until configured. Email is SHA-256 hashed (Meta
+// requirement); IP + UA are forwarded for match quality but never stored by us.
+async function sendMetaCapiLead(opts: {
+  email: string;
+  eventId?: string;
+  sourceUrl?: string | null;
+  headers: Headers;
+}): Promise<void> {
+  if (!META_CAPI_ACCESS_TOKEN) return;
+  try {
+    const emHash = await sha256Hex(opts.email);
+    const ip = (opts.headers.get('x-forwarded-for') ?? '').split(',')[0].trim();
+    const ua = opts.headers.get('user-agent') ?? '';
+    const payload = {
+      data: [
+        {
+          event_name: 'Lead',
+          event_time: Math.floor(Date.now() / 1000),
+          event_id: opts.eventId || crypto.randomUUID(),
+          action_source: 'website',
+          event_source_url:
+            opts.sourceUrl || opts.headers.get('referer') || 'https://edeninstitute.health/',
+          user_data: {
+            em: [emHash],
+            ...(ip ? { client_ip_address: ip } : {}),
+            ...(ua ? { client_user_agent: ua } : {}),
+          },
+        },
+      ],
+    };
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2500);
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/v19.0/${META_PIXEL_ID}/events?access_token=${encodeURIComponent(META_CAPI_ACCESS_TOKEN)}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: ctrl.signal },
+      );
+      if (!res.ok) console.error('Meta CAPI Lead failed', res.status, await res.text().catch(() => ''));
+    } finally {
+      clearTimeout(timer);
+    }
+  } catch (e) {
+    // Never throw — a signup must not depend on Meta being reachable.
+    console.error('Meta CAPI Lead error', String(e));
+  }
 }
 
 // Insert a waitlist_signups row; on (email, entry_funnel) conflict return

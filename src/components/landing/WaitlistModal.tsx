@@ -37,15 +37,16 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
     setError("");
 
     try {
+      const fbEventId = crypto.randomUUID();
       const { data, error: fnError } = await supabase.functions.invoke("resend-waitlist", {
-        body: { firstName, email, audienceId, source },
+        body: { firstName, email, audienceId, source, fbEventId },
       });
 
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
 
       (window as any).gtag?.('event', 'email_submit', { event_category: 'conversion', event_label: source });
-      metaTrack("Lead", { content_name: source, content_category: "waitlist" });
+      metaTrack("Lead", { content_name: source, content_category: "waitlist" }, fbEventId);
       setSuccess(true);
       setFirstName("");
       setEmail("");

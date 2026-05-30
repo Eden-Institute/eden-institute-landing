@@ -47,6 +47,12 @@ export function metaPageView(): void {
 }
 
 /** Fire a standard/custom event (no-op until loaded). e.g. metaTrack("Lead"). */
-export function metaTrack(event: string, params?: Record<string, unknown>): void {
-  if (injected) window.fbq?.("track", event, params);
+export function metaTrack(
+  event: string,
+  params?: Record<string, unknown>,
+  eventID?: string,
+): void {
+  // eventID lets Meta dedupe this browser event against the server-side
+  // Conversions API event that carries the same id.
+  if (injected) window.fbq?.("track", event, params, eventID ? { eventID } : undefined);
 }
