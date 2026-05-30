@@ -862,6 +862,7 @@ Deno.serve(async (req) => {
       utm_term,
       utm_content,
       fbEventId,
+      marketingConsent,
     } = body;
 
     if (!email) {
@@ -1192,12 +1193,18 @@ Deno.serve(async (req) => {
     // Dormant until META_CAPI_ACCESS_TOKEN is set as an EF secret. Deduped
     // against the client Pixel Lead via the shared fbEventId. Wrapped so a Meta
     // outage can never fail a signup.
-    await sendMetaCapiLead({
-      email: normalizedEmail,
-      eventId: typeof fbEventId === 'string' ? fbEventId : undefined,
-      sourceUrl: source_url ?? null,
-      headers: req.headers,
-    });
+    // Consent-gated to stay symmetric with the client Pixel (Lock #81): the
+    // browser Pixel only fires on cookie-banner Accept, so the server Lead must
+    // too. The frontend sends marketingConsent=true only when the visitor
+    // granted marketing consent; absent/false means no server-side tracking.
+    if (marketingConsent === true) {
+      await sendMetaCapiLead({
+        email: normalizedEmail,
+        eventId: typeof fbEventId === 'string' ? fbEventId : undefined,
+        sourceUrl: source_url ?? null,
+        headers: req.headers,
+      });
+    }
 
     return json(200, {
       success: true,

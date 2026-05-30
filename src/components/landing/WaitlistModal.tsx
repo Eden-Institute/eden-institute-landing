@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { metaTrack } from "@/lib/metaPixel";
+import { getMarketingConsent } from "@/lib/consent";
 
 interface WaitlistModalProps {
   open: boolean;
@@ -38,8 +39,9 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
 
     try {
       const fbEventId = crypto.randomUUID();
+      const marketingConsent = getMarketingConsent() === "granted";
       const { data, error: fnError } = await supabase.functions.invoke("resend-waitlist", {
-        body: { firstName, email, audienceId, source, fbEventId },
+        body: { firstName, email, audienceId, source, fbEventId, marketingConsent },
       });
 
       if (fnError) throw fnError;

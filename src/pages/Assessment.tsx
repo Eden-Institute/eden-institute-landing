@@ -19,6 +19,7 @@ import { useActiveProfileOptional } from "@/contexts/ActiveProfileContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { ROUTES } from "@/lib/routes";
 import { metaTrack } from "@/lib/metaPixel";
+import { getMarketingConsent } from "@/lib/consent";
 import Navbar from "@/components/landing/Navbar";
 
 interface Question {
@@ -289,12 +290,14 @@ const Assessment = () => {
       // a follow-up (needs an Edge Function + entry_funnel enum change).
       if (balanced) {
         const fbEventId = crypto.randomUUID();
+        const marketingConsent = getMarketingConsent() === "granted";
         const { data, error: fnError } = await supabase.functions.invoke("resend-waitlist", {
           body: {
             firstName: submittedFirstName,
             email: submittedEmail,
             source: "constitution_assessment",
             fbEventId,
+            marketingConsent,
           },
         });
         if (fnError) throw fnError;
@@ -306,6 +309,7 @@ const Assessment = () => {
 
       const profileForSubmit = constitutionProfiles[submittedConstitution];
       const fbEventId = crypto.randomUUID();
+      const marketingConsent = getMarketingConsent() === "granted";
       const { data, error: fnError } = await supabase.functions.invoke("resend-waitlist", {
         body: {
           firstName: submittedFirstName,
@@ -314,6 +318,7 @@ const Assessment = () => {
           constitutionNickname: profileForSubmit?.nickname,
           source: "constitution_assessment",
           fbEventId,
+          marketingConsent,
         },
       });
 
