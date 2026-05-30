@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ActiveProfileProvider } from "@/contexts/ActiveProfileContext";
 import { ROUTES } from "@/lib/routes";
 import ScrollToTop from "@/components/utils/ScrollToTop";
+import PageViewTracker from "@/components/utils/PageViewTracker";
 import Index from "./pages/Index";
 import WhyEden from "./pages/WhyEden";
 import Assessment from "./pages/Assessment";
@@ -79,6 +80,9 @@ const App = () => (
                 inside BrowserRouter so useLocation is available. Sibling to
                 <Routes> so it doesn't unmount with route transitions. */}
             <ScrollToTop />
+            {/* Cookieless first-party page-view beacon (writes via record_page_view
+                RPC). Sibling to <Routes> so it sees every navigation. */}
+            <PageViewTracker />
             <Routes>
               <Route path={ROUTES.HOME} element={<Index />} />
               <Route path={ROUTES.WHY_EDEN} element={<WhyEden />} />
