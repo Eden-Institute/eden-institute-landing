@@ -179,17 +179,22 @@ const Homeschool = () => {
             <p className="font-accent text-sm tracking-[0.3em] uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>{s.eyebrow}</p>
             <h2 className="font-serif text-3xl md:text-4xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>{s.title}</h2>
           </div>
-          <div className="grid md:grid-cols-2 gap-4 md:gap-6 mb-8">
-            <div>
+          {/* items-stretch + flex-1 wrappers equalize the two frames to the taller
+              image's height; object-contain centers each photo without cropping or
+              distortion. The cream mat matches the linen the mockups are shot on, so
+              the letterbox on the shorter/narrower image reads as an intentional frame
+              rather than empty space. Works for any pairing of portrait/landscape. */}
+          <div className="grid md:grid-cols-2 gap-4 md:gap-6 mb-8 items-stretch">
+            <div className="flex flex-col">
               <p className="font-accent text-xs tracking-[0.25em] uppercase mb-2 text-center" style={{ color: "hsl(var(--eden-gold))" }}>Sprouts · K-2</p>
-              <div className="rounded-lg overflow-hidden bg-white shadow-sm">
-                <img src={s.sproutsSrc} alt={s.sproutsAlt} loading="lazy" className="w-full h-auto" />
+              <div className="flex-1 flex items-center justify-center rounded-lg overflow-hidden shadow-sm" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
+                <img src={s.sproutsSrc} alt={s.sproutsAlt} loading="lazy" className="max-w-full max-h-full w-auto h-auto object-contain" />
               </div>
             </div>
-            <div>
+            <div className="flex flex-col">
               <p className="font-accent text-xs tracking-[0.25em] uppercase mb-2 text-center" style={{ color: "hsl(var(--eden-gold))" }}>Seedlings · 3-5</p>
-              <div className="rounded-lg overflow-hidden bg-white shadow-sm">
-                <img src={s.seedlingsSrc} alt={s.seedlingsAlt} loading="lazy" className="w-full h-auto" />
+              <div className="flex-1 flex items-center justify-center rounded-lg overflow-hidden shadow-sm" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
+                <img src={s.seedlingsSrc} alt={s.seedlingsAlt} loading="lazy" className="max-w-full max-h-full w-auto h-auto object-contain" />
               </div>
             </div>
           </div>
