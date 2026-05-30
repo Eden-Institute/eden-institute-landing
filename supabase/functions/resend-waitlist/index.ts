@@ -910,6 +910,7 @@ Deno.serve(async (req) => {
         email: normalizedEmail,
         first_name: firstNameSafe,
         entry_funnel,
+        source: source ?? null,
         source_url: source_url ?? null,
         referrer: referrer ?? null,
         utm_source: utm_source ?? null,
@@ -1217,6 +1218,7 @@ async function waitlistUpsert(row: {
   email: string;
   first_name: string;
   entry_funnel: EntryFunnel;
+  source: string | null;
   source_url: string | null;
   referrer: string | null;
   utm_source: string | null;
