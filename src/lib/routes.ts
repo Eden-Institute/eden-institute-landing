@@ -45,6 +45,9 @@ export const ROUTES = {
   COMMUNITY: "/community",
   TIER_TWO_WAITLIST: "/tier-2-waitlist",
 
+  // ── Founder / admin (auth-walled; server-gated by is_founder()) ──
+  FOUNDER_LEADS: "/founder",
+
   // ── Legal ──
   TERMS: "/terms",
   PRIVACY: "/privacy",
