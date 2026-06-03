@@ -1197,6 +1197,40 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Phase 3.1.2: enqueue the magnet Day-7 (Week 2) + Day-14 (Facebook) sends into
+    // public.magnet_email_queue (NOT nurture_email_queue, which is the quiz drip).
+    // Drained by the nurture-emails cron. Non-fatal: a failure here never blocks signup.
+    if (welcomeSent && entry_funnel === 'edens_table' && (source === 'sprouts_magnet' || source === 'seedlings_magnet')) {
+      try {
+        const band = source === 'sprouts_magnet' ? 'sprouts' : 'seedlings';
+        const nowMs = Date.now();
+        const day7 = new Date(nowMs + 7 * 24 * 60 * 60 * 1000).toISOString();
+        const day14 = new Date(nowMs + 14 * 24 * 60 * 60 * 1000).toISOString();
+        const magnetRows = [
+          { recipient_email: normalizedEmail, first_name: firstNameSafe, band, sequence_position: 2, scheduled_for: day7, status: 'pending' },
+          { recipient_email: normalizedEmail, first_name: firstNameSafe, band, sequence_position: 3, scheduled_for: day14, status: 'pending' },
+        ];
+        const mqRes = await fetch(`${SUPABASE_URL}/rest/v1/magnet_email_queue?on_conflict=recipient_email,band,sequence_position`, {
+          method: 'POST',
+          headers: {
+            apikey: SUPABASE_SERVICE_ROLE_KEY!,
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json',
+            Prefer: 'return=minimal,resolution=merge-duplicates',
+          },
+          body: JSON.stringify(magnetRows),
+        });
+        if (!mqRes.ok) {
+          const t = await mqRes.text().catch(() => '<unreadable>');
+          console.error('magnet_email_queue UPSERT failed', { status: mqRes.status, body: t, email: normalizedEmail });
+        } else {
+          console.log('Magnet Week 2 + Facebook emails enqueued for', normalizedEmail, `(${band}, days 7/14)`);
+        }
+      } catch (mqErr) {
+        console.error('Magnet enqueue error:', String(mqErr));
+      }
+    }
+
     // ── Meta Conversions API (server-side Lead) ──
     // Dormant until META_CAPI_ACCESS_TOKEN is set as an EF secret. Deduped
     // against the client Pixel Lead via the shared fbEventId. Wrapped so a Meta

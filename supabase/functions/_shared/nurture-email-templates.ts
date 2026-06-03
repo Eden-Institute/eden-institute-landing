@@ -416,3 +416,39 @@ ${signature()}`;
     html: emailWrapper(body),
   };
 }
+
+
+// ── Sprouts/Seedlings lead-magnet nurture (Phase 3.1.2) ──
+const FACEBOOK_URL = 'https://www.facebook.com/TheEdenInstituteBiblicalHerbalism';
+
+function facebookButton(label: string, url: string): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0;"><tr><td align="center"><table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr><td align="center" style="background-color:${BRAND.gold};border-radius:10px;"><a href="${url}" target="_blank" style="display:inline-block;background-color:${BRAND.gold};color:${BRAND.forest};font-family:Georgia,serif;font-size:17px;font-weight:bold;text-decoration:none;text-align:center;padding:16px 44px;border-radius:10px;line-height:24px;mso-line-height-rule:exactly;letter-spacing:0.3px;">&#9826;&nbsp; ${label} &nbsp;&rarr;</a></td></tr></table><p style="font-family:Georgia,serif;font-size:13px;color:${BRAND.footerText};margin:10px 0 0 0;font-style:italic;">@TheEdenInstituteBiblicalHerbalism</p></td></tr></table>`;
+}
+
+// Day 7: Week 2 downloads (Sprouts→Chamomile, Seedlings→Tulsi). Links the PDFs
+// already hosted in public/lead-magnets/.
+export function buildMagnetWeek2Email(firstName: string, band: 'sprouts' | 'seedlings'): { subject: string; html: string } {
+  const isSprouts = band === 'sprouts';
+  const herb = isSprouts ? 'Chamomile' : 'Tulsi';
+  const label = isSprouts ? 'SPROUTS' : 'SEEDLINGS';
+  const slugHerb = isSprouts ? 'chamomile' : 'tulsi';
+  const prefix = isSprouts ? 'hs-sprouts-w2' : 'hs-seedlings-w2';
+  const base = 'https://edeninstitute.health/lead-magnets';
+  const dl = (kind: string) => `${base}/${prefix}-${kind}-${slugHerb}.pdf`;
+  const downloads: [string, string][] = [
+    ["TEACHER'S GUIDE", dl('tg')],
+    ['STUDENT NOTEBOOK', dl('nb')],
+    ['FIELD CARDS', dl('fc')],
+    ['RECIPE CARDS', dl('rc')],
+    ['AROUND THE TABLE CARDS', dl('att')],
+  ];
+  const buttons = downloads.map(([t, u]) => brandButton(t, u)).join('');
+  const body = `${p(`Hi ${firstName},`)}${p(`Welcome to Week 2. This week&rsquo;s herb is <strong>${herb}</strong> &mdash; the same gentle rhythm, five more downloads to print and teach.`)}${goldDivider()}${heading(`YOUR FIVE DOWNLOADS &mdash; ${label} WEEK 2 (${herb.toUpperCase()})`)}${buttons}${goldDivider()}${p(`That wraps your free two-week preview. In about a week I&rsquo;ll share a little of the story behind this whole project &mdash; I hope you&rsquo;ll come along for the ride.`)}${signature()}`;
+  return { subject: `${isSprouts ? 'Sprouts' : 'Seedlings'} Week 2 (${herb}) — Your Free Preview`, html: emailWrapper(body) };
+}
+
+// Day 14: the "come along for the ride" Facebook pitch. Band-agnostic.
+export function buildMagnetWeek3FacebookEmail(firstName: string): { subject: string; html: string } {
+  const body = `${p(`Hi ${firstName},`)}${p(`By now you&rsquo;ve walked through your first two weeks of Eden&rsquo;s Table around your own kitchen table. Before you go further, I wanted to step out from behind the curriculum for a moment and tell you the story underneath it.`)}${p(`For as long as I can remember, I&rsquo;ve wanted to build something of my own. But it wasn&rsquo;t until late last year that God finally made it clear <em>what</em> that something should be &mdash; this. A Christ-centered way to teach our children the bodies He designed and the plants He gave to tend them.`)}${p(`This is a true passion project for me, and watching it come to life has been humbling in the best way. The encouragement and the sheer number of families asking for this curriculum have been such a blessing &mdash; far more than I expected.`)}${goldDivider()}${heading('Come along for the ride.')}${p(`I&rsquo;d love for you to follow the journey as I build this in real time. I&rsquo;ll be posting often on our Facebook page &mdash; the progress, the roadblocks, the honest struggles, and the praise reports along the way. It&rsquo;s the behind-the-scenes of a dream being built, and it&rsquo;s so much sweeter with you walking it alongside me.`)}${facebookButton('Follow the Journey on Facebook', FACEBOOK_URL)}${goldDivider()}${heading('Know a family who&rsquo;d love this?')}${p(`If a friend comes to mind &mdash; another homeschool mom, a family at church, someone who wants to raise their children close to God&rsquo;s creation &mdash; would you forward this email to them, or share the page? Word of mouth from families like yours is how Eden&rsquo;s Table grows.`)}${p(`<strong>And keep an eye out:</strong> pre-orders open soon. The moment I lock in the right print partner I&rsquo;ll open the doors &mdash; and the families following along will be first to know.`)}${signature()}`;
+  return { subject: 'Come along for the ride — the story behind Eden’s Table', html: emailWrapper(body) };
+}
