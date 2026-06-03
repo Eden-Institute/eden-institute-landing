@@ -34,8 +34,8 @@ interface LeadRow {
 }
 
 interface Traffic {
-  totals: { views: number; visitors: number };
-  daily: { day: string; views: number; visitors: number }[];
+  totals: { views: number; visitors: number; signups: number };
+  daily: { day: string; views: number; visitors: number; signups: number }[];
   top_pages: { path: string; views: number; visitors: number }[];
   sources: { referrer: string; views: number }[];
   campaigns: { campaign: string; views: number; signups: number }[];
@@ -173,6 +173,13 @@ export default function FounderLeads() {
     const d = (traffic?.daily ?? []).slice(-14);
     const max = d.reduce((mx, x) => Math.max(mx, x.views), 0);
     return { bars: d, max };
+  }, [traffic]);
+
+  const trafficSignups = useMemo(() => {
+    const d = (traffic?.daily ?? []).slice(-14);
+    const bars = d.map((x) => ({ key: x.day, count: x.signups ?? 0 }));
+    const max = bars.reduce((mx, b) => Math.max(mx, b.count), 0);
+    return { bars, max };
   }, [traffic]);
 
   // ── Auth gates ──
@@ -328,10 +335,18 @@ export default function FounderLeads() {
           </>
         ) : (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
               <StatCard label="Page views" value={String(traffic?.totals?.views ?? 0)} />
               <StatCard label="Visitors (approx.)" value={String(traffic?.totals?.visitors ?? 0)} />
-              <StatCard label="Tracked pages" value={String(traffic?.top_pages?.length ?? 0)} />
+              <StatCard label="Sign-ups" value={String(traffic?.totals?.signups ?? 0)} />
+              <StatCard
+                label="Conversion"
+                value={(() => {
+                  const v = traffic?.totals?.visitors ?? 0;
+                  const sg = traffic?.totals?.signups ?? 0;
+                  return v > 0 ? `${((sg / v) * 100).toFixed(1)}%` : "—";
+                })()}
+              />
             </div>
 
             {trafficDaily.bars.length > 0 ? (
@@ -345,6 +360,10 @@ export default function FounderLeads() {
                 No visits recorded yet in this window. Data starts accumulating the moment this ships —
                 check back after the site sees traffic.
               </p>
+            )}
+
+            {trafficSignups.bars.length > 0 && trafficSignups.max > 0 && (
+              <BarStrip title="Sign-ups · recent days (CT)" bars={trafficSignups.bars} max={trafficSignups.max} />
             )}
 
             <section className="mb-8">
