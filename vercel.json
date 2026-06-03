@@ -1,5 +1,6 @@
 {
   "redirects": [
+    { "source": "/Homeschool", "destination": "/homeschool", "permanent": true },
     { "source": "/app", "destination": "/apothecary", "permanent": true },
     { "source": "/app/:path*", "destination": "/apothecary/:path*", "permanent": true }
   ],
