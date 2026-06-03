@@ -20,6 +20,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ROUTES } from "@/lib/routes";
 import { metaTrack } from "@/lib/metaPixel";
 import { getMarketingConsent } from "@/lib/consent";
+import { checkEmail } from "@/lib/emailTypos";
 import Navbar from "@/components/landing/Navbar";
 
 interface Question {
@@ -195,6 +196,7 @@ const Assessment = () => {
   const [transitioning, setTransitioning] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
+  const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -466,6 +468,12 @@ const Assessment = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const typo = checkEmail(email);
+    if (typo.invalid && typo.suggestion) {
+      setEmailSuggestion(typo.suggestion);
+      setError("That email address looks misspelled — please check it.");
+      return;
+    }
     setLoading(true);
     try {
       await submitMarketingQuiz(email, firstName, constitutionType);
@@ -476,6 +484,12 @@ const Assessment = () => {
 
   const handleBalancedSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const typo = checkEmail(email);
+    if (typo.invalid && typo.suggestion) {
+      setEmailSuggestion(typo.suggestion);
+      setError("That email address looks misspelled — please check it.");
+      return;
+    }
     setLoading(true);
     try {
       await submitMarketingQuiz(email, firstName, constitutionType, true);
@@ -646,7 +660,8 @@ const Assessment = () => {
                 {/* PR κ: strip ALL whitespace (incl. internal spaces some
                     mobile autocomplete engines insert between '@' and the
                     domain) and lowercase before HTML5 type=email validation. */}
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value.replace(/\s+/g, "").toLowerCase().trim())} required placeholder="your@email.com" className="w-full px-4 py-3 border font-body focus:outline-none transition-colors" style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }} />
+                <input type="email" value={email} onChange={(e) => { setEmail(e.target.value.replace(/\s+/g, "").toLowerCase().trim()); setEmailSuggestion(null); }} onBlur={() => setEmailSuggestion(checkEmail(email).suggestion)} required placeholder="your@email.com" className="w-full px-4 py-3 border font-body focus:outline-none transition-colors" style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }} />
+                {emailSuggestion && (<p className="font-body text-sm mt-2" style={{ color: "#C9A84C" }}>Did you mean <button type="button" onClick={() => { setEmail(emailSuggestion); setEmailSuggestion(null); setError(""); }} className="underline font-semibold">{emailSuggestion}</button>?</p>)}
               </div>
               {error && <p className="font-body text-sm text-destructive">{error}</p>}
               <Button type="submit" variant="eden" size="xl" className="w-full" disabled={loading}>{loading ? "Submitting…" : "→ Send Me My Results"}</Button>
@@ -685,7 +700,8 @@ const Assessment = () => {
                 </div>
                 <div>
                   <label className="block font-accent text-xs tracking-[0.2em] uppercase mb-2" style={{ color: "hsl(30, 10%, 40%)" }}>Email Address</label>
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value.replace(/\s+/g, "").toLowerCase().trim())} required placeholder="your@email.com" className="w-full px-4 py-3 border font-body focus:outline-none transition-colors" style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }} />
+                  <input type="email" value={email} onChange={(e) => { setEmail(e.target.value.replace(/\s+/g, "").toLowerCase().trim()); setEmailSuggestion(null); }} onBlur={() => setEmailSuggestion(checkEmail(email).suggestion)} required placeholder="your@email.com" className="w-full px-4 py-3 border font-body focus:outline-none transition-colors" style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }} />
+                {emailSuggestion && (<p className="font-body text-sm mt-2" style={{ color: "#C9A84C" }}>Did you mean <button type="button" onClick={() => { setEmail(emailSuggestion); setEmailSuggestion(null); setError(""); }} className="underline font-semibold">{emailSuggestion}</button>?</p>)}
                 </div>
                 {error && <p className="font-body text-sm text-destructive">{error}</p>}
                 <Button type="submit" variant="eden" size="xl" className="w-full" disabled={loading}>{loading ? "Saving…" : "→ Save My Reading"}</Button>

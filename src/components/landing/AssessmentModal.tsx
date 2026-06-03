@@ -18,6 +18,7 @@ import {
 } from "@/lib/quiz-followup";
 import { getNameFromType, getSlugFromType } from "@/lib/constitution-utils";
 import { ROUTES } from "@/lib/routes";
+import { checkEmail } from "@/lib/emailTypos";
 
 interface Question {
   id: number;
@@ -176,6 +177,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
   const [transitioning, setTransitioning] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
+  const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState("");
@@ -271,8 +273,16 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
+
+    const typo = checkEmail(email);
+    if (typo.invalid && typo.suggestion) {
+      setEmailSuggestion(typo.suggestion);
+      setError("That email address looks misspelled — please check it.");
+      return;
+    }
+
+    setLoading(true);
 
     try {
       const { error: fnError } = await supabase.functions.invoke("resend-waitlist", {
@@ -583,12 +593,22 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => { setEmail(e.target.value); setEmailSuggestion(null); }}
+                    onBlur={() => setEmailSuggestion(checkEmail(email).suggestion)}
                     required
                     placeholder="your@email.com"
                     className="w-full px-4 py-3 border font-body focus:outline-none transition-colors focus:border-[#C9A84C] min-h-[48px]"
                     style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }}
                   />
+                  {emailSuggestion && (
+                    <p className="font-body text-sm mt-2" style={{ color: "#C9A84C" }}>
+                      Did you mean{" "}
+                      <button type="button" onClick={() => { setEmail(emailSuggestion); setEmailSuggestion(null); setError(""); }} className="underline font-semibold">
+                        {emailSuggestion}
+                      </button>
+                      ?
+                    </p>
+                  )}
                 </div>
                 {error && <p className="font-body text-sm text-destructive">{error}</p>}
                 <Button variant="eden" size="xl" className="w-full min-h-[48px]" disabled={loading}>
