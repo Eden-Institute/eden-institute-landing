@@ -879,6 +879,14 @@ Deno.serve(async (req) => {
 
     const normalizedEmail = String(email).trim().toLowerCase();
 
+    // Reject clearly-undeliverable / mistyped domains (e.g. gmail.con,
+    // gmail.co, live.con, passmail.ner) before creating a Resend contact
+    // that can only hard-bounce. Mirrors client-side src/lib/emailTypos.ts.
+    const emailTypoSuggestion = detectEmailTypo(normalizedEmail);
+    if (emailTypoSuggestion) {
+      return json(400, { error: `That email address looks misspelled. Did you mean ${emailTypoSuggestion}?`, suggestion: emailTypoSuggestion });
+    }
+
     // ── Resolve entry_funnel ──
     // Precedence: explicit entry_funnel → constitution_assessment source →
     // legacy audienceId mapping → homeschool/community source keywords.
@@ -1223,6 +1231,34 @@ Deno.serve(async (req) => {
 });
 
 // ── Helpers ──
+
+// Detect a definitely-undeliverable / mistyped email domain. Returns a suggested
+// correction, or null if the domain looks fine. Conservative: only flags
+// guaranteed-bad domains (dead TLDs, single-domain providers on the wrong TLD)
+// so it never hard-blocks an unusual-but-valid address. Mirrors src/lib/emailTypos.ts.
+function detectEmailTypo(email: string): string | null {
+  const at = email.lastIndexOf('@');
+  if (at < 1) return null;
+  const local = email.slice(0, at);
+  const domain = email.slice(at + 1).toLowerCase();
+  if (!domain.includes('.') || domain.endsWith('.')) return null;
+  const parts = domain.split('.');
+  const ccSld = new Set(['com.au', 'co.uk', 'co.nz', 'com.br', 'co.za', 'com.mx', 'co.in', 'com.sg']);
+  let tld: string;
+  let sld: string;
+  if (parts.length >= 3 && ccSld.has(parts.slice(-2).join('.'))) {
+    tld = parts.slice(-2).join('.');
+    sld = parts[parts.length - 3];
+  } else {
+    tld = parts[parts.length - 1];
+    sld = parts[parts.length - 2];
+  }
+  const providerCanonical: Record<string, string> = { gmail: 'gmail.com', googlemail: 'googlemail.com', icloud: 'icloud.com', aol: 'aol.com' };
+  if (providerCanonical[sld] && domain !== providerCanonical[sld]) return `${local}@${providerCanonical[sld]}`;
+  const badTld: Record<string, string> = { con: 'com', cm: 'com', cmo: 'com', ocm: 'com', vom: 'com', xom: 'com', coom: 'com', comm: 'com', comn: 'com', cim: 'com', clm: 'com', ner: 'net', nett: 'net', ogr: 'org', orgg: 'org' };
+  if (badTld[tld]) return `${local}@${sld}.${badTld[tld]}`;
+  return null;
+}
 
 function json(status: number, payload: unknown): Response {
   return new Response(JSON.stringify(payload), {
