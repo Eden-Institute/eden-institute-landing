@@ -42,7 +42,7 @@ I do **not** have memory between sessions. Continuity = these artifacts. **Updat
 
 - **"body pattern"** is canonical — never "body type" (Lock #54).
 - Clinical claims: **dual-source** (primary PD + modern secondary) (Lock #43). Formularies/recipes are **Practitioner-tier only**.
-- Lock register lives in Manual §0.8. **As of v4.9 the docx index only reaches ~#59; locks #60–#82 are recorded in Session Logs but not yet promoted into §0.8 — catch-up pending.**
+- Lock register lives in Manual §0.8. **As of v4.10 the docx index is caught up through #83** (the v4.9 "#56 quiz-capture" mislabel was resolved by assigning it #83 — **#83 awaits founder ratification**). Canonical Manual is now `Eden_Apothecary_Manual_v4_10.docx`.
 
 ## Deploy & tooling rules (learned the hard way)
 
@@ -60,9 +60,12 @@ I do **not** have memory between sessions. Continuity = these artifacts. **Updat
 - **Chrome / browser:** Camila drives browser steps via screenshots; be explicit when I can't drive something. Stripe dashboard is blocked to automation — she pastes/screenshots.
 - `_memory/` (`…/Eden Apothecary/_memory/`) holds the prior Cowork memory system (~50 `feedback_*.md` + `MEMORY.md`) — load-bearing context distilled here, but read it if deeper detail is needed.
 
-## Current open items (as of 2026-05-30, v4.9 — update at each wrap)
+## Current open items (as of 2026-05-30, v4.10 — update at each wrap)
 
-- **Founder dashboard** live at `/founder` (login as `hello@`); Leads + Traffic tabs; test traffic excluded (108 real / 42 test).
-- **Founder actions pending (none blocking):** activate Meta CAPI (generate token → set `META_CAPI_ACCESS_TOKEN` EF secret → deploy `resend-waitlist`); verify Pixel in Meta Test Events; submit sitemap in Google Search Console; delete old Supabase tokens.
-- **Engineering follow-ups:** promote Locks #60–#82 into Manual §0.8; PR #144 (`nurture_email_queue`) still open → Phase 3.1.2 Day-7 nurture; balanced quiz leads land in Resend audience but not the dashboard (needs EF + `entry_funnel` enum); SEO pre-rendering for SPA crawlability.
+- **Meta CAPI is ACTIVE** (consent-gated, PR #171; `META_CAPI_ACCESS_TOKEN` set; resend-waitlist v34). Browser Pixel Lead confirmed; server dedup % surfaces on Meta's clock. **`edeninstitute.health` domain verified** in Meta Business (PR #172).
+- **Weekly trends briefing LIVE** — `weekly-trends-digest` EF + Vercel cron `0 14 * * 5`; emails interpreted WoW trends to hello@ every Friday. **First run: Fri Jun 5** (confirm `weekly_trends_runs` + inbox). GA4/GSC NOT auto-included (see below).
+- **GA4 + GSC automation BLOCKED/deferred:** GCP project `eden-institute-analytics` + key-less service account `eden-weekly-briefing@…` exist, but org policy `iam.disableServiceAccountKeyCreation` blocks the key (needs Org Policy Admin). Founder chose manual GA4/GSC reads for now. SEO status: indexed, ranks only for brand terms — NOT yet for "Christian homeschool curriculum."
+- **Founder actions / in progress:** ratify **Lock #83**; finish the **Canva scroll-ad** (timing 4.5s/frame + Slide-Up transition + CTA + MP4 export → Meta Ads campaign optimizing on `Lead`); optional AEM `Lead` prioritization in Meta.
+- **Engineering follow-ups:** **Phase 3.1.2 Day-7 nurture needs redesign under a NEW table name** (`nurture_email_queue` is taken by the v3.33 constitution drip — PR #144 closed); fold this session into docx Manual §9 + promote proposed Locks; balanced quiz leads → dashboard (EF + `entry_funnel` enum); SPA pre-rendering. **Open-PR list is currently empty.**
+- **Founder dashboard** live at `/founder` (login `hello@`); Leads + Traffic tabs; test traffic excluded.
 - **Two accounts stay separate:** `hello@` = founder/admin/dashboard; `grammarswag@gmail.com` = Camila's personal (her Pattern). Do not merge.
