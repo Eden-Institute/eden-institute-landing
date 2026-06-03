@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { metaTrack } from "@/lib/metaPixel";
 import { getMarketingConsent } from "@/lib/consent";
+import { checkEmail } from "@/lib/emailTypos";
 
 interface WaitlistModalProps {
   open: boolean;
@@ -28,14 +29,33 @@ interface WaitlistModalProps {
 const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source = "waitlist" }: WaitlistModalProps) => {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
+  const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
+  const acceptSuggestion = () => {
+    if (emailSuggestion) {
+      setEmail(emailSuggestion);
+      setEmailSuggestion(null);
+      setError("");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
+
+    // Guard against misspelled email domains (e.g. gmail.con) before we create
+    // a Resend contact that can only ever hard-bounce.
+    const check = checkEmail(email);
+    if (check.invalid && check.suggestion) {
+      setEmailSuggestion(check.suggestion);
+      setError("That email address looks misspelled — please check it.");
+      return;
+    }
+
+    setLoading(true);
 
     try {
       const fbEventId = crypto.randomUUID();
@@ -52,6 +72,7 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
       setSuccess(true);
       setFirstName("");
       setEmail("");
+      setEmailSuggestion(null);
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -63,6 +84,7 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
     if (!val) {
       setSuccess(false);
       setError("");
+      setEmailSuggestion(null);
     }
     onOpenChange(val);
   };
@@ -82,7 +104,27 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5 pt-2">
             <div><label className="block font-accent text-xs tracking-[0.2em] uppercase text-muted-foreground mb-2">First Name</label><input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Your first name" required className="w-full px-4 py-3 bg-background border border-border font-body text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-eden-gold transition-colors" /></div>
-            <div><label className="block font-accent text-xs tracking-[0.2em] uppercase text-muted-foreground mb-2">Email Address</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" required className="w-full px-4 py-3 bg-background border border-border font-body text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-eden-gold transition-colors" /></div>
+            <div>
+              <label className="block font-accent text-xs tracking-[0.2em] uppercase text-muted-foreground mb-2">Email Address</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setEmailSuggestion(null); }}
+                onBlur={() => setEmailSuggestion(checkEmail(email).suggestion)}
+                placeholder="your@email.com"
+                required
+                className="w-full px-4 py-3 bg-background border border-border font-body text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-eden-gold transition-colors"
+              />
+              {emailSuggestion && (
+                <p className="font-body text-sm text-eden-gold mt-2">
+                  Did you mean{" "}
+                  <button type="button" onClick={acceptSuggestion} className="underline font-semibold">
+                    {emailSuggestion}
+                  </button>
+                  ?
+                </p>
+              )}
+            </div>
             {error && (<p className="font-body text-sm text-destructive">{error}</p>)}
             <Button variant="eden" size="xl" className="w-full" disabled={loading}>{loading ? "Submitting…" : "Connect With Us"}</Button>
             <p className="text-center font-body text-xs text-muted-foreground/60">No spam. Unsubscribe anytime.</p>
