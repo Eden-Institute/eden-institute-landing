@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle2 } from "lucide-react";
 import { z } from "zod";
+import { checkEmail } from "@/lib/emailTypos";
 
 const signupSchema = z.object({
   firstName: z
@@ -53,9 +54,18 @@ export function TierTwoWaitlistForm({
 }: TierTwoWaitlistFormProps) {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
+  const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  const acceptSuggestion = () => {
+    if (emailSuggestion) {
+      setEmail(emailSuggestion);
+      setEmailSuggestion(null);
+      setError(null);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +74,15 @@ export function TierTwoWaitlistForm({
     const parsed = signupSchema.safeParse({ firstName, email });
     if (!parsed.success) {
       setError(parsed.error.errors[0]?.message ?? "Please check your inputs");
+      return;
+    }
+
+    // Guard against misspelled email domains (e.g. gmail.con) so we don't
+    // queue a contact that can only ever hard-bounce.
+    const check = checkEmail(parsed.data.email);
+    if (check.invalid && check.suggestion) {
+      setEmailSuggestion(check.suggestion);
+      setError("That email address looks misspelled — please check it.");
       return;
     }
 
@@ -185,10 +204,20 @@ export function TierTwoWaitlistForm({
           // PR κ: strip ALL whitespace (incl. internal spaces some
           // mobile autocomplete engines insert between '@' and the
           // domain) and lowercase before HTML5 + zod validation.
-          onChange={(e) => setEmail(e.target.value.replace(/\s+/g, "").toLowerCase().trim())}
+          onChange={(e) => { setEmail(e.target.value.replace(/\s+/g, "").toLowerCase().trim()); setEmailSuggestion(null); }}
+          onBlur={() => setEmailSuggestion(checkEmail(email).suggestion)}
           placeholder="you@example.com"
           disabled={submitting}
         />
+        {emailSuggestion && (
+          <p className="font-body text-sm mt-2" style={{ color: "hsl(var(--eden-gold))" }}>
+            Did you mean{" "}
+            <button type="button" onClick={acceptSuggestion} className="underline font-semibold">
+              {emailSuggestion}
+            </button>
+            ?
+          </p>
+        )}
       </div>
       {error && (
         <p className="font-body text-sm text-destructive" role="alert">
