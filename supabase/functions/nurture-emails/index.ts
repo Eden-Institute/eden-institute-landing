@@ -35,6 +35,8 @@ import {
   buildNurtureEmail3,
   buildNurtureEmail4,
   buildNurtureEmail5,
+  buildMagnetWeek2Email,
+  buildMagnetWeek3FacebookEmail,
   toSlug,
 } from '../_shared/nurture-email-templates.ts';
 
@@ -288,6 +290,76 @@ async function legacyEmail5(): Promise<LegacyResult> {
   return { sent, candidates };
 }
 
+interface MagnetResult {
+  processed: number;
+  sent: number;
+  failed: number;
+}
+
+// Lock #83 / Phase 3.1.2: drains public.magnet_email_queue (Sprouts/Seedlings
+// Week 2 day-7 + Facebook day-14). Unlike the quiz drip this needs NO
+// quiz_completions row — first name comes from the queue row itself.
+async function drainMagnetQueue(): Promise<MagnetResult> {
+  const result: MagnetResult = { processed: 0, sent: 0, failed: 0 };
+  const nowIso = new Date().toISOString();
+  const rows = await supabaseQuery(
+    `magnet_email_queue?status=eq.pending&scheduled_for=lte.${encodeURIComponent(nowIso)}&order=scheduled_for.asc&limit=${QUEUE_BATCH}`,
+  );
+  if (!Array.isArray(rows)) {
+    console.error('drainMagnetQueue: unexpected query result', JSON.stringify(rows));
+    return result;
+  }
+  console.log(`drainMagnetQueue: found ${rows.length} due rows`);
+  for (const row of rows) {
+    result.processed++;
+    try {
+      const firstName = row.first_name || 'friend';
+      const band: 'sprouts' | 'seedlings' = row.band === 'seedlings' ? 'seedlings' : 'sprouts';
+      let built: { subject: string; html: string };
+      if (row.sequence_position === 3) {
+        built = buildMagnetWeek3FacebookEmail(firstName);
+      } else if (row.sequence_position === 2) {
+        built = buildMagnetWeek2Email(firstName, band);
+      } else {
+        await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'failed', error_message: `Unknown sequence_position ${row.sequence_position}`, updated_at: new Date().toISOString() }),
+        });
+        result.failed++;
+        continue;
+      }
+      const send = await sendEmail(row.recipient_email, built.subject, built.html);
+      if (send.ok) {
+        await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'sent', sent_at: new Date().toISOString(), updated_at: new Date().toISOString() }),
+        });
+        result.sent++;
+      } else {
+        const newRetry = (row.retry_count ?? 0) + 1;
+        const terminal = newRetry >= MAX_RETRIES;
+        await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: terminal ? 'failed' : 'pending', retry_count: newRetry, error_message: send.error, updated_at: new Date().toISOString() }),
+        });
+        if (terminal) result.failed++;
+      }
+      await new Promise((r) => setTimeout(r, RATE_LIMIT_MS));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`drainMagnetQueue: row ${row.id} threw:`, message);
+      const newRetry = (row.retry_count ?? 0) + 1;
+      const terminal = newRetry >= MAX_RETRIES;
+      await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: terminal ? 'failed' : 'pending', retry_count: newRetry, error_message: message, updated_at: new Date().toISOString() }),
+      });
+      if (terminal) result.failed++;
+    }
+  }
+  return result;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -306,6 +378,7 @@ Deno.serve(async (req) => {
     }
 
     const queue = await drainNurtureQueue();
+    const magnet = await drainMagnetQueue();
     const legacy_email5 = await legacyEmail5();
 
     console.log(
@@ -315,7 +388,7 @@ Deno.serve(async (req) => {
     );
 
     return new Response(
-      JSON.stringify({ success: true, queue, legacy_email5 }),
+      JSON.stringify({ success: true, queue, magnet, legacy_email5 }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
