@@ -24,9 +24,22 @@ interface WaitlistModalProps {
    * Defaults to "waitlist" for backward compatibility with existing callers.
    */
   source?: string;
+  /**
+   * Explicit entry_funnel override, forwarded to the resend-waitlist EF.
+   * Takes precedence over the legacy audienceId→funnel mapping there, so a
+   * surface that shares an audienceId with another funnel (e.g. Community and
+   * Eden's Table both use 'a48cb66e-…') can label its leads correctly.
+   * Omit to let the EF resolve the funnel from audienceId/source.
+   */
+  funnel?: string;
+  /**
+   * Optional segmentation context (surface, Pattern, etc.) forwarded to the EF
+   * as `metadata`. Persisted on waitlist_signups.metadata for later analysis.
+   */
+  metadata?: Record<string, unknown>;
 }
 
-const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source = "waitlist" }: WaitlistModalProps) => {
+const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source = "waitlist", funnel, metadata }: WaitlistModalProps) => {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
@@ -61,7 +74,16 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
       const fbEventId = crypto.randomUUID();
       const marketingConsent = getMarketingConsent() === "granted";
       const { data, error: fnError } = await supabase.functions.invoke("resend-waitlist", {
-        body: { firstName, email, audienceId, source, fbEventId, marketingConsent },
+        body: {
+          firstName,
+          email,
+          audienceId,
+          source,
+          fbEventId,
+          marketingConsent,
+          ...(funnel ? { entry_funnel: funnel } : {}),
+          ...(metadata ? { metadata } : {}),
+        },
       });
 
       if (fnError) throw fnError;
