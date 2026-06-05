@@ -33,6 +33,18 @@ interface LeadRow {
   unsubscribed: boolean;
 }
 
+// Server-computed lead aggregates (founder_lead_summary). These are exact —
+// counted in the database, so they are NOT subject to the 1000-row API cap that
+// truncates the founder_lead_feed row list below.
+interface LeadSummary {
+  total: number;
+  active: number;
+  unsub: number;
+  last_capture: string | null;
+  by_magnet: { funnel: string; source: string; count: number; last: string }[];
+  daily: { day: string; count: number }[];
+}
+
 interface Traffic {
   totals: { views: number; visitors: number; signups: number };
   daily: { day: string; views: number; visitors: number; signups: number }[];
@@ -86,10 +98,6 @@ function fmtDateTimeCT(iso: string): string {
   });
 }
 
-function dayKeyCT(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
-}
-
 function dayLabel(key: string): string {
   const [y, m, d] = key.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", {
@@ -104,6 +112,7 @@ export default function FounderLeads() {
   const [tab, setTab] = useState<Tab>("leads");
   const [windowIdx, setWindowIdx] = useState(1); // default 30 days
   const [leads, setLeads] = useState<LeadRow[] | null>(null);
+  const [leadSummary, setLeadSummary] = useState<LeadSummary | null>(null);
   const [traffic, setTraffic] = useState<Traffic | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,12 +126,16 @@ export default function FounderLeads() {
     setError(null);
     try {
       if (tab === "leads") {
-        const { data, error: e } = await supabase.rpc(
-          "founder_lead_feed" as never,
-          { p_since: since } as never,
-        );
-        if (e) throw e;
-        setLeads((data as LeadRow[] | null) ?? []);
+        // Two calls: summary = exact server-side aggregates (headline numbers,
+        // by-magnet, daily strip); feed = the raw capped row list for the table.
+        const [summaryRes, feedRes] = await Promise.all([
+          supabase.rpc("founder_lead_summary" as never, { p_since: since } as never),
+          supabase.rpc("founder_lead_feed" as never, { p_since: since } as never),
+        ]);
+        if (summaryRes.error) throw summaryRes.error;
+        if (feedRes.error) throw feedRes.error;
+        setLeadSummary((summaryRes.data as LeadSummary | null) ?? null);
+        setLeads((feedRes.data as LeadRow[] | null) ?? []);
       } else {
         const { data, error: e } = await supabase.rpc(
           "founder_traffic" as never,
@@ -143,30 +156,30 @@ export default function FounderLeads() {
     if (isFounder) load();
   }, [isFounder, load]);
 
-  // ── Lead aggregates ──
-  const activeLeads = useMemo(() => (leads ?? []).filter((r) => !r.unsubscribed), [leads]);
+  // ── Lead aggregates (server-computed; never derived from the capped row feed) ──
+  // by_magnet arrives grouped by raw (funnel, source); collapse to display
+  // labels here so the magnetLabel mapping stays in one place.
   const byMagnet = useMemo(() => {
     const m = new Map<string, { count: number; last: string }>();
-    for (const r of activeLeads) {
-      const label = magnetLabel(r.funnel, r.source);
+    for (const g of leadSummary?.by_magnet ?? []) {
+      const label = magnetLabel(g.funnel, g.source);
       const cur = m.get(label);
       if (cur) {
-        cur.count += 1;
-        if (r.entered_at > cur.last) cur.last = r.entered_at;
-      } else m.set(label, { count: 1, last: r.entered_at });
+        cur.count += g.count;
+        if (g.last > cur.last) cur.last = g.last;
+      } else m.set(label, { count: g.count, last: g.last });
     }
     return Array.from(m.entries())
       .map(([label, v]) => ({ label, ...v }))
       .sort((a, b) => b.count - a.count);
-  }, [activeLeads]);
+  }, [leadSummary]);
   const leadDaily = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const r of activeLeads) counts.set(dayKeyCT(r.entered_at), (counts.get(dayKeyCT(r.entered_at)) ?? 0) + 1);
+    const counts = new Map((leadSummary?.daily ?? []).map((d) => [d.day, d.count]));
     const keys = Array.from(counts.keys()).sort().slice(-14);
     const max = keys.reduce((mx, k) => Math.max(mx, counts.get(k) ?? 0), 0);
     return { bars: keys.map((k) => ({ key: k, count: counts.get(k) ?? 0 })), max };
-  }, [activeLeads]);
-  const unsubCount = useMemo(() => (leads ?? []).filter((r) => r.unsubscribed).length, [leads]);
+  }, [leadSummary]);
+  const unsubCount = leadSummary?.unsub ?? 0;
 
   // ── Traffic daily strip ──
   const trafficDaily = useMemo(() => {
@@ -228,9 +241,27 @@ export default function FounderLeads() {
               Founder dashboard
             </h1>
           </div>
-          <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-            {loading ? "Refreshing…" : "Refresh"}
-          </Button>
+          <div className="flex items-center gap-2">
+            {fetchedAt && (
+              <span className="font-body text-[11px] text-muted-foreground whitespace-nowrap">
+                Updated{" "}
+                {fetchedAt.toLocaleTimeString("en-US", {
+                  timeZone: "America/Chicago",
+                  hour: "numeric",
+                  minute: "2-digit",
+                  second: "2-digit",
+                  hour12: true,
+                })}{" "}
+                CT
+              </span>
+            )}
+            <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+              {loading ? "Refreshing…" : "Refresh"}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => signOut()} disabled={loading}>
+              Sign out
+            </Button>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -278,9 +309,9 @@ export default function FounderLeads() {
         {tab === "leads" ? (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
-              <StatCard label="New leads" value={String(activeLeads.length)} />
+              <StatCard label="New leads" value={String(leadSummary?.active ?? 0)} />
               <StatCard label="Active magnets" value={String(byMagnet.length)} />
-              <StatCard label="Last capture" value={activeLeads[0] ? fmtDateTimeCT(activeLeads[0].entered_at) : "—"} small />
+              <StatCard label="Last capture" value={leadSummary?.last_capture ? fmtDateTimeCT(leadSummary.last_capture) : "—"} small />
             </div>
 
             {leadDaily.bars.length > 0 && (
@@ -305,7 +336,7 @@ export default function FounderLeads() {
 
             <section className="mb-10">
               <SectionLabel>
-                All captures{leads ? ` (${leads.length})` : ""}{unsubCount > 0 ? ` · ${unsubCount} unsubscribed` : ""}
+                All captures{leadSummary ? ` (${leadSummary.total})` : ""}{unsubCount > 0 ? ` · ${unsubCount} unsubscribed` : ""}
               </SectionLabel>
               <Table head={["Subscriber", "Magnet", "Captured (CT)", "Attribution"]}>
                 {(leads ?? []).map((r, i) => {
@@ -331,6 +362,12 @@ export default function FounderLeads() {
                   <tr><Td className="text-muted-foreground" colSpan={4}>No captures in this window.</Td></tr>
                 )}
               </Table>
+              {leadSummary && leads && leadSummary.total > leads.length && (
+                <p className="font-body text-[11px] text-muted-foreground mt-2">
+                  Showing the {leads.length} most recent captures. The counts above
+                  reflect all {leadSummary.total} in this window.
+                </p>
+              )}
             </section>
           </>
         ) : (

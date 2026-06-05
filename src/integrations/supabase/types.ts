@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       actions: {
@@ -60,18 +35,36 @@ export type Database = {
         }
         Relationships: []
       }
+      analytics_salt: {
+        Row: {
+          id: number
+          salt: string
+        }
+        Insert: {
+          id?: number
+          salt?: string
+        }
+        Update: {
+          id?: number
+          salt?: string
+        }
+        Relationships: []
+      }
       body_systems: {
         Row: {
+          clinical_canonical: boolean
           description: string | null
           system_id: string
           system_name: string
         }
         Insert: {
+          clinical_canonical?: boolean
           description?: string | null
           system_id: string
           system_name: string
         }
         Update: {
+          clinical_canonical?: boolean
           description?: string | null
           system_id?: string
           system_name?: string
@@ -146,6 +139,13 @@ export type Database = {
             columns: ["herb_id"]
             isOneToOne: false
             referencedRelation: "herbs_clinical_v"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "citations_herbs_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
+            referencedRelation: "herbs_directory_v"
             referencedColumns: ["herb_id"]
           },
           {
@@ -330,10 +330,125 @@ export type Database = {
             foreignKeyName: "contraindications_herb_id_fkey"
             columns: ["herb_id"]
             isOneToOne: false
+            referencedRelation: "herbs_directory_v"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "contraindications_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
             referencedRelation: "herbs_public"
             referencedColumns: ["herb_id"]
           },
         ]
+      }
+      diagnostic_completions: {
+        Row: {
+          completed_at: string
+          created_at: string
+          eden_constitution: string | null
+          galenic_temperament:
+            | Database["public"]["Enums"]["galenic_temperament_type"]
+            | null
+          id: string
+          person_profile_id: string
+          quiz_version: string
+          raw_responses: Json | null
+          tissue_state_profile: Json | null
+          user_id: string
+          vital_force_reading:
+            | Database["public"]["Enums"]["vital_force_reading_type"]
+            | null
+        }
+        Insert: {
+          completed_at?: string
+          created_at?: string
+          eden_constitution?: string | null
+          galenic_temperament?:
+            | Database["public"]["Enums"]["galenic_temperament_type"]
+            | null
+          id?: string
+          person_profile_id: string
+          quiz_version?: string
+          raw_responses?: Json | null
+          tissue_state_profile?: Json | null
+          user_id: string
+          vital_force_reading?:
+            | Database["public"]["Enums"]["vital_force_reading_type"]
+            | null
+        }
+        Update: {
+          completed_at?: string
+          created_at?: string
+          eden_constitution?: string | null
+          galenic_temperament?:
+            | Database["public"]["Enums"]["galenic_temperament_type"]
+            | null
+          id?: string
+          person_profile_id?: string
+          quiz_version?: string
+          raw_responses?: Json | null
+          tissue_state_profile?: Json | null
+          user_id?: string
+          vital_force_reading?:
+            | Database["public"]["Enums"]["vital_force_reading_type"]
+            | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diagnostic_completions_person_profile_id_fkey"
+            columns: ["person_profile_id"]
+            isOneToOne: false
+            referencedRelation: "diagnostic_profile_v"
+            referencedColumns: ["person_profile_id"]
+          },
+          {
+            foreignKeyName: "diagnostic_completions_person_profile_id_fkey"
+            columns: ["person_profile_id"]
+            isOneToOne: false
+            referencedRelation: "person_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      digest_runs: {
+        Row: {
+          captures_count: number | null
+          completed_at: string | null
+          created_at: string
+          digest_date: string
+          error_message: string | null
+          id: string
+          status: string
+          triggered_at: string
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          captures_count?: number | null
+          completed_at?: string | null
+          created_at?: string
+          digest_date: string
+          error_message?: string | null
+          id?: string
+          status?: string
+          triggered_at?: string
+          window_end: string
+          window_start: string
+        }
+        Update: {
+          captures_count?: number | null
+          completed_at?: string | null
+          created_at?: string
+          digest_date?: string
+          error_message?: string | null
+          id?: string
+          status?: string
+          triggered_at?: string
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: []
       }
       doshas: {
         Row: {
@@ -355,6 +470,103 @@ export type Database = {
           system?: string
         }
         Relationships: []
+      }
+      feedback_submissions: {
+        Row: {
+          auth_user_id: string | null
+          context: Json
+          created_at: string
+          email: string | null
+          id: string
+          message: string
+          page_url: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          auth_user_id?: string | null
+          context?: Json
+          created_at?: string
+          email?: string | null
+          id?: string
+          message: string
+          page_url?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          auth_user_id?: string | null
+          context?: Json
+          created_at?: string
+          email?: string | null
+          id?: string
+          message?: string
+          page_url?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      herb_favorites: {
+        Row: {
+          created_at: string
+          herb_id: string
+          id: string
+          person_profile_id: string
+        }
+        Insert: {
+          created_at?: string
+          herb_id: string
+          id?: string
+          person_profile_id: string
+        }
+        Update: {
+          created_at?: string
+          herb_id?: string
+          id?: string
+          person_profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "herb_favorites_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
+            referencedRelation: "herbs"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "herb_favorites_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
+            referencedRelation: "herbs_clinical_v"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "herb_favorites_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
+            referencedRelation: "herbs_directory_v"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "herb_favorites_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
+            referencedRelation: "herbs_public"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "herb_favorites_person_profile_id_fkey"
+            columns: ["person_profile_id"]
+            isOneToOne: false
+            referencedRelation: "diagnostic_profile_v"
+            referencedColumns: ["person_profile_id"]
+          },
+          {
+            foreignKeyName: "herb_favorites_person_profile_id_fkey"
+            columns: ["person_profile_id"]
+            isOneToOne: false
+            referencedRelation: "person_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       herb_synonyms: {
         Row: {
@@ -388,6 +600,13 @@ export type Database = {
             columns: ["herb_id"]
             isOneToOne: false
             referencedRelation: "herbs_clinical_v"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "herb_synonyms_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
+            referencedRelation: "herbs_directory_v"
             referencedColumns: ["herb_id"]
           },
           {
@@ -579,6 +798,13 @@ export type Database = {
             foreignKeyName: "herbs_actions_herb_id_fkey"
             columns: ["herb_id"]
             isOneToOne: false
+            referencedRelation: "herbs_directory_v"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "herbs_actions_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
             referencedRelation: "herbs_public"
             referencedColumns: ["herb_id"]
           },
@@ -626,6 +852,13 @@ export type Database = {
             columns: ["herb_id"]
             isOneToOne: false
             referencedRelation: "herbs_clinical_v"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "herbs_complaints_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
+            referencedRelation: "herbs_directory_v"
             referencedColumns: ["herb_id"]
           },
           {
@@ -688,6 +921,13 @@ export type Database = {
             foreignKeyName: "herbs_constitutions_herb_id_fkey"
             columns: ["herb_id"]
             isOneToOne: false
+            referencedRelation: "herbs_directory_v"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "herbs_constitutions_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
             referencedRelation: "herbs_public"
             referencedColumns: ["herb_id"]
           },
@@ -735,6 +975,13 @@ export type Database = {
             columns: ["herb_id"]
             isOneToOne: false
             referencedRelation: "herbs_clinical_v"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "herbs_doshas_aggravates_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
+            referencedRelation: "herbs_directory_v"
             referencedColumns: ["herb_id"]
           },
           {
@@ -794,6 +1041,13 @@ export type Database = {
             foreignKeyName: "herbs_doshas_match_herb_id_fkey"
             columns: ["herb_id"]
             isOneToOne: false
+            referencedRelation: "herbs_directory_v"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "herbs_doshas_match_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
             referencedRelation: "herbs_public"
             referencedColumns: ["herb_id"]
           },
@@ -834,6 +1088,13 @@ export type Database = {
             columns: ["herb_id"]
             isOneToOne: false
             referencedRelation: "herbs_clinical_v"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "herbs_preparations_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
+            referencedRelation: "herbs_directory_v"
             referencedColumns: ["herb_id"]
           },
           {
@@ -893,6 +1154,13 @@ export type Database = {
             foreignKeyName: "herbs_systems_herb_id_fkey"
             columns: ["herb_id"]
             isOneToOne: false
+            referencedRelation: "herbs_directory_v"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "herbs_systems_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
             referencedRelation: "herbs_public"
             referencedColumns: ["herb_id"]
           },
@@ -934,6 +1202,13 @@ export type Database = {
             columns: ["herb_id"]
             isOneToOne: false
             referencedRelation: "herbs_clinical_v"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "herbs_tastes_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
+            referencedRelation: "herbs_directory_v"
             referencedColumns: ["herb_id"]
           },
           {
@@ -993,6 +1268,13 @@ export type Database = {
             foreignKeyName: "herbs_tcm_contraindicated_herb_id_fkey"
             columns: ["herb_id"]
             isOneToOne: false
+            referencedRelation: "herbs_directory_v"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "herbs_tcm_contraindicated_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
             referencedRelation: "herbs_public"
             referencedColumns: ["herb_id"]
           },
@@ -1040,6 +1322,13 @@ export type Database = {
             columns: ["herb_id"]
             isOneToOne: false
             referencedRelation: "herbs_clinical_v"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "herbs_tcm_indicated_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
+            referencedRelation: "herbs_directory_v"
             referencedColumns: ["herb_id"]
           },
           {
@@ -1099,6 +1388,13 @@ export type Database = {
             foreignKeyName: "herbs_tissue_states_contraindicated_herb_id_fkey"
             columns: ["herb_id"]
             isOneToOne: false
+            referencedRelation: "herbs_directory_v"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "herbs_tissue_states_contraindicated_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
             referencedRelation: "herbs_public"
             referencedColumns: ["herb_id"]
           },
@@ -1152,6 +1448,13 @@ export type Database = {
             foreignKeyName: "herbs_tissue_states_indicated_herb_id_fkey"
             columns: ["herb_id"]
             isOneToOne: false
+            referencedRelation: "herbs_directory_v"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "herbs_tissue_states_indicated_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
             referencedRelation: "herbs_public"
             referencedColumns: ["herb_id"]
           },
@@ -1163,6 +1466,288 @@ export type Database = {
             referencedColumns: ["state_id"]
           },
         ]
+      }
+      internal_testers: {
+        Row: {
+          created_at: string
+          email: string
+          note: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          note?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          note?: string | null
+        }
+        Relationships: []
+      }
+      magnet_email_queue: {
+        Row: {
+          band: string
+          created_at: string
+          error_message: string | null
+          first_name: string | null
+          id: string
+          recipient_email: string
+          retry_count: number
+          scheduled_for: string
+          sent_at: string | null
+          sequence_position: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          band: string
+          created_at?: string
+          error_message?: string | null
+          first_name?: string | null
+          id?: string
+          recipient_email: string
+          retry_count?: number
+          scheduled_for: string
+          sent_at?: string | null
+          sequence_position: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          band?: string
+          created_at?: string
+          error_message?: string | null
+          first_name?: string | null
+          id?: string
+          recipient_email?: string
+          retry_count?: number
+          scheduled_for?: string
+          sent_at?: string | null
+          sequence_position?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      nurture_email_queue: {
+        Row: {
+          constitution_pattern: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          recipient_email: string
+          retry_count: number
+          scheduled_for: string
+          sent_at: string | null
+          sequence_position: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          constitution_pattern?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient_email: string
+          retry_count?: number
+          scheduled_for: string
+          sent_at?: string | null
+          sequence_position: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          constitution_pattern?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient_email?: string
+          retry_count?: number
+          scheduled_for?: string
+          sent_at?: string | null
+          sequence_position?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      page_views: {
+        Row: {
+          id: string
+          is_bot: boolean
+          occurred_at: string
+          path: string
+          referrer_host: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          visitor_hash: string | null
+        }
+        Insert: {
+          id?: string
+          is_bot?: boolean
+          occurred_at?: string
+          path: string
+          referrer_host?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          visitor_hash?: string | null
+        }
+        Update: {
+          id?: string
+          is_bot?: boolean
+          occurred_at?: string
+          path?: string
+          referrer_host?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          visitor_hash?: string | null
+        }
+        Relationships: []
+      }
+      person_profile_tissue_states: {
+        Row: {
+          body_system_id: string
+          completion_id: string | null
+          person_profile_id: string
+          recorded_at: string
+          tissue_state_id: string
+          updated_at: string
+        }
+        Insert: {
+          body_system_id: string
+          completion_id?: string | null
+          person_profile_id: string
+          recorded_at?: string
+          tissue_state_id: string
+          updated_at?: string
+        }
+        Update: {
+          body_system_id?: string
+          completion_id?: string | null
+          person_profile_id?: string
+          recorded_at?: string
+          tissue_state_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "person_profile_tissue_states_body_system_id_fkey"
+            columns: ["body_system_id"]
+            isOneToOne: false
+            referencedRelation: "body_systems"
+            referencedColumns: ["system_id"]
+          },
+          {
+            foreignKeyName: "person_profile_tissue_states_completion_id_fkey"
+            columns: ["completion_id"]
+            isOneToOne: false
+            referencedRelation: "diagnostic_completions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "person_profile_tissue_states_person_profile_id_fkey"
+            columns: ["person_profile_id"]
+            isOneToOne: false
+            referencedRelation: "diagnostic_profile_v"
+            referencedColumns: ["person_profile_id"]
+          },
+          {
+            foreignKeyName: "person_profile_tissue_states_person_profile_id_fkey"
+            columns: ["person_profile_id"]
+            isOneToOne: false
+            referencedRelation: "person_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "person_profile_tissue_states_tissue_state_id_fkey"
+            columns: ["tissue_state_id"]
+            isOneToOne: false
+            referencedRelation: "tissue_states"
+            referencedColumns: ["state_id"]
+          },
+        ]
+      }
+      person_profiles: {
+        Row: {
+          allergies: string | null
+          biological_sex:
+            | Database["public"]["Enums"]["biological_sex_enum"]
+            | null
+          conditions: string | null
+          created_at: string
+          date_of_birth: string | null
+          diagnostic_completed_at: string | null
+          eden_constitution: string | null
+          galenic_temperament:
+            | Database["public"]["Enums"]["galenic_temperament_type"]
+            | null
+          id: string
+          is_self: boolean
+          medications: string | null
+          name: string
+          notes: string | null
+          profile_kind: Database["public"]["Enums"]["profile_kind_enum"] | null
+          updated_at: string
+          user_id: string
+          vital_force_reading:
+            | Database["public"]["Enums"]["vital_force_reading_type"]
+            | null
+        }
+        Insert: {
+          allergies?: string | null
+          biological_sex?:
+            | Database["public"]["Enums"]["biological_sex_enum"]
+            | null
+          conditions?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          diagnostic_completed_at?: string | null
+          eden_constitution?: string | null
+          galenic_temperament?:
+            | Database["public"]["Enums"]["galenic_temperament_type"]
+            | null
+          id?: string
+          is_self?: boolean
+          medications?: string | null
+          name: string
+          notes?: string | null
+          profile_kind?: Database["public"]["Enums"]["profile_kind_enum"] | null
+          updated_at?: string
+          user_id: string
+          vital_force_reading?:
+            | Database["public"]["Enums"]["vital_force_reading_type"]
+            | null
+        }
+        Update: {
+          allergies?: string | null
+          biological_sex?:
+            | Database["public"]["Enums"]["biological_sex_enum"]
+            | null
+          conditions?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          diagnostic_completed_at?: string | null
+          eden_constitution?: string | null
+          galenic_temperament?:
+            | Database["public"]["Enums"]["galenic_temperament_type"]
+            | null
+          id?: string
+          is_self?: boolean
+          medications?: string | null
+          name?: string
+          notes?: string | null
+          profile_kind?: Database["public"]["Enums"]["profile_kind_enum"] | null
+          updated_at?: string
+          user_id?: string
+          vital_force_reading?:
+            | Database["public"]["Enums"]["vital_force_reading_type"]
+            | null
+        }
+        Relationships: []
       }
       preparations: {
         Row: {
@@ -1235,6 +1820,62 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      quiz_completion_failures: {
+        Row: {
+          ef_error_message: string | null
+          id: string
+          last_retry_at: string | null
+          last_retry_body: string | null
+          last_retry_status: number | null
+          notes: string | null
+          postgrest_body: string | null
+          postgrest_status: number | null
+          raw_payload: Json
+          received_at: string
+          resolved_at: string | null
+          resolved_quiz_completion_id: string | null
+          retry_count: number
+        }
+        Insert: {
+          ef_error_message?: string | null
+          id?: string
+          last_retry_at?: string | null
+          last_retry_body?: string | null
+          last_retry_status?: number | null
+          notes?: string | null
+          postgrest_body?: string | null
+          postgrest_status?: number | null
+          raw_payload: Json
+          received_at?: string
+          resolved_at?: string | null
+          resolved_quiz_completion_id?: string | null
+          retry_count?: number
+        }
+        Update: {
+          ef_error_message?: string | null
+          id?: string
+          last_retry_at?: string | null
+          last_retry_body?: string | null
+          last_retry_status?: number | null
+          notes?: string | null
+          postgrest_body?: string | null
+          postgrest_status?: number | null
+          raw_payload?: Json
+          received_at?: string
+          resolved_at?: string | null
+          resolved_quiz_completion_id?: string | null
+          retry_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_completion_failures_resolved_quiz_completion_id_fkey"
+            columns: ["resolved_quiz_completion_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_completions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quiz_completions: {
         Row: {
@@ -1463,41 +2104,23 @@ export type Database = {
         }
         Relationships: []
       }
-      tier_2_waitlist: {
-        Row: {
-          created_at: string
-          email: string
-          first_name: string | null
-          id: string
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          first_name?: string | null
-          id?: string
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          first_name?: string | null
-          id?: string
-        }
-        Relationships: []
-      }
       tissue_states: {
         Row: {
+          clinical_canonical: boolean
           description: string | null
           opposing_state_id: string | null
           state_id: string
           state_name: string
         }
         Insert: {
+          clinical_canonical?: boolean
           description?: string | null
           opposing_state_id?: string | null
           state_id: string
           state_name: string
         }
         Update: {
+          clinical_canonical?: boolean
           description?: string | null
           opposing_state_id?: string | null
           state_id?: string
@@ -1512,6 +2135,111 @@ export type Database = {
             referencedColumns: ["state_id"]
           },
         ]
+      }
+      waitlist_signups: {
+        Row: {
+          consents: Json
+          created_at: string
+          email: string
+          entered_at: string
+          entry_funnel: Database["public"]["Enums"]["entry_funnel"]
+          first_name: string | null
+          id: string
+          last_name: string | null
+          metadata: Json
+          referrer: string | null
+          resend_contact_id: string | null
+          resend_synced_at: string | null
+          source: string | null
+          source_url: string | null
+          unsubscribed_at: string | null
+          updated_at: string
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+        }
+        Insert: {
+          consents?: Json
+          created_at?: string
+          email: string
+          entered_at?: string
+          entry_funnel: Database["public"]["Enums"]["entry_funnel"]
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          metadata?: Json
+          referrer?: string | null
+          resend_contact_id?: string | null
+          resend_synced_at?: string | null
+          source?: string | null
+          source_url?: string | null
+          unsubscribed_at?: string | null
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Update: {
+          consents?: Json
+          created_at?: string
+          email?: string
+          entered_at?: string
+          entry_funnel?: Database["public"]["Enums"]["entry_funnel"]
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          metadata?: Json
+          referrer?: string | null
+          resend_contact_id?: string | null
+          resend_synced_at?: string | null
+          source?: string | null
+          source_url?: string | null
+          unsubscribed_at?: string | null
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Relationships: []
+      }
+      weekly_trends_runs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          leads_this_week: number | null
+          run_date: string
+          status: string
+          triggered_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          leads_this_week?: number | null
+          run_date: string
+          status?: string
+          triggered_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          leads_this_week?: number | null
+          run_date?: string
+          status?: string
+          triggered_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {
@@ -1559,10 +2287,62 @@ export type Database = {
             foreignKeyName: "contraindications_herb_id_fkey"
             columns: ["herb_id"]
             isOneToOne: false
+            referencedRelation: "herbs_directory_v"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "contraindications_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
             referencedRelation: "herbs_public"
             referencedColumns: ["herb_id"]
           },
         ]
+      }
+      diagnostic_profile_v: {
+        Row: {
+          diagnostic_completed_at: string | null
+          galenic_temperament:
+            | Database["public"]["Enums"]["galenic_temperament_type"]
+            | null
+          has_full_diagnostic_depth: boolean | null
+          pattern: string | null
+          person_profile_id: string | null
+          tissue_state_profile: Json | null
+          user_id: string | null
+          vital_force_reading:
+            | Database["public"]["Enums"]["vital_force_reading_type"]
+            | null
+        }
+        Insert: {
+          diagnostic_completed_at?: string | null
+          galenic_temperament?:
+            | Database["public"]["Enums"]["galenic_temperament_type"]
+            | null
+          has_full_diagnostic_depth?: never
+          pattern?: string | null
+          person_profile_id?: string | null
+          tissue_state_profile?: never
+          user_id?: string | null
+          vital_force_reading?:
+            | Database["public"]["Enums"]["vital_force_reading_type"]
+            | null
+        }
+        Update: {
+          diagnostic_completed_at?: string | null
+          galenic_temperament?:
+            | Database["public"]["Enums"]["galenic_temperament_type"]
+            | null
+          has_full_diagnostic_depth?: never
+          pattern?: string | null
+          person_profile_id?: string | null
+          tissue_state_profile?: never
+          user_id?: string | null
+          vital_force_reading?:
+            | Database["public"]["Enums"]["vital_force_reading_type"]
+            | null
+        }
+        Relationships: []
       }
       herbs_clinical_v: {
         Row: {
@@ -1783,117 +2563,117 @@ export type Database = {
         }
         Insert: {
           actions_rel?: never
-          ayurvedic_dosha_aggravates?: string | null
-          ayurvedic_dosha_match?: string | null
-          biblical_traditional_reference?: string | null
-          breastfeeding_safety?: string | null
-          cautions?: string | null
-          chief_complaints?: string | null
-          children_safety?: string | null
+          ayurvedic_dosha_aggravates?: never
+          ayurvedic_dosha_match?: never
+          biblical_traditional_reference?: never
+          breastfeeding_safety?: never
+          cautions?: never
+          chief_complaints?: never
+          children_safety?: never
           common_name?: string | null
           complaint_names?: never
           complaints_rel?: never
           constitutions_rel?: never
-          contraindications_general?: string | null
-          dosage_notes?: string | null
+          contraindications_general?: never
+          dosage_notes?: never
           doshas_aggravates_rel?: never
           doshas_match_rel?: never
-          drug_interactions?: string | null
-          energetics_summary?: string | null
+          drug_interactions?: never
+          energetics_summary?: never
           herb_id?: string | null
           image_filename?: string | null
           is_locked?: never
           latin_name?: string | null
-          moisture?: string | null
-          notes?: string | null
+          moisture?: never
+          notes?: never
           part_used?: string | null
           plant_family?: string | null
-          pregnancy_safety?: string | null
-          preparation_methods?: string | null
+          pregnancy_safety?: never
+          preparation_methods?: never
           preparations_rel?: never
-          primary_sources?: string | null
+          primary_sources?: never
           primary_text_citation?: never
           pronunciation?: string | null
-          refer_threshold?: string | null
+          refer_threshold?: never
           secondary_citation?: never
-          secondary_sources?: string | null
+          secondary_sources?: never
           status?: string | null
-          stewardship_note?: string | null
-          system_affinity?: string | null
+          stewardship_note?: never
+          system_affinity?: never
           systems_rel?: never
-          taste?: string | null
+          taste?: never
           tastes_rel?: never
-          tcm_contraindicated_patterns?: string | null
+          tcm_contraindicated_patterns?: never
           tcm_contraindicated_rel?: never
           tcm_indicated_rel?: never
-          tcm_pattern_match?: string | null
-          temperature?: string | null
+          tcm_pattern_match?: never
+          temperature?: never
           tier_visibility?:
             | Database["public"]["Enums"]["subscription_tier"]
             | null
-          tissue_states_contraindicated?: string | null
+          tissue_states_contraindicated?: never
           tissue_states_contraindicated_rel?: never
-          tissue_states_indicated?: string | null
+          tissue_states_indicated?: never
           tissue_states_indicated_rel?: never
           traditional_observations?: never
-          western_constitution_match?: string | null
+          western_constitution_match?: never
         }
         Update: {
           actions_rel?: never
-          ayurvedic_dosha_aggravates?: string | null
-          ayurvedic_dosha_match?: string | null
-          biblical_traditional_reference?: string | null
-          breastfeeding_safety?: string | null
-          cautions?: string | null
-          chief_complaints?: string | null
-          children_safety?: string | null
+          ayurvedic_dosha_aggravates?: never
+          ayurvedic_dosha_match?: never
+          biblical_traditional_reference?: never
+          breastfeeding_safety?: never
+          cautions?: never
+          chief_complaints?: never
+          children_safety?: never
           common_name?: string | null
           complaint_names?: never
           complaints_rel?: never
           constitutions_rel?: never
-          contraindications_general?: string | null
-          dosage_notes?: string | null
+          contraindications_general?: never
+          dosage_notes?: never
           doshas_aggravates_rel?: never
           doshas_match_rel?: never
-          drug_interactions?: string | null
-          energetics_summary?: string | null
+          drug_interactions?: never
+          energetics_summary?: never
           herb_id?: string | null
           image_filename?: string | null
           is_locked?: never
           latin_name?: string | null
-          moisture?: string | null
-          notes?: string | null
+          moisture?: never
+          notes?: never
           part_used?: string | null
           plant_family?: string | null
-          pregnancy_safety?: string | null
-          preparation_methods?: string | null
+          pregnancy_safety?: never
+          preparation_methods?: never
           preparations_rel?: never
-          primary_sources?: string | null
+          primary_sources?: never
           primary_text_citation?: never
           pronunciation?: string | null
-          refer_threshold?: string | null
+          refer_threshold?: never
           secondary_citation?: never
-          secondary_sources?: string | null
+          secondary_sources?: never
           status?: string | null
-          stewardship_note?: string | null
-          system_affinity?: string | null
+          stewardship_note?: never
+          system_affinity?: never
           systems_rel?: never
-          taste?: string | null
+          taste?: never
           tastes_rel?: never
-          tcm_contraindicated_patterns?: string | null
+          tcm_contraindicated_patterns?: never
           tcm_contraindicated_rel?: never
           tcm_indicated_rel?: never
-          tcm_pattern_match?: string | null
-          temperature?: string | null
+          tcm_pattern_match?: never
+          temperature?: never
           tier_visibility?:
             | Database["public"]["Enums"]["subscription_tier"]
             | null
-          tissue_states_contraindicated?: string | null
+          tissue_states_contraindicated?: never
           tissue_states_contraindicated_rel?: never
-          tissue_states_indicated?: string | null
+          tissue_states_indicated?: never
           tissue_states_indicated_rel?: never
           traditional_observations?: never
-          western_constitution_match?: string | null
+          western_constitution_match?: never
         }
         Relationships: []
       }
@@ -1953,4 +2733,335 @@ export type Database = {
           children_safety?: string | null
           common_name?: string | null
           contraindications_general?: string | null
-     
+          energetics_summary?: string | null
+          herb_id?: string | null
+          image_filename?: string | null
+          latin_name?: string | null
+          moisture?: string | null
+          part_used?: string | null
+          plant_family?: string | null
+          pregnancy_safety?: string | null
+          pronunciation?: string | null
+          status?: string | null
+          stewardship_note?: string | null
+          taste?: string | null
+          temperature?: string | null
+          tier_visibility?:
+            | Database["public"]["Enums"]["subscription_tier"]
+            | null
+        }
+        Relationships: []
+      }
+      quiz_completion_failure_stats: {
+        Row: {
+          last_24h_count: number | null
+          last_24h_pending: number | null
+          max_retries_seen: number | null
+          most_recent_failure_at: string | null
+          oldest_pending_received_at: string | null
+          pending_count: number | null
+          resolved_count: number | null
+          total_count: number | null
+        }
+        Relationships: []
+      }
+      tier_2_waitlist: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          first_name: string | null
+          id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          first_name?: string | null
+          id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          first_name?: string | null
+          id?: string | null
+        }
+        Relationships: []
+      }
+      v_lead_magnet_stats: {
+        Row: {
+          capture_day: string | null
+          captures: number | null
+          funnel: string | null
+          source: string | null
+        }
+        Relationships: []
+      }
+    }
+    Functions: {
+      current_tier: {
+        Args: never
+        Returns: Database["public"]["Enums"]["subscription_tier"]
+      }
+      current_user_at_least: { Args: { min_tier: string }; Returns: boolean }
+      current_user_tier: { Args: never; Returns: string }
+      founder_lead_feed: {
+        Args: { p_since?: string }
+        Returns: {
+          email: string
+          entered_at: string
+          first_name: string
+          funnel: string
+          source: string
+          source_url: string
+          unsubscribed: boolean
+          utm_campaign: string
+          utm_source: string
+        }[]
+      }
+      founder_traffic: { Args: { p_since?: string }; Returns: Json }
+      has_tier: {
+        Args: { required: Database["public"]["Enums"]["subscription_tier"] }
+        Returns: boolean
+      }
+      is_founder: { Args: never; Returns: boolean }
+      is_internal_tester: { Args: { p_email: string }; Returns: boolean }
+      lead_capture_digest_window: {
+        Args: { p_window_end: string; p_window_start: string }
+        Returns: {
+          email: string
+          entered_at: string
+          first_name: string
+          funnel: string
+          source: string
+          source_url: string
+          utm_campaign: string
+          utm_source: string
+        }[]
+      }
+      person_profile_cap_for_tier: { Args: { tier: string }; Returns: number }
+      record_page_view: {
+        Args: {
+          p_path: string
+          p_referrer?: string
+          p_utm_campaign?: string
+          p_utm_medium?: string
+          p_utm_source?: string
+        }
+        Returns: undefined
+      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
+      tier_rank: {
+        Args: { t: Database["public"]["Enums"]["subscription_tier"] }
+        Returns: number
+      }
+      waitlist_apply_resend_event: {
+        Args: {
+          p_contact_id: string
+          p_email: string
+          p_event_type: string
+          p_metadata_patch: Json
+        }
+        Returns: number
+      }
+      weekly_trends_snapshot: { Args: never; Returns: Json }
+    }
+    Enums: {
+      biological_sex_enum: "male" | "female"
+      contraindication_kind:
+        | "drug_interaction"
+        | "condition"
+        | "population"
+        | "pregnancy"
+        | "breastfeeding"
+        | "pediatric"
+        | "geriatric"
+        | "other"
+      entry_funnel:
+        | "app_beta"
+        | "course_tier2"
+        | "edens_table"
+        | "homeschool"
+        | "community"
+        | "quiz_funnel"
+        | "practitioner_waitlist"
+      galenic_temperament_type:
+        | "eukrasia"
+        | "simple_dyskrasia_hot"
+        | "simple_dyskrasia_cold"
+        | "simple_dyskrasia_dry"
+        | "simple_dyskrasia_wet"
+        | "compound_dyskrasia_hot_dry"
+        | "compound_dyskrasia_hot_wet"
+        | "compound_dyskrasia_cold_dry"
+        | "compound_dyskrasia_cold_wet"
+      profile_kind_enum: "adult" | "child"
+      public_domain_flag: "yes" | "no" | "partial"
+      severity_level: "low" | "moderate" | "high" | "absolute"
+      subscription_tier: "free" | "seed" | "root" | "practitioner"
+      vital_force_reading_type: "sthenic" | "balanced" | "asthenic"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      biological_sex_enum: ["male", "female"],
+      contraindication_kind: [
+        "drug_interaction",
+        "condition",
+        "population",
+        "pregnancy",
+        "breastfeeding",
+        "pediatric",
+        "geriatric",
+        "other",
+      ],
+      entry_funnel: [
+        "app_beta",
+        "course_tier2",
+        "edens_table",
+        "homeschool",
+        "community",
+        "quiz_funnel",
+        "practitioner_waitlist",
+      ],
+      galenic_temperament_type: [
+        "eukrasia",
+        "simple_dyskrasia_hot",
+        "simple_dyskrasia_cold",
+        "simple_dyskrasia_dry",
+        "simple_dyskrasia_wet",
+        "compound_dyskrasia_hot_dry",
+        "compound_dyskrasia_hot_wet",
+        "compound_dyskrasia_cold_dry",
+        "compound_dyskrasia_cold_wet",
+      ],
+      profile_kind_enum: ["adult", "child"],
+      public_domain_flag: ["yes", "no", "partial"],
+      severity_level: ["low", "moderate", "high", "absolute"],
+      subscription_tier: ["free", "seed", "root", "practitioner"],
+      vital_force_reading_type: ["sthenic", "balanced", "asthenic"],
+    },
+  },
+} as const
