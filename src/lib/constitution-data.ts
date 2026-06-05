@@ -13,6 +13,18 @@ export interface ConstitutionProfile {
  */
 export type Axis = "temperature" | "fluid" | "tone";
 
+/**
+ * AxisCounts — raw per-axis tallies from the Pattern of Eden quiz, used to
+ * render the inconclusive-screen AxisSpectrum (each axis plotted as a marker
+ * between its two poles). `total` is the answered-question count for that axis
+ * (poles + neutrals), so neutrals can be weighted toward the center.
+ */
+export interface AxisCounts {
+  temperature: { hot: number; cold: number; total: number };
+  fluid: { damp: number; dry: number; total: number };
+  tone: { tense: number; relaxed: number; total: number };
+}
+
 export const constitutionProfiles: Record<string, ConstitutionProfile> = {
   "Hot / Dry / Tense": {
     nickname: "The Burning Bowstring",
