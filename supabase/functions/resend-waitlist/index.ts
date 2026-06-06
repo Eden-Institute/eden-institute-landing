@@ -201,7 +201,7 @@ ${p(`You just took the Constitutional Assessment — and your result is in.`)}
 ${spacer(4)}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;border:1px solid ${BRAND.gold};background-color:${BRAND.bgOuter};">
 <tr><td style="padding:24px;text-align:center;">
-<p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:3px;color:${BRAND.gold};text-transform:uppercase;margin:0 0 8px 0;">YOUR TYPE</p>
+<p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:3px;color:${BRAND.gold};text-transform:uppercase;margin:0 0 8px 0;">YOUR PATTERN</p>
 <p style="font-family:Georgia,serif;font-size:24px;font-weight:bold;color:${BRAND.forest};margin:0;">${constitutionName}</p>
 </td></tr>
 </table>
@@ -220,7 +220,7 @@ ${brandButton(`Get Your ${constitutionName.replace(/^The /i, '')} Deep-Dive Guid
 ${signature()}`;
 
   return {
-    subject: `Your body type is ${constitutionName} — here's what that means`,
+    subject: `Your body pattern is ${constitutionName} — here's what that means`,
     html: __shared_emailWrapper(body),
   };
 }
