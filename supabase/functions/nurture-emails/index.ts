@@ -301,8 +301,11 @@ interface MagnetResult {
 // enqueued by the post-deploy resend-waitlist whose Week-1 email no longer
 // carries the story, so their Week-2 email includes it. Rows created before this
 // (last week's ~1,100 leads) already received the story in Week 1 and are NOT
-// re-sent it. Keep this ≈ the deploy time of this change.
-const STORY_CUTOFF_MS = Date.parse('2026-06-06T23:00:00Z');
+// re-sent it. Set this AT OR BEFORE the deploy moment — never after: a signup
+// between this cutoff and the actual deploy harmlessly receives the story in
+// both weeks, whereas a cutoff later than the deploy would leave a brand-new
+// lead with no story at all.
+const STORY_CUTOFF_MS = Date.parse('2026-06-06T22:38:00Z');
 
 // Lock #83 / Phase 3.1.2: drains public.magnet_email_queue (Sprouts/Seedlings
 // Week 2 day-7 + Facebook day-14). Unlike the quiz drip this needs NO
