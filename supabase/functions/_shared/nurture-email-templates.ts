@@ -356,9 +356,9 @@ ${bullet("Lifetime access")}
 ${spacer(12)}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;background-color:${BRAND.bgOuter};padding:20px;text-align:center;">
 <tr><td style="padding:20px;">
-<p style="font-family:Georgia,serif;font-size:22px;font-weight:bold;color:${BRAND.forest};margin:0 0 8px 0;">Limited-time founding student pricing</p>
-<p style="font-family:Georgia,serif;font-size:15px;color:${BRAND.text};margin:0 0 8px 0;">Click below to enroll — current price is shown on the enrollment page.</p>
-<p style="font-family:Georgia,serif;font-size:14px;color:${BRAND.gold};font-weight:bold;margin:0;">Price raises to $147 on July 7, 2026</p>
+<p style="font-family:Georgia,serif;font-size:22px;font-weight:bold;color:${BRAND.forest};margin:0 0 8px 0;">Founding student pricing</p>
+<p style="font-family:Georgia,serif;font-size:15px;color:${BRAND.text};margin:0 0 8px 0;">The Foundations Course (Tier 1) is $97 for the first 100 founding students — then it returns to $197. The founding price is applied automatically at checkout; no code needed.</p>
+<p style="font-family:Georgia,serif;font-size:14px;color:${BRAND.gold};font-weight:bold;margin:0;">Only the first 100 seats are $97.</p>
 </td></tr>
 </table>
 ${goldDivider()}
@@ -371,7 +371,7 @@ ${subheading("\"What if I can't finish in time?\"")}
 ${p("The course is entirely self-paced with lifetime access. There is no deadline.")}
 ${brandButton("ENROLL NOW — THE FOUNDATIONS COURSE", "https://learn.edeninstitute.health/course/back-to-eden1")}
 ${goldDivider()}
-${p("<strong>P.S.</strong> Tier 2 — Body Systems & Clinical Literacy — opens to the public October 8, 2026 at $1,497. Join the free waitlist now and you'll receive a founding access code for $497 (valid 14 days) when Tier 2 launches July 7. " + link("Join the waitlist →", "https://edeninstitute.health/tier-2-waitlist"))}
+${p("<strong>P.S.</strong> Tier 2 — Body Systems & Clinical Literacy — is coming. Tier 1 students are first to hear when it opens, so finishing Foundations puts you at the front of the line.")}
 ${signature()}`;
 
   return {
@@ -408,7 +408,7 @@ ${spacer(8)}
 ${p("If and when you're ready to go deeper, the Foundations Course is always available.")}
 ${p(`${link("Learn about the Foundations Course →", "https://learn.edeninstitute.health/course/back-to-eden1")}`)}
 ${goldDivider()}
-${p("<strong>P.S.</strong> Tier 2 — Body Systems & Clinical Literacy — opens to the public October 8, 2026 at $1,497. Join the free waitlist now and you'll receive a founding access code for $497 (valid 14 days) when Tier 2 launches July 7. " + link("Join the waitlist →", "https://edeninstitute.health/tier-2-waitlist"))}
+${p("<strong>P.S.</strong> Ready to go deeper than the kit? The Foundations Course (Tier 1) is $97 for the first 100 founding students — then $197. " + link("Start the Foundations Course →", "https://learn.edeninstitute.health/course/back-to-eden1"))}
 ${signature()}`;
 
   return {
