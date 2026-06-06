@@ -1,0 +1,76 @@
+---
+// Astro-native port of src/components/landing/Navbar.tsx — plain <a href> (no
+// react-router), so marketing pages ship zero JS for the header. Mobile toggle
+// is a tiny vanilla script. Visuals/classes mirror the React version exactly.
+const navLinks = [
+  { label: "Home", href: "/", external: false },
+  { label: "Eden's Table", href: "/homeschool", external: false },
+  { label: "Courses", href: "/courses", external: false },
+  { label: "Apothecary", href: "/apothecary/start", external: false },
+  { label: "The Book", href: "https://www.amazon.com/dp/B0GPW5BZ32?tag=theedeninstit-20", external: true },
+];
+---
+
+<header class="w-full bg-[#FAF8F3] border-b border-[#D6CDB8] sticky top-0 z-50">
+  <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+    <a href="/" class="flex flex-col leading-tight">
+      <span class="font-serif text-xl text-[#3B4A3F] tracking-wide">The Eden Institute</span>
+      <span class="text-xs text-[#7A8C7E] tracking-widest uppercase font-sans">Biblical Herbalism Education</span>
+    </a>
+    <nav class="hidden min-[880px]:flex items-center gap-8">
+      {navLinks.map((link) => (
+        <a
+          href={link.href}
+          target={link.external ? "_blank" : undefined}
+          rel={link.external ? "noopener noreferrer" : undefined}
+          class="text-sm font-sans text-[#4A5C4E] hover:text-[#2E3D32] tracking-wide transition-colors duration-200"
+        >{link.label}</a>
+      ))}
+    </nav>
+    <div class="hidden min-[880px]:block">
+      <a
+        href="/assessment"
+        class="text-sm font-sans px-5 py-2 rounded-sm tracking-wide transition-colors duration-200 min-h-[44px] inline-flex items-center"
+        style="background-color:#C5A44E;color:#1C3A2E"
+      >Take the Quiz</a>
+    </div>
+    <button
+      id="eden-nav-toggle"
+      class="min-[880px]:hidden text-[#3B4A3F] min-h-[44px] min-w-[44px] flex items-center justify-center"
+      aria-label="Toggle menu"
+      aria-expanded="false"
+    >
+      <svg id="eden-nav-open-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+      <svg id="eden-nav-close-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </button>
+  </div>
+  <div id="eden-nav-mobile" class="hidden min-[880px]:hidden bg-[#FAF8F3] border-t border-[#D6CDB8] px-6 pb-6 pt-4 flex-col gap-5">
+    {navLinks.map((link) => (
+      <a
+        href={link.href}
+        target={link.external ? "_blank" : undefined}
+        rel={link.external ? "noopener noreferrer" : undefined}
+        class="text-sm font-sans text-[#4A5C4E] hover:text-[#2E3D32] tracking-wide transition-colors duration-200"
+      >{link.label}</a>
+    ))}
+    <a
+      href="/assessment"
+      class="text-sm font-sans px-5 py-2 rounded-sm tracking-wide text-center min-h-[44px] inline-flex items-center justify-center"
+      style="background-color:#C5A44E;color:#1C3A2E"
+    >Take the Quiz</a>
+  </div>
+</header>
+
+<script>
+  const btn = document.getElementById("eden-nav-toggle");
+  const menu = document.getElementById("eden-nav-mobile");
+  const openIcon = document.getElementById("eden-nav-open-icon");
+  const closeIcon = document.getElementById("eden-nav-close-icon");
+  btn?.addEventListener("click", () => {
+    const isOpen = menu?.classList.toggle("hidden") === false;
+    menu?.classList.toggle("flex", isOpen);
+    openIcon?.classList.toggle("hidden", isOpen);
+    closeIcon?.classList.toggle("hidden", !isOpen);
+    btn.setAttribute("aria-expanded", String(isOpen));
+  });
+</script>

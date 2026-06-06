@@ -1,0 +1,112 @@
+---
+// /community — Astro port of src/pages/Community.tsx. Pre-rendered to static
+// HTML for SEO. Content/classes mirror the React page exactly. The original's
+// WaitlistModal is intentionally omitted: it was never triggered there
+// (setOpen(true) is never called) — the live CTAs are the "Connect With Us"
+// mailto links, preserved here. Navbar/Footer/analytics come from the layout.
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+import { Button } from "@/components/ui/button";
+import { MapPin, Sprout, Users, BookOpen } from "lucide-react";
+
+const meta = {
+  title: "The Rooted Community | The Eden Institute",
+  description:
+    "A private network for homesteaders, homeschool families, and liberty-minded believers building lives connected to the land, the body, and each other.",
+  canonical: "https://edeninstitute.health/community",
+};
+---
+
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical}>
+  <section class="py-20 md:py-28 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-4xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-6" style="color:hsl(var(--eden-gold))">
+        The Rooted Community
+      </p>
+      <h1 class="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
+        Faith Families.
+        <br />
+        <span class="italic">Rooted in the Land.</span>
+      </h1>
+      <div class="w-16 h-px mx-auto my-8" style="background-color:hsl(var(--eden-gold))"></div>
+      <p class="font-body text-lg text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
+        A private network for homesteaders, homeschool families, and liberty-minded believers building lives
+        connected to the land, the body, and each other — free from dependence on systems that were never designed
+        for their flourishing.
+      </p>
+      <blockquote class="scripture-block text-sm text-muted-foreground max-w-xl mx-auto mb-10 text-left">
+        "They shall build houses and inhabit them; they shall plant vineyards and eat their fruit."
+        <footer class="mt-2 text-xs tracking-wider uppercase font-body font-medium not-italic" style="color:hsl(var(--eden-forest))">
+          — Isaiah 65:21 (NASB)
+        </footer>
+      </blockquote>
+      <a href="mailto:hello@edeninstitute.health">
+        <Button variant="eden" size="xl">Connect With Us</Button>
+      </a>
+    </div>
+  </section>
+
+  <section class="py-16 px-6 bg-background">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-12">
+        <h2 class="font-serif text-3xl font-bold mb-4" style="color:hsl(var(--eden-bark))">
+          What the Rooted Community Is
+        </h2>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="rounded-lg p-6 border" style="border-color:hsl(var(--border));background-color:hsl(var(--eden-cream) / 0.4)">
+          <MapPin className="w-7 h-7 mb-4" color="hsl(var(--eden-gold))" />
+          <h3 class="font-serif text-base font-semibold mb-2" style="color:hsl(var(--eden-bark))">Land and Homestead</h3>
+          <p class="font-body text-sm text-muted-foreground leading-relaxed">
+            Owner-financed land leads, rural property listings, homesteading skill shares, and land sovereignty resources.
+          </p>
+        </div>
+        <div class="rounded-lg p-6 border" style="border-color:hsl(var(--border));background-color:hsl(var(--eden-cream) / 0.4)">
+          <Sprout className="w-7 h-7 mb-4" color="hsl(var(--eden-gold))" />
+          <h3 class="font-serif text-base font-semibold mb-2" style="color:hsl(var(--eden-bark))">Herbal Practice</h3>
+          <p class="font-body text-sm text-muted-foreground leading-relaxed">
+            Community herb gardens, seasonal planting guides, bulk buying co-ops, and practitioner spotlights.
+          </p>
+        </div>
+        <div class="rounded-lg p-6 border" style="border-color:hsl(var(--border));background-color:hsl(var(--eden-cream) / 0.4)">
+          <Users className="w-7 h-7 mb-4" color="hsl(var(--eden-gold))" />
+          <h3 class="font-serif text-base font-semibold mb-2" style="color:hsl(var(--eden-bark))">Family Network</h3>
+          <p class="font-body text-sm text-muted-foreground leading-relaxed">
+            Homeschool co-ops, family skill swaps, and local connections for faith-rooted families doing life differently.
+          </p>
+        </div>
+        <div class="rounded-lg p-6 border" style="border-color:hsl(var(--border));background-color:hsl(var(--eden-cream) / 0.4)">
+          <BookOpen className="w-7 h-7 mb-4" color="hsl(var(--eden-gold))" />
+          <h3 class="font-serif text-base font-semibold mb-2" style="color:hsl(var(--eden-bark))">Weekly Dispatch</h3>
+          <p class="font-body text-sm text-muted-foreground leading-relaxed">
+            Curated land news, community spotlights, herb of the week, and liberty updates — every week.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 px-6" style="background-color:hsl(var(--eden-forest))">
+    <div class="max-w-2xl mx-auto text-center">
+      <h2 class="font-serif text-3xl font-bold mb-6 text-white">This Is Not a Facebook Group.</h2>
+      <p class="font-body text-lg mb-6 leading-relaxed" style="color:rgba(255,255,255,0.85)">
+        It's a curated network of serious families who have counted the cost and chosen to build something that
+        lasts. No algorithms. No surveillance. No compromised platforms.
+      </p>
+      <p class="font-body text-base" style="color:rgba(255,255,255,0.7)">
+        We're inviting aligned partners and founding members into this stage of building. The seat at the table is open, not gated.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-20 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto text-center">
+      <h2 class="font-serif text-3xl font-bold mb-4" style="color:hsl(var(--eden-bark))">Partner With Us</h2>
+      <p class="font-body text-muted-foreground mb-8">
+        We are currently seeking aligned partners, investors, and collaborators to help build this stage of Eden Institute. If you share our vision for faith-grounded, terrain-based health education, we would love to connect.
+      </p>
+      <a href="mailto:hello@edeninstitute.health">
+        <Button variant="eden" size="xl">Connect With Us</Button>
+      </a>
+    </div>
+  </section>
+</MarketingLayout>

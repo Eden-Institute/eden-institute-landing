@@ -5,7 +5,10 @@
     { "source": "/app/:path*", "destination": "/apothecary/:path*", "permanent": true }
   ],
   "rewrites": [
-    { "source": "/((?!api/|_next/|_static/|assets/|favicon\\.ico|robots\\.txt|sitemap\\.xml).*)", "destination": "/index.html" }
+    {
+      "source": "/((?!_astro/|_spa/|api/|favicon|robots\\.txt|sitemap\\.xml|.*\\.(?:png|svg|jpg|jpeg|webp|gif|ico|txt|xml|json|js|css|map|woff2?)).*)",
+      "destination": "/_spa/index.html"
+    }
   ],
   "crons": [
     {
