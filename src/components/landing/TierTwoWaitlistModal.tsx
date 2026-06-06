@@ -45,11 +45,11 @@ export function TierTwoWaitlistModal({
       <DialogContent className="bg-card border-border max-w-md">
         <DialogHeader>
           <DialogTitle className="font-serif text-2xl text-foreground">
-            Reserve Your Tier 2 Founding Access
+            Tier 2 Is Coming
           </DialogTitle>
           <DialogDescription className="font-body text-sm text-muted-foreground pt-2">
-            Free waitlist. Get a founding member coupon that drops the price by $1,000 when Tier 2
-            opens.
+            Tier 2 — Body Systems &amp; Clinical Literacy — is on the way. Start with Tier 1 to build the
+            foundation and be first to hear when it opens.
           </DialogDescription>
         </DialogHeader>
         <div className="pt-2">
