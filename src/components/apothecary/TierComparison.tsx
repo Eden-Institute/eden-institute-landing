@@ -42,7 +42,7 @@ function TierCard({ tier, onPractitionerWaitlist }: TierCardProps) {
         onClick={onPractitionerWaitlist}
         data-cta={`tier-comparison-${tier.id}`}
       >
-        Join the Practitioner Waitlist
+        About the Practitioner Tier
       </Button>
     );
   } else if (isFree) {
@@ -106,7 +106,7 @@ function TierCard({ tier, onPractitionerWaitlist }: TierCardProps) {
             className="font-serif text-2xl font-semibold"
             style={{ color: "hsl(var(--eden-bark))" }}
           >
-            Waitlist
+            Coming soon
           </span>
         )}
       </div>
