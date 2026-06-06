@@ -35,6 +35,9 @@ import {
   buildNurtureEmail3,
   buildNurtureEmail4,
   buildNurtureEmail5,
+  buildNurtureArc1,
+  buildNurtureArc2,
+  buildNurtureArc3,
   buildMagnetWeek2Email,
   buildMagnetWeek3FacebookEmail,
   toSlug,
@@ -173,6 +176,15 @@ async function drainNurtureQueue(): Promise<QueueResult> {
           break;
         case 4:
           built = buildNurtureEmail4(firstName, nickname, slug);
+          break;
+        case 5:
+          built = buildNurtureArc1(firstName, nickname, slug);
+          break;
+        case 6:
+          built = buildNurtureArc2(firstName, nickname, slug);
+          break;
+        case 7:
+          built = buildNurtureArc3(firstName, nickname, slug);
           break;
         default:
           console.error(

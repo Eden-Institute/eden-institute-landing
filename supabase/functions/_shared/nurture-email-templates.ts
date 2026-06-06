@@ -457,6 +457,35 @@ export function buildMagnetWeek2Email(firstName: string, band: 'sprouts' | 'seed
   return { subject: `${isSprouts ? 'Sprouts' : 'Seedlings'} Week 2 (${herb}) — Your Free Preview`, html: emailWrapper(body) };
 }
 
+// ── Quiz 3-arc (runs AFTER the constitution drip; queue positions 5/6/7 at
+// days 11/14/17). Bridges quiz-takers to: Deep Dive + class, app + book,
+// homeschool + Facebook. No coupon codes — the Tier-1 founding price is
+// applied on the LearnWorlds enrollment page.
+const ARC_COURSE_URL = 'https://learn.edeninstitute.health/course/back-to-eden1';
+const ARC_BOOK_ONE_URL = 'https://www.amazon.com/dp/B0GPW5BZ32';
+const ARC_APP_URL = 'https://edeninstitute.health/apothecary/start';
+const ARC_HOMESCHOOL_URL = 'https://edeninstitute.health/homeschool';
+
+// Day 11: Deep-Dive Guide + the Foundations class.
+export function buildNurtureArc1(firstName: string, constitutionName: string, constitutionSlug: string): { subject: string; html: string } {
+  const patternShort = constitutionName.replace(/^The /i, '');
+  const body = `${p(`Hi ${firstName},`)}${p(`You&rsquo;ve spent two weeks getting to know your pattern, <strong>${constitutionName}</strong>. If you&rsquo;re ready to go further, there are two doors.`)}${goldDivider()}${heading('1 &mdash; Your Deep-Dive Guide')}${p(`Your ${patternShort} pattern in full: all 10 matched herbs with actions, preparation methods, dosages, and safety notes &mdash; plus a caution list, lifestyle and nutrition guidance, and the Biblical framework for your constitution.`)}${brandButton(`Get Your ${patternShort} Deep-Dive Guide &mdash; $14`, `https://edeninstitute.health/guide/${constitutionSlug}`)}${goldDivider()}${heading('2 &mdash; The Foundations Class')}${p(`The guide hands you your pattern. The Foundations Course (Tier 1) teaches you to read and work with <em>any</em> constitution &mdash; yours, your children&rsquo;s, your whole household&rsquo;s.`)}${p(`It&rsquo;s <strong>$97 for the first 100 founding students</strong>, then $197. The founding price is applied at checkout &mdash; no code needed.`)}${brandButton('Start the Foundations Class', ARC_COURSE_URL)}${p(`If you&rsquo;ve already begun &mdash; wonderful. Keep going.`)}${signature()}`;
+  return { subject: 'Now you know your pattern — go deeper', html: emailWrapper(body) };
+}
+
+// Day 14: the app + the book.
+export function buildNurtureArc2(firstName: string, constitutionName: string, _constitutionSlug: string): { subject: string; html: string } {
+  const patternShort = constitutionName.replace(/^The /i, '');
+  const body = `${p(`Hi ${firstName},`)}${p(`Your pattern doesn&rsquo;t have to live in an inbox. Two ways to keep it close.`)}${goldDivider()}${heading('The Eden Apothecary app')}${p(`Pattern-aware herb guidance in your pocket &mdash; your ${patternShort} matched herbs, the full library, energetics and safety, all tied to your constitution. Free to start; Seed and Root unlock more depth when you want it.`)}${brandButton('Start Free in the App', ARC_APP_URL)}${goldDivider()}${heading('The book for your shelf')}${p(`When you&rsquo;d rather hold it in your hands, Book One is the companion to everything we teach.`)}${brandButton('Get the Book', withAffiliateTag(ARC_BOOK_ONE_URL))}${p(`<em>Affiliate link &mdash; Eden Institute earns a small commission at no extra cost to you.</em>`)}${signature()}`;
+  return { subject: 'Carry your pattern with you', html: emailWrapper(body) };
+}
+
+// Day 17: homeschool curriculum + Facebook.
+export function buildNurtureArc3(firstName: string, _constitutionName: string, _constitutionSlug: string): { subject: string; html: string } {
+  const body = `${p(`Hi ${firstName},`)}${p(`One last door &mdash; this one&rsquo;s for your family.`)}${goldDivider()}${heading('Eden&rsquo;s Table &mdash; for your children')}${p(`Our K&ndash;12 Biblical-herbalism curriculum teaches children the bodies God designed and the plants He gave to tend them &mdash; woven through Scripture, science, and the rhythms of your own kitchen table.`)}${brandButton('Explore Eden&rsquo;s Table', ARC_HOMESCHOOL_URL)}${goldDivider()}${heading('Come along for the ride')}${p(`I&rsquo;m building all of this in real time. Follow along on Facebook for the progress, the roadblocks, and the launch news &mdash; it&rsquo;s sweeter with you walking it alongside me.`)}${facebookButton('Follow the Journey on Facebook', FACEBOOK_URL)}${signature()}`;
+  return { subject: 'For your table and your family', html: emailWrapper(body) };
+}
+
 // Day 14: the "come along for the ride" Facebook pitch. Band-agnostic.
 export function buildMagnetWeek3FacebookEmail(firstName: string): { subject: string; html: string } {
   const body = `${p(`Hi ${firstName},`)}${p(`By now you&rsquo;ve walked through your first two weeks of Eden&rsquo;s Table around your own kitchen table. Before you go further, I wanted to step out from behind the curriculum for a moment and tell you the story underneath it.`)}${p(`For as long as I can remember, I&rsquo;ve wanted to build something of my own. But it wasn&rsquo;t until late last year that God finally made it clear <em>what</em> that something should be &mdash; this. A Christ-centered way to teach our children the bodies He designed and the plants He gave to tend them.`)}${p(`This is a true passion project for me, and watching it come to life has been humbling in the best way. The encouragement and the sheer number of families asking for this curriculum have been such a blessing &mdash; far more than I expected.`)}${goldDivider()}${heading('Come along for the ride.')}${p(`I&rsquo;d love for you to follow the journey as I build this in real time. I&rsquo;ll be posting often on our Facebook page &mdash; the progress, the roadblocks, the honest struggles, and the praise reports along the way. It&rsquo;s the behind-the-scenes of a dream being built, and it&rsquo;s so much sweeter with you walking it alongside me.`)}${facebookButton('Follow the Journey on Facebook', FACEBOOK_URL)}${goldDivider()}${heading('Know a family who&rsquo;d love this?')}${p(`If a friend comes to mind &mdash; another homeschool mom, a family at church, someone who wants to raise their children close to God&rsquo;s creation &mdash; would you forward this email to them, or share the page? Word of mouth from families like yours is how Eden&rsquo;s Table grows.`)}${p(`<strong>And keep an eye out:</strong> pre-orders open soon. The moment I lock in the right print partner I&rsquo;ll open the doors &mdash; and the families following along will be first to know.`)}${signature()}`;

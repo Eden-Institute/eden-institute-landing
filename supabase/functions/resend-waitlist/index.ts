@@ -1113,10 +1113,19 @@ Deno.serve(async (req) => {
             const day2 = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString();
             const day4 = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000).toISOString();
             const day6 = new Date(now.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString();
+            // 3-arc (post-drip): Deep Dive + class / app + book / homeschool + FB.
+            // Positions 5/6/7 are free — E5 is tracked on quiz_completions, not
+            // the queue. Scheduled day 11/14/17, after the day-8 E5.
+            const day11 = new Date(now.getTime() + 11 * 24 * 60 * 60 * 1000).toISOString();
+            const day14 = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString();
+            const day17 = new Date(now.getTime() + 17 * 24 * 60 * 60 * 1000).toISOString();
             const queueRows = [
               { recipient_email: normalizedEmail, sequence_position: 2, constitution_pattern: name, scheduled_for: day2, status: 'pending' },
               { recipient_email: normalizedEmail, sequence_position: 3, constitution_pattern: name, scheduled_for: day4, status: 'pending' },
               { recipient_email: normalizedEmail, sequence_position: 4, constitution_pattern: name, scheduled_for: day6, status: 'pending' },
+              { recipient_email: normalizedEmail, sequence_position: 5, constitution_pattern: name, scheduled_for: day11, status: 'pending' },
+              { recipient_email: normalizedEmail, sequence_position: 6, constitution_pattern: name, scheduled_for: day14, status: 'pending' },
+              { recipient_email: normalizedEmail, sequence_position: 7, constitution_pattern: name, scheduled_for: day17, status: 'pending' },
             ];
             const queueRes = await fetch(`${SUPABASE_URL}/rest/v1/nurture_email_queue`, {
               method: 'POST',
