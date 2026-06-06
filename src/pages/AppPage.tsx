@@ -1,16 +1,12 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
-import WaitlistModal from "@/components/landing/WaitlistModal";
 import { Smartphone, Leaf, Shield, Star } from "lucide-react";
 import { WorldviewBand } from "@/components/landing/WorldviewBand";
 import { TierComparison } from "@/components/apothecary/TierComparison";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { ROUTES } from "@/lib/routes";
-
-const APP_AUD = "cebd3478-b344-41b7-98c8-8bcf0e0108da";
 
 const AppPage = () => {
   useDocumentMeta({
@@ -20,7 +16,6 @@ const AppPage = () => {
     canonical: "https://edeninstitute.health/apothecary",
   });
 
-  const [open, setOpen] = useState(false);
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -48,52 +43,25 @@ const AppPage = () => {
             style={{ backgroundColor: "hsl(var(--eden-gold) / 0.12)", color: "hsl(var(--eden-gold))" }}
           >
             <span
-              className="w-2 h-2 rounded-full animate-pulse inline-block"
+              className="w-2 h-2 rounded-full inline-block"
               style={{ backgroundColor: "hsl(var(--eden-gold))" }}
             />
-            Beta launching July 7, 2026
+            Available now — free to start
           </div>
-          {/* PR ι (iota): dual-CTA pair. Primary opens the Beta
-              Waitlist modal directly (1-click); secondary "Learn More"
-              routes to /apothecary/start — the public Apothecary
-              tier-select / FAQ surface — so visitors can read tier
-              comparisons and the FAQ before deciding to sign up. */}
+          {/* The app is live. Primary CTA opens the real tier-select / onboarding
+              surface (/apothecary/start) where visitors create a free account and
+              choose a plan; secondary jumps to the in-page tier comparison. */}
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button
-              variant="eden"
-              size="xl"
-              onClick={() => setOpen(true)}
-              data-cta="apothecary-beta-waitlist-hero"
-            >
-              Join the Beta Waitlist
-            </Button>
-            <Button
-              variant="eden-outline"
-              size="xl"
-              asChild
-            >
-              <Link
-                to={ROUTES.APOTHECARY_START}
-                data-cta="apothecary-beta-waitlist-hero-learn-more"
-              >
-                Learn More
+            <Button variant="eden" size="xl" asChild>
+              <Link to={ROUTES.APOTHECARY_START} data-cta="apothecary-start-hero">
+                Start Free
               </Link>
             </Button>
-          </div>
-          {/* feat: public Apothecary tier pricing — secondary affordance
-              under the hero CTA pair so visitors can jump directly to
-              the tier comparison without scrolling past the
-              body-pattern grid. Anchor #tiers is rendered by
-              <TierComparison /> below. */}
-          <div className="mt-6">
-            <a
-              href="#tiers"
-              data-cta="apothecary-hero-see-pricing"
-              className="font-body text-sm underline-offset-4 hover:underline"
-              style={{ color: "hsl(var(--eden-bark))" }}
-            >
-              See pricing first →
-            </a>
+            <Button variant="eden-outline" size="xl" asChild>
+              <a href="#tiers" data-cta="apothecary-hero-see-plans">
+                See Plans
+              </a>
+            </Button>
           </div>
         </div>
       </section>
@@ -151,14 +119,11 @@ const AppPage = () => {
         </div>
       </section>
 
-      {/* feat: public Apothecary tier pricing — four-tier comparison
+      {/* Public Apothecary tier pricing — four-tier comparison
           (Free / Seed / Root / Practitioner) with prices, persona
           labels, taglines, and feature lists. Anchored by
           id="tier-{free|seed|root|practitioner}" so existing
-          useTierAwareCTA upgrade hrefs continue to resolve.
-          Practitioner CTA opens the PractitionerWaitlistModal in
-          place — matches the PR ι (iota) dual-CTA pattern in Navbar
-          so the waitlist conversion path is single-click. */}
+          useTierAwareCTA upgrade hrefs continue to resolve. */}
       <TierComparison
         eyebrow="Pricing"
         heading={
@@ -173,40 +138,25 @@ const AppPage = () => {
 
       <section className="py-20 px-6" style={{ backgroundColor: "hsl(var(--eden-forest))" }}>
         <div className="max-w-2xl mx-auto text-center">
-          <h2 className="font-serif text-3xl font-bold mb-4 text-white">Get Early Access</h2>
+          <h2 className="font-serif text-3xl font-bold mb-4 text-white">Start Today</h2>
           <p className="font-body text-lg mb-8 leading-relaxed" style={{ color: "rgba(255,255,255,0.85)" }}>
-            Beta opens July 7 alongside the Tier 2 course launch. Founding members get first access and founding pricing
-            locked for life.
+            Your herbs, matched to your body pattern — available now. Create a free account in minutes, and upgrade to
+            Seed or Root whenever you're ready for more depth.
           </p>
-          {/* PR ι (iota): dual-CTA pair on the dark forest section.
-              Primary keeps the existing white-outline-on-dark styling;
-              secondary is a small text link in the parchment color so
-              both surfaces stay legible against the forest background.
-              "Learn More" routes to /apothecary/start. */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button
-              variant="eden-outline"
-              size="xl"
-              className="border-white text-white hover:bg-white hover:text-foreground"
-              onClick={() => setOpen(true)}
-              data-cta="apothecary-beta-waitlist-bottom"
-            >
-              Join the Beta Waitlist
-            </Button>
-            <Link
-              to={ROUTES.APOTHECARY_START}
-              data-cta="apothecary-beta-waitlist-bottom-learn-more"
-              className="font-body text-sm font-semibold underline-offset-4 hover:underline"
-              style={{ color: "rgba(255,255,255,0.85)" }}
-            >
-              Learn More →
+          <Button
+            variant="eden-outline"
+            size="xl"
+            className="border-white text-white hover:bg-white hover:text-foreground"
+            asChild
+          >
+            <Link to={ROUTES.APOTHECARY_START} data-cta="apothecary-start-bottom">
+              Start Free →
             </Link>
-          </div>
+          </Button>
         </div>
       </section>
 
       <Footer />
-      <WaitlistModal open={open} onOpenChange={setOpen} audienceId={APP_AUD} title="Join the Eden Apothecary Beta" />
     </div>
   );
 };
