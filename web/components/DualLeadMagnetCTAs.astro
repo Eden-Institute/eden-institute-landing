@@ -1,0 +1,32 @@
+---
+// Sprouts + Seedlings free-preview CTA pair. Static buttons (rendered by Astro
+// for SEO) carrying data-waitlist-* attributes; WaitlistController wires the
+// clicks to the modal. Mirrors the DualLeadMagnetCTAs helper in Homeschool.tsx.
+import { Button } from "@/components/ui/button";
+
+const sproutsSubtitle =
+  "Your free preview of Sprouts Weeks 1 + 2 (Lavender + Chamomile) is on the way. We're finishing how we send these — you'll be among the first to receive when we open delivery.";
+const seedlingsSubtitle =
+  "Your free preview of Seedlings Weeks 1 + 2 (Elderberry + Tulsi) is on the way. We're finishing how we send these — you'll be among the first to receive when we open delivery.";
+---
+
+<div class="flex flex-col sm:flex-row gap-3 justify-center items-stretch">
+  <Button
+    variant="eden-outline"
+    size="lg"
+    data-waitlist-source="sprouts_magnet"
+    data-waitlist-title="Get Sprouts Weeks 1 + 2 — Free"
+    data-waitlist-subtitle={sproutsSubtitle}
+  >
+    Get Sprouts (K-2) Weeks 1 + 2 — Free
+  </Button>
+  <Button
+    variant="eden-outline"
+    size="lg"
+    data-waitlist-source="seedlings_magnet"
+    data-waitlist-title="Get Seedlings Weeks 1 + 2 — Free"
+    data-waitlist-subtitle={seedlingsSubtitle}
+  >
+    Get Seedlings (3-5) Weeks 1 + 2 — Free
+  </Button>
+</div>

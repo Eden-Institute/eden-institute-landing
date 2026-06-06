@@ -1,0 +1,35 @@
+---
+// Astro-native port of src/components/landing/Footer.tsx — plain <a href>.
+const year = new Date().getFullYear();
+const FOOTER_BG_IMG = "https://images.unsplash.com/photo-1726996155615-e986ed87c9d4?auto=format&fit=crop&w=1920&q=80";
+---
+
+<footer class="relative overflow-hidden">
+  <div class="h-[2px] w-full" style="background:linear-gradient(90deg, transparent 5%, hsl(var(--eden-gold)) 30%, hsl(var(--eden-gold)) 70%, transparent 95%)"></div>
+  <div class="relative" style="background-color:hsl(var(--eden-bark))">
+    <img
+      src={FOOTER_BG_IMG}
+      alt=""
+      aria-hidden="true"
+      class="absolute inset-0 w-full h-full object-cover opacity-[0.06] mix-blend-luminosity pointer-events-none"
+    />
+    <div class="section-padding relative z-10 text-center" style="color:hsl(var(--eden-parchment) / 0.6)">
+      <div class="eden-container">
+        <p class="font-serif text-xl font-semibold mb-2" style="color:hsl(var(--eden-parchment))">The Eden Institute</p>
+        <p class="font-body text-sm mb-4">edeninstitute.health</p>
+        <div class="eden-divider"></div>
+        <p class="font-accent text-sm tracking-[0.1em] md:tracking-[0.3em] uppercase" style="color:hsl(var(--eden-gold))">"Back to Eden. Back to Truth."</p>
+        <div class="mt-6 flex items-center justify-center gap-2 text-xs font-body flex-wrap" style="color:hsl(var(--eden-parchment) / 0.3)">
+          <a href="/why-eden" class="hover:opacity-70 transition-colors" style="color:hsl(var(--eden-parchment) / 0.5)">Why Eden</a>
+          <span>|</span>
+          <a href="/terms" class="hover:opacity-70 transition-colors" style="color:hsl(var(--eden-parchment) / 0.5)">Terms &amp; Conditions</a>
+          <span>|</span>
+          <a href="/privacy" class="hover:opacity-70 transition-colors" style="color:hsl(var(--eden-parchment) / 0.5)">Privacy Policy</a>
+          <span>|</span>
+          <a href="/cookies" class="hover:opacity-70 transition-colors" style="color:hsl(var(--eden-parchment) / 0.5)">Cookie Policy</a>
+        </div>
+        <p class="mt-4 font-body text-xs" style="color:hsl(var(--eden-parchment) / 0.3)">© {year} The Eden Institute. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+</footer>

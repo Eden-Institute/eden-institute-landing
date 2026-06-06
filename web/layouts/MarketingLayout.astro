@@ -1,0 +1,108 @@
+---
+// Shared marketing-page shell. Emits the full <head> (ported from index.html)
+// with PER-PAGE title/description/canonical/OG and optional page JSON-LD baked
+// into the static HTML — so crawlers read the real content with no JS.
+import "@/index.css";
+import Navbar from "../components/Navbar.astro";
+import Footer from "../components/Footer.astro";
+import SiteAnalytics from "../components/islands/SiteAnalytics.tsx";
+
+export interface Props {
+  title: string;
+  description: string;
+  canonical: string;
+  ogImage?: string;
+  ogType?: "website" | "article";
+  /** Page-specific structured data (e.g. Course, FAQPage). Object or array. */
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+}
+
+const {
+  title,
+  description,
+  canonical,
+  ogImage = "https://edeninstitute.health/og-home-v1.4.png",
+  ogType = "website",
+  jsonLd,
+} = Astro.props;
+
+// Sitewide identity — present on every marketing page.
+const orgJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "The Eden Institute",
+  url: "https://edeninstitute.health",
+  logo: "https://edeninstitute.health/favicon.ico",
+  description: "A structured, worldview-anchored, terrain-based clinical herbalism institute.",
+  parentOrganization: { "@type": "Organization", name: "Rooted in Faith Ventures" },
+  sameAs: ["https://twitter.com/edeninstitute"],
+};
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "The Eden Institute",
+  url: "https://edeninstitute.health/",
+};
+const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5DVHEZPKL0"></script>
+    <script is:inline>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-5DVHEZPKL0');
+    </script>
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="The Eden Institute" />
+    <meta name="theme-color" content="#1C3A2E" />
+
+    <!-- Favicons (Eden's Table seedling mark) -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- Domain verification (Pinterest + Meta) -->
+    <meta name="p:domain_verify" content="590bb4ccc9cb42cfe49a5d33b3e7c57a" />
+    <meta name="facebook-domain-verification" content="qfhisezad6uhdic7dugiew03fzzinf" />
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:type" content={ogType} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@edeninstitute" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
+    <script type="application/ld+json" set:html={JSON.stringify(orgJsonLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(websiteJsonLd)} />
+    {pageJsonLd.map((block) => (
+      <script type="application/ld+json" set:html={JSON.stringify(block)} />
+    ))}
+  </head>
+  <body>
+    <Navbar />
+    <slot />
+    <Footer />
+    {/* client:only — never server-rendered. The shared Supabase client touches
+        localStorage at module load, and analytics/consent is a browser-only
+        concern with no SEO value, so it must not run during the static build. */}
+    <SiteAnalytics client:only="react" />
+  </body>
+</html>
