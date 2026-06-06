@@ -427,7 +427,7 @@ function facebookButton(label: string, url: string): string {
 
 // Day 7: Week 2 downloads (Sprouts→Chamomile, Seedlings→Tulsi). Links the PDFs
 // already hosted in public/lead-magnets/.
-export function buildMagnetWeek2Email(firstName: string, band: 'sprouts' | 'seedlings'): { subject: string; html: string } {
+export function buildMagnetWeek2Email(firstName: string, band: 'sprouts' | 'seedlings', includeStory = false): { subject: string; html: string } {
   const isSprouts = band === 'sprouts';
   const herb = isSprouts ? 'Chamomile' : 'Tulsi';
   const label = isSprouts ? 'SPROUTS' : 'SEEDLINGS';
@@ -442,8 +442,18 @@ export function buildMagnetWeek2Email(firstName: string, band: 'sprouts' | 'seed
     ['RECIPE CARDS', dl('rc')],
     ['AROUND THE TABLE CARDS', dl('att')],
   ];
+  // The read-aloud story pairs with Week 2 curriculum, so it ships here (not Week 1).
+  // Gated by the sender so leads who already received it in Week 1 aren't re-sent it.
+  if (includeStory) {
+    const storyUrl = isSprouts
+      ? `${base}/hs-sprouts-story-1.pdf`
+      : `${base}/hs-seedlings-story-7.pdf`;
+    downloads.push([isSprouts ? 'STORY 1 (READ-ALOUD)' : 'STORY 7 (READ-ALOUD)', storyUrl]);
+  }
   const buttons = downloads.map(([t, u]) => brandButton(t, u)).join('');
-  const body = `${p(`Hi ${firstName},`)}${p(`Welcome to Week 2. This week&rsquo;s herb is <strong>${herb}</strong> &mdash; the same gentle rhythm, five more downloads to print and teach.`)}${goldDivider()}${heading(`YOUR FIVE DOWNLOADS &mdash; ${label} WEEK 2 (${herb.toUpperCase()})`)}${buttons}${goldDivider()}${p(`That wraps your free two-week preview. In about a week I&rsquo;ll share a little of the story behind this whole project &mdash; I hope you&rsquo;ll come along for the ride.`)}${signature()}`;
+  const countWord = includeStory ? 'six' : 'five';
+  const countLabel = includeStory ? 'SIX' : 'FIVE';
+  const body = `${p(`Hi ${firstName},`)}${p(`Welcome to Week 2. This week&rsquo;s herb is <strong>${herb}</strong> &mdash; the same gentle rhythm, ${countWord} more downloads to print and teach.`)}${goldDivider()}${heading(`YOUR ${countLabel} DOWNLOADS &mdash; ${label} WEEK 2 (${herb.toUpperCase()})`)}${buttons}${goldDivider()}${p(`That wraps your free two-week preview. In about a week I&rsquo;ll share a little of the story behind this whole project &mdash; I hope you&rsquo;ll come along for the ride.`)}${signature()}`;
   return { subject: `${isSprouts ? 'Sprouts' : 'Seedlings'} Week 2 (${herb}) — Your Free Preview`, html: emailWrapper(body) };
 }
 

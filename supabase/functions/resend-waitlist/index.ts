@@ -630,16 +630,15 @@ function buildSproutsMagnetEmail(firstName: string): { subject: string; html: st
 <p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
 <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Thank you for stepping into this work with us. What follows is a real week of curriculum &mdash; Week 1 of Sprouts, the band built for kindergarten through second grade. Not a sample stripped of substance. Five days with Lavender, a story your child will remember, and the small daily rhythms that turn a kitchen counter into a place of formation.</p>
 ${goldDivider()}
-${goldLabel('YOUR SIX DOWNLOADS &mdash; SPROUTS WEEK 1 (LAVENDER)')}
+${goldLabel('YOUR FIVE DOWNLOADS &mdash; SPROUTS WEEK 1 (LAVENDER)')}
 ${ctaButton("TEACHER'S GUIDE", 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-tg-lavender.pdf')}
 ${ctaButton('STUDENT NOTEBOOK', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-nb-lavender.pdf')}
 ${ctaButton('FIELD CARDS', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-fc-lavender.pdf')}
 ${ctaButton('RECIPE CARDS', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-rc-lavender.pdf')}
 ${ctaButton('AROUND THE TABLE CARDS', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-att-lavender.pdf')}
-${ctaButton('STORY 1 (READ-ALOUD)', 'https://edeninstitute.health/lead-magnets/hs-sprouts-story-1.pdf')}
 ${goldDivider()}
 ${goldLabel('WEEK 2 ARRIVES IN ONE WEEK')}
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Seven days from today, you'll receive Week 2 &mdash; Chamomile, five more downloads, the same Sprouts rhythm. If it hasn't arrived by Day 8, just reply to this email and I'll send it manually.</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Seven days from today, you'll receive Week 2 &mdash; Chamomile, more downloads, the same Sprouts rhythm. If it hasn't arrived by Day 8, just reply to this email and I'll send it manually.</p>
 ${closingBlock()}`;
   return { subject: 'Sprouts Week 1 (Lavender) — Your Free Preview', html: emailWrapper(body) };
 }
@@ -649,16 +648,15 @@ function buildSeedlingsMagnetEmail(firstName: string): { subject: string; html: 
 <p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
 <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Thank you for stepping into this work with us. What follows is a real week of curriculum from Seedlings, our band for third through fifth graders. Seedlings is built for the child who has begun to ask <em>why</em> and <em>how</em> &mdash; the one who has outgrown a worksheet and is ready to track a hypothesis across a week. Week 1 starts with Elderberry.</p>
 ${goldDivider()}
-${goldLabel('YOUR SIX DOWNLOADS &mdash; SEEDLINGS WEEK 1 (ELDERBERRY)')}
+${goldLabel('YOUR FIVE DOWNLOADS &mdash; SEEDLINGS WEEK 1 (ELDERBERRY)')}
 ${ctaButton("TEACHER'S GUIDE", 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-tg-elderberry.pdf')}
 ${ctaButton('STUDENT NOTEBOOK', 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-nb-elderberry.pdf')}
 ${ctaButton('FIELD CARDS', 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-fc-elderberry.pdf')}
 ${ctaButton('RECIPE CARDS', 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-rc-elderberry.pdf')}
 ${ctaButton('AROUND THE TABLE CARDS', 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-att-elderberry.pdf')}
-${ctaButton('STORY 7 (READ-ALOUD)', 'https://edeninstitute.health/lead-magnets/hs-seedlings-story-7.pdf')}
 ${goldDivider()}
 ${goldLabel('WEEK 2 ARRIVES IN ONE WEEK')}
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Seven days from today, you'll receive Week 2 &mdash; Tulsi, five more downloads, the same Seedlings depth. If it hasn't arrived by Day 8, just reply to this email and I'll send it manually.</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Seven days from today, you'll receive Week 2 &mdash; Tulsi, more downloads, the same Seedlings depth. If it hasn't arrived by Day 8, just reply to this email and I'll send it manually.</p>
 ${closingBlock()}`;
   return { subject: 'Seedlings Week 1 (Elderberry) — Your Free Preview', html: emailWrapper(body) };
 }

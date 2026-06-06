@@ -296,6 +296,14 @@ interface MagnetResult {
   failed: number;
 }
 
+// Story-move cutoff: the read-aloud story now ships with Week 2 (Email 2), not
+// Week 1 (Email 1). Magnet queue rows created at/after this timestamp were
+// enqueued by the post-deploy resend-waitlist whose Week-1 email no longer
+// carries the story, so their Week-2 email includes it. Rows created before this
+// (last week's ~1,100 leads) already received the story in Week 1 and are NOT
+// re-sent it. Keep this ≈ the deploy time of this change.
+const STORY_CUTOFF_MS = Date.parse('2026-06-06T23:00:00Z');
+
 // Lock #83 / Phase 3.1.2: drains public.magnet_email_queue (Sprouts/Seedlings
 // Week 2 day-7 + Facebook day-14). Unlike the quiz drip this needs NO
 // quiz_completions row — first name comes from the queue row itself.
@@ -319,7 +327,7 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
       if (row.sequence_position === 3) {
         built = buildMagnetWeek3FacebookEmail(firstName);
       } else if (row.sequence_position === 2) {
-        built = buildMagnetWeek2Email(firstName, band);
+        built = buildMagnetWeek2Email(firstName, band, Date.parse(row.created_at) >= STORY_CUTOFF_MS);
       } else {
         await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
           method: 'PATCH',
