@@ -41,6 +41,11 @@ verify_jwt = false
 [functions.tier-2-waitlist-signup]
 verify_jwt = false
 
+# Per-list one-click unsubscribe (RFC 8058). Called from email clients and
+# browsers with no Supabase session; security is the signed token, not a JWT.
+[functions.unsubscribe]
+verify_jwt = false
+
 # --- Category 2: Webhook endpoints ---
 
 [functions.resend-webhook]

@@ -42,6 +42,7 @@ import {
   buildMagnetWeek3FacebookEmail,
   toSlug,
 } from '../_shared/nurture-email-templates.ts';
+import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -80,7 +81,9 @@ async function sendEmail(
   to: string,
   subject: string,
   html: string,
+  list: EmailList,
 ): Promise<{ ok: boolean; error?: string }> {
+  const { html: finalHtml, headers: unsubHeaders } = await applyUnsub(html, to, list);
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -92,7 +95,8 @@ async function sendEmail(
       reply_to: 'hello@edeninstitute.health',
       to: [to],
       subject,
-      html,
+      html: finalHtml,
+      headers: unsubHeaders,
     }),
   });
   const data = await res.json();
@@ -101,6 +105,17 @@ async function sendEmail(
     return { ok: false, error: data?.message || `HTTP ${res.status}` };
   }
   return { ok: true };
+}
+
+// Voluntary per-list opt-out check (vs. the global unsubscribe handled by
+// resend-webhook + the cancel_queued_emails_on_unsubscribe trigger).
+async function isUnsubscribed(email: string, list: EmailList): Promise<boolean> {
+  const rows = await supabaseQuery(
+    `email_list_unsubscribes?email=eq.${encodeURIComponent(
+      email.trim().toLowerCase(),
+    )}&list=eq.${list}&select=email&limit=1`,
+  );
+  return Array.isArray(rows) && rows.length > 0;
 }
 
 interface QueueResult {
@@ -166,6 +181,18 @@ async function drainNurtureQueue(): Promise<QueueResult> {
         'Your Constitutional Type';
       const slug = qc.constitution_type || toSlug(nickname);
 
+      if (await isUnsubscribed(row.recipient_email, 'constitution')) {
+        await supabaseQuery(`nurture_email_queue?id=eq.${row.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: 'cancelled',
+            error_message: 'recipient unsubscribed (constitution)',
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        continue;
+      }
+
       let built: { subject: string; html: string };
       switch (row.sequence_position) {
         case 2:
@@ -202,7 +229,7 @@ async function drainNurtureQueue(): Promise<QueueResult> {
           continue;
       }
 
-      const send = await sendEmail(row.recipient_email, built.subject, built.html);
+      const send = await sendEmail(row.recipient_email, built.subject, built.html, 'constitution');
       if (send.ok) {
         await supabaseQuery(`nurture_email_queue?id=eq.${row.id}`, {
           method: 'PATCH',
@@ -276,6 +303,7 @@ async function legacyEmail5(): Promise<LegacyResult> {
     if (hoursSince < 192) continue;
     if (row.purchased_course) continue;
     if (row.purchased_guide) continue;
+    if (await isUnsubscribed(row.email, 'constitution')) continue;
 
     const nickname =
       row.constitution_name ||
@@ -288,7 +316,7 @@ async function legacyEmail5(): Promise<LegacyResult> {
       slug,
     );
 
-    const send = await sendEmail(row.email, subject, html);
+    const send = await sendEmail(row.email, subject, html, 'constitution');
     if (send.ok) {
       await supabaseQuery(`quiz_completions?id=eq.${row.id}`, {
         method: 'PATCH',
@@ -338,6 +366,17 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
     try {
       const firstName = row.first_name || 'friend';
       const band: 'sprouts' | 'seedlings' = row.band === 'seedlings' ? 'seedlings' : 'sprouts';
+      if (await isUnsubscribed(row.recipient_email, 'homeschool')) {
+        await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: 'cancelled',
+            error_message: 'recipient unsubscribed (homeschool)',
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        continue;
+      }
       let built: { subject: string; html: string };
       if (row.sequence_position === 3) {
         built = buildMagnetWeek3FacebookEmail(firstName);
@@ -351,7 +390,7 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
         result.failed++;
         continue;
       }
-      const send = await sendEmail(row.recipient_email, built.subject, built.html);
+      const send = await sendEmail(row.recipient_email, built.subject, built.html, 'homeschool');
       if (send.ok) {
         await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
           method: 'PATCH',
