@@ -12,6 +12,8 @@
 //     /guide/<slug> upgrade for returning users with a resolved Pattern can be
 //     re-added later as a client:only controller island (mirroring
 //     WaitlistController) if we want that optimization back.
+//   • Adds a newsletter subscribe CTA linking to the Substack (Eden Institute
+//     Letters) — secondary to the quiz, captures organic readers.
 // Navbar / Footer / analytics come from MarketingLayout.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 import { Button } from "@/components/ui/button";
@@ -320,6 +322,24 @@ const faqJsonLd = {
       <cite class="text-sm" style="color:rgba(245, 240, 232, 0.6);font-family:'EB Garamond', 'Crimson Text', Georgia, serif">
         — Psalm 139:14 (NASB)
       </cite>
+    </div>
+  </section>
+
+  {/* NEWSLETTER SUBSCRIBE (Substack — Eden Institute Letters) */}
+  <section class="section-padding-lg parchment-texture text-center">
+    <div class="eden-container max-w-2xl mx-auto px-6">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold))">
+        Eden Institute Letters
+      </p>
+      <h2 class="font-serif text-2xl sm:text-3xl md:text-4xl font-bold mb-4" style="color:hsl(var(--eden-bark))">
+        Learn the body God designed — one letter at a time.
+      </h2>
+      <p class="text-base md:text-lg leading-relaxed mb-8" style="color:hsl(var(--eden-bark) / 0.75);font-family:'EB Garamond', 'Crimson Text', Georgia, serif">
+        Terrain-based herbalism, body stewardship, and the recovery of a Christian framework for health — delivered to your inbox. No spam, no woo-woo. Just rooted, practical teaching.
+      </p>
+      <a href="https://edeninstituteletters.substack.com/subscribe" target="_blank" rel="noopener">
+        <Button variant="eden-outline" size="xl">Subscribe to the Newsletter</Button>
+      </a>
     </div>
   </section>
 
