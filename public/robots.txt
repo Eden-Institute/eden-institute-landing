@@ -20,4 +20,42 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
+# AI answer-engines & assistants — explicitly welcomed so our pages can be
+# read and cited by ChatGPT, Claude, Perplexity, Google AI Overviews / Gemini,
+# Bing Copilot, and the Common Crawl corpus many models train on. We WANT to be
+# a cited source for "constitutional herbalism", "Biblical herbalism", and
+# "Christian homeschool herbalism", so these are allow-listed deliberately.
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
 Sitemap: https://edeninstitute.health/sitemap.xml
