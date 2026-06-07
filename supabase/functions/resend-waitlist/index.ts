@@ -3,6 +3,7 @@
 // _shared/nurture-email-templates.ts; that duplicate has been removed so
 // _shared is the single source of truth for these templates.
 import { buildNurtureEmail1, toSlug } from '../_shared/nurture-email-templates.ts';
+import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
 
 
 const corsHeaders = {
@@ -100,7 +101,7 @@ ${bodyContent}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
 <tr><td style="font-family:Georgia,serif;font-size:13px;color:#1C3A2E;text-align:center;">The Eden Institute | edeninstitute.health</td></tr>
 <tr><td style="font-family:Georgia,serif;font-size:12px;color:#1C3A2E;text-align:center;padding-top:8px;">You're receiving this because you signed up at edeninstitute.health. No spam, ever.</td></tr>
-<tr><td style="text-align:center;padding-top:8px;"><a href="https://edeninstitute.health/unsubscribe" style="font-family:Georgia,serif;font-size:12px;color:#C9A84C;text-decoration:underline;">Unsubscribe</a></td></tr>
+<tr><td style="text-align:center;padding-top:8px;"><a href="{{UNSUB_URL}}" style="font-family:Georgia,serif;font-size:12px;color:#C9A84C;text-decoration:underline;">Unsubscribe</a></td></tr>
 </table>
 </td></tr>
 </table>
@@ -194,9 +195,15 @@ function buildHomeschoolEmail(firstName: string): { subject: string; html: strin
     ${goldDivider()}
     ${closingBlock()}
   `;
+  const footer = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;border-top:1px solid #E8E3DA;">
+    <tr><td style="text-align:center;padding-top:16px;">
+    <p style="font-family:Georgia,serif;font-size:11px;color:#6B6560;margin:0 0 6px 0;">You're receiving this because you signed up at edeninstitute.health.</p>
+    <a href="{{UNSUB_URL}}" style="font-family:Georgia,serif;font-size:11px;color:#6B6560;text-decoration:underline;">Unsubscribe</a>
+    </td></tr></table>`;
   return {
     subject: "You're on the Eden's Table Waitlist — Here's What's Coming",
-    html: `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#FAF8F3;">${body}</body></html>`
+    html: `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#FAF8F3;">${body}${footer}</body></html>`
   };
 }
 
@@ -406,13 +413,15 @@ ${goldDivider()}
 
 // ── Send email helper ──
 
-async function sendEmail(to: string, subject: string, html: string): Promise<void> {
+async function sendEmail(to: string, subject: string, html: string, list: EmailList): Promise<void> {
+  const { html: finalHtml, headers: unsubHeaders } = await applyUnsub(html, to, list);
   const payload = {
     from: 'The Eden Institute <hello@edeninstitute.health>',
     reply_to: 'hello@edeninstitute.health',
     to: [to],
     subject,
-    html,
+    html: finalHtml,
+    headers: unsubHeaders,
   };
 
   const res = await fetch('https://api.resend.com/emails', {
@@ -718,10 +727,11 @@ Deno.serve(async (req) => {
 
             // Email 1: synchronous send (unchanged)
             const e1 = buildNurtureEmail1(firstNameSafe, name, slug);
+            const e1u = await applyUnsub(e1.html, normalizedEmail, 'constitution');
             await fetch('https://api.resend.com/emails', {
               method: 'POST',
               headers: sendHeaders,
-              body: JSON.stringify({ from, reply_to: replyTo, to: [normalizedEmail], subject: e1.subject, html: e1.html }),
+              body: JSON.stringify({ from, reply_to: replyTo, to: [normalizedEmail], subject: e1.subject, html: e1u.html, headers: e1u.headers }),
             });
             console.log('Nurture Email 1 sent to', normalizedEmail);
 
@@ -813,7 +823,10 @@ Deno.serve(async (req) => {
     let welcomeSent = false;
     if (emailContent) {
       try {
-        await sendEmail(normalizedEmail, emailContent.subject, emailContent.html);
+        // All non-quiz welcome emails belong to the homeschool list (the live
+        // edens_table/homeschool funnels; retired funnels fall through here too
+        // but no longer receive signups).
+        await sendEmail(normalizedEmail, emailContent.subject, emailContent.html, 'homeschool');
         welcomeSent = true;
       } catch (emailErr) {
         console.error('Welcome email send error:', String(emailErr));
