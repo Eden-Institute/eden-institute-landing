@@ -1,34 +1,21 @@
 # The Eden Institute
 
-> Biblical clinical herbalism education. Constitutional, terrain-based herbal medicine anchored in Scripture.
+> A structured, worldview-anchored, terrain-based clinical herbalism institute. The Eden Institute teaches constitutional (Biblical) herbalism — the practice of matching herbs to a person's unique body pattern rather than to isolated symptoms — grounded in Scripture and clinical rigor. We also publish Eden's Table, a Christ-centered K–12 homeschool herbalism curriculum.
 
-The Eden Institute trains students in constitutional and energetics-based herbalism — reading the body's tissue states (temperature, fluid, tone) and matching plants according to design rather than treating symptoms. Curriculum is structured in three tiers; Tier 1 (Biblical Framework) is live, Tier 2 (Body Systems & Clinical Literacy) is on waitlist, Tier 3 (Terrain-Based Clinical Herbalism) ships in 2027.
+## Core concepts
+- [What Is Constitutional Herbalism?](https://edeninstitute.health/constitutional-herbalism): Constitutional (Biblical) herbalism matches herbs to the person, not the symptom. Covers the six tissue states (hot, cold, damp, dry, tense, relaxed), the Five Tenets of Health (Nutrition, Elimination, Rest, Hydration, Spiritual Alignment), and the Scriptural basis for terrain-based plant medicine.
+- [Why Eden](https://edeninstitute.health/why-eden): The worldview, philosophy, and founding conviction behind the Institute — a Western, biblically anchored alternative to Eastern and New Age frameworks.
 
-## Pages
+## Programs
+- [Eden's Table — Homeschool Herbalism Curriculum](https://edeninstitute.health/homeschool): A Christ-centered K–12 homeschool curriculum teaching Biblical herbalism and the body God designed, with open-and-go weekly lessons for Sprouts (K–2) and Seedlings (3–5).
+- [Courses](https://edeninstitute.health/courses): The Eden Institute's three-tier clinical herbalism education program — Foundations, Body Systems & Clinical Literacy, and Clinical Application & Mentorship.
+- [Free Body Pattern Assessment](https://edeninstitute.health/assessment): A short quiz that identifies your constitutional body pattern across the six tissue states.
 
-- [Home](/): Overview of the Institute, free constitutional quiz, and program ladder.
-- [Why Eden](/why-eden): Long-form manifesto on terrain-based, Scripture-anchored herbalism.
-- [Constitutional Herbalism](/constitutional-herbalism): Primer on the six tissue states and three-axis constitutional framework.
-- [Courses](/courses): Tier 1 Foundations course, pricing, and curriculum overview.
-- [App](/app): Eden Apothecary — terrain-based clinical decision-support web app (launching July 7, 2026).
-- [Homeschool](/homeschool): Eden's Table homeschool herbalism curriculum.
-- [Community](/community): The Rooted Community — local fellowship and study groups.
-- [Tier 2 Waitlist](/tier-2-waitlist): Free waitlist for Body Systems & Clinical Literacy.
-- [Constitutional Quiz](/assessment): Free 2-minute quiz to identify your constitutional pattern.
+## Community
+- [The Rooted Community](https://edeninstitute.health/community): A private network for homesteaders, homeschool families, and liberty-minded believers building lives connected to the land, the body, and each other.
 
-## Constitutional Results
-
-- [Burning Bowstring](/results/burning-bowstring)
-- [Open Flame](/results/open-flame)
-- [Pressure Cooker](/results/pressure-cooker)
-- [Overflowing Cup](/results/overflowing-cup)
-- [Drawn Bowstring](/results/drawn-bowstring)
-- [Spent Candle](/results/spent-candle)
-- [Frozen Knot](/results/frozen-knot)
-- [Still Water](/results/still-water)
-
-## Optional
-
-- [Terms](/terms)
-- [Privacy](/privacy)
-- [Cookies](/cookies)
+## About
+- Name: The Eden Institute
+- Focus: Constitutional / Biblical / terrain-based clinical herbalism; Christian homeschool herbalism education
+- Distinctive terms: constitutional herbalism, Biblical herbalism, the six tissue states, the Five Tenets of Health, terrain-based herbalism
+- Contact: hello@edeninstitute.health
