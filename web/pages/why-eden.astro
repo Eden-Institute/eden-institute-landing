@@ -1,0 +1,191 @@
+---
+// /why-eden — Astro port of src/pages/WhyEden.tsx. Pre-rendered to static HTML
+// for SEO (was an empty SPA shell). Content + Tailwind classes mirror the React
+// page. SEO-safe, intentional differences:
+//   • ScrollReveal wrappers dropped — JS-only reveal animation, no SEO value,
+//     and a no-JS render must not leave content stuck at opacity:0.
+//   • <GoldDivider/> -> static gold rule (decorative only).
+//   • <WorldviewBand/> inlined as static HTML — the component wraps its copy in
+//     ScrollReveal, so importing it would hide the thesis text in the static
+//     render. Text mirrors the WhyEden usage (caption shown, no headline).
+//   • The journey-aware final CTA -> static links to /assessment (no-Pattern
+//     funnel path) and /courses. The /guide/<slug> upgrade for returning users
+//     with a resolved Pattern can be re-added as a client:only island later.
+// Navbar / Footer / analytics come from MarketingLayout.
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+
+const problems = [
+  { heading: "Most herbal programs are spiritually compromised.", body: "Chakras. Doshas. Moon cycles. Energy fields. These frameworks are borrowed from Hinduism, Buddhism, and paganism — and they appear in mainstream herbalism education with regularity. For a Christian trying to learn herbalism, navigating this is exhausting and often disqualifying." },
+  { heading: "Christian-branded programs are often clinically shallow.", body: "There are a handful of programs that call themselves Christian herbalism schools. But most offer little more than folk remedies and Scripture references dropped into otherwise thin content. They don't teach terrain theory, tissue states, or clinical reasoning. They don't prepare you to actually understand what's happening in the body." },
+  { heading: "The academic programs don't speak your language.", body: "The rigorous schools — Herbal Academy, Colorado School of Clinical Herbalism, Chestnut — produce excellent graduates. But they are secular institutions. Faith is absent. You learn biochemistry but not stewardship. You learn pharmacognosy but not the Creator behind the plant." },
+];
+
+const solutions = [
+  { label: "Worldview-Anchored", body: "Every framework in our curriculum starts with Yahweh as Creator and ultimate healer. We teach Western clinical herbalism — not Ayurveda, not Traditional Chinese Medicine, not any spiritual framework borrowed from another religion. If you encounter a concept rooted in Eastern spirituality, we name it, explain why we don't use it, and offer the Western clinical equivalent." },
+  { label: "Clinically Rigorous", body: "Built on 3,000 years of Western clinical herbalism tradition — Eclectic, Physiomedical, and Vitalist frameworks. Terrain theory. Six tissue states. Constitutional assessment. Body systems literacy. This is not folk medicine dressed up in Scripture. This is serious clinical education with faith as its foundation." },
+  { label: "Built by an Educator", body: "Camila holds a Master's in Education and spent years as a credentialed classroom teacher before building Eden Institute. The curriculum architecture, the pedagogical design, the scope and sequence — these are built with the same rigor you'd find in an accredited graduate program. Not a blogger who learned herbs from Pinterest." },
+  { label: "Designed for the Christian Family", body: "Our students are mothers, homeschoolers, farmers, and believers who want to care for their families with wisdom and confidence. The curriculum speaks directly to their life, their values, and their calling. Eden's Table extends this education to their children. The community surrounds them with others on the same path." },
+];
+
+const compare = [
+  { title: "Other Programs", items: ["Eastern spiritual frameworks", "Weekend certifications", "Secular foundation", "No clinical depth", "No family application"], negative: true },
+  { title: "Eden Institute", items: ["Biblical worldview throughout", "Structured multi-tier curriculum", "Scripture as the anchor", "Clinical terrain theory", "Built for the whole family"], negative: false },
+  { title: "Generic Wellness", items: ["No framework at all", "Tips and recipes", "No worldview", "No clinical training", "No community"], negative: true },
+];
+
+const meta = {
+  title: "Why Eden Institute — Biblical Clinical Herbalism",
+  description:
+    "There is no other program like this one. Eden Institute offers clinically rigorous, Scripture-anchored herbalism education — free from Eastern spiritual frameworks.",
+  canonical: "https://edeninstitute.health/why-eden",
+};
+---
+
+<MarketingLayout
+  title={meta.title}
+  description={meta.description}
+  canonical={meta.canonical}
+  ogType="article"
+>
+  {/* HERO */}
+  <section class="pt-20 section-padding-lg" style="background-color:hsl(var(--eden-parchment))">
+    <div class="eden-container px-6">
+      <div class="max-w-3xl mx-auto text-center">
+        <p class="font-accent text-xs tracking-widest uppercase mb-4" style="color:hsl(var(--eden-gold))">
+          Why Eden Institute
+        </p>
+        <h1 class="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] mb-6" style="color:hsl(var(--eden-forest))">
+          There Is No Other Program<br />Like This One.
+        </h1>
+        <p class="font-body text-lg leading-relaxed" style="color:hsl(var(--eden-bark) / 0.8)">
+          And we say that not as a marketing claim — but as a description of reality. Here's what we mean.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <div class="flex justify-center py-10"><span class="block w-16 h-px" style="background-color:hsl(var(--eden-gold))"></span></div>
+
+  {/* WORLDVIEW BAND — inlined static HTML (the React WorldviewBand wraps this in
+      ScrollReveal, which would hide it in a no-JS render). */}
+  <section class="px-6 py-16 md:py-24" style="background-color:hsl(var(--eden-cream))" aria-label="Source of vital force — Eden Institute worldview thesis">
+    <div class="max-w-3xl mx-auto">
+      <p class="font-accent text-xs tracking-[0.3em] uppercase mb-4 text-center" style="color:hsl(var(--eden-gold))">
+        What we believe and what we don't
+      </p>
+      <p class="font-body text-base md:text-lg leading-relaxed" style="color:hsl(var(--eden-bark))">
+        The pulse, the tongue, the way a body runs hot or cold or damp or dry — herbalists across every culture and every century have observed the same human body and named what they saw. We honor every tradition's careful observation. What we don't carry forward is the spiritual story those traditions tell about where life comes from. We name the source of vital force plainly: it is the Holy Spirit, the breath of God, the fingerprint of the Creator pressed into every cell. Yahweh is the source of intelligence in your skin and your blood and your sleep and your strength. Karma didn't put it there. Planets didn't put it there. The Tao didn't put it there. God did. Everything else we teach — the patterns, the herbs, the diagnostics — sits on top of that one truth.
+      </p>
+    </div>
+  </section>
+
+  <div class="flex justify-center py-10"><span class="block w-16 h-px" style="background-color:hsl(var(--eden-gold))"></span></div>
+
+  {/* THE PROBLEM */}
+  <section class="section-padding-lg" style="background-color:hsl(var(--eden-cream))">
+    <div class="eden-container px-6">
+      <div class="max-w-4xl mx-auto">
+        <h2 class="font-serif text-3xl md:text-4xl font-bold text-center mb-10" style="color:hsl(var(--eden-forest))">
+          The Christian Herbalism Problem
+        </h2>
+        <div class="grid grid-cols-1 gap-8">
+          {problems.map((item) => (
+            <div class="p-6 rounded-sm" style="background-color:hsl(var(--eden-parchment));border:1px solid hsl(var(--eden-gold) / 0.2)">
+              <h3 class="font-serif text-xl font-bold mb-3" style="color:hsl(var(--eden-forest))">{item.heading}</h3>
+              <p class="font-body text-sm leading-relaxed" style="color:hsl(var(--eden-bark) / 0.85)">{item.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="flex justify-center py-10"><span class="block w-16 h-px" style="background-color:hsl(var(--eden-gold))"></span></div>
+
+  {/* THE SOLUTION */}
+  <section class="section-padding-lg" style="background-color:hsl(var(--eden-parchment))">
+    <div class="eden-container px-6">
+      <div class="max-w-4xl mx-auto">
+        <h2 class="font-serif text-3xl md:text-4xl font-bold text-center mb-4" style="color:hsl(var(--eden-forest))">
+          Eden Institute Is the Answer to All Three.
+        </h2>
+        <div class="eden-divider mb-10"></div>
+        <div class="grid grid-cols-1 gap-8">
+          {solutions.map((item) => (
+            <div class="flex items-start gap-4 p-6 rounded-sm" style="background-color:hsl(var(--eden-cream));border:1px solid hsl(var(--eden-gold) / 0.2)">
+              <span class="font-serif text-xl mt-0.5 shrink-0" style="color:hsl(var(--eden-gold))">✦</span>
+              <div>
+                <h3 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-forest))">{item.label}</h3>
+                <p class="font-body text-sm leading-relaxed" style="color:hsl(var(--eden-bark) / 0.85)">{item.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="flex justify-center py-10"><span class="block w-16 h-px" style="background-color:hsl(var(--eden-gold))"></span></div>
+
+  {/* VS COMPETITORS */}
+  <section class="section-padding-lg" style="background-color:hsl(var(--eden-cream))">
+    <div class="eden-container px-6">
+      <div class="max-w-5xl mx-auto">
+        <h2 class="font-serif text-3xl md:text-4xl font-bold text-center mb-4" style="color:hsl(var(--eden-forest))">
+          How We're Different
+        </h2>
+        <div class="eden-divider mb-10"></div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {compare.map((col) => (
+            <div class="p-6 rounded-sm h-full" style={`background-color:${col.negative ? "hsl(var(--eden-parchment))" : "hsl(var(--eden-forest))"};border:1px solid ${col.negative ? "hsl(var(--eden-gold) / 0.2)" : "hsl(var(--eden-gold) / 0.4)"}`}>
+              <h3 class="font-serif text-lg font-bold mb-4 text-center" style={`color:${col.negative ? "hsl(var(--eden-bark))" : "hsl(var(--eden-parchment))"}`}>
+                {col.title}
+              </h3>
+              <ul class="space-y-3">
+                {col.items.map((item) => (
+                  <li class="flex items-start gap-2 font-body text-sm" style={`color:${col.negative ? "hsl(var(--eden-bark) / 0.7)" : "hsl(var(--eden-parchment) / 0.9)"}`}>
+                    <span style={`color:${col.negative ? "hsl(var(--eden-bark) / 0.4)" : "hsl(var(--eden-gold))"}`}>{col.negative ? "—" : "✦"}</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="flex justify-center py-10"><span class="block w-16 h-px" style="background-color:hsl(var(--eden-gold))"></span></div>
+
+  {/* FINAL CTA — static no-Pattern version */}
+  <section class="section-padding-lg" style="background-color:hsl(var(--eden-parchment))">
+    <div class="eden-container px-6">
+      <div class="max-w-3xl mx-auto text-center">
+        <h2 class="font-serif text-3xl md:text-4xl font-bold mb-6" style="color:hsl(var(--eden-forest))">
+          Ready to Begin?
+        </h2>
+        <p class="font-body text-base leading-relaxed mb-8" style="color:hsl(var(--eden-bark) / 0.85)">
+          Start with the free body pattern quiz. Two minutes. Eight possible results. It will change how you think about every herb you'll ever use.
+        </p>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <a
+            href="/assessment"
+            data-cta="journey-aware-quiz"
+            class="font-body text-sm font-semibold px-8 py-3 rounded-sm whitespace-normal leading-snug text-center max-w-full"
+            style="background-color:hsl(var(--eden-forest));color:hsl(var(--eden-parchment))"
+          >
+            Take the Free Body Pattern Quiz
+          </a>
+          <a
+            href="/courses"
+            class="font-body text-sm font-semibold px-8 py-3 rounded-sm"
+            style="background-color:transparent;color:hsl(var(--eden-forest));border:1px solid hsl(var(--eden-forest))"
+          >
+            View Our Courses
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</MarketingLayout>
