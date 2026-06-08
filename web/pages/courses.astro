@@ -1,0 +1,289 @@
+---
+// /courses — Astro port of src/pages/Courses.tsx. Pre-rendered to static HTML
+// for SEO (was an empty SPA shell). This page is linked from the magnet emails,
+// so every funnel path is preserved by keeping URLs identical. SEO-safe,
+// intentional differences (documented inline):
+//   • External enroll (learn.edeninstitute.health) + Amazon links stay static
+//     target="_blank" links — unchanged.
+//   • The Pattern-aware Amazon CTA renders the no-Pattern BOOK fallback — exactly
+//     what the React code shows a visitor with no resolved Pattern. Per-Pattern
+//     Amazon-kit personalization is a returning-user enhancement that can return
+//     as a client:only island.
+//   • The two JourneyAwareQuizCTA -> static /assessment links (no-Pattern copy).
+//   • journeyCta.hasPattern pivots -> the no-Pattern copy.
+//   • The Tier 2 waitlist MODAL (TierTwoWaitlistModal, opened by onClick) -> static
+//     links to /tier-2-waitlist, the existing waitlist signup page. The funnel is
+//     intact (signup still reachable); the 1-click modal can return as an island.
+//   • Tier 3 stays a disabled "TBD" control.
+// Navbar / Footer / analytics come from MarketingLayout.
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+import { Button } from "@/components/ui/button";
+import { BookOpen, CheckCircle, Clock, GraduationCap, Users } from "lucide-react";
+
+const T1 = "https://learn.edeninstitute.health/course/back-to-eden1";
+const BOOK_URL = "https://www.amazon.com/dp/B0GPT81RDF?tag=mobile088c05e-20";
+// Static no-Pattern fallback (matches the React page's anonymous-visitor path).
+const amazonKitUrl = BOOK_URL;
+const amazonKitLabel = "Get the Eden Foundations Book";
+const amazonKitAriaLabel = "Get the Eden Foundations Book on Amazon (opens in a new tab)";
+
+const tier1Features = [
+  "10 lessons, self-paced",
+  "Body Pattern Quiz included",
+  "Certificate of completion",
+  "Lifetime access",
+];
+const tier2Features = [
+  "127 lessons across 14 modules",
+  "Full clinical textbook included",
+  "Herb-matching protocols",
+  "Founding member coupon for waitlist",
+];
+const tier3Features = [
+  "Full clinical methodology",
+  "Mentorship track",
+  "Case study library",
+  "Practitioner credential",
+];
+const whyCards = [
+  { title: "Biblically Grounded", body: "Yahweh as ultimate healer. Every framework anchored in Scripture, free from Eastern religious concepts." },
+  { title: "Terrain-Based", body: "We read the terrain, not the symptom. Body patterns, tissue states, and energetics are the tools." },
+  { title: "Clinically Rigorous", body: "127 lessons, 14 body systems, clinical vocabulary, materia medica, and case frameworks built in." },
+];
+
+const meta = {
+  title: "Courses — Biblical Clinical Herbalism | The Eden Institute",
+  description:
+    "A three-tier, faith-rooted curriculum for Christian families — from the biblical foundations of plant medicine through terrain-based clinical herbalism. Tier 1 enrolling now at $97 founding price.",
+  canonical: "https://edeninstitute.health/courses",
+};
+
+// Course structured data for the enrolling-now Tier 1 offering (rich results).
+const courseJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Course",
+  name: "Tier 1 — Biblical Framework | Biblical Clinical Herbalism",
+  description:
+    "The theological foundation of plant medicine: creation-based health, the Five Tenets, and your body pattern. 10 self-paced lessons with the Body Pattern Quiz, certificate of completion, and lifetime access.",
+  url: "https://edeninstitute.health/courses",
+  inLanguage: "en",
+  provider: { "@type": "Organization", name: "The Eden Institute", url: "https://edeninstitute.health" },
+  offers: {
+    "@type": "Offer",
+    price: "97",
+    priceCurrency: "USD",
+    availability: "https://schema.org/InStock",
+    url: "https://edeninstitute.health/courses",
+  },
+};
+---
+
+<MarketingLayout
+  title={meta.title}
+  description={meta.description}
+  canonical={meta.canonical}
+  jsonLd={courseJsonLd}
+>
+  {/* HERO */}
+  <section class="px-6 py-20 md:py-28" style="background-color:hsl(var(--eden-cream))">
+    <div class="mx-auto max-w-4xl text-center">
+      <p class="mb-6 font-accent text-sm uppercase tracking-[0.3em]" style="color:hsl(var(--eden-gold))">
+        Biblical Clinical Herbalism
+      </p>
+      <h1 class="mb-6 font-serif text-4xl font-bold leading-tight md:text-5xl lg:text-6xl" style="color:hsl(var(--eden-bark))">
+        Learn to Read the Body.
+        <br />
+        <span class="italic">Match the Plant. Steward the Family.</span>
+      </h1>
+      <div class="mx-auto my-8 h-px w-16" style="background-color:hsl(var(--eden-gold))"></div>
+      <p class="mx-auto mb-10 max-w-2xl font-body text-lg leading-relaxed text-muted-foreground">
+        A three-tier, faith-rooted curriculum for Christian families — from the biblical
+        foundations of plant medicine through terrain-based clinical herbalism.
+      </p>
+      <blockquote class="scripture-block mx-auto mb-10 max-w-xl text-left text-sm text-muted-foreground">
+        "He causeth the grass to grow for the cattle, and herb for the service of man."
+        <footer class="mt-2 font-body text-xs font-medium uppercase tracking-wider not-italic" style="color:hsl(var(--eden-forest))">
+          — Psalm 104:14 (KJV)
+        </footer>
+      </blockquote>
+      <div class="flex flex-col items-stretch justify-center gap-4 sm:flex-row sm:flex-wrap">
+        <a href={T1} target="_blank" rel="noopener noreferrer" class="inline-flex w-full sm:w-auto">
+          <Button variant="eden" size="xl" className="w-full h-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6">
+            Enroll in Tier 1 — $97 Founding
+          </Button>
+        </a>
+        <a href="/assessment" data-cta="journey-aware-quiz" class="inline-flex w-full sm:w-auto">
+          <Button variant="eden-outline" size="xl" className="w-full h-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6">
+            Take the Free Quiz First
+          </Button>
+        </a>
+        <a href={amazonKitUrl} target="_blank" rel="noopener noreferrer sponsored" aria-label={amazonKitAriaLabel} data-cta="courses-hero-amazon-kit" class="inline-flex w-full sm:w-auto">
+          <Button variant="eden-outline" size="xl" className="w-full h-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6">
+            {amazonKitLabel} →
+          </Button>
+        </a>
+      </div>
+      <p class="mt-4 font-body text-[11px] italic text-muted-foreground">
+        Amazon links are affiliate links — Eden Institute earns a small commission at no extra cost to you.
+      </p>
+    </div>
+  </section>
+
+  {/* TIERS */}
+  <section class="bg-background px-6 py-16">
+    <div class="mx-auto max-w-5xl">
+      <div class="mb-12 text-center">
+        <h2 class="mb-4 font-serif text-3xl font-bold" style="color:hsl(var(--eden-bark))">
+          Three Tiers. One Coherent Path.
+        </h2>
+        <p class="mx-auto max-w-2xl font-body text-muted-foreground">
+          Each tier builds on the last — from Biblical foundations to clinical practice.
+        </p>
+      </div>
+
+      <div class="grid gap-6 md:grid-cols-3">
+        {/* Tier 1 */}
+        <div class="relative rounded-lg border-2 p-8" style="border-color:hsl(var(--eden-gold));background-color:hsl(var(--eden-cream))">
+          <span class="absolute -top-3 left-6 rounded px-3 py-1 text-xs font-semibold uppercase tracking-widest" style="background-color:hsl(var(--eden-gold));color:hsl(var(--eden-bark))">
+            Now Enrolling
+          </span>
+          <BookOpen className="mb-4 h-8 w-8" color="hsl(var(--eden-gold))" />
+          <h3 class="mb-1 font-serif text-xl font-bold" style="color:hsl(var(--eden-bark))">
+            Tier 1 — Biblical Framework
+          </h3>
+          <p class="my-4 font-body text-sm leading-relaxed text-muted-foreground">
+            The theological foundation of plant medicine. Creation-based health, the Five
+            Tenets, and your body pattern.
+          </p>
+          <ul class="mb-6 space-y-2 text-sm text-muted-foreground">
+            {tier1Features.map((f) => (
+              <li class="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0" color="hsl(var(--eden-forest))" />{f}</li>
+            ))}
+          </ul>
+          <p class="mb-1 text-center font-serif text-3xl font-bold" style="color:hsl(var(--eden-bark))">$97</p>
+          <p class="mb-4 text-center font-body text-xs leading-snug" style="color:hsl(var(--eden-bark) / 0.65)">
+            Founding student price · first 100 students · regularly $197
+          </p>
+          <a href={T1} target="_blank" rel="noopener noreferrer" class="block">
+            <Button variant="eden" className="w-full">Enroll Now</Button>
+          </a>
+        </div>
+
+        {/* Companion textbook · Tier 1 */}
+        <div class="mt-8 rounded-sm border p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4" style="background-color:hsl(var(--eden-parchment));border-color:hsl(var(--eden-gold) / 0.4)">
+          <div>
+            <p class="font-accent text-xs tracking-widest uppercase mb-1" style="color:hsl(var(--eden-gold))">Companion Textbook · Tier 1</p>
+            <h3 class="font-serif text-xl font-bold mb-1" style="color:hsl(var(--eden-forest))">Back to Eden: Foundations of Biblical Herbalism</h3>
+            <p class="font-body text-sm" style="color:hsl(var(--eden-bark) / 0.75)">The print companion to the Tier 1 course. Read it alongside the lessons or give it as a gift to someone beginning their herbal journey.</p>
+          </div>
+          <a href={BOOK_URL} target="_blank" rel="noopener noreferrer sponsored" aria-label="Browse the Eden Institute book series on Amazon (opens in a new tab)" class="shrink-0 font-body text-xs tracking-widest uppercase font-semibold px-4 py-2 rounded-sm text-center transition-opacity hover:opacity-90" style="background-color:hsl(var(--eden-gold));color:hsl(var(--eden-bark))">
+            Buy the Book
+          </a>
+        </div>
+
+        {/* Tier 2 — Coming 2027 */}
+        <div class="relative rounded-lg border p-8" style="border-color:hsl(var(--eden-sage))">
+          <span class="absolute -top-3 left-6 rounded px-3 py-1 text-xs font-semibold uppercase tracking-widest text-white" style="background-color:hsl(var(--eden-sage))">
+            Coming 2027
+          </span>
+          <GraduationCap className="mb-4 h-8 w-8" color="hsl(var(--eden-sage))" />
+          <h3 class="mb-1 font-serif text-xl font-bold" style="color:hsl(var(--eden-bark))">Tier 2 — Body Systems</h3>
+          <p class="my-4 font-body text-sm leading-relaxed text-muted-foreground">14 modules through every major body system through a terrain-based, Biblical lens.</p>
+          <ul class="mb-6 space-y-2 text-sm text-muted-foreground">
+            {tier2Features.map((f) => (
+              <li class="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0" color="hsl(var(--eden-sage))" />{f}</li>
+            ))}
+          </ul>
+          <p class="mb-1 text-center font-serif text-2xl font-bold" style="color:hsl(var(--eden-bark))">$1,497</p>
+          <p class="mb-4 text-center font-body text-xs leading-snug" style="color:hsl(var(--eden-bark) / 0.65)">
+            Public price — waitlist members get a founding coupon that drops it by $1,000.
+          </p>
+          <div class="flex flex-col gap-2 w-full">
+            <a href="/tier-2-waitlist" data-cta="tier-two-waitlist-courses" class="block">
+              <Button variant="eden" className="w-full whitespace-normal h-auto leading-snug py-2.5">
+                Join the Tier 2 Waitlist
+              </Button>
+            </a>
+          </div>
+
+          {/* Companion textbook · Tier 2 · Coming 2028 */}
+          <div class="mt-6 rounded-sm border p-6" style="background-color:hsl(var(--eden-parchment));border-color:hsl(var(--eden-gold) / 0.3)">
+            <p class="font-accent text-xs tracking-widest uppercase mb-1" style="color:hsl(var(--eden-gold))">Companion Textbook · Tier 2 · Coming 2028</p>
+            <h3 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-forest))">Back to Eden: Body Systems &amp; Clinical Literacy</h3>
+            <p class="font-body text-sm mb-4" style="color:hsl(var(--eden-bark) / 0.75)">A comprehensive 14-module clinical reference covering every major body system. Terrain-based, Scripture-anchored, practitioner-grade. Join the Tier 2 waitlist to be notified when both the course and textbook are available.</p>
+            <div class="flex flex-col sm:flex-row gap-2">
+              <a href="/tier-2-waitlist" data-cta="tier-two-waitlist-courses-textbook">
+                <Button variant="eden" size="sm">Join the Tier 2 Waitlist</Button>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Tier 3 — TBD */}
+        <div class="relative rounded-lg border p-8 opacity-65" style="border-color:hsl(var(--border))">
+          <span class="absolute -top-3 left-6 rounded bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">TBD</span>
+          <Users className="mb-4 h-8 w-8 text-muted-foreground" />
+          <h3 class="mb-1 font-serif text-xl font-bold" style="color:hsl(var(--eden-bark))">Tier 3 — Clinical Practice</h3>
+          <p class="my-4 font-body text-sm leading-relaxed text-muted-foreground">Advanced clinical application — tissue states, body pattern prescribing, and supervised practice.</p>
+          <ul class="mb-6 space-y-2 text-sm text-muted-foreground">
+            {tier3Features.map((f) => (
+              <li class="flex gap-2"><Clock className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />{f}</li>
+            ))}
+          </ul>
+          <Button variant="eden-outline" className="w-full opacity-50" disabled={true}>TBD</Button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {/* RESTORATION BAND */}
+  <section class="px-6 py-16" style="background-color:hsl(var(--eden-forest))">
+    <div class="mx-auto max-w-4xl text-center">
+      <h2 class="mb-6 font-serif text-3xl font-bold text-white">This Is Not Wellness Culture. It's Restoration.</h2>
+      <p class="mb-10 font-body text-lg leading-relaxed" style="color:rgba(255,255,255,0.8)">
+        Most courses teach you what a plant does. We teach you to read the person first —
+        terrain, body pattern, tissue state — then match the plant.
+      </p>
+      <div class="grid gap-6 text-left md:grid-cols-3">
+        {whyCards.map((c) => (
+          <div class="rounded-lg p-6" style="background-color:rgba(255,255,255,0.08)">
+            <h3 class="mb-3 font-serif text-lg font-semibold text-white">{c.title}</h3>
+            <p class="font-body text-sm leading-relaxed" style="color:rgba(255,255,255,0.75)">{c.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* BOTTOM CTA */}
+  <section class="px-6 py-20" style="background-color:hsl(var(--eden-cream))">
+    <div class="mx-auto max-w-2xl text-center">
+      <h2 class="mb-4 font-serif text-3xl font-bold" style="color:hsl(var(--eden-bark))">
+        Not Sure Where to Start?
+      </h2>
+      <p class="mb-8 font-body text-muted-foreground">
+        Take the 2-minute Body Pattern Quiz. Discover your body pattern first.
+      </p>
+      <div class="flex flex-col items-stretch justify-center gap-4 sm:flex-row sm:flex-wrap">
+        <a href="/assessment" data-cta="journey-aware-quiz" class="inline-flex w-full sm:w-auto">
+          <Button variant="eden" size="xl" className="w-full h-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6">
+            Take the Free Quiz
+          </Button>
+        </a>
+        <a href={T1} target="_blank" rel="noopener noreferrer" class="inline-flex w-full sm:w-auto">
+          <Button variant="eden-outline" size="xl" className="w-full h-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6">
+            Enroll in Tier 1 — $97
+          </Button>
+        </a>
+        <a href={amazonKitUrl} target="_blank" rel="noopener noreferrer sponsored" aria-label={amazonKitAriaLabel} data-cta="courses-bottom-amazon-kit" class="inline-flex w-full sm:w-auto">
+          <Button variant="eden-outline" size="xl" className="w-full h-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6">
+            {amazonKitLabel} →
+          </Button>
+        </a>
+      </div>
+      <p class="mt-4 font-body text-[11px] italic text-muted-foreground">
+        Amazon links are affiliate links — Eden Institute earns a small commission at no extra cost to you.
+      </p>
+    </div>
+  </section>
+</MarketingLayout>
