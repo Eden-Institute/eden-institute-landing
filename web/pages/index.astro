@@ -13,6 +13,8 @@
 //     personalization returns as a small client:only island (localStorage only,
 //     no Supabase) in an immediate follow-up; SEO value does not depend on it.
 //   • All section IDs and links preserved; hero overlay imported as an asset.
+//   • Uses hideFooter — the page ships its own bespoke 4-column footer, so the
+//     shared <Footer /> is suppressed.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 import heroBotanical from "@/assets/hero-botanical.jpg";
 
@@ -38,7 +40,7 @@ const meta = {
 };
 ---
 
-<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical}>
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} hideFooter={true}>
   {/* HERO */}
   <section
     id="hero"
@@ -153,8 +155,7 @@ const meta = {
           <h2 class="mb-6" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:400;font-size:clamp(28px, 4vw, 48px);line-height:1.2;color:hsl(var(--green-deep))">Three steps. Free to start.</h2>
           <p class="mx-auto" style="font-family:'EB Garamond', Georgia, serif;font-size:18px;color:hsl(var(--ink-soft));max-width:720px;line-height:1.6">Find your body's constitutional pattern. Get an herb guide written for you specifically. Source the plants your body is asking for.</p>
         </div>
-        <style is:inline>{`@media (min-width: 880px) {.three-steps-grid {grid-template-columns: 1fr 0.15fr 1fr 0.15fr 1fr !important; gap: 0 !important;} .three-steps-arrow {display: flex !important;}}`}</style>
-        <div class="three-steps-grid grid items-stretch gap-6">
+        <div class="three-steps-grid grid grid-cols-1 items-stretch gap-6 min-[880px]:grid-cols-[1fr_0.15fr_1fr_0.15fr_1fr] min-[880px]:gap-0">
           {/* Step 1 */}
           <article class="flex flex-col bg-white" style="border-radius:4px;border:0.5px solid hsl(var(--sage-border) / 0.6);border-top:3px solid hsl(var(--green-deep));padding:32px">
             <div class="italic mb-3" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:300;font-size:48px;line-height:1;color:hsl(var(--honey))">1</div>
@@ -163,7 +164,7 @@ const meta = {
             <p class="flex-1" style="font-family:'EB Garamond', Georgia, serif;font-size:16px;line-height:1.65;color:hsl(var(--ink-soft));margin-bottom:24px">Discover the constitutional pattern God designed you with. No email required to start.</p>
             <a href="/assessment" class="self-start inline-flex items-center justify-center transition-colors duration-200 min-h-[44px]" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:14px;letter-spacing:0.06em;padding:10px 20px;border-radius:2px;background-color:hsl(var(--honey));color:hsl(var(--green-deep));border:1px solid hsl(var(--honey))">Take the Quiz</a>
           </article>
-          <div class="three-steps-arrow hidden items-center justify-center" aria-hidden="true" style="font-family:'Cormorant Garamond', Georgia, serif;font-size:32px;color:hsl(var(--honey));line-height:1">→</div>
+          <div class="three-steps-arrow hidden min-[880px]:flex items-center justify-center" aria-hidden="true" style="font-family:'Cormorant Garamond', Georgia, serif;font-size:32px;color:hsl(var(--honey));line-height:1">→</div>
           {/* Step 2 — no-Pattern default */}
           <article class="flex flex-col bg-white" style="border-radius:4px;border:0.5px solid hsl(var(--sage-border) / 0.6);border-top:3px solid hsl(var(--green-deep));padding:32px">
             <div class="italic mb-3" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:300;font-size:48px;line-height:1;color:hsl(var(--honey))">2</div>
@@ -172,7 +173,7 @@ const meta = {
             <p class="flex-1" style="font-family:'EB Garamond', Georgia, serif;font-size:16px;line-height:1.65;color:hsl(var(--ink-soft));margin-bottom:24px">Your personalized guide — 10 herbs matched to your pattern, plus nutrition, lifestyle, and Scripture written for you.</p>
             <a href="/assessment" data-cta="home-step2-guide" class="self-start inline-flex items-center justify-center transition-colors duration-200 min-h-[44px]" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:14px;letter-spacing:0.06em;padding:10px 20px;border-radius:2px;background-color:transparent;color:hsl(var(--green-deep));border:1px solid hsl(var(--green-deep))">Take the quiz to unlock →</a>
           </article>
-          <div class="three-steps-arrow hidden items-center justify-center" aria-hidden="true" style="font-family:'Cormorant Garamond', Georgia, serif;font-size:32px;color:hsl(var(--honey));line-height:1">→</div>
+          <div class="three-steps-arrow hidden min-[880px]:flex items-center justify-center" aria-hidden="true" style="font-family:'Cormorant Garamond', Georgia, serif;font-size:32px;color:hsl(var(--honey));line-height:1">→</div>
           {/* Step 3 — no-Pattern default */}
           <article class="flex flex-col bg-white" style="border-radius:4px;border:0.5px solid hsl(var(--sage-border) / 0.6);border-top:3px solid hsl(var(--green-deep));padding:32px">
             <div class="italic mb-3" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:300;font-size:48px;line-height:1;color:hsl(var(--honey))">3</div>
@@ -206,7 +207,7 @@ const meta = {
 
   <section id="cta" aria-label="Call to action"></section>
 
-  {/* FOOTER */}
+  {/* FOOTER (bespoke — shared Footer suppressed via hideFooter) */}
   <section id="footer" aria-label="Footer" class="px-8" style="background-color:hsl(var(--footer-bg));padding-top:clamp(48px, 6vw, 80px);padding-bottom:24px">
     <div class="max-w-[1120px] mx-auto">
       <div class="grid grid-cols-1 min-[880px]:grid-cols-4 gap-10">
