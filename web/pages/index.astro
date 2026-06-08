@@ -1,0 +1,255 @@
+---
+// / (homepage) — Astro port of src/pages/Index.tsx. Pre-rendered to static HTML
+// for SEO; this is the highest-traffic page, so it ships preview-first and is
+// e2e-verified before merge. Conventions match the other migrated pages.
+//
+// Behavior notes (all intentional, documented):
+//   • The supabase.rpc("current_user_tier") call is dropped — in the React page
+//     its result was ignored (empty handlers), i.e. a no-op. No functional change.
+//   • The localStorage personalization (patternSlug -> /guide/<slug> + per-Pattern
+//     Amazon bundle on Steps 2/3 + footer guide link) is NOT in this first cutover.
+//     We render the NO-PATTERN defaults — exactly what an anonymous visitor sees:
+//     Steps 2 & 3 and the footer "Deep Dive Guide" link to /assessment. The
+//     personalization returns as a small client:only island (localStorage only,
+//     no Supabase) in an immediate follow-up; SEO value does not depend on it.
+//   • All section IDs and links preserved; hero overlay imported as an asset.
+//   • Uses hideFooter — the page ships its own bespoke 4-column footer, so the
+//     shared <Footer /> is suppressed.
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+import heroBotanical from "@/assets/hero-botanical.jpg";
+
+const doors = [
+  { badge: "LAUNCHING AUGUST 1, 2026", eyebrow: "FOR THE FAMILY", title: "Eden's Table", subtitle: "K-12 Homeschool Curriculum", body: "The family doorway. Children learn how God designed their bodies and the plants He gave — alongside the parent who teaches them.", cta: "Get the first two weeks free →", href: "/homeschool#early-access", external: false },
+  { badge: "FOUNDATIONS LIVE · $97 → $197 ON AUGUST 1", eyebrow: "FOR THE ADULT", title: "Eden Institute Courses", subtitle: "Foundations + Body Systems", body: "The parent track. From foundational worldview to terrain-based clinical literacy. Reach genuine clinical competence over time.", cta: "See the Courses →", href: "/courses", external: false },
+  { badge: "LIVE NOW", eyebrow: "FOR THE PRACTITIONER", title: "Eden Apothecary", subtitle: "Pocket Materia Medica App", body: "The tool. Constitutional pattern matching, 100 monograph library, clinical reasoning support. So you don't have to hold it all in your head.", cta: "Open the Apothecary →", href: "/apothecary/start", external: false },
+  { badge: "AVAILABLE NOW ON AMAZON", eyebrow: "WHERE IT STARTED", title: "Back to Eden", subtitle: "The book where the framework began", body: "The origin text — Scripture-anchored herbal healing, written out in full. The work that started everything Eden Institute teaches.", cta: "Read the Book →", href: "https://www.amazon.com/dp/B0GPW5BZ32?tag=theedeninstit-20", external: true },
+];
+
+const forgot = [
+  { n: "01", h: "The signals were silenced.", b: "Symptoms are information — your body telling you what it needs. A generation was taught to suppress the signal instead of asking what it means." },
+  { n: "02", h: "Stewardship became dependency.", b: "The garden, the kitchen, the family table — once where health was tended — were traded for prescriptions and protocols held by people who don't know your name." },
+  { n: "03", h: "The framework was forgotten.", b: "Scripture-anchored herbalism. Yahweh as the source of vital force. Western clinical lineage. None of it is gone. It is simply absent from the rooms where children are formed." },
+  { n: "04", h: "And the children inherited the gap.", b: "A generation is growing up unable to read their own bodies, unable to name the plants in God's creation, unable to imagine health as anything other than what is prescribed to them." },
+];
+
+const meta = {
+  title: "The Eden Institute — A Framework Our Culture Forgot",
+  description:
+    "Scripture-anchored, terrain-based clinical herbalism for Christian families. Discover the constitutional body pattern God designed you with — start with the free 2-minute quiz.",
+  canonical: "https://edeninstitute.health/",
+};
+---
+
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} hideFooter={true}>
+  {/* HERO */}
+  <section
+    id="hero"
+    aria-label="Hero"
+    class="relative flex items-center justify-center px-8 overflow-hidden"
+    style="background-color:hsl(var(--cream));background-image:radial-gradient(circle at 100% 0%, hsl(var(--green-mid) / 0.08), transparent 50%),radial-gradient(circle at 0% 100%, hsl(var(--honey) / 0.08), transparent 50%);padding-top:clamp(60px, 8vw, 120px);padding-bottom:clamp(60px, 8vw, 120px)"
+  >
+    <img src={heroBotanical.src} alt="" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" style="opacity:0.32;mix-blend-mode:multiply" />
+    <div class="relative z-10 max-w-[960px] w-full mx-auto text-center">
+      <p class="uppercase tracking-[0.18em] mb-6" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:11px;color:hsl(var(--green-mid))">
+        THE EDEN INSTITUTE
+      </p>
+      <h1 class="mb-0" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:400;font-size:clamp(38px, 5vw, 64px);line-height:1.1;color:hsl(var(--green-deep))">
+        <span class="block">A framework our culture forgot.</span>
+        <span class="block italic" style="color:hsl(var(--rust))">We are teaching it back.</span>
+      </h1>
+      <div class="mx-auto" style="width:80px;height:2px;background-color:hsl(var(--honey));margin-top:28px;margin-bottom:28px"></div>
+      <p class="mx-auto" style="font-family:'EB Garamond', Georgia, serif;font-size:19px;color:hsl(var(--ink));max-width:680px;line-height:1.7">
+        Our bodies were designed to signal. To repair. To steward themselves
+        with help from the plants God gave for food and healing.{" "}
+        <span class="italic" style="font-family:'Cormorant Garamond', Georgia, serif;color:hsl(var(--green-dark))">
+          Somewhere along the way, we stopped listening.
+        </span>
+      </p>
+    </div>
+  </section>
+
+  <section id="four-doors" aria-label="Four doors"></section>
+
+  {/* FRAMEWORK */}
+  <section id="framework" aria-label="Framework" class="px-8" style="background-color:hsl(var(--cream-light));padding-top:clamp(60px, 8vw, 120px);padding-bottom:clamp(60px, 8vw, 120px)">
+    <div class="max-w-[1120px] mx-auto">
+      <div class="text-center mb-16">
+        <p class="uppercase tracking-[0.18em] mb-6" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:11px;color:hsl(var(--green-mid))">
+          THE FRAMEWORK
+        </p>
+        <h2 style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:400;font-size:clamp(28px, 4vw, 48px);line-height:1.15;color:hsl(var(--green-deep));margin-bottom:20px">
+          Four doors. One mission.
+        </h2>
+        <p class="mx-auto" style="font-family:'EB Garamond', Georgia, serif;font-size:18px;color:hsl(var(--ink-soft));max-width:640px;line-height:1.6">
+          This page is the teaser. Each door leads to its own full explanation.
+        </p>
+      </div>
+      <div class="grid grid-cols-1 min-[880px]:grid-cols-4 gap-6">
+        {doors.map((card) => (
+          <article class="flex flex-col bg-white transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_12px_32px_-12px_rgba(0,0,0,0.18)]" style="border-radius:4px;border:0.5px solid hsl(var(--sage-border) / 0.6);border-top:3px solid hsl(var(--green-deep));padding:32px">
+            <span class="self-start inline-block mb-5" style="background-color:hsl(var(--honey) / 0.15);color:hsl(var(--honey));font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;padding:5px 10px;border-radius:999px;line-height:1.3">
+              {card.badge}
+            </span>
+            <p class="uppercase mb-3" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:11px;letter-spacing:0.18em;color:hsl(var(--green-mid))">
+              {card.eyebrow}
+            </p>
+            <h3 style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:500;font-size:28px;line-height:1.2;color:hsl(var(--green-deep));margin-bottom:6px">
+              {card.title}
+            </h3>
+            <p class="italic mb-4" style="font-family:'Cormorant Garamond', Georgia, serif;font-size:18px;color:hsl(var(--green-mid))">
+              {card.subtitle}
+            </p>
+            <p class="flex-1" style="font-family:'EB Garamond', Georgia, serif;font-size:16px;line-height:1.65;color:hsl(var(--ink-soft));margin-bottom:24px">
+              {card.body}
+            </p>
+            <a href={card.href} target={card.external ? "_blank" : undefined} rel={card.external ? "noopener noreferrer" : undefined} class="self-start inline-flex items-center justify-center transition-colors duration-200 min-h-[44px]" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:14px;letter-spacing:0.06em;color:hsl(var(--green-deep));border:1px solid hsl(var(--green-deep));padding:10px 20px;border-radius:2px;background-color:transparent">
+              {card.cta}
+            </a>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* WHY THIS EXISTS */}
+  <section id="why-this-exists" aria-label="Why this exists">
+    <div class="px-8" style="background-color:hsl(var(--green-deep));padding-top:clamp(60px, 8vw, 120px);padding-bottom:clamp(60px, 8vw, 120px)">
+      <div class="max-w-[1120px] mx-auto">
+        <div class="text-center mb-16">
+          <p class="uppercase tracking-[0.18em] mb-6" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:11px;color:hsl(var(--honey-pale))">A FRAMEWORK OUR CULTURE FORGOT</p>
+          <h2 class="italic mb-6" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:400;font-size:clamp(28px, 4vw, 48px);line-height:1.2;color:hsl(var(--cream))">We outsourced our bodies — and chronic disease is at an all-time high.</h2>
+          <p class="mx-auto" style="font-family:'EB Garamond', Georgia, serif;font-size:19px;color:hsl(var(--sage-pale));max-width:720px;line-height:1.6">Three thousand years of Western clinical herbalism, anchored in Scripture, hasn't disappeared. It just isn't being taught.</p>
+        </div>
+        <div class="grid grid-cols-1 min-[880px]:grid-cols-2 gap-x-12 gap-y-12 max-w-[960px] mx-auto">
+          {forgot.map((item) => (
+            <div>
+              <div class="italic mb-2" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:300;font-size:64px;line-height:1;color:hsl(var(--honey-pale))">{item.n}</div>
+              <h3 class="italic mb-3" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:400;font-size:24px;line-height:1.25;color:hsl(var(--cream))">{item.h}</h3>
+              <p style="font-family:'EB Garamond', Georgia, serif;font-size:16px;color:hsl(var(--sage-pale));line-height:1.7">{item.b}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+    <div class="px-8" style="background-color:hsl(var(--cream-light));padding-top:clamp(60px, 8vw, 120px);padding-bottom:clamp(60px, 8vw, 120px)">
+      <div class="max-w-[820px] mx-auto text-center">
+        <p class="uppercase tracking-[0.18em] mb-6" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:11px;color:hsl(var(--green-mid))">A BODY LIKE NO OTHER</p>
+        <h2 class="italic mb-12" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:400;font-size:clamp(28px, 4vw, 48px);line-height:1.2;color:hsl(var(--green-deep))">We live in a one-size-fits-all medical system. You were not made one-size-fits-all.</h2>
+        <div class="mb-4">
+          <div class="mx-auto mb-8" style="width:80px;height:1px;background-color:hsl(var(--sage-border) / 0.6)"></div>
+          <blockquote class="italic mx-auto" style="font-family:'Cormorant Garamond', Georgia, serif;font-size:26px;line-height:1.5;color:hsl(var(--green-dark));max-width:720px">"I will give thanks to You, for I am fearfully and wonderfully made… my frame was not hidden from You when I was made in secret, and skillfully wrought."</blockquote>
+          <div class="mx-auto mt-8" style="width:80px;height:1px;background-color:hsl(var(--sage-border) / 0.6)"></div>
+        </div>
+        <p class="mb-12" style="font-family:'Caveat', cursive;font-size:28px;color:hsl(var(--honey));line-height:1.2">— Psalm 139:14–15</p>
+        <div class="mx-auto" style="max-width:760px">
+          <p style="font-family:'EB Garamond', Georgia, serif;font-size:18px;color:hsl(var(--ink));line-height:1.75;margin-bottom:24px">God did not knit His image in a mold. He knit you — distinctly, deliberately, by hand. Different sizes. Different shapes. Different personalities. Different body patterns. Different responses to heat and cold, stress and stillness, food and feeling.</p>
+          <p style="font-family:'EB Garamond', Georgia, serif;font-size:18px;color:hsl(var(--ink));line-height:1.75">The plants He designed were not made one-size-fits-all either. The same chamomile that calms one body inflames another. The same elderberry that fortifies one immune system overwhelms another. There is no universal protocol — because there is no universal body.</p>
+        </div>
+        <p class="italic" style="font-family:'Cormorant Garamond', Georgia, serif;font-size:24px;color:hsl(var(--green-deep));margin-top:40px;line-height:1.4">This is where we begin. With your body. Specifically. The one He made.</p>
+      </div>
+    </div>
+    <div class="px-8" style="background-color:hsl(var(--cream-warm));padding-top:clamp(60px, 8vw, 120px);padding-bottom:clamp(60px, 8vw, 120px)">
+      <div class="max-w-[1120px] mx-auto">
+        <div class="text-center mb-16">
+          <p class="uppercase tracking-[0.18em] mb-6" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:11px;color:hsl(var(--green-mid))">BEGIN WHERE YOU ARE</p>
+          <h2 class="mb-6" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:400;font-size:clamp(28px, 4vw, 48px);line-height:1.2;color:hsl(var(--green-deep))">Three steps. Free to start.</h2>
+          <p class="mx-auto" style="font-family:'EB Garamond', Georgia, serif;font-size:18px;color:hsl(var(--ink-soft));max-width:720px;line-height:1.6">Find your body's constitutional pattern. Get an herb guide written for you specifically. Source the plants your body is asking for.</p>
+        </div>
+        <div class="three-steps-grid grid grid-cols-1 items-stretch gap-6 min-[880px]:grid-cols-[1fr_0.15fr_1fr_0.15fr_1fr] min-[880px]:gap-0">
+          {/* Step 1 */}
+          <article class="flex flex-col bg-white" style="border-radius:4px;border:0.5px solid hsl(var(--sage-border) / 0.6);border-top:3px solid hsl(var(--green-deep));padding:32px">
+            <div class="italic mb-3" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:300;font-size:48px;line-height:1;color:hsl(var(--honey))">1</div>
+            <h3 style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:500;font-size:26px;line-height:1.2;color:hsl(var(--green-deep));margin-bottom:6px">The Pattern Quiz</h3>
+            <p class="italic mb-4" style="font-family:'Cormorant Garamond', Georgia, serif;font-size:16px;color:hsl(var(--green-mid))">Free · 2 minutes</p>
+            <p class="flex-1" style="font-family:'EB Garamond', Georgia, serif;font-size:16px;line-height:1.65;color:hsl(var(--ink-soft));margin-bottom:24px">Discover the constitutional pattern God designed you with. No email required to start.</p>
+            <a href="/assessment" class="self-start inline-flex items-center justify-center transition-colors duration-200 min-h-[44px]" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:14px;letter-spacing:0.06em;padding:10px 20px;border-radius:2px;background-color:hsl(var(--honey));color:hsl(var(--green-deep));border:1px solid hsl(var(--honey))">Take the Quiz</a>
+          </article>
+          <div class="three-steps-arrow hidden min-[880px]:flex items-center justify-center" aria-hidden="true" style="font-family:'Cormorant Garamond', Georgia, serif;font-size:32px;color:hsl(var(--honey));line-height:1">→</div>
+          {/* Step 2 — no-Pattern default */}
+          <article class="flex flex-col bg-white" style="border-radius:4px;border:0.5px solid hsl(var(--sage-border) / 0.6);border-top:3px solid hsl(var(--green-deep));padding:32px">
+            <div class="italic mb-3" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:300;font-size:48px;line-height:1;color:hsl(var(--honey))">2</div>
+            <h3 style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:500;font-size:26px;line-height:1.2;color:hsl(var(--green-deep));margin-bottom:6px">The Deep Dive Guide</h3>
+            <p class="italic mb-4" style="font-family:'Cormorant Garamond', Georgia, serif;font-size:16px;color:hsl(var(--green-mid))">$14</p>
+            <p class="flex-1" style="font-family:'EB Garamond', Georgia, serif;font-size:16px;line-height:1.65;color:hsl(var(--ink-soft));margin-bottom:24px">Your personalized guide — 10 herbs matched to your pattern, plus nutrition, lifestyle, and Scripture written for you.</p>
+            <a href="/assessment" data-cta="home-step2-guide" class="self-start inline-flex items-center justify-center transition-colors duration-200 min-h-[44px]" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:14px;letter-spacing:0.06em;padding:10px 20px;border-radius:2px;background-color:transparent;color:hsl(var(--green-deep));border:1px solid hsl(var(--green-deep))">Take the quiz to unlock →</a>
+          </article>
+          <div class="three-steps-arrow hidden min-[880px]:flex items-center justify-center" aria-hidden="true" style="font-family:'Cormorant Garamond', Georgia, serif;font-size:32px;color:hsl(var(--honey));line-height:1">→</div>
+          {/* Step 3 — no-Pattern default */}
+          <article class="flex flex-col bg-white" style="border-radius:4px;border:0.5px solid hsl(var(--sage-border) / 0.6);border-top:3px solid hsl(var(--green-deep));padding:32px">
+            <div class="italic mb-3" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:300;font-size:48px;line-height:1;color:hsl(var(--honey))">3</div>
+            <h3 style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:500;font-size:26px;line-height:1.2;color:hsl(var(--green-deep));margin-bottom:6px">Shop Your Bundle</h3>
+            <p class="italic mb-4" style="font-family:'Cormorant Garamond', Georgia, serif;font-size:16px;color:hsl(var(--green-mid))">Curated</p>
+            <p class="flex-1" style="font-family:'EB Garamond', Georgia, serif;font-size:16px;line-height:1.65;color:hsl(var(--ink-soft));margin-bottom:24px">Source the herbs your body is asking for. Curated Amazon bundles, organized by pattern, ready to deliver.</p>
+            <a href="/assessment" data-cta="home-step3-bundle" class="self-start inline-flex items-center justify-center transition-colors duration-200 min-h-[44px]" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:14px;letter-spacing:0.06em;padding:10px 20px;border-radius:2px;background-color:transparent;color:hsl(var(--green-deep));border:1px solid hsl(var(--green-deep))">Take the quiz to unlock →</a>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {/* FOUNDER */}
+  <section id="founder" aria-label="Founder" class="px-8" style="background-color:hsl(var(--cream));padding-top:clamp(60px, 8vw, 120px);padding-bottom:clamp(60px, 8vw, 120px)">
+    <div class="max-w-[820px] mx-auto text-center">
+      <p class="uppercase tracking-[0.18em] mb-6" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:11px;color:hsl(var(--green-mid))">FROM THE FOUNDER</p>
+      <h2 class="italic mb-8" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:400;font-size:clamp(28px, 3vw, 36px);line-height:1.3;color:hsl(var(--green-deep))">"I built this because I couldn't find it. And I needed it to exist."</h2>
+      <div class="text-left mx-auto" style="max-width:720px">
+        <p style="font-family:'EB Garamond', Georgia, serif;font-size:16px;line-height:1.85;color:hsl(var(--ink));margin-bottom:20px">I'm Camila — a credentialed teacher with a Master's in education. I spent years studying herbalism formally. Every school I attended was rooted in Far Eastern mysticism — chakras, doshas, energy paradigms I don't share.</p>
+        <p style="font-family:'EB Garamond', Georgia, serif;font-size:16px;line-height:1.85;color:hsl(var(--ink));margin-bottom:20px">I didn't want to quit. The plants are real. The clinical lineage of Western herbalism is real. The body's design is real. But I refused to learn it through a paradigm contrary to my faith.</p>
+        <p style="font-family:'EB Garamond', Georgia, serif;font-size:16px;line-height:1.85;color:hsl(var(--ink));margin-bottom:20px">So I built a framework that begins with Yahweh — the source of vital force — and threads Scripture through every plant, every body system, every clinical decision. Then I built the curriculum to teach it to children. Then the courses to teach it to adults. Then the app to make the materia medica portable. Then the book where it's all written out.</p>
+        <p style="font-family:'EB Garamond', Georgia, serif;font-size:16px;line-height:1.85;color:hsl(var(--ink));margin-bottom:32px">If you've ever picked up an herbal book and quietly noticed Eastern frameworks beneath the surface — this is the alternative you've been waiting for.</p>
+      </div>
+      <div class="text-right">
+        <p style="font-family:'Caveat', cursive;font-size:36px;color:hsl(var(--green-deep));line-height:1.2">— Camila</p>
+        <p class="uppercase mt-2" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:400;font-size:13px;letter-spacing:0.12em;color:hsl(var(--ink-soft))">MASTER'S IN EDUCATION · CREDENTIALED TEACHER · FOUNDER, EDEN INSTITUTE</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="cta" aria-label="Call to action"></section>
+
+  {/* FOOTER (bespoke — shared Footer suppressed via hideFooter) */}
+  <section id="footer" aria-label="Footer" class="px-8" style="background-color:hsl(var(--footer-bg));padding-top:clamp(48px, 6vw, 80px);padding-bottom:24px">
+    <div class="max-w-[1120px] mx-auto">
+      <div class="grid grid-cols-1 min-[880px]:grid-cols-4 gap-10">
+        <div>
+          <p style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:400;font-size:32px;color:hsl(var(--cream));line-height:1.2;margin-bottom:8px">Eden Institute</p>
+          <p style="font-family:'Caveat', cursive;font-size:22px;color:hsl(var(--honey));line-height:1.2;margin-bottom:16px">Back to Eden. Back to Truth.</p>
+          <p style="font-family:'EB Garamond', Georgia, serif;font-size:14px;line-height:1.6;color:hsl(var(--sage-pale))">The Eden Institute teaches Scripture-anchored, terrain-based clinical herbalism. A framework forgotten by mainstream wellness — taught back, one family at a time. Built by Rooted in Faith Ventures.</p>
+        </div>
+        <div>
+          <p class="uppercase mb-5" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:11px;letter-spacing:0.18em;color:hsl(var(--green-mid))">THE WORK</p>
+          <ul class="space-y-3">
+            <li><a href="/homeschool" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">Eden's Table</a></li>
+            <li><a href="/courses" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">Eden Institute Courses</a></li>
+            <li><a href="/apothecary/start" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">Apothecary App</a></li>
+            <li><a href="https://www.amazon.com/dp/B0GPW5BZ32?tag=theedeninstit-20" target="_blank" rel="noopener noreferrer" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">The Book</a></li>
+          </ul>
+        </div>
+        <div>
+          <p class="uppercase mb-5" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:11px;letter-spacing:0.18em;color:hsl(var(--green-mid))">BEGIN HERE</p>
+          <ul class="space-y-3">
+            <li><a href="/assessment" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">Pattern Quiz</a></li>
+            <li><a href="/assessment" data-cta="home-footer-guide" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">Deep Dive Guide</a></li>
+            <li><a href="/homeschool" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">Founders Edition</a></li>
+            <li><a href="/why-eden" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">Why Eden</a></li>
+          </ul>
+        </div>
+        <div>
+          <p class="uppercase mb-5" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:11px;letter-spacing:0.18em;color:hsl(var(--green-mid))">CONTACT</p>
+          <ul class="space-y-3">
+            <li><a href="mailto:hello@edeninstitute.health" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">hello@edeninstitute.health</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="mt-12 pt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center" style="border-top:1px solid hsl(var(--sage-pale) / 0.25);font-family:'EB Garamond', Georgia, serif;font-size:12px;color:hsl(var(--ink-soft))">
+        <span>© 2026 The Eden Institute · Rooted in Faith Ventures · Clarksville, Tennessee</span>
+        <span class="hidden sm:inline">|</span>
+        <a href="/terms" style="color:hsl(var(--ink-soft))">Terms</a>
+        <span>·</span>
+        <a href="/privacy" style="color:hsl(var(--ink-soft))">Privacy</a>
+        <span>·</span>
+        <a href="/cookies" style="color:hsl(var(--ink-soft))">Cookies</a>
+      </div>
+    </div>
+  </section>
+</MarketingLayout>

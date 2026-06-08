@@ -15,6 +15,9 @@ export interface Props {
   ogType?: "website" | "article";
   /** Page-specific structured data (e.g. Course, FAQPage). Object or array. */
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  /** Pages with their own bespoke footer (e.g. the homepage) opt out of the
+      shared <Footer />. Defaults to false so all other pages are unaffected. */
+  hideFooter?: boolean;
 }
 
 const {
@@ -24,6 +27,7 @@ const {
   ogImage = "https://edeninstitute.health/og-home-v1.4.png",
   ogType = "website",
   jsonLd,
+  hideFooter = false,
 } = Astro.props;
 
 // Sitewide identity — present on every marketing page.
@@ -99,7 +103,7 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
   <body>
     <Navbar />
     <slot />
-    <Footer />
+    {hideFooter ? null : <Footer />}
     {/* client:only — never server-rendered. The shared Supabase client touches
         localStorage at module load, and analytics/consent is a browser-only
         concern with no SEO value, so it must not run during the static build. */}
