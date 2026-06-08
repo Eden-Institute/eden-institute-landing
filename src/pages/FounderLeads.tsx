@@ -16,10 +16,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
+import CrmTab from "@/components/founder/CrmTab";
 
 const FOUNDER_EMAIL = "hello@edeninstitute.health";
 
-type Tab = "leads" | "traffic";
+type Tab = "leads" | "traffic" | "crm";
 
 interface LeadRow {
   email: string;
@@ -121,6 +122,7 @@ export default function FounderLeads() {
   const isFounder = !!user && user.email?.toLowerCase() === FOUNDER_EMAIL;
 
   const load = useCallback(async () => {
+    if (tab === "crm") return;
     const since = sinceISO(WINDOWS[windowIdx].days);
     setLoading(true);
     setError(null);
@@ -266,7 +268,7 @@ export default function FounderLeads() {
 
         {/* Tabs */}
         <div className="flex gap-1 mb-4 border-b border-border">
-          {(["leads", "traffic"] as Tab[]).map((t) => (
+          {(["leads", "traffic", "crm"] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -277,7 +279,7 @@ export default function FounderLeads() {
                   : { borderColor: "transparent", color: "hsl(var(--muted-foreground))" }
               }
             >
-              {t === "leads" ? "Lead magnets" : "Website traffic"}
+              {t === "leads" ? "Lead magnets" : t === "traffic" ? "Website traffic" : "CRM"}
             </button>
           ))}
         </div>
@@ -370,7 +372,7 @@ export default function FounderLeads() {
               )}
             </section>
           </>
-        ) : (
+        ) : tab === "traffic" ? (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
               <StatCard label="Page views" value={String(traffic?.totals?.views ?? 0)} />
@@ -456,6 +458,8 @@ export default function FounderLeads() {
               </p>
             </section>
           </>
+        ) : (
+          <CrmTab since={sinceISO(WINDOWS[windowIdx].days)} />
         )}
 
         <p className="font-body text-xs text-muted-foreground">
