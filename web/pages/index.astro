@@ -6,16 +6,17 @@
 // Behavior notes (all intentional, documented):
 //   • The supabase.rpc("current_user_tier") call is dropped — in the React page
 //     its result was ignored (empty handlers), i.e. a no-op. No functional change.
-//   • The localStorage personalization (patternSlug -> /guide/<slug> + per-Pattern
-//     Amazon bundle on Steps 2/3 + footer guide link) is NOT in this first cutover.
-//     We render the NO-PATTERN defaults — exactly what an anonymous visitor sees:
-//     Steps 2 & 3 and the footer "Deep Dive Guide" link to /assessment. The
-//     personalization returns as a small client:only island (localStorage only,
-//     no Supabase) in an immediate follow-up; SEO value does not depend on it.
+//   • The static page renders the NO-PATTERN defaults — exactly what an anonymous
+//     visitor sees: Steps 2 & 3 and the footer "Deep Dive Guide" link to
+//     /assessment. The <HomeJourneyPersonalizer> client:only island restores the
+//     returning-visitor personalization (localStorage.edenConstitutionSlug ->
+//     /guide/<slug> + matched Amazon bundle). localStorage only, no Supabase;
+//     SEO/crawler traffic is unaffected.
 //   • All section IDs and links preserved; hero overlay imported as an asset.
 //   • Uses hideFooter — the page ships its own bespoke 4-column footer, so the
 //     shared <Footer /> is suppressed.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
+import HomeJourneyPersonalizer from "../components/islands/HomeJourneyPersonalizer.tsx";
 import heroBotanical from "@/assets/hero-botanical.jpg";
 
 const doors = [
@@ -165,7 +166,7 @@ const meta = {
             <a href="/assessment" class="self-start inline-flex items-center justify-center transition-colors duration-200 min-h-[44px]" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:14px;letter-spacing:0.06em;padding:10px 20px;border-radius:2px;background-color:hsl(var(--honey));color:hsl(var(--green-deep));border:1px solid hsl(var(--honey))">Take the Quiz</a>
           </article>
           <div class="three-steps-arrow hidden min-[880px]:flex items-center justify-center" aria-hidden="true" style="font-family:'Cormorant Garamond', Georgia, serif;font-size:32px;color:hsl(var(--honey));line-height:1">→</div>
-          {/* Step 2 — no-Pattern default */}
+          {/* Step 2 — no-Pattern default; personalized by HomeJourneyPersonalizer */}
           <article class="flex flex-col bg-white" style="border-radius:4px;border:0.5px solid hsl(var(--sage-border) / 0.6);border-top:3px solid hsl(var(--green-deep));padding:32px">
             <div class="italic mb-3" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:300;font-size:48px;line-height:1;color:hsl(var(--honey))">2</div>
             <h3 style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:500;font-size:26px;line-height:1.2;color:hsl(var(--green-deep));margin-bottom:6px">The Deep Dive Guide</h3>
@@ -174,7 +175,7 @@ const meta = {
             <a href="/assessment" data-cta="home-step2-guide" class="self-start inline-flex items-center justify-center transition-colors duration-200 min-h-[44px]" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:14px;letter-spacing:0.06em;padding:10px 20px;border-radius:2px;background-color:transparent;color:hsl(var(--green-deep));border:1px solid hsl(var(--green-deep))">Take the quiz to unlock →</a>
           </article>
           <div class="three-steps-arrow hidden min-[880px]:flex items-center justify-center" aria-hidden="true" style="font-family:'Cormorant Garamond', Georgia, serif;font-size:32px;color:hsl(var(--honey));line-height:1">→</div>
-          {/* Step 3 — no-Pattern default */}
+          {/* Step 3 — no-Pattern default; personalized by HomeJourneyPersonalizer */}
           <article class="flex flex-col bg-white" style="border-radius:4px;border:0.5px solid hsl(var(--sage-border) / 0.6);border-top:3px solid hsl(var(--green-deep));padding:32px">
             <div class="italic mb-3" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:300;font-size:48px;line-height:1;color:hsl(var(--honey))">3</div>
             <h3 style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:500;font-size:26px;line-height:1.2;color:hsl(var(--green-deep));margin-bottom:6px">Shop Your Bundle</h3>
@@ -252,4 +253,6 @@ const meta = {
       </div>
     </div>
   </section>
+
+  <HomeJourneyPersonalizer client:only="react" />
 </MarketingLayout>
