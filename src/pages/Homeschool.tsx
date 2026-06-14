@@ -174,12 +174,12 @@ const Homeschool = () => {
   });
   const openSproutsLeadMagnet = () => openWaitlist({
     title: "Get Sprouts Weeks 1 + 2 — Free",
-    subtitle: "Your free preview of Sprouts Weeks 1 + 2 (Lavender + Chamomile) is on the way. We're finishing how we send these — you'll be among the first to receive when we open delivery.",
+    subtitle: "Check your inbox — your free Sprouts Week 1 (Lavender) downloads are on their way right now. Five real lessons to print and teach today. Week 2 (Chamomile) follows in seven days.",
     source: "sprouts_magnet",
   });
   const openSeedlingsLeadMagnet = () => openWaitlist({
     title: "Get Seedlings Weeks 1 + 2 — Free",
-    subtitle: "Your free preview of Seedlings Weeks 1 + 2 (Elderberry + Tulsi) is on the way. We're finishing how we send these — you'll be among the first to receive when we open delivery.",
+    subtitle: "Check your inbox — your free Seedlings Week 1 (Elderberry) downloads are on their way right now. Five real lessons to print and teach today. Week 2 (Tulsi) follows in seven days.",
     source: "seedlings_magnet",
   });
 
@@ -187,12 +187,18 @@ const Homeschool = () => {
    * Reusable dual lead-magnet CTA pair (Sprouts + Seedlings, side-by-side).
    * Renders at the foot of each showcase and below the hero.
    */
-  const DualLeadMagnetCTAs = ({ size = "lg" }: { size?: "lg" | "xl" }) => (
+  const DualLeadMagnetCTAs = ({
+    size = "lg",
+    variant = "eden-outline",
+  }: {
+    size?: "lg" | "xl";
+    variant?: "eden" | "eden-outline";
+  }) => (
     <div className="flex flex-col sm:flex-row gap-3 justify-center items-stretch">
-      <Button variant="eden-outline" size={size} onClick={openSproutsLeadMagnet}>
+      <Button variant={variant} size={size} onClick={openSproutsLeadMagnet}>
         Get Sprouts (K-2) Weeks 1 + 2 — Free
       </Button>
-      <Button variant="eden-outline" size={size} onClick={openSeedlingsLeadMagnet}>
+      <Button variant={variant} size={size} onClick={openSeedlingsLeadMagnet}>
         Get Seedlings (3-5) Weeks 1 + 2 — Free
       </Button>
     </div>
@@ -257,16 +263,24 @@ const Homeschool = () => {
             A K-12 Biblical herbalism curriculum for homeschool families. Open-and-go lesson plans, memory songs, kitchen labs, garden activities, and a recurring family story — rooted in Scripture and creation stewardship.
           </p>
           <p className="font-accent text-sm tracking-wider uppercase mb-8" style={{ color: "hsl(var(--eden-sage))" }}>
-            Sprouts (K-2) + Seedlings (3-5) ship in 2027 · Founders pricing open now
+            Sprouts (K-2) + Seedlings (3-5) · Free sample weeks — sent to your inbox today
           </p>
-          <div className="flex flex-col items-center gap-5">
-            <Button variant="eden" size="xl" onClick={openReserveFounders}>
-              Reserve Founders Pricing →
-            </Button>
-            <p className="font-accent text-xs tracking-[0.25em] uppercase" style={{ color: "hsl(var(--eden-sage))" }}>
-              or preview the curriculum free
+          <div id="early-access" className="flex flex-col items-center gap-4 scroll-mt-28">
+            <p className="font-accent text-xs tracking-[0.3em] uppercase" style={{ color: "hsl(var(--eden-gold))" }}>
+              Start free — two real weeks, yours to print and teach today
             </p>
-            <DualLeadMagnetCTAs />
+            <DualLeadMagnetCTAs size="xl" variant="eden" />
+            <p className="font-body text-sm text-muted-foreground max-w-md mx-auto mt-1">
+              Five full lessons per week — Teacher Guide, Student Notebook, Field Cards, Recipe Cards, and Around-the-Table deck. Delivered to your email instantly, free.
+            </p>
+            <button
+              type="button"
+              onClick={openReserveFounders}
+              className="mt-4 font-accent text-xs tracking-[0.2em] uppercase underline underline-offset-4 transition-colors hover:opacity-80"
+              style={{ color: "hsl(var(--eden-sage))" }}
+            >
+              Planning ahead? Reserve Founders pricing →
+            </button>
           </div>
         </div>
       </section>
