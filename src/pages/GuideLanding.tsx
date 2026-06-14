@@ -241,7 +241,7 @@ const GuideLanding = () => {
               className="inline-block font-serif text-sm font-bold tracking-[0.15em] uppercase px-8 py-4 rounded transition-opacity disabled:opacity-60"
               style={{ backgroundColor: "#C5A44E", color: "#2C3E2D" }}
             >
-              {checkoutLoading ? "Loading…" : `Get Your ${displayName} Guide — $14`}
+              {checkoutLoading ? "Loading…" : `Get Your ${displayName} Guide — $4.99`}
             </button>
 
             {error && (

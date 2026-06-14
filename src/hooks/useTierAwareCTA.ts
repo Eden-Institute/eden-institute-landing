@@ -106,7 +106,7 @@ export function computeTierAwareCTAs(
   let guide: TierAwareCTA;
   if (!hasUser || !hasPattern || !pattern) {
     guide = {
-      label: "Get the $14 Guide",
+      label: "Get the $4.99 Guide",
       href: ROUTES.ASSESSMENT,
     };
   } else {
@@ -119,7 +119,7 @@ export function computeTierAwareCTAs(
       };
     } else {
       guide = {
-        label: `Get the ${patternShort} Guide — $14`,
+        label: `Get the ${patternShort} Guide — $4.99`,
         href: `/guide/${slug}`,
       };
     }
@@ -149,7 +149,7 @@ export function computeTierAwareCTAs(
     const slug = patternNameToSlug(pattern);
     const patternShort = pattern.replace(/^The\s+/i, "");
     next = {
-      label: `Get the ${patternShort} Guide — $14`,
+      label: `Get the ${patternShort} Guide — $4.99`,
       href: `/guide/${slug}`,
       kind: "guide",
     };
