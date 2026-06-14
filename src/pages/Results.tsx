@@ -300,7 +300,7 @@ const Results = () => {
               }
             }}
           >
-            {checkoutLoading ? "Redirecting to checkout…" : `Get the ${patternShort} Guide — $14`}
+            {checkoutLoading ? "Redirecting to checkout…" : `Get the ${patternShort} Guide — $4.99`}
           </Button>
         </div>
 
