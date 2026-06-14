@@ -4,16 +4,22 @@
 // clicks to the modal. Mirrors the DualLeadMagnetCTAs helper in Homeschool.tsx.
 import { Button } from "@/components/ui/button";
 
+interface Props {
+  size?: "lg" | "xl";
+  variant?: "eden" | "eden-outline";
+}
+const { size = "lg", variant = "eden-outline" } = Astro.props;
+
 const sproutsSubtitle =
-  "Your free preview of Sprouts Weeks 1 + 2 (Lavender + Chamomile) is on the way. We're finishing how we send these — you'll be among the first to receive when we open delivery.";
+  "Check your inbox — your free Sprouts Week 1 (Lavender) downloads are on their way right now. Five real lessons to print and teach today. Week 2 (Chamomile) follows in seven days.";
 const seedlingsSubtitle =
-  "Your free preview of Seedlings Weeks 1 + 2 (Elderberry + Tulsi) is on the way. We're finishing how we send these — you'll be among the first to receive when we open delivery.";
+  "Check your inbox — your free Seedlings Week 1 (Elderberry) downloads are on their way right now. Five real lessons to print and teach today. Week 2 (Tulsi) follows in seven days.";
 ---
 
 <div class="flex flex-col sm:flex-row gap-3 justify-center items-stretch">
   <Button
-    variant="eden-outline"
-    size="lg"
+    variant={variant}
+    size={size}
     data-waitlist-source="sprouts_magnet"
     data-waitlist-title="Get Sprouts Weeks 1 + 2 — Free"
     data-waitlist-subtitle={sproutsSubtitle}
@@ -21,8 +27,8 @@ const seedlingsSubtitle =
     Get Sprouts (K-2) Weeks 1 + 2 — Free
   </Button>
   <Button
-    variant="eden-outline"
-    size="lg"
+    variant={variant}
+    size={size}
     data-waitlist-source="seedlings_magnet"
     data-waitlist-title="Get Seedlings Weeks 1 + 2 — Free"
     data-waitlist-subtitle={seedlingsSubtitle}
