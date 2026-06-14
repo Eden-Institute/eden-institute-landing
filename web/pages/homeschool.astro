@@ -127,14 +127,26 @@ const SHOWCASES = [
         A K-12 Biblical herbalism curriculum for homeschool families. Open-and-go lesson plans, memory songs, kitchen labs, garden activities, and a recurring family story — rooted in Scripture and creation stewardship.
       </p>
       <p class="font-accent text-sm tracking-wider uppercase mb-8" style="color:hsl(var(--eden-sage))">
-        Sprouts (K-2) + Seedlings (3-5) ship in 2027 · Founders pricing open now
+        Sprouts (K-2) + Seedlings (3-5) · Free sample weeks — sent to your inbox today
       </p>
-      <div class="flex flex-col items-center gap-5">
-        <Button variant="eden" size="xl" data-waitlist-source={RESERVE.source} data-waitlist-title={RESERVE.title} data-waitlist-subtitle={RESERVE.subtitle}>
-          Reserve Founders Pricing →
-        </Button>
-        <p class="font-accent text-xs tracking-[0.25em] uppercase" style="color:hsl(var(--eden-sage))">or preview the curriculum free</p>
-        <DualLeadMagnetCTAs />
+      <div id="early-access" class="flex flex-col items-center gap-4 scroll-mt-28">
+        <p class="font-accent text-xs tracking-[0.3em] uppercase" style="color:hsl(var(--eden-gold))">
+          Start free — two real weeks, yours to print and teach today
+        </p>
+        <DualLeadMagnetCTAs size="xl" variant="eden" />
+        <p class="font-body text-sm text-muted-foreground max-w-md mx-auto mt-1">
+          Five full lessons per week — Teacher Guide, Student Notebook, Field Cards, Recipe Cards, and Around-the-Table deck. Delivered to your email instantly, free.
+        </p>
+        <button
+          type="button"
+          class="mt-4 font-accent text-xs tracking-[0.2em] uppercase underline underline-offset-4 transition-colors hover:opacity-80"
+          style="color:hsl(var(--eden-sage))"
+          data-waitlist-source={RESERVE.source}
+          data-waitlist-title={RESERVE.title}
+          data-waitlist-subtitle={RESERVE.subtitle}
+        >
+          Planning ahead? Reserve Founders pricing →
+        </button>
       </div>
     </div>
   </section>
