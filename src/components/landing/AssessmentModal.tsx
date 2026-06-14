@@ -691,9 +691,16 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
                   try {
                     const { data, error: fnError } = await supabase.functions.invoke("create-checkout", {
                       body: {
+                        // create-checkout requires lookup_key (was missing →
+                        // silent 400, breaking this Deep-Dive checkout button).
+                        lookup_key: "deep_dive_guide",
                         constitution_type: constitutionType,
                         constitution_nickname: profile?.nickname,
                         email,
+                        // Land on the paid guide so verify-session unlocks it
+                        // (default success_url is /assessment, which doesn't).
+                        success_url: `https://edeninstitute.health/guide/${getSlugFromType(constitutionType)}?session_id={CHECKOUT_SESSION_ID}`,
+                        cancel_url: `https://edeninstitute.health/results/${getSlugFromType(constitutionType)}`,
                       },
                     });
                     if (fnError) throw fnError;
