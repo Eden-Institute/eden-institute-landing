@@ -678,7 +678,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
                 Everything God designed into your body — and every plant He made to meet it. 10 matched herbs with clinical actions explained in plain language. Nutrition, lifestyle, and spiritual guidance for your specific pattern. Biblical anchors. Preparation methods. Caution herbs to avoid.
               </p>
               <p className="font-serif text-2xl font-bold mb-4" style={{ color: "#C9A84C" }}>
-                $14
+                $4.99
               </p>
               <Button
                 variant="eden"
@@ -712,7 +712,7 @@ const AssessmentModal = ({ open, onOpenChange }: AssessmentModalProps) => {
                   }
                 }}
               >
-                {checkoutLoading ? "Redirecting to checkout…" : "Get Your Full Guide — $14"}
+                {checkoutLoading ? "Redirecting to checkout…" : "Get Your Full Guide — $4.99"}
               </Button>
             </div>
 

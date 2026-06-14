@@ -99,6 +99,14 @@ const DISABLED_LOOKUP_KEYS = new Set([
   "practitioner_yearly",
 ])
 
+// Explicit Stripe price-ID overrides by lookup_key. When set, this exact
+// price is billed instead of resolving by Stripe lookup_key — so the
+// Deep-Dive Guide always charges the intended $4.99 price regardless of which
+// price currently carries the 'deep_dive_guide' lookup key.
+const PRICE_ID_OVERRIDES: Record<string, string> = {
+  deep_dive_guide: "price_1TiHqt2NWfYbCZT8ghDRlWiO",
+}
+
 // Standard US shipping rate for single-band homeschool boxes.
 // $12 covers USPS Priority Mail in the 2-3lb weight class for the curriculum
 // box dimensions. Override at scale by configuring real shipping rates in
@@ -218,18 +226,24 @@ serve(async (req) => {
       }
     }
 
-    // 4. Look up the active Stripe price by lookup_key
-    const prices = await stripe.prices.list({
-      lookup_keys: [lookup_key],
-      active: true,
-      limit: 1,
-    })
-
-    if (prices.data.length === 0) {
-      return jsonError(`No active Stripe price found for lookup_key '${lookup_key}'`, 404)
+    // 4. Resolve the Stripe price. Prefer an explicit price-ID override when
+    //    configured (e.g. the Deep-Dive Guide $4.99 price); otherwise look up
+    //    the active price by lookup_key.
+    let price: Stripe.Price
+    const overrideId = PRICE_ID_OVERRIDES[lookup_key]
+    if (overrideId) {
+      price = await stripe.prices.retrieve(overrideId)
+    } else {
+      const prices = await stripe.prices.list({
+        lookup_keys: [lookup_key],
+        active: true,
+        limit: 1,
+      })
+      if (prices.data.length === 0) {
+        return jsonError(`No active Stripe price found for lookup_key '${lookup_key}'`, 404)
+      }
+      price = prices.data[0]
     }
-
-    const price = prices.data[0]
     const mode = isSubscription ? "subscription" : "payment"
 
     // 5. For subscriptions: get-or-create the Stripe Customer for this user.

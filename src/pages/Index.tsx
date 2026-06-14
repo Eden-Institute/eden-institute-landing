@@ -499,7 +499,7 @@ const Index = () => {
             <div className="three-steps-grid grid items-stretch gap-6">
               <StepCard num="1" title="The Pattern Quiz" price="Free · 2 minutes" body="Discover the constitutional pattern God designed you with. No email required to start." ctaLabel="Take the Quiz" ctaHref="/assessment" ctaVariant="honey" />
               <Arrow />
-              <StepCard num="2" title="The Deep Dive Guide" price="$14" body="Your personalized guide — 10 herbs matched to your pattern, plus nutrition, lifestyle, and Scripture written for you." ctaLabel={hasPattern ? "Unlock with Quiz" : "Take the quiz to unlock →"} ctaHref={hasPattern ? guideUrl : "/assessment"} ctaVariant="outline" />
+              <StepCard num="2" title="The Deep Dive Guide" price="$4.99" body="Your personalized guide — 10 herbs matched to your pattern, plus nutrition, lifestyle, and Scripture written for you." ctaLabel={hasPattern ? "Unlock with Quiz" : "Take the quiz to unlock →"} ctaHref={hasPattern ? guideUrl : "/assessment"} ctaVariant="outline" />
               <Arrow />
               <StepCard num="3" title="Shop Your Bundle" price="Curated" body="Source the herbs your body is asking for. Curated Amazon bundles, organized by pattern, ready to deliver." ctaLabel={hasPattern && bundleUrl ? "Browse Bundles" : "Take the quiz to unlock →"} ctaHref={hasPattern && bundleUrl ? bundleUrl : "/assessment"} ctaExternal={hasPattern && !!bundleUrl} ctaVariant="outline" />
             </div>

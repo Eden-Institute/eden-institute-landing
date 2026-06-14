@@ -368,7 +368,7 @@ function buildAssessmentEmail(firstName: string, constitutionType: string, slugI
   const body = `
 <p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
 <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 8px 0;">Your constitutional assessment is complete. Here is your profile snapshot.</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 8px 0;">Want the full deep-dive? Your complete guide — all 10 herbs, preparation methods, lifestyle protocols, and Biblical framework — is available for just $14.</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 8px 0;">Want the full deep-dive? Your complete guide — all 10 herbs, preparation methods, lifestyle protocols, and Biblical framework — is available for just $4.99.</p>
 ${goldDivider()}
 <!-- Constitutional Type Display Block -->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #C9A84C;background-color:#F5F0E8;margin-bottom:24px;">
@@ -380,7 +380,7 @@ ${goldDivider()}
 </table>
 </td></tr>
 </table>
-${ctaButton('→ GET YOUR FULL DEEP-DIVE GUIDE — $14', `https://edeninstitute.health/guide/${slugInfo.slug}`)}
+${ctaButton('→ GET YOUR FULL DEEP-DIVE GUIDE — $4.99', `https://edeninstitute.health/guide/${slugInfo.slug}`)}
 ${goldDivider()}
 <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 20px 0;">${profile.intro}</p>
 <p style="font-family:Georgia,serif;font-size:16px;font-weight:bold;color:#1C3A2E;margin:0 0 8px 0;">Your body's patterns:</p>
