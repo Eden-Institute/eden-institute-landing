@@ -217,7 +217,7 @@ function buildCommunityEmail(firstName: string): { subject: string; html: string
     <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 24px 0;">
       In the meantime, take our free Constitutional Assessment. Knowing your body type is the foundation of everything we teach — and it will make community conversations far richer.
     </p>
-    ${ctaButton("Take the Free Constitutional Assessment", "https://edeninstitute.health/#assessment")}
+    ${ctaButton("Take the Free Constitutional Assessment", "https://edeninstitute.health/assessment")}
     ${goldDivider()}
     ${closingBlock()}
   `;
@@ -240,9 +240,13 @@ ${goldLabel('HOW FOUNDERS PRICING WORKS')}
 <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Before launch in 2027, we'll email you your <strong>Founders Code</strong>. Use it at checkout to lock in Founders pricing &mdash; <strong>$249 per band ($249 Sprouts, $249 Seedlings) or $449 for the two-band bundle</strong>. Retail begins at launch: $349 / $349 / $699.</p>
 <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 24px 0;">Until then, you'll hear from us once a month with progress notes &mdash; what's being built, what's being tested, what we're learning.</p>
 ${goldDivider()}
+${goldLabel('WANT LESSONS IN HAND TODAY?')}
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">You don't have to wait until 2027 to start. Download a free sample week &mdash; five real, open-and-go lessons per band (Teacher Guide, Student Notebook, Field Cards, Recipe Cards, and the Around-the-Table deck), yours to print and teach this week. We'll email the downloads the moment you choose a band.</p>
+${ctaButton('GET FREE CURRICULUM SAMPLES', 'https://edeninstitute.health/homeschool#early-access')}
+${goldDivider()}
 ${goldLabel('WHILE WE BUILD')}
 <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Eden's Table is the children's curriculum. The Eden Institute's adult Tier 1 Course &mdash; the Biblical Framework &mdash; is the soil it grew from. Most parents who go through it tell us their reading of Scripture changes.</p>
-${ctaButton('EXPLORE TIER 1 COURSE', 'https://edeninstitute.health/courses')}
+${ctaButton('EXPLORE TIER 1 COURSE', 'https://edeninstitute.health/courses', 'secondary')}
 ${goldDivider()}
 ${closingBlock()}`;
   return { subject: "You're in the Founders Club — Eden's Table 2027", html: emailWrapper(body) };
@@ -376,7 +380,7 @@ ${goldDivider()}
 </table>
 </td></tr>
 </table>
-${ctaButton('→ GET YOUR FULL DEEP-DIVE GUIDE — $14', `https://edeninstitute.health/results/${slugInfo.slug}`)}
+${ctaButton('→ GET YOUR FULL DEEP-DIVE GUIDE — $14', `https://edeninstitute.health/guide/${slugInfo.slug}`)}
 ${goldDivider()}
 <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 20px 0;">${profile.intro}</p>
 <p style="font-family:Georgia,serif;font-size:16px;font-weight:bold;color:#1C3A2E;margin:0 0 8px 0;">Your body's patterns:</p>
