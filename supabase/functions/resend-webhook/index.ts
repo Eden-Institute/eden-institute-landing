@@ -3,8 +3,10 @@
 // Launch-blocker #45 · Stage 2 follow-up · Manual §20.18 Supabase-as-SoT Waitlist.
 //
 // Purpose
-//   Receives Resend events and syncs state back to public.waitlist_signups via the
-//   public.waitlist_apply_resend_event RPC (see migration 20260424000000).
+//   Receives Resend events and (a) syncs waitlist state back to
+//   public.waitlist_signups via the public.waitlist_apply_resend_event RPC,
+//   and (b) logs engagement events (opens/clicks) to public.email_events for
+//   the founder dashboard.
 //
 // Events subscribed at the Resend endpoint
 //   contact.deleted
@@ -12,6 +14,8 @@
 //                      arrive as contact.updated with data.unsubscribed === true)
 //   email.bounced
 //   email.complained
+//   email.opened      (engagement — see email_events; subscribe to enable)
+//   email.clicked     (engagement — see email_events; subscribe to enable)
 //
 // Internal action taxonomy passed to the RPC
 //   contact.unsubscribed   ← synthesized from contact.updated when data.unsubscribed=true
@@ -114,6 +118,88 @@ function extractEmails(value: unknown): string[] {
   return [];
 }
 
+// Resend tags arrive either as an array of {name,value} (the send-time shape)
+// or, in some payloads, as a flat object map. Read a single tag value from
+// whichever shape is present.
+function tagValue(tags: unknown, name: string): string | null {
+  if (Array.isArray(tags)) {
+    for (const t of tags) {
+      if (t && typeof t === "object" && (t as { name?: unknown }).name === name) {
+        const v = (t as { value?: unknown }).value;
+        return typeof v === "string" ? v : null;
+      }
+    }
+    return null;
+  }
+  if (tags && typeof tags === "object") {
+    const v = (tags as Record<string, unknown>)[name];
+    return typeof v === "string" ? v : null;
+  }
+  return null;
+}
+
+// Log an engagement event (open/click) to public.email_events. These events
+// carry no waitlist-state transition — they exist purely to power the founder
+// dashboard's per-email / per-CTA engagement view. Idempotent: a redelivered
+// event collides with the dedupe unique index and is treated as already stored.
+async function logEngagementEvent(event: ResendEvent): Promise<Response> {
+  const data = event.data ?? {};
+  const eventType = event.type === "email.clicked" ? "clicked" : "opened";
+
+  const emailId = typeof (data as { email_id?: unknown }).email_id === "string"
+    ? String((data as { email_id: string }).email_id)
+    : null;
+  const recipient = extractEmails(
+    (data as { to?: unknown }).to ?? (data as { email?: unknown }).email ?? null,
+  )[0]?.trim().toLowerCase() ?? null;
+
+  const clickedUrl = eventType === "clicked"
+    ? (() => {
+        const click = (data as { click?: { link?: unknown } }).click;
+        const link = click?.link;
+        return typeof link === "string" ? link : null;
+      })()
+    : null;
+
+  const occurredAt =
+    (typeof (data as { created_at?: unknown }).created_at === "string"
+      ? String((data as { created_at: string }).created_at)
+      : null) ??
+    event.created_at ??
+    new Date().toISOString();
+
+  const campaign = tagValue((data as { tags?: unknown }).tags, "campaign");
+  const emailKey = tagValue((data as { tags?: unknown }).tags, "email_key");
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const { error } = await supabase.from("email_events").insert({
+    resend_email_id: emailId,
+    event_type: eventType,
+    recipient,
+    campaign,
+    email_key: emailKey,
+    clicked_url: clickedUrl,
+    occurred_at: occurredAt,
+    raw: event as unknown as Record<string, unknown>,
+  });
+
+  // 23505 = unique_violation → a duplicate redelivery; that's success for us.
+  if (error && (error as { code?: string }).code !== "23505") {
+    console.error("resend-webhook: email_events insert failed", error);
+    return json({ error: "engagement_log_failed", detail: error.message }, 500);
+  }
+
+  return json({
+    received: true,
+    logged: eventType,
+    email_key: emailKey,
+    duplicate: !!error,
+  });
+}
+
 // Map a raw Resend event to our internal action taxonomy.
 // Returns null if the event carries no waitlist-state transition.
 function normalizeEvent(event: ResendEvent):
@@ -167,6 +253,12 @@ Deno.serve(async (req) => {
     event = JSON.parse(rawBody);
   } catch {
     return json({ error: "invalid_json" }, 400);
+  }
+
+  // Engagement events (opens/clicks) are logged for the founder dashboard but
+  // do not affect waitlist state — handle them on their own path.
+  if (event.type === "email.opened" || event.type === "email.clicked") {
+    return await logEngagementEvent(event);
   }
 
   const normalized = normalizeEvent(event);
