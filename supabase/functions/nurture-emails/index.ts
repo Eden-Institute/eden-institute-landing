@@ -26,6 +26,12 @@
 // dashboard's per-email / per-CTA engagement view. Tag values are restricted to
 // [A-Za-z0-9_-] per Resend's tag rules, which all keys below satisfy.
 //
+// Behavioral suppression (Phase 1, 2026-06-16): before sending a queued email we
+// check the recipient's quiz_completions purchase flags and cancel the send if it
+// would re-pitch an offer they already bought (see SUPPRESS logic in
+// drainNurtureQueue). Phase 2 (branching to a DIFFERENT next email based on
+// behavior) is deferred until the full K-12 curriculum exists.
+//
 // Response shape — matches api/cron/drain-nurture-queue.ts's EFResponse interface:
 //   {
 //     success: true,
@@ -84,6 +90,26 @@ function engagementTags(campaign: string, emailKey: string): ResendTag[] {
     { name: 'campaign', value: campaign },
     { name: 'email_key', value: emailKey },
   ];
+}
+
+// ── Phase 1 behavioral suppression ──
+// Returns true if the queued email at this sequence_position would re-pitch an
+// offer the recipient already bought, and should therefore be cancelled rather
+// than sent. Mapping reflects the CURRENT sequence:
+//   pos 2/3/4 → primary CTA is the Foundations course
+//   pos 5 (arc-1) → pitches BOTH the $4.99 guide AND the course
+//   pos 6/7 (app+book, homeschool+FB) → no guide/course purchase to gate on
+// A course-buyer who has NOT bought the guide should still receive arc-1 (the
+// guide half is still relevant), so pos 5 is only suppressed when BOTH are owned.
+// REVISIT this mapping when the offer-ladder revamp re-sequences pitches.
+function shouldSuppress(
+  position: number,
+  purchasedCourse: boolean,
+  purchasedGuide: boolean,
+): boolean {
+  if ((position === 2 || position === 3 || position === 4) && purchasedCourse) return true;
+  if (position === 5 && purchasedCourse && purchasedGuide) return true;
+  return false;
 }
 
 async function supabaseQuery(
@@ -180,7 +206,7 @@ async function drainNurtureQueue(): Promise<QueueResult> {
     try {
       // Enrich from quiz_completions (queue stores recipient_email +
       // constitution_pattern, but we need first_name + the rich
-      // constitution_name/slug too).
+      // constitution_name/slug too, plus the purchase flags for suppression).
       const qcRows = await supabaseQuery(
         `quiz_completions?email=eq.${encodeURIComponent(
           row.recipient_email,
@@ -217,6 +243,21 @@ async function drainNurtureQueue(): Promise<QueueResult> {
           body: JSON.stringify({
             status: 'cancelled',
             error_message: 'recipient unsubscribed (constitution)',
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        continue;
+      }
+
+      // Phase 1 behavioral suppression: don't re-pitch an already-purchased offer.
+      const purchasedCourse = qc.purchased_course === true;
+      const purchasedGuide = qc.purchased_guide === true;
+      if (shouldSuppress(row.sequence_position, purchasedCourse, purchasedGuide)) {
+        await supabaseQuery(`nurture_email_queue?id=eq.${row.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: 'cancelled',
+            error_message: `suppressed: already purchased (course=${purchasedCourse}, guide=${purchasedGuide})`,
             updated_at: new Date().toISOString(),
           }),
         });
