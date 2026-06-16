@@ -59,6 +59,15 @@ interface WindowOption {
   days: number | null; // null = all time
 }
 
+// A drill-down request: a human-readable title, the rows to show, and the
+// exact server-side count this drill represents. exactCount lets the modal
+// warn when the capped feed holds fewer rows than the headline number.
+interface Drill {
+  title: string;
+  rows: LeadRow[];
+  exactCount: number;
+}
+
 const WINDOWS: WindowOption[] = [
   { label: "7 days", days: 7 },
   { label: "30 days", days: 30 },
@@ -118,6 +127,7 @@ export default function FounderLeads() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchedAt, setFetchedAt] = useState<Date | null>(null);
+  const [drill, setDrill] = useState<Drill | null>(null);
 
   const isFounder = !!user && user.email?.toLowerCase() === FOUNDER_EMAIL;
 
@@ -158,6 +168,12 @@ export default function FounderLeads() {
     if (isFounder) load();
   }, [isFounder, load]);
 
+  // Close any open drill-down when the window/tab changes or data reloads, so a
+  // stale list from a previous filter can't linger over fresh numbers.
+  useEffect(() => {
+    setDrill(null);
+  }, [tab, windowIdx, leads]);
+
   // ── Lead aggregates (server-computed; never derived from the capped row feed) ──
   // by_magnet arrives grouped by raw (funnel, source); collapse to display
   // labels here so the magnetLabel mapping stays in one place.
@@ -182,6 +198,25 @@ export default function FounderLeads() {
     return { bars: keys.map((k) => ({ key: k, count: counts.get(k) ?? 0 })), max };
   }, [leadSummary]);
   const unsubCount = leadSummary?.unsub ?? 0;
+
+  // ── Drill-down openers (all filter the already-loaded feed) ──
+  const openActiveDrill = useCallback(() => {
+    const rows = (leads ?? []).filter((r) => !r.unsubscribed);
+    setDrill({ title: "New leads (active)", rows, exactCount: leadSummary?.active ?? rows.length });
+  }, [leads, leadSummary]);
+
+  const openUnsubDrill = useCallback(() => {
+    const rows = (leads ?? []).filter((r) => r.unsubscribed);
+    setDrill({ title: "Unsubscribed", rows, exactCount: unsubCount });
+  }, [leads, unsubCount]);
+
+  const openMagnetDrill = useCallback(
+    (label: string, exactCount: number) => {
+      const rows = (leads ?? []).filter((r) => magnetLabel(r.funnel, r.source) === label);
+      setDrill({ title: label, rows, exactCount });
+    },
+    [leads],
+  );
 
   // ── Traffic daily strip ──
   const trafficDaily = useMemo(() => {
@@ -310,8 +345,9 @@ export default function FounderLeads() {
 
         {tab === "leads" ? (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
-              <StatCard label="New leads" value={String(leadSummary?.active ?? 0)} />
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+              <StatCard label="New leads" value={String(leadSummary?.active ?? 0)} onClick={openActiveDrill} />
+              <StatCard label="Unsubscribed" value={String(unsubCount)} onClick={unsubCount > 0 ? openUnsubDrill : undefined} />
               <StatCard label="Active magnets" value={String(byMagnet.length)} />
               <StatCard label="Last capture" value={leadSummary?.last_capture ? fmtDateTimeCT(leadSummary.last_capture) : "—"} small />
             </div>
@@ -324,9 +360,14 @@ export default function FounderLeads() {
               <SectionLabel>By magnet</SectionLabel>
               <Table head={["Magnet", "Leads", "Last capture (CT)"]} align={["", "right", ""]}>
                 {byMagnet.map((m) => (
-                  <tr key={m.label} className="border-t border-border">
+                  <tr
+                    key={m.label}
+                    className="border-t border-border cursor-pointer hover:bg-muted/40 transition-colors"
+                    onClick={() => openMagnetDrill(m.label, m.count)}
+                    title="Click to see who's in this magnet"
+                  >
                     <Td>{m.label}</Td>
-                    <Td className="text-right font-semibold">{m.count}</Td>
+                    <Td className="text-right font-semibold underline decoration-dotted underline-offset-4" style={{ color: "hsl(var(--eden-bark))" }}>{m.count}</Td>
                     <Td className="text-muted-foreground whitespace-nowrap">{fmtDateTimeCT(m.last)}</Td>
                   </tr>
                 ))}
@@ -469,17 +510,101 @@ export default function FounderLeads() {
           Live data — reloads each visit. Visit tracking is cookieless and stores no personal data.
         </p>
       </div>
+
+      {drill && <DrillModal drill={drill} onClose={() => setDrill(null)} />}
     </div>
   );
 }
 
-function StatCard({ label, value, small }: { label: string; value: string; small?: boolean }) {
+function StatCard({ label, value, small, onClick }: { label: string; value: string; small?: boolean; onClick?: () => void }) {
+  const clickable = typeof onClick === "function";
   return (
-    <div className="rounded-lg border border-border p-4 bg-card">
+    <div
+      className={`rounded-lg border border-border p-4 bg-card ${clickable ? "cursor-pointer hover:border-[hsl(var(--eden-gold))] transition-colors" : ""}`}
+      onClick={onClick}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick!(); } } : undefined}
+      title={clickable ? "Click to see who's included" : undefined}
+    >
       <p className="font-accent text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-1">{label}</p>
-      <p className={`font-serif font-bold ${small ? "text-base" : "text-2xl"}`} style={{ color: "hsl(var(--eden-bark))" }}>
+      <p
+        className={`font-serif font-bold ${small ? "text-base" : "text-2xl"} ${clickable ? "underline decoration-dotted underline-offset-4" : ""}`}
+        style={{ color: "hsl(var(--eden-bark))" }}
+      >
         {value}
       </p>
+    </div>
+  );
+}
+
+// Drill-down overlay: lists the actual people behind a clicked number. Rows are
+// filtered from the already-loaded founder_lead_feed, so no extra fetch. When
+// the exact server count exceeds the rows we hold (1000-row feed cap), a banner
+// makes that explicit rather than implying the list is complete.
+function DrillModal({ drill, onClose }: { drill: Drill; onClose: () => void }) {
+  const capped = drill.exactCount > drill.rows.length;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 px-4 py-10 overflow-y-auto"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="w-full max-w-2xl rounded-lg border border-border bg-card shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-border px-5 py-3">
+          <div>
+            <p className="font-accent text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Drill-down</p>
+            <h2 className="font-serif text-lg font-bold" style={{ color: "hsl(var(--eden-bark))" }}>
+              {drill.title} · {drill.exactCount}
+            </h2>
+          </div>
+          <Button variant="outline" size="sm" onClick={onClose}>Close</Button>
+        </div>
+
+        {capped && (
+          <div className="border-b border-border bg-muted/30 px-5 py-2">
+            <p className="font-body text-[11px] text-muted-foreground">
+              Showing the {drill.rows.length} most recent of {drill.exactCount}. The feed is
+              capped at 1,000 rows; the headline count is exact. Narrow the time window to see older captures.
+            </p>
+          </div>
+        )}
+
+        <div className="max-h-[60vh] overflow-y-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-muted/40 sticky top-0">
+                <th className="px-4 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground">Subscriber</th>
+                <th className="px-4 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground">Magnet</th>
+                <th className="px-4 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground">Captured (CT)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {drill.rows.map((r, i) => (
+                <tr key={`${r.email}-${r.entered_at}-${i}`} className="border-t border-border align-top">
+                  <td className="px-4 py-2 font-body text-sm">
+                    <span className={r.unsubscribed ? "line-through text-muted-foreground" : ""}>{r.email}</span>
+                    {r.unsubscribed && <span className="ml-2 text-[10px] uppercase tracking-wide text-destructive">unsub</span>}
+                    <br />
+                    <span className="text-xs text-muted-foreground">{r.first_name ?? "(no name)"}</span>
+                  </td>
+                  <td className="px-4 py-2 font-body text-sm">{magnetLabel(r.funnel, r.source)}</td>
+                  <td className="px-4 py-2 font-body text-sm text-muted-foreground whitespace-nowrap">{fmtDateTimeCT(r.entered_at)}</td>
+                </tr>
+              ))}
+              {drill.rows.length === 0 && (
+                <tr><td className="px-4 py-3 font-body text-sm text-muted-foreground" colSpan={3}>
+                  No one in this window. (The headline count may include captures older than the loaded feed — widen the time window.)
+                </td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
@@ -543,9 +668,9 @@ function Table({
   );
 }
 
-function Td({ children, className = "", colSpan }: { children: React.ReactNode; className?: string; colSpan?: number }) {
+function Td({ children, className = "", colSpan, style }: { children: React.ReactNode; className?: string; colSpan?: number; style?: React.CSSProperties }) {
   return (
-    <td className={`px-3 py-2 font-body text-sm ${className}`} colSpan={colSpan}>
+    <td className={`px-3 py-2 font-body text-sm ${className}`} colSpan={colSpan} style={style}>
       {children}
     </td>
   );
