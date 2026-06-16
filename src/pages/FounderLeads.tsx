@@ -1,11 +1,13 @@
 // src/pages/FounderLeads.tsx
 //
-// Founder-only dashboard at /founder. Two tabs:
+// Founder-only dashboard at /founder. Tabs:
 //   - Leads:   lead-magnet captures (founder_lead_feed RPC, includes PII)
 //   - Traffic: cookieless web analytics (founder_traffic RPC, aggregates)
+//   - Emails:  nurture open/click engagement (founder_email_engagement RPC)
+//   - CRM:     contact pipeline (CrmTab)
 //
 // Mounted in App.tsx wrapped in <RequireAuth>, so unauthenticated visitors are
-// bounced to sign-in. The REAL access boundary is server-side: both RPCs are
+// bounced to sign-in. The REAL access boundary is server-side: the RPCs are
 // SECURITY DEFINER gated by is_founder() (JWT email check), so the other
 // authenticated accounts get "Not authorized" regardless of the UI. The email
 // check below is UX only.
@@ -17,10 +19,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 import CrmTab from "@/components/founder/CrmTab";
+import EmailEngagementTab from "@/components/founder/EmailEngagementTab";
 
 const FOUNDER_EMAIL = "hello@edeninstitute.health";
 
-type Tab = "leads" | "traffic" | "crm";
+type Tab = "leads" | "traffic" | "crm" | "emails";
 
 interface LeadRow {
   email: string;
@@ -132,7 +135,8 @@ export default function FounderLeads() {
   const isFounder = !!user && user.email?.toLowerCase() === FOUNDER_EMAIL;
 
   const load = useCallback(async () => {
-    if (tab === "crm") return;
+    // CRM + Emails tabs fetch their own data inside their components.
+    if (tab === "crm" || tab === "emails") return;
     const since = sinceISO(WINDOWS[windowIdx].days);
     setLoading(true);
     setError(null);
@@ -303,7 +307,7 @@ export default function FounderLeads() {
 
         {/* Tabs */}
         <div className="flex gap-1 mb-4 border-b border-border">
-          {(["leads", "traffic", "crm"] as Tab[]).map((t) => (
+          {(["leads", "traffic", "emails", "crm"] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -314,7 +318,7 @@ export default function FounderLeads() {
                   : { borderColor: "transparent", color: "hsl(var(--muted-foreground))" }
               }
             >
-              {t === "leads" ? "Lead magnets" : t === "traffic" ? "Website traffic" : "CRM"}
+              {t === "leads" ? "Lead magnets" : t === "traffic" ? "Website traffic" : t === "emails" ? "Emails" : "CRM"}
             </button>
           ))}
         </div>
@@ -499,6 +503,8 @@ export default function FounderLeads() {
               </p>
             </section>
           </>
+        ) : tab === "emails" ? (
+          <EmailEngagementTab since={sinceISO(WINDOWS[windowIdx].days)} />
         ) : (
           <CrmTab since={sinceISO(WINDOWS[windowIdx].days)} />
         )}
