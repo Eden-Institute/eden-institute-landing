@@ -18,6 +18,14 @@
 //      post-quiz, have Email 4 sent, and have NOT purchased course or guide. Sends the
 //      Amazon-affiliate "starter kit" fallback (Email 5) and stamps email_5_sent_at.
 //
+// Engagement tagging (2026-06-16): every send is tagged with
+//   campaign  = the email list ('constitution' | 'homeschool')
+//   email_key = the specific email ('constitution_2', 'arc_1', 'magnet_w2_sprouts', …)
+// Resend echoes these tags on email.opened / email.clicked webhook events, which
+// resend-webhook logs into public.email_events. That is what powers the founder
+// dashboard's per-email / per-CTA engagement view. Tag values are restricted to
+// [A-Za-z0-9_-] per Resend's tag rules, which all keys below satisfy.
+//
 // Response shape — matches api/cron/drain-nurture-queue.ts's EFResponse interface:
 //   {
 //     success: true,
@@ -58,6 +66,26 @@ const MAX_RETRIES = 3;
 const QUEUE_BATCH = 50;
 const RATE_LIMIT_MS = 300;
 
+type ResendTag = { name: string; value: string };
+
+// sequence_position → engagement email_key for the quiz/constitution drip.
+// Positions 2-4 are the constitution emails; 5-7 are the post-drip 3-arc.
+const CONSTITUTION_KEY_BY_POS: Record<number, string> = {
+  2: 'constitution_2',
+  3: 'constitution_3',
+  4: 'constitution_4',
+  5: 'arc_1',
+  6: 'arc_2',
+  7: 'arc_3',
+};
+
+function engagementTags(campaign: string, emailKey: string): ResendTag[] {
+  return [
+    { name: 'campaign', value: campaign },
+    { name: 'email_key', value: emailKey },
+  ];
+}
+
 async function supabaseQuery(
   path: string,
   options: RequestInit = {},
@@ -82,6 +110,7 @@ async function sendEmail(
   subject: string,
   html: string,
   list: EmailList,
+  tags?: ResendTag[],
 ): Promise<{ ok: boolean; error?: string }> {
   const { html: finalHtml, headers: unsubHeaders } = await applyUnsub(html, to, list);
   const res = await fetch('https://api.resend.com/emails', {
@@ -97,6 +126,7 @@ async function sendEmail(
       subject,
       html: finalHtml,
       headers: unsubHeaders,
+      ...(tags && tags.length ? { tags } : {}),
     }),
   });
   const data = await res.json();
@@ -229,7 +259,16 @@ async function drainNurtureQueue(): Promise<QueueResult> {
           continue;
       }
 
-      const send = await sendEmail(row.recipient_email, built.subject, built.html, 'constitution');
+      const emailKey =
+        CONSTITUTION_KEY_BY_POS[row.sequence_position] ??
+        `constitution_pos${row.sequence_position}`;
+      const send = await sendEmail(
+        row.recipient_email,
+        built.subject,
+        built.html,
+        'constitution',
+        engagementTags('constitution', emailKey),
+      );
       if (send.ok) {
         await supabaseQuery(`nurture_email_queue?id=eq.${row.id}`, {
           method: 'PATCH',
@@ -316,7 +355,13 @@ async function legacyEmail5(): Promise<LegacyResult> {
       slug,
     );
 
-    const send = await sendEmail(row.email, subject, html, 'constitution');
+    const send = await sendEmail(
+      row.email,
+      subject,
+      html,
+      'constitution',
+      engagementTags('constitution', 'constitution_5'),
+    );
     if (send.ok) {
       await supabaseQuery(`quiz_completions?id=eq.${row.id}`, {
         method: 'PATCH',
@@ -378,10 +423,13 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
         continue;
       }
       let built: { subject: string; html: string };
+      let emailKey: string;
       if (row.sequence_position === 3) {
         built = buildMagnetWeek3FacebookEmail(firstName);
+        emailKey = 'magnet_w3_fb';
       } else if (row.sequence_position === 2) {
         built = buildMagnetWeek2Email(firstName, band, Date.parse(row.created_at) >= STORY_CUTOFF_MS);
+        emailKey = `magnet_w2_${band}`;
       } else {
         await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
           method: 'PATCH',
@@ -390,7 +438,13 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
         result.failed++;
         continue;
       }
-      const send = await sendEmail(row.recipient_email, built.subject, built.html, 'homeschool');
+      const send = await sendEmail(
+        row.recipient_email,
+        built.subject,
+        built.html,
+        'homeschool',
+        engagementTags('homeschool', emailKey),
+      );
       if (send.ok) {
         await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
           method: 'PATCH',
