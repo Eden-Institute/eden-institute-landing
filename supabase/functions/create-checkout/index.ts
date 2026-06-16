@@ -7,7 +7,7 @@
 //      Authorization header). The created Stripe Customer is tied to the
 //      Supabase user_id so the stripe-webhook EF can reconcile
 //      profiles.subscription_status.
-//   2. One-off DIGITAL products (Deep-Dive Guide $14) —
+//   2. One-off DIGITAL products (Deep-Dive Guide $4.99) —
 //      mode="payment", auth OPTIONAL, no shipping. Anonymous quiz takers
 //      can buy directly off /assessment.
 //   3. One-off PHYSICAL products (Eden's Table homeschool curriculum:

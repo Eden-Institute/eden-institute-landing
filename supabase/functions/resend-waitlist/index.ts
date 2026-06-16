@@ -729,13 +729,27 @@ Deno.serve(async (req) => {
             const from = 'Camila at The Eden Institute <hello@edeninstitute.health>';
             const replyTo = 'hello@edeninstitute.health';
 
-            // Email 1: synchronous send (unchanged)
+            // Email 1: synchronous send. Tagged so the founder dashboard's
+            // engagement view attributes opens/clicks to this first touch,
+            // matching the campaign/email_key tags the nurture-emails EF sets
+            // on Emails 2-7 (see public.email_events + resend-webhook).
             const e1 = buildNurtureEmail1(firstNameSafe, name, slug);
             const e1u = await applyUnsub(e1.html, normalizedEmail, 'constitution');
             await fetch('https://api.resend.com/emails', {
               method: 'POST',
               headers: sendHeaders,
-              body: JSON.stringify({ from, reply_to: replyTo, to: [normalizedEmail], subject: e1.subject, html: e1u.html, headers: e1u.headers }),
+              body: JSON.stringify({
+                from,
+                reply_to: replyTo,
+                to: [normalizedEmail],
+                subject: e1.subject,
+                html: e1u.html,
+                headers: e1u.headers,
+                tags: [
+                  { name: 'campaign', value: 'constitution' },
+                  { name: 'email_key', value: 'constitution_1' },
+                ],
+              }),
             });
             console.log('Nurture Email 1 sent to', normalizedEmail);
 
