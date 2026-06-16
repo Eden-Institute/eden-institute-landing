@@ -16,7 +16,7 @@ project_id = "noeqztssupewjidpvhar"
 #      These functions perform their own input validation.
 #
 #   2. WEBHOOK ENDPOINTS — authenticate via provider-specific signatures
-#      (Stripe HMAC, Resend svix), not Supabase JWT.
+#      (Stripe HMAC, Resend svix, LearnWorlds HMAC), not Supabase JWT.
 
 # --- Category 1: Public-frontend functions ---
 
@@ -52,4 +52,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.stripe-webhook]
+verify_jwt = false
+
+# LearnWorlds course-purchase webhook. Authenticity = Learnworlds-Webhook-Signature
+# (HMAC over the raw body), not a Supabase JWT.
+[functions.learnworlds-webhook]
 verify_jwt = false
