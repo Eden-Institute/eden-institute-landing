@@ -43,6 +43,10 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
+  // Tracks that we've already surfaced a *soft* (fuzzy) typo suggestion for the
+  // current address, so a deliberate re-submit is allowed through. Re-armed
+  // whenever the email field changes.
+  const [typoAcknowledged, setTypoAcknowledged] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
@@ -51,6 +55,7 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
     if (emailSuggestion) {
       setEmail(emailSuggestion);
       setEmailSuggestion(null);
+      setTypoAcknowledged(false);
       setError("");
     }
   };
@@ -59,12 +64,22 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
     e.preventDefault();
     setError("");
 
-    // Guard against misspelled email domains (e.g. gmail.con) before we create
-    // a Resend contact that can only ever hard-bounce.
+    // Guard against misspelled email domains before we create a Resend contact
+    // that can only ever hard-bounce.
     const check = checkEmail(email);
+    // 1. Dead/undeliverable domain (gmail.con, gmail.co): always block.
     if (check.invalid && check.suggestion) {
       setEmailSuggestion(check.suggestion);
-      setError("That email address looks misspelled — please check it.");
+      setError("That email address looks misspelled. Please check it.");
+      return;
+    }
+    // 2. Fuzzy match (yaboo.com → yahoo.com): block the FIRST submit so the
+    //    suggestion is seen, but let a deliberate second submit through in case
+    //    the address is an unusual-but-valid domain.
+    if (check.suggestion && !typoAcknowledged) {
+      setEmailSuggestion(check.suggestion);
+      setTypoAcknowledged(true);
+      setError("Double-check your email. Tap the suggestion if it's a typo, or submit again to keep what you entered.");
       return;
     }
 
@@ -95,6 +110,7 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
       setFirstName("");
       setEmail("");
       setEmailSuggestion(null);
+      setTypoAcknowledged(false);
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -107,6 +123,7 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
       setSuccess(false);
       setError("");
       setEmailSuggestion(null);
+      setTypoAcknowledged(false);
     }
     onOpenChange(val);
   };
@@ -131,7 +148,7 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
               <input
                 type="email"
                 value={email}
-                onChange={(e) => { setEmail(e.target.value); setEmailSuggestion(null); }}
+                onChange={(e) => { setEmail(e.target.value); setEmailSuggestion(null); setTypoAcknowledged(false); }}
                 onBlur={() => setEmailSuggestion(checkEmail(email).suggestion)}
                 placeholder="your@email.com"
                 required
