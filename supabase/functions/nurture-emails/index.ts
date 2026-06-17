@@ -5,44 +5,35 @@
 // (verify_jwt=false because this is an internal cron worker; the protection is the
 //  Vercel-cron-only origin + service-role-key inbound + no public route discovery).
 //
-// Two flows handled in order:
+// Flows handled in order:
 //
 //   1. drainNurtureQueue() — Lock #48 consumer side. Pulls public.nurture_email_queue
-//      rows where status='pending' AND scheduled_for <= now(). For each row, looks up
-//      the matching quiz_completions row by email to enrich with first_name +
-//      constitution data, then builds Email 2/3/4 via the shared templates and sends
-//      via Resend. Updates the queue row status to 'sent' (success) or 'pending' with
-//      incremented retry_count (transient fail) or 'failed' (after 3 retries / permanent).
+//      rows where status='pending' AND scheduled_for <= now(). Quiz/constitution
+//      drip (positions 2-7). Includes Phase 1 behavioral suppression (don't
+//      re-pitch a purchased offer).
 //
-//   2. legacyEmail5() — Pre-Lock-#48 path. Pulls quiz_completions rows that are 8+ days
-//      post-quiz, have Email 4 sent, and have NOT purchased course or guide. Sends the
-//      Amazon-affiliate "starter kit" fallback (Email 5) and stamps email_5_sent_at.
+//   2. drainMagnetQueue() — homeschool (Sprouts/Seedlings) sequence from
+//      public.magnet_email_queue. Positions:
+//        2 — Week 2 curriculum (band-specific: Chamomile / Tulsi)
+//        3 — Week 3 "come along for the ride" Facebook/story (band-agnostic)
+//        4 — Week 4 older-kids stopgap → Foundations course (band-agnostic)
+//        5 — Week 5 use the Around-the-Table cards (band-agnostic)
+//        6 — Week 6 seasonal herb (band-agnostic)
+//        7 — Week 7 devotional (band-agnostic)
+//      Positions 2 + 3 are enqueued up front by resend-waitlist; 4-7 are
+//      CHAINED (each send enqueues the next at +7 days). Band-agnostic
+//      positions (3-7) are de-duplicated so a family in BOTH bands gets each
+//      of those once; Week 2 is NOT deduped (different real curriculum).
 //
-// Engagement tagging (2026-06-16): every send is tagged with
-//   campaign  = the email list ('constitution' | 'homeschool')
-//   email_key = the specific email ('constitution_2', 'arc_1', 'magnet_w2_sprouts', …)
-// Resend echoes these tags on email.opened / email.clicked webhook events, which
-// resend-webhook logs into public.email_events. That is what powers the founder
-// dashboard's per-email / per-CTA engagement view. Tag values are restricted to
-// [A-Za-z0-9_-] per Resend's tag rules, which all keys below satisfy.
+//   3. legacyEmail5() — Pre-Lock-#48 path for the constitution Email 5 fallback.
 //
-// Behavioral suppression (Phase 1, 2026-06-16): before sending a queued email we
-// check the recipient's quiz_completions purchase flags and cancel the send if it
-// would re-pitch an offer they already bought (see SUPPRESS logic in
-// drainNurtureQueue). Phase 2 (branching to a DIFFERENT next email based on
-// behavior) is deferred until the full K-12 curriculum exists.
+// Engagement tagging: every send carries campaign + email_key tags; Resend
+// echoes them on open/click webhooks (-> public.email_events) for the founder
+// dashboard. Tag values are [A-Za-z0-9_-] per Resend's rules.
 //
-// Response shape — matches api/cron/drain-nurture-queue.ts's EFResponse interface:
-//   {
-//     success: true,
-//     queue: { processed: N, sent: N, failed: N },
-//     legacy_email5: { sent: N, candidates: N }
-//   }
-//
-// 2026-05-19 (v22): RESTORES the queue-drainer logic that was deployed as v17 on
-// 2026-04-28 and silently overwritten by a later main-branch resync (the drainer
-// code lived only on the Supabase server-side, never in git). This deploy commits
-// the drainer to main so future resyncs can't repeat the regression.
+// Behavioral suppression (Phase 1): drainNurtureQueue cancels a queued email
+// that would re-pitch an offer the recipient already bought. Phase 2 (branch to
+// a DIFFERENT next email) is deferred until the full K-12 curriculum exists.
 
 import {
   buildNurtureEmail2,
@@ -56,6 +47,12 @@ import {
   buildMagnetWeek3FacebookEmail,
   toSlug,
 } from '../_shared/nurture-email-templates.ts';
+import {
+  buildMagnetWeek4Email,
+  buildMagnetWeek5Email,
+  buildMagnetWeek6Email,
+  buildMagnetWeek7Email,
+} from '../_shared/homeschool-followup-templates.ts';
 import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
 
 const corsHeaders = {
@@ -85,6 +82,26 @@ const CONSTITUTION_KEY_BY_POS: Record<number, string> = {
   7: 'arc_3',
 };
 
+// Homeschool magnet positions 3-7 → engagement email_key (position 2 is keyed
+// per-band as magnet_w2_<band> at the call site).
+const MAGNET_KEY_BY_POS: Record<number, string> = {
+  3: 'magnet_w3_fb',
+  4: 'magnet_w4_course',
+  5: 'magnet_w5_cards',
+  6: 'magnet_w6_herb',
+  7: 'magnet_w7_devotional',
+};
+
+// Band-agnostic positions: identical copy regardless of band, so a both-band
+// family should receive each ONCE. Week 2 is band-specific and excluded.
+const MAGNET_BAND_AGNOSTIC = new Set<number>([3, 4, 5, 6, 7]);
+
+// Chained scheduling: when position N sends, enqueue N+1 at +7 days. Positions
+// 2 + 3 are enqueued up front by resend-waitlist; 4-7 chain from there so the
+// signup function never needs to know about them.
+const MAGNET_CHAIN_NEXT: Record<number, number> = { 3: 4, 4: 5, 5: 6, 6: 7 };
+const MAGNET_CHAIN_DELAY_MS = 7 * 24 * 60 * 60 * 1000;
+
 function engagementTags(campaign: string, emailKey: string): ResendTag[] {
   return [
     { name: 'campaign', value: campaign },
@@ -92,7 +109,7 @@ function engagementTags(campaign: string, emailKey: string): ResendTag[] {
   ];
 }
 
-// ── Phase 1 behavioral suppression ──
+// ── Phase 1 behavioral suppression (quiz/constitution drip) ──
 // Returns true if the queued email at this sequence_position would re-pitch an
 // offer the recipient already bought, and should therefore be cancelled rather
 // than sent. Mapping reflects the CURRENT sequence:
@@ -129,6 +146,38 @@ async function supabaseQuery(
   });
   if (options.method === 'PATCH') return { ok: res.ok, status: res.status };
   return res.json();
+}
+
+// Enqueue the next magnet position for this recipient at +7 days. Idempotent via
+// the (recipient_email, band, sequence_position) conflict target + merge.
+async function enqueueNextMagnet(row: any, nextPos: number): Promise<void> {
+  const scheduledFor = new Date(Date.now() + MAGNET_CHAIN_DELAY_MS).toISOString();
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/magnet_email_queue?on_conflict=recipient_email,band,sequence_position`,
+    {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY!,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal,resolution=merge-duplicates',
+      },
+      body: JSON.stringify([
+        {
+          recipient_email: row.recipient_email,
+          first_name: row.first_name || 'friend',
+          band: row.band,
+          sequence_position: nextPos,
+          scheduled_for: scheduledFor,
+          status: 'pending',
+        },
+      ]),
+    },
+  );
+  if (!res.ok) {
+    const t = await res.text().catch(() => '<unreadable>');
+    console.error('enqueueNextMagnet failed', { status: res.status, body: t, nextPos, email: row.recipient_email });
+  }
 }
 
 async function sendEmail(
@@ -433,12 +482,16 @@ interface MagnetResult {
 // lead with no story at all.
 const STORY_CUTOFF_MS = Date.parse('2026-06-06T22:38:00Z');
 
-// Lock #83 / Phase 3.1.2: drains public.magnet_email_queue (Sprouts/Seedlings
-// Week 2 day-7 + Facebook day-14). Unlike the quiz drip this needs NO
-// quiz_completions row — first name comes from the queue row itself.
+// Lock #83 / Phase 3.1.2: drains public.magnet_email_queue. Week 2 (band-specific)
+// + Week 3-7 (band-agnostic). No quiz_completions row needed; first name comes
+// from the queue row. Band-agnostic positions are deduped per recipient; Weeks
+// 4-7 are chained (each send enqueues the next).
 async function drainMagnetQueue(): Promise<MagnetResult> {
   const result: MagnetResult = { processed: 0, sent: 0, failed: 0 };
   const nowIso = new Date().toISOString();
+  // Tracks (email|position) for band-agnostic emails already handled in THIS
+  // run, so two band rows due in the same batch don't both send.
+  const sentAgnostic = new Set<string>();
   const rows = await supabaseQuery(
     `magnet_email_queue?status=eq.pending&scheduled_for=lte.${encodeURIComponent(nowIso)}&order=scheduled_for.asc&limit=${QUEUE_BATCH}`,
   );
@@ -452,7 +505,10 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
     try {
       const firstName = row.first_name || 'friend';
       const band: 'sprouts' | 'seedlings' = row.band === 'seedlings' ? 'seedlings' : 'sprouts';
-      if (await isUnsubscribed(row.recipient_email, 'homeschool')) {
+      const pos = row.sequence_position;
+      const email = String(row.recipient_email);
+
+      if (await isUnsubscribed(email, 'homeschool')) {
         await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
           method: 'PATCH',
           body: JSON.stringify({
@@ -463,24 +519,62 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
         });
         continue;
       }
+
+      // Band-agnostic dedup: a both-band family should get positions 3-7 once.
+      // Check the in-run set first, then whether a sibling row already sent.
+      const dedupeKey = `${email.toLowerCase()}|${pos}`;
+      if (MAGNET_BAND_AGNOSTIC.has(pos)) {
+        let already = sentAgnostic.has(dedupeKey);
+        if (!already) {
+          const prior = await supabaseQuery(
+            `magnet_email_queue?recipient_email=eq.${encodeURIComponent(email)}&sequence_position=eq.${pos}&status=eq.sent&select=id&limit=1`,
+          );
+          already = Array.isArray(prior) && prior.length > 0;
+        }
+        if (already) {
+          await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              status: 'cancelled',
+              error_message: 'deduped: band-agnostic email already sent to this recipient',
+              updated_at: new Date().toISOString(),
+            }),
+          });
+          continue;
+        }
+      }
+
       let built: { subject: string; html: string };
       let emailKey: string;
-      if (row.sequence_position === 3) {
-        built = buildMagnetWeek3FacebookEmail(firstName);
-        emailKey = 'magnet_w3_fb';
-      } else if (row.sequence_position === 2) {
+      if (pos === 2) {
         built = buildMagnetWeek2Email(firstName, band, Date.parse(row.created_at) >= STORY_CUTOFF_MS);
         emailKey = `magnet_w2_${band}`;
+      } else if (pos === 3) {
+        built = buildMagnetWeek3FacebookEmail(firstName);
+        emailKey = MAGNET_KEY_BY_POS[3];
+      } else if (pos === 4) {
+        built = buildMagnetWeek4Email(firstName);
+        emailKey = MAGNET_KEY_BY_POS[4];
+      } else if (pos === 5) {
+        built = buildMagnetWeek5Email(firstName);
+        emailKey = MAGNET_KEY_BY_POS[5];
+      } else if (pos === 6) {
+        built = buildMagnetWeek6Email(firstName);
+        emailKey = MAGNET_KEY_BY_POS[6];
+      } else if (pos === 7) {
+        built = buildMagnetWeek7Email(firstName);
+        emailKey = MAGNET_KEY_BY_POS[7];
       } else {
         await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
           method: 'PATCH',
-          body: JSON.stringify({ status: 'failed', error_message: `Unknown sequence_position ${row.sequence_position}`, updated_at: new Date().toISOString() }),
+          body: JSON.stringify({ status: 'failed', error_message: `Unknown sequence_position ${pos}`, updated_at: new Date().toISOString() }),
         });
         result.failed++;
         continue;
       }
+
       const send = await sendEmail(
-        row.recipient_email,
+        email,
         built.subject,
         built.html,
         'homeschool',
@@ -492,6 +586,10 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
           body: JSON.stringify({ status: 'sent', sent_at: new Date().toISOString(), updated_at: new Date().toISOString() }),
         });
         result.sent++;
+        if (MAGNET_BAND_AGNOSTIC.has(pos)) sentAgnostic.add(dedupeKey);
+        // Chain the next follow-up (Weeks 4-7) at +7 days.
+        const nextPos = MAGNET_CHAIN_NEXT[pos];
+        if (nextPos) await enqueueNextMagnet(row, nextPos);
       } else {
         const newRetry = (row.retry_count ?? 0) + 1;
         const terminal = newRetry >= MAX_RETRIES;
@@ -541,7 +639,7 @@ Deno.serve(async (req) => {
     console.log(
       `nurture-emails run: queue=${JSON.stringify(
         queue,
-      )} legacy_email5=${JSON.stringify(legacy_email5)}`,
+      )} magnet=${JSON.stringify(magnet)} legacy_email5=${JSON.stringify(legacy_email5)}`,
     );
 
     return new Response(
