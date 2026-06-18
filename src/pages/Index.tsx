@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Navbar from "@/components/landing/Navbar";
+import GetInvolvedSection from "@/components/landing/GetInvolvedSection";
 import { getAmazonKitUrl } from "@/lib/amazonKitUrls";
 import { supabase } from "@/integrations/supabase/client";
 import heroBotanical from "@/assets/hero-botanical.jpg";
@@ -524,7 +525,7 @@ const Index = () => {
         </div>
       </section>
 
-      <section id="cta" aria-label="Call to action"></section>
+      <GetInvolvedSection />
 
       <section id="footer" aria-label="Footer" className="px-8" style={{backgroundColor: "hsl(var(--footer-bg))", paddingTop: "clamp(48px, 6vw, 80px)", paddingBottom: "24px"}}>
         <div className="max-w-[1120px] mx-auto">
