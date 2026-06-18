@@ -32,6 +32,11 @@ verify_jwt = false
 [functions.submit-feedback]
 verify_jwt = false
 
+# Partner / collaborator / co-op / investor inquiries from the public marketing
+# site. Anonymous callers; the EF does its own validation. Capture-then-book.
+[functions.submit-partner-inquiry]
+verify_jwt = false
+
 [functions.constitution-pdf]
 verify_jwt = false
 

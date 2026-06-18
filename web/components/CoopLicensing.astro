@@ -1,0 +1,63 @@
+---
+// Co-op / pod / group licensing section for /homeschool. Static HTML for SEO;
+// the capture-then-book form is a client:only island. One generic Google
+// booking page is reused across surfaces until separate appointment types are
+// added (deferred — needs a Workspace upgrade).
+import PartnerInquiryForm from "./islands/PartnerInquiryForm.tsx";
+
+// Generic "Get involved" booking page (Partnership & Collaboration). Co-op
+// leads with 30+ children are routed to book here after qualifying.
+const BOOKING_URL = "https://calendar.app.google/HRuPEVYU1UqYsLai6";
+
+const TIERS = [
+  { range: "5–14 children", price: "$15", note: "per student notebook" },
+  { range: "15–29 children", price: "$13", note: "per student notebook" },
+  { range: "30+ children", price: "$11", note: "per notebook · let's talk" },
+];
+---
+
+<section id="coops" class="py-20 md:py-24 px-6" style="background-color:hsl(var(--eden-forest))">
+  <div class="max-w-5xl mx-auto">
+    <div class="text-center mb-10">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold))">For Co-ops, Pods &amp; Group Programs</p>
+      <h2 class="font-serif text-3xl md:text-4xl font-bold mb-4 text-white">Teaching a group? Bring Eden's Table to your whole co-op.</h2>
+      <p class="font-body text-lg max-w-2xl mx-auto leading-relaxed" style="color:rgba(255,255,255,0.78)">
+        One teaching kit covers your group. Add a student notebook for each child, and the more children you teach, the more you save.
+      </p>
+    </div>
+
+    <div class="max-w-3xl mx-auto mb-10 grid sm:grid-cols-2 gap-4">
+      <div class="rounded-lg p-5 text-center" style="background-color:rgba(255,255,255,0.08)">
+        <p class="font-accent text-xs tracking-widest uppercase mb-2" style="color:hsl(var(--eden-gold))">Teaching kit</p>
+        <p class="font-serif text-2xl font-bold text-white">$249</p>
+        <p class="font-body text-sm" style="color:rgba(255,255,255,0.7)">One per group · includes one student notebook</p>
+      </div>
+      <div class="rounded-lg p-5 text-center" style="background-color:rgba(255,255,255,0.08)">
+        <p class="font-accent text-xs tracking-widest uppercase mb-2" style="color:hsl(var(--eden-gold))">Student notebook</p>
+        <p class="font-serif text-2xl font-bold text-white">$19 <span class="font-body text-sm font-normal" style="color:rgba(255,255,255,0.6)">standard</span></p>
+        <p class="font-body text-sm" style="color:rgba(255,255,255,0.7)">One per additional child · discounted at volume</p>
+      </div>
+    </div>
+
+    <div class="max-w-3xl mx-auto mb-10">
+      <div class="grid grid-cols-3 gap-3">
+        {TIERS.map((t) => (
+          <div class="rounded-lg p-5 text-center bg-white">
+            <p class="font-accent text-xs tracking-widest uppercase mb-2" style="color:hsl(var(--eden-sage))">{t.range}</p>
+            <p class="font-serif text-3xl font-bold" style="color:hsl(var(--eden-bark))">{t.price}</p>
+            <p class="font-body text-xs text-muted-foreground mt-1">{t.note}</p>
+          </div>
+        ))}
+      </div>
+      <p class="font-body text-sm text-center mt-5" style="color:rgba(255,255,255,0.7)">
+        Example: a 25-child co-op pays $249 for the kit plus 24 notebooks at $13 — about $24 per child, all in.
+      </p>
+    </div>
+
+    <div class="max-w-md mx-auto rounded-lg p-6 md:p-8 bg-white">
+      <h3 class="font-serif text-2xl font-bold mb-2 text-center" style="color:hsl(var(--eden-bark))">Tell us about your group</h3>
+      <p class="font-body text-sm text-muted-foreground text-center mb-6">We'll follow up with group pricing, and you can book a call for larger or custom orders.</p>
+      <PartnerInquiryForm client:only="react" variant="homeschool" bookingUrl={BOOKING_URL} />
+    </div>
+  </div>
+</section>
