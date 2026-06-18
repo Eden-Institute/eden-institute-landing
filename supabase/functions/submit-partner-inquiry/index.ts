@@ -7,8 +7,9 @@
 // verify_jwt is OFF intentionally: called from anonymous marketing pages.
 //
 // Investor handling (capture-then-approve): investor inquiries are saved and
-// flagged in the email subject/body. Camila reviews and sends the booking link
-// manually — investors never receive an inline link from the page.
+// flagged in the email subject/body, AND auto-create a founder_punch_list
+// follow-up item so they ride the daily digest until handled. Camila reviews
+// and sends the booking link manually — investors never receive an inline link.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -111,7 +112,7 @@ function buildEmail(v: Parsed, id: string, createdAt: string): { subject: string
     ? `[INVESTOR — review before sending link] ${v.name}${v.orgName ? " · " + v.orgName : ""}`
     : `[Partner inquiry] ${label} — ${v.name}${v.orgName ? " · " + v.orgName : ""}`;
   const banner = isInvestor
-    ? `<div style="background:#7A2E2E;color:#fff;padding:12px 16px;font-size:13px;">Investor inquiry — capture-then-approve. Review, then send the booking link manually if it's a fit.</div>`
+    ? `<div style="background:#7A2E2E;color:#fff;padding:12px 16px;font-size:13px;">Investor inquiry — capture-then-approve. Review, then send the booking link manually if it's a fit. (Also added to your punch list.)</div>`
     : "";
   const msgHtml = v.message ? escapeHtml(v.message).replace(/\n/g, "<br>") : null;
   const html = `<!DOCTYPE html>
@@ -168,6 +169,39 @@ async function sendEmail(args: { subject: string; html: string; replyTo: string 
   }
 }
 
+// Investor inquiries auto-create a founder follow-up item so they ride the
+// daily digest until handled. Best-effort — never blocks the inquiry.
+async function addInvestorFollowUp(v: Parsed): Promise<void> {
+  try {
+    const orgBit = v.orgName ? ` (${v.orgName})` : "";
+    const detailBits = [
+      `Email: ${v.email}`,
+      v.website ? `Site: ${v.website}` : "",
+      v.message ? `Note: ${v.message.slice(0, 300)}` : "",
+    ].filter(Boolean).join(" · ");
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/founder_punch_list`, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: `Follow up with investor: ${v.name}${orgBit}`,
+        detail: `Capture-then-approve — review and send the booking link if it's a fit. ${detailBits}`,
+        owner: "C",
+        status: "open",
+        sort_order: 15,
+      }),
+    });
+    if (!res.ok) {
+      console.error("Investor follow-up punch-list insert failed:", res.status, await res.text().catch(() => ""));
+    }
+  } catch (err) {
+    console.error("Investor follow-up punch-list insert error:", err instanceof Error ? err.message : String(err));
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -219,6 +253,11 @@ Deno.serve(async (req) => {
     const record = Array.isArray(inserted) ? inserted[0] : inserted;
     const id = record?.id ?? "unknown";
     const createdAt = record?.created_at ?? new Date().toISOString();
+
+    // STEP 1b — investor inquiries auto-create a founder follow-up (best-effort)
+    if (v.inquiryType === "investor") {
+      await addInvestorFollowUp(v);
+    }
 
     // STEP 2 — BEST-EFFORT MIRROR to hello@
     const email = buildEmail(v, id, createdAt);
