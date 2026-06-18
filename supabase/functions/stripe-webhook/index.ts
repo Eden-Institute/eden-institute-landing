@@ -2,8 +2,9 @@
 // Eden Apothecary — Stripe webhook handler
 // Listens for subscription lifecycle events AND one-time payment completion,
 // reconciling the `profiles` table for subscriptions, the `quiz_completions`
-// table for guide/course one-off purchases, AND the homeschool bundle-buyer
-// flag for Two-Band Family Bundle purchases.
+// table for guide/course one-off purchases, the homeschool bundle-buyer
+// flag for Two-Band Family Bundle purchases, AND the homeschool_orders table
+// for every Eden's Table kit purchase (fulfillment + Founders 500-unit count).
 //
 // Auth model: webhooks are NOT user-authenticated. Stripe signs every request with
 // an HMAC-SHA256 signature using the STRIPE_WEBHOOK_SECRET. We verify that
@@ -20,9 +21,9 @@
 //                                     → dispatch by lookup_key:
 //                                       deep_dive_guide → quiz_completions.purchased_guide
 //                                       course_*        → quiz_completions.purchased_course
-//                                       two_band_bundle → provision Supabase user +
-//                                                         set profiles.homeschool_bundle_buyer
-//                                       sprouts/seedlings/nb_addon → log only (v1)
+//                                       sprouts/seedlings/nb_addon → record homeschool_orders
+//                                       two_band_bundle → record homeschool_orders +
+//                                                         provision user + bundle-buyer flag
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext"
@@ -36,12 +37,21 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
 const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET")!
 
 // Admin client — webhook has no user context, so we use the service role key
-// to write freely to `profiles` and `quiz_completions` (bypasses RLS) and to
-// call auth.admin.inviteUserByEmail for bundle-buyer provisioning.
+// to write freely to `profiles`, `quiz_completions`, and `homeschool_orders`
+// (bypasses RLS) and to call auth.admin.inviteUserByEmail for bundle-buyer
+// provisioning.
 const adminClient = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 )
+
+// Human-readable labels for homeschool kit lookup_keys, stored on the order row.
+const HOMESCHOOL_PRODUCT_LABELS: Record<string, string> = {
+  sprouts_complete: "Sprouts Complete (K-2)",
+  seedlings_complete: "Seedlings Complete (3-5)",
+  two_band_bundle: "Two-Band Family Bundle",
+  nb_addon: "Additional Student Notebook",
+}
 
 serve(async (req) => {
   if (req.method !== "POST") {
@@ -272,11 +282,13 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
   }
 
   // ---- Dispatch by product class ----
-  // Branch 1: homeschool bundle — provision Supabase user + set bundle-buyer flag.
+  // Branch 1: homeschool bundle — record the order, then provision Supabase
+  // user + set the bundle-buyer flag (gates the nb_addon purchase).
   if (lookupKey === "two_band_bundle") {
+    await recordHomeschoolOrder(session, lookupKey, email)
     if (!email) {
       console.warn(
-        `Bundle purchase without email — cannot provision user. session=${session.id}`,
+        `Bundle purchase without email — order recorded but cannot provision user. session=${session.id}`,
       )
       return
     }
@@ -284,17 +296,13 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
     return
   }
 
-  // Branch 2: homeschool single-band or add-on — log only in v1.
-  // The Customer Portal v1.1 will optionally provision users for these too.
+  // Branch 2: homeschool single-band or add-on — record the order.
   if (
     lookupKey === "sprouts_complete" ||
     lookupKey === "seedlings_complete" ||
     lookupKey === "nb_addon"
   ) {
-    console.log(
-      `Homeschool purchase recorded: lookup_key=${lookupKey}, email=${email ?? "(anonymous)"}, ` +
-        `session=${session.id}. No DB writes in v1; portal provisioning ships in v1.1.`,
-    )
+    await recordHomeschoolOrder(session, lookupKey, email)
     return
   }
 
@@ -345,6 +353,57 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
   console.log(
     `checkout.session.completed: flipped ${column}=true on ${updatedCount} ` +
       `quiz_completions row(s) for email=${email}, lookup_key=${lookupKey}, session=${session.id}`,
+  )
+}
+
+// ---------- Homeschool order recording ----------
+
+/**
+ * Record a homeschool kit purchase in homeschool_orders — the source of truth
+ * for fulfillment and the Founders 500-unit counter. Idempotent on
+ * stripe_session_id (safe on Stripe webhook retries). Throws on a DB error so
+ * Stripe retries; the ignore-duplicates upsert makes retries harmless.
+ */
+async function recordHomeschoolOrder(
+  session: Stripe.Checkout.Session,
+  lookupKey: string,
+  email: string | null,
+) {
+  const stripeCustomerId =
+    typeof session.customer === "string"
+      ? session.customer
+      : session.customer?.id ?? null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const shipping = (session as any).shipping_details ?? null
+
+  const order = {
+    stripe_session_id: session.id,
+    stripe_customer_id: stripeCustomerId,
+    email,
+    lookup_key: lookupKey,
+    product_label: HOMESCHOOL_PRODUCT_LABELS[lookupKey] ?? lookupKey,
+    amount_total: session.amount_total ?? null,
+    currency: session.currency ?? null,
+    quantity: 1,
+    payment_status: session.payment_status ?? null,
+    shipping_name: shipping?.name ?? session.customer_details?.name ?? null,
+    shipping_address: shipping?.address ?? null,
+    status: "preorder",
+  }
+
+  const { error } = await adminClient
+    .from("homeschool_orders")
+    .upsert(order, { onConflict: "stripe_session_id", ignoreDuplicates: true })
+
+  if (error) {
+    throw new Error(
+      `homeschool_orders upsert failed for session ${session.id}: ${error.message}`,
+    )
+  }
+
+  console.log(
+    `Recorded homeschool order: lookup_key=${lookupKey}, email=${email ?? "(none)"}, ` +
+      `session=${session.id}, amount_total=${session.amount_total ?? "n/a"}`,
   )
 }
 
