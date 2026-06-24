@@ -51,6 +51,11 @@ verify_jwt = false
 [functions.unsubscribe]
 verify_jwt = false
 
+# Straight-to-checkout redirect for the Deep-Dive Guide, clicked anonymously
+# from nurture emails. Plain HTTP 302 to a Stripe session; no Supabase JWT.
+[functions.guide-checkout]
+verify_jwt = false
+
 # --- Category 2: Webhook endpoints ---
 
 [functions.resend-webhook]
