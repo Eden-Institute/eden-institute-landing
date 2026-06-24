@@ -2,7 +2,8 @@
   "redirects": [
     { "source": "/Homeschool", "destination": "/homeschool", "permanent": true },
     { "source": "/app", "destination": "/apothecary", "permanent": true },
-    { "source": "/app/:path*", "destination": "/apothecary/:path*", "permanent": true }
+    { "source": "/app/:path*", "destination": "/apothecary/:path*", "permanent": true },
+    { "source": "/go/deep-dive/:slug", "destination": "https://noeqztssupewjidpvhar.supabase.co/functions/v1/guide-checkout?slug=:slug", "permanent": false }
   ],
   "rewrites": [
     {

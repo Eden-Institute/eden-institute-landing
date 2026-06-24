@@ -235,7 +235,7 @@ ${p(`${link("See your full quiz results anytime →", `https://edeninstitute.hea
 ${goldDivider()}
 ${heading("WANT THE FULL PICTURE?")}
 ${p("Your Deep-Dive Guide includes all 10 matched herbs with actions, preparation methods, dosages, and safety notes — plus a caution list, lifestyle and nutrition guidance, and a Biblical framework for your constitutional pattern.")}
-${brandButton(`Get Your ${constitutionName.replace(/^The /i, '')} Deep-Dive Guide — $4.99`, `https://edeninstitute.health/guide/${constitutionSlug}`)}
+${brandButton(`Get Your ${constitutionName.replace(/^The /i, '')} Deep-Dive Guide — $4.99`, `https://edeninstitute.health/go/deep-dive/${constitutionSlug}`)}
 ${signature()}`;
 
   return {
@@ -469,7 +469,7 @@ const ARC_HOMESCHOOL_URL = 'https://edeninstitute.health/homeschool';
 // Day 11: Deep-Dive Guide + the Foundations class.
 export function buildNurtureArc1(firstName: string, constitutionName: string, constitutionSlug: string): { subject: string; html: string } {
   const patternShort = constitutionName.replace(/^The /i, '');
-  const body = `${p(`Hi ${firstName},`)}${p(`You&rsquo;ve spent two weeks getting to know your pattern, <strong>${constitutionName}</strong>. If you&rsquo;re ready to go further, there are two doors.`)}${goldDivider()}${heading('1 &mdash; Your Deep-Dive Guide')}${p(`Your ${patternShort} pattern in full: all 10 matched herbs with actions, preparation methods, dosages, and safety notes &mdash; plus a caution list, lifestyle and nutrition guidance, and the Biblical framework for your constitution.`)}${brandButton(`Get Your ${patternShort} Deep-Dive Guide &mdash; $4.99`, `https://edeninstitute.health/guide/${constitutionSlug}`)}${goldDivider()}${heading('2 &mdash; The Foundations Class')}${p(`The guide hands you your pattern. The Foundations Course (Tier 1) teaches you to read and work with <em>any</em> constitution &mdash; yours, your children&rsquo;s, your whole household&rsquo;s.`)}${p(`It&rsquo;s <strong>$97 for the first 100 founding students</strong>, then $197. The founding price is applied at checkout &mdash; no code needed.`)}${brandButton('Start the Foundations Class', ARC_COURSE_URL)}${p(`If you&rsquo;ve already begun &mdash; wonderful. Keep going.`)}${signature()}`;
+  const body = `${p(`Hi ${firstName},`)}${p(`You&rsquo;ve spent two weeks getting to know your pattern, <strong>${constitutionName}</strong>. If you&rsquo;re ready to go further, there are two doors.`)}${goldDivider()}${heading('1 &mdash; Your Deep-Dive Guide')}${p(`Your ${patternShort} pattern in full: all 10 matched herbs with actions, preparation methods, dosages, and safety notes &mdash; plus a caution list, lifestyle and nutrition guidance, and the Biblical framework for your constitution.`)}${brandButton(`Get Your ${patternShort} Deep-Dive Guide &mdash; $4.99`, `https://edeninstitute.health/go/deep-dive/${constitutionSlug}`)}${goldDivider()}${heading('2 &mdash; The Foundations Class')}${p(`The guide hands you your pattern. The Foundations Course (Tier 1) teaches you to read and work with <em>any</em> constitution &mdash; yours, your children&rsquo;s, your whole household&rsquo;s.`)}${p(`It&rsquo;s <strong>$97 for the first 100 founding students</strong>, then $197. The founding price is applied at checkout &mdash; no code needed.`)}${brandButton('Start the Foundations Class', ARC_COURSE_URL)}${p(`If you&rsquo;ve already begun &mdash; wonderful. Keep going.`)}${signature()}`;
   return { subject: 'Now you know your pattern — go deeper', html: emailWrapper(body) };
 }
 
