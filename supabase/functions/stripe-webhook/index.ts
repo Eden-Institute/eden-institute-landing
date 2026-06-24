@@ -36,6 +36,9 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
 
 const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET")!
 
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
+
 // Admin client — webhook has no user context, so we use the service role key
 // to write freely to `profiles`, `quiz_completions`, and `homeschool_orders`
 // (bypasses RLS) and to call auth.admin.inviteUserByEmail for bundle-buyer
@@ -51,6 +54,76 @@ const HOMESCHOOL_PRODUCT_LABELS: Record<string, string> = {
   seedlings_complete: "Seedlings Complete (3-5)",
   two_band_bundle: "Two-Band Family Bundle",
   nb_addon: "Additional Student Notebook",
+}
+
+// The Deep-Dive Guide PDF (constitution-pdf EF) is keyed to 4 temperature x
+// moisture types; the 8 named constitution patterns map onto them 2:1 (the
+// tension axis is not reflected in the PDF).
+const PATTERN_TO_PDF_TYPE: Record<string, string> = {
+  "burning-bowstring": "hot-dry",
+  "open-flame": "hot-dry",
+  "pressure-cooker": "hot-damp",
+  "overflowing-cup": "hot-damp",
+  "drawn-bowstring": "cold-dry",
+  "spent-candle": "cold-dry",
+  "frozen-knot": "cold-damp",
+  "still-water": "cold-damp",
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = ""
+  const chunk = 0x8000
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk))
+  }
+  return btoa(binary)
+}
+
+// Deliver the Deep-Dive Guide PDF by email immediately on purchase, so a buyer
+// never depends on the client-rendered /guide page (which can render blank when
+// opened from a mobile email browser). Best-effort: failures are logged and
+// swallowed so the webhook still returns 200 (the purchase must not fail).
+async function sendGuidePdf(email: string, constitutionType: string | null): Promise<void> {
+  try {
+    if (!RESEND_API_KEY) {
+      console.warn("sendGuidePdf: RESEND_API_KEY missing; skipping guide delivery")
+      return
+    }
+    const pdfType = (constitutionType && PATTERN_TO_PDF_TYPE[constitutionType]) || "cold-damp"
+    const pdfRes = await fetch(`${SUPABASE_URL}/functions/v1/constitution-pdf?type=${encodeURIComponent(pdfType)}`)
+    if (!pdfRes.ok) {
+      console.error("sendGuidePdf: constitution-pdf failed", pdfRes.status)
+      return
+    }
+    const pdfB64 = bytesToBase64(new Uint8Array(await pdfRes.arrayBuffer()))
+    const html = `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#F5F0E8;font-family:Georgia,serif;color:#3D3832;">`
+      + `<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#FFFFFF;border:1px solid #E8E3DA;">`
+      + `<tr><td style="background:#2C3E2D;padding:28px 20px;text-align:center;"><span style="font-family:Georgia,serif;font-size:13px;font-weight:bold;letter-spacing:4px;color:#C5A44E;">THE EDEN INSTITUTE</span></td></tr>`
+      + `<tr><td style="padding:32px 36px;font-size:16px;line-height:1.6;">`
+      + `<p style="margin:0 0 16px 0;">Thank you. Your <strong>Constitutional Deep-Dive Guide</strong> is attached to this email as a PDF, so it is yours to keep, print, and return to anytime.</p>`
+      + `<p style="margin:0 0 16px 0;">Inside you will find your matched herbs and how to use them, your caution list, and the diet and lifestyle rhythms that keep your constitution in balance.</p>`
+      + `<p style="margin:24px 0 4px 0;">Grace and health,</p><p style="margin:0;font-weight:bold;">Camila</p><p style="margin:4px 0 0 0;font-size:14px;">The Eden Institute</p>`
+      + `</td></tr></table></body></html>`
+    const sendRes = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: "Camila at The Eden Institute <hello@edeninstitute.health>",
+        reply_to: "hello@edeninstitute.health",
+        to: [email],
+        subject: "Your Constitutional Deep-Dive Guide",
+        html,
+        attachments: [{ filename: "Eden-Institute-Constitutional-Deep-Dive-Guide.pdf", content: pdfB64 }],
+      }),
+    })
+    if (!sendRes.ok) {
+      console.error("sendGuidePdf: Resend failed", sendRes.status, await sendRes.text().catch(() => ""))
+    } else {
+      console.log(`sendGuidePdf: delivered guide PDF (type=${pdfType}) to ${email}`)
+    }
+  } catch (err) {
+    console.error("sendGuidePdf error (non-fatal):", err instanceof Error ? err.message : String(err))
+  }
 }
 
 serve(async (req) => {
@@ -354,6 +427,13 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
     `checkout.session.completed: flipped ${column}=true on ${updatedCount} ` +
       `quiz_completions row(s) for email=${email}, lookup_key=${lookupKey}, session=${session.id}`,
   )
+
+  // Deliver the Deep-Dive Guide PDF immediately for guide purchases (best-effort;
+  // never blocks the webhook). Covers the buyer whose Stripe success page (the
+  // client-rendered /guide route) can render blank on a mobile email browser.
+  if (column === "purchased_guide") {
+    await sendGuidePdf(email, (session.metadata?.constitution_type as string | undefined) ?? null)
+  }
 }
 
 // ---------- Homeschool order recording ----------
