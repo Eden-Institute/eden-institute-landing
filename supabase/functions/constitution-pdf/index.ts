@@ -1,1123 +1,215 @@
-import { PDFDocument, StandardFonts, rgb, PDFPage, PDFFont } from 'https://esm.sh/pdf-lib@1.17.1';
+// supabase/functions/constitution-pdf/index.ts
+// Renders the buyer's pattern-specific Constitutional Deep-Dive Guide as a PDF.
+//
+//   GET ?type=<pattern-slug>   e.g. "frozen-knot" (one of the 8 named patterns)
+//
+// Also accepts the 4 legacy temperature-by-moisture types (hot-dry, hot-damp,
+// cold-dry, cold-damp) which map to a representative pattern, so older callers
+// keep working. Returns application/pdf.
+//
+// Source of truth for the content is the same per-pattern data the live /guide
+// page renders (guide-content-<slug>.ts), so the emailed PDF matches the page.
+//
+// Public EF (verify_jwt=false in config.toml): fetched server-side by the
+// stripe-webhook on purchase, and safe to fetch directly.
+
+import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "https://esm.sh/pdf-lib@1.17.1";
+import type { FullGuideContent } from "./guide-types.ts";
+import { burningBowstringGuide } from "./guide-content-burning-bowstring.ts";
+import { drawnBowstringGuide } from "./guide-content-drawn-bowstring.ts";
+import { frozenKnotGuide } from "./guide-content-frozen-knot.ts";
+import { openFlameGuide } from "./guide-content-open-flame.ts";
+import { overflowingCupGuide } from "./guide-content-overflowing-cup.ts";
+import { pressureCookerGuide } from "./guide-content-pressure-cooker.ts";
+import { spentCandleGuide } from "./guide-content-spent-candle.ts";
+import { stillWaterGuide } from "./guide-content-still-water.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Brand colors
-const DARK_SAGE = rgb(0.176, 0.314, 0.086);    // #2D5016
-const MEDIUM_SAGE = rgb(0.290, 0.486, 0.184);  // #4A7C2F
-const CREAM = rgb(0.980, 0.965, 0.933);         // #FAF6EE
-const GOLD = rgb(0.761, 0.635, 0.153);          // #C9A227
-const WHITE = rgb(1, 1, 1);
+const GUIDES: Record<string, FullGuideContent> = {
+  "burning-bowstring": burningBowstringGuide,
+  "drawn-bowstring": drawnBowstringGuide,
+  "frozen-knot": frozenKnotGuide,
+  "open-flame": openFlameGuide,
+  "overflowing-cup": overflowingCupGuide,
+  "pressure-cooker": pressureCookerGuide,
+  "spent-candle": spentCandleGuide,
+  "still-water": stillWaterGuide,
+};
 
-const PAGE_W = 612;
-const PAGE_H = 792;
-const MARGIN = 54;
-const CONTENT_W = PAGE_W - MARGIN * 2;
+// Backward compatibility: the 4 legacy temperature-by-moisture types map onto a
+// representative pattern (the tension axis isn't expressed in the legacy param).
+const LEGACY_TYPE_TO_SLUG: Record<string, string> = {
+  "hot-dry": "burning-bowstring",
+  "hot-damp": "pressure-cooker",
+  "cold-dry": "drawn-bowstring",
+  "cold-damp": "frozen-knot",
+};
 
-interface Fonts {
-  serif: PDFFont;
-  serifBold: PDFFont;
-  serifItalic: PDFFont;
-  serifBoldItalic: PDFFont;
+// PDF layout
+const PAGE_W = 612, PAGE_H = 792, MARGIN = 58, CW = PAGE_W - MARGIN * 2;
+const forest = rgb(0.173,0.243,0.176), gold = rgb(0.773,0.643,0.306), body = rgb(0.24,0.22,0.20), sage = rgb(0.36,0.48,0.36), light = rgb(0.45,0.42,0.40);
+
+function clean(s: unknown): string {
+  let out = String(s ?? "");
+  out = out.replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
+  out = out.replace(/[–—]/g, "-").replace(/…/g, "...").replace(/•/g, "-");
+  out = out.replace(/[^ -~]/g, " ");
+  return out;
 }
 
-// ─── Text utilities ───
+async function renderFullGuide(content: FullGuideContent): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
+  doc.setTitle(`${content.nickname} - Constitutional Deep-Dive Guide`);
+  doc.setAuthor("The Eden Institute");
+  const serif = await doc.embedFont(StandardFonts.TimesRoman);
+  const bold = await doc.embedFont(StandardFonts.TimesRomanBold);
+  const italic = await doc.embedFont(StandardFonts.TimesRomanItalic);
 
-function wrapText(text: string, font: PDFFont, size: number, maxW: number): string[] {
-  const lines: string[] = [];
-  for (const paragraph of text.split('\n')) {
-    if (paragraph.trim() === '') { lines.push(''); continue; }
-    const words = paragraph.split(' ');
-    let cur = '';
+  let page: PDFPage = doc.addPage([PAGE_W, PAGE_H]);
+  let y = PAGE_H - MARGIN;
+  const newPage = () => { page = doc.addPage([PAGE_W, PAGE_H]); y = PAGE_H - MARGIN; };
+  const ensure = (h: number) => { if (y - h < MARGIN + 24) newPage(); };
+
+  function wrap(text: string, font: PDFFont, size: number, maxW: number): string[] {
+    const words = clean(text).split(/\s+/).filter(Boolean);
+    const lines: string[] = []; let cur = "";
     for (const w of words) {
-      const test = cur ? `${cur} ${w}` : w;
-      if (font.widthOfTextAtSize(test, size) > maxW && cur) {
-        lines.push(cur);
-        cur = w;
-      } else {
-        cur = test;
-      }
+      const t = cur ? cur + " " + w : w;
+      if (font.widthOfTextAtSize(t, size) > maxW && cur) { lines.push(cur); cur = w; } else cur = t;
     }
     if (cur) lines.push(cur);
+    return lines.length ? lines : [""];
   }
-  return lines;
+  function para(text: string, o: { font?: PDFFont; size?: number; color?: any; gap?: number; indent?: number; after?: number } = {}) {
+    const font = o.font ?? serif, size = o.size ?? 11, color = o.color ?? body, gap = o.gap ?? 5, indent = o.indent ?? 0;
+    for (const ln of wrap(text, font, size, CW - indent)) {
+      ensure(size + gap);
+      page.drawText(ln, { x: MARGIN + indent, y: y - size, size, font, color });
+      y -= size + gap;
+    }
+    y -= o.after ?? 8;
+  }
+  function heading(text: string, o: { size?: number; color?: any; font?: PDFFont; before?: number; after?: number } = {}) {
+    const size = o.size ?? 15; y -= o.before ?? 10; ensure(size + (o.after ?? 8));
+    for (const ln of wrap(text, o.font ?? bold, size, CW)) { page.drawText(ln, { x: MARGIN, y: y - size, size, font: o.font ?? bold, color: o.color ?? forest }); y -= size + 3; }
+    y -= o.after ?? 6;
+  }
+  function chapterLabel(label: string) {
+    y -= 16; ensure(20);
+    page.drawText(clean(label).toUpperCase(), { x: MARGIN, y: y - 9, size: 9, font: bold, color: gold });
+    y -= 17;
+  }
+  function divider() { ensure(16); page.drawLine({ start: { x: MARGIN, y: y - 4 }, end: { x: PAGE_W - MARGIN, y: y - 4 }, thickness: 0.8, color: gold }); y -= 16; }
+  function bullet(text: string) { para("- " + text, { indent: 12, size: 10.5, after: 3 }); }
+  const centered = (text: string, size: number, font: PDFFont, color: any, yy: number) => {
+    const t = clean(text), w = font.widthOfTextAtSize(t, size);
+    page.drawText(t, { x: (PAGE_W - w) / 2, y: yy, size, font, color });
+  };
+
+  // Cover
+  let cy = PAGE_H - 170;
+  centered("THE EDEN INSTITUTE", 12, bold, gold, cy); cy -= 14;
+  centered("Back to Eden. Back to Truth.", 10, italic, sage, cy); cy -= 56;
+  centered(content.nickname, 30, bold, forest, cy); cy -= 34;
+  for (const ln of wrap(content.tagline, italic, 13, CW - 30)) { centered(ln, 13, italic, sage, cy); cy -= 19; }
+  cy -= 22;
+  page.drawLine({ start: { x: (PAGE_W - 130) / 2, y: cy + 10 }, end: { x: (PAGE_W + 130) / 2, y: cy + 10 }, thickness: 1, color: gold }); cy -= 12;
+  centered("Your Constitutional Deep-Dive Guide", 12, bold, gold, cy);
+  newPage();
+
+  // Chapter One
+  chapterLabel("Chapter One"); heading(content.chapterOne.subtitle);
+  for (const p of content.chapterOne.paragraphs) para(p);
+  if (content.chapterOne.physicalTendencies?.length) { heading("Physical tendencies", { size: 12, before: 6 }); for (const t of content.chapterOne.physicalTendencies) bullet(t); }
+  if (content.chapterOne.emotionalTendencies?.length) { heading("Emotional tendencies", { size: 12, before: 6 }); for (const t of content.chapterOne.emotionalTendencies) bullet(t); }
+  if (content.chapterOne.whenImbalanced) { heading("When out of balance", { size: 12, before: 6 }); para(content.chapterOne.whenImbalanced); }
+
+  // Chapter Two
+  chapterLabel("Chapter Two"); heading(content.chapterTwo.subtitle);
+  for (const p of content.chapterTwo.paragraphs) para(p);
+
+  // Chapter Three
+  chapterLabel("Chapter Three"); heading(content.chapterThree.subtitle);
+  for (const p of content.chapterThree.paragraphs) para(p);
+  if (content.chapterThree.scriptureVerse) { divider(); para(content.chapterThree.scriptureVerse, { font: italic, color: sage, indent: 18, after: 10 }); divider(); }
+  if (content.chapterThree.closingParagraph) para(content.chapterThree.closingParagraph);
+
+  // Chapter Four: matched herbs
+  chapterLabel("Chapter Four"); heading(content.chapterFour.subtitle);
+  if (content.chapterFour.intro) para(content.chapterFour.intro, { after: 10 });
+  for (const h of content.chapterFour.herbs) {
+    ensure(70);
+    heading(h.name, { size: 14, before: 8, after: 2 });
+    if (h.latin) para(h.latin, { font: italic, size: 10, color: sage, after: 4 });
+    if (h.actions?.length) para("Actions: " + h.actions.map((a) => `${a.term} (${a.translation})`).join(", "), { size: 10, after: 4 });
+    if (h.constitutionalMatch) para("Why it matches: " + h.constitutionalMatch, { size: 10.5, after: 3 });
+    if (h.preparation) para("Preparation: " + h.preparation, { size: 10.5, after: 3 });
+    if (h.safety) para("Safety: " + h.safety, { size: 10.5, color: light, after: 8 });
+  }
+
+  // Caution list
+  if (content.cautionHerbs?.length) {
+    heading("Herbs and Foods to Use With Caution", { size: 15, before: 10 });
+    for (const c of content.cautionHerbs) {
+      para(c.latin ? `${c.name} (${c.latin})` : c.name, { font: bold, size: 11, after: 2 });
+      para(c.reason, { size: 10.5, indent: 14, after: 6 });
+    }
+  }
+
+  // Chapter Five: lifestyle
+  chapterLabel("Chapter Five"); heading(content.chapterFive.subtitle);
+  for (const [label, key] of [["Diet", "dietary"], ["Movement", "movement"], ["Rest & Rhythm", "restRhythm"], ["Spiritual Practice", "spiritualPractice"]] as const) {
+    const val = (content.chapterFive as Record<string, string>)[key];
+    if (val) { heading(label, { size: 12, before: 8, after: 3 }); para(val); }
+  }
+
+  // CTAs
+  divider();
+  if (content.coachingCTA) { heading(content.coachingCTA.title, { size: 14 }); if (content.coachingCTA.intro) para(content.coachingCTA.intro, { after: 4 }); if (content.coachingCTA.body) para(content.coachingCTA.body, { after: 4 }); for (const b of content.coachingCTA.bullets ?? []) bullet(b); }
+  if (content.courseCTA) { heading(content.courseCTA.title, { size: 14, before: 14 }); if (content.courseCTA.subtitle) para(content.courseCTA.subtitle, { font: italic, color: sage, after: 4 }); if (content.courseCTA.body) para(content.courseCTA.body, { after: 4 }); for (const b of content.courseCTA.bullets ?? []) bullet(b); }
+
+  // Footer (page numbers; skip cover)
+  doc.getPages().forEach((pg, i) => {
+    if (i === 0) return;
+    pg.drawText("The Eden Institute  -  edeninstitute.health", { x: MARGIN, y: 32, size: 8, font: serif, color: light });
+    const num = String(i + 1), w = serif.widthOfTextAtSize(num, 8);
+    pg.drawText(num, { x: PAGE_W - MARGIN - w, y: 32, size: 8, font: serif, color: light });
+  });
+
+  return await doc.save();
 }
-
-// ─── Page manager ───
-
-class PDFBuilder {
-  doc: PDFDocument;
-  fonts!: Fonts;
-  page!: PDFPage;
-  y = 0;
-  pageNum = 0;
-
-  constructor(doc: PDFDocument) { this.doc = doc; }
-
-  async init() {
-    this.fonts = {
-      serif: await this.doc.embedFont(StandardFonts.TimesRoman),
-      serifBold: await this.doc.embedFont(StandardFonts.TimesRomanBold),
-      serifItalic: await this.doc.embedFont(StandardFonts.TimesRomanItalic),
-      serifBoldItalic: await this.doc.embedFont(StandardFonts.TimesRomanBoldItalic),
-    };
-  }
-
-  newPage() {
-    this.page = this.doc.addPage([PAGE_W, PAGE_H]);
-    this.pageNum++;
-    // Cream background
-    this.page.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: CREAM });
-    this.y = PAGE_H - MARGIN;
-    this.drawFooter();
-  }
-
-  drawFooter() {
-    const f = this.fonts.serifItalic;
-    const txt = "The Eden Institute  |  EdenInstitute.health";
-    const w = f.widthOfTextAtSize(txt, 8);
-    this.page.drawLine({ start: { x: MARGIN, y: 46 }, end: { x: PAGE_W - MARGIN, y: 46 }, thickness: 0.5, color: GOLD });
-    this.page.drawText(txt, { x: (PAGE_W - w) / 2, y: 34, size: 8, font: f, color: MEDIUM_SAGE });
-    // Page number
-    const pn = `${this.pageNum}`;
-    const pw = f.widthOfTextAtSize(pn, 8);
-    this.page.drawText(pn, { x: (PAGE_W - pw) / 2, y: 22, size: 8, font: f, color: GOLD });
-  }
-
-  ensureSpace(needed: number) {
-    if (this.y - needed < 60) {
-      this.newPage();
-    }
-  }
-
-  drawCoverPage(title: string, subtitle: string, tagline: string) {
-    this.page = this.doc.addPage([PAGE_W, PAGE_H]);
-    this.pageNum++;
-    // Full dark sage background
-    this.page.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: DARK_SAGE });
-
-    let y = PAGE_H - 120;
-
-    // Brand name
-    const brand = "THE EDEN INSTITUTE";
-    const bw = this.fonts.serifBold.widthOfTextAtSize(brand, 14);
-    this.page.drawText(brand, { x: (PAGE_W - bw) / 2, y, size: 14, font: this.fonts.serifBold, color: GOLD });
-    y -= 22;
-
-    // Gold divider
-    this.page.drawLine({ start: { x: (PAGE_W - 80) / 2, y }, end: { x: (PAGE_W + 80) / 2, y }, thickness: 1.5, color: GOLD });
-    y -= 22;
-
-    const motto = "Back to Eden. Back to Truth.";
-    const mw = this.fonts.serifItalic.widthOfTextAtSize(motto, 11);
-    this.page.drawText(motto, { x: (PAGE_W - mw) / 2, y, size: 11, font: this.fonts.serifItalic, color: CREAM });
-    y -= 100;
-
-    // Title
-    const titleLines = wrapText(title, this.fonts.serifBold, 28, CONTENT_W - 40);
-    for (const line of titleLines) {
-      const lw = this.fonts.serifBold.widthOfTextAtSize(line, 28);
-      this.page.drawText(line, { x: (PAGE_W - lw) / 2, y, size: 28, font: this.fonts.serifBold, color: CREAM });
-      y -= 36;
-    }
-    y -= 6;
-
-    // Subtitle
-    const sw = this.fonts.serifItalic.widthOfTextAtSize(subtitle, 16);
-    this.page.drawText(subtitle, { x: (PAGE_W - sw) / 2, y, size: 16, font: this.fonts.serifItalic, color: GOLD });
-    y -= 50;
-
-    // Gold divider
-    this.page.drawLine({ start: { x: (PAGE_W - 120) / 2, y }, end: { x: (PAGE_W + 120) / 2, y }, thickness: 1, color: GOLD });
-    y -= 30;
-
-    // Tagline
-    const tagLines = wrapText(`"${tagline}"`, this.fonts.serifItalic, 12, CONTENT_W - 80);
-    for (const line of tagLines) {
-      const lw = this.fonts.serifItalic.widthOfTextAtSize(line, 12);
-      this.page.drawText(line, { x: (PAGE_W - lw) / 2, y, size: 12, font: this.fonts.serifItalic, color: CREAM });
-      y -= 18;
-    }
-    y -= 40;
-
-    const compText = "A Comprehensive Guide to Your Constitutional Pattern";
-    const cw = this.fonts.serif.widthOfTextAtSize(compText, 11);
-    this.page.drawText(compText, { x: (PAGE_W - cw) / 2, y, size: 11, font: this.fonts.serif, color: GOLD });
-    y -= 60;
-
-    const url = "EdenInstitute.health";
-    const uw = this.fonts.serifBold.widthOfTextAtSize(url, 11);
-    this.page.drawText(url, { x: (PAGE_W - uw) / 2, y, size: 11, font: this.fonts.serifBold, color: GOLD });
-  }
-
-  drawSectionHeader(text: string) {
-    this.ensureSpace(50);
-    // Gold accent bar
-    this.page.drawRectangle({ x: MARGIN, y: this.y - 2, width: CONTENT_W, height: 26, color: DARK_SAGE });
-    const tw = this.fonts.serifBold.widthOfTextAtSize(text, 13);
-    this.page.drawText(text, { x: (PAGE_W - tw) / 2, y: this.y + 4, size: 13, font: this.fonts.serifBold, color: GOLD });
-    this.y -= 40;
-  }
-
-  drawSubheading(text: string) {
-    this.ensureSpace(30);
-    this.page.drawText(text, { x: MARGIN, y: this.y, size: 12, font: this.fonts.serifBold, color: DARK_SAGE });
-    this.y -= 6;
-    this.page.drawLine({ start: { x: MARGIN, y: this.y }, end: { x: MARGIN + this.fonts.serifBold.widthOfTextAtSize(text, 12), y: this.y }, thickness: 0.5, color: GOLD });
-    this.y -= 16;
-  }
-
-  drawParagraph(text: string, fontSize = 10, font?: PDFFont, color = DARK_SAGE, indent = 0) {
-    const f = font || this.fonts.serif;
-    const lines = wrapText(text, f, fontSize, CONTENT_W - indent);
-    for (const line of lines) {
-      this.ensureSpace(14);
-      if (line === '') { this.y -= 6; continue; }
-      this.page.drawText(line, { x: MARGIN + indent, y: this.y, size: fontSize, font: f, color });
-      this.y -= fontSize + 4;
-    }
-    this.y -= 4;
-  }
-
-  drawBullet(text: string, fontSize = 10) {
-    const lines = wrapText(text, this.fonts.serif, fontSize, CONTENT_W - 20);
-    for (let i = 0; i < lines.length; i++) {
-      this.ensureSpace(14);
-      if (i === 0) {
-        this.page.drawText("\u2022", { x: MARGIN + 4, y: this.y, size: fontSize, font: this.fonts.serif, color: GOLD });
-      }
-      this.page.drawText(lines[i], { x: MARGIN + 18, y: this.y, size: fontSize, font: this.fonts.serif, color: DARK_SAGE });
-      this.y -= fontSize + 4;
-    }
-  }
-
-  drawScripture(text: string) {
-    this.ensureSpace(40);
-    const lines = wrapText(text, this.fonts.serifItalic, 10, CONTENT_W - 26);
-    const h = lines.length * 14 + 8;
-    this.page.drawRectangle({ x: MARGIN, y: this.y - h + 18, width: 3, height: h, color: GOLD });
-    for (const line of lines) {
-      this.ensureSpace(14);
-      this.page.drawText(line, { x: MARGIN + 14, y: this.y, size: 10, font: this.fonts.serifItalic, color: DARK_SAGE });
-      this.y -= 14;
-    }
-    this.y -= 8;
-  }
-
-  drawHerb(num: number, name: string, latin: string, actions: string, match: string, prep: string, note: string) {
-    this.ensureSpace(60);
-    // Herb number + name
-    this.page.drawText(`${num}.`, { x: MARGIN, y: this.y, size: 11, font: this.fonts.serifBold, color: GOLD });
-    this.page.drawText(`${name} (${latin})`, { x: MARGIN + 18, y: this.y, size: 11, font: this.fonts.serifBold, color: DARK_SAGE });
-    this.y -= 18;
-
-    this.drawParagraph(`Actions: ${actions}`, 9, this.fonts.serifItalic, MEDIUM_SAGE, 4);
-    this.drawParagraph(`Constitutional Match: ${match}`, 9.5, undefined, undefined, 4);
-    this.drawParagraph(`Preparation: ${prep}`, 9.5, undefined, undefined, 4);
-    if (note) {
-      this.drawParagraph(`Note: ${note}`, 9, this.fonts.serifItalic, MEDIUM_SAGE, 4);
-    }
-    this.y -= 4;
-  }
-
-  drawCTABlock(heading: string, body: string, url: string) {
-    this.ensureSpace(80);
-    // Gold bordered box
-    const boxH = 70;
-    this.page.drawRectangle({ x: MARGIN, y: this.y - boxH + 10, width: CONTENT_W, height: boxH, color: DARK_SAGE });
-    let by = this.y;
-    const hw = this.fonts.serifBold.widthOfTextAtSize(heading, 14);
-    this.page.drawText(heading, { x: (PAGE_W - hw) / 2, y: by - 4, size: 14, font: this.fonts.serifBold, color: GOLD });
-    by -= 22;
-    const bw2 = this.fonts.serifItalic.widthOfTextAtSize(body, 10);
-    this.page.drawText(body, { x: (PAGE_W - bw2) / 2, y: by, size: 10, font: this.fonts.serifItalic, color: CREAM });
-    by -= 20;
-    const uw = this.fonts.serifBold.widthOfTextAtSize(url, 11);
-    this.page.drawText(url, { x: (PAGE_W - uw) / 2, y: by, size: 11, font: this.fonts.serifBold, color: GOLD });
-    this.y -= boxH + 10;
-  }
-
-  drawDisclaimer() {
-    this.ensureSpace(50);
-    this.y -= 10;
-    this.page.drawLine({ start: { x: MARGIN, y: this.y }, end: { x: PAGE_W - MARGIN, y: this.y }, thickness: 0.5, color: GOLD });
-    this.y -= 14;
-    const brand = "THE EDEN INSTITUTE";
-    const bw = this.fonts.serifBold.widthOfTextAtSize(brand, 10);
-    this.page.drawText(brand, { x: (PAGE_W - bw) / 2, y: this.y, size: 10, font: this.fonts.serifBold, color: DARK_SAGE });
-    this.y -= 14;
-    const motto = "Back to Eden. Back to Truth.";
-    const mw = this.fonts.serifItalic.widthOfTextAtSize(motto, 9);
-    this.page.drawText(motto, { x: (PAGE_W - mw) / 2, y: this.y, size: 9, font: this.fonts.serifItalic, color: MEDIUM_SAGE });
-    this.y -= 14;
-    const url = "EdenInstitute.health";
-    const uw = this.fonts.serifBold.widthOfTextAtSize(url, 9);
-    this.page.drawText(url, { x: (PAGE_W - uw) / 2, y: this.y, size: 9, font: this.fonts.serifBold, color: GOLD });
-    this.y -= 20;
-    const disc = "This guide is educational only and does not constitute medical advice. For complex or serious health concerns, consult a qualified practitioner.";
-    const dl = wrapText(disc, this.fonts.serifItalic, 8, CONTENT_W);
-    for (const line of dl) {
-      const dw = this.fonts.serifItalic.widthOfTextAtSize(line, 8);
-      this.page.drawText(line, { x: (PAGE_W - dw) / 2, y: this.y, size: 8, font: this.fonts.serifItalic, color: MEDIUM_SAGE });
-      this.y -= 11;
-    }
-  }
-}
-
-// ═══════════════════════════════════════════════════════
-// HOT/DRY COMPREHENSIVE GUIDE
-// ═══════════════════════════════════════════════════════
-
-async function generateHotDryGuide(doc: PDFDocument): Promise<void> {
-  const b = new PDFBuilder(doc);
-  await b.init();
-
-  // ── COVER ──
-  b.drawCoverPage(
-    "HOT / DRY CONSTITUTION",
-    "The Choleric Pattern",
-    "You run warm, think fast, and burn through resources quickly."
-  );
-
-  // ── SECTION: YOUR PATTERN ──
-  b.newPage();
-  b.drawSectionHeader("YOUR PATTERN");
-  b.drawSubheading("Understanding the Hot/Dry Constitutional Tendency");
-
-  b.drawParagraph("You are wired for intensity. Your metabolism runs high, your mind moves quickly, and your body generates heat readily. This is not a flaw \u2014 it is how God designed you. The Hot/Dry constitution reflects a pattern of vital force that is active, penetrating, and consuming.");
-  b.drawParagraph("Under normal conditions, this constitutional pattern manifests as sharp mental clarity, strong digestion, assertive energy, and the capacity for sustained effort. You tend to be decisive, action-oriented, and capable of intense focus.");
-
-  b.drawSubheading("Physical Tendencies");
-  const physicals = [
-    "A tendency toward inflammation, heat conditions, and acute reactions",
-    "Dry skin, dry eyes, and dryness in the mucous membranes",
-    "Constipation or hard, dry stools due to insufficient moisture in the bowel",
-    "Strong appetite, efficient digestion, but a tendency to burn through nutrients quickly",
-    "Difficulty tolerating heat, warm environments, or hot seasons",
-    "Tendency toward tension headaches, particularly behind the eyes or at the temples",
-    "Redness, flushing, or skin eruptions when overheated or overstressed",
-  ];
-  for (const p of physicals) b.drawBullet(p);
-  b.y -= 6;
-
-  b.drawSubheading("Emotional and Mental Tendencies");
-  const emotionals = [
-    "Irritability, impatience, or a short fuse when under stress",
-    "A driven, goal-oriented mindset that can tip into obsession",
-    "Difficulty relaxing, winding down, or surrendering control",
-    "A tendency toward perfectionism and self-criticism",
-    "Sleep disturbances, particularly difficulty falling asleep due to an overactive mind",
-    "A sense of urgency that does not quiet easily",
-  ];
-  for (const e of emotionals) b.drawBullet(e);
-  b.y -= 6;
-
-  b.drawSubheading("When Imbalanced");
-  b.drawParagraph("When the Hot/Dry pattern becomes excessive, you may experience inflammatory conditions (joint inflammation, skin inflammation, digestive inflammation), burnout from overwork, depletion from insufficient rest, and emotional volatility. The fire that fuels your drive can consume you if not properly tended.");
-
-  // ── SECTION: HISTORICAL CONTEXT ──
-  b.drawSectionHeader("HISTORICAL CONTEXT");
-  b.drawSubheading("The Choleric Temperament in Classical Medicine");
-
-  b.drawParagraph("The Hot/Dry constitution corresponds to what classical Greek and Western medicine called the Choleric temperament, associated with the element of Fire and the humor of Yellow Bile.");
-  b.drawParagraph("Hippocrates (460-370 BC) and later Galen (129-216 AD) observed that individuals with an excess of this humor tended to be ambitious, leader-like, restless, and easily angered. The term \"choleric\" derives from the Greek chole (bile), reflecting the belief that an excess of yellow bile produced both the physical and temperamental characteristics of this type.");
-  b.drawParagraph("In the Eclectic and Physiomedical traditions of 19th-century American herbalism, practitioners recognized this pattern and developed specific therapeutic strategies: cooling herbs to reduce excess heat, moistening herbs to counter dryness, and relaxant nervines to calm an overactive nervous system.");
-  b.drawParagraph("Dr. John Scudder, in his 1870 work Specific Medication, emphasized reading the patient's \"expression of disease\" \u2014 including the quality of heat, dryness, and tension \u2014 before selecting remedies. This constitutional approach preceded the modern tendency to match herbs to symptoms without regard for the person taking them.");
-
-  // ── SECTION: BIBLICAL FRAMEWORK ──
-  b.drawSectionHeader("BIBLICAL FRAMEWORK");
-  b.drawSubheading("A Christian Understanding of Constitutional Medicine");
-
-  b.drawParagraph("The recognition that people differ in consistent, observable, and clinically significant ways is not borrowed from Eastern religion \u2014 it is confirmed by centuries of Western observation and is consistent with the biblical teaching that each person is \"fearfully and wonderfully made\" (Psalm 139:14).");
-  b.drawParagraph("God did not create one human template stamped out in endless copies. He wove each person with particular tendencies, strengths, and vulnerabilities. Constitutional medicine honors this particularity rather than treating all bodies as interchangeable.");
-
-  b.drawSubheading("What We Learn From Tradition \u2014 Without Adopting Its Metaphysics");
-  b.drawParagraph("The Greek humoral system, Ayurveda, and Traditional Chinese Medicine all observed similar constitutional patterns independently. This is not because they share the same spiritual framework \u2014 they do not. It is because they were all observing the same creation.");
-  b.drawParagraph("We do not need to adopt the metaphysics of these systems to benefit from their observational wisdom. We reject the idea that your constitution is determined by planetary influence, karmic imprint, or the balance of primal elements with independent existence. Instead, we affirm that your constitutional pattern reflects the particular way God designed your body to function \u2014 with its own tendencies, its own needs, and its own path toward flourishing.");
-  b.drawParagraph("The Hot/Dry pattern is not a spiritual diagnosis. It is a physiological observation with practical implications for how you should eat, rest, exercise, and \u2014 when needed \u2014 select herbal support.");
-
-  b.drawSubheading("Stewardship, Not Superstition");
-  b.drawParagraph("The Christian herbalist approaches constitutional medicine as a steward, not a mystic. We observe the body's patterns because God made the body readable. We select herbs that correspond to constitutional needs because God placed those herbs in creation with intention.");
-  b.drawScripture("\"A tranquil heart gives life to the flesh\" (Proverbs 14:30). This is not mysticism \u2014 it is physiology confirmed by Scripture. The Hot/Dry constitution, with its tendency toward intensity and heat, benefits from practices and herbs that cultivate tranquility, coolness, and moisture. This is cooperation with design, not manipulation of energy.");
-  b.drawParagraph("The intelligence that regulates your body \u2014 the coherence that holds your systems together \u2014 is not an impersonal force. It is upheld by the One in whom \"all things hold together\" (Colossians 1:17). Herbal medicine, rightly understood, is partnership with this design.");
-
-  // ── SECTION: YOUR HERBAL ALLIES ──
-  b.drawSectionHeader("YOUR HERBAL ALLIES");
-  b.drawSubheading("10 Herbs That Support the Hot/Dry Constitution");
-  b.drawParagraph("The herbs that best support your constitutional pattern are those that cool excess heat, moisten dryness, relax tension, and nourish depleted tissues. These are not remedies for specific diseases \u2014 they are allies for your particular body.");
-
-  b.drawHerb(1, "Marshmallow Root", "Althaea officinalis",
-    "Demulcent, emollient, cooling, moistening, anti-inflammatory",
-    "Marshmallow is the quintessential remedy for the Hot/Dry pattern. Its abundant mucilage coats and soothes irritated, inflamed tissues \u2014 whether in the digestive tract, urinary system, or respiratory passages. It directly addresses the dryness that characterizes your constitution.",
-    "Cold infusion is best to preserve the mucilage. Place 1\u20132 tablespoons of dried root in a quart of room-temperature water and let steep 4\u20138 hours or overnight. Strain and drink throughout the day.",
-    "May slow absorption of medications if taken simultaneously. Separate by 1\u20132 hours."
-  );
-
-  b.drawHerb(2, "Lemon Balm", "Melissa officinalis",
-    "Cooling nervine, carminative, mild sedative, antiviral, diaphoretic",
-    "Lemon Balm cools heat, calms the nervous system, and lifts the spirits without sedation. For the Hot/Dry type prone to irritability, anxiety, and overactive thinking, it is a gentle ally that brings peace without suppression.",
-    "Fresh plant is strongest. Standard hot infusion: 1\u20132 teaspoons dried herb per cup, steep covered 10\u201315 minutes. Drink freely throughout the day.",
-    "May theoretically affect thyroid function at very high doses; standard use is safe."
-  );
-
-  b.drawHerb(3, "Rose", "Rosa spp.",
-    "Cooling, mildly astringent, nervine, heart tonic, anti-inflammatory",
-    "Rose cools heat and soothes emotional inflammation. It is particularly indicated when the Hot/Dry pattern manifests as emotional volatility, grief held as tension, or a heart that has hardened under stress. Rose opens and softens.",
-    "Infusion of dried rose petals, rose water added to beverages, or glycerite. Rose honey is traditional and nourishing.",
-    "Ensure roses are organically grown and unsprayed."
-  );
-
-  b.drawHerb(4, "Violet Leaf", "Viola odorata",
-    "Cooling, moistening, lymphatic, demulcent, mild alterative",
-    "Violet is gently cooling and deeply moistening. It supports lymphatic movement (important when heat creates stagnation) and nourishes dry tissues over time. Its gentle nature makes it suitable for long-term use.",
-    "Fresh leaves in salads, or standard infusion of dried leaves. Cold infusion preserves more mucilage.",
-    "Seeds and roots have different properties; leaves are safest for general use."
-  );
-
-  b.drawHerb(5, "Elderflower", "Sambucus nigra",
-    "Cooling diaphoretic, relaxant, anti-catarrhal, gentle circulatory stimulant",
-    "Elderflower opens the pores and allows heat to escape through gentle sweating. For the Hot/Dry constitution that tends to trap heat internally, elderflower provides a safe release valve. It is particularly useful at the onset of feverish conditions.",
-    "Hot infusion: 1\u20132 teaspoons dried flowers per cup, steep covered 10\u201315 minutes. Drink hot to promote diaphoresis.",
-    "Only flowers and ripe berries should be used; other plant parts contain compounds requiring careful preparation."
-  );
-
-  b.drawHerb(6, "Chamomile", "Matricaria chamomilla",
-    "Cooling, anti-inflammatory, carminative, nervine relaxant, bitter tonic",
-    "Chamomile cools heat in the digestive system, calms nervous irritability, and promotes restful sleep. For the Hot/Dry type who runs on intensity and struggles to wind down, chamomile is a reliable daily ally.",
-    "Standard hot infusion, covered to preserve volatile oils. 1\u20132 teaspoons per cup, steep 10 minutes.",
-    "Avoid if allergic to plants in the Asteraceae family."
-  );
-
-  b.drawHerb(7, "Milky Oats", "Avena sativa",
-    "Nervine trophorestorative, nutritive, moistening, restorative",
-    "Milky oats rebuild a depleted nervous system. When the Hot/Dry constitution has burned too hot for too long, the nervous system becomes frayed. Milky oats nourish and restore over time \u2014 not by sedation, but by replenishment.",
-    "Fresh milky oat tincture is most potent (harvested when the seed exudes milky latex). Oatstraw infusion (1 oz dried herb to 1 quart water, steep 4+ hours) is deeply nourishing.",
-    "Gluten-sensitive individuals should confirm oats are certified gluten-free."
-  );
-
-  b.drawHerb(8, "Hawthorn", "Crataegus spp.",
-    "Cardiovascular tonic, hypotensive, nervine, mildly cooling",
-    "Hawthorn is specific for the heart \u2014 both physically and emotionally. For the Hot/Dry constitution prone to cardiovascular tension, elevated blood pressure, and emotional guardedness, hawthorn strengthens, protects, and gently opens.",
-    "Tincture of berries, leaves, and flowers. Decoction of berries. Long infusion of leaves and flowers. Safe for long-term use.",
-    "May potentiate cardiac medications; consult a practitioner if on heart medication."
-  );
-
-  b.drawHerb(9, "Lavender", "Lavandula angustifolia",
-    "Cooling nervine, carminative, antispasmodic, circulatory stimulant",
-    "Lavender cools heat that rises to the head \u2014 tension headaches, irritability, sleeplessness. It moves stagnant energy without adding heat. For the Hot/Dry type with a busy mind and tense body, lavender is calming without being sedating.",
-    "Infusion of flowers (use sparingly \u2014 very aromatic). External use: essential oil diluted in carrier oil for temples and neck. Lavender honey or glycerite.",
-    "Essential oil should not be taken internally without professional guidance."
-  );
-
-  b.drawHerb(10, "Licorice Root", "Glycyrrhiza glabra",
-    "Demulcent, anti-inflammatory, adrenal restorative, expectorant, harmonizer",
-    "Licorice moistens dryness, soothes inflammation, and supports adrenal glands depleted by chronic stress. For the Hot/Dry constitution that has burned through its reserves, licorice is deeply restorative.",
-    "Decoction (simmer 20\u201330 minutes) or as part of herbal formulas where it harmonizes other herbs.",
-    "Not for long-term use at high doses. Avoid in hypertension, edema, or potassium deficiency. DGL (deglycyrrhizinated) form is safer for long-term digestive use."
-  );
-
-  // ── SECTION: HERBS TO USE WITH CAUTION ──
-  b.drawSectionHeader("HERBS TO USE WITH CAUTION");
-  b.drawParagraph("The following herbs, while beneficial for other constitutional types, may aggravate the Hot/Dry pattern if used excessively or without balancing support:");
-
-  const cautions = [
-    "Cayenne (Capsicum annuum): Intensely heating and drying. May worsen inflammation, irritability, and digestive heat.",
-    "Ginger (Zingiber officinale): Warming and drying. Small amounts are fine; large amounts or long-term use may increase heat.",
-    "Cinnamon (Cinnamomum spp.): Warming. Use in moderation as a spice; avoid as a primary remedy.",
-    "Coffee (Coffea arabica): Heating, drying, and stimulating. May worsen anxiety, insomnia, and adrenal depletion.",
-    "Ephedra (Ephedra sinica): Strongly stimulating and drying. Generally contraindicated for this constitution.",
-    "Damiana (Turnera diffusa): Warming and stimulating. May aggravate heat symptoms.",
-    "Excessive bitter herbs: Strong bitters can be drying over time. Balance with demulcents if using.",
-  ];
-  for (const c of cautions) b.drawBullet(c);
-
-  // ── SECTION: GO DEEPER ──
-  b.drawSectionHeader("GO DEEPER");
-  b.drawSubheading("What You'll Unlock in the Eden Apothecary App");
-  b.drawParagraph("This guide has introduced you to your constitutional pattern through the lens of Western herbal tradition. But this is only the beginning.");
-  b.drawParagraph("In the Eden Apothecary app, you will discover:");
-
-  const deeper = [
-    "Deeper Constitutional Mapping: How your Hot/Dry pattern corresponds to the Ayurvedic Pitta dosha and the TCM pattern of Liver Fire Rising \u2014 with the practical insights extracted from these traditions, translated into a Western and Biblical framework.",
-    "50+ Additional Herbs: A comprehensive materia medica organized by constitutional affinity, with detailed monographs including actions, preparations, dosages, and contraindications.",
-    "Body System Integration: How your constitutional pattern tends to manifest in each body system \u2014 digestive, respiratory, nervous, cardiovascular, endocrine, and more \u2014 with targeted herbal protocols for each.",
-    "Tissue State Assessment: Learn to read the six tissue states (heat, cold, damp, dry, tension, laxity) and how they layer onto your constitutional baseline.",
-    "Personalized Herb Matching: Input your current symptoms and receive herb suggestions filtered through your constitutional type \u2014 not generic recommendations, but personalized matches.",
-    "Formulation Principles: Learn how to combine herbs effectively for your constitution \u2014 which herbs lead, which support, and how to balance a formula.",
-  ];
-  for (const d of deeper) b.drawBullet(d);
-
-  // ── CTA ──
-  b.y -= 10;
-  b.drawCTABlock(
-    "Join the Beta Waitlist",
-    "Be the first to access the Eden Apothecary app when it launches.",
-    "EdenInstitute.health/app-waitlist"
-  );
-
-  // ── DISCLAIMER ──
-  b.drawDisclaimer();
-}
-
-// ═══════════════════════════════════════════════════════
-// COLD/DAMP COMPREHENSIVE GUIDE
-// ═══════════════════════════════════════════════════════
-
-async function generateColdDampGuide(doc: PDFDocument): Promise<void> {
-  const b = new PDFBuilder(doc);
-  await b.init();
-
-  // ── COVER ──
-  b.drawCoverPage(
-    "COLD / DAMP CONSTITUTION",
-    "The Phlegmatic Pattern",
-    "You conserve energy, move slowly, and tend toward accumulation."
-  );
-
-  // ── SECTION: YOUR PATTERN ──
-  b.newPage();
-  b.drawSectionHeader("YOUR PATTERN");
-  b.drawSubheading("Understanding the Cold/Damp Constitutional Tendency");
-
-  b.drawParagraph("You are wired for endurance. Your metabolism conserves energy, your body retains moisture, and your systems move at a measured pace. This is not a weakness \u2014 it is how God designed you. The Cold/Damp constitution reflects a pattern of vital force that is receptive, stabilizing, and accumulating.");
-  b.drawParagraph("Under normal conditions, this constitutional pattern manifests as emotional steadiness, patience, loyalty, and the capacity for sustained nurturing. You tend to be calm under pressure, reliable, and deeply rooted in relationships and commitments.");
-
-  b.drawSubheading("Physical Tendencies");
-  const physicals = [
-    "A tendency toward sluggish digestion, slow metabolism, and weight gain",
-    "Excess mucus production, sinus congestion, and respiratory heaviness",
-    "Water retention, puffiness, and a sense of heaviness in the limbs",
-    "Cold hands and feet, difficulty staying warm, sensitivity to cold weather",
-    "Sluggish lymphatic circulation and a tendency toward stagnation",
-    "Pale complexion, soft tissue tone, and a tendency toward laxity",
-    "Low energy upon waking, difficulty initiating activity, but steady once moving",
-  ];
-  for (const p of physicals) b.drawBullet(p);
-  b.y -= 6;
-
-  b.drawSubheading("Emotional and Mental Tendencies");
-  const emotionals = [
-    "A tendency toward mental fog, sluggish thinking, and difficulty concentrating",
-    "Emotional heaviness, melancholy, or a sense of being weighed down",
-    "Difficulty with motivation, initiation, and starting new projects",
-    "A tendency to withdraw, avoid confrontation, or retreat into comfort",
-    "Attachment to routine, resistance to change, preference for the familiar",
-    "Deep loyalty and emotional steadiness, but sometimes at the cost of self-assertion",
-  ];
-  for (const e of emotionals) b.drawBullet(e);
-  b.y -= 6;
-
-  b.drawSubheading("When Imbalanced");
-  b.drawParagraph("When the Cold/Damp pattern becomes excessive, you may experience chronic congestion, weight that resists all efforts, persistent fatigue, depression, and a sense of being stuck. The stability that grounds you can become stagnation that traps you.");
-
-  // ── SECTION: HISTORICAL CONTEXT ──
-  b.drawSectionHeader("HISTORICAL CONTEXT");
-  b.drawSubheading("The Phlegmatic Temperament in Classical Medicine");
-
-  b.drawParagraph("The Cold/Damp constitution corresponds to what classical Greek and Western medicine called the Phlegmatic temperament, associated with the element of Water and the humor of Phlegm.");
-  b.drawParagraph("Hippocrates and Galen observed that individuals with an excess of this humor tended to be calm, patient, caring, and slow to anger \u2014 but also prone to sluggishness, weight gain, and emotional withdrawal. The term \"phlegmatic\" derives from the Greek phlegma (inflammation, but later associated with mucus), reflecting the cold, moist nature of this constitutional type.");
-  b.drawParagraph("In the Eclectic and Physiomedical traditions of 19th-century American herbalism, practitioners recognized this pattern and developed specific therapeutic strategies: warming herbs to increase metabolic fire, drying herbs to reduce excess moisture, and stimulating herbs to move stagnant fluids and energy.");
-  b.drawParagraph("Dr. William Cook, in his 1869 Physio-Medical Dispensatory, emphasized the importance of restoring \"vital warmth\" and promoting the free flow of fluids in constitutions marked by cold and damp. The goal was not to suppress symptoms but to restore the body's innate capacity for movement and warmth.");
-
-  // ── SECTION: BIBLICAL FRAMEWORK ──
-  b.drawSectionHeader("BIBLICAL FRAMEWORK");
-  b.drawSubheading("A Christian Understanding of Constitutional Medicine");
-
-  b.drawParagraph("The recognition that people differ in consistent, observable, and clinically significant ways is not borrowed from Eastern religion \u2014 it is confirmed by centuries of Western observation and is consistent with the biblical teaching that each person is \"fearfully and wonderfully made\" (Psalm 139:14).");
-  b.drawParagraph("God did not create one human template stamped out in endless copies. He wove each person with particular tendencies, strengths, and vulnerabilities. Constitutional medicine honors this particularity rather than treating all bodies as interchangeable.");
-
-  b.drawSubheading("What We Learn From Tradition \u2014 Without Adopting Its Metaphysics");
-  b.drawParagraph("The Greek humoral system, Ayurveda, and Traditional Chinese Medicine all observed similar constitutional patterns independently. This is not because they share the same spiritual framework \u2014 they do not. It is because they were all observing the same creation.");
-  b.drawParagraph("We do not need to adopt the metaphysics of these systems to benefit from their observational wisdom. We reject the idea that your constitution is determined by planetary influence, karmic imprint, or the balance of primal elements with independent existence. Instead, we affirm that your constitutional pattern reflects the particular way God designed your body to function \u2014 with its own tendencies, its own needs, and its own path toward flourishing.");
-  b.drawParagraph("The Cold/Damp pattern is not a spiritual diagnosis. It is a physiological observation with practical implications for how you should eat, rest, exercise, and \u2014 when needed \u2014 select herbal support.");
-
-  b.drawSubheading("Stewardship, Not Superstition");
-  b.drawParagraph("The Christian herbalist approaches constitutional medicine as a steward, not a mystic. We observe the body's patterns because God made the body readable. We select herbs that correspond to constitutional needs because God placed those herbs in creation with intention.");
-  b.drawScripture("\"Whatever you do, work heartily, as for the Lord\" (Colossians 3:23). The Cold/Damp constitution excels at endurance but struggles with initiation. The call on your life includes learning to move \u2014 not from restless anxiety, but from faithful obedience. Herbal support for your type helps awaken and activate, physically and spiritually.");
-  b.drawParagraph("The intelligence that regulates your body \u2014 the coherence that holds your systems together \u2014 is not an impersonal force. It is upheld by the One in whom \"all things hold together\" (Colossians 1:17). Herbal medicine, rightly understood, is partnership with this design.");
-
-  // ── SECTION: YOUR HERBAL ALLIES ──
-  b.drawSectionHeader("YOUR HERBAL ALLIES");
-  b.drawSubheading("10 Herbs That Support the Cold/Damp Constitution");
-  b.drawParagraph("The herbs that best support your constitutional pattern are those that warm the body, dry excess moisture, stimulate sluggish circulation, and move stagnant fluids. These are not remedies for specific diseases \u2014 they are allies for your particular body.");
-
-  b.drawHerb(1, "Ginger", "Zingiber officinale",
-    "Warming circulatory stimulant, carminative, diaphoretic, anti-nausea, expectorant",
-    "Ginger is the quintessential remedy for the Cold/Damp pattern. It warms the core, stimulates digestion, moves stagnant fluids, and awakens sluggish circulation. Fresh ginger is more diaphoretic; dried ginger is more warming to the interior.",
-    "Fresh ginger tea: slice 1-2 inches of fresh root, simmer 10-15 minutes. Add honey and lemon. Dried ginger powder can be added to food or taken in capsules.",
-    "Use cautiously if you have acid reflux or run very hot. Start with small amounts."
-  );
-
-  b.drawHerb(2, "Rosemary", "Salvia rosmarinus",
-    "Warming circulatory stimulant, cognitive enhancer, carminative, antioxidant",
-    "Rosemary warms and moves. It clears mental fog, stimulates cerebral circulation, and lifts the spirits. For the Cold/Damp type prone to sluggish thinking and low motivation, rosemary brings clarity and energy.",
-    "Culinary use is therapeutic. Infusion of fresh or dried leaves. Add to broths, roasted vegetables, and meats.",
-    "Avoid large medicinal doses during pregnancy."
-  );
-
-  b.drawHerb(3, "Thyme", "Thymus vulgaris",
-    "Warming expectorant, antimicrobial, carminative, antispasmodic",
-    "Thyme is specific for Cold/Damp conditions in the respiratory system \u2014 chronic congestion, productive coughs, sinus heaviness. It warms, dries, and clears while fighting infection.",
-    "Hot infusion: 1 teaspoon dried herb per cup, steep covered 10 minutes. Honey-thyme syrup for coughs.",
-    "Avoid large medicinal doses during pregnancy."
-  );
-
-  b.drawHerb(4, "Elecampane", "Inula helenium",
-    "Warming expectorant, respiratory tonic, bitter tonic, antimicrobial",
-    "Elecampane is a deep respiratory remedy for chronic, wet, cold lung conditions. It warms the lungs, helps expel thick mucus, and strengthens respiratory function over time. Excellent for the Cold/Damp constitution with chronic bronchial weakness.",
-    "Decoction of dried root: simmer 1 teaspoon per cup for 20 minutes. Tincture. Honey paste.",
-    "Avoid during pregnancy. May cause contact dermatitis in sensitive individuals."
-  );
-
-  b.drawHerb(5, "Cayenne", "Capsicum annuum",
-    "Powerful circulatory stimulant, warming, metabolic enhancer, rubefacient",
-    "Cayenne is a powerful mover of blood and vital force. For the Cold/Damp constitution with poor peripheral circulation, cold extremities, and sluggish metabolism, small amounts of cayenne can be transformative.",
-    "Start small \u2014 a pinch in warm water or added to food. Build tolerance gradually. Can be taken in capsules if the heat is too intense.",
-    "Avoid if you have gastritis, ulcers, or hemorrhoids. Start with very small doses."
-  );
-
-  b.drawHerb(6, "Cinnamon", "Cinnamomum verum",
-    "Warming carminative, circulatory stimulant, blood sugar regulator, antimicrobial",
-    "Cinnamon gently warms the digestive system, improves circulation, and helps regulate blood sugar \u2014 all valuable for the Cold/Damp constitution prone to sluggish digestion and metabolic challenges.",
-    "Add to food, beverages, and herbal formulas. Decoction of bark. Ceylon cinnamon (C. verum) is preferred over Cassia for regular use.",
-    "Cassia cinnamon contains more coumarin; limit intake if using daily."
-  );
-
-  b.drawHerb(7, "Prickly Ash", "Zanthoxylum americanum",
-    "Powerful circulatory stimulant, warming, lymphatic mover, digestive stimulant",
-    "Prickly Ash is a specific for cold, stagnant conditions. It powerfully moves blood and lymph, warms cold extremities, and stimulates sluggish systems. A key remedy for the Cold/Damp type with poor circulation and lymphatic congestion.",
-    "Tincture of bark is most common: 10-30 drops in water. Decoction of bark.",
-    "May cause tingling sensation in the mouth (normal). Avoid during pregnancy."
-  );
-
-  b.drawHerb(8, "Angelica", "Angelica archangelica",
-    "Warming carminative, circulatory stimulant, expectorant, bitter tonic",
-    "Angelica warms the entire system \u2014 digestive, respiratory, and circulatory. It is particularly indicated for Cold/Damp conditions with digestive weakness, poor appetite, and a tendency toward respiratory congestion.",
-    "Decoction or tincture of root. Often combined with other warming herbs.",
-    "Avoid during pregnancy. May increase photosensitivity."
-  );
-
-  b.drawHerb(9, "Juniper Berry", "Juniperus communis",
-    "Warming diuretic, urinary antiseptic, carminative, circulatory stimulant",
-    "Juniper helps the Cold/Damp constitution release excess fluid accumulation through gentle diuresis. It warms the kidneys, stimulates urinary function, and helps clear the waterlogged feeling common to this type.",
-    "Infusion of crushed berries: 1 teaspoon per cup. Short-term use only.",
-    "Avoid during pregnancy and with kidney disease. Not for long-term use."
-  );
-
-  b.drawHerb(10, "Holy Basil/Tulsi", "Ocimum tenuiflorum",
-    "Warming adaptogen, respiratory support, mood elevator, metabolic enhancer",
-    "Holy Basil (Tulsi) is a gentle warming adaptogen that lifts the spirits, clears mental fog, supports respiratory health, and helps the body adapt to stress. For the Cold/Damp type prone to depression and low energy, it is an uplifting daily ally.",
-    "Infusion of dried leaves: 1-2 teaspoons per cup. Can be drunk freely as a daily tea.",
-    "May have mild blood-thinning effects at high doses."
-  );
-
-  // ── SECTION: HERBS TO USE WITH CAUTION ──
-  b.drawSectionHeader("HERBS TO USE WITH CAUTION");
-  b.drawParagraph("The following herbs, while beneficial for other constitutional types, may aggravate the Cold/Damp pattern if used excessively or without balancing support:");
-
-  const cautions = [
-    "Marshmallow Root (Althaea officinalis): Highly moistening. May increase dampness and congestion.",
-    "Slippery Elm (Ulmus rubra): Very moistening. Use sparingly or combine with warming, drying herbs.",
-    "Licorice Root (Glycyrrhiza glabra): Moistening and can promote water retention. Use in small amounts only.",
-    "Comfrey (Symphytum officinale): Cold and moist. May increase stagnation.",
-    "Excess dairy and wheat: Not herbs, but dietary factors that increase dampness significantly.",
-    "Raw, cold foods in excess: Weaken digestive fire. Favor cooked, warming foods.",
-    "Sedating nervines in excess: Valerian, Kava \u2014 may increase sluggishness. Use stimulating nervines instead.",
-  ];
-  for (const c of cautions) b.drawBullet(c);
-
-  // ── SECTION: GO DEEPER ──
-  b.drawSectionHeader("GO DEEPER");
-  b.drawSubheading("What You'll Unlock in the Eden Apothecary App");
-  b.drawParagraph("This guide has introduced you to your constitutional pattern through the lens of Western herbal tradition. But this is only the beginning.");
-  b.drawParagraph("In the Eden Apothecary app, you will discover:");
-
-  const deeper = [
-    "Deeper Constitutional Mapping: How your Cold/Damp pattern corresponds to the Ayurvedic Kapha dosha and the TCM pattern of Spleen Qi Deficiency with Dampness \u2014 with the practical insights extracted from these traditions, translated into a Western and Biblical framework.",
-    "50+ Additional Herbs: A comprehensive materia medica organized by constitutional affinity, with detailed monographs including actions, preparations, dosages, and contraindications.",
-    "Body System Integration: How your constitutional pattern tends to manifest in each body system \u2014 digestive, respiratory, nervous, cardiovascular, endocrine, and more \u2014 with targeted herbal protocols for each.",
-    "Tissue State Assessment: Learn to read the six tissue states (heat, cold, damp, dry, tension, laxity) and how they layer onto your constitutional baseline.",
-    "Personalized Herb Matching: Input your current symptoms and receive herb suggestions filtered through your constitutional type \u2014 not generic recommendations, but personalized matches.",
-    "Formulation Principles: Learn how to combine herbs effectively for your constitution \u2014 which herbs lead, which support, and how to balance a formula.",
-  ];
-  for (const d of deeper) b.drawBullet(d);
-
-  // ── CTA ──
-  b.y -= 10;
-  b.drawCTABlock(
-    "Join the Beta Waitlist",
-    "Be the first to access the Eden Apothecary app when it launches.",
-    "EdenInstitute.health/app-waitlist"
-  );
-
-  // ── DISCLAIMER ──
-  b.drawDisclaimer();
-}
-// ═══════════════════════════════════════════════════════
-// HOT/DAMP COMPREHENSIVE GUIDE
-// ═══════════════════════════════════════════════════════
-
-async function generateHotDampGuide(doc: PDFDocument): Promise<void> {
-  const b = new PDFBuilder(doc);
-  await b.init();
-
-  // ── COVER ──
-  b.drawCoverPage(
-    "HOT / DAMP CONSTITUTION",
-    "The Sanguine Pattern",
-    "You tend toward heat with accumulation \u2014 inflammation that doesn't fully resolve."
-  );
-
-  // ── SECTION: YOUR PATTERN ──
-  b.newPage();
-  b.drawSectionHeader("YOUR PATTERN");
-  b.drawSubheading("Understanding the Hot/Damp Constitutional Tendency");
-
-  b.drawParagraph("You carry both heat and moisture in your system. Your body generates warmth readily, but unlike the Hot/Dry type, you also tend to accumulate and retain. This combination creates a pattern of reactive inflammation, congestion with heat, and conditions that flare but don't fully clear. This is not a flaw \u2014 it is how God designed you. The Hot/Damp constitution reflects a pattern of vital force that is robust, reactive, and abundant.");
-  b.drawParagraph("Under normal conditions, this constitutional pattern manifests as warmth, sociability, optimism, and strong vital reserves. You tend to be expressive, enthusiastic, and physically robust.");
-
-  b.drawSubheading("Physical Tendencies");
-  const physicals = [
-    "A tendency toward inflammatory conditions with swelling, redness, and heat",
-    "Skin eruptions: acne, boils, rashes, eczema with weeping or redness",
-    "Liver congestion, sluggish detoxification, and bilious conditions",
-    "Tendency toward infections that produce pus, discharge, or thick secretions",
-    "Digestive heat with bloating \u2014 acid reflux, gastritis, or inflammatory bowel patterns",
-    "Running warm but feeling heavy or congested simultaneously",
-    "Yellow-coated tongue, dark or strong-smelling urine, oily skin",
-  ];
-  for (const p of physicals) b.drawBullet(p);
-  b.y -= 6;
-
-  b.drawSubheading("Emotional and Mental Tendencies");
-  const emotionals = [
-    "Emotional intensity that can tip into volatility or reactivity",
-    "Frustration, irritability, or anger that builds and then erupts",
-    "A tendency to take on too much and feel overwhelmed",
-    "Difficulty letting go \u2014 of emotions, grudges, or physical toxins",
-    "Strong opinions and the drive to express them",
-    "Warmth and generosity, but sometimes at the cost of boundaries",
-  ];
-  for (const e of emotionals) b.drawBullet(e);
-  b.y -= 6;
-
-  b.drawSubheading("When Imbalanced");
-  b.drawParagraph("When the Hot/Damp pattern becomes excessive, you may experience chronic inflammatory conditions, recurrent infections, skin problems that won't clear, liver and gallbladder dysfunction, and emotional reactivity that strains relationships. The abundance that fuels your warmth can become congestion that traps toxins and heat.");
-
-  // ── SECTION: HISTORICAL CONTEXT ──
-  b.drawSectionHeader("HISTORICAL CONTEXT");
-  b.drawSubheading("The Sanguine Temperament in Classical Medicine");
-
-  b.drawParagraph("The Hot/Damp constitution corresponds to what classical Greek and Western medicine called the Sanguine temperament, associated with the element of Air and the humor of Blood.");
-  b.drawParagraph("Hippocrates and Galen observed that individuals with an excess of blood tended to be warm, sociable, optimistic, and physically robust \u2014 but also prone to inflammatory conditions, plethora (excess), and reactive health patterns. The term \"sanguine\" derives from the Latin sanguis (blood), reflecting the warm, moist nature of this constitutional type.");
-  b.drawParagraph("In the Eclectic tradition of American herbalism, practitioners recognized this pattern as one of \"fullness\" and \"excess\" \u2014 conditions requiring herbs that clear heat, support elimination, and promote the resolution of inflammatory states.");
-  b.drawParagraph("Harvey Wickes Felter, in his 1922 Eclectic Materia Medica, described alterative herbs as those that \"alter\" the condition of the blood and tissues \u2014 promoting elimination of waste, clearing congestion, and restoring proper function. This approach remains central to supporting the Hot/Damp constitution.");
-
-  // ── SECTION: BIBLICAL FRAMEWORK ──
-  b.drawSectionHeader("BIBLICAL FRAMEWORK");
-  b.drawSubheading("A Christian Understanding of Constitutional Medicine");
-
-  b.drawParagraph("The recognition that people differ in consistent, observable, and clinically significant ways is not borrowed from Eastern religion \u2014 it is confirmed by centuries of Western observation and is consistent with the biblical teaching that each person is \"fearfully and wonderfully made\" (Psalm 139:14).");
-  b.drawParagraph("God did not create one human template stamped out in endless copies. He wove each person with particular tendencies, strengths, and vulnerabilities. Constitutional medicine honors this particularity rather than treating all bodies as interchangeable.");
-
-  b.drawSubheading("What We Learn From Tradition \u2014 Without Adopting Its Metaphysics");
-  b.drawParagraph("The Greek humoral system, Ayurveda, and Traditional Chinese Medicine all observed similar constitutional patterns independently. This is not because they share the same spiritual framework \u2014 they do not. It is because they were all observing the same creation.");
-  b.drawParagraph("We do not need to adopt the metaphysics of these systems to benefit from their observational wisdom. We reject the idea that your constitution is determined by planetary influence, karmic imprint, or the balance of primal elements with independent existence. Instead, we affirm that your constitutional pattern reflects the particular way God designed your body to function \u2014 with its own tendencies, its own needs, and its own path toward flourishing.");
-  b.drawParagraph("The Hot/Damp pattern is not a spiritual diagnosis. It is a physiological observation with practical implications for how you should eat, rest, exercise, and \u2014 when needed \u2014 select herbal support.");
-
-  b.drawSubheading("Stewardship, Not Superstition");
-  b.drawParagraph("The Christian herbalist approaches constitutional medicine as a steward, not a mystic. We observe the body's patterns because God made the body readable. We select herbs that correspond to constitutional needs because God placed those herbs in creation with intention.");
-  b.drawScripture("\"Create in me a clean heart, O God\" (Psalm 51:10). The Hot/Damp constitution often carries more than it can process \u2014 physically and emotionally. The call on your life includes learning to release: to eliminate what no longer serves, to process what has accumulated, and to allow resolution rather than holding onto inflammation. Herbs that support elimination and resolution are also an invitation to spiritual release.");
-  b.drawParagraph("The intelligence that regulates your body \u2014 the coherence that holds your systems together \u2014 is not an impersonal force. It is upheld by the One in whom \"all things hold together\" (Colossians 1:17). Herbal medicine, rightly understood, is partnership with this design.");
-
-  // ── SECTION: YOUR HERBAL ALLIES ──
-  b.drawSectionHeader("YOUR HERBAL ALLIES");
-  b.drawSubheading("10 Herbs That Support the Hot/Damp Constitution");
-  b.drawParagraph("The herbs that best support your constitutional pattern are those that cool heat, support elimination and detoxification, move stagnant fluids, and promote the resolution of inflammatory states. These are not remedies for specific diseases \u2014 they are allies for your particular body.");
-
-  b.drawHerb(1, "Dandelion Root", "Taraxacum officinale",
-    "Bitter tonic, liver support, mild diuretic, alterative, digestive stimulant",
-    "Dandelion root is a foundational remedy for the Hot/Damp constitution. It supports liver function, promotes bile flow, aids digestion of fats, and gently encourages elimination through both kidneys and bowels. It clears without depleting.",
-    "Decoction of dried root: simmer 1-2 teaspoons per cup for 15-20 minutes. Roasted root makes a pleasant coffee substitute. Tincture.",
-    "Avoid if you have bile duct obstruction. May interact with some medications metabolized by the liver."
-  );
-
-  b.drawHerb(2, "Burdock Root", "Arctium lappa",
-    "Alterative, lymphatic, liver support, mild diuretic, prebiotic",
-    "Burdock is the classic \"blood purifier\" of Western herbalism \u2014 supporting the body's elimination of metabolic waste through liver, kidneys, and skin. For the Hot/Damp type with skin eruptions, chronic infections, or a sense of internal toxicity, burdock works slowly and deeply.",
-    "Decoction of dried root. Can be eaten as a vegetable (gobo). Combines well with dandelion root.",
-    "Effects develop over weeks of consistent use. Not a quick fix."
-  );
-
-  b.drawHerb(3, "Oregon Grape Root", "Mahonia aquifolium",
-    "Bitter tonic, liver stimulant, alterative, antimicrobial, cooling",
-    "Oregon Grape is specifically indicated for Hot/Damp conditions with skin involvement \u2014 acne, eczema, psoriasis. It contains berberine, which supports liver function and has antimicrobial properties. It cools heat while promoting elimination.",
-    "Decoction of dried root. Tincture. Often combined with other alteratives.",
-    "Avoid during pregnancy. Not for long-term use at high doses."
-  );
-
-  b.drawHerb(4, "Yellow Dock", "Rumex crispus",
-    "Bitter alterative, gentle laxative, liver support, iron enhancer",
-    "Yellow Dock supports elimination through the bowels and liver simultaneously. For the Hot/Damp constitution with sluggish elimination, constipation with heat signs, or chronic skin conditions, it promotes the clearing of accumulated waste.",
-    "Decoction of dried root: simmer 1 teaspoon per cup for 15 minutes. Tincture. Often combined with dandelion and burdock.",
-    "Contains oxalates \u2014 avoid with kidney stones. May cause loose stools at higher doses."
-  );
-
-  b.drawHerb(5, "Cleavers", "Galium aparine",
-    "Lymphatic, cooling diuretic, alterative, mild anti-inflammatory",
-    "Cleavers is the premier lymphatic herb \u2014 cooling, cleansing, and promoting the movement of lymphatic fluid. For the Hot/Damp type with swollen lymph nodes, skin eruptions, or urinary heat, cleavers cools and clears gently.",
-    "Best used fresh as juice or cold infusion. Dried herb tea is acceptable but weaker. Spring harvest is traditional.",
-    "Very safe. Increase fluid intake when using diuretics."
-  );
-
-  b.drawHerb(6, "Red Clover", "Trifolium pratense",
-    "Alterative, lymphatic, expectorant, nutritive, mild hormonal support",
-    "Red Clover is a gentle, nourishing alterative that supports the body's cleansing processes over time. It has a particular affinity for the lymphatic system and skin, making it well-suited for Hot/Damp patterns with chronic skin conditions or lymphatic congestion.",
-    "Standard infusion of dried blossoms. Can be used freely as a daily tea.",
-    "Contains isoflavones; consult a practitioner if you have hormone-sensitive conditions."
-  );
-
-  b.drawHerb(7, "Calendula", "Calendula officinalis",
-    "Lymphatic, vulnerary, anti-inflammatory, antimicrobial, mild bitter",
-    "Calendula moves lymph, heals tissue, and clears heat from inflamed areas. For the Hot/Damp type with slow-healing wounds, inflamed skin conditions, or digestive inflammation, calendula promotes resolution both internally and externally.",
-    "Infusion of dried flowers. Tincture. Oil infusion for external use. Tea for internal lymphatic and digestive support.",
-    "Avoid if allergic to plants in the Asteraceae family."
-  );
-
-  b.drawHerb(8, "Milk Thistle", "Silybum marianum",
-    "Hepatoprotective, liver regenerative, antioxidant, bitter tonic",
-    "Milk Thistle is the premier liver-protective herb. For the Hot/Damp constitution prone to liver congestion, sluggish detoxification, and conditions of excess, milk thistle supports the liver's ability to process and eliminate.",
-    "Seed preparations are most potent \u2014 ground seeds, standardized extracts, or tincture. Seeds can be ground and added to food.",
-    "Very safe. May have mild estrogenic effects at very high doses."
-  );
-
-  b.drawHerb(9, "Nettle Leaf", "Urtica dioica",
-    "Nutritive, diuretic, alterative, anti-inflammatory, antihistamine",
-    "Nettle is both nourishing and cleansing \u2014 it provides minerals while supporting elimination through the kidneys. For the Hot/Damp type with allergies, inflammatory conditions, or fluid retention, nettle provides deep support.",
-    "Long infusion: 1 oz dried leaf to 1 quart water, steep 4+ hours. Drink 1-3 cups daily.",
-    "Very safe. Harvest with gloves; sting disappears when dried or cooked."
-  );
-
-  b.drawHerb(10, "Gentian", "Gentiana lutea",
-    "Intensely bitter, digestive stimulant, liver and gallbladder support, cooling",
-    "Gentian stimulates the entire digestive cascade \u2014 from saliva to bile to pancreatic enzymes. For the Hot/Damp type with sluggish digestion, bloating, and a sense of food sitting heavily, gentian awakens digestive fire without adding heat.",
-    "Tincture or tea \u2014 small doses before meals. The taste must be experienced for full effect (don't mask it in capsules).",
-    "Avoid with gastric ulcers or excessive stomach acid. Not for pregnancy."
-  );
-
-  // ── SECTION: HERBS TO USE WITH CAUTION ──
-  b.drawSectionHeader("HERBS TO USE WITH CAUTION");
-  b.drawParagraph("The following herbs, while beneficial for other constitutional types, may aggravate the Hot/Damp pattern if used excessively or without balancing support:");
-
-  const cautions = [
-    "Cayenne (Capsicum annuum): Intensely heating. May increase inflammation and heat.",
-    "Ginger (Zingiber officinale): Warming. Use in moderation; excess may increase heat.",
-    "Cinnamon (Cinnamomum spp.): Warming and sweet. May increase congestion in some individuals.",
-    "Licorice Root (Glycyrrhiza glabra): Moistening and can promote retention. Use sparingly.",
-    "Marshmallow (Althaea officinalis): Highly moistening. May increase dampness.",
-    "Excess oily or fried foods: Increase dampness and liver burden.",
-    "Alcohol: Hot and damp \u2014 directly aggravates this pattern.",
-  ];
-  for (const c of cautions) b.drawBullet(c);
-
-  // ── SECTION: GO DEEPER ──
-  b.drawSectionHeader("GO DEEPER");
-  b.drawSubheading("What You'll Unlock in the Eden Apothecary App");
-  b.drawParagraph("This guide has introduced you to your constitutional pattern through the lens of Western herbal tradition. But this is only the beginning.");
-  b.drawParagraph("In the Eden Apothecary app, you will discover:");
-
-  const deeper = [
-    "Deeper Constitutional Mapping: How your Hot/Damp pattern corresponds to Ayurvedic Pitta-Kapha and the TCM pattern of Liver-Gallbladder Damp-Heat \u2014 with the practical insights extracted from these traditions, translated into a Western and Biblical framework.",
-    "50+ Additional Herbs: A comprehensive materia medica organized by constitutional affinity, with detailed monographs including actions, preparations, dosages, and contraindications.",
-    "Body System Integration: How your constitutional pattern tends to manifest in each body system \u2014 digestive, respiratory, nervous, cardiovascular, endocrine, and more \u2014 with targeted herbal protocols for each.",
-    "Tissue State Assessment: Learn to read the six tissue states (heat, cold, damp, dry, tension, laxity) and how they layer onto your constitutional baseline.",
-    "Personalized Herb Matching: Input your current symptoms and receive herb suggestions filtered through your constitutional type \u2014 not generic recommendations, but personalized matches.",
-    "Formulation Principles: Learn how to combine herbs effectively for your constitution \u2014 which herbs lead, which support, and how to balance a formula.",
-  ];
-  for (const d of deeper) b.drawBullet(d);
-
-  // ── CTA ──
-  b.y -= 10;
-  b.drawCTABlock(
-    "Join the Beta Waitlist",
-    "Be the first to access the Eden Apothecary app when it launches.",
-    "EdenInstitute.health/app-waitlist"
-  );
-
-  // ── DISCLAIMER ──
-  b.drawDisclaimer();
-}
-
-// ═══════════════════════════════════════════════════════
-// COLD/DRY COMPREHENSIVE GUIDE
-// ═══════════════════════════════════════════════════════
-
-async function generateColdDryGuide(doc: PDFDocument): Promise<void> {
-  const b = new PDFBuilder(doc);
-  await b.init();
-
-  // ── COVER ──
-  b.drawCoverPage(
-    "COLD / DRY CONSTITUTION",
-    "The Melancholic Pattern",
-    "You tend toward depletion \u2014 under-resourced and underbuilt."
-  );
-
-  // ── SECTION: YOUR PATTERN ──
-  b.newPage();
-  b.drawSectionHeader("YOUR PATTERN");
-  b.drawSubheading("Understanding the Cold/Dry Constitutional Tendency");
-
-  b.drawParagraph("You are wired for depth. Your system tends toward conservation, introspection, and careful use of resources. But when resources run low, you feel it acutely. The Cold/Dry constitution reflects a pattern of vital force that is refined, sensitive, and easily depleted. This is not a weakness \u2014 it is how God designed you.");
-  b.drawParagraph("Under normal conditions, this constitutional pattern manifests as thoughtfulness, analytical ability, attention to detail, and deep inner life. You tend to be observant, careful, creative, and capable of sustained mental work.");
-
-  b.drawSubheading("Physical Tendencies");
-  const physicals = [
-    "A tendency toward deficiency, depletion, and running on empty",
-    "Thin, dry tissues \u2014 dry skin, brittle nails, dry hair",
-    "Cold hands and feet, poor circulation, feeling chilled easily",
-    "Poor appetite, weak digestion, difficulty absorbing nutrients",
-    "Tendency toward constipation with dry, hard stools",
-    "Fatigue that rest doesn't fully resolve",
-    "Light, restless sleep or difficulty staying asleep",
-  ];
-  for (const p of physicals) b.drawBullet(p);
-  b.y -= 6;
-
-  b.drawSubheading("Emotional and Mental Tendencies");
-  const emotionals = [
-    "Anxiety, worry, and a tendency to anticipate problems",
-    "Overthinking, rumination, and difficulty quieting the mind",
-    "Sensitivity \u2014 to noise, light, criticism, and emotional atmosphere",
-    "A tendency toward melancholy, sadness, or feeling overwhelmed",
-    "Perfectionism and self-criticism",
-    "Deep capacity for insight, creativity, and spiritual awareness",
-  ];
-  for (const e of emotionals) b.drawBullet(e);
-  b.y -= 6;
-
-  b.drawSubheading("When Imbalanced");
-  b.drawParagraph("When the Cold/Dry pattern becomes excessive, you may experience chronic fatigue, anxiety disorders, insomnia, poor digestion, weight loss or inability to gain weight, and a fragility that makes normal life feel overwhelming. The sensitivity that gives you depth can become vulnerability that leaves you unable to cope.");
-
-  // ── SECTION: HISTORICAL CONTEXT ──
-  b.drawSectionHeader("HISTORICAL CONTEXT");
-  b.drawSubheading("The Melancholic Temperament in Classical Medicine");
-
-  b.drawParagraph("The Cold/Dry constitution corresponds to what classical Greek and Western medicine called the Melancholic temperament, associated with the element of Earth and the humor of Black Bile.");
-  b.drawParagraph("Hippocrates and Galen observed that individuals with this constitutional tendency were often thoughtful, analytical, artistic, and deeply introspective \u2014 but also prone to worry, sadness, and physical conditions of dryness and coldness. The term \"melancholic\" derives from the Greek melas (black) and chole (bile), reflecting the cold, dry nature of this type.");
-  b.drawParagraph("In the Eclectic and Physiomedical traditions, practitioners recognized this pattern as one of deficiency and depletion \u2014 requiring herbs that nourish, warm gently, moisten dry tissues, and rebuild vital reserves over time.");
-  b.drawParagraph("John Scudder emphasized that this constitutional type required \"restorative\" rather than \"stimulating\" treatment. The goal was not to push a depleted system harder, but to provide the nourishment and rest needed to rebuild from the foundation.");
-
-  // ── SECTION: BIBLICAL FRAMEWORK ──
-  b.drawSectionHeader("BIBLICAL FRAMEWORK");
-  b.drawSubheading("A Christian Understanding of Constitutional Medicine");
-
-  b.drawParagraph("The recognition that people differ in consistent, observable, and clinically significant ways is not borrowed from Eastern religion \u2014 it is confirmed by centuries of Western observation and is consistent with the biblical teaching that each person is \"fearfully and wonderfully made\" (Psalm 139:14).");
-  b.drawParagraph("God did not create one human template stamped out in endless copies. He wove each person with particular tendencies, strengths, and vulnerabilities. Constitutional medicine honors this particularity rather than treating all bodies as interchangeable.");
-
-  b.drawSubheading("What We Learn From Tradition \u2014 Without Adopting Its Metaphysics");
-  b.drawParagraph("The Greek humoral system, Ayurveda, and Traditional Chinese Medicine all observed similar constitutional patterns independently. This is not because they share the same spiritual framework \u2014 they do not. It is because they were all observing the same creation.");
-  b.drawParagraph("We do not need to adopt the metaphysics of these systems to benefit from their observational wisdom. We reject the idea that your constitution is determined by planetary influence, karmic imprint, or the balance of primal elements with independent existence. Instead, we affirm that your constitutional pattern reflects the particular way God designed your body to function \u2014 with its own tendencies, its own needs, and its own path toward flourishing.");
-  b.drawParagraph("The Cold/Dry pattern is not a spiritual diagnosis. It is a physiological observation with practical implications for how you should eat, rest, exercise, and \u2014 when needed \u2014 select herbal support.");
-
-  b.drawSubheading("Stewardship, Not Superstition");
-  b.drawParagraph("The Christian herbalist approaches constitutional medicine as a steward, not a mystic. We observe the body's patterns because God made the body readable. We select herbs that correspond to constitutional needs because God placed those herbs in creation with intention.");
-  b.drawScripture("\"He gives strength to the weary and increases the power of the weak\" (Isaiah 40:29). The Cold/Dry constitution is not broken \u2014 it is depleted. The call on your life includes learning to receive: to accept nourishment, to allow rest, and to trust that God's provision is sufficient. The work is restoration, not stimulation.");
-  b.drawParagraph("The intelligence that regulates your body \u2014 the coherence that holds your systems together \u2014 is not an impersonal force. It is upheld by the One in whom \"all things hold together\" (Colossians 1:17). Herbal medicine, rightly understood, is partnership with this design.");
-
-  // ── SECTION: YOUR HERBAL ALLIES ──
-  b.drawSectionHeader("YOUR HERBAL ALLIES");
-  b.drawSubheading("10 Herbs That Support the Cold/Dry Constitution");
-  b.drawParagraph("The herbs that best support your constitutional pattern are those that nourish deeply, warm gently, moisten dry tissues, and rebuild depleted reserves over time. These are not remedies for specific diseases \u2014 they are allies for your particular body.");
-
-  b.drawHerb(1, "Ashwagandha", "Withania somnifera",
-    "Adaptogen, nervine tonic, thyroid support, immune modulator, rejuvenative",
-    "Ashwagandha is perhaps the most important herb for the Cold/Dry constitution. It is warming, nourishing, and deeply restorative to the nervous system. It calms anxiety while building strength \u2014 without sedation. It supports thyroid function, often low in this type.",
-    "Traditionally prepared with warm milk and honey. Powder, capsules, or tincture. Best taken consistently over weeks or months.",
-    "Avoid with hyperthyroidism. Part of the nightshade family \u2014 avoid if sensitive."
-  );
-
-  b.drawHerb(2, "Oat Straw", "Avena sativa",
-    "Nervine trophorestorative, nutritive, demulcent, antidepressant",
-    "Oat straw is a gentle, deeply nourishing nervine that rebuilds a frayed nervous system over time. For the Cold/Dry type who feels \"burnt out,\" anxious, and depleted, oat straw provides the slow, steady nourishment the nervous system craves.",
-    "Long infusion: 1 oz dried herb to 1 quart water, steep 4+ hours or overnight. Drink freely.",
-    "Very safe. Ensure oats are gluten-free if sensitive. Milky oat tincture is more potent."
-  );
-
-  b.drawHerb(3, "Licorice Root", "Glycyrrhiza glabra",
-    "Adrenal restorative, demulcent, anti-inflammatory, expectorant, harmonizer",
-    "Licorice is moistening, nourishing, and supportive to exhausted adrenal glands. For the Cold/Dry type with chronic fatigue, low cortisol patterns, and dry tissues throughout the body, licorice provides deep restoration.",
-    "Decoction or as part of herbal formulas. Small amounts go a long way \u2014 it harmonizes other herbs in a formula.",
-    "Not for long-term use at high doses. Avoid with hypertension or edema. DGL form is safer for digestive use."
-  );
-
-  b.drawHerb(4, "Shatavari", "Asparagus racemosus",
-    "Demulcent, nutritive tonic, adaptogen, reproductive tonic, immune support",
-    "Shatavari is deeply moistening and nourishing \u2014 specific for dryness in the digestive, respiratory, and reproductive systems. For the Cold/Dry type with dry mucous membranes, weak digestion, and depleted vital reserves, shatavari is a foundational ally.",
-    "Powder mixed with warm milk and honey. Capsules or tincture. Best used consistently over time.",
-    "Very safe. Avoid with estrogen-sensitive conditions as a precaution."
-  );
-
-  b.drawHerb(5, "Hawthorn", "Crataegus spp.",
-    "Cardiovascular tonic, nervine, mildly hypotensive, antioxidant",
-    "Hawthorn nourishes and strengthens the heart \u2014 physically and emotionally. For the Cold/Dry type prone to anxiety, grief, and cardiovascular weakness, hawthorn provides gentle, steady support over time.",
-    "Tincture of berries, leaves, and flowers combined. Decoction of berries. Safe for long-term daily use.",
-    "May potentiate cardiac medications \u2014 consult a practitioner if on heart medication."
-  );
-
-  b.drawHerb(6, "Nettle", "Urtica dioica",
-    "Nutritive, mineral-rich, kidney tonic, anti-inflammatory, blood-building",
-    "Nettle is one of the most deeply nourishing herbs available \u2014 rich in iron, calcium, magnesium, and silica. For the Cold/Dry type with mineral deficiency, weak hair and nails, and a depleted constitution, nettle rebuilds from the ground up.",
-    "Long infusion: 1 oz dried leaf to 1 quart water, steep 4+ hours. Drink 1-3 cups daily.",
-    "Very safe. One of the best daily nourishing herbs available."
-  );
-
-  b.drawHerb(7, "Marshmallow Root", "Althaea officinalis",
-    "Demulcent, emollient, cooling, moistening, anti-inflammatory",
-    "Marshmallow coats, soothes, and moistens dry tissues throughout the body \u2014 digestive tract, respiratory tract, urinary tract. For the Cold/Dry type with dry constipation, irritated membranes, and tissue fragility, marshmallow provides immediate relief.",
-    "Cold infusion preserves the most mucilage: steep in room-temperature water 4-8 hours. Drink freely.",
-    "May slow absorption of medications \u2014 separate by 1-2 hours."
-  );
-
-  b.drawHerb(8, "Rehmannia", "Rehmannia glutinosa",
-    "Blood tonic, kidney/adrenal support, moistening, cooling (raw) or warming (prepared)",
-    "Rehmannia is a deep yin tonic \u2014 nourishing to the blood, kidneys, and adrenals. Prepared (cooked) rehmannia is mildly warming and particularly suited to the Cold/Dry constitution with exhaustion, weak lower back, and depleted reserves.",
-    "Prepared (shu di huang) form is best for Cold/Dry types. Often used in formulas rather than alone. Decoction or tincture.",
-    "May cause digestive upset in some \u2014 combine with digestive herbs if needed."
-  );
-
-  b.drawHerb(9, "Eleuthero", "Eleutherococcus senticosus",
-    "Adaptogen, immune modulator, cognitive support, endurance enhancer",
-    "Eleuthero (Siberian Ginseng) is a gentle, non-stimulating adaptogen that supports the body's ability to handle stress. For the Cold/Dry type who feels depleted by normal life demands, eleuthero builds resilience without pushing the system harder.",
-    "Tincture or capsules. Best taken for 6-8 weeks, then a break.",
-    "Very safe. One of the best tolerated adaptogens."
-  );
-
-  b.drawHerb(10, "Schisandra", "Schisandra chinensis",
-    "Adaptogen, astringent, liver protective, cognitive support, longevity tonic",
-    "Schisandra is unique in containing all five flavors \u2014 it has a balancing, harmonizing effect on the body. For the Cold/Dry type with scattered energy, mental fatigue, and a tendency to \"leak\" vitality, schisandra helps contain and build.",
-    "Decoction of dried berries. Tincture. Powdered berries can be added to smoothies.",
-    "May increase stomach acid \u2014 take with food if sensitive."
-  );
-
-  // ── SECTION: HERBS TO USE WITH CAUTION ──
-  b.drawSectionHeader("HERBS TO USE WITH CAUTION");
-  b.drawParagraph("The following herbs, while beneficial for other constitutional types, may aggravate the Cold/Dry pattern if used excessively or without balancing support:");
-
-  const cautions = [
-    "Coffee (Coffea arabica): Stimulating, depleting, and drying. Drains adrenal reserves.",
-    "Ephedra (Ephedra sinica): Intensely stimulating and depleting. Contraindicated.",
-    "Strong bitter herbs in excess: Can be drying and depleting. Balance with moistening herbs.",
-    "Diuretics in excess: Further dry an already dry constitution.",
-    "Cayenne in large amounts: Stimulating and can deplete a weak constitution.",
-    "Raw, cold foods in excess: Weaken digestive fire. Favor cooked, warming foods.",
-    "Fasting or severe caloric restriction: Further depletes an already depleted system.",
-  ];
-  for (const c of cautions) b.drawBullet(c);
-
-  // ── SECTION: GO DEEPER ──
-  b.drawSectionHeader("GO DEEPER");
-  b.drawSubheading("What You'll Unlock in the Eden Apothecary App");
-  b.drawParagraph("This guide has introduced you to your constitutional pattern through the lens of Western herbal tradition. But this is only the beginning.");
-  b.drawParagraph("In the Eden Apothecary app, you will discover:");
-
-  const deeper = [
-    "Deeper Constitutional Mapping: How your Cold/Dry pattern corresponds to the Ayurvedic Vata dosha and the TCM patterns of Kidney Yin and Blood Deficiency \u2014 with the practical insights extracted from these traditions, translated into a Western and Biblical framework.",
-    "50+ Additional Herbs: A comprehensive materia medica organized by constitutional affinity, with detailed monographs including actions, preparations, dosages, and contraindications.",
-    "Body System Integration: How your constitutional pattern tends to manifest in each body system \u2014 digestive, respiratory, nervous, cardiovascular, endocrine, and more \u2014 with targeted herbal protocols for each.",
-    "Tissue State Assessment: Learn to read the six tissue states (heat, cold, damp, dry, tension, laxity) and how they layer onto your constitutional baseline.",
-    "Personalized Herb Matching: Input your current symptoms and receive herb suggestions filtered through your constitutional type \u2014 not generic recommendations, but personalized matches.",
-    "Formulation Principles: Learn how to combine herbs effectively for your constitution \u2014 which herbs lead, which support, and how to balance a formula.",
-  ];
-  for (const d of deeper) b.drawBullet(d);
-
-  // ── CTA ──
-  b.y -= 10;
-  b.drawCTABlock(
-    "Join the Beta Waitlist",
-    "Be the first to access the Eden Apothecary app when it launches.",
-    "EdenInstitute.health/app-waitlist"
-  );
-
-  // ── DISCLAIMER ──
-  b.drawDisclaimer();
-}
-
-async function generateSimpleGuide(doc: PDFDocument, content: SimpleContent): Promise<void> {
-  const b = new PDFBuilder(doc);
-  await b.init();
-
-  b.drawCoverPage(content.title, content.subtitle, content.tagline);
-
-  b.newPage();
-  b.drawSectionHeader("YOUR PATTERN");
-  b.drawParagraph(content.pattern);
-
-  b.drawSectionHeader("HERBAL ALLIES");
-  b.drawParagraph(content.herbs);
-
-  b.drawSectionHeader("A WORD FROM SCRIPTURE");
-  b.drawScripture(content.scripture);
-
-  b.drawSectionHeader("USE WITH CAUTION");
-  b.drawParagraph(content.caution);
-
-  b.drawDisclaimer();
-}
-
-// ═══════════════════════════════════════════════════════
-// MAIN HANDLER
-// ═══════════════════════════════════════════════════════
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const url = new URL(req.url);
-    const type = url.searchParams.get('type');
-    const validTypes = ['hot-dry', 'cold-damp', 'hot-damp', 'cold-dry'];
-
-    if (!type || !validTypes.includes(type)) {
+    const raw = (url.searchParams.get("type") || "").toLowerCase().trim();
+    const slug = GUIDES[raw] ? raw : (LEGACY_TYPE_TO_SLUG[raw] ?? "");
+    const content = GUIDES[slug];
+    if (!content) {
       return new Response(
-        JSON.stringify({ error: `Invalid type. Valid types: ${validTypes.join(', ')}` }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: `Invalid type. Valid patterns: ${Object.keys(GUIDES).join(", ")}` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
-
-    const doc = await PDFDocument.create();
-    doc.setTitle(`Constitutional Guide - The Eden Institute`);
-    doc.setAuthor('The Eden Institute');
-
-    if (type === 'hot-dry') {
-      await generateHotDryGuide(doc);
-    } else if (type === 'cold-damp') {
-      await generateColdDampGuide(doc);
-    } else if (type === 'hot-damp') {
-      await generateHotDampGuide(doc);
-    } else if (type === 'cold-dry') {
-      await generateColdDryGuide(doc);
-    }
-
-    const pdfBytes = await doc.save();
-
-    return new Response(pdfBytes, {
+    const pdf = await renderFullGuide(content);
+    return new Response(pdf as unknown as BodyInit, {
       headers: {
         ...corsHeaders,
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="Eden-Institute-${type}-constitution-guide.pdf"`,
-        'Cache-Control': 'no-store, max-age=0',
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="Eden-Institute-${slug}-deep-dive-guide.pdf"`,
+        "Cache-Control": "no-store, max-age=0",
       },
     });
   } catch (err) {
-    console.error('PDF generation error:', err.message, err.stack);
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error("constitution-pdf error:", err instanceof Error ? err.message : String(err));
+    return new Response(JSON.stringify({ error: "PDF generation failed" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

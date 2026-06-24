@@ -56,20 +56,6 @@ const HOMESCHOOL_PRODUCT_LABELS: Record<string, string> = {
   nb_addon: "Additional Student Notebook",
 }
 
-// The Deep-Dive Guide PDF (constitution-pdf EF) is keyed to 4 temperature x
-// moisture types; the 8 named constitution patterns map onto them 2:1 (the
-// tension axis is not reflected in the PDF).
-const PATTERN_TO_PDF_TYPE: Record<string, string> = {
-  "burning-bowstring": "hot-dry",
-  "open-flame": "hot-dry",
-  "pressure-cooker": "hot-damp",
-  "overflowing-cup": "hot-damp",
-  "drawn-bowstring": "cold-dry",
-  "spent-candle": "cold-dry",
-  "frozen-knot": "cold-damp",
-  "still-water": "cold-damp",
-}
-
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = ""
   const chunk = 0x8000
@@ -79,7 +65,8 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary)
 }
 
-// Deliver the Deep-Dive Guide PDF by email immediately on purchase, so a buyer
+// Deliver the buyer's pattern-specific Deep-Dive Guide PDF by email immediately on
+// purchase, so a buyer
 // never depends on the client-rendered /guide page (which can render blank when
 // opened from a mobile email browser). Best-effort: failures are logged and
 // swallowed so the webhook still returns 200 (the purchase must not fail).
@@ -89,7 +76,7 @@ async function sendGuidePdf(email: string, constitutionType: string | null): Pro
       console.warn("sendGuidePdf: RESEND_API_KEY missing; skipping guide delivery")
       return
     }
-    const pdfType = (constitutionType && PATTERN_TO_PDF_TYPE[constitutionType]) || "cold-damp"
+    const pdfType = constitutionType || "frozen-knot"  // the 8-pattern slug; constitution-pdf renders it
     const pdfRes = await fetch(`${SUPABASE_URL}/functions/v1/constitution-pdf?type=${encodeURIComponent(pdfType)}`)
     if (!pdfRes.ok) {
       console.error("sendGuidePdf: constitution-pdf failed", pdfRes.status)
