@@ -3,6 +3,7 @@
     "baseUrl": "..",
     "paths": {
       "@/integrations/supabase/client": ["./.design-sync/stubs/supabase-client.ts"],
+      "@/components/materiaMedicaPlateSources": ["./.design-sync/stubs/materiaMedicaPlateSources.data.ts"],
       "@/*": ["./src/*"]
     }
   }

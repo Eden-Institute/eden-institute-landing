@@ -19,7 +19,15 @@ const EDEN = [
   'apothecary/TierComparison.tsx',
   'apothecary/PageSkeleton.tsx',
   'apothecary/HerbCard.tsx',
+  'MateriaMedicaPlate.tsx',
 ];
+
+// Per-file principal-name override: list ONLY these names as components (cards).
+// BotanicalAccents exports 4 SVGs, but the founder dislikes the leaf line-art —
+// keep only GoldDivider as a card (the file still bundles for completeness).
+const PRINCIPAL_OVERRIDE = {
+  'landing/BotanicalAccents.tsx': ['GoldDivider'],
+};
 
 // collect ui files
 const uiDir = join(srcComp, 'ui');
@@ -49,8 +57,6 @@ function pascal(file) {
   return basename(file, '.tsx').replace(/(^|[-_])([a-z0-9])/g, (_, __, c) => c.toUpperCase());
 }
 
-const DECORATIVE_MULTI = new Set(['landing/BotanicalAccents.tsx']);
-
 const barrelLines = [];
 const srcMap = {};
 const principalsByFile = {};
@@ -64,8 +70,8 @@ for (const rel of files) {
 
   const repoRelPath = 'src/components/' + rel;
   let principals;
-  if (DECORATIVE_MULTI.has(rel)) {
-    principals = [...exps];
+  if (PRINCIPAL_OVERRIDE[rel]) {
+    principals = PRINCIPAL_OVERRIDE[rel].filter((n) => exps.has(n));
   } else {
     const want = pascal(rel);
     principals = exps.has(want) ? [want] : (exps.size ? [[...exps][0]] : []);

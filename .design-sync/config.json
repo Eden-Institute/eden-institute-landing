@@ -55,15 +55,13 @@
     "Toggle": "src/components/ui/toggle.tsx",
     "Tooltip": "src/components/ui/tooltip.tsx",
     "AxisSpectrum": "src/components/quiz/AxisSpectrum.tsx",
-    "BotanicalLeafTopRight": "src/components/landing/BotanicalAccents.tsx",
-    "BotanicalLeafBottomLeft": "src/components/landing/BotanicalAccents.tsx",
-    "BotanicalSprig": "src/components/landing/BotanicalAccents.tsx",
     "GoldDivider": "src/components/landing/BotanicalAccents.tsx",
     "WorldviewBand": "src/components/landing/WorldviewBand.tsx",
     "PublicTierCard": "src/components/apothecary/PublicTierCard.tsx",
     "TierComparison": "src/components/apothecary/TierComparison.tsx",
     "PageSkeleton": "src/components/apothecary/PageSkeleton.tsx",
-    "HerbCard": "src/components/apothecary/HerbCard.tsx"
+    "HerbCard": "src/components/apothecary/HerbCard.tsx",
+    "MateriaMedicaPlate": "src/components/MateriaMedicaPlate.tsx"
   },
   "extraEntries": [
     "./.design-sync/preview-providers.tsx"
