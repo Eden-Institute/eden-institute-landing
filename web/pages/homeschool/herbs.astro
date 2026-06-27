@@ -1,0 +1,171 @@
+---
+// /homeschool/herbs — Eden's Table herb sourcing page for parents.
+// Static, pre-rendered marketing page: parents order every herb used across the
+// curriculum programs from one place. This batch is the 36 Sprouts-tier herbs —
+// 33 link to the Mountain Rose Herbs affiliate program (AspireIQ short links),
+// 3 link to Amazon (herbs MRH does not stock in dried tea form). The 36 Seedlings
+// herbs drop into the SAME `herbs` array (with a `programs` override) once their
+// affiliate links exist. Conventions mirror community.astro.
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import { Button } from "@/components/ui/button";
+import { Leaf, ShoppingCart } from "lucide-react";
+
+const meta = {
+  title: "Order Your Curriculum Herbs | Eden's Table",
+  description:
+    "Source every herb used across the Eden's Table biblical herbalism curriculum. Shop the Sprouts herb list through our Mountain Rose Herbs and Amazon affiliate links.",
+  canonical: "https://edeninstitute.health/homeschool/herbs",
+};
+
+// Bulk "shop everything" link (Mountain Rose Herbs bulk herbs, via AspireIQ).
+const BULK_HREF = "https://get.aspr.app/SH1p9w";
+
+// Every herb below is a Sprouts-tier herb, revisited in greater depth in
+// Cultivators (middle school) and a different way in Practitioners (high school).
+const SPROUTS_PROGRAMS = ["Sprouts", "Cultivators", "Practitioners"];
+
+type Source = "mrh" | "amazon";
+interface Herb {
+  name: string;
+  href: string;
+  source: Source;
+}
+
+const sourceLabel: Record<Source, string> = {
+  mrh: "Mountain Rose Herbs",
+  amazon: "Amazon",
+};
+
+// 36 Sprouts herbs in curriculum (week) order.
+const herbs: Herb[] = [
+  { name: "Lavender", href: "https://get.aspr.app/SH1pA7", source: "mrh" },
+  { name: "Chamomile", href: "https://get.aspr.app/SH1pA8", source: "mrh" },
+  { name: "Lemon Balm", href: "https://get.aspr.app/SH1pA9", source: "mrh" },
+  { name: "Peppermint", href: "https://get.aspr.app/SH1pAC", source: "mrh" },
+  { name: "Calendula", href: "https://get.aspr.app/SH1pAD", source: "mrh" },
+  { name: "Plantain Leaf", href: "https://get.aspr.app/SH1pAE", source: "mrh" },
+  { name: "Fennel", href: "https://get.aspr.app/SH1pAF", source: "mrh" },
+  { name: "Slippery Elm", href: "https://get.aspr.app/SH1pAG", source: "mrh" },
+  { name: "Marshmallow Root", href: "https://get.aspr.app/SH1pAH", source: "mrh" },
+  { name: "Linden", href: "https://get.aspr.app/SH1pAI", source: "mrh" },
+  { name: "Catnip", href: "https://get.aspr.app/SH1pAJ", source: "mrh" },
+  { name: "Mullein", href: "https://get.aspr.app/SH1pAK", source: "mrh" },
+  { name: "Nettle", href: "https://get.aspr.app/SH1pAL", source: "mrh" },
+  { name: "Dandelion Root", href: "https://get.aspr.app/SH1pAM", source: "mrh" },
+  { name: "Rosemary", href: "https://get.aspr.app/SH1pAN", source: "mrh" },
+  { name: "Thyme", href: "https://get.aspr.app/SH1pAO", source: "mrh" },
+  { name: "Oregano", href: "https://get.aspr.app/SH1pAP", source: "mrh" },
+  { name: "Yarrow", href: "https://get.aspr.app/SH1pAQ", source: "mrh" },
+  { name: "Hyssop", href: "https://get.aspr.app/SH1pAR", source: "mrh" },
+  { name: "Ceylon Cinnamon", href: "https://get.aspr.app/SH1pAS", source: "mrh" },
+  { name: "Angelica Root", href: "https://get.aspr.app/SH1pAT", source: "mrh" },
+  { name: "Wood Betony", href: "https://get.aspr.app/SH1pAU", source: "mrh" },
+  { name: "Hibiscus", href: "https://get.aspr.app/SH1pAV", source: "mrh" },
+  { name: "Agrimony", href: "https://get.aspr.app/SH1pAW", source: "mrh" },
+  { name: "Burdock Root", href: "https://get.aspr.app/SH1pAX", source: "mrh" },
+  { name: "Raspberry Leaf", href: "https://get.aspr.app/SH1pAY", source: "mrh" },
+  { name: "Hawthorn Berry", href: "https://get.aspr.app/SH1pAZ", source: "mrh" },
+  { name: "Oat Straw", href: "https://get.aspr.app/SH1pAa", source: "mrh" },
+  { name: "Horsetail", href: "https://get.aspr.app/SH1pAb", source: "mrh" },
+  { name: "Rose Petals", href: "https://get.aspr.app/SH1pAc", source: "mrh" },
+  { name: "Garlic", href: "https://get.aspr.app/SH1pAd", source: "mrh" },
+  { name: "Turmeric", href: "https://get.aspr.app/SH1pAe", source: "mrh" },
+  { name: "White Pine Needle", href: "https://amzn.to/4alc60S", source: "amazon" },
+  { name: "White Mulberry Leaf", href: "https://amzn.to/4xXFUuA", source: "amazon" },
+  { name: "Rose Hips", href: "https://get.aspr.app/SH1pAf", source: "mrh" },
+  { name: "Corn Silk", href: "https://amzn.to/4xNqFnL", source: "amazon" },
+];
+---
+
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical}>
+  <!-- Hero -->
+  <section class="py-20 md:py-28 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-4xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-6" style="color:hsl(var(--eden-gold))">
+        Eden's Table · Herb Sourcing
+      </p>
+      <h1 class="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
+        Order Your <span class="italic">Curriculum Herbs</span>
+      </h1>
+      <div class="w-16 h-px mx-auto my-8" style="background-color:hsl(var(--eden-gold))"></div>
+      <p class="font-body text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
+        Every herb your family studies across the Eden's Table programs, gathered in one place. Each link takes
+        you straight to a trusted source so you can prepare for the lessons ahead. We recommend Mountain Rose
+        Herbs for organic bulk herbs, with a few sourced from Amazon.
+      </p>
+      <a href={BULK_HREF} target="_blank" rel="noopener noreferrer">
+        <Button variant="eden" size="xl">
+          <ShoppingCart className="w-5 h-5 mr-2" /> Shop All Bulk Herbs
+        </Button>
+      </a>
+      <p class="font-body text-sm text-muted-foreground mt-6">
+        Currently showing the <strong>Sprouts</strong> herb list (36 herbs). Seedlings herbs are coming soon.
+      </p>
+    </div>
+  </section>
+
+  <!-- Herb grid -->
+  <section class="py-16 px-6 bg-background">
+    <div class="max-w-6xl mx-auto">
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {herbs.map((herb) => (
+          <div
+            class="rounded-lg p-6 border flex flex-col"
+            style="border-color:hsl(var(--border));background-color:hsl(var(--eden-cream) / 0.4)"
+          >
+            <div class="flex items-start gap-3 mb-4">
+              <Leaf className="w-6 h-6 shrink-0 mt-0.5" color="hsl(var(--eden-gold))" />
+              <div>
+                <h2 class="font-serif text-lg font-semibold leading-snug" style="color:hsl(var(--eden-bark))">
+                  {herb.name}
+                </h2>
+                <p class="font-body text-xs text-muted-foreground mt-1">via {sourceLabel[herb.source]}</p>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-2 mb-5">
+              {SPROUTS_PROGRAMS.map((program) => (
+                <span
+                  class="font-body text-[11px] tracking-wide uppercase px-2.5 py-1 rounded-full border"
+                  style="border-color:hsl(var(--eden-gold) / 0.4);color:hsl(var(--eden-forest));background-color:hsl(var(--eden-gold) / 0.08)"
+                >{program}</span>
+              ))}
+            </div>
+            <a
+              href={herb.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="mt-auto block"
+              aria-label={`Order ${herb.name} from ${sourceLabel[herb.source]}`}
+            >
+              <Button variant="eden" className="w-full">Order Now</Button>
+            </a>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- One herb list, four levels -->
+  <section class="py-16 px-6" style="background-color:hsl(var(--eden-forest))">
+    <div class="max-w-3xl mx-auto text-center">
+      <h2 class="font-serif text-3xl font-bold mb-6 text-white">One Herb List, Four Levels</h2>
+      <p class="font-body text-lg leading-relaxed" style="color:rgba(255,255,255,0.85)">
+        The same herbs grow with your child. Sprouts and Seedlings introduce each plant gently; Cultivators
+        revisits all of them in greater depth for middle school; Practitioners returns to them once more, a
+        different way, for high school. Order once and you are set for years.
+      </p>
+    </div>
+  </section>
+
+  <!-- Affiliate disclaimer -->
+  <section class="py-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-3xl mx-auto text-center">
+      <div class="w-16 h-px mx-auto mb-6" style="background-color:hsl(var(--eden-gold))"></div>
+      <p class="font-body text-xs text-muted-foreground leading-relaxed">
+        This page contains affiliate links. If you purchase through them, The Eden Institute may earn a small
+        commission at no additional cost to you, which helps support the development of our curriculum. As an
+        Amazon Associate I earn from qualifying purchases.
+      </p>
+    </div>
+  </section>
+</MarketingLayout>
