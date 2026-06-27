@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "baseUrl": "..",
+    "paths": {
+      "@/integrations/supabase/client": ["./.design-sync/stubs/supabase-client.ts"],
+      "@/*": ["./src/*"]
+    }
+  }
+}

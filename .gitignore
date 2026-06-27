@@ -33,3 +33,12 @@ supabase/.temp/
 
 # Astro build cache
 .astro/
+
+# design-sync artifacts
+.ds-sync/
+ds-bundle/
+eden-ds-entry.tsx
+.design-sync/.cache/
+.design-sync/.componentSrcMap.json
+.design-sync/learnings/
+.design-sync/node_modules
