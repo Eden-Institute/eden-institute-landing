@@ -30,6 +30,11 @@ Repo: `eden-institute-landing` (Vite + React + Astro + shadcn/ui). This is an **
 - Botanical SVGs (`BotanicalLeaf*`, `BotanicalSprig`) are faint line-art → may warn `[RENDER_THIN]`; intentional, framed on parchment in their previews.
 - Overlay previews may show a faint full-bleed `bg-black/80` scrim behind the card; content stays legible.
 
+## Materia Medica herb plates (added 2026-06-27)
+- Founder rejected the old botanical leaf line-art. Replaced with **MateriaMedicaPlate** — antique apothecary plates from her own `Curriculum Artwork - Print Ready/` (16 herbs). The 3 leaf cards (`BotanicalLeaf*`, `BotanicalSprig`) were dropped from the sync via `PRINCIPAL_OVERRIDE` in gen-entry (file still bundles; only `GoldDivider` kept as a card).
+- **Assets pipeline** (scratchpad scripts `optimize_plates.py` + `gen_plate_assets.py`): source 12-14MB print PNGs → 860px webp in `public/materia-medica/<slug>.webp` (live site) AND 400px base64 in `.design-sync/stubs/materiaMedicaPlateSources.data.ts` (design-sync bundle). To regenerate, re-run those scripts (they pin the chosen variant per herb; tulsi uses `tulsi1.png`, others use the base file).
+- **Dual-source swap**: `MateriaMedicaPlate` imports `PLATE_SRC` from `@/components/materiaMedicaPlateSources` (the `@/` alias matters). Live site (Vite) resolves it to the public-URL module; design-sync `tsconfig.sync.json` aliases it to the base64 data stub so plates render in the Claude Design canvas (no file server there). Same trick as the supabase stub.
+
 ## Re-sync risks
 - `cfg.cssEntry` filename hash is build-dependent — re-check after any app rebuild.
 - Curated component list is hand-vetted for supabase/module-eval safety; if new presentational components are added, vet their imports before adding to `gen-entry.mjs` EDEN list.
