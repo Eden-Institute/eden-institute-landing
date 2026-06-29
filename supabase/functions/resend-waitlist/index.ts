@@ -257,7 +257,8 @@ function buildSproutsMagnetEmail(firstName: string): { subject: string; html: st
 <p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
 <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Thank you for stepping into this work with us. What follows is a real week of curriculum &mdash; Week 1 of Sprouts, the band built for kindergarten through second grade. Not a sample stripped of substance. Five days with Lavender, a story your child will remember, and the small daily rhythms that turn a kitchen counter into a place of formation.</p>
 ${goldDivider()}
-${goldLabel('YOUR FIVE DOWNLOADS &mdash; SPROUTS WEEK 1 (LAVENDER)')}
+${goldLabel('YOUR SIX DOWNLOADS &mdash; SPROUTS WEEK 1 (LAVENDER)')}
+${ctaButton('MEET THE FAMILY (READ-ALOUD)', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-ra-lavender.pdf')}
 ${ctaButton("TEACHER'S GUIDE", 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-tg-lavender.pdf')}
 ${ctaButton('STUDENT NOTEBOOK', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-nb-lavender.pdf')}
 ${ctaButton('FIELD CARDS', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-fc-lavender.pdf')}
