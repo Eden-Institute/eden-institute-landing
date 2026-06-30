@@ -28,6 +28,8 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { claimStripeEvent, markEventProcessed, markEventError } from "../_shared/order-db.ts"
+import { recordPreorderFromSession, applyRefundByPaymentIntent } from "../_shared/order-flow.ts"
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2024-12-18.acacia",
@@ -144,7 +146,23 @@ serve(async (req) => {
 
   console.log(`Received event: ${event.type} (id: ${event.id})`)
 
-  // ---------- 2. Dispatch by event type ----------
+  // ---------- 2. Idempotency gate: skip events already fully processed ----------
+  try {
+    const { proceed } = await claimStripeEvent(adminClient, { id: event.id, type: event.type, payload: event })
+    if (!proceed) {
+      console.log(`Event ${event.id} (${event.type}) already processed; skipping.`)
+      return new Response(JSON.stringify({ received: true, duplicate: true }), {
+        headers: { "Content-Type": "application/json" },
+        status: 200,
+      })
+    }
+  } catch (err) {
+    // If the ledger write itself fails, process anyway: a rare duplicate is safer than a
+    // dropped event, and the order UNIQUE + message_log guard still prevent double effects.
+    console.error(`stripe_events claim failed for ${event.id}:`, err instanceof Error ? err.message : String(err))
+  }
+
+  // ---------- 3. Dispatch by event type ----------
   try {
     switch (event.type) {
       case "customer.subscription.created":
@@ -180,9 +198,25 @@ serve(async (req) => {
         break
       }
 
+      case "charge.refunded": {
+        const charge = event.data.object as Stripe.Charge
+        const pi = typeof charge.payment_intent === "string"
+          ? charge.payment_intent
+          : charge.payment_intent?.id ?? null
+        if (pi) {
+          const applied = await applyRefundByPaymentIntent(adminClient, pi)
+          console.log(`charge.refunded: ${applied ? "order -> refunded" : "no matching order"} (pi=${pi}, charge=${charge.id})`)
+        } else {
+          console.warn(`charge.refunded without payment_intent; charge=${charge.id}`)
+        }
+        break
+      }
+
       default:
         console.log(`Unhandled event type: ${event.type}`)
     }
+
+    await markEventProcessed(adminClient, event.id)
 
     return new Response(JSON.stringify({ received: true }), {
       headers: { "Content-Type": "application/json" },
@@ -190,6 +224,7 @@ serve(async (req) => {
     })
   } catch (err) {
     console.error(`Error processing ${event.type}:`, err)
+    await markEventError(adminClient, event.id, err instanceof Error ? err.message : String(err)).catch(() => {})
     const message = err instanceof Error ? err.message : "Unknown error"
     return new Response(JSON.stringify({ error: message }), {
       headers: { "Content-Type": "application/json" },
@@ -305,6 +340,16 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 // ---------- One-off payment dispatcher ----------
 
 async function handleOneOffPayment(session: Stripe.Checkout.Session) {
+  // ---- Branch 0: founding-preorder products (Sprouts Kit, Student Notebook, ...) ----
+  // Detected by the preorder_sku metadata stamped at checkout. Full lifecycle: record the
+  // order + line item, transition to preorder_hold, and fire the confirmation email/SMS.
+  const preorderSku = (session.metadata?.preorder_sku as string | undefined) ?? null
+  if (preorderSku) {
+    const isFounding = session.metadata?.is_founding === "true"
+    await recordPreorderFromSession(adminClient, session, { sku: preorderSku, isFounding })
+    return
+  }
+
   // ---- Resolve email (purchaser identity for attribution) ----
   const rawEmail =
     session.customer_details?.email ??
@@ -444,23 +489,29 @@ async function recordHomeschoolOrder(
   const shipping = (session as any).shipping_details ?? null
 
   const order = {
-    stripe_session_id: session.id,
+    stripe_checkout_session_id: session.id,
+    stripe_payment_intent_id: typeof session.payment_intent === "string" ? session.payment_intent : null,
     stripe_customer_id: stripeCustomerId,
-    email,
+    customer_email: email,
     lookup_key: lookupKey,
     product_label: HOMESCHOOL_PRODUCT_LABELS[lookupKey] ?? lookupKey,
-    amount_total: session.amount_total ?? null,
+    amount_total_cents: session.amount_total ?? null,
     currency: session.currency ?? null,
     quantity: 1,
     payment_status: session.payment_status ?? null,
     shipping_name: shipping?.name ?? session.customer_details?.name ?? null,
     shipping_address: shipping?.address ?? null,
-    status: "preorder",
+    status: "preorder_hold",
+    is_preorder: true,
   }
 
+  // NOTE: writes to the renamed `orders` table. This legacy path (old homeschool lookup_keys)
+  // records the order but does NOT create order_items / fire the new confirmation messages;
+  // the new founding-preorder products use Branch 0 above. Retire the old kit buttons in favor
+  // of the price-ID preorder flow.
   const { error } = await adminClient
-    .from("homeschool_orders")
-    .upsert(order, { onConflict: "stripe_session_id", ignoreDuplicates: true })
+    .from("orders")
+    .upsert(order, { onConflict: "stripe_checkout_session_id", ignoreDuplicates: true })
 
   if (error) {
     throw new Error(

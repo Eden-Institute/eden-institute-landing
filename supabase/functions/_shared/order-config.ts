@@ -1,28 +1,62 @@
 // supabase/functions/_shared/order-config.ts
 //
-// Single place that reconciles Stripe lookup_keys with our products and holds the
-// customer-facing ship window. CONFIRM the lookup_keys below against the Stripe Prices
-// created for launch (a founding + a retail Price per product).
+// Single source of truth reconciling Stripe Prices with our products, the founding-period
+// gate, and the customer-facing ship window. Wiring uses Stripe PRICE IDs directly (like the
+// existing deep_dive_guide override), so no Stripe "lookup keys" are required.
 
 export const SHIP_WINDOW = 'Winter 2026';
 
-export interface ProductRef {
+// The founding period (founding price for BOTH the kit and the notebook) ends once this many
+// founding units of the gate SKU have sold. Founder rule: "Notebook retail after 500 kits".
+export const FOUNDING_GATE_SKU = 'sprouts_kit';
+export const FOUNDING_GATE_LIMIT = 500;
+
+export interface PreorderProduct {
   sku: string;
-  isFounding: boolean;
+  name: string;
+  productType: 'kit' | 'notebook';
+  foundingPriceId: string;
+  retailPriceId: string;
+  foundingPriceCents: number;
+  retailPriceCents: number;
 }
 
-// Stripe Price lookup_key -> { product SKU, whether this is the founding price }.
-// These must match the lookup_keys set on the Stripe Prices AND the products.sku seed rows.
-export const LOOKUP_KEY_TO_PRODUCT: Record<string, ProductRef> = {
-  sprouts_kit_founding: { sku: 'sprouts_kit', isFounding: true },
-  sprouts_kit_retail: { sku: 'sprouts_kit', isFounding: false },
-  sprouts_notebook_founding: { sku: 'sprouts_notebook', isFounding: true },
-  sprouts_notebook_retail: { sku: 'sprouts_notebook', isFounding: false },
-};
+// Phase-1 launch products. Stripe Price IDs provided by the founder 2026-06-30 (confirm LIVE mode).
+export const PREORDER_PRODUCTS: PreorderProduct[] = [
+  {
+    sku: 'sprouts_kit',
+    name: 'Sprouts Complete Kit',
+    productType: 'kit',
+    foundingPriceId: 'price_1Tc7TJ2NWfYbCZT83q4TuxFf',
+    retailPriceId: 'price_1To6KC2NWfYbCZT8AHRdC9Gv',
+    foundingPriceCents: 24900,
+    retailPriceCents: 34900,
+  },
+  {
+    sku: 'sprouts_notebook',
+    name: 'Student Notebook',
+    productType: 'notebook',
+    foundingPriceId: 'price_1TjktC2NWfYbCZT8voGtwnOg',
+    retailPriceId: 'price_1To6Hr2NWfYbCZT86GlPe9PK',
+    foundingPriceCents: 1999,
+    retailPriceCents: 2499,
+  },
+];
 
-export const PREORDER_LOOKUP_KEYS = Object.keys(LOOKUP_KEY_TO_PRODUCT);
+// Future products (recorded, NOT wired into Phase 1):
+//   Seedlings Kit: founding price_1Tc7UU2NWfYbCZT8qS41OjNA / retail price_1To6LG2NWfYbCZT8O7XvFE9B
+//   Two-Kit Bundle: price_1Tc7YJ2NWfYbCZT8NUEbMmg8
 
-export function productForLookupKey(lookupKey: string | null | undefined): ProductRef | null {
-  if (!lookupKey) return null;
-  return LOOKUP_KEY_TO_PRODUCT[lookupKey] ?? null;
+export function preorderProductBySku(sku: string): PreorderProduct | undefined {
+  return PREORDER_PRODUCTS.find((p) => p.sku === sku);
+}
+
+/** Resolve a Stripe Price ID to { sku, isFounding } (used by reconcile / webhook fallback). */
+export function productForPriceId(priceId: string | null | undefined): { sku: string; isFounding: boolean } | null {
+  if (!priceId) return null;
+  for (const p of PREORDER_PRODUCTS) {
+    if (priceId === p.foundingPriceId) return { sku: p.sku, isFounding: true };
+    if (priceId === p.retailPriceId) return { sku: p.sku, isFounding: false };
+  }
+  return null;
 }

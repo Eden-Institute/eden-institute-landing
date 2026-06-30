@@ -26,18 +26,25 @@ export interface OrderRow {
 function errCode(err: any): string | undefined { return err?.code; }
 
 // ── Event-level idempotency gate ─────────────────────────────────────────────
-/** Insert the event id; returns alreadyProcessed=true if this Stripe event was seen before. */
-export async function recordEventOnce(
+/**
+ * Inserts the event as 'received'; returns proceed=false ONLY if it was already fully
+ * processed. An event that exists but is still 'received'/'error' (an in-flight or
+ * previously-failed attempt) is allowed to proceed, so a transient failure + Stripe retry is
+ * never permanently skipped. (A rare concurrent double-delivery is caught downstream by the
+ * order UNIQUE and the message_log partial-unique.)
+ */
+export async function claimStripeEvent(
   db: Db,
   event: { id: string; type: string; payload?: unknown },
-): Promise<{ alreadyProcessed: boolean }> {
+): Promise<{ proceed: boolean }> {
   const { error } = await db.from('stripe_events')
-    .insert({ event_id: event.id, type: event.type, payload: event.payload ?? null });
-  if (error) {
-    if (errCode(error) === '23505') return { alreadyProcessed: true };
-    throw error;
+    .insert({ event_id: event.id, type: event.type, payload: event.payload ?? null, status: 'received' });
+  if (!error) return { proceed: true };
+  if (errCode(error) === '23505') {
+    const { data } = await db.from('stripe_events').select('status').eq('event_id', event.id).maybeSingle();
+    return { proceed: data?.status !== 'processed' };
   }
-  return { alreadyProcessed: false };
+  throw error;
 }
 
 export async function markEventProcessed(db: Db, eventId: string): Promise<void> {

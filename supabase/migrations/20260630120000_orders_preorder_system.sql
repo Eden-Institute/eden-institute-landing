@@ -53,12 +53,12 @@ create table public.products (
   -- Founding price is limited by quantity and/or time. When BOTH limits are null it is
   -- open-ended; checkout falls back to the retail price once a limit is reached.
   founding_qty_limit          integer check (founding_qty_limit is null or founding_qty_limit > 0), -- e.g. 500 kits; null = uncapped
-  founding_until              date,                 -- e.g. notebook founding-window end; null = no time limit
+  founding_until              date,                 -- optional time-bound founding window; null = none
   is_preorder                 boolean not null default true,
   ships_on                    date,
   active                      boolean not null default true,
-  stripe_founding_lookup_key  text,                 -- Stripe Price carrying the founding amount
-  stripe_retail_lookup_key    text,                 -- Stripe Price carrying the retail amount
+  stripe_founding_price_id    text,                 -- Stripe Price ID for the founding amount
+  stripe_retail_price_id      text,                 -- Stripe Price ID for the retail amount
   created_at                  timestamptz not null default now(),
   updated_at                  timestamptz not null default now()
 );
