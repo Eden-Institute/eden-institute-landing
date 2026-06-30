@@ -68,3 +68,6 @@ verify_jwt = false
 # (HMAC over the raw body), not a Supabase JWT.
 [functions.learnworlds-webhook]
 verify_jwt = false
+
+[functions.founders-lock]
+verify_jwt = false
