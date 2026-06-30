@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reserve your founder's price &middot; The Eden Institute</title>
+<style>
+  body{margin:0;background:#EFE9DA;font-family:Georgia,'Times New Roman',serif;color:#3D3832;}
+  .wrap{max-width:540px;margin:36px auto;background:#F7F2E8;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  .hdr{background:#2C3E2D;padding:24px;text-align:center;}
+  .hdr .mark{color:#C5A44E;font-size:20px;letter-spacing:2px;}
+  .body{padding:30px 28px;}
+  h1{font-size:23px;color:#1C3A2E;margin:0 0 10px;}
+  p.lead{font-size:15px;line-height:1.7;margin:0 0 20px;}
+  label{display:block;font-size:13px;margin:0 0 4px;}
+  input[type=email],input[type=text],input[type=tel]{width:100%;box-sizing:border-box;padding:12px;border:1px solid #D9CFB8;border-radius:8px;font-size:15px;font-family:inherit;margin:0 0 14px;}
+  input[disabled]{background:#EEE7D6;color:#6b665a;}
+  .consent{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.5;margin:2px 0 18px;}
+  .consent input{margin-top:3px;}
+  button{width:100%;background:#C5A44E;color:#2C3E2D;font-family:inherit;font-size:16px;font-weight:bold;border:none;padding:15px;border-radius:8px;cursor:pointer;}
+  button:disabled{opacity:.6;cursor:default;}
+  .err{color:#993C1D;font-size:14px;margin:0 0 12px;}
+  .done{text-align:center;}
+  .done .gem{font-size:40px;color:#C5A44E;}
+  a{color:#5C7A5C;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hdr"><div class="mark">THE EDEN INSTITUTE</div></div>
+  <div class="body" id="content">
+    <h1>Reserve your $249 founder's price</h1>
+    <p class="lead">You will be first to know when preorders open, by email and text, before we announce it anywhere else. Add your details to lock it in.</p>
+    <div class="err" id="err" style="display:none"></div>
+    <form id="f">
+      <label>Email</label>
+      <input type="email" id="email" disabled>
+      <label>Your name</label>
+      <input type="text" id="name" placeholder="First name" required>
+      <label>Mobile number (for preorder alerts)</label>
+      <input type="tel" id="phone" placeholder="(555) 123-4567" required>
+      <label class="consent"><input type="checkbox" id="consent" checked> <span>Yes, text me Sprouts preorder and founding-price alerts at this number. Message and data rates may apply; reply STOP to opt out anytime.</span></label>
+      <button type="submit" id="btn">Lock in my $249 founder's price</button>
+    </form>
+  </div>
+</div>
+<script>
+  var EF = 'https://noeqztssupewjidpvhar.supabase.co/functions/v1/founders-lock';
+  function qs(k){ return new URLSearchParams(location.search).get(k); }
+  var token = qs('t') || '';
+  function decode(t){ try { var p = t.split('.')[0].replace(/-/g,'+').replace(/_/g,'/'); return JSON.parse(decodeURIComponent(escape(atob(p)))); } catch(e){ return null; } }
+  function showErr(m){ var e = document.getElementById('err'); e.textContent = m; e.style.display = 'block'; }
+  var payload = decode(token);
+  if (payload && payload.e) document.getElementById('email').value = payload.e;
+  if (payload && payload.n) document.getElementById('name').value = payload.n;
+  if (!payload || !payload.e) { showErr('This link is missing or invalid. Please use the button in your email again.'); document.getElementById('btn').disabled = true; }
+  document.getElementById('f').addEventListener('submit', function(ev){
+    ev.preventDefault();
+    var name = document.getElementById('name').value.trim();
+    var phone = document.getElementById('phone').value.trim();
+    var consent = document.getElementById('consent').checked;
+    if (!name || !phone) { showErr('Please add your name and a mobile number.'); return; }
+    var btn = document.getElementById('btn'); btn.disabled = true; btn.textContent = 'Locking it in...';
+    fetch(EF, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ t: token, name: name, phone: phone, sms_consent: consent }) })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d && d.ok) {
+          document.getElementById('content').innerHTML =
+            '<div class="done"><div class="gem">&#9826;</div><h1>You’re locked in' + (d.name ? (', ' + d.name) : '') + '.</h1>' +
+            '<p class="lead">Your founding price of <strong>$249</strong> for the complete 36-week Sprouts kit is reserved, and you are on the first-access list. When preorders open, you will hear from us by email and text before we announce it anywhere else.</p>' +
+            '<p style="text-align:center"><a href="https://www.facebook.com/TheEdenInstituteBiblicalHerbalism">Follow along on Facebook</a></p>' +
+            '<p class="lead" style="text-align:center">Grace and health,<br><strong>Camila</strong></p></div>';
+        } else {
+          showErr('Something went wrong (' + ((d && d.error) || 'unknown') + '). Please try again, or reply to the email and we will lock it in by hand.');
+          btn.disabled = false; btn.textContent = 'Lock in my $249 founder’s price';
+        }
+      })
+      .catch(function(){ showErr('Network error. Please try again.'); btn.disabled = false; btn.textContent = 'Lock in my $249 founder’s price'; });
+  });
+</script>
+</body>
+</html>

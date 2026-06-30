@@ -74,7 +74,7 @@ async function verify(token: string): Promise<Record<string, unknown> | null> {
 }
 const formToken = (email: string, name: string, source: string) => sign({ e: email.trim().toLowerCase(), n: (name || '').trim(), c: source || 'sprouts_upgrade_email1' });
 const unsubToken = (email: string) => sign({ e: email.trim().toLowerCase(), l: 'homeschool' });
-const formUrl = (t: string) => `${SUPABASE_URL}/functions/v1/founders-lock?t=${encodeURIComponent(t)}`;
+const formUrl = (t: string) => `https://edeninstitute.health/sprouts-founders.html?t=${encodeURIComponent(t)}`;
 const unsubUrl = (t: string) => `${SUPABASE_URL}/functions/v1/unsubscribe?token=${encodeURIComponent(t)}`;
 
 // ── DB (direct connection via injected SUPABASE_DB_URL) ──
@@ -301,35 +301,45 @@ Deno.serve(async (req) => {
     return jsonRes(400, { error: 'unknown action' });
   }
 
-  // POST: form submission.
+  // POST: form submission from the hosted page (JSON), with a form-encoded fallback.
   if (req.method === 'POST') {
-    const form = await req.formData().catch(() => null);
-    const token = String(form?.get('t') ?? '');
+    let token = '', name = '', phoneRaw = '', consent = false;
+    const ct = req.headers.get('content-type') ?? '';
+    if (ct.includes('application/json')) {
+      const body = await req.json().catch(() => ({})) as Record<string, unknown>;
+      token = String(body.t ?? '');
+      name = String(body.name ?? '').trim();
+      phoneRaw = String(body.phone ?? '');
+      consent = body.sms_consent === true || body.sms_consent === 'yes';
+    } else {
+      const form = await req.formData().catch(() => null);
+      token = String(form?.get('t') ?? '');
+      name = String(form?.get('name') ?? '').trim();
+      phoneRaw = String(form?.get('phone') ?? '');
+      consent = String(form?.get('sms_consent') ?? '') === 'yes';
+    }
     const v = token ? await verify(token) : null;
-    if (!v || typeof v.e !== 'string') return htmlRes(400, shell('<p style="font-size:16px;color:#993C1D;">This link is invalid or expired. Please use the button in your email again.</p>'));
-    const email = v.e as string;
-    const source = (v.c as string) ?? 'sprouts_upgrade_email1';
-    const name = String(form?.get('name') ?? '').trim();
-    const phone = normalizePhone(String(form?.get('phone') ?? ''));
-    const consent = String(form?.get('sms_consent') ?? '') === 'yes';
-    if (!name || !phone) return htmlRes(200, formPage(email, name || (v.n as string ?? ''), token, 'Please add your name and a mobile number.'));
+    if (!v || typeof v.e !== 'string') return jsonRes(400, { ok: false, error: 'invalid_token' });
+    const phone = normalizePhone(phoneRaw);
+    if (!name || !phone) return jsonRes(400, { ok: false, error: 'missing_fields' });
     try {
-      await upsertInterest(email, name, phone, consent, source);
-      await addContact(email, name);
+      await upsertInterest(v.e as string, name, phone, consent, (v.c as string) ?? 'sprouts_upgrade_email1');
+      await addContact(v.e as string, name);
       if (consent && phone) {
         await sendSms(phone, "You're on the Sprouts founder's list. We'll text you the moment preorders open, before anyone else. Grace and health, Camila at The Eden Institute. Reply STOP to opt out.").catch(() => {});
       }
     } catch (err) {
       console.error('founders-lock submit failed:', String(err));
-      return htmlRes(500, shell('<p style="font-size:16px;color:#993C1D;">Something went wrong saving your spot. Please try again, or reply to the email and we will lock it in by hand.</p>'));
+      return jsonRes(500, { ok: false, error: 'save_failed' });
     }
-    return htmlRes(200, confirmationPage(name));
+    return jsonRes(200, { ok: true, name });
   }
 
-  // GET: render the form from the signed token.
+  // GET: redirect to the hosted form page. (The Supabase functions domain forces
+  // text/plain + nosniff, so the interactive form is served from edeninstitute.health.)
   const t = url.searchParams.get('t');
-  if (!t) return htmlRes(400, shell('<p style="font-size:16px;">This link is missing its token.</p>'));
-  const v = await verify(t);
-  if (!v || typeof v.e !== 'string') return htmlRes(400, shell('<p style="font-size:16px;color:#993C1D;">This link is invalid or expired.</p>'));
-  return htmlRes(200, formPage(v.e as string, (v.n as string) ?? '', t));
+  const dest = t
+    ? `https://edeninstitute.health/sprouts-founders.html?t=${encodeURIComponent(t)}`
+    : 'https://edeninstitute.health/sprouts-founders.html';
+  return new Response(null, { status: 302, headers: { ...CORS, Location: dest } });
 });
