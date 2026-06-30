@@ -147,16 +147,20 @@ function normalizePhone(raw: string): string {
   return d ? `+${d}` : '';
 }
 async function sendSms(toPhone: string, body: string): Promise<{ skipped?: boolean; status?: number }> {
-  const sid = Deno.env.get('TWILIO_ACCOUNT_SID');
-  const tok = Deno.env.get('TWILIO_AUTH_TOKEN');
+  const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+  const keySid = Deno.env.get('TWILIO_API_KEY_SID');       // SK... (preferred: a Standard API key)
+  const keySecret = Deno.env.get('TWILIO_API_KEY_SECRET');
+  const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');     // fallback if no API key
   const from = Deno.env.get('TWILIO_FROM');
   const msvc = Deno.env.get('TWILIO_MESSAGING_SERVICE_SID');
-  if (!sid || !tok || (!from && !msvc) || !toPhone) return { skipped: true };
+  const authUser = keySid || accountSid;
+  const authPass = keySecret || authToken;
+  if (!accountSid || !authUser || !authPass || (!from && !msvc) || !toPhone) return { skipped: true };
   const params = new URLSearchParams();
   params.set('To', toPhone);
   if (msvc) params.set('MessagingServiceSid', msvc); else params.set('From', from!);
   params.set('Body', body);
-  const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, { method: 'POST', headers: { Authorization: 'Basic ' + btoa(`${sid}:${tok}`), 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
+  const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, { method: 'POST', headers: { Authorization: 'Basic ' + btoa(`${authUser}:${authPass}`), 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
   return { status: r.status };
 }
 
@@ -261,7 +265,8 @@ Deno.serve(async (req) => {
     if (action === 'diag') {
       let dbOk = false, dbErr = '';
       try { await withDb(async (sql) => { await ensureTable(sql); await sql`SELECT 1`; }); dbOk = true; } catch (err) { dbErr = String(err); }
-      return jsonRes(200, { hasDbUrl: !!DB_URL, hasResend: !!RESEND_API_KEY, hasTwilio: !!(Deno.env.get('TWILIO_ACCOUNT_SID') && Deno.env.get('TWILIO_AUTH_TOKEN')), dbOk, dbErr });
+      const twKey = !!(Deno.env.get('TWILIO_ACCOUNT_SID') && (Deno.env.get('TWILIO_API_KEY_SID') || Deno.env.get('TWILIO_AUTH_TOKEN')) && (Deno.env.get('TWILIO_MESSAGING_SERVICE_SID') || Deno.env.get('TWILIO_FROM')));
+      return jsonRes(200, { hasDbUrl: !!DB_URL, hasResend: !!RESEND_API_KEY, hasTwilio: twKey, dbOk, dbErr });
     }
     if (action === 'signlink') return jsonRes(200, { url: formUrl(await formToken(e, n, c)) });
     if (action === 'testsend') {
@@ -297,6 +302,21 @@ Deno.serve(async (req) => {
         return { sent, failed, remaining: rem[0]?.n ?? 0 };
       });
       return jsonRes(200, out);
+    }
+    if (action === 'testsms') {
+      const to = normalizePhone(url.searchParams.get('to') ?? '');
+      if (!to) return jsonRes(400, { error: 'missing to (?to=+1...)' });
+      const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+      const authUser = Deno.env.get('TWILIO_API_KEY_SID') || accountSid;
+      const authPass = Deno.env.get('TWILIO_API_KEY_SECRET') || Deno.env.get('TWILIO_AUTH_TOKEN');
+      const from = Deno.env.get('TWILIO_FROM');
+      const msvc = Deno.env.get('TWILIO_MESSAGING_SERVICE_SID');
+      const params = new URLSearchParams();
+      params.set('To', to);
+      if (msvc) params.set('MessagingServiceSid', msvc); else if (from) params.set('From', from);
+      params.set('Body', "Eden Institute test: your Sprouts founder's text is wired up. Reply STOP to opt out.");
+      const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, { method: 'POST', headers: { Authorization: 'Basic ' + btoa(`${authUser}:${authPass}`), 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
+      return jsonRes(r.status, { usedSender: msvc ? `MessagingService ${msvc}` : (from ? `From ${from}` : 'NONE'), twilio: await r.json().catch(() => ({})) });
     }
     return jsonRes(400, { error: 'unknown action' });
   }
