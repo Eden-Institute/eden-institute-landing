@@ -201,9 +201,11 @@ export function useTierAwareCTA(): TierAwareCTAs {
   const { tier } = useApothecaryHerbs();
 
   const slug = pattern ? patternNameToSlug(pattern) : null;
+  // A stored verified Stripe session id (set by the /guide page after purchase)
+  // marks this pattern's guide as owned, so we suppress the buy CTA.
   const guidePurchased =
     typeof window !== "undefined" && slug
-      ? window.localStorage.getItem(`guide_purchased_${slug}`) === "true"
+      ? !!window.localStorage.getItem(`guide_session_${slug}`)
       : false;
   const amazonKitUrl = getAmazonKitUrl(pattern ?? null);
 

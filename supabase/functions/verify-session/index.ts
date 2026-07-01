@@ -27,6 +27,7 @@
 // record-quiz-completion.
 
 import Stripe from "https://esm.sh/stripe@14?target=deno";
+import { getGuideByNickname, getGuideBySlug } from "../_shared/guide/registry.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,39 +42,17 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { session_id, check_slug } = body;
+    const { session_id } = body;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    // --- Path B: Check prior purchase by slug ---
-    if (check_slug && !session_id) {
-      if (!supabaseUrl || !serviceRoleKey) {
-        return new Response(
-          JSON.stringify({ paid: false }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-        );
-      }
+    // Access to the guide is proven by a paid Stripe session_id (verified below),
+    // stored client-side and re-verified on return visits. The former slug-only
+    // "has anyone bought this type?" path was removed — it granted access
+    // catalog-wide once a single purchase existed for a constitution type.
 
-      const res = await fetch(
-        `${supabaseUrl}/rest/v1/quiz_completions?constitution_type=eq.${encodeURIComponent(check_slug)}&purchased_guide=eq.true&limit=1&select=id`,
-        {
-          headers: {
-            apikey: serviceRoleKey,
-            Authorization: `Bearer ${serviceRoleKey}`,
-          },
-        }
-      );
-      const rows = await res.json();
-      const hasPurchased = Array.isArray(rows) && rows.length > 0;
-
-      return new Response(
-        JSON.stringify({ paid: hasPurchased }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-      );
-    }
-
-    // --- Path A: Verify Stripe session_id ---
+    // --- Verify Stripe session_id ---
     if (!session_id) {
       return new Response(
         JSON.stringify({ error: "Missing session_id" }),
@@ -150,13 +129,21 @@ Deno.serve(async (req) => {
       console.error("Resend update failed (non-blocking):", resendErr);
     }
 
+    // Return the full guide content ONLY for a verified paid one-off purchase.
+    // This is the sole delivery path to the /guide page — the content is not in
+    // the client bundle, so a valid paid Stripe session is required to read it.
+    const guide = isOneOffPurchase
+      ? (getGuideByNickname(constitution_nickname) ?? getGuideBySlug(slug))
+      : null;
+
     return new Response(
-      JSON.stringify({ paid: true, constitution_type, constitution_nickname, slug, mode: session.mode }),
+      JSON.stringify({ paid: true, constitution_type, constitution_nickname, slug, mode: session.mode, guide }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   } catch (error) {
     console.error("Verify session error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const message = error instanceof Error ? error.message : String(error);
+    return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

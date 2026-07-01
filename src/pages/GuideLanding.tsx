@@ -1,7 +1,7 @@
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { constitutionProfiles } from "@/lib/constitution-data";
-import { getFullGuide } from "@/lib/guide-registry";
+import type { FullGuideContent } from "@/lib/guide-types";
 import GuideTemplate from "@/components/guide/GuideTemplate";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,9 @@ const GuideLanding = () => {
   const [paid, setPaid] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState("");
+  // Guide content is fetched from the server after a paid session is verified —
+  // it is no longer bundled into the client, so it cannot be read for free.
+  const [guide, setGuide] = useState<FullGuideContent | null>(null);
 
   const constitutionType = constitutionSlug ? slugToType[constitutionSlug] : null;
   const profile = constitutionType ? constitutionProfiles[constitutionType] : null;
@@ -44,7 +47,10 @@ const GuideLanding = () => {
         if (fnError) throw fnError;
         if (data?.paid) {
           setPaid(true);
-          localStorage.setItem(`guide_purchased_${constitutionSlug}`, "true");
+          if (data.guide) setGuide(data.guide as FullGuideContent);
+          // Persist the verified session id (not a spoofable boolean) so return
+          // visits can re-verify against Stripe and re-fetch the guide.
+          localStorage.setItem(`guide_session_${constitutionSlug}`, sessionId);
         }
       } catch (err) {
         console.error("Payment verification failed:", err);
@@ -61,20 +67,22 @@ const GuideLanding = () => {
     if (sessionId) return;
 
     const checkPriorPurchase = async () => {
-      if (localStorage.getItem(`guide_purchased_${constitutionSlug}`) === "true") {
-        setPaid(true);
-        return;
-      }
+      const storedSession = localStorage.getItem(`guide_session_${constitutionSlug}`);
+      if (!storedSession) return;
+      setVerifying(true);
       try {
         const { data, error: fnError } = await supabase.functions.invoke("verify-session", {
-          body: { check_slug: constitutionSlug },
+          body: { session_id: storedSession },
         });
         if (fnError) throw fnError;
         if (data?.paid) {
           setPaid(true);
+          if (data.guide) setGuide(data.guide as FullGuideContent);
         }
       } catch (err) {
         console.error('Prior purchase check failed:', err);
+      } finally {
+        setVerifying(false);
       }
     };
     checkPriorPurchase();
@@ -109,17 +117,14 @@ const GuideLanding = () => {
     );
   }
 
-  // If paid, render the full guide
-  if (paid) {
-    const fullGuide = getFullGuide(profile.nickname);
-    if (fullGuide) {
-      return (
-        <>
-          <Navbar />
-          <GuideTemplate guide={fullGuide} />
-        </>
-      );
-    }
+  // If paid, render the full guide (fetched from the server, not the bundle).
+  if (paid && guide) {
+    return (
+      <>
+        <Navbar />
+        <GuideTemplate guide={guide} />
+      </>
+    );
   }
 
   // Otherwise show the sales/upsell page
