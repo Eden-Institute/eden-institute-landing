@@ -139,6 +139,7 @@ const Index = () => {
           : null;
       if (stored) setPatternSlug(stored);
     } catch {
+      // localStorage unavailable (e.g. private mode) — non-fatal
     }
   }, []);
 
