@@ -1,11 +1,11 @@
 ---
-// /homeschool/herbs — Eden's Table herb sourcing page for parents.
+// /homeschool/herbs - Eden's Table herb sourcing page for parents.
 // Static, pre-rendered marketing page: parents order every herb used across the
-// curriculum programs from one place. This batch is the 36 Sprouts-tier herbs —
-// 33 link to the Mountain Rose Herbs affiliate program (AspireIQ short links),
-// 3 link to Amazon (herbs MRH does not stock in dried tea form). The 36 Seedlings
-// herbs drop into the SAME `herbs` array (with a `programs` override) once their
-// affiliate links exist. Conventions mirror community.astro.
+// curriculum programs from one place. Two batches: the 36 Sprouts-tier herbs
+// (Grades K-2, curriculum/week order) and the 36 Seedlings-tier herbs (Grades
+// 3-5, alphabetical). Most link to the Mountain Rose Herbs affiliate program
+// (AspireIQ short links); 3 Sprouts herbs link to Amazon (not stocked by MRH in
+// dried tea form). Conventions mirror community.astro.
 import MarketingLayout from "../../layouts/MarketingLayout.astro";
 import { Button } from "@/components/ui/button";
 import { Leaf, ShoppingCart } from "lucide-react";
@@ -13,7 +13,7 @@ import { Leaf, ShoppingCart } from "lucide-react";
 const meta = {
   title: "Order Your Curriculum Herbs | Eden's Table",
   description:
-    "Source every herb used across the Eden's Table biblical herbalism curriculum. Shop the Sprouts herb list through our Mountain Rose Herbs and Amazon affiliate links.",
+    "Source every herb used across the Eden's Table biblical herbalism curriculum. Shop the Sprouts and Seedlings herb lists through our Mountain Rose Herbs and Amazon affiliate links.",
   canonical: "https://edeninstitute.health/homeschool/herbs",
 };
 
@@ -23,6 +23,7 @@ const BULK_HREF = "https://get.aspr.app/SH1p9w";
 // Every herb below is a Sprouts-tier herb, revisited in greater depth in
 // Cultivators (middle school) and a different way in Practitioners (high school).
 const SPROUTS_PROGRAMS = ["Sprouts", "Cultivators", "Practitioners"];
+const SEEDLINGS_PROGRAMS = ["Seedlings", "Cultivators", "Practitioners"];
 
 type Source = "mrh" | "amazon";
 interface Herb {
@@ -37,7 +38,7 @@ const sourceLabel: Record<Source, string> = {
 };
 
 // 36 Sprouts herbs in curriculum (week) order.
-const herbs: Herb[] = [
+const sproutsHerbs: Herb[] = [
   { name: "Lavender", href: "https://get.aspr.app/SH1pA7", source: "mrh" },
   { name: "Chamomile", href: "https://get.aspr.app/SH1pA8", source: "mrh" },
   { name: "Lemon Balm", href: "https://get.aspr.app/SH1pA9", source: "mrh" },
@@ -75,6 +76,52 @@ const herbs: Herb[] = [
   { name: "Rose Hips", href: "https://get.aspr.app/SH1pAf", source: "mrh" },
   { name: "Corn Silk", href: "https://amzn.to/4xNqFnL", source: "amazon" },
 ];
+
+// 36 Seedlings herbs (Grades 3-5), alphabetical. All via Mountain Rose Herbs.
+const seedlingsHerbs: Herb[] = [
+  { name: "Ashwagandha", href: "https://get.aspr.app/SH1pnn", source: "mrh" },
+  { name: "Astragalus", href: "https://get.aspr.app/SH1pnR", source: "mrh" },
+  { name: "Bilberry", href: "https://get.aspr.app/SH1pnt", source: "mrh" },
+  { name: "Blue Vervain", href: "https://get.aspr.app/SH1pno", source: "mrh" },
+  { name: "Boneset", href: "https://get.aspr.app/SH1pnZ", source: "mrh" },
+  { name: "California Poppy", href: "https://get.aspr.app/SH1pnq", source: "mrh" },
+  { name: "Cardamom", href: "https://get.aspr.app/SH1pna", source: "mrh" },
+  { name: "Chickweed", href: "https://get.aspr.app/SH1pnu", source: "mrh" },
+  { name: "Cleavers", href: "https://get.aspr.app/SH1pni", source: "mrh" },
+  { name: "Comfrey", href: "https://get.aspr.app/SH1pns", source: "mrh" },
+  { name: "Cramp Bark", href: "https://get.aspr.app/SH1pnv", source: "mrh" },
+  { name: "Echinacea", href: "https://get.aspr.app/SH1pnS", source: "mrh" },
+  { name: "Elderberry", href: "https://get.aspr.app/SH1pnO", source: "mrh" },
+  { name: "Elecampane", href: "https://get.aspr.app/SH1pnY", source: "mrh" },
+  { name: "Eleuthero", href: "https://get.aspr.app/SH1pnr", source: "mrh" },
+  { name: "Gentian", href: "https://get.aspr.app/SH1pnj", source: "mrh" },
+  { name: "Ginger", href: "https://get.aspr.app/SH1pnQ", source: "mrh" },
+  { name: "Goldenrod", href: "https://get.aspr.app/SH1pnU", source: "mrh" },
+  { name: "Lemon Verbena", href: "https://get.aspr.app/SH1pnf", source: "mrh" },
+  { name: "Licorice", href: "https://get.aspr.app/SH1pnd", source: "mrh" },
+  { name: "Meadowsweet", href: "https://get.aspr.app/SH1pnX", source: "mrh" },
+  { name: "Motherwort", href: "https://get.aspr.app/SH1pnb", source: "mrh" },
+  { name: "Passionflower", href: "https://get.aspr.app/SH1pnm", source: "mrh" },
+  { name: "Red Clover", href: "https://get.aspr.app/SH1png", source: "mrh" },
+  { name: "Reishi", href: "https://get.aspr.app/SH1pnT", source: "mrh" },
+  { name: "Sage", href: "https://get.aspr.app/SH1pnV", source: "mrh" },
+  { name: "Schisandra", href: "https://get.aspr.app/SH1pnp", source: "mrh" },
+  { name: "Self-Heal", href: "https://get.aspr.app/SH1pnx", source: "mrh" },
+  { name: "Skullcap", href: "https://get.aspr.app/SH1pnh", source: "mrh" },
+  { name: "St. John's Wort", href: "https://get.aspr.app/SH1pnl", source: "mrh" },
+  { name: "Sweet Violet", href: "https://get.aspr.app/SH1pnk", source: "mrh" },
+  { name: "Tulsi (Holy Basil)", href: "https://get.aspr.app/SH1pnP", source: "mrh" },
+  { name: "Valerian", href: "https://get.aspr.app/SH1pne", source: "mrh" },
+  { name: "Wild Cherry Bark", href: "https://get.aspr.app/SH1pnw", source: "mrh" },
+  { name: "Willow Bark", href: "https://get.aspr.app/SH1pnW", source: "mrh" },
+  { name: "Yellow Dock", href: "https://get.aspr.app/SH1pnc", source: "mrh" },
+];
+
+// Rendered as two labeled grids, in curriculum order.
+const herbGroups = [
+  { title: "Sprouts Herbs", subtitle: "Grades K-2 · 36 herbs", programs: SPROUTS_PROGRAMS, herbs: sproutsHerbs },
+  { title: "Seedlings Herbs", subtitle: "Grades 3-5 · 36 herbs", programs: SEEDLINGS_PROGRAMS, herbs: seedlingsHerbs },
+];
 ---
 
 <MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical}>
@@ -99,49 +146,57 @@ const herbs: Herb[] = [
         </Button>
       </a>
       <p class="font-body text-sm text-muted-foreground mt-6">
-        Currently showing the <strong>Sprouts</strong> herb list (36 herbs). Seedlings herbs are coming soon.
+        Showing the <strong>Sprouts</strong> (Grades K-2) and <strong>Seedlings</strong> (Grades 3-5) herb lists, 72 herbs in all.
       </p>
     </div>
   </section>
 
-  <!-- Herb grid -->
+  <!-- Herb grids: Sprouts (week order) + Seedlings (alphabetical) -->
   <section class="py-16 px-6 bg-background">
-    <div class="max-w-6xl mx-auto">
-      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {herbs.map((herb) => (
-          <div
-            class="rounded-lg p-6 border flex flex-col"
-            style="border-color:hsl(var(--border));background-color:hsl(var(--eden-cream) / 0.4)"
-          >
-            <div class="flex items-start gap-3 mb-4">
-              <Leaf className="w-6 h-6 shrink-0 mt-0.5" color="hsl(var(--eden-gold))" />
-              <div>
-                <h2 class="font-serif text-lg font-semibold leading-snug" style="color:hsl(var(--eden-bark))">
-                  {herb.name}
-                </h2>
-                <p class="font-body text-xs text-muted-foreground mt-1">via {sourceLabel[herb.source]}</p>
-              </div>
-            </div>
-            <div class="flex flex-wrap gap-2 mb-5">
-              {SPROUTS_PROGRAMS.map((program) => (
-                <span
-                  class="font-body text-[11px] tracking-wide uppercase px-2.5 py-1 rounded-full border"
-                  style="border-color:hsl(var(--eden-gold) / 0.4);color:hsl(var(--eden-forest));background-color:hsl(var(--eden-gold) / 0.08)"
-                >{program}</span>
-              ))}
-            </div>
-            <a
-              href={herb.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="mt-auto block"
-              aria-label={`Order ${herb.name} from ${sourceLabel[herb.source]}`}
-            >
-              <Button variant="eden" className="w-full">Order Now</Button>
-            </a>
+    <div class="max-w-6xl mx-auto space-y-16">
+      {herbGroups.map((group) => (
+        <div>
+          <div class="text-center mb-10">
+            <h2 class="font-serif text-3xl font-bold" style="color:hsl(var(--eden-bark))">{group.title}</h2>
+            <p class="font-body text-sm text-muted-foreground mt-2">{group.subtitle}</p>
           </div>
-        ))}
-      </div>
+          <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {group.herbs.map((herb) => (
+              <div
+                class="rounded-lg p-6 border flex flex-col"
+                style="border-color:hsl(var(--border));background-color:hsl(var(--eden-cream) / 0.4)"
+              >
+                <div class="flex items-start gap-3 mb-4">
+                  <Leaf className="w-6 h-6 shrink-0 mt-0.5" color="hsl(var(--eden-gold))" />
+                  <div>
+                    <h2 class="font-serif text-lg font-semibold leading-snug" style="color:hsl(var(--eden-bark))">
+                      {herb.name}
+                    </h2>
+                    <p class="font-body text-xs text-muted-foreground mt-1">via {sourceLabel[herb.source]}</p>
+                  </div>
+                </div>
+                <div class="flex flex-wrap gap-2 mb-5">
+                  {group.programs.map((program) => (
+                    <span
+                      class="font-body text-[11px] tracking-wide uppercase px-2.5 py-1 rounded-full border"
+                      style="border-color:hsl(var(--eden-gold) / 0.4);color:hsl(var(--eden-forest));background-color:hsl(var(--eden-gold) / 0.08)"
+                    >{program}</span>
+                  ))}
+                </div>
+                <a
+                  href={herb.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="mt-auto block"
+                  aria-label={`Order ${herb.name} from ${sourceLabel[herb.source]}`}
+                >
+                  <Button variant="eden" className="w-full">Order Now</Button>
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   </section>
 
