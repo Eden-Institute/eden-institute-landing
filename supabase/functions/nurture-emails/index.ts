@@ -54,6 +54,7 @@ import {
   buildMagnetWeek7Email,
 } from '../_shared/homeschool-followup-templates.ts';
 import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
+import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -619,6 +620,9 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Internal cron worker: only the service role (via the Vercel cron) may invoke.
+  if (!isServiceRoleRequest(req)) return serviceRoleRequired(corsHeaders);
 
   try {
     if (!RESEND_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {

@@ -38,6 +38,8 @@
 //   - On non-2xx (other): increment retry_count, record last_retry_status
 //     + body. Row stays unresolved — next cron tick retries.
 
+import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
+
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
@@ -226,9 +228,10 @@ Deno.serve(async (req) => {
     });
   }
 
-  // v3: no inbound auth check. Trust posture documented at top of file.
-  // The Vercel Edge fn at /api/cron/replay-quiz-failures still enforces
-  // CRON_SECRET on its inbound side; this EF is downstream of that gate.
+  // Internal cron worker: only the service role (via the Vercel cron) may invoke.
+  // Runs at verify_jwt=true, so the gateway has validated the JWT signature; we
+  // additionally require role=service_role so the public anon key cannot trigger it.
+  if (!isServiceRoleRequest(req)) return serviceRoleRequired();
 
   const result: DrainResult = { processed: 0, resolved: 0, still_failing: 0, errors: [] };
 

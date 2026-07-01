@@ -114,6 +114,26 @@ const PRICE_ID_OVERRIDES: Record<string, string> = {
 // of shipping_rate_data (inline) below.
 const STANDARD_SHIPPING_CENTS = 1200
 
+/**
+ * Only accept caller-supplied success_url / cancel_url values on our production
+ * origin, so a checkout session cannot redirect the payer to an attacker host.
+ * The Stripe {CHECKOUT_SESSION_ID} placeholder in the query is fine — the URL
+ * parser keeps the hostname intact.
+ */
+function isSafeReturnUrl(url: unknown): url is string {
+  if (typeof url !== "string" || url.length === 0) return false
+  try {
+    const parsed = new URL(url)
+    if (parsed.protocol !== "https:") return false
+    return (
+      parsed.hostname === "edeninstitute.health" ||
+      parsed.hostname === "www.edeninstitute.health"
+    )
+  } catch {
+    return false
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders })
@@ -324,8 +344,12 @@ serve(async (req) => {
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode,
       line_items: [{ price: price.id, quantity: 1 }],
-      success_url: success_url || defaultSuccessUrl,
-      cancel_url: cancel_url || defaultCancelUrl,
+      // Only honor caller-supplied redirect URLs on our own origin — otherwise
+      // fall back to the safe default. An unvalidated success_url would let an
+      // attacker mint an Eden-branded Checkout session that redirects the payer
+      // to an arbitrary host after payment.
+      success_url: isSafeReturnUrl(success_url) ? success_url : defaultSuccessUrl,
+      cancel_url: isSafeReturnUrl(cancel_url) ? cancel_url : defaultCancelUrl,
       allow_promotion_codes: true,
     }
 
