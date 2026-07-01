@@ -38,6 +38,7 @@ const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET")!
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 
 // Admin client — webhook has no user context, so we use the service role key
 // to write freely to `profiles`, `quiz_completions`, and `homeschool_orders`
@@ -77,7 +78,11 @@ async function sendGuidePdf(email: string, constitutionType: string | null): Pro
       return
     }
     const pdfType = constitutionType || "frozen-knot"  // the 8-pattern slug; constitution-pdf renders it
-    const pdfRes = await fetch(`${SUPABASE_URL}/functions/v1/constitution-pdf?type=${encodeURIComponent(pdfType)}`)
+    // constitution-pdf now requires the service role (it serves the paid guide);
+    // authenticate this server-to-server fetch with the service-role key.
+    const pdfRes = await fetch(`${SUPABASE_URL}/functions/v1/constitution-pdf?type=${encodeURIComponent(pdfType)}`, {
+      headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+    })
     if (!pdfRes.ok) {
       console.error("sendGuidePdf: constitution-pdf failed", pdfRes.status)
       return

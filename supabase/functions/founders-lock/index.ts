@@ -73,6 +73,12 @@ async function verify(token: string): Promise<Record<string, unknown> | null> {
     return diff === 0 ? JSON.parse(payload) : null;
   } catch { return null; }
 }
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
 const formToken = (email: string, name: string, source: string) => sign({ e: email.trim().toLowerCase(), n: (name || '').trim(), c: source || 'sprouts_upgrade_email1' });
 const unsubToken = (email: string) => sign({ e: email.trim().toLowerCase(), l: 'homeschool' });
 const formUrl = (t: string) => `https://edeninstitute.health/sprouts-founders.html?t=${encodeURIComponent(t)}`;
@@ -252,10 +258,13 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   const url = new URL(req.url);
 
-  // Admin (e2e) routes.
-  const admin = url.searchParams.get('admin');
+  // Admin (e2e) routes. The admin token is read from the x-admin-token header
+  // (not the query string, which leaks into access logs / browser history /
+  // Referer) and compared in constant time. Invoke with, e.g.:
+  //   curl -H "x-admin-token: $TOKEN" ".../founders-lock?action=diag"
+  const admin = req.headers.get('x-admin-token');
   if (admin) {
-    if (!ADMIN_TOKEN || admin !== ADMIN_TOKEN) return jsonRes(401, { error: 'unauthorized' });
+    if (!ADMIN_TOKEN || !timingSafeEqual(admin, ADMIN_TOKEN)) return jsonRes(401, { error: 'unauthorized' });
     const action = url.searchParams.get('action');
     const e = url.searchParams.get('e') ?? url.searchParams.get('to') ?? '';
     const n = url.searchParams.get('n') ?? 'friend';
@@ -290,7 +299,7 @@ Deno.serve(async (req) => {
         await ensureSendLog(sql);
         const rows = await sql`SELECT email, first_name FROM public.waitlist_signups w WHERE entry_funnel='edens_table' AND source=${src} AND unsubscribed_at IS NULL AND lower(email) NOT IN (SELECT lower(email) FROM public.email_list_unsubscribes WHERE list='homeschool') AND lower(email) NOT IN (SELECT lower(email) FROM public.founders_send_log WHERE campaign=${CAMPAIGN}) ORDER BY created_at ASC LIMIT ${batch}`;
         let sent = 0, failed = 0;
-        for (const row of rows as { email: string; first_name: string | null }[]) {
+        for (const row of rows as unknown as { email: string; first_name: string | null }[]) {
           const ok = await sendOne(row.email, row.first_name ?? '');
           if (ok) { await sql`INSERT INTO public.founders_send_log (campaign, email) VALUES (${CAMPAIGN}, ${row.email}) ON CONFLICT DO NOTHING`; sent++; } else failed++;
           await sleep(150);

@@ -37,8 +37,11 @@ verify_jwt = false
 [functions.submit-partner-inquiry]
 verify_jwt = false
 
+# constitution-pdf renders the PAID Deep-Dive Guide. It is fetched server-side by
+# stripe-webhook (service role) on purchase, and the function additionally requires
+# role=service_role. verify_jwt MUST stay true so that claim check cannot be forged.
 [functions.constitution-pdf]
-verify_jwt = false
+verify_jwt = true
 
 [functions.practitioner-waitlist-signup]
 verify_jwt = false
@@ -71,3 +74,22 @@ verify_jwt = false
 
 [functions.founders-lock]
 verify_jwt = false
+
+# --- Category 3: Internal cron workers ---
+#
+# Invoked only server-to-server by the Vercel crons (api/cron/*) with the
+# service-role key. They each additionally require role=service_role in the
+# inbound JWT (via _shared/require-service-role.ts) so the public anon key
+# cannot trigger them. verify_jwt MUST stay true so the gateway validates the
+# signature and the role claim cannot be forged.
+[functions.notify-founder-digest]
+verify_jwt = true
+
+[functions.nurture-emails]
+verify_jwt = true
+
+[functions.weekly-trends-digest]
+verify_jwt = true
+
+[functions.replay-quiz-completion-failures]
+verify_jwt = true

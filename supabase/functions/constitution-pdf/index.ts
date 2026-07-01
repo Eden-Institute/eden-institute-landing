@@ -23,6 +23,7 @@ import { overflowingCupGuide } from "./guide-content-overflowing-cup.ts";
 import { pressureCookerGuide } from "./guide-content-pressure-cooker.ts";
 import { spentCandleGuide } from "./guide-content-spent-candle.ts";
 import { stillWaterGuide } from "./guide-content-still-water.ts";
+import { isServiceRoleRequest, serviceRoleRequired } from "../_shared/require-service-role.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -185,6 +186,11 @@ async function renderFullGuide(content: FullGuideContent): Promise<Uint8Array> {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  // This EF renders the PAID Deep-Dive Guide. It is fetched server-side by the
+  // stripe-webhook (service role) on purchase — never by the public. Require the
+  // service role so the paid PDF cannot be pulled directly. verify_jwt=true is
+  // locked in config.toml so this claim check cannot be forged.
+  if (!isServiceRoleRequest(req)) return serviceRoleRequired(corsHeaders);
   try {
     const url = new URL(req.url);
     const raw = (url.searchParams.get("type") || "").toLowerCase().trim();
