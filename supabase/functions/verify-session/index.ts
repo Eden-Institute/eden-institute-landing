@@ -1,12 +1,13 @@
 // supabase/functions/verify-session/index.ts
 // Eden Apothecary — post-checkout session verification
 //
-// Two paths:
-//   Path A: caller passes session_id → verify Stripe session, return paid status
-//           and (for one-off Deep-Dive Guide purchases) flip
-//           quiz_completions.purchased_guide=TRUE for the email.
-//   Path B: caller passes check_slug → quick "has this email already bought
-//           this slug's guide?" lookup against quiz_completions.purchased_guide.
+// Flow: the caller passes a Stripe session_id (from the post-checkout redirect,
+// stored client-side and re-sent on return visits). We verify the session with
+// Stripe and, for a paid one-off Deep-Dive Guide purchase, flip
+// quiz_completions.purchased_guide=TRUE for the email and return the guide
+// content so the /guide page can render it. The guide text lives only
+// server-side (_shared/guide) — it is not shipped in the client bundle, so a
+// verified paid session is the sole way to obtain it.
 //
 // PRODUCT-AWARE FILTER (Phase 5 fix #4 / launch-blocker #58):
 //   The legacy implementation flipped purchased_guide=TRUE for ANY paid
