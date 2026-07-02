@@ -12,6 +12,8 @@
 //
 // Prices shown here are display copy; the ONLY billing truth is the Stripe Price
 // the create-checkout EF selects (founding vs retail off the 500-kit gate).
+// Shipping display copy ($12 flat) must stay in sync with
+// PREORDER_FLAT_SHIPPING_CENTS in supabase/functions/_shared/order-config.ts.
 
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -153,7 +155,7 @@ export default function PreorderBuyBox() {
         </div>
       )}
 
-      <div className="grid md:grid-cols-2 gap-6 mb-8 max-w-4xl mx-auto">
+      <div className="grid md:grid-cols-2 gap-6 mb-4 max-w-4xl mx-auto">
         {PRODUCTS.map((p) => (
           <div
             key={p.sku}
@@ -194,6 +196,11 @@ export default function PreorderBuyBox() {
           </div>
         ))}
       </div>
+
+      {/* Shipping + tax disclosure BEFORE redirect. $12 mirrors PREORDER_FLAT_SHIPPING_CENTS. */}
+      <p className="font-body text-sm text-muted-foreground text-center mb-8">
+        Shipping is a flat $12 per order, and any sales tax is calculated at checkout.
+      </p>
 
       {error && (
         <div className="max-w-2xl mx-auto mb-6 rounded-lg border border-destructive/40 bg-destructive/5 p-4">

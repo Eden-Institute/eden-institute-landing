@@ -10,6 +10,7 @@
 //   - founding-preorder framing ($100-off claim on the KIT only)
 //   - estimated ship window, stated as an estimate, BEFORE redirect to Stripe
 //   - card charged today + notify-and-refund right if we cannot ship in window
+//   - flat $12 shipping disclosed before redirect (PREORDER_FLAT_SHIPPING_CENTS)
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 import PreorderBuyBox from "../components/islands/PreorderBuyBox.tsx";
 
@@ -73,8 +74,9 @@ const meta = {
         <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
           <p class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">Your card is charged today.</p>
           <p class="font-body text-sm text-muted-foreground leading-relaxed">
-            If we cannot ship within the estimated window, we will notify you, and you may request
-            a full refund at any point before your order ships.
+            Your checkout total includes a flat $12 shipping charge and any sales tax. If we
+            cannot ship within the estimated window, we will notify you, and you may request a
+            full refund at any point before your order ships.
           </p>
         </div>
       </div>
