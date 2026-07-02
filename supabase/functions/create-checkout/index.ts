@@ -1,7 +1,7 @@
 // supabase/functions/create-checkout/index.ts
 // Eden Apothecary — Stripe Checkout session creator
 //
-// Dispatches between THREE product classes:
+// Dispatches between FOUR product classes:
 //   1. Subscription products (Seed/Root/Practitioner monthly+yearly) —
 //      mode="subscription", REQUIRES authenticated Supabase user (JWT in
 //      Authorization header). The created Stripe Customer is tied to the
@@ -15,6 +15,13 @@
 //      mode="payment", auth OPTIONAL for non-restricted, REQUIRED for
 //      bundle-restricted (nb_addon). Shipping address always collected;
 //      shipping rates vary by lookup_key.
+//   4. FOUNDING PREORDERS (preorder system Phase 1: sprouts_kit,
+//      sprouts_notebook) — mode="payment", anonymous, requested via
+//      `preorder_sku` (NOT lookup_key, so it can never collide with the
+//      legacy dispatch above). Dark-launch gated by PREORDERS_LIVE;
+//      Stripe Tax enabled; founding-vs-retail price selected off the
+//      500-kit founding gate; sms_consent captured from an explicit
+//      unchecked checkbox on /preorder and stamped into session metadata.
 //
 // Bundle-restricted gating: nb_addon ($39 Add-on Student Notebook) requires
 // the calling user to be a Two-Band Bundle buyer. Enforced by:
@@ -31,6 +38,8 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { FOUNDING_GATE_SKU, FOUNDING_GATE_LIMIT, preorderProductBySku } from "../_shared/order-config.ts"
+import { countFoundingSold } from "../_shared/order-db.ts"
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2024-12-18.acacia",
@@ -39,7 +48,7 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-preorder-admin",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 }
 
@@ -134,6 +143,14 @@ serve(async (req) => {
       constitution_nickname,
       email: bodyEmail,
     } = body
+
+    // 1b. Founding-preorder branch (preorder system Phase 1). Distinct request
+    //     shape: { preorder_sku, sms_consent, success_url?, cancel_url?, email? }.
+    //     Uses preorder_sku (never lookup_key) so it cannot collide with the
+    //     legacy homeschool/guide/subscription dispatch below.
+    if (typeof body.preorder_sku === "string" && body.preorder_sku) {
+      return await handlePreorderCheckout(req, body)
+    }
 
     if (!lookup_key || typeof lookup_key !== "string") {
       return jsonError("Missing or invalid 'lookup_key' in request body", 400)
@@ -401,6 +418,136 @@ serve(async (req) => {
     return jsonError(message, 500)
   }
 })
+
+// ---------- Founding-preorder checkout (preorder system Phase 1) ----------
+//
+// Dark launch: while the PREORDERS_LIVE secret is not "true", public requests get a
+// 403 PREORDERS_NOT_LIVE and no session is ever created. A request carrying the
+// PREORDER_ADMIN_TOKEN secret in x-preorder-admin bypasses the gate so the exact
+// production path can be end-to-end tested before launch. Launch flip = set
+// PREORDERS_LIVE=true (no redeploy needed).
+//
+// Pricing: the founding cohort is a single window that ends when the gate SKU
+// (sprouts_kit) has sold its founding allocation (500). Both products ride that
+// cohort. Count-based selection can overshoot by a few under simultaneous checkout
+// (accepted for a "first ~500" founding cohort; see docs/preorder-system-phase-1.md).
+//
+// Tax: automatic_tax on. Requires Stripe Tax configured in the Dashboard (origin
+// address, registrations, product tax codes) BEFORE launch or session creation 400s.
+// deno-lint-ignore no-explicit-any
+async function handlePreorderCheckout(req: Request, body: Record<string, any>): Promise<Response> {
+  const sku = String(body.preorder_sku)
+
+  // Dark-launch gate.
+  const live = Deno.env.get("PREORDERS_LIVE") === "true"
+  const adminToken = Deno.env.get("PREORDER_ADMIN_TOKEN")
+  const isAdminTest = !!adminToken && req.headers.get("x-preorder-admin") === adminToken
+  if (!live && !isAdminTest) {
+    return new Response(
+      JSON.stringify({ error: "Preorder has not opened yet.", code: "PREORDERS_NOT_LIVE" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
+    )
+  }
+
+  const configProduct = preorderProductBySku(sku)
+  if (!configProduct) {
+    return jsonError(`Unknown preorder_sku '${sku}'`, 404)
+  }
+
+  const adminClient = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  )
+
+  const { data: product, error: productError } = await adminClient
+    .from("products")
+    .select("id, sku, name, active, founding_qty_limit, stripe_founding_price_id, stripe_retail_price_id")
+    .eq("sku", sku)
+    .maybeSingle()
+  if (productError) {
+    return jsonError(`Product lookup failed: ${productError.message}`, 500)
+  }
+  if (!product || !product.active) {
+    return jsonError(`'${sku}' is not available for preorder right now`, 403)
+  }
+
+  // Founding gate: the cohort closes when the gate SKU's founding allocation is sold.
+  let gateId: string = product.id
+  let gateLimit: number = product.founding_qty_limit ?? FOUNDING_GATE_LIMIT
+  if (sku !== FOUNDING_GATE_SKU) {
+    const { data: gate } = await adminClient
+      .from("products")
+      .select("id, founding_qty_limit")
+      .eq("sku", FOUNDING_GATE_SKU)
+      .maybeSingle()
+    if (gate) {
+      gateId = gate.id
+      gateLimit = gate.founding_qty_limit ?? FOUNDING_GATE_LIMIT
+    }
+  }
+
+  let isFounding = true
+  try {
+    const sold = await countFoundingSold(adminClient, gateId)
+    isFounding = sold < gateLimit
+  } catch (e) {
+    // Customer-favorable fail-open: if the counter read fails, sell at founding
+    // price rather than blocking checkout. Logged so it can't silently persist.
+    console.error("founding-count read failed; defaulting to founding price:", e instanceof Error ? e.message : String(e))
+  }
+
+  const priceId = isFounding
+    ? (product.stripe_founding_price_id ?? configProduct.foundingPriceId)
+    : (product.stripe_retail_price_id ?? configProduct.retailPriceId)
+
+  // SMS consent comes from an explicit, default-UNCHECKED checkbox on the
+  // storefront. Absence of the field means no consent.
+  const smsConsent = body.sms_consent === true || body.sms_consent === "true"
+
+  const metadata: Record<string, string> = {
+    preorder_sku: sku,
+    is_founding: String(isFounding),
+    sms_consent: String(smsConsent),
+  }
+  if (isAdminTest) metadata.preorder_test = "true"
+
+  const successUrl = typeof body.success_url === "string" && body.success_url
+    ? body.success_url
+    : "https://edeninstitute.health/preorder?checkout=success&session_id={CHECKOUT_SESSION_ID}"
+  const cancelUrl = typeof body.cancel_url === "string" && body.cancel_url
+    ? body.cancel_url
+    : "https://edeninstitute.health/preorder?checkout=cancelled"
+
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    mode: "payment",
+    line_items: [{ price: priceId, quantity: 1 }],
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    automatic_tax: { enabled: true },
+    shipping_address_collection: { allowed_countries: ["US"] },
+    // Phone powers the consented preorder SMS. Collected by Stripe so we never
+    // hold a number the buyer didn't give at checkout.
+    phone_number_collection: { enabled: true },
+    customer_creation: "always",
+    metadata,
+    payment_intent_data: { metadata },
+  }
+  if (typeof body.email === "string" && body.email) {
+    sessionParams.customer_email = body.email
+  }
+
+  const session = await stripe.checkout.sessions.create(sessionParams)
+
+  console.log(
+    `preorder checkout: sku=${sku} founding=${isFounding} sms_consent=${smsConsent}` +
+      `${isAdminTest ? " [ADMIN TEST]" : ""} session=${session.id}`,
+  )
+
+  return new Response(
+    JSON.stringify({ url: session.url, session_id: session.id, is_founding: isFounding }),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+  )
+}
 
 function jsonError(message: string, status: number): Response {
   return new Response(
