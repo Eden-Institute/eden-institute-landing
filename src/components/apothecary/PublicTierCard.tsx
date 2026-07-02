@@ -56,9 +56,7 @@ export function PublicTierCard({
         borderColor: highlighted
           ? "hsl(var(--eden-gold))"
           : "hsl(var(--border))",
-        backgroundColor: highlighted
-          ? "hsl(var(--background))"
-          : "hsl(var(--background))",
+        backgroundColor: "hsl(var(--background))",
       }}
     >
       {highlighted && (

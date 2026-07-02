@@ -1,6 +1,5 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { PublicTierCard } from "@/components/apothecary/PublicTierCard";
 import { Button } from "@/components/ui/button";

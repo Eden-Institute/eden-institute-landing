@@ -59,7 +59,6 @@ import {
  */
 export function useEdenPattern(): {
   data: EdenPatternName | null;
-  rawValue: string | null;
   isLoading: boolean;
   isEmptyForActiveProfile: boolean;
   activeProfile: PersonProfile | null;
@@ -145,10 +144,8 @@ export function useEdenPattern(): {
 
   return {
     data: query.data?.pattern ?? null,
-    rawValue: query.data?.raw ?? null,
     // Surface either context-hydration loading OR query loading so
-    // consumers (PatternQuizCTA, skeleton-rendering surfaces) can render
-    // a single coherent loading state.
+    // skeleton-rendering surfaces can render a single coherent loading state.
     isLoading: profileCtxLoading || query.isLoading,
     isEmptyForActiveProfile: query.data?.isEmptyForActiveProfile ?? false,
     activeProfile,

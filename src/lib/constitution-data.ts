@@ -196,10 +196,6 @@ export const constitutionProfiles: Record<string, ConstitutionProfile> = {
   },
 };
 
-export function getNickname(constitutionType: string): string {
-  return constitutionProfiles[constitutionType]?.nickname ?? constitutionType;
-}
-
 /**
  * Per-axis configuration. Single source of truth for which question IDs
  * map to which axis (initial pass + targeted follow-ups).

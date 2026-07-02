@@ -86,14 +86,3 @@ export function provenanceForQuizVersion(
       "12-question marketing quiz (recorded before in-app diagnostic was wired)",
   };
 }
-
-/**
- * Convenience: map a row from diagnostic_completions (or null when no row
- * applies and the legacy bridge is in effect) to a provenance label.
- */
-export function provenanceForCompletionRow(
-  row: { quiz_version?: string | null } | null | undefined,
-): ProvenanceLabel {
-  if (!row) return provenanceForQuizVersion(undefined);
-  return provenanceForQuizVersion(row.quiz_version);
-}
