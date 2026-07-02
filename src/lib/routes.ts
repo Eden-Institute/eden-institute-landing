@@ -85,6 +85,3 @@ export const ROUTES = {
    */
   QUIZ_ALIAS: "/quiz",
 } as const;
-
-/** Convenience type — keys of the ROUTES table. */
-export type RouteKey = keyof typeof ROUTES;

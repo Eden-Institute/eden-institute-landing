@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X, Search, Info } from "lucide-react";
 import type { HerbRow } from "@/hooks/useApothecaryHerbs";
 import type { Tier } from "@/hooks/useCurrentTier";
+import { isSubscriberTier } from "@/hooks/useHerbsDirectory";
 import {
   type EdenPatternName,
   computeMatchRelationship,
@@ -100,8 +101,6 @@ const labelClass =
 const selectClass =
   "w-full rounded-md border bg-background px-3 py-1.5 text-sm font-body focus:outline-none focus:ring-1";
 
-const isSubscriberTier = (t: Tier | undefined) =>
-  t === "seed" || t === "root" || t === "practitioner";
 const isRootOrAbove = (t: Tier | undefined) =>
   t === "root" || t === "practitioner";
 
