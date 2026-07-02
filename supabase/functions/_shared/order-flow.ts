@@ -15,6 +15,11 @@ import {
 } from './order-db.ts';
 import { dispatchTransitionMessages } from './order-messages.ts';
 
+interface ShippingDetailsLike {
+  name?: string | null;
+  address?: unknown;
+}
+
 // Minimal shape of the Checkout Session fields we read.
 export interface CheckoutSessionLike {
   id: string;
@@ -26,7 +31,9 @@ export interface CheckoutSessionLike {
   total_details?: { amount_tax?: number | null } | null;
   currency?: string | null;
   payment_status?: string | null;
-  shipping_details?: { name?: string | null; address?: unknown } | null;
+  shipping_details?: ShippingDetailsLike | null;
+  // Newer Stripe API versions move shipping under collected_information.
+  collected_information?: { shipping_details?: ShippingDetailsLike | null } | null;
   // deno-lint-ignore no-explicit-any
   metadata?: Record<string, any> | null;
 }
@@ -58,6 +65,7 @@ export async function recordPreorderFromSession(
   const email = (session.customer_details?.email ?? session.customer_email ?? '').toLowerCase().trim();
   const phone = session.customer_details?.phone ?? null;
   const smsConsent = session.metadata?.sms_consent === 'true' || session.metadata?.sms_consent === true;
+  const shipping = session.shipping_details ?? session.collected_information?.shipping_details ?? null;
 
   const prod = await productBySku(db, product.sku);
 
@@ -68,8 +76,8 @@ export async function recordPreorderFromSession(
     status: 'paid' as OrderStatus,
     customer_email: email,
     customer_phone: phone,
-    shipping_name: session.shipping_details?.name ?? session.customer_details?.name ?? null,
-    shipping_address: session.shipping_details?.address ?? null,
+    shipping_name: shipping?.name ?? session.customer_details?.name ?? null,
+    shipping_address: shipping?.address ?? null,
     lookup_key: product.sku,
     product_label: prod?.name ?? product.sku,
     amount_total_cents: session.amount_total ?? null,

@@ -3,8 +3,8 @@
 // Listens for subscription lifecycle events AND one-time payment completion,
 // reconciling the `profiles` table for subscriptions, the `quiz_completions`
 // table for guide/course one-off purchases, the homeschool bundle-buyer
-// flag for Two-Band Family Bundle purchases, AND the homeschool_orders table
-// for every Eden's Table kit purchase (fulfillment + Founders 500-unit count).
+// flag for Two-Band Family Bundle purchases, AND the orders table for the
+// founding-preorder system (state machine + confirmation messaging).
 //
 // Auth model: webhooks are NOT user-authenticated. Stripe signs every request with
 // an HMAC-SHA256 signature using the STRIPE_WEBHOOK_SECRET. We verify that
@@ -18,18 +18,23 @@
 //   customer.subscription.updated  → plan change, cancellation scheduled, status change
 //   customer.subscription.deleted  → subscription ended → downgrade to 'free'
 //   checkout.session.completed     → one-time payment completion (mode='payment')
-//                                     → dispatch by lookup_key:
+//                                     → dispatch by metadata / lookup_key:
+//                                       preorder_sku → preorder order + preorder_hold + messages
 //                                       deep_dive_guide → quiz_completions.purchased_guide
 //                                       course_*        → quiz_completions.purchased_course
-//                                       sprouts/seedlings/nb_addon → record homeschool_orders
-//                                       two_band_bundle → record homeschool_orders +
+//                                       sprouts/seedlings/nb_addon → record legacy order row
+//                                       two_band_bundle → record legacy order row +
 //                                                         provision user + bundle-buyer flag
+//   charge.refunded                → preorder order → refunded (suppresses messaging)
+//
+// Errors are captured to Sentry (SENTRY_DSN secret; graceful no-op without it).
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { claimStripeEvent, markEventProcessed, markEventError } from "../_shared/order-db.ts"
 import { recordPreorderFromSession, applyRefundByPaymentIntent } from "../_shared/order-flow.ts"
+import { captureException } from "../_shared/sentry.ts"
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2024-12-18.acacia",
@@ -42,7 +47,7 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
 
 // Admin client — webhook has no user context, so we use the service role key
-// to write freely to `profiles`, `quiz_completions`, and `homeschool_orders`
+// to write freely to `profiles`, `quiz_completions`, and `orders`
 // (bypasses RLS) and to call auth.admin.inviteUserByEmail for bundle-buyer
 // provisioning.
 const adminClient = createClient(
@@ -85,13 +90,13 @@ async function sendGuidePdf(email: string, constitutionType: string | null): Pro
       return
     }
     const pdfB64 = bytesToBase64(new Uint8Array(await pdfRes.arrayBuffer()))
-    const html = `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#F5F0E8;font-family:Georgia,serif;color:#3D3832;">`
-      + `<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#FFFFFF;border:1px solid #E8E3DA;">`
-      + `<tr><td style="background:#2C3E2D;padding:28px 20px;text-align:center;"><span style="font-family:Georgia,serif;font-size:13px;font-weight:bold;letter-spacing:4px;color:#C5A44E;">THE EDEN INSTITUTE</span></td></tr>`
-      + `<tr><td style="padding:32px 36px;font-size:16px;line-height:1.6;">`
-      + `<p style="margin:0 0 16px 0;">Thank you. Your <strong>Constitutional Deep-Dive Guide</strong> is attached to this email as a PDF, so it is yours to keep, print, and return to anytime.</p>`
-      + `<p style="margin:0 0 16px 0;">Inside you will find your matched herbs and how to use them, your caution list, and the diet and lifestyle rhythms that keep your constitution in balance.</p>`
-      + `<p style="margin:24px 0 4px 0;">Grace and health,</p><p style="margin:0;font-weight:bold;">Camila</p><p style="margin:4px 0 0 0;font-size:14px;">The Eden Institute</p>`
+    const html = `<!DOCTYPE html><html><body style=\"margin:0;padding:24px;background:#F5F0E8;font-family:Georgia,serif;color:#3D3832;\">`
+      + `<table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px;margin:0 auto;background:#FFFFFF;border:1px solid #E8E3DA;\">`
+      + `<tr><td style=\"background:#2C3E2D;padding:28px 20px;text-align:center;\"><span style=\"font-family:Georgia,serif;font-size:13px;font-weight:bold;letter-spacing:4px;color:#C5A44E;\">THE EDEN INSTITUTE</span></td></tr>`
+      + `<tr><td style=\"padding:32px 36px;font-size:16px;line-height:1.6;\">`
+      + `<p style=\"margin:0 0 16px 0;\">Thank you. Your <strong>Constitutional Deep-Dive Guide</strong> is attached to this email as a PDF, so it is yours to keep, print, and return to anytime.</p>`
+      + `<p style=\"margin:0 0 16px 0;\">Inside you will find your matched herbs and how to use them, your caution list, and the diet and lifestyle rhythms that keep your constitution in balance.</p>`
+      + `<p style=\"margin:24px 0 4px 0;\">Grace and health,</p><p style=\"margin:0;font-weight:bold;\">Camila</p><p style=\"margin:4px 0 0 0;font-size:14px;\">The Eden Institute</p>`
       + `</td></tr></table></body></html>`
     const sendRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -118,6 +123,22 @@ async function sendGuidePdf(email: string, constitutionType: string | null): Pro
 serve(async (req) => {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 })
+  }
+
+  // ---------- 0. Admin-only deliberate error (Sentry end-to-end check) ----------
+  // Verifies Sentry capture in production without touching Stripe. Requires the
+  // PREORDER_ADMIN_TOKEN secret in the x-eden-sentry-test header; unauthenticated
+  // requests fall through to normal signature verification (and fail there).
+  const sentryTestHeader = req.headers.get("x-eden-sentry-test")
+  const preorderAdminToken = Deno.env.get("PREORDER_ADMIN_TOKEN")
+  if (sentryTestHeader && preorderAdminToken && sentryTestHeader === preorderAdminToken) {
+    const testErr = new Error("Deliberate webhook test error (admin-triggered Sentry check)")
+    console.error(testErr.message)
+    await captureException(testErr, { function: "stripe-webhook", deliberate: true })
+    return new Response(JSON.stringify({ sentry_test: "captured" }), {
+      headers: { "Content-Type": "application/json" },
+      status: 500,
+    })
   }
 
   // ---------- 1. Verify Stripe signature ----------
@@ -225,6 +246,7 @@ serve(async (req) => {
   } catch (err) {
     console.error(`Error processing ${event.type}:`, err)
     await markEventError(adminClient, event.id, err instanceof Error ? err.message : String(err)).catch(() => {})
+    await captureException(err, { function: "stripe-webhook", event_type: event.type, event_id: event.id })
     const message = err instanceof Error ? err.message : "Unknown error"
     return new Response(JSON.stringify({ error: message }), {
       headers: { "Content-Type": "application/json" },
@@ -471,10 +493,10 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
 // ---------- Homeschool order recording ----------
 
 /**
- * Record a homeschool kit purchase in homeschool_orders — the source of truth
+ * Record a homeschool kit purchase in the orders table — the source of truth
  * for fulfillment and the Founders 500-unit counter. Idempotent on
- * stripe_session_id (safe on Stripe webhook retries). Throws on a DB error so
- * Stripe retries; the ignore-duplicates upsert makes retries harmless.
+ * stripe_checkout_session_id (safe on Stripe webhook retries). Throws on a DB
+ * error so Stripe retries; the ignore-duplicates upsert makes retries harmless.
  */
 async function recordHomeschoolOrder(
   session: Stripe.Checkout.Session,
@@ -486,7 +508,7 @@ async function recordHomeschoolOrder(
       ? session.customer
       : session.customer?.id ?? null
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const shipping = (session as any).shipping_details ?? null
+  const shipping = (session as any).shipping_details ?? (session as any).collected_information?.shipping_details ?? null
 
   const order = {
     stripe_checkout_session_id: session.id,

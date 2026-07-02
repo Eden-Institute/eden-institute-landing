@@ -9,6 +9,7 @@ import { OrderStatus, isTerminal } from './order-state.ts';
 import { SHIP_WINDOW } from './order-config.ts';
 import { Db, OrderRow, hasSentMessage, logMessage } from './order-db.ts';
 import { sendSms } from './order-sms.ts';
+import { captureException } from './sentry.ts';
 
 const FROM = 'Camila at The Eden Institute <hello@edeninstitute.health>';
 const REPLY_TO = 'hello@edeninstitute.health';
@@ -100,6 +101,12 @@ export async function dispatchTransitionMessages(db: Db, order: OrderRow, toStat
       ok = providerId !== null;
     } catch (e) {
       console.error(`order message failed (${def.templateKey}):`, String(e));
+      await captureException(e, {
+        function: 'order-messages',
+        template_key: def.templateKey,
+        channel: def.channel,
+        order_id: order.id,
+      });
     }
     await logMessage(db, {
       order_id: order.id,
