@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CheckoutButton } from "./CheckoutButton";
+import { TierCardFrame } from "./TierCardFrame";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrentTier, Tier } from "@/hooks/useCurrentTier";
 import { ROUTES } from "@/lib/routes";
@@ -117,27 +118,11 @@ export function PricingTier({
   }
 
   return (
-    <div
-      className={`rounded-lg p-6 flex flex-col ${
-        highlighted ? "border-2" : "border"
-      }`}
-      style={{
-        borderColor: highlighted
-          ? "hsl(var(--eden-gold))"
-          : "hsl(var(--border))",
-        backgroundColor: highlighted
-          ? "hsl(var(--eden-cream))"
-          : "hsl(var(--background))",
-      }}
+    <TierCardFrame
+      highlighted={highlighted}
+      badgeLabel="Recommended"
+      highlightBackground="cream"
     >
-      {highlighted && (
-        <p
-          className="font-accent text-xs tracking-[0.3em] uppercase mb-3 text-center"
-          style={{ color: "hsl(var(--eden-gold))" }}
-        >
-          Recommended
-        </p>
-      )}
       <h3
         className="font-serif text-2xl font-bold mb-2"
         style={{ color: "hsl(var(--eden-bark))" }}
@@ -172,6 +157,6 @@ export function PricingTier({
       </ul>
 
       {cta}
-    </div>
+    </TierCardFrame>
   );
 }

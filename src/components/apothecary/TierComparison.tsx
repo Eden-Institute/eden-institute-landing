@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TierCardFrame } from "./TierCardFrame";
 import { ROUTES } from "@/lib/routes";
 import { PUBLIC_TIERS, type PublicTierSpec } from "@/lib/apothecaryTiers";
 import PractitionerWaitlistModal from "@/components/landing/PractitionerWaitlistModal";
@@ -70,14 +71,7 @@ function TierCard({ tier, onPractitionerWaitlist }: TierCardProps) {
   }
 
   return (
-    <div
-      id={`tier-${tier.id}`}
-      className="rounded-lg p-6 flex flex-col border h-full"
-      style={{
-        borderColor: "hsl(var(--border))",
-        backgroundColor: "hsl(var(--background))",
-      }}
-    >
+    <TierCardFrame fullHeight id={`tier-${tier.id}`}>
       <p
         className="font-accent text-[11px] tracking-[0.25em] uppercase mb-2"
         style={{ color: "hsl(var(--eden-gold))" }}
@@ -125,7 +119,7 @@ function TierCard({ tier, onPractitionerWaitlist }: TierCardProps) {
         ))}
       </ul>
       {cta}
-    </div>
+    </TierCardFrame>
   );
 }
 
