@@ -8,6 +8,7 @@ import { ActiveProfileProvider } from "@/contexts/ActiveProfileContext";
 import { ROUTES } from "@/lib/routes";
 import ScrollToTop from "@/components/utils/ScrollToTop";
 import PageViewTracker from "@/components/utils/PageViewTracker";
+import CtaClickTracker from "@/components/utils/CtaClickTracker";
 import MetaPixelTracker from "@/components/utils/MetaPixelTracker";
 import Index from "./pages/Index";
 import WhyEden from "./pages/WhyEden";
@@ -85,6 +86,9 @@ const App = () => (
             {/* Cookieless first-party page-view beacon (writes via record_page_view
                 RPC). Sibling to <Routes> so it sees every navigation. */}
             <PageViewTracker />
+            {/* CRO Phase 4: delegated [data-cta] click beacon (record_cta_click
+                RPC) — one capture-phase listener makes every CTA measurable. */}
+            <CtaClickTracker />
             {/* Meta Pixel PageView on navigation — consent-gated (fires only
                 after the visitor accepts marketing cookies). */}
             <MetaPixelTracker />

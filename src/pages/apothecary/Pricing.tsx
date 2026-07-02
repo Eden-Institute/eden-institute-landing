@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { PricingTier } from "@/components/apothecary/PricingTier";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { trackCta } from "@/lib/trackCta";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 
 type BillingCycle = "monthly" | "yearly";
@@ -33,11 +34,24 @@ export default function Pricing() {
   const { user, session } = useAuth();
   const [searchParams] = useSearchParams();
   const [resuming, setResuming] = useState(false);
+  // The auto-resume effect re-runs whenever the session object identity
+  // changes (token refresh emits a fresh session), so guard the one-shot
+  // checkout-start event AND the resume attempt itself to once per checkout
+  // key — otherwise a token refresh while the visitor lingers on the error
+  // path double-counts the funnel and re-invokes create-checkout.
+  const resumedCheckout = useRef<string | null>(null);
   useEffect(() => {
     const checkout = searchParams.get("checkout");
     if (!checkout || !user || !session) return;
+    if (resumedCheckout.current === checkout) return;
+    resumedCheckout.current = checkout;
     let cancelled = false;
     setResuming(true);
+    // Funnel moment (CRO Phase 4): this checkout starts programmatically
+    // (post-signup auto-resume) — no click exists for the delegated
+    // tracker to see, so the event fires at the invoke site (once, guarded
+    // by resumedCheckout above).
+    trackCta("checkout-start", { lookupKey: checkout });
     (async () => {
       try {
         const { data, error } = await supabase.functions.invoke("create-checkout", {

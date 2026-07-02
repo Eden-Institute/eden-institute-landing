@@ -9,6 +9,7 @@ import { isSubscriberTier } from "@/hooks/useHerbsDirectory";
 import { patternNameToSlug } from "@/lib/amazonKitUrls";
 import { constitutionProfiles } from "@/lib/constitution-data";
 import { ROUTES } from "@/lib/routes";
+import { trackCta } from "@/lib/trackCta";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { useStructuredData } from "@/lib/useStructuredData";
 import Navbar from "@/components/landing/Navbar";
@@ -308,7 +309,10 @@ const Results = () => {
               Save this Pattern to a free account so you can come back to it
               any time, and keep a study list of the herbs that fit it.
             </p>
-            <Link to={`${ROUTES.APOTHECARY_SIGNUP}?return_to=${encodeURIComponent(`/results/${constitutionSlug}`)}`}>
+            <Link
+              to={`${ROUTES.APOTHECARY_SIGNUP}?return_to=${encodeURIComponent(`/results/${constitutionSlug}`)}`}
+              data-cta="results-create-account"
+            >
               <Button variant="eden" size="lg">
                 Create a free account to save your Pattern
               </Button>
@@ -345,6 +349,10 @@ const Results = () => {
               onClick={async () => {
                 setCheckoutLoading(true);
                 setError("");
+                // Funnel moment (CRO Phase 4): guide checkout-start. This
+                // button uses data-product (not data-cta), so the delegated
+                // tracker never sees it — no double count.
+                trackCta("checkout-start", { lookupKey: "deep_dive_guide" });
                 try {
                   const slug = patternNameToSlug(profile.nickname);
                   const { data, error: fnError } = await supabase.functions.invoke("create-checkout", {
@@ -383,6 +391,7 @@ const Results = () => {
               href={profile.amazonUrl}
               target="_blank"
               rel="noopener noreferrer"
+              data-cta="results-amazon-kit"
               className="inline-flex items-center justify-center w-full px-4 py-3 font-serif font-bold text-sm tracking-wider uppercase transition-colors rounded"
               style={{ backgroundColor: "#1C3A2E", color: "#F5F0E8" }}
             >

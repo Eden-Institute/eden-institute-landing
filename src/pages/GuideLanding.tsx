@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/landing/Navbar";
 import { ROUTES } from "@/lib/routes";
+import { trackCta } from "@/lib/trackCta";
 
 // Map slug → constitution type key
 const slugToType: Record<string, string> = {};
@@ -131,6 +132,8 @@ const GuideLanding = () => {
   const handleCheckout = async () => {
     setCheckoutLoading(true);
     setError("");
+    // Funnel moment (CRO Phase 4): guide checkout-start from the sales page.
+    trackCta("checkout-start", { lookupKey: "deep_dive_guide" });
     try {
       // Phase 5 fix #4 / launch-blocker #58a — pass lookup_key (was
       // missing → silent 400) and a success_url that returns to this
