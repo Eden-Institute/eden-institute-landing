@@ -1,7 +1,8 @@
 # Preorder System — Phase 1 (plan + build tracker)
 
 Takes founding-preorder payments, records who bought what, confirms the order, stays
-compliant. No inventory, no shipping in this phase (orders only reach `preorder_hold`).
+compliant. No inventory, no shipping logistics in this phase (orders only reach
+`preorder_hold`).
 
 ## Architecture decision
 **Extend the existing Supabase Edge Function stack — NOT a new Next.js/Vercel app.** A live
@@ -41,7 +42,7 @@ a global preorder flag. `transition()` validates the edge, updates status, and d
 registered messages through the guarded sender. Terminal states fire nothing, so suppression
 is a property of state.
 
-## Founding pricing (single cohort)
+## Founding pricing (single cohort) + shipping
 - **Kit:** $249 founding ($100 below the $349 retail) — the \"$100 off\" claim is KIT-ONLY copy.
 - **Notebook:** $19.99 founding, $24.99 retail (rides the same cohort; no $100 claim).
 - The cohort ends when **500 founding kits** have sold (`FOUNDING_GATE_SKU`/`FOUNDING_GATE_LIMIT`
@@ -50,6 +51,10 @@ is a property of state.
   few under simultaneous checkouts — accepted for a founding cohort.
 - Each product has founding + retail Stripe Price IDs (in `products` and mirrored in
   `order-config.ts`); `order_items.is_founding` stamps what was actually sold.
+- **Shipping: flat $12 per order** (founder decision 2026-07-02; `PREORDER_FLAT_SHIPPING_CENTS`
+  in `order-config.ts`). Disclosed on /preorder before redirect; taxed by Stripe Tax via the
+  shipping tax_code (tax_behavior exclusive); NO delivery estimate on the rate because the
+  ship window is TBD. Display copy in PreorderBuyBox/preorder.astro must track the constant.
 
 ## Dark launch / launch flip
 - `create-checkout` refuses preorder requests with 403 `PREORDERS_NOT_LIVE` until the
@@ -67,8 +72,9 @@ is a property of state.
 - Founding preorder: your patience helps fund the founding; in exchange you get $100 off the
   complete kit and founding-member status.
 - Estimated ship window: **Winter 2026**, stated as an estimate.
-- Card charged today; if we cannot ship within the estimated window we will notify you and
-  you may request a full refund. (FTC Mail Order Rule.)
+- Card charged today (total includes flat $12 shipping + any sales tax); if we cannot ship
+  within the estimated window we will notify you and you may request a full refund. (FTC Mail
+  Order Rule.)
 - SMS: explicit UNCHECKED opt-in checkbox on /preorder; phone collected by Stripe; preorder
   SMS sends only with consent; STOP language included.
 
@@ -98,7 +104,7 @@ in `paid`. Exit 1 on any discrepancy.
 ## Build tracker
 - [x] Migration (orders state machine + products/order_items/message_log/stripe_events)
 - [x] Product seed (sprouts_kit, sprouts_notebook with live Price IDs)
-- [x] create-checkout patch (Stripe Tax + unchecked sms_consent + founding price selection + PREORDERS_LIVE gate)
+- [x] create-checkout patch (Stripe Tax + unchecked sms_consent + founding price selection + PREORDERS_LIVE gate + flat $12 shipping)
 - [x] stripe-webhook patch (transition engine + message_log + event ledger + charge.refunded)
 - [x] Confirmation email + preorder SMS templates (ship window: Winter 2026)
 - [x] /preorder storefront (compliance copy, unchecked SMS opt-in, dark-launch aware)
@@ -107,6 +113,7 @@ in `paid`. Exit 1 on any discrepancy.
 - [x] Reconcile script (Stripe payments vs orders)
 - [x] Sentry wiring (webhook + message sends + deliberate-error test path)
 - [x] Dark-launch gating (PREORDERS_LIVE + PREORDER_ADMIN_TOKEN admin override)
+- [x] Shipping decision (flat $12/order, 2026-07-02)
 - [ ] Adversarial review pass
 - [ ] Deploy day: apply migrations + deploy EFs as a set (founder go required)
 
