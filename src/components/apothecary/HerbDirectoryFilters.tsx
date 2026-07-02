@@ -3,6 +3,8 @@ import { X, Search, Info } from "lucide-react";
 import type { HerbRow } from "@/hooks/useApothecaryHerbs";
 import type { Tier } from "@/hooks/useCurrentTier";
 import { isSubscriberTier } from "@/hooks/useHerbsDirectory";
+import { Link } from "react-router-dom";
+import { ROUTES } from "@/lib/routes";
 import {
   type EdenPatternName,
   computeMatchRelationship,
@@ -355,9 +357,14 @@ export function HerbDirectoryFilters({
               ))}
             </select>
           ) : (
-            <p className="font-body text-xs italic text-muted-foreground py-2" aria-disabled="true">
-              Action filters open with Seed.
-            </p>
+            <Link
+              to={`${ROUTES.APOTHECARY_PRICING}#tier-seed`}
+              className="block font-body text-xs py-2 underline-offset-2 hover:underline"
+              style={{ color: "hsl(var(--eden-gold))" }}
+              data-cta="filter-gate-action"
+            >
+              Filter all 100 herbs by action. Opens with Seed →
+            </Link>
           )}
         </div>
 
@@ -405,9 +412,14 @@ export function HerbDirectoryFilters({
               )}
             </div>
           ) : (
-            <p className="font-body text-xs italic text-muted-foreground py-2" aria-disabled="true">
-              Body-system filters open with Seed.
-            </p>
+            <Link
+              to={`${ROUTES.APOTHECARY_PRICING}#tier-seed`}
+              className="block font-body text-xs py-2 underline-offset-2 hover:underline"
+              style={{ color: "hsl(var(--eden-gold))" }}
+              data-cta="filter-gate-body-system"
+            >
+              Filter by body system and tissue state. Opens with Seed →
+            </Link>
           )}
         </div>
 
@@ -572,7 +584,12 @@ export function matchesFilters(
     if (!herbHasTissueState(herb, filters.tissueState)) return false;
   }
 
-  if (filters.populationSafety !== "all") {
+  // Locked rows carry NULL safety fields (gated), so applying the safety
+  // filter to them would silently delete every Seed herb from the grid.
+  // Instead let locked rows pass through — they render as locked cards that
+  // advertise the upgrade, so the catalog never silently shrinks. The filter
+  // only narrows the rows whose safety data the caller can actually see.
+  if (filters.populationSafety !== "all" && !herb.is_locked) {
     const safetyField =
       filters.populationSafety === "pregnancy"
         ? herb.pregnancy_safety

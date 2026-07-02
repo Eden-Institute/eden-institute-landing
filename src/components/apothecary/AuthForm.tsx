@@ -90,7 +90,14 @@ export function AuthForm({ mode }: Props) {
           email: values.email,
           password: values.password ?? "",
           options: {
-            emailRedirectTo: `${window.location.origin}${ROUTES.APOTHECARY_WELCOME_TOUR}`,
+            // Land on the (allowlisted) welcome-tour URL, but carry any
+            // return_to intent as a query param so a confirmed-email signup
+            // resumes where they meant to go (e.g. pricing?checkout=seed).
+            // Keeping the welcome-tour base keeps this within Supabase's
+            // allowed-redirect list; WelcomeTour forwards on return_to.
+            emailRedirectTo: returnToParam
+              ? `${window.location.origin}${ROUTES.APOTHECARY_WELCOME_TOUR}?return_to=${encodeURIComponent(returnToParam)}`
+              : `${window.location.origin}${ROUTES.APOTHECARY_WELCOME_TOUR}`,
           },
         });
         if (error) throw error;

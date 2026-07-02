@@ -1,6 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useEdenPattern } from "@/hooks/useEdenPattern";
-import { useApothecaryHerbs } from "@/hooks/useApothecaryHerbs";
+import { useCurrentTier } from "@/hooks/useCurrentTier";
 import { ROUTES } from "@/lib/routes";
 import { patternNameToSlug, getAmazonKitUrl } from "@/lib/amazonKitUrls";
 import type { EdenPatternName } from "@/lib/edenPattern";
@@ -28,6 +28,8 @@ export type SubscriptionTier = "free" | "seed" | "root" | "practitioner";
 
 export interface TierAwareCTA {
   label: string;
+  /** Compact label for tight surfaces (nav pill). Falls back to `label`. */
+  shortLabel?: string;
   href: string;
   external?: boolean;
 }
@@ -78,23 +80,27 @@ export function computeTierAwareCTAs(
   if (!hasUser || !hasPattern) {
     upgrade = {
       label: "Take the Quiz — see your Pattern",
+      shortLabel: "Take the quiz",
       href: ROUTES.ASSESSMENT,
     };
   } else if (tier === "seed") {
     upgrade = {
-      label: "Upgrade to Root — 5 family profiles + deeper diagnostic",
+      label: "Upgrade to Root — up to 10 family profiles + deeper diagnostic",
+      shortLabel: "Upgrade to Root",
       href: "/apothecary/pricing#tier-root",
     };
   } else if (tier === "root") {
     upgrade = {
       label:
         "Join the Practitioner Waitlist — clinical formulas + dose schedules + contraindications",
+      shortLabel: "Practitioner waitlist",
       href: "/apothecary#practitioner-waitlist",
     };
   } else if (tier === "free" || tier === null) {
     upgrade = {
       label:
         "Upgrade to Seed — full clinical study for all 100 herbs",
+      shortLabel: "Upgrade to Seed",
       href: "/apothecary/pricing#tier-seed",
     };
   } else {
@@ -137,21 +143,17 @@ export function computeTierAwareCTAs(
   }
 
   // ─── Journey: dominant next-step CTA ───
+  // Subscription-primary (founder decision 2026-07-02): for a free user with a
+  // Pattern, the dominant next step is the Seed subscription, NOT the one-off
+  // $4.99 guide. The guide is still offered on the Results page (secondary to
+  // Seed there), but it no longer occupies the dominant homepage/Account slot,
+  // so the highest-traffic surfaces steer toward recurring LTV.
   let next: JourneyStep;
   if (!hasUser || !hasPattern || !pattern) {
     next = {
       label: "Take the free Pattern quiz",
       href: ROUTES.ASSESSMENT,
       kind: "quiz",
-    };
-  } else if (!guidePurchased) {
-    // PR η fix #4: shortened label to "Get the <Pattern> Guide — $14".
-    const slug = patternNameToSlug(pattern);
-    const patternShort = pattern.replace(/^The\s+/i, "");
-    next = {
-      label: `Get the ${patternShort} Guide — $4.99`,
-      href: `/guide/${slug}`,
-      kind: "guide",
     };
   } else if (tier === "free" || tier === null) {
     next = {
@@ -161,7 +163,7 @@ export function computeTierAwareCTAs(
     };
   } else if (tier === "seed") {
     next = {
-      label: "Upgrade to Root — 5 family profiles + deeper diagnostic",
+      label: "Upgrade to Root — up to 10 family profiles + deeper diagnostic",
       href: "/apothecary/pricing#tier-root",
       kind: "upgrade-root",
     };
@@ -198,7 +200,10 @@ export function computeTierAwareCTAs(
 export function useTierAwareCTA(): TierAwareCTAs {
   const { user } = useAuth();
   const { data: pattern } = useEdenPattern();
-  const { tier } = useApothecaryHerbs();
+  // Tier comes from the lightweight current_user_tier RPC (not the 100-row
+  // directory fetch) so this hook is cheap to consume from global chrome
+  // like ApothecaryNav on every app route.
+  const { data: tier } = useCurrentTier();
 
   const slug = pattern ? patternNameToSlug(pattern) : null;
   // A stored verified Stripe session id (set by the /guide page after purchase)

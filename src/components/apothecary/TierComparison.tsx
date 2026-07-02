@@ -60,7 +60,7 @@ function TierCard({ tier, onPractitionerWaitlist }: TierCardProps) {
     cta = (
       <Button variant="eden-outline" size="lg" className="w-full" asChild>
         <Link
-          to={`${ROUTES.APOTHECARY_PRICING}?tier=${tier.id}`}
+          to={`${ROUTES.APOTHECARY_PRICING}#tier-${tier.id}`}
           data-cta={`tier-comparison-${tier.id}`}
         >
           Start with {tier.displayName}

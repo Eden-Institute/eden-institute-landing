@@ -41,11 +41,12 @@ export function PublicTierCard({
     tier === "free" ? "Create a free account" : `Start with ${displayName}`;
 
   // PR #51 v3.33: pricing is now public. Free tier still routes to signup;
-  // paid tiers deep-link to public pricing with ?tier= preselection.
+  // paid tiers deep-link to the matching pricing card via a #tier- hash anchor,
+  // which the global ScrollToTop hook scrolls to and Pricing.tsx pre-highlights.
   const ctaTo =
     tier === "free"
       ? ROUTES.APOTHECARY_SIGNUP
-      : `${ROUTES.APOTHECARY_PRICING}?tier=${tier}`;
+      : `${ROUTES.APOTHECARY_PRICING}#tier-${tier}`;
 
   return (
     <div
