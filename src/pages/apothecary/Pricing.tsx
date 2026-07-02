@@ -107,7 +107,7 @@ export default function Pricing() {
                 monthlyPrice="$0"
                 yearlyPrice="$0"
                 features={[
-                  "50 herb monographs (basic profile)",
+                  "All 100 herb monographs (basic profile)",
                   "Constitutional quiz + result",
                   "The Five Tenets overview",
                   "Read-only contraindications (high + absolute)",

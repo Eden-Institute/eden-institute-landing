@@ -1,13 +1,22 @@
-export const CONSTITUTION_MAP: Record<string, { slug: string; name: string }> = {
-  "Hot / Dry / Tense": { slug: "burning-bowstring", name: "The Burning Bowstring" },
-  "Hot / Dry / Relaxed": { slug: "open-flame", name: "The Open Flame" },
-  "Hot / Damp / Tense": { slug: "pressure-cooker", name: "The Pressure Cooker" },
-  "Hot / Damp / Relaxed": { slug: "overflowing-cup", name: "The Overflowing Cup" },
-  "Cold / Dry / Tense": { slug: "drawn-bowstring", name: "The Drawn Bowstring" },
-  "Cold / Dry / Relaxed": { slug: "spent-candle", name: "The Spent Candle" },
-  "Cold / Damp / Tense": { slug: "frozen-knot", name: "The Frozen Knot" },
-  "Cold / Damp / Relaxed": { slug: "still-water", name: "The Still Water" },
-};
+import { PATTERN_PROFILES } from "@/lib/edenPattern";
+
+const slugFromName = (name: string): string =>
+  name.toLowerCase().replace(/^the\s+/, "").trim().replace(/\s+/g, "-");
+
+/**
+ * CONSTITUTION_MAP — axis-label ("Cold / Damp / Tense") → { slug, name }.
+ *
+ * Derived from edenPattern.PATTERN_PROFILES (the single source of truth for the
+ * eight Patterns and their 3-axis composition), so the archetype roster is
+ * maintained in exactly one place. Adding a Pattern there flows through here.
+ */
+export const CONSTITUTION_MAP: Record<string, { slug: string; name: string }> =
+  Object.fromEntries(
+    Object.values(PATTERN_PROFILES).map((p) => [
+      `${p.temperature} / ${p.moisture} / ${p.tone}`,
+      { slug: slugFromName(p.name), name: p.name },
+    ]),
+  );
 
 export function getSlugFromType(constitutionType: string): string {
   return CONSTITUTION_MAP[constitutionType]?.slug ?? "burning-bowstring";
