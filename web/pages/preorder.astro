@@ -1,0 +1,86 @@
+---
+// /preorder — founding-preorder storefront (preorder system Phase 1).
+// Static marketing copy + compliance terms are pre-rendered here; the interactive
+// buy flow (SMS consent checkbox, checkout buttons, banners) is one island
+// (PreorderBuyBox). NOT linked from the navbar until launch; while the
+// PREORDERS_LIVE secret is false the create-checkout EF refuses public checkout
+// anyway, so this page can be deployed dark.
+//
+// Compliance (FTC Mail Order Rule; copy uses no em dashes):
+//   - founding-preorder framing ($100-off claim on the KIT only)
+//   - estimated ship window, stated as an estimate, BEFORE redirect to Stripe
+//   - card charged today + notify-and-refund right if we cannot ship in window
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+import PreorderBuyBox from "../components/islands/PreorderBuyBox.tsx";
+
+const SHIP_WINDOW = "Winter 2026"; // keep in sync with supabase/functions/_shared/order-config.ts
+
+const meta = {
+  title: "Founding Preorder — Eden's Table Sprouts | The Eden Institute",
+  description:
+    "Preorder the Sprouts (K-2) Biblical herbalism curriculum at the founding price. $100 below retail on the complete kit, founding-member status, estimated ship window " + SHIP_WINDOW + ".",
+  canonical: "https://edeninstitute.health/preorder",
+};
+---
+
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical}>
+  {/* HERO */}
+  <section class="pt-20 pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-3xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold))">
+        Eden's Table · Founding Preorder
+      </p>
+      <h1 class="font-serif text-4xl md:text-5xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
+        Be one of the founding 500 families.
+      </h1>
+      <div class="w-16 h-px mx-auto my-6" style="background-color:hsl(var(--eden-gold))"></div>
+      <p class="font-body text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
+        This is a founding preorder. Your patience helps fund the founding of this curriculum,
+        and in exchange you receive $100 off the complete kit and founding-member status,
+        including a voice in shaping Seedlings and first look at every band that follows.
+      </p>
+    </div>
+  </section>
+
+  {/* BUY BOX (island) */}
+  <section class="py-12 px-6 bg-background">
+    <div class="max-w-5xl mx-auto">
+      <PreorderBuyBox client:only="react" />
+    </div>
+  </section>
+
+  {/* PREORDER TERMS — must be visible BEFORE the buyer is redirected to Stripe. */}
+  <section class="py-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto">
+      <h2 class="font-serif text-2xl font-bold mb-6 text-center" style="color:hsl(var(--eden-bark))">
+        Preorder terms, in plain language
+      </h2>
+      <div class="space-y-4">
+        <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+          <p class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">This is a founding preorder.</p>
+          <p class="font-body text-sm text-muted-foreground leading-relaxed">
+            Your patience helps fund the founding of this curriculum. In exchange you receive the
+            founding price ($100 off the complete kit) and founding-member status.
+          </p>
+        </div>
+        <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+          <p class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">Estimated ship window: {SHIP_WINDOW}.</p>
+          <p class="font-body text-sm text-muted-foreground leading-relaxed">
+            That is an estimate, not a promise of a specific date. We will email you updates as
+            production progresses and as the window firms up.
+          </p>
+        </div>
+        <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+          <p class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">Your card is charged today.</p>
+          <p class="font-body text-sm text-muted-foreground leading-relaxed">
+            If we cannot ship within the estimated window, we will notify you, and you may request
+            a full refund at any point before your order ships.
+          </p>
+        </div>
+      </div>
+      <p class="font-body text-xs text-muted-foreground text-center mt-6">
+        Questions? Email <a href="mailto:hello@edeninstitute.health" class="underline">hello@edeninstitute.health</a> and a real person (Camila) answers.
+      </p>
+    </div>
+  </section>
+</MarketingLayout>
