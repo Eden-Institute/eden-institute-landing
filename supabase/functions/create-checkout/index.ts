@@ -27,6 +27,13 @@
 // dispatch — subscriptions + nb_addon check JWT inside, anonymous one-offs
 // don't. Setting verify_jwt=true at the platform level would block
 // anonymous one-off purchases (the original Phase 5 #4 silent-fail bug).
+//
+// Stripe Tax: automatic_tax is enabled on every session below (all three
+// product classes share one sessionParams object). Requires Stripe Tax to be
+// configured on the account (origin address + tax registrations); confirmed
+// done 2026-07-02. Without automatic_tax, Checkout Sessions created via the
+// API never calculate tax even if the Dashboard "Use automatic tax" toggle is
+// on — that toggle only covers Dashboard-created Invoices/Subscriptions/Quotes.
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext"
@@ -351,6 +358,13 @@ serve(async (req) => {
       success_url: isSafeReturnUrl(success_url) ? success_url : defaultSuccessUrl,
       cancel_url: isSafeReturnUrl(cancel_url) ? cancel_url : defaultCancelUrl,
       allow_promotion_codes: true,
+      // Stripe Tax: calculates tax on every session (subscriptions, digital,
+      // and physical alike). Requires Stripe Tax configured on the account
+      // (origin address + registrations) — confirmed done 2026-07-02. Without
+      // this, Checkout Sessions never calculate tax regardless of the
+      // Dashboard "Use automatic tax" toggle, which only covers
+      // Dashboard-created Invoices/Subscriptions/Quotes, not API sessions.
+      automatic_tax: { enabled: true },
     }
 
     if (stripeCustomerId) {
