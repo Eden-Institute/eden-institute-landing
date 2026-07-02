@@ -8,13 +8,13 @@
  * Draft A — same thesis on every surface so the brand voice cannot drift.
  *
  * Placement (single source of truth, imported by Index.tsx, WhyEden.tsx,
- * AppPage.tsx):
+ * ApothecaryWelcome.tsx):
  *   • Index.tsx — homepage worldview band, after the hero, before the
  *     framework breakdown.
  *   • WhyEden.tsx — anchor paragraph at the head of the page; the entire
  *     page builds out from this thesis.
- *   • AppPage.tsx — positioning band near the top, before the feature
- *     and tier breakdowns.
+ *   • ApothecaryWelcome.tsx — positioning band near the top of the anon
+ *     /apothecary value page, before the feature and tier breakdowns.
  *
  * Mobile-aware per project_mobile_wrapping_roadmap.md: no hover-only
  * interactions, generous line-height, responsive Tailwind utilities.

@@ -183,24 +183,10 @@ const Results = () => {
       <Navbar />
 
       <div className="max-w-3xl mx-auto px-6 py-16">
-        {user ? (
-          <div className="text-center mb-8">
-            <p className="font-accent text-sm tracking-[0.2em] uppercase mb-1" style={{ color: "#C9A84C" }}>
-              Your Pattern is saved to your account
-            </p>
-          </div>
-        ) : (
-          <div className="text-center mb-8 p-4 rounded" style={{ backgroundColor: "white", border: "1px solid hsl(40, 20%, 80%)" }}>
-            <p className="font-body text-sm mb-3" style={{ color: "#1C3A2E" }}>
-              Save this Pattern to your Apothecary account so you can come back to it any time.
-            </p>
-            <Link to={`${ROUTES.APOTHECARY_SIGNUP}?return_to=${encodeURIComponent(`/results/${constitutionSlug}`)}`}>
-              <Button variant="eden" size="lg">
-                Create a free account to save your Pattern
-              </Button>
-            </Link>
-          </div>
-        )}
+        {/* CRO Phase 1 reorder (approved plan §4): reveal → matched herbs →
+            Seed (primary) → save-account (soft) → "Also available" row.
+            The signup nudge that used to sit ABOVE the reveal moved below
+            the Seed block so the emotional payoff comes first. */}
 
         {/* Type Header */}
         <div className="text-center mb-12">
@@ -247,16 +233,34 @@ const Results = () => {
           <h2 className="font-serif text-2xl font-bold mb-6" style={{ color: "#1C3A2E" }}>
             Three herbs matched to your Pattern
           </h2>
+          {/* Each card deep-links into the herb's public monograph
+              (/apothecary/:slug, CRO Phase 1). The clinical-why teaser is
+              honest: the monograph's clinical study is Seed-gated, so the
+              lock line only shows to non-subscribers. */}
           <div className="space-y-4">
-            {profile.herbs.slice(0, 3).map((herb, i) => (
-              <div key={i} className="p-5 border rounded" style={{ borderColor: "hsl(40, 20%, 80%)", backgroundColor: "white" }}>
+            {profile.herbs.slice(0, 3).map((herb) => (
+              <Link
+                key={herb.herbSlug + herb.name}
+                to={ROUTES.APOTHECARY_HERB(herb.herbSlug)}
+                data-cta="results-herb-monograph"
+                className="block p-5 border border-[hsl(40,20%,80%)] rounded bg-white transition-colors hover:border-[#C9A84C]"
+              >
                 <h3 className="font-serif text-lg font-bold mb-1" style={{ color: "#C9A84C" }}>
                   {herb.name}
                 </h3>
-                <p className="font-body text-base" style={{ color: "#1C3A2E" }}>
+                <p className="font-body text-base mb-3" style={{ color: "#1C3A2E" }}>
                   {herb.note}
                 </p>
-              </div>
+                <p className="font-body text-sm" style={{ color: "#1C3A2E" }}>
+                  <span className="underline underline-offset-4">Read the monograph</span>
+                  {" →"}
+                </p>
+                {!isSubscriber && (
+                  <p className="font-body text-xs mt-1" style={{ color: "hsl(30, 10%, 40%, 0.7)" }}>
+                    The full clinical study opens with Seed.
+                  </p>
+                )}
+              </Link>
             ))}
           </div>
         </div>
@@ -289,92 +293,124 @@ const Results = () => {
           </div>
         )}
 
-        {/* $14 Deep-Dive Guide Upsell */}
-        <div className="p-6 md:p-8 border-2 rounded mb-12" style={{ borderColor: "#C9A84C", backgroundColor: "white" }}>
-          <h2 className="font-serif text-2xl font-bold mb-4" style={{ color: "#1C3A2E" }}>
-            Want the full picture?
-          </h2>
-          <p className="font-body text-base leading-relaxed mb-4" style={{ color: "#1C3A2E" }}>
-            Your complete Deep-Dive Guide includes all 10 matched herbs with clinical preparation methods, dosages, and safety notes — plus caution lists, lifestyle and nutrition guidance, and a Biblical framework for your body pattern.
-          </p>
-          {error && <p className="font-body text-sm text-destructive mb-4">{error}</p>}
-          {/* PR η fix #4: shortened button label and added wrapping classes
-              so longer Pattern names don't overflow the full-width
-              button on a 375px viewport. */}
-          <Button
-            variant="eden"
-            size="xl"
-            className="w-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] h-auto py-3 px-4"
-            data-product="constitution-guide"
-            disabled={checkoutLoading}
-            onClick={async () => {
-              setCheckoutLoading(true);
-              setError("");
-              try {
-                const slug = patternNameToSlug(profile.nickname);
-                const { data, error: fnError } = await supabase.functions.invoke("create-checkout", {
-                  body: {
-                    lookup_key: "deep_dive_guide",
-                    constitution_type: constitutionType,
-                    constitution_nickname: profile.nickname,
-                    email: user?.email,
-                    success_url: `https://edeninstitute.health/guide/${slug}?session_id={CHECKOUT_SESSION_ID}`,
-                    cancel_url: `https://edeninstitute.health/results/${constitutionSlug}`,
-                  },
-                });
-                if (fnError) throw fnError;
-                if (data?.error) throw new Error(typeof data.error === "string" ? data.error : "Checkout failed");
-                if (data?.url) window.location.href = data.url;
-              } catch (err: any) {
-                setError(err.message || "Could not start checkout");
-              } finally {
-                setCheckoutLoading(false);
-              }
-            }}
-          >
-            {checkoutLoading ? "Redirecting to checkout…" : `Get the ${patternShort} Guide — $4.99`}
-          </Button>
-        </div>
+        {/* Progressive account creation — AFTER the result is delivered
+            (approved plan §5). Anon gets the soft save card; authed gets
+            the quiet confirmation line. */}
+        {user ? (
+          <div className="text-center mb-12">
+            <p className="font-accent text-sm tracking-[0.2em] uppercase mb-1" style={{ color: "#C9A84C" }}>
+              Your Pattern is saved to your account
+            </p>
+          </div>
+        ) : (
+          <div className="text-center mb-12 p-5 rounded" style={{ backgroundColor: "white", border: "1px solid hsl(40, 20%, 80%)" }}>
+            <p className="font-body text-sm mb-3" style={{ color: "#1C3A2E" }}>
+              Save this Pattern to a free account so you can come back to it
+              any time, and keep a study list of the herbs that fit it.
+            </p>
+            <Link to={`${ROUTES.APOTHECARY_SIGNUP}?return_to=${encodeURIComponent(`/results/${constitutionSlug}`)}`}>
+              <Button variant="eden" size="lg">
+                Create a free account to save your Pattern
+              </Button>
+            </Link>
+          </div>
+        )}
 
-        {/* Amazon Herb Kit */}
-        <div className="p-6 md:p-8 rounded mb-12" style={{ backgroundColor: "#F5F0E8", border: "1px solid hsl(40, 20%, 80%)" }}>
-          <h2 className="font-serif text-2xl font-bold mb-4" style={{ color: "#1C3A2E" }}>
-            Your Starter Herb Kit
-          </h2>
-          <p className="font-body text-base leading-relaxed mb-6" style={{ color: "#1C3A2E" }}>
-            A starter set on Amazon — herbs aligned to your pattern so you can begin practicing in your own kitchen.
-          </p>
-          <a
-            href={profile.amazonUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center w-full px-8 py-4 font-serif font-bold text-base tracking-wider uppercase transition-colors rounded"
-            style={{ backgroundColor: "#1C3A2E", color: "#F5F0E8" }}
-          >
-            Shop Your Kit on Amazon
-          </a>
-          <p className="font-body text-xs text-center mt-3" style={{ color: "hsl(30, 10%, 40%, 0.6)" }}>
-            Affiliate link — I earn a small commission at no cost to you.
+        {/* "Also available" — guide, kit, and course demoted to a compact
+            supporting row (approved plan §4/§8: subscription-primary; the
+            one-off guide is a stepping stone, not the destination). The
+            guide checkout wiring is unchanged, only restyled. */}
+        <div className="mb-4 text-center">
+          <p className="font-accent text-xs tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>
+            Also available
           </p>
         </div>
+        {error && <p className="font-body text-sm text-destructive mb-4 text-center">{error}</p>}
+        <div className="grid md:grid-cols-3 gap-4">
+          <div className="flex flex-col p-5 border rounded" style={{ borderColor: "hsl(40, 20%, 80%)", backgroundColor: "white" }}>
+            <h3 className="font-serif text-lg font-bold mb-2" style={{ color: "#1C3A2E" }}>
+              The Deep-Dive Guide
+            </h3>
+            <p className="font-body text-sm leading-relaxed mb-4 flex-1" style={{ color: "#1C3A2E" }}>
+              All 10 matched herbs with preparation methods, dosages, and
+              safety notes, plus lifestyle guidance and a Biblical framework
+              for your pattern.
+            </p>
+            <Button
+              variant="eden"
+              size="lg"
+              className="w-full whitespace-normal leading-snug h-auto py-3"
+              data-product="constitution-guide"
+              disabled={checkoutLoading}
+              onClick={async () => {
+                setCheckoutLoading(true);
+                setError("");
+                try {
+                  const slug = patternNameToSlug(profile.nickname);
+                  const { data, error: fnError } = await supabase.functions.invoke("create-checkout", {
+                    body: {
+                      lookup_key: "deep_dive_guide",
+                      constitution_type: constitutionType,
+                      constitution_nickname: profile.nickname,
+                      email: user?.email,
+                      success_url: `https://edeninstitute.health/guide/${slug}?session_id={CHECKOUT_SESSION_ID}`,
+                      cancel_url: `https://edeninstitute.health/results/${constitutionSlug}`,
+                    },
+                  });
+                  if (fnError) throw fnError;
+                  if (data?.error) throw new Error(typeof data.error === "string" ? data.error : "Checkout failed");
+                  if (data?.url) window.location.href = data.url;
+                } catch (err: any) {
+                  setError(err.message || "Could not start checkout");
+                } finally {
+                  setCheckoutLoading(false);
+                }
+              }}
+            >
+              {checkoutLoading ? "Redirecting…" : "Get the Guide, $4.99"}
+            </Button>
+          </div>
 
-        {/* Foundations Course CTA */}
-        <div className="text-center p-10 rounded" style={{ backgroundColor: "#1C3A2E" }}>
-          <h3 className="font-serif text-2xl font-bold mb-4" style={{ color: "#C9A84C" }}>
-            Ready to Go Deeper?
-          </h3>
-          <p className="font-body text-lg mb-8 max-w-xl mx-auto" style={{ color: "#F5F0E8" }}>
-            The Foundations Course teaches you how to read your body pattern and match it to God's provision in the plant world.
-          </p>
-          <a
-            href="https://learn.edeninstitute.health/course/back-to-eden1"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center px-10 py-4 font-serif font-bold text-base tracking-wider uppercase transition-colors rounded"
-            style={{ backgroundColor: "#C9A84C", color: "#1C3A2E" }}
-          >
-            Enroll in the Foundations Course — $97
-          </a>
+          <div className="flex flex-col p-5 border rounded" style={{ borderColor: "hsl(40, 20%, 80%)", backgroundColor: "white" }}>
+            <h3 className="font-serif text-lg font-bold mb-2" style={{ color: "#1C3A2E" }}>
+              Starter Herb Kit
+            </h3>
+            <p className="font-body text-sm leading-relaxed mb-4 flex-1" style={{ color: "#1C3A2E" }}>
+              A starter set on Amazon, aligned to your pattern, so you can
+              begin practicing in your own kitchen.
+            </p>
+            <a
+              href={profile.amazonUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center w-full px-4 py-3 font-serif font-bold text-sm tracking-wider uppercase transition-colors rounded"
+              style={{ backgroundColor: "#1C3A2E", color: "#F5F0E8" }}
+            >
+              Shop on Amazon
+            </a>
+            <p className="font-body text-xs text-center mt-2" style={{ color: "hsl(30, 10%, 40%, 0.6)" }}>
+              Affiliate link. I earn a small commission at no cost to you.
+            </p>
+          </div>
+
+          <div className="flex flex-col p-5 border rounded" style={{ borderColor: "hsl(40, 20%, 80%)", backgroundColor: "white" }}>
+            <h3 className="font-serif text-lg font-bold mb-2" style={{ color: "#1C3A2E" }}>
+              The Foundations Course
+            </h3>
+            <p className="font-body text-sm leading-relaxed mb-4 flex-1" style={{ color: "#1C3A2E" }}>
+              Learn to read your body pattern and match it to God's provision
+              in the plant world.
+            </p>
+            <a
+              href="https://learn.edeninstitute.health/course/back-to-eden1"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center w-full px-4 py-3 font-serif font-bold text-sm tracking-wider uppercase transition-colors rounded"
+              style={{ backgroundColor: "#C9A84C", color: "#1C3A2E" }}
+            >
+              Enroll, $97
+            </a>
+          </div>
         </div>
       </div>
     </div>
