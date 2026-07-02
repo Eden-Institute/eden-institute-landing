@@ -3,8 +3,8 @@
 // Listens for subscription lifecycle events AND one-time payment completion,
 // reconciling the `profiles` table for subscriptions, the `quiz_completions`
 // table for guide/course one-off purchases, the homeschool bundle-buyer
-// flag for Two-Band Family Bundle purchases, AND the homeschool_orders table
-// for every Eden's Table kit purchase (fulfillment + Founders 500-unit count).
+// flag for Two-Band Family Bundle purchases, AND the orders table for the
+// founding-preorder system (state machine + confirmation messaging).
 //
 // Auth model: webhooks are NOT user-authenticated. Stripe signs every request with
 // an HMAC-SHA256 signature using the STRIPE_WEBHOOK_SECRET. We verify that
@@ -18,16 +18,23 @@
 //   customer.subscription.updated  → plan change, cancellation scheduled, status change
 //   customer.subscription.deleted  → subscription ended → downgrade to 'free'
 //   checkout.session.completed     → one-time payment completion (mode='payment')
-//                                     → dispatch by lookup_key:
+//                                     → dispatch by metadata / lookup_key:
+//                                       preorder_sku → preorder order + preorder_hold + messages
 //                                       deep_dive_guide → quiz_completions.purchased_guide
 //                                       course_*        → quiz_completions.purchased_course
-//                                       sprouts/seedlings/nb_addon → record homeschool_orders
-//                                       two_band_bundle → record homeschool_orders +
+//                                       sprouts/seedlings/nb_addon → record legacy order row
+//                                       two_band_bundle → record legacy order row +
 //                                                         provision user + bundle-buyer flag
+//   charge.refunded                → preorder order → refunded (suppresses messaging)
+//
+// Errors are captured to Sentry (SENTRY_DSN secret; graceful no-op without it).
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { claimStripeEvent, markEventProcessed, markEventError } from "../_shared/order-db.ts"
+import { recordPreorderFromSession, applyRefundByPaymentIntent } from "../_shared/order-flow.ts"
+import { captureException } from "../_shared/sentry.ts"
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2024-12-18.acacia",
@@ -41,7 +48,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 
 // Admin client — webhook has no user context, so we use the service role key
-// to write freely to `profiles`, `quiz_completions`, and `homeschool_orders`
+// to write freely to `profiles`, `quiz_completions`, and `orders`
 // (bypasses RLS) and to call auth.admin.inviteUserByEmail for bundle-buyer
 // provisioning.
 const adminClient = createClient(
@@ -88,13 +95,13 @@ async function sendGuidePdf(email: string, constitutionType: string | null): Pro
       return
     }
     const pdfB64 = bytesToBase64(new Uint8Array(await pdfRes.arrayBuffer()))
-    const html = `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#F5F0E8;font-family:Georgia,serif;color:#3D3832;">`
-      + `<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#FFFFFF;border:1px solid #E8E3DA;">`
-      + `<tr><td style="background:#2C3E2D;padding:28px 20px;text-align:center;"><span style="font-family:Georgia,serif;font-size:13px;font-weight:bold;letter-spacing:4px;color:#C5A44E;">THE EDEN INSTITUTE</span></td></tr>`
-      + `<tr><td style="padding:32px 36px;font-size:16px;line-height:1.6;">`
-      + `<p style="margin:0 0 16px 0;">Thank you. Your <strong>Constitutional Deep-Dive Guide</strong> is attached to this email as a PDF, so it is yours to keep, print, and return to anytime.</p>`
-      + `<p style="margin:0 0 16px 0;">Inside you will find your matched herbs and how to use them, your caution list, and the diet and lifestyle rhythms that keep your constitution in balance.</p>`
-      + `<p style="margin:24px 0 4px 0;">Grace and health,</p><p style="margin:0;font-weight:bold;">Camila</p><p style="margin:4px 0 0 0;font-size:14px;">The Eden Institute</p>`
+    const html = `<!DOCTYPE html><html><body style=\"margin:0;padding:24px;background:#F5F0E8;font-family:Georgia,serif;color:#3D3832;\">`
+      + `<table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px;margin:0 auto;background:#FFFFFF;border:1px solid #E8E3DA;\">`
+      + `<tr><td style=\"background:#2C3E2D;padding:28px 20px;text-align:center;\"><span style=\"font-family:Georgia,serif;font-size:13px;font-weight:bold;letter-spacing:4px;color:#C5A44E;\">THE EDEN INSTITUTE</span></td></tr>`
+      + `<tr><td style=\"padding:32px 36px;font-size:16px;line-height:1.6;\">`
+      + `<p style=\"margin:0 0 16px 0;\">Thank you. Your <strong>Constitutional Deep-Dive Guide</strong> is attached to this email as a PDF, so it is yours to keep, print, and return to anytime.</p>`
+      + `<p style=\"margin:0 0 16px 0;\">Inside you will find your matched herbs and how to use them, your caution list, and the diet and lifestyle rhythms that keep your constitution in balance.</p>`
+      + `<p style=\"margin:24px 0 4px 0;\">Grace and health,</p><p style=\"margin:0;font-weight:bold;\">Camila</p><p style=\"margin:4px 0 0 0;font-size:14px;\">The Eden Institute</p>`
       + `</td></tr></table></body></html>`
     const sendRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -123,6 +130,22 @@ serve(async (req) => {
     return new Response("Method not allowed", { status: 405 })
   }
 
+  // ---------- 0. Admin-only deliberate error (Sentry end-to-end check) ----------
+  // Verifies Sentry capture in production without touching Stripe. Requires the
+  // PREORDER_ADMIN_TOKEN secret in the x-eden-sentry-test header; unauthenticated
+  // requests fall through to normal signature verification (and fail there).
+  const sentryTestHeader = req.headers.get("x-eden-sentry-test")
+  const preorderAdminToken = Deno.env.get("PREORDER_ADMIN_TOKEN")
+  if (sentryTestHeader && preorderAdminToken && sentryTestHeader === preorderAdminToken) {
+    const testErr = new Error("Deliberate webhook test error (admin-triggered Sentry check)")
+    console.error(testErr.message)
+    await captureException(testErr, { function: "stripe-webhook", deliberate: true })
+    return new Response(JSON.stringify({ sentry_test: "captured" }), {
+      headers: { "Content-Type": "application/json" },
+      status: 500,
+    })
+  }
+
   // ---------- 1. Verify Stripe signature ----------
   const signature = req.headers.get("Stripe-Signature")
   if (!signature) {
@@ -149,7 +172,23 @@ serve(async (req) => {
 
   console.log(`Received event: ${event.type} (id: ${event.id})`)
 
-  // ---------- 2. Dispatch by event type ----------
+  // ---------- 2. Idempotency gate: skip events already fully processed ----------
+  try {
+    const { proceed } = await claimStripeEvent(adminClient, { id: event.id, type: event.type, payload: event })
+    if (!proceed) {
+      console.log(`Event ${event.id} (${event.type}) already processed; skipping.`)
+      return new Response(JSON.stringify({ received: true, duplicate: true }), {
+        headers: { "Content-Type": "application/json" },
+        status: 200,
+      })
+    }
+  } catch (err) {
+    // If the ledger write itself fails, process anyway: a rare duplicate is safer than a
+    // dropped event, and the order UNIQUE + message_log guard still prevent double effects.
+    console.error(`stripe_events claim failed for ${event.id}:`, err instanceof Error ? err.message : String(err))
+  }
+
+  // ---------- 3. Dispatch by event type ----------
   try {
     switch (event.type) {
       case "customer.subscription.created":
@@ -185,9 +224,25 @@ serve(async (req) => {
         break
       }
 
+      case "charge.refunded": {
+        const charge = event.data.object as Stripe.Charge
+        const pi = typeof charge.payment_intent === "string"
+          ? charge.payment_intent
+          : charge.payment_intent?.id ?? null
+        if (pi) {
+          const applied = await applyRefundByPaymentIntent(adminClient, pi)
+          console.log(`charge.refunded: ${applied ? "order -> refunded" : "no matching order"} (pi=${pi}, charge=${charge.id})`)
+        } else {
+          console.warn(`charge.refunded without payment_intent; charge=${charge.id}`)
+        }
+        break
+      }
+
       default:
         console.log(`Unhandled event type: ${event.type}`)
     }
+
+    await markEventProcessed(adminClient, event.id)
 
     return new Response(JSON.stringify({ received: true }), {
       headers: { "Content-Type": "application/json" },
@@ -195,6 +250,8 @@ serve(async (req) => {
     })
   } catch (err) {
     console.error(`Error processing ${event.type}:`, err)
+    await markEventError(adminClient, event.id, err instanceof Error ? err.message : String(err)).catch(() => {})
+    await captureException(err, { function: "stripe-webhook", event_type: event.type, event_id: event.id })
     const message = err instanceof Error ? err.message : "Unknown error"
     return new Response(JSON.stringify({ error: message }), {
       headers: { "Content-Type": "application/json" },
@@ -310,6 +367,16 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 // ---------- One-off payment dispatcher ----------
 
 async function handleOneOffPayment(session: Stripe.Checkout.Session) {
+  // ---- Branch 0: founding-preorder products (Sprouts Kit, Student Notebook, ...) ----
+  // Detected by the preorder_sku metadata stamped at checkout. Full lifecycle: record the
+  // order + line item, transition to preorder_hold, and fire the confirmation email/SMS.
+  const preorderSku = (session.metadata?.preorder_sku as string | undefined) ?? null
+  if (preorderSku) {
+    const isFounding = session.metadata?.is_founding === "true"
+    await recordPreorderFromSession(adminClient, session, { sku: preorderSku, isFounding })
+    return
+  }
+
   // ---- Resolve email (purchaser identity for attribution) ----
   const rawEmail =
     session.customer_details?.email ??
@@ -431,10 +498,10 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
 // ---------- Homeschool order recording ----------
 
 /**
- * Record a homeschool kit purchase in homeschool_orders — the source of truth
+ * Record a homeschool kit purchase in the orders table — the source of truth
  * for fulfillment and the Founders 500-unit counter. Idempotent on
- * stripe_session_id (safe on Stripe webhook retries). Throws on a DB error so
- * Stripe retries; the ignore-duplicates upsert makes retries harmless.
+ * stripe_checkout_session_id (safe on Stripe webhook retries). Throws on a DB
+ * error so Stripe retries; the ignore-duplicates upsert makes retries harmless.
  */
 async function recordHomeschoolOrder(
   session: Stripe.Checkout.Session,
@@ -446,26 +513,32 @@ async function recordHomeschoolOrder(
       ? session.customer
       : session.customer?.id ?? null
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const shipping = (session as any).shipping_details ?? null
+  const shipping = (session as any).shipping_details ?? (session as any).collected_information?.shipping_details ?? null
 
   const order = {
-    stripe_session_id: session.id,
+    stripe_checkout_session_id: session.id,
+    stripe_payment_intent_id: typeof session.payment_intent === "string" ? session.payment_intent : null,
     stripe_customer_id: stripeCustomerId,
-    email,
+    customer_email: email,
     lookup_key: lookupKey,
     product_label: HOMESCHOOL_PRODUCT_LABELS[lookupKey] ?? lookupKey,
-    amount_total: session.amount_total ?? null,
+    amount_total_cents: session.amount_total ?? null,
     currency: session.currency ?? null,
     quantity: 1,
     payment_status: session.payment_status ?? null,
     shipping_name: shipping?.name ?? session.customer_details?.name ?? null,
     shipping_address: shipping?.address ?? null,
-    status: "preorder",
+    status: "preorder_hold",
+    is_preorder: true,
   }
 
+  // NOTE: writes to the renamed `orders` table. This legacy path (old homeschool lookup_keys)
+  // records the order but does NOT create order_items / fire the new confirmation messages;
+  // the new founding-preorder products use Branch 0 above. Retire the old kit buttons in favor
+  // of the price-ID preorder flow.
   const { error } = await adminClient
-    .from("homeschool_orders")
-    .upsert(order, { onConflict: "stripe_session_id", ignoreDuplicates: true })
+    .from("orders")
+    .upsert(order, { onConflict: "stripe_checkout_session_id", ignoreDuplicates: true })
 
   if (error) {
     throw new Error(
