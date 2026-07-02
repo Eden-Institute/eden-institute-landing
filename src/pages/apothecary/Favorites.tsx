@@ -6,7 +6,6 @@ import { useEdenPattern } from "@/hooks/useEdenPattern";
 import { HerbCard } from "@/components/apothecary/HerbCard";
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
 import { RequireAuth } from "@/components/apothecary/RequireAuth";
-import { RequireTier } from "@/components/apothecary/RequireTier";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
@@ -18,9 +17,14 @@ import { useDocumentMeta } from "@/lib/useDocumentMeta";
  *   (a) Per-active-profile favorites — the active profile from the picker
  *       drives which favorites we list. Switching profile via the picker
  *       re-keys useHerbFavorites and the page rebuilds.
- *   (b) Seed+ tier gating — enforced via RequireTier wrapper. Free users
- *       see the paywall fallback (cap=0 means they have no profile to
- *       attach favorites to anyway).
+ *   (b) CRO Phase 3 amendment: the RequireTier(seed+) wrapper is retired.
+ *       Since Phase 0 free users keep a device-local 3-herb list
+ *       (eden_free_favorites), but this page paywalled them — the study
+ *       list they were invited to start was invisible. useHerbFavorites
+ *       already serves the local list to free callers, so the same
+ *       content component works for every authed tier; free users get a
+ *       Seed upsell line instead of a wall. Auth is still required
+ *       (RequireAuth), and DB favorites remain RLS-guarded server-side.
  *   (c) Heart icon on HerbCard handles the toggle (PR #104). On THIS
  *       page, tapping the heart removes from favorites and the row
  *       disappears — same hook, same optimistic UI.
@@ -49,6 +53,7 @@ function FavoritesContent() {
 
   const {
     data: herbs,
+    isSubscriber,
     isLoading: herbsLoading,
     isError,
     error,
@@ -95,9 +100,13 @@ function FavoritesContent() {
           >
             Herbs you're coming back to.
           </h1>
+          {/* Tier-honest: free lists are device-local localStorage, not
+              profile rows — saying "profile" to a free user promises
+              cross-device persistence they don't have. */}
           <p className="font-body text-base md:text-lg text-muted-foreground max-w-2xl leading-relaxed">
-            Saved to this profile. Pattern-aware—your match badges still
-            apply. Tap the heart on any card to remove it.
+            {isSubscriber
+              ? "Saved to this profile. Pattern-aware, your match badges still apply. Tap the heart on any card to remove it."
+              : "Saved on this device. Pattern-aware, your match badges still apply. Tap the heart on any card to remove it."}
           </p>
         </div>
       </section>
@@ -118,11 +127,11 @@ function FavoritesContent() {
                 className="font-serif text-xl md:text-2xl font-semibold mb-3"
                 style={{ color: "hsl(var(--eden-bark))" }}
               >
-                No favorites yet.
+                Start your study list.
               </h2>
               <p className="font-body text-sm md:text-base text-muted-foreground mb-6">
-                Save herbs you want to come back to. Tap the heart on any
-                herb in the directory and it'll land here.
+                Tap the heart on any herb in the directory and it lands
+                here, ready for your next reading.
               </p>
               <Button variant="eden" size="lg" asChild>
                 <Link to={ROUTES.APOTHECARY}>Browse the directory</Link>
@@ -149,6 +158,23 @@ function FavoritesContent() {
                   />
                 ))}
               </div>
+              {/* Free list is device-local and capped at 3 (Phase 0) —
+                  say so honestly, with the Seed path. */}
+              {!isSubscriber && (
+                <p className="font-body text-sm text-muted-foreground mt-6">
+                  Your free list holds 3 herbs and lives on this device.{" "}
+                  {/* Darker gold than --eden-gold: small text on the light
+                      background needs ≥4.5:1 contrast. */}
+                  <Link
+                    to={`${ROUTES.APOTHECARY_PRICING}#tier-seed`}
+                    data-cta="favorites-free-seed"
+                    className="underline underline-offset-4 hover:text-foreground transition-colors"
+                    style={{ color: "hsl(40, 60%, 34%)" }}
+                  >
+                    Seed saves unlimited herbs, organized per family member →
+                  </Link>
+                </p>
+              )}
             </>
           )}
         </div>
@@ -158,19 +184,14 @@ function FavoritesContent() {
 }
 
 /**
- * Auth + tier gating wrapper. Same pattern as ProfilesPage:
- *   1. RequireAuth — must be authenticated to reach this route.
- *   2. RequireTier — must be Seed+ tier; lower tiers see paywall fallback.
- *   3. RLS — Postgres row-level security on herb_favorites enforces the
- *      person_profile ownership chain server-side, so even a misconfigured
- *      client can't read another user's favorites.
+ * Auth wrapper. CRO Phase 3: RequireTier(seed+) retired — free users have
+ * a device-local study list (Phase 0) and this is the page that shows it.
+ * RLS on herb_favorites still guards DB favorites server-side.
  */
 export default function Favorites() {
   return (
     <RequireAuth>
-      <RequireTier allow={["seed", "root", "practitioner"]}>
-        <FavoritesContent />
-      </RequireTier>
+      <FavoritesContent />
     </RequireAuth>
   );
 }

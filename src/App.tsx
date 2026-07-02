@@ -193,10 +193,10 @@ const App = () => (
                     (RequireAuth + RequireTier allow={["seed","root","practitioner"]}
                     per tier-cap restructure v2). */}
                 <Route path="profiles" element={<ProfilesPage />} />
-                {/* Stage 7.X save-favorites listing page (PR 5 of 3 in the
-                    save-favorites build sequence). Auth + tier gating is
-                    enforced by the page itself (RequireAuth + RequireTier
-                    allow={["seed","root","practitioner"]}). Schema in
+                {/* Stage 7.X save-favorites listing page. Auth enforced by
+                    the page itself (RequireAuth); CRO Phase 3 retired the
+                    RequireTier(seed+) wrapper so free users can see their
+                    device-local 3-herb list (Phase 0). Schema in
                     herb_favorites table; hook + heart icon on HerbCard
                     shipped in PR #103 + #104. */}
                 <Route path="favorites" element={<Favorites />} />

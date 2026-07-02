@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, AlertTriangle, Lock, ShieldAlert, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,7 @@ import { HerbFavoriteHeart } from "@/components/apothecary/HerbFavoriteHeart";
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
 import { useHerbsDirectory } from "@/hooks/useHerbsDirectory";
 import { useEdenPattern } from "@/hooks/useEdenPattern";
+import { useViewedHerbs } from "@/hooks/useViewedHerbs";
 import { computeMatchRelationship } from "@/lib/edenPattern";
 import { findHerbByParam, herbParam, HERB_ALIASES } from "@/lib/herbLinks";
 import { ROUTES } from "@/lib/routes";
@@ -37,11 +39,33 @@ export default function HerbMonograph() {
   const { herbId: param } = useParams<{ herbId: string }>();
   const { data: herbs, isLoading, isError, isSubscriber } = useHerbsDirectory();
   const { data: activePattern } = useEdenPattern();
+  const { viewedOrder, recordView } = useViewedHerbs();
 
   const herb = findHerbByParam(herbs, param);
   const name = herb?.common_name ?? "";
   const isLocked = herb?.is_locked === true;
   const hasClinical = !!herb && !isLocked && herb.tissue_states_indicated !== null;
+
+  // CRO Phase 3 retention: record the view once the herb resolves. Hook
+  // rules require this ABOVE the early returns; the guard inside skips
+  // loading/error/not-found states. recordView is idempotent, so
+  // StrictMode double-invokes and remounts are harmless.
+  const resolvedHerbId = herb?.herb_id ?? null;
+  useEffect(() => {
+    if (resolvedHerbId) recordView(resolvedHerbId);
+    // recordView is stable-enough (reads localStorage fresh each call);
+    // keying on the id alone prevents effect churn per render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolvedHerbId]);
+
+  // Recently-viewed strip (excluding the page's own herb) — the public
+  // page's reason-to-keep-going. Resolved against the loaded directory so
+  // stale ids from removed herbs drop out naturally.
+  const recentlyViewed = viewedOrder
+    .filter((id) => id !== resolvedHerbId)
+    .map((id) => herbs.find((h) => h.herb_id === id))
+    .filter((h): h is NonNullable<typeof h> => !!h)
+    .slice(0, 4);
 
   // Match badge — client-computed like HerbCard. Since the CRO Phase 2
   // view migration, temperature/moisture are visible on every row, so
@@ -577,6 +601,38 @@ export default function HerbMonograph() {
             <Button variant="eden" size="lg" asChild data-cta="monograph-quiz">
               <Link to={ROUTES.ASSESSMENT}>Take the 2-minute quiz</Link>
             </Button>
+          </section>
+        )}
+
+        {/* Recently viewed (CRO Phase 3): keep the reading thread going.
+            Device-local, works for anon too — this is the public page's
+            retention hook. */}
+        {recentlyViewed.length > 0 && (
+          <section aria-label="Recently viewed herbs">
+            {/* Darker gold than the --eden-gold token: 12px text on the
+                light background needs ≥4.5:1 (the token lands at ~2.3:1). */}
+            <p
+              className="font-accent text-[11px] tracking-[0.25em] uppercase mb-2"
+              style={{ color: "hsl(40, 60%, 34%)" }}
+            >
+              Recently viewed
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {recentlyViewed.map((h) => (
+                <Link
+                  key={h.herb_id}
+                  to={ROUTES.APOTHECARY_HERB(herbParam(h))}
+                  data-cta="monograph-recently-viewed"
+                  className="inline-flex items-center min-h-[44px] px-3 py-1 rounded-full font-body text-sm border bg-background transition-colors hover:border-[hsl(var(--eden-gold))]"
+                  style={{
+                    borderColor: "hsl(var(--border))",
+                    color: "hsl(var(--eden-bark))",
+                  }}
+                >
+                  {h.common_name}
+                </Link>
+              ))}
+            </div>
           </section>
         )}
 
