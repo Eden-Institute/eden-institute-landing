@@ -19,13 +19,15 @@
 //   customer.subscription.deleted  → subscription ended → downgrade to 'free'
 //   checkout.session.completed     → one-time payment completion (mode='payment')
 //                                     → dispatch by metadata / lookup_key:
-//                                       preorder_sku → preorder order + preorder_hold + messages
+//                                       preorder_sku → order + preorder_hold OR
+//                                                      ready_to_fulfill (is_preorder=false)
 //                                       deep_dive_guide → quiz_completions.purchased_guide
 //                                       course_*        → quiz_completions.purchased_course
 //                                       sprouts/seedlings/nb_addon → record legacy order row
 //                                       two_band_bundle → record legacy order row +
 //                                                         provision user + bundle-buyer flag
-//   charge.refunded                → preorder order → refunded (suppresses messaging)
+//   charge.refunded                → FULL refund: order → refunded (suppresses messaging)
+//                                    PARTIAL refund: state kept, audit note in message_log
 //
 // Errors are captured to Sentry (SENTRY_DSN secret; graceful no-op without it).
 
@@ -33,7 +35,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { claimStripeEvent, markEventProcessed, markEventError } from "../_shared/order-db.ts"
-import { recordPreorderFromSession, applyRefundByPaymentIntent } from "../_shared/order-flow.ts"
+import { recordPreorderFromSession, applyRefundByPaymentIntent, logPartialRefund } from "../_shared/order-flow.ts"
 import { captureException } from "../_shared/sentry.ts"
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
@@ -224,11 +226,18 @@ serve(async (req) => {
         const pi = typeof charge.payment_intent === "string"
           ? charge.payment_intent
           : charge.payment_intent?.id ?? null
-        if (pi) {
-          const applied = await applyRefundByPaymentIntent(adminClient, pi)
-          console.log(`charge.refunded: ${applied ? "order -> refunded" : "no matching order"} (pi=${pi}, charge=${charge.id})`)
-        } else {
+        if (!pi) {
           console.warn(`charge.refunded without payment_intent; charge=${charge.id}`)
+          break
+        }
+        // Stripe sets charge.refunded=true only when the charge is FULLY refunded;
+        // a partial refund fires the same event with refunded=false.
+        if (charge.refunded) {
+          const applied = await applyRefundByPaymentIntent(adminClient, pi)
+          console.log(`charge.refunded (full): ${applied ? "order -> refunded" : "no matching order"} (pi=${pi}, charge=${charge.id})`)
+        } else {
+          const logged = await logPartialRefund(adminClient, pi, charge.id, charge.amount_refunded ?? 0)
+          console.log(`charge.refunded (partial $${((charge.amount_refunded ?? 0) / 100).toFixed(2)}): ${logged ? "audit note logged, state kept" : "no matching order"} (pi=${pi}, charge=${charge.id})`)
         }
         break
       }
@@ -364,7 +373,8 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 async function handleOneOffPayment(session: Stripe.Checkout.Session) {
   // ---- Branch 0: founding-preorder products (Sprouts Kit, Student Notebook, ...) ----
   // Detected by the preorder_sku metadata stamped at checkout. Full lifecycle: record the
-  // order + line item, transition to preorder_hold, and fire the confirmation email/SMS.
+  // order + line item, transition to preorder_hold (or straight to ready_to_fulfill once
+  // the product's is_preorder flips false), and fire the confirmation email/SMS.
   const preorderSku = (session.metadata?.preorder_sku as string | undefined) ?? null
   if (preorderSku) {
     const isFounding = session.metadata?.is_founding === "true"
