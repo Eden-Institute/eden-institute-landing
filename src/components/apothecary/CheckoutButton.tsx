@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ROUTES } from "@/lib/routes";
+import { trackCta } from "@/lib/trackCta";
 
 interface Props {
   lookupKey: string;
@@ -46,11 +47,17 @@ export function CheckoutButton({
 
   const onClick = async () => {
     if (!user || !session) {
+      // Funnel moment (CRO Phase 4): declared paid intent that detours
+      // through signup — distinct from checkout-start so the funnel can
+      // show how many recover via the auto-resume.
+      trackCta("checkout-intent-signup", { lookupKey });
       navigate(unauthRedirect);
       return;
     }
 
     setSubmitting(true);
+    // Funnel moment (CRO Phase 4): checkout-start, keyed by product.
+    trackCta("checkout-start", { lookupKey });
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { lookup_key: lookupKey },

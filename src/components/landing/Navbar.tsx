@@ -13,6 +13,8 @@ const navLinks = [
 export default function Navbar() {
   const [open, setOpen] = useState(false);
 
+  // "Take the Quiz" carries data-cta so the highest-frequency quiz entry is
+  // measurable (CRO Phase 4); rendered in both desktop and mobile menus.
   const renderLink = (
     link: { label: string; href: string; external: boolean },
     onClick?: () => void,
@@ -52,6 +54,7 @@ export default function Navbar() {
         <div className="hidden min-[880px]:block">
           <Link
             to="/assessment"
+            data-cta="nav-take-quiz"
             className="text-sm font-sans px-5 py-2 rounded-sm tracking-wide transition-colors duration-200 min-h-[44px] inline-flex items-center"
             style={{ backgroundColor: "var(--honey, #C5A44E)", color: "#1C3A2E" }}
           >
@@ -72,6 +75,7 @@ export default function Navbar() {
           <Link
             to="/assessment"
             onClick={() => setOpen(false)}
+            data-cta="nav-take-quiz"
             className="text-sm font-sans px-5 py-2 rounded-sm tracking-wide text-center min-h-[44px] inline-flex items-center justify-center"
             style={{ backgroundColor: "var(--honey, #C5A44E)", color: "#1C3A2E" }}
           >

@@ -22,10 +22,11 @@ import { ROUTES } from "@/lib/routes";
 import CrmTab from "@/components/founder/CrmTab";
 import EmailEngagementTab from "@/components/founder/EmailEngagementTab";
 import RevenueTab from "@/components/founder/RevenueTab";
+import FunnelTab from "@/components/founder/FunnelTab";
 
 const FOUNDER_EMAIL = "hello@edeninstitute.health";
 
-type Tab = "leads" | "traffic" | "crm" | "emails" | "revenue";
+type Tab = "leads" | "traffic" | "funnel" | "crm" | "emails" | "revenue";
 
 interface LeadRow {
   email: string;
@@ -138,7 +139,7 @@ export default function FounderLeads() {
 
   const load = useCallback(async () => {
     // CRM, Emails, and Revenue tabs fetch their own data inside their components.
-    if (tab === "crm" || tab === "emails" || tab === "revenue") return;
+    if (tab === "crm" || tab === "emails" || tab === "revenue" || tab === "funnel") return;
     const since = sinceISO(WINDOWS[windowIdx].days);
     setLoading(true);
     setError(null);
@@ -309,7 +310,7 @@ export default function FounderLeads() {
 
         {/* Tabs */}
         <div className="flex gap-1 mb-4 border-b border-border flex-wrap">
-          {(["leads", "traffic", "emails", "revenue", "crm"] as Tab[]).map((t) => (
+          {(["leads", "traffic", "funnel", "emails", "revenue", "crm"] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -320,7 +321,7 @@ export default function FounderLeads() {
                   : { borderColor: "transparent", color: "hsl(var(--muted-foreground))" }
               }
             >
-              {t === "leads" ? "Lead magnets" : t === "traffic" ? "Website traffic" : t === "emails" ? "Emails" : t === "revenue" ? "Revenue" : "CRM"}
+              {t === "leads" ? "Lead magnets" : t === "traffic" ? "Website traffic" : t === "funnel" ? "Funnel" : t === "emails" ? "Emails" : t === "revenue" ? "Revenue" : "CRM"}
             </button>
           ))}
         </div>
@@ -505,6 +506,8 @@ export default function FounderLeads() {
               </p>
             </section>
           </>
+        ) : tab === "funnel" ? (
+          <FunnelTab since={sinceISO(WINDOWS[windowIdx].days)} />
         ) : tab === "emails" ? (
           <EmailEngagementTab since={sinceISO(WINDOWS[windowIdx].days)} />
         ) : tab === "revenue" ? (
