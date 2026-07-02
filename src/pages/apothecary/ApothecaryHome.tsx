@@ -13,7 +13,7 @@ import {
   matchesFilters,
   type HerbFilterState,
 } from "@/components/apothecary/HerbDirectoryFilters";
-import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
+import { DirectorySkeleton } from "@/components/apothecary/DirectorySkeleton";
 import { computeMatchRelationship } from "@/lib/edenPattern";
 import { ROUTES } from "@/lib/routes";
 
@@ -113,13 +113,13 @@ export default function ApothecaryHome() {
       matchesFilters(h, { filters, activePattern })
     );
     if (!activePattern) return filtered;
-    // Pattern-aware sort. Score each unlocked row; locked rows score as
-    // neutral (sortKey 1000) so they stay grouped in the middle band rather
-    // than promoted/demoted by guesswork.
+    // Pattern-aware sort. CRO Phase 2: locked rows are no longer pinned at
+    // neutral — the view exposes temperature/moisture on every row, so a
+    // locked match sorts into the match band with the rest (tissue axis is
+    // still Seed-gated, so locked rows score from two axes — the documented
+    // degraded mode). Until the Phase 2 view migration runs, locked axes
+    // are NULL and score neutral (sortKey 1000), the old behavior.
     const scored = filtered.map((herb) => {
-      if (herb.is_locked) {
-        return { herb, sortKey: 1000 };
-      }
       const detail = computeMatchRelationship(
         {
           temperature: herb.temperature ?? null,
@@ -134,7 +134,14 @@ export default function ApothecaryHome() {
     return scored.map((x) => x.herb);
   }, [herbs, filters, activePattern]);
 
-  if (isLoading) return <PageSkeleton />;
+  // CRO Phase 2: how many locked rows survive the current narrowing. Feeds
+  // the safety-filter conversion line ("guidance for N more herbs opens
+  // with Seed"). Cheap over ~108 rows; no memo needed.
+  const lockedVisibleCount = visible.filter(
+    (h) => h.is_locked === true
+  ).length;
+
+  if (isLoading) return <DirectorySkeleton />;
 
   if (isError) {
     return (
@@ -217,6 +224,7 @@ export default function ApothecaryHome() {
             onChange={setFilters}
             visibleCount={visible.length}
             totalCount={herbs.length}
+            lockedVisibleCount={lockedVisibleCount}
             tier={tier}
             activePattern={activePattern}
           />

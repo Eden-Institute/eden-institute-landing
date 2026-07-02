@@ -43,9 +43,11 @@ export default function HerbMonograph() {
   const isLocked = herb?.is_locked === true;
   const hasClinical = !!herb && !isLocked && herb.tissue_states_indicated !== null;
 
-  // Match badge — client-computed like HerbCard. Locked rows carry null
-  // temperature/moisture, so every axis classifies Neutral and the
-  // relationship stays "neutral" (badge hidden) without a special case.
+  // Match badge — client-computed like HerbCard. Since the CRO Phase 2
+  // view migration, temperature/moisture are visible on every row, so
+  // locked monographs carry the badge too (two-axis degraded mode —
+  // tissue_states stays Seed-gated). Rows without axis data classify
+  // Neutral and the badge hides without a special case.
   const match =
     herb && activePattern
       ? computeMatchRelationship(
@@ -278,6 +280,18 @@ export default function HerbMonograph() {
             >
               Seed opens this monograph in full.
             </h2>
+            {/* Always-visible energetics teaser (CRO Phase 2) — the depth
+                is visibly present, one step from unlocking. */}
+            {(herb.temperature || herb.moisture || herb.energetics_teaser) && (
+              <p
+                className="font-body text-base italic mb-3"
+                style={{ color: "hsl(var(--eden-bark))" }}
+              >
+                {herb.energetics_teaser ??
+                  [herb.temperature, herb.moisture].filter(Boolean).join(" and ")}
+                .
+              </p>
+            )}
             <p className="font-body text-base text-muted-foreground leading-relaxed mb-4">
               The complete study of {name} is written and waiting: how it
               acts in the body, who it suits, and how to use it safely.

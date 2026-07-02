@@ -93,6 +93,14 @@ interface HerbDirectoryFiltersProps {
   onChange: (next: HerbFilterState) => void;
   visibleCount: number;
   totalCount: number;
+  /**
+   * CRO Phase 2: locked rows surviving the current narrowing (computed by
+   * the page next to `visible`). When the population-safety filter is
+   * active for a non-subscriber, this drives the honest conversion line
+   * "…guidance for N more herbs opens with Seed" — locked rows pass the
+   * safety filter unjudged because their safety fields are Seed-gated.
+   */
+  lockedVisibleCount?: number;
   tier: Tier | undefined;
   /** Active user's Eden Pattern, when known. Drives the Match/Avoid overlay UI. */
   activePattern: EdenPatternName | null;
@@ -220,6 +228,7 @@ export function HerbDirectoryFilters({
   onChange,
   visibleCount,
   totalCount,
+  lockedVisibleCount = 0,
   tier,
   activePattern,
 }: HerbDirectoryFiltersProps) {
@@ -445,6 +454,27 @@ export function HerbDirectoryFilters({
             <option value="breastfeeding">Breastfeeding</option>
             <option value="children">Children</option>
           </select>
+          {/* CRO Phase 2 (plan §7): reaching for a safety filter is peak
+              intent. Locked rows stay visible but their safety guidance is
+              Seed-gated — say so, with the count, as a link. */}
+          {!subscriber &&
+            filters.populationSafety !== "all" &&
+            lockedVisibleCount > 0 && (
+              <Link
+                to={`${ROUTES.APOTHECARY_PRICING}#tier-seed`}
+                className="block font-body text-xs py-2 underline-offset-2 hover:underline"
+                style={{ color: "hsl(var(--eden-gold))" }}
+                data-cta="filter-gate-safety-count"
+              >
+                {filters.populationSafety === "pregnancy"
+                  ? "Pregnancy"
+                  : filters.populationSafety === "breastfeeding"
+                    ? "Breastfeeding"
+                    : "Children's"}{" "}
+                guidance for {lockedVisibleCount} more{" "}
+                {lockedVisibleCount === 1 ? "herb" : "herbs"} opens with Seed →
+              </Link>
+            )}
         </div>
       </div>
 
@@ -607,6 +637,16 @@ export function matchesFilters(
     }
   }
 
+  // CRO Phase 2 decision: pattern chips NEVER hide locked rows, even though
+  // the view now gives them match axes. Two reasons. (1) The chips' toggle
+  // UI renders only for subscribers, but ApothecaryHome auto-defaults
+  // patternHideAvoid=true for ANY pattern holder — so judging locked rows
+  // here would silently remove 3-17 locked cards from free users with no
+  // visible control to undo it. (2) Locked cards are advertisement
+  // surfaces, not recommendations; an Avoid badge ON the card is honest,
+  // hiding the card just shrinks the catalog ("never silently shrinks",
+  // same invariant as the safety filter above). Locked rows still get
+  // badges and pattern-aware SORT; they are simply exempt from hiding.
   if (
     activePattern &&
     (filters.patternMatchOnly || filters.patternHideAvoid) &&
