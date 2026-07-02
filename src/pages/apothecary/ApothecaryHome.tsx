@@ -280,7 +280,7 @@ export default function ApothecaryHome() {
               </div>
               <div className="flex gap-3 shrink-0">
                 <Button variant="eden" size="lg" asChild>
-                  <Link to={ROUTES.APOTHECARY_PRICING}>
+                  <Link to={`${ROUTES.APOTHECARY_PRICING}#tier-seed`}>
                     {user ? "Choose a plan" : "Start with Seed"}
                   </Link>
                 </Button>

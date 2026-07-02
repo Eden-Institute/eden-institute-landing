@@ -35,6 +35,38 @@ const TIERS_WITH_FAVORITES: ReadonlySet<string> = new Set([
   "practitioner",
 ]);
 
+/**
+ * Free tier gets a small device-local (localStorage) favorites list. Free users
+ * have zero person_profiles, so they cannot write the DB `herb_favorites` table;
+ * a capped local list lets them start a study list, and hitting the cap is a
+ * natural Seed upsell moment ("Seed makes it unlimited, per family member").
+ */
+const FREE_FAVORITES_CAP = 3;
+const FREE_FAVORITES_KEY = "eden_free_favorites";
+const FREE_QUERY_KEY = ["herb_favorites_free"];
+
+function readFreeFavorites(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(FREE_FAVORITES_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((x): x is string => typeof x === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeFreeFavorites(ids: string[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(FREE_FAVORITES_KEY, JSON.stringify(ids));
+  } catch {
+    // localStorage unavailable (private mode / quota) — non-fatal.
+  }
+}
+
 export interface UseHerbFavoritesResult {
   /** Set of herb_ids the active profile has favorited. */
   favorites: Set<string>;
@@ -47,6 +79,20 @@ export interface UseHerbFavoritesResult {
    * upgrade prompt.
    */
   canFavorite: boolean;
+  /**
+   * When favoriting is blocked, why — so the UI shows the RIGHT prompt:
+   *   "upgrade"    → anon/Free: saving is a Seed feature.
+   *   "no-profile" → Seed+ but no active profile: pick/create a profile
+   *                  (do NOT send a paying subscriber to the pricing page).
+   *   null         → favoriting is allowed.
+   */
+  favoriteBlockReason: "upgrade" | "no-profile" | null;
+  /**
+   * True when a non-subscriber has reached the free-tier save cap. The heart
+   * uses this to show the "your free list is full — Seed makes it unlimited"
+   * upsell instead of saving a 4th herb.
+   */
+  isAtFreeCap: boolean;
   /** O(1) lookup helper. Always safe to call even when canFavorite=false. */
   isFavorite: (herbId: string) => boolean;
   /**
@@ -66,16 +112,12 @@ export function useHerbFavorites(): UseHerbFavoritesResult {
   const { data: tier } = useCurrentTier();
   const queryClient = useQueryClient();
 
-  const canFavorite =
-    !!user &&
-    !!activeProfileId &&
-    !!tier &&
-    TIERS_WITH_FAVORITES.has(tier);
+  const isSubscriber = !!tier && TIERS_WITH_FAVORITES.has(tier);
 
-  const queryKey = ["herb_favorites", activeProfileId ?? "none"];
-
-  const { data, isLoading } = useQuery<Set<string>>({
-    queryKey,
+  // Subscriber favorites: DB, profile-scoped, unlimited.
+  const dbQueryKey = ["herb_favorites", activeProfileId ?? "none"];
+  const dbQuery = useQuery<Set<string>>({
+    queryKey: dbQueryKey,
     queryFn: async () => {
       if (!activeProfileId) return new Set<string>();
       const { data, error } = await supabase
@@ -85,12 +127,31 @@ export function useHerbFavorites(): UseHerbFavoritesResult {
       if (error) throw error;
       return new Set<string>((data ?? []).map((row) => row.herb_id as string));
     },
-    enabled: !!activeProfileId,
+    enabled: isSubscriber && !!activeProfileId,
     staleTime: 60 * 1000, // 1 min — favorites don't change often outside the active session
     gcTime: 30 * 60 * 1000,
   });
 
-  const favorites = data ?? new Set<string>();
+  // Free favorites: device-local, capped. Held in the TanStack cache so every
+  // HerbCard heart re-renders in sync when the local list changes.
+  const freeQuery = useQuery<Set<string>>({
+    queryKey: FREE_QUERY_KEY,
+    queryFn: async () => new Set<string>(readFreeFavorites()),
+    enabled: !isSubscriber,
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
+
+  const favorites = isSubscriber
+    ? dbQuery.data ?? new Set<string>()
+    : freeQuery.data ?? new Set<string>();
+  const isLoading = isSubscriber ? dbQuery.isLoading : freeQuery.isLoading;
+
+  // Free users can favorite (up to the cap). Subscribers need an active profile.
+  const canFavorite = isSubscriber ? !!user && !!activeProfileId : true;
+  const favoriteBlockReason: "upgrade" | "no-profile" | null =
+    isSubscriber && !activeProfileId ? "no-profile" : null;
+  const isAtFreeCap = !isSubscriber && favorites.size >= FREE_FAVORITES_CAP;
 
   const mutation = useMutation<
     void,
@@ -121,32 +182,52 @@ export function useHerbFavorites(): UseHerbFavoritesResult {
     },
     onMutate: async (herbId: string) => {
       // Cancel any in-flight refetches so they don't overwrite our optimistic value.
-      await queryClient.cancelQueries({ queryKey });
-      const previous = queryClient.getQueryData<Set<string>>(queryKey) ??
+      await queryClient.cancelQueries({ queryKey: dbQueryKey });
+      const previous = queryClient.getQueryData<Set<string>>(dbQueryKey) ??
         new Set<string>();
       const next = new Set(previous);
       if (next.has(herbId)) next.delete(herbId);
       else next.add(herbId);
-      queryClient.setQueryData(queryKey, next);
+      queryClient.setQueryData(dbQueryKey, next);
       return { previous };
     },
     onError: (_err, _herbId, context) => {
       // Roll back to the snapshot taken in onMutate.
       if (context?.previous) {
-        queryClient.setQueryData(queryKey, context.previous);
+        queryClient.setQueryData(dbQueryKey, context.previous);
       }
     },
     onSettled: () => {
       // Always refetch to reconcile with server truth.
-      queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey: dbQueryKey });
     },
   });
+
+  const toggleFavorite = async (herbId: string): Promise<void> => {
+    if (isSubscriber) {
+      await mutation.mutateAsync(herbId);
+      return;
+    }
+    // Free path: device-local, capped. Removes are always allowed; adds are
+    // blocked once the cap is reached (the heart gates this via isAtFreeCap and
+    // shows the Seed upsell, so this is a defensive backstop).
+    const current = readFreeFavorites();
+    const has = current.includes(herbId);
+    if (!has && current.length >= FREE_FAVORITES_CAP) return;
+    const next = has
+      ? current.filter((id) => id !== herbId)
+      : [...current, herbId];
+    writeFreeFavorites(next);
+    queryClient.setQueryData(FREE_QUERY_KEY, new Set<string>(next));
+  };
 
   return {
     favorites,
     isLoading,
     canFavorite,
+    favoriteBlockReason,
+    isAtFreeCap,
     isFavorite: (herbId: string) => favorites.has(herbId),
-    toggleFavorite: (herbId: string) => mutation.mutateAsync(herbId),
+    toggleFavorite,
   };
 }

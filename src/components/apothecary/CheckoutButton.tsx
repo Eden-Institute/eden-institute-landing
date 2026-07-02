@@ -15,7 +15,10 @@ interface Props {
   disabled?: boolean;
   /**
    * Where to send the user if they are unauthenticated. Default redirects to
-   * signup with a return_to that brings them back to the pricing page.
+   * signup with a return_to that brings them back to the pricing page AND
+   * remembers the chosen plan (?checkout=<lookup_key>) so checkout auto-resumes
+   * after account creation — the plan is no longer lost through the signup /
+   * email-confirmation detour.
    */
   unauthRedirect?: string;
 }
@@ -33,7 +36,9 @@ export function CheckoutButton({
   size = "lg",
   className,
   disabled,
-  unauthRedirect = `${ROUTES.APOTHECARY_SIGNUP}?return_to=${ROUTES.APOTHECARY_PRICING}`,
+  unauthRedirect = `${ROUTES.APOTHECARY_SIGNUP}?return_to=${encodeURIComponent(
+    `${ROUTES.APOTHECARY_PRICING}?checkout=${lookupKey}`,
+  )}`,
 }: Props) {
   const { session, user } = useAuth();
   const navigate = useNavigate();

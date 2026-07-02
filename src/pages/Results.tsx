@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEdenPattern } from "@/hooks/useEdenPattern";
+import { useCurrentTier } from "@/hooks/useCurrentTier";
+import { isSubscriberTier } from "@/hooks/useHerbsDirectory";
 import { patternNameToSlug } from "@/lib/amazonKitUrls";
 import { constitutionProfiles } from "@/lib/constitution-data";
 import { ROUTES } from "@/lib/routes";
@@ -26,6 +28,8 @@ const Results = () => {
   const { constitutionSlug } = useParams<{ constitutionSlug: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { data: tier } = useCurrentTier();
+  const isSubscriber = isSubscriberTier(tier);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -190,9 +194,9 @@ const Results = () => {
             <p className="font-body text-sm mb-3" style={{ color: "#1C3A2E" }}>
               Save this Pattern to your Apothecary account so you can come back to it any time.
             </p>
-            <Link to={ROUTES.APOTHECARY_SIGNUP}>
-              <Button variant="eden-outline" size="sm">
-                Sign up to save
+            <Link to={`${ROUTES.APOTHECARY_SIGNUP}?return_to=${encodeURIComponent(`/results/${constitutionSlug}`)}`}>
+              <Button variant="eden" size="lg">
+                Create a free account to save your Pattern
               </Button>
             </Link>
           </div>
@@ -256,6 +260,34 @@ const Results = () => {
             ))}
           </div>
         </div>
+
+        {/* Seed subscription — primary conversion CTA. Depth-led (Seed = full
+            clinical study) and Pattern-personalized. Shown to non-subscribers;
+            forest-filled so it reads as the dominant action above the guide. */}
+        {!isSubscriber && (
+          <div className="p-6 md:p-8 border-2 rounded mb-8" style={{ borderColor: "#C9A84C", backgroundColor: "#1C3A2E" }}>
+            <p className="font-accent text-xs tracking-[0.3em] uppercase mb-2" style={{ color: "#C9A84C" }}>
+              See the clinical why
+            </p>
+            <h2 className="font-serif text-2xl font-bold mb-3" style={{ color: "#F5F0E8" }}>
+              Unlock the full clinical study for your {patternShort}.
+            </h2>
+            <p className="font-body text-base leading-relaxed mb-6" style={{ color: "rgba(245,240,232,0.85)" }}>
+              Seed opens how each of the 100 herbs acts in the body, which ones suit your {patternShort} pattern and why, and how to use them safely. Actions, tissue states, energetics, and the full contraindication library.
+            </p>
+            <Button
+              variant="eden"
+              size="xl"
+              className="w-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] h-auto py-3 px-4"
+              asChild
+              data-cta="results-upgrade-seed"
+            >
+              <Link to={`${ROUTES.APOTHECARY_PRICING}#tier-seed`}>
+                Unlock the full study with Seed, $7.99/mo
+              </Link>
+            </Button>
+          </div>
+        )}
 
         {/* $14 Deep-Dive Guide Upsell */}
         <div className="p-6 md:p-8 border-2 rounded mb-12" style={{ borderColor: "#C9A84C", backgroundColor: "white" }}>

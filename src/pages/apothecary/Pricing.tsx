@@ -1,5 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import { PricingTier } from "@/components/apothecary/PricingTier";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 
 type BillingCycle = "monthly" | "yearly";
@@ -14,8 +18,65 @@ export default function Pricing() {
 
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
 
+  // A #tier-free / #tier-seed / #tier-root deep link (from Start, the tier
+  // comparison, and in-app upgrade CTAs) pre-highlights the chosen card. The
+  // global ScrollToTop hook handles scrolling to the anchor. Defaults to Seed,
+  // the recommended plan, when there is no valid hash.
+  const { hash } = useLocation();
+  const highlightedTier =
+    hash === "#tier-free" ? "free" : hash === "#tier-root" ? "root" : "seed";
+
+  // Auto-resume a checkout the visitor started before signing up. CheckoutButton
+  // sends anon clicks to signup with return_to=/apothecary/pricing?checkout=<key>;
+  // once they're authed and land back here, kick off create-checkout for that
+  // plan so their paid intent survives the signup / email-confirmation detour.
+  const { user, session } = useAuth();
+  const [searchParams] = useSearchParams();
+  const [resuming, setResuming] = useState(false);
+  useEffect(() => {
+    const checkout = searchParams.get("checkout");
+    if (!checkout || !user || !session) return;
+    let cancelled = false;
+    setResuming(true);
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("create-checkout", {
+          body: { lookup_key: checkout },
+        });
+        if (error) throw error;
+        if (data?.url && !cancelled) {
+          window.location.href = data.url;
+          return;
+        }
+        throw new Error("Checkout session missing redirect URL");
+      } catch (err) {
+        if (!cancelled) {
+          toast.error(
+            err instanceof Error ? err.message : "Could not resume checkout",
+          );
+          setResuming(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, user, session]);
+
   return (
     <div>
+      {resuming && (
+        <div
+          className="px-6 py-3 text-center font-body text-sm"
+          style={{
+            backgroundColor: "hsl(var(--eden-forest))",
+            color: "hsl(var(--eden-parchment))",
+          }}
+          role="status"
+        >
+          Resuming your checkout…
+        </div>
+      )}
       <section
         className="py-16 md:py-20 px-6"
         style={{ backgroundColor: "hsl(var(--eden-cream))" }}
@@ -113,6 +174,7 @@ export default function Pricing() {
                   "Read-only contraindications (high + absolute)",
                 ]}
                 billingCycle={cycle}
+                highlighted={highlightedTier === "free"}
               />
             </div>
 
@@ -126,13 +188,14 @@ export default function Pricing() {
                 monthlyLookupKey="seed_monthly"
                 yearlyLookupKey="seed_yearly"
                 features={[
-                  "All 100 herbs with clinical depth",
+                  "The full clinical study for all 100 herbs",
                   "Actions, tissue states, energetics",
                   "Full contraindication library",
+                  "Profiles for up to 5 family members",
                   "Save and revisit your constitutional result",
                 ]}
                 billingCycle={cycle}
-                highlighted
+                highlighted={highlightedTier === "seed"}
               />
             </div>
 
@@ -147,13 +210,27 @@ export default function Pricing() {
                 yearlyLookupKey="root_yearly"
                 features={[
                   "Everything in Seed",
+                  "Profiles for up to 10 family members",
                   "All 12 herb-to-dimension junction tables",
                   "Source citations and classical materia medica links",
                   "Priority access to new herbs and clinical overlays",
                 ]}
                 billingCycle={cycle}
+                highlighted={highlightedTier === "root"}
               />
             </div>
+          </div>
+
+          <div className="text-center mt-8 space-y-1">
+            <p
+              className="font-accent text-xs tracking-[0.25em] uppercase"
+              style={{ color: "hsl(var(--eden-gold))" }}
+            >
+              Founding member pricing
+            </p>
+            <p className="font-body text-sm text-muted-foreground max-w-xl mx-auto">
+              Subscribe now and your rate stays locked for as long as you keep your plan, even when prices rise. Cancel anytime; your Pattern and saved herbs stay with your free account.
+            </p>
           </div>
 
           <div className="text-center mt-12">
