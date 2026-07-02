@@ -20,8 +20,9 @@
 //      `preorder_sku` (NOT lookup_key, so it can never collide with the
 //      legacy dispatch above). Dark-launch gated by PREORDERS_LIVE;
 //      Stripe Tax enabled; founding-vs-retail price selected off the
-//      500-kit founding gate; sms_consent captured from an explicit
-//      unchecked checkbox on /preorder and stamped into session metadata.
+//      500-kit founding gate; flat $12 shipping per order; sms_consent
+//      captured from an explicit unchecked checkbox on /preorder and
+//      stamped into session metadata.
 //
 // Bundle-restricted gating: nb_addon ($39 Add-on Student Notebook) requires
 // the calling user to be a Two-Band Bundle buyer. Enforced by:
@@ -38,7 +39,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { FOUNDING_GATE_SKU, FOUNDING_GATE_LIMIT, preorderProductBySku } from "../_shared/order-config.ts"
+import { FOUNDING_GATE_SKU, FOUNDING_GATE_LIMIT, PREORDER_FLAT_SHIPPING_CENTS, preorderProductBySku } from "../_shared/order-config.ts"
 import { countFoundingSold } from "../_shared/order-db.ts"
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
@@ -432,6 +433,10 @@ serve(async (req) => {
 // cohort. Count-based selection can overshoot by a few under simultaneous checkout
 // (accepted for a "first ~500" founding cohort; see docs/preorder-system-phase-1.md).
 //
+// Shipping: flat PREORDER_FLAT_SHIPPING_CENTS per order (founder decision 2026-07-02).
+// No delivery estimate on the rate: the ship window is TBD, so we must not promise
+// transit days. Stripe Tax taxes the shipping via its tax_code where states require.
+//
 // Tax: automatic_tax on. Requires Stripe Tax configured in the Dashboard (origin
 // address, registrations, product tax codes) BEFORE launch or session creation 400s.
 // deno-lint-ignore no-explicit-any
@@ -525,6 +530,17 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
     cancel_url: cancelUrl,
     automatic_tax: { enabled: true },
     shipping_address_collection: { allowed_countries: ["US"] },
+    // Flat shipping per order. tax_behavior exclusive + the shipping tax_code let
+    // Stripe Tax tax the shipping charge in states that require it.
+    shipping_options: [{
+      shipping_rate_data: {
+        type: "fixed_amount",
+        fixed_amount: { amount: PREORDER_FLAT_SHIPPING_CENTS, currency: "usd" },
+        display_name: "Flat shipping",
+        tax_behavior: "exclusive",
+        tax_code: "txcd_92010001",
+      },
+    }],
     // Phone powers the consented preorder SMS. Collected by Stripe so we never
     // hold a number the buyer didn't give at checkout.
     phone_number_collection: { enabled: true },
