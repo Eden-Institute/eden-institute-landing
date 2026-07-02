@@ -10,9 +10,12 @@ import { ProfilePicker } from "./ProfilePicker";
 type NavItem = { to: string; label: string; end?: boolean };
 
 /**
- * Authed-only nav links. Unauthenticated visitors only ever see /apothecary/start
- * (Locked Decision §0.8 v3.3 #21 — no anonymous browsing inside the app), so the
- * middle nav surface is empty for them by design.
+ * Authed-only nav links. The middle nav surface stays empty for anonymous
+ * visitors, but since the v3.4 Lock #21 amendment (CRO Phase 1) anon traffic
+ * IS inside the app shell: bare /apothecary renders the quiz-led
+ * ApothecaryWelcome value page and /apothecary/:herbId monographs are public
+ * (depth tier-gated server-side). The marketing Navbar stacked above this one
+ * carries the anon "Take the Quiz" CTA, so this bar only adds Sign in.
  */
 const AUTHED_NAV_LINKS: NavItem[] = [
   { to: ROUTES.APOTHECARY, label: "Home", end: true },
@@ -36,9 +39,10 @@ export function ApothecaryNav() {
   // mobile, so the path to pricing is always one tap away.
   const { upgrade } = useTierAwareCTA();
 
-  // Logo routes to the directory for authed users, to the public landing
-  // for everyone else. Keeps the nav self-consistent with the auth wall.
-  const logoTo = user ? ROUTES.APOTHECARY : ROUTES.APOTHECARY_START;
+  // Bare /apothecary now serves both audiences (authed → directory,
+  // anon → quiz-led value page via ApothecaryIndex), so the logo can
+  // point there unconditionally.
+  const logoTo = ROUTES.APOTHECARY;
 
   return (
     <nav className="border-b border-border/40 bg-background sticky top-0 z-50">

@@ -324,7 +324,7 @@ const Index = () => {
                 subtitle: "Pocket Materia Medica App",
                 body: "The tool. Constitutional pattern matching, 100 monograph library, clinical reasoning support. So you don't have to hold it all in your head.",
                 cta: "Open the Apothecary →",
-                href: "/apothecary/start",
+                href: "/apothecary",
                 external: false,
               },
               {
@@ -541,7 +541,7 @@ const Index = () => {
               <ul className="space-y-3">
                 <li><a href="/homeschool" className="inline-flex items-center min-h-[44px]" style={{fontFamily: "'EB Garamond', Georgia, serif", fontSize: "15px", color: "hsl(var(--sage-pale))"}}>Eden's Table</a></li>
                 <li><a href="/courses" className="inline-flex items-center min-h-[44px]" style={{fontFamily: "'EB Garamond', Georgia, serif", fontSize: "15px", color: "hsl(var(--sage-pale))"}}>Eden Institute Courses</a></li>
-                <li><a href="/apothecary/start" className="inline-flex items-center min-h-[44px]" style={{fontFamily: "'EB Garamond', Georgia, serif", fontSize: "15px", color: "hsl(var(--sage-pale))"}}>Apothecary App</a></li>
+                <li><a href="/apothecary" className="inline-flex items-center min-h-[44px]" style={{fontFamily: "'EB Garamond', Georgia, serif", fontSize: "15px", color: "hsl(var(--sage-pale))"}}>Apothecary App</a></li>
                 <li><a href="https://www.amazon.com/dp/B0GPW5BZ32?tag=theedeninstit-20" target="_blank" rel="noopener noreferrer" className="inline-flex items-center min-h-[44px]" style={{fontFamily: "'EB Garamond', Georgia, serif", fontSize: "15px", color: "hsl(var(--sage-pale))"}}>The Book</a></li>
               </ul>
             </div>

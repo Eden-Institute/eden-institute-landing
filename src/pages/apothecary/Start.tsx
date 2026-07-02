@@ -9,9 +9,13 @@ import { useDocumentMeta } from "@/lib/useDocumentMeta";
 /**
  * Public tier-select landing page (`/apothecary/start`).
  *
- * Per Locked Decision §0.8 v3.3 #21–#22:
- *   "Apothecary access pattern is auth-walled. The marketing landing page
- *    is a tier-select gate that doubles as email capture."
+ * v3.4 amendment (CRO Phase 1, founder-approved redesign plan §2): the
+ * quiz (/assessment) is the universal anon entry, and bare /apothecary is
+ * the quiz-led value page. This page is now the SECONDARY "see the plans"
+ * path — hero leads with the quiz, tier cards carry the plan decision,
+ * and the FAQ no longer claims an account is required (Lock §0.8 v3.3
+ * #21's "auth-walled" language is retired for the quiz + monograph
+ * surfaces; depth stays tier-gated server-side).
  *
  * Surface: hero → product peek → three tier cards (Free / Seed / Root) →
  * FAQ. Practitioner is hidden until end of 2027 per §0.8.
@@ -21,9 +25,9 @@ import { useDocumentMeta } from "@/lib/useDocumentMeta";
  */
 export default function Start() {
   useDocumentMeta({
-    title: "Get Started | Eden Apothecary",
+    title: "Plans & Getting Started | Eden Apothecary",
     description:
-      "One hundred herbs anchored to constitutional patterns, tissue states, and stewardship — taught the way the body actually organizes itself. Free for as long as you'd like.",
+      "Start with the free 2-minute Pattern of Eden quiz, then choose your depth: one hundred herbs anchored to constitutional patterns, tissue states, and stewardship. Free for as long as you'd like.",
     canonical: "https://edeninstitute.health/apothecary/start",
   });
 
@@ -64,15 +68,24 @@ export default function Start() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button variant="eden" size="lg" asChild>
-              <Link to={ROUTES.APOTHECARY_SIGNUP}>Open the app — free</Link>
+              <Link to={ROUTES.ASSESSMENT} data-cta="start-quiz-hero">
+                Take the 2-Minute Quiz
+              </Link>
             </Button>
             <Button variant="eden-outline" size="lg" asChild>
-              <Link to={ROUTES.APOTHECARY_SIGNIN}>Sign in</Link>
+              <a href="#tiers" data-cta="start-see-plans">See the plans</a>
             </Button>
           </div>
           <p className="font-body text-xs text-muted-foreground mt-4">
-            Free for as long as you'd like. Upgrade when you're ready for
-            clinical depth.
+            No account needed to start. Free for as long as you'd like.
+            Already have an account?{" "}
+            <Link
+              to={ROUTES.APOTHECARY_SIGNIN}
+              className="underline underline-offset-4 hover:text-foreground transition-colors"
+            >
+              Sign in
+            </Link>
+            .
           </p>
         </div>
       </section>
@@ -168,8 +181,9 @@ export default function Start() {
         </div>
       </section>
 
-      {/* Tier cards */}
+      {/* Tier cards — id="tiers" is the hero "See the plans" anchor target */}
       <section
+        id="tiers"
         className="py-16 px-6"
         style={{ backgroundColor: "hsl(var(--eden-cream))" }}
       >
@@ -271,7 +285,7 @@ export default function Start() {
               className="font-serif text-2xl md:text-3xl font-semibold"
               style={{ color: "hsl(var(--eden-bark))" }}
             >
-              Before you make an account.
+              Before you dive in.
             </h2>
           </div>
           <dl className="space-y-8">
@@ -290,11 +304,18 @@ export default function Start() {
             ))}
           </dl>
           <div className="text-center mt-12">
-            <Button variant="eden" size="lg" asChild>
-              <Link to={ROUTES.APOTHECARY_SIGNUP}>
-                Open the app — free
-              </Link>
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button variant="eden" size="lg" asChild>
+                <Link to={ROUTES.ASSESSMENT} data-cta="start-quiz-bottom">
+                  Take the 2-Minute Quiz
+                </Link>
+              </Button>
+              <Button variant="eden-outline" size="lg" asChild>
+                <Link to={ROUTES.APOTHECARY_SIGNUP}>
+                  Create a free account
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       </section>
@@ -309,7 +330,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Do I need an account?",
-    a: "Yes. Every visitor signs in so we can show you herbs against your own constitutional pattern, save your quiz result, and surface tier-appropriate clinical depth. Free accounts stay free for as long as you'd like.",
+    a: "No. The Pattern of Eden quiz is open to everyone, and every herb has a public monograph page whose depth matches your tier. A free account saves your Pattern and your study list so you can come back to them, and the paid tiers unlock the full clinical study of each herb.",
   },
   {
     q: "What's the difference between the tiers?",
