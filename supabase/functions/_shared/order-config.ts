@@ -6,6 +6,11 @@
 
 export const SHIP_WINDOW = 'Winter 2026';
 
+// Flat shipping per preorder order (founder decision 2026-07-02). Keep the display copy in
+// web/components/islands/PreorderBuyBox.tsx and web/pages/preorder.astro in sync if this
+// changes. Stripe Tax taxes it via the shipping tax_code set in create-checkout.
+export const PREORDER_FLAT_SHIPPING_CENTS = 1200;
+
 // The founding period (founding price for BOTH the kit and the notebook) ends once this many
 // founding units of the gate SKU have sold. Founder rule: "Notebook retail after 500 kits".
 export const FOUNDING_GATE_SKU = 'sprouts_kit';
