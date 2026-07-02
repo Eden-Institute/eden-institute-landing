@@ -20,12 +20,21 @@ export interface OrderRow {
   currency: string | null;
   sms_consent: boolean;
   status: OrderStatus;
+  // Phase 2 shipping capture (nullable pre-fulfillment)
+  shipping_carrier?: string | null;
+  tracking_number?: string | null;
+  tracking_url?: string | null;
+  shipping_label_url?: string | null;
+  easypost_shipment_id?: string | null;
+  address_validation_status?: string | null;
+  // deno-lint-ignore no-explicit-any
+  shipping_address?: any;
 }
 
 // deno-lint-ignore no-explicit-any
 function errCode(err: any): string | undefined { return err?.code; }
 
-// ── Event-level idempotency gate ─────────────────────────────────────────────
+// ── Event-level idempotency gate ─────────────────────────────────────────
 /**
  * Inserts the event as 'received'; returns proceed=false ONLY if it was already fully
  * processed. An event that exists but is still 'received'/'error' (an in-flight or
@@ -59,7 +68,7 @@ export async function markEventError(db: Db, eventId: string, message: string): 
     .eq('event_id', eventId);
 }
 
-// ── Orders ───────────────────────────────────────────────────────────────────
+// ── Orders ──────────────────────────────────────────────────────────────
 /** Insert the order as `paid`, idempotent on UNIQUE(stripe_checkout_session_id). */
 export async function upsertOrderPaid(
   db: Db,
@@ -102,7 +111,7 @@ export async function getOrderByPaymentIntent(db: Db, paymentIntentId: string): 
   return (data as OrderRow) ?? null;
 }
 
-// ── Messages ───────────────────────────────────────────────────────────────────
+// ── Messages ─────────────────────────────────────────────────────────────
 export async function hasSentMessage(
   db: Db, orderId: string, templateKey: string, status: OrderStatus,
 ): Promise<boolean> {
@@ -114,17 +123,17 @@ export async function hasSentMessage(
 
 export async function logMessage(db: Db, row: {
   order_id: string;
-  channel: 'email' | 'sms';
+  channel: 'email' | 'sms' | 'note';
   template_key: string;
   triggered_by_status: OrderStatus;
-  status: 'sent' | 'failed';
+  status: 'sent' | 'failed' | 'logged';
   provider_id: string | null;
 }): Promise<void> {
   const { error } = await db.from('message_log').insert(row);
   if (error && errCode(error) !== '23505') throw error; // 23505 = slot already claimed in a race; fine
 }
 
-// ── Founding-allocation counter ────────────────────────────────────────────────
+// ── Founding-allocation counter ────────────────────────────────────────────
 /** Founding line-items sold for a product, excluding cancelled/refunded orders. */
 export async function countFoundingSold(db: Db, productId: string): Promise<number> {
   const { count, error } = await db.from('order_items')
