@@ -577,6 +577,28 @@ export interface MatchesFiltersOptions {
   activePattern: EdenPatternName | null;
 }
 
+/**
+ * Search-vocabulary bridges (CRO Phase 3, plan §10). The free-text query
+ * now searches complaint_names too, but people type complaint words the
+ * data doesn't contain verbatim — the only sleep complaint is named
+ * "Insomnia". Keys are the user's lowercase query; values are lowercase
+ * substrings to ALSO try against the haystack. Keep tiny and only for
+ * verified gaps — substring matching already covers e.g. "stress" →
+ * "Chronic stress" and "flu" → "Cold/flu onset".
+ */
+const SEARCH_SYNONYMS: Record<string, string[]> = {
+  // Targets verified against live herbs_complaints links (2026-07-01):
+  // Insomnia 14 herbs, Anxiety 23, Digestive upset 27, Menstrual
+  // irregularity 9. Dead bridges (targets with no linked herbs) are worse
+  // than none.
+  sleep: ["insomnia"],
+  sleepless: ["insomnia"],
+  sleeplessness: ["insomnia"],
+  anxious: ["anxiety"],
+  stomach: ["digestive upset"],
+  period: ["menstrual irregularity"],
+};
+
 export function matchesFilters(
   herb: HerbRow,
   options: MatchesFiltersOptions
@@ -585,16 +607,24 @@ export function matchesFilters(
 
   const q = filters.query.trim().toLowerCase();
   if (q.length > 0) {
+    // CRO Phase 3: complaint_names joined into the haystack (Band 1,
+    // populated for every caller including locked rows), so symptom-style
+    // searches ("anxiety") stop dead-ending on a botanical-only index.
+    const complaintNames = Array.isArray(herb.complaint_names)
+      ? herb.complaint_names
+      : [];
     const haystack = [
       herb.common_name,
       herb.latin_name,
       herb.plant_family,
       herb.pronunciation,
+      ...complaintNames,
     ]
       .filter((v): v is string => typeof v === "string")
       .join(" ")
       .toLowerCase();
-    if (!haystack.includes(q)) return false;
+    const terms = [q, ...(SEARCH_SYNONYMS[q] ?? [])];
+    if (!terms.some((t) => haystack.includes(t))) return false;
   }
 
   if (filters.symptom && !herbHasComplaint(herb, filters.symptom)) return false;
