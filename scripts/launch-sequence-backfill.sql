@@ -1,9 +1,10 @@
 -- ONE-TIME BACKFILL — July 2026 Sprouts preorder launch sequence.
 --
--- Run this in the Supabase dashboard SQL editor (role=postgres) on JULY 8,
--- after migration 20260702190000_launch_email_queue.sql has been applied and
--- the updated nurture-emails EF is deployed. It enqueues all 7 fixed-date
--- sends for everyone on the homeschool list at that moment:
+-- Run this in the Supabase dashboard SQL editor (role=postgres) IMMEDIATELY
+-- AFTER migration 20260702190000_launch_email_queue.sql is applied (the
+-- trigger then covers all later signups, so there is no coverage gap). It
+-- enqueues all 7 fixed-date sends for everyone on the homeschool list at
+-- that moment:
 --
 --   Email 1  Jul  9   Email 2  Jul 11   Email 3  Jul 13   Email 4  Jul 15
 --   Email 5  Jul 17   Email 6  Jul 20   Email 7  Jul 22      (13:00 UTC = 8 AM Central)

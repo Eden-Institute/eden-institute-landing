@@ -6,9 +6,11 @@
 --   * FIXED-DATE cohort (everyone on the list before July 9): backfilled by
 --     scripts/launch-sequence-backfill.sql with the broadcast dates
 --     Jul 9 / 11 / 13 / 15 / 17 / 20 / 22, 13:00 UTC (8 AM Central).
---   * LATE SUBSCRIBERS (signups from July 9 onward): the trigger below
+--   * LATE SUBSCRIBERS (signups after the backfill runs): the trigger below
 --     enqueues the same 7 emails on a 2-day drip relative to signup
---     (+2d, +4d, ... +14d), so they experience the same arc.
+--     (+2d, +4d, ... +14d), so they experience the same arc. Active from
+--     July 3 (ship day) so there is no coverage gap between the backfill
+--     cohort and launch day.
 --
 -- NOTE (apply path): per house convention this DDL is applied to prod via the
 -- Supabase dashboard SQL editor (role=postgres); the file is committed so the
@@ -82,8 +84,11 @@ $function$;
 -- INSERTs, so re-submissions never re-enqueue; the unique constraint is a
 -- second belt anyway (on conflict do nothing).
 --
--- Start gate: inert before the launch-day broadcast so a signup on e.g. July 5
--- is covered by the backfill cohort instead of getting a duplicate drip.
+-- Start gate: the migration is applied IMMEDIATELY BEFORE the backfill, so the
+-- trigger covers every signup after that moment and the backfill covers
+-- everyone up to it (on conflict do nothing resolves any overlap). Signups
+-- between ship day and July 9 start their 2-day drip right away rather than
+-- waiting for the broadcast dates.
 -- SUNSET: once preorder is open and the sequence has run its course, disable
 -- with:  drop trigger trg_enqueue_launch_sequence on public.waitlist_signups;
 create or replace function public.enqueue_launch_sequence_on_signup()
@@ -93,7 +98,7 @@ security definer
 set search_path to 'public', 'pg_temp'
 as $function$
 declare
-  launch_start constant timestamptz := '2026-07-09 13:00:00+00';
+  launch_start constant timestamptz := '2026-07-03 00:00:00+00';
 begin
   if now() < launch_start then
     return new;
