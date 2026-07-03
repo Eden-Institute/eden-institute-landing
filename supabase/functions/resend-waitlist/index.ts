@@ -3,6 +3,7 @@
 // _shared/nurture-email-templates.ts; that duplicate has been removed so
 // _shared is the single source of truth for these templates.
 import { buildNurtureEmail1, toSlug } from '../_shared/nurture-email-templates.ts';
+import { shopApothecaryCard } from '../_shared/shop-cta.ts';
 import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
 
 
@@ -95,6 +96,7 @@ function emailWrapper(bodyContent: string): string {
 <!-- BODY -->
 <tr><td style="background-color:#FFFFFF;padding:32px 40px;">
 ${bodyContent}
+${shopApothecaryCard()}
 </td></tr>
 <!-- FOOTER -->
 <tr><td style="background-color:#F5F0E8;padding:30px 20px;text-align:center;">

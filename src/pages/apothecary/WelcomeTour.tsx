@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 
@@ -20,9 +20,23 @@ export default function WelcomeTour() {
   const [step, setStep] = useState(0);
   const navigate = useNavigate();
 
+  // A confirmed-email signup that carried checkout/deep-link intent lands here
+  // (the tour URL is the allowlisted email-redirect target). Forward it on so
+  // the user resumes where they meant to go (e.g. pricing?checkout=seed) rather
+  // than getting parked in onboarding with their intent forgotten.
+  const [params] = useSearchParams();
+  const returnTo = params.get("return_to");
+  useEffect(() => {
+    if (returnTo) navigate(returnTo, { replace: true });
+  }, [returnTo, navigate]);
+
   const finish = () => navigate(ROUTES.APOTHECARY, { replace: true });
 
   const card = STEPS[step];
+
+  // Intent-driven arrival is being forwarded by the effect above; don't flash
+  // the tour underneath it.
+  if (returnTo) return null;
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-6">

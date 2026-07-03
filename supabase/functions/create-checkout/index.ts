@@ -35,6 +35,13 @@
 // dispatch — subscriptions + nb_addon check JWT inside, anonymous one-offs
 // don't. Setting verify_jwt=true at the platform level would block
 // anonymous one-off purchases (the original Phase 5 #4 silent-fail bug).
+//
+// Stripe Tax: automatic_tax is enabled on every session below (all three
+// product classes share one sessionParams object). Requires Stripe Tax to be
+// configured on the account (origin address + tax registrations); confirmed
+// done 2026-07-02. Without automatic_tax, Checkout Sessions created via the
+// API never calculate tax even if the Dashboard "Use automatic tax" toggle is
+// on — that toggle only covers Dashboard-created Invoices/Subscriptions/Quotes.
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext"
@@ -123,6 +130,26 @@ const PRICE_ID_OVERRIDES: Record<string, string> = {
 // the Stripe Dashboard and switching to shipping_rate (id reference) instead
 // of shipping_rate_data (inline) below.
 const STANDARD_SHIPPING_CENTS = 1200
+
+/**
+ * Only accept caller-supplied success_url / cancel_url values on our production
+ * origin, so a checkout session cannot redirect the payer to an attacker host.
+ * The Stripe {CHECKOUT_SESSION_ID} placeholder in the query is fine — the URL
+ * parser keeps the hostname intact.
+ */
+function isSafeReturnUrl(url: unknown): url is string {
+  if (typeof url !== "string" || url.length === 0) return false
+  try {
+    const parsed = new URL(url)
+    if (parsed.protocol !== "https:") return false
+    return (
+      parsed.hostname === "edeninstitute.health" ||
+      parsed.hostname === "www.edeninstitute.health"
+    )
+  } catch {
+    return false
+  }
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -342,9 +369,20 @@ serve(async (req) => {
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode,
       line_items: [{ price: price.id, quantity: 1 }],
-      success_url: success_url || defaultSuccessUrl,
-      cancel_url: cancel_url || defaultCancelUrl,
+      // Only honor caller-supplied redirect URLs on our own origin — otherwise
+      // fall back to the safe default. An unvalidated success_url would let an
+      // attacker mint an Eden-branded Checkout session that redirects the payer
+      // to an arbitrary host after payment.
+      success_url: isSafeReturnUrl(success_url) ? success_url : defaultSuccessUrl,
+      cancel_url: isSafeReturnUrl(cancel_url) ? cancel_url : defaultCancelUrl,
       allow_promotion_codes: true,
+      // Stripe Tax: calculates tax on every session (subscriptions, digital,
+      // and physical alike). Requires Stripe Tax configured on the account
+      // (origin address + registrations) — confirmed done 2026-07-02. Without
+      // this, Checkout Sessions never calculate tax regardless of the
+      // Dashboard "Use automatic tax" toggle, which only covers
+      // Dashboard-created Invoices/Subscriptions/Quotes, not API sessions.
+      automatic_tax: { enabled: true },
     }
 
     if (stripeCustomerId) {

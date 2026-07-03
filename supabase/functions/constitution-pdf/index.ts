@@ -14,31 +14,16 @@
 // stripe-webhook on purchase, and safe to fetch directly.
 
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "https://esm.sh/pdf-lib@1.17.1";
-import type { FullGuideContent } from "./guide-types.ts";
-import { burningBowstringGuide } from "./guide-content-burning-bowstring.ts";
-import { drawnBowstringGuide } from "./guide-content-drawn-bowstring.ts";
-import { frozenKnotGuide } from "./guide-content-frozen-knot.ts";
-import { openFlameGuide } from "./guide-content-open-flame.ts";
-import { overflowingCupGuide } from "./guide-content-overflowing-cup.ts";
-import { pressureCookerGuide } from "./guide-content-pressure-cooker.ts";
-import { spentCandleGuide } from "./guide-content-spent-candle.ts";
-import { stillWaterGuide } from "./guide-content-still-water.ts";
+import type { FullGuideContent } from "../_shared/guide/guide-types.ts";
+import { GUIDES_BY_SLUG } from "../_shared/guide/registry.ts";
+import { isServiceRoleRequest, serviceRoleRequired } from "../_shared/require-service-role.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const GUIDES: Record<string, FullGuideContent> = {
-  "burning-bowstring": burningBowstringGuide,
-  "drawn-bowstring": drawnBowstringGuide,
-  "frozen-knot": frozenKnotGuide,
-  "open-flame": openFlameGuide,
-  "overflowing-cup": overflowingCupGuide,
-  "pressure-cooker": pressureCookerGuide,
-  "spent-candle": spentCandleGuide,
-  "still-water": stillWaterGuide,
-};
+const GUIDES: Record<string, FullGuideContent> = GUIDES_BY_SLUG;
 
 // Backward compatibility: the 4 legacy temperature-by-moisture types map onto a
 // representative pattern (the tension axis isn't expressed in the legacy param).
@@ -185,6 +170,11 @@ async function renderFullGuide(content: FullGuideContent): Promise<Uint8Array> {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  // This EF renders the PAID Deep-Dive Guide. It is fetched server-side by the
+  // stripe-webhook (service role) on purchase — never by the public. Require the
+  // service role so the paid PDF cannot be pulled directly. verify_jwt=true is
+  // locked in config.toml so this claim check cannot be forged.
+  if (!isServiceRoleRequest(req)) return serviceRoleRequired(corsHeaders);
   try {
     const url = new URL(req.url);
     const raw = (url.searchParams.get("type") || "").toLowerCase().trim();

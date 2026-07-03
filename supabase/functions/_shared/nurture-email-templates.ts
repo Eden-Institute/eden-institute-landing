@@ -1,3 +1,5 @@
+import { shopApothecaryCard } from './shop-cta.ts';
+
 // ── Brand constants (Eden Institute) ──
 const BRAND = {
   bgOuter: '#F5F0E8',
@@ -124,6 +126,7 @@ export function emailWrapper(bodyContent: string): string {
 <!-- BODY -->
 <tr><td class="email-body-cell" style="background-color:${BRAND.bgBody};padding:32px 40px;">
 ${bodyContent}
+${shopApothecaryCard()}
 </td></tr>
 <!-- GOLD RULE -->
 <tr><td style="background-color:${BRAND.bgBody};"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top:2px solid ${BRAND.gold};font-size:0;line-height:0;">&nbsp;</td></tr></table></td></tr>

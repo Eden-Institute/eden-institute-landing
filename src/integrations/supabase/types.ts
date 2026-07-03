@@ -2523,6 +2523,7 @@ export type Database = {
           doshas_match_rel: Json | null
           drug_interactions: string | null
           energetics_summary: string | null
+          energetics_teaser: string | null
           herb_id: string | null
           image_filename: string | null
           is_locked: boolean | null
@@ -2580,6 +2581,7 @@ export type Database = {
           doshas_match_rel?: never
           drug_interactions?: never
           energetics_summary?: never
+          energetics_teaser?: never
           herb_id?: string | null
           image_filename?: string | null
           is_locked?: never
@@ -2637,6 +2639,7 @@ export type Database = {
           doshas_match_rel?: never
           drug_interactions?: never
           energetics_summary?: never
+          energetics_teaser?: never
           herb_id?: string | null
           image_filename?: string | null
           is_locked?: never

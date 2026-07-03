@@ -62,6 +62,13 @@ export const ROUTES = {
   APOTHECARY: "/apothecary",
   APOTHECARY_START: "/apothecary/start",
   APOTHECARY_PRICING: "/apothecary/pricing",
+  /**
+   * Public herb monograph (CRO Phase 1). `slugOrId` accepts either the
+   * derived common-name slug ("marshmallow", the canonical share URL) or
+   * the H-code herb_id ("H036") — HerbMonograph resolves both. Slugs come
+   * from herbSlug() in src/lib/herbLinks.ts.
+   */
+  APOTHECARY_HERB: (slugOrId: string) => `/apothecary/${slugOrId}` as const,
 
   // ── Apothecary auth ──
   APOTHECARY_SIGNUP: "/apothecary/auth/signup",
@@ -85,6 +92,3 @@ export const ROUTES = {
    */
   QUIZ_ALIAS: "/quiz",
 } as const;
-
-/** Convenience type — keys of the ROUTES table. */
-export type RouteKey = keyof typeof ROUTES;

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { getFullGuide } from "@/lib/guide-registry";
+import type { FullGuideContent } from "@/lib/guide-types";
 import GuideTemplate from "@/components/guide/GuideTemplate";
 import Navbar from "@/components/landing/Navbar";
 import { ROUTES } from "@/lib/routes";
@@ -12,6 +12,7 @@ const GuideSuccess = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [nickname, setNickname] = useState("");
+  const [guide, setGuide] = useState<FullGuideContent | null>(null);
 
   useEffect(() => {
     const sessionId = searchParams.get("session_id");
@@ -30,6 +31,7 @@ const GuideSuccess = () => {
         if (!data?.paid) throw new Error("Payment not verified");
 
         setNickname(data.constitution_nickname);
+        if (data.guide) setGuide(data.guide as FullGuideContent);
       } catch (err: any) {
         setError(err.message || "Payment verification failed");
         setTimeout(() => navigate(ROUTES.ASSESSMENT), 3000);
@@ -69,12 +71,11 @@ const GuideSuccess = () => {
     );
   }
 
-  const fullGuide = getFullGuide(nickname);
-  if (fullGuide) {
+  if (guide) {
     return (
       <>
         <Navbar />
-        <GuideTemplate guide={fullGuide} />
+        <GuideTemplate guide={guide} />
       </>
     );
   }

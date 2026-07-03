@@ -26,7 +26,7 @@ import heroBotanical from "@/assets/hero-botanical.jpg";
 const doors = [
   { badge: "LAUNCHING AUGUST 1, 2026", eyebrow: "FOR THE FAMILY", title: "Eden's Table", subtitle: "K-12 Homeschool Curriculum", body: "The family doorway. Children learn how God designed their bodies and the plants He gave — alongside the parent who teaches them.", cta: "Get the first two weeks free →", href: "/homeschool#early-access", external: false },
   { badge: "FOUNDATIONS LIVE · $97 → $197 ON AUGUST 1", eyebrow: "FOR THE ADULT", title: "Eden Institute Courses", subtitle: "Foundations + Body Systems", body: "The parent track. From foundational worldview to terrain-based clinical literacy. Reach genuine clinical competence over time.", cta: "See the Courses →", href: "/courses", external: false },
-  { badge: "LIVE NOW", eyebrow: "FOR THE PRACTITIONER", title: "Eden Apothecary", subtitle: "Pocket Materia Medica App", body: "The tool. Constitutional pattern matching, 100 monograph library, clinical reasoning support. So you don't have to hold it all in your head.", cta: "Open the Apothecary →", href: "/apothecary/start", external: false },
+  { badge: "LIVE NOW", eyebrow: "FOR THE PRACTITIONER", title: "Eden Apothecary", subtitle: "Pocket Materia Medica App", body: "The tool. Constitutional pattern matching, 100 monograph library, clinical reasoning support. So you don't have to hold it all in your head.", cta: "Open the Apothecary →", href: "/apothecary", external: false },
   { badge: "AVAILABLE NOW ON AMAZON", eyebrow: "WHERE IT STARTED", title: "Back to Eden", subtitle: "The book where the framework began", body: "The origin text — Scripture-anchored herbal healing, written out in full. The work that started everything Eden Institute teaches.", cta: "Read the Book →", href: "https://www.amazon.com/dp/B0GPW5BZ32?tag=theedeninstit-20", external: true },
 ];
 
@@ -70,6 +70,23 @@ const meta = {
           Somewhere along the way, we stopped listening.
         </span>
       </p>
+      {/* CRO Phase 1: the hero previously had no CTA at all. The quiz is the
+          universal anonymous entry (approved redesign plan §2), so it gets the
+          primary slot; the Apothecary value page is the secondary door. */}
+      <div class="flex flex-col sm:flex-row gap-3 justify-center" style="margin-top:32px">
+        <a
+          href="/assessment"
+          data-cta="home-hero-quiz"
+          class="inline-flex items-center justify-center transition-colors duration-200 min-h-[48px]"
+          style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:15px;letter-spacing:0.06em;padding:12px 28px;border-radius:2px;background-color:hsl(var(--honey));color:hsl(var(--green-deep));border:1px solid hsl(var(--honey))"
+        >Find Your Body Pattern, Free 2-Minute Quiz</a>
+        <a
+          href="/apothecary"
+          data-cta="home-hero-apothecary"
+          class="inline-flex items-center justify-center transition-colors duration-200 min-h-[48px]"
+          style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:15px;letter-spacing:0.06em;padding:12px 28px;border-radius:2px;background-color:transparent;color:hsl(var(--green-deep));border:1px solid hsl(var(--green-deep))"
+        >Open the Apothecary</a>
+      </div>
     </div>
   </section>
 
@@ -226,7 +243,7 @@ const meta = {
           <ul class="space-y-3">
             <li><a href="/homeschool" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">Eden's Table</a></li>
             <li><a href="/courses" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">Eden Institute Courses</a></li>
-            <li><a href="/apothecary/start" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">Apothecary App</a></li>
+            <li><a href="/apothecary" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">Apothecary App</a></li>
             <li><a href="https://www.amazon.com/dp/B0GPW5BZ32?tag=theedeninstit-20" target="_blank" rel="noopener noreferrer" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">The Book</a></li>
           </ul>
         </div>

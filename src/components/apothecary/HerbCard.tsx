@@ -22,15 +22,21 @@ import {
   type TraditionalObservation,
 } from "@/lib/contentEntry";
 import { ROUTES } from "@/lib/routes";
+import { herbParam } from "@/lib/herbLinks";
 import { HerbFavoriteHeart } from "./HerbFavoriteHeart";
 
 interface HerbCardProps {
   herb: HerbRow;
   /**
    * Active user's Eden Pattern, when known. When set, the card surfaces a
-   * Match (green) or Avoid (amber) badge for unlocked rows, computed from
-   * `temperature × moisture × tissue_states_indicated`. Locked rows are
-   * skipped — the lock affordance owns that visual slot.
+   * Match (green) or Avoid (amber) badge computed from
+   * `temperature × moisture × tissue_states_indicated`.
+   *
+   * CRO Phase 2 (plan §6): locked rows carry the badge too — the view now
+   * exposes temperature/moisture on every row, so locked cards lead with
+   * the match, not the lock. tissue_states stays Seed-gated, so locked
+   * (and free-caller) badges compute from two axes, the documented
+   * degraded mode in edenPattern.ts.
    *
    * §8.1.2 (Manual v4.0): the same compute also drives a stewardship-
    * language "matches because…" reason list rendered under the chip row,
@@ -196,15 +202,17 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
     !isLocked &&
     Boolean(herb.cautions || herb.contraindications_general);
 
-  // Pattern of Eden relationship — computed only for unlocked rows when an
-  // active pattern is set. For locked rows the lock affordance owns the
-  // header visual slot, so the badge is suppressed (visible-but-gated stays
-  // primary). Neutral relationships also suppress the badge to avoid noise.
+  // Pattern of Eden relationship — computed for EVERY row when an active
+  // pattern is set (CRO Phase 2: locked rows lead with the match, not the
+  // lock; the view exposes temperature/moisture on all rows). Until the
+  // Phase 2 view migration runs, locked rows still carry NULL axes and
+  // classify neutral, so this degrades to the old badge-less locked card.
+  // Neutral relationships suppress the badge to avoid noise.
   // §8.1.2: the full detail (including stewardship-language reasons) is
   // captured here so the card can render WHY a herb matches/avoids beneath
   // the chip row.
   const matchDetail: MatchRelationshipDetail | null =
-    !isLocked && activePattern
+    activePattern
       ? computeMatchRelationship(
           {
             temperature: herb.temperature ?? null,
@@ -216,9 +224,15 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
       : null;
   const matchRelationship = matchDetail?.relationship ?? null;
   const matchReasons = matchDetail?.reasons ?? [];
+  const patternShort = activePattern
+    ? activePattern.replace(/^The\s+/i, "")
+    : null;
+  const monographPath = ROUTES.APOTHECARY_HERB(herbParam(herb));
 
   // -------------------------------------------------------------------------
-  // STATE 1: LOCKED — identity + lock affordance + CTA
+  // STATE 1: LOCKED — CRO Phase 2 (plan §6): lead with the MATCH, not the
+  // lock. The badge/teaser render from the always-visible axes; the lock is
+  // the second beat, and the CTA names the clinical why when there is one.
   // -------------------------------------------------------------------------
   if (isLocked) {
     return (
@@ -256,8 +270,54 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
           )}
         </header>
 
-        {/* identity-only chip row: part used + plant family if present */}
+        {/* Match badge leads the chip row (same idiom as unlocked cards),
+            then energetic axes, then identity chips. */}
         <div className="mt-3 flex flex-wrap gap-1.5">
+          {matchRelationship === "match" && (
+            <span
+              className={`${chipClass} flex items-center gap-1`}
+              style={{
+                backgroundColor: "hsl(var(--eden-gold) / 0.15)",
+                color: "hsl(var(--eden-gold))",
+                borderColor: "hsl(var(--eden-gold))",
+              }}
+              title="Rebalances your Pattern"
+            >
+              <Sparkles className="w-3 h-3" aria-hidden="true" />
+              Match
+            </span>
+          )}
+          {matchRelationship === "avoid" && (
+            <span
+              className={`${chipClass} flex items-center gap-1 bg-destructive/10 text-destructive`}
+              title="May aggravate your Pattern"
+            >
+              <ShieldAlert className="w-3 h-3" aria-hidden="true" />
+              Avoid
+            </span>
+          )}
+          {herb.temperature && (
+            <span
+              className={chipClass}
+              style={{
+                backgroundColor: "hsl(var(--eden-cream))",
+                color: "hsl(var(--eden-bark))",
+              }}
+            >
+              {herb.temperature}
+            </span>
+          )}
+          {herb.moisture && (
+            <span
+              className={chipClass}
+              style={{
+                backgroundColor: "hsl(var(--eden-cream))",
+                color: "hsl(var(--eden-bark))",
+              }}
+            >
+              {herb.moisture}
+            </span>
+          )}
           {herb.part_used && (
             <span
               className={chipClass}
@@ -282,6 +342,35 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
           )}
         </div>
 
+        {/* Stewardship-language reasons under the badge, mirroring the
+            unlocked card (match reasons only — a locked card is not the
+            place to argue an avoid). */}
+        {matchRelationship === "match" && matchReasons.length > 0 && (
+          <ul
+            className="mt-3 space-y-0.5"
+            aria-label="Why this herb matches your Pattern"
+          >
+            {matchReasons.map((reason) => (
+              <li
+                key={reason}
+                className="font-body text-xs italic"
+                style={{ color: "hsl(var(--eden-gold))" }}
+              >
+                {reason}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* True teaser line: the first clause of the energetics summary
+            (energetics_teaser, always visible). The full summary and the
+            clinical study stay behind Seed. */}
+        {herb.energetics_teaser && (
+          <p className="mt-3 font-body text-sm italic text-muted-foreground">
+            {herb.energetics_teaser}.
+          </p>
+        )}
+
         <div
           className="mt-5 flex-1 flex flex-col items-start justify-end gap-3 pt-4 border-t"
           style={{ borderColor: "hsl(var(--eden-gold) / 0.25)" }}
@@ -290,16 +379,42 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
             className="font-accent text-[11px] tracking-[0.25em] uppercase"
             style={{ color: "hsl(var(--eden-gold))" }}
           >
-            There's more to know about this herb
+            {matchRelationship === "match" && patternShort
+              ? `Matches your ${patternShort}`
+              : "There's more to know about this herb"}
           </p>
           <p className="font-body text-sm leading-relaxed text-muted-foreground">
-            Seed opens the full study — how it acts in the body, who it suits,
-            how to prepare it, and how to use it safely. All 100 herbs, one
-            subscription.
+            {matchRelationship === "match" && patternShort
+              ? `The clinical reason this herb rebalances your ${patternShort} is written and waiting. Seed opens the full study for all 100 herbs.`
+              : "Seed opens the full study — how it acts in the body, who it suits, how to prepare it, and how to use it safely. All 100 herbs, one subscription."}
           </p>
-          <Button variant="eden" size="sm" asChild>
-            <Link to={ROUTES.APOTHECARY_PRICING}>Unlock with Seed</Link>
+          {/* whitespace-normal + h-auto: the match-state label is long and
+              the shadcn base class is nowrap — without this the button's
+              min-content width overflows narrow cards (320px viewports and
+              the 3-column grid near 1024px). */}
+          <Button
+            variant="eden"
+            size="sm"
+            className="whitespace-normal h-auto py-2 text-left"
+            asChild
+          >
+            <Link
+              to={`${ROUTES.APOTHECARY_PRICING}#tier-seed`}
+              data-cta="card-locked-unlock-seed"
+            >
+              {matchRelationship === "match"
+                ? "Unlock the clinical reason with Seed"
+                : "Unlock with Seed"}
+            </Link>
           </Button>
+          <Link
+            to={monographPath}
+            data-cta="card-locked-monograph"
+            className="inline-flex items-center min-h-[44px] -my-2 font-body text-xs underline-offset-2 hover:underline"
+            style={{ color: "hsl(var(--eden-gold))" }}
+          >
+            See this herb's page →
+          </Link>
         </div>
       </article>
     );
@@ -1003,36 +1118,63 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
               );
             })()}
 
-          {/* Footer teaser only on the body-only state (free-tier row, anon/free caller). */}
+          {/* CRO Phase 2: the body-only footer names the gated sections and
+              carries the CTA — a preview that advertises, not a dead end.
+              (Free-tier row, anon/free caller.) */}
           {!hasClinical && (
-            <p className="font-body text-xs text-muted-foreground italic pt-1">
-              The full study — how this herb acts in the body, who it suits,
-              how to prepare and use it safely — opens with Seed.
-            </p>
+            <div className="pt-1">
+              <p className="font-body text-xs text-muted-foreground italic">
+                Seed opens the clinical study of this herb: actions, tissue
+                states, constitutional matches, preparation, and dosage.
+              </p>
+              <Link
+                to={`${ROUTES.APOTHECARY_PRICING}#tier-seed`}
+                data-cta="card-clinical-teaser-seed"
+                className="inline-flex items-center min-h-[44px] -my-2 font-body text-xs underline-offset-2 hover:underline"
+                style={{ color: "hsl(var(--eden-gold))" }}
+              >
+                Unlock with Seed →
+              </Link>
+            </div>
           )}
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={() => setExpanded((e) => !e)}
-        className="mt-4 flex items-center gap-1 font-accent uppercase tracking-[0.2em] text-[11px] hover:opacity-70 self-start"
-        style={{ color: "hsl(var(--eden-bark))" }}
-        aria-expanded={expanded}
-        aria-label={expanded ? "Collapse monograph" : "Read full monograph"}
-      >
-        {expanded ? (
-          <>
-            <ChevronUp className="w-3 h-3" />
-            Collapse
-          </>
-        ) : (
-          <>
-            <ChevronDown className="w-3 h-3" />
-            Read monograph
-          </>
-        )}
-      </button>
+      {/* Footer controls: in-place quick view + the herb's full page (CRO
+          Phase 2). Labels kept distinct so the two controls never share an
+          accessible name. -my-2 (not -my-3): the expanded teaser link above
+          overhangs its section by 8px, and 8px + 8px exactly fills the mt-4
+          gap — -my-3 would overlap the two 44px hit areas. */}
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() => setExpanded((e) => !e)}
+          className="flex items-center gap-1 font-accent uppercase tracking-[0.2em] text-[11px] hover:opacity-70 min-h-[44px] -my-2"
+          style={{ color: "hsl(var(--eden-bark))" }}
+          aria-expanded={expanded}
+          aria-label={expanded ? "Collapse quick view" : "Expand quick view"}
+        >
+          {expanded ? (
+            <>
+              <ChevronUp className="w-3 h-3" />
+              Collapse
+            </>
+          ) : (
+            <>
+              <ChevronDown className="w-3 h-3" />
+              Quick view
+            </>
+          )}
+        </button>
+        <Link
+          to={monographPath}
+          data-cta="card-monograph"
+          className="flex items-center font-accent uppercase tracking-[0.2em] text-[11px] hover:opacity-70 min-h-[44px] -my-2"
+          style={{ color: "hsl(var(--eden-gold))" }}
+        >
+          Full page →
+        </Link>
+      </div>
     </article>
   );
 }

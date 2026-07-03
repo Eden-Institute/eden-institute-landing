@@ -3,15 +3,19 @@ import { Leaf } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrentTier, Tier } from "@/hooks/useCurrentTier";
+import { useTierAwareCTA } from "@/hooks/useTierAwareCTA";
 import { ROUTES } from "@/lib/routes";
 import { ProfilePicker } from "./ProfilePicker";
 
 type NavItem = { to: string; label: string; end?: boolean };
 
 /**
- * Authed-only nav links. Unauthenticated visitors only ever see /apothecary/start
- * (Locked Decision §0.8 v3.3 #21 — no anonymous browsing inside the app), so the
- * middle nav surface is empty for them by design.
+ * Authed-only nav links. The middle nav surface stays empty for anonymous
+ * visitors, but since the v3.4 Lock #21 amendment (CRO Phase 1) anon traffic
+ * IS inside the app shell: bare /apothecary renders the quiz-led
+ * ApothecaryWelcome value page and /apothecary/:herbId monographs are public
+ * (depth tier-gated server-side). The marketing Navbar stacked above this one
+ * carries the anon "Take the Quiz" CTA, so this bar only adds Sign in.
  */
 const AUTHED_NAV_LINKS: NavItem[] = [
   { to: ROUTES.APOTHECARY, label: "Home", end: true },
@@ -30,10 +34,15 @@ const tierLabel: Record<Tier, string> = {
 export function ApothecaryNav() {
   const { user, signOut } = useAuth();
   const { data: tier } = useCurrentTier();
+  // Persistent, state-aware upgrade prompt (free→Seed, Seed→Root, Root→waitlist,
+  // or "take the quiz" when no Pattern yet). Shown on every app route including
+  // mobile, so the path to pricing is always one tap away.
+  const { upgrade } = useTierAwareCTA();
 
-  // Logo routes to the directory for authed users, to the public landing
-  // for everyone else. Keeps the nav self-consistent with the auth wall.
-  const logoTo = user ? ROUTES.APOTHECARY : ROUTES.APOTHECARY_START;
+  // Bare /apothecary now serves both audiences (authed → directory,
+  // anon → quiz-led value page via ApothecaryIndex), so the logo can
+  // point there unconditionally.
+  const logoTo = ROUTES.APOTHECARY;
 
   return (
     <nav className="border-b border-border/40 bg-background sticky top-0 z-50">
@@ -70,6 +79,11 @@ export function ApothecaryNav() {
           </div>
         )}
         <div className="flex items-center gap-3">
+          {user && upgrade && (
+            <Button variant="eden" size="sm" asChild data-cta="nav-upgrade">
+              <Link to={upgrade.href}>{upgrade.shortLabel ?? upgrade.label}</Link>
+            </Button>
+          )}
           {user && tier && tier !== "anon" && (
             <span
               className="hidden sm:inline-block font-accent text-xs tracking-[0.2em] uppercase"

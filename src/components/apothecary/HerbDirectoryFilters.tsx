@@ -2,6 +2,9 @@ import { useState } from "react";
 import { X, Search, Info } from "lucide-react";
 import type { HerbRow } from "@/hooks/useApothecaryHerbs";
 import type { Tier } from "@/hooks/useCurrentTier";
+import { isSubscriberTier } from "@/hooks/useHerbsDirectory";
+import { Link } from "react-router-dom";
+import { ROUTES } from "@/lib/routes";
 import {
   type EdenPatternName,
   computeMatchRelationship,
@@ -90,6 +93,14 @@ interface HerbDirectoryFiltersProps {
   onChange: (next: HerbFilterState) => void;
   visibleCount: number;
   totalCount: number;
+  /**
+   * CRO Phase 2: locked rows surviving the current narrowing (computed by
+   * the page next to `visible`). When the population-safety filter is
+   * active for a non-subscriber, this drives the honest conversion line
+   * "…guidance for N more herbs opens with Seed" — locked rows pass the
+   * safety filter unjudged because their safety fields are Seed-gated.
+   */
+  lockedVisibleCount?: number;
   tier: Tier | undefined;
   /** Active user's Eden Pattern, when known. Drives the Match/Avoid overlay UI. */
   activePattern: EdenPatternName | null;
@@ -100,8 +111,6 @@ const labelClass =
 const selectClass =
   "w-full rounded-md border bg-background px-3 py-1.5 text-sm font-body focus:outline-none focus:ring-1";
 
-const isSubscriberTier = (t: Tier | undefined) =>
-  t === "seed" || t === "root" || t === "practitioner";
 const isRootOrAbove = (t: Tier | undefined) =>
   t === "root" || t === "practitioner";
 
@@ -219,6 +228,7 @@ export function HerbDirectoryFilters({
   onChange,
   visibleCount,
   totalCount,
+  lockedVisibleCount = 0,
   tier,
   activePattern,
 }: HerbDirectoryFiltersProps) {
@@ -356,9 +366,14 @@ export function HerbDirectoryFilters({
               ))}
             </select>
           ) : (
-            <p className="font-body text-xs italic text-muted-foreground py-2" aria-disabled="true">
-              Action filters open with Seed.
-            </p>
+            <Link
+              to={`${ROUTES.APOTHECARY_PRICING}#tier-seed`}
+              className="block font-body text-xs py-2 underline-offset-2 hover:underline"
+              style={{ color: "hsl(var(--eden-gold))" }}
+              data-cta="filter-gate-action"
+            >
+              Filter all 100 herbs by action. Opens with Seed →
+            </Link>
           )}
         </div>
 
@@ -406,9 +421,14 @@ export function HerbDirectoryFilters({
               )}
             </div>
           ) : (
-            <p className="font-body text-xs italic text-muted-foreground py-2" aria-disabled="true">
-              Body-system filters open with Seed.
-            </p>
+            <Link
+              to={`${ROUTES.APOTHECARY_PRICING}#tier-seed`}
+              className="block font-body text-xs py-2 underline-offset-2 hover:underline"
+              style={{ color: "hsl(var(--eden-gold))" }}
+              data-cta="filter-gate-body-system"
+            >
+              Filter by body system and tissue state. Opens with Seed →
+            </Link>
           )}
         </div>
 
@@ -434,6 +454,27 @@ export function HerbDirectoryFilters({
             <option value="breastfeeding">Breastfeeding</option>
             <option value="children">Children</option>
           </select>
+          {/* CRO Phase 2 (plan §7): reaching for a safety filter is peak
+              intent. Locked rows stay visible but their safety guidance is
+              Seed-gated — say so, with the count, as a link. */}
+          {!subscriber &&
+            filters.populationSafety !== "all" &&
+            lockedVisibleCount > 0 && (
+              <Link
+                to={`${ROUTES.APOTHECARY_PRICING}#tier-seed`}
+                className="block font-body text-xs py-2 underline-offset-2 hover:underline"
+                style={{ color: "hsl(var(--eden-gold))" }}
+                data-cta="filter-gate-safety-count"
+              >
+                {filters.populationSafety === "pregnancy"
+                  ? "Pregnancy"
+                  : filters.populationSafety === "breastfeeding"
+                    ? "Breastfeeding"
+                    : "Children's"}{" "}
+                guidance for {lockedVisibleCount} more{" "}
+                {lockedVisibleCount === 1 ? "herb" : "herbs"} opens with Seed →
+              </Link>
+            )}
         </div>
       </div>
 
@@ -536,6 +577,28 @@ export interface MatchesFiltersOptions {
   activePattern: EdenPatternName | null;
 }
 
+/**
+ * Search-vocabulary bridges (CRO Phase 3, plan §10). The free-text query
+ * now searches complaint_names too, but people type complaint words the
+ * data doesn't contain verbatim — the only sleep complaint is named
+ * "Insomnia". Keys are the user's lowercase query; values are lowercase
+ * substrings to ALSO try against the haystack. Keep tiny and only for
+ * verified gaps — substring matching already covers e.g. "stress" →
+ * "Chronic stress" and "flu" → "Cold/flu onset".
+ */
+const SEARCH_SYNONYMS: Record<string, string[]> = {
+  // Targets verified against live herbs_complaints links (2026-07-01):
+  // Insomnia 14 herbs, Anxiety 23, Digestive upset 27, Menstrual
+  // irregularity 9. Dead bridges (targets with no linked herbs) are worse
+  // than none.
+  sleep: ["insomnia"],
+  sleepless: ["insomnia"],
+  sleeplessness: ["insomnia"],
+  anxious: ["anxiety"],
+  stomach: ["digestive upset"],
+  period: ["menstrual irregularity"],
+};
+
 export function matchesFilters(
   herb: HerbRow,
   options: MatchesFiltersOptions
@@ -544,16 +607,24 @@ export function matchesFilters(
 
   const q = filters.query.trim().toLowerCase();
   if (q.length > 0) {
+    // CRO Phase 3: complaint_names joined into the haystack (Band 1,
+    // populated for every caller including locked rows), so symptom-style
+    // searches ("anxiety") stop dead-ending on a botanical-only index.
+    const complaintNames = Array.isArray(herb.complaint_names)
+      ? herb.complaint_names
+      : [];
     const haystack = [
       herb.common_name,
       herb.latin_name,
       herb.plant_family,
       herb.pronunciation,
+      ...complaintNames,
     ]
       .filter((v): v is string => typeof v === "string")
       .join(" ")
       .toLowerCase();
-    if (!haystack.includes(q)) return false;
+    const terms = [q, ...(SEARCH_SYNONYMS[q] ?? [])];
+    if (!terms.some((t) => haystack.includes(t))) return false;
   }
 
   if (filters.symptom && !herbHasComplaint(herb, filters.symptom)) return false;
@@ -573,7 +644,12 @@ export function matchesFilters(
     if (!herbHasTissueState(herb, filters.tissueState)) return false;
   }
 
-  if (filters.populationSafety !== "all") {
+  // Locked rows carry NULL safety fields (gated), so applying the safety
+  // filter to them would silently delete every Seed herb from the grid.
+  // Instead let locked rows pass through — they render as locked cards that
+  // advertise the upgrade, so the catalog never silently shrinks. The filter
+  // only narrows the rows whose safety data the caller can actually see.
+  if (filters.populationSafety !== "all" && !herb.is_locked) {
     const safetyField =
       filters.populationSafety === "pregnancy"
         ? herb.pregnancy_safety
@@ -591,6 +667,16 @@ export function matchesFilters(
     }
   }
 
+  // CRO Phase 2 decision: pattern chips NEVER hide locked rows, even though
+  // the view now gives them match axes. Two reasons. (1) The chips' toggle
+  // UI renders only for subscribers, but ApothecaryHome auto-defaults
+  // patternHideAvoid=true for ANY pattern holder — so judging locked rows
+  // here would silently remove 3-17 locked cards from free users with no
+  // visible control to undo it. (2) Locked cards are advertisement
+  // surfaces, not recommendations; an Avoid badge ON the card is honest,
+  // hiding the card just shrinks the catalog ("never silently shrinks",
+  // same invariant as the safety filter above). Locked rows still get
+  // badges and pattern-aware SORT; they are simply exempt from hiding.
   if (
     activePattern &&
     (filters.patternMatchOnly || filters.patternHideAvoid) &&

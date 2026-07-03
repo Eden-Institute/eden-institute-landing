@@ -22,10 +22,7 @@ type ProfileRow = {
   email: string | null;
   display_name: string | null;
   stripe_customer_id: string | null;
-  stripe_subscription_id: string | null;
-  subscription_tier: string | null;
   subscription_status: string | null;
-  current_period_start: string | null;
   current_period_end: string | null;
   cancel_at_period_end: boolean | null;
   is_founding_member: boolean | null;
@@ -146,7 +143,7 @@ export default function Account() {
       const { data, error } = await supabase
         .from("profiles")
         .select(
-          "user_id, email, display_name, stripe_customer_id, stripe_subscription_id, subscription_tier, subscription_status, current_period_start, current_period_end, cancel_at_period_end, is_founding_member, constitution_type",
+          "user_id, email, display_name, stripe_customer_id, subscription_status, current_period_end, cancel_at_period_end, is_founding_member, constitution_type",
         )
         .eq("user_id", user.id)
         .maybeSingle();

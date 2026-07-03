@@ -16,6 +16,34 @@ import { Button } from "@/components/ui/button";
 
 const SKIP_PREFIXES = ["/founder", "/apothecary/auth", "/apothecary/account"];
 
+/**
+ * CRO Phase 4: cookieless CTA click beacon for Astro pages. Every internal
+ * CTA click here triggers a full page unload, which can abort an in-flight
+ * supabase-js fetch — so clicks go out via navigator.sendBeacon (survives
+ * unload; apikey rides as a query param since sendBeacon can't set
+ * headers), with a keepalive fetch fallback. Same privacy posture as the
+ * page-view beacon: the RPC hashes IP/UA server-side, nothing identifying
+ * leaves the function, no consent gate applies.
+ */
+function beaconCtaClick(cta: string, path: string): void {
+  try {
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/record_cta_click?apikey=${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`;
+    const body = JSON.stringify({ p_cta: cta, p_path: path, p_lookup_key: null });
+    if (typeof navigator.sendBeacon === "function") {
+      navigator.sendBeacon(url, new Blob([body], { type: "application/json" }));
+    } else {
+      void fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+        keepalive: true,
+      }).catch(() => {});
+    }
+  } catch {
+    // Analytics never break the page.
+  }
+}
+
 export default function SiteAnalytics() {
   const [visible, setVisible] = useState(false);
 
@@ -38,6 +66,26 @@ export default function SiteAnalytics() {
         );
     }
 
+    // 1b. CRO Phase 4: delegated [data-cta] click beacon (capture phase so
+    // no future stopPropagation can hide a CTA from measurement).
+    let lastKey = "";
+    let lastAt = 0;
+    const clickHandler = (e: MouseEvent) => {
+      const target = e.target as Element | null;
+      if (!target || typeof target.closest !== "function") return;
+      const el = target.closest("[data-cta]");
+      if (!el) return;
+      const cta = el.getAttribute("data-cta");
+      if (!cta) return;
+      const key = `${cta}|${window.location.pathname}`;
+      const now = Date.now();
+      if (key === lastKey && now - lastAt < 800) return;
+      lastKey = key;
+      lastAt = now;
+      beaconCtaClick(cta, window.location.pathname);
+    };
+    document.addEventListener("click", clickHandler, true);
+
     // 2. Consent-gated Meta Pixel PageView (returning consented visitors).
     if (getMarketingConsent() === "granted") {
       loadMetaPixel();
@@ -46,6 +94,8 @@ export default function SiteAnalytics() {
 
     // 3. Show the consent banner only if the visitor hasn't chosen yet.
     if (getMarketingConsent() === null) setVisible(true);
+
+    return () => document.removeEventListener("click", clickHandler, true);
   }, []);
 
   if (!visible) return null;

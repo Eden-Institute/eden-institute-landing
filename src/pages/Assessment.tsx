@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useActiveProfileOptional } from "@/contexts/ActiveProfileContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { ROUTES } from "@/lib/routes";
+import { trackCta } from "@/lib/trackCta";
 import { metaTrack } from "@/lib/metaPixel";
 import { getMarketingConsent } from "@/lib/consent";
 import { checkEmail } from "@/lib/emailTypos";
@@ -162,6 +163,8 @@ const Assessment = () => {
   const profileCtx = useActiveProfileOptional();
 
   const profileIdParam = searchParams.get("profileId");
+  // CRO Phase 4: once-per-attempt guard for the quiz-start funnel event.
+  const hasTrackedQuizStart = useRef(false);
   const targetProfile = useMemo(() => {
     if (!profileIdParam) return null;
     if (!profileCtx) return null;
@@ -415,6 +418,15 @@ const Assessment = () => {
   );
 
   const handleAnswer = useCallback((questionId: number, score: string) => {
+    // Funnel moment (CRO Phase 4, plan §14): quiz-start fires on the FIRST
+    // answer of an attempt (a page load is already a page view; engagement
+    // starts here). Marketing quiz only — the Root-tier diagnostic at
+    // /apothecary/quiz (?profileId=) is not part of this funnel. A restart
+    // begins a new attempt (the ref resets in restartQuiz).
+    if (!hasTrackedQuizStart.current && profileIdParam === null) {
+      hasTrackedQuizStart.current = true;
+      trackCta("quiz-start");
+    }
     setAnswers((prev) => {
       const next = { ...prev, [questionId]: score };
       setTransitioning(true);
@@ -437,7 +449,7 @@ const Assessment = () => {
       }, 400);
       return next;
     });
-  }, [currentQ, routePostResolution]);
+  }, [currentQ, routePostResolution, profileIdParam]);
 
   const handleFollowupAnswer = useCallback((questionId: number, score: string) => {
     setAnswers((prev) => {
@@ -464,6 +476,8 @@ const Assessment = () => {
     setFollowupIdx(0);
     setPhase("quiz");
     setError("");
+    // A restart is a new attempt — its first answer fires quiz-start again.
+    hasTrackedQuizStart.current = false;
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

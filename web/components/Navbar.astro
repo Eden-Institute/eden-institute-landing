@@ -6,7 +6,7 @@ const navLinks = [
   { label: "Home", href: "/", external: false },
   { label: "Eden's Table", href: "/homeschool", external: false },
   { label: "Courses", href: "/courses", external: false },
-  { label: "Apothecary", href: "/apothecary/start", external: false },
+  { label: "Apothecary", href: "/apothecary", external: false },
   { label: "The Book", href: "https://www.amazon.com/dp/B0GPW5BZ32?tag=theedeninstit-20", external: true },
 ];
 ---
@@ -27,9 +27,15 @@ const navLinks = [
         >{link.label}</a>
       ))}
     </nav>
-    <div class="hidden min-[880px]:block">
+    <div class="hidden min-[880px]:flex items-center gap-3">
+      <a
+        href="/homeschool/herbs"
+        class="text-sm font-sans px-5 py-2 rounded-sm tracking-wide transition-colors duration-200 min-h-[44px] inline-flex items-center"
+        style="background-color:#2E3D32;color:#FAF8F3"
+      >Shop Quality Herbs</a>
       <a
         href="/assessment"
+        data-cta="nav-take-quiz"
         class="text-sm font-sans px-5 py-2 rounded-sm tracking-wide transition-colors duration-200 min-h-[44px] inline-flex items-center"
         style="background-color:#C5A44E;color:#1C3A2E"
       >Take the Quiz</a>
@@ -54,7 +60,13 @@ const navLinks = [
       >{link.label}</a>
     ))}
     <a
+      href="/homeschool/herbs"
+      class="text-sm font-sans px-5 py-2 rounded-sm tracking-wide text-center min-h-[44px] inline-flex items-center justify-center"
+      style="background-color:#2E3D32;color:#FAF8F3"
+    >Shop Quality Herbs</a>
+    <a
       href="/assessment"
+      data-cta="nav-take-quiz"
       class="text-sm font-sans px-5 py-2 rounded-sm tracking-wide text-center min-h-[44px] inline-flex items-center justify-center"
       style="background-color:#C5A44E;color:#1C3A2E"
     >Take the Quiz</a>

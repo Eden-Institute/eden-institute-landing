@@ -8,6 +8,7 @@ import { ActiveProfileProvider } from "@/contexts/ActiveProfileContext";
 import { ROUTES } from "@/lib/routes";
 import ScrollToTop from "@/components/utils/ScrollToTop";
 import PageViewTracker from "@/components/utils/PageViewTracker";
+import CtaClickTracker from "@/components/utils/CtaClickTracker";
 import MetaPixelTracker from "@/components/utils/MetaPixelTracker";
 import Index from "./pages/Index";
 import WhyEden from "./pages/WhyEden";
@@ -21,7 +22,6 @@ import GuideSuccess from "./pages/GuideSuccess";
 import Results from "./pages/Results";
 import GuideLanding from "./pages/GuideLanding";
 import Courses from "./pages/Courses";
-import AppPage from "./pages/AppPage";
 import Homeschool from "./pages/Homeschool";
 import HomeschoolWelcome from "./pages/HomeschoolWelcome";
 import Community from "./pages/Community";
@@ -30,7 +30,8 @@ import FounderLeads from "./pages/FounderLeads";
 import { ApothecaryLayout } from "@/components/apothecary/ApothecaryLayout";
 import { RequireAuth } from "@/components/apothecary/RequireAuth";
 import { RequireTier } from "@/components/apothecary/RequireTier";
-import ApothecaryHome from "./pages/apothecary/ApothecaryHome";
+import ApothecaryIndex from "./pages/apothecary/ApothecaryIndex";
+import HerbMonograph from "./pages/apothecary/HerbMonograph";
 import Start from "./pages/apothecary/Start";
 import WelcomeTour from "./pages/apothecary/WelcomeTour";
 import SignUp from "./pages/apothecary/auth/SignUp";
@@ -85,6 +86,9 @@ const App = () => (
             {/* Cookieless first-party page-view beacon (writes via record_page_view
                 RPC). Sibling to <Routes> so it sees every navigation. */}
             <PageViewTracker />
+            {/* CRO Phase 4: delegated [data-cta] click beacon (record_cta_click
+                RPC) — one capture-phase listener makes every CTA measurable. */}
+            <CtaClickTracker />
             {/* Meta Pixel PageView on navigation — consent-gated (fires only
                 after the visitor accepts marketing cookies). */}
             <MetaPixelTracker />
@@ -114,7 +118,6 @@ const App = () => (
               <Route path="/guide/:constitutionSlug" element={<GuideLanding />} />
               <Route path="/results/:constitutionSlug" element={<Results />} />
               <Route path={ROUTES.COURSES} element={<Courses />} />
-              <Route path={ROUTES.APOTHECARY} element={<AppPage />} />
               <Route path={ROUTES.HOMESCHOOL} element={<Homeschool />} />
               {/* /homeschool/welcome — Stripe Checkout success_url redirect
                   target for homeschool product purchases (sprouts_complete,
@@ -143,7 +146,14 @@ const App = () => (
               {/* Apothecary application — Lane C Stage 6.3.4: auth-walled per §0.8 v3.3 #21.
                   v3.33 amendment (PR #51): Lock #21 RETIRED for pricing surface only —
                   /apothecary/pricing is now public per founder Q2 authorization to open
-                  pricing pre-signup for conversion. All other auth-walled surfaces preserved. */}
+                  pricing pre-signup for conversion.
+                  v3.4 amendment (CRO Phase 1, founder-approved redesign plan §2/§4):
+                  Lock #21 further retired for (a) the bare /apothecary index — anon gets
+                  the quiz-led ApothecaryWelcome value page instead of a signin bounce
+                  (ApothecaryIndex branches on auth) — and (b) the public :herbId herb
+                  monographs, which the Results matched-herb links target. Depth stays
+                  gated server-side by herbs_directory_v; the auth wall remains on the
+                  directory, account, profiles, favorites, and welcome surfaces. */}
               <Route path={ROUTES.APOTHECARY} element={<ApothecaryLayout />}>
                 {/* Public surfaces */}
                 <Route path="start" element={<Start />} />
@@ -153,15 +163,11 @@ const App = () => (
                 <Route path="auth/update-password" element={<UpdatePassword />} />
                 {/* PR #51 v3.33: pricing made PUBLIC — retires Lock #21 for this surface. */}
                 <Route path="pricing" element={<Pricing />} />
-                {/* Auth-walled surfaces */}
-                <Route
-                  index
-                  element={
-                    <RequireAuth>
-                      <ApothecaryHome />
-                    </RequireAuth>
-                  }
-                />
+                {/* Index branches on auth: signed-in → ApothecaryHome
+                    (directory, unchanged), anon → ApothecaryWelcome
+                    (quiz-led value page). Must stay ONE index element —
+                    see ApothecaryIndex docblock for why. */}
+                <Route index element={<ApothecaryIndex />} />
                 <Route
                   path="welcome-tour"
                   element={
@@ -191,10 +197,10 @@ const App = () => (
                     (RequireAuth + RequireTier allow={["seed","root","practitioner"]}
                     per tier-cap restructure v2). */}
                 <Route path="profiles" element={<ProfilesPage />} />
-                {/* Stage 7.X save-favorites listing page (PR 5 of 3 in the
-                    save-favorites build sequence). Auth + tier gating is
-                    enforced by the page itself (RequireAuth + RequireTier
-                    allow={["seed","root","practitioner"]}). Schema in
+                {/* Stage 7.X save-favorites listing page. Auth enforced by
+                    the page itself (RequireAuth); CRO Phase 3 retired the
+                    RequireTier(seed+) wrapper so free users can see their
+                    device-local 3-herb list (Phase 0). Schema in
                     herb_favorites table; hook + heart icon on HerbCard
                     shipped in PR #103 + #104. */}
                 <Route path="favorites" element={<Favorites />} />
@@ -213,6 +219,15 @@ const App = () => (
                     </RequireAuth>
                   }
                 />
+                {/* Public herb monograph (CRO Phase 1) — /apothecary/:herbId
+                    accepts the common-name slug ("marshmallow") or the H-code
+                    ("H036"). React Router's ranked matching guarantees every
+                    static sibling above (start, pricing, auth/*, account, …)
+                    outranks this dynamic segment; the trade-off is that any
+                    typo'd single-segment path lands here, so HerbMonograph
+                    renders a not-found state for unknown params. Depth is
+                    tier-gated server-side by herbs_directory_v. */}
+                <Route path=":herbId" element={<HerbMonograph />} />
               </Route>
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

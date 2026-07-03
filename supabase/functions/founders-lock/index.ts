@@ -20,6 +20,7 @@
 // verify_jwt=false (public; the link is HMAC-signed). Voice rule: no em dashes.
 
 import postgres from 'https://deno.land/x/postgresjs@v3.4.5/mod.js';
+import { shopApothecaryCard } from '../_shared/shop-cta.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -71,6 +72,12 @@ async function verify(token: string): Promise<Record<string, unknown> | null> {
     for (let i = 0; i < sig.length; i++) diff |= sig.charCodeAt(i) ^ expected.charCodeAt(i);
     return diff === 0 ? JSON.parse(payload) : null;
   } catch { return null; }
+}
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
 }
 const formToken = (email: string, name: string, source: string) => sign({ e: email.trim().toLowerCase(), n: (name || '').trim(), c: source || 'sprouts_upgrade_email1' });
 const unsubToken = (email: string) => sign({ e: email.trim().toLowerCase(), l: 'homeschool' });
@@ -196,6 +203,7 @@ function announcementHtml(firstName: string, formLink: string, unsub: string): s
   <p style="font-family:Georgia,serif;font-size:15px;font-weight:bold;color:${B.deep};margin:0;">Camila</p>
   <p style="font-family:Georgia,serif;font-size:13px;color:${B.text};margin:3px 0 0;">The Eden Institute</p>
   <p style="font-family:Georgia,serif;font-size:13px;margin:3px 0 0;"><a href="https://edeninstitute.health" style="color:${B.sage};">edeninstitute.health</a></p>
+  ${shopApothecaryCard()}
 </td></tr>
 <tr><td style="background:${B.forest};padding:16px 22px;text-align:center;"><div style="color:${B.footer};font-family:Georgia,serif;font-size:11px;line-height:1.6;">The Eden Institute &middot; Rooted in Faith Ventures LLC<br><a href="${unsub}" style="color:${B.gold};text-decoration:underline;">Unsubscribe from these homeschool emails</a></div></td></tr>
 </table></td></tr></table></body></html>`;
@@ -250,10 +258,13 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   const url = new URL(req.url);
 
-  // Admin (e2e) routes.
-  const admin = url.searchParams.get('admin');
+  // Admin (e2e) routes. The admin token is read from the x-admin-token header
+  // (not the query string, which leaks into access logs / browser history /
+  // Referer) and compared in constant time. Invoke with, e.g.:
+  //   curl -H "x-admin-token: $TOKEN" ".../founders-lock?action=diag"
+  const admin = req.headers.get('x-admin-token');
   if (admin) {
-    if (!ADMIN_TOKEN || admin !== ADMIN_TOKEN) return jsonRes(401, { error: 'unauthorized' });
+    if (!ADMIN_TOKEN || !timingSafeEqual(admin, ADMIN_TOKEN)) return jsonRes(401, { error: 'unauthorized' });
     const action = url.searchParams.get('action');
     const e = url.searchParams.get('e') ?? url.searchParams.get('to') ?? '';
     const n = url.searchParams.get('n') ?? 'friend';
@@ -288,7 +299,7 @@ Deno.serve(async (req) => {
         await ensureSendLog(sql);
         const rows = await sql`SELECT email, first_name FROM public.waitlist_signups w WHERE entry_funnel='edens_table' AND source=${src} AND unsubscribed_at IS NULL AND lower(email) NOT IN (SELECT lower(email) FROM public.email_list_unsubscribes WHERE list='homeschool') AND lower(email) NOT IN (SELECT lower(email) FROM public.founders_send_log WHERE campaign=${CAMPAIGN}) ORDER BY created_at ASC LIMIT ${batch}`;
         let sent = 0, failed = 0;
-        for (const row of rows as { email: string; first_name: string | null }[]) {
+        for (const row of rows as unknown as { email: string; first_name: string | null }[]) {
           const ok = await sendOne(row.email, row.first_name ?? '');
           if (ok) { await sql`INSERT INTO public.founders_send_log (campaign, email) VALUES (${CAMPAIGN}, ${row.email}) ON CONFLICT DO NOTHING`; sent++; } else failed++;
           await sleep(150);

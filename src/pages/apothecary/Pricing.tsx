@@ -1,5 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import { PricingTier } from "@/components/apothecary/PricingTier";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { trackCta } from "@/lib/trackCta";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 
 type BillingCycle = "monthly" | "yearly";
@@ -14,8 +19,78 @@ export default function Pricing() {
 
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
 
+  // A #tier-free / #tier-seed / #tier-root deep link (from Start, the tier
+  // comparison, and in-app upgrade CTAs) pre-highlights the chosen card. The
+  // global ScrollToTop hook handles scrolling to the anchor. Defaults to Seed,
+  // the recommended plan, when there is no valid hash.
+  const { hash } = useLocation();
+  const highlightedTier =
+    hash === "#tier-free" ? "free" : hash === "#tier-root" ? "root" : "seed";
+
+  // Auto-resume a checkout the visitor started before signing up. CheckoutButton
+  // sends anon clicks to signup with return_to=/apothecary/pricing?checkout=<key>;
+  // once they're authed and land back here, kick off create-checkout for that
+  // plan so their paid intent survives the signup / email-confirmation detour.
+  const { user, session } = useAuth();
+  const [searchParams] = useSearchParams();
+  const [resuming, setResuming] = useState(false);
+  // The auto-resume effect re-runs whenever the session object identity
+  // changes (token refresh emits a fresh session), so guard the one-shot
+  // checkout-start event AND the resume attempt itself to once per checkout
+  // key — otherwise a token refresh while the visitor lingers on the error
+  // path double-counts the funnel and re-invokes create-checkout.
+  const resumedCheckout = useRef<string | null>(null);
+  useEffect(() => {
+    const checkout = searchParams.get("checkout");
+    if (!checkout || !user || !session) return;
+    if (resumedCheckout.current === checkout) return;
+    resumedCheckout.current = checkout;
+    let cancelled = false;
+    setResuming(true);
+    // Funnel moment (CRO Phase 4): this checkout starts programmatically
+    // (post-signup auto-resume) — no click exists for the delegated
+    // tracker to see, so the event fires at the invoke site (once, guarded
+    // by resumedCheckout above).
+    trackCta("checkout-start", { lookupKey: checkout });
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("create-checkout", {
+          body: { lookup_key: checkout },
+        });
+        if (error) throw error;
+        if (data?.url && !cancelled) {
+          window.location.href = data.url;
+          return;
+        }
+        throw new Error("Checkout session missing redirect URL");
+      } catch (err) {
+        if (!cancelled) {
+          toast.error(
+            err instanceof Error ? err.message : "Could not resume checkout",
+          );
+          setResuming(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, user, session]);
+
   return (
     <div>
+      {resuming && (
+        <div
+          className="px-6 py-3 text-center font-body text-sm"
+          style={{
+            backgroundColor: "hsl(var(--eden-forest))",
+            color: "hsl(var(--eden-parchment))",
+          }}
+          role="status"
+        >
+          Resuming your checkout…
+        </div>
+      )}
       <section
         className="py-16 md:py-20 px-6"
         style={{ backgroundColor: "hsl(var(--eden-cream))" }}
@@ -107,12 +182,13 @@ export default function Pricing() {
                 monthlyPrice="$0"
                 yearlyPrice="$0"
                 features={[
-                  "50 herb monographs (basic profile)",
+                  "All 100 herb monographs (basic profile)",
                   "Constitutional quiz + result",
                   "The Five Tenets overview",
                   "Read-only contraindications (high + absolute)",
                 ]}
                 billingCycle={cycle}
+                highlighted={highlightedTier === "free"}
               />
             </div>
 
@@ -126,13 +202,14 @@ export default function Pricing() {
                 monthlyLookupKey="seed_monthly"
                 yearlyLookupKey="seed_yearly"
                 features={[
-                  "All 100 herbs with clinical depth",
+                  "The full clinical study for all 100 herbs",
                   "Actions, tissue states, energetics",
                   "Full contraindication library",
+                  "Profiles for up to 5 family members",
                   "Save and revisit your constitutional result",
                 ]}
                 billingCycle={cycle}
-                highlighted
+                highlighted={highlightedTier === "seed"}
               />
             </div>
 
@@ -147,13 +224,27 @@ export default function Pricing() {
                 yearlyLookupKey="root_yearly"
                 features={[
                   "Everything in Seed",
+                  "Profiles for up to 10 family members",
                   "All 12 herb-to-dimension junction tables",
                   "Source citations and classical materia medica links",
                   "Priority access to new herbs and clinical overlays",
                 ]}
                 billingCycle={cycle}
+                highlighted={highlightedTier === "root"}
               />
             </div>
+          </div>
+
+          <div className="text-center mt-8 space-y-1">
+            <p
+              className="font-accent text-xs tracking-[0.25em] uppercase"
+              style={{ color: "hsl(var(--eden-gold))" }}
+            >
+              Founding member pricing
+            </p>
+            <p className="font-body text-sm text-muted-foreground max-w-xl mx-auto">
+              Subscribe now and your rate stays locked for as long as you keep your plan, even when prices rise. Cancel anytime; your Pattern and saved herbs stay with your free account.
+            </p>
           </div>
 
           <div className="text-center mt-12">

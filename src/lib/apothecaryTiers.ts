@@ -11,7 +11,7 @@
  * teaser with stale beta-tester pricing). None included Practitioner as
  * a comparable card; Practitioner only appeared as a deferral footnote.
  *
- * For the public Apothecary marketing page (/apothecary, AppPage.tsx)
+ * For the public Apothecary value page (/apothecary, ApothecaryWelcome.tsx)
  * we now surface all four tiers — Free, Seed, Root, Practitioner —
  * with prices, persona labels, taglines, and feature lists, so a
  * visitor can see what they get before tapping "Open Apothecary."
