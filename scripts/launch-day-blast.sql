@@ -6,20 +6,30 @@
 -- nurture-emails EF is deployed.
 --
 -- Enqueues the 10-email conversion series for everyone on the homeschool
--- list, at day offsets from THIS run moment:
+-- list, at day offsets from each recipient's ANCHOR:
 --
---   8: now   9: +2d   10: +4d   11: +7d   12: +10d
---   13: +13d 14: +16d 15: +20d  16: +24d  17: +28d
+--   8: +0   9: +2   10: +4   11: +7   12: +10
+--   13: +13 14: +16 15: +20  16: +24  17: +28
 --
--- Emails 8-17 persist until a recipient preorders, then stop (order trigger
--- + drain-time suppression). Idempotent: the unique
--- (recipient_email, sequence_position) constraint makes re-runs harmless,
--- and existing purchasers are excluded up front.
+-- Anchor = this run moment for most of the list. For recipients still
+-- mid-way through the vision arc (pending 1-7 rows, i.e. signups from the
+-- last two weeks), anchor = 2 days after their LAST scheduled vision email,
+-- so nobody gets "the doors are about to open" after "the doors are open."
 --
--- Timing note: Email 8 lands relative to when you run this. Run it in the
--- morning (ideally ~8 AM Central) so the whole series inherits a morning
--- send time. ~1,450 recipients drain at 200 per 15-min cron tick, so the
--- launch email completes within about two hours of this run.
+-- Copy phase is decided at SEND time by the drainer: founding offer ($249,
+-- first 500) while the checkout's founding gate is open, retail copy ($349,
+-- no founding language) automatically after it closes. Long-tail rows in
+-- this blast (day +20/+24/+28) simply pick up whichever phase is true when
+-- they send.
+--
+-- Emails stop per recipient the moment they preorder (orders trigger +
+-- drain-time suppression). Idempotent: unique (recipient_email,
+-- sequence_position) makes re-runs harmless, and existing purchasers are
+-- excluded up front.
+--
+-- Timing note: run this in the morning (ideally ~8 AM Central) so the series
+-- inherits a morning send hour. ~1,450 recipients drain at 200 per 15-min
+-- cron tick, so the launch email completes within about two hours.
 
 with audience as (
   select distinct on (lower(email))
@@ -47,6 +57,23 @@ with audience as (
   )
   order by lower(email), joined_at asc
 ),
+-- Recipients still receiving the vision arc: anchor after it finishes.
+pending_vision as (
+  select lower(recipient_email) as email,
+         max(scheduled_for)     as last_vision_send
+  from public.launch_email_queue
+  where status = 'pending'
+    and sequence_position between 1 and 7
+  group by lower(recipient_email)
+),
+anchored as (
+  select
+    a.email,
+    a.first_name,
+    greatest(now(), coalesce(pv.last_vision_send + interval '2 days', now())) as anchor
+  from audience a
+  left join pending_vision pv on pv.email = a.email
+),
 sched (pos, day_offset) as (
   values
     (8, 0), (9, 2), (10, 4), (11, 7), (12, 10),
@@ -54,17 +81,21 @@ sched (pos, day_offset) as (
 )
 insert into public.launch_email_queue
   (recipient_email, first_name, sequence_position, scheduled_for, status)
-select a.email, a.first_name, s.pos, now() + (s.day_offset * interval '1 day'), 'pending'
-from audience a
+select an.email, an.first_name, s.pos, an.anchor + (s.day_offset * interval '1 day'), 'pending'
+from anchored an
 cross join sched s
 on conflict (recipient_email, sequence_position) do nothing;
 
--- Sanity check: expect (audience size x 10) new rows in positions 8-17.
+-- Sanity check: expect (audience size x 10) new rows in positions 8-17,
+-- with deferred_anchors matching the count of mid-drip signups.
 select
-  count(*)                                   as conversion_rows,
-  count(distinct recipient_email)            as recipients,
-  count(*) filter (where status = 'pending') as pending,
-  min(scheduled_for)                         as first_send,
-  max(scheduled_for)                         as last_send
+  count(*)                                                    as conversion_rows,
+  count(distinct recipient_email)                             as recipients,
+  count(*) filter (where status = 'pending')                  as pending,
+  count(distinct recipient_email) filter
+    (where sequence_position = 8 and scheduled_for > now() + interval '1 hour')
+                                                              as deferred_anchors,
+  min(scheduled_for)                                          as first_send,
+  max(scheduled_for)                                          as last_send
 from public.launch_email_queue
 where sequence_position >= 8;
