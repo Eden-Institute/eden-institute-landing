@@ -65,6 +65,43 @@ interface PunchItem {
   sort_order: number;
 }
 
+// ── Founding-kit runway (preorder system, PR #227) ──
+// Mirrors the checkout's founding gate: founding sprouts_kit line-items sold
+// (excluding cancelled/refunded orders) vs products.founding_qty_limit.
+// Best-effort and silently absent until the preorder migrations create the
+// products/order_items tables, so this ships to main ahead of go-live.
+interface FoundingStatus {
+  sold: number;
+  limit: number;
+}
+
+async function fetchFoundingStatus(): Promise<FoundingStatus | null> {
+  try {
+    const prodRes = await sbFetch(
+      '/rest/v1/products?sku=eq.sprouts_kit&select=id,founding_qty_limit&limit=1',
+    );
+    if (!prodRes.ok) return null;
+    const prods = await prodRes.json();
+    if (!Array.isArray(prods) || prods.length === 0) return null;
+    const limit = prods[0].founding_qty_limit;
+    if (limit === null || limit === undefined) return null;
+    const countRes = await sbFetch(
+      `/rest/v1/order_items?product_id=eq.${prods[0].id}&is_founding=eq.true&orders.status=not.in.(cancelled,refunded)&select=id,orders!inner(status)&limit=1`,
+      { headers: { Prefer: 'count=exact', Range: '0-0' } },
+    );
+    const contentRange = countRes.headers.get('content-range') ?? '';
+    const sold = Number(contentRange.split('/')[1]);
+    if (!Number.isFinite(sold)) return null;
+    return { sold, limit: Number(limit) };
+  } catch (e) {
+    console.error(
+      'notify-founder-digest: founding-status fetch error',
+      e instanceof Error ? e.message : String(e),
+    );
+    return null;
+  }
+}
+
 // ── Magnet identity mapping ──
 // (funnel, source) → human-readable magnet label + welcome email subject.
 // Updated in lockstep with resend-waitlist build* dispatch.
@@ -153,7 +190,12 @@ function formatLocal(iso: string): string {
   });
 }
 
-function buildDigestEmail(rows: CaptureRow[], digestDate: string, punchItems: PunchItem[]): {
+function buildDigestEmail(
+  rows: CaptureRow[],
+  digestDate: string,
+  punchItems: PunchItem[],
+  founding: FoundingStatus | null,
+): {
   subject: string;
   html: string;
   text: string;
@@ -265,6 +307,20 @@ function buildDigestEmail(rows: CaptureRow[], digestDate: string, punchItems: Pu
 </table>
 ` : '';
 
+  // ── Founding-kit runway (absent until the preorder tables exist) ──
+  const foundingSection = founding ? `
+<p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:2px;color:#C9A84C;text-transform:uppercase;margin:16px 0 8px 0;">Founding kits</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:8px;">
+<tr><td style="padding:10px 12px;background:#F5F0E8;border-left:3px solid #C9A84C;">
+${founding.sold >= founding.limit
+    ? `<span style="font-family:Georgia,serif;font-size:15px;font-weight:bold;color:#1C3A2E;">Founding ${founding.limit} complete.</span>
+<span style="font-family:Georgia,serif;font-size:13px;color:#3D3832;"> Retail pricing and retail email copy are live automatically.</span>`
+    : `<span style="font-family:Georgia,serif;font-size:15px;font-weight:bold;color:#1C3A2E;">${founding.sold} of ${founding.limit} claimed</span>
+<span style="font-family:Georgia,serif;font-size:13px;color:#3D3832;"> · ${founding.limit - founding.sold} founding kits remaining at $249</span>`}
+</td></tr>
+</table>
+` : '';
+
   const html = `<!DOCTYPE html>
 <html><body style="margin:0;padding:0;background:#F5F0E8;font-family:Georgia,serif;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F5F0E8;">
@@ -279,6 +335,7 @@ function buildDigestEmail(rows: CaptureRow[], digestDate: string, punchItems: Pu
 <tr><td style="padding:24px;">
 <p style="font-family:Georgia,serif;font-size:14px;color:#3D3832;margin:0 0 4px 0;">Digest for <strong>${esc(digestDate)}</strong> (America/Chicago)</p>
 ${capturesBlock}
+${foundingSection}
 ${punchSection}
 
 <p style="font-family:Georgia,serif;font-size:12px;color:#6B6560;margin:24px 0 0 0;font-style:italic;">
@@ -308,6 +365,14 @@ The Eden Institute · edeninstitute.health · automated daily digest
     );
   } else {
     lines.push(`No new leads — ${digestDate} (CT)`);
+  }
+  if (founding) {
+    lines.push(
+      '',
+      founding.sold >= founding.limit
+        ? `Founding kits: all ${founding.limit} claimed — retail pricing live`
+        : `Founding kits: ${founding.sold} of ${founding.limit} claimed (${founding.limit - founding.sold} remaining at $249)`,
+    );
   }
   if (punchCount > 0) {
     lines.push(
@@ -440,6 +505,9 @@ Deno.serve(async (req) => {
       console.error('notify-founder-digest: punch-list fetch error', e instanceof Error ? e.message : String(e));
     }
 
+    // ── Founding-kit runway (best-effort; null until preorder tables exist) ──
+    const founding = await fetchFoundingStatus();
+
     // ── Zero path: skip only when there are no captures AND no open punch items ──
     if ((!rows || rows.length === 0) && punchItems.length === 0) {
       await sbFetch(`/rest/v1/digest_runs?id=eq.${digestRunId}`, {
@@ -456,7 +524,7 @@ Deno.serve(async (req) => {
 
     // ── Build + send digest ──
     const captureRows: CaptureRow[] = Array.isArray(rows) ? rows : [];
-    const { subject, html, text } = buildDigestEmail(captureRows, digestDate, punchItems);
+    const { subject, html, text } = buildDigestEmail(captureRows, digestDate, punchItems, founding);
 
     const resendRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
