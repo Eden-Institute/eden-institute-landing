@@ -53,6 +53,7 @@ import {
   buildMagnetWeek6Email,
   buildMagnetWeek7Email,
 } from '../_shared/homeschool-followup-templates.ts';
+import { buildLaunchEmail } from '../_shared/launch-sequence-templates.ts';
 import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
 
@@ -102,6 +103,15 @@ const MAGNET_BAND_AGNOSTIC = new Set<number>([3, 4, 5, 6, 7]);
 // signup function never needs to know about them.
 const MAGNET_CHAIN_NEXT: Record<number, number> = { 3: 4, 4: 5, 5: 6, 6: 7 };
 const MAGNET_CHAIN_DELAY_MS = 7 * 24 * 60 * 60 * 1000;
+
+// July 2026 Sprouts preorder launch sequence (launch_email_queue). All 7 rows
+// are enqueued up front (backfill script for the fixed-date cohort; the
+// enqueue_launch_sequence_on_signup DB trigger for post-July-9 signups), so
+// there is no chaining. Larger batch than the evergreen queues: launch day
+// puts ~1,500 rows due at the same instant, and at 50/run the tail would send
+// ~7 hours late. 200 rows x 300 ms ≈ 60 s of send time per invocation, well
+// inside the EF wall-clock limit even with the other drains in the same run.
+const LAUNCH_QUEUE_BATCH = 200;
 
 function engagementTags(campaign: string, emailKey: string): ResendTag[] {
   return [
@@ -616,6 +626,109 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
   return result;
 }
 
+// July 2026 launch sequence: drains public.launch_email_queue. No bands, no
+// chaining, no cross-row dedup (the unique (recipient_email, sequence_position)
+// constraint guarantees one row per email per recipient); each row is simply
+// sent when due. Homeschool list rules apply: per-list voluntary opt-outs are
+// honored here, and global unsubscribes/bounces are handled upstream by the
+// cancel_queued_emails_on_unsubscribe trigger (extended to this table in
+// migration 20260702190000).
+async function drainLaunchQueue(): Promise<QueueResult> {
+  const result: QueueResult = { processed: 0, sent: 0, failed: 0 };
+  const nowIso = new Date().toISOString();
+  const rows = await supabaseQuery(
+    `launch_email_queue?status=eq.pending&scheduled_for=lte.${encodeURIComponent(nowIso)}&order=scheduled_for.asc&limit=${LAUNCH_QUEUE_BATCH}`,
+  );
+  if (!Array.isArray(rows)) {
+    console.error('drainLaunchQueue: unexpected query result', JSON.stringify(rows));
+    return result;
+  }
+  if (rows.length > 0) console.log(`drainLaunchQueue: found ${rows.length} due rows`);
+  for (const row of rows) {
+    result.processed++;
+    try {
+      const email = String(row.recipient_email);
+      const firstName = row.first_name || 'friend';
+      const pos = row.sequence_position;
+
+      if (await isUnsubscribed(email, 'homeschool')) {
+        await supabaseQuery(`launch_email_queue?id=eq.${row.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: 'cancelled',
+            error_message: 'recipient unsubscribed (homeschool)',
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        continue;
+      }
+
+      const built = buildLaunchEmail(pos, firstName);
+      if (!built) {
+        await supabaseQuery(`launch_email_queue?id=eq.${row.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: 'failed',
+            error_message: `Unknown sequence_position ${pos}`,
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        result.failed++;
+        continue;
+      }
+
+      const send = await sendEmail(
+        email,
+        built.subject,
+        built.html,
+        'homeschool',
+        engagementTags('launch_2026', `launch_${pos}`),
+      );
+      if (send.ok) {
+        await supabaseQuery(`launch_email_queue?id=eq.${row.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: 'sent',
+            sent_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        result.sent++;
+      } else {
+        const newRetry = (row.retry_count ?? 0) + 1;
+        const terminal = newRetry >= MAX_RETRIES;
+        await supabaseQuery(`launch_email_queue?id=eq.${row.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: terminal ? 'failed' : 'pending',
+            retry_count: newRetry,
+            error_message: send.error,
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        if (terminal) result.failed++;
+      }
+      await new Promise((r) => setTimeout(r, RATE_LIMIT_MS));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`drainLaunchQueue: row ${row.id} threw:`, message);
+      const newRetry = (row.retry_count ?? 0) + 1;
+      const terminal = newRetry >= MAX_RETRIES;
+      await supabaseQuery(`launch_email_queue?id=eq.${row.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status: terminal ? 'failed' : 'pending',
+          retry_count: newRetry,
+          error_message: message,
+          updated_at: new Date().toISOString(),
+        }),
+      });
+      if (terminal) result.failed++;
+    }
+  }
+  return result;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -638,16 +751,17 @@ Deno.serve(async (req) => {
 
     const queue = await drainNurtureQueue();
     const magnet = await drainMagnetQueue();
+    const launch = await drainLaunchQueue();
     const legacy_email5 = await legacyEmail5();
 
     console.log(
       `nurture-emails run: queue=${JSON.stringify(
         queue,
-      )} magnet=${JSON.stringify(magnet)} legacy_email5=${JSON.stringify(legacy_email5)}`,
+      )} magnet=${JSON.stringify(magnet)} launch=${JSON.stringify(launch)} legacy_email5=${JSON.stringify(legacy_email5)}`,
     );
 
     return new Response(
-      JSON.stringify({ success: true, queue, magnet, legacy_email5 }),
+      JSON.stringify({ success: true, queue, magnet, launch, legacy_email5 }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
