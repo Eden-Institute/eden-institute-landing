@@ -53,7 +53,7 @@ import {
   buildMagnetWeek6Email,
   buildMagnetWeek7Email,
 } from '../_shared/homeschool-followup-templates.ts';
-import { buildLaunchEmail } from '../_shared/launch-sequence-templates.ts';
+import { buildLaunchEmail, CONVERSION_FIRST_POSITION } from '../_shared/launch-sequence-templates.ts';
 import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
 
@@ -633,6 +633,23 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
 // honored here, and global unsubscribes/bounces are handled upstream by the
 // cancel_queued_emails_on_unsubscribe trigger (extended to this table in
 // migration 20260702190000).
+//
+// Positions 8-17 (the preorder conversion series) are PURCHASE-SUPPRESSED:
+// a recipient with any order that is not cancelled/refunded already
+// preordered, so the remaining conversion emails are cancelled instead of
+// sent. Two layers: the cancel_launch_emails_on_order trigger fires at
+// purchase time (migration 20260703093000), and this drain-time check
+// catches anything that slips between trigger and send.
+
+// True if this recipient has a live (not cancelled/refunded) order.
+// ilike with no wildcards = case-insensitive equality.
+async function hasPreordered(email: string): Promise<boolean> {
+  const rows = await supabaseQuery(
+    `orders?customer_email=ilike.${encodeURIComponent(email)}&status=not.in.(cancelled,refunded)&select=id&limit=1`,
+  );
+  return Array.isArray(rows) && rows.length > 0;
+}
+
 async function drainLaunchQueue(): Promise<QueueResult> {
   const result: QueueResult = { processed: 0, sent: 0, failed: 0 };
   const nowIso = new Date().toISOString();
@@ -657,6 +674,19 @@ async function drainLaunchQueue(): Promise<QueueResult> {
           body: JSON.stringify({
             status: 'cancelled',
             error_message: 'recipient unsubscribed (homeschool)',
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        continue;
+      }
+
+      // Conversion series stops the moment a family preorders.
+      if (pos >= CONVERSION_FIRST_POSITION && (await hasPreordered(email))) {
+        await supabaseQuery(`launch_email_queue?id=eq.${row.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: 'cancelled',
+            error_message: 'suppressed: recipient already preordered',
             updated_at: new Date().toISOString(),
           }),
         });
