@@ -23,10 +23,11 @@ import CrmTab from "@/components/founder/CrmTab";
 import EmailEngagementTab from "@/components/founder/EmailEngagementTab";
 import RevenueTab from "@/components/founder/RevenueTab";
 import FunnelTab from "@/components/founder/FunnelTab";
+import FeedbackTriageTab from "@/components/founder/FeedbackTriageTab";
 
 const FOUNDER_EMAIL = "hello@edeninstitute.health";
 
-type Tab = "leads" | "traffic" | "funnel" | "crm" | "emails" | "revenue";
+type Tab = "leads" | "traffic" | "funnel" | "crm" | "emails" | "revenue" | "feedback";
 
 interface LeadRow {
   email: string;
@@ -139,7 +140,7 @@ export default function FounderLeads() {
 
   const load = useCallback(async () => {
     // CRM, Emails, and Revenue tabs fetch their own data inside their components.
-    if (tab === "crm" || tab === "emails" || tab === "revenue" || tab === "funnel") return;
+    if (tab === "crm" || tab === "emails" || tab === "revenue" || tab === "funnel" || tab === "feedback") return;
     const since = sinceISO(WINDOWS[windowIdx].days);
     setLoading(true);
     setError(null);
@@ -310,7 +311,7 @@ export default function FounderLeads() {
 
         {/* Tabs */}
         <div className="flex gap-1 mb-4 border-b border-border flex-wrap">
-          {(["leads", "traffic", "funnel", "emails", "revenue", "crm"] as Tab[]).map((t) => (
+          {(["leads", "traffic", "funnel", "emails", "revenue", "crm", "feedback"] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -321,7 +322,7 @@ export default function FounderLeads() {
                   : { borderColor: "transparent", color: "hsl(var(--muted-foreground))" }
               }
             >
-              {t === "leads" ? "Lead magnets" : t === "traffic" ? "Website traffic" : t === "funnel" ? "Funnel" : t === "emails" ? "Emails" : t === "revenue" ? "Revenue" : "CRM"}
+              {t === "leads" ? "Lead magnets" : t === "traffic" ? "Website traffic" : t === "funnel" ? "Funnel" : t === "emails" ? "Emails" : t === "revenue" ? "Revenue" : t === "crm" ? "CRM" : "Feedback"}
             </button>
           ))}
         </div>
@@ -512,6 +513,8 @@ export default function FounderLeads() {
           <EmailEngagementTab since={sinceISO(WINDOWS[windowIdx].days)} />
         ) : tab === "revenue" ? (
           <RevenueTab since={sinceISO(WINDOWS[windowIdx].days)} />
+        ) : tab === "feedback" ? (
+          <FeedbackTriageTab />
         ) : (
           <CrmTab since={sinceISO(WINDOWS[windowIdx].days)} />
         )}
