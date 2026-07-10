@@ -85,8 +85,8 @@ export function computeTierAwareCTAs(
     };
   } else if (tier === "seed") {
     upgrade = {
-      label: "Upgrade to Root — up to 10 family profiles + deeper diagnostic",
-      shortLabel: "Upgrade to Root",
+      label: "Unlock drug interactions, source citations, and profiles for your whole circle",
+      shortLabel: "Unlock deeper practice",
       href: "/apothecary/pricing#tier-root",
     };
   } else if (tier === "root") {
@@ -99,8 +99,8 @@ export function computeTierAwareCTAs(
   } else if (tier === "free" || tier === null) {
     upgrade = {
       label:
-        "Upgrade to Seed — full clinical study for all 100 herbs",
-      shortLabel: "Upgrade to Seed",
+        "Unlock the full clinical picture: actions, tissue states, and safety for all 100 herbs",
+      shortLabel: "Unlock clinical depth",
       href: "/apothecary/pricing#tier-seed",
     };
   } else {
@@ -157,13 +157,13 @@ export function computeTierAwareCTAs(
     };
   } else if (tier === "free" || tier === null) {
     next = {
-      label: "Upgrade to Seed — full clinical study for all 100 herbs",
+      label: "Unlock the full clinical picture: actions, tissue states, and safety for all 100 herbs",
       href: "/apothecary/pricing#tier-seed",
       kind: "upgrade-seed",
     };
   } else if (tier === "seed") {
     next = {
-      label: "Upgrade to Root — up to 10 family profiles + deeper diagnostic",
+      label: "Unlock drug interactions, source citations, and profiles for your whole circle",
       href: "/apothecary/pricing#tier-root",
       kind: "upgrade-root",
     };
