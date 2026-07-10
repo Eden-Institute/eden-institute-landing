@@ -163,6 +163,7 @@ serve(async (req) => {
       constitution_type,
       constitution_nickname,
       email: bodyEmail,
+      promo_code: bodyPromoCode,
     } = body
 
     if (!lookup_key || typeof lookup_key !== "string") {
@@ -391,6 +392,35 @@ serve(async (req) => {
       // Dashboard "Use automatic tax" toggle, which only covers
       // Dashboard-created Invoices/Subscriptions/Quotes, not API sessions.
       automatic_tax: { enabled: true },
+    }
+
+    // Promo pre-application (2026-07-09): a ?promo=CODE on the pricing page
+    // flows through here so partner links and the founder testing code land
+    // with the discount already applied — no hunting for the promo field
+    // (which mobile Checkout tucks behind the collapsed order summary).
+    // Stripe forbids combining `discounts` with `allow_promotion_codes`, so
+    // a resolved code REPLACES the manual field; an unknown/inactive code
+    // falls back to the manual field rather than failing the checkout.
+    if (typeof bodyPromoCode === "string" && bodyPromoCode.trim()) {
+      try {
+        const promoList = await stripe.promotionCodes.list({
+          code: bodyPromoCode.trim(),
+          active: true,
+          limit: 1,
+        })
+        const promo = promoList.data[0]
+        if (promo) {
+          sessionParams.discounts = [{ promotion_code: promo.id }]
+          delete sessionParams.allow_promotion_codes
+        } else {
+          console.warn(`promo_code '${bodyPromoCode}' not found/active; leaving manual field enabled`)
+        }
+      } catch (err) {
+        console.warn(
+          "promo_code lookup failed; leaving manual field enabled: " +
+            (err instanceof Error ? err.message : String(err)),
+        )
+      }
     }
 
     if (stripeCustomerId) {

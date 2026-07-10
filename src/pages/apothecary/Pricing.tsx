@@ -60,8 +60,9 @@ export default function Pricing() {
     trackCta("checkout-start", { lookupKey: checkout });
     (async () => {
       try {
+        const promo = searchParams.get("promo");
         const { data, error } = await supabase.functions.invoke("create-checkout", {
-          body: { lookup_key: checkout },
+          body: { lookup_key: checkout, ...(promo ? { promo_code: promo } : {}) },
         });
         if (error) throw error;
         if (data?.url && !cancelled) {

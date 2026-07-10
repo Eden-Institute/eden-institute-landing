@@ -59,8 +59,11 @@ export function CheckoutButton({
     // Funnel moment (CRO Phase 4): checkout-start, keyed by product.
     trackCta("checkout-start", { lookupKey });
     try {
+      // A ?promo=CODE on the current URL (partner links, founder testing)
+      // rides along so the session arrives pre-discounted.
+      const promo = new URLSearchParams(window.location.search).get("promo");
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { lookup_key: lookupKey },
+        body: { lookup_key: lookupKey, ...(promo ? { promo_code: promo } : {}) },
       });
       if (error) throw error;
       if (!data?.url) throw new Error("Checkout session missing redirect URL");
