@@ -144,9 +144,10 @@ const App = () => (
                   </RequireAuth>
                 }
               />
-              {/* Practitioner clinical workspace (Phase 3, PD-1 seam): unlinked,
-                  auth-walled; the practitioner-clinical EF enforces the tier +
-                  ownership boundary server-side. Not in any nav. */}
+              {/* Practitioner clinical workspace (Phase 3), launched 2026-07-09;
+                  linked from ApothecaryNav for practitioner-tier users. RequireAuth
+                  only: the practitioner-clinical EF enforces the tier + ownership
+                  boundary server-side (the only path to the clinical schema). */}
               <Route
                 path={ROUTES.PRACTITIONER_CLINIC}
                 element={

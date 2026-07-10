@@ -38,7 +38,7 @@ import { useDocumentMeta } from "@/lib/useDocumentMeta";
 export default function HerbMonograph() {
   const { herbId: param } = useParams<{ herbId: string }>();
   const { data: herbs, isLoading, isError, isSubscriber } = useHerbsDirectory();
-  const { data: activePattern } = useEdenPattern();
+  const { data: activePattern, activeProfile } = useEdenPattern();
   const { viewedOrder, recordView } = useViewedHerbs();
 
   const herb = findHerbByParam(herbs, param);
@@ -72,6 +72,16 @@ export default function HerbMonograph() {
   // locked monographs carry the badge too (two-axis degraded mode —
   // tissue_states stays Seed-gated). Rows without axis data classify
   // Neutral and the badge hides without a special case.
+  const patternShort = activePattern
+    ? activePattern.replace(/^The\s+/i, "")
+    : null;
+  // useEdenPattern resolves the ACTIVE PROFILE's Pattern. When a practitioner
+  // points the picker at a patient (non-self profile) the terrain belongs to
+  // that patient, not the account holder — attribute it by name and keep
+  // "your" only for the self profile so the badges/reasons aren't misassigned.
+  const patternSubject =
+    activeProfile && !activeProfile.is_self ? `${activeProfile.name}'s` : "your";
+
   const match =
     herb && activePattern
       ? computeMatchRelationship(
@@ -81,11 +91,9 @@ export default function HerbMonograph() {
             tissue_states_indicated: herb.tissue_states_indicated,
           },
           activePattern,
+          patternSubject,
         )
       : null;
-  const patternShort = activePattern
-    ? activePattern.replace(/^The\s+/i, "")
-    : null;
 
   // Unresolved params (typos the :herbId segment swallows) canonicalize to
   // the directory URL, never echo the junk param back as a self-referential
@@ -220,7 +228,7 @@ export default function HerbMonograph() {
             )}
           </div>
           {match && match.relationship !== "neutral" && patternShort && (
-            <div className="mt-4" aria-label={`Relationship to your ${patternShort} pattern`}>
+            <div className="mt-4" aria-label={`Relationship to ${patternSubject} ${patternShort} pattern`}>
               {match.relationship === "match" ? (
                 <span
                   className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-body text-sm"
@@ -230,12 +238,12 @@ export default function HerbMonograph() {
                   }}
                 >
                   <Sparkles className="w-4 h-4" aria-hidden="true" />
-                  Matches your {patternShort}
+                  Matches {patternSubject} {patternShort}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-body text-sm bg-destructive/10 text-destructive">
                   <ShieldAlert className="w-4 h-4" aria-hidden="true" />
-                  May aggravate your {patternShort}
+                  May aggravate {patternSubject} {patternShort}
                 </span>
               )}
               {match.reasons.length > 0 && (
@@ -327,7 +335,7 @@ export default function HerbMonograph() {
               <li>Taste, temperature, moisture, and the energetics summary</li>
               <li>Cautions, contraindications, and pregnancy, nursing, and children's safety</li>
               <li>Actions and tissue states, indicated and contraindicated</li>
-              <li>Body systems, chief complaints, and constitutional matches</li>
+              <li>Body systems, chief complaints, and pattern matches</li>
               <li>Preparation methods and dosage notes</li>
             </ul>
             <Button
@@ -460,7 +468,7 @@ export default function HerbMonograph() {
                   herb.ayurvedic_dosha_match ||
                   herb.tcm_pattern_match) && (
                   <div>
-                    <SectionHeading>Constitutional overlays</SectionHeading>
+                    <SectionHeading>Pattern overlays</SectionHeading>
                     {herb.western_constitution_match && (
                       <ProseItem label="Western" value={herb.western_constitution_match} />
                     )}
@@ -559,7 +567,7 @@ export default function HerbMonograph() {
                 >
                   <li>Actions and tissue states, indicated and contraindicated</li>
                   <li>Body systems and chief complaints</li>
-                  <li>Constitutional overlays: Pattern of Eden, Western, Ayurvedic, TCM</li>
+                  <li>Pattern overlays: Pattern of Eden, Western, Ayurvedic, TCM</li>
                   <li>Preparation methods and dosage notes</li>
                 </ul>
                 <Button
@@ -592,14 +600,21 @@ export default function HerbMonograph() {
               className="font-serif text-xl font-semibold mb-2"
               style={{ color: "hsl(var(--eden-bark))" }}
             >
-              Does {name} fit your body pattern?
+              {activeProfile && !activeProfile.is_self
+                ? `Does ${name} fit ${activeProfile.name}'s pattern?`
+                : `Does ${name} fit your body pattern?`}
             </h2>
             <p className="font-body text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-              Take the free 2-minute Pattern of Eden quiz and every herb in
-              the directory is read against your own constitution.
+              {activeProfile && !activeProfile.is_self
+                ? `Run the Pattern assessment for ${activeProfile.name} and every herb in the directory is read against their Pattern.`
+                : "Take the free 2-minute Pattern of Eden quiz and every herb in the directory is read against your own Pattern."}
             </p>
             <Button variant="eden" size="lg" asChild data-cta="monograph-quiz">
-              <Link to={ROUTES.ASSESSMENT}>Take the 2-minute quiz</Link>
+              <Link to={ROUTES.ASSESSMENT}>
+                {activeProfile && !activeProfile.is_self
+                  ? "Run the Pattern assessment"
+                  : "Take the 2-minute quiz"}
+              </Link>
             </Button>
           </section>
         )}

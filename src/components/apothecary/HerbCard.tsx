@@ -761,7 +761,7 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
                     className={sectionLabel}
                     style={{ color: "hsl(var(--eden-gold))" }}
                   >
-                    Constitutional match
+                    Pattern match
                   </h4>
                   {/*
                     Cross-tradition observational labels per Lock #44 (Manual
@@ -831,8 +831,15 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
                     aria-label="Cross-tradition observational scope"
                   >
                     Pattern-observation only. The source of vital force is
-                    named on the WhyEden page — these labels describe
-                    what the body is doing, not where life comes from.
+                    named on the{" "}
+                    <Link
+                      to={ROUTES.WHY_EDEN}
+                      className="underline underline-offset-2 hover:opacity-80"
+                    >
+                      Why Eden
+                    </Link>{" "}
+                    page. These labels describe what the body is doing, not
+                    where life comes from.
                   </p>
                 </section>
               )}
@@ -1031,7 +1038,7 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
                         ({primary.year})
                       </a>
                       {primary.locator && (
-                        <span className="opacity-80"> — {primary.locator}</span>
+                        <span className="opacity-80"> · {primary.locator}</span>
                       )}
                     </div>
                   ) : (
@@ -1060,7 +1067,7 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
                       </a>
                       <span className="opacity-80">
                         {" "}
-                        — {SECONDARY_KIND_LABELS[secondary.kind] ?? secondary.kind}
+                        · {SECONDARY_KIND_LABELS[secondary.kind] ?? secondary.kind}
                         {secondary.identifier && ` · ${secondary.identifier}`}
                       </span>
                     </div>
@@ -1125,7 +1132,7 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
             <div className="pt-1">
               <p className="font-body text-xs text-muted-foreground italic">
                 Seed opens the clinical study of this herb: actions, tissue
-                states, constitutional matches, preparation, and dosage.
+                states, pattern matches, preparation, and dosage.
               </p>
               <Link
                 to={`${ROUTES.APOTHECARY_PRICING}#tier-seed`}

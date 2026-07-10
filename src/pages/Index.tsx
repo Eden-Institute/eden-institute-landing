@@ -322,7 +322,7 @@ const Index = () => {
                 eyebrow: "FOR THE PRACTITIONER",
                 title: "Eden Apothecary",
                 subtitle: "Pocket Materia Medica App",
-                body: "The tool. Constitutional pattern matching, 100 monograph library, clinical reasoning support. So you don't have to hold it all in your head.",
+                body: "The tool. Pattern matching, 100-monograph library, clinical reasoning support. So you don't have to hold it all in your head.",
                 cta: "Open the Apothecary →",
                 href: "/apothecary",
                 external: false,

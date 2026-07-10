@@ -1,5 +1,5 @@
 import { Link, NavLink } from "react-router-dom";
-import { Leaf } from "lucide-react";
+import { Leaf, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrentTier, Tier } from "@/hooks/useCurrentTier";
@@ -41,9 +41,9 @@ const tierLabel: Record<Tier, string> = {
 export function ApothecaryNav() {
   const { user, signOut } = useAuth();
   const { data: tier } = useCurrentTier();
-  // Persistent, state-aware upgrade prompt (free→Seed, Seed→Root, Root→waitlist,
-  // or "take the quiz" when no Pattern yet). Shown on every app route including
-  // mobile, so the path to pricing is always one tap away.
+  // Persistent, state-aware upgrade prompt (free→Seed, Seed→Root,
+  // Root→Practitioner; null at the practitioner tier). Shown on every app
+  // route including mobile, so the path to pricing is always one tap away.
   const { upgrade } = useTierAwareCTA();
 
   // Bare /apothecary now serves both audiences (authed → directory,
@@ -53,14 +53,20 @@ export function ApothecaryNav() {
 
   return (
     <nav className="border-b border-border/40 bg-background sticky top-0 z-50">
-      <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      {/* 375px budget: with the practitioner Clinic button, the ProfilePicker,
+          and Sign out all in the right cluster, the full wordmark forces a
+          two-line wrap and pushes Sign out off-screen (founder screenshot,
+          2026-07-10). Below sm the logo is leaf-only and Sign out is icon-only;
+          nothing may wrap or overflow. */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
         <Link
           to={logoTo}
-          className="font-serif text-xl font-semibold flex items-center gap-2"
+          aria-label="Eden Apothecary home"
+          className="font-serif text-xl font-semibold flex items-center gap-2 whitespace-nowrap"
           style={{ color: "hsl(var(--eden-bark))" }}
         >
-          <Leaf className="w-5 h-5" style={{ color: "hsl(var(--eden-gold))" }} />
-          Eden Apothecary
+          <Leaf className="w-5 h-5 shrink-0" style={{ color: "hsl(var(--eden-gold))" }} />
+          <span className="hidden sm:inline">Eden Apothecary</span>
         </Link>
         {user && (
           <div className="hidden md:flex items-center gap-6">
@@ -85,9 +91,15 @@ export function ApothecaryNav() {
             ))}
           </div>
         )}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {user && upgrade && (
-            <Button variant="eden" size="sm" asChild data-cta="nav-upgrade">
+            <Button
+              variant="eden"
+              size="sm"
+              className="max-w-[136px] whitespace-normal h-auto min-h-[44px] py-1.5 leading-tight text-center"
+              asChild
+              data-cta="nav-upgrade"
+            >
               <Link to={upgrade.href}>{upgrade.shortLabel ?? upgrade.label}</Link>
             </Button>
           )}
@@ -107,9 +119,12 @@ export function ApothecaryNav() {
               <Link to={ROUTES.PRACTITIONER_CLINIC}>Clinic</Link>
             </Button>
           )}
+          {/* Badge shows from md up only: in the sm-to-md window a
+              practitioner's cluster (Clinic pill + picker + Sign out) plus
+              the letterspaced badge overflows the row. */}
           {user && tier && tier !== "anon" && (
             <span
-              className="hidden sm:inline-block font-accent text-xs tracking-[0.2em] uppercase"
+              className="hidden md:inline-block font-accent text-xs tracking-[0.2em] uppercase"
               style={{ color: "hsl(var(--eden-gold))" }}
             >
               {tierLabel[tier]}
@@ -124,8 +139,14 @@ export function ApothecaryNav() {
           */}
           {user && <ProfilePicker />}
           {user ? (
-            <Button variant="outline" size="sm" onClick={() => signOut()}>
-              Sign out
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => signOut()}
+              aria-label="Sign out"
+            >
+              <LogOut className="w-4 h-4 sm:hidden" />
+              <span className="hidden sm:inline">Sign out</span>
             </Button>
           ) : (
             <Button variant="eden" size="sm" asChild>

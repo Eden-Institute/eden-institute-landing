@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Heart } from "lucide-react";
 import { toast } from "sonner";
 import { useHerbFavorites } from "@/hooks/useHerbFavorites";
+import { useCurrentTier } from "@/hooks/useCurrentTier";
 import { ROUTES } from "@/lib/routes";
 
 interface HerbFavoriteHeartProps {
@@ -62,6 +63,7 @@ export function HerbFavoriteHeart({
     isAtFreeCap,
     isLoading,
   } = useHerbFavorites();
+  const { data: tier } = useCurrentTier();
   const navigate = useNavigate();
 
   const fav = isFavorite(herbId);
@@ -74,7 +76,10 @@ export function HerbFavoriteHeart({
     if (!canFavorite) {
       if (favoriteBlockReason === "no-profile") {
         toast("Pick a profile to save herbs to", {
-          description: "Each family member's profile keeps its own herb list.",
+          description:
+            tier === "practitioner"
+              ? "Each patient's profile keeps its own herb list."
+              : "Each family member's profile keeps its own herb list.",
           action: {
             label: "Choose profile",
             onClick: () => navigate(ROUTES.APOTHECARY_PROFILES),

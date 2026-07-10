@@ -1,5 +1,10 @@
-// practitioner-waitlist-signup — captures Practitioner-tier waitlist intent
-// from the bottom-of-Apothecary CTA pair (§8.1.4 PR 4).
+// practitioner-waitlist-signup: LEGACY capture. The Practitioner tier launched
+// 2026-07-09 at the founding rate; the PractitionerWaitlistModal that fed this
+// EF is retired. Kept deployed for the historical rows and idempotent
+// re-submits; no live signup surface points here anymore.
+//
+// Originally captured Practitioner-tier waitlist intent from the
+// bottom-of-Apothecary CTA pair (§8.1.4 PR 4).
 //
 // Architectural rationale:
 //   1. waitlist_signups RLS denies anon + authenticated INSERTs by design
@@ -8,8 +13,9 @@
 //   2. entry_funnel = 'practitioner_waitlist' is the new enum value added in
 //      migration 20260429035336. Distinct from 'app_beta' (pre-launch
 //      Apothecary access) so Resend audiences segment cleanly.
-//   3. Practitioner tier opens at end of 2027 per Lock #3 + #28. This EF
-//      records intent now; nurture sequencing is downstream's problem.
+//   3. Historical note: this funnel predates the 2026-07-09 launch, when the
+//      tier was slated to open at end of 2027 per Lock #3 + #28. Retained for
+//      the recorded rows; nurture sequencing is downstream's problem.
 //   4. Pattern context (slug + display name) is stored in metadata JSONB,
 //      not duplicated as enum or first-class column. Same pattern as
 //      record-quiz-completion's metadata propagation.

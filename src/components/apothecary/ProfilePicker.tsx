@@ -105,7 +105,7 @@ export function ProfilePicker() {
             aria-label={`Active profile: ${activeProfile?.name ?? "none"}`}
           >
             <User className="w-4 h-4" />
-            <span className="font-body text-sm max-w-[140px] truncate">
+            <span className="font-body text-sm max-w-[96px] sm:max-w-[140px] truncate">
               {activeProfile?.name ?? "Add profile"}
             </span>
             <ChevronDown className="w-4 h-4 opacity-60" />
@@ -113,12 +113,17 @@ export function ProfilePicker() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-[260px]">
           <DropdownMenuLabel className="font-accent text-xs tracking-[0.2em] uppercase">
-            Family profiles · {profiles.length} of {cap}
+            {/* Practitioners manage a patient roster, not a household —
+                family framing is Seed/Root vocabulary (founder, 2026-07-10). */}
+            {tier === "practitioner" ? "Patient profiles" : "Family profiles"} ·{" "}
+            {profiles.length} of {cap}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           {profiles.length === 0 ? (
             <div className="px-2 py-3 text-sm text-muted-foreground font-body">
-              No profiles yet. Add yourself to start.
+              {tier === "practitioner"
+                ? "No profiles yet. Add yourself or your first patient to start."
+                : "No profiles yet. Add yourself to start."}
             </div>
           ) : (
             profiles.map((p) => (

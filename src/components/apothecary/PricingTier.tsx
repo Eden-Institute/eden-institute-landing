@@ -98,7 +98,7 @@ export function PricingTier({
       );
     }
   } else {
-    // Seed or Root
+    // Paid tiers (Seed / Root / Practitioner)
     if (thisIsCurrent) {
       cta = (
         <Button variant="eden-outline" size="lg" className="w-full" disabled>
