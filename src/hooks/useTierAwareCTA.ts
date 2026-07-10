@@ -92,9 +92,9 @@ export function computeTierAwareCTAs(
   } else if (tier === "root") {
     upgrade = {
       label:
-        "Join the Practitioner Waitlist — clinical formulas + dose schedules + contraindications",
-      shortLabel: "Practitioner waitlist",
-      href: "/apothecary#practitioner-waitlist",
+        "Go Practitioner — one-screen clinical matching, formulary builder, case files. Founding rate locked for life",
+      shortLabel: "Go Practitioner",
+      href: "/apothecary/pricing#tier-practitioner",
     };
   } else if (tier === "free" || tier === null) {
     upgrade = {
@@ -169,8 +169,8 @@ export function computeTierAwareCTAs(
     };
   } else if (tier === "root") {
     next = {
-      label: "Join the Practitioner waitlist",
-      href: "/apothecary#practitioner-waitlist",
+      label: "Go Practitioner at the founding rate",
+      href: "/apothecary/pricing#tier-practitioner",
       kind: "practitioner-waitlist",
     };
   } else {

@@ -34,15 +34,18 @@ function TierCard({ tier, onPractitionerWaitlist }: TierCardProps) {
 
   let cta: React.ReactNode;
   if (isPractitioner) {
+    // Launched 2026-07-09 (Lock #89 seam opened by founder): the card sends
+    // straight to the founding-rate checkout on the pricing page. The
+    // waitlist modal path is retired; onPractitionerWaitlist stays in the
+    // props contract for any straggler surfaces.
     cta = (
-      <Button
-        variant="eden-outline"
-        size="lg"
-        className="w-full"
-        onClick={onPractitionerWaitlist}
-        data-cta={`tier-comparison-${tier.id}`}
-      >
-        About the Practitioner Tier
+      <Button variant="eden" size="lg" className="w-full" asChild>
+        <Link
+          to={`${ROUTES.APOTHECARY_PRICING}#tier-practitioner`}
+          data-cta={`tier-comparison-${tier.id}`}
+        >
+          Claim your founding rate
+        </Link>
       </Button>
     );
   } else if (isFree) {
@@ -199,7 +202,7 @@ export function TierComparison({
           </h2>
           <p className="font-body text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
             {lead ??
-              "All hundred herbs at every tier. Depth is what you unlock. Free stays free. Practitioner is clinical-grade and opens end of 2027."}
+              "All hundred herbs at every tier. Depth is what you unlock. Free stays free. Practitioner, the full clinical workspace, is open now at a founding rate."}
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

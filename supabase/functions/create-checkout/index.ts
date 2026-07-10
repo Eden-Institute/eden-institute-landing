@@ -56,8 +56,11 @@ const SUBSCRIPTION_LOOKUP_KEYS = new Set([
   "seed_yearly",
   "root_monthly",
   "root_yearly",
-  "practitioner_monthly",
-  "practitioner_yearly",
+  // Practitioner Solo launched 2026-07-09 (Lock #89 seam opened). The old
+  // un-suffixed practitioner_monthly/yearly keys are deprecated per the
+  // sub-tier Lock and intentionally absent.
+  "practitioner_solo_monthly",
+  "practitioner_solo_yearly",
 ])
 
 // One-off lookup_keys — mode="payment", auth optional unless bundle-restricted.

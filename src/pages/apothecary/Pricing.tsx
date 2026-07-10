@@ -25,7 +25,13 @@ export default function Pricing() {
   // the recommended plan, when there is no valid hash.
   const { hash } = useLocation();
   const highlightedTier =
-    hash === "#tier-free" ? "free" : hash === "#tier-root" ? "root" : "seed";
+    hash === "#tier-free"
+      ? "free"
+      : hash === "#tier-root"
+        ? "root"
+        : hash === "#tier-practitioner"
+          ? "practitioner"
+          : "seed";
 
   // Auto-resume a checkout the visitor started before signing up. CheckoutButton
   // sends anon clicks to signup with return_to=/apothecary/pricing?checkout=<key>;
@@ -173,7 +179,7 @@ export default function Pricing() {
               <div id="root"> React mount point — a bare id="root" here
               would resolve to the React root container (scrollY=0)
               rather than the Root pricing card. */}
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div id="tier-free">
               <PricingTier
                 tier="free"
@@ -233,6 +239,32 @@ export default function Pricing() {
                 highlighted={highlightedTier === "root"}
               />
             </div>
+
+            <div id="tier-practitioner">
+              <PricingTier
+                tier="practitioner"
+                displayName="Practitioner"
+                tagline="Your whole clinical workflow, from reading to remedy, in one screen."
+                monthlyPrice="$49.99"
+                yearlyPrice="$499"
+                standardMonthlyPrice="$59.99"
+                standardYearlyPrice="$599"
+                foundingBadge="Founding rate · locked for life"
+                monthlyLookupKey="practitioner_solo_monthly"
+                yearlyLookupKey="practitioner_solo_yearly"
+                ctaLabel="Claim your founding rate"
+                features={[
+                  "Everything in Root",
+                  "Client's pattern to a safety-screened herb list in seconds, red flags checked first",
+                  "All four lenses on every herb: Pattern of Eden, Western, Ayurvedic, TCM. Every claim shows its two sources",
+                  "Encounters, SOAP notes, and printable case files",
+                  "Formulary builder with dosing guidance and batch print",
+                  "Up to 500 client profiles",
+                ]}
+                billingCycle={cycle}
+                highlighted={highlightedTier === "practitioner"}
+              />
+            </div>
           </div>
 
           <div className="text-center mt-8 space-y-1">
@@ -252,12 +284,15 @@ export default function Pricing() {
               className="font-accent text-xs tracking-[0.3em] uppercase mb-2"
               style={{ color: "hsl(var(--eden-gold))" }}
             >
-              Practitioner tier
+              The Practitioner tier is open
             </p>
             <p className="font-body text-sm text-muted-foreground max-w-xl mx-auto">
-              Formula builder and full clinical practice tools unlock at the
-              end of 2027, alongside the Tier 3 curriculum launch. Not yet
-              available for subscription.
+              Founding practitioners keep the launch rate for as long as they
+              stay subscribed. Group practices and schools: write to{" "}
+              <a className="underline" href="mailto:hello@edeninstitute.health">
+                hello@edeninstitute.health
+              </a>{" "}
+              for multi-seat licensing.
             </p>
           </div>
         </div>

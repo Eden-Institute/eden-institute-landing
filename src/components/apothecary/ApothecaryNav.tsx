@@ -23,6 +23,13 @@ const AUTHED_NAV_LINKS: NavItem[] = [
   { to: ROUTES.APOTHECARY_ACCOUNT, label: "Account" },
 ];
 
+// Practitioner-tier users get their clinical workspace in the nav. The
+// route itself stays unlinked for every other tier (Lock #89): the EF
+// refuses non-practitioner callers regardless of who finds the URL.
+const PRACTITIONER_ITEMS: NavItem[] = [
+  { to: ROUTES.PRACTITIONER_CLINIC, label: "Clinic" },
+];
+
 const tierLabel: Record<Tier, string> = {
   anon: "",
   free: "Free",
@@ -57,7 +64,7 @@ export function ApothecaryNav() {
         </Link>
         {user && (
           <div className="hidden md:flex items-center gap-6">
-            {AUTHED_NAV_LINKS.map((link) => (
+            {[...AUTHED_NAV_LINKS, ...(tier === "practitioner" ? PRACTITIONER_ITEMS : [])].map((link) => (
               <NavLink
                 key={link.to}
                 to={link.to}
