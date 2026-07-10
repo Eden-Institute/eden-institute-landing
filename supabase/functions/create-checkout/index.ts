@@ -372,6 +372,12 @@ serve(async (req) => {
 
     if (stripeCustomerId) {
       sessionParams.customer = stripeCustomerId
+      // Stripe Tax + a pre-created Customer: automatic_tax refuses to create
+      // the session unless the Customer has an address or we tell Checkout to
+      // save the billing address the payer enters. Surfaced 2026-07-09 by the
+      // Practitioner-launch checkout verification; applies to every
+      // subscription session with an existing Customer (Seed/Root too).
+      sessionParams.customer_update = { address: "auto" }
     } else if (typeof bodyEmail === "string" && bodyEmail) {
       sessionParams.customer_email = bodyEmail
     }
