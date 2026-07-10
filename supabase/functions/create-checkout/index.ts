@@ -299,6 +299,29 @@ serve(async (req) => {
 
       stripeCustomerId = profile?.stripe_customer_id ?? null
 
+      // Self-heal stale ids (2026-07-09): some early profiles carry a
+      // stripe_customer_id that no longer exists in this live account
+      // (test-mode/legacy leftovers). Stripe rejects the whole session with
+      // resource_missing ("No such customer"), which surfaced as the
+      // founder's non-2xx toast on the Practitioner founding CTA. Verify the
+      // stored customer; if missing or deleted, fall through to the create
+      // path below, which also persists the fresh id back to profiles.
+      if (stripeCustomerId) {
+        try {
+          const existing = await stripe.customers.retrieve(stripeCustomerId)
+          // deno-lint-ignore no-explicit-any
+          if ((existing as any)?.deleted) {
+            throw new Error("customer is deleted")
+          }
+        } catch (err) {
+          console.warn(
+            `Stored stripe_customer_id ${stripeCustomerId} is unusable ` +
+              `(${err instanceof Error ? err.message : String(err)}); creating a fresh Customer`,
+          )
+          stripeCustomerId = null
+        }
+      }
+
       if (!stripeCustomerId) {
         const customer = await stripe.customers.create({
           email: user.email ?? undefined,
