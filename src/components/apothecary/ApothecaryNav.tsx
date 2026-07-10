@@ -91,6 +91,22 @@ export function ApothecaryNav() {
               <Link to={upgrade.href}>{upgrade.shortLabel ?? upgrade.label}</Link>
             </Button>
           )}
+          {/* The desktop link row (hidden md:flex above) carries the Clinic
+              NavLink, but mobile renders no middle links at all — without
+              this button a phone-only practitioner has no path to the
+              workspace they pay for. It fills the slot the upgrade pill
+              vacates at the top tier (upgrade === null), so nothing crowds. */}
+          {user && tier === "practitioner" && (
+            <Button
+              variant="eden"
+              size="sm"
+              className="md:hidden"
+              asChild
+              data-cta="nav-clinic"
+            >
+              <Link to={ROUTES.PRACTITIONER_CLINIC}>Clinic</Link>
+            </Button>
+          )}
           {user && tier && tier !== "anon" && (
             <span
               className="hidden sm:inline-block font-accent text-xs tracking-[0.2em] uppercase"

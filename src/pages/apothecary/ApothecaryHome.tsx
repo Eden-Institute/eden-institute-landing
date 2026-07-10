@@ -432,6 +432,18 @@ export default function ApothecaryHome() {
               )}
             </p>
           )}
+          {/* Practitioner home entry point: the nav's Clinic link is
+              desktop-only chrome, so the hero carries a tap-friendly door
+              into the paid workspace on every viewport. */}
+          {tier === "practitioner" && (
+            <div className="mt-5">
+              <Button variant="eden" size="sm" asChild data-cta="home-clinic">
+                <Link to={ROUTES.PRACTITIONER_CLINIC}>
+                  Open your Clinic — match, chart, and print
+                </Link>
+              </Button>
+            </div>
+          )}
           {/* CRO Phase 3: exposure progress. Denominator is the live
               directory count for numeric consistency with the "{visible}
               of {total} herbs" line in the filter panel below. */}
