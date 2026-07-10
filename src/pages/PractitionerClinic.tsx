@@ -35,6 +35,63 @@ function fmtDate(iso?: string | null): string {
   return iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
 }
 
+function esc(s: unknown): string {
+  return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// Exportable PDF (spec parity with the marketing card): render the case file
+// as a formatted document in a print window — the browser's Save-as-PDF is
+// the export path, no server-side PDF dependency.
+function printCaseFile(cf: Json) {
+  const c = cf.client ?? {};
+  const readings = (cf.readings ?? []).filter((r: Json) => r.role === "primary");
+  const html = `
+    <h1>Clinical case file — ${esc(c.name)}</h1>
+    <p class="meta">Exported ${new Date(cf.exported_at ?? Date.now()).toLocaleString()} · Eden Apothecary Practitioner</p>
+    <h2>Client</h2>
+    <p>${esc(c.profile_kind ?? "adult")} · DOB ${esc(c.date_of_birth ?? "—")} · ${esc(c.biological_sex ?? "—")}</p>
+    ${c.medications ? `<p><strong>Medications:</strong> ${esc(c.medications)}</p>` : ""}
+    ${c.allergies ? `<p><strong>Allergies:</strong> ${esc(c.allergies)}</p>` : ""}
+    ${c.conditions ? `<p><strong>Conditions:</strong> ${esc(c.conditions)}</p>` : ""}
+    <h2>Standing constitutional readings</h2>
+    <table><tr><th>Framework</th><th>Pattern</th><th>Kind</th><th>Confidence</th><th>Note</th></tr>
+    ${readings.map((r: Json) =>
+      `<tr><td>${esc(r.framework)}</td><td>${esc(r.pattern_id)}</td><td>${esc(r.reading_kind)}</td><td>${r.confidence != null ? Math.round(r.confidence * 100) + "%" : "—"}</td><td>${esc(r.adjustment_note ?? "")}</td></tr>`).join("")}
+    </table>
+    <h2>Assessment history</h2>
+    <table><tr><th>Date</th><th>Version</th><th>Temp</th><th>Moisture</th><th>Tone</th></tr>
+    ${(cf.completions ?? []).map((d: Json) =>
+      `<tr><td>${esc(new Date(d.completed_at).toLocaleDateString())}</td><td>${esc(d.quiz_version)}</td><td>${d.temperature_score ?? "—"}</td><td>${d.moisture_score ?? "—"}</td><td>${d.tone_score ?? "—"}</td></tr>`).join("")}
+    </table>
+    <h2>Encounters</h2>
+    ${(cf.encounters ?? []).map((e: Json) => `
+      <div class="enc">
+        <p><strong>${esc(new Date(e.encounter_date).toLocaleDateString())}</strong> · ${esc(e.chief_complaint_id ?? "no complaint")} · ${esc(e.status)}
+        ${e.refer_out_trigger_ids?.length ? ` · refer-out ${e.refer_out_acknowledged_at ? "acknowledged: " + esc(e.refer_out_acknowledged_note) : "PENDING"}` : ""}</p>
+        ${e.soap ? `<p>${["s", "o", "a", "p"].filter((k) => e.soap[k]).map((k) => `<strong>${k.toUpperCase()}:</strong> ${esc(e.soap[k])}`).join("<br>")}</p>` : ""}
+      </div>`).join("")}
+    <h2>Formularies</h2>
+    ${(cf.formularies ?? []).map((f: Json) => `
+      <div class="enc"><p><strong>${esc(f.name)}</strong>${f.notes ? " — " + esc(f.notes) : ""}</p>
+      <table><tr><th>Herb</th><th>Parts</th><th>Note</th></tr>
+      ${(f.items ?? []).map((it: Json) => `<tr><td>${esc(it.common_name)}</td><td>${esc(it.parts)} ${esc(it.unit)}</td><td>${esc(it.note ?? "")}</td></tr>`).join("")}
+      </table></div>`).join("")}
+    <p class="meta">Terrain-based clinical decision support. Educational reference for licensed judgment — not a prescription.</p>`;
+  const w = window.open("", "_blank", "width=800,height=900");
+  if (!w) return;
+  w.document.write(`<!doctype html><html><head><title>Case file — ${esc(c.name)}</title><style>
+    body{font-family:Georgia,serif;color:#3D3832;margin:32px;line-height:1.5}
+    h1{font-size:20px;color:#2C3E2D} h2{font-size:14px;color:#2C3E2D;border-bottom:1px solid #E8E3DA;padding-bottom:2px;margin-top:20px}
+    p{font-size:12px;margin:4px 0} .meta{color:#6B6560;font-size:10px}
+    table{border-collapse:collapse;width:100%;font-size:11px;margin:6px 0}
+    th,td{border:1px solid #E8E3DA;padding:3px 6px;text-align:left} th{background:#F5F0E8}
+    .enc{margin:6px 0;padding:6px;border:1px solid #E8E3DA}
+  </style></head><body>${html}</body></html>`);
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 300);
+}
+
 export default function PractitionerClinic() {
   const { user, loading: authLoading } = useAuth();
   const [error, setError] = useState<string | null>(null);
@@ -273,6 +330,23 @@ export default function PractitionerClinic() {
                   </div>
                 );
               })}
+              {/* Multi-system terrain analysis (Lock #37 Layer 3) */}
+              {client.tissue_states?.length > 0 && (
+                <div className="md:col-span-4 rounded-lg border p-3">
+                  <p className="font-accent text-[10px] uppercase tracking-widest text-muted-foreground mb-1">
+                    Terrain by body system
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {client.tissue_states.map((t: Json) => (
+                      <span key={t.body_system_id} title={t.tissue_states?.description ?? ""}
+                            className="rounded-full border px-2.5 py-1 font-body text-xs">
+                        <strong>{t.body_systems?.system_name ?? t.body_system_id}</strong>
+                        {": "}{t.tissue_states?.state_name ?? t.tissue_state_id}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
               {latest && previous && (
                 <div className="md:col-span-4 rounded-lg border p-3">
                   <p className="font-accent text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Re-take delta</p>
@@ -374,18 +448,20 @@ export default function PractitionerClinic() {
                 <Button onClick={startEncounter} disabled={busy || !clientId}>
                   {encounter ? "Update encounter & re-run" : "Start encounter → match herbs"}
                 </Button>
-                {encounter && (
-                  <Button variant="outline" onClick={async () => {
-                    const data = await call({ action: "case_file", personProfileId: clientId });
-                    if (data?.case_file) {
-                      const blob = new Blob([JSON.stringify(data.case_file, null, 2)], { type: "application/json" });
-                      const a = document.createElement("a");
-                      a.href = URL.createObjectURL(blob);
-                      a.download = `case-file-${client.profile.name.replace(/\s+/g, "-")}.json`;
-                      a.click();
-                    }
-                  }}>Export case file</Button>
-                )}
+                <Button variant="outline" onClick={async () => {
+                  const data = await call({ action: "case_file", personProfileId: clientId });
+                  if (data?.case_file) printCaseFile(data.case_file);
+                }}>Export case file (PDF)</Button>
+                <Button variant="ghost" onClick={async () => {
+                  const data = await call({ action: "case_file", personProfileId: clientId });
+                  if (data?.case_file) {
+                    const blob = new Blob([JSON.stringify(data.case_file, null, 2)], { type: "application/json" });
+                    const a = document.createElement("a");
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `case-file-${client.profile.name.replace(/\s+/g, "-")}.json`;
+                    a.click();
+                  }
+                }}>JSON</Button>
               </div>
             </section>
 
@@ -457,6 +533,13 @@ export default function PractitionerClinic() {
                             <p><strong>Secondary:</strong> {v.secondary_citation?.author} — {v.secondary_citation?.title} ({v.secondary_citation?.year})</p>
                           </div>
                         ) : null,
+                      )}
+                      {(h.dosage_notes || h.preparation_methods) && (
+                        <p className="font-body text-[11px] text-muted-foreground my-1">
+                          {h.part_used && <><strong>Part:</strong> {h.part_used} · </>}
+                          {h.preparation_methods && <><strong>Prep:</strong> {h.preparation_methods} · </>}
+                          {h.dosage_notes && <><strong>Dosing:</strong> {h.dosage_notes}</>}
+                        </p>
                       )}
                       {h.caution_items && (
                         <ul className="font-body text-[11px] text-destructive/90 list-disc pl-4 my-1">
