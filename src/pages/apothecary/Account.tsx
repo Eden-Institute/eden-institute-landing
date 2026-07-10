@@ -75,7 +75,7 @@ function prettyConstitution(raw: string | null): string | null {
 }
 
 function formatDate(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "–";
   return new Date(iso).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
@@ -168,6 +168,11 @@ export default function Account() {
       profile.subscription_status
     : null;
   const constitutionPretty = prettyConstitution(profile.constitution_type);
+  // Top tier is pitched no consumer add-ons: suppress the $4.99 guide buy CTA
+  // for practitioners. A purchased guide ("View your … guide", no price) still
+  // links out.
+  const guideIsPurchaseCta = guideCta.label.includes("$");
+  const showGuideCta = !(tier === "practitioner" && guideIsPurchaseCta);
 
   return (
     <section className="py-12 md:py-16 px-6">
@@ -252,9 +257,8 @@ export default function Account() {
                   {constitutionPretty}
                 </h2>
                 <p className="font-body text-sm text-muted-foreground mt-1">
-                  Your body pattern (constitution) shapes how every herb works
-                  for you. Your matched herbs are highlighted in the
-                  Apothecary directory.
+                  Your body pattern shapes how every herb works for you. Your
+                  matched herbs are highlighted in the Apothecary directory.
                 </p>
               </>
             ) : (
@@ -287,9 +291,15 @@ export default function Account() {
                   useTierAwareCTA(). Anchors the visual Pattern → guide
                   relationship within the Pattern card; the dominant
                   cross-page journey CTA lives in <JourneyCTA /> above. */}
-              <Button variant="eden-outline" asChild>
-                <Link to={guideCta.href}>{guideCta.label}</Link>
-              </Button>
+              {showGuideCta && (
+                <Button
+                  variant="eden-outline"
+                  className="whitespace-normal h-auto text-center min-h-[44px] py-2"
+                  asChild
+                >
+                  <Link to={guideCta.href}>{guideCta.label}</Link>
+                </Button>
+              )}
             </div>
           )}
           {/* De-prioritized retake affordance. Patterns can shift over time
@@ -330,7 +340,7 @@ export default function Account() {
                 className="font-serif text-2xl font-semibold"
                 style={{ color: "hsl(var(--eden-bark))" }}
               >
-                {tier ? tierDisplayName[tier] || "Free" : "—"}
+                {tier ? tierDisplayName[tier] || "Free" : "–"}
               </h2>
             </div>
             {profile.is_founding_member && (

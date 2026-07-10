@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDiagnosticProfile } from "@/hooks/useDiagnosticProfile";
+import { useCurrentTier } from "@/hooks/useCurrentTier";
 import { PATTERN_PROFILES } from "@/lib/edenPattern";
 import { ROUTES } from "@/lib/routes";
 import { type DiagnosticProfile, hasFullDiagnosticDepth } from "@/lib/diagnosticProfile";
@@ -114,8 +115,8 @@ export function PatternMatchHero() {
       : "Discover your Pattern to unlock match badges across all 100 herbs.";
 
     const subhead = isNonSelfEmpty
-      ? `Two minutes. Twelve questions across three classical axes (Temperature, Moisture, Tone). The result reveals which of the eight Eden Patterns governs ${targetName}'s terrain — and from there, every herb in the directory shows whether it rebalances or aggravates ${targetName}'s specific Pattern.`
-      : "Two minutes. Twelve questions across three classical axes (Temperature, Moisture, Tone). Your result reveals which of the eight Eden Patterns governs your terrain — and from there, every herb in the directory shows whether it rebalances or aggravates your specific Pattern.";
+      ? `Two minutes. Twelve questions across three classical axes (Temperature, Moisture, Tone). The result reveals which of the eight Eden Patterns governs ${targetName}'s terrain. From there, every herb in the directory shows whether it rebalances or aggravates ${targetName}'s specific Pattern.`
+      : "Two minutes. Twelve questions across three classical axes (Temperature, Moisture, Tone). Your result reveals which of the eight Eden Patterns governs your terrain. From there, every herb in the directory shows whether it rebalances or aggravates your specific Pattern.";
 
     return (
       <section
@@ -146,7 +147,12 @@ export function PatternMatchHero() {
             </p>
           </div>
           <div className="mt-6 md:mt-0 md:flex-shrink-0">
-            <Button asChild variant="eden" size="xl" className="min-h-[44px]">
+            <Button
+              asChild
+              variant="eden"
+              size="xl"
+              className="min-h-[44px] whitespace-normal h-auto py-3 text-center"
+            >
               <Link to={ctaHref}>{ctaLabel}</Link>
             </Button>
           </div>
@@ -163,6 +169,11 @@ export function PatternMatchHero() {
 
 function ResolvedProfileCard({ profile }: { profile: DiagnosticProfile }) {
   const patternProfile = PATTERN_PROFILES[profile.edenPattern];
+  const { data: tier } = useCurrentTier();
+  // Root and Practitioner already include the deeper diagnostic in their
+  // plan, so the roadmap note frames it as owned, not as an upgrade — and
+  // never calls their reading "entry-tier".
+  const isUpperTier = tier === "root" || tier === "practitioner";
 
   return (
     <section
@@ -232,11 +243,9 @@ function ResolvedProfileCard({ profile }: { profile: DiagnosticProfile }) {
 
         {!hasFullDiagnosticDepth(profile) && (
           <p className="font-body text-xs italic mt-6 pt-4 border-t" style={{ color: "hsl(30, 10%, 40%, 0.8)", borderColor: "hsl(40, 20%, 80%)" }}>
-            Your Pattern is the entry-tier reading. A deeper four-layer
-            diagnostic — Galenic temperament, tissue state profile by organ
-            system, and vital force overlay — is in active development for
-            Root tier. Each layer is anchored to public-domain Western
-            classical sources (Galen, Cook, Scudder, Felter).
+            {isUpperTier
+              ? "Your Pattern reading covers Layer 1. The deeper four-layer diagnostic, covering Galenic temperament, tissue state profile by organ system, and vital force overlay, is part of your plan and rolls out as each layer ships. Each layer is anchored to public-domain Western classical sources (Galen, Cook, Scudder, Felter)."
+              : "Your Pattern is the Layer 1 reading. A deeper four-layer diagnostic, covering Galenic temperament, tissue state profile by organ system, and vital force overlay, is in active development. Each layer is anchored to public-domain Western classical sources (Galen, Cook, Scudder, Felter)."}
           </p>
         )}
       </div>

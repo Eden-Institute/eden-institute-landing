@@ -21,7 +21,7 @@ export default function SignUp() {
           style={{ color: "hsl(var(--muted-foreground))" }}
         >
           After signing up, check your <strong>spam or junk folder</strong> if
-          the confirmation email doesn&rsquo;t arrive within 5 minutes —
+          the confirmation email doesn&rsquo;t arrive within 5 minutes.
           Hotmail, Outlook, and Yahoo sometimes filter our first emails. Add{" "}
           <Link
             to="#"

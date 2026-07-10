@@ -165,7 +165,7 @@ export function FeedbackButton() {
         toast.error(data?.error || "Could not send feedback. Please try again.");
         return;
       }
-      toast.success("Thank you — your feedback was received.");
+      toast.success("Thank you. Your feedback was received.");
       reset();
       setMine(null); // refresh next open
       setOpen(false);
@@ -283,7 +283,7 @@ export function FeedbackButton() {
                   onChange={(e) => setSubArea(e.target.value)}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
-                  <option value="">— {area.label} in general —</option>
+                  <option value="">{area.label} in general</option>
                   {area.sub_areas.map((s) => (
                     <option key={s} value={s}>{s}</option>
                   ))}

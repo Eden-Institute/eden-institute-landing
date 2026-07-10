@@ -13,7 +13,7 @@ export default function Pricing() {
   useDocumentMeta({
     title: "Pricing | Eden Apothecary",
     description:
-      "Free access to the herb directory and constitutional quiz. Seed and Root tiers open the full clinical depth — actions, tissue states, and contraindications for every herb.",
+      "Free access to the herb directory and the Pattern quiz. Seed, Root, and Practitioner tiers open the full clinical depth: actions, tissue states, contraindications, and a one-screen practitioner clinic.",
     canonical: "https://edeninstitute.health/apothecary/pricing",
   });
 
@@ -118,8 +118,8 @@ export default function Pricing() {
             <span className="italic">of the practice.</span>
           </h1>
           <p className="font-body text-lg text-muted-foreground max-w-2xl mx-auto">
-            Free access to the herb directory and constitutional quiz. Paid
-            tiers open the full clinical depth — actions, tissue states, and
+            Free access to the herb directory and the Pattern quiz. Paid
+            tiers open the full clinical depth: actions, tissue states, and
             contraindications for every herb.
           </p>
         </div>
@@ -190,7 +190,7 @@ export default function Pricing() {
                 yearlyPrice="$0"
                 features={[
                   "All 100 herb monographs (basic profile)",
-                  "Constitutional quiz + result",
+                  "Pattern quiz + result",
                   "The Five Tenets overview",
                   "Read-only contraindications (high + absolute)",
                 ]}
@@ -213,7 +213,7 @@ export default function Pricing() {
                   "Actions, tissue states, energetics",
                   "Full contraindication library",
                   "Profiles for up to 5 family members",
-                  "Save and revisit your constitutional result",
+                  "Save and revisit your Pattern result",
                 ]}
                 billingCycle={cycle}
                 highlighted={highlightedTier === "seed"}
@@ -224,7 +224,7 @@ export default function Pricing() {
               <PricingTier
                 tier="root"
                 displayName="Root"
-                tagline="Deeper practice — full junctions, dimensions, and citations."
+                tagline="Deeper practice: full junctions, dimensions, and citations."
                 monthlyPrice="$24.99"
                 yearlyPrice="$249.99"
                 monthlyLookupKey="root_monthly"
@@ -256,11 +256,11 @@ export default function Pricing() {
                 ctaLabel="Claim your founding rate"
                 features={[
                   "Everything in Root",
-                  "Client's pattern to a safety-screened herb list in seconds, red flags checked first",
+                  "A patient's pattern becomes a safety-screened herb list in seconds, red flags checked first",
                   "All four lenses on every herb: Pattern of Eden, Western, Ayurvedic, TCM. Every claim shows its two sources",
                   "Encounters, SOAP notes, and printable case files",
                   "Formulary builder with dosing guidance and batch print",
-                  "Up to 500 client profiles",
+                  "Up to 500 patient profiles",
                 ]}
                 billingCycle={cycle}
                 highlighted={highlightedTier === "practitioner"}

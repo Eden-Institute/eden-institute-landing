@@ -1,11 +1,7 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTierAwareCTA } from "@/hooks/useTierAwareCTA";
-import PractitionerWaitlistModal from "@/components/landing/PractitionerWaitlistModal";
-
-const PRACTITIONER_WAITLIST_ANCHOR = "/apothecary#practitioner-waitlist";
 
 /**
  * JourneyCTA — the dominant next-step prompt + 2 always-visible secondary
@@ -17,9 +13,9 @@ const PRACTITIONER_WAITLIST_ANCHOR = "/apothecary#practitioner-waitlist";
  * state machine in useTierAwareCTA().
  *
  * Customer-journey order:
- *   Pattern quiz → $14 Deep-Dive Guide → Foundations Course
- *   (untrackable in our funnel — surfaced as always-visible) → Seed
- *   → Root → Practitioner waitlist → terminal.
+ *   Pattern quiz → Deep-Dive Guide → Foundations Course
+ *   (untrackable in our funnel, surfaced as always-visible) → Seed
+ *   → Root → Practitioner → terminal.
  *
  * The dominant slot walks the order and surfaces whichever step the
  * visitor hasn't completed yet. Completed steps disappear from the
@@ -43,47 +39,18 @@ const PRACTITIONER_WAITLIST_ANCHOR = "/apothecary#practitioner-waitlist";
  * voice — stewardship-anchored, terrain-over-symptom, biblically
  * framed per the institute style guide.
  *
- * ─────────────────────────────────────────────────────────────────
- * PR ι (iota) — dual-CTA waitlist pattern.
- * ─────────────────────────────────────────────────────────────────
- *
- * When the dominant journey step resolves to "practitioner-waitlist"
- * the dominant slot now renders TWO CTAs side-by-side (stacked on
- * mobile): a primary modal-trigger button that opens the email-form
- * modal directly (1-click), and a secondary "Learn More" link routing
- * to /apothecary#practitioner-waitlist for visitors who want to read
- * the inline descriptive copy first. Collapses the previous flow:
- *   Link → /apothecary navigation → scroll past the full herb
- *   directory → reach the inline form → submit
- * which Camila clocked as a structural 2-click conversion path on
- * profile switch.
- *
- * Tier-agnostic by design: the switch is on next.kind, not on the
- * user's subscription tier. Per Camila's PR ι clarification
- * (2026-05-02), the 2-click flow shows up on every tier that supports
- * multi-profile switching — Seed (up to 5 profiles), Root (up to 10),
- * and Practitioner (up to 500) — so the fix must not be tier-gated.
- * Today useTierAwareCTA only resolves the "practitioner-waitlist"
- * kind for Root, but the dual-CTA branch here will fire for any tier
- * the state machine surfaces it to without further code changes.
- *
- * Foundations Course + Amazon kit secondaries are journey context,
- * not the dual-CTA waitlist pair, and remain unchanged.
+ * The Practitioner tier is live (launched 2026-07-09), so the Root-tier
+ * "Go Practitioner" step is a plain Link to the founding-rate checkout,
+ * the same as every other journey step.
  */
 export function JourneyCTA() {
   const { journey, amazonKit } = useTierAwareCTA();
   const { next, course } = journey;
-  const [practitionerModalOpen, setPractitionerModalOpen] = useState(false);
 
   // The quiz step preserves the legacy Hero "No email required" reassurance
   // — it's the only entry-point step where account creation might be
   // perceived as a friction. All later steps already imply auth.
   const isQuizStep = next.kind === "quiz";
-
-  // PR ι (iota): tier-agnostic switch on journey kind. Practitioner-
-  // waitlist surfaces become a 1-click modal-trigger + Learn More
-  // sibling regardless of which tier resolved the step.
-  const isPractitionerStep = next.kind === "practitioner-waitlist";
 
   return (
     <div
@@ -91,63 +58,25 @@ export function JourneyCTA() {
       data-component="journey-cta"
       aria-label="Your next step at Eden Institute"
     >
-      {isPractitionerStep ? (
-        // PR ι: dual-CTA pair for the practitioner-waitlist step. Stacked
-        // on <sm, side-by-side on sm+. Primary opens the modal directly,
-        // secondary routes to the inline matched-herbs form so visitors
-        // who want descriptive context before signup keep that path.
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 w-full max-w-[90vw]">
-          <Button
-            type="button"
-            variant="eden"
-            size="xl"
-            onClick={() => setPractitionerModalOpen(true)}
-            data-cta="journey-next"
-            data-journey-kind={next.kind}
-            className="min-h-[48px] text-sm sm:text-base px-4 sm:px-8 whitespace-normal leading-snug"
-            style={{
-              backgroundColor: "hsl(var(--eden-gold))",
-              color: "hsl(var(--eden-bark))",
-            }}
-          >
-            {next.label} →
-          </Button>
-          <Button
-            asChild
-            variant="eden-outline"
-            size="xl"
-            className="min-h-[48px] text-sm sm:text-base px-4 sm:px-6 whitespace-normal leading-snug"
-          >
-            <Link
-              to={PRACTITIONER_WAITLIST_ANCHOR}
-              data-cta="journey-next-learn-more"
-              data-journey-kind={next.kind}
-            >
-              Learn More
-            </Link>
-          </Button>
-        </div>
-      ) : (
-        // Dominant primary CTA — internal route, so always Link.
-        <Button
-          asChild
-          variant="eden"
-          size="xl"
-          className="min-h-[48px] text-sm sm:text-base px-4 sm:px-8 max-w-[90vw] whitespace-normal leading-snug"
-          style={{
-            backgroundColor: "hsl(var(--eden-gold))",
-            color: "hsl(var(--eden-bark))",
-          }}
+      {/* Dominant primary CTA — internal route, so always Link. */}
+      <Button
+        asChild
+        variant="eden"
+        size="xl"
+        className="min-h-[48px] h-auto py-3 text-sm sm:text-base px-4 sm:px-8 max-w-[90vw] whitespace-normal leading-snug"
+        style={{
+          backgroundColor: "hsl(var(--eden-gold))",
+          color: "hsl(var(--eden-bark))",
+        }}
+      >
+        <Link
+          to={next.href}
+          data-cta="journey-next"
+          data-journey-kind={next.kind}
         >
-          <Link
-            to={next.href}
-            data-cta="journey-next"
-            data-journey-kind={next.kind}
-          >
-            {next.label} →
-          </Link>
-        </Button>
-      )}
+          {next.label} →
+        </Link>
+      </Button>
 
       {/* Quiz acquisition reassurance — preserved from the prior Hero copy. */}
       {isQuizStep && (
@@ -209,20 +138,10 @@ export function JourneyCTA() {
           className="font-body text-xs italic text-center max-w-md"
           style={{ color: "hsl(var(--eden-sage))" }}
         >
-          Affiliate links — Eden Institute earns a small commission at no
+          Affiliate links: Eden Institute earns a small commission at no
           extra cost to you.
         </p>
       )}
-
-      {/* PR ι (iota): mounted at the JourneyCTA root so the modal is
-          reachable from any surface that consumes <JourneyCTA />
-          (homepage hero, /apothecary/account). Only opens when the
-          practitioner-waitlist branch above triggers it. */}
-      <PractitionerWaitlistModal
-        open={practitionerModalOpen}
-        onOpenChange={setPractitionerModalOpen}
-        surface="journey_cta_practitioner_step"
-      />
     </div>
   );
 }
