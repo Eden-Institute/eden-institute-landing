@@ -386,8 +386,8 @@ export default function ApothecaryHome() {
 
   // PR #50 (v3.33 Pass 2 marketing): "partner" -> "app" per Lock #47.
   const subtitle = isSubscriber
-    ? "The full materia medica — 100 monographs with tissue-state indications, organ system affinity, constitutional matches, and safety overlays."
-    : "A clinical reasoning app rather than a symptom index. Each monograph is anchored to constitutional patterns, tissue states, and stewardship — never to disease names.";
+    ? "The full materia medica: 100 monographs with tissue-state indications, organ system affinity, Pattern matches, and safety overlays."
+    : "A clinical reasoning app rather than a symptom index. Each monograph is anchored to body patterns, tissue states, and stewardship, never to disease names.";
 
   const tierBadge = isSubscriber
     ? tier === "practitioner"
@@ -438,9 +438,7 @@ export default function ApothecaryHome() {
           {tier === "practitioner" && (
             <div className="mt-5">
               <Button variant="eden" size="sm" asChild data-cta="home-clinic">
-                <Link to={ROUTES.PRACTITIONER_CLINIC}>
-                  Open your Clinic — match, chart, and print
-                </Link>
+                <Link to={ROUTES.PRACTITIONER_CLINIC}>Open your Clinic</Link>
               </Button>
             </div>
           )}
@@ -570,6 +568,7 @@ export default function ApothecaryHome() {
                   <Button
                     variant="eden"
                     size="sm"
+                    className="whitespace-normal h-auto py-2 min-h-[44px] text-center"
                     data-cta="empty-state-pattern-matches"
                     onClick={() =>
                       handleFiltersChange({
@@ -630,7 +629,7 @@ export default function ApothecaryHome() {
                 </h2>
                 <p className="font-body text-sm text-muted-foreground max-w-xl">
                   How each herb acts in the body, who it suits, how to prepare
-                  it, and how to use it safely — including drug-herb
+                  it, and how to use it safely, including drug-herb
                   interactions and special-population guidance.
                 </p>
               </div>
@@ -644,11 +643,12 @@ export default function ApothecaryHome() {
             </aside>
           )}
 
-          {/* §8.1.4 PR 4 — bottom CTA pair (Practitioner waitlist + Amazon kit).
-              Self-suppresses when no Pattern is resolved. Replaces removed
-              §8.1.5 formulary slot per the 2026-04-29 Practitioner-tier
-              scoping decision. */}
-          <MatchedHerbsCtaPair activePattern={activePattern} />
+          {/* §8.1.4 PR 4 — bottom CTA pair (Practitioner tier + Amazon kit).
+              Self-suppresses when no Pattern is resolved and for the
+              practitioner tier (top tier gets no tier-promo or beginner
+              on-ramp). Replaces removed §8.1.5 formulary slot per the
+              2026-04-29 Practitioner-tier scoping decision. */}
+          <MatchedHerbsCtaPair activePattern={activePattern} tier={tier} />
         </div>
       </section>
     </div>

@@ -171,8 +171,9 @@ ${goldLabel('FOUNDING PRICING — LOCKED IN')}
 </td></tr>
 <tr><td style="background-color:#F5F0E8;padding:20px;text-align:center;">
 <p style="font-family:Georgia,serif;font-size:16px;font-weight:bold;color:#1C3A2E;margin:0 0 8px 0;">Practitioner</p>
-<p style="font-family:Georgia,serif;font-size:14px;font-style:italic;color:#C9A84C;margin:0 0 4px 0;">Unlocks with Tier 3 of the Institute — end of 2027</p>
-<p style="font-family:Georgia,serif;font-size:13px;line-height:1.5;color:#1C3A2E;margin:0;">Formula builder, multi-system analysis, session notes, exportable PDFs.</p>
+<p style="font-family:Georgia,serif;font-size:20px;font-weight:bold;color:#C9A84C;margin:0 0 4px 0;">$49.99 / month &nbsp;·&nbsp; $499 / year</p>
+<p style="font-family:Georgia,serif;font-size:13px;line-height:1.5;color:#1C3A2E;margin:0 0 8px 0;">Formula builder, multi-system analysis, session notes, exportable PDFs.</p>
+<p style="font-family:Georgia,serif;font-size:13px;line-height:1.5;color:#1C3A2E;margin:0;">Now open at the founding rate. <a href="https://edeninstitute.health/apothecary/pricing#tier-practitioner" style="color:#C9A84C;text-decoration:underline;">See the Practitioner tier.</a></p>
 </td></tr>
 </table>
 <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">The Eden Apothecary is a terrain-based clinical decision-support tool built on the Eclectic, Physiomedical, and Vitalist traditions — grounded in Scripture. From home herbalist to working practitioner, every tier is designed to meet you where you are.</p>

@@ -126,7 +126,7 @@ const STEPS = [
     // PR #50 (v3.33 Pass 2 marketing): "partner" -> "app" per Lock #47.
     title: "A clinical reasoning app.",
     body: [
-      "Eden Apothecary is built around how the body actually organizes itself — temperature, moisture, tone, tissue state, organ system — not around symptom-to-herb shortcuts.",
+      "Eden Apothecary is built around how the body actually organizes itself: temperature, moisture, tone, tissue state, organ system. Not around symptom-to-herb shortcuts.",
       "Every herb is taught against a terrain. Every terrain is taught against a pattern.",
     ],
   },
@@ -134,7 +134,7 @@ const STEPS = [
     kicker: "How tiers work",
     title: "All hundred herbs. Tiers unlock depth.",
     body: [
-      "Free shows the identity and population safety of every herb. Seed unlocks the clinical body — actions, tissue states, constitutional matches. Root adds drug interactions, refer thresholds, and source citations.",
+      "Free shows the identity and population safety of every herb. Seed unlocks the clinical body: actions, tissue states, Pattern matches. Root adds drug interactions, refer thresholds, and source citations. Practitioner adds the clinical workspace: one-screen matching, case files, and safety screening for up to 500 patients.",
       "You'll never be told a herb doesn't exist. You'll see exactly what depth your tier can read.",
     ],
   },
@@ -142,7 +142,7 @@ const STEPS = [
     kicker: "What's next",
     title: "Find your pattern when you're ready.",
     body: [
-      "The Pattern of Eden quiz maps you to one of eight constitutional patterns drawn from a 3-axis terrain model. Take it whenever — your result is saved to your account.",
+      "The Pattern of Eden quiz maps you to one of eight body patterns drawn from a 3-axis terrain model. Take it whenever, your result is saved to your account.",
       "Or start browsing the directory now.",
     ],
   },

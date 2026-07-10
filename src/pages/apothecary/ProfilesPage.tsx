@@ -173,11 +173,11 @@ function ProfilesPageContent() {
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
         <div>
           <h1 className="font-serif text-3xl font-semibold">
-            Family profiles
+            {tier === "practitioner" ? "Patient profiles" : "Family profiles"}
           </h1>
           <p className="font-body text-sm text-muted-foreground mt-1">
             {profiles.length} of {cap} profile{cap === 1 ? "" : "s"} used.
-            Constitutional-quiz results land on each profile automatically.
+            Pattern-quiz results land on each profile automatically.
           </p>
         </div>
         <Button
@@ -198,8 +198,9 @@ function ProfilesPageContent() {
         >
           <h2 className="font-serif text-lg font-semibold">No profiles yet</h2>
           <p className="font-body text-sm text-muted-foreground mt-2 max-w-md mx-auto">
-            Start by adding yourself. Each family member gets their own profile
-            so the directory can match herbs to their specific terrain.
+            {tier === "practitioner"
+              ? "Start by adding yourself or your first patient. Each patient gets their own profile so the directory can match herbs to their specific terrain."
+              : "Start by adding yourself. Each family member gets their own profile so the directory can match herbs to their specific terrain."}
           </p>
           <Button
             variant="eden"

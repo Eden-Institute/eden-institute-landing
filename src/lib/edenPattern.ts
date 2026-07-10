@@ -309,21 +309,27 @@ export interface MatchRelationshipDetail {
  * empty string if the axis doesn't qualify. Reasons read terrain-first
  * (Lock #11): the herb is named for what it does to the body, not for a
  * symptom it treats.
+ *
+ * `subject` is the possessive that precedes "pattern". It defaults to "your"
+ * (self reading); callers pass a profile name like "Ruth's" when the active
+ * profile is a non-self patient so the terrain isn't misattributed to the
+ * account holder.
  */
 function rebalancingReason(
   axis: "temperature" | "moisture" | "tone",
   herb: TemperatureAxis | MoistureAxis | ToneAxis,
   pattern: "Hot" | "Cold" | "Dry" | "Damp" | "Tense" | "Relaxed",
+  subject: string,
 ): string {
   if (axis === "temperature") {
-    if (herb === "Cold" && pattern === "Hot") return "Cools your Hot pattern";
-    if (herb === "Hot" && pattern === "Cold") return "Warms your Cold pattern";
+    if (herb === "Cold" && pattern === "Hot") return `Cools ${subject} Hot pattern`;
+    if (herb === "Hot" && pattern === "Cold") return `Warms ${subject} Cold pattern`;
   } else if (axis === "moisture") {
-    if (herb === "Damp" && pattern === "Dry") return "Moistens your Dry pattern";
-    if (herb === "Dry" && pattern === "Damp") return "Dries your Damp pattern";
+    if (herb === "Damp" && pattern === "Dry") return `Moistens ${subject} Dry pattern`;
+    if (herb === "Dry" && pattern === "Damp") return `Dries ${subject} Damp pattern`;
   } else if (axis === "tone") {
-    if (herb === "Relaxed" && pattern === "Tense") return "Relaxes your Tense pattern";
-    if (herb === "Tense" && pattern === "Relaxed") return "Tonifies your Relaxed pattern";
+    if (herb === "Relaxed" && pattern === "Tense") return `Relaxes ${subject} Tense pattern`;
+    if (herb === "Tense" && pattern === "Relaxed") return `Tonifies ${subject} Relaxed pattern`;
   }
   return "";
 }
@@ -331,21 +337,23 @@ function rebalancingReason(
 /**
  * Aggravation reason — same axis, same direction. Read as a soft warning,
  * not a scold; the directory sort + Avoid badge already do the heavy
- * lifting visually.
+ * lifting visually. `subject` is the possessive before "pattern" (see
+ * rebalancingReason): "your" for a self reading, a profile name otherwise.
  */
 function aggravatingReason(
   axis: "temperature" | "moisture" | "tone",
   pattern: "Hot" | "Cold" | "Dry" | "Damp" | "Tense" | "Relaxed",
+  subject: string,
 ): string {
   if (axis === "temperature") {
-    if (pattern === "Hot") return "Adds more heat to your Hot pattern";
-    if (pattern === "Cold") return "Adds more cold to your Cold pattern";
+    if (pattern === "Hot") return `Adds more heat to ${subject} Hot pattern`;
+    if (pattern === "Cold") return `Adds more cold to ${subject} Cold pattern`;
   } else if (axis === "moisture") {
-    if (pattern === "Damp") return "Adds more dampness to your Damp pattern";
-    if (pattern === "Dry") return "Adds more dryness to your Dry pattern";
+    if (pattern === "Damp") return `Adds more dampness to ${subject} Damp pattern`;
+    if (pattern === "Dry") return `Adds more dryness to ${subject} Dry pattern`;
   } else if (axis === "tone") {
-    if (pattern === "Tense") return "Tightens your already-Tense pattern";
-    if (pattern === "Relaxed") return "Loosens your already-Relaxed pattern";
+    if (pattern === "Tense") return `Tightens ${subject} already-Tense pattern`;
+    if (pattern === "Relaxed") return `Loosens ${subject} already-Relaxed pattern`;
   }
   return "";
 }
@@ -364,6 +372,11 @@ function aggravatingReason(
  * aggravating axes (herb same as pattern). ≥2 rebalancing AND > aggravating
  * → match. ≥2 aggravating AND > rebalancing → avoid. Otherwise neutral.
  * Neutral axes count toward neither bucket.
+ *
+ * `subject` is the possessive woven into the stewardship reasons (see
+ * rebalancingReason). It defaults to "your" so existing consumer/self
+ * callers are unchanged; a practitioner viewing a non-self patient profile
+ * passes the patient's name possessive so the reasons aren't misattributed.
  */
 export function computeMatchRelationship(
   herb: {
@@ -372,6 +385,7 @@ export function computeMatchRelationship(
     tissue_states_indicated: string | null | undefined;
   },
   patternName: EdenPatternName,
+  subject: string = "your",
 ): MatchRelationshipDetail {
   const profile = PATTERN_PROFILES[patternName];
   const t = classifyTemperature(herb.temperature);
@@ -387,11 +401,11 @@ export function computeMatchRelationship(
   if (t !== "Neutral") {
     if (t !== profile.temperature) {
       rebalancing++;
-      const reason = rebalancingReason("temperature", t, profile.temperature);
+      const reason = rebalancingReason("temperature", t, profile.temperature, subject);
       if (reason) rebalancingReasons.push(reason);
     } else {
       aggravating++;
-      const reason = aggravatingReason("temperature", profile.temperature);
+      const reason = aggravatingReason("temperature", profile.temperature, subject);
       if (reason) aggravatingReasons.push(reason);
     }
   }
@@ -399,11 +413,11 @@ export function computeMatchRelationship(
   if (m !== "Neutral") {
     if (m !== profile.moisture) {
       rebalancing++;
-      const reason = rebalancingReason("moisture", m, profile.moisture);
+      const reason = rebalancingReason("moisture", m, profile.moisture, subject);
       if (reason) rebalancingReasons.push(reason);
     } else {
       aggravating++;
-      const reason = aggravatingReason("moisture", profile.moisture);
+      const reason = aggravatingReason("moisture", profile.moisture, subject);
       if (reason) aggravatingReasons.push(reason);
     }
   }
@@ -411,11 +425,11 @@ export function computeMatchRelationship(
   if (tone !== "Neutral") {
     if (tone !== profile.tone) {
       rebalancing++;
-      const reason = rebalancingReason("tone", tone, profile.tone);
+      const reason = rebalancingReason("tone", tone, profile.tone, subject);
       if (reason) rebalancingReasons.push(reason);
     } else {
       aggravating++;
-      const reason = aggravatingReason("tone", profile.tone);
+      const reason = aggravatingReason("tone", profile.tone, subject);
       if (reason) aggravatingReasons.push(reason);
     }
   }
@@ -456,11 +470,15 @@ export function computeMatchRelationship(
 
 /**
  * Resolve a free-text constitution string from profiles.constitution_type
- * to an Eden Pattern, with fall-throughs. Per worldview lock §0.8, only
- * Western classical frameworks are surfaced — Ayurvedic/TCM are not in
- * scope for any Apothecary surface. Returns null when no clean mapping is
- * possible — the badge UI then renders "Take the quiz to see your Pattern"
- * rather than a wrong badge.
+ * to an Eden Pattern, with fall-throughs. This resolver maps ONLY the
+ * Western-classical Pattern of Eden names (the consumer-facing Pattern);
+ * Ayurvedic and TCM labels are intentionally not mapped here. The
+ * practitioner tier surfaces Ayurvedic and TCM as separate observational
+ * lenses on the monograph and clinic (the practitioner-tier amendment to
+ * worldview lock §0.8), which is a different surface from this consumer-
+ * Pattern resolver. Returns null when no clean mapping is possible, so the
+ * badge UI renders "Take the quiz to see your Pattern" rather than a wrong
+ * badge.
  *
  * Slug tolerance (PR #112, fix/resolve-eden-pattern-snake-case):
  *   The marketing-quiz pipeline (record-quiz-completion + resend-waitlist)

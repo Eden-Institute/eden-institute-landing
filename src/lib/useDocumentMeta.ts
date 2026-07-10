@@ -39,9 +39,9 @@ export interface DocumentMeta {
 }
 
 const HOMEPAGE_TITLE =
-  "The Eden Institute & Eden Apothecary — Biblical Clinical Herbalism";
+  "The Eden Institute & Eden Apothecary – Biblical Clinical Herbalism";
 const HOMEPAGE_DESCRIPTION =
-  "Eden Apothecary is a clinical reasoning app for terrain-based herbalism — 100 monographs anchored to constitutional patterns, tissue states, and stewardship. Built by The Eden Institute. Take the free Pattern of Eden quiz to find your constitutional pattern.";
+  "Eden Apothecary is a clinical reasoning app for terrain-based herbalism: 100 monographs anchored to body patterns, tissue states, and stewardship. Built by The Eden Institute. Take the free Pattern of Eden quiz to find your Pattern.";
 const HOMEPAGE_CANONICAL = "https://edeninstitute.health/";
 
 /**

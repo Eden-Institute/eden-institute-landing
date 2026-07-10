@@ -8,8 +8,8 @@
 // payload is HIPAA-adjacent clinical notes.
 //
 // Gate: JWT required (verify_jwt=true) + subscription_tier='practitioner'
-// (founder allowlisted for internal verification — the tier is BUILT but not
-// customer-launched per PD-1; launch timing is a founder decision).
+// (tier launched 2026-07-09; founder allowlist retained for support and
+// internal verification).
 // Ownership: every person_profile touched must belong to the caller (the
 // roster IS the caller's person_profiles; the cap trigger enforces 500/1000/
 // 2000 by sub-tier).

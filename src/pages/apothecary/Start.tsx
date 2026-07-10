@@ -17,8 +17,8 @@ import { useDocumentMeta } from "@/lib/useDocumentMeta";
  * #21's "auth-walled" language is retired for the quiz + monograph
  * surfaces; depth stays tier-gated server-side).
  *
- * Surface: hero → product peek → three tier cards (Free / Seed / Root) →
- * FAQ. Practitioner is hidden until end of 2027 per §0.8.
+ * Surface: hero → product peek → three tier cards (Free / Seed / Root) plus a
+ * Practitioner callout → FAQ. Practitioner launched 2026-07-09.
  *
  * Authenticated visitors hitting this URL are redirected straight to the
  * directory so the tier-select isn't shown to people who already chose.
@@ -27,7 +27,7 @@ export default function Start() {
   useDocumentMeta({
     title: "Plans & Getting Started | Eden Apothecary",
     description:
-      "Start with the free 2-minute Pattern of Eden quiz, then choose your depth: one hundred herbs anchored to constitutional patterns, tissue states, and stewardship. Free for as long as you'd like.",
+      "Start with the free 2-minute Pattern of Eden quiz, then choose your depth: one hundred herbs anchored to body patterns, tissue states, and stewardship. Free for as long as you'd like.",
     canonical: "https://edeninstitute.health/apothecary/start",
   });
 
@@ -62,9 +62,8 @@ export default function Start() {
             <span className="italic">not a symptom index.</span>
           </h1>
           <p className="font-body text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-8">
-            One hundred herbs anchored to constitutional patterns, tissue
-            states, and stewardship — taught the way the body actually
-            organizes itself.
+            One hundred herbs anchored to body patterns, tissue states, and
+            stewardship, taught the way the body actually organizes itself.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button variant="eden" size="lg" asChild>
@@ -129,7 +128,7 @@ export default function Start() {
               </h3>
               <p className="font-body text-sm text-muted-foreground">
                 Fever, cough, sleeplessness. Tap a symptom and see the
-                terrain it points to — and the herbal action that addresses
+                terrain it points to, and the herbal action that addresses
                 it.
               </p>
             </article>
@@ -147,10 +146,10 @@ export default function Start() {
                 className="font-serif text-lg font-semibold mb-2"
                 style={{ color: "hsl(var(--eden-bark))" }}
               >
-                Eight constitutional patterns.
+                Eight body patterns.
               </h3>
               <p className="font-body text-sm text-muted-foreground">
-                A 3-axis terrain model — Temperature, Moisture, Tone —
+                A 3-axis terrain model of Temperature, Moisture, and Tone,
                 grounded in Hebrews 8:5. Find your pattern, then steward
                 it.
               </p>
@@ -174,7 +173,7 @@ export default function Start() {
               <p className="font-body text-sm text-muted-foreground">
                 High and absolute cautions are visible at every tier.
                 Pregnancy, lactation, drug interactions, and refer
-                thresholds surface where they belong — at the herb.
+                thresholds surface where they belong: at the herb.
               </p>
             </article>
           </div>
@@ -226,14 +225,14 @@ export default function Start() {
               tier="seed"
               displayName="Seed"
               persona="The Institute student"
-              tagline="Clinical depth — actions, tissue states, constitutional matches."
+              tagline="Clinical depth: actions, tissue states, Pattern matches."
               monthlyPrice="$7.99"
               yearlyPrice="$79.99"
               features={[
                 "Unlock clinical body of every monograph",
                 "Tissue state indications and energetic actions",
-                "Western, Ayurvedic, and TCM constitutional overlays plus Pattern of Eden",
-                "Save your constitutional result and revisit it",
+                "Western, Ayurvedic, and TCM lenses plus Pattern of Eden",
+                "Save your Pattern result and revisit it",
               ]}
               highlighted
             />
@@ -257,12 +256,13 @@ export default function Start() {
               className="font-accent text-xs tracking-[0.3em] uppercase mb-2"
               style={{ color: "hsl(var(--eden-gold))" }}
             >
-              Practitioner tier
+              The Practitioner tier is open
             </p>
             <p className="font-body text-sm text-muted-foreground max-w-xl mx-auto">
-              Formula builder and full clinical practice tools unlock
-              alongside the Tier 3 curriculum at the end of 2027. Held
-              until then on purpose.
+              See a patient, read their pattern, and hand them a safe, cited
+              plan before they leave the room. Formulary builder, SOAP notes,
+              case files, and safety screening, for up to 500 patients.
+              Founding practitioners lock the launch rate for life.
             </p>
           </div>
         </div>
@@ -326,7 +326,7 @@ export default function Start() {
 const FAQ_ITEMS = [
   {
     q: "What is Eden Apothecary?",
-    a: "A terrain-based clinical decision-support app for the body's own categories — temperature, moisture, tone, tissue state, organ system. Built as the clinical companion to the Eden Institute curriculum. Educational, not therapeutic.",
+    a: "A terrain-based clinical decision-support app for the body's own categories: temperature, moisture, tone, tissue state, organ system. Built as the clinical companion to the Eden Institute curriculum. Educational, not therapeutic.",
   },
   {
     q: "Do I need an account?",
@@ -334,7 +334,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "What's the difference between the tiers?",
-    a: "All hundred herbs are visible at every tier. Tiers govern monograph depth: Free shows identity and population safety; Seed unlocks the clinical body — actions, tissue states, constitutional matches; Root adds drug-interaction surfaces, refer thresholds, and source citations.",
+    a: "All hundred herbs are visible at every tier. Tiers govern monograph depth: Free shows identity and population safety; Seed unlocks the clinical body: actions, tissue states, Pattern matches; Root adds drug-interaction surfaces, refer thresholds, and source citations; Practitioner adds the clinical workspace: formulary builder, SOAP notes, case files, and safety screening for up to 500 patients.",
   },
   {
     q: "Can I cancel anytime?",
@@ -342,10 +342,10 @@ const FAQ_ITEMS = [
   },
   {
     q: "Is the Apothecary medical advice?",
-    a: "No. It is educational and reasoning support — terrain-first framing, contraindication awareness, and stewardship language. Clinical decisions remain between you and your practitioner.",
+    a: "No. It is educational and reasoning support: terrain-first framing, contraindication awareness, and stewardship language. Clinical decisions remain between you and your practitioner.",
   },
   {
     q: "What does \"Biblical framework\" mean for the app?",
-    a: "Eden is a stewardship-based, anti-reductionist worldview. The Pattern of Eden draws its name from Hebrews 8:5 — make everything according to the pattern shown to you. The framing is not bolted-on language; it shapes how the materia medica is organized and taught.",
+    a: "Eden is a stewardship-based, anti-reductionist worldview. The Pattern of Eden draws its name from Hebrews 8:5. Make everything according to the pattern shown to you. The framing is not bolted-on language; it shapes how the materia medica is organized and taught.",
   },
 ];
