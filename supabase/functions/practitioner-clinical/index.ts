@@ -132,12 +132,15 @@ Deno.serve(async (req) => {
     }
 
     if (action === "client") {
-      const [profile, readings, completions, encounters, formularies] = await Promise.all([
+      const [profile, readings, completions, encounters, formularies, tissueStates] = await Promise.all([
         rest(`person_profiles?id=eq.${personProfileId}&select=*`),
         rest(`person_profile_constitutions?person_profile_id=eq.${personProfileId}&select=*&order=framework,role,reading_kind`),
         rest(`diagnostic_completions?person_profile_id=eq.${personProfileId}&select=id,quiz_version,completed_at,temperature_score,moisture_score,tone_score,axis_confidence,framework_readings&order=completed_at.desc&limit=10`),
         rpc("clinical_encounters_for_profile", { p_person_profile_id: personProfileId, p_practitioner: user.id }),
         rpc("clinical_formularies_list", { p_practitioner: user.id, p_person_profile_id: personProfileId }),
+        // Multi-system terrain analysis (Lock #37 Layer 3): tissue state per
+        // organ system, resolved to display names.
+        rest(`person_profile_tissue_states?person_profile_id=eq.${personProfileId}&select=body_system_id,tissue_state_id,recorded_at,updated_at,body_systems(system_name),tissue_states(state_name,description)`),
       ]);
       return json({
         profile: (profile as unknown[])[0] ?? null,
@@ -145,6 +148,7 @@ Deno.serve(async (req) => {
         completions,           // newest-first; the UI renders re-take deltas from consecutive rows
         encounters,
         formularies,
+        tissue_states: tissueStates,
       });
     }
 
