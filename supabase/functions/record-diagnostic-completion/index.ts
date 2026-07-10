@@ -61,6 +61,13 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
+  computeMultiFramework,
+  deriveGalenicTemperament,
+  deriveVitalForce,
+  type EngineResult,
+  type Population,
+} from "../_shared/multi-framework-engine.ts";
+import {
   diagnosticError,
   mapPostgrestError,
   type DiagnosticError,
@@ -162,14 +169,164 @@ function validateTissueStateProfile(
 }
 
 // ── Quiz version allowlist (Lock #40 / audit Major #5) ──
-const ALLOWED_QUIZ_VERSIONS = new Set<string>(["v1-diagnostic", "v2-deep"]);
+const ALLOWED_QUIZ_VERSIONS = new Set<string>(["v1-diagnostic", "v2-deep", "mf-v1"]);
 const DEFAULT_QUIZ_VERSION = "v1-diagnostic";
 
 // ── Provenance string per quiz_version (mirrors src/lib/diagnosticSource.ts) ──
 const SOURCE_BY_QUIZ_VERSION: Record<string, string> = {
   "v1-diagnostic": "in_app_diagnostic_12q",
   "v2-deep": "deep_diagnostic_40q",
+  "mf-v1": "in_app_multiframework_42q",
 };
+
+// ── Phase 2: multi-framework assessment support (PD-5…PD-8, PD-12, TL-4) ──
+
+const POPULATIONS = new Set<string>(["adult", "child", "pregnancy", "elderly"]);
+const FRAMEWORKS = new Set<string>(["eden", "western", "ayurveda", "tcm"]);
+
+function serviceHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  return {
+    apikey: SUPABASE_SERVICE_ROLE_KEY!,
+    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    ...extra,
+  };
+}
+
+async function fetchQuizBank(version: string): Promise<Record<string, unknown> | null> {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/quiz_banks?version=eq.${encodeURIComponent(version)}&select=bank`,
+    { headers: serviceHeaders() },
+  );
+  if (!res.ok) return null;
+  const rows = await res.json().catch(() => []);
+  return rows?.[0]?.bank ?? null;
+}
+
+async function fetchEdenSlugMap(): Promise<Record<string, string>> {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/eden_patterns?select=pattern_id,slug`,
+    { headers: serviceHeaders() },
+  );
+  if (!res.ok) return {};
+  const rows = (await res.json().catch(() => [])) as Array<{ pattern_id: string; slug: string }>;
+  return Object.fromEntries(rows.map((r) => [r.pattern_id, r.slug]));
+}
+
+function validateRawResponses(raw: unknown): Record<string, number> | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const entries = Object.entries(raw as Record<string, unknown>);
+  if (entries.length === 0 || entries.length > 200) return null;
+  const out: Record<string, number> = {};
+  for (const [k, v] of entries) {
+    if (typeof k !== "string" || k.length > 12) return null;
+    if (typeof v !== "number" || !Number.isInteger(v) || v < 0 || v > 9) return null;
+    out[k] = v;
+  }
+  return out;
+}
+
+interface OverrideInput {
+  framework: string;
+  pattern_id: string;
+  role: string;
+  note: string | null;
+}
+
+function validateOverrides(raw: unknown): OverrideInput[] | null {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw) || raw.length > 8) return null;
+  const out: OverrideInput[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") return null;
+    const o = item as Record<string, unknown>;
+    const framework = typeof o.framework === "string" ? o.framework : "";
+    const patternId = typeof o.pattern_id === "string" ? o.pattern_id.trim() : "";
+    const role = typeof o.role === "string" ? o.role : "primary";
+    if (!FRAMEWORKS.has(framework) || !patternId || patternId.length > 20) return null;
+    if (role !== "primary" && role !== "secondary") return null;
+    const note = typeof o.note === "string" && o.note.trim()
+      ? o.note.trim().slice(0, 1000)
+      : null;
+    out.push({ framework, pattern_id: patternId, role, note });
+  }
+  return out;
+}
+
+// Fan the computed readings into person_profile_constitutions (TL-2).
+// Computed rows are replaced wholesale per completion; adjusted rows (PD-8
+// practitioner overrides) are NEVER touched by a recompute.
+async function fanOutComputedReadings(
+  personProfileId: string,
+  completionId: string | null,
+  result: EngineResult,
+): Promise<string | null> {
+  const del = await fetch(
+    `${SUPABASE_URL}/rest/v1/person_profile_constitutions?person_profile_id=eq.${personProfileId}&reading_kind=eq.computed`,
+    { method: "DELETE", headers: serviceHeaders() },
+  );
+  if (!del.ok) return `delete failed: ${del.status}`;
+
+  const rows: Record<string, unknown>[] = [];
+  for (const [framework, reading] of Object.entries(result.frameworks)) {
+    for (const role of ["primary", "secondary"] as const) {
+      const p = reading[role];
+      if (!p) continue;
+      rows.push({
+        person_profile_id: personProfileId,
+        framework,
+        pattern_id: p.pattern_id,
+        role,
+        reading_kind: "computed",
+        score: p.score,
+        confidence: p.confidence,
+        completion_id: completionId,
+      });
+    }
+  }
+  if (rows.length === 0) return null;
+  const ins = await fetch(`${SUPABASE_URL}/rest/v1/person_profile_constitutions`, {
+    method: "POST",
+    headers: serviceHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(rows),
+  });
+  if (!ins.ok) return `insert failed: ${ins.status} ${await ins.text().catch(() => "")}`;
+  return null;
+}
+
+// PD-8: practitioner override — stored ALONGSIDE the computed reading.
+async function upsertAdjustedReadings(
+  personProfileId: string,
+  completionId: string | null,
+  overrides: OverrideInput[],
+  adjustedBy: string,
+): Promise<string | null> {
+  for (const o of overrides) {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/person_profile_constitutions?on_conflict=person_profile_id,framework,role,reading_kind`,
+      {
+        method: "POST",
+        headers: serviceHeaders({
+          "Content-Type": "application/json",
+          Prefer: "resolution=merge-duplicates",
+        }),
+        body: JSON.stringify({
+          person_profile_id: personProfileId,
+          framework: o.framework,
+          pattern_id: o.pattern_id,
+          role: o.role,
+          reading_kind: "adjusted",
+          completion_id: completionId,
+          adjusted_by: adjustedBy,
+          adjustment_note: o.note,
+        }),
+      },
+    );
+    if (!res.ok) {
+      return `override ${o.framework}/${o.pattern_id}: ${res.status} ${await res.text().catch(() => "")}`;
+    }
+  }
+  return null;
+}
 
 // ── Helpers ──
 function jsonResponse(
@@ -230,6 +387,64 @@ Deno.serve(async (req) => {
     }
     const b = body as Record<string, unknown>;
 
+    // ── Phase 2 recompute path (Lock #37: version-bump recompute from stored
+    //    raw_responses). {recompute:true, completionId} — ownership enforced
+    //    through the completion's person_profile.
+    if (b.recompute === true) {
+      const completionId = typeof b.completionId === "string" ? b.completionId.trim() : "";
+      if (!UUID_RE.test(completionId)) {
+        return errorResponse(diagnosticError("invalid_json_body"), req);
+      }
+      const compRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/diagnostic_completions?id=eq.${completionId}&select=id,user_id,person_profile_id,quiz_version,raw_responses`,
+        { headers: serviceHeaders() },
+      );
+      const compRows = compRes.ok ? await compRes.json().catch(() => []) : [];
+      const comp = compRows?.[0];
+      if (!comp) return errorResponse(diagnosticError("profile_not_found"), req);
+      if (comp.user_id !== user.id) return errorResponse(diagnosticError("profile_not_owned"), req);
+      const stored = comp.raw_responses ?? {};
+      const responses = validateRawResponses(stored.responses);
+      if (!responses) return errorResponse(diagnosticError("invalid_json_body"), req);
+      const targetVersion = typeof b.targetQuizVersion === "string"
+          && ALLOWED_QUIZ_VERSIONS.has(b.targetQuizVersion)
+        ? b.targetQuizVersion
+        : comp.quiz_version;
+      const bank = await fetchQuizBank(targetVersion);
+      if (!bank) return errorResponse(diagnosticError("internal_error"), req);
+      const population = (POPULATIONS.has(stored.population) ? stored.population : "adult") as Population;
+      const result = computeMultiFramework(bank, responses, population);
+      const slugMap = await fetchEdenSlugMap();
+      const edenPrimary = result.frameworks.eden.primary;
+      const patch = {
+        quiz_version: targetVersion,
+        temperature_score: result.axes.temperature.score,
+        moisture_score: result.axes.moisture.score,
+        tone_score: result.axes.tone.score,
+        axis_confidence: result.axes,
+        framework_readings: { frameworks: result.frameworks, disagreements: result.disagreements, dimensions: result.dimensions },
+        eden_constitution: edenPrimary ? slugMap[edenPrimary.pattern_id] ?? null : null,
+        galenic_temperament: deriveGalenicTemperament(result.axes),
+        vital_force_reading: deriveVitalForce(result.dimensions),
+      };
+      const patchRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/diagnostic_completions?id=eq.${completionId}`,
+        {
+          method: "PATCH",
+          headers: serviceHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify(patch),
+        },
+      );
+      if (!patchRes.ok) return errorResponse(diagnosticError("internal_error"), req);
+      const fanErr = await fanOutComputedReadings(comp.person_profile_id, completionId, result);
+      if (fanErr) console.error("[record-diagnostic-completion] recompute fan-out", fanErr);
+      return jsonResponse(
+        { ok: true, completion_id: completionId, recomputed: true, quiz_version: targetVersion, readings: result },
+        200,
+        req,
+      );
+    }
+
     const personProfileId =
       typeof b.personProfileId === "string" ? b.personProfileId.trim() : "";
     if (!UUID_RE.test(personProfileId)) {
@@ -251,14 +466,14 @@ Deno.serve(async (req) => {
     if (galenicResult === "INVALID") {
       return errorResponse(diagnosticError("invalid_galenic_temperament"), req);
     }
-    const galenicTemperament: string | null = galenicResult;
+    let galenicTemperament: string | null = galenicResult;
 
     // 2c. Layer 4 — vital force reading. (Per Lock #37 layer numbering.)
     const vitalResult = normalizeOptionalText(b.vitalForceReading, 100);
     if (vitalResult === "INVALID") {
       return errorResponse(diagnosticError("invalid_vital_force_reading"), req);
     }
-    const vitalForceReading: string | null = vitalResult;
+    let vitalForceReading: string | null = vitalResult;
 
     // 2d. Layer 3 — tissue state profile (JSONB shape; trigger UPSERTs into junction).
     const tspCheck = validateTissueStateProfile(b.tissueStateProfile);
@@ -278,12 +493,33 @@ Deno.serve(async (req) => {
       quizVersion = b.quizVersion;
     }
 
-    // 2f. Require at least one layer present.
+    // 2g. Phase 2 multi-framework inputs (only meaningful for mf-v1).
+    const isMultiFramework = quizVersion === "mf-v1";
+    let mfResponses: Record<string, number> | null = null;
+    if (isMultiFramework && b.rawResponses !== undefined && b.rawResponses !== null) {
+      mfResponses = validateRawResponses(b.rawResponses);
+      if (!mfResponses) return errorResponse(diagnosticError("invalid_json_body"), req);
+    }
+    const mfPopulation = (typeof b.population === "string" && POPULATIONS.has(b.population)
+      ? b.population
+      : "adult") as Population;
+    const administeredBy = b.administeredBy === "practitioner" ? "practitioner" : "self"; // PD-7 dual administration
+    const overrides = validateOverrides(b.overrides);
+    if (overrides === null) return errorResponse(diagnosticError("invalid_json_body"), req);
+    if (overrides.length > 0 && administeredBy !== "practitioner") {
+      // PD-8: overrides are a practitioner affordance.
+      return errorResponse(diagnosticError("invalid_json_body"), req);
+    }
+
+    // 2f. Require at least one layer present (a multi-framework submission or
+    //     a standalone override batch counts as its own layer source).
     const anyLayerPresent =
       edenConstitution !== null ||
       galenicTemperament !== null ||
       vitalForceReading !== null ||
-      tissueStateProfile !== null;
+      tissueStateProfile !== null ||
+      mfResponses !== null ||
+      overrides.length > 0;
     if (!anyLayerPresent) {
       return errorResponse(diagnosticError("no_layer_present"), req);
     }
@@ -321,6 +557,31 @@ Deno.serve(async (req) => {
       return errorResponse(diagnosticError("profile_not_owned"), req);
     }
 
+    // 3b. Phase 2 compute: bank-driven engine turns raw responses into all
+    //     four framework readings (PD-5). Computed values populate the same
+    //     completion row; Lock #39 posture — a balanced axis yields NULL
+    //     eden_constitution, never a forced Pattern.
+    let mfResult: EngineResult | null = null;
+    if (mfResponses) {
+      const bank = await fetchQuizBank(quizVersion);
+      if (!bank) {
+        console.error("[record-diagnostic-completion] quiz bank missing", { quizVersion });
+        return errorResponse(diagnosticError("internal_error"), req);
+      }
+      mfResult = computeMultiFramework(bank, mfResponses, mfPopulation);
+      const slugMap = await fetchEdenSlugMap();
+      const edenPrimary = mfResult.frameworks.eden.primary;
+      if (edenConstitution === null && edenPrimary) {
+        edenConstitution = slugMap[edenPrimary.pattern_id] ?? null;
+      }
+      if (galenicTemperament === null) {
+        galenicTemperament = deriveGalenicTemperament(mfResult.axes);
+      }
+      if (vitalForceReading === null) {
+        vitalForceReading = deriveVitalForce(mfResult.dimensions);
+      }
+    }
+
     // 4. Insert into diagnostic_completions (service-role, single-write-surface
     //    per Lock #41). Trigger fans into person_profiles + junction.
     const insertPayload: Record<string, unknown> = {
@@ -328,6 +589,22 @@ Deno.serve(async (req) => {
       person_profile_id: personProfileId,
       quiz_version: quizVersion,
     };
+    if (mfResult && mfResponses) {
+      insertPayload.raw_responses = {
+        responses: mfResponses,
+        population: mfPopulation,
+        administered_by: administeredBy,
+      };
+      insertPayload.temperature_score = mfResult.axes.temperature.score;
+      insertPayload.moisture_score = mfResult.axes.moisture.score;
+      insertPayload.tone_score = mfResult.axes.tone.score;
+      insertPayload.axis_confidence = mfResult.axes;
+      insertPayload.framework_readings = {
+        frameworks: mfResult.frameworks,
+        disagreements: mfResult.disagreements,
+        dimensions: mfResult.dimensions,
+      };
+    }
     if (edenConstitution !== null) {
       insertPayload.eden_constitution = edenConstitution;
     }
@@ -385,6 +662,32 @@ Deno.serve(async (req) => {
       },
     );
 
+    // 4b. Phase 2 fan-out (TL-2): computed readings into
+    //     person_profile_constitutions, then any practitioner overrides as
+    //     adjusted rows ALONGSIDE the computed ones (PD-8).
+    if (mfResult) {
+      const fanErr = await fanOutComputedReadings(
+        personProfileId,
+        completion?.id ?? null,
+        mfResult,
+      );
+      if (fanErr) {
+        console.error("[record-diagnostic-completion] fan-out failed", fanErr);
+      }
+    }
+    if (overrides.length > 0) {
+      const ovErr = await upsertAdjustedReadings(
+        personProfileId,
+        completion?.id ?? null,
+        overrides,
+        user.id,
+      );
+      if (ovErr) {
+        console.error("[record-diagnostic-completion] override write failed", ovErr);
+        return errorResponse(diagnosticError("internal_error"), req);
+      }
+    }
+
     // 5. Re-read person_profile post-trigger so the caller can rerender from
     //    the COALESCE'd state without a second round-trip. Junction rows
     //    (Layer 3) live in person_profile_tissue_states; consumers that need
@@ -430,6 +733,8 @@ Deno.serve(async (req) => {
         person_profile: personProfile,
         source: SOURCE_BY_QUIZ_VERSION[quizVersion] ?? "in_app_diagnostic_12q",
         quiz_version: quizVersion,
+        ...(mfResult ? { readings: mfResult } : {}),
+        ...(overrides.length > 0 ? { overrides_applied: overrides.length } : {}),
       },
       200,
       req,
