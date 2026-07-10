@@ -48,6 +48,12 @@ export const ROUTES = {
   // ── Founder / admin (auth-walled; server-gated by is_founder()) ──
   FOUNDER_LEADS: "/founder",
 
+  // Practitioner clinical workspace (Phase 3). UNLINKED per PD-1: built and
+  // internally usable, absent from all customer-facing nav until the founder
+  // makes the launch call. Server boundary: practitioner-clinical EF gates on
+  // subscription_tier=practitioner (founder allowlisted).
+  PRACTITIONER_CLINIC: "/practitioner",
+
   // ── Legal ──
   TERMS: "/terms",
   PRIVACY: "/privacy",
