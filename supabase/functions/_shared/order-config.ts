@@ -4,7 +4,11 @@
 // gate, and the customer-facing ship window. Wiring uses Stripe PRICE IDs directly (like the
 // existing deep_dive_guide override), so no Stripe "lookup keys" are required.
 
-export const SHIP_WINDOW = 'Winter 2026';
+// Founder decision 2026-07-14 (was 'Winter 2026'). This exact string is what the buyer
+// accepts in the disclaimer checkbox; it feeds the confirmation email, the SMS, and the
+// accepted_ship_window_text column on orders. web/pages/preorder.astro duplicates it for
+// the pre-rendered page; keep them in sync.
+export const SHIP_WINDOW = 'Late Fall 2026';
 
 // Flat shipping per preorder order (founder decision 2026-07-02). Keep the display copy in
 // web/components/islands/PreorderBuyBox.tsx and web/pages/preorder.astro in sync if this
@@ -24,6 +28,9 @@ export interface PreorderProduct {
   retailPriceId: string;
   foundingPriceCents: number;
   retailPriceCents: number;
+  // Hard per-order cap enforced by create-checkout (the UI stepper mirrors it).
+  // Notebook cap 5 = founder decision 2026-07-14; above that is a co-op conversation.
+  maxQtyPerOrder: number;
 }
 
 // Phase-1 launch products. Stripe Price IDs provided by the founder 2026-06-30 (confirm LIVE mode).
@@ -36,6 +43,7 @@ export const PREORDER_PRODUCTS: PreorderProduct[] = [
     retailPriceId: 'price_1To6KC2NWfYbCZT8AHRdC9Gv',
     foundingPriceCents: 24900,
     retailPriceCents: 34900,
+    maxQtyPerOrder: 1,
   },
   {
     sku: 'sprouts_notebook',
@@ -45,8 +53,15 @@ export const PREORDER_PRODUCTS: PreorderProduct[] = [
     retailPriceId: 'price_1To6Hr2NWfYbCZT86GlPe9PK',
     foundingPriceCents: 1999,
     retailPriceCents: 2499,
+    maxQtyPerOrder: 5,
   },
 ];
+
+// Cart shape create-checkout accepts. Distinct SKUs only; quantity per line.
+export interface PreorderCartItem {
+  sku: string;
+  qty: number;
+}
 
 // Future products (recorded, NOT wired into Phase 1):
 //   Seedlings Kit: founding price_1Tc7UU2NWfYbCZT8qS41OjNA / retail price_1To6LG2NWfYbCZT8O7XvFE9B

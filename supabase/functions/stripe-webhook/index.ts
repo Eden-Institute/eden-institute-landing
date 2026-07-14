@@ -33,7 +33,8 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { claimStripeEvent, markEventProcessed, markEventError } from "../_shared/order-db.ts"
-import { recordPreorderFromSession, applyRefundByPaymentIntent } from "../_shared/order-flow.ts"
+import { recordPreorderFromSession, applyRefundByPaymentIntent, ResolvedLineItem } from "../_shared/order-flow.ts"
+import { productForPriceId } from "../_shared/order-config.ts"
 import { captureException } from "../_shared/sentry.ts"
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
@@ -366,14 +367,85 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 
 // ---------- One-off payment dispatcher ----------
 
+/**
+ * Resolve a preorder session's cart lines, most-authoritative source first:
+ *   1. Stripe line_items expansion — real price IDs map back to (sku, isFounding) via
+ *      productForPriceId; quantities and unit amounts are what Stripe actually billed.
+ *   2. metadata.preorder_cart (JSON stamped by create-checkout) + metadata.is_founding.
+ *   3. metadata.preorder_sku alone as a single qty-1 line (the pre-cart shape).
+ */
+async function resolvePreorderLineItems(
+  session: Stripe.Checkout.Session,
+  preorderSku: string,
+  isFounding: boolean,
+): Promise<ResolvedLineItem[]> {
+  try {
+    const expanded = await stripe.checkout.sessions.retrieve(session.id, {
+      expand: ["line_items.data.price"],
+    })
+    const lines = expanded.line_items?.data ?? []
+    const items: ResolvedLineItem[] = []
+    for (const li of lines) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const price = li.price as any
+      const resolved = productForPriceId(price?.id)
+      if (!resolved) {
+        console.warn(
+          `preorder session ${session.id}: line price ${price?.id ?? "(none)"} not a known preorder price`,
+        )
+        continue
+      }
+      items.push({
+        sku: resolved.sku,
+        isFounding: resolved.isFounding,
+        quantity: li.quantity ?? 1,
+        unitPriceCents: typeof price?.unit_amount === "number" ? price.unit_amount : null,
+      })
+    }
+    // Accept the expansion only if EVERY billed line resolved (shipping is a
+    // shipping_option, never a line, so counts must match exactly). A partial
+    // resolution means a price ID diverged from order-config (e.g. a runtime price
+    // swap in the products table); recording the partial cart would silently drop
+    // paid lines, so fall back to the checkout metadata instead.
+    if (items.length > 0 && items.length === lines.length) return items
+    console.warn(
+      `preorder session ${session.id}: resolved ${items.length}/${lines.length} expanded lines; falling back to metadata`,
+    )
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error"
+    console.warn(`preorder session ${session.id}: line_items expansion failed (${message}); falling back to metadata`)
+  }
+
+  const rawCart = session.metadata?.preorder_cart
+  if (typeof rawCart === "string" && rawCart) {
+    try {
+      const parsed = JSON.parse(rawCart)
+      if (Array.isArray(parsed)) {
+        const items = parsed
+          .filter((c) => typeof c?.sku === "string" && Number.isInteger(c?.qty) && c.qty > 0)
+          .map((c) => ({ sku: c.sku as string, isFounding, quantity: c.qty as number }))
+        if (items.length > 0) return items
+      }
+    } catch {
+      // fall through to the single-sku shape
+    }
+  }
+
+  return [{ sku: preorderSku, isFounding, quantity: 1 }]
+}
+
 async function handleOneOffPayment(session: Stripe.Checkout.Session) {
   // ---- Branch 0: founding-preorder products (Sprouts Kit, Student Notebook, ...) ----
   // Detected by the preorder_sku metadata stamped at checkout. Full lifecycle: record the
-  // order + line item, transition to preorder_hold, and fire the confirmation email/SMS.
+  // order + one line item per cart line, transition to preorder_hold, and fire the
+  // confirmation email/SMS. Line items come from Stripe's expansion (billing truth: real
+  // price IDs, quantities, unit amounts); the preorder_cart metadata JSON is the fallback,
+  // then the single preorder_sku itself, so a session is never dropped on the floor.
   const preorderSku = (session.metadata?.preorder_sku as string | undefined) ?? null
   if (preorderSku) {
     const isFounding = session.metadata?.is_founding === "true"
-    await recordPreorderFromSession(adminClient, session, { sku: preorderSku, isFounding })
+    const items = await resolvePreorderLineItems(session, preorderSku, isFounding)
+    await recordPreorderFromSession(adminClient, session, items)
     return
   }
 

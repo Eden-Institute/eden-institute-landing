@@ -121,3 +121,32 @@ in `paid`. Exit 1 on any discrepancy.
 Review PR -> apply both migrations + deploy patched stripe-webhook AND create-checkout
 together -> configure Stripe (Tax + Prices + charge.refunded) -> set secrets -> dark-test in
 prod via /preorder?admin=... -> run reconcile -> launch flip when samples arrive.
+
+## Part 3 (2026-07-14): disclaimer modal + single-session cart
+
+Founder decisions 2026-07-14: ship window **"Late Fall 2026"** (was Winter 2026), notebook
+cap **5 per order**, flat $12 shipping **absorbed** regardless of notebook count.
+Full design spec: `Eden_Preorder_Disclaimer_and_Notebook_Addon_Spec.md` (founder OneDrive,
+Biblical Herbalism folder).
+
+- **Two-step modal on /preorder** (PreorderBuyBox): step 1 = founding-member disclaimer with
+  two mandatory unchecked checkboxes; step 2 = sibling-notebook add-on (stepper 0..5, live
+  order summary). Acceptance persists in sessionStorage per tab so backing out of Stripe
+  does not force a re-read.
+- **create-checkout**: new request shape `{ items: [{sku, qty}], sms_consent,
+  accepted_ship_window, accepted_founding_member }`. `preorder_sku` is still accepted as a
+  single-item alias. BOTH acceptance flags are required or the EF returns 400
+  `DISCLAIMER_REQUIRED` (the UI checkboxes are a courtesy; the EF is the gate). Per-SKU qty
+  caps from `maxQtyPerOrder` in order-config (kit 1, notebook 5). ONE session, 1..N
+  line_items, one flat $12 shipping.
+- **stripe-webhook**: Branch 0 resolves cart lines from Stripe's `line_items` expansion
+  (price IDs → sku via `productForPriceId`), falling back to `metadata.preorder_cart` JSON,
+  then bare `preorder_sku`. One order_items row per line with real quantity.
+- **Migration `20260714120000`**: orders gains `accepted_ship_window`,
+  `accepted_founding_member`, `accepted_ship_window_text`, `disclaimer_accepted_at`
+  (chargeback / Mail Order Rule evidence); `founding_units_sold(uuid)` RPC replaces the
+  row-count founding counter (a row count undercounts once quantity > 1 exists);
+  `UNIQUE(order_items.order_id, product_id)` makes webhook-replay item writes idempotent
+  and lets recordPreorderFromSession retry item inserts instead of early-returning.
+- **Deploy note**: this part rides the same deploy set as parts 1-2 (migrations +
+  create-checkout + stripe-webhook together). Nothing is deployed until the founder's go.

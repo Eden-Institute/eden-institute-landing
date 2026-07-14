@@ -8,7 +8,7 @@
 import { OrderStatus } from './order-state.ts';
 
 // deno-lint-ignore no-explicit-any
-export interface Db { from(table: string): any }
+export interface Db { from(table: string): any; rpc(fn: string, args?: Record<string, unknown>): any }
 
 export interface OrderRow {
   id: string;
@@ -125,13 +125,14 @@ export async function logMessage(db: Db, row: {
 }
 
 // ── Founding-allocation counter ────────────────────────────────────────────────
-/** Founding line-items sold for a product, excluding cancelled/refunded orders. */
+/**
+ * Founding UNITS sold for a product (SUM of line quantities, not a row count), excluding
+ * cancelled/refunded orders. A cart line can carry quantity > 1, so a row count would
+ * undercount and overshoot the 500-unit founding gate. Lives in SQL
+ * (founding_units_sold RPC, migration 20260714120000) because PostgREST cannot SUM here.
+ */
 export async function countFoundingSold(db: Db, productId: string): Promise<number> {
-  const { count, error } = await db.from('order_items')
-    .select('id, orders!inner(status)', { count: 'exact', head: true })
-    .eq('product_id', productId)
-    .eq('is_founding', true)
-    .not('orders.status', 'in', '("cancelled","refunded")');
+  const { data, error } = await db.rpc('founding_units_sold', { p_product_id: productId });
   if (error) throw error;
-  return count ?? 0;
+  return typeof data === 'number' ? data : 0;
 }
