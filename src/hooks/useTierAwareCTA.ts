@@ -108,7 +108,7 @@ export function computeTierAwareCTAs(
     // free / anon (resolved)
     upgrade = {
       label:
-        "Unlock the full clinical picture: actions, tissue states, and safety for all 100 herbs",
+        "Unlock the full clinical picture: actions, tissue states, and safety for all 300 herbs",
       shortLabel: "Unlock more",
       href: "/apothecary/pricing#tier-seed",
     };
@@ -185,7 +185,7 @@ export function computeTierAwareCTAs(
   } else {
     // free / anon (resolved): steer toward the entry subscription.
     next = {
-      label: "Unlock the full clinical picture: actions, tissue states, and safety for all 100 herbs",
+      label: "Unlock the full clinical picture: actions, tissue states, and safety for all 300 herbs",
       href: "/apothecary/pricing#tier-seed",
       kind: "upgrade-seed",
     };

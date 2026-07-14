@@ -85,7 +85,7 @@ export const PUBLIC_TIERS: readonly PublicTierSpec[] = [
     monthlyPrice: "$0",
     availability: "Available now · free for as long as you'd like",
     features: [
-      "All 100 herb monographs (basic profile)",
+      "All 300 herb monographs (basic profile)",
       "The Pattern of Eden quiz + your result",
       "The Five Tenets overview",
       "Pregnancy, lactation, and absolute cautions",

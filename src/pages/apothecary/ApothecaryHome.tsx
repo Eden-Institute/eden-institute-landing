@@ -23,7 +23,7 @@ import { ROUTES } from "@/lib/routes";
  * Eden Apothecary index (`/apothecary`).
  *
  * Stage 6.3.5 — Symptom-Doorway Filter Rebuild + Stage 6.3.6 visible-but-
- * gated unified directory. Reads `herbs_directory_v` for all 100 herbs;
+ * gated unified directory. Reads `herbs_directory_v` for all 300 herbs;
  * tier-conditional column population (Band 1 always, Band 2 unlocked rows
  * for anon/free + all rows for Seed+, Band 3 Seed+ only across all rows).
  *
@@ -322,6 +322,33 @@ export default function ApothecaryHome() {
     return scored.map((x) => x.herb);
   }, [herbs, filters, activePattern]);
 
+  // Progressive render (300-herb directory): mount cards a page at a time so
+  // the DOM never holds hundreds of HerbCards at once. The full set is still
+  // fetched and filtered client-side (the four-axis filters and Pattern sort
+  // need it), but only `renderCount` cards are rendered. Reset to the first
+  // page whenever the filtered/sorted set changes; a sentinel below the grid
+  // reveals the next page as it scrolls into view (rootMargin preloads ahead).
+  const HERB_PAGE = 36;
+  const [renderCount, setRenderCount] = useState(HERB_PAGE);
+  useEffect(() => {
+    setRenderCount(HERB_PAGE);
+  }, [visible]);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setRenderCount((n) => (n < visible.length ? n + HERB_PAGE : n));
+        }
+      },
+      { rootMargin: "600px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [visible.length]);
+
   // CRO Phase 2: how many locked rows survive the current narrowing. Feeds
   // the safety-filter conversion line ("guidance for N more herbs opens
   // with Seed"). Cheap over ~108 rows; no memo needed.
@@ -386,7 +413,7 @@ export default function ApothecaryHome() {
 
   // PR #50 (v3.33 Pass 2 marketing): "partner" -> "app" per Lock #47.
   const subtitle = isSubscriber
-    ? "The full materia medica: 100 monographs with tissue-state indications, organ system affinity, Pattern matches, and safety overlays."
+    ? "The full materia medica: 300 monographs with tissue-state indications, organ system affinity, Pattern matches, and safety overlays."
     : "A clinical reasoning app rather than a symptom index. Each monograph is anchored to body patterns, tissue states, and stewardship, never to disease names.";
 
   const tierBadge = isSubscriber
@@ -592,18 +619,29 @@ export default function ApothecaryHome() {
               </div>
             </div>
           ) : (
-            <div
-              className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
-              aria-label="Herb directory"
-            >
-              {visible.map((herb) => (
-                <HerbCard
-                  key={herb.herb_id ?? herb.common_name ?? Math.random()}
-                  herb={herb}
-                  activePattern={activePattern}
-                />
-              ))}
-            </div>
+            <>
+              <div
+                className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+                aria-label="Herb directory"
+              >
+                {visible.slice(0, renderCount).map((herb) => (
+                  <HerbCard
+                    key={herb.herb_id ?? herb.common_name ?? Math.random()}
+                    herb={herb}
+                    activePattern={activePattern}
+                  />
+                ))}
+              </div>
+              {renderCount < visible.length && (
+                <div
+                  ref={sentinelRef}
+                  className="py-6 text-center font-body text-sm text-muted-foreground"
+                  aria-hidden="true"
+                >
+                  Showing {renderCount} of {visible.length} herbs…
+                </div>
+              )}
+            </>
           )}
 
           {!isSubscriber && (
@@ -625,7 +663,7 @@ export default function ApothecaryHome() {
                   className="font-serif text-xl md:text-2xl font-semibold leading-tight mb-2"
                   style={{ color: "hsl(var(--eden-bark))" }}
                 >
-                  Seed opens the full study for all 100 herbs.
+                  Seed opens the full study for all 300 herbs.
                 </h2>
                 <p className="font-body text-sm text-muted-foreground max-w-xl">
                   How each herb acts in the body, who it suits, how to prepare

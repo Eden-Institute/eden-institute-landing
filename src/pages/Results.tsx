@@ -243,7 +243,7 @@ const Results = () => {
               Continue to the Apothecary
             </Button>
             <p className="font-body text-xs text-center mt-3" style={{ color: "hsl(30, 10%, 40%, 0.7)" }}>
-              Your full directory of 100 herbs, with match badges based on your Pattern.
+              Your full directory of 300 herbs, with match badges based on your Pattern.
             </p>
           </div>
         )}
@@ -296,7 +296,7 @@ const Results = () => {
               Unlock the full clinical study for your {patternShort}.
             </h2>
             <p className="font-body text-base leading-relaxed mb-6" style={{ color: "rgba(245,240,232,0.85)" }}>
-              Seed opens how each of the 100 herbs acts in the body, which ones suit your {patternShort} pattern and why, and how to use them safely. Actions, tissue states, energetics, and the full contraindication library.
+              Seed opens how each of the 300 herbs acts in the body, which ones suit your {patternShort} pattern and why, and how to use them safely. Actions, tissue states, energetics, and the full contraindication library.
             </p>
             <Button
               variant="eden"
