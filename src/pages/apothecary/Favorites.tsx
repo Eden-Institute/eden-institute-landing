@@ -29,7 +29,7 @@ import { useDocumentMeta } from "@/lib/useDocumentMeta";
  *       page, tapping the heart removes from favorites and the row
  *       disappears — same hook, same optimistic UI.
  *
- * Design choice: reuse useApothecaryHerbs (which fetches all 100 herbs
+ * Design choice: reuse useApothecaryHerbs (which fetches all 300 herbs
  * via the tier-aware herbs_directory_v view) and filter in-memory.
  * Cheap; reuses existing tier gating + Pattern-aware sort + match-badge
  * logic without copy-paste. The favorites set is small (typical user

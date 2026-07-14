@@ -189,7 +189,7 @@ export default function Pricing() {
                 monthlyPrice="$0"
                 yearlyPrice="$0"
                 features={[
-                  "All 100 herb monographs (basic profile)",
+                  "All 300 herb monographs (basic profile)",
                   "Pattern quiz + result",
                   "The Five Tenets overview",
                   "Read-only contraindications (high + absolute)",
@@ -209,7 +209,7 @@ export default function Pricing() {
                 monthlyLookupKey="seed_monthly"
                 yearlyLookupKey="seed_yearly"
                 features={[
-                  "The full clinical study for all 100 herbs",
+                  "The full clinical study for all 300 herbs",
                   "Actions, tissue states, energetics",
                   "Full contraindication library",
                   "Profiles for up to 5 family members",

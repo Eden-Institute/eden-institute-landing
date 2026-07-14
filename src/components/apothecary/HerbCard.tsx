@@ -385,8 +385,8 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
           </p>
           <p className="font-body text-sm leading-relaxed text-muted-foreground">
             {matchRelationship === "match" && patternShort
-              ? `The clinical reason this herb rebalances your ${patternShort} is written and waiting. Seed opens the full study for all 100 herbs.`
-              : "Seed opens the full study — how it acts in the body, who it suits, how to prepare it, and how to use it safely. All 100 herbs, one subscription."}
+              ? `The clinical reason this herb rebalances your ${patternShort} is written and waiting. Seed opens the full study for all 300 herbs.`
+              : "Seed opens the full study — how it acts in the body, who it suits, how to prepare it, and how to use it safely. All 300 herbs, one subscription."}
           </p>
           {/* whitespace-normal + h-auto: the match-state label is long and
               the shadcn base class is nowrap — without this the button's

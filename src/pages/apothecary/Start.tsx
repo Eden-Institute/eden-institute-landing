@@ -215,7 +215,7 @@ export default function Start() {
               monthlyPrice="$0"
               yearlyPrice="$0"
               features={[
-                "All 100 herb monographs (basic profile)",
+                "All 300 herb monographs (basic profile)",
                 "The Pattern of Eden quiz + your result",
                 "The Five Tenets overview",
                 "Pregnancy, lactation, and absolute cautions",

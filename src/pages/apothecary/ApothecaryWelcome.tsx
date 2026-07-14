@@ -144,7 +144,7 @@ export default function ApothecaryWelcome() {
                 Herb Library
               </h3>
               <p className="font-body text-sm text-muted-foreground leading-relaxed">
-                100 herb monographs with terrain intelligence: energetics,
+                300 herb monographs with terrain intelligence: energetics,
                 tissue affinities, body pattern matches, and safety notes.
               </p>
             </div>
