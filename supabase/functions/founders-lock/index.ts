@@ -205,7 +205,7 @@ function announcementHtml(firstName: string, formLink: string, unsub: string): s
   <p style="font-family:Georgia,serif;font-size:13px;margin:3px 0 0;"><a href="https://edeninstitute.health" style="color:${B.sage};">edeninstitute.health</a></p>
   ${shopApothecaryCard()}
 </td></tr>
-<tr><td style="background:${B.forest};padding:16px 22px;text-align:center;"><div style="color:${B.footer};font-family:Georgia,serif;font-size:11px;line-height:1.6;">The Eden Institute &middot; Rooted in Faith Ventures LLC<br><a href="${unsub}" style="color:${B.gold};text-decoration:underline;">Unsubscribe from these homeschool emails</a></div></td></tr>
+<tr><td style="background:${B.forest};padding:16px 22px;text-align:center;"><div style="color:${B.footer};font-family:Georgia,serif;font-size:11px;line-height:1.6;">The Eden Institute &middot; Rooted in Faith Ventures LLC<br>303 Holly Cir, Clarksville, TN 37043<br><a href="${unsub}" style="color:${B.gold};text-decoration:underline;">Unsubscribe from these homeschool emails</a></div></td></tr>
 </table></td></tr></table></body></html>`;
 }
 
