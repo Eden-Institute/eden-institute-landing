@@ -53,7 +53,7 @@ import {
   buildMagnetWeek6Email,
   buildMagnetWeek7Email,
 } from '../_shared/homeschool-followup-templates.ts';
-import { buildLaunchEmail } from '../_shared/launch-sequence-templates.ts';
+import { buildLaunchEmail, CONVERSION_FIRST_POSITION } from '../_shared/launch-sequence-templates.ts';
 import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
 
@@ -633,6 +633,69 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
 // honored here, and global unsubscribes/bounces are handled upstream by the
 // cancel_queued_emails_on_unsubscribe trigger (extended to this table in
 // migration 20260702190000).
+//
+// ALL launch positions are PURCHASE-SUPPRESSED: a recipient with any order
+// that is not cancelled/refunded already preordered, so every remaining
+// launch email (vision arc included; a buyer should not get "the doors are
+// about to open") is cancelled instead of sent. Two layers: the
+// cancel_launch_emails_on_order trigger fires at purchase time (migration
+// 20260703093000), and this drain-time check catches anything that slips
+// between trigger and send. Before PR #227's migration creates
+// public.orders, the query errors and this returns false, which is correct:
+// nobody can have preordered yet.
+
+// True if this recipient has a live (not cancelled/refunded) order.
+// ilike is used for case-insensitivity; _ and % are LIKE wildcards, so they
+// are escaped to make this literal equality (jane_doe must not match janeadoe).
+async function hasPreordered(email: string): Promise<boolean> {
+  const literal = email.replace(/([\\%_])/g, '\\$1');
+  const rows = await supabaseQuery(
+    `orders?customer_email=ilike.${encodeURIComponent(literal)}&status=not.in.(cancelled,refunded)&select=id&limit=1`,
+  );
+  return Array.isArray(rows) && rows.length > 0;
+}
+
+// ── Founding-window check (positions 8-17 copy variant) ──
+// Mirrors the checkout's founding gate EXACTLY (order-db.ts countFoundingSold
+// vs products.founding_qty_limit for the gate SKU 'sprouts_kit'): founding
+// line-items sold, excluding cancelled/refunded orders, compared to the
+// limit. While open, conversion copy carries the $249 founding offer; once
+// closed, the copy drops "founding" entirely and quotes $349 flat. Computed
+// at most once per drain run. Fails toward TRUE (founding copy) so a
+// transient query error during the founding window cannot prematurely flip
+// the list to retail copy; create-checkout independently enforces the real
+// price either way.
+const FOUNDING_GATE_SKU = 'sprouts_kit';
+
+async function foundingWindowOpen(): Promise<boolean> {
+  try {
+    const products = await supabaseQuery(
+      `products?sku=eq.${FOUNDING_GATE_SKU}&select=id,founding_qty_limit&limit=1`,
+    );
+    if (!Array.isArray(products) || products.length === 0) return true;
+    const limit = products[0].founding_qty_limit;
+    if (limit === null || limit === undefined) return true;
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/order_items?product_id=eq.${products[0].id}&is_founding=eq.true&orders.status=not.in.(cancelled,refunded)&select=id,orders!inner(status)&limit=1`,
+      {
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY!,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          Prefer: 'count=exact',
+          Range: '0-0',
+        },
+      },
+    );
+    const contentRange = res.headers.get('content-range') ?? '';
+    const total = Number(contentRange.split('/')[1]);
+    if (!Number.isFinite(total)) return true;
+    return total < Number(limit);
+  } catch (err) {
+    console.error('foundingWindowOpen check failed; defaulting to founding copy:', String(err));
+    return true;
+  }
+}
+
 async function drainLaunchQueue(): Promise<QueueResult> {
   const result: QueueResult = { processed: 0, sent: 0, failed: 0 };
   const nowIso = new Date().toISOString();
@@ -644,6 +707,12 @@ async function drainLaunchQueue(): Promise<QueueResult> {
     return result;
   }
   if (rows.length > 0) console.log(`drainLaunchQueue: found ${rows.length} due rows`);
+  // One founding-gate check per run, only when conversion rows are due.
+  let founding = true;
+  if (rows.some((r: any) => r.sequence_position >= CONVERSION_FIRST_POSITION)) {
+    founding = await foundingWindowOpen();
+    if (!founding) console.log('drainLaunchQueue: founding window CLOSED, using retail copy');
+  }
   for (const row of rows) {
     result.processed++;
     try {
@@ -663,7 +732,20 @@ async function drainLaunchQueue(): Promise<QueueResult> {
         continue;
       }
 
-      const built = buildLaunchEmail(pos, firstName);
+      // The whole launch sequence stops the moment a family preorders.
+      if (await hasPreordered(email)) {
+        await supabaseQuery(`launch_email_queue?id=eq.${row.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: 'cancelled',
+            error_message: 'suppressed: recipient already preordered',
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        continue;
+      }
+
+      const built = buildLaunchEmail(pos, firstName, founding);
       if (!built) {
         await supabaseQuery(`launch_email_queue?id=eq.${row.id}`, {
           method: 'PATCH',

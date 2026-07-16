@@ -18,6 +18,29 @@
 // get the same arc on a 2-day drip via the enqueue_launch_sequence_on_signup
 // trigger (migration 20260702190000).
 //
+// ── PREORDER CONVERSION SERIES (positions 8-17, ships with PR #227) ──
+// Ten persistence emails that begin the moment preorder opens and STOP for a
+// recipient as soon as they preorder (drain-time suppression against
+// public.orders + the cancel_launch_emails_on_order trigger). Enqueued for
+// the whole list by scripts/launch-day-blast.sql at day offsets
+// 0/2/4/7/10/13/16/20/24/28 from the go-live moment:
+//
+//    8  Day 0   The first 500 kits are on the table           (launch blast)
+//    9  Day 2   Open the box with me                          (Prov 22:6)
+//   10  Day 4   You don't have to be an herbalist             (James 1:5)
+//   11  Day 7   What founding families are really buying      (Neh 2:18)
+//   12  Day 10  The story under the table                     (Psalm 78:4)
+//   13  Day 13  Is Sprouts right for your crew?               (Eccl 3:1)
+//   14  Day 16  What they'll still remember in December       (Prov 24:3-4)
+//   15  Day 20  Your questions, answered around the table     (Luke 14:28)
+//   16  Day 24  Before the founding 500 fill                  (Gen 1:29)
+//   17  Day 28  As for your house                             (Josh 24:15)
+//
+// One CTA per email (Preorder → /preorder). No Mountain Rose button in 8-17:
+// nothing competes with the kit. Offer facts: $249 founding for the first 500
+// kits, then $349 (confirmed by founder 2026-07-03; the $239 in the original
+// copy brief was a typo).
+//
 // Like homeschool-followup-templates.ts, this file is intentionally
 // self-contained: it has its OWN wrapper (launchWrapper) instead of the
 // canonical emailWrapper because (a) the launch footer block replaces the
@@ -42,6 +65,9 @@ const INSTAGRAM_URL = 'https://instagram.com/the_eden_institute';
 const PINTEREST_URL = 'https://pin.it/6AuiXypgA';
 // Primary CTA target for Email 7: the live founders-price capture page.
 const FOUNDERS_URL = 'https://edeninstitute.health/sprouts-founders.html';
+// Primary CTA target for the conversion series (8-17): the preorder page
+// shipped by PR #227 (web/pages/preorder.astro).
+const PREORDER_URL = 'https://edeninstitute.health/preorder';
 // ──────────────────────────────────────────────────────────────────────────
 
 const SHOP_FALLBACK_URL = 'https://edeninstitute.health/homeschool/herbs';
@@ -382,7 +408,7 @@ export function buildLaunchEmail6(firstName: string): { subject: string; html: s
 }
 
 // ══════════════════════════════════════════════════════════════
-// EMAIL 7 — Jul 22 — The Doors Are About to Open
+// EMAIL 7 — Jul 25 — The Doors Are About to Open
 // Scripture anchor: Esther 4:14 · Mountain Rose shop button
 // Preorder open date locked 2026-07-16: July 29.
 // ══════════════════════════════════════════════════════════════
@@ -412,10 +438,251 @@ export function buildLaunchEmail7(firstName: string): { subject: string; html: s
   };
 }
 
-// ── Dispatch table for the queue drainer ──
-export const LAUNCH_SEQUENCE_LENGTH = 7;
+// ══════════════════════════════════════════════════════════════
+// PREORDER CONVERSION SERIES (8-17)
+// ══════════════════════════════════════════════════════════════
 
-const LAUNCH_BUILDERS: Record<number, (firstName: string) => { subject: string; html: string }> = {
+// Hidden preheader: the inbox preview line under the subject. Kept invisible
+// in the rendered email (conversion emails only; 1-7 predate this helper).
+function preheader(text: string): string {
+  return `<div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${text}</div>`;
+}
+
+function preorderButton(label = 'Preorder Your Kit'): string {
+  return brandButton(label, PREORDER_URL);
+}
+
+// ── Founding-window copy variants ──
+// Every conversion builder takes `founding` (default true). While the first
+// 500 kits last, copy carries the founding offer ($249, founding standing).
+// The moment the checkout's founding gate closes (countFoundingSold >= 500,
+// the SAME rule create-checkout enforces), the drainer passes founding=false
+// and the copy drops the word "founding" entirely: the price is simply $349.
+// The two variants must never drift: post-founding copy may not mention
+// $249, the 500, or founding standing anywhere, including subject and
+// preheader (enforced by the render QA script).
+
+// ── EMAIL 8 — Day 0 — launch blast (founder-approved copy, $249) ──
+export function buildLaunchEmail8(firstName: string, founding = true): { subject: string; html: string } {
+  const offer = founding
+    ? `${goldDivider()}` +
+      `${p(`Here is what founding looks like. The complete kit will sell for <strong>$349</strong>. The first 500 founding families preorder it for <strong>$249</strong>, and that founding standing stays with your family as every older grade band opens.`)}` +
+      `${p(`When the 500 are claimed, the founding price is gone for good.`)}`
+    : `${goldDivider()}` +
+      `${p(`The complete kit is <strong>$349</strong>: a full year of curriculum, every component, one box on your doorstep. Preorder now and yours will be among the first to ship.`)}`;
+  const body =
+    `${preheader(founding
+      ? `Founding families preorder Eden's Table for $249 before it becomes $349.`
+      : `Eden's Table preorder is open. Bring the whole year home.`)}` +
+    `${p(`Hi ${firstName},`)}` +
+    `${p(`Some morning soon, your kitchen could smell like lavender while your six-year-old tells you what it does, and where God planted it first.`)}` +
+    `${p(`That is the whole dream. And the doors are open: it is on the table.`)}` +
+    `${p(`If you have homeschooled longer than a season, you know the ache. Science in one book, history in another, faith tacked on at the end, and you stitching it all together at ten o&rsquo;clock at night. Meanwhile the world keeps teaching our children that their bodies are machines and health comes from a bottle.`)}` +
+    `${p(`Eden&rsquo;s Table was built to mend that. One herb each week becomes the doorway to every subject: the science of how it serves the body God designed, the history of the grandmothers and physicians who trusted it, the geography of where He planted it, all of it woven through Scripture at your own table. Thirty-six herbs. A full year of project-based learning your children do with their hands, not just their pencils.`)}` +
+    `${p(`And you do not need to be an herbalist to teach it. The Teacher&rsquo;s Guide lays out your week day by day. You open it, and you teach.`)}` +
+    `${p(`More than a thousand homeschool families have already pulled up a chair through the free preview weeks. Their kitchens, and their kids, are why we kept building.`)}` +
+    offer +
+    `${preorderButton()}` +
+    `${signature()}`;
+  return {
+    subject: founding ? `The first 500 kits are on the table` : `The kits are on the table`,
+    html: launchWrapper(body),
+  };
+}
+
+// ── EMAIL 9 — Day 2 — inside the box ──
+export function buildLaunchEmail9(firstName: string, founding = true): { subject: string; html: string } {
+  const body =
+    `${preheader(`A look inside the Sprouts kit, piece by piece.`)}` +
+    `${p(`Hi ${firstName},`)}` +
+    `${p(`Before you decide anything, I want you to see exactly what arrives at your door. So open the box with me.`)}` +
+    `${bullet(`<strong>The Teacher&rsquo;s Guide</strong>: your entire year, laid out day by day. Monday you meet the herb in a story. By Friday your crew is chanting a rhyme they will keep for life.`)}` +
+    `${bullet(`<strong>The Student Notebook</strong>: five gentle pages a week, sized for K-2 hands.`)}` +
+    `${bullet(`<strong>Field Cards</strong>: the herb in hand. Taste, smell, where God planted it.`)}` +
+    `${bullet(`<strong>Recipe Cards</strong>: Wednesday in the kitchen, making something real together.`)}` +
+    `${bullet(`<strong>Around the Table Cards</strong>: dinner questions that need zero prep.`)}` +
+    `${bullet(`<strong>The Read-Aloud Storybook</strong>: the Eden family, week after week, carrying it all.`)}` +
+    `${spacer(8)}` +
+    `${p(`Thirty-six herbs. Thirty-six weeks. Science, history, geography, language, and Scripture, all gathered around one living thing your child can hold. Solomon wrote, &ldquo;Train up a child in the way he should go, even when he is old he will not depart from it&rdquo; (Proverbs 22:6, NASB). That is what a year of this rhythm builds: a way, not just a workbook.`)}` +
+    `${p(founding
+      ? `Founding families bring the whole kit home for $249 while the first 500 last. Then it is $349.`
+      : `The whole kit, the whole year, comes home for $349.`)}` +
+    `${preorderButton()}` +
+    `${signature()}`;
+  return { subject: `Open the box with me`, html: launchWrapper(body) };
+}
+
+// ── EMAIL 10 — Day 4 — "I'm not an herbalist" objection ──
+export function buildLaunchEmail10(firstName: string, founding = true): { subject: string; html: string } {
+  const body =
+    `${preheader(`The Teacher's Guide does the heavy lifting. You just open it.`)}` +
+    `${p(`Hi ${firstName},`)}` +
+    `${p(`The most common question I hear, by far: &ldquo;I love this, but I don&rsquo;t know anything about herbs. Can I really teach it?&rdquo;`)}` +
+    `${p(`Sweet friend, yes. Eden&rsquo;s Table was written for the mama who has never dried a flower in her life.`)}` +
+    `${p(`Every week of the Teacher&rsquo;s Guide is laid out day by day: what to read, what to ask, what to prepare (almost nothing), and exactly what to say when little voices ask why. You are not the expert at the table. You are the guide reading the map, and the map is very good. Most days take about half an hour.`)}` +
+    `${p(`And here is the quiet gift nobody tells you about: you will learn it alongside them. By spring you will know 36 herbs, their stories, and their uses, not because you studied, but because you sat at the table with your kids.`)}` +
+    `${p(`James wrote that if any of us lacks wisdom, we should &ldquo;ask of God, who gives to all generously and without reproach&rdquo; (James 1:5, NASB). He did not say ask the credentialed. Generously, to the asking mama, is how this knowledge has always been given.`)}` +
+    `${p(founding
+      ? `The first 500 kits are $249 founding. After that, $349.`
+      : `The complete kit is $349, and it teaches you both.`)}` +
+    `${preorderButton()}` +
+    `${signature()}`;
+  return { subject: `You don't have to be an herbalist`, html: launchWrapper(body) };
+}
+
+// ── EMAIL 11 — Day 7 — what you're really buying (founding-centric email,
+// so the post-founding variant re-frames around joining the build itself) ──
+export function buildLaunchEmail11(firstName: string, founding = true): { subject: string; html: string } {
+  const opener = founding
+    ? `${p(`I want to be honest about what the founding 500 are actually buying, because it is more than $100 off.`)}` +
+      `${p(`Yes, the math is real: the kit will sell for $349, and founding families preorder it for $249. But the deeper thing is this. Eden&rsquo;s Table is a K-12 journey being built band by band, and the first 500 homes are not customers at the end of it. They are builders at the beginning of it. Your children&rsquo;s questions, your kitchen&rsquo;s discoveries, your feedback after week 9, all of it shapes Seedlings, Cultivators, and Practitioners before they reach anyone else&rsquo;s table.`)}`
+    : `${p(`I want to be honest about what a $349 Sprouts kit is actually buying, because it is more than a box of beautiful materials.`)}` +
+      `${p(`Eden&rsquo;s Table is a K-12 journey being built band by band, and the families walking it now are not customers at the end of something. They are builders at the beginning of it. Your children&rsquo;s questions, your kitchen&rsquo;s discoveries, your feedback after week 9, all of it shapes Seedlings, Cultivators, and Practitioners before they reach anyone else&rsquo;s table.`)}`;
+  const nehemiah = founding
+    ? `${p(`When Nehemiah stood before a wall in ruins, the people did not wait for it to be finished before they joined. &ldquo;Let us arise and build&rdquo; (Nehemiah 2:18, NASB), they said, and the ones who built first were named in the record forever. Founding standing works like that here: it stays with your family as every older band opens.`)}`
+    : `${p(`When Nehemiah stood before a wall in ruins, the people did not wait for it to be finished before they joined. &ldquo;Let us arise and build&rdquo; (Nehemiah 2:18, NASB), they said. The families who join while the wall is rising get to leave their fingerprints on it, and this wall has eleven more grades to go.`)}`;
+  const body =
+    `${preheader(founding
+      ? `Founding standing follows your family up every band.`
+      : `One kit is year one of a K-12 journey your family helps shape.`)}` +
+    `${p(`Hi ${firstName},`)}` +
+    opener +
+    nehemiah +
+    `${p(`If you have been waiting for a sign that it is your moment to join, this is the week the wall is going up.`)}` +
+    `${preorderButton(founding ? 'Claim a Founding Kit' : 'Preorder Your Kit')}` +
+    `${signature()}`;
+  return {
+    subject: founding ? `What founding families are really buying` : `What one kit is really buying`,
+    html: launchWrapper(body),
+  };
+}
+
+// ── EMAIL 12 — Day 10 — founder story ──
+export function buildLaunchEmail12(firstName: string, founding = true): { subject: string; html: string } {
+  const body =
+    `${preheader(`Why a mama built a curriculum around a kitchen table.`)}` +
+    `${p(`Hi ${firstName},`)}` +
+    `${p(`Can I tell you where this actually came from?`)}` +
+    `${p(`Not a publishing house. A kitchen table, with real children around it, in a home that wanted health and faith to live in the same conversation. The Eden family in the storybooks, Vov&oacute; and PopPop, Levi and Ruthie, Manny, Evie, and Gracie, they are woven from our real family: real scraped knees, real garden rows, real prayers over little fevers in the night.`)}` +
+    `${p(`I built Eden&rsquo;s Table because I could not find it. I wanted my children to know that the God who made their bodies also planted their healing in the ground, and I wanted them to learn it the way faith is actually passed down: &ldquo;telling to the generation to come the praises of the LORD, and His strength and His wondrous works&rdquo; (Psalm 78:4, NASB). Not a unit study. An inheritance.`)}` +
+    `${p(founding
+      ? `Every kit that reaches a founding family&rsquo;s table carries that intention with it. It would be an honor for it to reach yours.`
+      : `Every kit that reaches a family&rsquo;s table carries that intention with it. It would be an honor for it to reach yours.`)}` +
+    `${p(founding ? `Founding price is $249 while the first 500 last.` : `The complete kit is $349.`)}` +
+    `${preorderButton()}` +
+    `${signature()}`;
+  return { subject: `The story under the table`, html: launchWrapper(body) };
+}
+
+// ── EMAIL 13 — Day 13 — ages objection ──
+export function buildLaunchEmail13(firstName: string, founding = true): { subject: string; html: string } {
+  const body =
+    `${preheader(`K-2 hearts first. The ladder is coming for the rest.`)}` +
+    `${p(`Hi ${firstName},`)}` +
+    `${p(`&ldquo;My kids are 4 and 9. Is Sprouts even right for us?&rdquo; I get this one a lot, so let me answer it plainly.`)}` +
+    `${p(`Sprouts is written for kindergarten through 2nd grade hearts. That said, families are already telling me their preschoolers sit for the stories and their older kids drift to the table for the kitchen days, because nobody walks past something simmering on the stove. The read-alouds, the recipes, and the dinner cards are genuinely whole-family; the notebook pages are where the K-2 targeting lives.`)}` +
+    `${p(founding
+      ? `And for your older ones, the ladder is coming. Seedlings (grades 3-5) is deep in production now, with Cultivators and Practitioners behind it. A family that starts at Sprouts grows up the path together, and founding standing follows you the whole way.`
+      : `And for your older ones, the ladder is coming. Seedlings (grades 3-5) is deep in production now, with Cultivators and Practitioners behind it. A family that starts at Sprouts grows up the path together.`)}` +
+    `${p(founding
+      ? `&ldquo;There is an appointed time for everything,&rdquo; the Preacher wrote, &ldquo;and there is a time for every event under heaven&rdquo; (Ecclesiastes 3:1, NASB). A planting season only comes around once a year. For this curriculum, and this founding price, it is now.`
+      : `&ldquo;There is an appointed time for everything,&rdquo; the Preacher wrote, &ldquo;and there is a time for every event under heaven&rdquo; (Ecclesiastes 3:1, NASB). A planting season only comes around once a year, and for a family starting this fall, it is now.`)}` +
+    `${p(founding
+      ? `Founding kits are $249 while the first 500 last, then $349.`
+      : `The complete kit is $349.`)}` +
+    `${preorderButton()}` +
+    `${signature()}`;
+  return { subject: `Is Sprouts right for your crew?`, html: launchWrapper(body) };
+}
+
+// ── EMAIL 14 — Day 16 — retention and method proof ──
+export function buildLaunchEmail14(firstName: string, founding = true): { subject: string; html: string } {
+  const body =
+    `${preheader(`Chants, stories, and herbs their hands have held.`)}` +
+    `${p(`Hi ${firstName},`)}` +
+    `${p(`Here is a question worth asking of any curriculum: what will my child still carry in December? Not finish. Carry.`)}` +
+    `${p(`Sprouts was engineered around how young children actually keep things. Stories, because facts fade and the Eden family does not. Chants, four little lines each Friday that lodge an herb&rsquo;s gift in a child&rsquo;s memory for good. And hands, because a child who has rolled lavender between her fingers and stirred the Wednesday recipe owns that knowledge in a way no worksheet can give her.`)}` +
+    `${p(`Underneath it all runs the framework: the body as God&rsquo;s design, the Five Tenets of health, terrain instead of &ldquo;take this for that.&rdquo; By spring your child is not reciting trivia. They are seeing the world differently.`)}` +
+    `${p(`&ldquo;By wisdom a house is built, and by understanding it is established; and by knowledge the rooms are filled with all precious and pleasant riches&rdquo; (Proverbs 24:3-4, NASB). That is the December picture: rooms quietly filling.`)}` +
+    `${p(founding
+      ? `Founding kits are $249 until the first 500 are claimed.`
+      : `A year of rooms quietly filling is $349.`)}` +
+    `${preorderButton()}` +
+    `${signature()}`;
+  return { subject: `What they'll still remember in December`, html: launchWrapper(body) };
+}
+
+// ── EMAIL 15 — Day 20 — FAQ ──
+export function buildLaunchEmail15(firstName: string, founding = true): { subject: string; html: string } {
+  const body =
+    `${preheader(`How long each day takes, what you need, and when kits ship.`)}` +
+    `${p(`Hi ${firstName},`)}` +
+    `${p(`&ldquo;For which one of you, when he wants to build a tower, does not first sit down and calculate the cost?&rdquo; (Luke 14:28, NASB). Wise building starts with plain answers, so today, just the questions from my inbox.`)}` +
+    `${p(`<strong>How long is a lesson?</strong> About half an hour most days. Monday and Wednesday run longer if the story or the recipe catches fire, and that is the good kind of longer.`)}` +
+    `${p(`<strong>How much prep?</strong> Nearly none. Open the Teacher&rsquo;s Guide, follow the day. The kitchen day uses simple ingredients plus the week&rsquo;s herb.`)}` +
+    `${p(`<strong>Do I need to buy herbs separately?</strong> Yes, and we make it easy: a family sourcing guide points you to trusted, affordable options for every week.`)}` +
+    `${p(founding
+      ? `<strong>When do kits arrive?</strong> Founding kits are the first off the press and the first to ship. You will get shipping confirmation by email the moment yours moves.`
+      : `<strong>When do kits arrive?</strong> Preorder kits ship in order, and you will get shipping confirmation by email the moment yours moves.`)}` +
+    `${p(`<strong>What if it is not a fit?</strong> Write me. You will reach a real person at a real table, and I will make it right.`)}` +
+    `${p(founding
+      ? `Counted the cost and ready? The founding price is $249 while the first 500 last, then $349.`
+      : `Counted the cost and ready? The complete kit is $349.`)}` +
+    `${preorderButton()}` +
+    `${signature()}`;
+  return { subject: `Your questions, answered around the table`, html: launchWrapper(body) };
+}
+
+// ── EMAIL 16 — Day 24 — provision (+ honest scarcity while founding lasts;
+// the post-founding variant is pure provision, no countdown) ──
+export function buildLaunchEmail16(firstName: string, founding = true): { subject: string; html: string } {
+  const closer = founding
+    ? `${p(`The founding 500 kits are being claimed now, and I will not pretend otherwise: when they are gone, the $249 founding price goes with them, permanently. The kit will be worth every bit of $349. But I would love for your family to be inside the founding circle, not just because of the price, but because of what the founding families get to build with us.`)}`
+    : `${p(`The kit is $349, and what it carries is the handoff itself: a year of provision placed back into your children&rsquo;s hands, one herb and one story at a time. I would love for it to be your table where the gap closes.`)}`;
+  const body =
+    `${preheader(founding
+      ? `When the 500 are claimed, $249 is gone for good.`
+      : `A gift that was always meant for your family's table.`)}` +
+    `${p(`Hi ${firstName},`)}` +
+    `${p(`On the very first page of Scripture, God looks at everything He planted and hands it to a family: &ldquo;Behold, I have given you every plant yielding seed that is on the surface of all the earth&rdquo; (Genesis 1:29, NASB).`)}` +
+    `${p(`Given. Before medicine was an industry, provision was a gift, and the knowledge of it was passed from mother to child like a family heirloom. That handoff is what broke in the last hundred years. And that handoff is what your kitchen table can quietly repair this fall.`)}` +
+    `${p(`Picture the first Monday of your school year. A story is read. A small dish of lavender goes around the table. Someone giggles. And a generation-long gap starts to close in your own home.`)}` +
+    closer +
+    `${preorderButton(founding ? 'Join the Founding 500' : 'Preorder Your Kit')}` +
+    `${signature()}`;
+  return {
+    subject: founding ? `Before the founding 500 fill` : `A gift that was always on the table`,
+    html: launchWrapper(body),
+  };
+}
+
+// ── EMAIL 17 — Day 28 — decision email ──
+export function buildLaunchEmail17(firstName: string, founding = true): { subject: string; html: string } {
+  const body =
+    `${preheader(founding
+      ? `The founding window is closing. One last look at what's inside it.`
+      : `One last look at everything the kit brings to your table.`)}` +
+    `${p(`Hi ${firstName},`)}` +
+    `${p(founding
+      ? `This is my last note about the founding kits, I promise. Not because the story ends, but because you have everything you need to decide, and I respect your table too much to keep knocking.`
+      : `This is my last note about the kits, I promise. Not because the story ends, but because you have everything you need to decide, and I respect your table too much to keep knocking.`)}` +
+    `${p(founding
+      ? `So, one last look at what is inside the founding window. The complete Sprouts kit: a year of Biblical herbalism that carries science, history, geography, and Scripture through 36 herbs your children will meet with their own hands. $249 as a founding family instead of $349. And founding standing that follows your household up every band we build, Seedlings through Practitioners.`
+      : `So, one last look at what is on the table. The complete Sprouts kit: a year of Biblical herbalism that carries science, history, geography, and Scripture through 36 herbs your children will meet with their own hands, for $349. Year one of a path that will carry your household up every band we build, Seedlings through Practitioners.`)}` +
+    `${p(`When Joshua brought Israel to their own threshold, he did not push. He simply set the choice down in front of the households: &ldquo;choose for yourselves today whom you will serve... but as for me and my house, we will serve the LORD&rdquo; (Joshua 24:15, NASB). House by house. That is still how the important things are decided.`)}` +
+    `${p(`Whatever you choose, it has been a joy to have you at this table for the last month. If Eden&rsquo;s Table belongs in your house this year, the door is right here.`)}` +
+    `${preorderButton('Preorder Your Kit')}` +
+    `${signature()}`;
+  return { subject: `As for your house`, html: launchWrapper(body) };
+}
+
+// ── Dispatch table for the queue drainer ──
+// 1-7: pre-launch vision arc (fixed dates / signup drip).
+// 8-17: preorder conversion series (launch-day blast; purchase-suppressed).
+export const LAUNCH_SEQUENCE_LENGTH = 7;
+export const CONVERSION_FIRST_POSITION = 8;
+
+const LAUNCH_BUILDERS: Record<number, (firstName: string, founding?: boolean) => { subject: string; html: string }> = {
   1: buildLaunchEmail1,
   2: buildLaunchEmail2,
   3: buildLaunchEmail3,
@@ -423,12 +690,24 @@ const LAUNCH_BUILDERS: Record<number, (firstName: string) => { subject: string; 
   5: buildLaunchEmail5,
   6: buildLaunchEmail6,
   7: buildLaunchEmail7,
+  8: buildLaunchEmail8,
+  9: buildLaunchEmail9,
+  10: buildLaunchEmail10,
+  11: buildLaunchEmail11,
+  12: buildLaunchEmail12,
+  13: buildLaunchEmail13,
+  14: buildLaunchEmail14,
+  15: buildLaunchEmail15,
+  16: buildLaunchEmail16,
+  17: buildLaunchEmail17,
 };
 
+// `founding` only affects positions 8-17 (the 1-7 builders ignore it).
 export function buildLaunchEmail(
   position: number,
   firstName: string,
+  founding = true,
 ): { subject: string; html: string } | null {
   const builder = LAUNCH_BUILDERS[position];
-  return builder ? builder(firstName) : null;
+  return builder ? builder(firstName, founding) : null;
 }
