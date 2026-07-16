@@ -24,7 +24,7 @@ import { ROUTES } from "@/lib/routes";
  */
 export default function ApothecaryWelcome() {
   useDocumentMeta({
-    title: "Eden Apothecary | Constitutional Herb Guide | The Eden Institute",
+    title: "Eden Apothecary | Body Pattern Herb Guide | The Eden Institute",
     description:
       "Find your body pattern with the free 2-minute quiz and meet the herbs that fit it. Rooted in Biblical terrain medicine. Built for Christian families.",
     canonical: "https://edeninstitute.health/apothecary",
@@ -58,7 +58,7 @@ export default function ApothecaryWelcome() {
           />
           <p className="font-body text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
             Take the free 2-minute Pattern of Eden quiz and meet the herbs
-            that fit your constitution. Rooted in Biblical terrain medicine.
+            that fit your Pattern. Rooted in Biblical terrain medicine.
             Built for Christian families.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -144,7 +144,7 @@ export default function ApothecaryWelcome() {
                 Herb Library
               </h3>
               <p className="font-body text-sm text-muted-foreground leading-relaxed">
-                100 herb monographs with terrain intelligence: energetics,
+                300 herb monographs with terrain intelligence: energetics,
                 tissue affinities, body pattern matches, and safety notes.
               </p>
             </div>

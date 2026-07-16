@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { ROUTES } from "@/lib/routes";
 
@@ -102,7 +103,7 @@ export function AuthForm({ mode }: Props) {
         });
         if (error) throw error;
         if (data.session) {
-          toast.success("Welcome — you're signed in.");
+          toast.success("Welcome. You're signed in.");
           // Honor explicit intent (deep link or paid-tier card with
           // return_to=/apothecary/pricing); otherwise route first-time
           // signups through the welcome tour.
@@ -132,7 +133,14 @@ export function AuthForm({ mode }: Props) {
         toast.success("Check your email for a reset link.");
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Something went wrong";
+      console.error("Apothecary auth request failed:", err);
+      // Supabase AuthError messages are curated and user-actionable
+      // ("Invalid login credentials", rate-limit notices, etc.), so surface
+      // them; fall back to a friendly line for network / unexpected failures.
+      const msg =
+        err instanceof AuthError
+          ? err.message
+          : "Something went wrong. Please try again.";
       toast.error(msg);
     } finally {
       setSubmitting(false);

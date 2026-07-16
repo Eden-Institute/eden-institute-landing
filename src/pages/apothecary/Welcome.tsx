@@ -129,7 +129,7 @@ export default function Welcome() {
               Confirming your subscription…
             </h1>
             <p className="font-body text-muted-foreground">
-              Give us a moment — we're verifying the payment with Stripe and
+              Give us a moment. We're verifying the payment with Stripe and
               opening the full library to you.
             </p>
           </>
@@ -159,16 +159,31 @@ export default function Welcome() {
             </h1>
             <p className="font-body text-muted-foreground">
               {currentTier === "free" || currentTier === "anon"
-                ? "Your subscription is processing. The upgrade will appear in a moment — you can already start exploring."
+                ? "Your subscription is processing. The upgrade will appear in a moment, and you can already start exploring."
                 : "Thank you for stewarding this work. The full clinical library is now open to you."}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-              <Button variant="eden" size="lg" asChild>
-                <Link to={ROUTES.APOTHECARY}>Go to Apothecary home</Link>
-              </Button>
-              <Button variant="eden-outline" size="lg" asChild>
-                <Link to={ROUTES.APOTHECARY_PRICING}>View plan details</Link>
-              </Button>
+              {currentTier === "practitioner" ? (
+                <>
+                  {/* The Clinic is the flagship surface a practitioner just
+                      bought, so it leads on the confirmation screen. */}
+                  <Button variant="eden" size="lg" asChild>
+                    <Link to={ROUTES.PRACTITIONER_CLINIC}>Open the Clinic</Link>
+                  </Button>
+                  <Button variant="eden-outline" size="lg" asChild>
+                    <Link to={ROUTES.APOTHECARY}>Go to Apothecary home</Link>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="eden" size="lg" asChild>
+                    <Link to={ROUTES.APOTHECARY}>Go to Apothecary home</Link>
+                  </Button>
+                  <Button variant="eden-outline" size="lg" asChild>
+                    <Link to={ROUTES.APOTHECARY_PRICING}>View plan details</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </>
         )}
@@ -231,7 +246,7 @@ export default function Welcome() {
             </h1>
             <p className="font-body text-muted-foreground">
               {errorMessage ??
-                "Something went wrong on our side. Your payment may still have processed — check your email for a Stripe receipt, or contact us at hello@edeninstitute.health."}
+                "Something went wrong on our side. Your payment may still have processed. Check your email for a Stripe receipt, or contact us at hello@edeninstitute.health."}
             </p>
             <Button variant="eden" size="lg" asChild>
               <Link to={ROUTES.APOTHECARY}>Back to Apothecary home</Link>

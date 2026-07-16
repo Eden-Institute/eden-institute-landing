@@ -372,7 +372,7 @@ export function HerbDirectoryFilters({
               style={{ color: "hsl(var(--eden-gold))" }}
               data-cta="filter-gate-action"
             >
-              Filter all 100 herbs by action. Opens with Seed →
+              Filter all 300 herbs by action. Opens with Seed →
             </Link>
           )}
         </div>

@@ -7,7 +7,7 @@ import { useCurrentTier, Tier } from "@/hooks/useCurrentTier";
 import { ROUTES } from "@/lib/routes";
 
 interface Props {
-  tier: "free" | "seed" | "root";
+  tier: "free" | "seed" | "root" | "practitioner";
   displayName: string;
   tagline: string;
   monthlyPrice: string;
@@ -17,6 +17,17 @@ interface Props {
   features: string[];
   billingCycle: "monthly" | "yearly";
   highlighted?: boolean;
+  /**
+   * Founding-rate presentation (per the §0.8 pricing Lock: founding badge
+   * with strikethrough). When set, the standard price renders struck
+   * through beside the charged price, and foundingBadge renders as a gold
+   * eyebrow over the price block.
+   */
+  standardMonthlyPrice?: string;
+  standardYearlyPrice?: string;
+  foundingBadge?: string;
+  /** Overrides the default "Start {displayName}" checkout CTA label. */
+  ctaLabel?: string;
 }
 
 const tierRank: Record<Tier, number> = {
@@ -45,11 +56,17 @@ export function PricingTier({
   features,
   billingCycle,
   highlighted,
+  standardMonthlyPrice,
+  standardYearlyPrice,
+  foundingBadge,
+  ctaLabel,
 }: Props) {
   const { user } = useAuth();
   const { data: currentTier } = useCurrentTier();
 
   const price = billingCycle === "monthly" ? monthlyPrice : yearlyPrice;
+  const standardPrice =
+    billingCycle === "monthly" ? standardMonthlyPrice : standardYearlyPrice;
   const lookupKey =
     billingCycle === "monthly" ? monthlyLookupKey : yearlyLookupKey;
   const cycleLabel = billingCycle === "monthly" ? "/month" : "/year";
@@ -81,7 +98,7 @@ export function PricingTier({
       );
     }
   } else {
-    // Seed or Root
+    // Paid tiers (Seed / Root / Practitioner)
     if (thisIsCurrent) {
       cta = (
         <Button variant="eden-outline" size="lg" className="w-full" disabled>
@@ -108,7 +125,7 @@ export function PricingTier({
           size="lg"
           className="w-full"
         >
-          {`Start ${displayName}`}
+          {ctaLabel ?? `Start ${displayName}`}
         </CheckoutButton>
       );
     } else {
@@ -146,12 +163,25 @@ export function PricingTier({
       </h3>
       <p className="font-body text-sm text-muted-foreground mb-4">{tagline}</p>
       <div className="mb-6">
+        {foundingBadge && (
+          <p
+            className="font-accent text-[10px] tracking-[0.25em] uppercase mb-1"
+            style={{ color: "hsl(var(--eden-gold))" }}
+          >
+            {foundingBadge}
+          </p>
+        )}
         <span
           className="font-serif text-4xl font-bold"
           style={{ color: "hsl(var(--eden-bark))" }}
         >
           {price}
         </span>
+        {standardPrice && (
+          <span className="font-body text-base text-muted-foreground line-through ml-2">
+            {standardPrice}
+          </span>
+        )}
         {tier !== "free" && (
           <span className="font-body text-sm text-muted-foreground ml-1">
             {cycleLabel}

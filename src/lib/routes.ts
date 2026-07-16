@@ -48,6 +48,12 @@ export const ROUTES = {
   // ── Founder / admin (auth-walled; server-gated by is_founder()) ──
   FOUNDER_LEADS: "/founder",
 
+  // Practitioner clinical workspace (Phase 3), launched 2026-07-09: linked
+  // from ApothecaryNav for practitioner-tier users. Server boundary:
+  // practitioner-clinical EF gates on subscription_tier=practitioner
+  // (founder allowlisted for support/verification).
+  PRACTITIONER_CLINIC: "/practitioner",
+
   // ── Legal ──
   TERMS: "/terms",
   PRIVACY: "/privacy",

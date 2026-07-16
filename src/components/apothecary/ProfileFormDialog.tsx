@@ -6,6 +6,7 @@ import {
   useActiveProfile,
   type PersonProfile,
 } from "@/contexts/ActiveProfileContext";
+import { useCurrentTier } from "@/hooks/useCurrentTier";
 import {
   Dialog,
   DialogContent,
@@ -61,6 +62,7 @@ export function ProfileFormDialog({
   profile,
 }: ProfileFormDialogProps) {
   const { user } = useAuth();
+  const { data: tier } = useCurrentTier();
   const { profiles, refetchProfiles, setActiveProfileId } = useActiveProfile();
   const hasExistingSelf = profiles.some(
     (p) => p.is_self && p.id !== profile?.id,
@@ -157,7 +159,9 @@ export function ProfileFormDialog({
           : String(err);
       if (message.includes("profile_cap_exceeded")) {
         setError(
-          "Profile cap reached for your tier. Upgrade to add more profiles.",
+          tier === "practitioner"
+            ? "You've reached the 500-profile limit. Contact support if your practice needs more."
+            : "Profile cap reached for your tier. Upgrade to add more profiles.",
         );
       } else if (message.includes("uniq_person_profiles_self_per_user")) {
         setError(
@@ -186,7 +190,7 @@ export function ProfileFormDialog({
           </DialogTitle>
           <DialogDescription className="font-body">
             Person cards are how the directory tailors recommendations to a
-            specific terrain. Constitutional-quiz results land on the profile
+            specific terrain. Pattern-quiz results land on the profile
             automatically once the quiz is completed.
           </DialogDescription>
         </DialogHeader>

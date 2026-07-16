@@ -1,11 +1,30 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ROUTES } from "@/lib/routes";
 import { trackCta } from "@/lib/trackCta";
+
+// The create-checkout EF marks user-actionable failures with a `code` field
+// (e.g. BUNDLE_REQUIRED); everything else is a raw/technical string like
+// "Edge Function returned a non-2xx status code" that a paying customer should
+// never read. Surface only the coded, deliberately-authored messages.
+async function friendlyCheckoutError(err: unknown): Promise<string> {
+  const fallback =
+    "Could not start checkout. Please try again or contact hello@edeninstitute.health.";
+  if (err instanceof FunctionsHttpError) {
+    try {
+      const body = await err.context.json();
+      if (body?.code && typeof body.error === "string") return body.error;
+    } catch {
+      // Response body was not JSON; fall through to the friendly line.
+    }
+  }
+  return fallback;
+}
 
 interface Props {
   lookupKey: string;
@@ -59,15 +78,18 @@ export function CheckoutButton({
     // Funnel moment (CRO Phase 4): checkout-start, keyed by product.
     trackCta("checkout-start", { lookupKey });
     try {
+      // A ?promo=CODE on the current URL (partner links, founder testing)
+      // rides along so the session arrives pre-discounted.
+      const promo = new URLSearchParams(window.location.search).get("promo");
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { lookup_key: lookupKey },
+        body: { lookup_key: lookupKey, ...(promo ? { promo_code: promo } : {}) },
       });
       if (error) throw error;
       if (!data?.url) throw new Error("Checkout session missing redirect URL");
       window.location.href = data.url;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Could not start checkout";
-      toast.error(msg);
+      console.error("create-checkout failed:", err);
+      toast.error(await friendlyCheckoutError(err));
       setSubmitting(false);
     }
   };

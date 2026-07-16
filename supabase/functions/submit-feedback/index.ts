@@ -22,15 +22,64 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const FEEDBACK_TO = "hello@edeninstitute.health";
 const FEEDBACK_FROM = "Eden Apothecary Feedback <hello@edeninstitute.health>";
 
+// Workstream B structured fields (Feature_Request_Intake_Spec.md). All are
+// optional so the legacy free-text payload keeps working; when present they
+// are validated against the same enums the DB CHECK constraints enforce
+// (area is FK-enforced against feedback_areas by the insert itself).
+const TYPES = ["bug", "feature", "improvement", "question"] as const;
+const IMPACTS = ["blocking", "major", "minor", "nice_to_have"] as const;
+const FREQUENCIES = ["always", "often", "sometimes", "once"] as const;
+
+interface StructuredFields {
+  type: string | null;
+  area: string | null;
+  subArea: string | null;
+  title: string | null;
+  description: string | null;
+  impact: string | null;
+  frequency: string | null;
+  attachmentUrl: string | null;
+}
+
 function validate(input: unknown):
-  | { ok: true; message: string; email: string | null; pageUrl: string | null; userAgent: string | null; context: Record<string, unknown> }
+  | { ok: true; message: string; email: string | null; pageUrl: string | null; userAgent: string | null; context: Record<string, unknown>; structured: StructuredFields }
   | { ok: false; error: string } {
   if (!input || typeof input !== "object") return { ok: false, error: "Invalid request body" };
-  const { message, email, pageUrl, userAgent, context } = input as Record<string, unknown>;
-  if (typeof message !== "string" || !message.trim()) {
+  const { message, email, pageUrl, userAgent, context, type, area, subArea, title, description, impact, frequency, attachmentUrl } =
+    input as Record<string, unknown>;
+
+  const str = (v: unknown, max: number): string | null =>
+    typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null;
+
+  const structured: StructuredFields = {
+    type: str(type, 20),
+    area: str(area, 40),
+    subArea: str(subArea, 80),
+    title: str(title, 140),
+    description: str(description, 5000),
+    impact: str(impact, 20),
+    frequency: str(frequency, 20),
+    attachmentUrl: str(attachmentUrl, 2000),
+  };
+  if (structured.type && !TYPES.includes(structured.type as typeof TYPES[number])) {
+    return { ok: false, error: "Invalid feedback type" };
+  }
+  if (structured.impact && !IMPACTS.includes(structured.impact as typeof IMPACTS[number])) {
+    return { ok: false, error: "Invalid impact value" };
+  }
+  if (structured.frequency && !FREQUENCIES.includes(structured.frequency as typeof FREQUENCIES[number])) {
+    return { ok: false, error: "Invalid frequency value" };
+  }
+
+  // message stays the durable NOT NULL narrative column: legacy payloads send
+  // it directly; structured payloads compose it from title + description.
+  const composed = typeof message === "string" && message.trim()
+    ? message.trim()
+    : [structured.title, structured.description].filter(Boolean).join("\n\n");
+  if (!composed) {
     return { ok: false, error: "Feedback message is required" };
   }
-  const trimmedMessage = message.trim();
+  const trimmedMessage = composed;
   if (trimmedMessage.length > 5000) return { ok: false, error: "Feedback is too long (5000 char max)" };
 
   let trimmedEmail: string | null = null;
@@ -47,7 +96,24 @@ function validate(input: unknown):
     ? (context as Record<string, unknown>)
     : {};
 
-  return { ok: true, message: trimmedMessage, email: trimmedEmail, pageUrl: trimmedPageUrl, userAgent: trimmedUserAgent, context: safeContext };
+  return { ok: true, message: trimmedMessage, email: trimmedEmail, pageUrl: trimmedPageUrl, userAgent: trimmedUserAgent, context: safeContext, structured };
+}
+
+// Tier auto-capture: resolved server-side from profiles so the submitter is
+// never asked for what the app already knows.
+async function resolveTier(userId: string | null): Promise<string | null> {
+  if (!userId) return null;
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${userId}&select=subscription_tier`,
+      { headers: { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` } },
+    );
+    if (!res.ok) return null;
+    const rows = await res.json().catch(() => []);
+    return rows?.[0]?.subscription_tier ?? null;
+  } catch (_err) {
+    return null;
+  }
 }
 
 async function resolveAuthUserId(req: Request): Promise<{ userId: string | null; userEmail: string | null }> {
@@ -86,9 +152,14 @@ function buildEmail(args: {
   userAgent: string | null;
   feedbackId: string;
   createdAt: string;
+  structured?: StructuredFields;
+  tier?: string | null;
 }): { subject: string; html: string; replyTo: string | null } {
   const reporter = args.reporterEmail || args.authUserEmail || null;
-  const subject = `[Apothecary feedback] ${args.message.slice(0, 60)}${args.message.length > 60 ? "…" : ""}`;
+  const s = args.structured;
+  const expedited = s?.area === "clinical_safety";
+  const typeTag = s?.type ? `[${s.type}] ` : "";
+  const subject = `[Apothecary feedback] ${expedited ? "⚠ CLINICAL/SAFETY — " : ""}${typeTag}${(s?.title ?? args.message).slice(0, 60)}${(s?.title ?? args.message).length > 60 ? "…" : ""}`;
   const messageHtml = escapeHtml(args.message).replace(/\n/g, "<br>");
   const html = `<!DOCTYPE html>
 <html><body style="font-family:Georgia,serif;background:#F5F0E8;padding:24px;">
@@ -101,6 +172,11 @@ function buildEmail(args: {
       <p style="font-size:13px;color:#6B6560;margin:0 0 4px 0;text-transform:uppercase;letter-spacing:1px;">Message</p>
       <div style="font-size:15px;color:#3D3832;line-height:1.6;background:#F5F0E8;border-left:3px solid #C5A44E;padding:16px 20px;margin:0 0 20px 0;">${messageHtml}</div>
       <table role="presentation" width="100%" style="font-size:13px;color:#3D3832;border-top:1px solid #E8E3DA;padding-top:16px;">
+        ${s?.type ? `<tr><td style="padding:4px 0;color:#6B6560;width:140px;">Type</td><td>${escapeHtml(s.type)}</td></tr>` : ""}
+        ${s?.area ? `<tr><td style="padding:4px 0;color:#6B6560;">Area</td><td>${escapeHtml(s.area)}${s.subArea ? " / " + escapeHtml(s.subArea) : ""}${expedited ? " — <strong>expedited triage</strong>" : ""}</td></tr>` : ""}
+        ${s?.impact ? `<tr><td style="padding:4px 0;color:#6B6560;">Impact</td><td>${escapeHtml(s.impact)}${s.frequency ? " · " + escapeHtml(s.frequency) : ""}</td></tr>` : ""}
+        ${args.tier ? `<tr><td style="padding:4px 0;color:#6B6560;">Tier</td><td>${escapeHtml(args.tier)}</td></tr>` : ""}
+        ${s?.attachmentUrl ? `<tr><td style="padding:4px 0;color:#6B6560;">Attachment</td><td>${escapeHtml(s.attachmentUrl)}</td></tr>` : ""}
         <tr><td style="padding:4px 0;color:#6B6560;width:140px;">Reporter email</td><td>${reporter ? escapeHtml(reporter) : "<em>(anonymous)</em>"}</td></tr>
         ${args.authUserEmail && args.authUserEmail !== args.reporterEmail ? `<tr><td style="padding:4px 0;color:#6B6560;">Auth user email</td><td>${escapeHtml(args.authUserEmail)}</td></tr>` : ""}
         <tr><td style="padding:4px 0;color:#6B6560;">Page URL</td><td>${args.pageUrl ? escapeHtml(args.pageUrl) : "<em>(none)</em>"}</td></tr>
@@ -161,6 +237,7 @@ Deno.serve(async (req) => {
     }
 
     const { userId, userEmail } = await resolveAuthUserId(req);
+    const tier = await resolveTier(userId);
 
     // STEP 1 — DURABLE WRITE (source of truth, must succeed)
     const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/feedback_submissions`, {
@@ -178,11 +255,25 @@ Deno.serve(async (req) => {
         user_agent: parsed.userAgent,
         auth_user_id: userId,
         context: { ...parsed.context, auth_user_email: userEmail },
+        type: parsed.structured.type,
+        area: parsed.structured.area,
+        sub_area: parsed.structured.subArea,
+        title: parsed.structured.title,
+        description: parsed.structured.description,
+        impact: parsed.structured.impact,
+        frequency: parsed.structured.frequency,
+        attachment_url: parsed.structured.attachmentUrl,
+        tier,
       }),
     });
     if (!insertRes.ok) {
       const errorText = await insertRes.text().catch(() => "");
       console.error("Feedback insert failed:", insertRes.status, errorText);
+      // An unknown area fails the FK — surface as a caller error, not a 500.
+      if (errorText.includes("feedback_submissions_area_fkey")) {
+        return new Response(JSON.stringify({ error: "Unknown feedback area" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
       return new Response(JSON.stringify({ error: "Could not save feedback. Please try again." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -200,6 +291,8 @@ Deno.serve(async (req) => {
       userAgent: parsed.userAgent,
       feedbackId,
       createdAt,
+      structured: parsed.structured,
+      tier,
     });
     await sendEmail(emailArgs);
 

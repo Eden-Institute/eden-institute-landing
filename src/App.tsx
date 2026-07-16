@@ -27,6 +27,7 @@ import HomeschoolWelcome from "./pages/HomeschoolWelcome";
 import Community from "./pages/Community";
 import TierTwoWaitlist from "./pages/TierTwoWaitlist";
 import FounderLeads from "./pages/FounderLeads";
+import PractitionerClinic from "./pages/PractitionerClinic";
 import { ApothecaryLayout } from "@/components/apothecary/ApothecaryLayout";
 import { RequireAuth } from "@/components/apothecary/RequireAuth";
 import { RequireTier } from "@/components/apothecary/RequireTier";
@@ -140,6 +141,18 @@ const App = () => (
                 element={
                   <RequireAuth>
                     <FounderLeads />
+                  </RequireAuth>
+                }
+              />
+              {/* Practitioner clinical workspace (Phase 3), launched 2026-07-09;
+                  linked from ApothecaryNav for practitioner-tier users. RequireAuth
+                  only: the practitioner-clinical EF enforces the tier + ownership
+                  boundary server-side (the only path to the clinical schema). */}
+              <Route
+                path={ROUTES.PRACTITIONER_CLINIC}
+                element={
+                  <RequireAuth>
+                    <PractitionerClinic />
                   </RequireAuth>
                 }
               />

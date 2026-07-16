@@ -29,12 +29,9 @@
  * Start.tsx is canonically correct (matches Manual v4.1 §0.8). Two
  * additions: (1) a person-profile bullet on Seed (cap = 5) and Root
  * (cap = 10) since multi-profile is the killer feature distinguishing
- * paid tiers from Free; (2) a new Practitioner card framed as
- * "clinical-grade" (NOT "premium"), with no public price — waitlist
- * only until end of 2027.
- *
- * Practitioner copy here is provisional; Camila has the final word on
- * Practitioner public copy and may redirect after seeing it rendered.
+ * paid tiers from Free; (2) a Practitioner card framed as
+ * "clinical-grade" (NOT "premium"), launched 2026-07-09 at the
+ * founding rate ($49.99/mo, reg. $59.99), locked for life.
  *
  * If this file is updated in the future, the corresponding Manual
  * section MUST be updated in lockstep — the landing page is the public
@@ -58,15 +55,16 @@ export interface PublicTierSpec {
   /** One-line tagline shown under the tier name. */
   tagline: string;
   /**
-   * Public price string (e.g. "$7.99"). Practitioner returns null —
-   * waitlist-gated until end of 2027 per founder direction; no public
-   * price is committed to.
+   * Public price string (e.g. "$7.99"). Practitioner shows its founding
+   * monthly rate ("$49.99"); the launched-tier detail lives in
+   * `availability`.
    */
   monthlyPrice: string | null;
   /**
    * Availability / cadence subtitle under the price. For Free this
    * reads "free for as long as you'd like"; for Seed/Root, "per month";
-   * for Practitioner, "Waitlist now · opens end of 2027".
+   * for Practitioner, the founding-rate line ("Open now · founding rate
+   * $49.99/mo (reg. $59.99), locked for life").
    */
   availability: string;
   /**
@@ -76,12 +74,6 @@ export interface PublicTierSpec {
    * precedent.
    */
   features: readonly string[];
-  /**
-   * True for waitlist-gated tiers. The TierCard renders a waitlist CTA
-   * (modal trigger) instead of a checkout / signup link. Today only
-   * Practitioner uses this branch.
-   */
-  waitlist?: boolean;
 }
 
 export const PUBLIC_TIERS: readonly PublicTierSpec[] = [
@@ -93,7 +85,7 @@ export const PUBLIC_TIERS: readonly PublicTierSpec[] = [
     monthlyPrice: "$0",
     availability: "Available now · free for as long as you'd like",
     features: [
-      "All 100 herb monographs (basic profile)",
+      "All 300 herb monographs (basic profile)",
       "The Pattern of Eden quiz + your result",
       "The Five Tenets overview",
       "Pregnancy, lactation, and absolute cautions",
@@ -104,14 +96,14 @@ export const PUBLIC_TIERS: readonly PublicTierSpec[] = [
     displayName: "Seed",
     persona: "The serious student",
     tagline:
-      "Clinical depth — actions, tissue states, constitutional matches.",
+      "Clinical depth: actions, tissue states, Pattern matches.",
     monthlyPrice: "$7.99",
     availability: "Available now · per month",
     features: [
       "Unlock the clinical body of every monograph",
       "Tissue state indications and energetic actions",
-      "Western, Ayurvedic, and TCM constitutional overlays plus Pattern of Eden",
-      "Save your constitutional result and revisit it",
+      "Western, Ayurvedic, and TCM lenses plus Pattern of Eden",
+      "Save your Pattern result and revisit it",
       "Create up to 5 person-profiles for yourself and family members. Each profile holds its own pattern; switching profiles surfaces matched herbs for that profile's pattern.",
     ],
   },
@@ -134,18 +126,16 @@ export const PUBLIC_TIERS: readonly PublicTierSpec[] = [
     id: "practitioner",
     displayName: "Practitioner",
     persona: "The clinical herbalist",
-    tagline: "Clinical-grade workflow for the practicing clinician.",
-    monthlyPrice: null,
-    availability: "Waitlist now · opens end of 2027",
-    waitlist: true,
+    tagline: "See a patient, read their pattern, and hand them a safe, cited plan before they leave the room.",
+    monthlyPrice: "$49.99",
+    availability: "Open now · founding rate $49.99/mo (reg. $59.99), locked for life",
     features: [
       "Everything in Root",
-      "Clinical formulary builder",
-      "Multi-system terrain analysis",
-      "Session notes and exportable PDFs",
-      "Recipe prescriptions, dosing guidance, and blends",
-      "Up to 500 person-profiles for full clinical caseload",
-      "Founding pricing announced to the waitlist first",
+      "One-screen clinical matching: the patient's pattern to a safety-screened herb list in seconds",
+      "Red-flag screening runs first, so referral cases never become herb cases",
+      "All four lenses on every herb: Pattern of Eden, Western, Ayurvedic, TCM, each claim backed by two named sources",
+      "Encounters, SOAP notes, formulary builder with dosing, printable case files",
+      "Up to 500 patient profiles for a full clinical caseload",
     ],
   },
 ] as const;

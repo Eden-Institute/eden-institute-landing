@@ -29,7 +29,7 @@ const Results = () => {
   const { constitutionSlug } = useParams<{ constitutionSlug: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { data: tier } = useCurrentTier();
+  const { data: tier, isLoading: tierLoading } = useCurrentTier();
   const isSubscriber = isSubscriberTier(tier);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState("");
@@ -168,9 +168,9 @@ const Results = () => {
           <p className="font-body text-lg mb-8" style={{ color: "#1C3A2E" }}>
             We couldn't find that body pattern. Take the Pattern of Eden quiz to find yours.
           </p>
-          <Link to={ROUTES.ASSESSMENT}>
-            <Button variant="eden" size="xl">Take the Pattern of Eden Quiz</Button>
-          </Link>
+          <Button variant="eden" size="xl" className="whitespace-normal h-auto py-3" asChild>
+            <Link to={ROUTES.ASSESSMENT}>Take the Pattern of Eden Quiz</Link>
+          </Button>
         </div>
       </div>
     );
@@ -178,6 +178,24 @@ const Results = () => {
 
   // PR η fix #4: short Pattern label without leading "The".
   const patternShort = profile.nickname.replace(/^The\s+/i, "");
+
+  // The /results redirect (above) points a signed-in user at their ACTIVE
+  // profile's Pattern slug, which may be a patient or family member rather
+  // than the user. Only label the header with that profile's name once the
+  // displayed slug actually matches their resolved Pattern, so a practitioner
+  // viewing a patient's Pattern never sees it framed as "Your".
+  const activeProfileName =
+    activeProfile &&
+    !activeProfile.is_self &&
+    activePattern &&
+    patternNameToSlug(activePattern) === constitutionSlug
+      ? activeProfile.name
+      : null;
+
+  // Suppress the Seed upsell until the tier query resolves so it never
+  // flashes at a signed-in practitioner (the top tier sees no upsells).
+  // Anon visitors have no tier query blocking them and still see it at once.
+  const showSeedUpsell = !isSubscriber && (!user || !tierLoading);
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F5F0E8" }}>
@@ -192,7 +210,7 @@ const Results = () => {
         {/* Type Header */}
         <div className="text-center mb-12">
           <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>
-            Your Body Pattern
+            {activeProfileName ? `${activeProfileName}'s Body Pattern` : "Your Body Pattern"}
           </span>
           <h1 className="font-serif text-4xl md:text-5xl font-bold mt-4 mb-2" style={{ color: "#1C3A2E" }}>
             {profile.nickname}
@@ -225,7 +243,7 @@ const Results = () => {
               Continue to the Apothecary
             </Button>
             <p className="font-body text-xs text-center mt-3" style={{ color: "hsl(30, 10%, 40%, 0.7)" }}>
-              Your full directory of 100 herbs, with match badges based on your Pattern.
+              Your full directory of 300 herbs, with match badges based on your Pattern.
             </p>
           </div>
         )}
@@ -256,7 +274,7 @@ const Results = () => {
                   <span className="underline underline-offset-4">Read the monograph</span>
                   {" →"}
                 </p>
-                {!isSubscriber && (
+                {showSeedUpsell && (
                   <p className="font-body text-xs mt-1" style={{ color: "hsl(30, 10%, 40%, 0.7)" }}>
                     The full clinical study opens with Seed.
                   </p>
@@ -269,7 +287,7 @@ const Results = () => {
         {/* Seed subscription — primary conversion CTA. Depth-led (Seed = full
             clinical study) and Pattern-personalized. Shown to non-subscribers;
             forest-filled so it reads as the dominant action above the guide. */}
-        {!isSubscriber && (
+        {showSeedUpsell && (
           <div className="p-6 md:p-8 border-2 rounded mb-8" style={{ borderColor: "#C9A84C", backgroundColor: "#1C3A2E" }}>
             <p className="font-accent text-xs tracking-[0.3em] uppercase mb-2" style={{ color: "#C9A84C" }}>
               See the clinical why
@@ -278,7 +296,7 @@ const Results = () => {
               Unlock the full clinical study for your {patternShort}.
             </h2>
             <p className="font-body text-base leading-relaxed mb-6" style={{ color: "rgba(245,240,232,0.85)" }}>
-              Seed opens how each of the 100 herbs acts in the body, which ones suit your {patternShort} pattern and why, and how to use them safely. Actions, tissue states, energetics, and the full contraindication library.
+              Seed opens how each of the 300 herbs acts in the body, which ones suit your {patternShort} pattern and why, and how to use them safely. Actions, tissue states, energetics, and the full contraindication library.
             </p>
             <Button
               variant="eden"
@@ -300,7 +318,9 @@ const Results = () => {
         {user ? (
           <div className="text-center mb-12">
             <p className="font-accent text-sm tracking-[0.2em] uppercase mb-1" style={{ color: "#C9A84C" }}>
-              Your Pattern is saved to your account
+              {activeProfileName
+                ? `${activeProfileName}'s Pattern is saved to your account`
+                : "Your Pattern is saved to your account"}
             </p>
           </div>
         ) : (
@@ -309,14 +329,19 @@ const Results = () => {
               Save this Pattern to a free account so you can come back to it
               any time, and keep a study list of the herbs that fit it.
             </p>
-            <Link
-              to={`${ROUTES.APOTHECARY_SIGNUP}?return_to=${encodeURIComponent(`/results/${constitutionSlug}`)}`}
+            <Button
+              variant="eden"
+              size="lg"
+              className="w-full whitespace-normal h-auto py-3 leading-snug min-h-[44px]"
+              asChild
               data-cta="results-create-account"
             >
-              <Button variant="eden" size="lg">
+              <Link
+                to={`${ROUTES.APOTHECARY_SIGNUP}?return_to=${encodeURIComponent(`/results/${constitutionSlug}`)}`}
+              >
                 Create a free account to save your Pattern
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
         )}
 

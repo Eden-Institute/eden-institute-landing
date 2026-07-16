@@ -1,14 +1,11 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 import { PUBLIC_TIERS, type PublicTierSpec } from "@/lib/apothecaryTiers";
-import PractitionerWaitlistModal from "@/components/landing/PractitionerWaitlistModal";
 
 interface TierCardProps {
   tier: PublicTierSpec;
-  onPractitionerWaitlist: () => void;
 }
 
 /**
@@ -19,30 +16,29 @@ interface TierCardProps {
  *   - Seed / Root   → /apothecary/pricing?tier={id} (preselects on the
  *                     auth-aware subscribe flow; matches PR #51 v3.33
  *                     wiring used by PublicTierCard).
- *   - Practitioner  → opens PractitionerWaitlistModal in place. Matches
- *                     the PR ι (iota) dual-CTA pattern in Navbar so the
- *                     waitlist conversion path is single-click on every
- *                     surface that exposes the Practitioner tier.
+ *   - Practitioner  → /apothecary/pricing#tier-practitioner, the
+ *                     founding-rate checkout (tier launched 2026-07-09).
  *
  * Anchor id="tier-{id}" preserves deep-link compatibility with the
  * existing useTierAwareCTA upgrade slot hrefs (e.g. #tier-seed,
  * #tier-root) that have shipped in production.
  */
-function TierCard({ tier, onPractitionerWaitlist }: TierCardProps) {
+function TierCard({ tier }: TierCardProps) {
   const isPractitioner = tier.id === "practitioner";
   const isFree = tier.id === "free";
 
   let cta: React.ReactNode;
   if (isPractitioner) {
+    // Launched 2026-07-09 (Lock #89 seam opened by founder): the card sends
+    // straight to the founding-rate checkout on the pricing page.
     cta = (
-      <Button
-        variant="eden-outline"
-        size="lg"
-        className="w-full"
-        onClick={onPractitionerWaitlist}
-        data-cta={`tier-comparison-${tier.id}`}
-      >
-        About the Practitioner Tier
+      <Button variant="eden" size="lg" className="w-full" asChild>
+        <Link
+          to={`${ROUTES.APOTHECARY_PRICING}#tier-practitioner`}
+          data-cta={`tier-comparison-${tier.id}`}
+        >
+          Claim your founding rate
+        </Link>
       </Button>
     );
   } else if (isFree) {
@@ -94,21 +90,12 @@ function TierCard({ tier, onPractitionerWaitlist }: TierCardProps) {
         {tier.tagline}
       </p>
       <div className="mb-2">
-        {tier.monthlyPrice ? (
-          <span
-            className="font-serif text-4xl font-bold"
-            style={{ color: "hsl(var(--eden-bark))" }}
-          >
-            {tier.monthlyPrice}
-          </span>
-        ) : (
-          <span
-            className="font-serif text-2xl font-semibold"
-            style={{ color: "hsl(var(--eden-bark))" }}
-          >
-            Coming soon
-          </span>
-        )}
+        <span
+          className="font-serif text-4xl font-bold"
+          style={{ color: "hsl(var(--eden-bark))" }}
+        >
+          {tier.monthlyPrice}
+        </span>
       </div>
       <p className="font-body text-xs text-muted-foreground mb-6 leading-relaxed">
         {tier.availability}
@@ -165,8 +152,6 @@ export function TierComparison({
   lead,
   background = "background",
 }: TierComparisonProps = {}) {
-  const [waitlistOpen, setWaitlistOpen] = useState(false);
-
   const bgColor =
     background === "cream"
       ? "hsl(var(--eden-cream))"
@@ -199,24 +184,15 @@ export function TierComparison({
           </h2>
           <p className="font-body text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
             {lead ??
-              "All hundred herbs at every tier. Depth is what you unlock. Free stays free. Practitioner is clinical-grade and opens end of 2027."}
+              "All hundred herbs at every tier. Depth is what you unlock. Free stays free. Practitioner, the full clinical workspace, is open now at a founding rate."}
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {PUBLIC_TIERS.map((tier) => (
-            <TierCard
-              key={tier.id}
-              tier={tier}
-              onPractitionerWaitlist={() => setWaitlistOpen(true)}
-            />
+            <TierCard key={tier.id} tier={tier} />
           ))}
         </div>
       </div>
-      <PractitionerWaitlistModal
-        open={waitlistOpen}
-        onOpenChange={setWaitlistOpen}
-        surface="tier_comparison_practitioner"
-      />
     </section>
   );
 }

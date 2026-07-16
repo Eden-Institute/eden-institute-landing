@@ -13,15 +13,12 @@ import type { EdenPatternName } from "@/lib/edenPattern";
  * whether they've already purchased the Deep-Dive Guide for their
  * Pattern.
  *
- * PR η fix #4: shortened the journey-step "guide" label from
- *   "Get your <Pattern> Deep-Dive Guide — $14"
- * to
- *   "Get the <Pattern> Guide — $14"
+ * Guide labels are kept short ("Get the <Pattern> Guide ($4.99)")
  * because the longer pattern names (OVERFLOWING CUP, SPENT CANDLE,
- * BURNING BOWSTRING) overflowed the JourneyCTA primary button on a
- * 375px viewport once the eden Button variant uppercased + tracked
- * the label. Same change applied to the value-ladder consumer in
- * src/pages/Index.tsx so both surfaces stay in lockstep.
+ * BURNING BOWSTRING) overflow the JourneyCTA primary button on a
+ * 375px viewport once the eden Button variant uppercases + tracks
+ * the label. The value-ladder consumer in src/pages/Index.tsx stays
+ * in lockstep.
  */
 
 export type SubscriptionTier = "free" | "seed" | "root" | "practitioner";
@@ -39,7 +36,7 @@ export type JourneyKind =
   | "guide"
   | "upgrade-seed"
   | "upgrade-root"
-  | "practitioner-waitlist"
+  | "upgrade-practitioner"
   | "terminal";
 
 export interface JourneyStep extends TierAwareCTA {
@@ -61,7 +58,8 @@ export interface TierAwareCTAs {
 export interface ComputeTierAwareCTAsArgs {
   hasUser: boolean;
   pattern: EdenPatternName | null;
-  tier: SubscriptionTier | null;
+  /** Resolved tier; `undefined` while the tier query is still loading. */
+  tier: SubscriptionTier | null | undefined;
   guidePurchased: boolean;
   amazonKitUrl: string | null;
 }
@@ -76,39 +74,48 @@ export function computeTierAwareCTAs(
   const hasPattern = !!pattern;
 
   // ─── Upgrade CTA ───
+  // Practitioner is the top tier: no upsell, ever. Short-circuit before the
+  // no-Pattern branch so a signed-in practitioner who never took the consumer
+  // quiz doesn't get a "Take the quiz" nav pill. While the tier query is still
+  // resolving for a signed-in user (tier === undefined) suppress the slot too,
+  // so a practitioner never flashes an upsell before their tier snaps in.
+  // Genuinely anonymous visitors (hasUser === false) still get the quiz CTA.
   let upgrade: TierAwareCTA | null;
-  if (!hasUser || !hasPattern) {
+  if (tier === "practitioner") {
+    upgrade = null;
+  } else if (hasUser && tier === undefined) {
+    upgrade = null;
+  } else if (!hasUser || !hasPattern) {
     upgrade = {
-      label: "Take the Quiz — see your Pattern",
+      label: "Take the Quiz: see your Pattern",
       shortLabel: "Take the quiz",
       href: ROUTES.ASSESSMENT,
     };
   } else if (tier === "seed") {
     upgrade = {
-      label: "Upgrade to Root — up to 10 family profiles + deeper diagnostic",
-      shortLabel: "Upgrade to Root",
+      label: "Unlock drug interactions, source citations, and profiles for your whole circle",
+      shortLabel: "Go deeper",
       href: "/apothecary/pricing#tier-root",
     };
   } else if (tier === "root") {
     upgrade = {
       label:
-        "Join the Practitioner Waitlist — clinical formulas + dose schedules + contraindications",
-      shortLabel: "Practitioner waitlist",
-      href: "/apothecary#practitioner-waitlist",
-    };
-  } else if (tier === "free" || tier === null) {
-    upgrade = {
-      label:
-        "Upgrade to Seed — full clinical study for all 100 herbs",
-      shortLabel: "Upgrade to Seed",
-      href: "/apothecary/pricing#tier-seed",
+        "Go Practitioner: one-screen clinical matching, formulary builder, case files. Founding rate locked for life",
+      shortLabel: "Go Practitioner",
+      href: "/apothecary/pricing#tier-practitioner",
     };
   } else {
-    upgrade = null;
+    // free / anon (resolved)
+    upgrade = {
+      label:
+        "Unlock the full clinical picture: actions, tissue states, and safety for all 300 herbs",
+      shortLabel: "Unlock more",
+      href: "/apothecary/pricing#tier-seed",
+    };
   }
 
   // ─── Guide CTA ───
-  // PR η fix #4: "Get the <Pattern> Guide — $14" canonical label.
+  // Canonical label: "Get the <Pattern> Guide ($4.99)".
   let guide: TierAwareCTA;
   if (!hasUser || !hasPattern || !pattern) {
     guide = {
@@ -125,7 +132,7 @@ export function computeTierAwareCTAs(
       };
     } else {
       guide = {
-        label: `Get the ${patternShort} Guide — $4.99`,
+        label: `Get the ${patternShort} Guide ($4.99)`,
         href: `/guide/${slug}`,
       };
     }
@@ -149,41 +156,44 @@ export function computeTierAwareCTAs(
   // Seed there), but it no longer occupies the dominant homepage/Account slot,
   // so the highest-traffic surfaces steer toward recurring LTV.
   let next: JourneyStep;
-  if (!hasUser || !hasPattern || !pattern) {
-    next = {
-      label: "Take the free Pattern quiz",
-      href: ROUTES.ASSESSMENT,
-      kind: "quiz",
-    };
-  } else if (tier === "free" || tier === null) {
-    next = {
-      label: "Upgrade to Seed — full clinical study for all 100 herbs",
-      href: "/apothecary/pricing#tier-seed",
-      kind: "upgrade-seed",
-    };
-  } else if (tier === "seed") {
-    next = {
-      label: "Upgrade to Root — up to 10 family profiles + deeper diagnostic",
-      href: "/apothecary/pricing#tier-root",
-      kind: "upgrade-root",
-    };
-  } else if (tier === "root") {
-    next = {
-      label: "Join the Practitioner waitlist",
-      href: "/apothecary#practitioner-waitlist",
-      kind: "practitioner-waitlist",
-    };
-  } else {
+  if (tier === "practitioner" || (hasUser && tier === undefined)) {
+    // Top tier (or tier still resolving for a signed-in user): no upsell or
+    // quiz step. Send them into the app instead of flashing an upgrade CTA.
     next = {
       label: "Open your Apothecary",
       href: ROUTES.APOTHECARY,
       kind: "terminal",
     };
+  } else if (!hasUser || !hasPattern || !pattern) {
+    next = {
+      label: "Take the free Pattern quiz",
+      href: ROUTES.ASSESSMENT,
+      kind: "quiz",
+    };
+  } else if (tier === "seed") {
+    next = {
+      label: "Unlock drug interactions, source citations, and profiles for your whole circle",
+      href: "/apothecary/pricing#tier-root",
+      kind: "upgrade-root",
+    };
+  } else if (tier === "root") {
+    next = {
+      label: "Go Practitioner at the founding rate",
+      href: "/apothecary/pricing#tier-practitioner",
+      kind: "upgrade-practitioner",
+    };
+  } else {
+    // free / anon (resolved): steer toward the entry subscription.
+    next = {
+      label: "Unlock the full clinical picture: actions, tissue states, and safety for all 300 herbs",
+      href: "/apothecary/pricing#tier-seed",
+      kind: "upgrade-seed",
+    };
   }
 
   const course: TierAwareCTA = {
     label: hasUser
-      ? "Continue your studies — The Foundations Course"
+      ? "Continue your studies: The Foundations Course"
       : "Begin the Foundations Course",
     href: FOUNDATIONS_COURSE_URL,
     external: true,
@@ -217,7 +227,10 @@ export function useTierAwareCTA(): TierAwareCTAs {
   return computeTierAwareCTAs({
     hasUser: !!user,
     pattern: pattern ?? null,
-    tier: (tier as SubscriptionTier | null) ?? null,
+    // Pass the tier through untouched: `undefined` means the tier query is
+    // still loading, which the state machine distinguishes from resolved-free
+    // so top-tier users never see an upsell flash.
+    tier: tier as SubscriptionTier | undefined,
     guidePurchased,
     amazonKitUrl,
   });

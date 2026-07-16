@@ -140,7 +140,7 @@ function AxisSpectrum({ axisLabel, leftLabel, rightLabel, position, isInconclusi
       <div className="flex items-baseline justify-between mb-1.5">
         <span className="font-accent text-xs tracking-[0.15em] uppercase" style={{ color: "#1C3A2E" }}>{leftLabel}</span>
         <span className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: isInconclusive ? "#C9A84C" : "hsl(30, 10%, 40%)" }}>
-          {axisLabel}{isInconclusive ? " — balanced" : ""}
+          {axisLabel}{isInconclusive ? " – balanced" : ""}
         </span>
         <span className="font-accent text-xs tracking-[0.15em] uppercase" style={{ color: "#1C3A2E" }}>{rightLabel}</span>
       </div>
@@ -501,7 +501,7 @@ const Assessment = () => {
     const typo = checkEmail(email);
     if (typo.invalid && typo.suggestion) {
       setEmailSuggestion(typo.suggestion);
-      setError("That email address looks misspelled — please check it.");
+      setError("That email address looks misspelled, please check it.");
       return;
     }
     setLoading(true);
@@ -697,8 +697,8 @@ const Assessment = () => {
             <AxisSpectrum axisLabel="Tone" leftLabel="Tense" rightLabel="Relaxed" position={axisPositions.tone} isInconclusive={neutralAxes.includes("tone")} />
           </div>
           <div className="space-y-5 mb-10 text-left">
-            <p className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>You answered the original twelve questions and the targeted follow-ups for the {neutralAxes.length === 1 ? "axis" : "axes"} that didn't resolve. {neutralAxes.length === 1 ? (<>Your <strong>{neutralAxes[0]}</strong> axis still sits balanced — neither side dominant.</>) : (<>Multiple axes still sit balanced (<strong>{neutralAxes.join(", ")}</strong>) — neither side dominant on each.</>)}</p>
-            <p className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>This is itself a clinical category — not a quiz failure. Some constitutions are genuinely balanced on an axis, and the deeper diagnostic at the Practitioner tier (40 questions across four classical Western frameworks) is built to resolve cases like yours.</p>
+            <p className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>You answered the original twelve questions and the targeted follow-ups for the {neutralAxes.length === 1 ? "axis" : "axes"} that didn't resolve. {neutralAxes.length === 1 ? (<>Your <strong>{neutralAxes[0]}</strong> axis still sits balanced, neither side dominant.</>) : (<>Multiple axes still sit balanced (<strong>{neutralAxes.join(", ")}</strong>), neither side dominant on each.</>)}</p>
+            <p className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>This is itself a clinical category, not a quiz failure. Some patterns are genuinely balanced on an axis, and the deeper diagnostic at the Practitioner tier (40 questions across four classical Western frameworks) is built to resolve cases like yours.</p>
           </div>
           {/* Lock #56 — capture form so a Genuinely Balanced result no longer
               dead-ends without an email. Marketing surface only; the in-app
@@ -706,7 +706,7 @@ const Assessment = () => {
           {!diagnosticMode && (
             <div className="p-8 border rounded mb-8" style={{ borderColor: "hsl(40, 20%, 80%)", backgroundColor: "white" }}>
               <h3 className="font-serif text-xl font-bold mb-2 text-center" style={{ color: "#1C3A2E" }}>Save your reading</h3>
-              <p className="font-body text-sm mb-6 text-center" style={{ color: "hsl(30, 10%, 40%)" }}>Enter your name and email — we'll save your balanced reading and let you know when the deeper Practitioner-tier diagnostic opens.</p>
+              <p className="font-body text-sm mb-6 text-center" style={{ color: "hsl(30, 10%, 40%)" }}>Enter your name and email. We'll save your balanced reading and let you know when the deeper Practitioner-tier diagnostic opens.</p>
               <form onSubmit={handleBalancedSubmit} className="space-y-4 text-left">
                 <div>
                   <label className="block font-accent text-xs tracking-[0.2em] uppercase mb-2" style={{ color: "hsl(30, 10%, 40%)" }}>First Name</label>
@@ -729,8 +729,8 @@ const Assessment = () => {
       {phase === "balanced-thanks" && (
         <div className="max-w-xl mx-auto px-6 py-16 text-center">
           <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>Reading Saved</span>
-          <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-6" style={{ color: "#1C3A2E" }}>Thanks — your reading is captured.</h2>
-          <p className="font-body text-base leading-relaxed mb-8" style={{ color: "#1C3A2E" }}>Your terrain is genuinely balanced, which is its own clinical category. We've saved your email and will reach out when the deeper Practitioner-tier diagnostic — built to resolve balanced cases like yours — becomes available.</p>
+          <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-6" style={{ color: "#1C3A2E" }}>Thanks, your reading is captured.</h2>
+          <p className="font-body text-base leading-relaxed mb-8" style={{ color: "#1C3A2E" }}>Your terrain is genuinely balanced, which is its own clinical category. We've saved your email, and the deeper diagnostic, built to resolve balanced cases like yours, is part of the Practitioner tier. We'll let you know when it opens.</p>
           <Button variant="eden" size="lg" onClick={() => navigate(ROUTES.HOME)}>Back to home</Button>
         </div>
       )}

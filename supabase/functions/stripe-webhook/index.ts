@@ -263,6 +263,72 @@ serve(async (req) => {
 
 // ---------- Subscription handlers (unchanged from prior version) ----------
 
+// Log promotion-code redemptions to public.partner_referrals so each
+// partner's code doubles as their sales counter. Upserts on subscription_id
+// (subscription.updated re-touches the row with current status).
+async function recordPartnerReferral(
+  subscription: Stripe.Subscription,
+  tier: string,
+  lookupKey: string | null,
+) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const subAny = subscription as any
+  const discounts = [
+    subAny.discount,
+    ...(Array.isArray(subAny.discounts) ? subAny.discounts : []),
+  ].filter((d) => d && typeof d === "object")
+  const promoRef = discounts
+    .map((d) => d.promotion_code)
+    .find((p) => p != null)
+  if (!promoRef) return
+
+  const promoId = typeof promoRef === "string" ? promoRef : promoRef.id
+  let code = typeof promoRef === "object" && promoRef?.code ? promoRef.code : null
+  let couponId: string | null = null
+  try {
+    const promo = await stripe.promotionCodes.retrieve(promoId)
+    code = promo.code
+    couponId = typeof promo.coupon === "string" ? promo.coupon : promo.coupon?.id ?? null
+  } catch (err) {
+    console.warn(
+      `promotionCodes.retrieve(${promoId}) failed: ` +
+        (err instanceof Error ? err.message : String(err)),
+    )
+  }
+  if (!code) code = promoId
+
+  let email: string | null = null
+  try {
+    const customer = typeof subscription.customer === "string"
+      ? await stripe.customers.retrieve(subscription.customer)
+      : subscription.customer
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    email = (customer as any)?.email ?? null
+  } catch (_err) {
+    // email is enrichment only
+  }
+
+  const { error } = await adminClient.from("partner_referrals").upsert(
+    {
+      subscription_id: subscription.id,
+      promo_code: code,
+      promo_code_id: promoId,
+      coupon_id: couponId,
+      customer_email: email,
+      tier,
+      lookup_key: lookupKey,
+      status: subscription.status,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "subscription_id" },
+  )
+  if (error) throw new Error(error.message)
+  console.log(
+    `partner referral logged: code=${code} sub=${subscription.id} tier=${tier}`,
+  )
+}
+
+
 async function reconcileSubscription(subscription: Stripe.Subscription) {
   let fresh: Stripe.Subscription
   try {
@@ -303,6 +369,18 @@ async function reconcileSubscription(subscription: Stripe.Subscription) {
     current_period_start: toIso(periodStart),
     current_period_end: toIso(periodEnd),
     cancel_at_period_end: fresh.cancel_at_period_end,
+  }
+
+  // Partner attribution (2026-07-09): if this subscription redeemed a
+  // promotion code, log it — the per-partner code IS the attribution.
+  // Best-effort: a referral-log failure must never block tier reconcile.
+  try {
+    await recordPartnerReferral(fresh, tier, priceLookupKey)
+  } catch (err) {
+    console.error(
+      `partner referral log failed for ${fresh.id}: ` +
+        (err instanceof Error ? err.message : String(err)),
+    )
   }
 
   const { error } = await adminClient
