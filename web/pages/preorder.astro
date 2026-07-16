@@ -22,9 +22,63 @@ const meta = {
     "Preorder the Sprouts (K-2) Biblical herbalism curriculum at the founding price. $100 below retail on the complete kit, founding-member status, estimated ship window " + SHIP_WINDOW + ".",
   canonical: "https://edeninstitute.health/preorder",
 };
+
+// Product spec blocks (ESA vendor readiness): grade/subject/format/length/SKU/
+// price/objectives must be visible on the product page for state Education
+// Savings Account reviewers. Prices and SKUs must stay in sync with
+// supabase/functions/_shared/order-config.ts (kit 24900, notebook 1900).
+const productSpecs = [
+  {
+    name: "Eden's Table: Sprouts Complete Kit",
+    sku: "sprouts_kit",
+    priceUsd: "249.00",
+    rows: [
+      ["Grade level", "K-2"],
+      ["Subject", "Science and nature study (botany), with integrated reading, mathematics, history, geography, art, and health"],
+      ["Format", "Physical, six-component boxed curriculum"],
+      ["Length", "36 weeks, 6 units, 180 daily lessons"],
+      ["SKU", "sprouts_kit"],
+      ["Price", "$249 (current founding price)"],
+    ],
+    objectives:
+      "Grades K-2 science and nature study (botany, plant identification, and observation), integrating reading, mathematics, history, and geography. Across 36 weeks and 180 daily lessons, students identify 36 herbs by common and botanical name, record 36 labeled botanical drawings, complete 36 hands-on kitchen-lab observations, and build a 180-word vocabulary. Delivered as a single, complete course of study containing all required materials (a 240-page Teacher's Guide with daily lesson plans and scope and sequence, a 224-page student notebook, the Around the Table Read-Aloud storybook, and three instructional card sets), so the curriculum can be taught with no additional purchase.",
+  },
+  {
+    name: "Eden's Table: Sprouts Student Notebook",
+    sku: "sprouts_notebook",
+    priceUsd: "19.00",
+    rows: [
+      ["Grade level", "K-2"],
+      ["Subject", "Science and nature study workbook"],
+      ["Format", "Physical, single consumable workbook, 224 pages"],
+      ["Length", "36 weeks, 180 daily pages"],
+      ["SKU", "sprouts_notebook"],
+      ["Price", "$19.00 (current founding price)"],
+    ],
+    objectives:
+      "Grades K-2 science and nature-study workbook. This 224-page consumable student notebook guides students through 180 daily pages of structured recording: 36 labeled botanical drawings, 36 documented kitchen-lab observations, weekly vocabulary practice, and 36 written weekly reviews, building skills in observation, classification, and scientific recording. A standalone instructional workbook that pairs with the Sprouts curriculum or supports any K-2 nature-study course.",
+  },
+];
+
+const productJsonLd = productSpecs.map((p) => ({
+  "@context": "https://schema.org",
+  "@type": "Product",
+  name: p.name,
+  sku: p.sku,
+  description: p.objectives,
+  brand: { "@type": "Brand", name: "Eden's Table" },
+  offers: {
+    "@type": "Offer",
+    price: p.priceUsd,
+    priceCurrency: "USD",
+    availability: "https://schema.org/PreOrder",
+    url: meta.canonical,
+    seller: { "@type": "Organization", name: "Rooted in Faith Ventures LLC" },
+  },
+}));
 ---
 
-<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical}>
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} jsonLd={productJsonLd}>
   {/* HERO */}
   <section class="pt-20 pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
     <div class="max-w-3xl mx-auto text-center">
@@ -47,6 +101,37 @@ const meta = {
   <section class="py-12 px-6 bg-background">
     <div class="max-w-5xl mx-auto">
       <PreorderBuyBox client:only="react" />
+    </div>
+  </section>
+
+  {/* CURRICULUM SPECIFICATIONS — ESA vendor readiness. One spec block per
+      product, adjacent to the buy box so reviewers see grade level, subject,
+      format, length, SKU, price, and educational objectives without digging. */}
+  <section class="py-12 px-6 bg-background">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="font-serif text-2xl font-bold mb-2 text-center" style="color:hsl(var(--eden-bark))">
+        Curriculum specifications
+      </h2>
+      <p class="font-body text-sm text-muted-foreground text-center mb-8">
+        Eden's Table is published by Rooted in Faith Ventures LLC.
+      </p>
+      <div class="grid gap-6 md:grid-cols-2 items-start">
+        {productSpecs.map((product) => (
+          <div class="rounded-lg p-6 bg-white border h-full" style="border-color:hsl(var(--eden-gold) / 0.3)">
+            <h3 class="font-serif text-xl font-bold mb-4" style="color:hsl(var(--eden-forest))">{product.name}</h3>
+            <dl class="space-y-2 mb-4">
+              {product.rows.map(([label, value]) => (
+                <div class="flex flex-col sm:flex-row sm:gap-2 text-sm font-body">
+                  <dt class="font-semibold shrink-0 sm:w-28" style="color:hsl(var(--eden-bark))">{label}</dt>
+                  <dd class="text-muted-foreground">{value}</dd>
+                </div>
+              ))}
+            </dl>
+            <p class="font-serif text-sm font-bold mb-1" style="color:hsl(var(--eden-forest))">Educational objectives</p>
+            <p class="font-body text-sm text-muted-foreground leading-relaxed">{product.objectives}</p>
+          </div>
+        ))}
+      </div>
     </div>
   </section>
 

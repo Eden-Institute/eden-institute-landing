@@ -1,0 +1,88 @@
+---
+// /contact — Contact / Customer Service (ESA vendor readiness). Static Astro
+// page linked from the main navigation, so state ESA program reviewers can
+// match the Eden's Table brand to the legal publisher (Rooted in Faith
+// Ventures LLC) and reach a real support channel. Copy uses no em dashes.
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+
+const meta = {
+  title: "Contact Eden's Table | The Eden Institute",
+  description:
+    "Contact Eden's Table customer service: email, phone, hours, and mailing address. Eden's Table is published by Rooted in Faith Ventures LLC.",
+  canonical: "https://edeninstitute.health/contact",
+};
+
+const contactJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "ContactPage",
+  name: "Contact Eden's Table",
+  url: meta.canonical,
+  about: {
+    "@type": "Organization",
+    name: "Rooted in Faith Ventures LLC",
+    brand: { "@type": "Brand", name: "Eden's Table" },
+    email: "hello@edeninstitute.health",
+    telephone: "+1-931-575-5895",
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "116 Agnes Road, Suite 200",
+      addressLocality: "Knoxville",
+      addressRegion: "TN",
+      postalCode: "37919",
+      addressCountry: "US",
+    },
+  },
+};
+---
+
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} jsonLd={contactJsonLd}>
+  <section class="pt-20 pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold))">
+        Customer Service
+      </p>
+      <h1 class="font-serif text-4xl md:text-5xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
+        Contact Eden's Table
+      </h1>
+      <div class="w-16 h-px mx-auto my-6" style="background-color:hsl(var(--eden-gold))"></div>
+      <p class="font-body text-lg text-muted-foreground leading-relaxed">
+        Questions about the curriculum, an order, or purchasing with education program funds?
+        A real person answers.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-12 px-6 bg-background">
+    <div class="max-w-2xl mx-auto space-y-4">
+      <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+        <h2 class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">Email</h2>
+        <p class="font-body text-sm text-muted-foreground leading-relaxed">
+          <a href="mailto:hello@edeninstitute.health" class="underline">hello@edeninstitute.health</a>
+        </p>
+      </div>
+      <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+        <h2 class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">Phone</h2>
+        <p class="font-body text-sm text-muted-foreground leading-relaxed">
+          <a href="tel:+19315755895" class="underline">(931) 575-5895</a>
+        </p>
+      </div>
+      <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+        <h2 class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">Hours</h2>
+        <p class="font-body text-sm text-muted-foreground leading-relaxed">
+          Monday through Friday, 9am to 5pm Central
+        </p>
+      </div>
+      <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+        <h2 class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">Mailing address</h2>
+        <p class="font-body text-sm text-muted-foreground leading-relaxed">
+          116 Agnes Road, Suite 200<br />
+          Knoxville, TN 37919
+        </p>
+      </div>
+      <p class="font-body text-sm text-muted-foreground text-center pt-2">
+        Eden's Table is published by Rooted in Faith Ventures LLC, a Tennessee limited
+        liability company.
+      </p>
+    </div>
+  </section>
+</MarketingLayout>
