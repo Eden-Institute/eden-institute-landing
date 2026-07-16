@@ -103,6 +103,7 @@ ${shopApothecaryCard()}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
 <tr><td style="font-family:Georgia,serif;font-size:13px;color:#1C3A2E;text-align:center;">The Eden Institute | edeninstitute.health</td></tr>
 <tr><td style="font-family:Georgia,serif;font-size:12px;color:#1C3A2E;text-align:center;padding-top:8px;">You're receiving this because you signed up at edeninstitute.health. No spam, ever.</td></tr>
+<tr><td style="font-family:Georgia,serif;font-size:11px;color:#1C3A2E;text-align:center;padding-top:8px;">Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Clarksville, TN 37043</td></tr>
 <tr><td style="text-align:center;padding-top:8px;"><a href="{{UNSUB_URL}}" style="font-family:Georgia,serif;font-size:12px;color:#C9A84C;text-decoration:underline;">Unsubscribe</a></td></tr>
 </table>
 </td></tr>
@@ -202,6 +203,7 @@ function buildHomeschoolEmail(firstName: string): { subject: string; html: strin
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;border-top:1px solid #E8E3DA;">
     <tr><td style="text-align:center;padding-top:16px;">
     <p style="font-family:Georgia,serif;font-size:11px;color:#6B6560;margin:0 0 6px 0;">You're receiving this because you signed up at edeninstitute.health.</p>
+    <p style="font-family:Georgia,serif;font-size:11px;color:#6B6560;margin:0 0 6px 0;">Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Clarksville, TN 37043</p>
     <a href="{{UNSUB_URL}}" style="font-family:Georgia,serif;font-size:11px;color:#6B6560;text-decoration:underline;">Unsubscribe</a>
     </td></tr></table>`;
   return {
