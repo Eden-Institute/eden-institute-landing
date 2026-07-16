@@ -384,14 +384,13 @@ export function buildLaunchEmail6(firstName: string): { subject: string; html: s
 // ══════════════════════════════════════════════════════════════
 // EMAIL 7 — Jul 22 — The Doors Are About to Open
 // Scripture anchor: Esther 4:14 · Mountain Rose shop button
-// NOTE: preorder timing is deliberately "end of July" / "very soon" so this
-// can ship now; tighten the copy once the exact date locks in.
+// Preorder open date locked 2026-07-16: July 29.
 // ══════════════════════════════════════════════════════════════
 export function buildLaunchEmail7(firstName: string): { subject: string; html: string } {
   const body =
     `${p(`Hi ${firstName},`)}` +
     `${p(`Two weeks ago I told you something was being planted. You have seen the vision, walked through Sprouts, met the method, looked up the whole path from kindergarten to graduation. Today I get to say the words I have been holding back all month:`)}` +
-    `${p(`<strong>Preorder opens at the end of July.</strong>`, 'text-align:center;font-size:18px;')}` +
+    `${p(`<strong>Preorder opens July 29.</strong>`, 'text-align:center;font-size:18px;')}` +
     `${p(`In the coming weeks, the very first Sprouts kits will be claimed, and the families who claim them will hold a particular place in this story.`)}` +
     `${goldDivider()}` +
     `${heading(`WHAT FOUNDING FAMILIES RECEIVE`)}` +
