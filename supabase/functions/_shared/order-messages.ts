@@ -48,8 +48,12 @@ export function buildPreorderConfirmationEmail(order: OrderRow): { subject: stri
     p(`Your card was charged today. If we cannot ship within the estimated window, we will notify you and you may request a full refund.`) +
     p(`We are so grateful to have you with us at the founding of this.`) +
     signature();
-  // Transactional email: neutralize the marketing unsubscribe placeholder baked into emailWrapper.
-  const html = emailWrapper(body).split('{{UNSUB_URL}}').join('https://edeninstitute.health');
+  // Transactional email: neutralize the marketing unsubscribe placeholder baked into
+  // emailWrapper, and correct its quiz-funnel footer reason for purchase receipts.
+  const html = emailWrapper(body)
+    .split('{{UNSUB_URL}}').join('https://edeninstitute.health')
+    .split("You're receiving this because you completed the Constitutional Assessment at edeninstitute.health.")
+    .join("You're receiving this because you placed a preorder at edeninstitute.health.");
   return { subject: 'Your founding preorder is confirmed', html };
 }
 

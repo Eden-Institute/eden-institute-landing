@@ -44,7 +44,7 @@ is a property of state.
 
 ## Founding pricing (single cohort) + shipping
 - **Kit:** $249 founding ($100 below the $349 retail) — the \"$100 off\" claim is KIT-ONLY copy.
-- **Notebook:** $19.99 founding, $24.99 retail (rides the same cohort; no $100 claim).
+- **Notebook:** $19.00 founding, $24.99 retail (rides the same cohort; no $100 claim).
 - The cohort ends when **500 founding kits** have sold (`FOUNDING_GATE_SKU`/`FOUNDING_GATE_LIMIT`
   in `_shared/order-config.ts`; per-product `founding_qty_limit` in `products`). Checkout then
   automatically bills the retail Stripe Price. Count-based selection can overshoot ~500 by a
@@ -71,7 +71,7 @@ is a property of state.
 ## Compliance copy (on /preorder BEFORE redirect + in the confirmation email; no em dashes)
 - Founding preorder: your patience helps fund the founding; in exchange you get $100 off the
   complete kit and founding-member status.
-- Estimated ship window: **Winter 2026**, stated as an estimate.
+- Estimated ship window: **Late Fall 2026**, stated as an estimate.
 - Card charged today (total includes flat $12 shipping + any sales tax); if we cannot ship
   within the estimated window we will notify you and you may request a full refund. (FTC Mail
   Order Rule.)
@@ -106,7 +106,7 @@ in `paid`. Exit 1 on any discrepancy.
 - [x] Product seed (sprouts_kit, sprouts_notebook with live Price IDs)
 - [x] create-checkout patch (Stripe Tax + unchecked sms_consent + founding price selection + PREORDERS_LIVE gate + flat $12 shipping)
 - [x] stripe-webhook patch (transition engine + message_log + event ledger + charge.refunded)
-- [x] Confirmation email + preorder SMS templates (ship window: Winter 2026)
+- [x] Confirmation email + preorder SMS templates (ship window: Late Fall 2026)
 - [x] /preorder storefront (compliance copy, unchecked SMS opt-in, dark-launch aware)
 - [x] Admin orders view (/founder Orders tab via founder_orders RPC; hello@edeninstitute.health)
 - [x] Broadcast list (preorder_broadcast_list view)

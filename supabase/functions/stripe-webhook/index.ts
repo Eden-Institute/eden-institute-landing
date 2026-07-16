@@ -227,6 +227,17 @@ serve(async (req) => {
 
       case "charge.refunded": {
         const charge = event.data.object as Stripe.Charge
+        // Stripe fires charge.refunded for PARTIAL refunds too; charge.refunded
+        // is true only once the charge is FULLY refunded. A partial refund
+        // (e.g. a goodwill shipping credit) must not kill fulfillment or
+        // reopen a founding slot.
+        if (!charge.refunded) {
+          console.log(
+            `charge.refunded: partial refund, order unchanged ` +
+              `(amount_refunded=${charge.amount_refunded}, charge=${charge.id})`,
+          )
+          break
+        }
         const pi = typeof charge.payment_intent === "string"
           ? charge.payment_intent
           : charge.payment_intent?.id ?? null
@@ -521,6 +532,16 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
   // then the single preorder_sku itself, so a session is never dropped on the floor.
   const preorderSku = (session.metadata?.preorder_sku as string | undefined) ?? null
   if (preorderSku) {
+    // Async payment methods fire checkout.session.completed before money moves.
+    // Only payment_status "paid" may record an order and tell the family their
+    // card was charged. (Cards are the only enabled method; this guards drift.)
+    if (session.payment_status !== "paid") {
+      console.warn(
+        `preorder session ${session.id} completed with payment_status=` +
+          `${session.payment_status}; order NOT recorded`,
+      )
+      return
+    }
     const isFounding = session.metadata?.is_founding === "true"
     const items = await resolvePreorderLineItems(session, preorderSku, isFounding)
     await recordPreorderFromSession(adminClient, session, items)

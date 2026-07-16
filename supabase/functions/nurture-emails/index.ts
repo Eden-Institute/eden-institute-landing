@@ -645,10 +645,12 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
 // nobody can have preordered yet.
 
 // True if this recipient has a live (not cancelled/refunded) order.
-// ilike with no wildcards = case-insensitive equality.
+// ilike is used for case-insensitivity; _ and % are LIKE wildcards, so they
+// are escaped to make this literal equality (jane_doe must not match janeadoe).
 async function hasPreordered(email: string): Promise<boolean> {
+  const literal = email.replace(/([\\%_])/g, '\\$1');
   const rows = await supabaseQuery(
-    `orders?customer_email=ilike.${encodeURIComponent(email)}&status=not.in.(cancelled,refunded)&select=id&limit=1`,
+    `orders?customer_email=ilike.${encodeURIComponent(literal)}&status=not.in.(cancelled,refunded)&select=id&limit=1`,
   );
   return Array.isArray(rows) && rows.length > 0;
 }
