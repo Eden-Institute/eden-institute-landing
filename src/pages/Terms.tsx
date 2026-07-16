@@ -158,7 +158,8 @@ const Terms = () => {
             <address className="mt-3 not-italic text-foreground/70">
               <p className="font-semibold">The Eden Institute</p>
               <p>Operated by Rooted in Faith Ventures</p>
-              <p>Clarksville, Tennessee, United States</p>
+              <p>303 Holly Cir</p>
+              <p>Clarksville, TN 37043, United States</p>
               <p>Website: edeninstitute.health</p>
               <p>Email: <a href="mailto:hello@edeninstitute.health" className="text-accent underline">hello@edeninstitute.health</a></p>
             </address>
