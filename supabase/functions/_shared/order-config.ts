@@ -51,7 +51,7 @@ export const PREORDER_PRODUCTS: PreorderProduct[] = [
     productType: 'notebook',
     foundingPriceId: 'price_1TjktC2NWfYbCZT8voGtwnOg',
     retailPriceId: 'price_1To6Hr2NWfYbCZT86GlPe9PK',
-    foundingPriceCents: 1999,
+    foundingPriceCents: 1900,
     retailPriceCents: 2499,
     maxQtyPerOrder: 5,
   },

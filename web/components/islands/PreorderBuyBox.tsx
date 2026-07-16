@@ -33,7 +33,7 @@ import { supabase } from "@/integrations/supabase/client";
 const SHIP_WINDOW = "Late Fall 2026";
 const NOTEBOOK_MAX_QTY = 5;
 const KIT_PRICE_CENTS = 24900;
-const NOTEBOOK_PRICE_CENTS = 1999;
+const NOTEBOOK_PRICE_CENTS = 1900;
 const SHIPPING_CENTS = 1200;
 const ACCEPT_STORAGE_KEY = "eden_preorder_disclaimer_v1";
 
@@ -71,7 +71,7 @@ const PRODUCTS: DisplayProduct[] = [
     sku: "sprouts_notebook",
     eyebrow: "Add-on · for siblings",
     name: "Extra Student Notebook",
-    founding: "$19.99",
+    founding: "$19.00",
     retail: "$24.99",
     discountLine: "Founding price",
     blurb:

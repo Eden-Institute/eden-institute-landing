@@ -408,7 +408,7 @@ export function buildLaunchEmail6(firstName: string): { subject: string; html: s
 }
 
 // ══════════════════════════════════════════════════════════════
-// EMAIL 7 — Jul 22 — The Doors Are About to Open
+// EMAIL 7 — Jul 25 — The Doors Are About to Open
 // Scripture anchor: Esther 4:14 · Mountain Rose shop button
 // Preorder open date locked 2026-07-16: July 29.
 // ══════════════════════════════════════════════════════════════

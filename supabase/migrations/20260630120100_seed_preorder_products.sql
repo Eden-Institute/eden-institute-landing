@@ -9,7 +9,7 @@ insert into public.products
 values
   ('sprouts_kit', 'Sprouts Complete Kit', 'kit', 34900, 24900, 500,
    'price_1Tc7TJ2NWfYbCZT83q4TuxFf', 'price_1To6KC2NWfYbCZT8AHRdC9Gv', true, true),
-  ('sprouts_notebook', 'Student Notebook', 'notebook', 2499, 1999, null,
+  ('sprouts_notebook', 'Student Notebook', 'notebook', 2499, 1900, null,
    'price_1TjktC2NWfYbCZT8voGtwnOg', 'price_1To6Hr2NWfYbCZT86GlPe9PK', true, true)
 on conflict (sku) do update set
   name                     = excluded.name,
