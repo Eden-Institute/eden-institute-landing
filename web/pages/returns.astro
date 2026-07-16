@@ -1,0 +1,64 @@
+---
+// /returns — Return and Refund Policy (ESA vendor readiness). Static Astro
+// page linked from every footer. Policy text approved by the founder
+// 2026-07-16; copy uses no em dashes.
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+
+const meta = {
+  title: "Return and Refund Policy · Eden's Table | The Eden Institute",
+  description:
+    "Return and refund policy for Eden's Table curriculum kits and student notebooks, published by Rooted in Faith Ventures LLC. 30-day returns on unused physical curriculum.",
+  canonical: "https://edeninstitute.health/returns",
+};
+
+const sections = [
+  {
+    heading: "Physical curriculum and kits",
+    body: "You may request a return within 30 days of delivery. Items must be unused, unmarked, and in original condition with all components included. To start a return, email hello@edeninstitute.health with your order number. Approved refunds are issued to the original payment method within 5 to 10 business days after we receive the returned items. Return shipping is the responsibility of the buyer unless the item arrived damaged or incorrect.",
+  },
+  {
+    heading: "Consumable workbooks and notebooks",
+    body: "Because the Student Notebook is a consumable, write-in product, it can be returned only if it is unopened and unused.",
+  },
+  {
+    heading: "Damaged or incorrect orders",
+    body: "If your order arrives damaged, defective, or incorrect, email hello@edeninstitute.health within 14 days of delivery with your order number and a photo. We will replace the item or issue a full refund, including shipping, at no cost to you.",
+  },
+];
+---
+
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical}>
+  <section class="pt-20 pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold))">
+        Eden's Table
+      </p>
+      <h1 class="font-serif text-4xl md:text-5xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
+        Return and Refund Policy
+      </h1>
+      <div class="w-16 h-px mx-auto my-6" style="background-color:hsl(var(--eden-gold))"></div>
+      <p class="font-body text-lg text-muted-foreground leading-relaxed">
+        Eden's Table is published by Rooted in Faith Ventures LLC. We want you to be
+        confident in your purchase.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-12 px-6 bg-background">
+    <div class="max-w-2xl mx-auto space-y-4">
+      {sections.map((section) => (
+        <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+          <h2 class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">{section.heading}</h2>
+          <p class="font-body text-sm text-muted-foreground leading-relaxed">{section.body}</p>
+        </div>
+      ))}
+      <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+        <h2 class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">Contact</h2>
+        <p class="font-body text-sm text-muted-foreground leading-relaxed">
+          <a href="mailto:hello@edeninstitute.health" class="underline">hello@edeninstitute.health</a>,
+          phone <a href="tel:+19315755895" class="underline">(931) 575-5895</a>, Monday through Friday, 9am to 5pm Central.
+        </p>
+      </div>
+    </div>
+  </section>
+</MarketingLayout>

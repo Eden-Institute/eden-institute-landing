@@ -2,12 +2,15 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 
+// hardNav pages exist only as static Astro pages (web/pages/*.astro), not as
+// SPA routes — they need a full-page <a href> navigation, not a router <Link>.
 const navLinks = [
   { label: "Home", href: "/", external: false },
   { label: "Eden's Table", href: "/homeschool", external: false },
   { label: "Courses", href: "/courses", external: false },
   { label: "Apothecary", href: "/apothecary", external: false },
   { label: "The Book", href: "https://www.amazon.com/dp/B0GPW5BZ32?tag=theedeninstit-20", external: true },
+  { label: "Contact", href: "/contact", external: false, hardNav: true },
 ];
 
 export default function Navbar() {
@@ -16,15 +19,15 @@ export default function Navbar() {
   // "Take the Quiz" carries data-cta so the highest-frequency quiz entry is
   // measurable (CRO Phase 4); rendered in both desktop and mobile menus.
   const renderLink = (
-    link: { label: string; href: string; external: boolean },
+    link: { label: string; href: string; external: boolean; hardNav?: boolean },
     onClick?: () => void,
   ) =>
-    link.external ? (
+    link.external || link.hardNav ? (
       <a
         key={link.href}
         href={link.href}
-        target="_blank"
-        rel="noopener noreferrer"
+        target={link.external ? "_blank" : undefined}
+        rel={link.external ? "noopener noreferrer" : undefined}
         onClick={onClick}
         className="text-sm font-sans text-[#4A5C4E] hover:text-[#2E3D32] tracking-wide transition-colors duration-200"
       >

@@ -47,9 +47,22 @@ const Footer = () => {
               <Link to={ROUTES.COOKIES} className="hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
                 Cookie Policy
               </Link>
+              <span>|</span>
+              {/* /returns and /contact are static Astro pages, not SPA routes —
+                  plain <a> so the browser does a full navigation. */}
+              <a href="/returns" className="hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
+                Returns &amp; Refunds
+              </a>
+              <span>|</span>
+              <a href="/contact" className="hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
+                Contact
+              </a>
             </div>
 
-            <p className="mt-4 font-body text-xs" style={{ color: "hsl(var(--eden-parchment) / 0.3)" }}>
+            <p className="mt-4 font-body text-xs" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
+              Eden's Table is published by Rooted in Faith Ventures LLC.
+            </p>
+            <p className="mt-2 font-body text-xs" style={{ color: "hsl(var(--eden-parchment) / 0.3)" }}>
               © {new Date().getFullYear()} The Eden Institute. All rights reserved.
             </p>
           </div>
