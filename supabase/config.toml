@@ -43,6 +43,11 @@ verify_jwt = false
 [functions.constitution-pdf]
 verify_jwt = true
 
+# studio-generate is the founder-only /studio AI engine and holds the LLM provider
+# keys. verify_jwt MUST stay true; the EF additionally checks the founder email.
+[functions.studio-generate]
+verify_jwt = true
+
 [functions.practitioner-waitlist-signup]
 verify_jwt = false
 

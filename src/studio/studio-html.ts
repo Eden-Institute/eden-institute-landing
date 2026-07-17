@@ -14,6 +14,21 @@ export const STUDIO_HTML = `
 
 <div class="wrap">
 
+  <!-- ── Guided entry ── -->
+  <section class="hero" id="heroPanel">
+    <h2 class="hero-h">So, what are we promoting today?</h2>
+    <p class="hero-sub">Pick a product. The studio reads the brand, writes with every model you've connected, judges every draft against the Eden voice and Meta policy, and hands you ads ready for Ads Manager.</p>
+    <div class="hero-goals" id="heroGoals"></div>
+    <button class="genbtn hero-cta" id="heroGo" type="button">❦ &nbsp;Build My Campaign</button>
+    <p class="subnote" id="heroStatus" style="min-height:18px;text-align:center;margin-top:10px"></p>
+    <div class="hero-stats">
+      <div class="stat"><b>5</b><span>products wired in</span></div>
+      <div class="stat"><b>100+</b><span>approved copy blocks</span></div>
+      <div class="stat"><b>12</b><span>proven angles</span></div>
+      <div class="stat"><b>2</b><span>compliance rulebooks</span></div>
+    </div>
+  </section>
+
   <details class="scan" open>
     <summary>Brand scan · positioning, voice, and vocabulary baked into every draft</summary>
     <div class="scan-grid">
@@ -42,10 +57,10 @@ export const STUDIO_HTML = `
   </details>
 
   <div class="steps" aria-label="Workflow">
-    <div class="step"><b>I</b> Set the campaign</div>
-    <div class="step"><b>II</b> Generate drafts</div>
-    <div class="step"><b>III</b> Review &amp; check</div>
-    <div class="step"><b>IV</b> Build the creative &amp; export</div>
+    <div class="step"><b>I</b> Choose the product</div>
+    <div class="step"><b>II</b> The studio writes &amp; judges</div>
+    <div class="step"><b>III</b> Approve or correct</div>
+    <div class="step"><b>IV</b> Creative &amp; export</div>
   </div>
 
   <div class="studio">
@@ -81,6 +96,13 @@ export const STUDIO_HTML = `
 
     <!-- ── Workbench ── -->
     <section id="workbench">
+      <div class="panel" id="aiPanel" style="margin-bottom:14px">
+        <div class="panel-h"><h2>AI Engine</h2><span class="note" id="aiModels">checking models…</span></div>
+        <div class="panel-b">
+          <button class="genbtn" id="aiGenBtn" type="button">❦ &nbsp;Generate Fresh Drafts With Every Model</button>
+          <p class="subnote" id="aiStatus" style="min-height:16px;margin:8px 0 0"></p>
+        </div>
+      </div>
       <div class="bench-top">
         <span class="bench-title" id="benchTitle">The Workbench</span>
         <button class="copyall" id="copyAllBtn" type="button" hidden>Copy All Three Variants</button>
@@ -92,6 +114,28 @@ export const STUDIO_HTML = `
       <div id="variants"></div>
     </section>
   </div>
+
+  <!-- ── Approved tray ── -->
+  <section class="panel" id="trayPanel" style="margin-top:22px" hidden>
+    <div class="panel-h"><h2>Approved · Ready for Ads Manager</h2><span class="note" id="trayCount"></span></div>
+    <div class="panel-b">
+      <button class="copyall" id="trayCopyAll" type="button">Copy All Approved</button>
+      <div id="trayList"></div>
+    </div>
+  </section>
+
+  <!-- ── Asset gallery ── -->
+  <section class="panel" id="galleryPanel" style="margin-top:22px">
+    <div class="panel-h"><h2>Asset Gallery</h2><span class="note">your photos and clips, stored privately, ready for any builder</span></div>
+    <div class="panel-b">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <input type="file" id="galUpload" accept="image/*,video/*" multiple style="flex:1;min-width:200px">
+        <button class="copyall" id="galRefresh" type="button">Refresh</button>
+      </div>
+      <p class="subnote" id="galStatus" style="min-height:16px"></p>
+      <div id="galGrid" class="galgrid"></div>
+    </div>
+  </section>
 
   <!-- ── Creative builder ── -->
   <section class="panel" id="builder" style="margin-top:22px">
@@ -122,6 +166,8 @@ export const STUDIO_HTML = `
       <div class="bprev">
         <canvas id="adCanvas" width="1080" height="1350" aria-label="Ad creative preview"></canvas>
         <button class="genbtn" id="dlBtn" type="button" style="max-width:420px;margin:12px auto 0;display:block">❦ &nbsp;Download PNG</button>
+        <button class="copyall" id="bCanvaOpen" type="button" style="max-width:420px;margin:8px auto 0;display:block;width:100%">Open in Canva to Tweak</button>
+        <p class="subnote" style="text-align:center;max-width:420px;margin:6px auto 0">Opens a blank Canva design at this exact ad size. Download the PNG first, then drag it in to adjust opacity, layers, and type.</p>
         <p class="subnote" id="dlMeta" style="text-align:center"></p>
       </div>
     </div>

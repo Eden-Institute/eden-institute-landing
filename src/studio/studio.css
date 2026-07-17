@@ -195,6 +195,34 @@
   .edenstudio .hookbank i{color:var(--olive)}
   .edenstudio .hashline{font-family:var(--mono);font-size:11px;line-height:1.7;word-break:break-word}
 
+  /* guided entry */
+  .edenstudio .hero{text-align:center;padding:36px 8px 30px;border-bottom:1px solid var(--line)}
+  .edenstudio .hero-h{font-family:var(--display);font-size:clamp(24px,3.4vw,34px);letter-spacing:.04em;margin:0 0 8px;text-wrap:balance}
+  .edenstudio .hero-sub{font-style:italic;color:var(--muted);max-width:58ch;margin:0 auto 20px}
+  .edenstudio .hero-goals{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;max-width:980px;margin:0 auto 18px}
+  .edenstudio .goalcard{border:1px solid var(--line);background:var(--panel);padding:14px 12px;cursor:pointer;font:inherit;color:inherit;text-align:center}
+  .edenstudio .goalcard:hover{border-color:var(--amber)}
+  .edenstudio .goalcard.sel{border-color:var(--amber);background:var(--gold-soft);box-shadow:inset 0 3px 0 var(--amber)}
+  .edenstudio .goalcard .gname{display:block;font-weight:700;font-size:14px;margin-bottom:4px}
+  .edenstudio .goalcard .gtag{font-family:var(--mono);font-size:10px;color:var(--muted)}
+  .edenstudio .hero-cta{max-width:420px;margin:0 auto;display:block}
+  .edenstudio .hero-stats{display:flex;gap:28px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+  .edenstudio .stat b{display:block;font-family:var(--display);font-size:26px;color:var(--amber-deep)}
+  .edenstudio .stat span{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+
+  /* approved tray */
+  .edenstudio .tray-item{border:1px solid var(--line);background:var(--panel2);padding:10px 12px;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
+  .edenstudio .tray-item .th{font-weight:700}
+  .edenstudio .tray-item .tp{font-size:12px;color:var(--muted)}
+
+  /* asset gallery */
+  .edenstudio .galgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:10px}
+  .edenstudio .galitem{border:1px solid var(--line);background:var(--panel2);padding:8px;display:flex;flex-direction:column;gap:6px}
+  .edenstudio .galitem img,.edenstudio .galitem video{width:100%;aspect-ratio:1/1;object-fit:cover;background:#181a14;display:block;border:1px solid var(--line)}
+  .edenstudio .galname{font-family:var(--mono);font-size:9.5px;color:var(--muted);word-break:break-all;line-height:1.3}
+  .edenstudio .galbtns{display:flex;gap:4px;flex-wrap:wrap}
+  .edenstudio #galUpload{font-family:var(--body);font-size:12px;color:var(--muted)}
+
   /* creative builder */
   .edenstudio .builder-grid{display:grid;grid-template-columns:340px minmax(0,1fr);gap:0}
   @media (max-width:860px){.edenstudio .builder-grid{grid-template-columns:1fr}}
