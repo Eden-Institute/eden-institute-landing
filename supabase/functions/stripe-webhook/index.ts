@@ -34,6 +34,7 @@ import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { claimStripeEvent, markEventProcessed, markEventError } from "../_shared/order-db.ts"
 import { recordPreorderFromSession, applyRefundByPaymentIntent, ResolvedLineItem } from "../_shared/order-flow.ts"
+import { notifyFoundingMilestones } from "../_shared/founding-milestones.ts"
 import { productForPriceId } from "../_shared/order-config.ts"
 import { captureException } from "../_shared/sentry.ts"
 
@@ -545,6 +546,15 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
     const isFounding = session.metadata?.is_founding === "true"
     const items = await resolvePreorderLineItems(session, preorderSku, isFounding)
     await recordPreorderFromSession(adminClient, session, items)
+    // Founder milestone pings (250/400/475/490/cap) ride the recording path so the
+    // final ping lands at the actual flip moment, and this call also advances the
+    // one-way founding latch at payment time. Best-effort: a milestone or Resend
+    // failure must never 500 the webhook and make Stripe retry a recorded order.
+    try {
+      await notifyFoundingMilestones(adminClient)
+    } catch (err) {
+      console.error("founding milestone check failed:", err instanceof Error ? err.message : String(err))
+    }
     return
   }
 

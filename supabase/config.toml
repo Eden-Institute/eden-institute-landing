@@ -54,6 +54,11 @@ verify_jwt = false
 [functions.unsubscribe]
 verify_jwt = false
 
+# Public founding-500 counter for /preorder ({ sold, cap, closed }; read-only,
+# no order data). Called anonymously from the PreorderBuyBox island.
+[functions.preorder-status]
+verify_jwt = false
+
 # Straight-to-checkout redirect for the Deep-Dive Guide, clicked anonymously
 # from nurture emails. Plain HTTP 302 to a Stripe session; no Supabase JWT.
 [functions.guide-checkout]

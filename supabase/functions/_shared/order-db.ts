@@ -136,3 +136,24 @@ export async function countFoundingSold(db: Db, productId: string): Promise<numb
   if (error) throw error;
   return typeof data === 'number' ? data : 0;
 }
+
+export interface FoundingGate {
+  sold: number;
+  cap: number | null;
+  closed: boolean;
+}
+
+/**
+ * Latch-aware founding gate (founding_gate RPC, migration 20260717170000). Returns the
+ * net founding units sold, the cap, and whether the founding window is CLOSED. The RPC
+ * stamps products.founding_closed_at the first time sold reaches the cap, so a later
+ * refund can never reopen founding pricing: the scarcity claim is a one-way promise.
+ * This, not countFoundingSold alone, is what price selection must consult.
+ */
+export async function getFoundingGate(db: Db, productId: string): Promise<FoundingGate> {
+  const { data, error } = await db.rpc('founding_gate', { p_product_id: productId });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row || typeof row.sold !== 'number') throw new Error('founding_gate: no row returned');
+  return { sold: row.sold, cap: typeof row.cap === 'number' ? row.cap : null, closed: !!row.closed };
+}

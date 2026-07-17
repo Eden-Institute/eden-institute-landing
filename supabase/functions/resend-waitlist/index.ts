@@ -236,7 +236,68 @@ function buildCommunityEmail(firstName: string): { subject: string; html: string
 // ── Phase 3.1 Day-1: source-branched email builders for edens_table funnel ──
 // One welcome email per /homeschool CTA. Day-7 Week-2 send is Phase 3.1.2.
 
-function buildFoundersClubEmail(firstName: string): { subject: string; html: string } {
+// Latch-aware founding-window check for the Founders Club welcome copy, so a
+// signup AFTER the 500th kit never receives a $249 promise that no longer
+// exists. Same founding_gate RPC the checkout enforces (POST: the RPC is
+// volatile, it stamps the one-way latch when the cap is first reached).
+// Fails toward TRUE (founding copy): during the founding window a transient
+// error must not send retail copy to a real founding prospect, and
+// create-checkout independently enforces the real price either way.
+async function foundingWindowOpen(): Promise<boolean> {
+  try {
+    const prodRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/products?sku=eq.sprouts_kit&select=id&limit=1`,
+      {
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY!,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+      },
+    );
+    if (!prodRes.ok) return true;
+    const prods = await prodRes.json();
+    if (!Array.isArray(prods) || prods.length === 0) return true;
+    const gateRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/founding_gate`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY!,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_product_id: prods[0].id }),
+    });
+    if (!gateRes.ok) return true;
+    const rows = await gateRes.json();
+    const row = Array.isArray(rows) ? rows[0] : rows;
+    if (!row || typeof row.closed !== 'boolean') return true;
+    return !row.closed;
+  } catch (err) {
+    console.error('foundingWindowOpen check failed; defaulting to founding copy:', String(err));
+    return true;
+  }
+}
+
+function buildFoundersClubEmail(firstName: string, foundingOpen: boolean): { subject: string; html: string } {
+  if (!foundingOpen) {
+    const closedBody = `
+<p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">You're in. Your seat at Eden's Table is reserved.</p>
+${goldDivider()}
+${goldLabel('WHERE THINGS STAND')}
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">The first <strong>500 founding kits</strong> have been claimed, and Sprouts now sells at its standard <strong>$349</strong> retail price. Every preorder still joins the same first print run, and we will email you with every step of its progress.</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 24px 0;">You'll hear from us once a month with progress notes &mdash; what's being built, what's being tested, what we're learning.</p>
+${goldDivider()}
+${goldLabel('WANT LESSONS IN HAND TODAY?')}
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">You don't have to wait to start. Download a free sample week &mdash; five real, open-and-go lessons per band (Teacher Guide, Student Notebook, Field Cards, Recipe Cards, and the Around-the-Table deck), yours to print and teach this week. We'll email the downloads the moment you choose a band.</p>
+${ctaButton('GET FREE CURRICULUM SAMPLES', 'https://edeninstitute.health/homeschool#early-access')}
+${goldDivider()}
+${goldLabel('WHILE WE BUILD')}
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Eden's Table is the children's curriculum. The Eden Institute's adult Tier 1 Course &mdash; the Biblical Framework &mdash; is the soil it grew from. Most parents who go through it tell us their reading of Scripture changes.</p>
+${ctaButton('EXPLORE TIER 1 COURSE', 'https://edeninstitute.health/courses', 'secondary')}
+${goldDivider()}
+${closingBlock()}`;
+    return { subject: "Your seat at Eden's Table is reserved", html: emailWrapper(closedBody) };
+  }
   const body = `
 <p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
 <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">You're in. Your seat at the Eden's Table Founders Club is reserved.</p>
@@ -834,7 +895,7 @@ Deno.serve(async (req) => {
       } else if (source === 'seedlings_magnet') {
         emailContent = buildSeedlingsMagnetEmail(firstNameSafe);
       } else if (source === 'reserve') {
-        emailContent = buildFoundersClubEmail(firstNameSafe);
+        emailContent = buildFoundersClubEmail(firstNameSafe, await foundingWindowOpen());
       } else {
         // Unknown source on edens_table funnel → legacy Homeschool welcome email
         // (the "Early Access" copy currently deployed; safest fallback for any

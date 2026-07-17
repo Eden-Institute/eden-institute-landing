@@ -66,13 +66,18 @@ interface PunchItem {
 }
 
 // ── Founding-kit runway (preorder system, PR #227) ──
-// Mirrors the checkout's founding gate: founding sprouts_kit line-items sold
-// (excluding cancelled/refunded orders) vs products.founding_qty_limit.
-// Best-effort and silently absent until the preorder migrations create the
-// products/order_items tables, so this ships to main ahead of go-live.
+// Reads the SAME latch-aware gate the checkout enforces (founding_gate RPC,
+// migration 20260717170000): net founding units SUM(quantity) vs
+// products.founding_qty_limit, plus the one-way founding_closed_at latch.
+// `sold` is the real net count (overshoot past the cap is founder-relevant),
+// `closed` is what the pricing actually did. POST because the RPC is volatile
+// (it stamps the latch the first time the cap is reached). Best-effort and
+// silently absent until the preorder migrations exist, so this ships to main
+// ahead of go-live.
 interface FoundingStatus {
   sold: number;
   limit: number;
+  closed: boolean;
 }
 
 async function fetchFoundingStatus(): Promise<FoundingStatus | null> {
@@ -85,14 +90,15 @@ async function fetchFoundingStatus(): Promise<FoundingStatus | null> {
     if (!Array.isArray(prods) || prods.length === 0) return null;
     const limit = prods[0].founding_qty_limit;
     if (limit === null || limit === undefined) return null;
-    const countRes = await sbFetch(
-      `/rest/v1/order_items?product_id=eq.${prods[0].id}&is_founding=eq.true&orders.status=not.in.(cancelled,refunded)&select=id,orders!inner(status)&limit=1`,
-      { headers: { Prefer: 'count=exact', Range: '0-0' } },
-    );
-    const contentRange = countRes.headers.get('content-range') ?? '';
-    const sold = Number(contentRange.split('/')[1]);
-    if (!Number.isFinite(sold)) return null;
-    return { sold, limit: Number(limit) };
+    const gateRes = await sbFetch('/rest/v1/rpc/founding_gate', {
+      method: 'POST',
+      body: JSON.stringify({ p_product_id: prods[0].id }),
+    });
+    if (!gateRes.ok) return null;
+    const rows = await gateRes.json();
+    const row = Array.isArray(rows) ? rows[0] : rows;
+    if (!row || typeof row.sold !== 'number') return null;
+    return { sold: row.sold, limit: Number(limit), closed: !!row.closed };
   } catch (e) {
     console.error(
       'notify-founder-digest: founding-status fetch error',
@@ -104,8 +110,12 @@ async function fetchFoundingStatus(): Promise<FoundingStatus | null> {
 
 // ── Magnet identity mapping ──
 // (funnel, source) → human-readable magnet label + welcome email subject.
-// Updated in lockstep with resend-waitlist build* dispatch.
-function magnetLabel(funnel: string, source: string): {
+// Updated in lockstep with resend-waitlist build* dispatch. `foundingClosed`
+// selects the reserve entry's subject variant (resend-waitlist sends retail
+// copy once the founding_gate latch closes). Coarse by design: the digest
+// labels all of yesterday's rows with today's window state, so a row captured
+// minutes before the flip can be mislabeled; acceptable for founder reporting.
+function magnetLabel(funnel: string, source: string, foundingClosed = false): {
   magnet: string;
   welcomeSubject: string;
 } {
@@ -131,7 +141,9 @@ function magnetLabel(funnel: string, source: string): {
     if (source === 'reserve') {
       return {
         magnet: "Homeschool · Eden's Table Founders Club",
-        welcomeSubject: "You're in the Founders Club — Eden's Table 2027",
+        welcomeSubject: foundingClosed
+          ? "Your seat at Eden's Table is reserved"
+          : "You're in the Founders Club at Eden's Table",
       };
     }
     return {
@@ -140,6 +152,16 @@ function magnetLabel(funnel: string, source: string): {
     };
   }
   if (funnel === 'edens_table') {
+    // The live /homeschool CTAs capture under this funnel; 'reserve' is the
+    // Founders Club welcome (resend-waitlist source branch).
+    if (source === 'reserve') {
+      return {
+        magnet: "Eden's Table · Founders Club (reserve)",
+        welcomeSubject: foundingClosed
+          ? "Your seat at Eden's Table is reserved"
+          : "You're in the Founders Club at Eden's Table",
+      };
+    }
     return {
       magnet: "Eden's Table · General Waitlist",
       welcomeSubject: "Eden's Table Waitlist",
@@ -203,7 +225,7 @@ function buildDigestEmail(
   // ── Group by magnet for the headline counts ──
   const byMagnet = new Map<string, { count: number; welcomeSubject: string }>();
   for (const r of rows) {
-    const { magnet, welcomeSubject } = magnetLabel(r.funnel, r.source);
+    const { magnet, welcomeSubject } = magnetLabel(r.funnel, r.source, founding?.closed ?? false);
     const cur = byMagnet.get(magnet);
     if (cur) cur.count += 1;
     else byMagnet.set(magnet, { count: 1, welcomeSubject });
@@ -233,7 +255,7 @@ function buildDigestEmail(
   `).join('');
 
   const detailRows = rows.map((r) => {
-    const { magnet, welcomeSubject } = magnetLabel(r.funnel, r.source);
+    const { magnet, welcomeSubject } = magnetLabel(r.funnel, r.source, founding?.closed ?? false);
     const utmBits = [
       r.utm_source ? `utm_source=${r.utm_source}` : '',
       r.utm_campaign ? `utm_campaign=${r.utm_campaign}` : '',
@@ -312,11 +334,11 @@ function buildDigestEmail(
 <p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:2px;color:#C9A84C;text-transform:uppercase;margin:16px 0 8px 0;">Founding kits</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:8px;">
 <tr><td style="padding:10px 12px;background:#F5F0E8;border-left:3px solid #C9A84C;">
-${founding.sold >= founding.limit
-    ? `<span style="font-family:Georgia,serif;font-size:15px;font-weight:bold;color:#1C3A2E;">Founding ${founding.limit} complete.</span>
-<span style="font-family:Georgia,serif;font-size:13px;color:#3D3832;"> Retail pricing and retail email copy are live automatically.</span>`
+${founding.closed
+    ? `<span style="font-family:Georgia,serif;font-size:15px;font-weight:bold;color:#1C3A2E;">Founding ${founding.limit} complete (${founding.sold} net units).</span>
+<span style="font-family:Georgia,serif;font-size:13px;color:#3D3832;"> Retail pricing and retail email copy are live automatically, latched one-way.</span>`
     : `<span style="font-family:Georgia,serif;font-size:15px;font-weight:bold;color:#1C3A2E;">${founding.sold} of ${founding.limit} claimed</span>
-<span style="font-family:Georgia,serif;font-size:13px;color:#3D3832;"> · ${founding.limit - founding.sold} founding kits remaining at $249</span>`}
+<span style="font-family:Georgia,serif;font-size:13px;color:#3D3832;"> · ${Math.max(0, founding.limit - founding.sold)} founding kits remaining at $249</span>`}
 </td></tr>
 </table>
 ` : '';
@@ -359,7 +381,7 @@ The Eden Institute · edeninstitute.health · automated daily digest
       '',
       'All captures:',
       ...rows.map((r) => {
-        const { magnet } = magnetLabel(r.funnel, r.source);
+        const { magnet } = magnetLabel(r.funnel, r.source, founding?.closed ?? false);
         return `  ${formatLocal(r.entered_at)}\t${r.email}\t${magnet}`;
       }),
     );
@@ -369,9 +391,9 @@ The Eden Institute · edeninstitute.health · automated daily digest
   if (founding) {
     lines.push(
       '',
-      founding.sold >= founding.limit
-        ? `Founding kits: all ${founding.limit} claimed — retail pricing live`
-        : `Founding kits: ${founding.sold} of ${founding.limit} claimed (${founding.limit - founding.sold} remaining at $249)`,
+      founding.closed
+        ? `Founding kits: all ${founding.limit} claimed (${founding.sold} net units) — retail pricing live, latched one-way`
+        : `Founding kits: ${founding.sold} of ${founding.limit} claimed (${Math.max(0, founding.limit - founding.sold)} remaining at $249)`,
     );
   }
   if (punchCount > 0) {
