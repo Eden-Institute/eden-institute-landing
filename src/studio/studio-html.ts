@@ -56,11 +56,12 @@ export const STUDIO_HTML = `
     </div>
   </details>
 
-  <div class="steps" aria-label="Workflow">
-    <div class="step"><b>I</b> Choose the product</div>
-    <div class="step"><b>II</b> The studio writes &amp; judges</div>
-    <div class="step"><b>III</b> Approve or correct</div>
-    <div class="step"><b>IV</b> Creative &amp; export</div>
+  <div class="steps" id="wizSteps" aria-label="Wizard steps">
+    <button class="step" data-w="0" type="button"><b>I</b> Choose</button>
+    <button class="step" data-w="1" type="button"><b>II</b> Drafts</button>
+    <button class="step" data-w="2" type="button"><b>III</b> Creative</button>
+    <button class="step" data-w="3" type="button"><b>IV</b> Video</button>
+    <button class="step" data-w="4" type="button"><b>V</b> Post</button>
   </div>
 
   <div class="studio">
@@ -121,6 +122,22 @@ export const STUDIO_HTML = `
     <div class="panel-b">
       <button class="copyall" id="trayCopyAll" type="button">Copy All Approved</button>
       <div id="trayList"></div>
+    </div>
+  </section>
+
+  <!-- ── Post ── -->
+  <section class="panel" id="postPanel" style="margin-top:22px">
+    <div class="panel-h"><h2>Post It</h2><span class="note">straight into Meta's own composers</span></div>
+    <div class="panel-b">
+      <p class="subnote" style="margin:0 0 10px">True hands-free publishing needs a Meta developer app (a future integration). Today's flow is one step short: each button below copies your approved ad package to the clipboard, then opens the right Meta surface in a new tab. Paste, attach the creative, publish.</p>
+      <div class="postgrid">
+        <button class="copyall" data-post="ads" type="button">Copy Approved + Open Ads Manager</button>
+        <button class="copyall" data-post="suite" type="button">Copy Approved + Open Business Suite (FB &amp; IG)</button>
+        <button class="copyall" data-post="fb" type="button">Open Eden on Facebook</button>
+        <button class="copyall" data-post="ig" type="button">Open Eden on Instagram</button>
+        <button class="copyall" data-post="share" type="button">Quick Share Link to Facebook</button>
+      </div>
+      <p class="subnote" id="postStatus" style="min-height:16px;margin-top:8px"></p>
     </div>
   </section>
 
@@ -297,6 +314,12 @@ export const STUDIO_HTML = `
         </ul>
       </div>
     </div>
+  </div>
+
+  <div class="wiznav" id="wizNav">
+    <button class="copyall" id="wizBack" type="button">← Back</button>
+    <span class="subnote" id="wizHint" style="flex:1;text-align:center"></span>
+    <button class="genbtn" id="wizNext" type="button" style="margin:0;max-width:260px;width:auto;padding:10px 22px">Continue →</button>
   </div>
 
   <footer>

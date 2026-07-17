@@ -761,7 +761,7 @@ export function initStudio(
       BUILDER.domain = v.url.replace(/^https?:\/\//,"").split("?")[0];
       BUILDER.size = state.format === "story" ? "story" : (state.format === "portrait" ? "portrait" : "feed");
       renderBuilder();
-      $("#builder").scrollIntoView({behavior:"smooth", block:"start"});
+      showStep(2);
     }
   });
 
@@ -1090,7 +1090,7 @@ export function initStudio(
       VB.domain = v.url.replace(/^https?:\/\//,"").split("?")[0];
       VB.size = state.format === "story" ? "story" : (state.format === "portrait" ? "portrait" : "feed");
       renderVB();
-      $("#videobuilder").scrollIntoView({behavior:"smooth", block:"start"});
+      showStep(3);
     }
   });
 
@@ -1268,7 +1268,7 @@ export function initStudio(
       if (hs) hs.textContent = "Drafting from the critic-approved copy bank…";
       generate();
     }
-    const wb = $("#workbench"); if (wb) wb.scrollIntoView({ behavior: "smooth", block: "start" });
+    showStep(1);
     await sleep(1400);
     if (hs) hs.textContent = "Drafts are on the workbench. Approve the keepers; write corrections on the rest. Fine controls stay in The Campaign panel.";
   }
@@ -1320,6 +1320,69 @@ export function initStudio(
   });
   $("#trayCopyAll").addEventListener("click", () => {
     if (APPROVED.length) copyText(APPROVED.map(trayExport).join("\n\n" + "─".repeat(46) + "\n\n"));
+  });
+
+  /* ───────────────────────── WIZARD ───────────────────────── */
+  const WIZ = [
+    { ids: ["#heroPanel"], cls: [".scan"], hint: "Pick a product, then Build My Campaign." },
+    { cls: [".studio"], hint: "Approve the keepers; write corrections and Apply With AI on the rest." },
+    { ids: ["#galleryPanel", "#builder"], hint: "Render the image, publish clickable links, or hand off to Canva." },
+    { ids: ["#videobuilder"], hint: "Optional: record a credits-style video ad, or continue past it." },
+    { ids: ["#trayPanel", "#postPanel"], cls: [".refrow"], hint: "Copy your approved package and open Meta to publish." },
+  ];
+  let wstep = 0;
+  function showStep(n){
+    wstep = Math.max(0, Math.min(WIZ.length - 1, n));
+    WIZ.forEach((s, i) => {
+      const els: any[] = [];
+      (s.ids || []).forEach(sel => { const el = $(sel); if (el) els.push(el); });
+      (s.cls || []).forEach(sel => root.querySelectorAll(sel).forEach(el => els.push(el)));
+      els.forEach(el => { el.style.display = (i === wstep) ? "" : "none"; });
+    });
+    root.querySelectorAll("#wizSteps .step").forEach((b: any, i) => {
+      b.classList.toggle("active", i === wstep);
+      b.classList.toggle("done", i < wstep);
+    });
+    const back = $("#wizBack"), next = $("#wizNext"), hint = $("#wizHint");
+    if (back) back.style.visibility = wstep === 0 ? "hidden" : "visible";
+    if (next) next.textContent = wstep === WIZ.length - 1 ? "Start a New Campaign" : "Continue →";
+    if (hint) hint.textContent = WIZ[wstep].hint;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  root.querySelectorAll("#wizSteps .step").forEach((b: any) => {
+    b.addEventListener("click", () => showStep(+b.dataset.w));
+  });
+  $("#wizBack").addEventListener("click", () => showStep(wstep - 1));
+  $("#wizNext").addEventListener("click", () => showStep(wstep === WIZ.length - 1 ? 0 : wstep + 1));
+
+  /* ── Post: hand off to Meta's own surfaces with the package on the clipboard ── */
+  const EDEN_FB = "https://www.facebook.com/TheEdenInstituteBiblicalHerbalism";
+  const EDEN_IG = "https://www.instagram.com/the_eden_institute/";
+  root.addEventListener("click", e => {
+    const t = e.target as any;
+    const act = t && t.dataset && t.dataset.post;
+    if (!act) return;
+    const ps = $("#postStatus");
+    const pkg = APPROVED.length
+      ? APPROVED.map(trayExport).join("\n\n" + "─".repeat(46) + "\n\n")
+      : "";
+    if ((act === "ads" || act === "suite") && !pkg){
+      if (ps) ps.textContent = "Approve at least one draft first (the Drafts screen).";
+      return;
+    }
+    if (pkg && (act === "ads" || act === "suite")) copyText(pkg);
+    const urls = {
+      ads: "https://www.facebook.com/adsmanager/creation",
+      suite: "https://business.facebook.com/latest/composer",
+      fb: EDEN_FB,
+      ig: EDEN_IG,
+      share: "https://www.facebook.com/sharer/sharer.php?u=" +
+        encodeURIComponent((APPROVED[0] && APPROVED[0].url) || "https://edeninstitute.health/homeschool"),
+    };
+    window.open(urls[act], "_blank", "noopener");
+    if (ps) ps.textContent =
+      act === "ads" ? "Package copied. In Ads Manager, paste the primary text, headline, and description into the ad setup and attach your creative." :
+      act === "suite" ? "Package copied. Business Suite composes to Facebook and Instagram together." : "";
   });
 
   /* ───────────────────────── ASSET GALLERY ───────────────────────── */
@@ -1413,6 +1476,7 @@ export function initStudio(
   renderVB();
   aiInit();
   galInit();
+  showStep(0);
 
   return function cleanup() {
     try { stopRun(); } catch (e) {}
