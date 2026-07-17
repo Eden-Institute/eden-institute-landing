@@ -162,6 +162,17 @@ export const STUDIO_HTML = `
           <input type="file" id="bPhoto" accept="image/*">
           <button class="copybtn" id="bPhotoClear" type="button" style="margin-top:6px">Remove Photo</button></div>
         <p class="subnote">Drop in one of the Eden's Table product mockups for the Photo Harvest template. The Label and Forest templates are pure typography, engraved and on-palette, no photo needed.</p>
+        <div class="field" style="margin-top:16px;border-top:1px solid var(--line-soft);padding-top:14px">
+          <div class="flabel">Make it clickable</div>
+          <p class="subnote" style="margin:0 0 8px">In Facebook and Instagram ads the whole ad is the click; Ads Manager attaches your URL and CTA button, so the painted CTA is never dead there. These exports make the image itself clickable everywhere else: email, web, and print.</p>
+          <div class="frow"><div class="flabel"><span>Destination URL</span></div>
+            <input type="text" id="ccUrl"></div>
+          <label class="subnote" style="display:flex;gap:6px;align-items:center;margin:6px 0;cursor:pointer"><input type="checkbox" id="ccQr"> Paint a QR code onto the image (print becomes scannable)</label>
+          <button class="copyall" id="ccPublish" type="button" style="width:100%">Publish &amp; Get Clickable Links</button>
+          <button class="copyall" id="ccHtml" type="button" style="width:100%;margin-top:6px">Download Clickable HTML File</button>
+          <p class="subnote" id="ccStatus" style="min-height:16px"></p>
+          <div id="ccResults"></div>
+        </div>
       </div>
       <div class="bprev">
         <canvas id="adCanvas" width="1080" height="1350" aria-label="Ad creative preview"></canvas>

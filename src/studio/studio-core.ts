@@ -1,5 +1,6 @@
 // @ts-nocheck
 /* eslint-disable */
+import QRCode from "qrcode";
 // Eden Ad Studio core. Ported from the standalone artifact build (2026-07-17).
 // Vanilla DOM app mounted by StudioPage.tsx; all queries and listeners are
 // rooted on the container so unmount fully tears it down.
@@ -12,6 +13,7 @@ export function initStudio(
     upload: (file: File) => Promise<void>;
     url: (name: string) => Promise<string>;
     remove: (name: string) => Promise<void>;
+    publish: (blob: Blob, name: string) => Promise<string>;
   },
 ): () => void {
   "use strict";
@@ -503,7 +505,9 @@ export function initStudio(
   const TEMPLATES = {label:"Apothecary Label", forest:"Deep Forest", photo:"Photo Harvest"};
   const BUILDER = {tpl:"label", size:"portrait", hook:"Eden's Table: Herbalism for Kids",
     sub:"36 weeks. One herb at a time. Preorders open July 29.",
-    cta:"Preorder Now", domain:"edeninstitute.health/homeschool", photo:null};
+    cta:"Preorder Now", domain:"edeninstitute.health/homeschool", photo:null,
+    dest:"https://edeninstitute.health/homeschool?utm_source=facebook&utm_medium=paid_social&utm_campaign=edens_table_kit&utm_content=creative",
+    qr:false};
 
   function setSpacing(ctx, v){ try{ ctx.letterSpacing = v; }catch(e){} }
   function wrapLines(ctx, text, maxW){
@@ -635,6 +639,29 @@ export function initStudio(
     setSpacing(ctx,"0px");
   }
 
+  /* QR for print collateral: generated async and cached; drawAd repaints when
+     the image is ready. */
+  const qrCache = { url: "", img: null as any };
+  function ensureQr(){
+    if (!BUILDER.qr || !BUILDER.dest || qrCache.url === BUILDER.dest) return;
+    const want = BUILDER.dest;
+    QRCode.toDataURL(want, { margin: 0, width: 260, color: { dark: "#1E1E14", light: "#FFFFFF" } })
+      .then(u => {
+        const im = new Image();
+        im.onload = () => { qrCache.url = want; qrCache.img = im; drawAd(); };
+        im.src = u;
+      })
+      .catch(() => {});
+  }
+  function paintQr(ctx, w, h){
+    ensureQr();
+    if (!qrCache.img || qrCache.url !== BUILDER.dest) return;
+    const size = Math.round(w * 0.13), pad = 14;
+    const x = 72, y = h - 72 - size - pad * 2;
+    ctx.fillStyle = "#FFFFFF";
+    rr(ctx, x, y, size + pad * 2, size + pad * 2, 8); ctx.fill();
+    ctx.drawImage(qrCache.img, x + pad, y + pad, size, size);
+  }
   function drawAd(){
     const cv = $("#adCanvas"); const s = SIZES[BUILDER.size];
     cv.width = s.w; cv.height = s.h;
@@ -643,6 +670,7 @@ export function initStudio(
     if (BUILDER.tpl === "label") drawLabel(ctx, s.w, s.h);
     else if (BUILDER.tpl === "forest") drawForest(ctx, s.w, s.h);
     else drawPhoto(ctx, s.w, s.h);
+    if (BUILDER.qr && BUILDER.dest) paintQr(ctx, s.w, s.h);
     $("#dlMeta").textContent = s.w+" × "+s.h+" px · "+TEMPLATES[BUILDER.tpl]+" · downloads as PNG";
   }
   function renderBuilder(){
@@ -654,6 +682,7 @@ export function initStudio(
       sc.appendChild(chip(s.name, BUILDER.size===id, () => {BUILDER.size=id; renderBuilder();}));
     $("#bHook").value = BUILDER.hook; $("#bSub").value = BUILDER.sub;
     $("#bCta").value = BUILDER.cta; $("#bDomain").value = BUILDER.domain;
+    const cc = $("#ccUrl"); if (cc && document.activeElement !== cc) cc.value = BUILDER.dest;
     drawAd();
   }
   const BKEYS = {bHook:"hook", bSub:"sub", bCta:"cta", bDomain:"domain"};
@@ -677,6 +706,50 @@ export function initStudio(
     const s = SIZES[BUILDER.size];
     window.open("https://www.canva.com/design?create=true&width=" + s.w + "&height=" + s.h + "&units=px", "_blank", "noopener");
   });
+
+  /* ── Make it clickable ── */
+  function ccSet(msg){ const el = $("#ccStatus"); if (el) el.textContent = msg; }
+  function collateralName(){ const s = SIZES[BUILDER.size]; return "eden-ad-" + BUILDER.tpl + "-" + s.w + "x" + s.h + ".png"; }
+  $("#ccUrl").addEventListener("input", e => { BUILDER.dest = e.target.value.trim(); if (BUILDER.qr) drawAd(); });
+  $("#ccQr").addEventListener("change", e => { BUILDER.qr = e.target.checked; drawAd(); });
+  $("#ccPublish").addEventListener("click", () => {
+    if (!assets || !assets.publish){ ccSet("Publishing runs on the live /studio page."); return; }
+    ccSet("Publishing…");
+    $("#adCanvas").toBlob(async b => {
+      if (!b){ ccSet("Could not read the canvas."); return; }
+      try{
+        const hosted = await assets.publish(b, collateralName());
+        const dest = BUILDER.dest || "https://edeninstitute.health";
+        const snippet = '<a href="' + dest.replace(/"/g, "&quot;") + '" target="_blank" rel="noopener">' +
+          '<img src="' + hosted + '" alt="' + BUILDER.hook.replace(/"/g, "&quot;") + '" width="540" ' +
+          'style="display:block;width:100%;max-width:540px;height:auto;border:0"></a>';
+        $("#ccResults").innerHTML =
+          "<div class='frow' style='margin-top:10px'><div class='flabel'><span>Hosted image URL</span><button class='copybtn' data-cc='" + esc(hosted) + "' type='button'>Copy</button></div>" +
+          "<input type='text' readonly value=\"" + esc(hosted) + "\"></div>" +
+          "<div class='frow'><div class='flabel'><span>Click-wrapped HTML (email &amp; web)</span><button class='copybtn' data-cc='" + esc(snippet) + "' type='button'>Copy</button></div>" +
+          "<textarea rows='3' readonly>" + esc(snippet) + "</textarea></div>";
+        ccSet("Published. The image URL is permanent and public; the snippet drops straight into Resend emails or any page.");
+      }catch(err){ ccSet("Publish failed: " + String((err && (err as any).message) || err).slice(0, 140)); }
+    }, "image/png");
+  });
+  $("#ccHtml").addEventListener("click", () => {
+    const dest = BUILDER.dest || "https://edeninstitute.health";
+    const dataUri = $("#adCanvas").toDataURL("image/png");
+    const htmlDoc = "<!doctype html>\n<html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>" + esc(BUILDER.hook) + "</title></head>" +
+      "<body style=\"margin:0;background:#F5EDD6;display:flex;justify-content:center\">" +
+      "<a href=\"" + dest.replace(/"/g, "&quot;") + "\" target=\"_blank\" rel=\"noopener\" style=\"display:block;max-width:1080px;width:100%\">" +
+      "<img src=\"" + dataUri + "\" alt=\"" + esc(BUILDER.hook) + "\" style=\"display:block;width:100%;height:auto\"></a></body></html>";
+    const blob = new Blob([htmlDoc], { type: "text/html" });
+    const a = document.createElement("a");
+    a.download = collateralName().replace(/\.png$/, "") + "-clickable.html";
+    a.href = URL.createObjectURL(blob);
+    a.click();
+    ccSet("Clickable HTML saved. Open it anywhere; the whole image links to your URL.");
+  });
+  root.addEventListener("click", e => {
+    const t = e.target as any;
+    if (t && t.dataset && t.dataset.cc !== undefined) copyText(t.dataset.cc);
+  });
   root.addEventListener("click", e => {
     const t = e.target;
     if (t.dataset && t.dataset.act === "tobuilder"){
@@ -684,6 +757,7 @@ export function initStudio(
       BUILDER.hook = v.headline;
       BUILDER.sub = v.desc;
       BUILDER.cta = v.cta;
+      BUILDER.dest = v.url;
       BUILDER.domain = v.url.replace(/^https?:\/\//,"").split("?")[0];
       BUILDER.size = state.format === "story" ? "story" : (state.format === "portrait" ? "portrait" : "feed");
       renderBuilder();

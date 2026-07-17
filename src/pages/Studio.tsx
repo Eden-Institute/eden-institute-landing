@@ -73,6 +73,17 @@ const assetsBridge = {
     const { error } = await supabase.storage.from(BUCKET).remove([name]);
     if (error) throw error;
   },
+  // Publish a finished creative to the PUBLIC collateral bucket and return its
+  // permanent hosted URL (required for email: Gmail strips data-URI images).
+  async publish(blob: Blob, name: string): Promise<string> {
+    const safe = name.replace(/[^\w.\-]+/g, "_").slice(-80);
+    const path = `${Date.now()}-${safe}`;
+    const { error } = await supabase.storage
+      .from("studio-collateral")
+      .upload(path, blob, { contentType: "image/png" });
+    if (error) throw error;
+    return supabase.storage.from("studio-collateral").getPublicUrl(path).data.publicUrl;
+  },
 };
 
 const FOUNDER_EMAIL = "hello@edeninstitute.health";
