@@ -1,10 +1,21 @@
 // @ts-nocheck
 /* eslint-disable */
+import QRCode from "qrcode";
 // Eden Ad Studio core. Ported from the standalone artifact build (2026-07-17).
 // Vanilla DOM app mounted by StudioPage.tsx; all queries and listeners are
 // rooted on the container so unmount fully tears it down.
 
-export function initStudio(root: HTMLElement): () => void {
+export function initStudio(
+  root: HTMLElement,
+  aiInvoke?: (body: unknown) => Promise<any>,
+  assets?: {
+    list: () => Promise<Array<{ name: string }>>;
+    upload: (file: File) => Promise<void>;
+    url: (name: string) => Promise<string>;
+    remove: (name: string) => Promise<void>;
+    publish: (blob: Blob, name: string) => Promise<string>;
+  },
+): () => void {
   "use strict";
   /* ───────────────────────── DATA ───────────────────────── */
 
@@ -267,6 +278,7 @@ export function initStudio(root: HTMLElement): () => void {
     const fc = $("#fmtChips"); fc.innerHTML = "";
     for (const [id,f] of Object.entries(FORMATS))
       fc.appendChild(chip(f.name, state.format===id, () => {state.format=id; renderCampaign(); if (variants.length) renderVariants();}));
+    heroRender(); /* keep the guided-entry cards in sync (hoisted) */
   }
 
   /* ───────────────────────── GENERATION ───────────────────────── */
@@ -377,10 +389,16 @@ export function initStudio(root: HTMLElement): () => void {
     wrap.className = "vcard";
     wrap.innerHTML =
       "<div class='vhead'><span class='vt'>Variant "+roman+"</span><span class='vm'>"+esc(ANGLES[state.angle].name)+" · "+esc(AUDIENCES[state.audience].name)+"</span>" +
-      "<span style='display:flex;gap:6px;flex-wrap:wrap'><button class='copybtn' data-act='tobuilder' data-i='"+i+"' type='button' style='color:#F5EDD6;border-color:#C5A44E'>Build Creative</button>" +
+      "<span style='display:flex;gap:6px;flex-wrap:wrap'>" +
+      "<button class='copybtn' data-act='approve' data-i='"+i+"' type='button' style='color:#F5EDD6;border-color:"+(v.approved ? "#8A9A5B" : "#C5A44E")+"'>"+(v.approved ? "Approved ✓" : "Approve")+"</button>" +
+      "<button class='copybtn' data-act='tobuilder' data-i='"+i+"' type='button' style='color:#F5EDD6;border-color:#C5A44E'>Build Creative</button>" +
       "<button class='copybtn' data-act='tovideo' data-i='"+i+"' type='button' style='color:#F5EDD6;border-color:#C5A44E'>Build Video</button>" +
       "<button class='copybtn' data-act='copyone' data-i='"+i+"' type='button' style='color:#F5EDD6;border-color:#C5A44E'>Copy This Ad</button></span></div>" +
       "<div class='vbody'><div class='vfields'>" +
+      (v.ai ? "<p class='subnote' style='margin:0 0 10px'>" +
+        esc(v.ai.model ? "Written by " + v.ai.model : "AI draft") +
+        (typeof v.ai.score === "number" ? " · judge score " + v.ai.score + "/10" : "") +
+        (v.ai.notes ? " · " + esc(v.ai.notes) : "") + "</p>" : "") +
 
       "<div class='frow'><div class='flabel'><span>Primary text</span><span>"+counterHTML(v.primary.length,125,"visible")+"</span></div>" +
       "<textarea data-f='primary' data-i='"+i+"' rows='7'>"+esc(v.primary)+"</textarea>" +
@@ -398,6 +416,11 @@ export function initStudio(root: HTMLElement): () => void {
       "<div class='frow'><div class='flabel'><span>Destination URL</span></div>" +
       "<div class='urlrow'><input type='text' data-f='url' data-i='"+i+"' value=\""+esc(v.url)+"\"></div>" +
       "<div class='subnote'>Tagged per the Eden UTM kit. Swap utm_source=instagram for IG-only placements, or set URL parameters in Ads Manager.</div></div>" +
+
+      "<div class='frow'><div class='flabel'><span>Improvements &amp; corrections</span>" +
+        (aiInvoke ? "<button class='copybtn' data-act='remix' data-i='"+i+"' type='button'>Apply With AI</button>" : "") + "</div>" +
+        "<textarea data-notes-input='"+i+"' rows='2' placeholder='Note fixes for this variant: wrong emphasis, swap the verse, lead with ESA, and so on.'>"+esc(v.notes||"")+"</textarea>" +
+        "<div class='subnote' id='remixNote"+i+"'>"+(aiInvoke ? "Apply With AI rewrites this draft using your notes. Notes also ride along in every export." : "Notes ride along in every export.")+"</div></div>" +
 
       "<div id='comp"+i+"'>"+complianceHTML(v)+"</div>" +
       briefHTML(v) +
@@ -421,6 +444,8 @@ export function initStudio(root: HTMLElement): () => void {
 
   /* ───────────────────────── EVENTS ───────────────────────── */
   root.addEventListener("input", e => {
+    const ni = e.target.dataset && e.target.dataset.notesInput;
+    if (ni !== undefined){ const nv = variants[+ni]; if (nv) nv.notes = e.target.value; return; }
     const f = e.target.dataset && e.target.dataset.f;
     if (!f) return;
     const i = +e.target.dataset.i;
@@ -459,10 +484,11 @@ export function initStudio(root: HTMLElement): () => void {
       "\n\nHEADLINE: " + v.headline +
       "\nDESCRIPTION: " + v.desc +
       "\nCTA: " + v.cta +
-      "\nURL: " + v.url;
+      "\nURL: " + v.url +
+      (v.notes && v.notes.trim() ? "\nFOUNDER NOTES: " + v.notes.trim() : "");
   }
   function copyText(str){
-    const done = () => { const t = $("#toast"); t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 1400); };
+    const done = () => showToast("Copied"); /* hoisted from the guided-flow block */
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(str).then(done, () => fallbackCopy(str, done));
     else fallbackCopy(str, done);
   }
@@ -479,7 +505,9 @@ export function initStudio(root: HTMLElement): () => void {
   const TEMPLATES = {label:"Apothecary Label", forest:"Deep Forest", photo:"Photo Harvest"};
   const BUILDER = {tpl:"label", size:"portrait", hook:"Eden's Table: Herbalism for Kids",
     sub:"36 weeks. One herb at a time. Preorders open July 29.",
-    cta:"Preorder Now", domain:"edeninstitute.health/homeschool", photo:null};
+    cta:"Preorder Now", domain:"edeninstitute.health/homeschool", photo:null,
+    dest:"https://edeninstitute.health/homeschool?utm_source=facebook&utm_medium=paid_social&utm_campaign=edens_table_kit&utm_content=creative",
+    qr:false};
 
   function setSpacing(ctx, v){ try{ ctx.letterSpacing = v; }catch(e){} }
   function wrapLines(ctx, text, maxW){
@@ -611,6 +639,29 @@ export function initStudio(root: HTMLElement): () => void {
     setSpacing(ctx,"0px");
   }
 
+  /* QR for print collateral: generated async and cached; drawAd repaints when
+     the image is ready. */
+  const qrCache = { url: "", img: null as any };
+  function ensureQr(){
+    if (!BUILDER.qr || !BUILDER.dest || qrCache.url === BUILDER.dest) return;
+    const want = BUILDER.dest;
+    QRCode.toDataURL(want, { margin: 0, width: 260, color: { dark: "#1E1E14", light: "#FFFFFF" } })
+      .then(u => {
+        const im = new Image();
+        im.onload = () => { qrCache.url = want; qrCache.img = im; drawAd(); };
+        im.src = u;
+      })
+      .catch(() => {});
+  }
+  function paintQr(ctx, w, h){
+    ensureQr();
+    if (!qrCache.img || qrCache.url !== BUILDER.dest) return;
+    const size = Math.round(w * 0.13), pad = 14;
+    const x = 72, y = h - 72 - size - pad * 2;
+    ctx.fillStyle = "#FFFFFF";
+    rr(ctx, x, y, size + pad * 2, size + pad * 2, 8); ctx.fill();
+    ctx.drawImage(qrCache.img, x + pad, y + pad, size, size);
+  }
   function drawAd(){
     const cv = $("#adCanvas"); const s = SIZES[BUILDER.size];
     cv.width = s.w; cv.height = s.h;
@@ -619,6 +670,7 @@ export function initStudio(root: HTMLElement): () => void {
     if (BUILDER.tpl === "label") drawLabel(ctx, s.w, s.h);
     else if (BUILDER.tpl === "forest") drawForest(ctx, s.w, s.h);
     else drawPhoto(ctx, s.w, s.h);
+    if (BUILDER.qr && BUILDER.dest) paintQr(ctx, s.w, s.h);
     $("#dlMeta").textContent = s.w+" × "+s.h+" px · "+TEMPLATES[BUILDER.tpl]+" · downloads as PNG";
   }
   function renderBuilder(){
@@ -630,6 +682,7 @@ export function initStudio(root: HTMLElement): () => void {
       sc.appendChild(chip(s.name, BUILDER.size===id, () => {BUILDER.size=id; renderBuilder();}));
     $("#bHook").value = BUILDER.hook; $("#bSub").value = BUILDER.sub;
     $("#bCta").value = BUILDER.cta; $("#bDomain").value = BUILDER.domain;
+    const cc = $("#ccUrl"); if (cc && document.activeElement !== cc) cc.value = BUILDER.dest;
     drawAd();
   }
   const BKEYS = {bHook:"hook", bSub:"sub", bCta:"cta", bDomain:"domain"};
@@ -649,6 +702,54 @@ export function initStudio(root: HTMLElement): () => void {
     a.href = $("#adCanvas").toDataURL("image/png");
     a.click();
   });
+  $("#bCanvaOpen").addEventListener("click", () => {
+    const s = SIZES[BUILDER.size];
+    window.open("https://www.canva.com/design?create=true&width=" + s.w + "&height=" + s.h + "&units=px", "_blank", "noopener");
+  });
+
+  /* ── Make it clickable ── */
+  function ccSet(msg){ const el = $("#ccStatus"); if (el) el.textContent = msg; }
+  function collateralName(){ const s = SIZES[BUILDER.size]; return "eden-ad-" + BUILDER.tpl + "-" + s.w + "x" + s.h + ".png"; }
+  $("#ccUrl").addEventListener("input", e => { BUILDER.dest = e.target.value.trim(); if (BUILDER.qr) drawAd(); });
+  $("#ccQr").addEventListener("change", e => { BUILDER.qr = e.target.checked; drawAd(); });
+  $("#ccPublish").addEventListener("click", () => {
+    if (!assets || !assets.publish){ ccSet("Publishing runs on the live /studio page."); return; }
+    ccSet("Publishing…");
+    $("#adCanvas").toBlob(async b => {
+      if (!b){ ccSet("Could not read the canvas."); return; }
+      try{
+        const hosted = await assets.publish(b, collateralName());
+        const dest = BUILDER.dest || "https://edeninstitute.health";
+        const snippet = '<a href="' + dest.replace(/"/g, "&quot;") + '" target="_blank" rel="noopener">' +
+          '<img src="' + hosted + '" alt="' + BUILDER.hook.replace(/"/g, "&quot;") + '" width="540" ' +
+          'style="display:block;width:100%;max-width:540px;height:auto;border:0"></a>';
+        $("#ccResults").innerHTML =
+          "<div class='frow' style='margin-top:10px'><div class='flabel'><span>Hosted image URL</span><button class='copybtn' data-cc='" + esc(hosted) + "' type='button'>Copy</button></div>" +
+          "<input type='text' readonly value=\"" + esc(hosted) + "\"></div>" +
+          "<div class='frow'><div class='flabel'><span>Click-wrapped HTML (email &amp; web)</span><button class='copybtn' data-cc='" + esc(snippet) + "' type='button'>Copy</button></div>" +
+          "<textarea rows='3' readonly>" + esc(snippet) + "</textarea></div>";
+        ccSet("Published. The image URL is permanent and public; the snippet drops straight into Resend emails or any page.");
+      }catch(err){ ccSet("Publish failed: " + String((err && (err as any).message) || err).slice(0, 140)); }
+    }, "image/png");
+  });
+  $("#ccHtml").addEventListener("click", () => {
+    const dest = BUILDER.dest || "https://edeninstitute.health";
+    const dataUri = $("#adCanvas").toDataURL("image/png");
+    const htmlDoc = "<!doctype html>\n<html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>" + esc(BUILDER.hook) + "</title></head>" +
+      "<body style=\"margin:0;background:#F5EDD6;display:flex;justify-content:center\">" +
+      "<a href=\"" + dest.replace(/"/g, "&quot;") + "\" target=\"_blank\" rel=\"noopener\" style=\"display:block;max-width:1080px;width:100%\">" +
+      "<img src=\"" + dataUri + "\" alt=\"" + esc(BUILDER.hook) + "\" style=\"display:block;width:100%;height:auto\"></a></body></html>";
+    const blob = new Blob([htmlDoc], { type: "text/html" });
+    const a = document.createElement("a");
+    a.download = collateralName().replace(/\.png$/, "") + "-clickable.html";
+    a.href = URL.createObjectURL(blob);
+    a.click();
+    ccSet("Clickable HTML saved. Open it anywhere; the whole image links to your URL.");
+  });
+  root.addEventListener("click", e => {
+    const t = e.target as any;
+    if (t && t.dataset && t.dataset.cc !== undefined) copyText(t.dataset.cc);
+  });
   root.addEventListener("click", e => {
     const t = e.target;
     if (t.dataset && t.dataset.act === "tobuilder"){
@@ -656,6 +757,7 @@ export function initStudio(root: HTMLElement): () => void {
       BUILDER.hook = v.headline;
       BUILDER.sub = v.desc;
       BUILDER.cta = v.cta;
+      BUILDER.dest = v.url;
       BUILDER.domain = v.url.replace(/^https?:\/\//,"").split("?")[0];
       BUILDER.size = state.format === "story" ? "story" : (state.format === "portrait" ? "portrait" : "feed");
       renderBuilder();
@@ -992,10 +1094,325 @@ export function initStudio(root: HTMLElement): () => void {
     }
   });
 
+  /* ───────────────────────── AI ENGINE ───────────────────────── */
+  const AI = { on: false, providers: [] as any[] };
+  let aiSeq = 0; /* supersedes stale in-flight generations */
+  function aiSet(msg){ const el = $("#aiStatus"); if (el) el.textContent = msg; }
+  function aiErrText(e){
+    const code = (e && e.code) || "";
+    const status = e && e.status;
+    if (code === "founder_only" || status === 403) return "Founder account required.";
+    if (code === "no_providers" || status === 503) return "No model keys configured yet. Add the Supabase secrets, then redeploy studio-generate.";
+    if (code === "all_models_failed") return "Every model call failed" + (e.detail ? ": " + String(JSON.stringify(e.detail)).slice(0, 140) : ".");
+    const msg = (e && (e.message || e.error)) || String(e);
+    return "AI engine error: " + String(msg).slice(0, 160);
+  }
+  function currentBrief(){
+    const p = PRODUCTS[state.product];
+    return {
+      product: p.name,
+      facts: p.facts,
+      angle: ANGLES[state.angle] ? ANGLES[state.angle].name : state.angle,
+      angleEssence: ANGLES[state.angle] ? ANGLES[state.angle].visual : "",
+      audience: AUDIENCES[state.audience].name,
+      audienceDesc: AUDIENCES[state.audience].note.replace(/<[^>]+>/g, ""),
+      objective: OBJECTIVES[state.objective].name,
+      format: FORMATS[state.format].name,
+      cta: p.ctas[state.objective],
+      url: buildURL(p, 1),
+    };
+  }
+  async function aiInit(){
+    const panel = $("#aiPanel"); if (!panel) return;
+    if (!aiInvoke){ panel.style.display = "none"; return; }
+    try{
+      const s: any = await aiInvoke({ mode: "status" });
+      /* The studio may have unmounted during the await. */
+      if (!root.isConnected || !$("#aiModels") || !$("#aiGenBtn")) return;
+      AI.providers = (s && s.providers) || [];
+      const chips = $("#aiModels");
+      if (!AI.providers.length){
+        chips.textContent = "no model keys configured";
+        aiSet("Add ANTHROPIC_API_KEY and MOONSHOT_API_KEY as Supabase secrets, then redeploy studio-generate.");
+        $("#aiGenBtn").disabled = true;
+        return;
+      }
+      AI.on = true;
+      chips.textContent = AI.providers.map(p => p.label + " (" + p.model + ")").join(" · ");
+      aiSet("Each run fans the brief out to every model, then a judge ranks all candidates.");
+    }catch(e){
+      const chips = $("#aiModels"), gbtn = $("#aiGenBtn");
+      if (!chips || !gbtn) return;
+      chips.textContent = "engine unreachable";
+      aiSet(aiErrText(e));
+      gbtn.disabled = true;
+    }
+  }
+  $("#aiGenBtn").addEventListener("click", async () => {
+    if (!AI.on || !aiInvoke) return;
+    const btn = $("#aiGenBtn"); btn.disabled = true;
+    aiSet("Generating with " + AI.providers.map(p => p.label).join(" + ") + ". Roughly 30 to 60 seconds…");
+    /* Capture the campaign AT CLICK TIME: the founder can change product or
+       objective during the 30-60s call, and drafts must keep the brief they
+       were written for (URL, CTA, labels included). */
+    const p = PRODUCTS[state.product];
+    const obj = state.objective;
+    const ang = state.angle;
+    const mySeq = ++aiSeq;
+    try{
+      const r: any = await aiInvoke({ mode: "generate", brief: currentBrief() });
+      if (mySeq !== aiSeq){ btn.disabled = false; return; /* superseded by a newer run */ }
+      const drafts = (r && r.drafts) || [];
+      if (!drafts.length){
+        aiSet("No drafts came back" + (r && r.error ? " (" + r.error + ")." : "."));
+        btn.disabled = false; return;
+      }
+      variants = drafts.slice(0, 3).map((d, i) => ({
+        primary: d.primary, headline: d.headline, desc: d.description || "",
+        cta: p.ctas[obj], url: buildURL(p, i + 1),
+        platform: "fb", expanded: false,
+        ai: { model: d.model, score: d.score, notes: d.notes },
+      }));
+      state.gen++;
+      $("#emptyState").hidden = true;
+      $("#copyAllBtn").hidden = false;
+      $("#benchTitle").textContent = p.name + " · " + (ANGLES[ang] ? ANGLES[ang].name : "") + " · AI drafts";
+      renderVariants();
+      const failNote = (r.errors && r.errors.length)
+        ? " Note: " + r.errors.length + " model call" + (r.errors.length > 1 ? "s" : "") + " failed (" + String(r.errors[0]).slice(0, 90) + ")."
+        : "";
+      aiSet((r.judge && r.judge !== "none (single pass)" ? "Judged by " + r.judge + ". " : "") +
+        drafts.length + " candidates ranked, showing the top " + Math.min(3, drafts.length) + "." + failNote);
+    }catch(e){
+      aiSet(aiErrText(e));
+    }
+    btn.disabled = false;
+  });
+  root.addEventListener("click", e => {
+    const t = e.target as any;
+    if (!(t && t.dataset && t.dataset.act === "remix")) return;
+    const i = +t.dataset.i; const v = variants[i];
+    if (!v || !aiInvoke) return;
+    const note = $("#remixNote" + i);
+    if (!AI.on){ if (note) note.textContent = "No model keys configured yet. Add the Supabase secrets first."; return; }
+    const direction = (v.notes || "").trim();
+    if (!direction){ if (note) note.textContent = "Write your improvements above first."; return; }
+    t.disabled = true;
+    if (note) note.textContent = "Remixing…";
+    const myVariants = variants; /* detect regeneration while in flight */
+    aiInvoke({ mode: "remix", brief: currentBrief(), draft: { primary: v.primary, headline: v.headline, description: v.desc }, direction })
+      .then((r: any) => {
+        if (variants !== myVariants || variants[i] !== v){
+          aiSet("Drafts changed while a remix was in flight; that result was discarded.");
+          return;
+        }
+        if (r && r.draft){
+          v.primary = r.draft.primary;
+          v.headline = r.draft.headline || v.headline;
+          v.desc = r.draft.description || v.desc;
+          v.ai = { model: r.draft.model, notes: "remixed: " + direction.slice(0, 80) };
+          renderVariants();
+          const n2 = $("#remixNote" + i);
+          if (n2) n2.textContent = "Applied. Your notes are kept for the next pass.";
+        } else if (note) note.textContent = "Remix failed.";
+      })
+      .catch(e => { if (note) note.textContent = aiErrText(e); })
+      .finally(() => { t.disabled = false; });
+  });
+
+  /* ───────────────────────── GUIDED FLOW ───────────────────────── */
+  const APPROVED: any[] = [];
+  const AUTOPICK = {
+    kit: { audience: "homeschool", angle: "children" },
+    course: { audience: "mom2am", angle: "design" },
+    quiz: { audience: "mom2am", angle: "design" },
+    apothecary: { audience: "exhausted", angle: "exhausted" },
+    practitioner: { audience: "practitioner", angle: "notworkshop" },
+  };
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  function showToast(msg){
+    const el = $("#toast"); if (!el) return;
+    el.textContent = msg;
+    el.classList.add("show");
+    setTimeout(() => el.classList.remove("show"), 1400);
+  }
+  function heroRender(){
+    const wrapEl = $("#heroGoals"); if (!wrapEl) return;
+    wrapEl.innerHTML = "";
+    for (const [id, p] of Object.entries(PRODUCTS)){
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "goalcard" + (state.product === id ? " sel" : "");
+      b.innerHTML = "<span class='gname'>" + esc(p.name) + "</span><span class='gtag'>" + esc(p.tag) + "</span>";
+      b.addEventListener("click", () => {
+        state.product = id;
+        if (!PRODUCTS[id].angles.includes(state.angle)) state.angle = PRODUCTS[id].angles[0];
+        renderCampaign();
+      });
+      wrapEl.appendChild(b);
+    }
+  }
+  async function heroGo(){
+    const hs = $("#heroStatus");
+    const pick = AUTOPICK[state.product];
+    if (pick){ state.audience = pick.audience; state.angle = pick.angle; renderCampaign(); }
+    if (hs) hs.textContent = "Reading the brand: positioning, voice, guardrails…";
+    const scanEl = root.querySelector(".scan"); if (scanEl) (scanEl as any).open = true;
+    await sleep(900);
+    if (hs) hs.textContent = "Casting " + PRODUCTS[state.product].name + " for " + AUDIENCES[state.audience].name + ", " + ANGLES[state.angle].name + " angle…";
+    await sleep(800);
+    if (AI.on){
+      if (hs) hs.textContent = "Writing with " + AI.providers.map(p => p.label).join(" + ") + ", then judging every draft…";
+      ($("#aiGenBtn") as any).click();
+    } else {
+      if (hs) hs.textContent = "Drafting from the critic-approved copy bank…";
+      generate();
+    }
+    const wb = $("#workbench"); if (wb) wb.scrollIntoView({ behavior: "smooth", block: "start" });
+    await sleep(1400);
+    if (hs) hs.textContent = "Drafts are on the workbench. Approve the keepers; write corrections on the rest. Fine controls stay in The Campaign panel.";
+  }
+  $("#heroGo").addEventListener("click", heroGo);
+  function trayExport(a){
+    return "EDEN AD STUDIO · APPROVED · " + a.product +
+      "\n\nPRIMARY TEXT:\n" + a.primary +
+      "\n\nHEADLINE: " + a.headline +
+      "\nDESCRIPTION: " + a.desc +
+      "\nCTA: " + a.cta +
+      "\nURL: " + a.url +
+      (a.notes ? "\nFOUNDER NOTES: " + a.notes : "");
+  }
+  function trayRender(){
+    const panel = $("#trayPanel"), list = $("#trayList"), count = $("#trayCount");
+    if (!panel || !list) return;
+    (panel as any).hidden = APPROVED.length === 0;
+    if (count) count.textContent = APPROVED.length + (APPROVED.length === 1 ? " ad approved" : " ads approved");
+    list.innerHTML = APPROVED.map((a, i) =>
+      "<div class='tray-item'><div><div class='th'>" + esc(a.headline) + "</div>" +
+      "<div class='tp'>" + esc(a.product) + " · " + esc(a.primary.slice(0, 90)) + "…</div></div>" +
+      "<span style='display:flex;gap:6px;flex-wrap:wrap'>" +
+      "<button class='copybtn' data-tray='copy' data-ti='" + i + "' type='button'>Copy</button>" +
+      "<button class='copybtn' data-tray='remove' data-ti='" + i + "' type='button'>Remove</button>" +
+      "</span></div>"
+    ).join("");
+  }
+  root.addEventListener("click", e => {
+    const t = e.target as any;
+    if (t && t.dataset && t.dataset.act === "approve"){
+      const i = +t.dataset.i; const v = variants[i];
+      if (!v || v.approved) return;
+      v.approved = true;
+      APPROVED.push({
+        product: PRODUCTS[state.product].name,
+        primary: v.primary, headline: v.headline, desc: v.desc,
+        cta: v.cta, url: v.url, notes: (v.notes || "").trim(),
+      });
+      renderVariants();
+      trayRender();
+      showToast("Approved ✓");
+      return;
+    }
+    const ta = t && t.dataset && t.dataset.tray;
+    if (!ta) return;
+    const i = +t.dataset.ti;
+    if (ta === "copy" && APPROVED[i]) copyText(trayExport(APPROVED[i]));
+    if (ta === "remove"){ APPROVED.splice(i, 1); trayRender(); }
+  });
+  $("#trayCopyAll").addEventListener("click", () => {
+    if (APPROVED.length) copyText(APPROVED.map(trayExport).join("\n\n" + "─".repeat(46) + "\n\n"));
+  });
+
+  /* ───────────────────────── ASSET GALLERY ───────────────────────── */
+  function galSet(msg){ const el = $("#galStatus"); if (el) el.textContent = msg; }
+  const GAL_VIDEO_RE = /\.(mp4|webm|mov|m4v)$/i;
+  async function galRender(){
+    if (!assets) return;
+    const grid = $("#galGrid");
+    try{
+      const items = await assets.list();
+      if (!items.length){
+        grid.innerHTML = "";
+        galSet("Nothing here yet. Upload product photos, mockups, or clips and they stay available every session.");
+        return;
+      }
+      const tiles = await Promise.all(items.map(async it => {
+        let u = "";
+        try { u = await assets.url(it.name); } catch(e) {}
+        const isVid = GAL_VIDEO_RE.test(it.name);
+        return "<div class='galitem'>" +
+          (isVid ? "<video muted playsinline preload='metadata' src='"+esc(u)+"'></video>"
+                 : "<img loading='lazy' alt='' src='"+esc(u)+"'>") +
+          "<span class='galname'>"+esc(it.name.replace(/^\d+-/, ""))+"</span>" +
+          "<span class='galbtns'>" +
+            (isVid ? "<button class='copybtn' data-gal='clip' data-name='"+esc(it.name)+"' type='button'>Use as Clip</button>"
+                   : "<button class='copybtn' data-gal='photo' data-name='"+esc(it.name)+"' type='button'>Use as Photo</button>") +
+            "<button class='copybtn' data-gal='del' data-name='"+esc(it.name)+"' type='button'>Delete</button>" +
+          "</span></div>";
+      }));
+      grid.innerHTML = tiles.join("");
+      galSet(items.length + " assets. Photos feed the Photo Harvest template and video backgrounds; clips feed the Video Builder.");
+    }catch(e){
+      galSet("Gallery unavailable: " + String((e && (e as any).message) || e).slice(0, 140));
+    }
+  }
+  function galInit(){
+    const panel = $("#galleryPanel"); if (!panel) return;
+    if (!assets){ panel.style.display = "none"; return; }
+    $("#galUpload").addEventListener("change", async e => {
+      const files = Array.from((e.target as any).files || []) as File[];
+      if (!files.length) return;
+      for (let i = 0; i < files.length; i++){
+        galSet("Uploading " + (i+1) + " of " + files.length + ": " + files[i].name + "…");
+        try { await assets.upload(files[i]); }
+        catch(err){ galSet("Upload failed for " + files[i].name + ": " + String((err && (err as any).message) || err).slice(0, 120)); }
+      }
+      (e.target as any).value = "";
+      galRender();
+    });
+    $("#galRefresh").addEventListener("click", galRender);
+    root.addEventListener("click", async e => {
+      const t = e.target as any;
+      const act = t && t.dataset && t.dataset.gal;
+      if (!act) return;
+      const name = t.dataset.name;
+      if (act === "del"){
+        if (!t.dataset.confirm){
+          t.dataset.confirm = "1"; t.textContent = "Really delete?";
+          setTimeout(() => { t.dataset.confirm = ""; t.textContent = "Delete"; }, 2500);
+          return;
+        }
+        try { await assets.remove(name); galRender(); } catch(err){ galSet("Delete failed."); }
+        return;
+      }
+      try{
+        const u = await assets.url(name);
+        if (act === "photo"){
+          const img = new Image();
+          img.crossOrigin = "anonymous"; /* keeps the export canvas untainted */
+          img.onload = () => {
+            BUILDER.photo = img; BUILDER.tpl = "photo";
+            VB.photo = img;
+            renderBuilder(); drawVideoStill();
+            galSet("Photo loaded into both builders.");
+          };
+          img.onerror = () => galSet("Could not load that image.");
+          img.src = u;
+        } else if (act === "clip"){
+          vClipEl.crossOrigin = "anonymous";
+          vClipEl.src = u;
+          vClipEl.onloadeddata = () => { VB.bg = "clip"; renderVB(); galSet("Clip loaded into the Video Builder."); };
+        }
+      }catch(err){ galSet("Could not open that asset."); }
+    });
+    galRender();
+  }
+
   /* ───────────────────────── INIT ───────────────────────── */
   renderCampaign();
   renderBuilder();
   renderVB();
+  aiInit();
+  galInit();
 
   return function cleanup() {
     try { stopRun(); } catch (e) {}
