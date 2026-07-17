@@ -121,6 +121,11 @@
 
   .edenstudio .copybtn{border:1px solid var(--line);background:var(--panel);color:var(--muted);font-family:var(--display);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;padding:4px 9px;cursor:pointer}
   .edenstudio .copybtn:hover{border-color:var(--amber);color:var(--amber-deep)}
+  /* Buttons that sit ON the dark forest variant header: transparent over the
+     green, linen text, amber border; gold fill on hover. */
+  .edenstudio .vbtn{background:transparent;color:#F5EDD6;border-color:#C5A44E}
+  .edenstudio .vbtn:hover{background:#C5A44E;color:#1E1E14;border-color:#C5A44E}
+  .edenstudio .vbtn.ok{border-color:#8A9A5B;color:#E7EAD3}
   .edenstudio .copyall{border:1px solid var(--amber-deep);background:var(--panel);color:var(--amber-deep);font-family:var(--display);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;padding:7px 14px;cursor:pointer}
   .edenstudio .copyall:hover{background:var(--gold-soft)}
 
