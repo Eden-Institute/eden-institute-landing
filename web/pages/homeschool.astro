@@ -52,11 +52,12 @@ const FACEBOOK_URL = "https://www.facebook.com/TheEdenInstituteBiblicalHerbalism
 // components at two depths. The per-showcase `deepens` line carries the band
 // difference so the comparison isn't lost.
 //
-// IMAGES: `src` is a design mockup of the physical product (see the disclaimer
-// section below — nothing is printed yet). For the TG and NB, `insideSrc` is a
-// render of the REAL page file (not a mockup), so the text a buyer zooms into is
-// the text she will actually teach from. The storybook's insideSrc is a mockup
-// (its title-page micro-text is AI-garbled at zoom — founder may regenerate).
+// IMAGES: every image is a design mockup from the founder's Mockups folder
+// (Products/App/Eden Apothecary/_showcase_assets/Bundles/Mockups) — founder
+// decision 2026-07-17: ONLY that folder, all 11 images. See the disclaimer
+// section below; nothing is printed yet. Note the TG/NB/storybook interior
+// spreads carry AI-garbled micro-text at zoom — swap in regenerated files
+// (same ET_*.webp names) when the founder updates the folder.
 // insideW/insideH are the intrinsic dimensions, reserved to prevent layout shift.
 const SHOWCASES = [
   {
@@ -81,10 +82,10 @@ const SHOWCASES = [
     src: "/showcases/ET_TG_Cover.webp",
     alt: "Eden's Table Teacher's Guide, spiral-bound cover",
     insideSrc: "/showcases/ET_TG_Inside.webp",
-    insideAlt: "Teacher's Guide Week at a Glance page for the calendula week, showing all five days and the ten subjects woven through them",
-    insideLabel: "A real page, Week 5",
-    insideW: 1445,
-    insideH: 1870,
+    insideAlt: "Teacher's Guide open to a calendula week spread, with the Week at a Glance, read-aloud and discussion pages",
+    insideLabel: "Inside the guide",
+    insideW: 1024,
+    insideH: 1024,
     deepens: "Every lesson is written at two depths, so a younger and an older child work the same week at one table.",
     body: "Open the guide on Monday morning and the week is already built. The read-aloud is scripted, the discussion questions are written, the memory verse is chosen, and the kitchen lab tells you exactly which supplies to set on the counter. Nothing is left for you to research the night before. What makes this guide unusual is how much it carries at once: a single week on a single plant quietly weaves Bible, science, language arts, math, art, history, geography, Latin, health, and character, and the Week at a Glance page tells you which day carries which. You are not stacking ten subjects into a day. You are teaching one plant well, and the disciplines come with it.",
     quote: "It lies flat on the counter while your hands are busy, open to Wednesday, while the herb steeps.",
@@ -96,10 +97,10 @@ const SHOWCASES = [
     src: "/showcases/ET_NB_Cover.webp",
     alt: "Eden's Table Student Notebook, spiral-bound cover",
     insideSrc: "/showcases/ET_NB_Inside.webp",
-    insideAlt: "Student Notebook Wednesday Kitchen Lab page with ingredient lines, observation fields for color, smell, taste and texture, a rating, and Bear's safety note",
-    insideLabel: "A real page, Wednesday",
-    insideW: 1445,
-    insideH: 1870,
+    insideAlt: "Student Notebook open to the Tuesday Discovery and Wednesday Kitchen Lab spread, with observation fields and a star rating",
+    insideLabel: "Inside the notebook",
+    insideW: 1024,
+    insideH: 1024,
     deepens: "Color, smell, taste and texture at K-2 become measurements, ratios, and a hypothesis at 3-5.",
     body: "It is a consumable workbook, but calling it that undersells what happens on the page. She draws the plant she just held. She records what it smelled like. She answers, in her own handwriting, a question that has no answer key, because some of the best questions in this curriculum genuinely do not have one. The enrichment work is deliberately marked optional, complete it if you have time, because a curriculum that punishes a hard week is a curriculum abandoned in February. This is also the practical answer to the record-keeping question: dated, sequential, in your child's own hand, showing observation, narration, scripture copywork, and real measurement across thirty-six weeks.",
     quote: "It satisfies a reviewer. Far more importantly, it is the thing she carries to her grandfather and says look what I made.",
@@ -309,7 +310,7 @@ const KIT = {
     <div class="max-w-3xl mx-auto text-center rounded-lg p-6 border" style="border-color:hsl(var(--eden-gold) / 0.3);background-color:hsl(var(--eden-cream) / 0.4)">
       <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2" style="color:hsl(var(--eden-gold))">About these images</p>
       <p class="font-body text-sm text-muted-foreground leading-relaxed">
-        The product photographs on this page are design mockups, created from the real curriculum files ahead of the first print run. They represent the size, binding, materials, and layout of what will arrive at your door. The pages shown inside the Teacher's Guide and Student Notebook are renders of the actual lesson files. Final printed pieces may differ in small details.
+        The product photographs on this page are design mockups, created from the real curriculum files ahead of the first print run. They represent the size, binding, materials, and layout of what will arrive at your door. Final printed pieces may differ in small details.
       </p>
     </div>
   </section>
