@@ -390,10 +390,10 @@ export function initStudio(
     wrap.innerHTML =
       "<div class='vhead'><span class='vt'>Variant "+roman+"</span><span class='vm'>"+esc(ANGLES[state.angle].name)+" · "+esc(AUDIENCES[state.audience].name)+"</span>" +
       "<span style='display:flex;gap:6px;flex-wrap:wrap'>" +
-      "<button class='copybtn' data-act='approve' data-i='"+i+"' type='button' style='color:#F5EDD6;border-color:"+(v.approved ? "#8A9A5B" : "#C5A44E")+"'>"+(v.approved ? "Approved ✓" : "Approve")+"</button>" +
-      "<button class='copybtn' data-act='tobuilder' data-i='"+i+"' type='button' style='color:#F5EDD6;border-color:#C5A44E'>Build Creative</button>" +
-      "<button class='copybtn' data-act='tovideo' data-i='"+i+"' type='button' style='color:#F5EDD6;border-color:#C5A44E'>Build Video</button>" +
-      "<button class='copybtn' data-act='copyone' data-i='"+i+"' type='button' style='color:#F5EDD6;border-color:#C5A44E'>Copy This Ad</button></span></div>" +
+      "<button class='copybtn vbtn"+(v.approved ? " ok" : "")+"' data-act='approve' data-i='"+i+"' type='button'>"+(v.approved ? "Approved ✓" : "Approve")+"</button>" +
+      "<button class='copybtn vbtn' data-act='tobuilder' data-i='"+i+"' type='button'>Build Creative</button>" +
+      "<button class='copybtn vbtn' data-act='tovideo' data-i='"+i+"' type='button'>Build Video</button>" +
+      "<button class='copybtn vbtn' data-act='copyone' data-i='"+i+"' type='button'>Copy This Ad</button></span></div>" +
       "<div class='vbody'><div class='vfields'>" +
       (v.ai ? "<p class='subnote' style='margin:0 0 10px'>" +
         esc(v.ai.model ? "Written by " + v.ai.model : "AI draft") +
