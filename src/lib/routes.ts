@@ -47,6 +47,8 @@ export const ROUTES = {
 
   // ── Founder / admin (auth-walled; server-gated by is_founder()) ──
   FOUNDER_LEADS: "/founder",
+  // Ad workroom: fully client-side tool, no data surface; boundary = founder gate in the page.
+  FOUNDER_STUDIO: "/studio",
 
   // Practitioner clinical workspace (Phase 3), launched 2026-07-09: linked
   // from ApothecaryNav for practitioner-tier users. Server boundary:
