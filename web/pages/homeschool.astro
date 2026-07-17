@@ -47,80 +47,102 @@ const SEEDLINGS_MAGNET = {
 };
 const FACEBOOK_URL = "https://www.facebook.com/TheEdenInstituteBiblicalHerbalism/";
 
+// Component showcases. Copy is deliberately BAND-AGNOSTIC: one description sells
+// both Sprouts (K-2) and Seedlings (3-5), because the two bands are the same six
+// components at two depths. The per-showcase `deepens` line carries the band
+// difference so the comparison isn't lost.
+//
+// IMAGES: `src` is a design mockup of the physical product (see the disclaimer
+// section below — nothing is printed yet). For the TG and NB, `insideSrc` is a
+// render of the REAL page file (not a mockup), so the text a buyer zooms into is
+// the text she will actually teach from. The storybook's insideSrc is a mockup
+// (its title-page micro-text is AI-garbled at zoom — founder may regenerate).
+// insideW/insideH are the intrinsic dimensions, reserved to prevent layout shift.
 const SHOWCASES = [
   {
     id: "story",
-    eyebrow: "Showcase 1 · Storybook",
-    title: "The story that anchors the week.",
-    sproutsSrc: "/showcases/STORY1Sprouts.png",
-    seedlingsSrc: "/showcases/STORY7Seedlings.png",
-    sproutsAlt: "Sprouts Storybook hero — Story 1 chapter cover",
-    seedlingsAlt: "Seedlings Storybook hero — Story 7 chapter cover",
-    deepens: "From a simple parable at K-2 to multi-character ethical arcs at 3-5.",
-    body: "Every week opens with a story. At Sprouts, it's a single-character parable a six-year-old reads aloud. At Seedlings, the same family story grows into multi-character ethical arcs — characters face choices, scripture lands harder, the storybook becomes literature your child carries forward.",
-    quote: "The story is what your child remembers. Everything else is built around it.",
+    eyebrow: "Component 1 · Read-Aloud Storybook",
+    title: "Every week begins with a story.",
+    src: "/showcases/ET_Story_Cover.webp",
+    alt: "Eden's Table Read-Aloud Storybook, cover",
+    insideSrc: "/showcases/ET_Story_Inside.webp",
+    insideAlt: "Read-Aloud Storybook open to the introductory story, Meet the Family",
+    insideLabel: "Inside the storybook",
+    insideW: 1024,
+    insideH: 1024,
+    deepens: "The same family, carried across both bands. A simple parable at K-2 becomes a story of real choices at 3-5.",
+    body: "Before there is a lesson about a plant, there is a family. Vovó in the garden. PopPop with his hands in the dirt. A scraped knee, a jar on a windowsill, a grandmother who knows which flower to reach for. The botany, the scripture, and the kitchen lab all hang on that narrative hook, which is why a child who cannot yet define a term can still tell you exactly why Vovó chose the plant she chose. This is the piece that makes the curriculum stick, and it is the piece most curricula skip. Facts taught cold are facts forgotten by Friday.",
+    quote: "It is the least academic-looking thing in the box, and it is doing the most important work in it.",
   },
   {
     id: "tg",
-    eyebrow: "Showcase 2 · Teacher Guide",
-    title: "Open the page. Teach the week.",
-    sproutsSrc: "/showcases/TGSprouts.png",
-    seedlingsSrc: "/showcases/TGSeedlings.png",
-    sproutsAlt: "Sprouts Teacher Guide open on cream linen",
-    seedlingsAlt: "Seedlings Teacher Guide open on cream linen",
-    deepens: "Open-and-teach at K-2 → six disciplines woven into one week at 3-5.",
-    body: "You don't need to know herbalism to teach this. At Sprouts, each Monday's read-aloud is scripted; the kitchen lab is one preparation. At Seedlings, the same week weaves botany, chemistry, history, theology, and clinical safety — the page tells you exactly which day handles which discipline.",
-    quote: "You open the binder. The week unfolds.",
+    eyebrow: "Component 2 · Teacher's Guide",
+    title: "You do not need to know herbalism to teach this.",
+    src: "/showcases/ET_TG_Cover.webp",
+    alt: "Eden's Table Teacher's Guide, spiral-bound cover",
+    insideSrc: "/showcases/ET_TG_Inside.webp",
+    insideAlt: "Teacher's Guide Week at a Glance page for the calendula week, showing all five days and the ten subjects woven through them",
+    insideLabel: "A real page, Week 5",
+    insideW: 1445,
+    insideH: 1870,
+    deepens: "Every lesson is written at two depths, so a younger and an older child work the same week at one table.",
+    body: "Open the guide on Monday morning and the week is already built. The read-aloud is scripted, the discussion questions are written, the memory verse is chosen, and the kitchen lab tells you exactly which supplies to set on the counter. Nothing is left for you to research the night before. What makes this guide unusual is how much it carries at once: a single week on a single plant quietly weaves Bible, science, language arts, math, art, history, geography, Latin, health, and character, and the Week at a Glance page tells you which day carries which. You are not stacking ten subjects into a day. You are teaching one plant well, and the disciplines come with it.",
+    quote: "It lies flat on the counter while your hands are busy, open to Wednesday, while the herb steeps.",
   },
   {
     id: "nb",
-    eyebrow: "Showcase 3 · Student Notebook",
-    title: "The page your child shows her grandfather.",
-    sproutsSrc: "/showcases/NBSprouts.png",
-    seedlingsSrc: "/showcases/NBSeedlings.png",
-    sproutsAlt: "Sprouts Student Notebook open — Tuesday Discovery and Wednesday Kitchen Lab",
-    seedlingsAlt: "Seedlings Student Notebook open — measurement, hypothesis, safety panels",
-    deepens: "Sensory observation at K-2 → measurement, hypothesis, and species verification at 3-5.",
-    body: "At Sprouts, your child draws the herb, lists what she smells, writes a one-line response to scripture. At Seedlings, the same Wednesday measures the dried plant in millimeters, runs a 4:1 decoction ratio, writes a hypothesis to check eight weeks later, verifies species. Same rhythm. Real chemistry.",
-    quote: "What your child fills in at the kitchen table — and what you submit to the state.",
+    eyebrow: "Component 3 · Student Notebook",
+    title: "The book your child fills in herself.",
+    src: "/showcases/ET_NB_Cover.webp",
+    alt: "Eden's Table Student Notebook, spiral-bound cover",
+    insideSrc: "/showcases/ET_NB_Inside.webp",
+    insideAlt: "Student Notebook Wednesday Kitchen Lab page with ingredient lines, observation fields for color, smell, taste and texture, a rating, and Bear's safety note",
+    insideLabel: "A real page, Wednesday",
+    insideW: 1445,
+    insideH: 1870,
+    deepens: "Color, smell, taste and texture at K-2 become measurements, ratios, and a hypothesis at 3-5.",
+    body: "It is a consumable workbook, but calling it that undersells what happens on the page. She draws the plant she just held. She records what it smelled like. She answers, in her own handwriting, a question that has no answer key, because some of the best questions in this curriculum genuinely do not have one. The enrichment work is deliberately marked optional, complete it if you have time, because a curriculum that punishes a hard week is a curriculum abandoned in February. This is also the practical answer to the record-keeping question: dated, sequential, in your child's own hand, showing observation, narration, scripture copywork, and real measurement across thirty-six weeks.",
+    quote: "It satisfies a reviewer. Far more importantly, it is the thing she carries to her grandfather and says look what I made.",
   },
   {
     id: "fc",
-    eyebrow: "Showcase 4 · Herb Field Cards",
-    title: "What your child can identify in the wild.",
-    sproutsSrc: "/showcases/FCSprouts.png",
-    seedlingsSrc: "/showcases/FCSeedlings.png",
-    sproutsAlt: "Sprouts Herb Field Cards with rigid storage box",
-    seedlingsAlt: "Seedlings Herb Field Cards with rigid storage box",
-    deepens: "36 Sprouts herbs + 36 Seedlings herbs = 72 unique plants in your child's library by 5th grade.",
-    body: "Same heritage card format at both depths. Köhler-style botanical illustration on the front, four working zones on the back. Sprouts shows preparations a six-year-old can handle (tea, infusion). Seedlings shows preparations an eight-year-old can handle (decoction, oxymel, syrup). By the end of fifth grade, your child names and uses 72 plants — more than most adults you know.",
-    quote: "Same heritage card. Deeper library.",
+    eyebrow: "Component 4 · Herb Field Cards",
+    title: "By the end of the year she can name plants most adults cannot.",
+    src: "/showcases/ET_FieldCards.webp",
+    alt: "Eden's Table Herb Field Cards with storage box, showing a calendula card front and back",
+    deepens: "Each band covers a different 36 plants. A family that works through both ends with 72 named and usable species.",
+    body: "Each card carries a heritage botanical illustration on the front, the kind you would expect in a nineteenth-century plate book, alongside the plant's common name and its Latin binomial. The back is the working side: what the plant tastes like, what it does, and how it is prepared at a level your child can genuinely handle. The card format does something a textbook cannot. It is portable, so it goes in a pocket on a walk. It is durable, so it survives the walk. And it is a set, which triggers the collecting instinct children already have. Children who will not sit still for a botany chapter will absolutely sort, quiz, and trade a deck of cards they own.",
+    quote: "The learning stops being confined to school hours and starts following your family outdoors.",
   },
   {
     id: "rc",
-    eyebrow: "Showcase 5 · Recipe Cards",
-    title: "What lives on your counter all year.",
-    sproutsSrc: "/showcases/RCSprouts.png",
-    seedlingsSrc: "/showcases/RCSeedlings.png",
-    sproutsAlt: "Sprouts Recipe Cards with display box — Chamomile Tea card visible",
-    seedlingsAlt: "Seedlings Recipe Cards with display box",
-    deepens: "Tea + infusion at K-2 → decoction, oxymel, and slow medicines at 3-5.",
-    body: "Same display-on-the-counter design at both depths. At Sprouts, the recipe is what a six-year-old can make with adult supervision — chamomile tea, honey water. At Seedlings, the child becomes a young apprentice — she measures, decoct, makes oxymels and elderberry syrup, all with safety call-outs in rust red.",
-    quote: "By the end of the year, she has thirty-six preparations from your kitchen.",
+    eyebrow: "Component 5 · Recipe Cards",
+    title: "The card that lives on your counter.",
+    src: "/showcases/ET_RecipeCards.webp",
+    alt: "Eden's Table Recipe Cards with display box, showing a calendula skin dressing card",
+    deepens: "Steeping and infusing early. Decoctions, oxymels, and syrups later.",
+    body: "Each week's kitchen lab gets its own card: what to gather, what to do, in steps your child can follow with your hands nearby. The preparations are matched to what she can actually manage at her level, which means they start simple and grow genuinely ambitious as she does. Wednesday is the day the week stops being about a plant and starts being with one. Your child measures, steeps, stirs, smells, and tastes, then records what she observed in her notebook and says whether it worked. Real chemistry, learned the way it has always been learned in a family kitchen, with an adult paying attention. Safety instruction is printed on the card itself rather than buried in a manual, so the caution arrives at the moment it is needed.",
+    quote: "Long after the week is finished, your child is still the one who says I know how to make that, and then does.",
   },
   {
     id: "att",
-    eyebrow: "Showcase 6 · Around the Table",
-    title: "The conversation that turns dinner into memory.",
-    sproutsSrc: "/showcases/ATTSprouts.png",
-    seedlingsSrc: "/showcases/ATTSeedlings.png",
-    sproutsAlt: "Sprouts Around the Table Family deck with cards visible",
-    seedlingsAlt: "Seedlings Around the Table Family deck with cards visible",
-    deepens: "Same four categories. At 3-5, the questions add abstract reasoning and classical-tradition references.",
-    body: "Body. Faith. Family. Wonder. Same four conversations at both depths, color-coded by category. At Sprouts the Faith card asks 'does God see us when we're hurting?' At Seedlings the same week asks 'what does it mean for your body to be a temple of the Holy Spirit?' Same chair. Older question. Vovó closes both.",
-    quote: "The curriculum your husband notices — because it shows up at dinner.",
+    eyebrow: "Component 6 · Around the Table",
+    title: "Four questions a week, and the curriculum walks into your dinner.",
+    src: "/showcases/ET_ATTCards.webp",
+    alt: "Eden's Table Around the Table discussion cards with box, showing Body, Faith, Family and Wonder cards",
+    deepens: "Same four categories at both bands. At 3-5 the questions add abstract reasoning and the classical tradition.",
+    body: "Each week's set carries one card in each of four directions: Body, Faith, Family, and Wonder. What is happening inside you when a wound heals. What God says about healing and the healed. What it means to care for the people at this table. And the questions with no clean answer at all, the ones a child turns over for days. These are written as genuine questions, not comprehension checks with an answer in the back. Nobody is being quizzed. A young child, an older sibling, and a grandparent can all answer the same card honestly and differently, which is exactly the conversation you want.",
+    quote: "It is the difference between a curriculum your family completes and a curriculum your family talks about.",
   },
 ];
+
+// The kit section (§9.4) — the six components as one purchase.
+const KIT = {
+  closedSrc: "/showcases/ET_Kit_Closed.webp",
+  closedAlt: "The Eden's Table complete curriculum kit box, closed",
+  openSrc: "/showcases/ET_Kit_Open.webp",
+  openAlt: "The Eden's Table kit box open, showing the Teacher's Guide, Student Notebook, storybook and all three card decks",
+};
 ---
 
 <MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} jsonLd={courseJsonLd}>
@@ -214,7 +236,7 @@ const SHOWCASES = [
     </div>
   </section>
 
-  {/* §4-§9 Showcases */}
+  {/* §4-§9 Component showcases — band-agnostic copy, one or two images each */}
   {SHOWCASES.map((s, idx) => (
     <section id={`showcase-${s.id}`} class="py-16 md:py-20 px-6" style={`background-color:${idx % 2 === 0 ? "hsl(var(--background))" : "hsl(var(--eden-cream) / 0.4)"}`}>
       <div class="max-w-6xl mx-auto">
@@ -222,22 +244,21 @@ const SHOWCASES = [
           <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold))">{s.eyebrow}</p>
           <h2 class="font-serif text-3xl md:text-4xl font-bold" style="color:hsl(var(--eden-bark))">{s.title}</h2>
         </div>
-        <div class="grid md:grid-cols-2 gap-4 md:gap-6 mb-8">
-          <div>
-            <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2 text-center" style="color:hsl(var(--eden-gold))">Sprouts · K-2</p>
-            <div class="rounded-lg overflow-hidden bg-white shadow-sm">
-              <img src={s.sproutsSrc} alt={s.sproutsAlt} loading="lazy" class="w-full h-auto" />
-            </div>
+        <div class={`grid items-start gap-4 md:gap-6 mb-8 ${s.insideSrc ? "md:grid-cols-2" : "max-w-xl mx-auto"}`}>
+          <div class="rounded-lg overflow-hidden bg-white shadow-sm">
+            <img src={s.src} alt={s.alt} loading="lazy" width="1024" height="1024" class="w-full h-auto" />
           </div>
-          <div>
-            <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2 text-center" style="color:hsl(var(--eden-gold))">Seedlings · 3-5</p>
-            <div class="rounded-lg overflow-hidden bg-white shadow-sm">
-              <img src={s.seedlingsSrc} alt={s.seedlingsAlt} loading="lazy" class="w-full h-auto" />
+          {s.insideSrc && (
+            <div>
+              <div class="rounded-lg overflow-hidden bg-white shadow-sm">
+                <img src={s.insideSrc} alt={s.insideAlt} loading="lazy" width={s.insideW} height={s.insideH} class="w-full h-auto" />
+              </div>
+              <p class="font-accent text-xs tracking-[0.25em] uppercase mt-2 text-center" style="color:hsl(var(--eden-gold))">{s.insideLabel}</p>
             </div>
-          </div>
+          )}
         </div>
         <div class="max-w-3xl mx-auto mb-8 text-center rounded-lg p-6" style="background-color:hsl(var(--eden-cream));border:1px solid hsl(var(--eden-gold) / 0.3)">
-          <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2" style="color:hsl(var(--eden-gold))">What deepens at Seedlings</p>
+          <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2" style="color:hsl(var(--eden-gold))">Sprouts K-2 and Seedlings 3-5</p>
           <p class="font-serif text-lg italic" style="color:hsl(var(--eden-bark))">{s.deepens}</p>
         </div>
         <p class="font-body text-base md:text-lg max-w-3xl mx-auto leading-relaxed text-foreground mb-8 text-center">{s.body}</p>
@@ -246,6 +267,52 @@ const SHOWCASES = [
       </div>
     </section>
   ))}
+
+  {/* §9.4 The complete kit — the six components as one purchase */}
+  <section id="showcase-kit" class="py-16 md:py-20 px-6" style="background-color:hsl(var(--eden-forest))">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-10">
+        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold))">The Complete Kit</p>
+        <h2 class="font-serif text-3xl md:text-4xl font-bold text-white">Six components. Thirty-six weeks. One box.</h2>
+      </div>
+      <div class="grid md:grid-cols-2 gap-4 md:gap-6 mb-10">
+        <div class="rounded-lg overflow-hidden bg-white shadow-sm">
+          <img src={KIT.closedSrc} alt={KIT.closedAlt} loading="lazy" width="1024" height="1024" class="w-full h-auto" />
+        </div>
+        <div class="rounded-lg overflow-hidden bg-white shadow-sm">
+          <img src={KIT.openSrc} alt={KIT.openAlt} loading="lazy" width="1024" height="1024" class="w-full h-auto" />
+        </div>
+      </div>
+      <div class="max-w-3xl mx-auto text-center">
+        <p class="font-body text-base md:text-lg leading-relaxed mb-6" style="color:rgba(255,255,255,0.85)">
+          One year, thirty-six plants, six components built to work as a single instrument. The Teacher's Guide that means you never prepare the night before. The Student Notebook your child fills in and keeps. The Read-Aloud that gives every week its story. Thirty-six Field Cards, thirty-six Recipe Cards, and one hundred forty-four Around the Table questions.
+        </p>
+        <p class="font-body text-base md:text-lg leading-relaxed mb-8" style="color:rgba(255,255,255,0.85)">
+          Nothing here is filler and nothing is sold to you twice. Each piece does a job the others cannot. The story makes it memorable, the guide makes it teachable, the notebook makes it your child's own, and the cards carry it outdoors, into the kitchen, and to the dinner table. Bought separately, this would be six decisions and six gambles on whether the pieces fit together. They fit because they were designed together, week by week, as one year.
+        </p>
+        <blockquote class="font-serif text-xl md:text-2xl italic mb-8 text-white">
+          “You are not buying a stack of books. You are buying the shape of your family's next school year.”
+        </blockquote>
+        <p class="font-body text-sm mb-2" style="color:rgba(255,255,255,0.7)">
+          Each kit includes one Student Notebook. Additional notebooks are sold separately, so every child in your family can keep a book of their own.
+        </p>
+        <p class="font-body text-sm mb-8" style="color:rgba(255,255,255,0.7)">
+          The herbs themselves are not in the box. Each week uses a small amount of a common dried herb from your pantry, your garden, or the <a href="/homeschool/herbs" class="underline" style="color:hsl(var(--eden-gold))">herb list we keep for you</a>, so nothing in your kit ever expires.
+        </p>
+        <DualLeadMagnetCTAs />
+      </div>
+    </div>
+  </section>
+
+  {/* §9.45 Mockup disclaimer — nothing is printed yet; these are design mockups */}
+  <section class="py-10 px-6 bg-background">
+    <div class="max-w-3xl mx-auto text-center rounded-lg p-6 border" style="border-color:hsl(var(--eden-gold) / 0.3);background-color:hsl(var(--eden-cream) / 0.4)">
+      <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2" style="color:hsl(var(--eden-gold))">About these images</p>
+      <p class="font-body text-sm text-muted-foreground leading-relaxed">
+        The product photographs on this page are design mockups, created from the real curriculum files ahead of the first print run. They represent the size, binding, materials, and layout of what will arrive at your door. The pages shown inside the Teacher's Guide and Student Notebook are renders of the actual lesson files. Final printed pieces may differ in small details.
+      </p>
+    </div>
+  </section>
 
   {/* §9.5 Herb sourcing — links to the parent herb-ordering page */}
   <section class="py-14 px-6 bg-background">
@@ -297,6 +364,7 @@ const SHOWCASES = [
             <ul class="font-body text-sm text-muted-foreground space-y-1.5 mb-6 flex-1">
               <li>· 36 weekly lessons</li>
               <li>· Teacher Guide + Student Notebook</li>
+              <li>· Read-Aloud Storybook</li>
               <li>· 36 Herb Field Cards</li>
               <li>· 36 Recipe Cards</li>
               <li>· Around the Table deck (144 cards)</li>
@@ -322,6 +390,7 @@ const SHOWCASES = [
             <ul class="font-body text-sm text-muted-foreground space-y-1.5 mb-6 flex-1">
               <li>· 36 weekly lessons at Seedlings depth</li>
               <li>· Teacher Guide + Student Notebook</li>
+              <li>· Read-Aloud Storybook</li>
               <li>· 36 Herb Field Cards</li>
               <li>· 36 Recipe Cards</li>
               <li>· Around the Table deck (144 cards)</li>
