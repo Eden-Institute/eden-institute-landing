@@ -169,7 +169,7 @@ const Homeschool = () => {
    */
   const openReserveFounders = () => openWaitlist({
     title: "Reserve Founders Pricing",
-    subtitle: "We'll email your Founders Code before launch — locks in $249 per band / $449 bundle before retail begins.",
+    subtitle: "We'll email you the moment preorder opens July 29. The first 500 kits sell at the $249 Founders price before the $349 retail price begins.",
     source: "reserve",
   });
   const openSproutsLeadMagnet = () => openWaitlist({
@@ -353,14 +353,14 @@ const Homeschool = () => {
       <section id="pricing" className="py-20 md:py-24 px-6" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
-            <p className="font-accent text-sm tracking-[0.3em] uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>Founders Pricing — open until launch</p>
+            <p className="font-accent text-sm tracking-[0.3em] uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>Founders Pricing · first 500 kits</p>
             <h2 className="font-serif text-3xl md:text-4xl font-bold mb-4" style={{ color: "hsl(var(--eden-bark))" }}>Reserve your seat at the table.</h2>
           </div>
 
           <div className="max-w-3xl mx-auto mb-12 text-center rounded-lg p-5" style={{ backgroundColor: "hsl(var(--eden-bark))" }}>
             <p className="font-accent text-xs tracking-[0.25em] uppercase mb-2" style={{ color: "hsl(var(--eden-gold))" }}>How Founders pricing works</p>
             <p className="font-body text-sm text-white leading-relaxed">
-              Join the waitlist and we'll email your Founders Code before launch. Use it at checkout to lock in Founders pricing. Retail begins at launch: <strong>$349 Sprouts · $349 Seedlings · $699 Bundle</strong>.
+              Preorder opens July 29. The first <strong>500 kits</strong> sell at the Founders price of <strong>$249</strong>. After the 500th kit, the price moves automatically to the <strong>$349</strong> retail price. Join the free sample list and we'll email you the moment preorder opens.
             </p>
           </div>
 
