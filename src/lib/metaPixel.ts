@@ -3,9 +3,12 @@
 // keeps us aligned with the Cookie Policy's "marketing cookies only with
 // explicit consent" promise.
 //
-// Pixel ID 1535058498232762 (Eden Institute, Meta Events Manager).
+// Pixel ID 1352550852955476 (Eden Institute, Meta Events Manager).
+// Switched 2026-07-18 from 1535058498232762. Keep this in sync with
+// META_PIXEL_ID in supabase/functions/resend-waitlist/index.ts — the server-side
+// Conversions API must report to the SAME pixel for eventID dedupe to work.
 
-const PIXEL_ID = "1535058498232762";
+const PIXEL_ID = "1352550852955476";
 let injected = false;
 
 declare global {

@@ -962,7 +962,11 @@ function json(status: number, payload: unknown): Response {
 }
 
 // ── Meta Conversions API (server-side, deduped with the client Pixel) ──
-const META_PIXEL_ID = '1535058498232762';
+// Must match PIXEL_ID in src/lib/metaPixel.ts (switched 2026-07-18 from
+// 1535058498232762) so browser + server events dedupe on the shared eventID.
+// NOTE: META_CAPI_ACCESS_TOKEN is pixel-specific — a token minted for the old
+// pixel will fail against this one and must be regenerated in Events Manager.
+const META_PIXEL_ID = '1352550852955476';
 const META_CAPI_ACCESS_TOKEN = Deno.env.get('META_CAPI_ACCESS_TOKEN') ?? '';
 
 async function sha256Hex(input: string): Promise<string> {
