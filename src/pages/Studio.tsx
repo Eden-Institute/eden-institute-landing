@@ -26,6 +26,7 @@ import {
   createProject, deleteProject, listProjects,
 } from "@/studio/studio-db";
 import type { NewStudioProject, StudioProject } from "@/studio/studio-db";
+import { completeConnect } from "@/studio/studio-canva";
 
 const FOUNDER_EMAIL = "hello@edeninstitute.health";
 
@@ -60,6 +61,31 @@ export default function Studio() {
   useEffect(() => {
     if (isFounder) void refresh();
   }, [isFounder, refresh]);
+
+  // Phase 3: /studio doubles as the Canva OAuth redirect target. On a normal
+  // load completeConnect() returns null and this does nothing; after an
+  // authorization it exchanges the code and reopens the project the founder
+  // left from. State mismatches throw and are surfaced rather than swallowed.
+  useEffect(() => {
+    if (!isFounder) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const result = await completeConnect();
+        if (!result || cancelled) return;
+        const list = await listProjects();
+        if (cancelled) return;
+        setProjects(list);
+        const target = list.find((p) => p.id === result.projectId);
+        if (target) { setActive(target); setView("work"); }
+      } catch (err) {
+        if (!cancelled) {
+          setListError(err instanceof Error ? err.message : "Canva connection failed.");
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isFounder]);
 
   async function handleCreate(input: NewStudioProject) {
     setCreating(true);
