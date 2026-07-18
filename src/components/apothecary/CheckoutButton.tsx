@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ROUTES } from "@/lib/routes";
 import { trackCta } from "@/lib/trackCta";
 
+import { getFbAttribution } from "@/lib/fbAttribution";
 // The create-checkout EF marks user-actionable failures with a `code` field
 // (e.g. BUNDLE_REQUIRED); everything else is a raw/technical string like
 // "Edge Function returned a non-2xx status code" that a paying customer should
@@ -82,7 +83,8 @@ export function CheckoutButton({
       // rides along so the session arrives pre-discounted.
       const promo = new URLSearchParams(window.location.search).get("promo");
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { lookup_key: lookupKey, ...(promo ? { promo_code: promo } : {}) },
+        body: {
+          ...getFbAttribution(), lookup_key: lookupKey, ...(promo ? { promo_code: promo } : {}) },
       });
       if (error) throw error;
       if (!data?.url) throw new Error("Checkout session missing redirect URL");

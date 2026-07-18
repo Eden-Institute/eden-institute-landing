@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { trackCta } from "@/lib/trackCta";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 
+import { getFbAttribution } from "@/lib/fbAttribution";
 type BillingCycle = "monthly" | "yearly";
 
 export default function Pricing() {
@@ -62,7 +63,8 @@ export default function Pricing() {
       try {
         const promo = searchParams.get("promo");
         const { data, error } = await supabase.functions.invoke("create-checkout", {
-          body: { lookup_key: checkout, ...(promo ? { promo_code: promo } : {}) },
+          body: {
+          ...getFbAttribution(), lookup_key: checkout, ...(promo ? { promo_code: promo } : {}) },
         });
         if (error) throw error;
         if (data?.url && !cancelled) {

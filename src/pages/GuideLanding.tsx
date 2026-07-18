@@ -9,6 +9,7 @@ import Navbar from "@/components/landing/Navbar";
 import { ROUTES } from "@/lib/routes";
 import { trackCta } from "@/lib/trackCta";
 
+import { getFbAttribution } from "@/lib/fbAttribution";
 // Map slug → constitution type key
 const slugToType: Record<string, string> = {};
 for (const [type, profile] of Object.entries(constitutionProfiles)) {
@@ -141,6 +142,7 @@ const GuideLanding = () => {
       // useEffect above unlocks the full guide.
       const { data, error: fnError } = await supabase.functions.invoke("create-checkout", {
         body: {
+          ...getFbAttribution(),
           lookup_key: "deep_dive_guide",
           constitution_type: constitutionType,
           constitution_nickname: profile.nickname,
