@@ -64,6 +64,16 @@ verify_jwt = false
 [functions.preorder-status]
 verify_jwt = false
 
+# Stripe Checkout session creator. Does its OWN auth dispatch internally
+# (subscriptions + nb_addon check the JWT in code; anonymous one-offs and
+# preorders don't). verify_jwt MUST stay false: true at the gateway blocks
+# anonymous purchases (the original Phase 5 #4 silent-fail bug). This entry
+# was missing from the Lock #72 list, so a routine 2026-07-18 redeploy
+# silently flipped the function to verify_jwt=true (401s for non-invoke
+# callers) until it was caught and redeployed with --no-verify-jwt.
+[functions.create-checkout]
+verify_jwt = false
+
 # Straight-to-checkout redirect for the Deep-Dive Guide, clicked anonymously
 # from nurture emails. Plain HTTP 302 to a Stripe session; no Supabase JWT.
 [functions.guide-checkout]
