@@ -191,8 +191,47 @@ export const STUDIO_HTML = `
         <input type="file" id="galUpload" accept="image/*,video/*" multiple style="flex:1;min-width:200px">
         <button class="copyall" id="galRefresh" type="button">Refresh</button>
       </div>
+      <div class="gal-filter">
+        <span class="gal-filter-l">Campaign</span>
+        <span class="chips" id="galTagChips"></span>
+      </div>
       <p class="subnote" id="galStatus" style="min-height:16px"></p>
       <div id="galGrid" class="galgrid"></div>
+
+      <!-- Non-destructive adjustments. Nothing here rewrites the stored file;
+           the values are a record the builder applies at render time. -->
+      <div id="galAdjust" hidden>
+        <div class="adj-h">
+          <span>Adjust <b id="adjName"></b></span>
+          <button class="copybtn" id="adjReset" type="button">Reset</button>
+        </div>
+        <div class="adj-grid">
+          <label>Opacity <span class="adj-v" id="adjOpacityV">100%</span>
+            <input type="range" id="adjOpacity" min="0" max="100" value="100"></label>
+          <label>Brightness <span class="adj-v" id="adjBrightV">100%</span>
+            <input type="range" id="adjBright" min="50" max="150" value="100"></label>
+          <label>Contrast <span class="adj-v" id="adjContrastV">100%</span>
+            <input type="range" id="adjContrast" min="50" max="150" value="100"></label>
+          <label>Saturation <span class="adj-v" id="adjSatV">100%</span>
+            <input type="range" id="adjSat" min="0" max="200" value="100"></label>
+        </div>
+        <p class="subnote" id="adjStatus" style="min-height:16px;margin:6px 0 0"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Brand kit (locked) ── -->
+  <section class="panel" id="brandPanel" style="margin-top:22px">
+    <div class="panel-h">
+      <h2>Brand Kit</h2>
+      <span class="note">locked · from the Eden Brand Voice Guide</span>
+    </div>
+    <div class="panel-b">
+      <p class="subnote" style="margin:0 0 12px">
+        Read-only by design. These values live in the database with no write path from this app, so a stray click cannot drift the brand. Changing them is a deliberate migration.
+      </p>
+      <div id="brandColors" class="swatches"></div>
+      <div id="brandFonts" class="brandfonts"></div>
     </div>
   </section>
 

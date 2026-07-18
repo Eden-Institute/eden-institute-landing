@@ -13,7 +13,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { Button } from "@/components/ui/button";
 import { STUDIO_HTML } from "@/studio/studio-html";
 import { initStudio } from "@/studio/studio-core";
-import { aiInvoke, assetsBridge } from "./studio-bridges";
+import { aiInvoke, makeAssetsBridge } from "./studio-bridges";
 import { formatForAdType } from "./studio-types";
 import type { StudioHandle } from "./studio-types";
 import { saveProject } from "./studio-db";
@@ -87,7 +87,13 @@ export default function StudioWorkroom({ project, onExit, onFinish, onSaved }: P
     root.style.setProperty("--studio-shell-top", `${headerH}px`);
 
     root.innerHTML = STUDIO_HTML;
-    const handle = initStudio(root, aiInvoke, assetsBridge, {
+    // Phase 2: uploads are tagged with this project's campaign, and transforms
+    // are scoped to this project, so the bridge needs that context.
+    const assets = makeAssetsBridge({
+      projectId: project.id,
+      campaignTag: project.campaign_tag,
+    });
+    const handle = initStudio(root, aiInvoke, assets, {
       // The core auto-advances on its own (heroGo jumps to Drafts). Treating
       // that as a change keeps the dirty badge truthful.
       onStep: () => setDirty(true),
