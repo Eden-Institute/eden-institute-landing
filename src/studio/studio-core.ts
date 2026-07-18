@@ -559,16 +559,25 @@ export function initStudio(
       "\nURL: " + v.url +
       (v.notes && v.notes.trim() ? "\nFOUNDER NOTES: " + v.notes.trim() : "");
   }
-  function copyText(str){
-    const done = () => showToast("Copied"); /* hoisted from the guided-flow block */
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(str).then(done, () => fallbackCopy(str, done));
-    else fallbackCopy(str, done);
+  /** Copy to the clipboard and report whether it actually landed. Callers that
+   *  open a new tab must AWAIT this first: once the new tab takes focus, the
+   *  browser refuses clipboard writes from this page and the copy silently
+   *  does nothing. */
+  async function copyText(str){
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      try { await navigator.clipboard.writeText(str); showToast("Copied"); return true; }
+      catch(e){ /* focus lost or permission refused; try the legacy path */ }
+    }
+    return fallbackCopy(str);
   }
-  function fallbackCopy(str, done){
+  function fallbackCopy(str){
     const ta = document.createElement("textarea"); ta.value = str; ta.style.position = "fixed"; ta.style.opacity = "0";
     document.body.appendChild(ta); ta.select();
-    try { document.execCommand("copy"); } catch(e){}
-    document.body.removeChild(ta); done();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch(e){}
+    document.body.removeChild(ta);
+    if (ok) showToast("Copied");
+    return ok;
   }
 
   /* ───────────────────────── CREATIVE BUILDER ───────────────────────── */
@@ -2043,7 +2052,7 @@ export function initStudio(
   /* ── Post: hand off to Meta's own surfaces with the package on the clipboard ── */
   const EDEN_FB = "https://www.facebook.com/TheEdenInstituteBiblicalHerbalism";
   const EDEN_IG = "https://www.instagram.com/the_eden_institute/";
-  root.addEventListener("click", e => {
+  root.addEventListener("click", async e => {
     const t = e.target as any;
     const act = t && t.dataset && t.dataset.post;
     if (!act) return;
@@ -2055,7 +2064,28 @@ export function initStudio(
       if (ps) ps.textContent = "Approve at least one draft first (the Drafts screen).";
       return;
     }
-    if (pkg && (act === "ads" || act === "suite")) copyText(pkg);
+    /* Save the current creative from right here, so the file she has to attach
+       in Meta is never somewhere else in the app. */
+    if (act === "png"){
+      try{
+        const s = SIZES[BUILDER.size];
+        const bytes = await renderSizeToPng(BUILDER.size);
+        const a = document.createElement("a");
+        a.download = "eden-ad-" + BUILDER.tpl + "-" + s.w + "x" + s.h + ".png";
+        a.href = URL.createObjectURL(new Blob([bytes], { type: "image/png" }));
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+        if (ps) ps.textContent = "Creative saved to your Downloads as " + a.download + ". Attach that file in Meta; the buttons here carry only the text.";
+      }catch(err){
+        if (ps) ps.textContent = "Could not render the creative: " + String((err as any)?.message || err).slice(0, 120);
+      }
+      return;
+    }
+    /* Copy BEFORE opening the tab. The new tab takes focus, and a clipboard
+       write after focus is lost is silently refused, which was exactly the
+       "Business Suite opens but the package is nowhere" failure. */
+    let copied = true;
+    if (pkg && (act === "ads" || act === "suite")) copied = await copyText(pkg);
     const urls = {
       ads: "https://www.facebook.com/adsmanager/creation",
       suite: "https://business.facebook.com/latest/composer",
@@ -2064,10 +2094,20 @@ export function initStudio(
       share: "https://www.facebook.com/sharer/sharer.php?u=" +
         encodeURIComponent((APPROVED[0] && APPROVED[0].url) || "https://edeninstitute.health/homeschool"),
     };
-    window.open(urls[act], "_blank", "noopener");
+    const w = window.open(urls[act], "_blank", "noopener");
+    if (!w){
+      /* Pop-up blocked (can happen when the open follows an await). The URLs
+         here are constants, safe to place in an anchor. */
+      if (ps) ps.innerHTML = "The browser blocked the pop-up. <a href='" + urls[act] + "' target='_blank' rel='noopener'>Open it here</a>" +
+        (copied && pkg && (act === "ads" || act === "suite") ? " — your package is on the clipboard." : ".");
+      return;
+    }
     if (ps) ps.textContent =
-      act === "ads" ? "Package copied. In Ads Manager, paste the primary text, headline, and description into the ad setup and attach your creative." :
-      act === "suite" ? "Package copied. Business Suite composes to Facebook and Instagram together." : "";
+      !copied && (act === "ads" || act === "suite")
+        ? "The tab is open, but the clipboard copy was refused. Come back here, press Copy All Approved on the tray, then paste."
+        : act === "ads" ? "Package copied. In Ads Manager, paste the primary text, headline, and description into the ad setup, then attach your creative PNG (Download Creative here, or the Creative step's exports)."
+        : act === "suite" ? "Package copied. Business Suite composes to Facebook and Instagram together; paste the text and attach your creative PNG from Downloads."
+        : "";
   });
 
   /* ───────────────────────── ASSET GALLERY ───────────────────────── */

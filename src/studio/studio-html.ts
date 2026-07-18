@@ -171,10 +171,11 @@ export const STUDIO_HTML = `
   <section class="panel" id="postPanel" style="margin-top:22px">
     <div class="panel-h"><h2>Post It</h2><span class="note">straight into Meta's own composers</span></div>
     <div class="panel-b">
-      <p class="subnote" style="margin:0 0 10px">True hands-free publishing needs a Meta developer app (a future integration). Today's flow is one step short: each button below copies your approved ad package to the clipboard, then opens the right Meta surface in a new tab. Paste, attach the creative, publish.</p>
+      <p class="subnote" style="margin:0 0 10px">True hands-free publishing needs a Meta developer app (a future integration). Today's flow is one step short: the buttons below put your approved ad text on the clipboard first, then open the right Meta surface in a new tab. Meta cannot receive the image automatically, so use Download Creative to save the PNG, then paste the text and attach the file.</p>
       <div class="postgrid">
         <button class="copyall" data-post="ads" type="button">Copy Approved + Open Ads Manager</button>
         <button class="copyall" data-post="suite" type="button">Copy Approved + Open Business Suite (FB &amp; IG)</button>
+        <button class="copyall" data-post="png" type="button">Download Creative (PNG)</button>
         <button class="copyall" data-post="fb" type="button">Open Eden on Facebook</button>
         <button class="copyall" data-post="ig" type="button">Open Eden on Instagram</button>
         <button class="copyall" data-post="share" type="button">Quick Share Link to Facebook</button>
