@@ -150,3 +150,51 @@ Biblical Herbalism folder).
   and lets recordPreorderFromSession retry item inserts instead of early-returning.
 - **Deploy note**: this part rides the same deploy set as parts 1-2 (migrations +
   create-checkout + stripe-webhook together). Nothing is deployed until the founder's go.
+
+## Part 4 (2026-07-17): one-way latch + public counter + founder milestones
+
+Founder go 2026-07-17, from the founding-price brief audit (Eden_Founding_Price_Brief.md,
+founder OneDrive). Three gaps closed; the accepted "overshoot by a few" behavior at the
+boundary is unchanged by decision.
+
+- **One-way latch** (migration `20260717170000`): `products.founding_closed_at` + the
+  `founding_gate(p_product_id)` RPC returning `(sold, cap, closed)`. `sold` stays the NET
+  count from `founding_units_sold` (refunds free slots while the window is open), but the
+  first time `sold >= cap` the RPC stamps `founding_closed_at`, and `closed` is then true
+  forever: a post-sellout refund can NEVER reopen founding pricing. This makes the shipped
+  launch-email promise "when the 500 are claimed, $249 is gone for good" mechanically true.
+  ALL founding-window consumers now read this one RPC: create-checkout (price selection),
+  preorder-status (public display), nurture-emails (copy variant), notify-founder-digest,
+  resend-waitlist (Founders Club welcome copy). The old row-count mirrors in the last three
+  are gone, so display/copy can no longer drift from billing.
+- **Public counter + display flip**: new `preorder-status` EF (verify_jwt=false in
+  config.toml) returns `{ sold, cap, closed }` with `sold` CLAMPED to cap for display
+  (overshoot must never render "502 of 500"). PreorderBuyBox fetches it on mount:
+  while open it shows "N of 500 founding kits claimed · only X left at $249" (from the
+  first sale; a zero counter renders nothing), and once `closed` it flips prices, copy,
+  modal, and order summary to retail with "The founding 500 have been claimed." If the
+  fetch fails the island fails OPEN to the founding display, mirroring the checkout gate.
+  /preorder static copy (meta description, hero support paragraph, spec Price rows, terms
+  card) rewritten window-neutral so it is truthful pre- and post-sellout; the remaining
+  founding-flavored statics are enumerated in the sweep list below.
+- **Founder milestone emails** (`_shared/founding-milestones.ts`, called from
+  stripe-webhook Branch 0 after each recorded preorder): an email to FOUNDER_EMAIL at
+  250 / 400 / 475 / 490 / cap net units. Exactly-once via the `founding_milestones`
+  PK claim (insert wins send; 23505 means already sent; a failed Resend send releases
+  the claim so the next order retries). Best-effort: wrapped in try/catch so it can
+  never 500 the webhook. The cap milestone email marks the flip moment in real time.
+- **POST-SELLOUT MANUAL SWEEP** (triggered by the cap milestone email): static founding
+  copy that code cannot flip lives at (1) web/pages/homeschool.astro "How to be first"
+  band ($249 price display + strikethrough), (2) web/pages/preorder.astro: hero H1 "Be
+  one of the founding 500 families.", hero eyebrow "Founding Preorder", meta.title, and
+  the JSON-LD offer prices (kit 249.00, notebook 19.00 in productSpecs.priceUsd),
+  (3) src/pages/Homeschool.tsx SPA twin, (4) public/sprouts-founders.html landing page,
+  (5) web/components/CoopLicensing.astro kit price card ($249) and the 25-child example
+  math (unless the founder pins co-op pricing at $249 independent of the gate; decide
+  then). Sweep all five to retail copy when the founding run completes.
+- **Deploy set (after merge)**: `db push` migration `20260717170000`, then deploy
+  create-checkout + stripe-webhook + preorder-status + nurture-emails +
+  notify-founder-digest + resend-waitlist (resend-waitlist redeploy was already owed
+  from PR #279). Dark-test note: an admin test purchase counts toward the founding
+  counter until refunded; refund it BEFORE the run nears the cap, because slots freed
+  after the latch stamps stay closed.

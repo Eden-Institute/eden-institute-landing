@@ -656,40 +656,39 @@ async function hasPreordered(email: string): Promise<boolean> {
 }
 
 // ── Founding-window check (positions 8-17 copy variant) ──
-// Mirrors the checkout's founding gate EXACTLY (order-db.ts countFoundingSold
-// vs products.founding_qty_limit for the gate SKU 'sprouts_kit'): founding
-// line-items sold, excluding cancelled/refunded orders, compared to the
-// limit. While open, conversion copy carries the $249 founding offer; once
-// closed, the copy drops "founding" entirely and quotes $349 flat. Computed
-// at most once per drain run. Fails toward TRUE (founding copy) so a
-// transient query error during the founding window cannot prematurely flip
-// the list to retail copy; create-checkout independently enforces the real
-// price either way.
+// Reads the SAME latch-aware gate the checkout enforces (founding_gate RPC,
+// migration 20260717170000): net founding units SUM(quantity) vs
+// products.founding_qty_limit, plus the one-way founding_closed_at latch, so
+// email copy can never drift from billing and can never flip back to founding
+// after a refund. POST because the RPC is volatile (it stamps the latch the
+// first time the cap is reached). While open, conversion copy carries the
+// $249 founding offer; once closed, the copy drops "founding" entirely and
+// quotes $349 flat. Computed at most once per drain run. Fails toward TRUE
+// (founding copy) so a transient query error during the founding window
+// cannot prematurely flip the list to retail copy; create-checkout
+// independently enforces the real price either way.
 const FOUNDING_GATE_SKU = 'sprouts_kit';
 
 async function foundingWindowOpen(): Promise<boolean> {
   try {
     const products = await supabaseQuery(
-      `products?sku=eq.${FOUNDING_GATE_SKU}&select=id,founding_qty_limit&limit=1`,
+      `products?sku=eq.${FOUNDING_GATE_SKU}&select=id&limit=1`,
     );
     if (!Array.isArray(products) || products.length === 0) return true;
-    const limit = products[0].founding_qty_limit;
-    if (limit === null || limit === undefined) return true;
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/order_items?product_id=eq.${products[0].id}&is_founding=eq.true&orders.status=not.in.(cancelled,refunded)&select=id,orders!inner(status)&limit=1`,
-      {
-        headers: {
-          apikey: SUPABASE_SERVICE_ROLE_KEY!,
-          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-          Prefer: 'count=exact',
-          Range: '0-0',
-        },
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/founding_gate`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY!,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json',
       },
-    );
-    const contentRange = res.headers.get('content-range') ?? '';
-    const total = Number(contentRange.split('/')[1]);
-    if (!Number.isFinite(total)) return true;
-    return total < Number(limit);
+      body: JSON.stringify({ p_product_id: products[0].id }),
+    });
+    if (!res.ok) return true;
+    const rows = await res.json();
+    const row = Array.isArray(rows) ? rows[0] : rows;
+    if (!row || typeof row.closed !== 'boolean') return true;
+    return !row.closed;
   } catch (err) {
     console.error('foundingWindowOpen check failed; defaulting to founding copy:', String(err));
     return true;

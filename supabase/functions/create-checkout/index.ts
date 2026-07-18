@@ -46,8 +46,8 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { FOUNDING_GATE_SKU, FOUNDING_GATE_LIMIT, PREORDER_FLAT_SHIPPING_CENTS, PREORDER_PRODUCTS, SHIP_WINDOW, preorderProductBySku } from "../_shared/order-config.ts"
-import { countFoundingSold } from "../_shared/order-db.ts"
+import { FOUNDING_GATE_SKU, PREORDER_FLAT_SHIPPING_CENTS, PREORDER_PRODUCTS, SHIP_WINDOW, preorderProductBySku } from "../_shared/order-config.ts"
+import { getFoundingGate } from "../_shared/order-db.ts"
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2024-12-18.acacia",
@@ -621,35 +621,35 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
 
   // Founding gate: ONE founding-vs-retail decision per session, off the gate SKU's
   // sold allocation (notebooks ride the kit gate; founder rule "notebook retail after
-  // 500 kits"). Applied to every line's price selection below.
+  // 500 kits"). Applied to every line's price selection below. The founding_gate RPC
+  // is latch-aware (migration 20260717170000): the first time the cap is reached it
+  // stamps products.founding_closed_at, and from then on the window stays closed even
+  // if a refund drops the net count back under the cap. One-way latch: the scarcity
+  // claim in the launch emails ("$249 is gone for good") is a promise.
   let gateId: string | null = productBySkuMap.get(FOUNDING_GATE_SKU)?.id ?? null
-  let gateLimit: number = productBySkuMap.get(FOUNDING_GATE_SKU)?.founding_qty_limit ?? FOUNDING_GATE_LIMIT
   if (!gateId) {
     const { data: gate, error: gateError } = await adminClient
       .from("products")
-      .select("id, founding_qty_limit")
+      .select("id")
       .eq("sku", FOUNDING_GATE_SKU)
       .maybeSingle()
     if (gateError) {
-      // Fail-open like the counter below (founding price, customer-favorable), but
+      // Fail-open like the gate read below (founding price, customer-favorable), but
       // never silently: a persistent failure here would hold founding pricing forever.
       console.error(`founding-gate product lookup failed: ${gateError.message}`)
     }
-    if (gate) {
-      gateId = gate.id
-      gateLimit = gate.founding_qty_limit ?? FOUNDING_GATE_LIMIT
-    }
+    if (gate) gateId = gate.id
   }
 
   let isFounding = true
   if (gateId) {
     try {
-      const sold = await countFoundingSold(adminClient, gateId)
-      isFounding = sold < gateLimit
+      const gate = await getFoundingGate(adminClient, gateId)
+      isFounding = !gate.closed
     } catch (e) {
-      // Customer-favorable fail-open: if the counter read fails, sell at founding
+      // Customer-favorable fail-open: if the gate read fails, sell at founding
       // price rather than blocking checkout. Logged so it can't silently persist.
-      console.error("founding-count read failed; defaulting to founding price:", e instanceof Error ? e.message : String(e))
+      console.error("founding-gate read failed; defaulting to founding price:", e instanceof Error ? e.message : String(e))
     }
   }
 
@@ -666,6 +666,14 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
   // storefront. Absence of the field means no consent.
   const smsConsent = body.sms_consent === true || body.sms_consent === "true"
 
+  // Which wording the storefront's second checkbox showed: the founding-member line
+  // (window open) or the post-sellout supporter line. The acceptance BOOLEAN stays the
+  // gate either way; this records the shown variant in session metadata (preserved on
+  // the order's raw session JSON) so the acceptance evidence matches the actual copy.
+  const memberAckVariant = body.member_ack_variant === "preorder_supporter"
+    ? "preorder_supporter"
+    : "founding_member"
+
   // preorder_sku stays the webhook's Branch-0 detection key (kit first if present);
   // preorder_cart is the fallback record if the webhook's line_items expansion fails.
   // Values stay far under Stripe's 500-char metadata cap (max one line per product).
@@ -677,6 +685,7 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
     sms_consent: String(smsConsent),
     accepted_ship_window: "true",
     accepted_founding_member: "true",
+    member_ack_variant: memberAckVariant,
     accepted_ship_window_text: SHIP_WINDOW,
     disclaimer_accepted_at: new Date().toISOString(),
   }

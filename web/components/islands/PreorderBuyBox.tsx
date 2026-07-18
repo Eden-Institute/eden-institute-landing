@@ -19,12 +19,21 @@
 // x-preorder-admin header so the founder can exercise the full production path
 // before launch. Without it, the EF refuses checkout until PREORDERS_LIVE=true.
 //
+// Founding window: on mount the island fetches the preorder-status EF
+// ({ sold, cap, closed }) and (a) renders the live "N of 500 founding kits
+// claimed" line while the window is open, (b) flips the whole display (prices,
+// copy, order summary) to retail once `closed` is true. `closed` is the server's
+// ONE-WAY latch, so this can never flip back. If the fetch fails, the island
+// fails open to the founding display, mirroring create-checkout's
+// customer-favorable fail-open; the checkout page always shows the final price.
+//
 // Prices shown here are display copy; the ONLY billing truth is the Stripe Price
 // the create-checkout EF selects (founding vs retail off the 500-kit gate).
 // Keep in sync with supabase/functions/_shared/order-config.ts:
 //   $12 shipping     = PREORDER_FLAT_SHIPPING_CENTS
 //   "Late Fall 2026" = SHIP_WINDOW
 //   notebook cap 5   = maxQtyPerOrder on sprouts_notebook
+//   founding/retail cents on both products
 // Copy rule: no em dashes (feedback_no_em_dashes).
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -33,9 +42,17 @@ import { supabase } from "@/integrations/supabase/client";
 const SHIP_WINDOW = "Late Fall 2026";
 const NOTEBOOK_MAX_QTY = 5;
 const KIT_PRICE_CENTS = 24900;
+const KIT_RETAIL_CENTS = 34900;
 const NOTEBOOK_PRICE_CENTS = 1900;
+const NOTEBOOK_RETAIL_CENTS = 2499;
 const SHIPPING_CENTS = 1200;
 const ACCEPT_STORAGE_KEY = "eden_preorder_disclaimer_v1";
+
+interface FoundingStatus {
+  sold: number | null;
+  cap: number | null;
+  closed: boolean;
+}
 
 interface DisplayProduct {
   sku: string;
@@ -92,6 +109,29 @@ export default function PreorderBuyBox() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notLive, setNotLive] = useState(false);
+  const [founding, setFounding] = useState<FoundingStatus>({ sold: null, cap: null, closed: false });
+
+  // Founding-window status, fetched once on mount. Any failure keeps the default
+  // (founding display, no counter): fail open exactly like the server gate.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error: fnError } = await supabase.functions.invoke("preorder-status");
+        if (cancelled || fnError || !data || typeof data.closed !== "boolean") return;
+        setFounding({
+          sold: typeof data.sold === "number" ? data.sold : null,
+          cap: typeof data.cap === "number" ? data.cap : null,
+          closed: data.closed,
+        });
+      } catch {
+        // status unavailable; founding display stands
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Modal state
   const [flow, setFlow] = useState<Flow | null>(null); // null = modal closed
@@ -198,6 +238,10 @@ export default function PreorderBuyBox() {
           sms_consent: smsConsent,
           accepted_ship_window: true,
           accepted_founding_member: true,
+          // Which wording checkbox 2 actually showed (the founding-member line, or the
+          // post-sellout supporter line). The acceptance boolean above stays the gate;
+          // this stamps the shown variant into session metadata as evidence.
+          member_ack_variant: closed ? "preorder_supporter" : "founding_member",
         },
         headers: adminToken ? { "x-preorder-admin": adminToken } : undefined,
       });
@@ -243,11 +287,20 @@ export default function PreorderBuyBox() {
     return items;
   }
 
+  // Founding window closed = display retail everywhere. Billing truth stays with
+  // create-checkout; these cents only drive the display copy and order summary.
+  const closed = founding.closed;
+  const foundingCap = founding.cap ?? 500;
+  const kitCents = closed ? KIT_RETAIL_CENTS : KIT_PRICE_CENTS;
+  const nbCents = closed ? NOTEBOOK_RETAIL_CENTS : NOTEBOOK_PRICE_CENTS;
+
   const nbCount = flow === "notebook" ? Math.max(1, notebookQty) : notebookQty;
   const summary: { label: string; cents: number }[] = [
-    ...(flow === "kit" ? [{ label: "Sprouts Complete Kit (founding)", cents: KIT_PRICE_CENTS }] : []),
+    ...(flow === "kit"
+      ? [{ label: closed ? "Sprouts Complete Kit" : "Sprouts Complete Kit (founding)", cents: kitCents }]
+      : []),
     ...(nbCount > 0
-      ? [{ label: `Extra Student Notebook × ${nbCount}`, cents: NOTEBOOK_PRICE_CENTS * nbCount }]
+      ? [{ label: `Extra Student Notebook × ${nbCount}`, cents: nbCents * nbCount }]
       : []),
     { label: "Shipping (flat)", cents: SHIPPING_CENTS },
   ];
@@ -261,7 +314,7 @@ export default function PreorderBuyBox() {
           style={{ backgroundColor: "hsl(var(--eden-forest))" }}
         >
           <p className="font-serif text-lg font-bold text-white mb-1">
-            Thank you. Your founding preorder is confirmed.
+            {closed ? "Thank you. Your preorder is confirmed." : "Thank you. Your founding preorder is confirmed."}
           </p>
           <p className="font-body text-sm" style={{ color: "rgba(255,255,255,0.85)" }}>
             A confirmation email is on its way to your inbox with your order details and the
@@ -296,6 +349,25 @@ export default function PreorderBuyBox() {
         </div>
       )}
 
+      {/* Founding-window line: live counter while open, claimed notice once closed.
+          Counter renders only from the first sale (a zero counter sells nothing). */}
+      {closed ? (
+        <div
+          className="max-w-2xl mx-auto rounded-lg border-2 p-4 mb-8 text-center"
+          style={{ borderColor: "hsl(var(--eden-gold))", backgroundColor: "hsl(var(--eden-cream))" }}
+        >
+          <p className="font-body text-sm font-semibold" style={{ color: "hsl(var(--eden-bark))" }}>
+            The founding {foundingCap} have been claimed. Sprouts is now {PRODUCTS[0].retail} at
+            its standard retail price, and every preorder still joins the first print run.
+          </p>
+        </div>
+      ) : founding.sold !== null && founding.sold > 0 && founding.cap ? (
+        <p className="font-body text-sm text-center mb-8" style={{ color: "hsl(var(--eden-bark))" }} aria-live="polite">
+          <strong>{founding.sold} of {founding.cap}</strong> founding kits claimed
+          {" · "}only {founding.cap - founding.sold} left at {PRODUCTS[0].founding}
+        </p>
+      ) : null}
+
       <div className="grid md:grid-cols-2 gap-6 mb-4 max-w-4xl mx-auto">
         {PRODUCTS.map((p) => (
           <div
@@ -311,13 +383,19 @@ export default function PreorderBuyBox() {
             </h3>
             <div className="mb-3">
               <p className="font-serif text-3xl font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>
-                {p.founding}{" "}
-                <span className="font-body text-base font-normal text-muted-foreground line-through ml-2">
-                  {p.retail}
-                </span>
+                {closed ? (
+                  p.retail
+                ) : (
+                  <>
+                    {p.founding}{" "}
+                    <span className="font-body text-base font-normal text-muted-foreground line-through ml-2">
+                      {p.retail}
+                    </span>
+                  </>
+                )}
               </p>
               <p className="font-accent text-xs uppercase tracking-wider" style={{ color: "hsl(var(--eden-sage))" }}>
-                {p.discountLine}
+                {closed ? "Standard retail price" : p.discountLine}
               </p>
             </div>
             <p className="font-body text-sm text-muted-foreground mb-3 leading-relaxed">{p.blurb}</p>
@@ -391,7 +469,7 @@ export default function PreorderBuyBox() {
                   className="font-serif text-2xl font-bold mb-4"
                   style={{ color: "hsl(var(--eden-bark))" }}
                 >
-                  Before you join the founding 500
+                  {closed ? "Before you preorder" : "Before you join the founding 500"}
                 </h2>
                 <div className="font-body text-sm leading-relaxed space-y-3 mb-5" style={{ color: "hsl(var(--eden-bark))" }}>
                   <p>Eden's Table is not sitting in a warehouse yet.</p>
@@ -421,11 +499,19 @@ export default function PreorderBuyBox() {
                     </a>{" "}
                     any time and Camila answers. Genuinely, not a support queue.
                   </p>
-                  <p>
-                    <strong>You are a founding member.</strong> The founding 500 are the only
-                    reason there is a first round at all. You are locked in at the founding price,
-                    and you have a voice in what we build next.
-                  </p>
+                  {closed ? (
+                    <p>
+                      <strong>The founding {foundingCap} have been claimed.</strong> Your preorder
+                      joins the same first print run at the standard retail price, and you get the
+                      same updates the whole way through.
+                    </p>
+                  ) : (
+                    <p>
+                      <strong>You are a founding member.</strong> The founding 500 are the only
+                      reason there is a first round at all. You are locked in at the founding price,
+                      and you have a voice in what we build next.
+                    </p>
+                  )}
                   <p>
                     Good things are worth the wait. We would rather build this well than rush a box
                     out the door with your family's name on it. Thank you for being the kind of
@@ -460,8 +546,9 @@ export default function PreorderBuyBox() {
                       className="mt-1 h-4 w-4 shrink-0"
                     />
                     <label htmlFor="ack-founding" className="font-body text-sm leading-relaxed cursor-pointer" style={{ color: "hsl(var(--eden-bark))" }}>
-                      I understand that I am a founding member helping to build Eden's Table, and I
-                      am ready to be part of this journey.
+                      {closed
+                        ? "I understand that my preorder helps build Eden's Table, and I am ready to be part of this journey."
+                        : "I understand that I am a founding member helping to build Eden's Table, and I am ready to be part of this journey."}
                     </label>
                   </div>
                 </div>
@@ -510,14 +597,14 @@ export default function PreorderBuyBox() {
                       have their own to draw in, press leaves into, and keep.
                     </p>
                     <p>
-                      Founding price, {money(NOTEBOOK_PRICE_CENTS)} each. Entirely optional, and it
+                      {closed ? "" : "Founding price, "}{money(nbCents)} each. Entirely optional, and it
                       ships in the same box at no extra shipping cost.
                     </p>
                   </div>
                 ) : (
                   <p className="font-body text-sm leading-relaxed mb-5" style={{ color: "hsl(var(--eden-bark))" }}>
-                    One consumable Student Notebook per child, {money(NOTEBOOK_PRICE_CENTS)} each
-                    at the founding price.
+                    One consumable Student Notebook per child, {money(nbCents)} each
+                    {closed ? "" : " at the founding price"}.
                   </p>
                 )}
 
@@ -572,8 +659,9 @@ export default function PreorderBuyBox() {
                     <span>{money(summaryTotal)}</span>
                   </div>
                   <p className="font-body text-xs text-muted-foreground mt-2">
-                    Sales tax calculated at checkout. Founding prices shown while the founding
-                    500 lasts; the checkout page always shows your final price.
+                    {closed
+                      ? "Sales tax calculated at checkout. The checkout page always shows your final price."
+                      : "Sales tax calculated at checkout. Founding prices shown while the founding 500 lasts; the checkout page always shows your final price."}
                   </p>
                 </div>
 

@@ -11,6 +11,15 @@
 //   - estimated ship window, stated as an estimate, BEFORE redirect to Stripe
 //   - card charged today + notify-and-refund right if we cannot ship in window
 //   - flat $12 shipping disclosed before redirect (PREORDER_FLAT_SHIPPING_CENTS)
+//
+// Founding sellout: the island (PreorderBuyBox) flips prices/copy live off the
+// preorder-status EF. The STATIC parts of this page are written to stay truthful
+// either way (meta description, hero support paragraph, spec Price rows, terms
+// card), EXCEPT these, which need the post-sellout manual sweep documented in
+// docs/preorder-system-phase-1.md Part 4 (the milestone-cap founder email links it):
+//   - hero H1 "Be one of the founding 500 families." + eyebrow "Founding Preorder"
+//   - meta.title "Founding Preorder · ..."
+//   - JSON-LD offer prices (kit 249.00, notebook 19.00 via productSpecs.priceUsd)
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 import PreorderBuyBox from "../components/islands/PreorderBuyBox.tsx";
 
@@ -19,7 +28,7 @@ const SHIP_WINDOW = "Late Fall 2026"; // keep in sync with supabase/functions/_s
 const meta = {
   title: "Founding Preorder · Eden's Table Sprouts | The Eden Institute",
   description:
-    "Preorder the Sprouts (K-2) Biblical herbalism curriculum at the founding price. $100 below retail on the complete kit, founding-member status, estimated ship window " + SHIP_WINDOW + ".",
+    "Preorder the Sprouts (K-2) Biblical herbalism curriculum. $249 founding price for the first 500 kits, then $349 retail. Estimated ship window " + SHIP_WINDOW + ".",
   canonical: "https://edeninstitute.health/preorder",
 };
 
@@ -38,7 +47,7 @@ const productSpecs = [
       ["Format", "Physical, six-component boxed curriculum"],
       ["Length", "36 weeks, 6 units, 180 daily lessons"],
       ["SKU", "sprouts_kit"],
-      ["Price", "$249 (current founding price)"],
+      ["Price", "$249 founding price for the first 500 kits; $349 retail after"],
     ],
     objectives:
       "Grades K-2 science and nature study (botany, plant identification, and observation), integrating reading, mathematics, history, and geography. Across 36 weeks and 180 daily lessons, students identify 36 herbs by common and botanical name, record 36 labeled botanical drawings, complete 36 hands-on kitchen-lab observations, and build a 180-word vocabulary. Delivered as a single, complete course of study containing all required materials (a 240-page Teacher's Guide with daily lesson plans and scope and sequence, a 224-page student notebook, the Around the Table Read-Aloud storybook, and three instructional card sets), so the curriculum can be taught with no additional purchase.",
@@ -53,7 +62,7 @@ const productSpecs = [
       ["Format", "Physical, single consumable workbook, 224 pages"],
       ["Length", "36 weeks, 180 daily pages"],
       ["SKU", "sprouts_notebook"],
-      ["Price", "$19.00 (current founding price)"],
+      ["Price", "$19.00 founding price while the first 500 kits last; $24.99 retail after"],
     ],
     objectives:
       "Grades K-2 science and nature-study workbook. This 224-page consumable student notebook guides students through 180 daily pages of structured recording: 36 labeled botanical drawings, 36 documented kitchen-lab observations, weekly vocabulary practice, and 36 written weekly reviews, building skills in observation, classification, and scientific recording. A standalone instructional workbook that pairs with the Sprouts curriculum or supports any K-2 nature-study course.",
@@ -90,9 +99,13 @@ const productJsonLd = productSpecs.map((p) => ({
       </h1>
       <div class="w-16 h-px mx-auto my-6" style="background-color:hsl(var(--eden-gold))"></div>
       <p class="font-body text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-        This is a founding preorder. Your patience helps fund the founding of this curriculum,
-        and in exchange you receive $100 off the complete kit and founding-member status,
-        including a voice in shaping Seedlings and first look at every band that follows.
+        This is a founding preorder. Your patience helps fund the founding of this curriculum.
+        Families in the founding 500 receive $100 off the complete kit and founding-member
+        status, including a voice in shaping Seedlings and first look at every band that follows.
+      </p>
+      <p class="font-body text-base text-muted-foreground leading-relaxed max-w-2xl mx-auto mt-4">
+        The $249 founding price is reserved for the first 500 Sprouts kits. Once the 500th kit
+        is claimed, the price returns to its full retail of $349.
       </p>
     </div>
   </section>
@@ -145,8 +158,9 @@ const productJsonLd = productSpecs.map((p) => ({
         <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
           <p class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">This is a founding preorder.</p>
           <p class="font-body text-sm text-muted-foreground leading-relaxed">
-            Your patience helps fund the founding of this curriculum. In exchange you receive the
-            founding price ($100 off the complete kit) and founding-member status.
+            Your patience helps fund the founding of this curriculum. Families in the first 500
+            kits receive the founding price ($100 off the complete kit) and founding-member
+            status; after the 500th kit, the kit sells at its $349 retail price.
           </p>
         </div>
         <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">

@@ -456,9 +456,12 @@ function preorderButton(label = 'Preorder Your Kit'): string {
 // ── Founding-window copy variants ──
 // Every conversion builder takes `founding` (default true). While the first
 // 500 kits last, copy carries the founding offer ($249, founding standing).
-// The moment the checkout's founding gate closes (countFoundingSold >= 500,
-// the SAME rule create-checkout enforces), the drainer passes founding=false
-// and the copy drops the word "founding" entirely: the price is simply $349.
+// The moment the checkout's founding gate closes (the one-way
+// founding_closed_at latch stamped by the founding_gate RPC, migration
+// 20260717170000: the SAME latch create-checkout enforces; refunds can drop
+// the net count back under 500 but never reopen the window), the drainer
+// passes founding=false and the copy drops the word "founding" entirely: the
+// price is simply $349.
 // The two variants must never drift: post-founding copy may not mention
 // $249, the 500, or founding standing anywhere, including subject and
 // preheader (enforced by the render QA script).
