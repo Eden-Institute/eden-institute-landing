@@ -50,6 +50,23 @@ export async function sendMetaCapiPurchase(opts: {
   currency: string | null
   /** Product identifier for reporting breakdowns, e.g. the Stripe lookup_key. */
   contentName?: string | null
+  /**
+   * Meta attribution cookies carried through Stripe metadata. `fbc` IS the ad
+   * click — without it Meta frequently cannot connect this purchase to the ad
+   * that caused it, so campaigns optimize blind and reported CAC is wrong.
+   * Both are sent RAW (Meta requires them unhashed, unlike the PII below).
+   */
+  fbp?: string | null
+  fbc?: string | null
+  /**
+   * Billing identity from Stripe's own checkout collection. Free match signal we
+   * were already holding and discarding. All hashed before transmission.
+   */
+  billingName?: string | null
+  city?: string | null
+  state?: string | null
+  postalCode?: string | null
+  country?: string | null
 }): Promise<boolean> {
   if (!META_CAPI_ACCESS_TOKEN) return false
   try {
@@ -64,6 +81,28 @@ export async function sendMetaCapiPurchase(opts: {
 
     const userData: Record<string, unknown> = {}
     if (opts.email) userData.em = [await sha256Hex(opts.email)]
+
+    // fbp / fbc are sent RAW — Meta matches them verbatim against the browser that
+    // saw the ad. Hashing them would silently destroy the match.
+    if (opts.fbp) userData.fbp = opts.fbp
+    if (opts.fbc) userData.fbc = opts.fbc
+
+    // Everything below is PII and MUST be hashed. Meta expects names lowercased
+    // and postcodes/state as plain lowercase strings; sha256Hex already lowercases
+    // and trims. Split the full name so first/last hash independently, which is
+    // how Meta indexes them.
+    const name = (opts.billingName ?? "").trim()
+    if (name) {
+      const parts = name.split(/\s+/)
+      const first = parts[0]
+      const last = parts.length > 1 ? parts[parts.length - 1] : ""
+      if (first) userData.fn = [await sha256Hex(first)]
+      if (last) userData.ln = [await sha256Hex(last)]
+    }
+    if (opts.city) userData.ct = [await sha256Hex(opts.city.replace(/\s+/g, ""))]
+    if (opts.state) userData.st = [await sha256Hex(opts.state)]
+    if (opts.postalCode) userData.zp = [await sha256Hex(opts.postalCode.split("-")[0])]
+    if (opts.country) userData.country = [await sha256Hex(opts.country)]
 
     // Meta requires at least one user-data identifier. Stripe sessions without an
     // email cannot be matched to a person, so there is nothing to attribute.

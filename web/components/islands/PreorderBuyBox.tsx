@@ -39,6 +39,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+import { getFbAttribution } from "@/lib/fbAttribution";
 const SHIP_WINDOW = "Late Fall 2026";
 const NOTEBOOK_MAX_QTY = 5;
 const KIT_PRICE_CENTS = 24900;
@@ -234,6 +235,7 @@ export default function PreorderBuyBox() {
     try {
       const { data, error: fnError } = await supabase.functions.invoke("create-checkout", {
         body: {
+          ...getFbAttribution(),
           items,
           sms_consent: smsConsent,
           accepted_ship_window: true,

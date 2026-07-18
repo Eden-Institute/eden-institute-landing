@@ -174,6 +174,11 @@ serve(async (req) => {
       constitution_nickname,
       email: bodyEmail,
       promo_code: bodyPromoCode,
+      // Meta attribution cookies, collected client-side ONLY after marketing
+      // consent (see src/lib/fbAttribution.ts). Carried through Stripe metadata so
+      // the server-side Purchase can identify the ad click that produced the sale.
+      fbp: bodyFbp,
+      fbc: bodyFbc,
     } = body
 
     // 1b. Founding-preorder branch (preorder system Phase 1). Distinct request
@@ -372,6 +377,10 @@ serve(async (req) => {
     if (typeof constitution_nickname === "string" && constitution_nickname) metadata.constitution_nickname = constitution_nickname
     if (user?.id) metadata.supabase_user_id = user.id
     if (typeof bodyEmail === "string" && bodyEmail) metadata.email = bodyEmail
+    // Length-clamped: Stripe caps a metadata value at 500 chars, and these are
+    // attacker-influencable (they arrive in the request body).
+    if (typeof bodyFbp === "string" && bodyFbp) metadata.fbp = bodyFbp.slice(0, 255)
+    if (typeof bodyFbc === "string" && bodyFbc) metadata.fbc = bodyFbc.slice(0, 255)
 
     // 7. Construct the Checkout Session.
     //    Defaults for success/cancel URLs depend on product class:

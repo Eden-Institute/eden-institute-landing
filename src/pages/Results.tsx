@@ -14,6 +14,7 @@ import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { useStructuredData } from "@/lib/useStructuredData";
 import Navbar from "@/components/landing/Navbar";
 
+import { getFbAttribution } from "@/lib/fbAttribution";
 const slugToType: Record<string, string> = {
   "burning-bowstring": "Hot / Dry / Tense",
   "open-flame": "Hot / Dry / Relaxed",
@@ -382,6 +383,7 @@ const Results = () => {
                   const slug = patternNameToSlug(profile.nickname);
                   const { data, error: fnError } = await supabase.functions.invoke("create-checkout", {
                     body: {
+          ...getFbAttribution(),
                       lookup_key: "deep_dive_guide",
                       constitution_type: constitutionType,
                       constitution_nickname: profile.nickname,

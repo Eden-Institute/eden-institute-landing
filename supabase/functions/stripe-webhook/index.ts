@@ -273,12 +273,24 @@ serve(async (req) => {
         // sendMetaCapiPurchase never throws, so ad reporting can never break
         // fulfillment. event_id is the session id, so Stripe webhook retries
         // dedupe at Meta instead of double-counting revenue.
+        // Match-quality inputs. Meta scored the email-only version 3.2/10, which
+        // meant ad-driven sales frequently failed to attribute to the click that
+        // produced them. fbp/fbc ride in from the browser via checkout metadata;
+        // the address fields are Stripe's own collection, previously discarded.
+        const billingAddr = session.customer_details?.address ?? null
         await sendMetaCapiPurchase({
           eventId: session.id,
           email: session.customer_details?.email ?? session.customer_email ?? null,
           amountTotalCents: session.amount_total ?? null,
           currency: session.currency ?? null,
           contentName: (session.metadata?.lookup_key as string | undefined) ?? null,
+          fbp: (session.metadata?.fbp as string | undefined) ?? null,
+          fbc: (session.metadata?.fbc as string | undefined) ?? null,
+          billingName: session.customer_details?.name ?? null,
+          city: billingAddr?.city ?? null,
+          state: billingAddr?.state ?? null,
+          postalCode: billingAddr?.postal_code ?? null,
+          country: billingAddr?.country ?? null,
         })
         break
       }
