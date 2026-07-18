@@ -4,6 +4,11 @@
 // orchestrator (list / entry / workroom) and the bridges can be shared.
 
 import { supabase } from "@/integrations/supabase/client";
+import {
+  forgetAsset, getTransform, listAssets, loadBrandKit,
+  recordAsset, retagAsset, saveTransform,
+} from "./studio-assets-db";
+import type { AssetTransform } from "./studio-assets-db";
 
 /** Bridge into the studio-generate EF (the multi-model AI engine). The vanilla
  *  studio core receives this as a plain async function so it stays
@@ -33,6 +38,70 @@ export async function aiInvoke(body: unknown): Promise<unknown> {
 // Bridge into the private studio-assets bucket (founder-only via storage RLS).
 // The gallery reads through short-lived signed URLs; nothing is ever public.
 const BUCKET = "studio-assets";
+
+/** Phase 2: the bridge is now built per project, because an upload has to know
+ *  which campaign it belongs to and which project it came from. */
+export function makeAssetsBridge(ctx: {
+  projectId: string;
+  campaignTag: string;
+}) {
+  return { ...assetsBridge, ...projectAssetOps(ctx) };
+}
+
+function projectAssetOps(ctx: { projectId: string; campaignTag: string }) {
+  return {
+    /** Metadata-backed listing. `tag` of "all" or undefined returns everything. */
+    async list(tag?: string): Promise<Array<{
+      name: string; id: string; filename: string; kind: string; campaign_tag: string;
+    }>> {
+      const rows = await listAssets(tag);
+      return rows.map((r) => ({
+        name: r.storage_path,
+        id: r.id,
+        filename: r.filename,
+        kind: r.kind,
+        campaign_tag: r.campaign_tag,
+      }));
+    },
+    /** Upload, then record metadata tagged with the project's campaign. If the
+     *  metadata write fails the object is removed again, so the bucket and the
+     *  table cannot drift apart. */
+    async upload(file: File): Promise<void> {
+      const safe = file.name.replace(/[^\w.-]+/g, "_").slice(-80);
+      const path = `${Date.now()}-${safe}`;
+      const { error } = await supabase.storage
+        .from(BUCKET)
+        .upload(path, file, { contentType: file.type || undefined });
+      if (error) throw error;
+      try {
+        await recordAsset({
+          storagePath: path,
+          filename: file.name,
+          mimeType: file.type || null,
+          campaignTag: ctx.campaignTag,
+          projectId: ctx.projectId,
+          sizeBytes: file.size ?? null,
+        });
+      } catch (err) {
+        await supabase.storage.from(BUCKET).remove([path]).catch(() => {});
+        throw err;
+      }
+    },
+    /** Remove the object first, then forget it. That order means a failure
+     *  leaves an orphaned row (harmless, re-runnable) rather than a row-less
+     *  file that the gallery can no longer see or delete. */
+    async remove(name: string): Promise<void> {
+      const { error } = await supabase.storage.from(BUCKET).remove([name]);
+      if (error) throw error;
+      await forgetAsset(name);
+    },
+    retag: retagAsset,
+    brandKit: loadBrandKit,
+    getTransform: (assetId: string) => getTransform(ctx.projectId, assetId),
+    saveTransform: (assetId: string, t: AssetTransform) =>
+      saveTransform(ctx.projectId, assetId, t),
+  };
+}
 
 export const assetsBridge = {
   async list(): Promise<Array<{ name: string }>> {

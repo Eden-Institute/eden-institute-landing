@@ -3118,6 +3118,131 @@ export type Database = {
         }
         Relationships: []
       }
+      studio_asset_transforms: {
+        Row: {
+          asset_id: string
+          color_adjust: Json
+          created_at: string
+          crop: Json
+          id: string
+          opacity: number
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          asset_id: string
+          color_adjust?: Json
+          created_at?: string
+          crop?: Json
+          id?: string
+          opacity?: number
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          asset_id?: string
+          color_adjust?: Json
+          created_at?: string
+          crop?: Json
+          id?: string
+          opacity?: number
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_asset_transforms_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "studio_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_asset_transforms_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "studio_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_assets: {
+        Row: {
+          campaign_tag: string
+          created_at: string
+          created_by: string
+          filename: string
+          id: string
+          kind: string
+          mime_type: string | null
+          project_id: string | null
+          size_bytes: number | null
+          storage_path: string
+        }
+        Insert: {
+          campaign_tag?: string
+          created_at?: string
+          created_by: string
+          filename: string
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          project_id?: string | null
+          size_bytes?: number | null
+          storage_path: string
+        }
+        Update: {
+          campaign_tag?: string
+          created_at?: string
+          created_by?: string
+          filename?: string
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          project_id?: string | null
+          size_bytes?: number | null
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_assets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "studio_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_brand_tokens: {
+        Row: {
+          id: string
+          kind: string
+          label: string
+          sort_order: number
+          token_key: string
+          usage: string | null
+          value: string
+        }
+        Insert: {
+          id?: string
+          kind: string
+          label: string
+          sort_order?: number
+          token_key: string
+          usage?: string | null
+          value: string
+        }
+        Update: {
+          id?: string
+          kind?: string
+          label?: string
+          sort_order?: number
+          token_key?: string
+          usage?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
       studio_projects: {
         Row: {
           ad_type: string

@@ -538,7 +538,10 @@ export function initStudio(
     sub:"36 weeks. One herb at a time. Preorders open July 29.",
     cta:"Preorder Now", domain:"edeninstitute.health/homeschool", photo:null,
     dest:"https://edeninstitute.health/homeschool?utm_source=facebook&utm_medium=paid_social&utm_campaign=edens_table_kit&utm_content=creative",
-    qr:false};
+    qr:false,
+    /* Phase 2: which library asset the photo came from, and this project's
+       non-destructive adjustments for it. Both null for a local file pick. */
+    photoAssetId:null, transform:null};
 
   function setSpacing(ctx, v){ try{ ctx.letterSpacing = v; }catch(e){} }
   function wrapLines(ctx, text, maxW){
@@ -630,9 +633,27 @@ export function initStudio(
 
   function drawPhoto(ctx,w,h){
     if (BUILDER.photo){
-      const img = BUILDER.photo, s = Math.max(w/img.width, h/img.height);
+      const img = BUILDER.photo;
+      const t = BUILDER.transform;
+      const c = (t && t.color_adjust) || {};
+      const crop = (t && t.crop) || {};
+      /* Phase 2: adjustments are applied here, at paint time, and never baked
+         into the stored file. Save/restore so the overlays below are unaffected. */
+      ctx.save();
+      const filter = [
+        c.brightness !== undefined && c.brightness !== 1 ? "brightness("+c.brightness+")" : "",
+        c.contrast   !== undefined && c.contrast   !== 1 ? "contrast("+c.contrast+")"     : "",
+        c.saturation !== undefined && c.saturation !== 1 ? "saturate("+c.saturation+")"   : "",
+      ].filter(Boolean).join(" ");
+      if (filter) { try { (ctx as any).filter = filter; } catch(e) {} }
+      if (t && typeof t.opacity === "number" && t.opacity < 1) ctx.globalAlpha = t.opacity;
+      const zoom = typeof crop.scale === "number" && crop.scale > 0 ? crop.scale : 1;
+      const s = Math.max(w/img.width, h/img.height) * zoom;
       const dw = img.width*s, dh = img.height*s;
-      ctx.drawImage(img, (w-dw)/2, (h-dh)/2, dw, dh);
+      const ox = (typeof crop.x === "number" ? crop.x : 0) * w;
+      const oy = (typeof crop.y === "number" ? crop.y : 0) * h;
+      ctx.drawImage(img, (w-dw)/2 + ox, (h-dh)/2 + oy, dw, dh);
+      ctx.restore();
     } else {
       const g = ctx.createLinearGradient(0,0,0,h);
       g.addColorStop(0,"#8A9A5B"); g.addColorStop(1,"#F5EDD6");
@@ -722,7 +743,13 @@ export function initStudio(
   $("#bPhoto").addEventListener("change", e => {
     const f = e.target.files && e.target.files[0]; if (!f) return;
     const img = new Image();
-    img.onload = () => { BUILDER.photo = img; BUILDER.tpl = "photo"; renderBuilder(); };
+    /* A local file pick is not a library asset, so it carries no saved
+       adjustments and must not inherit the previous photo's. */
+    img.onload = () => {
+      BUILDER.photo = img; BUILDER.tpl = "photo";
+      BUILDER.photoAssetId = null; BUILDER.transform = null;
+      renderBuilder();
+    };
     img.src = URL.createObjectURL(f);
   });
   $("#bPhotoClear").addEventListener("click", () => { BUILDER.photo = null; $("#bPhoto").value = ""; drawAd(); });
@@ -1458,7 +1485,7 @@ export function initStudio(
   const WIZ = [
     { ids: ["#heroPanel"], cls: [".scan"], hint: "Pick a product, then Build My Campaign." },
     { cls: [".studio"], hint: "Approve the keepers; write corrections and Apply With AI on the rest." },
-    { ids: ["#galleryPanel", "#builder"], hint: "Render the image, publish clickable links, or hand off to Canva." },
+    { ids: ["#galleryPanel", "#brandPanel", "#builder"], hint: "Pick or upload an asset, adjust it, then render the image." },
     { ids: ["#videobuilder"], hint: "Optional: record a credits-style video ad, or continue past it." },
     { ids: ["#trayPanel", "#postPanel"], cls: [".refrow"], hint: "Copy your approved package and open Meta to publish." },
   ];
@@ -1531,29 +1558,45 @@ export function initStudio(
 
   /* ───────────────────────── ASSET GALLERY ───────────────────────── */
   function galSet(msg){ const el = $("#galStatus"); if (el) el.textContent = msg; }
+  /* Phase 2 gallery state: which campaign is being shown, and which asset the
+     adjustment sliders are currently pointed at. */
+  const GAL_TAGS = [
+    {id:"all", name:"All"}, {id:"sprouts", name:"Sprouts"}, {id:"seedlings", name:"Seedlings"},
+    {id:"cultivators", name:"Cultivators"}, {id:"unratified", name:"Unratified"}, {id:"general", name:"General"},
+  ];
+  let galTag = "all";
+  let adjAsset = null;   /* { id, name, filename } */
+  let adjT = null;       /* AssetTransform */
   const GAL_VIDEO_RE = /\.(mp4|webm|mov|m4v)$/i;
   async function galRender(){
     if (!assets) return;
     const grid = $("#galGrid");
     try{
-      const items = await assets.list();
+      const items = await assets.list(galTag);
       if (!items.length){
         grid.innerHTML = "";
-        galSet("Nothing here yet. Upload product photos, mockups, or clips and they stay available every session.");
+        galSet(galTag === "all"
+          ? "Nothing here yet. Upload product photos, mockups, or clips and they stay available every session."
+          : "Nothing tagged " + galTag + " yet. Uploads are tagged with this campaign automatically.");
         return;
       }
       const tiles = await Promise.all(items.map(async it => {
         let u = "";
         try { u = await assets.url(it.name); } catch(e) {}
-        const isVid = GAL_VIDEO_RE.test(it.name);
+        const isVid = it.kind ? it.kind === "video" : GAL_VIDEO_RE.test(it.name);
+        const label = it.filename || it.name.replace(/^\d+-/, "");
+        const aid = it.id ? " data-aid='"+esc(it.id)+"'" : "";
         return "<div class='galitem'>" +
           (isVid ? "<video muted playsinline preload='metadata' src='"+esc(u)+"'></video>"
                  : "<img loading='lazy' alt='' src='"+esc(u)+"'>") +
-          "<span class='galname'>"+esc(it.name.replace(/^\d+-/, ""))+"</span>" +
+          "<span class='galname'>"+esc(label) +
+            (it.campaign_tag ? "<span class='galtag'>"+esc(it.campaign_tag)+"</span>" : "") +
+          "</span>" +
           "<span class='galbtns'>" +
-            (isVid ? "<button class='copybtn' data-gal='clip' data-name='"+esc(it.name)+"' type='button'>Use as Clip</button>"
-                   : "<button class='copybtn' data-gal='photo' data-name='"+esc(it.name)+"' type='button'>Use as Photo</button>") +
-            "<button class='copybtn' data-gal='del' data-name='"+esc(it.name)+"' type='button'>Delete</button>" +
+            (isVid ? "<button class='copybtn' data-gal='clip' data-name='"+esc(it.name)+"'"+aid+" type='button'>Use as Clip</button>"
+                   : "<button class='copybtn' data-gal='photo' data-name='"+esc(it.name)+"'"+aid+" type='button'>Use as Photo</button>") +
+            (!isVid && it.id ? "<button class='copybtn' data-gal='adjust' data-name='"+esc(it.name)+"'"+aid+" data-label='"+esc(label)+"' type='button'>Adjust</button>" : "") +
+            "<button class='copybtn' data-gal='del' data-name='"+esc(it.name)+"'"+aid+" type='button'>Delete</button>" +
           "</span></div>";
       }));
       grid.innerHTML = tiles.join("");
@@ -1562,9 +1605,101 @@ export function initStudio(
       galSet("Gallery unavailable: " + String((e && (e as any).message) || e).slice(0, 140));
     }
   }
+  function galTagChips(){
+    const box = $("#galTagChips"); if (!box) return;
+    box.innerHTML = "";
+    for (const t of GAL_TAGS)
+      box.appendChild(chip(t.name, galTag === t.id, () => { galTag = t.id; galTagChips(); galRender(); }));
+  }
+
+  /* ── Non-destructive adjustments ──────────────────────────────────────────
+     Values are a record, applied by the builder at render time. The uploaded
+     file is never rewritten, so an adjustment is always reversible and the same
+     photo can be tuned differently per project. */
+  const ADJ = [
+    {slider:"#adjOpacity", out:"#adjOpacityV", key:"opacity",    group:null,           def:100},
+    {slider:"#adjBright",  out:"#adjBrightV",  key:"brightness", group:"color_adjust", def:100},
+    {slider:"#adjContrast",out:"#adjContrastV",key:"contrast",   group:"color_adjust", def:100},
+    {slider:"#adjSat",     out:"#adjSatV",     key:"saturation", group:"color_adjust", def:100},
+  ];
+  function adjRead(){
+    const t = {opacity:1, crop:(adjT && adjT.crop) || {}, color_adjust:{}};
+    for (const a of ADJ){
+      const el = $(a.slider); if (!el) continue;
+      const v = (+(el as any).value) / 100;
+      if (a.group) t.color_adjust[a.key] = v; else t[a.key] = v;
+      const o = $(a.out); if (o) o.textContent = Math.round(v * 100) + "%";
+    }
+    return t;
+  }
+  function adjWrite(t){
+    for (const a of ADJ){
+      const el = $(a.slider); if (!el) continue;
+      const v = a.group ? ((t[a.group] || {})[a.key]) : t[a.key];
+      (el as any).value = Math.round((typeof v === "number" ? v : 1) * 100);
+      const o = $(a.out); if (o) o.textContent = (el as any).value + "%";
+    }
+  }
+  function adjSet(msg){ const el = $("#adjStatus"); if (el) el.textContent = msg; }
+  async function adjOpen(assetId, name, label){
+    if (!assets || !assets.getTransform) return;
+    adjAsset = {id: assetId, name: name, label: label};
+    const nEl = $("#adjName"); if (nEl) nEl.textContent = label;
+    ($("#galAdjust") as any).hidden = false;
+    adjSet("Loading…");
+    try{
+      adjT = await assets.getTransform(assetId);
+      adjWrite(adjT);
+      adjSet("Adjustments apply when this photo is used in the builder. The stored file is never changed.");
+    }catch(err){ adjSet("Could not load adjustments."); }
+  }
+  let adjTimer = null;
+  function adjTouched(){
+    /* Read first, unconditionally: the percentage labels must track the slider
+       even when there is nothing to persist to, or the controls look dead. */
+    adjT = adjRead();
+    if (!adjAsset || !assets || !assets.saveTransform) return;
+    /* Repaint immediately; persist on a short debounce so dragging a slider is
+       not one write per pixel. */
+    if (BUILDER.photo && BUILDER.photoAssetId === adjAsset.id){ BUILDER.transform = adjT; drawAd(); }
+    if (adjTimer) clearTimeout(adjTimer);
+    adjTimer = setTimeout(async () => {
+      try { await assets.saveTransform(adjAsset.id, adjT); adjSet("Saved."); }
+      catch(err){ adjSet("Could not save adjustments."); }
+    }, 500);
+  }
+  function brandRender(){
+    if (!assets || !assets.brandKit) return;
+    assets.brandKit().then(tokens => {
+      const cols = $("#brandColors"), fonts = $("#brandFonts");
+      if (cols) cols.innerHTML = tokens.filter(t => t.kind === "color").map(t =>
+        "<div class='swatch'><span class='chip-c' style='background:"+esc(t.value)+"'></span>" +
+        "<span class='sw-b'><b class='sw-n'>"+esc(t.label)+"</b>" +
+        "<span class='sw-h'>"+esc(t.value)+"</span>" +
+        (t.usage ? "<span class='sw-u'>"+esc(t.usage)+"</span>" : "") +
+        "</span></div>").join("");
+      if (fonts) fonts.innerHTML = tokens.filter(t => t.kind === "font").map(t =>
+        "<div class='bfont'><div class='bf-r'>"+esc(t.label)+"</div>" +
+        "<div class='bf-f'>"+esc(t.value)+"</div>" +
+        (t.usage ? "<div class='bf-u'>"+esc(t.usage)+"</div>" : "") +
+        "</div>").join("");
+    }).catch(() => {
+      const cols = $("#brandColors");
+      if (cols) cols.innerHTML = "<p class='subnote'>Could not load the brand kit.</p>";
+    });
+  }
+
   function galInit(){
     const panel = $("#galleryPanel"); if (!panel) return;
     if (!assets){ panel.style.display = "none"; return; }
+    galTagChips();
+    brandRender();
+    ADJ.forEach(a => { const el = $(a.slider); if (el) el.addEventListener("input", adjTouched); });
+    const rst = $("#adjReset");
+    if (rst) rst.addEventListener("click", () => {
+      adjWrite({opacity:1, crop:{}, color_adjust:{brightness:1, contrast:1, saturation:1}});
+      adjTouched();
+    });
     $("#galUpload").addEventListener("change", async e => {
       const files = Array.from((e.target as any).files || []) as File[];
       if (!files.length) return;
@@ -1582,6 +1717,7 @@ export function initStudio(
       const act = t && t.dataset && t.dataset.gal;
       if (!act) return;
       const name = t.dataset.name;
+      if (act === "adjust"){ adjOpen(t.dataset.aid, name, t.dataset.label || name); return; }
       if (act === "del"){
         if (!t.dataset.confirm){
           t.dataset.confirm = "1"; t.textContent = "Really delete?";
@@ -1596,11 +1732,19 @@ export function initStudio(
         if (act === "photo"){
           const img = new Image();
           img.crossOrigin = "anonymous"; /* keeps the export canvas untainted */
-          img.onload = () => {
+          img.onload = async () => {
             BUILDER.photo = img; BUILDER.tpl = "photo";
+            BUILDER.photoAssetId = t.dataset.aid || null;
             VB.photo = img;
+            /* Carry this project's saved adjustments over with the photo. */
+            BUILDER.transform = null;
+            if (BUILDER.photoAssetId && assets.getTransform){
+              try { BUILDER.transform = await assets.getTransform(BUILDER.photoAssetId); } catch(e) {}
+            }
             renderBuilder(); drawVideoStill();
-            galSet("Photo loaded into both builders.");
+            galSet(BUILDER.transform
+              ? "Photo loaded with its saved adjustments."
+              : "Photo loaded into both builders.");
           };
           img.onerror = () => galSet("Could not load that image.");
           img.src = u;
