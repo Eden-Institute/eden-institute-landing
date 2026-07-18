@@ -15,11 +15,18 @@
 // call per provider plus one judge call, capped max_tokens throughout.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { captureException } from "../_shared/sentry.ts";
+import { enforceRateLimit } from "../_shared/studio-rate-limit.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 const FOUNDER_EMAIL = "hello@edeninstitute.health";
+
+// Per-UTC-day ceiling on paid generations. Generous: the founder will not reach
+// it in normal use, but a compromised session cannot loop model calls forever.
+// Override per environment without a redeploy.
+const DAILY_LIMIT = Number(Deno.env.get("STUDIO_GENERATE_DAILY_LIMIT") ?? "300");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -452,6 +459,16 @@ Deno.serve(async (req) => {
         providers: providers().map((p) => ({ id: p.id, label: p.label, model: p.model })),
       });
     }
+
+    // Everything past here spends money on a model call. Meter it (fail-open).
+    const rl = await enforceRateLimit(userClient, "studio-generate", DAILY_LIMIT);
+    if (!rl.allowed) {
+      return json({
+        error: "rate_limited",
+        detail: `Daily generation limit (${rl.limit}) reached. It resets at UTC midnight.`,
+      }, 429);
+    }
+
     if (mode === "generate") return await generate(body.brief ?? {});
     if (mode === "edit") {
       const action = String(body.action ?? "sharpen");
@@ -473,6 +490,7 @@ Deno.serve(async (req) => {
     return json({ error: "unknown_mode" }, 400);
   } catch (e) {
     console.error("studio-generate error:", e);
+    await captureException(e, { function: "studio-generate" });
     return json({ error: "internal", detail: String(e).slice(0, 300) }, 500);
   }
 });

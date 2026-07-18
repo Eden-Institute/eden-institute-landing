@@ -16,6 +16,7 @@
 // and zero policies, so only this function's service-role client can read them.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { captureException } from "../_shared/sentry.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -374,6 +375,8 @@ Deno.serve(async (req) => {
 
     return json({ error: "bad_mode" }, 400);
   } catch (err) {
+    console.error("canva-connect error:", err);
+    await captureException(err, { function: "canva-connect" });
     return json({ error: "server_error", detail: String(err).slice(0, 400) }, 500);
   }
 });

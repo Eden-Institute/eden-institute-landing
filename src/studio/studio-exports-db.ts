@@ -71,32 +71,13 @@ export async function recordExportBatch(
   if (error) throw error;
 
   // Status is a fact about the project, not about this batch, so it is set
-  // once the rows land rather than per file.
-  await supabase.from("studio_projects")
+  // once the rows land rather than per file. Surfaced like the insert above: a
+  // swallowed failure here would leave the project reading "draft" in the
+  // archive forever even though its export rows exist.
+  const { error: statusError } = await supabase.from("studio_projects")
     .update({ status: "exported" })
     .eq("id", projectId);
+  if (statusError) throw statusError;
 
   return { batchId, stored: rows.filter((r) => r.storage_path).length };
-}
-
-export interface ExportRow {
-  id: string;
-  format: string;
-  aspect_ratio: string;
-  width: number | null;
-  height: number | null;
-  storage_path: string | null;
-  batch_id: string | null;
-  exported_at: string;
-}
-
-/** Used by the Phase 8 archive. */
-export async function listExports(projectId: string): Promise<ExportRow[]> {
-  const { data, error } = await supabase
-    .from("studio_exports")
-    .select("id, format, aspect_ratio, width, height, storage_path, batch_id, exported_at")
-    .eq("project_id", projectId)
-    .order("exported_at", { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as ExportRow[];
 }

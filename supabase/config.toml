@@ -48,6 +48,17 @@ verify_jwt = true
 [functions.studio-generate]
 verify_jwt = true
 
+# studio-image (Gemini image gen) and canva-connect (Canva OAuth + round-trip)
+# are the other two founder-only /studio EFs and each holds provider secrets.
+# Like studio-generate they gate on the founder email internally; pinning
+# verify_jwt here keeps a stray `--no-verify-jwt` deploy from removing the
+# gateway check (Lock #72).
+[functions.studio-image]
+verify_jwt = true
+
+[functions.canva-connect]
+verify_jwt = true
+
 [functions.practitioner-waitlist-signup]
 verify_jwt = false
 
