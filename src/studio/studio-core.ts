@@ -25,6 +25,19 @@ export function initStudio(
     /** The wizard's last-step button. The shell decides what "done" means. */
     onFinish?: () => void;
   },
+  /** Phase 3 Canva bridge, pre-bound to the active project by the shell. */
+  canva?: {
+    projectId: string;
+    designId: string | null;
+    editUrl: string | null;
+    status: () => Promise<{ connected: boolean }>;
+    beginConnect: () => Promise<void>;
+    exportToCanva: (i: {
+      pngBase64: string; title: string; width: number; height: number;
+      assetId?: string | null;
+    }) => Promise<{ designId: string; editUrl: string | null }>;
+    reimportFromCanva: () => Promise<{ assetId: string; url: string | null }>;
+  },
 ): StudioHandle {
   "use strict";
   /* ───────────────────────── DATA ───────────────────────── */
@@ -760,9 +773,113 @@ export function initStudio(
     a.href = $("#adCanvas").toDataURL("image/png");
     a.click();
   });
-  $("#bCanvaOpen").addEventListener("click", () => {
-    const s = SIZES[BUILDER.size];
-    window.open("https://www.canva.com/design?create=true&width=" + s.w + "&height=" + s.h + "&units=px", "_blank", "noopener");
+  /* ── Canva round-trip (Phase 3) ──────────────────────────────────────────
+     Replaces the old deep link, which only opened a BLANK design at the right
+     size and left the founder to download a PNG and drag it in by hand. The
+     creative is now uploaded to Canva as a real design, and the finished
+     version comes back over the working image. */
+  function canvaSet(msg){ const el = $("#canvaStatus"); if (el) el.textContent = msg; }
+  function canvaShow(ids){
+    ["#bCanvaSend", "#bCanvaOpenDesign", "#bCanvaReimport", "#bCanvaConnect"].forEach(sel => {
+      const el = $(sel); if (el) (el as any).hidden = ids.indexOf(sel) < 0;
+    });
+  }
+  function canvaRender(){
+    const st = $("#canvaState");
+    if (!canva || !canva.projectId){
+      if (st) st.textContent = "unavailable";
+      canvaShow([]);
+      return;
+    }
+    if (!CANVA.connected){
+      if (st) st.textContent = "not connected";
+      canvaShow(["#bCanvaConnect"]);
+      canvaSet("Connect once and the studio can hand designs to Canva and pull them back.");
+      return;
+    }
+    if (st) st.textContent = "connected";
+    canvaShow(CANVA.designId
+      ? ["#bCanvaSend", "#bCanvaOpenDesign", "#bCanvaReimport"]
+      : ["#bCanvaSend"]);
+  }
+  const CANVA = { connected: false, designId: null as string | null, editUrl: null as string | null };
+  async function canvaInit(){
+    if (!canva || !canva.projectId){ canvaRender(); return; }
+    CANVA.designId = canva.designId || null;
+    CANVA.editUrl = canva.editUrl || null;
+    try {
+      const s = await canva.status();
+      CANVA.connected = !!(s && s.connected);
+    } catch(e) { CANVA.connected = false; }
+    canvaRender();
+  }
+  const canvaBtn = (sel, fn) => { const el = $(sel); if (el) el.addEventListener("click", fn); };
+
+  canvaBtn("#bCanvaConnect", async () => {
+    canvaSet("Sending you to Canva to authorize…");
+    try { await canva.beginConnect(); }
+    catch(err){ canvaSet("Could not start the Canva connection: " + String((err as any)?.message || err).slice(0, 140)); }
+  });
+
+  canvaBtn("#bCanvaSend", async () => {
+    const btn = $("#bCanvaSend") as any;
+    btn.disabled = true;
+    canvaSet("Rendering and uploading to Canva…");
+    try{
+      const s = SIZES[BUILDER.size];
+      /* Strip the data-URI prefix: the EF wants raw base64. */
+      const png = ($("#adCanvas") as any).toDataURL("image/png").split(",")[1];
+      const r = await canva.exportToCanva({
+        pngBase64: png,
+        title: (BUILDER.hook || "Eden ad").slice(0, 50),
+        width: s.w, height: s.h,
+        assetId: BUILDER.photoAssetId || null,
+      });
+      CANVA.designId = r.designId; CANVA.editUrl = r.editUrl;
+      canvaRender();
+      if (r.editUrl) window.open(r.editUrl, "_blank", "noopener");
+      canvaSet("Sent. Edit it in Canva, then come back and bring the finished version over.");
+    }catch(err){
+      const code = (err as any)?.code;
+      canvaSet(code === "not_connected"
+        ? "Canva is not connected yet."
+        : "Send failed: " + String((err as any)?.message || err).slice(0, 160));
+      if (code === "not_connected"){ CANVA.connected = false; canvaRender(); }
+    }finally{ btn.disabled = false; }
+  });
+
+  canvaBtn("#bCanvaOpenDesign", () => {
+    if (CANVA.editUrl) window.open(CANVA.editUrl, "_blank", "noopener");
+    else canvaSet("No design link yet. Send a creative to Canva first.");
+  });
+
+  canvaBtn("#bCanvaReimport", async () => {
+    const btn = $("#bCanvaReimport") as any;
+    btn.disabled = true;
+    canvaSet("Exporting from Canva and bringing it back…");
+    try{
+      const r = await canva.reimportFromCanva();
+      if (!r.url){ canvaSet("Came back without a usable link."); return; }
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        BUILDER.photo = img; BUILDER.tpl = "photo";
+        BUILDER.photoAssetId = r.assetId || null;
+        /* The Canva version supersedes any local adjustment record. */
+        BUILDER.transform = null;
+        VB.photo = img;
+        renderBuilder(); drawVideoStill();
+        canvaSet("Brought back from Canva. The version it replaced is kept for recovery.");
+        if (typeof galRender === "function") galRender();
+      };
+      img.onerror = () => canvaSet("Could not load the returned image.");
+      img.src = r.url;
+    }catch(err){
+      const code = (err as any)?.code;
+      canvaSet(code === "no_design"
+        ? "Send a creative to Canva first."
+        : "Reimport failed: " + String((err as any)?.message || err).slice(0, 160));
+    }finally{ btn.disabled = false; }
   });
 
   /* ── Make it clickable ── */
@@ -1764,6 +1881,7 @@ export function initStudio(
   renderVB();
   aiInit();
   galInit();
+  canvaInit();
   showStep(0);
 
   /* ───────────────────────── PHASE 1 SEAM ─────────────────────────

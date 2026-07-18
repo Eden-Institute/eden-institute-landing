@@ -3166,6 +3166,41 @@ export type Database = {
           },
         ]
       }
+      studio_asset_versions: {
+        Row: {
+          asset_id: string
+          created_at: string
+          id: string
+          source: string
+          storage_path: string
+          version_number: number
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          id?: string
+          source: string
+          storage_path: string
+          version_number: number
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          id?: string
+          source?: string
+          storage_path?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_asset_versions_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "studio_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       studio_assets: {
         Row: {
           campaign_tag: string
@@ -3243,10 +3278,47 @@ export type Database = {
         }
         Relationships: []
       }
+      studio_canva_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          expires_at: string
+          id: string
+          refresh_token: string
+          scope: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          refresh_token: string
+          scope?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          refresh_token?: string
+          scope?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       studio_projects: {
         Row: {
           ad_type: string
           campaign_tag: string
+          canva_asset_id: string | null
+          canva_design_id: string | null
+          canva_edit_url: string | null
+          canva_synced_at: string | null
           created_at: string
           created_by: string
           current_step: number
@@ -3262,6 +3334,10 @@ export type Database = {
         Insert: {
           ad_type?: string
           campaign_tag?: string
+          canva_asset_id?: string | null
+          canva_design_id?: string | null
+          canva_edit_url?: string | null
+          canva_synced_at?: string | null
           created_at?: string
           created_by: string
           current_step?: number
@@ -3277,6 +3353,10 @@ export type Database = {
         Update: {
           ad_type?: string
           campaign_tag?: string
+          canva_asset_id?: string | null
+          canva_design_id?: string | null
+          canva_edit_url?: string | null
+          canva_synced_at?: string | null
           created_at?: string
           created_by?: string
           current_step?: number
@@ -3289,7 +3369,15 @@ export type Database = {
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "studio_projects_canva_asset_id_fkey"
+            columns: ["canva_asset_id"]
+            isOneToOne: false
+            referencedRelation: "studio_assets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subscription_events: {
         Row: {

@@ -275,8 +275,20 @@ export const STUDIO_HTML = `
       <div class="bprev">
         <canvas id="adCanvas" width="1080" height="1350" aria-label="Ad creative preview"></canvas>
         <button class="genbtn" id="dlBtn" type="button" style="max-width:420px;margin:12px auto 0;display:block">❦ &nbsp;Download PNG</button>
-        <button class="copyall" id="bCanvaOpen" type="button" style="max-width:420px;margin:8px auto 0;display:block;width:100%">Open in Canva to Tweak</button>
-        <p class="subnote" style="text-align:center;max-width:420px;margin:6px auto 0">Opens a blank Canva design at this exact ad size. Download the PNG first, then drag it in to adjust opacity, layers, and type.</p>
+        <div class="canva-box">
+          <div class="canva-h">
+            <span>Canva round-trip</span>
+            <span class="canva-state" id="canvaState">checking…</span>
+          </div>
+          <div class="canva-actions">
+            <button class="copyall" id="bCanvaSend" type="button">Send This Creative to Canva</button>
+            <button class="copyall" id="bCanvaOpenDesign" type="button" hidden>Open the Design</button>
+            <button class="copyall" id="bCanvaReimport" type="button" hidden>Bring the Finished Version Back</button>
+            <button class="copyall" id="bCanvaConnect" type="button" hidden>Connect Canva</button>
+          </div>
+          <p class="subnote" id="canvaStatus" style="margin:8px 0 0"></p>
+          <p class="subnote" style="margin:4px 0 0">Reimport replaces the working image with the Canva version. The version it replaces is kept for recovery.</p>
+        </div>
         <p class="subnote" id="dlMeta" style="text-align:center"></p>
       </div>
     </div>

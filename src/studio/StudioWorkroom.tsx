@@ -14,6 +14,9 @@ import { Button } from "@/components/ui/button";
 import { STUDIO_HTML } from "@/studio/studio-html";
 import { initStudio } from "@/studio/studio-core";
 import { aiInvoke, makeAssetsBridge } from "./studio-bridges";
+import {
+  beginConnect, exportToCanva, reimportFromCanva, status as canvaStatus,
+} from "./studio-canva";
 import { formatForAdType } from "./studio-types";
 import type { StudioHandle } from "./studio-types";
 import { saveProject } from "./studio-db";
@@ -93,6 +96,20 @@ export default function StudioWorkroom({ project, onExit, onFinish, onSaved }: P
       projectId: project.id,
       campaignTag: project.campaign_tag,
     });
+    // Phase 3: the Canva bridge is pre-bound to this project so the vanilla
+    // core never has to know about project ids or Supabase.
+    const canva = {
+      projectId: project.id,
+      designId: project.canva_design_id ?? null,
+      editUrl: project.canva_edit_url ?? null,
+      status: canvaStatus,
+      beginConnect: () => beginConnect(project.id),
+      exportToCanva: (i: {
+        pngBase64: string; title: string; width: number; height: number;
+        assetId?: string | null;
+      }) => exportToCanva({ projectId: project.id, ...i }),
+      reimportFromCanva: () => reimportFromCanva(project.id),
+    };
     const handle = initStudio(root, aiInvoke, assets, {
       // The core auto-advances on its own (heroGo jumps to Drafts). Treating
       // that as a change keeps the dirty badge truthful.
@@ -104,7 +121,7 @@ export default function StudioWorkroom({ project, onExit, onFinish, onSaved }: P
         }
         finishRef.current();
       },
-    });
+    }, canva);
     handleRef.current = handle;
 
     // Restore the saved session, then seed anything the entry screen decided

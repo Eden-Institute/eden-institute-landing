@@ -27,6 +27,11 @@ export interface StudioProject {
   status: "draft" | "exported" | "archived";
   state: StudioStateBlob;
   slides: StudioSlide[];
+  /** Phase 3: the Canva design this project round-trips through, if any. */
+  canva_design_id: string | null;
+  canva_edit_url: string | null;
+  canva_asset_id: string | null;
+  canva_synced_at: string | null;
   created_at: string;
   updated_at: string;
 }
