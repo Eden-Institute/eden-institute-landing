@@ -298,6 +298,15 @@ export const STUDIO_HTML = `
       <div class="bprev">
         <canvas id="adCanvas" width="1080" height="1350" aria-label="Ad creative preview"></canvas>
         <button class="genbtn" id="dlBtn" type="button" style="max-width:420px;margin:12px auto 0;display:block">❦ &nbsp;Download PNG</button>
+        <!-- One-click multi-size export. Each size is a true re-render at
+             native pixels, not an upscale of the preview. -->
+        <div class="exp-box">
+          <div class="layer-h"><span>Export</span><span class="canva-state">1:1 · 4:5 · 9:16</span></div>
+          <button class="genbtn" id="expAll" type="button" style="width:100%;margin:0">Export All Three Sizes</button>
+          <p class="subnote" id="expStatus" style="min-height:16px;margin:8px 0 0"></p>
+          <p class="subnote" style="margin:2px 0 0">Downloads a zip and records the export in your archive. The single-size PNG button above still works for one-offs.</p>
+        </div>
+
         <!-- Free-placed text layers. The template's own zones still render
              underneath; these sit on top and can be dragged anywhere. -->
         <div class="layer-box">

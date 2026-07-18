@@ -2,6 +2,7 @@
 /* eslint-disable */
 import QRCode from "qrcode";
 import type { StudioHandle, StudioStateBlob } from "./studio-types";
+import { safeZipName, zipStore } from "./studio-zip";
 // Eden Ad Studio core. Ported from the standalone artifact build (2026-07-17).
 // Vanilla DOM app mounted by StudioPage.tsx; all queries and listeners are
 // rooted on the container so unmount fully tears it down.
@@ -37,6 +38,13 @@ export function initStudio(
       assetId?: string | null;
     }) => Promise<{ designId: string; editUrl: string | null }>;
     reimportFromCanva: () => Promise<{ assetId: string; url: string | null }>;
+  },
+  /** Phase 7: records finished exports so the archive knows what shipped. */
+  exports?: {
+    record: (files: Array<{
+      format: string; aspect_ratio: string; width: number; height: number;
+      bytes: Uint8Array; name: string;
+    }>) => Promise<void>;
   },
 ): StudioHandle {
   "use strict";
@@ -735,17 +743,36 @@ export function initStudio(
     rr(ctx, x, y, size + pad * 2, size + pad * 2, 8); ctx.fill();
     ctx.drawImage(qrCache.img, x + pad, y + pad, size, size);
   }
+  /* Extracted so the same pipeline can paint an off-screen canvas at any size.
+     Multi-size export re-renders rather than rescaling a bitmap, which is why
+     text stays crisp at 9:16 after being placed at 4:5. Layer positions are
+     stored 0..1 precisely so this works. */
+  function paintAd(ctx, w, h){
+    ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+    if (BUILDER.tpl === "label") drawLabel(ctx, w, h);
+    else if (BUILDER.tpl === "forest") drawForest(ctx, w, h);
+    else drawPhoto(ctx, w, h);
+    if (BUILDER.qr && BUILDER.dest) paintQr(ctx, w, h);
+    drawLayers(ctx, w, h);
+  }
   function drawAd(){
     const cv = $("#adCanvas"); const s = SIZES[BUILDER.size];
     cv.width = s.w; cv.height = s.h;
-    const ctx = cv.getContext("2d");
-    ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
-    if (BUILDER.tpl === "label") drawLabel(ctx, s.w, s.h);
-    else if (BUILDER.tpl === "forest") drawForest(ctx, s.w, s.h);
-    else drawPhoto(ctx, s.w, s.h);
-    if (BUILDER.qr && BUILDER.dest) paintQr(ctx, s.w, s.h);
-    drawLayers(ctx, s.w, s.h);
+    paintAd(cv.getContext("2d"), s.w, s.h);
     $("#dlMeta").textContent = s.w+" × "+s.h+" px · "+TEMPLATES[BUILDER.tpl]+" · downloads as PNG";
+  }
+  /** Render one size to an off-screen canvas and return its PNG bytes. */
+  function renderSizeToPng(sizeId): Promise<Uint8Array> {
+    const s = SIZES[sizeId];
+    const cv = document.createElement("canvas");
+    cv.width = s.w; cv.height = s.h;
+    paintAd(cv.getContext("2d"), s.w, s.h);
+    return new Promise((resolve, reject) => {
+      cv.toBlob(async (blob) => {
+        if (!blob) { reject(new Error("canvas produced no image")); return; }
+        resolve(new Uint8Array(await blob.arrayBuffer()));
+      }, "image/png");
+    });
   }
 
   /* ── Free-placed text layers (Phase 6) ───────────────────────────────────
@@ -993,6 +1020,65 @@ export function initStudio(
     a.href = $("#adCanvas").toDataURL("image/png");
     a.click();
   });
+  /* ── Multi-size export (Phase 7) ─────────────────────────────────────────
+     One click renders all three Meta placements and packages them. Each size
+     is a real re-render at native pixels, not an upscale of the preview. */
+  const EXPORT_SIZES = [
+    {id:"feed",     ratio:"1:1"},
+    {id:"portrait", ratio:"4:5"},
+    {id:"story",    ratio:"9:16"},
+  ];
+  function expSet(msg){ const el = $("#expStatus"); if (el) el.textContent = msg; }
+  async function exportAllSizes(){
+    const btn = $("#expAll") as any;
+    if (btn) btn.disabled = true;
+    const restore = BUILDER.size;
+    try{
+      expSet("Rendering three sizes…");
+      const files = [];
+      const meta = [];
+      const stamp = new Date().toISOString().slice(0, 10);
+      const base = safeZipName((BUILDER.hook || "eden-ad").slice(0, 40));
+      for (const s of EXPORT_SIZES){
+        const dims = SIZES[s.id];
+        const bytes = await renderSizeToPng(s.id);
+        const name = base + "-" + dims.w + "x" + dims.h + ".png";
+        files.push({ name, data: bytes });
+        meta.push({ format:"png", aspect_ratio:s.ratio, width:dims.w, height:dims.h, bytes, name });
+      }
+      const zipBytes = zipStore(files);
+      const blob = new Blob([zipBytes], { type: "application/zip" });
+      const a = document.createElement("a");
+      a.download = base + "-" + stamp + "-all-sizes.zip";
+      a.href = URL.createObjectURL(blob);
+      a.click();
+      /* Revoke on the next tick: revoking immediately can cancel the download
+         in some browsers. */
+      setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+      expSet("Downloaded all three sizes. Recording the export…");
+
+      /* The download is the deliverable; the archive record is best-effort so
+         a storage hiccup never costs her the files she already has. */
+      if (exports && exports.record){
+        try {
+          await exports.record(meta);
+          expSet("Downloaded all three sizes, and saved to your archive.");
+        } catch(err){
+          expSet("Downloaded all three sizes. Archive record failed: " +
+            String((err as any)?.message || err).slice(0, 120));
+        }
+      } else {
+        expSet("Downloaded all three sizes.");
+      }
+    }catch(err){
+      expSet("Export failed: " + String((err as any)?.message || err).slice(0, 160));
+    }finally{
+      BUILDER.size = restore;
+      renderBuilder();
+      if (btn) btn.disabled = false;
+    }
+  }
+
   /* ── Text layer + caption wiring (Phase 6) ─────────────────────────────── */
   (function wireLayers(){
     const cv = $("#adCanvas");
@@ -1007,6 +1093,7 @@ export function initStudio(
     document.addEventListener("mouseup", layerPointerUp);
     document.addEventListener("touchend", layerPointerUp);
 
+    const exp = $("#expAll"); if (exp) exp.addEventListener("click", exportAllSizes);
     const add = $("#lAdd"); if (add) add.addEventListener("click", () => layerAdd(BUILDER.hook || "New text"));
     const del = $("#lDel"); if (del) del.addEventListener("click", () => {
       LAYERS = LAYERS.filter(l => l.id !== layerSel); layerSel = LAYERS.length ? LAYERS[LAYERS.length-1].id : null;
