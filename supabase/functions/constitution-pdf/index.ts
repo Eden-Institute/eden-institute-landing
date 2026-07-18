@@ -10,8 +10,12 @@
 // Source of truth for the content is the same per-pattern data the live /guide
 // page renders (guide-content-<slug>.ts), so the emailed PDF matches the page.
 //
-// Public EF (verify_jwt=false in config.toml): fetched server-side by the
-// stripe-webhook on purchase, and safe to fetch directly.
+// NOT public. verify_jwt=true in config.toml, and the handler additionally requires
+// a service-role caller (see the isServiceRoleRequest guard below) — this renders
+// PAID guide content, so it must never be fetchable with the anon/publishable key.
+// Fetched server-side by stripe-webhook on purchase. The stale comment that used to
+// sit here claimed "Public EF (verify_jwt=false)", which contradicted both the
+// config and the guard 160 lines down; corrected 2026-07-18.
 
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "https://esm.sh/pdf-lib@1.17.1";
 import type { FullGuideContent } from "../_shared/guide/guide-types.ts";
