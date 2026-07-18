@@ -19,6 +19,8 @@
 // Gate: verify_jwt=true (gateway) + the founder email check below.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { captureException } from "../_shared/sentry.ts";
+import { enforceRateLimit } from "../_shared/studio-rate-limit.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -32,6 +34,9 @@ const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
 const FOUNDER_EMAIL = "hello@edeninstitute.health";
 const BUCKET = "studio-assets";
+
+// Per-UTC-day ceiling on paid image generations/edits. Fail-open; overridable.
+const DAILY_LIMIT = Number(Deno.env.get("STUDIO_IMAGE_DAILY_LIMIT") ?? "150");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -93,11 +98,15 @@ interface InlineImage { mimeType: string; data: string }
 async function callGemini(
   model: string, parts: unknown[],
 ): Promise<{ image: InlineImage | null; text: string }> {
+  // The key rides in a header, never the URL. A network-level fetch failure
+  // throws a TypeError whose message contains the request URL; keeping the key
+  // out of the URL keeps it out of that message (and out of any error body the
+  // handler returns, plus Google's own request logs).
   const res = await fetch(
-    `${GEMINI_BASE}/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+    `${GEMINI_BASE}/models/${model}:generateContent`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY! },
       body: JSON.stringify({
         contents: [{ role: "user", parts }],
         generationConfig: { responseModalities: ["IMAGE", "TEXT"] },
@@ -195,7 +204,9 @@ Deno.serve(async (req) => {
       let available: string[] = [];
       let ok = true;
       try {
-        const res = await fetch(`${GEMINI_BASE}/models?key=${GEMINI_API_KEY}&pageSize=200`);
+        const res = await fetch(`${GEMINI_BASE}/models?pageSize=200`, {
+          headers: { "x-goog-api-key": GEMINI_API_KEY! },
+        });
         if (res.ok) {
           const body = await res.json();
           available = (body.models ?? [])
@@ -220,6 +231,15 @@ Deno.serve(async (req) => {
     const range = String(body.range ?? "moderate");
     const campaignTag = String(body.campaignTag ?? "general");
     const projectId = body.projectId ? String(body.projectId) : null;
+
+    // generate and edit both spend on a Gemini call. Meter them (fail-open).
+    const rl = await enforceRateLimit(userClient, "studio-image", DAILY_LIMIT);
+    if (!rl.allowed) {
+      return json({
+        error: "rate_limited",
+        detail: `Daily image limit (${rl.limit}) reached. It resets at UTC midnight.`,
+      }, 429);
+    }
 
     if (mode === "generate") {
       const parts = [{ text: systemPrompt(range) + "\n\nBRIEF: " + prompt }];
@@ -260,6 +280,8 @@ Deno.serve(async (req) => {
 
     return json({ error: "bad_mode" }, 400);
   } catch (err) {
+    console.error("studio-image error:", err);
+    await captureException(err, { function: "studio-image" });
     return json({ error: "server_error", detail: String(err).slice(0, 400) }, 500);
   }
 });

@@ -31,7 +31,7 @@ export interface AssetTransform {
   color_adjust: { brightness?: number; contrast?: number; saturation?: number };
 }
 
-export const DEFAULT_TRANSFORM: AssetTransform = {
+const DEFAULT_TRANSFORM: AssetTransform = {
   opacity: 1,
   crop: { x: 0, y: 0, scale: 1 },
   color_adjust: { brightness: 1, contrast: 1, saturation: 1 },

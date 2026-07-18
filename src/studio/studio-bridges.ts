@@ -54,7 +54,7 @@ function projectAssetOps(ctx: { projectId: string; campaignTag: string }) {
   return {
     /** Metadata-backed listing. `tag` of "all" or undefined returns everything. */
     async list(tag?: string): Promise<Array<{
-      name: string; id: string; filename: string; kind: string; campaign_tag: string;
+      name: string; id: string; filename: string; kind: string; campaign_tag: string; source: string;
     }>> {
       const rows = await listAssets(tag);
       return rows.map((r) => ({
@@ -118,30 +118,14 @@ function projectAssetOps(ctx: { projectId: string; campaignTag: string }) {
   };
 }
 
+// list/upload/remove are supplied per-project by projectAssetOps (which is
+// spread over this object in makeAssetsBridge), so only url and publish are ever
+// reached from here. The shadowed versions were dead and have been removed.
 export const assetsBridge = {
-  async list(): Promise<Array<{ name: string }>> {
-    const { data, error } = await supabase.storage
-      .from(BUCKET)
-      .list("", { limit: 200, sortBy: { column: "created_at", order: "desc" } });
-    if (error) throw error;
-    return (data ?? []).filter((f) => f.name && !f.name.startsWith("."));
-  },
-  async upload(file: File): Promise<void> {
-    const safe = file.name.replace(/[^\w.-]+/g, "_").slice(-80);
-    const path = `${Date.now()}-${safe}`;
-    const { error } = await supabase.storage
-      .from(BUCKET)
-      .upload(path, file, { contentType: file.type || undefined });
-    if (error) throw error;
-  },
   async url(name: string): Promise<string> {
     const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(name, 3600);
     if (error) throw error;
     return data.signedUrl;
-  },
-  async remove(name: string): Promise<void> {
-    const { error } = await supabase.storage.from(BUCKET).remove([name]);
-    if (error) throw error;
   },
   // Publish a finished creative to the PUBLIC collateral bucket and return its
   // permanent hosted URL (required for email: Gmail strips data-URI images).

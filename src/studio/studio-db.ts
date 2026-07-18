@@ -132,7 +132,7 @@ export async function duplicateProject(id: string): Promise<StudioProject> {
   return toProject(data);
 }
 
-export async function getProject(id: string): Promise<StudioProject> {
+async function getProject(id: string): Promise<StudioProject> {
   const { data, error } = await from().select("*").eq("id", id).single();
   if (error) throw error;
   return toProject(data);

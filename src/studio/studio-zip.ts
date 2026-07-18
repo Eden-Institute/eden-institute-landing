@@ -114,12 +114,6 @@ export function zipStore(entries: ZipEntry[], now: Date = new Date()): Uint8Arra
   return out;
 }
 
-/** Browser-side convenience wrapper. */
-export function zipBlob(entries: ZipEntry[]): Blob {
-  const bytes = zipStore(entries);
-  return new Blob([bytes], { type: "application/zip" });
-}
-
 /** Filesystem-safe, ASCII-only name. The zip format's unicode handling is a
  *  swamp and these filenames are ours to choose. */
 export function safeZipName(s: string): string {

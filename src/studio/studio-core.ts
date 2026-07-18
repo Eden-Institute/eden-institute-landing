@@ -4,7 +4,7 @@ import QRCode from "qrcode";
 import type { StudioHandle, StudioStateBlob } from "./studio-types";
 import { safeZipName, zipStore } from "./studio-zip";
 // Eden Ad Studio core. Ported from the standalone artifact build (2026-07-17).
-// Vanilla DOM app mounted by StudioPage.tsx; all queries and listeners are
+// Vanilla DOM app mounted by StudioWorkroom.tsx; all queries and listeners are
 // rooted on the container so unmount fully tears it down.
 
 export function initStudio(
@@ -292,7 +292,19 @@ export function initStudio(
     direction:"", touched:false};
   let variants = [];
   const $ = s => root.querySelector(s);
-  const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  // Escapes for HTML text AND attribute contexts. The single-quote escape is
+  // load-bearing: gallery tiles interpolate database-backed values (asset
+  // filenames, which originate from uploaded/reimported files) into
+  // single-quoted attributes, so a filename containing an apostrophe must not be
+  // able to close the attribute and inject markup.
+  const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+  // A destination URL only becomes a clickable anchor if it is http(s). A
+  // javascript: or data: URL pasted into an exported email or HTML file would
+  // execute on click, so anything else falls back to the site root.
+  const safeHref = u => {
+    try { const p = new URL(u); return p.protocol === "https:" || p.protocol === "http:" ? u : "https://edeninstitute.health"; }
+    catch { return "https://edeninstitute.health"; }
+  };
 
   /* ───────────────────────── CAMPAIGN UI ───────────────────────── */
   function chip(label, sel, on){
@@ -1278,7 +1290,7 @@ export function initStudio(
       if (!b){ ccSet("Could not read the canvas."); return; }
       try{
         const hosted = await assets.publish(b, collateralName());
-        const dest = BUILDER.dest || "https://edeninstitute.health";
+        const dest = safeHref(BUILDER.dest || "https://edeninstitute.health");
         const snippet = '<a href="' + dest.replace(/"/g, "&quot;") + '" target="_blank" rel="noopener">' +
           '<img src="' + hosted + '" alt="' + BUILDER.hook.replace(/"/g, "&quot;") + '" width="540" ' +
           'style="display:block;width:100%;max-width:540px;height:auto;border:0"></a>';
@@ -1292,7 +1304,7 @@ export function initStudio(
     }, "image/png");
   });
   $("#ccHtml").addEventListener("click", () => {
-    const dest = BUILDER.dest || "https://edeninstitute.health";
+    const dest = safeHref(BUILDER.dest || "https://edeninstitute.health");
     const dataUri = $("#adCanvas").toDataURL("image/png");
     const htmlDoc = "<!doctype html>\n<html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>" + esc(BUILDER.hook) + "</title></head>" +
       "<body style=\"margin:0;background:#F5EDD6;display:flex;justify-content:center\">" +
@@ -1750,6 +1762,7 @@ export function initStudio(
     const code = (e && e.code) || "";
     const status = e && e.status;
     if (code === "founder_only" || status === 403) return "Founder account required.";
+    if (code === "rate_limited" || status === 429) return e && e.detail ? String(e.detail).slice(0, 160) : "Daily limit reached. It resets at UTC midnight.";
     if (code === "no_providers" || status === 503) return "No model keys configured yet. Add the Supabase secrets, then redeploy studio-generate.";
     if (code === "all_models_failed") return "Every model call failed" + (e.detail ? ": " + String(JSON.stringify(e.detail)).slice(0, 140) : ".");
     const msg = (e && (e.message || e.error)) || String(e);
@@ -2128,7 +2141,6 @@ export function initStudio(
     const b = $("#aiImgEdit") as any;
     if (!b) return;
     b.disabled = !(AIIMG.on && AIIMG.selected);
-    b.textContent = AIIMG.selected ? "Edit Selected" : "Edit Selected";
   }
   async function aiImgInit(){
     const panel = $("#aiImgPanel"); if (!panel) return;

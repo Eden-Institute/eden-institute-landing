@@ -1,5 +1,5 @@
 // Eden Ad Studio markup. Ported from the standalone artifact build (2026-07-17).
-// Injected into the mount node by StudioPage; all ids are queried by studio-core.ts.
+// Injected into the mount node by StudioWorkroom; all ids are queried by studio-core.ts.
 
 export const STUDIO_HTML = `
 <header class="masthead">
@@ -188,7 +188,7 @@ export const STUDIO_HTML = `
     <div class="panel-h"><h2>Asset Gallery</h2><span class="note">your photos and clips, stored privately, ready for any builder</span></div>
     <div class="panel-b">
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <input type="file" id="galUpload" accept="image/*,video/*" multiple style="flex:1;min-width:200px">
+        <input type="file" id="galUpload" accept="image/*,video/*" multiple aria-label="Upload images or video clips to your asset library" style="flex:1;min-width:200px">
         <button class="copyall" id="galRefresh" type="button">Refresh</button>
       </div>
       <div class="gal-filter">
@@ -260,7 +260,7 @@ export const STUDIO_HTML = `
 
   <!-- ── Creative builder ── -->
   <section class="panel" id="builder" style="margin-top:22px">
-    <div class="panel-h"><h2>Creative Builder</h2><span class="note">Step IV · renders the finished ad image at true Meta dimensions, downloads as PNG</span></div>
+    <div class="panel-h"><h2>Creative Builder</h2><span class="note">Step III · renders the finished ad image at true Meta dimensions, downloads as PNG</span></div>
     <div class="builder-grid">
       <div class="bctl">
         <div class="field">
@@ -272,22 +272,22 @@ export const STUDIO_HTML = `
           <div class="chips" id="sizeChips"></div>
         </div>
         <div class="frow"><div class="flabel"><span>Headline on image</span></div>
-          <textarea id="bHook" rows="2"></textarea></div>
+          <textarea id="bHook" rows="2" aria-label="Headline on image"></textarea></div>
         <div class="frow"><div class="flabel"><span>Supporting line</span></div>
-          <input type="text" id="bSub"></div>
+          <input type="text" id="bSub" aria-label="Supporting line"></div>
         <div class="frow"><div class="flabel"><span>Button text on image</span></div>
-          <input type="text" id="bCta"></div>
+          <input type="text" id="bCta" aria-label="Button text on image"></div>
         <div class="frow"><div class="flabel"><span>Domain line</span></div>
-          <input type="text" id="bDomain"></div>
+          <input type="text" id="bDomain" aria-label="Domain line"></div>
         <div class="frow"><div class="flabel"><span>Photo <span class="hint">optional · Photo Harvest template · stays on your machine</span></span></div>
-          <input type="file" id="bPhoto" accept="image/*">
+          <input type="file" id="bPhoto" accept="image/*" aria-label="Product photo for the Photo Harvest template">
           <button class="copybtn" id="bPhotoClear" type="button" style="margin-top:6px">Remove Photo</button></div>
         <p class="subnote">Drop in one of the Eden's Table product mockups for the Photo Harvest template. The Label and Forest templates are pure typography, engraved and on-palette, no photo needed.</p>
         <div class="field" style="margin-top:16px;border-top:1px solid var(--line-soft);padding-top:14px">
           <div class="flabel">Make it clickable</div>
           <p class="subnote" style="margin:0 0 8px">In Facebook and Instagram ads the whole ad is the click; Ads Manager attaches your URL and CTA button, so the painted CTA is never dead there. These exports make the image itself clickable everywhere else: email, web, and print.</p>
           <div class="frow"><div class="flabel"><span>Destination URL</span></div>
-            <input type="text" id="ccUrl"></div>
+            <input type="text" id="ccUrl" inputmode="url" aria-label="Destination URL"></div>
           <label class="subnote" style="display:flex;gap:6px;align-items:center;margin:6px 0;cursor:pointer"><input type="checkbox" id="ccQr"> Paint a QR code onto the image (print becomes scannable)</label>
           <button class="copyall" id="ccPublish" type="button" style="width:100%">Publish &amp; Get Clickable Links</button>
           <button class="copyall" id="ccHtml" type="button" style="width:100%;margin-top:6px">Download Clickable HTML File</button>
