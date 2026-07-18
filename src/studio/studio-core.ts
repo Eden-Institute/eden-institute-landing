@@ -2183,9 +2183,23 @@ export function initStudio(
       }
     }catch(err){
       const code = (err as any)?.code;
-      aiImgSet(code === "no_image"
-        ? "The model returned no image. Try rephrasing, or loosen the creative range."
-        : "Failed: " + String((err as any)?.message || err).slice(0, 160));
+      /* The EF returns a `detail` alongside the code. Showing only the code
+         turned a Google quota error into a bare "server_error", which tells
+         the founder nothing about what to do. Read the detail and name the
+         common causes plainly. */
+      const detail = String((err as any)?.detail ?? "");
+      if (code === "no_image"){
+        aiImgSet("The model returned no image. Try rephrasing, or loosen the creative range.");
+      } else if (/\b429\b|quota|rate.?limit/i.test(detail)){
+        aiImgSet("Google's image API refused the request: quota exceeded on this key. " +
+          "Image generation needs billing enabled on the Gemini API key, or you have hit today's limit.");
+      } else if (/\b(401|403)\b|API key not valid|permission/i.test(detail)){
+        aiImgSet("Google rejected the API key. Check GEMINI_API_KEY is current and has image access.");
+      } else if (code === "no_provider"){
+        aiImgSet("No image model configured. Set GEMINI_API_KEY to enable this.");
+      } else {
+        aiImgSet("Failed: " + (detail || String((err as any)?.message || err)).slice(0, 200));
+      }
     }finally{
       gen.disabled = !AIIMG.on; aiImgSyncEditBtn();
     }
