@@ -223,6 +223,33 @@
   .edenstudio .hero-cta{max-width:420px;margin:0 auto;display:block}
   /* Freeform campaign direction. Outranks the preset angles in the AI brief so
      the founder is never boxed into the twelve canned ones. */
+  /* Write It Yourself: founder-authored copy the model edits rather than
+     replaces. */
+  .edenstudio .own-label{display:block;font-family:var(--display);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--amber-deep);margin:12px 0 5px}
+  .edenstudio .own-label:first-child{margin-top:0}
+  .edenstudio .own-cap{font-family:var(--mono);letter-spacing:0;text-transform:none;color:var(--muted);margin-left:6px}
+  .edenstudio .own-cap.over{color:#B3261E;font-weight:700}
+  .edenstudio .own-input{width:100%;box-sizing:border-box;background:var(--panel2);color:var(--ink);border:1px solid var(--line);padding:9px 11px;font-family:var(--body);font-size:14.5px;line-height:1.5;resize:vertical}
+  .edenstudio .own-input:focus{outline:none;border-color:var(--amber)}
+  .edenstudio .own-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width:640px){ .edenstudio .own-row{grid-template-columns:1fr} }
+  .edenstudio .own-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .edenstudio .own-btn{flex:1 1 180px;margin:0}
+  .edenstudio .own-btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+  .edenstudio .own-btn.ghost:hover{color:var(--ink);border-color:var(--amber)}
+  .edenstudio .changes{margin:10px 0 0;padding:10px 12px;background:var(--panel2);border-left:2px solid var(--amber)}
+  .edenstudio .changes h4{margin:0 0 6px;font-family:var(--display);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--amber-deep)}
+  .edenstudio .changes ul{margin:0;padding-left:16px}
+  .edenstudio .changes li{font-size:13.5px;color:var(--muted);margin:3px 0}
+  .edenstudio .diag{margin-top:12px;border:1px solid var(--line);background:var(--panel2);padding:14px 16px}
+  .edenstudio .diag-score{font-family:var(--display);font-size:26px;color:var(--ink)}
+  .edenstudio .diag-score small{font-size:12px;color:var(--muted);letter-spacing:.16em;text-transform:uppercase;margin-left:8px}
+  .edenstudio .diag-item{margin:9px 0;padding-left:12px;border-left:2px solid var(--line)}
+  .edenstudio .diag-item.high{border-left-color:#B3261E}
+  .edenstudio .diag-item.medium{border-left-color:var(--amber)}
+  .edenstudio .diag-area{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber-deep)}
+  .edenstudio .diag-note{font-size:14px;margin:2px 0 0}
+
   .edenstudio .hero-direction{max-width:620px;margin:22px auto 18px;text-align:left}
   .edenstudio .dir-label{display:block;font-family:var(--display);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber-deep);margin-bottom:8px}
   .edenstudio .dir-input{width:100%;box-sizing:border-box;background:var(--panel);color:var(--ink);border:1px solid var(--line);padding:10px 12px;font-family:var(--body);font-size:14.5px;line-height:1.5;resize:vertical}

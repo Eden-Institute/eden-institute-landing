@@ -455,7 +455,19 @@ export function initStudio(
   }
   function renderVariants(){
     const host = $("#variants"); host.innerHTML = "";
-    variants.forEach((v,i) => host.appendChild(variantCard(v,i)));
+    variants.forEach((v,i) => {
+      const card = variantCard(v,i);
+      /* Edited-from-her-draft variants carry an explanation. Showing what moved
+         and why is the difference between an editor and a slot machine. */
+      if (v.changes && v.changes.length){
+        const box = document.createElement("div");
+        box.className = "changes";
+        box.innerHTML = "<h4>What changed" + (v.approach ? " · " + esc(String(v.approach)) : "") + "</h4><ul>" +
+          v.changes.map(c => "<li>" + esc(String(c)) + "</li>").join("") + "</ul>";
+        card.appendChild(box);
+      }
+      host.appendChild(card);
+    });
   }
   function rerenderPreviews(){
     variants.forEach((v,i) => { const el = $("#prev"+i); if (el) el.innerHTML = previewHTML(v,i); });
@@ -1114,6 +1126,95 @@ export function initStudio(
   });
 
   /* ───────────────────────── AI ENGINE ───────────────────────── */
+  /* ── Write It Yourself: her draft, edited for conversion ──────────────────
+     The generate path makes the model the author. This one makes her the
+     author and the model the editor, which is how she actually wants to work
+     and which keeps claims under her control. */
+  function ownDraft(){
+    return {
+      primary: (($("#ownPrimary") as any) || {}).value || "",
+      headline: (($("#ownHeadline") as any) || {}).value || "",
+      description: (($("#ownDesc") as any) || {}).value || "",
+    };
+  }
+  function ownSet(msg){ const el = $("#ownStatus"); if (el) el.textContent = msg; }
+  function ownCap(inputSel, capSel, limit){
+    const inp = $(inputSel), cap = $(capSel);
+    if (!inp || !cap) return;
+    const n = (inp as any).value.length;
+    cap.textContent = n + "/" + limit;
+    cap.classList.toggle("over", n > limit);
+  }
+  root.addEventListener("input", e => {
+    const id = (e.target as any).id;
+    if (id === "ownHeadline") ownCap("#ownHeadline", "#ownHeadCap", 40);
+    if (id === "ownDesc") ownCap("#ownDesc", "#ownDescCap", 30);
+  });
+  function renderDiag(r){
+    const box = $("#ownReport"); if (!box) return;
+    const issues = (r && r.issues) || [];
+    const strengths = (r && r.strengths) || [];
+    box.innerHTML =
+      "<div class='diag'>" +
+      (typeof r.score === "number"
+        ? "<div class='diag-score'>" + r.score + "<small>out of 10</small></div>" : "") +
+      (strengths.length
+        ? "<div class='changes' style='margin-top:10px'><h4>Working</h4><ul>" +
+          strengths.map(s => "<li>" + esc(String(s)) + "</li>").join("") + "</ul></div>"
+        : "") +
+      issues.map(it => {
+        const sev = String((it && it.severity) || "low").toLowerCase();
+        return "<div class='diag-item " + esc(sev) + "'>" +
+          "<div class='diag-area'>" + esc(String((it && it.area) || "note")) + " · " + esc(sev) + "</div>" +
+          "<p class='diag-note'>" + esc(String((it && it.note) || "")) + "</p></div>";
+      }).join("") +
+      "</div>";
+    (box as any).hidden = false;
+  }
+  root.addEventListener("click", async e => {
+    const t = e.target as any;
+    const action = t && t.dataset && t.dataset.own;
+    if (!action) return;
+    if (!aiInvoke || !AI.on){ ownSet("Connect a model first, see the AI Engine panel above."); return; }
+    const d = ownDraft();
+    if (!d.primary.trim()){ ownSet("Write your primary text first. The editor works on your words, so it needs some."); return; }
+    const btns = root.querySelectorAll("[data-own]");
+    btns.forEach((b: any) => { b.disabled = true; });
+    ownSet(action === "diagnose" ? "Reading your draft…" : "Working on your words…");
+    try{
+      const r: any = await aiInvoke({
+        mode: "edit", action, draft: d, brief: currentBrief(),
+        note: (($("#ownNote") as any) || {}).value || "",
+      });
+      if (action === "diagnose"){
+        renderDiag(r);
+        ownSet("Diagnosis only. Nothing was rewritten.");
+      } else {
+        const p = PRODUCTS[state.product];
+        const list = (r && r.drafts) || [];
+        if (!list.length){ ownSet("Nothing came back. Try again."); return; }
+        variants = list.map((x, i) => ({
+          primary: x.primary, headline: x.headline, desc: x.description || "",
+          cta: p.ctas[state.objective], url: buildURL(p, i + 1),
+          platform: "fb", expanded: false,
+          changes: x.changes || [], approach: x.approach,
+          ai: { model: x.model },
+        }));
+        state.gen++;
+        $("#emptyState").hidden = true;
+        $("#copyAllBtn").hidden = variants.length < 2;
+        $("#benchTitle").textContent = p.name + " · edited from your draft";
+        const rep = $("#ownReport"); if (rep) (rep as any).hidden = true;
+        renderVariants();
+        ownSet(action === "variations"
+          ? "Three takes on your copy, below. Your claims, your substance."
+          : "Sharpened, below. Every change is listed on the card.");
+        $("#workbench").scrollIntoView({behavior:"smooth", block:"start"});
+      }
+    }catch(err){ ownSet(aiErrText(err)); }
+    finally{ btns.forEach((b: any) => { b.disabled = false; }); }
+  });
+
   const AI = { on: false, providers: [] as any[] };
   let aiSeq = 0; /* supersedes stale in-flight generations */
   function aiSet(msg){ const el = $("#aiStatus"); if (el) el.textContent = msg; }
@@ -1544,6 +1645,11 @@ export function initStudio(
         sub: BUILDER.sub, cta: BUILDER.cta, domain: BUILDER.domain,
         dest: BUILDER.dest, qr: !!BUILDER.qr,
       },
+      /* Her own draft is the most expensive thing on the screen to retype. */
+      own: {
+        ...ownDraft(),
+        note: (($("#ownNote") as any) || {}).value || "",
+      },
       step: wstep,
     };
   }
@@ -1573,6 +1679,15 @@ export function initStudio(
       if (typeof b[k] === "string") BUILDER[k] = b[k];
     });
     BUILDER.qr = !!b.qr;
+
+    const own = (blob as any).own || {};
+    const setVal = (sel, v) => { const el = $(sel); if (el) (el as any).value = typeof v === "string" ? v : ""; };
+    setVal("#ownPrimary", own.primary);
+    setVal("#ownHeadline", own.headline);
+    setVal("#ownDesc", own.description);
+    setVal("#ownNote", own.note);
+    ownCap("#ownHeadline", "#ownHeadCap", 40);
+    ownCap("#ownDesc", "#ownDescCap", 30);
 
     renderCampaign();
     if (variants.length){

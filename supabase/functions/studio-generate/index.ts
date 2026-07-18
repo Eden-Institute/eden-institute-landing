@@ -317,6 +317,115 @@ async function remix(brief: Brief, draft: Draft, direction: string): Promise<Res
   return json({ draft: d });
 }
 
+// ── Edit mode: the founder writes, the model edits ──────────────────────────
+//
+// The generate path treats the model as the author and Camila as the approver.
+// This path inverts that: she writes, and the model applies conversion craft to
+// HER words. It exists because the author-first flow kept producing copy that
+// was on-voice but off-strategy, and because she is the only one who knows what
+// is true about the product.
+//
+// The load-bearing constraint is the no-new-claims rule. An editor that quietly
+// upgrades "covers several subjects" into "covers every subject" would put an
+// unapproved claim into a paid ad, which is both a Meta policy risk and a
+// trust problem. Restructuring is allowed. Inventing is not.
+
+const EDITOR_ROLE = `ROLE OVERRIDE: For this task you are NOT the author. You are a direct-response copy editor working for Camila, the founder. She has written the draft below. Your job is to make it convert harder without taking it away from her.
+
+HER DRAFT IS THE SOURCE OF TRUTH for substance, claims, intent, and point of view. You may restructure, reorder, cut, tighten, sharpen the hook, and fix rhythm. You may NOT introduce any fact, price, date, statistic, guarantee, benefit, or product attribute that does not already appear in her draft or in the brief's facts line. If her draft is vague, keep it vague or cut it. Never resolve vagueness by inventing a specific.
+
+Preserve her distinctive phrasings where they are working. If a line is clearly hers in a way that matters, keep it and build around it.
+
+CONVERSION PRIORITIES, in order:
+1. The first 125 characters must stop the scroll on their own and make one clear promise.
+2. One concrete, specific detail beats three abstract benefits.
+3. One idea per ad. Cut the second-best idea rather than crowding.
+4. The close must state exactly what happens next, in plain words.
+5. Read it aloud in your head: if a sentence needs a second pass to parse, rewrite it.
+
+Every change you make must be explainable in one short clause.`;
+
+interface EditDraft {
+  primary?: string;
+  headline?: string;
+  description?: string;
+}
+
+async function editDraft(
+  brief: Brief, draft: EditDraft, action: string, note: string,
+): Promise<Response> {
+  const provs = providers();
+  if (!provs.length) return json({ error: "no_providers" }, 503);
+  const p = provs.find((x) => x.kind === "anthropic") ?? provs[0];
+
+  const hers = JSON.stringify({
+    primary: clamp(draft.primary, 4000),
+    headline: clamp(draft.headline, 300),
+    description: clamp(draft.description, 300),
+  });
+
+  let task: string;
+  if (action === "diagnose") {
+    task = 'Do NOT rewrite anything. Critique her draft as a conversion specialist would. Be specific and useful, not encouraging. Return JSON: {"score":0-10,"strengths":["..."],"issues":[{"area":"hook|clarity|specificity|proof|cta|voice|policy","severity":"high|medium|low","note":"what is wrong and what would fix it"}]}';
+  } else if (action === "variations") {
+    task = 'Give THREE variations of her ad. Same substance, same claims, same voice; genuinely different angles of attack (for example: lead with the objection, lead with the concrete detail, lead with the outcome). Return JSON: {"drafts":[{"primary":"...","headline":"...","description":"...","approach":"four words on the angle","changes":["..."]}]}';
+  } else {
+    task = 'Make ONE sharpened version of her ad. Return JSON: {"draft":{"primary":"...","headline":"...","description":"..."},"changes":["one short clause per meaningful change, max 5"]}';
+  }
+
+  const userMsg = briefBlock(brief) +
+    "\n\nCAMILA'S DRAFT (the source of truth):\n" + hers +
+    (note ? "\n\nHER ADDITIONAL NOTE: " + note.slice(0, 800) : "") +
+    "\n\nTASK: " + task;
+
+  const raw = await callModel(p, EDEN_VOICE + "\n\n" + EDITOR_ROLE, userMsg, 2600);
+  const out = extractJson(raw) as {
+    draft?: EditDraft; drafts?: EditDraft[]; changes?: string[];
+    score?: number; issues?: unknown[]; strengths?: string[];
+  };
+
+  if (action === "diagnose") {
+    if (typeof out.score !== "number" && !Array.isArray(out.issues)) {
+      return json({ error: "unparseable" }, 502);
+    }
+    return json({
+      score: out.score ?? null,
+      strengths: (out.strengths ?? []).slice(0, 6),
+      issues: (out.issues ?? []).slice(0, 8),
+      model: p.label,
+    });
+  }
+
+  // Both rewrite actions return drafts; normalise to a list and lint each one,
+  // so founder-written copy gets the same brand/policy check as generated copy.
+  const list: EditDraft[] = action === "variations"
+    ? (Array.isArray(out.drafts) ? out.drafts.slice(0, 3) : [])
+    : (out.draft ? [out.draft] : []);
+  if (!list.length || typeof list[0].primary !== "string") {
+    return json({ error: "unparseable" }, 502);
+  }
+
+  const drafts: Draft[] = list.map((d) => {
+    const full: Draft = {
+      primary: String(d.primary ?? ""),
+      headline: String(d.headline ?? draft.headline ?? ""),
+      description: String(d.description ?? draft.description ?? ""),
+      model: p.label,
+    };
+    full.flags = lint(full);
+    (full as Draft & { approach?: string; changes?: string[] }).approach =
+      typeof (d as { approach?: string }).approach === "string"
+        ? (d as { approach: string }).approach : undefined;
+    (full as Draft & { changes?: string[] }).changes =
+      Array.isArray((d as { changes?: string[] }).changes)
+        ? (d as { changes: string[] }).changes.slice(0, 5)
+        : (Array.isArray(out.changes) ? out.changes.slice(0, 5) : []);
+    return full;
+  });
+
+  return json({ drafts, model: p.label });
+}
+
 // ── Entry ───────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
@@ -344,6 +453,19 @@ Deno.serve(async (req) => {
       });
     }
     if (mode === "generate") return await generate(body.brief ?? {});
+    if (mode === "edit") {
+      const action = String(body.action ?? "sharpen");
+      if (!["sharpen", "variations", "diagnose"].includes(action)) {
+        return json({ error: "bad_request" }, 400);
+      }
+      const draft = body.draft as EditDraft | undefined;
+      if (!draft || typeof draft.primary !== "string" || !draft.primary.trim()) {
+        return json({ error: "empty_draft" }, 400);
+      }
+      return await editDraft(
+        body.brief ?? {}, draft, action, String(body.note ?? ""),
+      );
+    }
     if (mode === "remix") {
       if (!body.draft || typeof body.direction !== "string") return json({ error: "bad_request" }, 400);
       return await remix(body.brief ?? {}, body.draft, body.direction);
