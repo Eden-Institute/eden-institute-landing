@@ -182,7 +182,16 @@ Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
     const raw = (url.searchParams.get("type") || "").toLowerCase().trim();
-    const slug = GUIDES[raw] ? raw : (LEGACY_TYPE_TO_SLUG[raw] ?? "");
+    // Also accept the eden_patterns DB form ("the_pressure_cooker") alongside the
+    // registry key ("pressure-cooker"). stripe-webhook now sends a canonical slug,
+    // but Stripe sessions created before that fix are still in flight, and the two
+    // naming schemes have drifted apart once already.
+    const normalized = raw.replace(/^the[_-]/, "").replace(/_/g, "-");
+    const slug = GUIDES[raw]
+      ? raw
+      : GUIDES[normalized]
+        ? normalized
+        : (LEGACY_TYPE_TO_SLUG[raw] ?? LEGACY_TYPE_TO_SLUG[normalized] ?? "");
     const content = GUIDES[slug];
     if (!content) {
       return new Response(

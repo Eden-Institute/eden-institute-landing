@@ -38,6 +38,21 @@ import { notifyFoundingMilestones } from "../_shared/founding-milestones.ts"
 import { productForPriceId } from "../_shared/order-config.ts"
 import { captureException } from "../_shared/sentry.ts"
 import { sendMetaCapiPurchase } from "../_shared/meta-capi.ts"
+import { getGuideByNickname, getGuideBySlug } from "../_shared/guide/registry.ts"
+
+/**
+ * Normalize a constitution identifier to a guide-registry slug.
+ *
+ * Three formats are in circulation for the same eight patterns:
+ *   - registry keys       "pressure-cooker"       (what constitution-pdf accepts)
+ *   - eden_patterns rows  "the_pressure_cooker"   (the DB canon)
+ *   - display labels      "Hot / Damp / Tense"    (NOT resolvable; use the nickname)
+ *
+ * This bridges the first two. Labels are handled by the nickname lookup instead.
+ */
+function normalizeGuideSlug(raw: string): string {
+  return raw.toLowerCase().trim().replace(/^the[_-]/, "").replace(/_/g, "-")
+}
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2024-12-18.acacia",
@@ -81,13 +96,41 @@ function bytesToBase64(bytes: Uint8Array): string {
 // never depends on the client-rendered /guide page (which can render blank when
 // opened from a mobile email browser). Best-effort: failures are logged and
 // swallowed so the webhook still returns 200 (the purchase must not fail).
-async function sendGuidePdf(email: string, constitutionType: string | null): Promise<void> {
+async function sendGuidePdf(
+  email: string,
+  constitutionType: string | null,
+  constitutionNickname: string | null,
+): Promise<void> {
   try {
     if (!RESEND_API_KEY) {
       console.warn("sendGuidePdf: RESEND_API_KEY missing; skipping guide delivery")
       return
     }
-    const pdfType = constitutionType || "frozen-knot"  // the 8-pattern slug; constitution-pdf renders it
+
+    // Resolve the guide through the registry — the SAME path verify-session uses
+    // to serve the on-site copy, so the emailed PDF can never disagree with it.
+    //
+    // The previous code passed session.metadata.constitution_type straight through
+    // as if it were a slug (the old comment even said "the 8-pattern slug"). It is
+    // not: it is a display label like "Hot / Damp / Tense", which matches neither a
+    // registry key ("pressure-cooker") nor the legacy quadrant map, so
+    // constitution-pdf 400'd on every purchase. constitution_nickname
+    // ("The Pressure Cooker") IS registry-shaped and was in the metadata all along.
+    const guide =
+      getGuideByNickname(constitutionNickname ?? "") ??
+      getGuideBySlug(normalizeGuideSlug(constitutionType ?? ""))
+
+    // Deliberately NO default guide. The old code fell back to "frozen-knot", which
+    // would email a paying customer a guide for a constitution they do not have.
+    // Sending nothing is recoverable; sending the wrong paid content is not.
+    if (!guide) {
+      console.error(
+        `sendGuidePdf: could not resolve a guide (nickname=${JSON.stringify(constitutionNickname)}, ` +
+          `type=${JSON.stringify(constitutionType)}); sending nothing rather than the wrong guide`,
+      )
+      return
+    }
+    const pdfType = guide.slug
     // constitution-pdf now requires the service role (it serves the paid guide);
     // authenticate this server-to-server fetch with the service-role key.
     const pdfRes = await fetch(`${SUPABASE_URL}/functions/v1/constitution-pdf?type=${encodeURIComponent(pdfType)}`, {
@@ -686,7 +729,11 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
   // never blocks the webhook). Covers the buyer whose Stripe success page (the
   // client-rendered /guide route) can render blank on a mobile email browser.
   if (column === "purchased_guide") {
-    await sendGuidePdf(email, (session.metadata?.constitution_type as string | undefined) ?? null)
+    await sendGuidePdf(
+      email,
+      (session.metadata?.constitution_type as string | undefined) ?? null,
+      (session.metadata?.constitution_nickname as string | undefined) ?? null,
+    )
   }
 }
 
