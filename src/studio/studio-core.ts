@@ -68,7 +68,12 @@ export function initStudio(
     kit:{
       name:"Eden's Table · Curriculum Kit",
       tag:"$249 founders",
-      facts:"36-week K-5 herbalism curriculum · Sprouts (K-2) + Seedlings (Gr 3-5) · first 500 kits $249 Founders price, then $349 retail automatically · notebooks $19 · preorder opens July 29",
+      /* The subject weave is the price justification and it was missing, so the
+         model was forbidden from mentioning it (the system prompt permits ONLY
+         the claims listed here). Wording is lifted verbatim from the published
+         /homeschool page rather than invented, so nothing new is being claimed
+         in paid ads. */
+      facts:"36-week K-5 herbalism curriculum · FULL CURRICULUM, not a science supplement: a single week on a single plant weaves Bible, science, language arts, math, art, history, geography, Latin, health, and character, and the Week at a Glance page shows which day carries which · Sprouts (K-2) + Seedlings (Gr 3-5) · first 500 kits $249 Founders price, then $349 retail automatically · notebooks $19 · preorder opens July 29",
       url:"https://edeninstitute.health/homeschool",
       campaign:"edens_table_kit",
       angles:["children","openandgo","esa","preorder","grandmother","heritage","twoam"],
