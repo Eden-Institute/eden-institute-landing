@@ -20,7 +20,11 @@ export function initStudio(
   // this core stays the framework-free authority on the working session. The
   // host is notified when the wizard moves so the React chrome can follow the
   // core's own auto-advances (heroGo jumps to Drafts on its own).
-  host?: { onStep?: (n: number) => void },
+  host?: {
+    onStep?: (n: number) => void;
+    /** The wizard's last-step button. The shell decides what "done" means. */
+    onFinish?: () => void;
+  },
 ): StudioHandle {
   "use strict";
   /* ───────────────────────── DATA ───────────────────────── */
@@ -247,7 +251,11 @@ export function initStudio(
   ];
 
   /* ───────────────────────── STATE ───────────────────────── */
-  const state = {product:"kit", objective:"sales", audience:"homeschool", angle:"children", format:"portrait", gen:0};
+  /* direction = the founder's own words for where this campaign should go. It
+     outranks the preset angle in the AI brief. touched = she has picked an
+     audience or angle herself, so the guided flow must stop overriding them. */
+  const state = {product:"kit", objective:"sales", audience:"homeschool", angle:"children", format:"portrait", gen:0,
+    direction:"", touched:false};
   let variants = [];
   const $ = s => root.querySelector(s);
   const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -276,11 +284,11 @@ export function initStudio(
       oc.appendChild(chip(o.name, state.objective===id, () => {state.objective=id; renderCampaign();}));
     const ac = $("#audChips"); ac.innerHTML = "";
     for (const [id,a] of Object.entries(AUDIENCES))
-      ac.appendChild(chip(a.name, state.audience===id, () => {state.audience=id; renderCampaign();}));
+      ac.appendChild(chip(a.name, state.audience===id, () => {state.audience=id; state.touched=true; renderCampaign();}));
     $("#audNote").innerHTML = AUDIENCES[state.audience].note;
     const gc = $("#angleChips"); gc.innerHTML = "";
     for (const id of PRODUCTS[state.product].angles)
-      gc.appendChild(chip(ANGLES[id].name, state.angle===id, () => {state.angle=id; renderCampaign();}));
+      gc.appendChild(chip(ANGLES[id].name, state.angle===id, () => {state.angle=id; state.touched=true; renderCampaign();}));
     const fc = $("#fmtChips"); fc.innerHTML = "";
     for (const [id,f] of Object.entries(FORMATS))
       fc.appendChild(chip(f.name, state.format===id, () => {state.format=id; renderCampaign(); if (variants.length) renderVariants();}));
@@ -1126,6 +1134,8 @@ export function initStudio(
       format: FORMATS[state.format].name,
       cta: p.ctas[state.objective],
       url: buildURL(p, 1),
+      /* Empty string when unset, so the EF can treat it as absent. */
+      direction: (state.direction || "").trim(),
     };
   }
   async function aiInit(){
@@ -1260,12 +1270,20 @@ export function initStudio(
   }
   async function heroGo(){
     const hs = $("#heroStatus");
+    /* AUTOPICK is a starting suggestion, not a verdict. Once the founder has
+       chosen an audience or angle herself, or written her own direction, the
+       guided flow must not quietly overwrite her. */
     const pick = AUTOPICK[state.product];
-    if (pick){ state.audience = pick.audience; state.angle = pick.angle; renderCampaign(); }
+    if (pick && !state.touched && !(state.direction || "").trim()){
+      state.audience = pick.audience; state.angle = pick.angle; renderCampaign();
+    }
     if (hs) hs.textContent = "Reading the brand: positioning, voice, guardrails…";
     const scanEl = root.querySelector(".scan"); if (scanEl) (scanEl as any).open = true;
     await sleep(900);
-    if (hs) hs.textContent = "Casting " + PRODUCTS[state.product].name + " for " + AUDIENCES[state.audience].name + ", " + ANGLES[state.angle].name + " angle…";
+    const dir = (state.direction || "").trim();
+    if (hs) hs.textContent = dir
+      ? "Following your direction: “" + (dir.length > 90 ? dir.slice(0, 90) + "…" : dir) + "”"
+      : "Casting " + PRODUCTS[state.product].name + " for " + AUDIENCES[state.audience].name + ", " + ANGLES[state.angle].name + " angle…";
     await sleep(800);
     if (AI.on){
       if (hs) hs.textContent = "Writing with " + AI.providers.map(p => p.label).join(" + ") + ", then judging every draft…";
@@ -1279,6 +1297,8 @@ export function initStudio(
     if (hs) hs.textContent = "Drafts are on the workbench. Approve the keepers; write corrections on the rest. Fine controls stay in The Campaign panel.";
   }
   $("#heroGo").addEventListener("click", heroGo);
+  const dirEl = $("#heroDirection");
+  if (dirEl) dirEl.addEventListener("input", e => { state.direction = (e.target as any).value; });
   function trayExport(a){
     return "EDEN AD STUDIO · APPROVED · " + a.product +
       "\n\nPRIMARY TEXT:\n" + a.primary +
@@ -1361,7 +1381,17 @@ export function initStudio(
     b.addEventListener("click", () => showStep(+b.dataset.w));
   });
   $("#wizBack").addEventListener("click", () => showStep(wstep - 1));
-  $("#wizNext").addEventListener("click", () => showStep(wstep === WIZ.length - 1 ? 0 : wstep + 1));
+  $("#wizNext").addEventListener("click", () => {
+    /* Last step used to wrap back to step 0, silently resetting the campaign in
+       place. Now that a campaign is a saved row, finishing means leaving for a
+       NEW project, which only the React shell can do. */
+    if (wstep === WIZ.length - 1){
+      if (host && host.onFinish){ host.onFinish(); return; }
+      showStep(0);
+      return;
+    }
+    showStep(wstep + 1);
+  });
 
   /* ── Post: hand off to Meta's own surfaces with the package on the clipboard ── */
   const EDEN_FB = "https://www.facebook.com/TheEdenInstituteBiblicalHerbalism";
@@ -1498,6 +1528,7 @@ export function initStudio(
         product: state.product, objective: state.objective,
         audience: state.audience, angle: state.angle,
         format: state.format, gen: state.gen,
+        direction: state.direction, touched: state.touched,
       },
       /* variants and APPROVED are already plain objects; the round-trip is a
          cheap guarantee that nothing non-serializable has crept in. */
@@ -1524,6 +1555,9 @@ export function initStudio(
     else state.angle = PRODUCTS[state.product].angles[0];
     if (c.format && FORMATS[c.format]) state.format = c.format;
     state.gen = typeof c.gen === "number" ? c.gen : 0;
+    state.direction = typeof c.direction === "string" ? c.direction : "";
+    state.touched = !!c.touched;
+    const dirIn = $("#heroDirection"); if (dirIn) (dirIn as any).value = state.direction;
 
     variants = Array.isArray(blob.variants) ? blob.variants : [];
     APPROVED.length = 0;

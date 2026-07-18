@@ -19,6 +19,12 @@ export const STUDIO_HTML = `
     <h2 class="hero-h">So, what are we promoting today?</h2>
     <p class="hero-sub">Pick a product. The studio reads the brand, writes with every model you've connected, judges every draft against the Eden voice and Meta policy, and hands you ads ready for Ads Manager.</p>
     <div class="hero-goals" id="heroGoals"></div>
+    <div class="hero-direction">
+      <label class="dir-label" for="heroDirection">Where should this campaign go?</label>
+      <textarea id="heroDirection" class="dir-input" rows="3"
+        placeholder="Say it in your own words. Anything here outranks the preset angles below."></textarea>
+      <p class="dir-note">Optional. Leave it blank and the studio picks an angle for you.</p>
+    </div>
     <button class="genbtn hero-cta" id="heroGo" type="button">❦ &nbsp;Build My Campaign</button>
     <p class="subnote" id="heroStatus" style="min-height:18px;text-align:center;margin-top:10px"></p>
     <div class="hero-stats">

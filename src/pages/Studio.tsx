@@ -139,6 +139,14 @@ export default function Studio() {
           setView("list");
           void refresh();
         }}
+        onFinish={() => {
+          // "Start a New Campaign" now means exactly that: a new project row,
+          // not a silent in-place reset of the one you just finished.
+          setActive(null);
+          setCreateError(null);
+          setView("new");
+          void refresh();
+        }}
       />
     );
   }

@@ -9,7 +9,7 @@
 // without a click, so this component has to be loud about unsaved work: a dirty
 // badge in the header and a beforeunload guard.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { STUDIO_HTML } from "@/studio/studio-html";
 import { initStudio } from "@/studio/studio-core";
@@ -29,19 +29,50 @@ const DIRTY_POLL_MS = 1500;
 interface Props {
   project: StudioProject;
   onExit: () => void;
+  /** The wizard's last step. Finishing means starting a NEW campaign, which
+   *  used to reset the current one in place and lose the founder's position. */
+  onFinish: () => void;
   /** Bubble the saved row up so the list reflects the new updated_at / title. */
   onSaved: (p: StudioProject) => void;
 }
 
-export default function StudioWorkroom({ project, onExit, onSaved }: Props) {
+export default function StudioWorkroom({ project, onExit, onFinish, onSaved }: Props) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
   const handleRef = useRef<StudioHandle | null>(null);
   const savedSnapshotRef = useRef<string>("");
 
+  // Measured, not hardcoded: the header wraps on narrow screens (tablet is a
+  // supported target), and a stale value would either clip the studio or leave
+  // a gap. 61 is only the pre-measurement estimate.
+  const [headerH, setHeaderH] = useState(61);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+
+  // Held in a ref so the mount effect never re-runs just because a parent
+  // callback identity changed; remounting the core would drop the session.
+  const finishRef = useRef(onFinish);
+  finishRef.current = onFinish;
+  // The core calls onFinish from outside React, so the guard needs the current
+  // dirty value rather than the one captured at mount.
+  const dirtyRef = useRef(false);
+  dirtyRef.current = dirty;
+
+  useLayoutEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const measure = () => {
+      const h = el.offsetHeight;
+      setHeaderH(h);
+      mountRef.current?.style.setProperty("--studio-shell-top", `${h}px`);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Mount the core once per project. project.id in the dep array means opening a
   // different project tears the old core down and rebuilds it, which is what we
@@ -50,11 +81,23 @@ export default function StudioWorkroom({ project, onExit, onSaved }: Props) {
     const root = mountRef.current;
     if (!root) return;
 
+    // The studio's own step pills are sticky at top:0, exactly where this
+    // component's header sits. Push them below it or they cover Save draft.
+    const headerH = headerRef.current?.offsetHeight ?? 0;
+    root.style.setProperty("--studio-shell-top", `${headerH}px`);
+
     root.innerHTML = STUDIO_HTML;
     const handle = initStudio(root, aiInvoke, assetsBridge, {
       // The core auto-advances on its own (heroGo jumps to Drafts). Treating
       // that as a change keeps the dirty badge truthful.
       onStep: () => setDirty(true),
+      onFinish: () => {
+        if (dirtyRef.current &&
+            !window.confirm("This campaign has unsaved changes. Start a new one anyway?")) {
+          return;
+        }
+        finishRef.current();
+      },
     });
     handleRef.current = handle;
 
@@ -142,7 +185,15 @@ export default function StudioWorkroom({ project, onExit, onSaved }: Props) {
 
   return (
     <div>
-      <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
+      {/* NOT sticky. A global `body { overflow-x: hidden }` turns body into a
+          scroll container, which silently kills position:sticky everywhere on
+          the page (the studio's own step pills are broken the same way). fixed
+          + a spacer is immune to that, and Save draft has to stay reachable:
+          without it there is no way to persist a campaign at all. */}
+      <header
+        ref={headerRef}
+        className="fixed top-0 left-0 right-0 z-40 border-b border-border bg-background/95 backdrop-blur"
+      >
         <div className="max-w-6xl mx-auto px-6 py-3 flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={exit} className="shrink-0">
             ← Campaigns
@@ -178,6 +229,9 @@ export default function StudioWorkroom({ project, onExit, onSaved }: Props) {
           </Button>
         </div>
       </header>
+
+      {/* Reserves the space the fixed header occupies. */}
+      <div style={{ height: headerH }} aria-hidden />
 
       <div ref={mountRef} className="edenstudio" />
     </div>

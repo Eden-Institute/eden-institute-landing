@@ -166,6 +166,10 @@ interface Brief {
   format?: string;
   cta?: string;
   url?: string;
+  /** The founder's own words for where the campaign should go. When present it
+   *  outranks the preset angle, which is a fixed list she should not be boxed
+   *  into. Optional and backward compatible: older clients simply omit it. */
+  direction?: string;
 }
 
 // Length-clamp every caller-supplied string before it reaches a model call:
@@ -176,10 +180,16 @@ function clamp(s: unknown, n: number): string {
 }
 
 function briefBlock(b: Brief): string {
+  const direction = clamp(b.direction, 1200).trim();
   return [
     "CAMPAIGN BRIEF",
     "Product: " + clamp(b.product, 200),
     "Facts (the ONLY permitted claims): " + clamp(b.facts, 1200),
+    // Placed above Angle, and named as outranking it, so the model does not
+    // average the founder's instruction together with a preset it contradicts.
+    ...(direction
+      ? ["FOUNDER'S DIRECTION (highest priority, outranks the Angle below; if the two conflict, follow this): " + direction]
+      : []),
     "Angle: " + clamp(b.angle, 200) + (b.angleEssence ? " (" + clamp(b.angleEssence, 400) + ")" : ""),
     "Audience: " + clamp(b.audience, 200) + (b.audienceDesc ? " (" + clamp(b.audienceDesc, 500) + ")" : ""),
     "Objective: " + clamp(b.objective, 60) + " · Placement: " + clamp(b.format, 60),

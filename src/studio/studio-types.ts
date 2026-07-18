@@ -29,6 +29,10 @@ export interface StudioStateBlob {
     angle?: string;
     format?: string;
     gen?: number;
+    /** The founder's own words for the campaign. Outranks the preset angle. */
+    direction?: string;
+    /** She has chosen an audience or angle herself, so stop auto-picking. */
+    touched?: boolean;
   };
   variants?: unknown[];
   approved?: unknown[];
