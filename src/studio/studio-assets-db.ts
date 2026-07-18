@@ -17,6 +17,9 @@ export interface StudioAsset {
   campaign_tag: string;
   project_id: string | null;
   size_bytes: number | null;
+  /** Where the bytes came from. Phase 4 adds ai_generated. */
+  source: "upload" | "ai_generated" | "canva";
+  ai_prompt: string | null;
   created_at: string;
 }
 

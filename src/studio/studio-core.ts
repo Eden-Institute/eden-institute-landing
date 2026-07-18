@@ -1708,6 +1708,9 @@ export function initStudio(
                  : "<img loading='lazy' alt='' src='"+esc(u)+"'>") +
           "<span class='galname'>"+esc(label) +
             (it.campaign_tag ? "<span class='galtag'>"+esc(it.campaign_tag)+"</span>" : "") +
+            /* Say plainly which images a model invented. */
+            (it.source === "ai_generated" ? "<span class='galsrc'>AI</span>" : "") +
+            (it.source === "canva" ? "<span class='galsrc'>Canva</span>" : "") +
           "</span>" +
           "<span class='galbtns'>" +
             (isVid ? "<button class='copybtn' data-gal='clip' data-name='"+esc(it.name)+"'"+aid+" type='button'>Use as Clip</button>"
@@ -1722,6 +1725,88 @@ export function initStudio(
       galSet("Gallery unavailable: " + String((e && (e as any).message) || e).slice(0, 140));
     }
   }
+  /* ── AI image generation (Phase 4) ────────────────────────────────────────
+     Third way to get an image, beside Upload and Library. The brand lock and
+     the creative-range rules live in the edge function, so nothing here can
+     loosen them. */
+  const AI_RANGES = [
+    {id:"strict", name:"Strict"}, {id:"moderate", name:"Moderate"}, {id:"loose", name:"Loose"},
+  ];
+  const AIIMG = { range: "moderate", on: false, selected: null as any };
+  function aiImgSet(msg){ const el = $("#aiImgStatus"); if (el) el.textContent = msg; }
+  function aiImgRangeChips(){
+    const box = $("#aiImgRange"); if (!box) return;
+    box.innerHTML = "";
+    for (const r of AI_RANGES)
+      box.appendChild(chip(r.name, AIIMG.range === r.id, () => { AIIMG.range = r.id; aiImgRangeChips(); }));
+  }
+  function aiImgSyncEditBtn(){
+    const b = $("#aiImgEdit") as any;
+    if (!b) return;
+    b.disabled = !(AIIMG.on && AIIMG.selected);
+    b.textContent = AIIMG.selected ? "Edit Selected" : "Edit Selected";
+  }
+  async function aiImgInit(){
+    const panel = $("#aiImgPanel"); if (!panel) return;
+    if (!assets || !assets.aiGenerate){ (panel as any).style.display = "none"; return; }
+    aiImgRangeChips();
+    const st = $("#aiImgState");
+    try{
+      const s: any = await assets.aiStatus();
+      AIIMG.on = !!(s && s.configured);
+      if (st) st.textContent = AIIMG.on ? (s.modelAvailable === false ? "check model" : "ready") : "no image model";
+      if (!AIIMG.on){
+        aiImgSet("No image model configured. Set GEMINI_API_KEY to enable this.");
+      } else if (s.modelAvailable === false){
+        /* Names move; say exactly what to set rather than failing later. */
+        aiImgSet("The configured model (" + s.model + ") is not available on this key." +
+          (s.imageModels && s.imageModels.length
+            ? " Available: " + s.imageModels.join(", ") + ". Set GEMINI_IMAGE_MODEL to one of these."
+            : ""));
+      }
+    }catch(e){
+      AIIMG.on = false;
+      if (st) st.textContent = "unavailable";
+    }
+    ($("#aiImgGen") as any).disabled = !AIIMG.on;
+    aiImgSyncEditBtn();
+  }
+  /* Both actions land the image in the library, so the gallery is the single
+     place generated and uploaded images live together. */
+  async function aiImgRun(kind){
+    const prompt = (($("#aiImgPrompt") as any) || {}).value || "";
+    if (!prompt.trim()){ aiImgSet("Describe the image first."); return; }
+    if (kind === "edit" && !AIIMG.selected){ aiImgSet("Pick an image in the gallery to edit."); return; }
+    const gen = $("#aiImgGen") as any, ed = $("#aiImgEdit") as any;
+    gen.disabled = true; ed.disabled = true;
+    aiImgSet(kind === "edit" ? "Editing your image…" : "Generating. This takes a few seconds…");
+    try{
+      const r = kind === "edit"
+        ? await assets.aiEdit(prompt, AIIMG.range, AIIMG.selected.name)
+        : await assets.aiGenerate(prompt, AIIMG.range);
+      aiImgSet("Saved to your library" + (r.note ? ". " + String(r.note).slice(0, 120) : "."));
+      await galRender();
+      if (r.url){
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          BUILDER.photo = img; BUILDER.tpl = "photo";
+          BUILDER.photoAssetId = r.assetId || null; BUILDER.transform = null;
+          VB.photo = img;
+          renderBuilder(); drawVideoStill();
+        };
+        img.src = r.url;
+      }
+    }catch(err){
+      const code = (err as any)?.code;
+      aiImgSet(code === "no_image"
+        ? "The model returned no image. Try rephrasing, or loosen the creative range."
+        : "Failed: " + String((err as any)?.message || err).slice(0, 160));
+    }finally{
+      gen.disabled = !AIIMG.on; aiImgSyncEditBtn();
+    }
+  }
+
   function galTagChips(){
     const box = $("#galTagChips"); if (!box) return;
     box.innerHTML = "";
@@ -1811,6 +1896,9 @@ export function initStudio(
     if (!assets){ panel.style.display = "none"; return; }
     galTagChips();
     brandRender();
+    aiImgInit();
+    const agBtn = $("#aiImgGen"); if (agBtn) agBtn.addEventListener("click", () => aiImgRun("generate"));
+    const aeBtn = $("#aiImgEdit"); if (aeBtn) aeBtn.addEventListener("click", () => aiImgRun("edit"));
     ADJ.forEach(a => { const el = $(a.slider); if (el) el.addEventListener("input", adjTouched); });
     const rst = $("#adjReset");
     if (rst) rst.addEventListener("click", () => {
@@ -1859,9 +1947,15 @@ export function initStudio(
               try { BUILDER.transform = await assets.getTransform(BUILDER.photoAssetId); } catch(e) {}
             }
             renderBuilder(); drawVideoStill();
+            /* The photo you are working with is the one an AI edit should act
+               on, so loading it also selects it. */
+            AIIMG.selected = { name: name, id: t.dataset.aid || null };
+            aiImgSyncEditBtn();
+            root.querySelectorAll(".galitem").forEach(el => el.classList.remove("sel"));
+            const tile = t.closest(".galitem"); if (tile) tile.classList.add("sel");
             galSet(BUILDER.transform
               ? "Photo loaded with its saved adjustments."
-              : "Photo loaded into both builders.");
+              : "Photo loaded. AI edits will act on this image.");
           };
           img.onerror = () => galSet("Could not load that image.");
           img.src = u;

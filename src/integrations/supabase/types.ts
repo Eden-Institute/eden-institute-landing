@@ -3203,6 +3203,7 @@ export type Database = {
       }
       studio_assets: {
         Row: {
+          ai_prompt: string | null
           campaign_tag: string
           created_at: string
           created_by: string
@@ -3212,9 +3213,11 @@ export type Database = {
           mime_type: string | null
           project_id: string | null
           size_bytes: number | null
+          source: string
           storage_path: string
         }
         Insert: {
+          ai_prompt?: string | null
           campaign_tag?: string
           created_at?: string
           created_by: string
@@ -3224,9 +3227,11 @@ export type Database = {
           mime_type?: string | null
           project_id?: string | null
           size_bytes?: number | null
+          source?: string
           storage_path: string
         }
         Update: {
+          ai_prompt?: string | null
           campaign_tag?: string
           created_at?: string
           created_by?: string
@@ -3236,6 +3241,7 @@ export type Database = {
           mime_type?: string | null
           project_id?: string | null
           size_bytes?: number | null
+          source?: string
           storage_path?: string
         }
         Relationships: [

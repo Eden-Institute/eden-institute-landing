@@ -223,6 +223,17 @@
   .edenstudio .hero-cta{max-width:420px;margin:0 auto;display:block}
   /* Freeform campaign direction. Outranks the preset angles in the AI brief so
      the founder is never boxed into the twelve canned ones. */
+  /* Phase 4: AI image generation panel. */
+  .edenstudio .aiimg{margin:12px 0 4px;border:1px solid var(--line);background:var(--panel2);padding:12px 14px}
+  .edenstudio .aiimg-h{display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:var(--display);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--amber-deep);margin-bottom:10px}
+  .edenstudio .aiimg-state{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:none;color:var(--muted);border:1px solid var(--line);padding:1px 7px}
+  .edenstudio .aiimg-row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-top:10px}
+  .edenstudio .aiimg-range{flex:1 1 220px}
+  .edenstudio .aiimg-btns{display:flex;gap:8px;flex:1 1 260px}
+  .edenstudio .aiimg-btns .own-btn{flex:1 1 auto;margin:0}
+  .edenstudio .galitem.sel{outline:2px solid var(--amber);outline-offset:-2px}
+  .edenstudio .galsrc{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;padding:1px 5px;border:1px solid var(--amber);color:var(--amber-deep);margin-left:6px}
+
   /* Phase 3: Canva round-trip panel. */
   .edenstudio .canva-box{max-width:420px;margin:12px auto 0;border:1px solid var(--line);background:var(--panel2);padding:12px 14px}
   .edenstudio .canva-h{display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:var(--display);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--amber-deep);margin-bottom:10px}
