@@ -285,6 +285,11 @@ async function doReimport(userId: string, body: any): Promise<Response> {
       filename: `canva-${proj.canva_design_id}.png`,
       mime_type: "image/png",
       kind: "image",
+      // Provenance. This function predates the source column (added in Phase 4)
+      // and defaulted to 'upload', so reimported art was indistinguishable from
+      // a photograph the founder shot. The gallery badge existed with nothing
+      // to show.
+      source: "canva",
       campaign_tag: proj.campaign_tag ?? "general",
       project_id: proj.id,
     }).select("id").single();
