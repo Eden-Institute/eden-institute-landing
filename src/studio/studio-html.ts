@@ -298,6 +298,48 @@ export const STUDIO_HTML = `
       <div class="bprev">
         <canvas id="adCanvas" width="1080" height="1350" aria-label="Ad creative preview"></canvas>
         <button class="genbtn" id="dlBtn" type="button" style="max-width:420px;margin:12px auto 0;display:block">❦ &nbsp;Download PNG</button>
+        <!-- Free-placed text layers. The template's own zones still render
+             underneath; these sit on top and can be dragged anywhere. -->
+        <div class="layer-box">
+          <div class="layer-h">
+            <span>Text on the image</span>
+            <button class="copybtn" id="lAdd" type="button">Add text</button>
+          </div>
+          <p class="subnote" style="margin:0 0 8px">Drag any text directly on the preview to place it, or use a zone preset.</p>
+          <div id="layerList"></div>
+          <div id="layerEditor" hidden>
+            <label class="own-label" for="lText">Text</label>
+            <textarea id="lText" class="own-input" rows="2"></textarea>
+            <label class="own-label" for="lSize">Size <span class="adj-v" id="lSizeV">64px</span></label>
+            <input type="range" id="lSize" min="18" max="220" value="64">
+            <span class="own-label">Font</span><span class="chips" id="lFontChips"></span>
+            <span class="own-label">Colour (brand kit only)</span><span class="chips" id="lColorChips"></span>
+            <span class="own-label">Align</span><span class="chips" id="lAlignChips"></span>
+            <span class="own-label">Snap to zone</span><span class="chips" id="lZoneChips"></span>
+            <label class="layer-check"><input type="checkbox" id="lShadow"> Drop shadow for legibility over photos</label>
+            <div class="layer-actions">
+              <button class="copybtn" id="lDup" type="button">Duplicate</button>
+              <button class="copybtn" id="lDel" type="button">Delete</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Caption: not painted on the image. Copied into Meta after download. -->
+        <div class="cap-box">
+          <div class="layer-h">
+            <span>Caption</span>
+            <span class="canva-state" id="capCount">0 characters</span>
+          </div>
+          <p class="subnote" style="margin:0 0 8px">This is not on the image. Copy it into Instagram or Facebook after you download.</p>
+          <textarea id="capText" class="own-input" rows="6" placeholder="Write the caption, or draft one from your approved ad copy."></textarea>
+          <div class="cap-actions">
+            <button class="copybtn" id="capDraft" type="button">Draft from ad copy</button>
+            <button class="copybtn" id="capCopy" type="button">Copy caption</button>
+          </div>
+          <p class="subnote" id="capStatus" style="min-height:16px;margin:6px 0 0"></p>
+          <div id="capFlags"></div>
+        </div>
+
         <div class="canva-box">
           <div class="canva-h">
             <span>Canva round-trip</span>

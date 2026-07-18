@@ -223,6 +223,27 @@
   .edenstudio .hero-cta{max-width:420px;margin:0 auto;display:block}
   /* Freeform campaign direction. Outranks the preset angles in the AI brief so
      the founder is never boxed into the twelve canned ones. */
+  /* Phase 6: free-placed text layers + caption. */
+  .edenstudio .layer-box,.edenstudio .cap-box{max-width:420px;margin:12px auto 0;border:1px solid var(--line);background:var(--panel2);padding:12px 14px;text-align:left}
+  .edenstudio .layer-h{display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:var(--display);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--amber-deep);margin-bottom:8px}
+  .edenstudio .layerrow{display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);padding:6px 9px;margin-bottom:5px;cursor:pointer;font-family:var(--body)}
+  .edenstudio .layerrow.sel{border-color:var(--amber);background:var(--gold-soft)}
+  .edenstudio .layerrow .lr-t{display:block;font-size:13.5px;color:var(--ink)}
+  .edenstudio .layerrow .lr-m{display:block;font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:1px}
+  .edenstudio #layerEditor{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+  .edenstudio #layerEditor input[type=range]{width:100%;accent-color:var(--amber)}
+  .edenstudio .layer-check{display:block;font-size:12px;color:var(--muted);margin-top:10px}
+  .edenstudio .layer-actions,.edenstudio .cap-actions{display:flex;gap:8px;margin-top:10px}
+  .edenstudio .layer-actions .copybtn,.edenstudio .cap-actions .copybtn{flex:1 1 auto}
+  .edenstudio #adCanvas{touch-action:none}
+  .edenstudio .capclean{margin:8px 0 0;font-size:12.5px;color:var(--olive)}
+  .edenstudio .capflag{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:6px;padding:7px 9px;border-left:2px solid var(--line);background:var(--panel);font-size:12.5px;color:var(--muted)}
+  .edenstudio .capflag.policy{border-left-color:#B3261E}
+  .edenstudio .capflag.caution{border-left-color:var(--amber)}
+  .edenstudio .capflag.voice{border-left-color:var(--olive)}
+  .edenstudio .capflag .copybtn{flex:0 0 auto}
+  .edenstudio #capCount.over{color:#B3261E}
+
   /* Phase 4: AI image generation panel. */
   .edenstudio .aiimg{margin:12px 0 4px;border:1px solid var(--line);background:var(--panel2);padding:12px 14px}
   .edenstudio .aiimg-h{display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:var(--display);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--amber-deep);margin-bottom:10px}
