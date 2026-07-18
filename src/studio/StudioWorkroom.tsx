@@ -17,6 +17,7 @@ import { aiInvoke, makeAssetsBridge } from "./studio-bridges";
 import {
   beginConnect, exportToCanva, reimportFromCanva, status as canvaStatus,
 } from "./studio-canva";
+import { recordExportBatch } from "./studio-exports-db";
 import { formatForAdType } from "./studio-types";
 import type { StudioHandle } from "./studio-types";
 import { saveProject } from "./studio-db";
@@ -110,6 +111,12 @@ export default function StudioWorkroom({ project, onExit, onFinish, onSaved }: P
       }) => exportToCanva({ projectId: project.id, ...i }),
       reimportFromCanva: () => reimportFromCanva(project.id),
     };
+    // Phase 7: export records, pre-bound to this project.
+    const exportsBridge = {
+      record: async (files: Parameters<typeof recordExportBatch>[1]) => {
+        await recordExportBatch(project.id, files);
+      },
+    };
     const handle = initStudio(root, aiInvoke, assets, {
       // The core auto-advances on its own (heroGo jumps to Drafts). Treating
       // that as a change keeps the dirty badge truthful.
@@ -121,7 +128,7 @@ export default function StudioWorkroom({ project, onExit, onFinish, onSaved }: P
         }
         finishRef.current();
       },
-    }, canva);
+    }, canva, exportsBridge);
     handleRef.current = handle;
 
     // Restore the saved session, then seed anything the entry screen decided

@@ -223,6 +223,9 @@
   .edenstudio .hero-cta{max-width:420px;margin:0 auto;display:block}
   /* Freeform campaign direction. Outranks the preset angles in the AI brief so
      the founder is never boxed into the twelve canned ones. */
+  /* Phase 7: multi-size export. */
+  .edenstudio .exp-box{max-width:420px;margin:12px auto 0;border:1px solid var(--amber);background:var(--gold-soft);padding:12px 14px;text-align:left}
+
   /* Phase 6: free-placed text layers + caption. */
   .edenstudio .layer-box,.edenstudio .cap-box{max-width:420px;margin:12px auto 0;border:1px solid var(--line);background:var(--panel2);padding:12px 14px;text-align:left}
   .edenstudio .layer-h{display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:var(--display);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--amber-deep);margin-bottom:8px}

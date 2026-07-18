@@ -3317,6 +3317,53 @@ export type Database = {
         }
         Relationships: []
       }
+      studio_exports: {
+        Row: {
+          aspect_ratio: string
+          batch_id: string | null
+          created_by: string
+          exported_at: string
+          format: string
+          height: number | null
+          id: string
+          project_id: string
+          storage_path: string | null
+          width: number | null
+        }
+        Insert: {
+          aspect_ratio: string
+          batch_id?: string | null
+          created_by: string
+          exported_at?: string
+          format: string
+          height?: number | null
+          id?: string
+          project_id: string
+          storage_path?: string | null
+          width?: number | null
+        }
+        Update: {
+          aspect_ratio?: string
+          batch_id?: string | null
+          created_by?: string
+          exported_at?: string
+          format?: string
+          height?: number | null
+          id?: string
+          project_id?: string
+          storage_path?: string | null
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_exports_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "studio_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       studio_projects: {
         Row: {
           ad_type: string
