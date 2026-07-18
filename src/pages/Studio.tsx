@@ -3,107 +3,100 @@
 // Founder-only ad workroom at /studio: generates Facebook/Instagram ad copy in
 // the Eden voice (with Meta-policy + brand-voice compliance checks), renders
 // finished ad images on canvas, and records credits-style video ads with music
-// and narration. Everything runs client-side; nothing is uploaded and there is
-// no server data surface, so the access boundary is the founder gate itself
-// (RequireAuth at the route + the founder email check below, same as /founder).
+// and narration.
 //
-// The studio core is a self-contained vanilla-DOM app (src/studio/), ported
-// from the founder's standalone Ad Studio build. It mounts into a ref and
-// tears down fully on unmount.
+// Phase 1 of the phased build added the layer the studio never had: campaigns
+// are rows in public.studio_projects, so drafts, approvals, and founder notes
+// survive a refresh. This page is now a thin orchestrator over three views;
+// the studio core itself stays a self-contained vanilla-DOM app (src/studio/).
+//
+// Access boundary: RequireAuth at the route, the founder email check below, the
+// studio-generate EF's own 403, and is_founder() RLS on studio_projects and
+// both storage buckets. The client check is convenience; the server ones bite.
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
-import { STUDIO_HTML } from "@/studio/studio-html";
-import { initStudio } from "@/studio/studio-core";
-import "@/studio/studio.css";
-
-// Bridge into the studio-generate EF (the multi-model AI engine). The vanilla
-// studio core receives this as a plain async function so it stays framework-free.
-async function aiInvoke(body: unknown): Promise<unknown> {
-  const { data, error } = await supabase.functions.invoke("studio-generate", { body });
-  if (error) {
-    // FunctionsHttpError carries a fixed generic message; the EF's real error
-    // code and detail live on error.context (the Response). Surface them so
-    // the studio can branch on code, not on message text.
-    let payload: { error?: string; detail?: unknown } | null = null;
-    const ctx = (error as { context?: Response }).context;
-    if (ctx && typeof ctx.json === "function") {
-      try { payload = await ctx.json(); } catch { /* non-JSON body */ }
-    }
-    const err = new Error(payload?.error ?? error.message) as Error & {
-      code?: string; status?: number; detail?: unknown;
-    };
-    err.code = payload?.error;
-    err.status = ctx?.status;
-    err.detail = payload?.detail;
-    throw err;
-  }
-  return data;
-}
-
-// Bridge into the private studio-assets bucket (founder-only via storage RLS).
-// The gallery reads through short-lived signed URLs; nothing is ever public.
-const BUCKET = "studio-assets";
-const assetsBridge = {
-  async list(): Promise<Array<{ name: string }>> {
-    const { data, error } = await supabase.storage
-      .from(BUCKET)
-      .list("", { limit: 200, sortBy: { column: "created_at", order: "desc" } });
-    if (error) throw error;
-    return (data ?? []).filter((f) => f.name && !f.name.startsWith("."));
-  },
-  async upload(file: File): Promise<void> {
-    const safe = file.name.replace(/[^\w.\-]+/g, "_").slice(-80);
-    const path = `${Date.now()}-${safe}`;
-    const { error } = await supabase.storage
-      .from(BUCKET)
-      .upload(path, file, { contentType: file.type || undefined });
-    if (error) throw error;
-  },
-  async url(name: string): Promise<string> {
-    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(name, 3600);
-    if (error) throw error;
-    return data.signedUrl;
-  },
-  async remove(name: string): Promise<void> {
-    const { error } = await supabase.storage.from(BUCKET).remove([name]);
-    if (error) throw error;
-  },
-  // Publish a finished creative to the PUBLIC collateral bucket and return its
-  // permanent hosted URL (required for email: Gmail strips data-URI images).
-  async publish(blob: Blob, name: string): Promise<string> {
-    const safe = name.replace(/[^\w.\-]+/g, "_").slice(-80);
-    const path = `${Date.now()}-${safe}`;
-    const { error } = await supabase.storage
-      .from("studio-collateral")
-      .upload(path, blob, { contentType: "image/png" });
-    if (error) throw error;
-    return supabase.storage.from("studio-collateral").getPublicUrl(path).data.publicUrl;
-  },
-};
+import StudioEntry from "@/studio/StudioEntry";
+import StudioProjectList from "@/studio/StudioProjectList";
+import StudioWorkroom from "@/studio/StudioWorkroom";
+import {
+  createProject, deleteProject, listProjects,
+} from "@/studio/studio-db";
+import type { NewStudioProject, StudioProject } from "@/studio/studio-db";
 
 const FOUNDER_EMAIL = "hello@edeninstitute.health";
+
+type View = "list" | "new" | "work";
 
 export default function Studio() {
   const { user, loading: authLoading, signOut } = useAuth();
   const isFounder = !!user && user.email?.toLowerCase() === FOUNDER_EMAIL;
-  const mountRef = useRef<HTMLDivElement>(null);
+
+  const [view, setView] = useState<View>("list");
+  const [projects, setProjects] = useState<StudioProject[]>([]);
+  const [active, setActive] = useState<StudioProject | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setListError(null);
+    try {
+      setProjects(await listProjects());
+    } catch (err) {
+      setListError(
+        err instanceof Error ? err.message : "Could not load your campaigns.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    if (!isFounder) return;
-    const root = mountRef.current;
-    if (!root) return;
-    root.innerHTML = STUDIO_HTML;
-    const cleanup = initStudio(root, aiInvoke, assetsBridge);
-    return () => {
-      cleanup();
-      root.innerHTML = "";
-    };
-  }, [isFounder]);
+    if (isFounder) void refresh();
+  }, [isFounder, refresh]);
+
+  async function handleCreate(input: NewStudioProject) {
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const created = await createProject(input);
+      setProjects((cur) => [created, ...cur]);
+      setActive(created);
+      setView("work");
+    } catch (err) {
+      setCreateError(
+        err instanceof Error ? err.message : "Could not start that campaign.",
+      );
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function handleDelete(p: StudioProject) {
+    if (!window.confirm(`Delete "${p.title}"? This cannot be undone.`)) return;
+    const previous = projects;
+    setProjects((cur) => cur.filter((x) => x.id !== p.id));
+    try {
+      await deleteProject(p.id);
+    } catch (err) {
+      // Put it back rather than leaving the list lying about what exists.
+      setProjects(previous);
+      setListError(
+        err instanceof Error ? err.message : "Could not delete that campaign.",
+      );
+    }
+  }
+
+  const handleSaved = useCallback((saved: StudioProject) => {
+    setProjects((cur) => cur.map((p) => (p.id === saved.id ? saved : p)));
+    setActive((cur) => (cur && cur.id === saved.id ? { ...cur, ...saved } : cur));
+  }, []);
 
   if (authLoading) {
     return (
@@ -136,5 +129,53 @@ export default function Studio() {
     );
   }
 
-  return <div ref={mountRef} className="edenstudio" />;
+  if (view === "work" && active) {
+    return (
+      <StudioWorkroom
+        project={active}
+        onSaved={handleSaved}
+        onExit={() => {
+          setActive(null);
+          setView("list");
+          void refresh();
+        }}
+        onFinish={() => {
+          // "Start a New Campaign" now means exactly that: a new project row,
+          // not a silent in-place reset of the one you just finished.
+          setActive(null);
+          setCreateError(null);
+          setView("new");
+          void refresh();
+        }}
+      />
+    );
+  }
+
+  if (view === "new") {
+    return (
+      <StudioEntry
+        busy={creating}
+        error={createError}
+        onCreate={handleCreate}
+        onCancel={() => {
+          setCreateError(null);
+          setView("list");
+        }}
+      />
+    );
+  }
+
+  return (
+    <StudioProjectList
+      projects={projects}
+      loading={loading}
+      error={listError}
+      onNew={() => setView("new")}
+      onOpen={(p) => {
+        setActive(p);
+        setView("work");
+      }}
+      onDelete={handleDelete}
+    />
+  );
 }

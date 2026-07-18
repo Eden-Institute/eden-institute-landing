@@ -50,7 +50,11 @@
   .edenstudio .wordchip.bad{border-color:var(--terra);color:var(--terra);text-decoration:line-through}
 
   /* ── Studio layout ────────────────────────── */
-  .edenstudio .steps{display:flex;gap:0;margin:26px 0 14px;border:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:30}
+  /* --studio-shell-top is set by StudioWorkroom to the height of the React
+     header (project title + Save draft). Both bars are sticky at the top, so
+     without the offset the step pills park on top of the Save button and the
+     founder cannot save at all once the page is scrolled. */
+  .edenstudio .steps{display:flex;gap:0;margin:26px 0 14px;border:1px solid var(--line);background:var(--panel);position:sticky;top:var(--studio-shell-top,0px);z-index:30}
   .edenstudio .step{flex:1;padding:10px 14px;font-family:var(--display);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);border:0;border-right:1px solid var(--line);display:flex;gap:8px;align-items:center;background:none;cursor:pointer;text-align:left}
   .edenstudio .step:last-child{border-right:0}
   .edenstudio .step b{font-family:var(--body);font-size:15px;color:var(--amber-deep);font-style:italic;letter-spacing:0;text-transform:none}
@@ -217,6 +221,13 @@
   .edenstudio .goalcard .gname{display:block;font-weight:700;font-size:14px;margin-bottom:4px}
   .edenstudio .goalcard .gtag{font-family:var(--mono);font-size:10px;color:var(--muted)}
   .edenstudio .hero-cta{max-width:420px;margin:0 auto;display:block}
+  /* Freeform campaign direction. Outranks the preset angles in the AI brief so
+     the founder is never boxed into the twelve canned ones. */
+  .edenstudio .hero-direction{max-width:620px;margin:22px auto 18px;text-align:left}
+  .edenstudio .dir-label{display:block;font-family:var(--display);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber-deep);margin-bottom:8px}
+  .edenstudio .dir-input{width:100%;box-sizing:border-box;background:var(--panel);color:var(--ink);border:1px solid var(--line);padding:10px 12px;font-family:var(--body);font-size:14.5px;line-height:1.5;resize:vertical}
+  .edenstudio .dir-input:focus{outline:none;border-color:var(--amber)}
+  .edenstudio .dir-note{margin:6px 0 0;font-size:12px;color:var(--muted)}
   .edenstudio .hero-stats{display:flex;gap:28px;justify-content:center;flex-wrap:wrap;margin-top:22px}
   .edenstudio .stat b{display:block;font-family:var(--display);font-size:26px;color:var(--amber-deep)}
   .edenstudio .stat span{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}

@@ -1,6 +1,7 @@
 // @ts-nocheck
 /* eslint-disable */
 import QRCode from "qrcode";
+import type { StudioHandle, StudioStateBlob } from "./studio-types";
 // Eden Ad Studio core. Ported from the standalone artifact build (2026-07-17).
 // Vanilla DOM app mounted by StudioPage.tsx; all queries and listeners are
 // rooted on the container so unmount fully tears it down.
@@ -15,7 +16,16 @@ export function initStudio(
     remove: (name: string) => Promise<void>;
     publish: (blob: Blob, name: string) => Promise<string>;
   },
-): () => void {
+  // Phase 1 seam. React owns the project record, persistence, and the archive;
+  // this core stays the framework-free authority on the working session. The
+  // host is notified when the wizard moves so the React chrome can follow the
+  // core's own auto-advances (heroGo jumps to Drafts on its own).
+  host?: {
+    onStep?: (n: number) => void;
+    /** The wizard's last-step button. The shell decides what "done" means. */
+    onFinish?: () => void;
+  },
+): StudioHandle {
   "use strict";
   /* ───────────────────────── DATA ───────────────────────── */
 
@@ -241,7 +251,11 @@ export function initStudio(
   ];
 
   /* ───────────────────────── STATE ───────────────────────── */
-  const state = {product:"kit", objective:"sales", audience:"homeschool", angle:"children", format:"portrait", gen:0};
+  /* direction = the founder's own words for where this campaign should go. It
+     outranks the preset angle in the AI brief. touched = she has picked an
+     audience or angle herself, so the guided flow must stop overriding them. */
+  const state = {product:"kit", objective:"sales", audience:"homeschool", angle:"children", format:"portrait", gen:0,
+    direction:"", touched:false};
   let variants = [];
   const $ = s => root.querySelector(s);
   const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -270,11 +284,11 @@ export function initStudio(
       oc.appendChild(chip(o.name, state.objective===id, () => {state.objective=id; renderCampaign();}));
     const ac = $("#audChips"); ac.innerHTML = "";
     for (const [id,a] of Object.entries(AUDIENCES))
-      ac.appendChild(chip(a.name, state.audience===id, () => {state.audience=id; renderCampaign();}));
+      ac.appendChild(chip(a.name, state.audience===id, () => {state.audience=id; state.touched=true; renderCampaign();}));
     $("#audNote").innerHTML = AUDIENCES[state.audience].note;
     const gc = $("#angleChips"); gc.innerHTML = "";
     for (const id of PRODUCTS[state.product].angles)
-      gc.appendChild(chip(ANGLES[id].name, state.angle===id, () => {state.angle=id; renderCampaign();}));
+      gc.appendChild(chip(ANGLES[id].name, state.angle===id, () => {state.angle=id; state.touched=true; renderCampaign();}));
     const fc = $("#fmtChips"); fc.innerHTML = "";
     for (const [id,f] of Object.entries(FORMATS))
       fc.appendChild(chip(f.name, state.format===id, () => {state.format=id; renderCampaign(); if (variants.length) renderVariants();}));
@@ -1120,6 +1134,8 @@ export function initStudio(
       format: FORMATS[state.format].name,
       cta: p.ctas[state.objective],
       url: buildURL(p, 1),
+      /* Empty string when unset, so the EF can treat it as absent. */
+      direction: (state.direction || "").trim(),
     };
   }
   async function aiInit(){
@@ -1254,12 +1270,20 @@ export function initStudio(
   }
   async function heroGo(){
     const hs = $("#heroStatus");
+    /* AUTOPICK is a starting suggestion, not a verdict. Once the founder has
+       chosen an audience or angle herself, or written her own direction, the
+       guided flow must not quietly overwrite her. */
     const pick = AUTOPICK[state.product];
-    if (pick){ state.audience = pick.audience; state.angle = pick.angle; renderCampaign(); }
+    if (pick && !state.touched && !(state.direction || "").trim()){
+      state.audience = pick.audience; state.angle = pick.angle; renderCampaign();
+    }
     if (hs) hs.textContent = "Reading the brand: positioning, voice, guardrails…";
     const scanEl = root.querySelector(".scan"); if (scanEl) (scanEl as any).open = true;
     await sleep(900);
-    if (hs) hs.textContent = "Casting " + PRODUCTS[state.product].name + " for " + AUDIENCES[state.audience].name + ", " + ANGLES[state.angle].name + " angle…";
+    const dir = (state.direction || "").trim();
+    if (hs) hs.textContent = dir
+      ? "Following your direction: “" + (dir.length > 90 ? dir.slice(0, 90) + "…" : dir) + "”"
+      : "Casting " + PRODUCTS[state.product].name + " for " + AUDIENCES[state.audience].name + ", " + ANGLES[state.angle].name + " angle…";
     await sleep(800);
     if (AI.on){
       if (hs) hs.textContent = "Writing with " + AI.providers.map(p => p.label).join(" + ") + ", then judging every draft…";
@@ -1273,6 +1297,8 @@ export function initStudio(
     if (hs) hs.textContent = "Drafts are on the workbench. Approve the keepers; write corrections on the rest. Fine controls stay in The Campaign panel.";
   }
   $("#heroGo").addEventListener("click", heroGo);
+  const dirEl = $("#heroDirection");
+  if (dirEl) dirEl.addEventListener("input", e => { state.direction = (e.target as any).value; });
   function trayExport(a){
     return "EDEN AD STUDIO · APPROVED · " + a.product +
       "\n\nPRIMARY TEXT:\n" + a.primary +
@@ -1348,12 +1374,24 @@ export function initStudio(
     if (next) next.textContent = wstep === WIZ.length - 1 ? "Start a New Campaign" : "Continue →";
     if (hint) hint.textContent = WIZ[wstep].hint;
     window.scrollTo({ top: 0, behavior: "smooth" });
+    /* Let the React chrome follow the core's own advances (heroGo jumps here). */
+    try { host && host.onStep && host.onStep(wstep); } catch (e) {}
   }
   root.querySelectorAll("#wizSteps .step").forEach((b: any) => {
     b.addEventListener("click", () => showStep(+b.dataset.w));
   });
   $("#wizBack").addEventListener("click", () => showStep(wstep - 1));
-  $("#wizNext").addEventListener("click", () => showStep(wstep === WIZ.length - 1 ? 0 : wstep + 1));
+  $("#wizNext").addEventListener("click", () => {
+    /* Last step used to wrap back to step 0, silently resetting the campaign in
+       place. Now that a campaign is a saved row, finishing means leaving for a
+       NEW project, which only the React shell can do. */
+    if (wstep === WIZ.length - 1){
+      if (host && host.onFinish){ host.onFinish(); return; }
+      showStep(0);
+      return;
+    }
+    showStep(wstep + 1);
+  });
 
   /* ── Post: hand off to Meta's own surfaces with the package on the clipboard ── */
   const EDEN_FB = "https://www.facebook.com/TheEdenInstituteBiblicalHerbalism";
@@ -1478,9 +1516,83 @@ export function initStudio(
   galInit();
   showStep(0);
 
-  return function cleanup() {
-    try { stopRun(); } catch (e) {}
-    try { musicEl.pause(); narrEl.pause(); vClipEl.pause(); } catch (e) {}
-    try { if (audioCtx) audioCtx.close(); } catch (e) {}
+  /* ───────────────────────── PHASE 1 SEAM ─────────────────────────
+     The React shell owns the project row, saving, and the archive. It reaches
+     the working session only through these four calls. Everything here is
+     plain data: decoded Images, MediaStreams, and the AudioContext never cross
+     the boundary, so a snapshot is always JSON-safe. */
+
+  function getState(): StudioStateBlob {
+    return {
+      campaign: {
+        product: state.product, objective: state.objective,
+        audience: state.audience, angle: state.angle,
+        format: state.format, gen: state.gen,
+        direction: state.direction, touched: state.touched,
+      },
+      /* variants and APPROVED are already plain objects; the round-trip is a
+         cheap guarantee that nothing non-serializable has crept in. */
+      variants: JSON.parse(JSON.stringify(variants)),
+      approved: JSON.parse(JSON.stringify(APPROVED)),
+      builder: {
+        tpl: BUILDER.tpl, size: BUILDER.size, hook: BUILDER.hook,
+        sub: BUILDER.sub, cta: BUILDER.cta, domain: BUILDER.domain,
+        dest: BUILDER.dest, qr: !!BUILDER.qr,
+      },
+      step: wstep,
+    };
+  }
+
+  function applyState(blob: StudioStateBlob | null | undefined){
+    if (!blob) return;
+    const c = blob.campaign || {};
+    /* Guard every restored key against the live vocabularies: a project saved
+       before a product or angle was renamed must not wedge the studio. */
+    if (c.product && PRODUCTS[c.product]) state.product = c.product;
+    if (c.objective && OBJECTIVES[c.objective]) state.objective = c.objective;
+    if (c.audience && AUDIENCES[c.audience]) state.audience = c.audience;
+    if (c.angle && ANGLES[c.angle] && PRODUCTS[state.product].angles.includes(c.angle)) state.angle = c.angle;
+    else state.angle = PRODUCTS[state.product].angles[0];
+    if (c.format && FORMATS[c.format]) state.format = c.format;
+    state.gen = typeof c.gen === "number" ? c.gen : 0;
+    state.direction = typeof c.direction === "string" ? c.direction : "";
+    state.touched = !!c.touched;
+    const dirIn = $("#heroDirection"); if (dirIn) (dirIn as any).value = state.direction;
+
+    variants = Array.isArray(blob.variants) ? blob.variants : [];
+    APPROVED.length = 0;
+    if (Array.isArray(blob.approved)) APPROVED.push.apply(APPROVED, blob.approved);
+
+    const b = blob.builder || {};
+    ["tpl","size","hook","sub","cta","domain","dest"].forEach(k => {
+      if (typeof b[k] === "string") BUILDER[k] = b[k];
+    });
+    BUILDER.qr = !!b.qr;
+
+    renderCampaign();
+    if (variants.length){
+      $("#emptyState").hidden = true;
+      $("#copyAllBtn").hidden = false;
+      $("#benchTitle").textContent = PRODUCTS[state.product].name + " · " + ANGLES[state.angle].name;
+      renderVariants();
+    }
+    trayRender();
+    /* renderBuilder() pushes BUILDER back into #bHook/#bSub/#bCta/#bDomain and
+       repaints; the clickable-collateral controls live outside it. */
+    renderBuilder();
+    const cc = $("#ccUrl"); if (cc) (cc as any).value = BUILDER.dest;
+    const cq = $("#ccQr"); if (cq) (cq as any).checked = !!BUILDER.qr;
+  }
+
+  return {
+    destroy(){
+      try { stopRun(); } catch (e) {}
+      try { musicEl.pause(); narrEl.pause(); vClipEl.pause(); } catch (e) {}
+      try { if (audioCtx) audioCtx.close(); } catch (e) {}
+    },
+    getState,
+    applyState,
+    getStep(){ return wstep; },
+    showStep(n){ showStep(n); },
   };
 }
