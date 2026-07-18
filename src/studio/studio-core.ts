@@ -1,6 +1,7 @@
 // @ts-nocheck
 /* eslint-disable */
 import QRCode from "qrcode";
+import type { StudioHandle, StudioStateBlob } from "./studio-types";
 // Eden Ad Studio core. Ported from the standalone artifact build (2026-07-17).
 // Vanilla DOM app mounted by StudioPage.tsx; all queries and listeners are
 // rooted on the container so unmount fully tears it down.
@@ -15,7 +16,12 @@ export function initStudio(
     remove: (name: string) => Promise<void>;
     publish: (blob: Blob, name: string) => Promise<string>;
   },
-): () => void {
+  // Phase 1 seam. React owns the project record, persistence, and the archive;
+  // this core stays the framework-free authority on the working session. The
+  // host is notified when the wizard moves so the React chrome can follow the
+  // core's own auto-advances (heroGo jumps to Drafts on its own).
+  host?: { onStep?: (n: number) => void },
+): StudioHandle {
   "use strict";
   /* ───────────────────────── DATA ───────────────────────── */
 
@@ -1348,6 +1354,8 @@ export function initStudio(
     if (next) next.textContent = wstep === WIZ.length - 1 ? "Start a New Campaign" : "Continue →";
     if (hint) hint.textContent = WIZ[wstep].hint;
     window.scrollTo({ top: 0, behavior: "smooth" });
+    /* Let the React chrome follow the core's own advances (heroGo jumps here). */
+    try { host && host.onStep && host.onStep(wstep); } catch (e) {}
   }
   root.querySelectorAll("#wizSteps .step").forEach((b: any) => {
     b.addEventListener("click", () => showStep(+b.dataset.w));
@@ -1478,9 +1486,79 @@ export function initStudio(
   galInit();
   showStep(0);
 
-  return function cleanup() {
-    try { stopRun(); } catch (e) {}
-    try { musicEl.pause(); narrEl.pause(); vClipEl.pause(); } catch (e) {}
-    try { if (audioCtx) audioCtx.close(); } catch (e) {}
+  /* ───────────────────────── PHASE 1 SEAM ─────────────────────────
+     The React shell owns the project row, saving, and the archive. It reaches
+     the working session only through these four calls. Everything here is
+     plain data: decoded Images, MediaStreams, and the AudioContext never cross
+     the boundary, so a snapshot is always JSON-safe. */
+
+  function getState(): StudioStateBlob {
+    return {
+      campaign: {
+        product: state.product, objective: state.objective,
+        audience: state.audience, angle: state.angle,
+        format: state.format, gen: state.gen,
+      },
+      /* variants and APPROVED are already plain objects; the round-trip is a
+         cheap guarantee that nothing non-serializable has crept in. */
+      variants: JSON.parse(JSON.stringify(variants)),
+      approved: JSON.parse(JSON.stringify(APPROVED)),
+      builder: {
+        tpl: BUILDER.tpl, size: BUILDER.size, hook: BUILDER.hook,
+        sub: BUILDER.sub, cta: BUILDER.cta, domain: BUILDER.domain,
+        dest: BUILDER.dest, qr: !!BUILDER.qr,
+      },
+      step: wstep,
+    };
+  }
+
+  function applyState(blob: StudioStateBlob | null | undefined){
+    if (!blob) return;
+    const c = blob.campaign || {};
+    /* Guard every restored key against the live vocabularies: a project saved
+       before a product or angle was renamed must not wedge the studio. */
+    if (c.product && PRODUCTS[c.product]) state.product = c.product;
+    if (c.objective && OBJECTIVES[c.objective]) state.objective = c.objective;
+    if (c.audience && AUDIENCES[c.audience]) state.audience = c.audience;
+    if (c.angle && ANGLES[c.angle] && PRODUCTS[state.product].angles.includes(c.angle)) state.angle = c.angle;
+    else state.angle = PRODUCTS[state.product].angles[0];
+    if (c.format && FORMATS[c.format]) state.format = c.format;
+    state.gen = typeof c.gen === "number" ? c.gen : 0;
+
+    variants = Array.isArray(blob.variants) ? blob.variants : [];
+    APPROVED.length = 0;
+    if (Array.isArray(blob.approved)) APPROVED.push.apply(APPROVED, blob.approved);
+
+    const b = blob.builder || {};
+    ["tpl","size","hook","sub","cta","domain","dest"].forEach(k => {
+      if (typeof b[k] === "string") BUILDER[k] = b[k];
+    });
+    BUILDER.qr = !!b.qr;
+
+    renderCampaign();
+    if (variants.length){
+      $("#emptyState").hidden = true;
+      $("#copyAllBtn").hidden = false;
+      $("#benchTitle").textContent = PRODUCTS[state.product].name + " · " + ANGLES[state.angle].name;
+      renderVariants();
+    }
+    trayRender();
+    /* renderBuilder() pushes BUILDER back into #bHook/#bSub/#bCta/#bDomain and
+       repaints; the clickable-collateral controls live outside it. */
+    renderBuilder();
+    const cc = $("#ccUrl"); if (cc) (cc as any).value = BUILDER.dest;
+    const cq = $("#ccQr"); if (cq) (cq as any).checked = !!BUILDER.qr;
+  }
+
+  return {
+    destroy(){
+      try { stopRun(); } catch (e) {}
+      try { musicEl.pause(); narrEl.pause(); vClipEl.pause(); } catch (e) {}
+      try { if (audioCtx) audioCtx.close(); } catch (e) {}
+    },
+    getState,
+    applyState,
+    getStep(){ return wstep; },
+    showStep(n){ showStep(n); },
   };
 }
