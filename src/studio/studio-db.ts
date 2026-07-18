@@ -43,6 +43,8 @@ export interface NewStudioProject {
   platforms: string[];
   ad_type: string;
   campaign_tag: string;
+  /** Phase 8: seed the working state from a starter template. */
+  state?: StudioStateBlob;
 }
 
 /** Fields a Save draft writes back. */
@@ -72,9 +74,62 @@ export async function listProjects(): Promise<StudioProject[]> {
   const { data, error } = await from()
     .select("*")
     .order("updated_at", { ascending: false })
-    .limit(100);
+    .limit(500);
   if (error) throw error;
   return (data ?? []).map(toProject);
+}
+
+/**
+ * Phase 8: how many files each project has exported.
+ *
+ * Done as one grouped read rather than a count per row: the archive should not
+ * fire N queries to render a list.
+ */
+export async function exportCounts(): Promise<Record<string, number>> {
+  const { data, error } = await supabase
+    .from("studio_exports")
+    .select("project_id")
+    .limit(5000);
+  if (error) throw error;
+  const counts: Record<string, number> = {};
+  for (const row of data ?? []) {
+    const id = (row as { project_id: string }).project_id;
+    counts[id] = (counts[id] ?? 0) + 1;
+  }
+  return counts;
+}
+
+/**
+ * Duplicate a project as the starting point for a new ad.
+ *
+ * Copies the working state and slides, but deliberately NOT the Canva design
+ * link, the export history, or the exported status: those are facts about the
+ * original, and inheriting them would make a fresh draft claim work it has not
+ * done.
+ */
+export async function duplicateProject(id: string): Promise<StudioProject> {
+  const source = await getProject(id);
+  const { data: auth } = await supabase.auth.getUser();
+  const uid = auth.user?.id;
+  if (!uid) throw new Error("Not signed in.");
+
+  const { data, error } = await from()
+    .insert({
+      created_by: uid,
+      title: `${source.title} (copy)`.slice(0, 120),
+      product: source.product,
+      platforms: source.platforms,
+      ad_type: source.ad_type,
+      campaign_tag: source.campaign_tag,
+      current_step: 0,
+      status: "draft",
+      state: source.state as unknown as Json,
+      slides: source.slides as unknown as Json,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return toProject(data);
 }
 
 export async function getProject(id: string): Promise<StudioProject> {
@@ -100,7 +155,8 @@ export async function createProject(input: NewStudioProject): Promise<StudioProj
       campaign_tag: input.campaign_tag,
       current_step: 0,
       status: "draft",
-      state: {},
+      // Phase 8: a starter template seeds this; a blank start leaves it empty.
+      state: (input.state ?? {}) as unknown as Json,
       // Every ad opens with one slide. Carousel adds more once its UI lands;
       // the shape does not change.
       slides: [{ id: crypto.randomUUID() }],
