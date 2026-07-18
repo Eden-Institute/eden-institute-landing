@@ -9,6 +9,8 @@ import {
   recordAsset, retagAsset, saveTransform,
 } from "./studio-assets-db";
 import type { AssetTransform } from "./studio-assets-db";
+import { editImage, generateImage, imageStatus } from "./studio-image";
+import type { CreativeRange } from "./studio-image";
 
 /** Bridge into the studio-generate EF (the multi-model AI engine). The vanilla
  *  studio core receives this as a plain async function so it stays
@@ -61,6 +63,7 @@ function projectAssetOps(ctx: { projectId: string; campaignTag: string }) {
         filename: r.filename,
         kind: r.kind,
         campaign_tag: r.campaign_tag,
+        source: r.source,
       }));
     },
     /** Upload, then record metadata tagged with the project's campaign. If the
@@ -97,6 +100,18 @@ function projectAssetOps(ctx: { projectId: string; campaignTag: string }) {
     },
     retag: retagAsset,
     brandKit: loadBrandKit,
+    // Phase 4: AI image generation, pre-bound to this project and campaign so
+    // generated images are tagged the same way uploads are.
+    aiStatus: imageStatus,
+    aiGenerate: (prompt: string, range: CreativeRange) =>
+      generateImage({
+        prompt, range, campaignTag: ctx.campaignTag, projectId: ctx.projectId,
+      }),
+    aiEdit: (prompt: string, range: CreativeRange, storagePath: string) =>
+      editImage({
+        prompt, range, campaignTag: ctx.campaignTag, projectId: ctx.projectId,
+        storagePath,
+      }),
     getTransform: (assetId: string) => getTransform(ctx.projectId, assetId),
     saveTransform: (assetId: string, t: AssetTransform) =>
       saveTransform(ctx.projectId, assetId, t),

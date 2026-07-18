@@ -195,6 +195,29 @@ export const STUDIO_HTML = `
         <span class="gal-filter-l">Campaign</span>
         <span class="chips" id="galTagChips"></span>
       </div>
+
+      <!-- Generate with AI. Sits alongside Upload and Library as the third way
+           to get an image, per the spec. The brand lock lives server-side. -->
+      <div id="aiImgPanel" class="aiimg">
+        <div class="aiimg-h">
+          <span>Generate with AI</span>
+          <span class="aiimg-state" id="aiImgState">checking…</span>
+        </div>
+        <textarea id="aiImgPrompt" class="own-input" rows="3"
+          placeholder="Describe the image. A child's hands and a parent's hands over a mortar and pestle on a linen tablecloth, morning light."></textarea>
+        <div class="aiimg-row">
+          <div class="aiimg-range">
+            <span class="own-label" style="margin:0 0 4px">Creative range</span>
+            <span class="chips" id="aiImgRange"></span>
+          </div>
+          <div class="aiimg-btns">
+            <button class="genbtn own-btn" id="aiImgGen" type="button">Generate</button>
+            <button class="genbtn own-btn ghost" id="aiImgEdit" type="button" disabled>Edit Selected</button>
+          </div>
+        </div>
+        <p class="subnote" id="aiImgStatus" style="min-height:16px;margin:8px 0 0"></p>
+        <p class="subnote" style="margin:2px 0 0">Generated images are saved to this library and tagged as AI, so you can always tell them from photographs.</p>
+      </div>
       <p class="subnote" id="galStatus" style="min-height:16px"></p>
       <div id="galGrid" class="galgrid"></div>
 
