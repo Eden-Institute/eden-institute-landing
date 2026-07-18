@@ -50,10 +50,16 @@
   .edenstudio .wordchip.bad{border-color:var(--terra);color:var(--terra);text-decoration:line-through}
 
   /* ── Studio layout ────────────────────────── */
-  .edenstudio .steps{display:flex;gap:0;margin:26px 0 14px;border:1px solid var(--line);background:var(--panel)}
-  .edenstudio .step{flex:1;padding:10px 14px;font-family:var(--display);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);border-right:1px solid var(--line);display:flex;gap:8px;align-items:center}
+  .edenstudio .steps{display:flex;gap:0;margin:26px 0 14px;border:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:30}
+  .edenstudio .step{flex:1;padding:10px 14px;font-family:var(--display);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);border:0;border-right:1px solid var(--line);display:flex;gap:8px;align-items:center;background:none;cursor:pointer;text-align:left}
   .edenstudio .step:last-child{border-right:0}
   .edenstudio .step b{font-family:var(--body);font-size:15px;color:var(--amber-deep);font-style:italic;letter-spacing:0;text-transform:none}
+  .edenstudio .step:hover{color:var(--ink)}
+  .edenstudio .step.active{background:var(--forest);color:var(--forest-ink)}
+  .edenstudio .step.active b{color:var(--amber)}
+  .edenstudio .step.done b{color:var(--olive)}
+  .edenstudio .wiznav{position:sticky;bottom:0;z-index:30;background:var(--panel);border:1px solid var(--line);margin-top:26px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .edenstudio .postgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}
   .edenstudio .studio{display:grid;grid-template-columns:370px minmax(0,1fr);gap:20px;align-items:start}
   @media (max-width:980px){.edenstudio .studio{grid-template-columns:1fr}.edenstudio .steps{flex-wrap:wrap}.edenstudio .step{flex:1 1 40%;border-bottom:1px solid var(--line)}}
 
