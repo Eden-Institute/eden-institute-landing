@@ -37,6 +37,7 @@ import { recordPreorderFromSession, applyRefundByPaymentIntent, ResolvedLineItem
 import { notifyFoundingMilestones } from "../_shared/founding-milestones.ts"
 import { productForPriceId } from "../_shared/order-config.ts"
 import { captureException } from "../_shared/sentry.ts"
+import { sendMetaCapiPurchase } from "../_shared/meta-capi.ts"
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2024-12-18.acacia",
@@ -223,6 +224,19 @@ serve(async (req) => {
           break
         }
         await handleOneOffPayment(session)
+
+        // Report the sale to Meta (server-side Conversions API). Deliberately
+        // AFTER handleOneOffPayment and deliberately un-awaited for failure:
+        // sendMetaCapiPurchase never throws, so ad reporting can never break
+        // fulfillment. event_id is the session id, so Stripe webhook retries
+        // dedupe at Meta instead of double-counting revenue.
+        await sendMetaCapiPurchase({
+          eventId: session.id,
+          email: session.customer_details?.email ?? session.customer_email ?? null,
+          amountTotalCents: session.amount_total ?? null,
+          currency: session.currency ?? null,
+          contentName: (session.metadata?.lookup_key as string | undefined) ?? null,
+        })
         break
       }
 

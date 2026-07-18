@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       actions: {
@@ -262,18 +287,21 @@ export type Database = {
       constitutions: {
         Row: {
           constitution_id: string
+          deprecated: boolean
           description: string | null
           name: string
           system: string | null
         }
         Insert: {
           constitution_id: string
+          deprecated?: boolean
           description?: string | null
           name: string
           system?: string | null
         }
         Update: {
           constitution_id?: string
+          deprecated?: boolean
           description?: string | null
           name?: string
           system?: string | null
@@ -342,59 +370,150 @@ export type Database = {
           },
         ]
       }
+      course_sales: {
+        Row: {
+          amount_cents: number | null
+          currency: string | null
+          email: string | null
+          id: number
+          inserted_at: string
+          lw_event_id: string | null
+          occurred_at: string
+          product_id: string | null
+          product_title: string | null
+          raw: Json | null
+        }
+        Insert: {
+          amount_cents?: number | null
+          currency?: string | null
+          email?: string | null
+          id?: never
+          inserted_at?: string
+          lw_event_id?: string | null
+          occurred_at?: string
+          product_id?: string | null
+          product_title?: string | null
+          raw?: Json | null
+        }
+        Update: {
+          amount_cents?: number | null
+          currency?: string | null
+          email?: string | null
+          id?: never
+          inserted_at?: string
+          lw_event_id?: string | null
+          occurred_at?: string
+          product_id?: string | null
+          product_title?: string | null
+          raw?: Json | null
+        }
+        Relationships: []
+      }
+      cta_events: {
+        Row: {
+          cta: string
+          id: string
+          is_bot: boolean
+          lookup_key: string | null
+          occurred_at: string
+          path: string
+          visitor_hash: string | null
+        }
+        Insert: {
+          cta: string
+          id?: string
+          is_bot?: boolean
+          lookup_key?: string | null
+          occurred_at?: string
+          path: string
+          visitor_hash?: string | null
+        }
+        Update: {
+          cta?: string
+          id?: string
+          is_bot?: boolean
+          lookup_key?: string | null
+          occurred_at?: string
+          path?: string
+          visitor_hash?: string | null
+        }
+        Relationships: []
+      }
       diagnostic_completions: {
         Row: {
+          axis_confidence: Json | null
           completed_at: string
           created_at: string
           eden_constitution: string | null
+          framework_readings: Json | null
           galenic_temperament:
             | Database["public"]["Enums"]["galenic_temperament_type"]
             | null
           id: string
+          moisture_score: number | null
           person_profile_id: string
           quiz_version: string
           raw_responses: Json | null
+          temperature_score: number | null
           tissue_state_profile: Json | null
+          tone_score: number | null
           user_id: string
           vital_force_reading:
             | Database["public"]["Enums"]["vital_force_reading_type"]
             | null
         }
         Insert: {
+          axis_confidence?: Json | null
           completed_at?: string
           created_at?: string
           eden_constitution?: string | null
+          framework_readings?: Json | null
           galenic_temperament?:
             | Database["public"]["Enums"]["galenic_temperament_type"]
             | null
           id?: string
+          moisture_score?: number | null
           person_profile_id: string
           quiz_version?: string
           raw_responses?: Json | null
+          temperature_score?: number | null
           tissue_state_profile?: Json | null
+          tone_score?: number | null
           user_id: string
           vital_force_reading?:
             | Database["public"]["Enums"]["vital_force_reading_type"]
             | null
         }
         Update: {
+          axis_confidence?: Json | null
           completed_at?: string
           created_at?: string
           eden_constitution?: string | null
+          framework_readings?: Json | null
           galenic_temperament?:
             | Database["public"]["Enums"]["galenic_temperament_type"]
             | null
           id?: string
+          moisture_score?: number | null
           person_profile_id?: string
           quiz_version?: string
           raw_responses?: Json | null
+          temperature_score?: number | null
           tissue_state_profile?: Json | null
+          tone_score?: number | null
           user_id?: string
           vital_force_reading?:
             | Database["public"]["Enums"]["vital_force_reading_type"]
             | null
         }
         Relationships: [
+          {
+            foreignKeyName: "diagnostic_completions_eden_constitution_fkey"
+            columns: ["eden_constitution"]
+            isOneToOne: false
+            referencedRelation: "eden_patterns"
+            referencedColumns: ["slug"]
+          },
           {
             foreignKeyName: "diagnostic_completions_person_profile_id_fkey"
             columns: ["person_profile_id"]
@@ -471,36 +590,346 @@ export type Database = {
         }
         Relationships: []
       }
+      eden_patterns: {
+        Row: {
+          created_at: string
+          description: string
+          moisture: string
+          name: string
+          pattern_id: string
+          primary_text_citation: Json
+          secondary_citation: Json
+          slug: string
+          tagline: string
+          temperature: string
+          tone: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          moisture: string
+          name: string
+          pattern_id: string
+          primary_text_citation: Json
+          secondary_citation: Json
+          slug: string
+          tagline: string
+          temperature: string
+          tone: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          moisture?: string
+          name?: string
+          pattern_id?: string
+          primary_text_citation?: Json
+          secondary_citation?: Json
+          slug?: string
+          tagline?: string
+          temperature?: string
+          tone?: string
+        }
+        Relationships: []
+      }
+      email_events: {
+        Row: {
+          campaign: string | null
+          clicked_url: string | null
+          email_key: string | null
+          event_type: string
+          id: number
+          inserted_at: string
+          occurred_at: string
+          raw: Json | null
+          recipient: string | null
+          resend_email_id: string | null
+        }
+        Insert: {
+          campaign?: string | null
+          clicked_url?: string | null
+          email_key?: string | null
+          event_type: string
+          id?: never
+          inserted_at?: string
+          occurred_at?: string
+          raw?: Json | null
+          recipient?: string | null
+          resend_email_id?: string | null
+        }
+        Update: {
+          campaign?: string | null
+          clicked_url?: string | null
+          email_key?: string | null
+          event_type?: string
+          id?: never
+          inserted_at?: string
+          occurred_at?: string
+          raw?: Json | null
+          recipient?: string | null
+          resend_email_id?: string | null
+        }
+        Relationships: []
+      }
+      email_list_unsubscribes: {
+        Row: {
+          email: string
+          list: string
+          source: string | null
+          unsubscribed_at: string
+        }
+        Insert: {
+          email: string
+          list: string
+          source?: string | null
+          unsubscribed_at?: string
+        }
+        Update: {
+          email?: string
+          list?: string
+          source?: string | null
+          unsubscribed_at?: string
+        }
+        Relationships: []
+      }
+      email_oneoff_log: {
+        Row: {
+          campaign: string
+          email: string
+          error: string | null
+          sent_at: string
+          status: string
+        }
+        Insert: {
+          campaign: string
+          email: string
+          error?: string | null
+          sent_at?: string
+          status?: string
+        }
+        Update: {
+          campaign?: string
+          email?: string
+          error?: string | null
+          sent_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      feedback_areas: {
+        Row: {
+          active: boolean
+          area_key: string
+          expedited: boolean
+          label: string
+          sort_order: number
+          sub_areas: string[]
+        }
+        Insert: {
+          active?: boolean
+          area_key: string
+          expedited?: boolean
+          label: string
+          sort_order?: number
+          sub_areas?: string[]
+        }
+        Update: {
+          active?: boolean
+          area_key?: string
+          expedited?: boolean
+          label?: string
+          sort_order?: number
+          sub_areas?: string[]
+        }
+        Relationships: []
+      }
       feedback_submissions: {
         Row: {
+          area: string | null
+          attachment_url: string | null
           auth_user_id: string | null
           context: Json
           created_at: string
+          description: string | null
+          effort: number | null
           email: string | null
+          frequency: string | null
           id: string
+          impact: string | null
+          impact_score: number | null
+          merged_into: string | null
           message: string
           page_url: string | null
+          punch_list_id: string | null
+          reach: number | null
+          status: string
+          status_updated_at: string | null
+          sub_area: string | null
+          tier: string | null
+          title: string | null
+          triaged_at: string | null
+          type: string | null
           user_agent: string | null
         }
         Insert: {
+          area?: string | null
+          attachment_url?: string | null
           auth_user_id?: string | null
           context?: Json
           created_at?: string
+          description?: string | null
+          effort?: number | null
           email?: string | null
+          frequency?: string | null
           id?: string
+          impact?: string | null
+          impact_score?: number | null
+          merged_into?: string | null
           message: string
           page_url?: string | null
+          punch_list_id?: string | null
+          reach?: number | null
+          status?: string
+          status_updated_at?: string | null
+          sub_area?: string | null
+          tier?: string | null
+          title?: string | null
+          triaged_at?: string | null
+          type?: string | null
           user_agent?: string | null
         }
         Update: {
+          area?: string | null
+          attachment_url?: string | null
           auth_user_id?: string | null
           context?: Json
           created_at?: string
+          description?: string | null
+          effort?: number | null
           email?: string | null
+          frequency?: string | null
           id?: string
+          impact?: string | null
+          impact_score?: number | null
+          merged_into?: string | null
           message?: string
           page_url?: string | null
+          punch_list_id?: string | null
+          reach?: number | null
+          status?: string
+          status_updated_at?: string | null
+          sub_area?: string | null
+          tier?: string | null
+          title?: string | null
+          triaged_at?: string | null
+          type?: string | null
           user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_submissions_area_fkey"
+            columns: ["area"]
+            isOneToOne: false
+            referencedRelation: "feedback_areas"
+            referencedColumns: ["area_key"]
+          },
+          {
+            foreignKeyName: "feedback_submissions_merged_into_fkey"
+            columns: ["merged_into"]
+            isOneToOne: false
+            referencedRelation: "feedback_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_submissions_punch_list_id_fkey"
+            columns: ["punch_list_id"]
+            isOneToOne: false
+            referencedRelation: "founder_punch_list"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      founder_punch_list: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          detail: string | null
+          id: string
+          owner: string | null
+          sort_order: number
+          status: string
+          title: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          owner?: string | null
+          sort_order?: number
+          status?: string
+          title: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          owner?: string | null
+          sort_order?: number
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      founders_interest: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string | null
+          id: string
+          phone: string | null
+          sms_consent: boolean
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name?: string | null
+          id?: string
+          phone?: string | null
+          sms_consent?: boolean
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string | null
+          id?: string
+          phone?: string | null
+          sms_consent?: boolean
+          source?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      founders_send_log: {
+        Row: {
+          campaign: string
+          email: string
+          sent_at: string
+        }
+        Insert: {
+          campaign: string
+          email: string
+          sent_at?: string
+        }
+        Update: {
+          campaign?: string
+          email?: string
+          sent_at?: string
         }
         Relationships: []
       }
@@ -876,24 +1305,36 @@ export type Database = {
           herb_id: string
           link_id: number
           notes: string | null
+          primary_citation: Json | null
+          provenance: string
           relationship: string | null
+          secondary_citation: Json | null
           strength_of_indication: string | null
+          surfaced: boolean
         }
         Insert: {
           constitution_id: string
           herb_id: string
           link_id?: number
           notes?: string | null
+          primary_citation?: Json | null
+          provenance?: string
           relationship?: string | null
+          secondary_citation?: Json | null
           strength_of_indication?: string | null
+          surfaced?: boolean
         }
         Update: {
           constitution_id?: string
           herb_id?: string
           link_id?: number
           notes?: string | null
+          primary_citation?: Json | null
+          provenance?: string
           relationship?: string | null
+          secondary_citation?: Json | null
           strength_of_indication?: string | null
+          surfaced?: boolean
         }
         Relationships: [
           {
@@ -901,6 +1342,13 @@ export type Database = {
             columns: ["constitution_id"]
             isOneToOne: false
             referencedRelation: "constitutions"
+            referencedColumns: ["constitution_id"]
+          },
+          {
+            foreignKeyName: "herbs_constitutions_constitution_id_fkey"
+            columns: ["constitution_id"]
+            isOneToOne: false
+            referencedRelation: "western_temperaments_v"
             referencedColumns: ["constitution_id"]
           },
           {
@@ -939,21 +1387,33 @@ export type Database = {
           herb_id: string
           link_id: number
           notes: string | null
+          primary_citation: Json | null
+          provenance: string
+          secondary_citation: Json | null
           strength_of_indication: string | null
+          surfaced: boolean
         }
         Insert: {
           dosha_id: string
           herb_id: string
           link_id?: number
           notes?: string | null
+          primary_citation?: Json | null
+          provenance?: string
+          secondary_citation?: Json | null
           strength_of_indication?: string | null
+          surfaced?: boolean
         }
         Update: {
           dosha_id?: string
           herb_id?: string
           link_id?: number
           notes?: string | null
+          primary_citation?: Json | null
+          provenance?: string
+          secondary_citation?: Json | null
           strength_of_indication?: string | null
+          surfaced?: boolean
         }
         Relationships: [
           {
@@ -999,21 +1459,33 @@ export type Database = {
           herb_id: string
           link_id: number
           notes: string | null
+          primary_citation: Json | null
+          provenance: string
+          secondary_citation: Json | null
           strength_of_indication: string | null
+          surfaced: boolean
         }
         Insert: {
           dosha_id: string
           herb_id: string
           link_id?: number
           notes?: string | null
+          primary_citation?: Json | null
+          provenance?: string
+          secondary_citation?: Json | null
           strength_of_indication?: string | null
+          surfaced?: boolean
         }
         Update: {
           dosha_id?: string
           herb_id?: string
           link_id?: number
           notes?: string | null
+          primary_citation?: Json | null
+          provenance?: string
+          secondary_citation?: Json | null
           strength_of_indication?: string | null
+          surfaced?: boolean
         }
         Relationships: [
           {
@@ -1050,6 +1522,90 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "herbs_public"
             referencedColumns: ["herb_id"]
+          },
+        ]
+      }
+      herbs_eden_patterns: {
+        Row: {
+          aggravating_axes: number
+          created_at: string
+          derivation: string
+          herb_id: string
+          link_id: number
+          pattern_id: string
+          primary_citation: Json | null
+          rationale: string | null
+          rebalancing_axes: number
+          relationship: string
+          secondary_citation: Json | null
+          surfaced: boolean
+          updated_at: string
+        }
+        Insert: {
+          aggravating_axes?: number
+          created_at?: string
+          derivation?: string
+          herb_id: string
+          link_id?: never
+          pattern_id: string
+          primary_citation?: Json | null
+          rationale?: string | null
+          rebalancing_axes?: number
+          relationship: string
+          secondary_citation?: Json | null
+          surfaced?: boolean
+          updated_at?: string
+        }
+        Update: {
+          aggravating_axes?: number
+          created_at?: string
+          derivation?: string
+          herb_id?: string
+          link_id?: never
+          pattern_id?: string
+          primary_citation?: Json | null
+          rationale?: string | null
+          rebalancing_axes?: number
+          relationship?: string
+          secondary_citation?: Json | null
+          surfaced?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "herbs_eden_patterns_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
+            referencedRelation: "herbs"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "herbs_eden_patterns_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
+            referencedRelation: "herbs_clinical_v"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "herbs_eden_patterns_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
+            referencedRelation: "herbs_directory_v"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "herbs_eden_patterns_herb_id_fkey"
+            columns: ["herb_id"]
+            isOneToOne: false
+            referencedRelation: "herbs_public"
+            referencedColumns: ["herb_id"]
+          },
+          {
+            foreignKeyName: "herbs_eden_patterns_pattern_id_fkey"
+            columns: ["pattern_id"]
+            isOneToOne: false
+            referencedRelation: "eden_patterns"
+            referencedColumns: ["pattern_id"]
           },
         ]
       }
@@ -1233,21 +1789,33 @@ export type Database = {
           link_id: number
           notes: string | null
           pattern_id: string
+          primary_citation: Json | null
+          provenance: string
+          secondary_citation: Json | null
           strength_of_indication: string | null
+          surfaced: boolean
         }
         Insert: {
           herb_id: string
           link_id?: number
           notes?: string | null
           pattern_id: string
+          primary_citation?: Json | null
+          provenance?: string
+          secondary_citation?: Json | null
           strength_of_indication?: string | null
+          surfaced?: boolean
         }
         Update: {
           herb_id?: string
           link_id?: number
           notes?: string | null
           pattern_id?: string
+          primary_citation?: Json | null
+          provenance?: string
+          secondary_citation?: Json | null
           strength_of_indication?: string | null
+          surfaced?: boolean
         }
         Relationships: [
           {
@@ -1293,21 +1861,33 @@ export type Database = {
           link_id: number
           notes: string | null
           pattern_id: string
+          primary_citation: Json | null
+          provenance: string
+          secondary_citation: Json | null
           strength_of_indication: string | null
+          surfaced: boolean
         }
         Insert: {
           herb_id: string
           link_id?: number
           notes?: string | null
           pattern_id: string
+          primary_citation?: Json | null
+          provenance?: string
+          secondary_citation?: Json | null
           strength_of_indication?: string | null
+          surfaced?: boolean
         }
         Update: {
           herb_id?: string
           link_id?: number
           notes?: string | null
           pattern_id?: string
+          primary_citation?: Json | null
+          provenance?: string
+          secondary_citation?: Json | null
           strength_of_indication?: string | null
+          surfaced?: boolean
         }
         Relationships: [
           {
@@ -1485,6 +2065,48 @@ export type Database = {
         }
         Relationships: []
       }
+      launch_email_queue: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          first_name: string | null
+          id: string
+          recipient_email: string
+          retry_count: number
+          scheduled_for: string
+          sent_at: string | null
+          sequence_position: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          first_name?: string | null
+          id?: string
+          recipient_email: string
+          retry_count?: number
+          scheduled_for: string
+          sent_at?: string | null
+          sequence_position: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          first_name?: string | null
+          id?: string
+          recipient_email?: string
+          retry_count?: number
+          scheduled_for?: string
+          sent_at?: string | null
+          sequence_position?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       magnet_email_queue: {
         Row: {
           band: string
@@ -1530,6 +2152,54 @@ export type Database = {
         }
         Relationships: []
       }
+      message_log: {
+        Row: {
+          channel: string
+          created_at: string
+          id: string
+          order_id: string
+          provider_id: string | null
+          status: string
+          template_key: string
+          triggered_by_status: Database["public"]["Enums"]["order_status"]
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          id?: string
+          order_id: string
+          provider_id?: string | null
+          status: string
+          template_key: string
+          triggered_by_status: Database["public"]["Enums"]["order_status"]
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          id?: string
+          order_id?: string
+          provider_id?: string | null
+          status?: string
+          template_key?: string
+          triggered_by_status?: Database["public"]["Enums"]["order_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_log_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_log_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "preorder_broadcast_list"
+            referencedColumns: ["order_id"]
+          },
+        ]
+      }
       nurture_email_queue: {
         Row: {
           constitution_pattern: string | null
@@ -1572,6 +2242,142 @@ export type Database = {
         }
         Relationships: []
       }
+      order_items: {
+        Row: {
+          created_at: string
+          id: string
+          is_founding: boolean
+          order_id: string
+          product_id: string
+          quantity: number
+          unit_price_cents: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_founding?: boolean
+          order_id: string
+          product_id: string
+          quantity?: number
+          unit_price_cents: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_founding?: boolean
+          order_id?: string
+          product_id?: string
+          quantity?: number
+          unit_price_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "preorder_broadcast_list"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          accepted_founding_member: boolean
+          accepted_ship_window: boolean
+          accepted_ship_window_text: string | null
+          amount_total_cents: number | null
+          created_at: string
+          currency: string | null
+          customer_email: string | null
+          customer_phone: string | null
+          disclaimer_accepted_at: string | null
+          id: string
+          is_preorder: boolean
+          lookup_key: string
+          payment_status: string | null
+          product_label: string | null
+          quantity: number
+          raw: Json | null
+          shipping_address: Json | null
+          shipping_name: string | null
+          sms_consent: boolean
+          status: Database["public"]["Enums"]["order_status"]
+          stripe_checkout_session_id: string
+          stripe_customer_id: string | null
+          stripe_payment_intent_id: string | null
+          tax_cents: number | null
+          updated_at: string
+        }
+        Insert: {
+          accepted_founding_member?: boolean
+          accepted_ship_window?: boolean
+          accepted_ship_window_text?: string | null
+          amount_total_cents?: number | null
+          created_at?: string
+          currency?: string | null
+          customer_email?: string | null
+          customer_phone?: string | null
+          disclaimer_accepted_at?: string | null
+          id?: string
+          is_preorder?: boolean
+          lookup_key: string
+          payment_status?: string | null
+          product_label?: string | null
+          quantity?: number
+          raw?: Json | null
+          shipping_address?: Json | null
+          shipping_name?: string | null
+          sms_consent?: boolean
+          status?: Database["public"]["Enums"]["order_status"]
+          stripe_checkout_session_id: string
+          stripe_customer_id?: string | null
+          stripe_payment_intent_id?: string | null
+          tax_cents?: number | null
+          updated_at?: string
+        }
+        Update: {
+          accepted_founding_member?: boolean
+          accepted_ship_window?: boolean
+          accepted_ship_window_text?: string | null
+          amount_total_cents?: number | null
+          created_at?: string
+          currency?: string | null
+          customer_email?: string | null
+          customer_phone?: string | null
+          disclaimer_accepted_at?: string | null
+          id?: string
+          is_preorder?: boolean
+          lookup_key?: string
+          payment_status?: string | null
+          product_label?: string | null
+          quantity?: number
+          raw?: Json | null
+          shipping_address?: Json | null
+          shipping_name?: string | null
+          sms_consent?: boolean
+          status?: Database["public"]["Enums"]["order_status"]
+          stripe_checkout_session_id?: string
+          stripe_customer_id?: string | null
+          stripe_payment_intent_id?: string | null
+          tax_cents?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       page_views: {
         Row: {
           id: string
@@ -1607,6 +2413,169 @@ export type Database = {
           visitor_hash?: string | null
         }
         Relationships: []
+      }
+      partner_inquiries: {
+        Row: {
+          audience_size: string | null
+          auth_user_id: string | null
+          context: Json
+          created_at: string
+          email: string
+          group_size: number | null
+          id: string
+          inquiry_type: string
+          message: string | null
+          name: string
+          org_name: string | null
+          source_page: string | null
+          status: string
+          website: string | null
+        }
+        Insert: {
+          audience_size?: string | null
+          auth_user_id?: string | null
+          context?: Json
+          created_at?: string
+          email: string
+          group_size?: number | null
+          id?: string
+          inquiry_type: string
+          message?: string | null
+          name: string
+          org_name?: string | null
+          source_page?: string | null
+          status?: string
+          website?: string | null
+        }
+        Update: {
+          audience_size?: string | null
+          auth_user_id?: string | null
+          context?: Json
+          created_at?: string
+          email?: string
+          group_size?: number | null
+          id?: string
+          inquiry_type?: string
+          message?: string | null
+          name?: string
+          org_name?: string | null
+          source_page?: string | null
+          status?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
+      partner_referrals: {
+        Row: {
+          coupon_id: string | null
+          customer_email: string | null
+          first_seen_at: string
+          id: string
+          lookup_key: string | null
+          promo_code: string
+          promo_code_id: string | null
+          status: string | null
+          subscription_id: string
+          tier: string | null
+          updated_at: string
+        }
+        Insert: {
+          coupon_id?: string | null
+          customer_email?: string | null
+          first_seen_at?: string
+          id?: string
+          lookup_key?: string | null
+          promo_code: string
+          promo_code_id?: string | null
+          status?: string | null
+          subscription_id: string
+          tier?: string | null
+          updated_at?: string
+        }
+        Update: {
+          coupon_id?: string | null
+          customer_email?: string | null
+          first_seen_at?: string
+          id?: string
+          lookup_key?: string | null
+          promo_code?: string
+          promo_code_id?: string | null
+          status?: string | null
+          subscription_id?: string
+          tier?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      person_profile_constitutions: {
+        Row: {
+          adjusted_by: string | null
+          adjustment_note: string | null
+          completion_id: string | null
+          confidence: number | null
+          framework: string
+          id: string
+          pattern_id: string
+          person_profile_id: string
+          reading_kind: string
+          recorded_at: string
+          role: string
+          score: number | null
+          updated_at: string
+        }
+        Insert: {
+          adjusted_by?: string | null
+          adjustment_note?: string | null
+          completion_id?: string | null
+          confidence?: number | null
+          framework: string
+          id?: string
+          pattern_id: string
+          person_profile_id: string
+          reading_kind?: string
+          recorded_at?: string
+          role: string
+          score?: number | null
+          updated_at?: string
+        }
+        Update: {
+          adjusted_by?: string | null
+          adjustment_note?: string | null
+          completion_id?: string | null
+          confidence?: number | null
+          framework?: string
+          id?: string
+          pattern_id?: string
+          person_profile_id?: string
+          reading_kind?: string
+          recorded_at?: string
+          role?: string
+          score?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "person_profile_constitutions_completion_id_fkey"
+            columns: ["completion_id"]
+            isOneToOne: false
+            referencedRelation: "diagnostic_completions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "person_profile_constitutions_person_profile_id_fkey"
+            columns: ["person_profile_id"]
+            isOneToOne: false
+            referencedRelation: "diagnostic_profile_v"
+            referencedColumns: ["person_profile_id"]
+          },
+          {
+            foreignKeyName: "person_profile_constitutions_person_profile_id_fkey"
+            columns: ["person_profile_id"]
+            isOneToOne: false
+            referencedRelation: "person_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       person_profile_tissue_states: {
         Row: {
@@ -1747,7 +2716,15 @@ export type Database = {
             | Database["public"]["Enums"]["vital_force_reading_type"]
             | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "person_profiles_eden_constitution_fkey"
+            columns: ["eden_constitution"]
+            isOneToOne: false
+            referencedRelation: "eden_patterns"
+            referencedColumns: ["slug"]
+          },
+        ]
       }
       preparations: {
         Row: {
@@ -1764,6 +2741,60 @@ export type Database = {
           description?: string | null
           prep_id?: string
           preparation_name?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          active: boolean
+          created_at: string
+          founding_price_cents: number
+          founding_qty_limit: number | null
+          founding_until: string | null
+          id: string
+          is_preorder: boolean
+          name: string
+          product_type: string
+          retail_price_cents: number
+          ships_on: string | null
+          sku: string
+          stripe_founding_price_id: string | null
+          stripe_retail_price_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          founding_price_cents: number
+          founding_qty_limit?: number | null
+          founding_until?: string | null
+          id?: string
+          is_preorder?: boolean
+          name: string
+          product_type: string
+          retail_price_cents: number
+          ships_on?: string | null
+          sku: string
+          stripe_founding_price_id?: string | null
+          stripe_retail_price_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          founding_price_cents?: number
+          founding_qty_limit?: number | null
+          founding_until?: string | null
+          id?: string
+          is_preorder?: boolean
+          name?: string
+          product_type?: string
+          retail_price_cents?: number
+          ships_on?: string | null
+          sku?: string
+          stripe_founding_price_id?: string | null
+          stripe_retail_price_id?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1818,6 +2849,30 @@ export type Database = {
           subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      quiz_banks: {
+        Row: {
+          active: boolean
+          bank: Json
+          created_at: string
+          title: string
+          version: string
+        }
+        Insert: {
+          active?: boolean
+          bank: Json
+          created_at?: string
+          title: string
+          version: string
+        }
+        Update: {
+          active?: boolean
+          bank?: Json
+          created_at?: string
+          title?: string
+          version?: string
         }
         Relationships: []
       }
@@ -2032,6 +3087,303 @@ export type Database = {
           year?: string | null
         }
         Relationships: []
+      }
+      stripe_events: {
+        Row: {
+          error: string | null
+          event_id: string
+          payload: Json | null
+          processed_at: string | null
+          received_at: string
+          status: string
+          type: string
+        }
+        Insert: {
+          error?: string | null
+          event_id: string
+          payload?: Json | null
+          processed_at?: string | null
+          received_at?: string
+          status?: string
+          type: string
+        }
+        Update: {
+          error?: string | null
+          event_id?: string
+          payload?: Json | null
+          processed_at?: string | null
+          received_at?: string
+          status?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      studio_asset_transforms: {
+        Row: {
+          asset_id: string
+          color_adjust: Json
+          created_at: string
+          crop: Json
+          id: string
+          opacity: number
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          asset_id: string
+          color_adjust?: Json
+          created_at?: string
+          crop?: Json
+          id?: string
+          opacity?: number
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          asset_id?: string
+          color_adjust?: Json
+          created_at?: string
+          crop?: Json
+          id?: string
+          opacity?: number
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_asset_transforms_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "studio_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_asset_transforms_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "studio_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_asset_versions: {
+        Row: {
+          asset_id: string
+          created_at: string
+          id: string
+          source: string
+          storage_path: string
+          version_number: number
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          id?: string
+          source: string
+          storage_path: string
+          version_number: number
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          id?: string
+          source?: string
+          storage_path?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_asset_versions_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "studio_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_assets: {
+        Row: {
+          ai_prompt: string | null
+          campaign_tag: string
+          created_at: string
+          created_by: string
+          filename: string
+          id: string
+          kind: string
+          mime_type: string | null
+          project_id: string | null
+          size_bytes: number | null
+          source: string
+          storage_path: string
+        }
+        Insert: {
+          ai_prompt?: string | null
+          campaign_tag?: string
+          created_at?: string
+          created_by: string
+          filename: string
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          project_id?: string | null
+          size_bytes?: number | null
+          source?: string
+          storage_path: string
+        }
+        Update: {
+          ai_prompt?: string | null
+          campaign_tag?: string
+          created_at?: string
+          created_by?: string
+          filename?: string
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          project_id?: string | null
+          size_bytes?: number | null
+          source?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_assets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "studio_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_brand_tokens: {
+        Row: {
+          id: string
+          kind: string
+          label: string
+          sort_order: number
+          token_key: string
+          usage: string | null
+          value: string
+        }
+        Insert: {
+          id?: string
+          kind: string
+          label: string
+          sort_order?: number
+          token_key: string
+          usage?: string | null
+          value: string
+        }
+        Update: {
+          id?: string
+          kind?: string
+          label?: string
+          sort_order?: number
+          token_key?: string
+          usage?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
+      studio_canva_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          expires_at: string
+          id: string
+          refresh_token: string
+          scope: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          refresh_token: string
+          scope?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          refresh_token?: string
+          scope?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      studio_projects: {
+        Row: {
+          ad_type: string
+          campaign_tag: string
+          canva_asset_id: string | null
+          canva_design_id: string | null
+          canva_edit_url: string | null
+          canva_synced_at: string | null
+          created_at: string
+          created_by: string
+          current_step: number
+          id: string
+          platforms: string[]
+          product: string
+          slides: Json
+          state: Json
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          ad_type?: string
+          campaign_tag?: string
+          canva_asset_id?: string | null
+          canva_design_id?: string | null
+          canva_edit_url?: string | null
+          canva_synced_at?: string | null
+          created_at?: string
+          created_by: string
+          current_step?: number
+          id?: string
+          platforms?: string[]
+          product?: string
+          slides?: Json
+          state?: Json
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          ad_type?: string
+          campaign_tag?: string
+          canva_asset_id?: string | null
+          canva_design_id?: string | null
+          canva_edit_url?: string | null
+          canva_synced_at?: string | null
+          created_at?: string
+          created_by?: string
+          current_step?: number
+          id?: string
+          platforms?: string[]
+          product?: string
+          slides?: Json
+          state?: Json
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_projects_canva_asset_id_fkey"
+            columns: ["canva_asset_id"]
+            isOneToOne: false
+            referencedRelation: "studio_assets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subscription_events: {
         Row: {
@@ -2299,6 +3651,34 @@ export type Database = {
           },
         ]
       }
+      crm_people: {
+        Row: {
+          bought_course: boolean | null
+          bought_guide: boolean | null
+          email: string | null
+          entry_funnel: string | null
+          first_name: string | null
+          first_seen: string | null
+          homeschool_bands: string | null
+          is_founding_member: boolean | null
+          last_name: string | null
+          magnet_sent: number | null
+          nurture_pos: number | null
+          nurture_sent: number | null
+          quiz_at: string | null
+          quiz_pattern: string | null
+          source: string | null
+          stage: string | null
+          subscription_status: string | null
+          subscription_tier:
+            | Database["public"]["Enums"]["subscription_tier"]
+            | null
+          unsubscribed: boolean | null
+          utm_campaign: string | null
+          utm_source: string | null
+        }
+        Relationships: []
+      }
       diagnostic_profile_v: {
         Row: {
           diagnostic_completed_at: string | null
@@ -2342,7 +3722,15 @@ export type Database = {
             | Database["public"]["Enums"]["vital_force_reading_type"]
             | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "person_profiles_eden_constitution_fkey"
+            columns: ["pattern"]
+            isOneToOne: false
+            referencedRelation: "eden_patterns"
+            referencedColumns: ["slug"]
+          },
+        ]
       }
       herbs_clinical_v: {
         Row: {
@@ -2586,7 +3974,7 @@ export type Database = {
           image_filename?: string | null
           is_locked?: never
           latin_name?: string | null
-          moisture?: never
+          moisture?: string | null
           notes?: never
           part_used?: string | null
           plant_family?: string | null
@@ -2609,7 +3997,7 @@ export type Database = {
           tcm_contraindicated_rel?: never
           tcm_indicated_rel?: never
           tcm_pattern_match?: never
-          temperature?: never
+          temperature?: string | null
           tier_visibility?:
             | Database["public"]["Enums"]["subscription_tier"]
             | null
@@ -2644,7 +4032,7 @@ export type Database = {
           image_filename?: string | null
           is_locked?: never
           latin_name?: string | null
-          moisture?: never
+          moisture?: string | null
           notes?: never
           part_used?: string | null
           plant_family?: string | null
@@ -2667,7 +4055,7 @@ export type Database = {
           tcm_contraindicated_rel?: never
           tcm_indicated_rel?: never
           tcm_pattern_match?: never
-          temperature?: never
+          temperature?: string | null
           tier_visibility?:
             | Database["public"]["Enums"]["subscription_tier"]
             | null
@@ -2755,6 +4143,39 @@ export type Database = {
         }
         Relationships: []
       }
+      preorder_broadcast_list: {
+        Row: {
+          created_at: string | null
+          customer_email: string | null
+          customer_phone: string | null
+          order_id: string | null
+          product_label: string | null
+          shipping_name: string | null
+          sms_consent: boolean | null
+          status: Database["public"]["Enums"]["order_status"] | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_email?: string | null
+          customer_phone?: string | null
+          order_id?: string | null
+          product_label?: string | null
+          shipping_name?: string | null
+          sms_consent?: boolean | null
+          status?: Database["public"]["Enums"]["order_status"] | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_email?: string | null
+          customer_phone?: string | null
+          order_id?: string | null
+          product_label?: string | null
+          shipping_name?: string | null
+          sms_consent?: boolean | null
+          status?: Database["public"]["Enums"]["order_status"] | null
+        }
+        Relationships: []
+      }
       quiz_completion_failure_stats: {
         Row: {
           last_24h_count: number | null
@@ -2789,6 +4210,42 @@ export type Database = {
         }
         Relationships: []
       }
+      v_disagreement_analytics: {
+        Row: {
+          axis: string | null
+          first_seen: string | null
+          framework: string | null
+          last_seen: string | null
+          occurrences: number | null
+          pattern_id: string | null
+          quiz_version: string | null
+        }
+        Relationships: []
+      }
+      v_herb_conflict_pairs: {
+        Row: {
+          avoid_framework: string | null
+          avoid_pattern: string | null
+          herb_id: string | null
+          match_framework: string | null
+          match_pattern: string | null
+        }
+        Relationships: []
+      }
+      v_herb_lens_verdicts: {
+        Row: {
+          framework: string | null
+          herb_id: string | null
+          lock44_label: string | null
+          note: string | null
+          pattern_id: string | null
+          primary_citation: Json | null
+          provenance: string | null
+          secondary_citation: Json | null
+          verdict: string | null
+        }
+        Relationships: []
+      }
       v_lead_magnet_stats: {
         Row: {
           capture_day: string | null
@@ -2798,14 +4255,112 @@ export type Database = {
         }
         Relationships: []
       }
+      western_temperaments_v: {
+        Row: {
+          constitution_id: string | null
+          description: string | null
+          name: string | null
+        }
+        Insert: {
+          constitution_id?: string | null
+          description?: string | null
+          name?: string | null
+        }
+        Update: {
+          constitution_id?: string | null
+          description?: string | null
+          name?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      clinical_case_file: {
+        Args: { p_person_profile_id: string; p_practitioner: string }
+        Returns: Json
+      }
+      clinical_encounter_ack_refer_out: {
+        Args: { p_id: string; p_note: string; p_practitioner: string }
+        Returns: Json
+      }
+      clinical_encounter_upsert: {
+        Args: {
+          p_breastfeeding: boolean
+          p_chief_complaint_id: string
+          p_chief_complaint_text: string
+          p_id: string
+          p_person_profile_id: string
+          p_practitioner: string
+          p_pregnant: boolean
+          p_soap: Json
+          p_status: string
+          p_trigger_ids: string[]
+        }
+        Returns: Json
+      }
+      clinical_encounters_for_profile: {
+        Args: { p_person_profile_id: string; p_practitioner: string }
+        Returns: Json
+      }
+      clinical_formularies_list: {
+        Args: { p_person_profile_id?: string; p_practitioner: string }
+        Returns: Json
+      }
+      clinical_formulary_save: {
+        Args: {
+          p_id: string
+          p_items: Json
+          p_name: string
+          p_notes: string
+          p_person_profile_id: string
+          p_practitioner: string
+        }
+        Returns: Json
+      }
       current_tier: {
         Args: never
         Returns: Database["public"]["Enums"]["subscription_tier"]
       }
       current_user_at_least: { Args: { min_tier: string }; Returns: boolean }
       current_user_tier: { Args: never; Returns: string }
+      eden_classify_moisture: { Args: { value: string }; Returns: string }
+      eden_classify_temperature: { Args: { value: string }; Returns: string }
+      eden_classify_tone: { Args: { value: string }; Returns: string }
+      eden_pattern_canonical_slug: { Args: { raw: string }; Returns: string }
+      feedback_merge: {
+        Args: { p_canonical: string; p_duplicate: string }
+        Returns: undefined
+      }
+      feedback_promote: { Args: { p_id: string }; Returns: string }
+      feedback_triage: {
+        Args: {
+          p_effort?: number
+          p_id: string
+          p_impact_score?: number
+          p_reach?: number
+          p_status: string
+        }
+        Returns: undefined
+      }
+      founder_crm_feed: {
+        Args: { p_since?: string }
+        Returns: {
+          email: string
+          first_name: string
+          first_seen: string
+          homeschool_bands: string
+          last_name: string
+          quiz_pattern: string
+          source: string
+          stage: string
+          subscription_status: string
+          unsubscribed: boolean
+          utm_source: string
+        }[]
+      }
+      founder_crm_summary: { Args: { p_since?: string }; Returns: Json }
+      founder_email_engagement: { Args: { p_since: string }; Returns: Json }
+      founder_funnel: { Args: { p_since?: string }; Returns: Json }
       founder_lead_feed: {
         Args: { p_since?: string }
         Returns: {
@@ -2820,7 +4375,11 @@ export type Database = {
           utm_source: string
         }[]
       }
+      founder_lead_summary: { Args: { p_since?: string }; Returns: Json }
+      founder_orders: { Args: { p_since: string }; Returns: Json }
+      founder_revenue: { Args: { p_since: string }; Returns: Json }
       founder_traffic: { Args: { p_since?: string }; Returns: Json }
+      founding_units_sold: { Args: { p_product_id: string }; Returns: number }
       has_tier: {
         Args: { required: Database["public"]["Enums"]["subscription_tier"] }
         Returns: boolean
@@ -2841,6 +4400,28 @@ export type Database = {
         }[]
       }
       person_profile_cap_for_tier: { Args: { tier: string }; Returns: number }
+      pocket_materia_medica: {
+        Args: {
+          p_encounter_id: string
+          p_framework?: string
+          p_pattern_id?: string
+          p_person_profile_id: string
+        }
+        Returns: Json
+      }
+      profile_herb_lens_verdicts: {
+        Args: { p_profile_id: string }
+        Returns: {
+          badge: string
+          has_conflict: boolean
+          herb_id: string
+          verdicts: Json
+        }[]
+      }
+      record_cta_click: {
+        Args: { p_cta: string; p_lookup_key?: string; p_path?: string }
+        Returns: undefined
+      }
       record_page_view: {
         Args: {
           p_path: string
@@ -2897,6 +4478,15 @@ export type Database = {
         | "compound_dyskrasia_hot_wet"
         | "compound_dyskrasia_cold_dry"
         | "compound_dyskrasia_cold_wet"
+      order_status:
+        | "paid"
+        | "preorder_hold"
+        | "ready_to_fulfill"
+        | "label_created"
+        | "shipped"
+        | "delivered"
+        | "cancelled"
+        | "refunded"
       profile_kind_enum: "adult" | "child"
       public_domain_flag: "yes" | "no" | "partial"
       severity_level: "low" | "moderate" | "high" | "absolute"
@@ -3027,6 +4617,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       biological_sex_enum: ["male", "female"],
@@ -3059,6 +4652,16 @@ export const Constants = {
         "compound_dyskrasia_hot_wet",
         "compound_dyskrasia_cold_dry",
         "compound_dyskrasia_cold_wet",
+      ],
+      order_status: [
+        "paid",
+        "preorder_hold",
+        "ready_to_fulfill",
+        "label_created",
+        "shipped",
+        "delivered",
+        "cancelled",
+        "refunded",
       ],
       profile_kind_enum: ["adult", "child"],
       public_domain_flag: ["yes", "no", "partial"],

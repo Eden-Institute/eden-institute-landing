@@ -27,6 +27,7 @@ import HomeschoolWelcome from "./pages/HomeschoolWelcome";
 import Community from "./pages/Community";
 import TierTwoWaitlist from "./pages/TierTwoWaitlist";
 import FounderLeads from "./pages/FounderLeads";
+import Studio from "./pages/Studio";
 import PractitionerClinic from "./pages/PractitionerClinic";
 import { ApothecaryLayout } from "@/components/apothecary/ApothecaryLayout";
 import { RequireAuth } from "@/components/apothecary/RequireAuth";
@@ -141,6 +142,16 @@ const App = () => (
                 element={
                   <RequireAuth>
                     <FounderLeads />
+                  </RequireAuth>
+                }
+              />
+              {/* Founder ad workroom. Client-side only (no RPCs); the founder
+                  email gate lives inside the page, mirroring /founder. */}
+              <Route
+                path={ROUTES.FOUNDER_STUDIO}
+                element={
+                  <RequireAuth>
+                    <Studio />
                   </RequireAuth>
                 }
               />
