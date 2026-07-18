@@ -1,13 +1,16 @@
 // Persistence for /studio campaign projects (Ad Studio Phase 1).
 //
-// TYPING NOTE: src/integrations/supabase/types.ts is generated and currently
-// stale (it predates ~20 tables in the live schema, including orders/products
-// and this one). Regenerating it here would bury this PR under thousands of
-// unrelated lines, so studio_projects is typed by hand at this boundary and the
-// untyped client is cast once, in this file only. Every caller below is fully
-// type-checked. Regenerating types.ts is worth its own housekeeping PR.
+// The client is fully typed here: PR #286 regenerated types.ts, so the cast
+// this file used to carry is gone.
+//
+// One narrowing remains and is deliberate. Postgres jsonb generates as `Json`,
+// which is true but useless to callers: `state` and `slides` have real shapes
+// that the studio depends on. StudioProject re-types those two fields, and
+// toProject() is the single place the widening is undone, so every caller below
+// gets StudioStateBlob and StudioSlide[] instead of Json.
 
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import type { StudioSlide, StudioStateBlob } from "./studio-types";
 
 const TABLE = "studio_projects";
@@ -46,9 +49,19 @@ export interface StudioProjectPatch {
   status?: StudioProject["status"];
 }
 
-// The single cast. See TYPING NOTE above.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const from = () => (supabase as any).from(TABLE);
+const from = () => supabase.from(TABLE);
+
+/** Undo the jsonb-to-Json widening in exactly one place. */
+function toProject(row: {
+  state: Json; slides: Json; status: string; [k: string]: unknown;
+}): StudioProject {
+  return {
+    ...row,
+    state: (row.state ?? {}) as StudioStateBlob,
+    slides: (row.slides ?? []) as unknown as StudioSlide[],
+    status: row.status as StudioProject["status"],
+  } as StudioProject;
+}
 
 export async function listProjects(): Promise<StudioProject[]> {
   const { data, error } = await from()
@@ -56,13 +69,13 @@ export async function listProjects(): Promise<StudioProject[]> {
     .order("updated_at", { ascending: false })
     .limit(100);
   if (error) throw error;
-  return (data ?? []) as StudioProject[];
+  return (data ?? []).map(toProject);
 }
 
 export async function getProject(id: string): Promise<StudioProject> {
   const { data, error } = await from().select("*").eq("id", id).single();
   if (error) throw error;
-  return data as StudioProject;
+  return toProject(data);
 }
 
 export async function createProject(input: NewStudioProject): Promise<StudioProject> {
@@ -90,16 +103,23 @@ export async function createProject(input: NewStudioProject): Promise<StudioProj
     .select("*")
     .single();
   if (error) throw error;
-  return data as StudioProject;
+  return toProject(data);
 }
 
 export async function saveProject(
   id: string,
   patch: StudioProjectPatch,
 ): Promise<StudioProject> {
-  const { data, error } = await from().update(patch).eq("id", id).select("*").single();
+  const { data, error } = await from()
+    // state/slides are typed shapes here and jsonb in Postgres. The generated
+    // Json type demands an index signature that a precise interface will never
+    // have, so the widening has to go through unknown.
+    .update(patch as unknown as { state?: Json; slides?: Json })
+    .eq("id", id)
+    .select("*")
+    .single();
   if (error) throw error;
-  return data as StudioProject;
+  return toProject(data);
 }
 
 export async function deleteProject(id: string): Promise<void> {

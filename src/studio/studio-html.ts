@@ -110,6 +110,42 @@ export const STUDIO_HTML = `
           <p class="subnote" id="aiStatus" style="min-height:16px;margin:8px 0 0"></p>
         </div>
       </div>
+      <!-- Your words first. The founder writes; the model edits her copy for
+           conversion without being allowed to introduce new claims. -->
+      <div class="panel" id="ownPanel" style="margin-bottom:14px">
+        <div class="panel-h">
+          <h2>Write It Yourself</h2>
+          <span class="note">your words, sharpened</span>
+        </div>
+        <div class="panel-b">
+          <p class="subnote" style="margin:0 0 10px">
+            Write the ad however you want, rough is fine. The editor keeps your substance and claims, and works on hook, specificity, and close.
+          </p>
+          <label class="own-label" for="ownPrimary">Primary text</label>
+          <textarea id="ownPrimary" class="own-input" rows="7"
+            placeholder="Say it the way you would say it to a friend."></textarea>
+          <div class="own-row">
+            <div>
+              <label class="own-label" for="ownHeadline">Headline <span class="own-cap" id="ownHeadCap">0/40</span></label>
+              <input id="ownHeadline" class="own-input" type="text" maxlength="80" />
+            </div>
+            <div>
+              <label class="own-label" for="ownDesc">Description <span class="own-cap" id="ownDescCap">0/30</span></label>
+              <input id="ownDesc" class="own-input" type="text" maxlength="80" />
+            </div>
+          </div>
+          <label class="own-label" for="ownNote">Anything else the editor should know (optional)</label>
+          <input id="ownNote" class="own-input" type="text"
+            placeholder="e.g. keep the second paragraph exactly as written" />
+          <div class="own-actions">
+            <button class="genbtn own-btn" id="ownSharpen" type="button" data-own="sharpen">Sharpen This</button>
+            <button class="genbtn own-btn" id="ownVary" type="button" data-own="variations">Three Ways</button>
+            <button class="genbtn own-btn ghost" id="ownDiag" type="button" data-own="diagnose">Diagnose Only</button>
+          </div>
+          <p class="subnote" id="ownStatus" style="min-height:16px;margin:8px 0 0"></p>
+          <div id="ownReport" hidden></div>
+        </div>
+      </div>
       <div class="bench-top">
         <span class="bench-title" id="benchTitle">The Workbench</span>
         <button class="copyall" id="copyAllBtn" type="button" hidden>Copy All Three Variants</button>

@@ -36,6 +36,13 @@ export interface StudioStateBlob {
   };
   variants?: unknown[];
   approved?: unknown[];
+  /** The founder's own draft from the Write It Yourself panel. */
+  own?: {
+    primary?: string;
+    headline?: string;
+    description?: string;
+    note?: string;
+  };
   builder?: {
     tpl?: string;
     size?: string;
