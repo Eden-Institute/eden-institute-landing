@@ -14,6 +14,7 @@ import {
   AD_TYPES, CAMPAIGN_TAGS, PLATFORMS, PRODUCT_CHOICES,
 } from "./studio-types";
 import type { NewStudioProject } from "./studio-db";
+import { STUDIO_TEMPLATES, templateById } from "./studio-templates";
 
 interface Props {
   onCreate: (input: NewStudioProject) => void;
@@ -28,6 +29,19 @@ export default function StudioEntry({ onCreate, onCancel, busy, error }: Props) 
   const [platforms, setPlatforms] = useState<string[]>(["instagram", "facebook"]);
   const [adType, setAdType] = useState<string>("feed");
   const [tag, setTag] = useState<string>("general");
+  const [templateId, setTemplateId] = useState<string | null>(null);
+
+  /** Picking a template moves the form to match it, so what she sees below is
+   *  what she will get. Every field stays editable afterwards. */
+  function applyTemplate(id: string) {
+    const t = templateById(id);
+    if (!t) return;
+    setTemplateId(id);
+    setProduct(t.product);
+    setAdType(t.adType);
+    setTag(t.campaignTag);
+    if (!title.trim()) setTitle(t.name);
+  }
 
   function togglePlatform(id: string) {
     setPlatforms((cur) =>
@@ -58,6 +72,45 @@ export default function StudioEntry({ onCreate, onCancel, busy, error }: Props) 
       </p>
 
       <div className="space-y-8">
+        <section>
+          <Label className="font-accent text-xs tracking-[0.2em] uppercase">
+            Start from a template (optional)
+          </Label>
+          <div className="grid sm:grid-cols-3 gap-2 mt-3">
+            {STUDIO_TEMPLATES.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => applyTemplate(t.id)}
+                className={`text-left rounded-md border px-4 py-3 transition ${
+                  templateId === t.id
+                    ? "border-[hsl(var(--eden-gold))] bg-[hsl(var(--eden-gold))]/10"
+                    : "border-border hover:border-muted-foreground"
+                }`}
+              >
+                <span className="block font-serif text-sm font-semibold">{t.name}</span>
+                <span className="block font-body text-xs text-muted-foreground mt-0.5">
+                  {t.when}
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="font-body text-xs text-muted-foreground mt-2">
+            {templateId
+              ? "Template applied. It fills in structure and prompts, never finished copy, and everything stays editable."
+              : "Templates set the layout and prompt you for the words. Skip this to start blank."}
+            {templateId && (
+              <button
+                type="button"
+                className="ml-2 underline hover:text-foreground"
+                onClick={() => setTemplateId(null)}
+              >
+                Start blank instead
+              </button>
+            )}
+          </p>
+        </section>
+
         <section>
           <Label className="font-accent text-xs tracking-[0.2em] uppercase">
             What are you selling?
@@ -193,6 +246,7 @@ export default function StudioEntry({ onCreate, onCancel, busy, error }: Props) 
               platforms,
               ad_type: adType,
               campaign_tag: tag,
+              state: templateId ? templateById(templateId)?.state : undefined,
             })
           }
         >

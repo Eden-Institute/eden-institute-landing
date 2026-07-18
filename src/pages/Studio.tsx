@@ -23,7 +23,7 @@ import StudioEntry from "@/studio/StudioEntry";
 import StudioProjectList from "@/studio/StudioProjectList";
 import StudioWorkroom from "@/studio/StudioWorkroom";
 import {
-  createProject, deleteProject, listProjects,
+  createProject, deleteProject, duplicateProject, exportCounts, listProjects,
 } from "@/studio/studio-db";
 import type { NewStudioProject, StudioProject } from "@/studio/studio-db";
 import { completeConnect } from "@/studio/studio-canva";
@@ -43,12 +43,18 @@ export default function Studio() {
   const [listError, setListError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  // Phase 8 archive: how many files each project has exported, and which row
+  // is mid-duplicate so its button can show progress.
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     setListError(null);
     try {
       setProjects(await listProjects());
+      // Export counts are decoration: a failure here must not blank the list.
+      try { setCounts(await exportCounts()); } catch { /* leave counts empty */ }
     } catch (err) {
       setListError(
         err instanceof Error ? err.message : "Could not load your campaigns.",
@@ -116,6 +122,23 @@ export default function Studio() {
       setListError(
         err instanceof Error ? err.message : "Could not delete that campaign.",
       );
+    }
+  }
+
+  async function handleDuplicate(p: StudioProject) {
+    setBusyId(p.id);
+    setListError(null);
+    try {
+      const copy = await duplicateProject(p.id);
+      setProjects((cur) => [copy, ...cur]);
+      setActive(copy);
+      setView("work");
+    } catch (err) {
+      setListError(
+        err instanceof Error ? err.message : "Could not duplicate that campaign.",
+      );
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -194,8 +217,11 @@ export default function Studio() {
   return (
     <StudioProjectList
       projects={projects}
+      exportCounts={counts}
+      busyId={busyId}
       loading={loading}
       error={listError}
+      onDuplicate={handleDuplicate}
       onNew={() => setView("new")}
       onOpen={(p) => {
         setActive(p);
