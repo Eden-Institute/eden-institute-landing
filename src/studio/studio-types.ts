@@ -36,6 +36,11 @@ export interface StudioStateBlob {
   };
   variants?: unknown[];
   approved?: unknown[];
+  /** Phase 6: free-placed text layers on the creative. Positions are 0..1
+   *  relative to the canvas so they survive an ad-size change. */
+  layers?: unknown[];
+  /** Phase 6: the caption pasted into Meta, never painted on the image. */
+  caption?: string;
   /** The founder's own draft from the Write It Yourself panel. */
   own?: {
     primary?: string;

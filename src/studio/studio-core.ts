@@ -253,7 +253,8 @@ export function initStudio(
     {lvl:"caution", re:/\btreat(s|ed|ments?)?\b/i, msg:"“Treat” reads as medical. If it isn't about a snack, rephrase (teach, study, steward)."},
     {lvl:"caution", re:/\bremedy for\b/i, msg:"“Remedy for X” edges into prescription language. Keep ads at the framework level."},
     {lvl:"caution", re:/\bheal(s|ing|ed)?\b/i, msg:"Heal language is fine theologically, but keep it general and God-directed, never a promise to the reader."},
-    {lvl:"caution", re:/!{2,}/, msg:"Multiple exclamation marks read as hype. Eden speaks with quiet confidence."},
+    {lvl:"caution", re:/!{2,}/, msg:"Multiple exclamation marks read as hype. Eden speaks with quiet confidence.",
+     fix: (s) => s.replace(/!{2,}/g, "!")},
     {lvl:"voice", re:/\bdetox/i, msg:"“Detox” is on the never-say list (clinically imprecise)."},
     {lvl:"voice", re:/\bvibes?\b/i, msg:"“Vibes” is on the never-say list."},
     {lvl:"voice", re:/\bmanifest/i, msg:"“Manifest” is on the never-say list (New Age framing)."},
@@ -265,7 +266,14 @@ export function initStudio(
     {lvl:"voice", re:/\balternative medicine\b/i, msg:"Say “original medicine,” not “alternative medicine.”"},
     {lvl:"voice", re:/\broot cause\b/i, msg:"Prefer “terrain” over “root cause.”"},
     {lvl:"voice", re:/\bancient wisdom\b/i, msg:"“Ancient wisdom” without attribution is vague. Name the tradition."},
-    {lvl:"voice", re:/—/, msg:"Em dash. Eden copy uses commas and periods instead (house rule)."}
+    /* `fix` marks a rule as mechanically correctable, which is what powers the
+       one-click Fix button. Rules without one need a human rewrite and must
+       never be "fixed" automatically. Nothing is ever changed silently. */
+    {lvl:"voice", re:/—/, msg:"Em dash. Eden copy uses commas and periods instead (house rule).",
+     fix: (s) => s.replace(/\s*—\s*/g, ", ")},
+    {lvl:"voice", re:/–/, msg:"En dash used as punctuation. Use a comma or a period.",
+     fix: (s) => s.replace(/\s*–\s*(?=[A-Za-z])/g, ", ")},
+    {lvl:"voice", re:/ {2,}/, msg:"Double spaces.", fix: (s) => s.replace(/[ \t]{2,}/g, " ")}
   ];
 
   /* ───────────────────────── STATE ───────────────────────── */
@@ -736,8 +744,220 @@ export function initStudio(
     else if (BUILDER.tpl === "forest") drawForest(ctx, s.w, s.h);
     else drawPhoto(ctx, s.w, s.h);
     if (BUILDER.qr && BUILDER.dest) paintQr(ctx, s.w, s.h);
+    drawLayers(ctx, s.w, s.h);
     $("#dlMeta").textContent = s.w+" × "+s.h+" px · "+TEMPLATES[BUILDER.tpl]+" · downloads as PNG";
   }
+
+  /* ── Free-placed text layers (Phase 6) ───────────────────────────────────
+     The templates give fixed zones, which is fast but rigid. Layers sit on top
+     and can be dragged anywhere. Positions are stored 0..1 relative to the
+     canvas so a layer keeps its place when the ad size changes. */
+  const LAYER_FONTS = {
+    display: {name:"Cinzel (display)", css:'"Cinzel Decorative","Cinzel",'+SERIF},
+    serif:   {name:"EB Garamond (body)", css:'"EB Garamond",'+SERIF},
+    mono:    {name:"Mono", css:'ui-monospace,"Cascadia Mono",Consolas,monospace'},
+  };
+  /* Palette is restricted to the locked brand kit on purpose: free placement
+     should not become free colour. */
+  const LAYER_COLORS = [
+    {id:"linen",  name:"Warm Linen",  hex:"#F5EDD6"},
+    {id:"forest", name:"Deep Forest", hex:"#2B3A1E"},
+    {id:"amber",  name:"Golden Amber",hex:"#C5A44E"},
+    {id:"ink",    name:"Near Black",  hex:"#1E1E14"},
+    {id:"cream",  name:"Deep Cream",  hex:"#FAF6EE"},
+  ];
+  /* Fixed template zones, for when placement should be fast rather than free. */
+  const LAYER_ZONES = {
+    top:    {name:"Top third",    y:0.16},
+    center: {name:"Centre",       y:0.50},
+    lower:  {name:"Lower third",  y:0.72},
+    bottom: {name:"Bottom strip", y:0.90},
+  };
+  let LAYERS = [];
+  let layerSel = null;   /* selected layer id */
+  let layerDrag = null;  /* { id, dx, dy } while dragging */
+
+  function layerFont(l){
+    return (l.weight || 700) + " " + Math.round(l.size) + "px " + (LAYER_FONTS[l.font] || LAYER_FONTS.display).css;
+  }
+  /** Bounding box in canvas pixels. Used for both hit-testing and the
+   *  selection outline, so they can never disagree. */
+  function layerBox(ctx, l, w, h){
+    ctx.save();
+    ctx.font = layerFont(l);
+    const lines = String(l.text || "").split("\n");
+    let maxW = 0;
+    for (const ln of lines) maxW = Math.max(maxW, ctx.measureText(ln).width);
+    ctx.restore();
+    const lineH = l.size * 1.18;
+    const boxH = lineH * lines.length;
+    const cx = l.x * w, cy = l.y * h;
+    const left = l.align === "left" ? cx : l.align === "right" ? cx - maxW : cx - maxW / 2;
+    return { left, top: cy - boxH / 2, width: maxW, height: boxH, lines, lineH };
+  }
+  function drawLayers(ctx, w, h){
+    for (const l of LAYERS){
+      if (!String(l.text || "").trim()) continue;
+      const box = layerBox(ctx, l, w, h);
+      ctx.save();
+      ctx.font = layerFont(l);
+      ctx.textAlign = l.align || "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = (LAYER_COLORS.find(c => c.id === l.color) || LAYER_COLORS[0]).hex;
+      if (l.shadow){
+        ctx.shadowColor = "rgba(0,0,0,.55)";
+        ctx.shadowBlur = Math.max(8, l.size * 0.25);
+        ctx.shadowOffsetY = Math.max(2, l.size * 0.06);
+      }
+      const cx = l.x * w;
+      box.lines.forEach((ln, i) => {
+        const y = box.top + box.lineH * (i + 0.5);
+        ctx.fillText(ln, cx, y);
+      });
+      ctx.restore();
+    }
+  }
+  /* Canvas is displayed scaled; map pointer position into canvas pixels or the
+     hit test drifts the moment the preview is not 1:1. */
+  function canvasPoint(e){
+    const cv = $("#adCanvas") as any;
+    const r = cv.getBoundingClientRect();
+    const p = (e.touches && e.touches[0]) || e;
+    return {
+      x: (p.clientX - r.left) * (cv.width / r.width),
+      y: (p.clientY - r.top) * (cv.height / r.height),
+    };
+  }
+  function layerAt(px, py){
+    const cv = $("#adCanvas") as any;
+    const ctx = cv.getContext("2d");
+    /* Topmost first: later layers paint over earlier ones. */
+    for (let i = LAYERS.length - 1; i >= 0; i--){
+      const l = LAYERS[i];
+      if (!String(l.text || "").trim()) continue;
+      const b = layerBox(ctx, l, cv.width, cv.height);
+      const pad = l.size * 0.35;
+      if (px >= b.left - pad && px <= b.left + b.width + pad &&
+          py >= b.top - pad && py <= b.top + b.height + pad) return l;
+    }
+    return null;
+  }
+  function layerPointerDown(e){
+    if (!LAYERS.length) return;
+    const p = canvasPoint(e);
+    const hit = layerAt(p.x, p.y);
+    if (!hit) return;
+    e.preventDefault();
+    const cv = $("#adCanvas") as any;
+    layerSel = hit.id;
+    layerDrag = { id: hit.id, dx: hit.x * cv.width - p.x, dy: hit.y * cv.height - p.y };
+    layerList();
+  }
+  function layerPointerMove(e){
+    if (!layerDrag) return;
+    e.preventDefault();
+    const cv = $("#adCanvas") as any;
+    const p = canvasPoint(e);
+    const l = LAYERS.find(x => x.id === layerDrag.id);
+    if (!l) return;
+    /* Clamp so a layer can never be dragged entirely off the canvas. */
+    l.x = Math.min(Math.max((p.x + layerDrag.dx) / cv.width, 0.02), 0.98);
+    l.y = Math.min(Math.max((p.y + layerDrag.dy) / cv.height, 0.02), 0.98);
+    drawAd();
+  }
+  function layerPointerUp(){ if (layerDrag){ layerDrag = null; layerList(); } }
+
+  /* The label template paints a Warm Linen ground; the forest and photo
+     templates are dark. Defaulting every layer to linen made new text
+     invisible on the label template, so the default follows the ground. */
+  function defaultLayerColor(){
+    return BUILDER.tpl === "label" ? "forest" : "linen";
+  }
+  function layerAdd(text){
+    const id = "L" + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
+    const onLight = BUILDER.tpl === "label";
+    LAYERS.push({
+      id, text: text || "New text", x: 0.5, y: 0.5, size: 64,
+      font: "display", color: defaultLayerColor(), align: "center", weight: 700,
+      /* A drop shadow helps over photography and muddies flat backgrounds. */
+      shadow: !onLight,
+    });
+    layerSel = id;
+    layerList(); drawAd();
+  }
+  function layerSelected(){ return LAYERS.find(l => l.id === layerSel) || null; }
+  function layerPatch(patch){
+    const l = layerSelected(); if (!l) return;
+    Object.assign(l, patch);
+    layerList(); drawAd();
+  }
+  function layerList(){
+    const host = $("#layerList"); if (!host) return;
+    if (!LAYERS.length){
+      host.innerHTML = "<p class='subnote' style='margin:0'>No text layers yet. The template's own headline and subhead still render underneath.</p>";
+      const ed = $("#layerEditor"); if (ed) (ed as any).hidden = true;
+      return;
+    }
+    host.innerHTML = LAYERS.map(l =>
+      "<button class='layerrow" + (l.id === layerSel ? " sel" : "") + "' data-layer='" + esc(l.id) + "' type='button'>" +
+      "<span class='lr-t'>" + esc(String(l.text || "").split("\n")[0].slice(0, 34) || "(empty)") + "</span>" +
+      "<span class='lr-m'>" + Math.round(l.size) + "px · " + esc((LAYER_FONTS[l.font] || {}).name || l.font) + "</span>" +
+      "</button>").join("");
+    const l = layerSelected();
+    const ed = $("#layerEditor");
+    if (ed) (ed as any).hidden = !l;
+    if (!l) return;
+    ($("#lText") as any).value = l.text;
+    ($("#lSize") as any).value = l.size;
+    const sv = $("#lSizeV"); if (sv) sv.textContent = Math.round(l.size) + "px";
+    ($("#lShadow") as any).checked = !!l.shadow;
+    const fc = $("#lFontChips"); fc.innerHTML = "";
+    for (const [id, f] of Object.entries(LAYER_FONTS))
+      fc.appendChild(chip(f.name, l.font === id, () => layerPatch({font: id})));
+    const cc = $("#lColorChips"); cc.innerHTML = "";
+    for (const c of LAYER_COLORS)
+      cc.appendChild(chip(c.name, l.color === c.id, () => layerPatch({color: c.id})));
+    const ac = $("#lAlignChips"); ac.innerHTML = "";
+    for (const a of ["left", "center", "right"])
+      ac.appendChild(chip(a, l.align === a, () => layerPatch({align: a})));
+    const zc = $("#lZoneChips"); zc.innerHTML = "";
+    for (const [id, z] of Object.entries(LAYER_ZONES))
+      zc.appendChild(chip(z.name, Math.abs(l.y - z.y) < 0.01, () => layerPatch({y: z.y, x: 0.5, align: "center"})));
+  }
+
+  /* ── Caption (Phase 6) ───────────────────────────────────────────────────
+     Separate from anything painted on the canvas: this is the text she pastes
+     into Instagram or Facebook after downloading the image. The AI button
+     never fills it without a click, per the spec. */
+  const CAPTION = { text: "" };
+  function capSet(msg){ const el = $("#capStatus"); if (el) el.textContent = msg; }
+  function capFlags(){
+    const host = $("#capFlags"); if (!host) return;
+    const text = CAPTION.text || "";
+    if (!text.trim()){ host.innerHTML = ""; return; }
+    const hits = checkText(text);
+    if (!hits.length){
+      host.innerHTML = "<p class='capclean'>Clean. No Meta policy flags, no Eden voice violations.</p>";
+      return;
+    }
+    host.innerHTML = hits.map((h, i) =>
+      "<div class='capflag " + h.lvl + "'>" +
+        "<span>" + esc(h.msg) + "</span>" +
+        /* Only offer Fix where a mechanical correction exists. Everything else
+           is the founder's judgement, not a button. */
+        (h.fix ? "<button class='copybtn' data-capfix='" + i + "' type='button'>Fix</button>" : "") +
+      "</div>").join("");
+  }
+  function capRender(){
+    const ta = $("#capText");
+    if (ta && document.activeElement !== ta) (ta as any).value = CAPTION.text;
+    const n = (CAPTION.text || "").length;
+    const c = $("#capCount");
+    if (c) c.textContent = n + " characters" + (n > 2200 ? " · over Instagram's 2,200 limit" : "");
+    if (c) c.classList.toggle("over", n > 2200);
+    capFlags();
+  }
+
   function renderBuilder(){
     const tc = $("#tplChips"); tc.innerHTML = "";
     for (const [id,name] of Object.entries(TEMPLATES))
@@ -773,6 +993,83 @@ export function initStudio(
     a.href = $("#adCanvas").toDataURL("image/png");
     a.click();
   });
+  /* ── Text layer + caption wiring (Phase 6) ─────────────────────────────── */
+  (function wireLayers(){
+    const cv = $("#adCanvas");
+    if (cv){
+      cv.addEventListener("mousedown", layerPointerDown);
+      cv.addEventListener("touchstart", layerPointerDown, {passive:false});
+    }
+    /* Move/up on the document so a fast drag that leaves the canvas still
+       tracks, and always releases. */
+    document.addEventListener("mousemove", layerPointerMove);
+    document.addEventListener("touchmove", layerPointerMove, {passive:false});
+    document.addEventListener("mouseup", layerPointerUp);
+    document.addEventListener("touchend", layerPointerUp);
+
+    const add = $("#lAdd"); if (add) add.addEventListener("click", () => layerAdd(BUILDER.hook || "New text"));
+    const del = $("#lDel"); if (del) del.addEventListener("click", () => {
+      LAYERS = LAYERS.filter(l => l.id !== layerSel); layerSel = LAYERS.length ? LAYERS[LAYERS.length-1].id : null;
+      layerList(); drawAd();
+    });
+    const dup = $("#lDup"); if (dup) dup.addEventListener("click", () => {
+      const l = layerSelected(); if (!l) return;
+      const copy = Object.assign({}, l, {
+        id: "L" + Date.now().toString(36), y: Math.min(l.y + 0.08, 0.96),
+      });
+      LAYERS.push(copy); layerSel = copy.id; layerList(); drawAd();
+    });
+    const txt = $("#lText"); if (txt) txt.addEventListener("input", e => {
+      const l = layerSelected(); if (!l) return;
+      l.text = (e.target as any).value; drawAd();
+      /* Do not re-render the list on every keystroke: it would steal focus. */
+    });
+    const size = $("#lSize"); if (size) size.addEventListener("input", e => {
+      const l = layerSelected(); if (!l) return;
+      l.size = +(e.target as any).value;
+      const sv = $("#lSizeV"); if (sv) sv.textContent = Math.round(l.size) + "px";
+      drawAd();
+    });
+    const sh = $("#lShadow"); if (sh) sh.addEventListener("change", e => layerPatch({shadow: (e.target as any).checked}));
+
+    root.addEventListener("click", e => {
+      const id = (e.target as any)?.closest?.(".layerrow")?.dataset?.layer;
+      if (id){ layerSel = id; layerList(); return; }
+      const fi = (e.target as any)?.dataset?.capfix;
+      if (fi !== undefined){
+        /* Apply only the clicked rule's fix, and show the result rather than
+           applying it silently. */
+        const hits = checkText(CAPTION.text || "");
+        const rule = hits[+fi];
+        if (rule && rule.fix){
+          CAPTION.text = rule.fix(CAPTION.text || "");
+          capRender();
+          capSet("Fixed. Nothing else was changed.");
+        }
+      }
+    });
+
+    const cap = $("#capText"); if (cap) cap.addEventListener("input", e => {
+      CAPTION.text = (e.target as any).value; capRender();
+    });
+    const capCopy = $("#capCopy"); if (capCopy) capCopy.addEventListener("click", () => {
+      if (!(CAPTION.text || "").trim()){ capSet("Nothing to copy yet."); return; }
+      copyText(CAPTION.text); capSet("Caption copied.");
+    });
+    const capDraft = $("#capDraft"); if (capDraft) capDraft.addEventListener("click", () => {
+      /* Draft from what she has already approved, not from a fresh model call:
+         the tray is her own vetted copy. Never overwrites without asking. */
+      const src = APPROVED.length ? APPROVED[APPROVED.length - 1]
+        : (variants.find(v => v.approved) || variants[0]);
+      if (!src){ capSet("Approve a draft first, or write the caption yourself."); return; }
+      const draft = [src.primary, "", src.url].filter(Boolean).join("\n");
+      if ((CAPTION.text || "").trim() &&
+          !window.confirm("Replace the caption you have written?")) return;
+      CAPTION.text = draft; capRender();
+      capSet("Drafted from your approved ad copy. Edit freely.");
+    });
+  })();
+
   /* ── Canva round-trip (Phase 3) ──────────────────────────────────────────
      Replaces the old deep link, which only opened a BLANK design at the right
      size and left the founder to download a PNG and drag it in by hand. The
@@ -1976,6 +2273,8 @@ export function initStudio(
   aiInit();
   galInit();
   canvaInit();
+  layerList();
+  capRender();
   showStep(0);
 
   /* ───────────────────────── PHASE 1 SEAM ─────────────────────────
@@ -2001,6 +2300,9 @@ export function initStudio(
         sub: BUILDER.sub, cta: BUILDER.cta, domain: BUILDER.domain,
         dest: BUILDER.dest, qr: !!BUILDER.qr,
       },
+      /* Phase 6: placed text and the caption are real work, not derived state. */
+      layers: JSON.parse(JSON.stringify(LAYERS)),
+      caption: CAPTION.text || "",
       /* Her own draft is the most expensive thing on the screen to retype. */
       own: {
         ...ownDraft(),
@@ -2035,6 +2337,11 @@ export function initStudio(
       if (typeof b[k] === "string") BUILDER[k] = b[k];
     });
     BUILDER.qr = !!b.qr;
+
+    LAYERS = Array.isArray((blob as any).layers) ? (blob as any).layers : [];
+    layerSel = LAYERS.length ? LAYERS[0].id : null;
+    CAPTION.text = typeof (blob as any).caption === "string" ? (blob as any).caption : "";
+    layerList(); capRender();
 
     const own = (blob as any).own || {};
     const setVal = (sel, v) => { const el = $(sel); if (el) (el as any).value = typeof v === "string" ? v : ""; };
