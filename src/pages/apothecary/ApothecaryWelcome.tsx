@@ -3,6 +3,8 @@ import { Leaf, Shield, Smartphone, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WorldviewBand } from "@/components/landing/WorldviewBand";
 import { TierComparison } from "@/components/apothecary/TierComparison";
+import MateriaMedicaPlate from "@/components/MateriaMedicaPlate";
+import { HERB_SLUGS } from "@/components/materiaMedicaHerbs";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { ROUTES } from "@/lib/routes";
 
@@ -197,6 +199,41 @@ export default function ApothecaryWelcome() {
                 kitchen.
               </p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Materia Medica plate showcase: the herb-plate collection, drawn in
+          Eden's antique apothecary style. Backs up the "herb library" claim
+          above with the real thing before the visitor reaches pricing. ── */}
+      <section
+        className="py-16 px-6"
+        style={{ backgroundColor: "hsl(var(--eden-cream))" }}
+      >
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <p
+              className="font-accent text-sm tracking-[0.3em] uppercase mb-4"
+              style={{ color: "hsl(var(--eden-gold))" }}
+            >
+              Materia Medica
+            </p>
+            <h2
+              className="font-serif text-3xl font-bold mb-4"
+              style={{ color: "hsl(var(--eden-bark))" }}
+            >
+              A materia medica, drawn by hand
+            </h2>
+            <p className="font-body text-muted-foreground max-w-2xl mx-auto">
+              Sixteen herbs to begin with, each rendered as an antique
+              apothecary plate. The gentle, everyday plants a Christian
+              household reaches for first.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-8 justify-items-center">
+            {HERB_SLUGS.map((slug) => (
+              <MateriaMedicaPlate key={slug} herb={slug} caption width={280} />
+            ))}
           </div>
         </div>
       </section>
