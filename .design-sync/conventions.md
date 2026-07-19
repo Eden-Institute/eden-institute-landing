@@ -2,6 +2,9 @@
 
 Eden Institute is a clinical herbalism brand (the Eden Apothecary app + Pattern-of-Eden quiz + Materia Medica course). **Aesthetic: a vintage apothecary / Materia Medica feel — ancient herbal knowledge being unearthed.** Aim every screen at: aged-parchment surfaces, deep forest green and gold-leaf accents, serif display type, botanical line-art, and generous manuscript-like quiet space. Calm and authoritative, never pop-wellness, never bright SaaS. No emojis.
 
+## Signature element: Materia Medica herb plates
+Eden's defining visual is the **antique apothecary herb plate** — `MateriaMedicaPlate`. Drop one in for herb monographs, hero sections, or decorative apothecary moments: `<MateriaMedicaPlate herb="chamomile" caption />`. Available herbs: calendula, catnip, chamomile, elderberry, fennel, ginger, lavender, lemon-balm, linden, marshmallow-root, mullein, nettle, peppermint, plantain, slippery-elm, tulsi. Each is a full aged-parchment plate with botanical figures and the Latin binomial. Reach for these instead of generic illustration whenever an herb is named.
+
 ## Build with the real components
 Compose the library's own components (they are fully styled and on-brand) rather than hand-rolling primitives. Buttons, cards, tiers, the quiz spectrum, dialogs, tables, botanical accents, etc. all ship ready. A few need context when used:
 - Components with links (`PublicTierCard`, `TierComparison`) render `<a>`/router links — render them inside a router if your canvas needs navigation.
