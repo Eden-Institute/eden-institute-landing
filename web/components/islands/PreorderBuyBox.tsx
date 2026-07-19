@@ -31,7 +31,7 @@
 // the create-checkout EF selects (founding vs retail off the 500-kit gate).
 // Keep in sync with supabase/functions/_shared/order-config.ts:
 //   $12 shipping     = PREORDER_FLAT_SHIPPING_CENTS
-//   "Late Fall 2026" = SHIP_WINDOW
+//   ship dates      = SHIP_TARGET + SHIP_GUARANTEE_TEXT
 //   notebook cap 5   = maxQtyPerOrder on sprouts_notebook
 //   founding/retail cents on both products
 // Copy rule: no em dashes (feedback_no_em_dashes).
@@ -40,7 +40,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 import { getFbAttribution } from "@/lib/fbAttribution";
-const SHIP_WINDOW = "Late Fall 2026";
+// Two dates, and the split is deliberate. SHIP_TARGET is what we are aiming for and
+// what the page talks about; SHIP_GUARANTEE is the BINDING commitment the FTC delay
+// clock runs on. Both must stay visible: if only the target were prominent, it could be
+// treated as the stated shipping time and pull the deadline forward by two months.
+// Keep in sync with supabase/functions/_shared/order-config.ts.
+const SHIP_TARGET = "early November 2026";
+const SHIP_GUARANTEE = "December 31, 2026";
 const NOTEBOOK_MAX_QTY = 5;
 const KIT_PRICE_CENTS = 24900;
 const KIT_RETAIL_CENTS = 34900;
@@ -110,6 +116,9 @@ export default function PreorderBuyBox() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notLive, setNotLive] = useState(false);
+  // Set when the EF refuses on stock. Latched for the page view rather than polled:
+  // once we know the run is gone, do not invite another attempt that will also fail.
+  const [soldOut, setSoldOut] = useState(false);
   const [founding, setFounding] = useState<FoundingStatus>({ sold: null, cap: null, closed: false });
 
   // Founding-window status, fetched once on mount. Any failure keeps the default
@@ -264,6 +273,22 @@ export default function PreorderBuyBox() {
           closeModal();
           return;
         }
+        // The print run is finite. The EF refuses before creating a Stripe session,
+        // so the buyer is never charged for a unit we cannot ship. Its message names
+        // the product and the remaining count, so surface it rather than a generic line.
+        if (code === "OUT_OF_STOCK") {
+          setSoldOut(true);
+          setError(message ?? "That item is sold out.");
+          closeModal();
+          setBusy(false);
+          return;
+        }
+        if (code === "RATE_LIMITED") {
+          setError(message ?? "Too many attempts. Please wait a few minutes and try again.");
+          closeModal();
+          setBusy(false);
+          return;
+        }
         throw new Error(message ?? fnError.message ?? "Checkout could not be started.");
       }
       if (data?.url) {
@@ -319,8 +344,8 @@ export default function PreorderBuyBox() {
             {closed ? "Thank you. Your preorder is confirmed." : "Thank you. Your founding preorder is confirmed."}
           </p>
           <p className="font-body text-sm" style={{ color: "rgba(255,255,255,0.85)" }}>
-            A confirmation email is on its way to your inbox with your order details and the
-            estimated ship window.
+            A confirmation email is on its way to your inbox with your order number, your order
+            details, and your guaranteed ship date.
           </p>
         </div>
       )}
@@ -332,6 +357,23 @@ export default function PreorderBuyBox() {
           <p className="font-body text-sm" style={{ color: "hsl(var(--eden-bark))" }}>
             Checkout was cancelled and your card was not charged. Your spot is still open whenever
             you are ready.
+          </p>
+        </div>
+      )}
+
+      {soldOut && (
+        <div
+          className="rounded-lg p-5 mb-8 text-center border-2"
+          style={{ borderColor: "hsl(var(--eden-gold))", backgroundColor: "hsl(var(--eden-cream))" }}
+        >
+          <p className="font-serif text-lg font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>
+            This print run is spoken for.
+          </p>
+          <p className="font-body text-sm text-muted-foreground">
+            Every kit from this run has been claimed, so we have closed orders rather than take
+            money for a box we cannot ship. Write to us at{" "}
+            <a href="mailto:hello@edeninstitute.health" className="underline">hello@edeninstitute.health</a>{" "}
+            and we will tell you the moment the next run opens.
           </p>
         </div>
       )}
@@ -408,11 +450,11 @@ export default function PreorderBuyBox() {
             </ul>
             <button
               onClick={() => openModal(p.sku === "sprouts_kit" ? "kit" : "notebook")}
-              disabled={busy || notLive}
+              disabled={busy || notLive || soldOut}
               className="font-body text-sm font-semibold px-8 py-4 rounded-sm w-full transition-opacity hover:opacity-90 disabled:opacity-50"
               style={{ backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-parchment))" }}
             >
-              {busy ? "Opening secure checkout…" : `Preorder ${p.name}`}
+              {busy ? "Opening secure checkout…" : soldOut ? "Sold out" : `Preorder ${p.name}`}
             </button>
           </div>
         ))}
@@ -487,9 +529,12 @@ export default function PreorderBuyBox() {
                     production. Nothing goes out from a shelf today, because there is no shelf yet.
                   </p>
                   <p>
-                    <strong>We are aiming for {SHIP_WINDOW}.</strong> That is our honest target,
-                    not a date we can pin to a calendar. The books, the card decks, and the binding
-                    each move on their own timeline, and we will know more as each one locks in.
+                    <strong>We are aiming for {SHIP_TARGET}.</strong> The books, the card decks,
+                    and the binding each move on their own timeline, and we will know more as each
+                    one locks in. So that our target is never the only thing you have to go on,
+                    your kit is <strong>guaranteed to ship on or before {SHIP_GUARANTEE}</strong>.
+                    If we cannot make that date, we will write to you before it passes, and you can
+                    cancel for a full refund.
                   </p>
                   <p>
                     <strong>You will hear from us the whole way through.</strong> As manufacturing
@@ -534,9 +579,9 @@ export default function PreorderBuyBox() {
                       className="mt-1 h-4 w-4 shrink-0"
                     />
                     <label htmlFor="ack-ship-window" className="font-body text-sm leading-relaxed cursor-pointer" style={{ color: "hsl(var(--eden-bark))" }}>
-                      I understand this is a preorder for products still being manufactured, and
-                      that I will not receive my {flow === "kit" ? "kit" : "order"} until{" "}
-                      {SHIP_WINDOW}.
+                      I understand this is a preorder for products still being manufactured. We
+                      are aiming to ship {SHIP_TARGET}, and my {flow === "kit" ? "kit" : "order"} is
+                      guaranteed to ship on or before {SHIP_GUARANTEE}.
                     </label>
                   </div>
                   <div className="flex items-start gap-3">

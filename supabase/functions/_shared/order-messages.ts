@@ -6,7 +6,7 @@
 
 import { emailWrapper } from './nurture-email-templates.ts';
 import { OrderStatus, isTerminal } from './order-state.ts';
-import { SHIP_WINDOW } from './order-config.ts';
+import { SHIP_GUARANTEE_TEXT, SHIP_TARGET } from './order-config.ts';
 import { Db, OrderRow, hasSentMessage, logMessage } from './order-db.ts';
 import { sendSms } from './order-sms.ts';
 import { captureException } from './sentry.ts';
@@ -42,10 +42,23 @@ export function buildPreorderConfirmationEmail(order: OrderRow): { subject: stri
     p(`Hi ${firstName(order)},`) +
     p(`Thank you. Your founding preorder is confirmed, and you are officially a founding member.`) +
     heading('Your order') +
+    // The order number is the handle the customer needs for any later question, and
+    // /returns tells them to quote it. Before this it existed nowhere they could see.
+    (order.order_number
+      ? p(`Order number: <strong>${order.order_number}</strong><br>`
+        + `Keep this. Quote it in any email to us about your order.`)
+      : '') +
     p(`${item}${amount ? `: ${amount} (charged today)` : ''}`) +
     p(`This is a founding preorder. Your patience helps fund the founding of this curriculum, and in exchange you receive the founding price and founding-member status.`) +
-    p(`Estimated ship window: <strong>${SHIP_WINDOW}</strong>. That is an estimate, and we will keep you posted as it firms up.`) +
-    p(`Your card was charged today. If we cannot ship within the estimated window, we will notify you and you may request a full refund.`) +
+    // Two dates, deliberately. The first is what we are aiming for; the second is the
+    // binding commitment the FTC delay-notice clock runs on. Both must be plainly
+    // visible: if only the target were prominent, it would become the stated time.
+    p(`We are aiming to ship in <strong>${SHIP_TARGET}</strong>.`) +
+    p(`Your guaranteed ship date is <strong>on or before ${SHIP_GUARANTEE_TEXT}</strong>. `
+      + `If we cannot ship by then, we will write to you before that date, and you may `
+      + `cancel for a full refund.`) +
+    p(`Your card was charged today. You can also cancel for a full refund at any point `
+      + `before your order ships, by replying to this email.`) +
     p(`We are so grateful to have you with us at the founding of this.`) +
     signature();
   // Transactional email: neutralize the marketing unsubscribe placeholder baked into
@@ -57,8 +70,9 @@ export function buildPreorderConfirmationEmail(order: OrderRow): { subject: stri
   return { subject: 'Your founding preorder is confirmed', html };
 }
 
-export function preorderSmsText(_order: OrderRow): string {
-  return `Thank you for your founding preorder from The Eden Institute. Your card was charged today; estimated ship window ${SHIP_WINDOW} (an estimate). If we cannot ship in that window we will notify you and you may request a full refund. Reply STOP to opt out.`;
+export function preorderSmsText(order: OrderRow): string {
+  const ref = order.order_number ? ` Order ${order.order_number}.` : '';
+  return `Thank you for your founding preorder from The Eden Institute.${ref} Your card was charged today. We are aiming to ship ${SHIP_TARGET}, guaranteed on or before ${SHIP_GUARANTEE_TEXT}. You may cancel for a full refund any time before it ships. Reply STOP to opt out.`;
 }
 
 async function sendResendEmail(to: string, subject: string, html: string): Promise<string | null> {

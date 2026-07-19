@@ -23,12 +23,17 @@
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 import PreorderBuyBox from "../components/islands/PreorderBuyBox.tsx";
 
-const SHIP_WINDOW = "Late Fall 2026"; // keep in sync with supabase/functions/_shared/order-config.ts
+// Two dates, deliberately. SHIP_TARGET is what we aim for and talk about; SHIP_GUARANTEE
+// is the BINDING commitment the FTC delay-notice clock runs on. Both must stay visible:
+// if only the target were prominent it could be treated as the stated shipping time.
+// Keep in sync with supabase/functions/_shared/order-config.ts.
+const SHIP_TARGET = "early November 2026";
+const SHIP_GUARANTEE = "December 31, 2026";
 
 const meta = {
   title: "Founding Preorder · Eden's Table Sprouts | The Eden Institute",
   description:
-    "Preorder the Sprouts (K-2) Biblical herbalism curriculum. $249 founding price for the first 500 kits, then $349 retail. Estimated ship window " + SHIP_WINDOW + ".",
+    "Preorder the Sprouts (K-2) Biblical herbalism curriculum. $249 founding price for the first 500 kits, then $349 retail. Aiming to ship " + SHIP_TARGET + ", guaranteed on or before " + SHIP_GUARANTEE + ".",
   canonical: "https://edeninstitute.health/preorder",
 };
 
@@ -164,10 +169,11 @@ const productJsonLd = productSpecs.map((p) => ({
           </p>
         </div>
         <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
-          <p class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">Estimated ship window: {SHIP_WINDOW}.</p>
+          <p class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">Aiming for {SHIP_TARGET}. Guaranteed on or before {SHIP_GUARANTEE}.</p>
           <p class="font-body text-sm text-muted-foreground leading-relaxed">
-            That is an estimate, not a promise of a specific date. We will email you updates as
-            production progresses and as the window firms up.
+            The first date is our honest target and it may move. The second is a promise: if your
+            order has not shipped by {SHIP_GUARANTEE}, we will write to you before that date and
+            you can cancel for a full refund. We will email you updates as production progresses.
           </p>
         </div>
         <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
