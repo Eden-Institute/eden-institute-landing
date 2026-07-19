@@ -1,8 +1,8 @@
 // Starter templates (Ad Studio Phase 8).
 //
 // Three campaign shapes Camila already runs repeatedly. A template pre-fills
-// the entry screen and seeds the working state so a new project opens with a
-// structure rather than a blank canvas.
+// the entry screen and seeds the flow's answers so a new campaign opens part
+// way through the brief rather than on a blank first question.
 //
 // DELIBERATE: templates carry STRUCTURE and PROMPTS, not finished marketing
 // claims. Every text field is scaffolding written to be replaced, and the
@@ -10,10 +10,14 @@
 // default is how an unreviewed claim ends up in a paid ad, and the copy engine
 // already exists for writing the real thing.
 //
+// The seeds are FlowAnswers. They used to be the vanilla core's working blob,
+// which the flow does not read, so choosing a template quietly prefilled
+// nothing beyond the product and ad type.
+//
 // Per the spec's sequencing note these three are a starting set, to be expanded
 // once real ad cycles show which patterns actually recur.
 
-import type { StudioStateBlob } from "./studio-types";
+import type { FlowAnswers } from "./flow-graph";
 
 export interface StudioTemplate {
   id: string;
@@ -22,8 +26,9 @@ export interface StudioTemplate {
   product: string;
   adType: string;
   campaignTag: string;
-  /** Seeds the core's working state. Everything here stays fully editable. */
-  state: StudioStateBlob;
+  /** Seeds the flow's answers. Everything here stays fully editable, and any
+   *  question a template does not answer is still asked. */
+  answers: FlowAnswers;
 }
 
 export const STUDIO_TEMPLATES: StudioTemplate[] = [
@@ -34,22 +39,17 @@ export const STUDIO_TEMPLATES: StudioTemplate[] = [
     product: "kit",
     adType: "feed",
     campaignTag: "general",
-    state: {
-      campaign: { product: "kit", objective: "sales", audience: "homeschool", angle: "preorder" },
-      builder: {
-        tpl: "label",
+    answers: {
+      product: "kit", objective: "sales", audience: "homeschool", angle: "preorder",
+      adType: "portrait", template: "label", treatment: "static", anchor: "bc",
+      overlay: {
         hook: "[The offer, in five words]",
         sub: "[What they get, and by when]",
         cta: "Preorder Now",
-        domain: "edeninstitute.health/homeschool",
       },
-      layers: [
-        { id: "T1", text: "[Headline]", x: 0.5, y: 0.18, size: 78,
-          font: "display", color: "forest", align: "center", weight: 700, shadow: false },
-        { id: "T2", text: "[Dated detail: opens, closes, or how many]", x: 0.5, y: 0.86, size: 34,
-          font: "serif", color: "walnut", align: "center", weight: 400, shadow: false },
-      ],
-      caption: "[Open with the reason this matters now.]\n\n[What it is, in one sentence.]\n\n[The date or the limit, stated plainly.]",
+      caption: "[Open with the reason this matters now.]\n\n"
+        + "[What it is, in one sentence.]\n\n"
+        + "[The date or the limit, stated plainly.]",
     },
   },
   {
@@ -59,22 +59,17 @@ export const STUDIO_TEMPLATES: StudioTemplate[] = [
     product: "kit",
     adType: "feed",
     campaignTag: "general",
-    state: {
-      campaign: { product: "kit", objective: "traffic", audience: "homeschool", angle: "children" },
-      builder: {
-        tpl: "photo",
+    answers: {
+      product: "kit", objective: "traffic", audience: "homeschool", angle: "children",
+      adType: "portrait", template: "photo", treatment: "static", anchor: "bc",
+      overlay: {
         hook: "[Their words, trimmed to one line]",
         sub: "[First name, and what makes them credible]",
         cta: "Learn More",
-        domain: "edeninstitute.health/homeschool",
       },
-      layers: [
-        { id: "T1", text: "“[The quote, in their voice, not yours]”", x: 0.5, y: 0.62, size: 56,
-          font: "serif", color: "linen", align: "center", weight: 400, shadow: true },
-        { id: "T2", text: "[Name, and their context]", x: 0.5, y: 0.80, size: 30,
-          font: "display", color: "amber", align: "center", weight: 700, shadow: true },
-      ],
-      caption: "[The quote again, in full.]\n\n[One line of context: who they are, how long they have used it.]\n\n[What a reader should do next.]",
+      caption: "[The quote again, in full.]\n\n"
+        + "[One line of context: who they are, how long they have used it.]\n\n"
+        + "[What a reader should do next.]",
     },
   },
   {
@@ -84,26 +79,28 @@ export const STUDIO_TEMPLATES: StudioTemplate[] = [
     product: "kit",
     adType: "carousel",
     campaignTag: "general",
-    state: {
-      campaign: { product: "kit", objective: "awareness", audience: "homeschool", angle: "openandgo" },
-      builder: {
-        tpl: "forest",
+    answers: {
+      product: "kit", objective: "awareness", audience: "homeschool", angle: "openandgo",
+      adType: "carousel", template: "forest", treatment: "static", anchor: "tc",
+      overlay: {
         hook: "[What it is, plainly]",
         sub: "[The one detail that surprises people]",
         cta: "Learn More",
-        domain: "edeninstitute.health/homeschool",
       },
-      layers: [
-        { id: "T1", text: "[Component name]", x: 0.5, y: 0.14, size: 72,
-          font: "display", color: "amber", align: "center", weight: 700, shadow: false },
-        { id: "T2", text: "[What a parent does with it]", x: 0.5, y: 0.88, size: 32,
-          font: "serif", color: "linen", align: "center", weight: 400, shadow: true },
-      ],
-      caption: "[Name the component.]\n\n[What it contains, concretely.]\n\n[Why it earns its place in the week.]",
+      caption: "[Name the component.]\n\n"
+        + "[What it contains, concretely.]\n\n"
+        + "[Why it earns its place in the week.]",
     },
   },
 ];
 
 export function templateById(id: string): StudioTemplate | undefined {
   return STUDIO_TEMPLATES.find((t) => t.id === id);
+}
+
+/** What a template writes into a new project's `state` column, in the shape
+ *  the flow actually reads. */
+export function templateState(id: string | undefined): { flow: FlowAnswers } | undefined {
+  const t = id ? templateById(id) : undefined;
+  return t ? { flow: t.answers } : undefined;
 }

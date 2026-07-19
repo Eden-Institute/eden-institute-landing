@@ -323,7 +323,11 @@ export function adDimensions(a: FlowAnswers) {
 export function paintAd(
   canvas: HTMLCanvasElement, a: FlowAnswers, opts: PaintOptions = {},
 ): void {
-  const g = canvas.getContext("2d");
+  // getContext can throw, not just return null: jsdom does, and a browser will
+  // too if 2d is unavailable. A preview that cannot draw must not take the
+  // whole flow down with it.
+  let g: CanvasRenderingContext2D | null = null;
+  try { g = canvas.getContext("2d"); } catch { return; }
   if (!g) return;
 
   const dims = adDimensions(a);

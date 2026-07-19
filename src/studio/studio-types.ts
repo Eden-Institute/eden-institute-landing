@@ -1,8 +1,9 @@
 // Shared types across the /studio boundary.
 //
-// studio-core.ts is @ts-nocheck (a vanilla-DOM port that predates the React
-// shell). These types live here instead so the React side of the seam is fully
-// type-checked even though the core is not.
+// These describe what crosses between the React shell and the database: the
+// project row's jsonb columns and the vocabulary the entry screen speaks. They
+// outlived the vanilla core that first needed them, and are kept because the
+// shell and the edge functions still have to agree on these shapes.
 
 /** One card of an ad. Single-image and video ads carry exactly one; carousel
  *  carries 2 to 10. Modelled as a list from Phase 1 so carousel is a later UI
@@ -18,58 +19,18 @@ export interface StudioSlide {
   template?: string;
 }
 
-/** The vanilla core's serializable working state. Non-serializable runtime
- *  objects (decoded Images, MediaStreams, AudioContext) are deliberately
- *  excluded: they are rebuilt from the asset library on load. */
+/** The project row's `state` jsonb.
+ *
+ *  The flow keeps its answers under `flow`. The column stays open-ended on
+ *  purpose: it is where the export step records what it produced, and older
+ *  campaigns saved by the five-screen wizard still have to load without
+ *  throwing, even though nothing reads their shape any more. */
 export interface StudioStateBlob {
-  campaign?: {
-    product?: string;
-    objective?: string;
-    audience?: string;
-    angle?: string;
-    format?: string;
-    gen?: number;
-    /** The founder's own words for the campaign. Outranks the preset angle. */
-    direction?: string;
-    /** She has chosen an audience or angle herself, so stop auto-picking. */
-    touched?: boolean;
-  };
-  variants?: unknown[];
-  approved?: unknown[];
-  /** Phase 6: free-placed text layers on the creative. Positions are 0..1
-   *  relative to the canvas so they survive an ad-size change. */
-  layers?: unknown[];
-  /** Phase 6: the caption pasted into Meta, never painted on the image. */
-  caption?: string;
-  /** The founder's own draft from the Write It Yourself panel. */
-  own?: {
-    primary?: string;
-    headline?: string;
-    description?: string;
-    note?: string;
-  };
-  builder?: {
-    tpl?: string;
-    size?: string;
-    hook?: string;
-    sub?: string;
-    cta?: string;
-    domain?: string;
-    dest?: string;
-    qr?: boolean;
-  };
-  step?: number;
+  /** The ad flow's answers. See FlowAnswers in flow-graph.ts. */
+  flow?: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
-/** What initStudio() hands back to the React shell. `destroy` replaces the bare
- *  cleanup function the core returned before Phase 1. */
-export interface StudioHandle {
-  destroy(): void;
-  getState(): StudioStateBlob;
-  applyState(blob: StudioStateBlob | null | undefined): void;
-  getStep(): number;
-  showStep(n: number): void;
-}
 
 /** Ad types shipping in v1. Carousel is schema-supported from Phase 1; its
  *  multi-slide UI lands after Phase 7. */
@@ -93,7 +54,7 @@ export const CAMPAIGN_TAGS = [
   { id: "general", label: "General / Other" },
 ] as const;
 
-/** Products the AI copy brief understands. Mirrors PRODUCTS in studio-core.ts;
+/** Products the AI copy brief understands. Mirrors PRODUCTS in studio-banks.ts;
  *  kept in sync by hand because the core owns the full copy bank. */
 export const PRODUCT_CHOICES = [
   { id: "kit", label: "Eden's Table · Curriculum Kit", tag: "$249 founders" },
