@@ -262,7 +262,7 @@ async function generate(brief: Brief): Promise<Response> {
           });
         }
       }
-    } catch {
+    } catch (e) {
       errors.push(`${s.value.p.label} returned unparseable output`);
     }
   }

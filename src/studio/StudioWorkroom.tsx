@@ -13,11 +13,9 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import StudioFlow from "./StudioFlow";
-import type { ExportedFile } from "./StudioFlow";
 import type { FlowAnswers } from "./flow-graph";
-import { aiInvoke, makeAssetsBridge } from "./studio-bridges";
+import { makeAssetsBridge } from "./studio-bridges";
 import { resolveSlideUrls } from "./flow-assets";
-import { recordExportBatch } from "./studio-exports-db";
 import { adTypeForFormat, formatForAdType } from "./studio-types";
 import { saveProject } from "./studio-db";
 import type { StudioProject } from "./studio-db";
@@ -170,29 +168,6 @@ export default function StudioWorkroom({ project, onExit, onFinish, onSaved }: P
     onFinish();
   }
 
-  // Phase 7 paper trail: every successful save/download becomes a row in
-  // studio_exports (and the file lands in the studio-exports bucket), so the
-  // archive can show what a campaign actually produced. Fire-and-forget: the
-  // founder already has her file, so a logging failure only logs.
-  const recordExport = useCallback((file: ExportedFile) => {
-    void (async () => {
-      try {
-        const bytes = new Uint8Array(await file.blob.arrayBuffer());
-        await recordExportBatch(project.id, [{
-          format: file.format,
-          aspect_ratio: `${file.width}x${file.height}`,
-          width: file.width,
-          height: file.height,
-          bytes,
-          name: file.name,
-          mime: file.blob.type || undefined,
-        }]);
-      } catch (err) {
-        console.warn("export record failed (file already saved):", err);
-      }
-    })();
-  }, [project.id]);
-
   return (
     <div>
       {/* NOT sticky. A global `body { overflow-x: hidden }` turns body into a
@@ -250,9 +225,7 @@ export default function StudioWorkroom({ project, onExit, onFinish, onSaved }: P
         answers={answers}
         onChange={setAnswers}
         assets={assets}
-        ai={aiInvoke}
         onFinish={finish}
-        onExported={recordExport}
       />
     </div>
   );

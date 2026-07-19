@@ -8,7 +8,7 @@
 // size renders identically at 1080 px, and so changing the ad size later does
 // not move the text.
 
-import { FORMATS, PRODUCTS } from "./studio-banks";
+import { FORMATS, PRODUCTS, TEMPLATES } from "./studio-banks";
 import type { FineTune, FlowAnswers, SlideAnswer } from "./flow-graph";
 import { isVideoOutput } from "./flow-graph";
 
@@ -35,10 +35,6 @@ interface Decoded {
 }
 const MEDIA = new Map<string, Decoded>();
 
-/** A long session uploads and previews many files; decoded elements are heavy
- *  (a video element holds a decoder). Evict oldest-inserted beyond this. */
-const MEDIA_CACHE_MAX = 24;
-
 /** Decode once and keep it. `onReady` fires when a repaint would show more
  *  than it does now, so the caller can schedule one. */
 export function decodeSlide(slide: SlideAnswer, onReady?: () => void): Decoded | null {
@@ -47,10 +43,6 @@ export function decodeSlide(slide: SlideAnswer, onReady?: () => void): Decoded |
   const hit = MEDIA.get(src);
   if (hit) return hit;
 
-  if (MEDIA.size >= MEDIA_CACHE_MAX) {
-    const oldest = MEDIA.keys().next().value;
-    if (oldest !== undefined) MEDIA.delete(oldest);
-  }
   const entry: Decoded = { el: null, ready: false, failed: false };
   MEDIA.set(src, entry);
   try {
@@ -79,6 +71,11 @@ export function decodeSlide(slide: SlideAnswer, onReady?: () => void): Decoded |
     entry.failed = true;
   }
   return entry;
+}
+
+/** Drop a decoded asset, e.g. when its object URL is revoked. */
+export function forgetDecoded(url?: string) {
+  if (url) MEDIA.delete(url);
 }
 
 /* ── helpers ──────────────────────────────────────────────────────── */
@@ -280,8 +277,8 @@ function paintText(
     const bx = align === "left" ? x : align === "right" ? x - bw : x - bw / 2;
     g.fillStyle = PAINT_PALETTE.amber;
     g.beginPath();
-    if (typeof g.roundRect === "function") {
-      g.roundRect(bx, y - bh * 0.72, bw, bh, bh / 2);
+    if (typeof (g as any).roundRect === "function") {
+      (g as any).roundRect(bx, y - bh * 0.72, bw, bh, bh / 2);
       g.fill();
     } else {
       g.fillRect(bx, y - bh * 0.72, bw, bh);
@@ -319,8 +316,8 @@ export interface PaintOptions {
 
 /** Pixel dimensions this ad renders at, straight from the format bank. */
 export function adDimensions(a: FlowAnswers) {
-  const f = FORMATS[a.adType || "portrait"] ?? FORMATS.portrait;
-  return { w: f.w, h: f.h, name: f.name };
+  const f = (FORMATS as any)[a.adType || "portrait"] || (FORMATS as any).portrait;
+  return { w: f.w ?? 1080, h: f.h ?? 1350, name: f.name as string };
 }
 
 export function paintAd(
@@ -336,11 +333,8 @@ export function paintAd(
   const dims = adDimensions(a);
   const W = Math.round(opts.width ?? 560);
   const H = Math.round(W * (dims.h / dims.w));
-  // Assigning width/height reallocates and clears the backing store even when
-  // the value is unchanged, and this runs 60×/s during the credits roll.
-  if (canvas.width !== W) canvas.width = W;
-  if (canvas.height !== H) canvas.height = H;
-  g.clearRect(0, 0, W, H);
+  canvas.width = W;
+  canvas.height = H;
 
   paintGround(g, W, H, a);
   if (a.source === "branded") paintBranded(g, W, H, a);
@@ -352,10 +346,13 @@ export function paintAd(
 
 /** The headline the overlay starts from, so a new ad is never blank. */
 export function defaultOverlay(a: FlowAnswers) {
-  const p = PRODUCTS[a.product ?? ""];
+  const p = (PRODUCTS as any)[a.product as string];
   return {
     hook: p?.headlines?.[0] ?? "",
     sub: p?.descs?.[0] ?? "",
-    cta: p?.ctas?.[a.objective ?? ""] ?? "Learn More",
+    cta: p?.ctas?.[a.objective as string] ?? "Learn More",
   };
 }
+
+/** Template ids in display order, for anywhere that needs to list them. */
+export const TEMPLATE_IDS = Object.keys(TEMPLATES);

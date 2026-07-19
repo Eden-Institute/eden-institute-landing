@@ -1,17 +1,12 @@
-// Ad Studio Phase 2 data access: asset metadata.
+// Ad Studio Phase 2 data access: asset metadata, non-destructive transforms,
+// and the locked brand kit.
 //
-// The studio-assets bucket stores bytes. studio_assets stores what we know
-// about those bytes (tags, kind, provenance), without ever rewriting the
-// uploaded file.
-//
-// 2026-07 audit note: the per-asset transform table (studio_asset_transforms)
-// and the brand-kit reader were access paths for the retired five-screen
-// wizard; the flow keeps its non-destructive adjustments in the project's own
-// answers (`finetune`) and paints from the palette in flow-paint.ts. Their
-// client code was removed here; the tables still exist and their history is in
-// git if a future screen wants them.
+// The studio-assets bucket stores bytes. These tables store what we know about
+// those bytes (tags, kind, provenance) and what the founder has done to them
+// (opacity, crop, colour), without ever rewriting the uploaded file.
 
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 
 export interface StudioAsset {
   id: string;
@@ -27,6 +22,31 @@ export interface StudioAsset {
   ai_prompt: string | null;
   created_at: string;
 }
+
+export interface AssetTransform {
+  opacity: number;
+  /** { x, y, scale } in canvas-relative units. */
+  crop: { x?: number; y?: number; scale?: number };
+  /** Each 0..2, where 1 is unchanged. */
+  color_adjust: { brightness?: number; contrast?: number; saturation?: number };
+}
+
+const DEFAULT_TRANSFORM: AssetTransform = {
+  opacity: 1,
+  crop: { x: 0, y: 0, scale: 1 },
+  color_adjust: { brightness: 1, contrast: 1, saturation: 1 },
+};
+
+export interface BrandToken {
+  kind: "color" | "font";
+  token_key: string;
+  label: string;
+  value: string;
+  usage: string | null;
+  sort_order: number;
+}
+
+// ── Assets ──────────────────────────────────────────────────────────────────
 
 export async function listAssets(tag?: string): Promise<StudioAsset[]> {
   let q = supabase
@@ -71,6 +91,14 @@ export async function recordAsset(input: {
   return data as StudioAsset;
 }
 
+export async function retagAsset(id: string, tag: string): Promise<void> {
+  const { error } = await supabase
+    .from("studio_assets")
+    .update({ campaign_tag: tag })
+    .eq("id", id);
+  if (error) throw error;
+}
+
 /** Metadata only. The caller removes the object from the bucket separately, so
  *  a storage failure never leaves a row pointing at a file that is still there. */
 export async function forgetAsset(storagePath: string): Promise<void> {
@@ -79,4 +107,52 @@ export async function forgetAsset(storagePath: string): Promise<void> {
     .delete()
     .eq("storage_path", storagePath);
   if (error) throw error;
+}
+
+// ── Transforms ──────────────────────────────────────────────────────────────
+
+export async function getTransform(
+  projectId: string, assetId: string,
+): Promise<AssetTransform> {
+  const { data, error } = await supabase
+    .from("studio_asset_transforms")
+    .select("opacity, crop, color_adjust")
+    .eq("project_id", projectId)
+    .eq("asset_id", assetId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return { ...DEFAULT_TRANSFORM };
+  return {
+    opacity: Number(data.opacity ?? 1),
+    crop: (data.crop ?? {}) as AssetTransform["crop"],
+    color_adjust: (data.color_adjust ?? {}) as AssetTransform["color_adjust"],
+  };
+}
+
+export async function saveTransform(
+  projectId: string, assetId: string, t: AssetTransform,
+): Promise<void> {
+  const { error } = await supabase
+    .from("studio_asset_transforms")
+    .upsert({
+      project_id: projectId,
+      asset_id: assetId,
+      opacity: t.opacity,
+      crop: t.crop as unknown as Json,
+      color_adjust: t.color_adjust as unknown as Json,
+    }, { onConflict: "project_id,asset_id" });
+  if (error) throw error;
+}
+
+// ── Brand kit ───────────────────────────────────────────────────────────────
+
+/** Read-only by database policy: there is no write path from the client. */
+export async function loadBrandKit(): Promise<BrandToken[]> {
+  const { data, error } = await supabase
+    .from("studio_brand_tokens")
+    .select("kind, token_key, label, value, usage, sort_order")
+    .order("kind", { ascending: true })
+    .order("sort_order", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as BrandToken[];
 }
