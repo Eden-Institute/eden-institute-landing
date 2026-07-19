@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import StudioFlow from "./StudioFlow";
 import type { FlowAnswers } from "./flow-graph";
 import { makeAssetsBridge } from "./studio-bridges";
+import { resolveSlideUrls } from "./flow-assets";
 import { adTypeForFormat, formatForAdType } from "./studio-types";
 import { saveProject } from "./studio-db";
 import type { StudioProject } from "./studio-db";
@@ -57,6 +58,18 @@ export default function StudioWorkroom({ project, onExit, onFinish, onSaved }: P
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [lostMedia, setLostMedia] = useState(0);
+
+  // Uploads are tagged with this project's campaign and transforms are scoped
+  // to it, so the bridge needs that context.
+  const assets = useMemo(
+    () => makeAssetsBridge({ projectId: project.id, campaignTag: project.campaign_tag }),
+    [project.id, project.campaign_tag],
+  );
+  // The open-a-project effect runs before render finishes, so it reads the
+  // bridge through a ref rather than depending on it and re-running.
+  const assetsRef = useRef(assets);
+  assetsRef.current = assets;
 
   // Re-seed when a different project is opened. Answers are plain data, so
   // unlike the old core there is no session to tear down.
@@ -66,6 +79,24 @@ export default function StudioWorkroom({ project, onExit, onFinish, onSaved }: P
     savedSnapshotRef.current = JSON.stringify(seeded);
     setSavedAt(null);
     setSaveError(null);
+    setLostMedia(0);
+    // A saved signed URL has expired and a saved blob: URL died with the tab
+    // that made it, so the pictures have to be re-pointed from their bucket
+    // paths or a reopened campaign paints as broken frames.
+    let live = true;
+    void (async () => {
+      const { slides, lost } = await resolveSlideUrls(seeded.slides, assetsRef.current);
+      if (!live) return;
+      if (lost) setLostMedia(lost);
+      if (lost || slides.some((sl, i) => sl.url !== seeded.slides?.[i]?.url)) {
+        // Refreshed URLs are not an edit, so the snapshot moves with them and
+        // simply opening a campaign does not mark it unsaved.
+        const next = { ...seeded, slides };
+        setAnswers(next);
+        savedSnapshotRef.current = JSON.stringify(next);
+      }
+    })();
+    return () => { live = false; };
     // project.state is the load-time seed only; re-running on every save would
     // blow away in-flight edits.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -84,13 +115,6 @@ export default function StudioWorkroom({ project, onExit, onFinish, onSaved }: P
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-
-  // Uploads are tagged with this project's campaign and transforms are scoped
-  // to it, so the bridge needs that context.
-  const assets = useMemo(
-    () => makeAssetsBridge({ projectId: project.id, campaignTag: project.campaign_tag }),
-    [project.id, project.campaign_tag],
-  );
 
   // No autosave means a refresh can still lose work. Say so before it happens.
   useEffect(() => {
@@ -174,6 +198,12 @@ export default function StudioWorkroom({ project, onExit, onFinish, onSaved }: P
                 "No changes yet"
               )}
               {saveError && <span className="text-destructive"> · {saveError}</span>}
+              {lostMedia > 0 && (
+                <span className="text-destructive">
+                  {" "}· {lostMedia === 1 ? "one picture was" : `${lostMedia} pictures were`}
+                  {" "}never saved to your library and could not be restored
+                </span>
+              )}
             </p>
           </div>
           <Button
