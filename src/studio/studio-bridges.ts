@@ -68,8 +68,12 @@ function projectAssetOps(ctx: { projectId: string; campaignTag: string }) {
     },
     /** Upload, then record metadata tagged with the project's campaign. If the
      *  metadata write fails the object is removed again, so the bucket and the
-     *  table cannot drift apart. */
-    async upload(file: File): Promise<void> {
+     *  table cannot drift apart.
+     *
+     *  Returns the storage path, which is what a saved ad has to remember: a
+     *  signed URL expires within the hour and a blob: URL dies with the tab, so
+     *  the path is the only durable handle on the file. */
+    async upload(file: File): Promise<{ path: string }> {
       const safe = file.name.replace(/[^\w.-]+/g, "_").slice(-80);
       const path = `${Date.now()}-${safe}`;
       const { error } = await supabase.storage
@@ -89,6 +93,7 @@ function projectAssetOps(ctx: { projectId: string; campaignTag: string }) {
         await supabase.storage.from(BUCKET).remove([path]).catch(() => {});
         throw err;
       }
+      return { path };
     },
     /** Remove the object first, then forget it. That order means a failure
      *  leaves an orphaned row (harmless, re-runnable) rather than a row-less

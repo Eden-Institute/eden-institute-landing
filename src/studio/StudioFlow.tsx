@@ -23,6 +23,10 @@ import {
   supportsMicRecording, supportsVideoExport, suggestedDuration,
 } from "./flow-export";
 import type { MicSession, VideoExport } from "./flow-export";
+import {
+  listSavedSlides, signedUrlFor, unsavedSlides, uploadSlide,
+} from "./flow-assets";
+import type { AssetsPort } from "./flow-assets";
 import { PRODUCTS } from "./studio-banks";
 import "./flow.css";
 
@@ -35,12 +39,7 @@ const MEDIA_ACCEPT = "image/*,video/*";
 const MAX_BYTES = 200 * 1024 * 1024;
 const MAX_VIDEO_SECONDS = 60;
 
-export interface AssetsBridge {
-  list: () => Promise<Array<{ name: string }>>;
-  upload: (file: File) => Promise<void>;
-  url: (name: string) => Promise<string>;
-  remove: (name: string) => Promise<void>;
-}
+export type AssetsBridge = AssetsPort;
 
 interface Props {
   answers: FlowAnswers;
@@ -600,52 +599,102 @@ function MediaPicker({ node, answers, assets, onWrite }: {
   const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState<SlideAnswer[]>([]);
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const slides = answers.slides ?? [];
   const multi = answers.adType === "carousel";
+  const unsaved = unsavedSlides(slides);
 
-  const add = (slide: SlideAnswer) => {
+  // Everything she has uploaded before, so a photo is chosen once and reused.
+  useEffect(() => {
+    let live = true;
+    listSavedSlides(assets)
+      .then((rows) => { if (live) setSaved(rows.slice(0, 12)); })
+      .catch(() => { /* the uploader still works without a library */ });
+    return () => { live = false; };
+  }, [assets]);
+
+  // Signed URLs are minted only for the thumbnails actually on screen.
+  useEffect(() => {
+    let live = true;
+    for (const s of saved) {
+      if (!s.path || thumbs[s.path]) continue;
+      signedUrlFor(s, assets).then((url) => {
+        if (live && url) setThumbs((t) => ({ ...t, [s.path as string]: url }));
+      });
+    }
+    return () => { live = false; };
+  }, [saved, assets, thumbs]);
+
+  const toggle = (slide: SlideAnswer) => {
     const cur = slides.slice();
+    const i = cur.findIndex((x) => x.id === slide.id);
     if (multi) {
-      const i = cur.findIndex((s) => s.id === slide.id);
       if (i >= 0) cur.splice(i, 1); else cur.push(slide);
-    } else { cur.length = 0; cur.push(slide); }
+    } else {
+      cur.length = 0;
+      if (i < 0) cur.push(slide);
+    }
     onWrite("slides", cur);
   };
 
   const take = async (file: File) => {
     setError(null);
     if (!/^(image|video)\//.test(file.type || "")) {
-      setError(`"${file.name}" is not a photo or video.`); return;
+      setError(`"${file.name}" is not a photo or video.`);
+      return;
     }
     if (file.size > MAX_BYTES) {
       setError(`"${file.name}" is ${(file.size / 1048576).toFixed(0)} MB. The limit is 200 MB.`);
       return;
     }
-    const kind: SlideAnswer["kind"] = file.type.startsWith("video") ? "video" : "image";
-    const url = URL.createObjectURL(file);
-    if (kind === "video") {
+    const localUrl = URL.createObjectURL(file);
+    if (file.type.startsWith("video")) {
       const probe = document.createElement("video");
       probe.preload = "metadata";
       const ok = await new Promise<boolean>((res) => {
-        probe.onloadedmetadata = () => res(!probe.duration || probe.duration <= MAX_VIDEO_SECONDS);
+        probe.onloadedmetadata = () =>
+          res(!probe.duration || probe.duration <= MAX_VIDEO_SECONDS);
         probe.onerror = () => res(false);
-        probe.src = url;
+        probe.src = localUrl;
       });
       if (!ok) {
+        URL.revokeObjectURL(localUrl);
         setError(`"${file.name}" is longer than 60 seconds, or could not be read. `
-          + "iPhone clips are HEVC by default; Settings › Camera › Formats › Most Compatible fixes it.");
-        URL.revokeObjectURL(url);
+          + "iPhone clips are HEVC by default; Settings > Camera > Formats > Most "
+          + "Compatible fixes that.");
         return;
       }
     }
     setBusy(true);
     try {
-      // Uploading to the bucket lands in the next PR; the object URL is enough
-      // to build and preview the ad in this one.
-      if (assets) { try { await assets.upload(file); } catch { /* keep local */ } }
-      add({ id: `own-${Date.now()}-${Math.round(file.size % 9973)}`, kind, url,
-        own: true, name: file.name });
-    } finally { setBusy(false); }
+      const { slide, error: uploadError } = await uploadSlide(file, assets, localUrl);
+      toggle(slide);
+      if (uploadError) setError(uploadError);
+      if (slide.path) {
+        setSaved((prev) => [slide, ...prev.filter((p) => p.path !== slide.path)].slice(0, 12));
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const card = (s: SlideAnswer, badge: string) => {
+    const chosen = slides.some((x) => x.id === s.id);
+    const thumb = s.url ?? (s.path ? thumbs[s.path] : undefined);
+    return (
+      <button key={s.id} type="button" className={`ef-opt ef-asset${chosen ? " is-sel" : ""}`}
+        onClick={() => toggle(s)}>
+        {thumb && s.kind === "image"
+          ? <img className="ef-thumb" src={thumb} alt="" loading="lazy" />
+          : <span className="ef-thumb ef-thumb-ph">{s.kind === "video" ? "▶" : "▣"}</span>}
+        <span className="ef-asset-body">
+          <span className="ef-opt-t">{s.name ?? s.id}</span>
+          <span className="ef-opt-h">{s.kind}</span>
+          <span className="ef-tag">{badge}</span>
+        </span>
+      </button>
+    );
   };
 
   return (
@@ -668,21 +717,30 @@ function MediaPicker({ node, answers, assets, onWrite }: {
           for (const f of Array.from(e.target.files || [])) void take(f);
           e.target.value = "";
         }} />
-      {busy && <p className="ef-note">Reading your file…</p>}
+      {busy && <p className="ef-note">Uploading…</p>}
       {error && <p className="ef-error">{error}</p>}
 
       {slides.length > 0 && (
-        <div className="ef-grid">
-          {slides.map((s) => (
-            <button key={s.id} type="button" className="ef-opt is-sel"
-              onClick={() => add(s)}>
-              <span className="ef-opt-t">{s.kind === "video" ? "▶" : "▣"} {s.name ?? s.id}</span>
-              <span className="ef-opt-h">{s.kind}</span>
-              <span className="ef-tag">yours</span>
-            </button>
-          ))}
-        </div>
+        <div className="ef-grid">{slides.map((s) => card(s, s.path ? "on this ad" : "not saved yet"))}</div>
       )}
+
+      {unsaved.length > 0 && (
+        <p className="ef-warn">
+          {unsaved.length === 1 ? "One file is" : `${unsaved.length} files are`} only in this
+          browser and will be lost if you refresh. Everything else is saved to your library.
+        </p>
+      )}
+
+      {saved.filter((s) => !slides.some((x) => x.id === s.id)).length > 0 && (
+        <>
+          <p className="ef-eyebrow" style={{ marginTop: 18 }}>Saved to your library</p>
+          <div className="ef-grid">
+            {saved.filter((s) => !slides.some((x) => x.id === s.id))
+              .map((s) => card(s, "saved"))}
+          </div>
+        </>
+      )}
+
       <p className="ef-note">
         {multi
           ? `Carousels need 2 to 10 cards. ${slides.length} selected.`
