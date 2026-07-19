@@ -1,11 +1,31 @@
 {
   "redirects": [
-    { "source": "/Homeschool", "destination": "/homeschool", "permanent": true },
-    { "source": "/app", "destination": "/apothecary", "permanent": true },
-    { "source": "/app/:path*", "destination": "/apothecary/:path*", "permanent": true },
-    { "source": "/go/deep-dive/:slug", "destination": "https://noeqztssupewjidpvhar.supabase.co/functions/v1/guide-checkout?slug=:slug", "permanent": false }
+    {
+      "source": "/Homeschool",
+      "destination": "/homeschool",
+      "permanent": true
+    },
+    {
+      "source": "/app",
+      "destination": "/apothecary",
+      "permanent": true
+    },
+    {
+      "source": "/app/:path*",
+      "destination": "/apothecary/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/go/deep-dive/:slug",
+      "destination": "https://noeqztssupewjidpvhar.supabase.co/functions/v1/guide-checkout?slug=:slug",
+      "permanent": false
+    }
   ],
   "rewrites": [
+    {
+      "source": "/preorder-response",
+      "destination": "https://noeqztssupewjidpvhar.supabase.co/functions/v1/preorder-response"
+    },
     {
       "source": "/((?!_astro/|_spa/|api/|favicon|robots\\.txt|sitemap\\.xml|.*\\.(?:png|svg|jpg|jpeg|webp|gif|ico|txt|xml|json|js|css|map|woff2?)).*)",
       "destination": "/_spa/index.html"
