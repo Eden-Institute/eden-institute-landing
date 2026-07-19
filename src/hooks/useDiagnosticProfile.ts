@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { resolveEdenPattern, PATTERN_PROFILES } from "@/lib/edenPattern";
+import { readUserLevelConstitution } from "@/lib/userConstitution";
 import {
   type DiagnosticProfile,
   type DiagnosticSource,
@@ -176,19 +177,3 @@ async function resolveCanonicalProvenance(
   }
 }
 
-async function readUserLevelConstitution(
-  userId: string,
-): Promise<string | null> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("constitution_type")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (error) {
-    console.error("[useDiagnosticProfile] readUserLevelConstitution failed", error);
-    return null;
-  }
-  const v = (data as { constitution_type?: string | null } | null)
-    ?.constitution_type;
-  return typeof v === "string" ? v : null;
-}

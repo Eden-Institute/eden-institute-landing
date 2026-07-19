@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { resolveEdenPattern, type EdenPatternName } from "@/lib/edenPattern";
+import { readUserLevelConstitution } from "@/lib/userConstitution";
 import {
   useActiveProfileOptional,
   type PersonProfile,
@@ -52,8 +53,9 @@ import {
  * the gate defaults to enabled and Case 2's user-level read continues
  * to fire as before (backward-compat for legacy surfaces).
  *
- * Cache duration matches `useCurrentTier` (30 min stale, 4 hr GC) — a
- * Pattern doesn't change between page loads in practice; the hook
+ * Cache duration: 30 min stale, 4 hr GC (deliberately longer than
+ * useCurrentTier's 5 min) — a Pattern doesn't change between page loads
+ * in practice; the hook
  * invalidates on the user.id and active person_profile id keys, so a
  * picker switch or quiz completion re-fetches.
  */
@@ -152,17 +154,3 @@ export function useEdenPattern(): {
   };
 }
 
-async function readUserLevelConstitution(userId: string): Promise<string | null> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("constitution_type")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (error) {
-    console.error("[useEdenPattern] readUserLevelConstitution failed", error);
-    return null;
-  }
-  const v = (data as { constitution_type?: string | null } | null)
-    ?.constitution_type;
-  return typeof v === "string" ? v : null;
-}

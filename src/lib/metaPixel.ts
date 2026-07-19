@@ -24,7 +24,9 @@ export function loadMetaPixel(): void {
   (function (f: any, b: any, e: string, v: string, n?: any, t?: any, s?: any) {
     if (f.fbq) return;
     n = f.fbq = function () {
-      // eslint-disable-next-line prefer-rest-params
+      // Meta's canonical loader, kept verbatim so it stays diffable against
+      // their published snippet. Do not "modernize" it.
+      // eslint-disable-next-line prefer-rest-params, @typescript-eslint/no-unused-expressions, prefer-spread
       n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
     };
     if (!f._fbq) f._fbq = n;

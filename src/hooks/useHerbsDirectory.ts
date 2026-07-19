@@ -5,7 +5,8 @@ import { useCurrentTier, type Tier } from "@/hooks/useCurrentTier";
 
 /**
  * Row shape returned by `public.herbs_directory_v` — Stage 6.3.6 unified
- * directory view. 100 rows always; tier-conditional column population
+ * directory view. Every herb row is always returned (300 as of the herb-DB
+ * expansion); tier-conditional column population
  * (visible-but-gated). Anon/free see identity + body for free rows,
  * identity-only for seed rows (is_locked = true). Seed+ see full content
  * across all rows.

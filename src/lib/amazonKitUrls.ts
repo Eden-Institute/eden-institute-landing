@@ -3,7 +3,7 @@
 import { constitutionProfiles } from "@/lib/constitution-data";
 import { CONSTITUTION_MAP } from "@/lib/constitution-utils";
 
-export const AMAZON_KIT_URLS: Record<string, string> = Object.fromEntries(
+const AMAZON_KIT_URLS: Record<string, string> = Object.fromEntries(
   Object.entries(CONSTITUTION_MAP).map(([type, { slug }]) => [
     slug,
     constitutionProfiles[type]?.amazonUrl ?? "",

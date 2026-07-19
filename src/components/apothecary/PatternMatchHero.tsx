@@ -253,4 +253,3 @@ function ResolvedProfileCard({ profile }: { profile: DiagnosticProfile }) {
   );
 }
 
-export default PatternMatchHero;

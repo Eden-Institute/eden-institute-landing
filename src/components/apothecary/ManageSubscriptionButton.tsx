@@ -1,26 +1,11 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { FunctionsHttpError } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-
-// The customer-portal EF marks user-actionable failures with a `code` field
-// (e.g. no_stripe_customer); everything else is a raw/technical string like
-// "Edge Function returned a non-2xx status code" that a paying subscriber
-// should never read. Surface only the coded, deliberately-authored messages.
-async function friendlyPortalError(err: unknown): Promise<string> {
-  const fallback =
-    "Could not open the billing portal. Please try again or contact hello@edeninstitute.health.";
-  if (err instanceof FunctionsHttpError) {
-    try {
-      const body = await err.context.json();
-      if (body?.code && typeof body.error === "string") return body.error;
-    } catch {
-      // Response body was not JSON; fall through to the friendly line.
-    }
-  }
-  return fallback;
-}
+import {
+  PORTAL_ERROR_FALLBACK,
+  friendlyEfError,
+} from "./friendlyEfError";
 
 interface Props {
   /** Override the URL the portal returns to when user clicks "Return to Eden Institute". */
@@ -74,7 +59,7 @@ export function ManageSubscriptionButton({
       window.location.href = data.url;
     } catch (err) {
       console.error("customer-portal failed:", err);
-      toast.error(await friendlyPortalError(err));
+      toast.error(await friendlyEfError(err, PORTAL_ERROR_FALLBACK));
       setSubmitting(false);
     }
   };

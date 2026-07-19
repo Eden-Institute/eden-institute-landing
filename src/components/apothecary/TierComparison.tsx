@@ -197,4 +197,3 @@ export function TierComparison({
   );
 }
 
-export default TierComparison;

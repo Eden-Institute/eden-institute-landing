@@ -199,6 +199,12 @@ export interface TraditionalObservation {
 /* --------------------------- Content entry --------------------------- */
 
 /**
+ * STATUS (2026-07 audit): no Phase B module exists yet, so ContentEntry,
+ * DualSourceCitation, and ContentEntryRegistry currently have zero consumers.
+ * They are kept deliberately: they encode the Lock #43/#44 authoring contract
+ * the future modules must satisfy. Only the citation leaf types below are
+ * consumed today (HerbCard renders them).
+ *
  * Canonical entry shape. Every Phase B clinical content module exports a
  * `Record<slug, ContentEntry>` keyed by the slug field, plus a typed
  * accessor. UI components consume the entry's description fields and

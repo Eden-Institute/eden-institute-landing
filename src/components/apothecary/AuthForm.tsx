@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { ROUTES } from "@/lib/routes";
+import { safeInternalPath } from "@/lib/safeInternalPath";
 
 export type AuthMode = "signup" | "signin" | "reset";
 
@@ -62,7 +63,9 @@ interface Props {
 export function AuthForm({ mode }: Props) {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const returnToParam = params.get("return_to");
+  // Sanitized to an in-app relative path: this value reaches navigate() AND
+  // the emailRedirectTo query below, so it must never carry an external URL.
+  const returnToParam = safeInternalPath(params.get("return_to"));
   const signinReturnTo = returnToParam ?? ROUTES.APOTHECARY;
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);

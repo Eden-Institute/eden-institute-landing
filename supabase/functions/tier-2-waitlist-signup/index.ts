@@ -26,8 +26,8 @@ async function findOrCreateTier2Audience(): Promise<string | null> {
     });
     if (listRes.ok) {
       const listData = await listRes.json();
-      const audiences = listData?.data || [];
-      const existing = audiences.find((a: any) => a?.name === TIER_2_AUDIENCE_NAME);
+      const audiences: Array<{ id?: string; name?: string }> = listData?.data || [];
+      const existing = audiences.find((a) => a?.name === TIER_2_AUDIENCE_NAME);
       if (existing?.id) {
         cachedAudienceId = existing.id;
         return cachedAudienceId;
@@ -79,7 +79,16 @@ async function addContactToAudience(audienceId: string, email: string, firstName
 
 // ── Confirmation email ──
 
-function buildConfirmationEmail(firstName: string): { subject: string; html: string } {
+/** firstName is caller-supplied and lands inside email HTML; escape it so a
+ *  signup cannot inject markup into the message we send. */
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!
+  ));
+}
+
+function buildConfirmationEmail(rawFirstName: string): { subject: string; html: string } {
+  const firstName = escapeHtml(rawFirstName);
   const subject = "You're on the Tier 2 waitlist — your $497 founding code is reserved";
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -191,14 +200,19 @@ Deno.serve(async (req) => {
 
     const { firstName, email } = parsed;
 
-    // STEP 1 — Source of truth: insert into Supabase. If row already exists, treat as success.
+    // STEP 1 — Source of truth: insert into Supabase. If the row already exists
+    // the request still succeeds, but ONLY a genuinely new signup triggers the
+    // mirror + confirmation below. This endpoint is public: without the guard,
+    // repeat POSTs for the same address became an email-spam vector (one
+    // confirmation per request, forever) and re-signups could overwrite the
+    // stored first name.
     const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/tier_2_waitlist`, {
       method: 'POST',
       headers: {
         'apikey': SUPABASE_SERVICE_ROLE_KEY,
         'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
         'Content-Type': 'application/json',
-        'Prefer': 'return=minimal,resolution=merge-duplicates',
+        'Prefer': 'return=representation,resolution=ignore-duplicates',
       },
       body: JSON.stringify({ email, first_name: firstName }),
     });
@@ -212,14 +226,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    // STEP 2 — Mirror to Resend audience (best-effort; don't fail the whole request).
-    const audienceId = await findOrCreateTier2Audience();
-    if (audienceId) {
-      await addContactToAudience(audienceId, email, firstName);
-    }
+    const insertedRows = await insertRes.json().catch(() => []);
+    const isNewSignup = Array.isArray(insertedRows) && insertedRows.length > 0;
 
-    // STEP 3 — Send confirmation email (best-effort).
-    await sendConfirmationEmail(email, firstName);
+    if (isNewSignup) {
+      // STEP 2 — Mirror to Resend audience (best-effort; don't fail the whole request).
+      const audienceId = await findOrCreateTier2Audience();
+      if (audienceId) {
+        await addContactToAudience(audienceId, email, firstName);
+      }
+
+      // STEP 3 — Send confirmation email (best-effort).
+      await sendConfirmationEmail(email, firstName);
+    }
 
     return new Response(
       JSON.stringify({ success: true }),

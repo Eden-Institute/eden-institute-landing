@@ -64,10 +64,10 @@ export interface ComputeTierAwareCTAsArgs {
   amazonKitUrl: string | null;
 }
 
-export const FOUNDATIONS_COURSE_URL =
+const FOUNDATIONS_COURSE_URL =
   "https://learn.edeninstitute.health/course/back-to-eden1";
 
-export function computeTierAwareCTAs(
+function computeTierAwareCTAs(
   args: ComputeTierAwareCTAsArgs,
 ): TierAwareCTAs {
   const { hasUser, pattern, tier, guidePurchased, amazonKitUrl } = args;

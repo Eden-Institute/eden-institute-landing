@@ -27,9 +27,34 @@ const tierCopy: Record<Tier, string> = {
  * Never rely on this component as the security boundary.
  */
 export function RequireTier({ allow, children, fallback }: Props) {
-  const { data: tier, isLoading } = useCurrentTier();
+  const { data: tier, isLoading, isError, refetch } = useCurrentTier();
 
   if (isLoading) return <PageSkeleton />;
+
+  // A transient tier-check failure is not "not entitled": showing a paying
+  // subscriber the paywall over a network blip reads as being locked out of
+  // what they bought. Offer a retry instead.
+  if (isError) {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center px-6">
+        <div className="max-w-md text-center space-y-4">
+          <h2
+            className="font-serif text-2xl font-semibold"
+            style={{ color: "hsl(var(--eden-bark))" }}
+          >
+            We couldn&apos;t check your membership
+          </h2>
+          <p className="font-body text-sm text-muted-foreground">
+            This is usually a brief connection hiccup, not a problem with your
+            plan.
+          </p>
+          <Button variant="eden" onClick={() => refetch()}>
+            Try again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (!tier || !allow.includes(tier)) {
     if (fallback) return <>{fallback}</>;

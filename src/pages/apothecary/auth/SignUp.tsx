@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import { AuthForm } from "@/components/apothecary/AuthForm";
 
 export default function SignUp() {
@@ -23,13 +22,9 @@ export default function SignUp() {
           After signing up, check your <strong>spam or junk folder</strong> if
           the confirmation email doesn&rsquo;t arrive within 5 minutes.
           Hotmail, Outlook, and Yahoo sometimes filter our first emails. Add{" "}
-          <Link
-            to="#"
-            onClick={(e) => e.preventDefault()}
-            className="underline"
-          >
-            hello@edeninstitute.health
-          </Link>{" "}
+          {/* Plain text, not a link: a focusable no-op link confuses keyboard
+              and screen-reader users into expecting navigation. */}
+          <strong>hello@edeninstitute.health</strong>{" "}
           to your contacts to make sure future emails reach your inbox.
         </p>
       </div>

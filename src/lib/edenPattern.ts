@@ -172,7 +172,7 @@ export const PATTERN_PROFILES: Record<EdenPatternName, EdenPatternProfile> = {
  * Pattern added to PATTERN_PROFILES is auto-included here. No second list to
  * maintain.
  */
-export const AXIS_LABEL_TO_PATTERN: Readonly<Record<string, EdenPatternName>> =
+const AXIS_LABEL_TO_PATTERN: Readonly<Record<string, EdenPatternName>> =
   Object.freeze(
     Object.fromEntries(
       Object.values(PATTERN_PROFILES).map((p) => [
@@ -188,7 +188,7 @@ export const AXIS_LABEL_TO_PATTERN: Readonly<Record<string, EdenPatternName>> =
  * Hot/Cold/Neutral axis. Returns "Neutral" when the value is genuinely
  * neutral or genuinely unparseable.
  */
-export function classifyTemperature(value: string | null | undefined): TemperatureAxis {
+function classifyTemperature(value: string | null | undefined): TemperatureAxis {
   if (!value) return "Neutral";
   const lower = value.toLowerCase();
   if (lower.includes("hot") || lower.includes("warm")) return "Hot";
@@ -200,7 +200,7 @@ export function classifyTemperature(value: string | null | undefined): Temperatu
  * Classify a herb's `moisture` field onto the Dry/Damp/Neutral axis.
  * Mucilaginous and demulcent values land on Damp.
  */
-export function classifyMoisture(value: string | null | undefined): MoistureAxis {
+function classifyMoisture(value: string | null | undefined): MoistureAxis {
   if (!value) return "Neutral";
   const lower = value.toLowerCase();
   if (
@@ -260,7 +260,7 @@ export function classifyMoisture(value: string | null | undefined): MoistureAxis
  * stagnation = relaxant) rather than what it FEELS like in the body
  * (warming, dispersing, aromatic).
  */
-export function classifyTone(tissueStatesIndicated: string | null | undefined): ToneAxis {
+function classifyTone(tissueStatesIndicated: string | null | undefined): ToneAxis {
   if (!tissueStatesIndicated) return "Neutral";
   const lower = tissueStatesIndicated.toLowerCase();
   const tenseTokens = ["tension", "constriction", "stagnation", "excitation"];

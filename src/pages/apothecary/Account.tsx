@@ -154,7 +154,36 @@ export default function Account() {
     staleTime: 60 * 1000,
   });
 
-  if (isLoading || !profile) return <PageSkeleton />;
+  if (isLoading) return <PageSkeleton />;
+
+  // A failed query or a missing profiles row must not read as an endless
+  // skeleton: the error banner below used to sit behind `!profile`, which
+  // made it unreachable — exactly the states it was written for.
+  if (isError || !profile) {
+    return (
+      <section className="py-12 md:py-16 px-6">
+        <div className="max-w-3xl mx-auto space-y-4">
+          <h1
+            className="font-serif text-3xl font-bold"
+            style={{ color: "hsl(var(--eden-bark))" }}
+          >
+            Your Account
+          </h1>
+          <div
+            className="rounded-lg border p-4 font-body text-sm"
+            style={{
+              borderColor: "hsl(var(--destructive) / 0.4)",
+              backgroundColor: "hsl(var(--destructive) / 0.05)",
+              color: "hsl(var(--destructive))",
+            }}
+          >
+            We couldn&apos;t load your account details. Refresh the page, or
+            contact us at hello@edeninstitute.health if this persists.
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   const hasStripeCustomer = !!profile.stripe_customer_id;
   const hasPaidTier =
@@ -193,20 +222,6 @@ export default function Account() {
           </h1>
           <p className="font-body text-muted-foreground">{user?.email}</p>
         </header>
-
-        {isError && (
-          <div
-            className="rounded-lg border p-4 font-body text-sm"
-            style={{
-              borderColor: "hsl(var(--destructive) / 0.4)",
-              backgroundColor: "hsl(var(--destructive) / 0.05)",
-              color: "hsl(var(--destructive))",
-            }}
-          >
-            We couldn&apos;t load your account details. Refresh the page, or
-            contact us at hello@edeninstitute.health if this persists.
-          </div>
-        )}
 
         {/* PR γ (2026-05-02): dominant journey CTA at the top of the
             authed surface. Mirrors the homepage placement from PR β
