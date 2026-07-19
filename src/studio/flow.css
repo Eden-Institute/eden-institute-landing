@@ -1,0 +1,261 @@
+/* Styles for the ad flow. Scoped under .edenflow so nothing leaks into the
+   rest of the app, matching how studio.css is scoped.
+
+   Palette is the Eden Brand Voice Guide §4.1: Deep Forest carries the
+   structure, Warm Linen the grounds, Golden Amber is spent only on
+   recommendations and the live indicator. */
+
+.edenflow {
+  --ef-forest: #2B3A1E;
+  --ef-forest-2: #3a4d29;
+  --ef-linen: #F5EDD6;
+  --ef-linen-2: #e8ddc0;
+  --ef-white: #FAF6EE;
+  --ef-ink: #1E1E14;
+  --ef-muted: #6e6a5c;
+  --ef-line: #d8cdb1;
+  --ef-amber: #C5A44E;
+  --ef-danger: #8c3a2b;
+  --ef-serif: "Cinzel", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+
+  color: var(--ef-ink);
+  font-size: 16px;
+  line-height: 1.5;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 16px 40px;
+  min-width: 0;
+}
+.edenflow *,
+.edenflow *::before,
+.edenflow *::after { box-sizing: border-box; }
+
+/* ── answered-so-far chips ─────────────────────────────────────────── */
+.ef-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 0 4px; }
+.ef-chip {
+  background: var(--ef-white); border: 1px solid var(--ef-line); border-radius: 999px;
+  padding: 5px 12px; font: inherit; font-size: 12px; color: var(--ef-muted);
+  cursor: pointer; transition: .15s;
+}
+.ef-chip:hover { border-color: var(--ef-amber); transform: translateY(-1px); }
+.ef-chip b { color: var(--ef-forest); font-weight: 600; }
+
+/* ── layout ────────────────────────────────────────────────────────── */
+.ef-layout { display: grid; gap: 20px; min-width: 0; }
+
+/* NOT sticky on a phone. An opaque pinned panel hides the question
+   underneath it, which reads as the flow being stuck. */
+.ef-stage {
+  position: static; background: var(--ef-linen);
+  padding: 10px 0; border-bottom: 1px solid var(--ef-line);
+  display: flex; flex-direction: column; gap: 8px; min-width: 0;
+}
+.ef-stagerow { display: flex; gap: 14px; align-items: center; min-width: 0; }
+.ef-frame { line-height: 0; flex: none; }
+.ef-frame canvas {
+  display: block; border-radius: 6px; max-height: 32vh; width: auto; max-width: 100%;
+  box-shadow: 0 5px 18px rgba(30, 40, 25, .28);
+}
+.ef-stage.is-open .ef-stagerow { flex-direction: column; align-items: center; }
+.ef-stage.is-open .ef-frame canvas { max-height: 52vh; }
+
+.ef-meta {
+  font-family: var(--ef-serif); font-size: 11.5px; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--ef-muted); line-height: 1.7;
+}
+.ef-meta b { display: block; color: var(--ef-forest); font-size: 13px; letter-spacing: .05em; }
+.ef-live {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--ef-amber); margin-right: 5px; vertical-align: middle;
+}
+
+.ef-col { min-width: 0; }
+
+@media (min-width: 900px) {
+  .ef-layout { grid-template-columns: 300px 1fr; align-items: start; gap: 32px; }
+  .ef-stage { position: sticky; top: 20px; border-bottom: 0; padding: 0; }
+  .ef-stagerow { flex-direction: column; align-items: stretch; }
+  .ef-frame canvas { max-height: none; width: 100%; }
+}
+
+/* ── progress ──────────────────────────────────────────────────────── */
+.ef-prog {
+  display: flex; align-items: center; gap: 12px;
+  margin: 10px 0 22px; padding-bottom: 12px; border-bottom: 1px solid var(--ef-line);
+}
+.ef-chapter {
+  font-family: var(--ef-serif); font-size: 13px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ef-muted);
+}
+.ef-chapter b { color: var(--ef-amber); letter-spacing: .14em; }
+.ef-dots { display: flex; gap: 5px; margin-left: auto; }
+.ef-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ef-line); }
+.ef-dot.on { background: var(--ef-amber); }
+.ef-dot.now { background: var(--ef-forest); transform: scale(1.35); }
+
+/* ── the question ──────────────────────────────────────────────────── */
+.ef-q {
+  font-family: var(--ef-serif); font-size: 27px; line-height: 1.25;
+  margin: 0 0 6px; color: var(--ef-forest); text-wrap: balance;
+}
+.ef-sub { color: var(--ef-muted); font-size: 14px; margin: 0 0 20px; max-width: 60ch; }
+.ef-eyebrow {
+  font-family: var(--ef-serif); font-size: 12px; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--ef-muted); margin: 0 0 8px;
+}
+
+.ef-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.ef-opt {
+  background: var(--ef-white); border: 1px solid var(--ef-line); border-radius: 10px;
+  padding: 15px 16px; cursor: pointer; text-align: left; font: inherit; font-size: 14px;
+  transition: .14s; position: relative; display: block; width: 100%; color: var(--ef-ink);
+}
+.ef-opt:hover { border-color: var(--ef-amber); transform: translateY(-2px); }
+.ef-opt.is-sel {
+  border-color: var(--ef-forest); background: #eef2e6;
+  box-shadow: inset 0 0 0 2px var(--ef-forest);
+}
+.ef-opt-t { font-weight: 600; color: var(--ef-forest); display: block; margin-bottom: 3px; }
+.ef-opt-h { color: var(--ef-muted); font-size: 12.5px; line-height: 1.45; display: block; }
+.ef-tag {
+  display: inline-block; background: var(--ef-linen-2); border-radius: 4px;
+  padding: 1px 6px; font-size: 11px; color: var(--ef-muted); margin-top: 7px;
+}
+.ef-rec {
+  position: absolute; top: -8px; right: 11px; background: var(--ef-amber); color: #fff;
+  font-size: 10px; letter-spacing: .06em; padding: 2px 8px; border-radius: 999px; font-weight: 600;
+}
+.ef-drop {
+  border: 1px dashed var(--ef-line); background: var(--ef-white); border-radius: 10px;
+  padding: 22px 16px; width: 100%; text-align: center; cursor: pointer; font: inherit;
+  margin-bottom: 12px;
+}
+.ef-drop:hover { border-color: var(--ef-amber); }
+.ef-anchors { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-width: 280px; }
+.ef-anchors .ef-opt {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  padding: 0; font-size: 12px; color: var(--ef-muted);
+}
+
+/* ── inputs ────────────────────────────────────────────────────────── */
+.ef-input {
+  width: 100%; border: 1px solid var(--ef-line); border-radius: 8px; padding: 11px 12px;
+  font: inherit; font-size: 14px; background: var(--ef-white); color: var(--ef-ink);
+  resize: vertical;
+}
+.ef-input:focus { outline: none; border-color: var(--ef-amber); }
+.ef-field { margin-bottom: 14px; }
+.ef-field label {
+  display: block; font-size: 12px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ef-muted); margin-bottom: 5px;
+}
+.ef-count {
+  font-size: 11px; color: var(--ef-muted); text-align: right; margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.ef-count.is-over { color: var(--ef-danger); font-weight: 600; }
+.ef-slider {
+  display: flex; align-items: center; gap: 14px; background: var(--ef-white);
+  border: 1px solid var(--ef-line); border-radius: 10px; padding: 14px 16px;
+}
+.ef-slider input[type="range"] { flex: 1; accent-color: var(--ef-amber); }
+.ef-slider-l { font-size: 13px; color: var(--ef-forest); font-weight: 600; }
+.ef-slider-v {
+  font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ef-muted);
+  min-width: 46px; text-align: right;
+}
+.ef-note { font-size: 12.5px; color: var(--ef-muted); font-style: italic; margin: 10px 0 0; }
+.ef-error {
+  font-size: 13px; color: var(--ef-danger); background: #fbeee9;
+  border: 1px solid #e6c7bd; border-radius: 8px; padding: 10px 12px; margin: 10px 0 0;
+}
+
+/* ── adjust tray ───────────────────────────────────────────────────── */
+.ef-tray {
+  background: var(--ef-white); border: 1px solid var(--ef-line);
+  border-radius: 8px; padding: 8px 11px;
+}
+.ef-tray summary {
+  font-family: var(--ef-serif); font-size: 11.5px; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--ef-amber); cursor: pointer; font-weight: 600;
+}
+.ef-tray[open] summary { margin-bottom: 9px; }
+.ef-trayrow { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.ef-trayrow:last-child { margin-bottom: 0; }
+.ef-trayrow label {
+  font-size: 11px; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--ef-muted); min-width: 62px; flex: none;
+}
+.ef-trayrow input[type="range"] { flex: 1; accent-color: var(--ef-amber); }
+.ef-mini {
+  border: 1px solid var(--ef-line); background: var(--ef-linen-2); color: var(--ef-forest);
+  border-radius: 6px; padding: 6px 10px; font: inherit; font-size: 12px; cursor: pointer;
+  white-space: nowrap;
+}
+.ef-mini:hover { border-color: var(--ef-amber); }
+
+/* ── bottom bar ────────────────────────────────────────────────────── */
+/* Everything that moves the flow forward lives in here. Nothing floats over
+   it: a floating button sits on top of Continue and strands the founder. */
+.ef-nav {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--ef-line);
+}
+.ef-spacer { flex: 1; }
+.ef-btn {
+  border: 1px solid var(--ef-line); background: var(--ef-white); color: var(--ef-muted);
+  border-radius: 8px; padding: 11px 18px; font: inherit; font-size: 13.5px; cursor: pointer;
+  transition: .14s;
+}
+.ef-btn:hover:not(:disabled) { border-color: var(--ef-forest); color: var(--ef-forest); }
+.ef-pri {
+  background: var(--ef-forest); color: var(--ef-linen);
+  border-color: var(--ef-forest); font-weight: 600;
+}
+.ef-pri:hover:not(:disabled) { background: var(--ef-forest-2); color: var(--ef-linen); }
+.ef-btn:disabled { opacity: .4; cursor: not-allowed; }
+.ef-peek {
+  border: 1px solid var(--ef-line); background: var(--ef-linen-2); color: var(--ef-forest);
+  border-radius: 8px; padding: 11px 14px; font-family: var(--ef-serif); font-size: 12.5px;
+  letter-spacing: .05em; cursor: pointer; white-space: nowrap; flex: 0 0 auto;
+}
+@media (min-width: 900px) { .ef-peek { display: none; } }
+
+/* ── enlarged preview ──────────────────────────────────────────────── */
+.ef-lightbox {
+  position: fixed; inset: 0; background: rgba(15, 20, 12, .95); z-index: 60;
+  display: flex; align-items: center; justify-content: center; flex-direction: column;
+  gap: 16px; padding: 22px;
+}
+.ef-lightbox canvas {
+  max-width: 100%; max-height: 78vh; border-radius: 6px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .5);
+}
+
+/* ── toast ─────────────────────────────────────────────────────────── */
+.ef-toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+  background: var(--ef-forest); color: var(--ef-linen); padding: 12px 20px;
+  border-radius: 8px; font-size: 13.5px; max-width: min(520px, calc(100vw - 32px));
+  box-shadow: 0 8px 26px rgba(0, 0, 0, .22); z-index: 70;
+}
+
+/* ── finished ad ───────────────────────────────────────────────────── */
+.ef-final { display: grid; gap: 20px; min-width: 0; }
+.ef-final > * { min-width: 0; }
+.ef-final canvas {
+  border-radius: 6px; max-width: 100%; height: auto;
+  box-shadow: 0 8px 26px rgba(30, 40, 25, .3);
+}
+@media (min-width: 760px) { .ef-final { grid-template-columns: auto 1fr; align-items: start; } }
+.ef-caption {
+  background: var(--ef-white); border: 1px solid var(--ef-line); border-radius: 9px;
+  padding: 14px; white-space: pre-wrap; font-size: 13.5px; line-height: 1.6;
+  max-height: 220px; overflow-y: auto; overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edenflow *, .edenflow *::before, .edenflow *::after {
+    animation-duration: .01ms !important; transition-duration: .01ms !important;
+  }
+}
