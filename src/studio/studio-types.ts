@@ -104,6 +104,15 @@ export const PRODUCT_CHOICES = [
 ] as const;
 
 /** Ad type drives the canvas size the creative builder opens at. */
+/** The inverse of formatForAdType: the flow answers in canvas formats, the
+ *  project row stores the ad type the archive filters on. Story covers both
+ *  Story and Reel, which are the same 9:16 canvas. */
+export function adTypeForFormat(format: string): string {
+  if (format === "story") return "story";
+  if (format === "carousel") return "carousel";
+  return "feed";
+}
+
 export function formatForAdType(adType: string): string {
   if (adType === "reel" || adType === "story") return "story";
   if (adType === "carousel") return "carousel";

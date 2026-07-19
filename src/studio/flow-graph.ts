@@ -1,0 +1,519 @@
+// The ad flow as data.
+//
+// The studio asks one question at a time, and which question comes next depends
+// on what has already been answered. Keeping that as a declarative list rather
+// than branching JSX means the whole branching surface is a pure function and
+// can be tested without rendering anything.
+//
+// Rules that hold across the graph:
+//   - A node is only asked when visible() says it applies. Hidden nodes are not
+//     "skipped questions", they are questions that could not apply.
+//   - options() is filtered from the real banks, never a hand-copied list, so
+//     the flow and the existing studio can never drift apart.
+//   - recommended() may reorder and badge, but must never remove an option.
+//     Narrowing what the founder is allowed to choose is not the job.
+
+import {
+  ANGLES, AUDIENCES, FORMATS, OBJECTIVES, PRODUCTS, TEMPLATES,
+} from "./studio-banks";
+
+/* ── shapes ───────────────────────────────────────────────────────── */
+
+export type Chapter = 1 | 2 | 3 | 4;
+
+export type NodeKind =
+  | "single" | "text" | "gallery" | "aiimage" | "opacity" | "finetune"
+  | "sound" | "variants" | "own" | "caption" | "overlay" | "anchor"
+  | "link" | "credits" | "render";
+
+export type Platforms = "instagram" | "facebook" | "both";
+export type AdType = "portrait" | "feed" | "story" | "carousel";
+export type MediaSource = "media" | "ai" | "branded";
+export type Treatment = "scrolling" | "static" | "branded" | "none";
+export type Pathway = "native" | "canva" | "bsuite" | "local";
+
+export interface SlideAnswer {
+  /** studio_assets id, or a local id for something just uploaded. */
+  id: string;
+  kind: "image" | "video";
+  /** Storage path once it is in the bucket. */
+  path?: string;
+  /** Object URL while it is still only in the browser. */
+  url?: string;
+  own?: boolean;
+  name?: string;
+  durationSec?: number;
+}
+
+export interface AudioClip {
+  name: string;
+  url?: string;
+  path?: string;
+  durationSec?: number;
+}
+
+export interface SoundAnswer {
+  mode: "none" | "narration" | "both";
+  narration?: AudioClip | null;
+  music?: AudioClip | null;
+}
+
+export interface OverlayAnswer {
+  hook?: string;
+  sub?: string;
+  cta?: string;
+}
+
+export interface FineTune {
+  brightness: number; contrast: number; saturation: number;
+  x: number; y: number; scale: number;
+}
+
+export interface FlowAnswers {
+  platforms?: Platforms;
+  adType?: AdType;
+  product?: string;
+  objective?: string;
+  audience?: string;
+  angle?: string;
+  direction?: string | null;
+
+  source?: MediaSource;
+  slides?: SlideAnswer[];
+  aiPrompt?: string;
+  template?: string;
+  opacity?: number;
+  finetune?: FineTune | null;
+  sound?: SoundAnswer;
+
+  copyMode?: "ai" | "own";
+  variant?: number | null;
+  own?: { primary?: string; headline?: string; description?: string; note?: string };
+  caption?: string;
+  treatment?: Treatment;
+  overlay?: OverlayAnswer;
+  anchor?: string;
+  link?: { domain?: string; dest?: string; qr: boolean } | null;
+  credits?: { text: string; speed: number; startDelaySec: number };
+
+  rendered?: boolean;
+  pathway?: Pathway;
+  approved?: boolean;
+
+  /** Answers parked because their question stopped applying. Restored if it
+   *  comes back, so changing your mind twice costs nothing. */
+  shadow?: Partial<FlowAnswers>;
+}
+
+export interface FlowOption {
+  id: string;
+  label: string;
+  hint?: string;
+  tag?: string;
+}
+
+export interface FlowNode {
+  id: string;
+  chapter: Chapter;
+  kind: NodeKind;
+  /** The answer key this node owns. */
+  writes: keyof FlowAnswers;
+  question: (a: FlowAnswers) => string;
+  sub?: (a: FlowAnswers) => string;
+  options?: (a: FlowAnswers) => FlowOption[];
+  /** Ids to float to the top and badge. Never removes anything. */
+  recommended?: (a: FlowAnswers) => string[];
+  /** Shown only when this returns true. Absent means always. */
+  visible?: (a: FlowAnswers) => boolean;
+  /** Can be passed over; records null rather than staying unanswered. */
+  optional?: boolean;
+  /** A choice you can SEE. Select it, watch the preview, then continue,
+   *  rather than being thrown to the next question mid-thought. */
+  stay?: boolean;
+  /** Short chip label once answered. */
+  chip: (v: any, a: FlowAnswers) => string;
+  /** Is the recorded answer actually usable? Defaults to "something is set".
+   *  An empty slide list or a blank caption is present but not an answer, and
+   *  treating it as one lets an unfinished ad reach the export screen. */
+  satisfied?: (v: any, a: FlowAnswers) => boolean;
+}
+
+/* ── derived facts the graph branches on ──────────────────────────── */
+
+/** The finished ad is a video: a clip was chosen, or text has to move. */
+export function isVideoOutput(a: FlowAnswers): boolean {
+  if ((a.slides || []).some((s) => s.kind === "video")) return true;
+  return a.treatment === "scrolling";
+}
+export function hasMedia(a: FlowAnswers): boolean {
+  return a.source !== "branded";
+}
+
+/** Audience notes in the bank name their best angles in prose. This is that
+ *  prose made machine-readable. It only orders and badges; the allowed set
+ *  always comes from PRODUCTS[p].angles. */
+const AUDIENCE_PAIRINGS: Record<string, string[]> = {
+  homeschool: ["children", "openandgo"],
+  esa: ["esa"],
+  mom2am: ["twoam"],
+  hesitant: ["heritage"],
+  exhausted: ["exhausted", "design"],
+  practitioner: ["notworkshop"],
+};
+
+const productName = (id?: string) =>
+  (PRODUCTS[id as string]?.name || "").split("·").pop()?.trim() || "this product";
+
+/* ── the graph ────────────────────────────────────────────────────── */
+
+export const FLOW: FlowNode[] = [
+  /* ── I · where and what ─────────────────────────────────────────── */
+  {
+    id: "platform", chapter: 1, kind: "single", writes: "platforms",
+    question: () => "Where is this ad going?",
+    sub: () => "Pick the surface. It decides which formats you can use.",
+    options: () => [
+      { id: "instagram", label: "Instagram", hint: "Feed, Stories, Reels" },
+      { id: "facebook", label: "Facebook", hint: "Feed, Stories, Reels" },
+      { id: "both", label: "Both", hint: "One creative, both surfaces" },
+    ],
+    chip: (v) => (v === "both" ? "IG + FB" : v === "instagram" ? "Instagram" : "Facebook"),
+  },
+  {
+    id: "adType", chapter: 1, kind: "single", writes: "adType", stay: true,
+    question: () => "What kind of ad?",
+    sub: () => "This sets the canvas everything else is built to.",
+    options: () => Object.entries(FORMATS).map(([id, f]: any) => ({
+      id, label: f.name, hint: f.spec,
+    })),
+    chip: (v) => FORMATS[v]?.name ?? String(v),
+  },
+  {
+    id: "product", chapter: 1, kind: "single", writes: "product",
+    question: () => "What are you selling?",
+    sub: () => "The product decides which angles are allowed and what the copy may claim.",
+    options: () => Object.entries(PRODUCTS).map(([id, p]: any) => ({
+      id, label: p.name, hint: p.facts, tag: p.tag,
+    })),
+    chip: (v) => productName(v),
+  },
+  {
+    id: "objective", chapter: 1, kind: "single", writes: "objective",
+    question: () => "What should it do?",
+    sub: () => "Your objective picks the default call to action.",
+    options: () => Object.entries(OBJECTIVES).map(([id, o]: any) => ({
+      id, label: o.name,
+    })),
+    chip: (v) => OBJECTIVES[v]?.name ?? String(v),
+  },
+  {
+    id: "audience", chapter: 1, kind: "single", writes: "audience",
+    question: () => "Who is it for?",
+    sub: () => "Targeting notes come straight from the campaign library.",
+    options: () => Object.entries(AUDIENCES).map(([id, x]: any) => ({
+      id, label: x.name, hint: String(x.note || "").replace(/<[^>]*>/g, ""),
+    })),
+    chip: (v) => AUDIENCES[v]?.name ?? String(v),
+  },
+  {
+    id: "angle", chapter: 1, kind: "single", writes: "angle",
+    question: () => "What's the angle?",
+    sub: (a) => `Filtered to the ${productName(a.product)} angle bank. The hint is the `
+      + "art direction an AI image would follow.",
+    options: (a) => (PRODUCTS[a.product as string]?.angles || []).map((id: string) => ({
+      id, label: ANGLES[id]?.name ?? id, hint: ANGLES[id]?.visual,
+    })),
+    recommended: (a) => AUDIENCE_PAIRINGS[a.audience as string] || [],
+    chip: (v) => ANGLES[v]?.name ?? String(v),
+  },
+  {
+    id: "direction", chapter: 1, kind: "text", writes: "direction", optional: true,
+    question: () => "Anything in your own words?",
+    sub: () => "Optional. Whatever you write here outranks the angle when the copy is drafted.",
+    chip: () => "Your direction",
+  },
+
+  /* ── II · media and styling ─────────────────────────────────────── */
+  {
+    id: "source", chapter: 2, kind: "single", writes: "source", stay: true,
+    question: () => "How should this ad look?",
+    options: () => [
+      { id: "media", label: "My own photo or video",
+        hint: "Upload from this device, or reuse something you saved earlier" },
+      { id: "branded", label: "Plain branded ad",
+        hint: "Brand colours, fonts and logo. No photograph needed." },
+      { id: "ai", label: "Generate one with AI",
+        hint: "Optional. An Eden-styled image seeded from your angle." },
+    ],
+    chip: (v) => ({ media: "My media", ai: "AI image", branded: "Branded" } as any)[v] ?? v,
+  },
+  {
+    id: "media", chapter: 2, kind: "gallery", writes: "slides",
+    visible: (a) => a.source === "media",
+    question: (a) => (a.adType === "carousel" ? "Pick your cards" : "Pick your media"),
+    sub: (a) => (a.adType === "carousel"
+      ? "Carousels need 2 to 10 cards. Upload your own or tap saved ones."
+      : "Upload a photo or video from this device, or reuse something you saved earlier."),
+    satisfied: (v: SlideAnswer[], a) => {
+      if (!Array.isArray(v) || v.length < 1) return false;
+      if (a.adType === "carousel") return v.length >= 2 && v.length <= 10;
+      return v.length <= 10;
+    },
+    chip: (v: SlideAnswer[]) => {
+      if (!v || !v.length) return "No media yet";
+      if (v.length > 1) return `${v.length} cards`;
+      return `${v[0].own ? "Your " : ""}${v[0].kind === "video" ? "video" : "photo"}`;
+    },
+  },
+  {
+    id: "aiImage", chapter: 2, kind: "aiimage", writes: "aiPrompt",
+    visible: (a) => a.source === "ai",
+    question: () => "Describe the image",
+    sub: () => "Pre-seeded from your angle. Edit it, or generate as it stands.",
+    chip: () => "AI image",
+  },
+  {
+    id: "template", chapter: 2, kind: "single", writes: "template", stay: true,
+    question: () => "Which treatment?",
+    sub: (a) => (a.source === "branded"
+      ? "Photo Harvest is hidden, there is no photograph to harvest."
+      : "How the type and frame sit on the creative."),
+    options: (a) => Object.entries(TEMPLATES)
+      .filter(([id]) => !(id === "photo" && a.source === "branded"))
+      .map(([id, label]: any) => ({ id, label })),
+    recommended: (a) => (a.angle === "heritage" ? ["forest"]
+      : a.angle === "esa" ? ["label"] : []),
+    chip: (v) => (TEMPLATES as any)[v] ?? String(v),
+  },
+  {
+    id: "opacity", chapter: 2, kind: "opacity", writes: "opacity",
+    visible: (a) => hasMedia(a),
+    question: () => "How strong should the image sit?",
+    sub: () => "Fade the media back so your words read clearly on top.",
+    chip: (v) => `Opacity ${Math.round((v ?? 1) * 100)}%`,
+  },
+  {
+    id: "finetune", chapter: 2, kind: "finetune", writes: "finetune", optional: true,
+    visible: (a) => hasMedia(a),
+    question: () => "Fine-tune the look?",
+    sub: () => "Optional, and non-destructive. Your original file is never rewritten.",
+    chip: () => "Fine-tuned",
+  },
+  {
+    id: "sound", chapter: 2, kind: "sound", writes: "sound",
+    visible: (a) => isVideoOutput(a),
+    satisfied: (v: SoundAnswer) => !!v?.mode,
+    question: () => "Add your voice?",
+    sub: () => "Optional. Record narration and it is baked into the video you download. "
+      + "Add music afterwards in Instagram or Business Suite, where the licensed tracks live.",
+    chip: (v: SoundAnswer) => {
+      const bits: string[] = [];
+      if (v?.narration) bits.push("voice");
+      if (v?.music) bits.push("music");
+      return bits.length ? bits.join(" + ") : "Silent";
+    },
+  },
+
+  /* ── III · copy and text ────────────────────────────────────────── */
+  {
+    id: "copyMode", chapter: 3, kind: "single", writes: "copyMode",
+    question: () => "Who writes the copy?",
+    sub: () => "Either way you can edit every word before it ships.",
+    options: () => [
+      { id: "ai", label: "Write it in Eden's voice",
+        hint: "Three drafts from your brief, with policy and brand-voice checks" },
+      { id: "own", label: "Write it yourself",
+        hint: "Primary text, headline, description, your own note" },
+    ],
+    chip: (v) => (v === "ai" ? "AI copy" : "Own copy"),
+  },
+  {
+    id: "variants", chapter: 3, kind: "variants", writes: "variant",
+    visible: (a) => a.copyMode === "ai",
+    question: () => "Pick a draft",
+    sub: (a) => `Drafted from ${productName(a.product)} · `
+      + `${OBJECTIVES[a.objective as string]?.name} · `
+      + `${AUDIENCES[a.audience as string]?.name} · ${ANGLES[a.angle as string]?.name}.`,
+    chip: (v) => `Draft ${(v ?? 0) + 1}`,
+  },
+  {
+    id: "ownCopy", chapter: 3, kind: "own", writes: "own",
+    visible: (a) => a.copyMode === "own",
+    satisfied: (v: { primary?: string }) => !!v?.primary?.trim(),
+    question: () => "Write your copy",
+    sub: () => "Primary text is the post caption. Headline and description sit under the creative.",
+    chip: () => "Own copy",
+  },
+  {
+    id: "caption", chapter: 3, kind: "caption", writes: "caption",
+    satisfied: (v: string) => typeof v === "string" && v.trim().length > 0
+      && v.length <= 2200,
+    question: () => "Confirm the caption",
+    sub: () => "This is the post text you paste into Meta. It is never painted onto the image.",
+    chip: (v) => `Caption ${(v || "").length}c`,
+  },
+  {
+    id: "treatment", chapter: 3, kind: "single", writes: "treatment", stay: true,
+    question: () => "How should text appear on the ad?",
+    sub: (a) => ((a.slides || []).some((s) => s.kind === "video")
+      ? "Your ad is a video, so credits can roll over it."
+      : "Scrolling credits need moving footage, so they are hidden here."),
+    options: (a) => [
+      ...((a.slides || []).some((s) => s.kind === "video")
+        ? [{ id: "scrolling", label: "Scrolling credits",
+             hint: "Text rolls up over the video, credits style" }] : []),
+      { id: "static", label: "Static overlay", hint: "A fixed headline you place yourself" },
+      { id: "branded", label: "Branded", hint: "Headline in Eden's locked type styles" },
+      { id: "none", label: "No text on the creative", hint: "Let the picture carry it. Caption still ships." },
+    ],
+    chip: (v) => ({ scrolling: "Scrolling", static: "Static text",
+                    branded: "Branded text", none: "No text" } as any)[v] ?? v,
+  },
+  {
+    id: "overlay", chapter: 3, kind: "overlay", writes: "overlay",
+    visible: (a) => a.treatment === "static" || a.treatment === "branded",
+    satisfied: (v: OverlayAnswer, a) => (a.treatment === "branded"
+      ? !!v?.hook?.trim()
+      : !!(v?.hook?.trim() || v?.sub?.trim()))
+      && (v?.hook || "").length <= 40 && (v?.sub || "").length <= 90,
+    question: () => "The words on the creative",
+    sub: (a) => `The button defaults to "`
+      + `${PRODUCTS[a.product as string]?.ctas?.[a.objective as string] ?? "Learn More"}`
+      + `" from your product and objective.`,
+    chip: (v: OverlayAnswer) => `"${(v?.hook || "").slice(0, 22)}"`,
+  },
+  {
+    id: "anchor", chapter: 3, kind: "anchor", writes: "anchor", stay: true,
+    visible: (a) => a.treatment === "static",
+    question: () => "Where does the text sit?",
+    sub: () => "Branded ads lock this. Static lets you place it anywhere.",
+    chip: (v) => `Anchor ${v}`,
+  },
+  {
+    id: "link", chapter: 3, kind: "link", writes: "link", optional: true,
+    visible: (a) => a.treatment !== "none" && !isVideoOutput(a),
+    question: () => "Show a link or QR code?",
+    sub: () => "Optional, and hidden on video. A code you cannot scan mid-scroll is wasted space.",
+    chip: (v) => (v?.qr ? "Link + QR" : "Link"),
+  },
+  {
+    id: "credits", chapter: 3, kind: "credits", writes: "credits",
+    visible: (a) => a.treatment === "scrolling",
+    satisfied: (v: { text?: string }) => !!v?.text?.trim() && v.text.length <= 600,
+    question: () => "The credits roll",
+    sub: () => "One line at a time, rolling up the frame. Keep lines short.",
+    chip: () => "Credits set",
+  },
+
+  /* ── IV · export ────────────────────────────────────────────────── */
+  {
+    id: "render", chapter: 4, kind: "render", writes: "rendered",
+    question: (a) => (isVideoOutput(a) ? "Build the video" : "Render the ad"),
+    sub: () => "Rasterised at true Meta dimensions. Every size shares one export batch.",
+    chip: () => "Rendered",
+  },
+  {
+    id: "pathway", chapter: 4, kind: "single", writes: "pathway",
+    question: () => "Where does it go from here?",
+    sub: () => "Pick one. Your draft stays saved either way.",
+    options: () => [
+      { id: "native", label: "Instagram / Facebook",
+        hint: "Save the file, caption copied, then finish in the app" },
+      { id: "canva", label: "Canva", hint: "Fine-tune the layout and add elements" },
+      { id: "bsuite", label: "Meta Business Suite", hint: "Schedule, publish, or save as a draft" },
+      { id: "local", label: "Save it and stop", hint: "Keep the file and come back later" },
+    ],
+    chip: (v) => ({ native: "IG / FB", canva: "Canva",
+                    bsuite: "Business Suite", local: "Saved" } as any)[v] ?? v,
+  },
+];
+
+/* ── walking the graph ────────────────────────────────────────────── */
+
+export const isVisible = (n: FlowNode, a: FlowAnswers) => (n.visible ? n.visible(a) : true);
+export function isAnswered(n: FlowNode, a: FlowAnswers): boolean {
+  const v = a[n.writes];
+  if (v === undefined) return false;
+  if (v === null) return !!n.optional;      // only a skippable question may be null
+  return n.satisfied ? n.satisfied(v, a) : true;
+}
+
+export const visibleNodes = (a: FlowAnswers) => FLOW.filter((n) => isVisible(n, a));
+export const nodeById = (id: string) => FLOW.find((n) => n.id === id);
+
+export function chapterOf(id: string): Chapter | null {
+  return nodeById(id)?.chapter ?? null;
+}
+
+/**
+ * The next question. Prefers the next unanswered one after `currentId`, then
+ * wraps to fill any gap an edit left behind, and returns null when the ad is
+ * fully specified.
+ */
+export function nextNode(currentId: string, a: FlowAnswers): FlowNode | null {
+  const i = FLOW.findIndex((n) => n.id === currentId);
+  const after = FLOW.slice(i + 1).find((n) => isVisible(n, a) && !isAnswered(n, a));
+  if (after) return after;
+  return FLOW.find((n) => isVisible(n, a) && !isAnswered(n, a)) ?? null;
+}
+
+export const isComplete = (a: FlowAnswers) =>
+  visibleNodes(a).every((n) => isAnswered(n, a));
+
+/** Options with recommendations floated to the top, never removed. */
+export function orderedOptions(n: FlowNode, a: FlowAnswers): FlowOption[] {
+  const opts = n.options ? n.options(a) : [];
+  const rec = n.recommended ? n.recommended(a) : [];
+  if (!rec.length) return opts;
+  return [...opts].sort((x, y) =>
+    (rec.includes(y.id) ? 1 : 0) - (rec.includes(x.id) ? 1 : 0));
+}
+
+export interface Reconciled {
+  answers: FlowAnswers;
+  /** Nodes whose answer had to be cleared, so the UI can say so once. */
+  cleared: FlowNode[];
+}
+
+/**
+ * Keep the answers consistent after an edit.
+ *
+ * A question that stopped applying has its answer parked in `shadow` rather
+ * than thrown away, so flipping a choice back restores what was typed. An
+ * answer that is no longer one of its question's options is cleared, and the
+ * caller routes back to it.
+ */
+export function reconcile(input: FlowAnswers): Reconciled {
+  const a: FlowAnswers = { ...input, shadow: { ...(input.shadow || {}) } };
+  const cleared: FlowNode[] = [];
+
+  for (const n of FLOW) {
+    const key = n.writes;
+    const showing = isVisible(n, a);
+    const has = a[key] !== undefined;
+
+    if (!showing && has) {
+      (a.shadow as any)[key] = a[key];
+      delete (a as any)[key];
+      continue;
+    }
+    if (showing && !has && (a.shadow as any)[key] !== undefined) {
+      const parked = (a.shadow as any)[key];
+      const ids = n.options ? n.options(a).map((o) => o.id) : null;
+      if (!ids || parked === null || ids.includes(parked)) {
+        (a as any)[key] = parked;
+        delete (a.shadow as any)[key];
+      }
+      continue;
+    }
+    if (showing && has && n.options) {
+      const ids = n.options(a).map((o) => o.id);
+      const v = a[key];
+      if (v !== null && typeof v === "string" && !ids.includes(v)) {
+        delete (a as any)[key];
+        cleared.push(n);
+      }
+    }
+  }
+  return { answers: a, cleared };
+}
