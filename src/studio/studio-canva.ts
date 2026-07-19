@@ -5,8 +5,15 @@
 // canva-connect edge function, which does the secret-bearing token exchange.
 // Canva blocks that exchange from browser origins by CORS, so this split is
 // required rather than merely tidy.
+//
+// STATUS (2026-07 audit): the one-question flow that replaced the five-screen
+// wizard offers Canva only as a manual handoff link, so beginConnect/export/
+// reimport currently have no UI entry point. Kept intact, with the EF, pending
+// a founder decision to either re-wire "Send to Canva" into the export screen
+// or retire the round-trip. completeConnect stays mounted on /studio so an
+// in-flight OAuth return can never strand her on an error page.
 
-import { supabase } from "@/integrations/supabase/client";
+import { invokeStudioFunction } from "./studio-invoke";
 
 const VERIFIER_KEY = "eden.canva.pkce_verifier";
 const STATE_KEY = "eden.canva.oauth_state";
@@ -17,23 +24,8 @@ export interface CanvaStatus {
   expiresAt: string | null;
 }
 
-async function invoke<T>(body: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.functions.invoke("canva-connect", { body });
-  if (error) {
-    let payload: { error?: string; detail?: unknown } | null = null;
-    const ctx = (error as { context?: Response }).context;
-    if (ctx && typeof ctx.json === "function") {
-      try { payload = await ctx.json(); } catch { /* non-JSON body */ }
-    }
-    const err = new Error(payload?.error ?? error.message) as Error & {
-      code?: string; detail?: unknown;
-    };
-    err.code = payload?.error;
-    err.detail = payload?.detail;
-    throw err;
-  }
-  return data as T;
-}
+const invoke = <T,>(body: Record<string, unknown>) =>
+  invokeStudioFunction<T>("canva-connect", body);
 
 // ── PKCE ────────────────────────────────────────────────────────────────────
 

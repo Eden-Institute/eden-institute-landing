@@ -37,7 +37,7 @@ describe("starter templates", () => {
     for (const t of STUDIO_TEMPLATES) {
       expect(PRODUCTS[t.answers.product as string], `${t.id} product`).toBeDefined();
       expect(ANGLES[t.answers.angle as string], `${t.id} angle`).toBeDefined();
-      expect((TEMPLATES as any)[t.answers.template as string], `${t.id} treatment`).toBeDefined();
+      expect(TEMPLATES[t.answers.template as string], `${t.id} treatment`).toBeDefined();
     }
   });
 

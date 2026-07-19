@@ -70,6 +70,12 @@ export function supportsMicRecording(): boolean {
     && !!navigator.mediaDevices?.getUserMedia;
 }
 
+/** Safari before 14.1 ships AudioContext under the webkit prefix. */
+function legacyAudioContext(): typeof AudioContext {
+  return (window as Window & { webkitAudioContext?: typeof AudioContext })
+    .webkitAudioContext as typeof AudioContext;
+}
+
 /** A filename that says what the ad is, so a camera roll stays navigable. */
 export function exportFilename(a: FlowAnswers, ext: string): string {
   const product = String(a.product ?? "ad").replace(/[^a-z0-9]+/gi, "-");
@@ -127,7 +133,7 @@ export async function startMicRecording(maxSeconds = 60): Promise<MicSession> {
   let analyser: AnalyserNode | null = null;
   let audioCtx: AudioContext | null = null;
   try {
-    audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    audioCtx = new (window.AudioContext ?? legacyAudioContext())();
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = 256;
     audioCtx.createMediaStreamSource(stream).connect(analyser);
@@ -136,17 +142,15 @@ export async function startMicRecording(maxSeconds = 60): Promise<MicSession> {
   const started = performance.now();
   rec.start();
 
-  let autoStop: number | undefined;
+  const stopped = new Promise<void>((res) => { rec.onstop = () => res(); });
+  const autoStop = window.setTimeout(() => {
+    if (rec.state === "recording") rec.stop();
+  }, maxSeconds * 1000);
   const cleanup = () => {
-    if (autoStop) window.clearTimeout(autoStop);
+    window.clearTimeout(autoStop);
     stream.getTracks().forEach((t) => t.stop());
     try { audioCtx?.close(); } catch { /* already closed */ }
   };
-
-  const stopped = new Promise<void>((res) => { rec.onstop = () => res(); });
-  autoStop = window.setTimeout(() => {
-    if (rec.state === "recording") rec.stop();
-  }, maxSeconds * 1000);
 
   return {
     async stop() {
@@ -229,7 +233,7 @@ export async function exportVideo(
   const clip = a.sound?.narration ?? a.sound?.music ?? null;
   if (clip?.url) {
     try {
-      audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      audioCtx = new (window.AudioContext ?? legacyAudioContext())();
       if (audioCtx.state === "suspended") await audioCtx.resume();
       const dest = audioCtx.createMediaStreamDestination();
       audioEl = new Audio();
@@ -332,7 +336,7 @@ export const HANDOFF_LINKS = {
 
 /** The destination URL an ad points at, with the campaign's UTM tags. */
 export function destinationUrl(a: FlowAnswers): string {
-  const product = (PRODUCTS as any)[a.product as string];
+  const product = PRODUCTS[a.product ?? ""];
   const base = product?.url ?? "https://edeninstitute.health";
   const source = a.platforms === "facebook" ? "facebook" : "instagram";
   const params = new URLSearchParams({

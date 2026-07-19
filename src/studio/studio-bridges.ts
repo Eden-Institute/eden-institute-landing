@@ -4,38 +4,16 @@
 // orchestrator (list / entry / workroom) and the bridges can be shared.
 
 import { supabase } from "@/integrations/supabase/client";
-import {
-  forgetAsset, getTransform, listAssets, loadBrandKit,
-  recordAsset, retagAsset, saveTransform,
-} from "./studio-assets-db";
-import type { AssetTransform } from "./studio-assets-db";
-import { editImage, generateImage, imageStatus } from "./studio-image";
+import { forgetAsset, listAssets, recordAsset } from "./studio-assets-db";
+import { generateImage, imageStatus } from "./studio-image";
 import type { CreativeRange } from "./studio-image";
+import { invokeStudioFunction } from "./studio-invoke";
 
 /** Bridge into the studio-generate EF (the multi-model AI engine). The vanilla
  *  studio core receives this as a plain async function so it stays
  *  framework-free. */
-export async function aiInvoke(body: unknown): Promise<unknown> {
-  const { data, error } = await supabase.functions.invoke("studio-generate", { body });
-  if (error) {
-    // FunctionsHttpError carries a fixed generic message; the EF's real error
-    // code and detail live on error.context (the Response). Surface them so
-    // the studio can branch on code, not on message text.
-    let payload: { error?: string; detail?: unknown } | null = null;
-    const ctx = (error as { context?: Response }).context;
-    if (ctx && typeof ctx.json === "function") {
-      try { payload = await ctx.json(); } catch { /* non-JSON body */ }
-    }
-    const err = new Error(payload?.error ?? error.message) as Error & {
-      code?: string; status?: number; detail?: unknown;
-    };
-    err.code = payload?.error;
-    err.status = ctx?.status;
-    err.detail = payload?.detail;
-    throw err;
-  }
-  return data;
-}
+export const aiInvoke = (body: unknown): Promise<unknown> =>
+  invokeStudioFunction("studio-generate", body);
 
 // Bridge into the private studio-assets bucket (founder-only via storage RLS).
 // The gallery reads through short-lived signed URLs; nothing is ever public.
@@ -103,8 +81,6 @@ function projectAssetOps(ctx: { projectId: string; campaignTag: string }) {
       if (error) throw error;
       await forgetAsset(name);
     },
-    retag: retagAsset,
-    brandKit: loadBrandKit,
     // Phase 4: AI image generation, pre-bound to this project and campaign so
     // generated images are tagged the same way uploads are.
     aiStatus: imageStatus,
@@ -112,14 +88,6 @@ function projectAssetOps(ctx: { projectId: string; campaignTag: string }) {
       generateImage({
         prompt, range, campaignTag: ctx.campaignTag, projectId: ctx.projectId,
       }),
-    aiEdit: (prompt: string, range: CreativeRange, storagePath: string) =>
-      editImage({
-        prompt, range, campaignTag: ctx.campaignTag, projectId: ctx.projectId,
-        storagePath,
-      }),
-    getTransform: (assetId: string) => getTransform(ctx.projectId, assetId),
-    saveTransform: (assetId: string, t: AssetTransform) =>
-      saveTransform(ctx.projectId, assetId, t),
   };
 }
 

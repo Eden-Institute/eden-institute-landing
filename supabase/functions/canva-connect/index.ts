@@ -123,22 +123,32 @@ async function accessToken(userId: string): Promise<string | null> {
 
 // ── Canva API helpers ───────────────────────────────────────────────────────
 
-async function canva(
+/** The slice of Canva's async-job envelope this function reads. */
+interface CanvaJob {
+  id?: string;
+  status?: string;
+  error?: unknown;
+  asset?: { id?: string };
+  urls?: string[];
+}
+
+async function canva<T = Record<string, unknown>>(
   token: string, path: string, init: RequestInit = {},
-): Promise<any> {
+): Promise<T> {
   const res = await fetch(`${API}${path}`, {
     ...init,
     headers: { Authorization: `Bearer ${token}`, ...(init.headers ?? {}) },
   });
   const text = await res.text();
   if (!res.ok) throw new Error(`canva ${path} ${res.status}: ${text.slice(0, 300)}`);
-  return text ? JSON.parse(text) : {};
+  return (text ? JSON.parse(text) : {}) as T;
 }
 
 /** Both asset upload and export are asynchronous jobs. */
 async function pollJob(
-  token: string, path: string, pick: (b: any) => any, tries = 20,
-): Promise<any> {
+  token: string, path: string,
+  pick: (b: Record<string, unknown>) => CanvaJob | undefined, tries = 20,
+): Promise<CanvaJob> {
   for (let i = 0; i < tries; i++) {
     const body = await canva(token, path);
     const job = pick(body);
@@ -167,25 +177,41 @@ async function uploadAsset(token: string, bytes: Uint8Array, name: string): Prom
   if (!started.ok) {
     throw new Error(`canva asset-uploads ${started.status}: ${startedText.slice(0, 300)}`);
   }
-  const job = JSON.parse(startedText).job;
+  const job = (JSON.parse(startedText) as { job?: CanvaJob }).job;
   if (job?.status === "success" && job.asset?.id) return job.asset.id;
-  const done = await pollJob(token, `/asset-uploads/${job.id}`, (b) => b.job);
+  const done = await pollJob(
+    token, `/asset-uploads/${job?.id}`, (b) => b.job as CanvaJob | undefined,
+  );
+  if (!done.asset?.id) throw new Error("canva upload finished without an asset id");
   return done.asset.id;
 }
 
 // ── Modes ───────────────────────────────────────────────────────────────────
 
-async function doExport(userId: string, body: any): Promise<Response> {
+interface ExportBody {
+  projectId?: string;
+  pngBase64?: string;
+  title?: string;
+  width?: number;
+  height?: number;
+  assetId?: string | null;
+}
+
+async function doExport(userId: string, body: ExportBody): Promise<Response> {
   const token = await accessToken(userId);
   if (!token) return json({ error: "not_connected" }, 409);
 
   const { projectId, pngBase64, title, width, height, assetId } = body;
   if (!projectId || !pngBase64) return json({ error: "bad_request" }, 400);
+  // ~48 MB of base64 ≈ 36 MB of PNG. Far above any real export; a payload past
+  // it is malformed or malicious, and atob on it would exhaust the isolate.
+  if (String(pngBase64).length > 48_000_000) return json({ error: "too_large" }, 413);
 
   const bytes = Uint8Array.from(atob(String(pngBase64)), (c) => c.charCodeAt(0));
   const canvaAssetId = await uploadAsset(token, bytes, String(title ?? "Eden ad"));
 
-  const design = await canva(token, "/designs", {
+  interface CanvaDesign { id?: string; urls?: { edit_url?: string } }
+  const design = await canva<{ design?: CanvaDesign } & CanvaDesign>(token, "/designs", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -212,7 +238,7 @@ async function doExport(userId: string, body: any): Promise<Response> {
   return json({ designId: d.id, editUrl: d.urls?.edit_url ?? null });
 }
 
-async function doReimport(userId: string, body: any): Promise<Response> {
+async function doReimport(userId: string, body: { projectId?: string }): Promise<Response> {
   const token = await accessToken(userId);
   if (!token) return json({ error: "not_connected" }, 409);
 
@@ -229,7 +255,7 @@ async function doReimport(userId: string, body: any): Promise<Response> {
   if (!proj?.canva_design_id) return json({ error: "no_design" }, 409);
 
   // Export the design as PNG, then poll until the download URLs appear.
-  const started = await canva(token, "/exports", {
+  const started = await canva<{ job?: CanvaJob } & CanvaJob>(token, "/exports", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -240,7 +266,7 @@ async function doReimport(userId: string, body: any): Promise<Response> {
   const job = started.job ?? started;
   const done = job.status === "success"
     ? job
-    : await pollJob(token, `/exports/${job.id}`, (b) => b.job);
+    : await pollJob(token, `/exports/${job.id}`, (b) => b.job as CanvaJob | undefined);
 
   const url = done.urls?.[0];
   if (!url) return json({ error: "no_export_url" }, 502);
