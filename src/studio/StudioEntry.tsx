@@ -14,7 +14,7 @@ import {
   AD_TYPES, CAMPAIGN_TAGS, PLATFORMS, PRODUCT_CHOICES,
 } from "./studio-types";
 import type { NewStudioProject } from "./studio-db";
-import { STUDIO_TEMPLATES, templateById } from "./studio-templates";
+import { STUDIO_TEMPLATES, templateById, templateState } from "./studio-templates";
 
 interface Props {
   onCreate: (input: NewStudioProject) => void;
@@ -246,7 +246,7 @@ export default function StudioEntry({ onCreate, onCancel, busy, error }: Props) 
               platforms,
               ad_type: adType,
               campaign_tag: tag,
-              state: templateId ? templateById(templateId)?.state : undefined,
+              state: templateState(templateId),
             })
           }
         >
