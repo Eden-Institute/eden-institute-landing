@@ -40,19 +40,26 @@ interface Props {
   answers: FlowAnswers;
   onChange: (next: FlowAnswers) => void;
   assets?: AssetsBridge;
+  /** Start a fresh campaign. Offered once the ad is finished. */
+  onFinish?: () => void;
 }
 
-export default function StudioFlow({ answers, onChange, assets }: Props) {
+export default function StudioFlow({ answers, onChange, assets, onFinish }: Props) {
   const [currentId, setCurrentId] = useState<string>(() => {
+    // Resuming a saved campaign lands on its first unanswered question. If
+    // there isn't one the ad is finished, and she should see it rather than be
+    // marched back to question one.
     const first = FLOW.find((n) => isVisible(n, answers) && !isAnswered(n, answers));
-    return (first ?? FLOW[0]).id;
+    return first ? first.id : "";
   });
   const [history, setHistory] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [trayOpen, setTrayOpen] = useState(false);
   const [enlarged, setEnlarged] = useState(false);
 
-  const node = nodeById(currentId) ?? FLOW[0];
+  // No `?? FLOW[0]` fallback here: advance() clears currentId when the ad is
+  // finished, and a fallback would swallow that and loop on question one.
+  const node = currentId ? nodeById(currentId) : undefined;
   const done = !node;
 
   /* ── answering ───────────────────────────────────────────────────── */
@@ -150,7 +157,7 @@ export default function StudioFlow({ answers, onChange, assets }: Props) {
   );
 
   if (done || !node) {
-    return <FlowSummary answers={answers} onJump={jumpTo} canvasRef={canvasRef} />;
+    return <FlowSummary answers={answers} onJump={jumpTo} onFinish={onFinish} />;
   }
 
   const answered = isAnswered(node, answers);
@@ -549,9 +556,8 @@ function AdjustTray({ answers, open, onToggle, onWrite, onJump }: {
 
 /* ── the finished ad ──────────────────────────────────────────────── */
 
-function FlowSummary({ answers, onJump, canvasRef }: {
-  answers: FlowAnswers; onJump: (id: string) => void;
-  canvasRef: React.RefObject<HTMLCanvasElement>;
+function FlowSummary({ answers, onJump, onFinish }: {
+  answers: FlowAnswers; onJump: (id: string) => void; onFinish?: () => void;
 }) {
   const finalRef = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -575,9 +581,17 @@ function FlowSummary({ answers, onJump, canvasRef }: {
             Export, video and the Meta hand-offs arrive in the next release.
             {product ? ` This ad is for ${product.name}.` : ""}
           </p>
-          <button type="button" className="ef-btn" onClick={() => onJump("pathway")}>
-            ◂ Back to the last question
-          </button>
+          <div className="ef-nav">
+            <button type="button" className="ef-btn" onClick={() => onJump("pathway")}>
+              ◂ Back to the last question
+            </button>
+            <span className="ef-spacer" />
+            {onFinish && (
+              <button type="button" className="ef-btn ef-pri" onClick={onFinish}>
+                Start another ad
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

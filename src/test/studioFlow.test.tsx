@@ -7,7 +7,7 @@
 // LOOKS like is verified in a real browser, what the flow DOES is verified here.
 
 import { useState } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import StudioFlow from "@/studio/StudioFlow";
 import type { FlowAnswers } from "@/studio/flow-graph";
@@ -175,5 +175,34 @@ describe("StudioFlow · not letting a half-made ad through", () => {
     // a jpeg/mp4 allow-list greys out HEIC photos and HEVC clips
     expect(input.accept).not.toMatch(/image\/jpeg|video\/mp4/);
     expect(input.multiple).toBe(true);
+  });
+});
+
+describe("StudioFlow · finishing", () => {
+  const nearlyDone = (): FlowAnswers => ({
+    platforms: "both", adType: "feed", product: "kit", objective: "sales",
+    audience: "homeschool", angle: "children", direction: null,
+    source: "branded", template: "label",
+    copyMode: "own", own: { primary: "x" }, caption: "One herb a week.",
+    treatment: "none", rendered: true,
+  });
+
+  it("answering the last question shows the finished ad", () => {
+    render(<Harness initial={nearlyDone()} />);
+    expect(heading()).toMatch(/Where does it go from here/i);
+    fireEvent.click(option("Instagram / Facebook"));
+    expect(heading()).toMatch(/Here's your ad/i);
+  });
+
+  it("the finished screen shows the caption and can start another", () => {
+    const started = vi.fn();
+    render(
+      <StudioFlow answers={{ ...nearlyDone(), pathway: "native" }}
+        onChange={() => {}} onFinish={started} />,
+    );
+    expect(heading()).toMatch(/Here's your ad/i);
+    expect(screen.getByText("One herb a week.")).toBeTruthy();
+    fireEvent.click(screen.getByText("Start another ad"));
+    expect(started).toHaveBeenCalled();
   });
 });
