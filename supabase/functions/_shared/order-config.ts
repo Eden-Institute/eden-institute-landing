@@ -4,11 +4,28 @@
 // gate, and the customer-facing ship window. Wiring uses Stripe PRICE IDs directly (like the
 // existing deep_dive_guide override), so no Stripe "lookup keys" are required.
 
-// Founder decision 2026-07-14 (was 'Winter 2026'). This exact string is what the buyer
-// accepts in the disclaimer checkbox; it feeds the confirmation email, the SMS, and the
-// accepted_ship_window_text column on orders. web/pages/preorder.astro duplicates it for
-// the pre-rendered page; keep them in sync.
-export const SHIP_WINDOW = 'Late Fall 2026';
+// Two dates, and the distinction is load-bearing (founder decision 2026-07-19).
+//
+// SHIP_TARGET is what we are aiming for and what marketing talks about.
+// SHIP_GUARANTEE_TEXT is the BINDING commitment, and it is the one the FTC Mail Order
+// Rule clock runs on: miss it by more than 30 days and every order whose buyer does not
+// affirmatively consent must be cancelled and refunded (16 CFR 435.2(b)(1)(iii)).
+//
+// Both must be displayed clearly. If only the target were prominent, a regulator could
+// treat the TARGET as the stated shipping time, which would pull the deadline forward by
+// two months. Never show one without the other.
+//
+// The authoritative date also lives in products.ships_on (migration 20260719210000) so a
+// later preorder wave carries its own; these constants are the copy for THIS wave.
+export const SHIP_TARGET = 'early November 2026';
+export const SHIP_GUARANTEE_TEXT = 'December 31, 2026';
+export const SHIP_GUARANTEE_DATE = '2026-12-31';
+
+// What the buyer accepts in the disclaimer checkbox, stamped into session metadata and
+// the accepted_ship_window_text column. Carries BOTH dates so the acceptance evidence
+// matches exactly what was on screen.
+export const SHIP_WINDOW =
+  `aiming for ${SHIP_TARGET}, guaranteed on or before ${SHIP_GUARANTEE_TEXT}`;
 
 // Flat shipping per preorder order (founder decision 2026-07-02). Keep the display copy in
 // web/components/islands/PreorderBuyBox.tsx and web/pages/preorder.astro in sync if this

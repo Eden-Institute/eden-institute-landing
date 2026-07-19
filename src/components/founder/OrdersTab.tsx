@@ -28,6 +28,8 @@ interface OrderMsg {
 
 interface OrderRow {
   id: string;
+  /** Customer-facing identifier (ET-1001...). What a buyer quotes in support email. */
+  order_number: string | null;
   customer_email: string | null;
   shipping_name: string | null;
   status: string;
@@ -139,7 +141,7 @@ export default function OrdersTab({ since }: { since: string }) {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-muted/40">
-                {["Customer", "Items", "Amount", "Status", "SMS", "Messages", "Date (CT)"].map((h) => (
+                {["Order / Customer", "Items", "Amount", "Status", "SMS", "Messages", "Date (CT)"].map((h) => (
                   <th key={h} className="px-3 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground">
                     {h}
                   </th>
@@ -150,6 +152,12 @@ export default function OrdersTab({ since }: { since: string }) {
               {orders.map((o) => (
                 <tr key={o.id} className="border-t border-border align-top">
                   <td className="px-3 py-2 font-body text-sm">
+                    {/* The order number leads: it is the handle customers quote, and
+                        /returns instructs them to. */}
+                    <span className="font-mono text-xs font-semibold" style={{ color: "hsl(var(--eden-bark))" }}>
+                      {o.order_number ?? "—"}
+                    </span>
+                    <br />
                     {o.customer_email ?? "(no email)"}
                     <br />
                     <span className="text-xs text-muted-foreground">{o.shipping_name ?? "(no name)"}</span>

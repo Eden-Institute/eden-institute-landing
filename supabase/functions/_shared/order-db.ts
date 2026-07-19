@@ -12,6 +12,8 @@ export interface Db { from(table: string): any; rpc(fn: string, args?: Record<st
 
 export interface OrderRow {
   id: string;
+  /** Customer-facing identifier (ET-1001...). The uuid `id` stays internal. */
+  order_number: string | null;
   customer_email: string;
   customer_phone: string | null;
   shipping_name: string | null;
@@ -156,4 +158,38 @@ export async function getFoundingGate(db: Db, productId: string): Promise<Foundi
   const row = Array.isArray(data) ? data[0] : data;
   if (!row || typeof row.sold !== 'number') throw new Error('founding_gate: no row returned');
   return { sold: row.sold, cap: typeof row.cap === 'number' ? row.cap : null, closed: !!row.closed };
+}
+
+// ── Stock ceiling ──────────────────────────────────────────────────────────────
+
+export interface StockGate {
+  sold: number;
+  /** null = uncapped. */
+  cap: number | null;
+  /** null when uncapped. */
+  remaining: number | null;
+  soldOut: boolean;
+}
+
+/**
+ * Availability for a product (stock_gate RPC, migration 20260719210000).
+ *
+ * Deliberately NOT latched, unlike the founding gate. Running out of stock is a
+ * reversible fact, because a refund frees the unit it consumed; the founding PRICE
+ * window is a one-way promise and latches, but availability must be able to reopen.
+ *
+ * Counts BOTH price tiers: founding_qty_limit (500) only switches price, while
+ * stock_qty (1000) is the ceiling on what we can actually ship.
+ */
+export async function getStockGate(db: Db, productId: string): Promise<StockGate> {
+  const { data, error } = await db.rpc('stock_gate', { p_product_id: productId });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row || typeof row.sold !== 'number') throw new Error('stock_gate: no row returned');
+  return {
+    sold: row.sold,
+    cap: typeof row.cap === 'number' ? row.cap : null,
+    remaining: typeof row.remaining === 'number' ? row.remaining : null,
+    soldOut: !!row.sold_out,
+  };
 }

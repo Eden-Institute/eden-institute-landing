@@ -47,7 +47,8 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { FOUNDING_GATE_SKU, PREORDER_FLAT_SHIPPING_CENTS, PREORDER_PRODUCTS, SHIP_WINDOW, preorderProductBySku } from "../_shared/order-config.ts"
-import { getFoundingGate } from "../_shared/order-db.ts"
+import { getFoundingGate, getStockGate } from "../_shared/order-db.ts"
+import { enforceCheckoutRateLimit } from "../_shared/checkout-rate-limit.ts"
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2024-12-18.acacia",
@@ -59,6 +60,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-preorder-admin",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 }
+
+/** Service-role client. The blocks below build their own locals named `adminClient`;
+ *  this is the shared constructor for code that just needs one briefly. */
+const admin = () => createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+)
 
 // Subscription lookup_keys — mode="subscription", auth required.
 const SUBSCRIPTION_LOOKUP_KEYS = new Set([
@@ -164,6 +172,20 @@ serve(async (req) => {
   }
 
   try {
+    // 0. Rate limit before anything else. Every path below mints a real Stripe
+    //    Checkout Session, so this is the card-testing guard. Fails open: see
+    //    _shared/checkout-rate-limit.ts for why that trade is the right one here.
+    const rl = await enforceCheckoutRateLimit(admin(), req)
+    if (!rl.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: "Too many checkout attempts. Please wait a few minutes and try again.",
+          code: "RATE_LIMITED",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 429 },
+      )
+    }
+
     // 1. Parse and validate the request body
     const body = await req.json().catch(() => ({}))
     const {
@@ -625,6 +647,43 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
     const product = productBySkuMap.get(line.sku)
     if (!product || !product.active) {
       return jsonError(`'${line.sku}' is not available for preorder right now`, 403)
+    }
+  }
+
+  // Stock ceiling. Until this existed, products.founding_qty_limit (500) was only a
+  // PRICE switch: the 501st order succeeded at retail and so would the 5,000th, and the
+  // only stop button was hand-editing products.active. Checked BEFORE session creation
+  // so we never take money for a unit we cannot ship.
+  //
+  // Like the founding gate, this reads a committed count, so simultaneous sessions in
+  // flight can still overshoot slightly under a launch spike. That is bounded and
+  // acceptable for a print run with spare units; it would not be for a hard allocation.
+  // A refund frees its unit again, deliberately (stock is reversible; the founding PRICE
+  // window is not, and latches separately).
+  for (const line of cart) {
+    const product = productBySkuMap.get(line.sku)!
+    try {
+      const stock = await getStockGate(adminClient, product.id)
+      if (stock.cap === null) continue           // uncapped product
+      if (stock.remaining !== null && line.qty > stock.remaining) {
+        return new Response(
+          JSON.stringify({
+            error: stock.remaining === 0
+              ? `'${product.name ?? line.sku}' is sold out.`
+              : `Only ${stock.remaining} left of '${product.name ?? line.sku}'.`,
+            code: "OUT_OF_STOCK",
+            sku: line.sku,
+            remaining: stock.remaining,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
+        )
+      }
+    } catch (e) {
+      // Fail CLOSED. Unlike the rate limiter and the founding-price gate, an unreadable
+      // stock count must not sell an unknown quantity: overselling a physical print run
+      // means refunding real customers, which is worse than a brief outage.
+      console.error(`stock_gate read failed for ${line.sku}:`, e instanceof Error ? e.message : String(e))
+      return jsonError("Could not confirm availability right now. Please try again in a moment.", 503)
     }
   }
 
