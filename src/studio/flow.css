@@ -259,3 +259,36 @@
     animation-duration: .01ms !important; transition-duration: .01ms !important;
   }
 }
+
+/* ── export screen ─────────────────────────────────────────────────── */
+.ef-grid-1 { grid-template-columns: 1fr; }
+.ef-draft { white-space: pre-wrap; line-height: 1.6; }
+.ef-summary-card {
+  background: var(--ef-white); border: 1px solid var(--ef-line);
+  border-radius: 9px; padding: 14px; min-width: 0; overflow-wrap: anywhere;
+}
+.ef-final-side { display: grid; gap: 12px; min-width: 0; }
+.ef-row {
+  display: flex; gap: 12px; justify-content: space-between; padding: 6px 0;
+  border-bottom: 1px dashed var(--ef-line); font-size: 13.5px;
+}
+.ef-row:last-child { border-bottom: 0; }
+.ef-row b { color: var(--ef-forest); }
+.ef-video {
+  width: 100%; max-width: 280px; border-radius: 6px; background: #16281f; display: block;
+}
+.ef-audio { width: 100%; max-width: 280px; display: block; margin: 8px 0; }
+.ef-record {
+  background: var(--ef-white); border: 1px solid var(--ef-line);
+  border-radius: 9px; padding: 14px; margin-top: 12px;
+}
+.ef-meter { letter-spacing: 2px; color: var(--ef-amber); font-size: 15px; }
+/* Buttons stack on a phone: a nowrap row of them overflows and pushes the
+   controls off the side of the screen where they cannot be reached. */
+.ef-exportrow { display: flex; flex-wrap: wrap; gap: 8px; }
+.ef-exportrow > * { flex: 1 1 auto; min-width: 0; }
+.ef-link { text-decoration: none; text-align: center; display: block; }
+@media (max-width: 640px) {
+  .ef-exportrow { flex-direction: column; align-items: stretch; }
+  .ef-exportrow > * { width: 100%; }
+}
