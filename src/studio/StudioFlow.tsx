@@ -27,6 +27,10 @@ import {
   listSavedSlides, signedUrlFor, unsavedSlides, uploadSlide,
 } from "./flow-assets";
 import type { AssetsPort } from "./flow-assets";
+import {
+  bankDrafts, checkAi, diagnoseDraft, editDraft, explainAiError, generateDrafts,
+} from "./flow-ai";
+import type { AiDiagnosis, AiDraft, AiInvoke } from "./flow-ai";
 import { PRODUCTS } from "./studio-banks";
 import "./flow.css";
 
@@ -45,11 +49,15 @@ interface Props {
   answers: FlowAnswers;
   onChange: (next: FlowAnswers) => void;
   assets?: AssetsBridge;
+  /** The studio-generate edge function. Absent means the approved copy bank
+   *  is the only source of drafts, which is a working studio rather than a
+   *  broken one. */
+  ai?: AiInvoke;
   /** Start a fresh campaign. Offered once the ad is finished. */
   onFinish?: () => void;
 }
 
-export default function StudioFlow({ answers, onChange, assets, onFinish }: Props) {
+export default function StudioFlow({ answers, onChange, assets, ai, onFinish }: Props) {
   const [currentId, setCurrentId] = useState<string>(() => {
     // Resuming a saved campaign lands on its first unanswered question. If
     // there isn't one the ad is finished, and she should see it rather than be
@@ -213,7 +221,7 @@ export default function StudioFlow({ answers, onChange, assets, onFinish }: Prop
           <h1 className="ef-q">{node.question(answers)}</h1>
           {node.sub && <p className="ef-sub">{node.sub(answers)}</p>}
 
-          <NodeBody node={node} answers={answers} assets={assets}
+          <NodeBody node={node} answers={answers} assets={assets} ai={ai}
             onWrite={write}
             onPick={(key, value) => {
               if (node.stay) write(key, value);
@@ -263,11 +271,12 @@ interface BodyProps {
   node: FlowNode;
   answers: FlowAnswers;
   assets?: AssetsBridge;
+  ai?: AiInvoke;
   onWrite: (key: keyof FlowAnswers, value: unknown) => FlowAnswers;
   onPick: (key: keyof FlowAnswers, value: unknown) => void;
 }
 
-function NodeBody({ node, answers, assets, onWrite, onPick }: BodyProps) {
+function NodeBody({ node, answers, assets, ai, onWrite, onPick }: BodyProps) {
   switch (node.kind) {
     case "single": return <SingleChoice node={node} answers={answers} onPick={onPick} />;
     case "text": return <FreeText node={node} answers={answers} onWrite={onWrite} />;
@@ -277,8 +286,8 @@ function NodeBody({ node, answers, assets, onWrite, onPick }: BodyProps) {
     case "caption": return <CaptionField answers={answers} onWrite={onWrite} />;
     case "overlay": return <OverlayFields answers={answers} onWrite={onWrite} />;
     case "anchor": return <AnchorGrid answers={answers} onWrite={onWrite} />;
-    case "own": return <OwnCopy answers={answers} onWrite={onWrite} />;
-    case "variants": return <CopyDrafts answers={answers} onWrite={onWrite} />;
+    case "own": return <OwnCopy answers={answers} ai={ai} onWrite={onWrite} />;
+    case "variants": return <CopyDrafts answers={answers} ai={ai} onWrite={onWrite} />;
     case "finetune": return <FineTuneSliders answers={answers} onWrite={onWrite} />;
     case "credits": return <CreditsEditor answers={answers} onWrite={onWrite} />;
     case "link": return <LinkFields answers={answers} onWrite={onWrite} />;
@@ -293,45 +302,92 @@ function NodeBody({ node, answers, assets, onWrite, onPick }: BodyProps) {
   }
 }
 
-/** The approved copy bank for this product and angle. Fresh AI drafting lands
- *  in the next release; this copy is already written and already approved, so
- *  there is no reason to make her wait for it. */
-function CopyDrafts({ answers, onWrite }: {
-  answers: FlowAnswers; onWrite: BodyProps["onWrite"];
+/** Drafts to choose from: the approved copy bank, which needs no model and no
+ *  waiting, plus freshly generated ones on request. The bank is listed too
+ *  rather than replaced, because it is already approved. */
+function CopyDrafts({ answers, ai, onWrite }: {
+  answers: FlowAnswers; ai?: AiInvoke; onWrite: BodyProps["onWrite"];
 }) {
-  const product = (PRODUCTS as any)[answers.product as string];
-  const bank: string[] = product?.primaries?.[answers.angle as string] ?? [];
-  const drafts = bank.length ? bank : [0, 1, 2].map((i) => [
-    product?.headlines?.[i % (product?.headlines?.length || 1)],
-    product?.facts,
-    product?.descs?.[i % (product?.descs?.length || 1)],
-  ].filter(Boolean).join("\n\n"));
+  const bank = useMemo(() => bankDrafts(answers), [answers]);
+  const [fresh, setFresh] = useState<AiDraft[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [ready, setReady] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    void checkAi(ai).then((r) => {
+      if (!live) return;
+      setReady(r.ready);
+      if (!r.ready && r.reason) setNote(r.reason);
+    });
+    return () => { live = false; };
+  }, [ai]);
+
+  const drafts = [
+    ...fresh.map((d) => ({ text: d.primary, badge: "new", meta: d.approach })),
+    ...bank.map((text) => ({ text, badge: "approved", meta: undefined as string | undefined })),
+  ];
+
+  const draw = async () => {
+    if (!ai) return;
+    setBusy(true); setError(null); setNote(null);
+    try {
+      const { drafts: got, note: n } = await generateDrafts(ai, answers);
+      if (!got.length) setError("No drafts came back. The approved copy below still works.");
+      setFresh(got);
+      setNote(n);
+    } catch (err) {
+      setError(explainAiError(err));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <>
+      {ai && (
+        <div className="ef-exportrow" style={{ marginBottom: 12 }}>
+          <button type="button" className="ef-btn ef-pri" onClick={draw}
+            disabled={busy || ready === false}>
+            {busy ? "Drafting…" : fresh.length ? "Draft three more" : "Draft three in Eden's voice"}
+          </button>
+        </div>
+      )}
+      {error && <p className="ef-error">{error}</p>}
+
       <div className="ef-grid ef-grid-1">
-        {drafts.map((text: string, i: number) => (
-          <button key={i} type="button"
+        {drafts.map((d, i) => (
+          <button key={`${d.badge}-${i}`} type="button"
             className={`ef-opt${answers.variant === i ? " is-sel" : ""}`}
-            onClick={() => { onWrite("variant", i); onWrite("caption", text); }}>
-            <span className="ef-opt-t">Draft {i + 1}</span>
-            <span className="ef-opt-h ef-draft">{text}</span>
+            onClick={() => { onWrite("variant", i); onWrite("caption", d.text); }}>
+            <span className="ef-opt-t">
+              Draft {i + 1} <span className="ef-tag">{d.badge}</span>
+            </span>
+            <span className="ef-opt-h ef-draft">{d.text}</span>
+            {d.meta && <span className="ef-note" style={{ margin: "6px 0 0" }}>{d.meta}</span>}
           </button>
         ))}
       </div>
       <p className="ef-note">
-        {bank.length
-          ? "Approved copy from the campaign library for this product and angle. Pick one, then edit it on the next screen."
-          : "No library entry for this exact pairing, so these are drafted from the product's own headlines and facts."}
+        {note ?? (fresh.length
+          ? "Freshly drafted from your brief, listed above your approved library copy."
+          : "Approved copy from the campaign library. Pick one, then edit it on the next screen.")}
       </p>
     </>
   );
 }
 
-function OwnCopy({ answers, onWrite }: {
-  answers: FlowAnswers; onWrite: BodyProps["onWrite"];
+function OwnCopy({ answers, ai, onWrite }: {
+  answers: FlowAnswers; ai?: AiInvoke; onWrite: BodyProps["onWrite"];
 }) {
   const own = answers.own ?? {};
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [rewrites, setRewrites] = useState<AiDraft[]>([]);
+  const [diagnosis, setDiagnosis] = useState<AiDiagnosis | null>(null);
+
   const set = (k: string, v: string) => {
     onWrite("own", { ...own, [k]: v });
     if (k === "primary") onWrite("caption", v);
@@ -340,6 +396,28 @@ function OwnCopy({ answers, onWrite }: {
     ["primary", "Primary text", 4], ["headline", "Headline", 1],
     ["description", "Description", 1], ["note", "Your note", 2],
   ];
+  const draft = (own.primary ?? "").trim();
+
+  const run = async (action: "sharpen" | "variations") => {
+    if (!ai || !draft) return;
+    setBusy(action); setError(null); setDiagnosis(null);
+    try {
+      setRewrites(await editDraft(ai, answers, draft, action, own.note ?? ""));
+    } catch (err) {
+      setError(explainAiError(err));
+    } finally { setBusy(null); }
+  };
+
+  const diagnose = async () => {
+    if (!ai || !draft) return;
+    setBusy("diagnose"); setError(null); setRewrites([]);
+    try {
+      setDiagnosis(await diagnoseDraft(ai, answers, draft));
+    } catch (err) {
+      setError(explainAiError(err));
+    } finally { setBusy(null); }
+  };
+
   return (
     <>
       {fields.map(([k, label, rows]) => (
@@ -349,6 +427,74 @@ function OwnCopy({ answers, onWrite }: {
             onChange={(e) => set(k, e.target.value)} />
         </div>
       ))}
+
+      {ai && (
+        <>
+          <p className="ef-eyebrow">Have the editor look at it</p>
+          <div className="ef-exportrow">
+            <button type="button" className="ef-btn" onClick={() => run("sharpen")}
+              disabled={!draft || !!busy}>
+              {busy === "sharpen" ? "Working…" : "Sharpen this"}
+            </button>
+            <button type="button" className="ef-btn" onClick={() => run("variations")}
+              disabled={!draft || !!busy}>
+              {busy === "variations" ? "Working…" : "Show variations"}
+            </button>
+            <button type="button" className="ef-btn" onClick={diagnose}
+              disabled={!draft || !!busy}>
+              {busy === "diagnose" ? "Reading…" : "Diagnose only"}
+            </button>
+          </div>
+          <p className="ef-note">
+            The editor works on your words. It may restructure them, but it cannot
+            introduce a price, date or claim you did not already write.
+          </p>
+        </>
+      )}
+      {error && <p className="ef-error">{error}</p>}
+
+      {diagnosis && (
+        <div className="ef-summary-card" style={{ marginTop: 12 }}>
+          <p className="ef-eyebrow">Diagnosis only. Nothing was rewritten.</p>
+          {diagnosis.verdict && (
+            <p className="ef-note" style={{ margin: 0 }}>{diagnosis.verdict}</p>
+          )}
+          {!!diagnosis.issues?.length && (
+            <ul className="ef-list">
+              {diagnosis.issues.map((it, i) => (
+                <li key={i}><b>{it.severity ?? "note"}</b> · {it.note}</li>
+              ))}
+            </ul>
+          )}
+          {!!diagnosis.strengths?.length && (
+            <ul className="ef-list">
+              {diagnosis.strengths.map((good, i) => <li key={i}>Keep: {good}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {rewrites.length > 0 && (
+        <>
+          <p className="ef-eyebrow" style={{ marginTop: 14 }}>Suggested rewrites</p>
+          <div className="ef-grid ef-grid-1">
+            {rewrites.map((r, i) => (
+              <button key={i} type="button" className="ef-opt"
+                onClick={() => set("primary", r.primary)}>
+                <span className="ef-opt-t">{r.approach ?? `Option ${i + 1}`}</span>
+                <span className="ef-opt-h ef-draft">{r.primary}</span>
+                {!!r.changes?.length && (
+                  <span className="ef-note" style={{ margin: "6px 0 0" }}>
+                    Changed: {r.changes.join("; ")}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+          <p className="ef-note">Tap one to use it. Your own words stay until you do.</p>
+        </>
+      )}
+
       <p className="ef-note">
         Primary text becomes the caption. You can still edit it on the next screen.
       </p>

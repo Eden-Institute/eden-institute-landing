@@ -309,3 +309,7 @@
   border: 1px solid var(--ef-line); border-radius: 8px;
   padding: 10px 12px; margin: 10px 0 0;
 }
+
+/* ── editor feedback ───────────────────────────────────────────────── */
+.ef-list { margin: 8px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.6; }
+.ef-list b { color: var(--ef-forest); text-transform: capitalize; }
