@@ -148,7 +148,7 @@ describe("flow graph · every path reaches the end", () => {
             for (const treatment of ["static", "branded", "none"] as const) {
               combos++;
               const a = complete({
-                adType: adType as FlowAnswers["adType"], product,
+                adType: adType as any, product,
                 angle: PRODUCTS[product].angles[0],
                 source, treatment,
                 slides: source === "branded" ? [] : [{ id: "x", kind }],
@@ -173,7 +173,7 @@ describe("flow graph · every path reaches the end", () => {
       seen.push(node.id);
       // answer it the way a first-time founder would: the first option
       const opts = node.options ? node.options(a) : [];
-      (a as Record<string, unknown>)[node.writes] = opts.length ? opts[0].id
+      (a as any)[node.writes] = opts.length ? opts[0].id
         : node.optional ? null
         : node.writes === "slides" ? [{ id: "a1", kind: "image" }]
         : node.writes === "opacity" ? 1
@@ -200,7 +200,7 @@ describe("flow graph · every path reaches the end", () => {
       for (const source of ["media", "ai", "branded"] as const) {
         for (const treatment of ["static", "none"] as const) {
           lengths.push(visibleNodes(complete({
-            adType: adType as FlowAnswers["adType"], source, treatment,
+            adType: adType as any, source, treatment,
             slides: source === "branded" ? [] : [{ id: "x", kind: "image" }],
           })).length);
         }

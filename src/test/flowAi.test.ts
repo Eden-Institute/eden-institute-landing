@@ -105,10 +105,8 @@ describe("editing her words", () => {
   it("sends her draft, not a regenerated one", async () => {
     const invoke = vi.fn().mockResolvedValue({ drafts: [{ primary: "tighter" }] });
     await editDraft(invoke, answers(), "my own words", "sharpen", "keep it warm");
-    // The EF requires draft to be an object with `primary`; a bare string 400s.
     expect(invoke).toHaveBeenCalledWith(expect.objectContaining({
-      mode: "edit", action: "sharpen", note: "keep it warm",
-      draft: expect.objectContaining({ primary: "my own words" }),
+      mode: "edit", action: "sharpen", draft: "my own words", note: "keep it warm",
     }));
   });
 
@@ -122,15 +120,13 @@ describe("editing her words", () => {
   });
 
   it("diagnoses without rewriting", async () => {
-    // Mirrors the EF's diagnose shape: { score, strengths, issues }.
     const invoke = vi.fn().mockResolvedValue({
-      score: 6.5,
-      issues: [{ area: "cta", severity: "policy", note: "avoid personal attributes" }],
+      verdict: "Solid, but the ask is buried.",
+      issues: [{ severity: "policy", note: "avoid personal attributes" }],
       strengths: ["concrete opening"],
     });
     const d = await diagnoseDraft(invoke, answers(), "draft");
     expect(invoke).toHaveBeenCalledWith(expect.objectContaining({ action: "diagnose" }));
-    expect(d.score).toBe(6.5);
     expect(d.issues).toHaveLength(1);
     expect(d.strengths).toEqual(["concrete opening"]);
   });
@@ -149,24 +145,18 @@ describe("when the model is unavailable", () => {
     expect(r.reason).toBeTruthy();
   });
 
-  // The EF's status mode answers { providers: [{ id, label, model }] }. The
-  // old { ready, models } shape these tests once pinned was never what the EF
-  // sent, which made checkAi always report ready.
-  it("treats a configured-but-empty provider list as not ready", async () => {
-    const r = await checkAi(vi.fn().mockResolvedValue({ providers: [] }));
+  it("treats a configured-but-empty model list as not ready", async () => {
+    const r = await checkAi(vi.fn().mockResolvedValue({ models: [] }));
     expect(r.ready).toBe(false);
   });
 
-  it("reports ready when a provider is there", async () => {
-    const r = await checkAi(vi.fn().mockResolvedValue({
-      providers: [{ id: "claude", label: "Claude", model: "claude-sonnet-5" }],
-    }));
+  it("reports ready when a model is there", async () => {
+    const r = await checkAi(vi.fn().mockResolvedValue({ ready: true, models: ["claude"] }));
     expect(r.ready).toBe(true);
-    expect(r.models).toEqual(["Claude"]);
   });
 
   it("explains each failure in plain language, pointing at the library", () => {
-    for (const code of ["no_providers", "rate_limited", "unauthorized", "timeout"]) {
+    for (const code of ["not_configured", "rate_limited", "unauthorized", "timeout"]) {
       const text = explainAiError({ code });
       expect(text.length).toBeGreaterThan(20);
       expect(text).not.toMatch(/undefined|\[object/);

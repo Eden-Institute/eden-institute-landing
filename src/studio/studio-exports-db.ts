@@ -15,8 +15,6 @@ export interface ExportFile {
   height: number;
   bytes: Uint8Array;
   name: string;
-  /** Defaults to image/png; the video path records video/mp4 or video/webm. */
-  mime?: string;
 }
 
 /**
@@ -45,18 +43,14 @@ export async function recordExportBatch(
   }> = [];
 
   for (const f of files) {
-    // The name reaches a storage key; strip anything that could nest or
-    // traverse. projectId/batchId are UUIDs we minted ourselves.
-    const safeName = f.name.replace(/[^\w.-]+/g, "_").slice(-80) || "export";
-    const path = `${projectId}/${batchId}/${safeName}`;
-    const mime = f.mime ?? "image/png";
+    const path = `${projectId}/${batchId}/${f.name}`;
     // A storage failure should not lose the whole batch: record the row with a
     // null path so the archive still shows the export happened.
     let storagePath: string | null = null;
     const up = await supabase.storage
       .from(BUCKET)
-      .upload(path, new Blob([f.bytes as unknown as BlobPart], { type: mime }), {
-        contentType: mime,
+      .upload(path, new Blob([f.bytes as unknown as BlobPart], { type: "image/png" }), {
+        contentType: "image/png",
         upsert: true,
       });
     if (!up.error) storagePath = path;

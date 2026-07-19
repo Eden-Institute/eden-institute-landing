@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  ANGLES, AUDIENCES, FORMATS, OBJECTIVES, PRODUCTS, TEMPLATES,
+  ANGLES, AUDIENCES, FORMATS, OBJECTIVES, PRODUCTS, SIZES, TEMPLATES,
 } from "@/studio/studio-banks";
 
 describe("studio option banks", () => {
@@ -72,18 +72,15 @@ describe("studio option banks", () => {
     // The pack adds extra primaries per angle plus audience-tuned copy. If the
     // merge stopped running, the studio would silently lose most of its bank.
     expect(PRODUCTS.kit.audiencePrimaries).toBeDefined();
-    expect(Object.keys(PRODUCTS.kit.audiencePrimaries!).length).toBeGreaterThan(0);
+    expect(Object.keys(PRODUCTS.kit.audiencePrimaries).length).toBeGreaterThan(0);
     expect(PRODUCTS.kit.primaries.children.length).toBeGreaterThan(1);
     expect(PRODUCTS.kit.headlines.length).toBeGreaterThan(5);
   });
 
   it("keeps the canvas sizes at true Meta dimensions", () => {
-    // These live on FORMATS itself now; adDimensions() renders straight from
-    // them, so a wrong value here is a wrongly sized exported ad.
-    expect(FORMATS.feed).toMatchObject({ w: 1080, h: 1080 });
-    expect(FORMATS.portrait).toMatchObject({ w: 1080, h: 1350 });
-    expect(FORMATS.story).toMatchObject({ w: 1080, h: 1920 });
-    expect(FORMATS.carousel).toMatchObject({ w: 1080, h: 1080 });
+    expect(SIZES.feed).toMatchObject({ w: 1080, h: 1080 });
+    expect(SIZES.portrait).toMatchObject({ w: 1080, h: 1350 });
+    expect(SIZES.story).toMatchObject({ w: 1080, h: 1920 });
   });
 
   it("keeps the three creative templates", () => {

@@ -15,9 +15,7 @@ import {
   FLOW, isAnswered, isVisible, nextNode, nodeById, orderedOptions, reconcile,
   isVideoOutput, visibleNodes,
 } from "./flow-graph";
-import type {
-  FineTune, FlowAnswers, FlowNode, OverlayAnswer, SlideAnswer,
-} from "./flow-graph";
+import type { FlowAnswers, FlowNode, SlideAnswer } from "./flow-graph";
 import { adDimensions, defaultOverlay, paintAd } from "./flow-paint";
 import {
   ExportError, HANDOFF_LINKS, downloadBlob, explainExportFailure, exportFilename,
@@ -33,7 +31,7 @@ import {
   bankDrafts, checkAi, diagnoseDraft, editDraft, explainAiError, generateDrafts,
 } from "./flow-ai";
 import type { AiDiagnosis, AiDraft, AiInvoke } from "./flow-ai";
-import { ANGLES, PRODUCTS } from "./studio-banks";
+import { PRODUCTS } from "./studio-banks";
 import "./flow.css";
 
 const CHAPTER_NAMES = ["Where & what", "Media & styling", "Copy & text", "Export"];
@@ -47,15 +45,6 @@ const MAX_VIDEO_SECONDS = 60;
 
 export type AssetsBridge = AssetsPort;
 
-/** What a save produced, so the workroom can record the export paper trail. */
-export interface ExportedFile {
-  blob: Blob;
-  name: string;
-  format: "png" | "mp4" | "webm";
-  width: number;
-  height: number;
-}
-
 interface Props {
   answers: FlowAnswers;
   onChange: (next: FlowAnswers) => void;
@@ -66,15 +55,9 @@ interface Props {
   ai?: AiInvoke;
   /** Start a fresh campaign. Offered once the ad is finished. */
   onFinish?: () => void;
-  /** Called after a successful save/download, with what was produced. The
-   *  archive's export history is written from this; failures there must never
-   *  break the save itself. */
-  onExported?: (file: ExportedFile) => void;
 }
 
-export default function StudioFlow({
-  answers, onChange, assets, ai, onFinish, onExported,
-}: Props) {
+export default function StudioFlow({ answers, onChange, assets, ai, onFinish }: Props) {
   const [currentId, setCurrentId] = useState<string>(() => {
     // Resuming a saved campaign lands on its first unanswered question. If
     // there isn't one the ad is finished, and she should see it rather than be
@@ -94,18 +77,8 @@ export default function StudioFlow({
 
   /* ── answering ───────────────────────────────────────────────────── */
 
-  // Writes compose through a ref, not the render's `answers` closure. Handlers
-  // that write two keys in one tick (pick a draft → variant AND caption) would
-  // otherwise build the second write on pre-first-write state and silently
-  // drop the first one.
-  const answersRef = useRef(answers);
-  answersRef.current = answers;
-
   const write = useCallback((key: keyof FlowAnswers, value: unknown) => {
-    const { answers: next, cleared } = reconcile(
-      { ...answersRef.current, [key]: value } as FlowAnswers,
-    );
-    answersRef.current = next;
+    const { answers: next, cleared } = reconcile({ ...answers, [key]: value } as FlowAnswers);
     onChange(next);
     if (cleared.length) {
       setNotice(cleared.length === 1
@@ -113,7 +86,7 @@ export default function StudioFlow({
         : `That change reset ${cleared.length} earlier answers.`);
     }
     return next;
-  }, [onChange]);
+  }, [answers, onChange]);
 
   const advance = useCallback((from: FlowAnswers) => {
     const next = nextNode(currentId, from);
@@ -148,23 +121,6 @@ export default function StudioFlow({
     const t = window.setTimeout(() => setNotice(null), 5000);
     return () => window.clearTimeout(t);
   }, [notice]);
-
-  // The enlarged preview is a dialog: Escape closes it, focus moves to the
-  // close button on open and returns to wherever it was on close.
-  const lightboxCloseRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    if (!enlarged) return;
-    const before = document.activeElement as HTMLElement | null;
-    lightboxCloseRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setEnlarged(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      before?.focus?.();
-    };
-  }, [enlarged]);
 
   /* ── the live preview ────────────────────────────────────────────── */
 
@@ -214,10 +170,7 @@ export default function StudioFlow({
   );
 
   if (done || !node) {
-    return (
-      <FlowSummary answers={answers} onJump={jumpTo} onFinish={onFinish}
-        onExported={onExported} />
-    );
+    return <FlowSummary answers={answers} onJump={jumpTo} onFinish={onFinish} />;
   }
 
   const answered = isAnswered(node, answers);
@@ -297,14 +250,11 @@ export default function StudioFlow({
       {notice && <div className="ef-toast" role="status">{notice}</div>}
 
       {enlarged && (
-        <div className="ef-lightbox" role="dialog" aria-modal="true"
-          aria-label="Enlarged ad preview"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setEnlarged(false);
-          }}>
+        <div className="ef-lightbox" onClick={(e) => {
+          if (e.target === e.currentTarget) setEnlarged(false);
+        }}>
           <canvas ref={bigRef} aria-label="Enlarged preview" />
-          <button ref={lightboxCloseRef} type="button" className="ef-btn"
-            onClick={() => setEnlarged(false)}>Close</button>
+          <button type="button" className="ef-btn" onClick={() => setEnlarged(false)}>Close</button>
         </div>
       )}
     </div>
@@ -331,8 +281,6 @@ function NodeBody({ node, answers, assets, ai, onWrite, onPick }: BodyProps) {
     case "single": return <SingleChoice node={node} answers={answers} onPick={onPick} />;
     case "text": return <FreeText node={node} answers={answers} onWrite={onWrite} />;
     case "gallery": return <MediaPicker node={node} answers={answers} assets={assets}
-      onWrite={onWrite} />;
-    case "aiimage": return <AiImageStep answers={answers} assets={assets}
       onWrite={onWrite} />;
     case "opacity": return <OpacitySlider answers={answers} onWrite={onWrite} />;
     case "caption": return <CaptionField answers={answers} onWrite={onWrite} />;
@@ -366,11 +314,6 @@ function CopyDrafts({ answers, ai, onWrite }: {
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState<boolean | null>(null);
-  const liveRef = useRef(true);
-  useEffect(() => {
-    liveRef.current = true;
-    return () => { liveRef.current = false; };
-  }, []);
 
   useEffect(() => {
     let live = true;
@@ -392,14 +335,13 @@ function CopyDrafts({ answers, ai, onWrite }: {
     setBusy(true); setError(null); setNote(null);
     try {
       const { drafts: got, note: n } = await generateDrafts(ai, answers);
-      if (!liveRef.current) return;
       if (!got.length) setError("No drafts came back. The approved copy below still works.");
       setFresh(got);
       setNote(n);
     } catch (err) {
-      if (liveRef.current) setError(explainAiError(err));
+      setError(explainAiError(err));
     } finally {
-      if (liveRef.current) setBusy(false);
+      setBusy(false);
     }
   };
 
@@ -445,17 +387,12 @@ function OwnCopy({ answers, ai, onWrite }: {
   const [error, setError] = useState<string | null>(null);
   const [rewrites, setRewrites] = useState<AiDraft[]>([]);
   const [diagnosis, setDiagnosis] = useState<AiDiagnosis | null>(null);
-  const liveRef = useRef(true);
-  useEffect(() => {
-    liveRef.current = true;
-    return () => { liveRef.current = false; };
-  }, []);
 
-  const set = (k: keyof NonNullable<FlowAnswers["own"]>, v: string) => {
+  const set = (k: string, v: string) => {
     onWrite("own", { ...own, [k]: v });
     if (k === "primary") onWrite("caption", v);
   };
-  const fields: Array<[keyof NonNullable<FlowAnswers["own"]>, string, number]> = [
+  const fields: Array<[string, string, number]> = [
     ["primary", "Primary text", 4], ["headline", "Headline", 1],
     ["description", "Description", 1], ["note", "Your note", 2],
   ];
@@ -465,26 +402,20 @@ function OwnCopy({ answers, ai, onWrite }: {
     if (!ai || !draft) return;
     setBusy(action); setError(null); setDiagnosis(null);
     try {
-      const out = await editDraft(ai, answers, draft, action, own.note ?? "");
-      if (liveRef.current) setRewrites(out);
+      setRewrites(await editDraft(ai, answers, draft, action, own.note ?? ""));
     } catch (err) {
-      if (liveRef.current) setError(explainAiError(err));
-    } finally {
-      if (liveRef.current) setBusy(null);
-    }
+      setError(explainAiError(err));
+    } finally { setBusy(null); }
   };
 
   const diagnose = async () => {
     if (!ai || !draft) return;
     setBusy("diagnose"); setError(null); setRewrites([]);
     try {
-      const out = await diagnoseDraft(ai, answers, draft);
-      if (liveRef.current) setDiagnosis(out);
+      setDiagnosis(await diagnoseDraft(ai, answers, draft));
     } catch (err) {
-      if (liveRef.current) setError(explainAiError(err));
-    } finally {
-      if (liveRef.current) setBusy(null);
-    }
+      setError(explainAiError(err));
+    } finally { setBusy(null); }
   };
 
   return (
@@ -492,7 +423,7 @@ function OwnCopy({ answers, ai, onWrite }: {
       {fields.map(([k, label, rows]) => (
         <div className="ef-field" key={k}>
           <label>{label}</label>
-          <textarea className="ef-input" rows={rows} value={own[k] ?? ""}
+          <textarea className="ef-input" rows={rows} value={(own as any)[k] ?? ""}
             onChange={(e) => set(k, e.target.value)} />
         </div>
       ))}
@@ -525,10 +456,8 @@ function OwnCopy({ answers, ai, onWrite }: {
       {diagnosis && (
         <div className="ef-summary-card" style={{ marginTop: 12 }}>
           <p className="ef-eyebrow">Diagnosis only. Nothing was rewritten.</p>
-          {typeof diagnosis.score === "number" && (
-            <p className="ef-note" style={{ margin: 0 }}>
-              Conversion score: {diagnosis.score}/10
-            </p>
+          {diagnosis.verdict && (
+            <p className="ef-note" style={{ margin: 0 }}>{diagnosis.verdict}</p>
           )}
           {!!diagnosis.issues?.length && (
             <ul className="ef-list">
@@ -579,8 +508,8 @@ function FineTuneSliders({ answers, onWrite }: {
   const f = answers.finetune ?? {
     brightness: 1, contrast: 1, saturation: 1, x: 0, y: 0, scale: 1,
   };
-  const set = (k: keyof FineTune, v: number) => onWrite("finetune", { ...f, [k]: v });
-  const rows: Array<[keyof FineTune, string, number, number, number, (v: number) => string]> = [
+  const set = (k: string, v: number) => onWrite("finetune", { ...f, [k]: v });
+  const rows: Array<[string, string, number, number, number, (v: number) => string]> = [
     ["x", "Move left / right", -50, 50, 1, (v) => String(Math.round(v))],
     ["y", "Move up / down", -50, 50, 1, (v) => String(Math.round(v))],
     ["scale", "Zoom", 0.5, 2.5, 0.01, (v) => `${Math.round(v * 100)}%`],
@@ -593,10 +522,9 @@ function FineTuneSliders({ answers, onWrite }: {
       {rows.map(([k, label, min, max, step, fmt]) => (
         <div className="ef-slider" key={k}>
           <span className="ef-slider-l">{label}</span>
-          <input type="range" min={min} max={max} step={step} value={f[k]}
-            aria-label={label}
+          <input type="range" min={min} max={max} step={step} value={(f as any)[k]}
             onChange={(e) => set(k, Number(e.target.value))} />
-          <span className="ef-slider-v">{fmt(f[k])}</span>
+          <span className="ef-slider-v">{fmt((f as any)[k])}</span>
         </div>
       ))}
       <p className="ef-note">Non-destructive: your original file is never rewritten.</p>
@@ -726,13 +654,7 @@ function NarrationRecorder({ answers, onWrite }: {
                   {sound.narration.name} · {fmt(sound.narration.durationSec ?? 0)}
                 </span>
                 <button type="button" className="ef-mini"
-                  onClick={() => {
-                    // The discarded take's blob URL would otherwise pin its
-                    // audio in memory for the tab's life.
-                    const old = sound.narration?.url;
-                    if (old?.startsWith("blob:")) URL.revokeObjectURL(old);
-                    onWrite("sound", { ...sound, narration: null });
-                  }}>
+                  onClick={() => onWrite("sound", { ...sound, narration: null })}>
                   Record again
                 </button>
               </div>
@@ -759,18 +681,6 @@ function NarrationRecorder({ answers, onWrite }: {
               const f = e.target.files?.[0];
               e.target.value = "";
               if (!f) return;
-              if (!/^audio\//.test(f.type || "")) {
-                setError(`"${f.name}" is not an audio file.`);
-                return;
-              }
-              if (f.size > 25 * 1024 * 1024) {
-                setError(`"${f.name}" is ${(f.size / 1048576).toFixed(0)} MB. `
-                  + "Voice memos should be under 25 MB.");
-                return;
-              }
-              setError(null);
-              const old = sound.narration?.url;
-              if (old?.startsWith("blob:")) URL.revokeObjectURL(old);
               onWrite("sound", {
                 ...sound, mode: "narration",
                 narration: { name: f.name, url: URL.createObjectURL(f) },
@@ -840,11 +750,6 @@ function MediaPicker({ node, answers, assets, onWrite }: {
   const slides = answers.slides ?? [];
   const multi = answers.adType === "carousel";
   const unsaved = unsavedSlides(slides);
-  const liveRef = useRef(true);
-  useEffect(() => {
-    liveRef.current = true;
-    return () => { liveRef.current = false; };
-  }, []);
 
   // Everything she has uploaded before, so a photo is chosen once and reused.
   useEffect(() => {
@@ -910,16 +815,13 @@ function MediaPicker({ node, answers, assets, onWrite }: {
     setBusy(true);
     try {
       const { slide, error: uploadError } = await uploadSlide(file, assets, localUrl);
-      // The write itself must land even if she has moved on: an upload that
-      // completed belongs on the ad. Only local state is unmount-guarded.
       toggle(slide);
-      if (!liveRef.current) return;
       if (uploadError) setError(uploadError);
       if (slide.path) {
         setSaved((prev) => [slide, ...prev.filter((p) => p.path !== slide.path)].slice(0, 12));
       }
     } finally {
-      if (liveRef.current) setBusy(false);
+      setBusy(false);
     }
   };
 
@@ -996,106 +898,6 @@ function MediaPicker({ node, answers, assets, onWrite }: {
   );
 }
 
-/** The AI image step. Every brand constraint (palette, mood, hard rules) lives
- *  in the studio-image EF where the browser cannot weaken it; this sends her
- *  words and a creative range. The result arrives as a saved asset and is
- *  written into `slides` exactly as an upload would be, so paint, export, and
- *  the media library need no special case for it. */
-function AiImageStep({ answers, assets, onWrite }: {
-  answers: FlowAnswers; assets?: AssetsBridge; onWrite: BodyProps["onWrite"];
-}) {
-  const seed = ANGLES[answers.angle ?? ""]?.visual ?? "";
-  const current = (answers.slides ?? []).find((s) => s.ai);
-  const [prompt, setPrompt] = useState(current?.name || seed);
-  const [range, setRange] = useState<"strict" | "moderate" | "loose">("moderate");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [configured, setConfigured] = useState<boolean | null>(null);
-  const liveRef = useRef(true);
-  useEffect(() => {
-    liveRef.current = true;
-    return () => { liveRef.current = false; };
-  }, []);
-
-  useEffect(() => {
-    if (!assets?.aiStatus) { setConfigured(false); return; }
-    let live = true;
-    assets.aiStatus()
-      .then((s) => { if (live) setConfigured(!!s.configured); })
-      .catch(() => { if (live) setConfigured(false); });
-    return () => { live = false; };
-  }, [assets]);
-
-  const generate = async () => {
-    if (!assets?.aiGenerate || !prompt.trim() || busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const r = await assets.aiGenerate(prompt.trim(), range);
-      if (!liveRef.current) return;
-      onWrite("slides", [{
-        id: r.storagePath,
-        path: r.storagePath,
-        url: r.url ?? undefined,
-        kind: "image" as const,
-        ai: true,
-        own: false,
-        name: prompt.trim().slice(0, 60),
-      }]);
-    } catch (err) {
-      if (liveRef.current) setError(explainAiError(err));
-    } finally {
-      if (liveRef.current) setBusy(false);
-    }
-  };
-
-  if (configured === false) {
-    return (
-      <p className="ef-note">
-        The image engine is not connected right now. Go back a step and choose
-        your own photo or the plain branded look; both work without it.
-      </p>
-    );
-  }
-
-  const ranges: Array<["strict" | "moderate" | "loose", string, string]> = [
-    ["strict", "Faithful", "Stays tightly inside the brand look"],
-    ["moderate", "Balanced", "Brand-true, with room to interpret"],
-    ["loose", "Bold", "Free interpretation; the hard rules still hold"],
-  ];
-
-  return (
-    <>
-      <textarea className="ef-input" rows={4} value={prompt}
-        aria-label="Describe the image"
-        placeholder="e.g. A child's hands and a parent's hands over a mortar and pestle"
-        onChange={(e) => setPrompt(e.target.value)} />
-      <div className="ef-grid" style={{ marginTop: 10 }}>
-        {ranges.map(([id, label, hint]) => (
-          <button key={id} type="button"
-            className={`ef-opt${range === id ? " is-sel" : ""}`}
-            onClick={() => setRange(id)}>
-            <span className="ef-opt-t">{label}</span>
-            <span className="ef-opt-h">{hint}</span>
-          </button>
-        ))}
-      </div>
-      <div className="ef-exportrow" style={{ marginTop: 12 }}>
-        <button type="button" className="ef-btn ef-pri" onClick={generate}
-          disabled={busy || !prompt.trim() || configured === null}>
-          {busy ? "Painting…" : current ? "Generate another" : "Generate the image"}
-        </button>
-      </div>
-      {error && <p className="ef-error">{error}</p>}
-      <p className="ef-note">
-        {current
-          ? "That is on the preview. Generate another to replace it, or continue."
-          : "Eden's palette, mood, and hard rules are locked on the server. Your words steer the subject."}
-      </p>
-    </>
-  );
-}
-
 function OpacitySlider({ answers, onWrite }: {
   answers: FlowAnswers; onWrite: BodyProps["onWrite"];
 }) {
@@ -1128,14 +930,14 @@ function OverlayFields({ answers, onWrite }: {
   answers: FlowAnswers; onWrite: BodyProps["onWrite"];
 }) {
   const o = answers.overlay ?? defaultOverlay(answers);
-  const set = (k: keyof OverlayAnswer, val: string) => onWrite("overlay", { ...o, [k]: val });
-  const fields: Array<[keyof OverlayAnswer, string, number]> = [
+  const set = (k: string, val: string) => onWrite("overlay", { ...o, [k]: val });
+  const fields: Array<[string, string, number]> = [
     ["hook", "Headline", 40], ["sub", "Subtext", 90], ["cta", "Button", 30],
   ];
   return (
     <>
       {fields.map(([k, label, cap]) => {
-        const val = o[k] ?? "";
+        const val = (o as any)[k] ?? "";
         return (
           <div className="ef-field" key={k}>
             <label>{label}</label>
@@ -1154,16 +956,12 @@ function OverlayFields({ answers, onWrite }: {
 function AnchorGrid({ answers, onWrite }: {
   answers: FlowAnswers; onWrite: BodyProps["onWrite"];
 }) {
-  const cells: Array<[string, string]> = [
-    ["tl", "Top left"], ["tc", "Top centre"], ["tr", "Top right"],
-    ["ml", "Middle left"], ["mc", "Middle centre"], ["mr", "Middle right"],
-    ["bl", "Bottom left"], ["bc", "Bottom centre"], ["br", "Bottom right"],
-  ];
+  const cells = ["tl", "tc", "tr", "ml", "mc", "mr", "bl", "bc", "br"];
   return (
     <>
       <div className="ef-anchors">
-        {cells.map(([c, label]) => (
-          <button key={c} type="button" aria-label={label} title={label}
+        {cells.map((c) => (
+          <button key={c} type="button"
             className={`ef-opt${answers.anchor === c ? " is-sel" : ""}`}
             onClick={() => onWrite("anchor", c)}>{c}</button>
         ))}
@@ -1189,8 +987,7 @@ function AdjustTray({ answers, open, onToggle, onWrite, onJump }: {
     rows.push(
       <div className="ef-trayrow" key="img">
         <label>Image</label>
-        <button type="button" className="ef-mini"
-          onClick={() => onJump(answers.source === "ai" ? "aiImage" : "media")}>
+        <button type="button" className="ef-mini" onClick={() => onJump("media")}>
           Change image
         </button>
       </div>,
@@ -1272,9 +1069,8 @@ function RenderStep({ answers, onWrite }: {
 
 /* ── the finished ad ──────────────────────────────────────────────── */
 
-function FlowSummary({ answers, onJump, onFinish, onExported }: {
+function FlowSummary({ answers, onJump, onFinish }: {
   answers: FlowAnswers; onJump: (id: string) => void; onFinish?: () => void;
-  onExported?: (file: ExportedFile) => void;
 }) {
   const finalRef = useRef<HTMLCanvasElement>(null);
   const [video, setVideo] = useState<VideoExport | null>(null);
@@ -1283,11 +1079,6 @@ function FlowSummary({ answers, onJump, onFinish, onExported }: {
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const wantsVideo = isVideoOutput(answers);
-  const liveRef = useRef(true);
-  useEffect(() => {
-    liveRef.current = true;
-    return () => { liveRef.current = false; };
-  }, []);
 
   useEffect(() => {
     if (finalRef.current) paintAd(finalRef.current, answers, { width: 640 });
@@ -1297,35 +1088,11 @@ function FlowSummary({ answers, onJump, onFinish, onExported }: {
     setBuilding(true); setError(null); setProgress(0);
     try {
       const out = await exportVideo(answers, { onProgress: setProgress });
-      if (!liveRef.current) { URL.revokeObjectURL(out.url); return; }
-      // A rebuild replaces the previous take; let its blob URL go.
-      setVideo((prev) => {
-        if (prev) URL.revokeObjectURL(prev.url);
-        return out;
-      });
+      setVideo(out);
     } catch (err) {
-      if (!liveRef.current) return;
       setError(err instanceof ExportError ? explainExportFailure(err.reason)
         : "The video could not be built. The image below still works.");
-    } finally {
-      if (liveRef.current) setBuilding(false);
-    }
-  };
-
-  /** The archive's paper trail. Fire-and-forget by contract: a logging failure
-   *  must never turn a successful save into an error. */
-  const record = (blob: Blob) => {
-    if (!onExported) return;
-    const dims = adDimensions(answers);
-    try {
-      onExported({
-        blob,
-        name: exportFilename(answers, video ? video.ext : "png"),
-        format: video ? video.ext : "png",
-        width: dims.w,
-        height: dims.h,
-      });
-    } catch { /* recording is decoration on the save */ }
+    } finally { setBuilding(false); }
   };
 
   const savePhone = async () => {
@@ -1334,8 +1101,6 @@ function FlowSummary({ answers, onJump, onFinish, onExported }: {
       const blob = video ? video.blob : await exportStill(answers);
       const name = exportFilename(answers, video ? video.ext : "png");
       const outcome = await saveToDevice(blob, name);
-      if (outcome === "shared" || outcome === "downloaded") record(blob);
-      if (!liveRef.current) return;
       setStatus({
         shared: "Sent to your share sheet. Choose Save Video or Save Image.",
         cancelled: "Cancelled.",
@@ -1344,7 +1109,7 @@ function FlowSummary({ answers, onJump, onFinish, onExported }: {
         failed: "Could not save from here.",
       }[outcome]);
     } catch {
-      if (liveRef.current) setError("Could not prepare the file.");
+      setError("Could not prepare the file.");
     }
   };
 
@@ -1353,12 +1118,9 @@ function FlowSummary({ answers, onJump, onFinish, onExported }: {
     try {
       const blob = video ? video.blob : await exportStill(answers);
       const name = exportFilename(answers, video ? video.ext : "png");
-      const ok = downloadBlob(blob, name);
-      if (ok) record(blob);
-      if (!liveRef.current) return;
-      setStatus(ok ? `Downloaded ${name}.` : "Could not download.");
+      setStatus(downloadBlob(blob, name) ? `Downloaded ${name}.` : "Could not download.");
     } catch {
-      if (liveRef.current) setError("Could not prepare the file.");
+      setError("Could not prepare the file.");
     }
   };
 
@@ -1457,12 +1219,7 @@ function FlowSummary({ answers, onJump, onFinish, onExported }: {
       </div>
 
       <div className="ef-nav">
-        <button type="button" className="ef-btn"
-          onClick={() => {
-            // The genuinely last question of THIS ad, not a hardcoded id.
-            const last = visibleNodes(answers).at(-1);
-            onJump(last ? last.id : "pathway");
-          }}>
+        <button type="button" className="ef-btn" onClick={() => onJump("pathway")}>
           ◂ Back to the last question
         </button>
         <span className="ef-spacer" />

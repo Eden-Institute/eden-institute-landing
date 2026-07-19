@@ -5,7 +5,7 @@
 // weakened from the browser. This module sends the founder's own words and a
 // range setting, and gets back an asset that is already in her library.
 
-import { invokeStudioFunction } from "./studio-invoke";
+import { supabase } from "@/integrations/supabase/client";
 
 export type CreativeRange = "strict" | "moderate" | "loose";
 
@@ -17,8 +17,23 @@ export interface ImageResult {
   note: string;
 }
 
-const invoke = <T,>(body: Record<string, unknown>) =>
-  invokeStudioFunction<T>("studio-image", body);
+async function invoke<T>(body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke("studio-image", { body });
+  if (error) {
+    let payload: { error?: string; detail?: unknown } | null = null;
+    const ctx = (error as { context?: Response }).context;
+    if (ctx && typeof ctx.json === "function") {
+      try { payload = await ctx.json(); } catch { /* non-JSON body */ }
+    }
+    const err = new Error(payload?.error ?? error.message) as Error & {
+      code?: string; detail?: unknown;
+    };
+    err.code = payload?.error;
+    err.detail = payload?.detail;
+    throw err;
+  }
+  return data as T;
+}
 
 export function imageStatus(): Promise<{ configured: boolean; model: string }> {
   return invoke({ mode: "status" });
@@ -34,7 +49,14 @@ export function generateImage(input: {
   return invoke<ImageResult>({ mode: "generate", ...input });
 }
 
-// The studio-image EF also supports an `edit` mode (AI edits to an image
-// already in the bucket, addressed by storage path so bytes never leave the
-// server). Its client call was removed with the old wizard; restore from git
-// when an edit UI exists to call it.
+/** Apply an AI edit to an image already in the library. The bytes never leave
+ *  the server: only the storage path is sent. */
+export function editImage(input: {
+  prompt: string;
+  range: CreativeRange;
+  campaignTag: string;
+  projectId: string;
+  storagePath: string;
+}): Promise<ImageResult> {
+  return invoke<ImageResult>({ mode: "edit", ...input });
+}
