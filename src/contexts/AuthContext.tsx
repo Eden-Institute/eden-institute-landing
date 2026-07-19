@@ -37,10 +37,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
-      setSession(initialSession);
-      setLoading(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data: { session: initialSession } }) => {
+        setSession(initialSession);
+      })
+      // A rejected bootstrap (offline, transient network failure) must still
+      // resolve `loading`, or every RequireAuth subtree shows a skeleton forever.
+      .catch(() => {})
+      .finally(() => setLoading(false));
 
     return () => {
       subscription.unsubscribe();

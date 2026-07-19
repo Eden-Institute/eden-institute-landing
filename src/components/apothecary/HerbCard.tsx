@@ -434,7 +434,9 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
         own tier check (Free → upgrade prompt; Seed+ → toggle) and stops
         event propagation so it doesn't trigger the expand/collapse handler.
       */}
-      <HerbFavoriteHeart herbId={herb.herb_id} />
+      {/* herb_id is nullable on the view row; a heart with no id would write
+          null into the favorites list. No id, no heart. */}
+      {herb.herb_id && <HerbFavoriteHeart herbId={herb.herb_id} />}
 
       {/*
         §8.1.3 (Manual v4.0) — Pattern-specific aggravation banner.

@@ -162,4 +162,3 @@ function AmazonKitCard({ activePattern, amazonUrl }: AmazonKitCardProps) {
   );
 }
 
-export default MatchedHerbsCtaPair;

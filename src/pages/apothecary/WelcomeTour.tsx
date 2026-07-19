@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
+import { safeInternalPath } from "@/lib/safeInternalPath";
 
 /**
  * Three-step onboarding tour for first-time signed-in users.
@@ -24,8 +25,10 @@ export default function WelcomeTour() {
   // (the tour URL is the allowlisted email-redirect target). Forward it on so
   // the user resumes where they meant to go (e.g. pricing?checkout=seed) rather
   // than getting parked in onboarding with their intent forgotten.
+  // Sanitized to an in-app relative path: this arrives on an email-clickable
+  // URL, so it is attacker-craftable and must never carry an external target.
   const [params] = useSearchParams();
-  const returnTo = params.get("return_to");
+  const returnTo = safeInternalPath(params.get("return_to"));
   useEffect(() => {
     if (returnTo) navigate(returnTo, { replace: true });
   }, [returnTo, navigate]);

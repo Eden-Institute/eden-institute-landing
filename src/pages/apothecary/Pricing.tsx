@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { PricingTier } from "@/components/apothecary/PricingTier";
+import {
+  CHECKOUT_ERROR_FALLBACK,
+  friendlyEfError,
+} from "@/components/apothecary/friendlyEfError";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { trackCta } from "@/lib/trackCta";
@@ -74,9 +78,9 @@ export default function Pricing() {
         throw new Error("Checkout session missing redirect URL");
       } catch (err) {
         if (!cancelled) {
-          toast.error(
-            err instanceof Error ? err.message : "Could not resume checkout",
-          );
+          // Same friendly filter the CheckoutButton uses: this was the one
+          // path where a raw "non-2xx" string could reach a paying customer.
+          toast.error(await friendlyEfError(err, CHECKOUT_ERROR_FALLBACK));
           setResuming(false);
         }
       }

@@ -624,9 +624,11 @@ export default function ApothecaryHome() {
                 className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
                 aria-label="Herb directory"
               >
-                {visible.slice(0, renderCount).map((herb) => (
+                {visible.slice(0, renderCount).map((herb, i) => (
                   <HerbCard
-                    key={herb.herb_id ?? herb.common_name ?? Math.random()}
+                    // Stable fallback: a Math.random() key remounts the card
+                    // every render, discarding its expand state.
+                    key={herb.herb_id ?? herb.common_name ?? `herb-${i}`}
                     herb={herb}
                     activePattern={activePattern}
                   />

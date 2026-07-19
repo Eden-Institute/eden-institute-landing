@@ -26,7 +26,7 @@ export const HERB_ALIASES: Record<string, string[]> = {
   "oat-straw": ["Milky Oats"],
 };
 
-export function herbSlug(commonName: string): string {
+function herbSlug(commonName: string): string {
   return commonName
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
