@@ -229,8 +229,9 @@ Deno.serve(async (req) => {
     const prompt = String(body.prompt ?? "").trim().slice(0, 2000);
     if (!prompt) return json({ error: "empty_prompt" }, 400);
     const range = String(body.range ?? "moderate");
-    const campaignTag = String(body.campaignTag ?? "general");
-    const projectId = body.projectId ? String(body.projectId) : null;
+    // Clamped like every other caller-supplied string: it lands in a DB column.
+    const campaignTag = String(body.campaignTag ?? "general").slice(0, 100);
+    const projectId = body.projectId ? String(body.projectId).slice(0, 100) : null;
 
     // generate and edit both spend on a Gemini call. Meter them (fail-open).
     const rl = await enforceRateLimit(userClient, "studio-image", DAILY_LIMIT);

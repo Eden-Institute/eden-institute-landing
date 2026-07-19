@@ -23,6 +23,12 @@ export interface AssetsPort {
   upload: (file: File) => Promise<{ path: string }>;
   url: (name: string) => Promise<string>;
   remove: (name: string) => Promise<void>;
+  /** Is the image engine configured? Optional: a session without it still has
+   *  uploads and the branded template. */
+  aiStatus?: () => Promise<{ configured: boolean; model: string }>;
+  /** Generate an Eden-styled image; the result is already a saved asset. */
+  aiGenerate?: (prompt: string, range: "strict" | "moderate" | "loose") =>
+    Promise<{ assetId: string; storagePath: string; url: string | null }>;
 }
 
 /** A slide is only truly saved once it has a bucket path. */
