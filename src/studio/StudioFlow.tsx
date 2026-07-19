@@ -17,6 +17,12 @@ import {
 } from "./flow-graph";
 import type { FlowAnswers, FlowNode, SlideAnswer } from "./flow-graph";
 import { adDimensions, defaultOverlay, paintAd } from "./flow-paint";
+import {
+  ExportError, HANDOFF_LINKS, downloadBlob, explainExportFailure, exportFilename,
+  exportStill, exportVideo, nextStepText, saveToDevice, startMicRecording,
+  supportsMicRecording, supportsVideoExport, suggestedDuration,
+} from "./flow-export";
+import type { MicSession, VideoExport } from "./flow-export";
 import { PRODUCTS } from "./studio-banks";
 import "./flow.css";
 
@@ -272,6 +278,13 @@ function NodeBody({ node, answers, assets, onWrite, onPick }: BodyProps) {
     case "caption": return <CaptionField answers={answers} onWrite={onWrite} />;
     case "overlay": return <OverlayFields answers={answers} onWrite={onWrite} />;
     case "anchor": return <AnchorGrid answers={answers} onWrite={onWrite} />;
+    case "own": return <OwnCopy answers={answers} onWrite={onWrite} />;
+    case "variants": return <CopyDrafts answers={answers} onWrite={onWrite} />;
+    case "finetune": return <FineTuneSliders answers={answers} onWrite={onWrite} />;
+    case "credits": return <CreditsEditor answers={answers} onWrite={onWrite} />;
+    case "link": return <LinkFields answers={answers} onWrite={onWrite} />;
+    case "sound": return <NarrationRecorder answers={answers} onWrite={onWrite} />;
+    case "render": return <RenderStep answers={answers} onWrite={onWrite} />;
     default:
       return (
         <p className="ef-note">
@@ -279,6 +292,264 @@ function NodeBody({ node, answers, assets, onWrite, onPick }: BodyProps) {
         </p>
       );
   }
+}
+
+/** The approved copy bank for this product and angle. Fresh AI drafting lands
+ *  in the next release; this copy is already written and already approved, so
+ *  there is no reason to make her wait for it. */
+function CopyDrafts({ answers, onWrite }: {
+  answers: FlowAnswers; onWrite: BodyProps["onWrite"];
+}) {
+  const product = (PRODUCTS as any)[answers.product as string];
+  const bank: string[] = product?.primaries?.[answers.angle as string] ?? [];
+  const drafts = bank.length ? bank : [0, 1, 2].map((i) => [
+    product?.headlines?.[i % (product?.headlines?.length || 1)],
+    product?.facts,
+    product?.descs?.[i % (product?.descs?.length || 1)],
+  ].filter(Boolean).join("\n\n"));
+
+  return (
+    <>
+      <div className="ef-grid ef-grid-1">
+        {drafts.map((text: string, i: number) => (
+          <button key={i} type="button"
+            className={`ef-opt${answers.variant === i ? " is-sel" : ""}`}
+            onClick={() => { onWrite("variant", i); onWrite("caption", text); }}>
+            <span className="ef-opt-t">Draft {i + 1}</span>
+            <span className="ef-opt-h ef-draft">{text}</span>
+          </button>
+        ))}
+      </div>
+      <p className="ef-note">
+        {bank.length
+          ? "Approved copy from the campaign library for this product and angle. Pick one, then edit it on the next screen."
+          : "No library entry for this exact pairing, so these are drafted from the product's own headlines and facts."}
+      </p>
+    </>
+  );
+}
+
+function OwnCopy({ answers, onWrite }: {
+  answers: FlowAnswers; onWrite: BodyProps["onWrite"];
+}) {
+  const own = answers.own ?? {};
+  const set = (k: string, v: string) => {
+    onWrite("own", { ...own, [k]: v });
+    if (k === "primary") onWrite("caption", v);
+  };
+  const fields: Array<[string, string, number]> = [
+    ["primary", "Primary text", 4], ["headline", "Headline", 1],
+    ["description", "Description", 1], ["note", "Your note", 2],
+  ];
+  return (
+    <>
+      {fields.map(([k, label, rows]) => (
+        <div className="ef-field" key={k}>
+          <label>{label}</label>
+          <textarea className="ef-input" rows={rows} value={(own as any)[k] ?? ""}
+            onChange={(e) => set(k, e.target.value)} />
+        </div>
+      ))}
+      <p className="ef-note">
+        Primary text becomes the caption. You can still edit it on the next screen.
+      </p>
+    </>
+  );
+}
+
+function FineTuneSliders({ answers, onWrite }: {
+  answers: FlowAnswers; onWrite: BodyProps["onWrite"];
+}) {
+  const f = answers.finetune ?? {
+    brightness: 1, contrast: 1, saturation: 1, x: 0, y: 0, scale: 1,
+  };
+  const set = (k: string, v: number) => onWrite("finetune", { ...f, [k]: v });
+  const rows: Array<[string, string, number, number, number, (v: number) => string]> = [
+    ["x", "Move left / right", -50, 50, 1, (v) => String(Math.round(v))],
+    ["y", "Move up / down", -50, 50, 1, (v) => String(Math.round(v))],
+    ["scale", "Zoom", 0.5, 2.5, 0.01, (v) => `${Math.round(v * 100)}%`],
+    ["brightness", "Brightness", 0, 2, 0.01, (v) => v.toFixed(2)],
+    ["contrast", "Contrast", 0, 2, 0.01, (v) => v.toFixed(2)],
+    ["saturation", "Saturation", 0, 2, 0.01, (v) => v.toFixed(2)],
+  ];
+  return (
+    <>
+      {rows.map(([k, label, min, max, step, fmt]) => (
+        <div className="ef-slider" key={k}>
+          <span className="ef-slider-l">{label}</span>
+          <input type="range" min={min} max={max} step={step} value={(f as any)[k]}
+            onChange={(e) => set(k, Number(e.target.value))} />
+          <span className="ef-slider-v">{fmt((f as any)[k])}</span>
+        </div>
+      ))}
+      <p className="ef-note">Non-destructive: your original file is never rewritten.</p>
+    </>
+  );
+}
+
+function CreditsEditor({ answers, onWrite }: {
+  answers: FlowAnswers; onWrite: BodyProps["onWrite"];
+}) {
+  const c = answers.credits ?? { text: "", speed: 5, startDelaySec: 0 };
+  const set = (k: string, v: unknown) => onWrite("credits", { ...c, [k]: v });
+  return (
+    <>
+      <textarea className="ef-input" rows={6} value={c.text}
+        placeholder={"One herb a week\nAll year long\nPreorders open July 29"}
+        onChange={(e) => set("text", e.target.value)} />
+      <div className="ef-slider" style={{ marginTop: 10 }}>
+        <span className="ef-slider-l">Roll speed</span>
+        <input type="range" min={1} max={10} value={c.speed}
+          onChange={(e) => set("speed", Number(e.target.value))} />
+        <span className="ef-slider-v">{c.speed}</span>
+      </div>
+      <p className="ef-note">Watch it roll on the preview. One line at a time reads best.</p>
+    </>
+  );
+}
+
+function LinkFields({ answers, onWrite }: {
+  answers: FlowAnswers; onWrite: BodyProps["onWrite"];
+}) {
+  const l = answers.link ?? { domain: "edeninstitute.health", dest: "", qr: false };
+  const set = (k: string, v: unknown) => onWrite("link", { ...l, [k]: v });
+  return (
+    <>
+      <div className="ef-field">
+        <label>Display domain</label>
+        <input className="ef-input" type="text" value={l.domain ?? ""}
+          onChange={(e) => set("domain", e.target.value)} />
+      </div>
+      <button type="button" className={`ef-opt${l.qr ? " is-sel" : ""}`}
+        onClick={() => set("qr", !l.qr)}>
+        <span className="ef-opt-t">{l.qr ? "☑" : "☐"} Include a QR code</span>
+        <span className="ef-opt-h">For printed collateral and in-person events</span>
+      </button>
+    </>
+  );
+}
+
+/** Live microphone recording. A file picker was the wrong design: iOS Voice
+ *  Memos are hard to retrieve through one, and she should just tap and talk. */
+function NarrationRecorder({ answers, onWrite }: {
+  answers: FlowAnswers; onWrite: BodyProps["onWrite"];
+}) {
+  const sound = answers.sound ?? { mode: "none" as const };
+  const [session, setSession] = useState<MicSession | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const [level, setLevel] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!session) return;
+    const t = window.setInterval(() => {
+      setElapsed((e) => e + 0.1);
+      setLevel(session.level());
+    }, 100);
+    return () => window.clearInterval(t);
+  }, [session]);
+
+  const setMode = (mode: "none" | "narration") =>
+    onWrite("sound", { ...sound, mode, ...(mode === "none" ? { narration: null } : {}) });
+
+  const begin = async () => {
+    setError(null);
+    try {
+      const s = await startMicRecording(60);
+      setElapsed(0);
+      setSession(s);
+    } catch (err) {
+      setError(err instanceof ExportError ? err.message
+        : "The microphone was refused. If this page is embedded that is the embed "
+          + "rather than your device, and you can upload a voice memo instead.");
+    }
+  };
+
+  const finish = async () => {
+    if (!session) return;
+    const out = await session.stop();
+    setSession(null);
+    if (out.seconds < 1) {
+      setError("That was too short. Hold on and speak for a moment.");
+      return;
+    }
+    onWrite("sound", {
+      ...sound, mode: "narration",
+      narration: { name: "Recorded narration", url: out.url, durationSec: out.seconds },
+    });
+  };
+
+  const fmt = (x: number) =>
+    `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, "0")}`;
+
+  return (
+    <>
+      <div className="ef-grid">
+        {[
+          { id: "none", label: "No narration", hint: "Silent. You can add music in Instagram later." },
+          { id: "narration", label: "Add my voice", hint: "Record here. It is baked into the video you save." },
+        ].map((o) => (
+          <button key={o.id} type="button"
+            className={`ef-opt${sound.mode === o.id ? " is-sel" : ""}`}
+            onClick={() => setMode(o.id as "none" | "narration")}>
+            <span className="ef-opt-t">{o.label}</span>
+            <span className="ef-opt-h">{o.hint}</span>
+          </button>
+        ))}
+      </div>
+
+      {sound.mode === "narration" && (
+        <div className="ef-record">
+          {sound.narration ? (
+            <>
+              <audio controls src={sound.narration.url} className="ef-audio" />
+              <div className="ef-trayrow">
+                <span className="ef-note" style={{ margin: 0 }}>
+                  {sound.narration.name} · {fmt(sound.narration.durationSec ?? 0)}
+                </span>
+                <button type="button" className="ef-mini"
+                  onClick={() => onWrite("sound", { ...sound, narration: null })}>
+                  Record again
+                </button>
+              </div>
+            </>
+          ) : session ? (
+            <div className="ef-trayrow">
+              <button type="button" className="ef-btn ef-pri" onClick={finish}>Stop</button>
+              <span className="ef-slider-v">{fmt(elapsed)}</span>
+              <span className="ef-meter" aria-hidden>
+                {"▁▂▃▅▇".slice(0, Math.max(1, Math.round(level * 5)))}
+              </span>
+            </div>
+          ) : (
+            <div className="ef-trayrow">
+              <button type="button" className="ef-btn ef-pri" onClick={begin}
+                disabled={!supportsMicRecording()}>Record</button>
+              <button type="button" className="ef-mini" onClick={() => fileRef.current?.click()}>
+                Upload a voice memo
+              </button>
+            </div>
+          )}
+          <input ref={fileRef} type="file" accept="audio/*" hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (!f) return;
+              onWrite("sound", {
+                ...sound, mode: "narration",
+                narration: { name: f.name, url: URL.createObjectURL(f) },
+              });
+            }} />
+          {error && <p className="ef-error">{error}</p>}
+          <p className="ef-note">
+            Add music afterwards in Instagram or Business Suite, where the
+            licensed tracks live.
+          </p>
+        </div>
+      )}
+    </>
+  );
 }
 
 function SingleChoice({ node, answers, onPick }: {
@@ -556,14 +827,109 @@ function AdjustTray({ answers, open, onToggle, onWrite, onJump }: {
 
 /* ── the finished ad ──────────────────────────────────────────────── */
 
+function RenderStep({ answers, onWrite }: {
+  answers: FlowAnswers; onWrite: BodyProps["onWrite"];
+}) {
+  const dims = adDimensions(answers);
+  const video = isVideoOutput(answers);
+  return (
+    <>
+      <div className="ef-summary-card">
+        <div className="ef-row"><span>Output</span><b>{video ? "Video" : "Image"}</b></div>
+        <div className="ef-row">
+          <span>Size</span><b>{dims.w} × {dims.h}</b>
+        </div>
+        {video && (
+          <div className="ef-row">
+            <span>Length</span><b>about {suggestedDuration(answers)}s</b>
+          </div>
+        )}
+        {answers.sound?.narration && (
+          <div className="ef-row"><span>Narration</span><b>baked in</b></div>
+        )}
+      </div>
+      <p className="ef-note">
+        {video
+          ? "Building the video happens on the next screen, where you can play it before saving."
+          : "Rendered at full Meta dimensions on the next screen."}
+      </p>
+      {!answers.rendered && (
+        <button type="button" className="ef-btn ef-pri" style={{ marginTop: 12 }}
+          onClick={() => onWrite("rendered", true)}>
+          Ready
+        </button>
+      )}
+    </>
+  );
+}
+
+/* ── the finished ad ──────────────────────────────────────────────── */
+
 function FlowSummary({ answers, onJump, onFinish }: {
   answers: FlowAnswers; onJump: (id: string) => void; onFinish?: () => void;
 }) {
   const finalRef = useRef<HTMLCanvasElement>(null);
+  const [video, setVideo] = useState<VideoExport | null>(null);
+  const [building, setBuilding] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [status, setStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const wantsVideo = isVideoOutput(answers);
+
   useEffect(() => {
     if (finalRef.current) paintAd(finalRef.current, answers, { width: 640 });
   }, [answers]);
-  const product = (PRODUCTS as any)[answers.product as string];
+
+  const build = async () => {
+    setBuilding(true); setError(null); setProgress(0);
+    try {
+      const out = await exportVideo(answers, { onProgress: setProgress });
+      setVideo(out);
+    } catch (err) {
+      setError(err instanceof ExportError ? explainExportFailure(err.reason)
+        : "The video could not be built. The image below still works.");
+    } finally { setBuilding(false); }
+  };
+
+  const savePhone = async () => {
+    setStatus(null);
+    try {
+      const blob = video ? video.blob : await exportStill(answers);
+      const name = exportFilename(answers, video ? video.ext : "png");
+      const outcome = await saveToDevice(blob, name);
+      setStatus({
+        shared: "Sent to your share sheet. Choose Save Video or Save Image.",
+        cancelled: "Cancelled.",
+        downloaded: "Your browser could not open the share sheet, so it downloaded instead. "
+          + "On an iPhone that lands in Files, not Photos.",
+        failed: "Could not save from here.",
+      }[outcome]);
+    } catch {
+      setError("Could not prepare the file.");
+    }
+  };
+
+  const saveComputer = async () => {
+    setStatus(null);
+    try {
+      const blob = video ? video.blob : await exportStill(answers);
+      const name = exportFilename(answers, video ? video.ext : "png");
+      setStatus(downloadBlob(blob, name) ? `Downloaded ${name}.` : "Could not download.");
+    } catch {
+      setError("Could not prepare the file.");
+    }
+  };
+
+  const links: Array<[string, string]> = answers.pathway === "canva"
+    ? [["Open Canva", HANDOFF_LINKS.canva]]
+    : answers.pathway === "bsuite"
+      ? [["Open Business Suite", HANDOFF_LINKS.businessSuite],
+         ["Open Ads Manager", HANDOFF_LINKS.adsManager]]
+      : answers.pathway === "native"
+        ? [["Open Instagram", HANDOFF_LINKS.instagram],
+           ["Open Facebook", HANDOFF_LINKS.facebook],
+           ["Open Ads Manager", HANDOFF_LINKS.adsManager]]
+        : [];
 
   return (
     <div className="edenflow">
@@ -572,27 +938,92 @@ function FlowSummary({ answers, onJump, onFinish }: {
         Not happy with something? Tap any chip to change that one answer.
         Everything else stays as it is.
       </p>
+
       <div className="ef-final">
-        <canvas ref={finalRef} aria-label="Your finished ad" />
         <div>
-          <p className="ef-eyebrow">Caption to paste into Meta</p>
-          <div className="ef-caption">{answers.caption}</div>
-          <p className="ef-note">
-            Export, video and the Meta hand-offs arrive in the next release.
-            {product ? ` This ad is for ${product.name}.` : ""}
-          </p>
-          <div className="ef-nav">
-            <button type="button" className="ef-btn" onClick={() => onJump("pathway")}>
-              ◂ Back to the last question
-            </button>
-            <span className="ef-spacer" />
-            {onFinish && (
-              <button type="button" className="ef-btn ef-pri" onClick={onFinish}>
-                Start another ad
-              </button>
-            )}
-          </div>
+          {video
+            ? <video className="ef-video" src={video.url} controls playsInline />
+            : <canvas ref={finalRef} aria-label="Your finished ad" />}
+          {video && (
+            <p className="ef-note">
+              {video.hasAudio
+                ? "Play it and check your narration before you save."
+                : "Play it through before you save."}
+              {" "}{video.ext.toUpperCase()} · {video.seconds}s
+            </p>
+          )}
         </div>
+
+        <div className="ef-final-side">
+          {wantsVideo && !video && (
+            <div className="ef-summary-card">
+              <p className="ef-eyebrow">Build the video</p>
+              <p className="ef-note" style={{ margin: "0 0 10px" }}>
+                {answers.sound?.narration
+                  ? "Records the ad with your narration inside it."
+                  : "Records the ad as a video file."}
+                {" "}Add music afterwards in Instagram.
+              </p>
+              <button type="button" className="ef-btn ef-pri" onClick={build}
+                disabled={building || !supportsVideoExport()}>
+                {building ? `Recording… ${Math.round(progress * 100)}%` : "Build the video"}
+              </button>
+              {!supportsVideoExport() && (
+                <p className="ef-note">
+                  This browser cannot record video. The image still saves.
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="ef-summary-card">
+            <p className="ef-eyebrow">Save it</p>
+            <p className="ef-note" style={{ margin: "0 0 10px" }}>
+              Only the first reaches your camera roll. A download always lands in
+              Files instead, which is an iPhone rule rather than a choice.
+            </p>
+            <div className="ef-exportrow">
+              <button type="button" className="ef-btn ef-pri" onClick={savePhone}>
+                Save to my phone
+              </button>
+              <button type="button" className="ef-btn" onClick={saveComputer}>
+                Download to this computer
+              </button>
+            </div>
+            {status && <p className="ef-note">{status}</p>}
+            {error && <p className="ef-error">{error}</p>}
+          </div>
+
+          <div className="ef-summary-card">
+            <p className="ef-eyebrow">Caption to paste into Meta</p>
+            <div className="ef-caption">{answers.caption}</div>
+          </div>
+
+          {links.length > 0 && (
+            <div className="ef-summary-card">
+              <p className="ef-eyebrow">Where it goes next</p>
+              <p className="ef-note" style={{ margin: "0 0 10px" }}>{nextStepText(answers)}</p>
+              <div className="ef-exportrow">
+                {links.map(([label, href]) => (
+                  <a key={href} className="ef-btn ef-link" href={href}
+                    target="_blank" rel="noopener noreferrer">{label} ↗</a>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="ef-nav">
+        <button type="button" className="ef-btn" onClick={() => onJump("pathway")}>
+          ◂ Back to the last question
+        </button>
+        <span className="ef-spacer" />
+        {onFinish && (
+          <button type="button" className="ef-btn ef-pri" onClick={onFinish}>
+            Start another ad
+          </button>
+        )}
       </div>
     </div>
   );
