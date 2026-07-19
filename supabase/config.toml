@@ -75,6 +75,13 @@ verify_jwt = false
 [functions.preorder-status]
 verify_jwt = false
 
+# A buyer's one-click answer to an FTC delay notice (consent or cancel). Reached
+# from an email link with no Supabase session, so verify_jwt MUST stay false;
+# security is the HMAC token, not a JWT. 435.2(b)(3) requires the cancellation
+# mechanism to be free and easy, and a login gate would not satisfy that.
+[functions.preorder-response]
+verify_jwt = false
+
 # Stripe Checkout session creator. Does its OWN auth dispatch internally
 # (subscriptions + nb_addon check the JWT in code; anonymous one-offs and
 # preorders don't). verify_jwt MUST stay false: true at the gateway blocks
