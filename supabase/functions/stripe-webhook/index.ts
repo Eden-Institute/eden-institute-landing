@@ -688,7 +688,21 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
     return
   }
 
-  // Branch 3: existing quiz-completion flag flips (Deep-Dive Guide, future courses).
+  // Branch 3: one-off DIGITAL products (Deep-Dive Guide, future courses).
+  //
+  // Order of operations here is deliberate and was previously wrong:
+  //   1. RECORD THE SALE. Always, first, before anything that can bail out.
+  //   2. Attribute it to a quiz row (best effort).
+  //   3. Deliver the product. Never conditional on step 2.
+  //
+  // The old flow did only step 2, then step 3 gated on it succeeding. Two
+  // consequences, both real and both hit in production:
+  //   - purchased_guide is a BOOLEAN on quiz_completions, so a second purchase by
+  //     the same email overwrote the first. Two $4.99 sales were indistinguishable
+  //     from one, and neither amount, date, nor which guide was stored anywhere.
+  //   - a buyer with NO matching quiz row (bought without taking the quiz, or used
+  //     a different address) hit an early return that skipped sendGuidePdf. They
+  //     paid and received nothing.
   let column: "purchased_guide" | "purchased_course" | null = null
   if (lookupKey === "deep_dive_guide") {
     column = "purchased_guide"
@@ -704,49 +718,92 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
     return
   }
 
-  if (!email) {
-    console.warn(
-      `Guide/course purchase without email — cannot attribute. session=${session.id} lookup_key=${lookupKey}`,
-    )
-    return
+  // 1. The sale itself. Idempotent on the session id, so a Stripe retry is a no-op.
+  await recordDigitalOrder(session, lookupKey, email)
+
+  // 2. Attribution. Best effort: a missing quiz row is a reporting gap, not a
+  //    reason to withhold a paid product, so this never returns early any more.
+  if (email) {
+    const { data: updated, error } = await adminClient
+      .from("quiz_completions")
+      .update({ [column]: true })
+      .ilike("email", email)
+      .select("id")
+
+    if (error) {
+      // Still not fatal to delivery: log loudly and carry on to step 3.
+      console.error(`quiz_completions ${column} flip failed for email=${email}: ${error.message}`)
+    } else if ((updated?.length ?? 0) === 0) {
+      console.warn(
+        `no quiz_completions row matched email=${email}; ${column} not flipped ` +
+          `(the sale IS recorded in orders). session=${session.id}`,
+      )
+    } else {
+      console.log(
+        `flipped ${column}=true on ${updated!.length} quiz_completions row(s) ` +
+          `for email=${email}, lookup_key=${lookupKey}, session=${session.id}`,
+      )
+    }
+  } else {
+    console.warn(`digital purchase without email; recorded but unattributed. session=${session.id}`)
   }
 
-  const { data: updated, error } = await adminClient
-    .from("quiz_completions")
-    .update({ [column]: true })
-    .ilike("email", email)
-    .select("id")
-
-  if (error) {
-    throw new Error(
-      `quiz_completions ${column} flip failed for email=${email}: ${error.message}`,
-    )
-  }
-
-  const updatedCount = updated?.length ?? 0
-  if (updatedCount === 0) {
-    console.warn(
-      `checkout.session.completed: no quiz_completions row matched email=${email}; ` +
-        `${column} not flipped. session=${session.id} lookup_key=${lookupKey}`,
-    )
-    return
-  }
-
-  console.log(
-    `checkout.session.completed: flipped ${column}=true on ${updatedCount} ` +
-      `quiz_completions row(s) for email=${email}, lookup_key=${lookupKey}, session=${session.id}`,
-  )
-
-  // Deliver the Deep-Dive Guide PDF immediately for guide purchases (best-effort;
-  // never blocks the webhook). Covers the buyer whose Stripe success page (the
-  // client-rendered /guide route) can render blank on a mobile email browser.
-  if (column === "purchased_guide") {
+  // 3. Delivery. Unconditional for guides: they paid, so they get it.
+  if (column === "purchased_guide" && email) {
     await sendGuidePdf(
       email,
       (session.metadata?.constitution_type as string | undefined) ?? null,
       (session.metadata?.constitution_nickname as string | undefined) ?? null,
     )
   }
+}
+
+// ---------- Digital order recording ----------
+
+/**
+ * Record a one-off DIGITAL sale (guide, course) in the orders table, so revenue is
+ * countable and repeat purchases are distinguishable.
+ *
+ * Two fields matter and are easy to get wrong:
+ *   - is_preorder MUST be false. It defaults to true, and preorder_broadcast_list
+ *     selects on it: a guide buyer would otherwise receive kit manufacturing updates.
+ *   - status is 'delivered', not 'paid'. A digital good is delivered at purchase, and
+ *     'paid' would park it in the fulfillment queue forever looking unshipped.
+ *
+ * Idempotent on stripe_checkout_session_id. Throws on a real DB error so Stripe
+ * retries, which is safe because the upsert ignores duplicates.
+ */
+async function recordDigitalOrder(
+  session: Stripe.Checkout.Session,
+  lookupKey: string,
+  email: string | null,
+) {
+  const nickname = (session.metadata?.constitution_nickname as string | undefined) ?? null
+  const label = lookupKey === "deep_dive_guide"
+    ? `Deep-Dive Guide${nickname ? `: ${nickname}` : ""}`
+    : lookupKey
+
+  const { error } = await adminClient.from("orders").upsert({
+    stripe_checkout_session_id: session.id,
+    stripe_payment_intent_id: typeof session.payment_intent === "string" ? session.payment_intent : null,
+    stripe_customer_id: typeof session.customer === "string" ? session.customer : session.customer?.id ?? null,
+    customer_email: email,
+    lookup_key: lookupKey,
+    product_label: label,
+    amount_total_cents: session.amount_total ?? null,
+    tax_cents: session.total_details?.amount_tax ?? null,
+    currency: session.currency ?? null,
+    quantity: 1,
+    payment_status: session.payment_status ?? null,
+    status: "delivered",
+    is_preorder: false,
+    raw: session,
+  }, { onConflict: "stripe_checkout_session_id", ignoreDuplicates: true })
+
+  if (error) {
+    throw new Error(`digital order upsert failed for session ${session.id}: ${error.message}`)
+  }
+  console.log(`Recorded digital sale: ${label} ${session.amount_total ?? "?"} ${session.currency ?? ""} session=${session.id}`)
 }
 
 // ---------- Homeschool order recording ----------
