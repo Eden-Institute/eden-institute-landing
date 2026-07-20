@@ -79,7 +79,7 @@ export async function recordPreorderFromSession(
   db: Db,
   session: CheckoutSessionLike,
   items: ResolvedLineItem[],
-): Promise<void> {
+): Promise<string | null> {
   const email = (session.customer_details?.email ?? session.customer_email ?? '').toLowerCase().trim();
   const phone = session.customer_details?.phone ?? null;
   const smsConsent = session.metadata?.sms_consent === 'true' || session.metadata?.sms_consent === true;
@@ -125,7 +125,7 @@ export async function recordPreorderFromSession(
     raw: session,
   };
 
-  const { id: orderId } = await upsertOrderPaid(db, order);
+  const { id: orderId, order_number: orderNumber } = await upsertOrderPaid(db, order);
 
   // Always attempt every line: UNIQUE(order_id, product_id) + addOrderItem's 23505
   // tolerance make this a no-op for lines a previous delivery already wrote.
@@ -141,6 +141,10 @@ export async function recordPreorderFromSession(
   }
 
   await transition(db, orderId, 'preorder_hold');
+
+  // Returned so the caller can echo it back to Stripe. Null only if the column default
+  // somehow did not fire; callers must treat it as best-effort, never as a failure.
+  return orderNumber;
 }
 
 /** Apply a refund: locate the order by payment_intent and move it to `refunded` (no messages). */

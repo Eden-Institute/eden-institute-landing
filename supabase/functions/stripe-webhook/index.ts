@@ -644,7 +644,32 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
     }
     const isFounding = session.metadata?.is_founding === "true"
     const items = await resolvePreorderLineItems(session, preorderSku, isFounding)
-    await recordPreorderFromSession(adminClient, session, items)
+    const orderNumber = await recordPreorderFromSession(adminClient, session, items)
+
+    // Echo the order number back onto the PaymentIntent.
+    //
+    // order_number is a column DEFAULT off order_number_seq, so it does not exist until
+    // the order row is inserted, which is here, after payment. Stripe therefore cannot
+    // carry it at session creation and the Dashboard shows a payment with no human handle
+    // on it. /returns tells customers to quote their order number in any email, so without
+    // this a support request reading "about ET-1004" cannot be found in Stripe at all.
+    //
+    // Metadata updates merge by key, so this adds order_number without disturbing the
+    // preorder metadata create-checkout already stamped (cart, acceptance evidence,
+    // preorder_test). Best-effort by design: the order is already recorded and the customer
+    // already emailed, so a Stripe hiccup here must never 500 the webhook and trigger a
+    // retry of work that is done.
+    const preorderPi = typeof session.payment_intent === "string" ? session.payment_intent : null
+    if (orderNumber && preorderPi) {
+      try {
+        await stripe.paymentIntents.update(preorderPi, { metadata: { order_number: orderNumber } })
+      } catch (err) {
+        console.error(
+          `order_number writeback failed for ${orderNumber} on ${preorderPi}:`,
+          err instanceof Error ? err.message : String(err),
+        )
+      }
+    }
     // Founder milestone pings (250/400/475/490/cap) ride the recording path so the
     // final ping lands at the actual flip moment, and this call also advances the
     // one-way founding latch at payment time. Best-effort: a milestone or Resend
