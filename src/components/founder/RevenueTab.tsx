@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import PaymentsPanel from "./PaymentsPanel";
 
 interface Revenue {
   subscriptions: {
@@ -69,9 +70,17 @@ export default function RevenueTab({ since }: { since: string }) {
         </div>
       )}
 
+      {/* Actual money first. Everything below counts STATE (who currently holds a
+          tier, whether a boolean was flipped), which is what made two real guide
+          sales read as "1" and every renewal invisible. */}
+      <PaymentsPanel since={since} />
+
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
         <StatCard label="Active subscriptions" value={String(subs?.active_total ?? 0)} />
-        <StatCard label="Guide sales (all-time)" value={String(data?.guide?.purchased_total ?? 0)} />
+        <StatCard
+          label="Guide buyers (all-time)"
+          value={String(data?.guide?.purchased_total ?? 0)}
+        />
         <StatCard label="Course orders (window)" value={String(course?.orders ?? 0)} />
         <StatCard label="Course revenue (window)" value={course ? money(course.revenue_cents, course.currency) : "—"} />
       </div>
