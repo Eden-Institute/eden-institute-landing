@@ -240,13 +240,32 @@ serve(async (req) => {
       case "customer.subscription.created":
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription
+        await logSubscriptionEvent(event, subscription)
         await reconcileSubscription(subscription)
         break
       }
 
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription
+        await logSubscriptionEvent(event, subscription)
         await handleSubscriptionDeleted(subscription)
+        break
+      }
+
+      // Money actually moving on a subscription. Previously UNHANDLED, which is why a
+      // subscriber's payments were invisible: customer.subscription.* says the state
+      // changed, invoice.paid says we got paid. Renewals only ever emit the latter, so
+      // every month after the first left no trace anywhere.
+      case "invoice.paid":
+      case "invoice.payment_succeeded": {
+        await recordInvoicePayment(event, "paid")
+        break
+      }
+
+      case "invoice.payment_failed": {
+        // Recorded rather than ignored: a failed renewal is the start of involuntary
+        // churn, and it is invisible from profiles alone.
+        await recordInvoicePayment(event, "failed")
         break
       }
 
@@ -266,6 +285,11 @@ serve(async (req) => {
           )
           break
         }
+        // Ledger row for the money itself, separate from the order (which is the
+        // fulfillment record). A one-off produces BOTH; a subscription renewal
+        // produces only a payment. Revenue is sum(payments) either way.
+        await recordOneOffPayment(event, session)
+
         await handleOneOffPayment(session)
 
         // Report the sale to Meta (server-side Conversions API). Deliberately
@@ -958,6 +982,156 @@ async function handleHomeschoolBundlePurchase(
     `Bundle purchase provisioned: user=${userId}, email=${email}, ` +
       `session=${session.id}, stripe_customer=${stripeCustomerId ?? "none"}, ` +
       `new_user=${existing ? "false" : "true"}`,
+  )
+}
+
+// ---------- Payments ledger + subscription event log ----------
+
+/**
+ * Record a single Checkout purchase in the payments ledger. Covers every one-off:
+ * guide, course, homeschool kit, and preorder.
+ *
+ * Best effort by design. The order row and the customer's product are what matter to
+ * the buyer; a ledger write must never fail the webhook and trigger a Stripe retry that
+ * re-runs fulfillment. Idempotent on stripe_event_id, so a retry from another cause is
+ * still safe.
+ */
+async function recordOneOffPayment(event: Stripe.Event, session: Stripe.Checkout.Session) {
+  try {
+    const amount = session.amount_total ?? 0
+    if (!amount) return
+
+    const lookupKey = (session.metadata?.lookup_key as string | undefined)
+      ?? (session.metadata?.preorder_sku as string | undefined)
+      ?? null
+    const nickname = (session.metadata?.constitution_nickname as string | undefined) ?? null
+    const description = lookupKey === "deep_dive_guide"
+      ? `Deep-Dive Guide${nickname ? `: ${nickname}` : ""}`
+      : (lookupKey ?? "One-off purchase")
+
+    const { error } = await adminClient.from("payments").insert({
+      stripe_event_id: event.id,
+      stripe_payment_intent_id: typeof session.payment_intent === "string" ? session.payment_intent : null,
+      stripe_customer_id: typeof session.customer === "string" ? session.customer : session.customer?.id ?? null,
+      customer_email: (session.customer_details?.email ?? session.customer_email ?? "").toLowerCase() || null,
+      kind: "one_off",
+      description,
+      lookup_key: lookupKey,
+      amount_cents: amount,
+      currency: session.currency ?? "usd",
+      status: "paid",
+      occurred_at: new Date(event.created * 1000).toISOString(),
+      raw: session,
+    })
+    // deno-lint-ignore no-explicit-any
+    if (error && (error as any).code !== "23505") {
+      console.error(`payments insert failed for session ${session.id}: ${error.message}`)
+    }
+  } catch (err) {
+    console.error("recordOneOffPayment failed (non-fatal):", err instanceof Error ? err.message : String(err))
+  }
+}
+
+
+/**
+ * Append the raw event to subscription_events.
+ *
+ * That table has existed with the right columns since early on and had ZERO rows:
+ * it was built and never wired. Without it, a tier change is unexplainable after the
+ * fact, because profiles only ever shows the latest state.
+ *
+ * Best effort. An audit-log failure must never fail the webhook and make Stripe retry
+ * a subscription reconcile that already succeeded.
+ */
+async function logSubscriptionEvent(event: Stripe.Event, subscription: Stripe.Subscription) {
+  try {
+    const userId = await resolveSupabaseUserId(subscription)
+    const { error } = await adminClient.from("subscription_events").insert({
+      user_id: userId,
+      stripe_event_id: event.id,
+      stripe_event_type: event.type,
+      payload: event as unknown as Record<string, unknown>,
+      received_at: new Date(event.created * 1000).toISOString(),
+    })
+    if (error) console.error(`subscription_events insert failed for ${event.id}: ${error.message}`)
+  } catch (err) {
+    console.error("logSubscriptionEvent failed (non-fatal):", err instanceof Error ? err.message : String(err))
+  }
+}
+
+/**
+ * Record an invoice payment in the payments ledger.
+ *
+ * This is the row that makes revenue countable: amount, currency, billing period, and
+ * the subscription it belongs to. Idempotent twice over, because Stripe retries and a
+ * backfill may cover the same invoice:
+ *   - UNIQUE(stripe_event_id)
+ *   - partial UNIQUE(stripe_invoice_id) WHERE status='paid'
+ *
+ * Throws on a genuine DB error so Stripe retries. A duplicate is not an error.
+ */
+async function recordInvoicePayment(event: Stripe.Event, status: "paid" | "failed") {
+  // deno-lint-ignore no-explicit-any
+  const inv = event.data.object as any
+
+  const amount = status === "paid"
+    ? (inv.amount_paid ?? inv.amount_due ?? 0)
+    : (inv.amount_due ?? 0)
+
+  // A $0 invoice (100% coupon, trial conversion) is a real state change but not money.
+  if (status === "paid" && !amount) {
+    console.log(`invoice ${inv.id} paid for 0; not recording a payment row`)
+    return
+  }
+
+  const line = inv.lines?.data?.[0]
+  const subscriptionId = typeof inv.subscription === "string"
+    ? inv.subscription
+    : inv.subscription?.id ?? line?.subscription ?? null
+
+  const lookupKey = line?.price?.lookup_key ?? null
+  const tier = tierFromLookupKey(lookupKey)
+
+  const customerId = typeof inv.customer === "string" ? inv.customer : inv.customer?.id ?? null
+  let userId: string | null = null
+  if (customerId) {
+    const { data } = await adminClient.from("profiles").select("user_id")
+      .eq("stripe_customer_id", customerId).maybeSingle()
+    userId = data?.user_id ?? null
+  }
+
+  const period = line?.period ?? null
+
+  const { error } = await adminClient.from("payments").insert({
+    stripe_event_id: event.id,
+    stripe_invoice_id: inv.id ?? null,
+    stripe_payment_intent_id: typeof inv.payment_intent === "string" ? inv.payment_intent : null,
+    stripe_charge_id: typeof inv.charge === "string" ? inv.charge : null,
+    stripe_customer_id: customerId,
+    stripe_subscription_id: subscriptionId,
+    user_id: userId,
+    customer_email: (inv.customer_email ?? "").toLowerCase() || null,
+    kind: "subscription",
+    description: tier !== "free" ? `${tier} subscription` : (line?.description ?? "Subscription"),
+    lookup_key: lookupKey,
+    amount_cents: amount,
+    currency: inv.currency ?? "usd",
+    status,
+    period_start: period?.start ? new Date(period.start * 1000).toISOString() : null,
+    period_end: period?.end ? new Date(period.end * 1000).toISOString() : null,
+    occurred_at: new Date((inv.status_transitions?.paid_at ?? inv.created ?? event.created) * 1000).toISOString(),
+    raw: inv,
+  })
+
+  // 23505 = already recorded by a retry or the backfill. Expected, not a failure.
+  // deno-lint-ignore no-explicit-any
+  if (error && (error as any).code !== "23505") {
+    throw new Error(`payments insert failed for invoice ${inv.id}: ${error.message}`)
+  }
+
+  console.log(
+    `Recorded ${status} subscription payment: ${amount} ${inv.currency ?? "usd"} ` +
+      `invoice=${inv.id} sub=${subscriptionId ?? "n/a"}`,
   )
 }
 
