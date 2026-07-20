@@ -121,7 +121,7 @@ function buildConfirmationEmail(rawFirstName: string): { subject: string; html: 
 <tr><td style="border-top:2px solid #C5A44E;font-size:0;line-height:0;">&nbsp;</td></tr>
 <tr><td style="background-color:#2C3E2D;padding:24px 20px;text-align:center;">
 <p style="font-family:Georgia,serif;font-size:13px;color:#FFFFFF;margin:0;"><a href="https://edeninstitute.health" style="color:#FFFFFF;text-decoration:underline;">edeninstitute.health</a></p>
-<p style="font-family:Georgia,serif;font-size:11px;color:#CDBF9B;margin:8px 0 0 0;">Rooted in Faith Ventures LLC &middot; PO Box 3262, Clarksville, TN 37042</p>
+<p style="font-family:Georgia,serif;font-size:11px;color:#CDBF9B;margin:8px 0 0 0;">Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Unit 3262, Clarksville, TN 37043</p>
 </td></tr>
 </table>
 </td></tr>
