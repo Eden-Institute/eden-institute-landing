@@ -67,13 +67,18 @@ export async function upsertOrderPaid(
   db: Db,
   // deno-lint-ignore no-explicit-any
   order: Record<string, any>,
-): Promise<{ id: string; created: boolean }> {
-  const ins = await db.from('orders').insert(order).select('id').maybeSingle();
-  if (!ins.error && ins.data) return { id: ins.data.id, created: true };
+): Promise<{ id: string; order_number: string | null; created: boolean }> {
+  // order_number comes back from the same round trip. It is a column DEFAULT off
+  // order_number_seq, so it only exists after the insert; selecting it here saves a
+  // second query when the caller wants to echo it back to Stripe.
+  const ins = await db.from('orders').insert(order).select('id, order_number').maybeSingle();
+  if (!ins.error && ins.data) {
+    return { id: ins.data.id, order_number: ins.data.order_number ?? null, created: true };
+  }
   if (ins.error && errCode(ins.error) === '23505') {
-    const ex = await db.from('orders').select('id')
+    const ex = await db.from('orders').select('id, order_number')
       .eq('stripe_checkout_session_id', order.stripe_checkout_session_id).maybeSingle();
-    if (ex.data) return { id: ex.data.id, created: false };
+    if (ex.data) return { id: ex.data.id, order_number: ex.data.order_number ?? null, created: false };
   }
   throw ins.error ?? new Error('upsertOrderPaid: no row returned');
 }
