@@ -113,6 +113,12 @@ export default function OrdersTab({ since }: { since: string }) {
   const s = payload?.summary;
   const orders = payload?.orders ?? [];
 
+  // See RevenueTab: a broken query must not render as a confident zero. This tab is
+  // worse than most, because its empty-state row prints the words "No orders in this
+  // window yet" underneath a failed request.
+  const unknown = !!error && !payload;
+  const n = (v: number | null | undefined) => (unknown ? "—" : String(v ?? 0));
+
   return (
     <>
       {error && (
@@ -122,10 +128,10 @@ export default function OrdersTab({ since }: { since: string }) {
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        <Stat label="Preorders held" value={String(s?.preorder_hold ?? 0)} />
-        <Stat label="Gross (excl. cancelled/refunded)" value={money(s?.gross_cents ?? 0)} />
-        <Stat label="SMS opt-ins" value={String(s?.sms_consent ?? 0)} />
-        <Stat label="Cancelled + refunded" value={String((s?.cancelled ?? 0) + (s?.refunded ?? 0))} />
+        <Stat label="Preorders held" value={n(s?.preorder_hold)} />
+        <Stat label="Gross (excl. cancelled/refunded)" value={unknown ? "—" : money(s?.gross_cents ?? 0)} />
+        <Stat label="SMS opt-ins" value={n(s?.sms_consent)} />
+        <Stat label="Cancelled + refunded" value={unknown ? "—" : String((s?.cancelled ?? 0) + (s?.refunded ?? 0))} />
       </div>
 
       <section className="mb-4">
@@ -210,7 +216,7 @@ export default function OrdersTab({ since }: { since: string }) {
                   </td>
                 </tr>
               ))}
-              {orders.length === 0 && !loading && (
+              {orders.length === 0 && !loading && !error && (
                 <tr>
                   <td className="px-3 py-3 font-body text-sm text-muted-foreground" colSpan={7}>
                     No orders in this window yet.

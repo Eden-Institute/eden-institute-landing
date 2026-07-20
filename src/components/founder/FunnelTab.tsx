@@ -82,6 +82,10 @@ export default function FunnelTab({ since }: { since: string }) {
       ]
     : [];
 
+  // See RevenueTab: a failed query must not render as a real zero.
+  const unknown = !!error && !data;
+  const n = (v: number | null | undefined) => (unknown ? "—" : String(v ?? 0));
+
   return (
     <div>
       {error && (
@@ -91,10 +95,10 @@ export default function FunnelTab({ since }: { since: string }) {
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        <StatCard label="Quiz starts (window)" value={String(s?.quiz_starts ?? 0)} />
-        <StatCard label="Quiz completes (window)" value={String(s?.quiz_completes ?? 0)} />
-        <StatCard label="Checkout starts (window)" value={String(s?.checkout_starts ?? 0)} />
-        <StatCard label="Active subscribers (now)" value={String(s?.active_subscribers ?? 0)} />
+        <StatCard label="Quiz starts (window)" value={n(s?.quiz_starts)} />
+        <StatCard label="Quiz completes (window)" value={n(s?.quiz_completes)} />
+        <StatCard label="Checkout starts (window)" value={n(s?.checkout_starts)} />
+        <StatCard label="Active subscribers (now)" value={n(s?.active_subscribers)} />
       </div>
 
       <section className="mb-8">
@@ -118,7 +122,7 @@ export default function FunnelTab({ since }: { since: string }) {
                   </Td>
                 </tr>
               ))}
-              {funnelRows.length === 0 && !loading && (
+              {funnelRows.length === 0 && !loading && !error && (
                 <tr className="border-t border-border">
                   <Td className="text-muted-foreground">No data yet.</Td>
                   <Td right>{""}</Td>
@@ -147,7 +151,7 @@ export default function FunnelTab({ since }: { since: string }) {
                   <Td right className="font-semibold">{p.starts}</Td>
                 </tr>
               ))}
-              {(data?.by_checkout_product ?? []).length === 0 && !loading && (
+              {(data?.by_checkout_product ?? []).length === 0 && !loading && !error && (
                 <tr className="border-t border-border">
                   <Td className="text-muted-foreground" colSpan={2}>
                     No checkout starts in this window.
@@ -178,7 +182,7 @@ export default function FunnelTab({ since }: { since: string }) {
                   <Td right className="text-muted-foreground">{c.visitors}</Td>
                 </tr>
               ))}
-              {(data?.by_cta ?? []).length === 0 && !loading && (
+              {(data?.by_cta ?? []).length === 0 && !loading && !error && (
                 <tr className="border-t border-border">
                   <Td className="text-muted-foreground" colSpan={3}>
                     No CTA clicks recorded yet. Clicks start flowing once the
@@ -212,7 +216,7 @@ export default function FunnelTab({ since }: { since: string }) {
                   <Td right className="font-semibold">{p.clicks}</Td>
                 </tr>
               ))}
-              {(data?.by_path ?? []).length === 0 && !loading && (
+              {(data?.by_path ?? []).length === 0 && !loading && !error && (
                 <tr className="border-t border-border">
                   <Td className="text-muted-foreground" colSpan={2}>
                     No data yet.
