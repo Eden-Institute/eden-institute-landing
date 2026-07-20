@@ -46,27 +46,51 @@ export default function FeedbackTriageTab() {
   const [mergeTarget, setMergeTarget] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("feedback_submissions" as never)
-      .select("id,created_at,message,email,page_url,type,area,sub_area,title,description,impact,frequency,status,merged_into,tier,punch_list_id,reach,impact_score,effort")
-      .order("created_at", { ascending: false })
-      .limit(200);
-    if (error) setError(error.message);
-    else setRows((data ?? []) as unknown as Submission[]);
+    // try/catch, not just the { error } destructure. That only covers PostgREST-level
+    // errors; a THROWN exception (offline, DNS failure, aborted fetch) escaped entirely,
+    // left `rows` null, and pinned the tab on "Loading feedback…" forever with nothing
+    // but an unhandled rejection in the console. This was the one place in the directory
+    // whose loading state could never clear.
+    try {
+      const { data, error: e } = await supabase
+        .from("feedback_submissions" as never)
+        .select("id,created_at,message,email,page_url,type,area,sub_area,title,description,impact,frequency,status,merged_into,tier,punch_list_id,reach,impact_score,effort")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (e) throw e;
+      setRows((data ?? []) as unknown as Submission[]);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not load feedback.");
+      // Leave rows as-is rather than nulling them: a refresh that fails should not
+      // discard the list already on screen.
+      setRows((prev) => prev ?? []);
+    }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { void load(); }, [load]);
 
   async function rpc(name: string, args: Record<string, unknown>, id: string) {
     setBusy(id);
-    const { error } = await supabase.rpc(name as never, args as never);
-    if (error) setError(error.message);
+    // Clear first. Without this a stale message from a previous failure persists and
+    // can blank the tab on the next render.
+    setError(null);
+    const { error: e } = await supabase.rpc(name as never, args as never);
+    if (e) setError(e.message);
     else await load();
     setBusy(null);
   }
 
-  if (error) return <p className="font-body text-sm text-destructive">{error}</p>;
-  if (!rows) return <p className="font-body text-sm text-muted-foreground">Loading feedback…</p>;
+  // Deliberately NOT an early return on error. A single failed dropdown write used to
+  // replace the entire triage list -- every open item, every control -- with one line of
+  // red text, no retry and no way back but a page reload. Five of the seven tabs in this
+  // directory already show the error as a banner and keep the data; that is the better
+  // pattern and it wins here.
+  if (!rows) {
+    return error
+      ? <p className="font-body text-sm text-destructive">{error}</p>
+      : <p className="font-body text-sm text-muted-foreground">Loading feedback…</p>;
+  }
 
   const open = rows
     .filter((r) => OPEN_STATUSES.includes(r.status))
@@ -82,10 +106,26 @@ export default function FeedbackTriageTab() {
 
   return (
     <section className="mb-8">
-      <h2 className="font-display text-lg mb-1">Feedback triage</h2>
+      <h2 className="font-serif text-xl font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>
+        Feedback triage
+      </h2>
       <p className="font-body text-xs text-muted-foreground mb-4">
         {open.length} open · {closed.length} closed. Promote sends an item to the punch list (daily digest); punch-list status flows back automatically.
+        {rows.length >= 200 && " Showing the 200 most recent."}
       </p>
+
+      {error && (
+        <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/5 p-4 flex items-start justify-between gap-4">
+          <p className="font-body text-sm text-destructive">{error}</p>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            className="font-body text-xs underline text-destructive shrink-0"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <div className="space-y-3">
         {open.map((s) => (

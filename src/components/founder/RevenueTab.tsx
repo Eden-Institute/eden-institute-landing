@@ -62,6 +62,13 @@ export default function RevenueTab({ since }: { since: string }) {
   const subs = data?.subscriptions;
   const course = data?.course;
 
+  // A failed query must never render as a real zero. Every `?? 0` below turns a broken
+  // request into a confident "$0.00" in the same weight and colour as the truth, and on
+  // a revenue screen the reflexive reading of that is "we sold nothing", not "the query
+  // died". Show an em-dash instead: unknown, visibly.
+  const unknown = !!error && !data;
+  const n = (v: number | null | undefined) => (unknown ? "—" : String(v ?? 0));
+
   return (
     <div>
       {error && (
@@ -76,13 +83,13 @@ export default function RevenueTab({ since }: { since: string }) {
       <PaymentsPanel since={since} />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        <StatCard label="Active subscriptions" value={String(subs?.active_total ?? 0)} />
+        <StatCard label="Active subscriptions" value={n(subs?.active_total)} />
         <StatCard
           label="Guide buyers (all-time)"
-          value={String(data?.guide?.purchased_total ?? 0)}
+          value={n(data?.guide?.purchased_total)}
         />
-        <StatCard label="Course orders (window)" value={String(course?.orders ?? 0)} />
-        <StatCard label="Course revenue (window)" value={course ? money(course.revenue_cents, course.currency) : "—"} />
+        <StatCard label="Course orders (window)" value={n(course?.orders)} />
+        <StatCard label="Course revenue (window)" value={course && !unknown ? money(course.revenue_cents, course.currency) : "—"} />
       </div>
 
       <section className="mb-8">
@@ -95,10 +102,10 @@ export default function RevenueTab({ since }: { since: string }) {
               </tr>
             </thead>
             <tbody>
-              <tr className="border-t border-border"><Td>Seed</Td><Td right className="font-semibold">{subs?.active_seed ?? 0}</Td></tr>
-              <tr className="border-t border-border"><Td>Root</Td><Td right className="font-semibold">{subs?.active_root ?? 0}</Td></tr>
-              <tr className="border-t border-border"><Td>Practitioner</Td><Td right className="font-semibold">{subs?.active_practitioner ?? 0}</Td></tr>
-              <tr className="border-t border-border"><Td className="text-muted-foreground">Canceled</Td><Td right className="text-muted-foreground">{subs?.canceled ?? 0}</Td></tr>
+              <tr className="border-t border-border"><Td>Seed</Td><Td right className="font-semibold">{n(subs?.active_seed)}</Td></tr>
+              <tr className="border-t border-border"><Td>Root</Td><Td right className="font-semibold">{n(subs?.active_root)}</Td></tr>
+              <tr className="border-t border-border"><Td>Practitioner</Td><Td right className="font-semibold">{n(subs?.active_practitioner)}</Td></tr>
+              <tr className="border-t border-border"><Td className="text-muted-foreground">Canceled</Td><Td right className="text-muted-foreground">{n(subs?.canceled)}</Td></tr>
             </tbody>
           </table>
         </div>
