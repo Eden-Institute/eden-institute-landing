@@ -33,6 +33,30 @@ const SITE = "https://edeninstitute.health";
 const FOUNDER_EMAIL = "hello@edeninstitute.health";
 const FROM = "Camila at The Eden Institute <hello@edeninstitute.health>";
 
+// Delay-notice subject lines are PRE-APPROVED, not typed at send time.
+//
+// Every other word of a delay notice is templated because the notice is a legal
+// instrument under 16 CFR 435.2(b). The subject was the one part still freehand, and
+// it would be written in the worst circumstances: late, under pressure, on the day a
+// shipment slips. It is also the first place the opt-in / opt-out distinction becomes
+// visible to the buyer, and those two carry opposite consequences.
+//
+// Opt-out: silence is consent, the order stands. "Update" is honest.
+// Opt-in:  silence is CANCELLATION and refund. The subject must say that action is
+//          required, or a buyer who skims loses their order by doing nothing.
+//
+// No response deadline in the opt-in subject on purpose. Nothing in this system
+// computes or enforces one, and a date in a subject line that no code honours is the
+// same defect as telling a buyer a refund is "on its way" when it is issued by hand.
+const DELAY_SUBJECT_OPT_OUT = "Update on your Eden's Table order: new ship date inside";
+const DELAY_SUBJECT_OPT_IN = "Action needed on your Eden's Table order, please reply to keep it";
+
+/** Delay notices use their approved subject; ordinary updates keep the founder's. */
+function resolveSubject(isDelay: boolean, optIn: boolean, founderSubject: string): string {
+  if (!isDelay) return founderSubject;
+  return optIn ? DELAY_SUBJECT_OPT_IN : DELAY_SUBJECT_OPT_OUT;
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -193,12 +217,17 @@ Deno.serve(async (req) => {
       const sample = list[0];
       const isDelay = body.kind === "delay_notice";
       const revised = body.revised_ship_date ? String(body.revised_ship_date) : null;
+      const optIn = requiresOptIn({
+        revisedShipDate: revised,
+        currentShipsOn: String(body.current_ships_on ?? "") || null,
+        priorNoticeCount: 0,
+      });
       const html = isDelay
         ? buildDelayNoticeEmail({
           firstName: firstName(sample?.shipping_name ?? null),
           bodyMarkdown,
           revisedShipDate: revised ? formatDate(revised) : null,
-          requiresOptIn: requiresOptIn({ revisedShipDate: revised, currentShipsOn: String(body.current_ships_on ?? "") || null, priorNoticeCount: 0 }),
+          requiresOptIn: optIn,
           consentUrl: `${SITE}/preorder-response?token=SAMPLE`,
           cancelUrl: `${SITE}/preorder-response?token=SAMPLE`,
           orderNumber: sample?.order_number ?? "ET-1001",
@@ -208,7 +237,8 @@ Deno.serve(async (req) => {
           bodyMarkdown,
           orderNumberLine: sample?.order_number ? `Order ${sample.order_number}` : undefined,
         });
-      return json({ recipient_count: list.length, subject, html });
+      // Preview must show the subject that will actually send, not the one typed in.
+      return json({ recipient_count: list.length, subject: resolveSubject(isDelay, optIn, subject), html });
     }
 
     if (mode !== "send" && mode !== "delay") return json({ error: "unknown_mode" }, 400);
@@ -235,15 +265,19 @@ Deno.serve(async (req) => {
       return json({ error: "invalid_revised_ship_date" }, 400);
     }
 
+    const optIn = isDelay
+      ? requiresOptIn({ revisedShipDate: revised, currentShipsOn, priorNoticeCount: 0 })
+      : false;
+    // A delay notice always mails its approved subject, whatever was typed in the tab.
+    const sendSubject = resolveSubject(isDelay, optIn, subject);
+
     const { data: bc, error: bcErr } = await db.from("broadcasts").insert({
       kind: isDelay ? "delay_notice" : "update",
-      subject,
+      subject: sendSubject,
       body_markdown: bodyMarkdown,
       body_html: isDelay ? null : renderBody(bodyMarkdown),
       revised_ship_date: revised,
-      requires_opt_in: isDelay
-        ? requiresOptIn({ revisedShipDate: revised, currentShipsOn, priorNoticeCount: 0 })
-        : false,
+      requires_opt_in: optIn,
       created_by: user.id,
       idempotency_key: idempotencyKey,
     }).select("id").single();
@@ -319,7 +353,7 @@ Deno.serve(async (req) => {
             orderNumberLine: r.order_number ? `Order ${r.order_number}` : undefined,
           });
         }
-        await sendEmail(r.customer_email, subject, html);
+        await sendEmail(r.customer_email, sendSubject, html);
         sent += 1;
       } catch (e) {
         failed += 1;
