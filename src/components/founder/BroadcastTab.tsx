@@ -61,7 +61,14 @@ export default function BroadcastTab() {
   const [busy, setBusy] = useState<"preview" | "send" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
+  // null means "not known", not "empty". See loadPending.
   const [pending, setPending] = useState<PendingRow[] | null>(null);
+  const [pendingError, setPendingError] = useState<string | null>(null);
+
+  // One key per composed message, so a double-click, a retried fetch, or a browser
+  // back-navigation cannot mail the cohort twice. Rotated only after a send succeeds,
+  // which is what makes the retry path safe: the same message keeps the same key.
+  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
 
   const live = useRef(true);
   useEffect(() => {
@@ -79,10 +86,20 @@ export default function BroadcastTab() {
   const loadPending = useCallback(async () => {
     try {
       const r = await callBroadcast<{ pending: PendingRow[] }>({ mode: "pending" });
-      if (live.current) setPending(r.pending ?? []);
-    } catch {
-      // The queue is informational; a failure here must not block composing.
-      if (live.current) setPending([]);
+      if (live.current) {
+        setPending(r.pending ?? []);
+        setPendingError(null);
+      }
+    } catch (e) {
+      // A failure here must not block composing -- that part was right. But it must not
+      // read as "all clear" either. This queue is the 435.2(b)(1)(iii) auto-refund list;
+      // rendering nothing on a failed check is indistinguishable from a genuinely empty
+      // queue, and misreading it is an FTC violation rather than a bad chart. Leave
+      // `pending` null (unknown) instead of [] (verified empty) and say so.
+      if (live.current) {
+        setPending(null);
+        setPendingError(e instanceof Error ? e.message : "Could not load the refund queue");
+      }
     }
   }, []);
 
@@ -124,18 +141,28 @@ export default function BroadcastTab() {
     setBusy("send");
     setError(null);
     try {
-      const r = await callBroadcast<{ sent: number; failed: number; total: number }>({
+      const r = await callBroadcast<{
+        sent: number; failed: number; total: number; duplicate?: boolean;
+      }>({
         mode: isDelay ? "delay" : "send",
         subject,
         body_markdown: body,
         revised_ship_date: isDelay && revisedDate ? revisedDate : null,
         current_ships_on: currentShipsOn || null,
+        idempotency_key: idempotencyKey,
       });
       if (!live.current) return;
-      setResult(`Sent to ${r.sent} of ${r.total}.${r.failed ? ` ${r.failed} failed.` : ""}`);
+      setResult(
+        r.duplicate
+          ? `Already sent. This exact message reached ${r.sent} customers, and was not sent again.`
+          : `Sent to ${r.sent} of ${r.total}.${r.failed ? ` ${r.failed} failed.` : ""}`,
+      );
       setPreview(null);
       setSubject("");
       setBody("");
+      // New message, new key. Only after a confirmed send, so a failed attempt can be
+      // retried under the SAME key and stay protected.
+      setIdempotencyKey(crypto.randomUUID());
       void loadPending();
     } catch (e) {
       if (live.current) setError(e instanceof Error ? e.message : "Send failed");
@@ -151,6 +178,28 @@ export default function BroadcastTab() {
       {/* Orders needing a refund because an opt-in notice went unanswered. Under
           435.2(b)(1)(iii) these are deemed cancelled and must be refunded WITHOUT the
           customer asking, so this sits above the composer rather than below it. */}
+      {/* Unknown is not the same as clear. If the check itself failed, say so rather
+          than rendering the same nothing an empty queue renders. */}
+      {pendingError && (
+        <div
+          className="rounded-lg border p-3"
+          style={{ borderColor: "hsl(var(--eden-gold) / 0.5)", backgroundColor: "hsl(var(--eden-gold) / 0.07)" }}
+        >
+          <p className="font-body text-sm">
+            <strong>Couldn't check the refund queue.</strong> This is the list of orders
+            that are cancelled by law and owed a refund. Not knowing is not the same as
+            none, so check it before sending anything.{" "}
+            <button
+              type="button"
+              onClick={() => void loadPending()}
+              className="underline underline-offset-4"
+            >
+              Try again
+            </button>
+          </p>
+        </div>
+      )}
+
       {pending && pending.length > 0 && (
         <div
           className="rounded-lg border-2 p-4"
