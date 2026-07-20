@@ -121,7 +121,7 @@ export function buildDelayNoticeEmail(input: DelayNoticeInput): string {
       + 'keep your order in the queue. You can still cancel at any time before it ships.');
 
   const body = p(`Hi ${escapeHtml(input.firstName)},`)
-    + heading('Your Eden’s Table order is running late')
+    + heading("Your Eden's Table order is running late")
     + renderBody(input.bodyMarkdown)
     + dateLine
     + p('You have the right to cancel this order and receive a <strong>full refund</strong>, '

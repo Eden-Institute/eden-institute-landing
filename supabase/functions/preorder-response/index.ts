@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
     if (notice.response) {
       const already = notice.response === "consented"
         ? "You have already told us to keep your order. Nothing further is needed."
-        : "Your cancellation is already recorded, and your refund is on its way.";
+        : "Your cancellation is recorded. We will refund the full amount, including shipping, to your original payment method within 7 working days.";
       return page("Already recorded", h("We have your answer") + p(already));
     }
 

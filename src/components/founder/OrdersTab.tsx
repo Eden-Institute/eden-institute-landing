@@ -31,6 +31,10 @@ interface OrderRow {
   /** Customer-facing identifier (ET-1001...). What a buyer quotes in support email. */
   order_number: string | null;
   customer_email: string | null;
+  /** Collected by Stripe Checkout. Exists so the founder can phone a buyer directly
+      when an order goes wrong. Service contact only, not a marketing list: SMS to
+      this number still requires sms_consent. */
+  customer_phone: string | null;
   shipping_name: string | null;
   status: string;
   amount_total_cents: number | null;
@@ -165,6 +169,19 @@ export default function OrdersTab({ since }: { since: string }) {
                     </span>
                     <br />
                     {o.customer_email ?? "(no email)"}
+                    <br />
+                    {/* Click-to-call: the point of showing this is picking up the phone. */}
+                    {o.customer_phone
+                      ? (
+                        <a
+                          href={`tel:${o.customer_phone.replace(/[^\d+]/g, "")}`}
+                          className="text-xs underline"
+                          style={{ color: "hsl(var(--eden-forest))" }}
+                        >
+                          {o.customer_phone}
+                        </a>
+                      )
+                      : <span className="text-xs text-muted-foreground">(no phone)</span>}
                     <br />
                     <span className="text-xs text-muted-foreground">{o.shipping_name ?? "(no name)"}</span>
                   </td>
