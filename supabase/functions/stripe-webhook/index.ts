@@ -325,6 +325,12 @@ serve(async (req) => {
         // is true only once the charge is FULLY refunded. A partial refund
         // (e.g. a goodwill shipping credit) must not kill fulfillment or
         // reopen a founding slot.
+        // The MONEY is recorded either way. Only the ORDER is left alone on a partial:
+        // a goodwill shipping credit must not kill fulfillment or reopen a founding
+        // slot, but it is still money that left the business and the ledger has to
+        // show it or revenue is overstated by exactly that amount.
+        await recordRefund(event, charge)
+
         if (!charge.refunded) {
           console.log(
             `charge.refunded: partial refund, order unchanged ` +
@@ -1029,6 +1035,84 @@ async function recordOneOffPayment(event: Stripe.Event, session: Stripe.Checkout
     }
   } catch (err) {
     console.error("recordOneOffPayment failed (non-fatal):", err instanceof Error ? err.message : String(err))
+  }
+}
+
+/**
+ * Record a refund in the payments ledger.
+ *
+ * This was missing, and it made the ledger assert something false. The `payments` table
+ * shipped with a `refunded` status and the founder dashboard shipped a "Refunded" tile,
+ * but NOTHING ever wrote that status: all three writers hardcode 'paid' or 'failed'. So
+ * "Customer revenue" could never go down, and the Refunded tile read $0.00 permanently,
+ * actively asserting there had been no refunds. charge.refunded updated `orders` and
+ * stopped there.
+ *
+ * A refund is recorded as its OWN ROW rather than by mutating the original payment. Three
+ * reasons:
+ *   1. It is what actually happened. We received the money, then returned it. Both are
+ *      real events with real dates, and overwriting the first erases the fact that a sale
+ *      occurred at all.
+ *   2. founder_payments computes net as paid minus refunded. Flipping the original row to
+ *      'refunded' would subtract it twice and report NEGATIVE revenue on a clean refund.
+ *   3. Partial refunds fall out for free: the paid row stays whole and the refund row
+ *      carries only the amount returned.
+ *
+ * Idempotent on stripe_event_id, so Stripe's retries collide harmlessly.
+ */
+async function recordRefund(event: Stripe.Event, charge: Stripe.Charge) {
+  try {
+    const refunded = charge.amount_refunded ?? 0
+    if (!refunded) return
+
+    const pi = typeof charge.payment_intent === "string"
+      ? charge.payment_intent
+      : charge.payment_intent?.id ?? null
+
+    // Inherit kind/description/lookup_key from the payment being refunded so the refund
+    // row groups with it in revenue reporting. Absent for a charge that predates the
+    // ledger, which is fine: the refund is still recorded, just less richly labelled.
+    let original: {
+      kind?: string; description?: string | null; lookup_key?: string | null
+      customer_email?: string | null; user_id?: string | null; currency?: string | null
+    } | null = null
+    if (pi) {
+      const { data } = await adminClient
+        .from("payments")
+        .select("kind, description, lookup_key, customer_email, user_id, currency")
+        .eq("stripe_payment_intent_id", pi)
+        .eq("status", "paid")
+        .maybeSingle()
+      original = data ?? null
+    }
+
+    const isPartial = !charge.refunded
+    const { error } = await adminClient.from("payments").insert({
+      stripe_event_id: event.id,
+      stripe_payment_intent_id: pi,
+      stripe_charge_id: charge.id,
+      stripe_customer_id: typeof charge.customer === "string" ? charge.customer : charge.customer?.id ?? null,
+      user_id: original?.user_id ?? null,
+      customer_email: (original?.customer_email ?? charge.billing_details?.email ?? "").toLowerCase() || null,
+      kind: original?.kind ?? "one_off",
+      description: `${isPartial ? "Partial refund" : "Refund"}${original?.description ? `: ${original.description}` : ""}`,
+      lookup_key: original?.lookup_key ?? null,
+      amount_cents: refunded,
+      currency: charge.currency ?? original?.currency ?? "usd",
+      status: "refunded",
+      occurred_at: new Date(event.created * 1000).toISOString(),
+      raw: charge,
+    })
+    // deno-lint-ignore no-explicit-any
+    if (error && (error as any).code !== "23505") {
+      console.error(`refund insert failed for charge ${charge.id}: ${error.message}`)
+      return
+    }
+    console.log(
+      `payments: recorded ${isPartial ? "partial " : ""}refund of ${refunded} (charge=${charge.id})`,
+    )
+  } catch (err) {
+    console.error("recordRefund failed (non-fatal):", err instanceof Error ? err.message : String(err))
   }
 }
 
