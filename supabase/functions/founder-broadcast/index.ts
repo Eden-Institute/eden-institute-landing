@@ -54,28 +54,84 @@ interface Recipient {
   order_number: string | null;
 }
 
+/** PostgREST returns at most `max-rows` (1000 on this project) per request, silently.
+ *  Every list here must be paged, and the pages must be ordered by a stable key or rows
+ *  can repeat and others go missing between requests. */
+const PAGE = 500;
+
 /** Live preorder buyers. The view already excludes cancelled and refunded orders and
- *  deliberately keeps shipped ones, so the founding cohort stays intact after delivery. */
+ *  deliberately keeps shipped ones, so the founding cohort stays intact after delivery.
+ *
+ *  PAGED, and that is not a nicety. Before this, the query had no .limit() and no
+ *  pagination, so PostgREST capped it at 1000 rows. The button label, the confirmation
+ *  dialog, and the send loop all read from that same truncated array, so at 1,400
+ *  preorders the UI would say "Send to 1000", report "Sent to 1000 of 1000", and 400
+ *  buyers would never receive a legally required delay notice -- with no evidence row, so
+ *  delay_notices_awaiting_action would never flag them either. Plausible, reassuring, and
+ *  wrong. Stock is capped at 1000 kits PLUS 1000 notebooks, so crossing that line is the
+ *  plan, not an edge case. */
 async function recipients(db: ReturnType<typeof admin>): Promise<Recipient[]> {
-  const { data, error } = await db
-    .from("preorder_broadcast_list")
-    .select("order_id, customer_email, shipping_name");
-  if (error) throw error;
-  const rows = (data ?? []) as Array<Omit<Recipient, "order_number">>;
+  const rows: Array<Omit<Recipient, "order_number">> = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await db
+      .from("preorder_broadcast_list")
+      .select("order_id, customer_email, shipping_name")
+      .order("order_id", { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    const page = (data ?? []) as Array<Omit<Recipient, "order_number">>;
+    rows.push(...page);
+    // A short page means the end. Equal-to-PAGE means there may be more.
+    if (page.length < PAGE) break;
+  }
 
   // order_number lives on orders, not the view. Absent before that migration lands,
   // so treat it as optional rather than failing the whole send.
-  const ids = rows.map((r) => r.order_id);
+  // Chunked for the same reason: .in() with 1400 ids would also be capped at 1000
+  // results, which would silently blank order numbers on the overflow.
   const numbers = new Map<string, string>();
-  if (ids.length) {
-    const { data: ord } = await db.from("orders").select("id, order_number").in("id", ids);
+  const ids = rows.map((r) => r.order_id);
+  for (let i = 0; i < ids.length; i += PAGE) {
+    const { data: ord } = await db
+      .from("orders")
+      .select("id, order_number")
+      .in("id", ids.slice(i, i + PAGE));
     for (const o of (ord ?? []) as Array<{ id: string; order_number?: string | null }>) {
       if (o.order_number) numbers.set(o.id, o.order_number);
     }
   }
+
   return rows
     .filter((r) => !!r.customer_email)
     .map((r) => ({ ...r, order_number: numbers.get(r.order_id) ?? null }));
+}
+
+/** Send attempts allowed per hour. A real send is one; a real correction is two. */
+const SEND_LIMIT = Number(Deno.env.get("BROADCAST_SEND_LIMIT") ?? "3");
+const SEND_WINDOW_SECONDS = Number(Deno.env.get("BROADCAST_SEND_WINDOW_SECONDS") ?? "3600");
+
+/** FAILS CLOSED, unlike the checkout limiter. There, blocking a real buyer costs more
+ *  than the abuse it prevents. Here the asymmetry is reversed: a refused send is a button
+ *  pressed again in a minute; an unintended delay notice is refund liability across the
+ *  whole cohort, and it cannot be recalled. */
+async function underSendLimit(
+  db: ReturnType<typeof admin>,
+  userId: string,
+): Promise<boolean> {
+  try {
+    const { data, error } = await db.rpc("broadcast_rate_bump", {
+      p_key: userId,
+      p_window_seconds: SEND_WINDOW_SECONDS,
+    });
+    if (error || typeof data !== "number") {
+      console.error("broadcast rate limit unavailable, refusing send:", error?.message);
+      return false;
+    }
+    return data <= SEND_LIMIT;
+  } catch (e) {
+    console.error("broadcast rate limit threw, refusing send:", e);
+    return false;
+  }
 }
 
 function firstName(name: string | null): string {
@@ -158,9 +214,26 @@ Deno.serve(async (req) => {
     if (mode !== "send" && mode !== "delay") return json({ error: "unknown_mode" }, 400);
     if (!list.length) return json({ error: "no_recipients" }, 409);
 
+    // Required, not optional. An idempotency key the caller may omit protects nobody,
+    // because the dangerous caller is the one that omits it.
+    const idempotencyKey = String(body.idempotency_key ?? "").trim();
+    if (idempotencyKey.length < 8 || idempotencyKey.length > 128) {
+      return json({ error: "idempotency_key_required" }, 400);
+    }
+
+    if (!(await underSendLimit(db, user.id))) {
+      return json({ error: "rate_limited", limit: SEND_LIMIT }, 429);
+    }
+
     const isDelay = mode === "delay";
     const revised = body.revised_ship_date ? String(body.revised_ship_date) : null;
     const currentShipsOn = String(body.current_ships_on ?? "") || null;
+
+    // Dates reach the copy through formatDate(); a malformed one renders the literal
+    // string "Invalid Date" into a legal notice. Reject rather than mail that.
+    if (revised !== null && !/^\d{4}-\d{2}-\d{2}$/.test(revised)) {
+      return json({ error: "invalid_revised_ship_date" }, 400);
+    }
 
     const { data: bc, error: bcErr } = await db.from("broadcasts").insert({
       kind: isDelay ? "delay_notice" : "update",
@@ -172,8 +245,31 @@ Deno.serve(async (req) => {
         ? requiresOptIn({ revisedShipDate: revised, currentShipsOn, priorNoticeCount: 0 })
         : false,
       created_by: user.id,
+      idempotency_key: idempotencyKey,
     }).select("id").single();
-    if (bcErr) throw bcErr;
+
+    // 23505 on the idempotency index means this exact message was already sent. Report
+    // the original broadcast rather than mailing the cohort a second time. This is the
+    // whole point: the retry path must be indistinguishable from success to the caller,
+    // and must send nothing.
+    if (bcErr) {
+      if ((bcErr as { code?: string }).code === "23505") {
+        const { data: prior } = await db
+          .from("broadcasts")
+          .select("id, sent_count, failed_count")
+          .eq("idempotency_key", idempotencyKey)
+          .maybeSingle();
+        console.log(`duplicate broadcast suppressed for key ${idempotencyKey}`);
+        return json({
+          broadcast_id: prior?.id ?? null,
+          sent: prior?.sent_count ?? 0,
+          failed: prior?.failed_count ?? 0,
+          total: prior?.sent_count ?? 0,
+          duplicate: true,
+        });
+      }
+      throw bcErr;
+    }
     const broadcastId = bc.id as string;
 
     let sent = 0;
