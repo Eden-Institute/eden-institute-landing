@@ -68,6 +68,15 @@ const FOUNDERS_URL = 'https://edeninstitute.health/sprouts-founders.html';
 // Primary CTA target for the conversion series (8-17): the preorder page
 // shipped by PR #227 (web/pages/preorder.astro).
 const PREORDER_URL = 'https://edeninstitute.health/preorder';
+// Ship dates, kept as literals here so this module stays self-contained (it
+// imports nothing). These MUST match SHIP_TARGET / SHIP_GUARANTEE_TEXT in
+// _shared/order-config.ts, which is the authoritative source the checkout
+// disclaimer and confirmation email use. If the ship window ever moves, change
+// it there and mirror it here. Email 15 states both because that FAQ asks
+// "when do kits arrive?" by name, and under 16 CFR 435 the answer must carry
+// the guaranteed date, not just a promise of a shipping-confirmation email.
+const EMAIL_SHIP_TARGET = 'early November 2026';
+const EMAIL_SHIP_GUARANTEE = 'December 31, 2026';
 // ──────────────────────────────────────────────────────────────────────────
 
 const SHOP_FALLBACK_URL = 'https://edeninstitute.health/homeschool/herbs';
@@ -626,8 +635,8 @@ export function buildLaunchEmail15(firstName: string, founding = true): { subjec
     `${p(`<strong>How much prep?</strong> Nearly none. Open the Teacher&rsquo;s Guide, follow the day. The kitchen day uses simple ingredients plus the week&rsquo;s herb.`)}` +
     `${p(`<strong>Do I need to buy herbs separately?</strong> Yes, and we make it easy: a family sourcing guide points you to trusted, affordable options for every week.`)}` +
     `${p(founding
-      ? `<strong>When do kits arrive?</strong> Founding kits are the first off the press and the first to ship. You will get shipping confirmation by email the moment yours moves.`
-      : `<strong>When do kits arrive?</strong> Preorder kits ship in order, and you will get shipping confirmation by email the moment yours moves.`)}` +
+      ? `<strong>When do kits arrive?</strong> We are aiming to ship in ${EMAIL_SHIP_TARGET}, and every kit is guaranteed to ship on or before ${EMAIL_SHIP_GUARANTEE}. Founding kits are the first off the press, and you will get shipping confirmation by email the moment yours moves.`
+      : `<strong>When do kits arrive?</strong> We are aiming to ship in ${EMAIL_SHIP_TARGET}, and every kit is guaranteed to ship on or before ${EMAIL_SHIP_GUARANTEE}. You will get shipping confirmation by email the moment yours moves.`)}` +
     `${p(`<strong>What if it is not a fit?</strong> Write me. You will reach a real person at a real table, and I will make it right.`)}` +
     `${p(founding
       ? `Counted the cost and ready? The founding price is $249 while the first 500 last, then $349.`
@@ -671,13 +680,16 @@ export function buildLaunchEmail17(firstName: string, founding = true): { subjec
       ? `This is my last note about the founding kits, I promise. Not because the story ends, but because you have everything you need to decide, and I respect your table too much to keep knocking.`
       : `This is my last note about the kits, I promise. Not because the story ends, but because you have everything you need to decide, and I respect your table too much to keep knocking.`)}` +
     `${p(founding
-      ? `So, one last look at what is inside the founding window. The complete Sprouts kit: a year of Biblical herbalism that carries science, history, geography, and Scripture through 36 herbs your children will meet with their own hands. $249 as a founding family instead of $349. And founding standing that follows your household up every band we build, Seedlings through Practitioners.`
+      ? `So, one last look at what is inside the founding window, while it is still open. The complete Sprouts kit: a year of Biblical herbalism that carries science, history, geography, and Scripture through 36 herbs your children will meet with their own hands. $249 as a founding family instead of $349, but only while the first 500 last. When they are claimed, the founding price is gone for good. And founding standing that follows your household up every band we build, Seedlings through Practitioners, stays with the 500 forever.`
       : `So, one last look at what is on the table. The complete Sprouts kit: a year of Biblical herbalism that carries science, history, geography, and Scripture through 36 herbs your children will meet with their own hands, for $349. Year one of a path that will carry your household up every band we build, Seedlings through Practitioners.`)}` +
     `${p(`When Joshua brought Israel to their own threshold, he did not push. He simply set the choice down in front of the households: &ldquo;choose for yourselves today whom you will serve... but as for me and my house, we will serve the LORD&rdquo; (Joshua 24:15, NASB). House by house. That is still how the important things are decided.`)}` +
     `${p(`Whatever you choose, it has been a joy to have you at this table for the last month. If Eden&rsquo;s Table belongs in your house this year, the door is right here.`)}` +
-    `${preorderButton('Preorder Your Kit')}` +
+    `${preorderButton(founding ? 'Claim Your Founding Kit' : 'Preorder Your Kit')}` +
     `${signature()}`;
-  return { subject: `As for your house`, html: launchWrapper(body) };
+  return {
+    subject: founding ? `As for your house, before the 500 fill` : `As for your house`,
+    html: launchWrapper(body),
+  };
 }
 
 // ── Dispatch table for the queue drainer ──
