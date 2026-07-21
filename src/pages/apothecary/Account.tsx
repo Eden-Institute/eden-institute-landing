@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
 import { ManageSubscriptionButton } from "@/components/apothecary/ManageSubscriptionButton";
+import { ReadingSizeCard } from "@/components/apothecary/ReadingSizeCard";
 import { JourneyCTA } from "@/components/journey/JourneyCTA";
 
 /**
@@ -429,6 +430,11 @@ export default function Account() {
             )}
           </div>
         </section>
+
+        {/* Reading size — per-reader text scale (eden.font_scale). Placed
+            after the subscription card and before sign-out so it reads as a
+            setting rather than an upsell. */}
+        <ReadingSizeCard />
 
         {/* Sign out */}
         <section

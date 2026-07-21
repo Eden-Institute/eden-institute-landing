@@ -6,6 +6,8 @@ import { HerbFavoriteHeart } from "@/components/apothecary/HerbFavoriteHeart";
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
 import { useHerbsDirectory } from "@/hooks/useHerbsDirectory";
 import { useEdenPattern } from "@/hooks/useEdenPattern";
+import { useCuratedHerbVerdicts } from "@/hooks/useCuratedHerbVerdicts";
+import { resolveHerbVerdict } from "@/lib/herbVerdict";
 import { useViewedHerbs } from "@/hooks/useViewedHerbs";
 import { computeMatchRelationship } from "@/lib/edenPattern";
 import { findHerbByParam, herbParam, HERB_ALIASES } from "@/lib/herbLinks";
@@ -39,6 +41,8 @@ export default function HerbMonograph() {
   const { herbId: param } = useParams<{ herbId: string }>();
   const { data: herbs, isLoading, isError, isSubscriber } = useHerbsDirectory();
   const { data: activePattern, activeProfile } = useEdenPattern();
+  // Curated verdict for this pattern; the monograph must agree with the card.
+  const { byHerbId: curatedVerdicts } = useCuratedHerbVerdicts(activePattern);
   const { viewedOrder, recordView } = useViewedHerbs();
 
   const herb = findHerbByParam(herbs, param);
@@ -82,15 +86,19 @@ export default function HerbMonograph() {
   const patternSubject =
     activeProfile && !activeProfile.is_self ? `${activeProfile.name}'s` : "your";
 
+  // Routed through resolveHerbVerdict, the same resolver HerbCard uses: a
+  // curated cited row wins, and a COMPUTED "avoid" is downgraded to neutral
+  // rather than printing a red warning the evidence cannot support.
   const match =
     herb && activePattern
-      ? computeMatchRelationship(
+      ? resolveHerbVerdict(
           {
             temperature: herb.temperature,
             moisture: herb.moisture,
             tissue_states_indicated: herb.tissue_states_indicated,
           },
           activePattern,
+          (herb.herb_id ? curatedVerdicts.get(herb.herb_id) : null) ?? null,
           patternSubject,
         )
       : null;

@@ -45,7 +45,7 @@ const ChapterHeading = ({ number, title }: { number: string; title: string }) =>
 );
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <p className="uppercase text-[13px] tracking-[0.15em] mb-3 font-semibold" style={{ fontFamily: "'Playfair Display', serif", color: COLORS.sage }}>
+  <p className="uppercase text-[0.8125rem] tracking-[0.15em] mb-3 font-semibold" style={{ fontFamily: "'Playfair Display', serif", color: COLORS.sage }}>
     {children}
   </p>
 );
@@ -57,9 +57,16 @@ interface Props {
 const GuideTemplate = ({ guide }: Props) => {
   const { chapterOne, chapterTwo, chapterThree, chapterFour, chapterFive, cautionHerbs, coachingCTA, courseCTA } = guide;
 
+  /* Type sizes here are rem, never px. This template's sizes used to be
+     hard-coded px (17px body, 16px herb cards, and text-[Npx] classes), which
+     made the purchased guide — the longest single read in the product — the
+     one surface immune to the reader's chosen text size. Every value below is
+     the same rendered size at a 16px root as the px value it replaced, so
+     nothing moved at the Standard setting; they now scale with the root
+     percentage set by FontScaleProvider. If you add a size here, use rem. */
   return (
     <>
-      <div className="min-h-screen" style={{ backgroundColor: COLORS.cream, fontFamily: "'EB Garamond', Georgia, serif", fontSize: "17px", lineHeight: 1.7, color: COLORS.body }}>
+      <div className="min-h-screen" style={{ backgroundColor: COLORS.cream, fontFamily: "'EB Garamond', Georgia, serif", fontSize: "1.0625rem", lineHeight: 1.7, color: COLORS.body }}>
         {/* === SAVE BAR === */}
         <header className="no-print sticky top-0 z-50 px-6 py-3 border-b" style={{ backgroundColor: COLORS.cream, borderColor: COLORS.creamDark }}>
           <div className="max-w-3xl mx-auto flex items-center justify-between">
@@ -94,7 +101,7 @@ const GuideTemplate = ({ guide }: Props) => {
               </svg>
             </div>
 
-            <p className="uppercase text-[24px] tracking-[0.2em] mb-2" style={{ fontFamily: "'Playfair Display', serif", color: COLORS.forest, letterSpacing: "4px" }}>
+            <p className="uppercase text-[1.5rem] tracking-[0.2em] mb-2" style={{ fontFamily: "'Playfair Display', serif", color: COLORS.forest, letterSpacing: "4px" }}>
               The Eden Institute
             </p>
             <p className="italic text-lg mb-10" style={{ color: COLORS.sage }}>
@@ -103,10 +110,10 @@ const GuideTemplate = ({ guide }: Props) => {
 
             <GoldDivider />
 
-            <p className="uppercase text-[18px] tracking-[0.15em] mt-8 mb-3" style={{ fontFamily: "'Playfair Display', serif", color: COLORS.forest, letterSpacing: "3px" }}>
+            <p className="uppercase text-[1.125rem] tracking-[0.15em] mt-8 mb-3" style={{ fontFamily: "'Playfair Display', serif", color: COLORS.forest, letterSpacing: "3px" }}>
               {guide.constitutionType}
             </p>
-            <h1 className="text-[32px] md:text-[38px] font-bold mb-4" style={{ fontFamily: "'Playfair Display', serif", color: COLORS.gold }}>
+            <h1 className="text-[2rem] md:text-[2.375rem] font-bold mb-4" style={{ fontFamily: "'Playfair Display', serif", color: COLORS.gold }}>
               {guide.nickname}
             </h1>
             <p className="italic text-base max-w-md mx-auto" style={{ color: COLORS.light }}>
@@ -200,12 +207,12 @@ const GuideTemplate = ({ guide }: Props) => {
                 >
                   {/* Header */}
                   <div className="px-5 py-3 flex flex-wrap items-baseline gap-x-3" style={{ backgroundColor: COLORS.creamDark }}>
-                    <span className="text-[22px] font-bold" style={{ fontFamily: "'Playfair Display', serif", color: COLORS.gold }}>{i + 1}.</span>
-                    <span className="text-[17px] font-bold" style={{ fontFamily: "'Playfair Display', serif", color: COLORS.forest }}>{herb.name}</span>
-                    <span className="italic text-[15px]" style={{ color: COLORS.light }}>{herb.latin}</span>
+                    <span className="text-[1.375rem] font-bold" style={{ fontFamily: "'Playfair Display', serif", color: COLORS.gold }}>{i + 1}.</span>
+                    <span className="text-[1.0625rem] font-bold" style={{ fontFamily: "'Playfair Display', serif", color: COLORS.forest }}>{herb.name}</span>
+                    <span className="italic text-[0.9375rem]" style={{ color: COLORS.light }}>{herb.latin}</span>
                   </div>
                   {/* Body */}
-                  <div className="px-5 py-4 space-y-3" style={{ fontSize: "16px" }}>
+                  <div className="px-5 py-4 space-y-3" style={{ fontSize: "1rem" }}>
                     <div>
                       <SectionLabel>Actions</SectionLabel>
                       <p>
@@ -229,7 +236,7 @@ const GuideTemplate = ({ guide }: Props) => {
                       <p>{herb.preparation}</p>
                     </div>
                     <div className="pt-3" style={{ borderTop: `1px solid ${COLORS.creamDark}` }}>
-                      <p className="italic text-[15px]" style={{ color: COLORS.light }}>
+                      <p className="italic text-[0.9375rem]" style={{ color: COLORS.light }}>
                         <span className="font-semibold not-italic" style={{ color: COLORS.sage }}>Safety: </span>
                         {herb.safety}
                       </p>
