@@ -7,6 +7,7 @@ import { useCuratedHerbVerdicts } from "@/hooks/useCuratedHerbVerdicts";
 import { HerbCard } from "@/components/apothecary/HerbCard";
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
 import { RequireAuth } from "@/components/apothecary/RequireAuth";
+import { ApothecaryDisclaimer } from "@/components/apothecary/ApothecaryDisclaimer";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
@@ -185,6 +186,10 @@ function FavoritesContent() {
               )}
             </>
           )}
+
+          {/* Same herb cards as the directory, same cautions and badges, so
+              the same notice belongs here. */}
+          <ApothecaryDisclaimer />
         </div>
       </section>
     </div>

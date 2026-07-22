@@ -4,6 +4,7 @@ import { ArrowLeft, AlertTriangle, Lock, ShieldAlert, Sparkles } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { HerbFavoriteHeart } from "@/components/apothecary/HerbFavoriteHeart";
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
+import { ApothecaryDisclaimer } from "@/components/apothecary/ApothecaryDisclaimer";
 import { useHerbsDirectory } from "@/hooks/useHerbsDirectory";
 import { useEdenPattern } from "@/hooks/useEdenPattern";
 import { useCuratedHerbVerdicts } from "@/hooks/useCuratedHerbVerdicts";
@@ -708,6 +709,12 @@ export default function HerbMonograph() {
             </Link>
           </p>
         )}
+
+        {/* Educational-use and sourcing notice. Renders at EVERY tier,
+            including anonymous: a reader who never signs in still sees
+            safety fields, cautions and a pattern badge on this page, so the
+            notice cannot be gated behind a subscription. */}
+        <ApothecaryDisclaimer />
       </div>
     </div>
   );
