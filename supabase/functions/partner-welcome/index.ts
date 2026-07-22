@@ -9,12 +9,13 @@
 //   { action: "testsend" }                                  → sends to hello@ with [TEST] subject
 //   { action: "send", to, first_name, partner_link? }       → sends to one partner
 //
-// ATTACHMENT SLOT: private Storage object partner-assets/edens-table-6-week-sample.pdf
-// — the compressed email edition of the 6-week sample (from Canva folder
-// FAHQJC-JvlU, merged TG → Read-Aloud → Notebook → Field → Recipe → ATT,
-// rasterized to fit under recipient inbound limits). To swap the sample:
-// upload the new file to the same Storage path (x-upsert). NO redeploy needed.
-// (Bundling the PDF as a static_files asset 413'd the deploy at 12.4 MB.)
+// SAMPLE DELIVERY: six DOWNLOAD BUTTONS, matching the lead-magnet emails
+// (founder preference 2026-07-22) rather than one large attachment. Each
+// component lives in the PRIVATE partner-assets bucket under sample/, and this
+// function mints a fresh 1-year signed URL per component at send time. Private
+// + signed keeps the files off public URLs, which is the point given the
+// do-not-share line in the copy. To swap a component: upload over the same
+// Storage path (x-upsert) — no redeploy, and future sends sign the new file.
 //
 // PARTNER LINK SLOT: `partner_link` renders a P.S. with the partner's private
 // at-cost Stripe Payment Link. Held out of the welcome send until fulfillment
@@ -27,8 +28,17 @@ const ADMIN_TOKEN = Deno.env.get('FOUNDERS_ADMIN_TOKEN') ?? '';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-const SAMPLE_PDF_STORAGE_PATH = 'partner-assets/edens-table-6-week-sample.pdf';
-const SAMPLE_PDF_FILENAME = 'Edens_Table_Sprouts_6_Week_Sample.pdf';
+const SAMPLE_BUCKET = 'partner-assets';
+const SIGNED_URL_TTL_SECONDS = 31536000; // 1 year, so a link never dies mid-review
+// Button label → Storage object path. Order is the reading order of a week.
+const SAMPLE_COMPONENTS: Array<{ label: string; path: string }> = [
+  { label: 'READ-ALOUD', path: 'sample/edens-table-6wk-read-aloud.pdf' },
+  { label: "TEACHER'S GUIDE", path: 'sample/edens-table-6wk-teachers-guide.pdf' },
+  { label: 'STUDENT NOTEBOOK', path: 'sample/edens-table-6wk-student-notebook.pdf' },
+  { label: 'FIELD CARDS', path: 'sample/edens-table-6wk-field-cards.pdf' },
+  { label: 'RECIPE CARDS', path: 'sample/edens-table-6wk-recipe-cards.pdf' },
+  { label: 'AROUND THE TABLE CARDS', path: 'sample/edens-table-6wk-around-the-table-cards.pdf' },
+];
 const TEST_RECIPIENT = 'hello@edeninstitute.health';
 const FROM = 'Camila at The Eden Institute <hello@edeninstitute.health>';
 const REPLY_TO = 'hello@edeninstitute.health';
@@ -50,7 +60,47 @@ function para(text: string): string {
   return `<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">${text}</p>`;
 }
 
-function buildPartnerWelcomeHtml(firstName: string, partnerLink?: string): string {
+// Same button chrome as the Sprouts lead-magnet emails.
+function ctaButton(label: string, url: string): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:8px 0;">
+<a href="${url}" target="_blank" style="display:inline-block;background-color:#1C3A2E;color:#F5F0E8;font-family:Georgia,serif;font-size:14px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;text-decoration:none;padding:16px 32px;">${label}</a>
+</td></tr></table>`;
+}
+
+function rule(): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:24px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top:1px solid #C9A84C;font-size:0;line-height:0;">&nbsp;</td></tr></table></td></tr></table>`;
+}
+
+function sectionLabel(text: string): string {
+  return `<p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:3px;color:#C9A84C;text-transform:uppercase;margin:0 0 16px 0;">${text}</p>`;
+}
+
+/** Mint a fresh signed URL for one private Storage object. */
+async function signedUrl(path: string): Promise<string> {
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/${SAMPLE_BUCKET}/${path}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+      apikey: SERVICE_ROLE_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ expiresIn: SIGNED_URL_TTL_SECONDS }),
+  });
+  if (!res.ok) {
+    throw new Error(`signing ${path} failed: ${res.status} ${await res.text().catch(() => '')}`);
+  }
+  const { signedURL } = await res.json() as { signedURL: string };
+  return `${SUPABASE_URL}/storage/v1${signedURL}`;
+}
+
+async function buildDownloadButtons(): Promise<string> {
+  const parts = await Promise.all(
+    SAMPLE_COMPONENTS.map(async (c) => ctaButton(c.label, await signedUrl(c.path))),
+  );
+  return parts.join('\n');
+}
+
+function buildPartnerWelcomeHtml(firstName: string, downloadButtons: string, partnerLink?: string): string {
   const psBlock = partnerLink
     ? para(
         `P.S. Your private at-cost kit link is ready when you are: <a href="${partnerLink}" style="color:#1C3A2E;">${partnerLink}</a>. It is yours alone and covers one kit plus actual shipping.`,
@@ -75,7 +125,11 @@ function buildPartnerWelcomeHtml(firstName: string, partnerLink?: string): strin
 </td></tr>
 <tr><td style="background-color:#FFFFFF;padding:32px 40px;">
 <p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
-${para(`Thank you for saying yes. It means more than you know. Attached is a six-week digital sample of Eden's Table, our Scripture-rooted herbalism curriculum for children, so you and your family can try it at your own pace and share your honest thoughts, good or bad.`)}
+${para(`Thank you for saying yes. It means more than you know. Below is a six-week digital sample of Eden's Table, our Scripture-rooted herbalism curriculum for children, so you and your family can try it at your own pace and share your honest thoughts, good or bad.`)}
+${rule()}
+${sectionLabel('Your six-week sample')}
+${downloadButtons}
+${rule()}
 ${para(`This sample covers six weeks. The full kits carry a family through a complete 36-week school year, with a new herb on the table each week.`)}
 ${para(`A little honesty about where we are: we are pre-fulfillment right now and taking preorders, so we are still bringing the full physical kits to life. That is exactly why partners like you matter so much. You are not a name on a list, you are one of the very first people helping us build this, and I will not forget it.`)}
 ${para(`Here is my promise. Once our kits are in hand, if you love what you see, I would love to send you a full kit at our cost, simply what it takes to make it, as a thank-you for being one of our founding partners. And as the Lord grows this, we will keep finding ways to thank the people who believed in it early. Founder perks, for real.`)}
@@ -101,22 +155,6 @@ ${psBlock}
 </table>
 </body>
 </html>`;
-}
-
-async function samplePdfBase64(): Promise<string> {
-  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${SAMPLE_PDF_STORAGE_PATH}`, {
-    headers: { Authorization: `Bearer ${SERVICE_ROLE_KEY}`, apikey: SERVICE_ROLE_KEY },
-  });
-  if (!res.ok) {
-    throw new Error(`sample PDF fetch failed: ${res.status} ${await res.text().catch(() => '')}`);
-  }
-  const bytes = new Uint8Array(await res.arrayBuffer());
-  let bin = '';
-  const CHUNK = 0x8000;
-  for (let i = 0; i < bytes.length; i += CHUNK) {
-    bin += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
-  }
-  return btoa(bin);
 }
 
 Deno.serve(async (req) => {
@@ -157,7 +195,8 @@ Deno.serve(async (req) => {
     }
     const partnerLink = typeof body.partner_link === 'string' && body.partner_link ? body.partner_link : undefined;
 
-    const html = buildPartnerWelcomeHtml(firstName, partnerLink);
+    const downloadButtons = await buildDownloadButtons();
+    const html = buildPartnerWelcomeHtml(firstName, downloadButtons, partnerLink);
     const { html: finalHtml, headers: unsubHeaders } = await applyUnsub(html, to, 'homeschool');
 
     const payload = {
@@ -167,12 +206,6 @@ Deno.serve(async (req) => {
       subject: action === 'testsend' ? `[TEST] ${SUBJECT}` : SUBJECT,
       html: finalHtml,
       headers: unsubHeaders,
-      attachments: [
-        {
-          filename: SAMPLE_PDF_FILENAME,
-          content: await samplePdfBase64(),
-        },
-      ],
     };
 
     const res = await fetch('https://api.resend.com/emails', {
