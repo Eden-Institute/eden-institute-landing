@@ -60,10 +60,16 @@ function para(text: string): string {
   return `<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">${text}</p>`;
 }
 
-// Same button chrome as the Sprouts lead-magnet emails.
+// OUTLINED buttons, deliberately background-independent.
+// Gmail's COMPOSE editor strips `background-color` from pasted HTML but keeps
+// `color` and `border`. A solid-fill button therefore renders as invisible
+// cream-on-white in a Gmail draft (caught 2026-07-22 before a partner send).
+// Dark text + a border reads correctly in a draft AND in a sent email, and it
+// is the lighter look the founder chose. Do not reintroduce background-color
+// as the only thing carrying contrast.
 function ctaButton(label: string, url: string): string {
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:8px 0;">
-<a href="${url}" target="_blank" style="display:inline-block;background-color:#1C3A2E;color:#F5F0E8;font-family:Georgia,serif;font-size:14px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;text-decoration:none;padding:16px 32px;">${label}</a>
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:7px 0;">
+<a href="${url}" target="_blank" style="display:inline-block;border:2px solid #1C3A2E;color:#1C3A2E;font-family:Georgia,serif;font-size:14px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;text-decoration:none;padding:14px 30px;">${label}</a>
 </td></tr></table>`;
 }
 
@@ -72,7 +78,7 @@ function rule(): string {
 }
 
 function sectionLabel(text: string): string {
-  return `<p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:3px;color:#C9A84C;text-transform:uppercase;margin:0 0 16px 0;">${text}</p>`;
+  return `<p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:3px;color:#8A6D1F;text-transform:uppercase;margin:0 0 18px 0;">${text}</p>`;
 }
 
 /** Mint a fresh signed URL for one private Storage object. */
@@ -114,13 +120,13 @@ function buildPartnerWelcomeHtml(firstName: string, downloadButtons: string, par
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F5F0E8;">
 <tr><td align="center" style="padding:20px 10px;">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#FFFFFF;">
-<tr><td style="background-color:#1C3A2E;padding:40px 20px;text-align:center;">
+<tr><td style="padding:40px 20px 32px 20px;text-align:center;border-top:3px solid #1C3A2E;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="text-align:center;font-family:Georgia,serif;font-size:13px;font-weight:bold;letter-spacing:4px;color:#C9A84C;text-transform:uppercase;">THE EDEN INSTITUTE</td></tr>
+<tr><td style="text-align:center;font-family:Georgia,serif;font-size:13px;font-weight:bold;letter-spacing:4px;color:#8A6D1F;text-transform:uppercase;">THE EDEN INSTITUTE</td></tr>
 <tr><td align="center" style="padding:16px 0;">
 <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="width:60px;border-top:1px solid #C9A84C;font-size:0;line-height:0;">&nbsp;</td></tr></table>
 </td></tr>
-<tr><td style="text-align:center;font-family:Georgia,serif;font-size:14px;color:#F5F0E8;font-style:italic;">Back to Eden. Back to Truth.</td></tr>
+<tr><td style="text-align:center;font-family:Georgia,serif;font-size:14px;color:#4A5D4E;font-style:italic;">Back to Eden. Back to Truth.</td></tr>
 </table>
 </td></tr>
 <tr><td style="background-color:#FFFFFF;padding:32px 40px;">
@@ -142,12 +148,12 @@ ${para(`Grateful for you.`)}
 <p style="font-family:Georgia,serif;font-size:14px;color:#C9A84C;margin:4px 0 16px 0;">Founder and Executive Director, The Eden Institute</p>
 ${psBlock}
 </td></tr>
-<tr><td style="background-color:#F5F0E8;padding:30px 20px;text-align:center;">
+<tr><td style="background-color:#F5F0E8;padding:30px 20px;text-align:center;border-top:1px solid #C9A84C;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
 <tr><td style="font-family:Georgia,serif;font-size:13px;color:#1C3A2E;text-align:center;">The Eden Institute | edeninstitute.health</td></tr>
 <tr><td style="font-family:Georgia,serif;font-size:12px;color:#1C3A2E;text-align:center;padding-top:8px;">You're receiving this because we invited you to partner with Eden's Table.</td></tr>
 <tr><td style="font-family:Georgia,serif;font-size:11px;color:#1C3A2E;text-align:center;padding-top:8px;">Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Unit 3262, Clarksville, TN 37043</td></tr>
-<tr><td style="text-align:center;padding-top:8px;"><a href="{{UNSUB_URL}}" style="font-family:Georgia,serif;font-size:12px;color:#C9A84C;text-decoration:underline;">Unsubscribe</a></td></tr>
+<tr><td style="text-align:center;padding-top:8px;"><a href="{{UNSUB_URL}}" style="font-family:Georgia,serif;font-size:12px;color:#6B6560;text-decoration:underline;">Unsubscribe</a></td></tr>
 </table>
 </td></tr>
 </table>
