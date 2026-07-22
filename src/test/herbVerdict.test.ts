@@ -117,12 +117,18 @@ describe("curated data is canon", () => {
     expect(v.reasons[0]).toBe("Hawthorn nourishes and strengthens the heart.");
   });
 
-  it("falls back to the rationale when no benefit note is authored yet", () => {
+  it("NEVER renders the rationale — a missing benefit note is silence", () => {
+    // The rationale is internal authoring prose. In production, 43 curated
+    // matches carry pipe-delimited classifier notes there ("… |
+    // temperature: …"), 21 name constitution-data.ts, and some argue
+    // AGAINST the match. The old fallback printed that text verbatim under
+    // "Why this herb suits your Pattern". Silence is honest; debug prose
+    // dressed as clinical reasoning is not.
     const v = resolveHerbVerdict(MARSHMALLOW, "The Spent Candle", {
       ...curatedMatch,
       benefit_note: null,
     });
-    expect(v.reasons[0]).toBe("Founder-approved pairing; warm cardiac tonic.");
+    expect(v.reasons).toEqual([]);
   });
 
   it("DOES allow avoid when it comes from a curated row", () => {

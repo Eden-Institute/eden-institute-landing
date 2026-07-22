@@ -192,8 +192,13 @@ export function resolveHerbVerdict(
   ) {
     const relationship = curated.relationship;
     const reasons: string[] = [];
+    // ONLY benefit_note is reader-facing. `rationale` is internal authoring
+    // prose — 43 curated matches carry pipe-delimited classifier notes there
+    // ("… (constitution-data.ts canon) | temperature: …"), 22 open with
+    // "Curation review:", and some argue AGAINST the match. Falling back to
+    // it printed that debug text verbatim under "Why this herb suits your
+    // Pattern". A missing "why" renders as silence, never as internal notes.
     if (curated.benefit_note) reasons.push(curated.benefit_note);
-    else if (curated.rationale) reasons.push(curated.rationale);
 
     const sortKey =
       relationship === "match"
