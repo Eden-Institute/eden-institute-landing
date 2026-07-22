@@ -232,7 +232,7 @@ update public.herbs_eden_patterns hep set benefit_note = 'Yellow Dock opens the 
    and hep.herb_id = 'H070' and hep.derivation = 'curated';
 
 -- Lemon Balm / Open Flame (conditional)
-update public.herbs_eden_patterns hep set benefit_note = 'Lemon Balm cools without forcing. It opens the surface and lets heat leave rather than driving it inward, which is why it was given freely in fever for centuries and why it suits a body that burns hot. Take it here as the cooler and nothing more. The slackness in this pattern is held by the astringents in this list, witch hazel, raspberry leaf and rose, not by this herb.'
+update public.herbs_eden_patterns hep set benefit_note = 'Lemon Balm cools without forcing. It opens the surface and lets heat leave rather than driving it inward, which is why it was given freely in fever for centuries and why it suits a body that burns hot. The old writers disagree about the plant itself, and both readings belong here. Gerard, following Avicenna, rates balm hot and dry in the second degree, which is a judgment about the herb''s own nature. The fever writers judged it instead by what it does once it is in you, and what it does is vent heat outward. Take it here for its action, not for its substance. The slackness in this pattern is held by the astringents in this list, witch hazel, raspberry leaf and rose, not by this herb.'
   from public.eden_patterns p
  where hep.pattern_id = p.pattern_id and p.slug = 'the_open_flame'
    and hep.herb_id = 'H032' and hep.derivation = 'curated';
