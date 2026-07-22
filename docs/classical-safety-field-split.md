@@ -113,3 +113,47 @@ The relation verb has to travel with each incompatibility. 畏 and 惡 and 反 a
 interchangeable, and 反 in particular marks the 十八反, the most serious pairings in the corpus.
 
 **Nothing loaded. Nothing written to production.**
+
+---
+
+## Update 2026-07-22: the eight named defects, resolved
+
+All eight were resolved against the sources. 40 corrected entries, and **48 emendations flagged
+rather than silently applied**, which is the discipline that matters most here.
+
+The Huang Qin case is the model. Four witnesses collated across 1596 to 1799 (Bencao Gangmu,
+Sun Xingyan 1799, Ben Cao Bei Yao 1694, Ben Cao Cong Xin 1757). The corrupt 辰 glyph is read as a
+misplaced 畏, which the 1799 七情表 attests positively rather than by conjecture: 「黃芩　山茱萸，
+龍骨為使；惡蔥實；畏丹砂、牡丹、藜蘆。」 The alternative hypothesis was recorded too, that 辰 is an
+intruded gloss on 辰砂, a real synonym for cinnabar. **That alternative is exactly why the live bug
+mattered:** 「辰丹砂」 reads to a customer as a plausible substance rather than as obvious garble.
+
+A third defect surfaced that was not in the brief: the stored Huang Qin string had dropped the
+使 clause entirely, so the database was missing both envoy relations.
+
+### The final check found two defects that are the SCHEMA's fault, not the research's
+
+**H283 Trichosanthes.** A reciprocal relation, 「秦椒　惡栝蔞、防葵」, is filed in
+`drug_incompatibilities` while its own annotation says the entry lives on Qin Jiao's row and must
+not be restated as 栝蔞惡秦椒. The prose forbids what the field assignment causes. Anything reading
+that field surfaces a warning no classical witness states. **Reciprocal relations need a direction
+flag, or their own field.**
+
+**H206 Manjistha.** The cataract adulterant warning was filed under `not_this_herb`, which
+elsewhere in the same batch means "import error, remove". Same field, two contradictory intended
+actions. A loader would have **deleted a real safety warning with a named harm and a named
+antidote**. Fixed by adding an `adulterant_warnings` column, which also gives a home to the
+commercial fraud notes (dealers selling mixed roots as "combined chaihu"; alfalfa root faked as
+astragalus, 能令人瘦, which makes people thin, the opposite of the intended effect).
+
+**H215 Codonopsis was never delivered.** Seven of eight blocks came back. The verifier caught the
+gap rather than papering over it, and separately confirmed that a pre-1900 source does exist
+(党參 has its own 本草從新 1757 entry), so the row *could* be sourced legally. It remains
+unverified, not cleared.
+
+Two smaller items: the aconite-group expansion on H283 (附子/天雄/川烏/草烏) is standard 十八反
+doctrine but is inference beyond what the four witnesses say, and should be labelled as inferred;
+and 御風草 on H274 ships with no botanical identity, so the co-use prohibition cannot be acted on.
+
+**Verdict: not loadable as filed, but the failures are schema problems and cheap.** H142, H214,
+H281 and H002 are clean as they stand.

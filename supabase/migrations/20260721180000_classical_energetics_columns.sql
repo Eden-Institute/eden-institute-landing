@@ -103,7 +103,8 @@ alter table public.herbs
   add column if not exists classical_contraindications text,
   add column if not exists drug_incompatibilities      text,
   add column if not exists positive_pairings           text,
-  add column if not exists dietary_avoidances          text;
+  add column if not exists dietary_avoidances          text,
+  add column if not exists adulterant_warnings         text;
 
 -- Closed vocabulary. 'not_in_canon' and 'later_entry' are informative, not
 -- missing data: black pepper enters at the Tang Bencao (659 CE) and ginkgo at
@@ -132,6 +133,9 @@ comment on column public.herbs.drug_incompatibilities is
 
 comment on column public.herbs.positive_pairings is
   'POSITIVE 七情 relations. MUST NEVER RENDER AS A WARNING. 使 / 為之使 = envoy, a guiding partner that directs the formula. 殺 = this herb neutralises another drug''s toxicity (Fang Feng 殺附子毒 makes aconite safer). 勝 = subdues. 解…毒 = resolves a toxin (Coptis 解巴豆毒 resolves croton poison). 制 / 伏 = controls. Formulation knowledge with no Western equivalent. 79 of these were found bound for a contraindications field, where each would have read as its own opposite.';
+
+comment on column public.herbs.adulterant_warnings is
+  'Classical warnings that a DIFFERENT plant is passed off as this one, with the harm and any stated remedy. Its own field because it fits nowhere else and a loader will otherwise drop it: Manjistha carries 「勿用赤柳草根，真相似，只是味酸濇，誤服令人患内障眼，速服甘草水止之」, red willow root looks identical, taking it by mistake causes cataract, checked at once with licorice water. That is a 勿用 with a named harm and a named antidote. It is not a contraindication of Manjistha, and filing it as "not this herb" would delete it. Also holds commercial fraud notes, e.g. the 1757 report that dealers sell mixed hill-gathered roots as "combined chaihu" with hardly any real bupleurum in it, and the warning that alfalfa root faked as astragalus 能令人瘦, makes people thin, the opposite of the intended effect.';
 
 comment on column public.herbs.dietary_avoidances is
   'Food-combining notes from the Tang and Song dietetic tradition: 忌鯉魚, 忌桃李、菘菜、雀肉、青魚, 忌蒜、胡荽. Verbatim and correctly sourced, but NOT medical warnings, and must be labelled so a reader does not take them as clinical advice. Where a clause attaches to one 附方 rather than the drug as such, say so.';
