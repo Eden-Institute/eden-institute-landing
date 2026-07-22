@@ -184,15 +184,38 @@ const AXIS_LABEL_TO_PATTERN: Readonly<Record<string, EdenPatternName>> =
 
 
 /**
- * Classify a herb's `temperature` field (descriptive prose) onto the
- * Hot/Cold/Neutral axis. Returns "Neutral" when the value is genuinely
- * neutral or genuinely unparseable.
+ * The `temperature` and `moisture` fields hold descriptive prose. The FIRST
+ * clause carries the verdict; the remainder explains it, and explaining
+ * routinely names the opposite pole — to say what the herb is not, or to
+ * record a tradition that classes it the other way.
+ *
+ * So these must be classified on the leading clause alone. Scanning the whole
+ * string inverts precisely the best-documented records: Barberry stores
+ * "Cold. A classic cold, clearing bitter ... used to cool and drain a hot,
+ * congested, bilious liver" and reads Hot, while its moisture stores "Dry.
+ * The bitter, astringent bark drains and dries damp ... tissue" and reads
+ * Damp. Documenting a herb carefully is what used to break it.
+ *
+ * Verified 2026-07-21 against production: whole-string matching inverted 11
+ * temperature and 9 moisture readings, all of them in the same direction,
+ * because hot/damp are tested before cold/dry.
+ *
+ * Keep `eden_classify_temperature` / `eden_classify_moisture` in
+ * supabase/migrations in step with these.
+ */
+function leadingClause(value: string): string {
+  return value.split(/[.(;:]/, 1)[0].toLowerCase();
+}
+
+/**
+ * Classify a herb's `temperature` field onto the Hot/Cold/Neutral axis.
+ * Returns "Neutral" when the value is genuinely neutral or unparseable.
  */
 function classifyTemperature(value: string | null | undefined): TemperatureAxis {
   if (!value) return "Neutral";
-  const lower = value.toLowerCase();
-  if (lower.includes("hot") || lower.includes("warm")) return "Hot";
-  if (lower.includes("cold") || lower.includes("cool")) return "Cold";
+  const lead = leadingClause(value);
+  if (lead.includes("hot") || lead.includes("warm")) return "Hot";
+  if (lead.includes("cold") || lead.includes("cool")) return "Cold";
   return "Neutral";
 }
 
@@ -202,16 +225,16 @@ function classifyTemperature(value: string | null | undefined): TemperatureAxis 
  */
 function classifyMoisture(value: string | null | undefined): MoistureAxis {
   if (!value) return "Neutral";
-  const lower = value.toLowerCase();
+  const lead = leadingClause(value);
   if (
-    lower.includes("moist") ||
-    lower.includes("damp") ||
-    lower.includes("mucil") ||
-    lower.includes("demulcent")
+    lead.includes("moist") ||
+    lead.includes("damp") ||
+    lead.includes("mucil") ||
+    lead.includes("demulcent")
   ) {
     return "Damp";
   }
-  if (lower.includes("dry")) return "Dry";
+  if (lead.includes("dry")) return "Dry";
   return "Neutral";
 }
 
