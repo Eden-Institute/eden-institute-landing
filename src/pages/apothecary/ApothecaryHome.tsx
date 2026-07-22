@@ -18,6 +18,7 @@ import {
   type HerbFilterState,
 } from "@/components/apothecary/HerbDirectoryFilters";
 import { DirectorySkeleton } from "@/components/apothecary/DirectorySkeleton";
+import { ApothecaryDisclaimer } from "@/components/apothecary/ApothecaryDisclaimer";
 
 import { ROUTES } from "@/lib/routes";
 
@@ -708,6 +709,11 @@ export default function ApothecaryHome() {
               on-ramp). Replaces removed §8.1.5 formulary slot per the
               2026-04-29 Practitioner-tier scoping decision. */}
           <MatchedHerbsCtaPair activePattern={activePattern} tier={tier} />
+
+          {/* Educational-use and sourcing notice, closing the directory.
+              Not tier-gated: safety chips, cautions and pattern badges all
+              render for anonymous visitors, so the notice must too. */}
+          <ApothecaryDisclaimer />
         </div>
       </section>
     </div>
