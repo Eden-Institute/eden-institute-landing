@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApothecaryHerbs } from "@/hooks/useApothecaryHerbs";
 import { useEdenPattern } from "@/hooks/useEdenPattern";
+import { useCuratedHerbVerdicts } from "@/hooks/useCuratedHerbVerdicts";
+import { resolveHerbVerdict } from "@/lib/herbVerdict";
 import { useViewedHerbs } from "@/hooks/useViewedHerbs";
 import { herbParam } from "@/lib/herbLinks";
 import { HerbCard } from "@/components/apothecary/HerbCard";
@@ -161,6 +163,10 @@ export default function ApothecaryHome() {
     error,
   } = useApothecaryHerbs();
   const { data: activePattern } = useEdenPattern();
+  // Curated, cited verdicts for this pattern. Empty for readers below the
+  // bridge's RLS tier, or for patterns with no curation yet — both degrade to
+  // the computed path, which can never render a red "avoid".
+  const { byHerbId: curatedVerdicts } = useCuratedHerbVerdicts(activePattern);
   const { viewed, viewedOrder } = useViewedHerbs();
 
   // Per-mount default: when an active Pattern is known, hide aggravators by
@@ -307,20 +313,24 @@ export default function ApothecaryHome() {
     // still Seed-gated, so locked rows score from two axes — the documented
     // degraded mode). Until the Phase 2 view migration runs, locked axes
     // are NULL and score neutral (sortKey 1000), the old behavior.
+    // Sorted through resolveHerbVerdict — the SAME resolver the card renders
+    // from. Scoring here with a different rule than the badge would order the
+    // directory by one verdict while displaying another.
     const scored = filtered.map((herb) => {
-      const detail = computeMatchRelationship(
+      const detail = resolveHerbVerdict(
         {
           temperature: herb.temperature ?? null,
           moisture: herb.moisture ?? null,
           tissue_states_indicated: herb.tissue_states_indicated ?? null,
         },
-        activePattern
+        activePattern,
+        (herb.herb_id ? curatedVerdicts.get(herb.herb_id) : null) ?? null,
       );
       return { herb, sortKey: detail.sortKey };
     });
     scored.sort((a, b) => b.sortKey - a.sortKey);
     return scored.map((x) => x.herb);
-  }, [herbs, filters, activePattern]);
+  }, [herbs, filters, activePattern, curatedVerdicts]);
 
   // Progressive render (300-herb directory): mount cards a page at a time so
   // the DOM never holds hundreds of HerbCards at once. The full set is still
@@ -631,6 +641,10 @@ export default function ApothecaryHome() {
                     key={herb.herb_id ?? herb.common_name ?? `herb-${i}`}
                     herb={herb}
                     activePattern={activePattern}
+                    curatedVerdict={
+                      (herb.herb_id ? curatedVerdicts.get(herb.herb_id) : null) ??
+                      null
+                    }
                   />
                 ))}
               </div>

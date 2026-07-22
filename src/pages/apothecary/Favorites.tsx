@@ -3,6 +3,7 @@ import { Heart } from "lucide-react";
 import { useApothecaryHerbs } from "@/hooks/useApothecaryHerbs";
 import { useHerbFavorites } from "@/hooks/useHerbFavorites";
 import { useEdenPattern } from "@/hooks/useEdenPattern";
+import { useCuratedHerbVerdicts } from "@/hooks/useCuratedHerbVerdicts";
 import { HerbCard } from "@/components/apothecary/HerbCard";
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
 import { RequireAuth } from "@/components/apothecary/RequireAuth";
@@ -60,6 +61,9 @@ function FavoritesContent() {
   } = useApothecaryHerbs();
   const { favorites, isLoading: favoritesLoading } = useHerbFavorites();
   const { data: activePattern } = useEdenPattern();
+  // Same curated source as the directory, so a favorited herb never shows a
+  // different verdict than the same herb on the home grid.
+  const { byHerbId: curatedVerdicts } = useCuratedHerbVerdicts(activePattern);
 
   if (herbsLoading || favoritesLoading) return <PageSkeleton />;
 
@@ -155,6 +159,10 @@ function FavoritesContent() {
                     key={herb.herb_id}
                     herb={herb}
                     activePattern={activePattern}
+                    curatedVerdict={
+                      (herb.herb_id ? curatedVerdicts.get(herb.herb_id) : null) ??
+                      null
+                    }
                   />
                 ))}
               </div>

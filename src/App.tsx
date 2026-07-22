@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ActiveProfileProvider } from "@/contexts/ActiveProfileContext";
+import { FontScaleProvider } from "@/contexts/FontScaleContext";
 import { ROUTES } from "@/lib/routes";
 import ScrollToTop from "@/components/utils/ScrollToTop";
 import PageViewTracker from "@/components/utils/PageViewTracker";
@@ -80,6 +81,16 @@ const App = () => (
               because the latter calls useAuth() to scope its
               person_profiles query to the signed-in user. Both must be
               inside QueryClientProvider for TanStack Query to work. */}
+          {/* FontScaleProvider — reader-controlled text size (eden.font_scale).
+              Depends on nothing (not auth, not Query, not the router); it is
+              mounted here simply because this node already wraps every route,
+              so the chosen reading size holds on marketing pages, the
+              Apothecary, AND the purchased-guide pages, which render outside
+              ApothecaryLayout and would otherwise miss it. See
+              contexts/FontScaleContext.tsx for why the scale is a PERCENTAGE
+              on <html> rather than a pixel value (it must not override a
+              reader's own browser/OS base size). */}
+          <FontScaleProvider>
           <ActiveProfileProvider>
             {/* ScrollToTop — reset scroll on every route navigation. Lives
                 inside BrowserRouter so useLocation is available. Sibling to
@@ -261,6 +272,7 @@ const App = () => (
             <FeedbackButton />
             <ConsentBanner />
           </ActiveProfileProvider>
+          </FontScaleProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

@@ -1,0 +1,61 @@
+# CI — runs the test suite on every PR into main.
+#
+# Why this exists: before this workflow the repo had no CI at all. Tests ran
+# only when someone remembered to run them locally. That is tolerable for UI
+# work and NOT tolerable for the herb/pattern consistency tests, which guard
+# clinical recommendation data — a silent regression there means a reader is
+# shown a red "Avoid" flag on a herb their own guide recommends. That exact
+# bug reached production once (it is what prompted this work), and a test
+# nobody runs would not have caught it a second time.
+#
+# Package manager: npm. The repo carries package-lock.json, bun.lock,
+# bun.lockb AND deno.lock, but README.md documents npm ("The only requirement
+# is having Node.js & npm installed") and package-lock.json is committed
+# alongside it. deno.lock belongs to the Supabase Edge Functions, which deploy
+# via the Supabase CLI and are not built here.
+#
+# NO TYPECHECK STEP — deliberately, for now. `tsc -p tsconfig.app.json
+# --noEmit` currently exits 2 on origin/main with 4 pre-existing errors in
+# src/studio/StudioEntry.tsx, src/studio/StudioWorkroom.tsx and
+# src/test/studioBanks.test.ts (a FlowAnswers index-signature mismatch and a
+# stale `audiencePrimaries` property). They predate this branch and are
+# unrelated to it. Adding a blocking typecheck now would paint CI red on day
+# one and train everyone to ignore it. Those four belong in their own focused
+# clean-up PR; once they are fixed, add:
+#
+#     - name: Typecheck
+#       run: npx tsc -p tsconfig.app.json --noEmit
+#
+name: test
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# A second push to the same PR cancels the first run still in flight.
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # npm ci (not npm install) so the lockfile is authoritative and CI can
+      # never silently resolve a different dependency tree than local dev.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test
+        run: npm test

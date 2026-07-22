@@ -17,6 +17,10 @@ import {
   type MatchRelationshipDetail,
 } from "@/lib/edenPattern";
 import {
+  resolveHerbVerdict,
+  type CuratedHerbPatternRow,
+} from "@/lib/herbVerdict";
+import {
   type PrimaryTextCitation,
   type SecondaryCitation,
   type TraditionalObservation,
@@ -43,6 +47,18 @@ interface HerbCardProps {
    * so the reader sees terrain reasoning, not just a color.
    */
   activePattern?: EdenPatternName | null;
+  /**
+   * The CURATED verdict for this herb × the active pattern, when one exists
+   * (from useCuratedHerbVerdicts). When present it overrides the computed
+   * energetics entirely — that table is where clinical judgment and the
+   * Lock #43 citations live.
+   *
+   * Undefined/null is the common case: the bridge covers the curriculum's
+   * pairings, not all 300 herbs × 8 patterns. Uncurated herbs fall back to
+   * the computed path, which per resolveHerbVerdict can never render a red
+   * "avoid" — so a missing row degrades to silence, never to a wrong warning.
+   */
+  curatedVerdict?: CuratedHerbPatternRow | null;
 }
 
 const chipClass =
@@ -189,7 +205,11 @@ const TRADITION_LABELS: Record<TraditionalObservation["tradition"], string> = {
  * does NOT render the heart — Free users have person_profiles cap=0 and
  * can't favorite anything, so the heart would be dead UI.
  */
-export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
+export function HerbCard({
+  herb,
+  activePattern = null,
+  curatedVerdict = null,
+}: HerbCardProps) {
   const [expanded, setExpanded] = useState(false);
 
   const isLocked = herb.is_locked === true;
@@ -211,19 +231,29 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
   // §8.1.2: the full detail (including stewardship-language reasons) is
   // captured here so the card can render WHY a herb matches/avoids beneath
   // the chip row.
-  const matchDetail: MatchRelationshipDetail | null =
-    activePattern
-      ? computeMatchRelationship(
-          {
-            temperature: herb.temperature ?? null,
-            moisture: herb.moisture ?? null,
-            tissue_states_indicated: herb.tissue_states_indicated ?? null,
-          },
-          activePattern
-        )
-      : null;
-  const matchRelationship = matchDetail?.relationship ?? null;
-  const matchReasons = matchDetail?.reasons ?? [];
+  //
+  // 2026-07-21: routed through resolveHerbVerdict rather than calling
+  // computeMatchRelationship directly. Two behaviours change:
+  //   - a curated, cited row (when one exists) wins outright;
+  //   - a COMPUTED "avoid" is downgraded to neutral and falls silent, because
+  //     the equal-vote model agrees with the curriculum only 67% of the time
+  //     and that is not a good enough basis for a red warning on a health
+  //     product. Only curated evidence may say avoid.
+  // See src/lib/herbVerdict.ts for the full rationale.
+  const verdict = activePattern
+    ? resolveHerbVerdict(
+        {
+          temperature: herb.temperature ?? null,
+          moisture: herb.moisture ?? null,
+          tissue_states_indicated: herb.tissue_states_indicated ?? null,
+        },
+        activePattern,
+        curatedVerdict ?? null,
+      )
+    : null;
+  const matchRelationship = verdict?.relationship ?? null;
+  const matchReasons = verdict?.reasons ?? [];
+  const conditionNote = verdict?.conditionNote ?? null;
   const patternShort = activePattern
     ? activePattern.replace(/^The\s+/i, "")
     : null;
@@ -345,21 +375,43 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
         {/* Stewardship-language reasons under the badge, mirroring the
             unlocked card (match reasons only — a locked card is not the
             place to argue an avoid). */}
-        {matchRelationship === "match" && matchReasons.length > 0 && (
-          <ul
-            className="mt-3 space-y-0.5"
-            aria-label="Why this herb matches your Pattern"
+        {/* The "why". For a curated row this is the founder's own guide prose
+            (benefit_note), ported from guide-content-*.ts -- answering the half
+            of the original complaint that was "the Apothecary recommends these
+            but never says how they help". Conditional rows show it too: a
+            reader told "Match, with care" needs the reasoning most. */}
+        {(matchRelationship === "match" ||
+          matchRelationship === "conditional") &&
+          matchReasons.length > 0 && (
+            <ul
+              className="mt-3 space-y-0.5"
+              aria-label="Why this herb suits your Pattern"
+            >
+              {matchReasons.map((reason) => (
+                <li
+                  key={reason}
+                  className="font-body text-xs italic"
+                  style={{ color: "hsl(var(--eden-gold))" }}
+                >
+                  {reason}
+                </li>
+              ))}
+            </ul>
+          )}
+
+        {/* The condition itself -- dose, form, or the corrective to pair with.
+            This is the operative half of a conditional verdict: without it the
+            reader is told to take care but not how. */}
+        {matchRelationship === "conditional" && conditionNote && (
+          <p
+            className="mt-2 font-body text-xs"
+            style={{ color: "hsl(var(--eden-bark))" }}
           >
-            {matchReasons.map((reason) => (
-              <li
-                key={reason}
-                className="font-body text-xs italic"
-                style={{ color: "hsl(var(--eden-gold))" }}
-              >
-                {reason}
-              </li>
-            ))}
-          </ul>
+            <span className="font-accent uppercase tracking-[0.15em] text-[10px] mr-1.5">
+              Take care
+            </span>
+            {conditionNote}
+          </p>
         )}
 
         {/* True teaser line: the first clause of the energetics summary
@@ -518,6 +570,28 @@ export function HerbCard({ herb, activePattern = null }: HerbCardProps) {
           >
             <Sparkles className="w-3 h-3" />
             Match
+          </span>
+        )}
+        {/* Conditional — "yes, but". 45% of the verified curriculum pairings
+            (41 of 91) are supported by the materia medica BUT carry a stated
+            condition: a dose limit, a form preference (fresh vs dried), or a
+            required pairing. The tradition's answer to a remedy right on its
+            main action but wrong on a secondary quality was to add a
+            corrective, not to reject it. Rendering these as a flat "Match"
+            would overclaim what the sources actually say. Amber, not green
+            and not red — and the condition itself renders below. */}
+        {matchRelationship === "conditional" && (
+          <span
+            className={`${chipClass} flex items-center gap-1`}
+            style={{
+              backgroundColor: "hsl(var(--eden-gold) / 0.10)",
+              color: "hsl(var(--eden-bark))",
+              border: "1px solid hsl(var(--eden-gold))",
+            }}
+            title="Suits your Pattern, with a condition"
+          >
+            <Sparkles className="w-3 h-3" />
+            Match, with care
           </span>
         )}
         {matchRelationship === "avoid" && (
