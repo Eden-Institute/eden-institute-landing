@@ -34,10 +34,33 @@
 --   and nine sun-dryings and must never meet copper or iron. Bupleurum must not
 --   meet fire "or it is instantly without effect".
 --
--- classical_contraindications
---   The table has no contraindication column at all. Several of the harvested
---   entries are ordinary product-safety items: Dong Quai is 极善滑腸，瀉者禁用,
---   extremely apt to loosen the bowels, forbidden in diarrhoea.
+-- classical_contraindications · drug_incompatibilities · positive_pairings ·
+-- dietary_avoidances
+--   FOUR fields, not one, and this is the correction that matters most here.
+--   The table has no contraindication column at all, and the obvious move is to
+--   add one. That would be wrong: the classical text destined for it is BUNDLED,
+--   and a Chinese source keeps four things carefully apart that a single field
+--   would collapse.
+--
+--   A decomposition of 294 verified clauses came out:
+--     108 (37%)  clinical prohibitions   Dong Quai 极善滑腸，瀉者禁用, forbidden in
+--                                        diarrhoea; 孕婦忌之; 腸滑氣虚者禁之
+--      83 (28%)  NEGATIVE 七情 relations  畏 fears · 惡 antagonised by · 反 opposes.
+--                                        反 marks the 十八反, the most serious
+--                                        pairings in the corpus. The verb is not
+--                                        decoration and must travel with the row.
+--      79 (27%)  POSITIVE 七情 relations  使 envoy · 殺 neutralises another drug's
+--                                        toxicity · 勝 subdues · 解毒 resolves a
+--                                        toxin · 制/伏 controls
+--      24 (8%)   dietary avoidances      忌鯉魚, 忌桃李菘菜雀肉青魚: Tang and Song
+--                                        food-combining lore, not medical advice
+--
+--   **79 positive relations were bound for a field labelled "contraindications".**
+--   Fang Feng's 殺附子毒 means it makes aconite SAFER. Coptis's 解巴豆毒 means it
+--   RESOLVES croton poison. Gua Lou's 枸杞為使 means goji is its guiding partner.
+--   Rendered out of a contraindications field, every one of those reads as "do
+--   not combine", which is the exact inverse of the source. Hence a separate
+--   column that can never render as a warning.
 --
 -- ── The rule these columns are governed by ──────────────────────────────────
 -- Founder ruling, 2026-07-21: energetics claims cite sources published 1899 or
@@ -52,10 +75,13 @@
 begin;
 
 alter table public.herbs
-  add column if not exists shennong_grade             text,
-  add column if not exists channel_entry              text,
-  add column if not exists preparation_doctrine       text,
-  add column if not exists classical_contraindications text;
+  add column if not exists shennong_grade              text,
+  add column if not exists channel_entry               text,
+  add column if not exists preparation_doctrine        text,
+  add column if not exists classical_contraindications text,
+  add column if not exists drug_incompatibilities      text,
+  add column if not exists positive_pairings           text,
+  add column if not exists dietary_avoidances          text;
 
 -- Closed vocabulary. 'not_in_canon' and 'later_entry' are informative, not
 -- missing data: black pepper enters at the Tang Bencao (659 CE) and ginkgo at
@@ -80,7 +106,16 @@ comment on column public.herbs.preparation_doctrine is
   'Classical processing and vehicle, quoted from a pre-1900 source. Records where the traditional preparation differs from the shipped form, and any hard prohibition (e.g. rehmannia must not contact copper or iron; bupleurum must not meet fire).';
 
 comment on column public.herbs.classical_contraindications is
-  'Contraindications as stated in a pre-1900 source, with attribution. Distinguish "not stated classically" from "none": silence in the source is not a safety claim.';
+  'CLINICAL prohibitions only, as stated in a pre-1900 source, with attribution: patient states and conditions (瀉者禁用, 孕婦忌之, 腸滑氣虚者禁之). Drug-drug relations belong in drug_incompatibilities or positive_pairings; food-combining notes belong in dietary_avoidances. BEWARE the character 忌: it appears in both clinical and dietary clauses, and the test is what follows it, a patient state or a food. Distinguish "not stated classically" from "none": silence in a source is not a safety clearance.';
+
+comment on column public.herbs.drug_incompatibilities is
+  'NEGATIVE 七情 (seven relations) only: 畏 fears / is diminished by, 惡 is antagonised by, 反 opposes. 反 marks the 十八反 (Eighteen Antagonisms), the most safety-load-bearing pairings in the corpus, e.g. 反烏頭. Keep the relation VERB with each entry; the three are not interchangeable. Never place 使, 殺, 勝, 解毒, 制 or 伏 here: those are positive relations and belong in positive_pairings.';
+
+comment on column public.herbs.positive_pairings is
+  'POSITIVE 七情 relations. MUST NEVER RENDER AS A WARNING. 使 / 為之使 = envoy, a guiding partner that directs the formula. 殺 = this herb neutralises another drug''s toxicity (Fang Feng 殺附子毒 makes aconite safer). 勝 = subdues. 解…毒 = resolves a toxin (Coptis 解巴豆毒 resolves croton poison). 制 / 伏 = controls. Formulation knowledge with no Western equivalent. 79 of these were found bound for a contraindications field, where each would have read as its own opposite.';
+
+comment on column public.herbs.dietary_avoidances is
+  'Food-combining notes from the Tang and Song dietetic tradition: 忌鯉魚, 忌桃李、菘菜、雀肉、青魚, 忌蒜、胡荽. Verbatim and correctly sourced, but NOT medical warnings, and must be labelled so a reader does not take them as clinical advice. Where a clause attaches to one 附方 rather than the drug as such, say so.';
 
 -- ── Write down what the existing energetics columns mean ────────────────────
 -- These have carried no definition anywhere in the schema, the docs or the
