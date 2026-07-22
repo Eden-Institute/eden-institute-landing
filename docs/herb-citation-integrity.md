@@ -97,3 +97,54 @@ reachable full text anywhere. F. Porter Smith (1871) does **not** transmit the
 han/liang/wen/re system at all, so under a pre-1900 rule the only route to Chinese
 temperature is the Chinese-language texts themselves. No pre-1900 Sanskrit printing was
 located, which is why *vipaka* could not be sourced for a single herb.
+
+
+---
+
+## Update 2026-07-22: all 201 audited
+
+Every citation lacking a verbatim excerpt was checked at its named source. The 201 turned out to be
+H001 plus H101 to H300, which is the entire 200-herb expansion; the original hundred rows all carry
+excerpts, so this was one authoring pass that skipped the step.
+
+| Verdict | Count | |
+|---|---|---|
+| **EXCERPT_RECOVERED** | **126** | a real passage was found and can backfill the gap |
+| POST1900_ONLY | 62 | the cited work is real but post-1900, so it cannot support energetics |
+| SOURCE_SILENT | 9 | the cited work does not contain the claimed entry |
+| WRONG_SPECIES | 3 | the passage exists but describes a different plant |
+| ONLY_METAPHYSICAL_SUPPORT | 1 | the only support fails the worldview filter |
+
+1,078 concerns were raised across all verdicts.
+
+**63% have a real, recoverable source.** 11 do not and were withdrawn in
+`20260722100000_remove_unsupportable_citations_round2.sql`. Two of the 13 unsupportable rows had
+already been cleared in round 1 (Turkey Tail, Maitake).
+
+### The 62 post-1900 citations are a separate decision, not touched here
+
+These are real citations to real works. They are inadmissible for a temperature or a taste under the
+pre-1900 rule, but they may legitimately support constituents, safety or indications. **Grieve's
+A Modern Herbal (1931) and the Ayurvedic Pharmacopoeia of India dominate this group.** Removing them
+would discard genuine evidence; leaving them means those rows' energetics have no admissible source.
+That needs a founder ruling, not a migration.
+
+### Two failure shapes worth naming
+
+**The year field can disguise a source.** Amomum's title names Stuart (1911) while its year field
+says 1898. Chaga's names "Russian and Siberian ethnobotanical tradition", also dated 1898, and
+attaches King's American Dispensatory as author. In both cases an allowed pre-1900 authority is
+lending its date to something else. **Check the title against the year, not just the year.**
+
+**A citation can name several works at once.** Amomum's author, url and year point at King's while
+its title and locator point at Stuart and Bensky. Hibiscus has author and year reading Grieve 1931
+while title and locator read Egyptian Drug Authority 2023. One record standing for two unrelated
+sources is the template-fill failure mode that produced the original four fabrications.
+
+### The Gastrodia case, and why the worldview filter is load-bearing here
+
+H274's cited Shennong entry supports the row through demon-expulsion and immortality claims and
+nothing else. Strip the metaphysics as Lock #14 and Lock #44 require and the citation supports
+nothing at all. It also contradicts both stored values. Both are independently recoverable from the
+Bencao Gangmu (1596), where Zhen Quan gives 味甘平無毒, sweet and neutral, matching the row exactly.
+So the value is right and the citation was wrong, which is the reverse of the usual failure.
