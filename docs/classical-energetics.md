@@ -14,18 +14,64 @@ source contradicts a clear modern value, the disagreement is **recorded in the r
 applied to it**. These columns exist to hold the "add" case cleanly, so that adding classical
 knowledge never means overwriting the modern energetics the app matches on.
 
-## Why nothing is loaded yet
+## What is loaded, and what is held
 
-A QC pass over 95 herbs harvested **743 candidate facts** from pre-1900 sources. They are in
-`docs/data/classical-energetics-harvest-2026-07-21.json`, marked UNVERIFIED, and they are
-**not** written to any row.
+A QC pass over 95 herbs harvested **743 candidate facts** from pre-1900 sources
+(`docs/data/classical-energetics-harvest-2026-07-21.json`). Rather than load them, the three
+highest-priority fields went through an **independent verification pass**: 254 claims re-read
+at the source by ten verifiers who did not produce them, each in an isolated working directory
+so that no agent could confirm a sibling's downloaded file.
 
-The reason is the migration immediately before this one. `20260721170000` had to withdraw
-four herb citations whose quoted text did not appear in the work it named, plus three
-paraphrases presented as quotations. Loading 743 unverified quotations one hour later would
-reproduce that failure at two orders of magnitude.
+**Result: zero refuted at claim level, no invented quotation found.** Every Chinese quotation
+checked was a real substring of the named work, in the named juan, under a named authority.
+32 of 254 (12.6%) came back partly verified, meaning the substance held but a detail was off.
 
-The columns settle the shape. The content follows verification, not the other way round.
+| Field | Verified | Partly | Loaded? |
+|---|---|---|---|
+| `shennong_grade` | 72 | 1 | **Yes, 70 of them** |
+| `classical_contraindications` | 80 | 16 | No |
+| `channel_entry` | 70 | 15 | No |
+
+**Only `shennong_grade` is loaded** (`20260721190000_load_verified_shennong_grades.sql`). It is
+the field whose values rest on an objective test rather than a quotation: which juan the entry
+falls in, or the 本經X品 note in the 1596 head line. Most were confirmed by both routes.
+
+### Why the other two are held
+
+Adjudication of the partly-verified set found four kinds of defect that a naive load would ship,
+and they are worth naming because each is a different failure:
+
+1. **An indication read as an adverse effect.** H296 Bakuchi: the harvest read 墮胎 in the 主治
+   (indications) field as meaning the herb *causes* miscarriage. It is a condition being
+   *treated*. That would have printed a pregnancy-safety warning that inverts its own source.
+   The most dangerous item in the batch.
+2. **An author credited with a doctrine he rejected.** H184 Fu Ling: 白補赤瀉 was attributed to
+   Zhang Yuansu, but the 1596 text records him saying 赤瀉白補上古無此説, that the distinction has
+   no ancient warrant. He disputes it.
+3. **A wrong drug in an incompatibility list.** H184 again: the 畏 list ends 鱉甲 (turtle shell)
+   where the source reads 龜甲 (tortoise plastron). Different material, and this field would
+   drive formula-blocking logic.
+4. **Content filed under the wrong tag.** H160 Green Tea, H284 Water Plantain and H175 Chen Pi
+   each have the *grade* paragraph pasted under a contraindications tag. The pasted text is
+   true, which is exactly why it is dangerous: a reviewer sees verified classical Chinese and
+   waves it through, and the database ends up telling a customer that a contraindication for
+   Chen Pi is that it is an upper-grade herb suitable for long life.
+
+Also surfaced, and escalated out of this workstream: **H238 Shankhpushpi's botanical identity is
+unsupported.** No pre-1900 source identifies it as *Convolvulus pluricaulis*; the string
+"pluricaulis" does not appear in any volume of Pharmacographia Indica. That is a
+what-plant-is-in-the-bottle problem, not an energetics one.
+
+### A distinction to make before contraindications load
+
+Several verified entries are **dietary avoidances** from a Tang or Song dietetic tradition
+(忌桃李菘菜雀肉青魚, 忌鯉魚, 忌芸薹, avoid eel), not pattern-level prohibitions. Every one checks
+out verbatim. But putting them in the same field as 孕婦忌之 flattens a real distinction and
+will read to a customer as a medical warning. They need their own field or their own label.
+
+And three neighbouring-entry bleeds were caught: the 三稜 caution belongs to San Leng and not to
+Musta, which sits immediately after it in the same juan; the 芝 prohibitions belong to Ganoderma
+and not to Turkey Tail; a 有痼疾人勿服 line near Goji attaches elsewhere.
 
 ## What was found, by kind
 
