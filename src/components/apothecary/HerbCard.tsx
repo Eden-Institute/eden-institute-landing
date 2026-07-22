@@ -11,11 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type HerbRow } from "@/hooks/useApothecaryHerbs";
-import {
-  type EdenPatternName,
-  computeMatchRelationship,
-  type MatchRelationshipDetail,
-} from "@/lib/edenPattern";
+import { type EdenPatternName } from "@/lib/edenPattern";
 import {
   resolveHerbVerdict,
   type CuratedHerbPatternRow,
@@ -668,29 +664,56 @@ export function HerbCard({
 
       {/*
         §8.1.2 + §8.1.3 — stewardship-language reasons under the chip row.
-        For MATCH: surfaces WHY this herb suits the user's Pattern in
-        terrain-first prose, beneath the Match badge. For AVOID: reasons
-        live in the §8.1.3 top-of-card aggravation banner above and are
-        suppressed here to avoid duplication. For NEUTRAL: nothing to say.
+        For MATCH and CONDITIONAL: surfaces WHY this herb suits the user's
+        Pattern in terrain-first prose, beneath the badge. A reader told
+        "Match, with care" needs the reasoning MOST — gating this to plain
+        match left the amber chip standing alone with no explanation, the
+        exact "recommends but never says how" defect the curated layer was
+        built to fix. For AVOID: reasons live in the §8.1.3 top-of-card
+        aggravation banner above and are suppressed here to avoid
+        duplication. For NEUTRAL: nothing to say.
       */}
-      {matchReasons.length > 0 && matchRelationship === "match" && (
-        <ul
-          className="mt-3 space-y-0.5"
-          aria-label="Why this herb matches your Pattern"
+      {matchReasons.length > 0 &&
+        (matchRelationship === "match" ||
+          matchRelationship === "conditional") && (
+          <ul
+            className="mt-3 space-y-0.5"
+            aria-label="Why this herb suits your Pattern"
+          >
+            {matchReasons.map((reason) => (
+              <li
+                key={reason}
+                className="font-body text-xs italic leading-relaxed flex items-start gap-1.5"
+                style={{ color: "hsl(var(--eden-gold))" }}
+              >
+                <span aria-hidden="true" className="mt-[3px] shrink-0">
+                  ·
+                </span>
+                <span>{reason}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+      {/* The condition itself — dose, form, or the corrective to pair with.
+          This is the operative half of a conditional verdict: without it the
+          reader is told to take care but never how. Mirrors the locked-card
+          treatment; before this block the unlocked card (the one every
+          Seed+ reader actually sees) rendered the chip and dropped the
+          condition entirely. */}
+      {matchRelationship === "conditional" && conditionNote && (
+        <p
+          className="mt-2 font-body text-xs leading-relaxed"
+          style={{ color: "hsl(var(--eden-bark))" }}
         >
-          {matchReasons.map((reason) => (
-            <li
-              key={reason}
-              className="font-body text-xs italic leading-relaxed flex items-start gap-1.5"
-              style={{ color: "hsl(var(--eden-gold))" }}
-            >
-              <span aria-hidden="true" className="mt-[3px] shrink-0">
-                ·
-              </span>
-              <span>{reason}</span>
-            </li>
-          ))}
-        </ul>
+          <span
+            className="font-accent uppercase tracking-[0.15em] text-[10px] mr-1.5"
+            style={{ color: "hsl(var(--eden-gold))" }}
+          >
+            Take care
+          </span>
+          {conditionNote}
+        </p>
       )}
 
       {herb.taste && (

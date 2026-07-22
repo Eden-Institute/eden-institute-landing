@@ -237,6 +237,13 @@ export default function HerbMonograph() {
           </div>
           {match && match.relationship !== "neutral" && patternShort && (
             <div className="mt-4" aria-label={`Relationship to ${patternSubject} ${patternShort} pattern`}>
+              {/* THREE-way branch, mirroring HerbCard. This was a binary
+                  match/else ternary, which threw every curated CONDITIONAL
+                  verdict into the red "May aggravate" branch — a reader whose
+                  paid guide recommends nettle-with-a-condition opened the
+                  monograph and saw a red warning with the benefit prose
+                  printed beneath it in red. Conditional is "yes, but":
+                  amber, never destructive. */}
               {match.relationship === "match" ? (
                 <span
                   className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-body text-sm"
@@ -247,6 +254,18 @@ export default function HerbMonograph() {
                 >
                   <Sparkles className="w-4 h-4" aria-hidden="true" />
                   Matches {patternSubject} {patternShort}
+                </span>
+              ) : match.relationship === "conditional" ? (
+                <span
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-body text-sm"
+                  style={{
+                    backgroundColor: "hsl(var(--eden-gold) / 0.10)",
+                    color: "hsl(var(--eden-bark))",
+                    border: "1px solid hsl(var(--eden-gold))",
+                  }}
+                >
+                  <Sparkles className="w-4 h-4" aria-hidden="true" />
+                  Matches {patternSubject} {patternShort}, with care
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-body text-sm bg-destructive/10 text-destructive">
@@ -262,15 +281,33 @@ export default function HerbMonograph() {
                       className="font-body text-sm italic"
                       style={{
                         color:
-                          match.relationship === "match"
-                            ? "hsl(var(--eden-gold))"
-                            : "hsl(var(--destructive))",
+                          match.relationship === "avoid"
+                            ? "hsl(var(--destructive))"
+                            : "hsl(var(--eden-gold))",
                       }}
                     >
                       {reason}
                     </li>
                   ))}
                 </ul>
+              )}
+              {/* The operative half of a conditional verdict — dose, form,
+                  or the corrective to pair with. The monograph never
+                  rendered it at all; the reader was told "with care" and
+                  denied the care. */}
+              {match.relationship === "conditional" && match.conditionNote && (
+                <p
+                  className="mt-2 font-body text-sm leading-relaxed"
+                  style={{ color: "hsl(var(--eden-bark))" }}
+                >
+                  <span
+                    className="font-accent uppercase tracking-[0.15em] text-xs mr-1.5"
+                    style={{ color: "hsl(var(--eden-gold))" }}
+                  >
+                    Take care
+                  </span>
+                  {match.conditionNote}
+                </p>
               )}
             </div>
           )}

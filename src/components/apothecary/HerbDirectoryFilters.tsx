@@ -5,10 +5,11 @@ import type { Tier } from "@/hooks/useCurrentTier";
 import { isSubscriberTier } from "@/hooks/useHerbsDirectory";
 import { Link } from "react-router-dom";
 import { ROUTES } from "@/lib/routes";
+import { type EdenPatternName } from "@/lib/edenPattern";
 import {
-  type EdenPatternName,
-  computeMatchRelationship,
-} from "@/lib/edenPattern";
+  resolveHerbVerdict,
+  type CuratedHerbPatternRow,
+} from "@/lib/herbVerdict";
 
 /**
  * Stage 6.3.5 — four-axis filter rebuild.
@@ -575,6 +576,17 @@ export function HerbDirectoryFilters({
 export interface MatchesFiltersOptions {
   filters: HerbFilterState;
   activePattern: EdenPatternName | null;
+  /**
+   * Curated herbs_eden_patterns rows for the active pattern, keyed by
+   * herb_id (from useCuratedHerbVerdicts). The pattern chips MUST judge rows
+   * through the same resolver the card renders from — filtering on the raw
+   * equal-vote computation deleted 21 curated match/conditional pairings
+   * from the default grid (patternHideAvoid auto-flips on for pattern
+   * holders), including Nettle × The Spent Candle, the exact herb the
+   * original reader complaint was about. The red flag was gone; the herb
+   * was invisible instead.
+   */
+  curatedVerdicts?: Map<string, CuratedHerbPatternRow>;
 }
 
 /**
@@ -603,7 +615,7 @@ export function matchesFilters(
   herb: HerbRow,
   options: MatchesFiltersOptions
 ): boolean {
-  const { filters, activePattern } = options;
+  const { filters, activePattern, curatedVerdicts } = options;
 
   const q = filters.query.trim().toLowerCase();
   if (q.length > 0) {
@@ -682,15 +694,32 @@ export function matchesFilters(
     (filters.patternMatchOnly || filters.patternHideAvoid) &&
     !herb.is_locked
   ) {
-    const detail = computeMatchRelationship(
+    // Judged through resolveHerbVerdict — the SAME resolver that renders the
+    // badge — never the raw equal-vote computation. Two consequences:
+    //   - "Hide aggravators" hides only what the card would actually badge
+    //     Avoid, i.e. a curated, cited avoid. A computed avoid downgrades to
+    //     neutral in the resolver, so nothing is hidden on evidence the card
+    //     itself refuses to print. Previously this filter re-ran the raw
+    //     vote and silently deleted curated match/conditional herbs from the
+    //     grid while their badges said the opposite.
+    //   - "Show only matches" keeps conditional ("Match, with care") rows:
+    //     they render match-family badges, and hiding half the curated
+    //     matches behind a button labeled "matches" contradicted the screen.
+    const detail = resolveHerbVerdict(
       {
         temperature: herb.temperature ?? null,
         moisture: herb.moisture ?? null,
         tissue_states_indicated: herb.tissue_states_indicated ?? null,
       },
-      activePattern
+      activePattern,
+      (herb.herb_id ? curatedVerdicts?.get(herb.herb_id) : null) ?? null
     );
-    if (filters.patternMatchOnly && detail.relationship !== "match") return false;
+    if (
+      filters.patternMatchOnly &&
+      detail.relationship !== "match" &&
+      detail.relationship !== "conditional"
+    )
+      return false;
     if (filters.patternHideAvoid && detail.relationship === "avoid") return false;
   }
 

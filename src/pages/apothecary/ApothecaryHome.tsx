@@ -18,7 +18,7 @@ import {
   type HerbFilterState,
 } from "@/components/apothecary/HerbDirectoryFilters";
 import { DirectorySkeleton } from "@/components/apothecary/DirectorySkeleton";
-import { computeMatchRelationship } from "@/lib/edenPattern";
+
 import { ROUTES } from "@/lib/routes";
 
 /**
@@ -304,7 +304,7 @@ export default function ApothecaryHome() {
 
   const visible = useMemo(() => {
     const filtered = herbs.filter((h) =>
-      matchesFilters(h, { filters, activePattern })
+      matchesFilters(h, { filters, activePattern, curatedVerdicts })
     );
     if (!activePattern) return filtered;
     // Pattern-aware sort. CRO Phase 2: locked rows are no longer pinned at
@@ -375,23 +375,28 @@ export default function ApothecaryHome() {
   ).length;
   const unexploredMatches = useMemo(() => {
     if (!activePattern) return 0;
-    return herbs.filter(
-      (h) =>
-        h.herb_id !== null &&
-        !viewed.has(h.herb_id) &&
-        computeMatchRelationship(
-          {
-            temperature: h.temperature ?? null,
-            moisture: h.moisture ?? null,
-            tissue_states_indicated: h.tissue_states_indicated ?? null,
-          },
-          activePattern
-        ).relationship === "match"
-    ).length;
+    // Counted through resolveHerbVerdict — the same resolver the badges and
+    // sort use. Counting with the raw equal-vote rule made this number
+    // disagree with the Match badges beside it: it skipped curated matches
+    // and counted herbs the curated layer marks Avoid. Conditional counts
+    // as a match here because the card badges it "Match, with care".
+    return herbs.filter((h) => {
+      if (h.herb_id === null || viewed.has(h.herb_id)) return false;
+      const rel = resolveHerbVerdict(
+        {
+          temperature: h.temperature ?? null,
+          moisture: h.moisture ?? null,
+          tissue_states_indicated: h.tissue_states_indicated ?? null,
+        },
+        activePattern,
+        curatedVerdicts.get(h.herb_id) ?? null
+      ).relationship;
+      return rel === "match" || rel === "conditional";
+    }).length;
     // `viewed` is derived from viewedOrder; keying on the array keeps the
     // memo honest without re-running per render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [herbs, activePattern, viewedOrder]);
+  }, [herbs, activePattern, viewedOrder, curatedVerdicts]);
   const patternShort = activePattern
     ? activePattern.replace(/^The\s+/i, "")
     : null;
