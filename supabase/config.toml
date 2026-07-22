@@ -39,11 +39,11 @@ verify_jwt = false
 
 # partner-welcome sends the founding-partner welcome email (6-week sample
 # attached). Gated by FOUNDERS_ADMIN_TOKEN in x-partner-admin, so the gateway
-# JWT check must not block the admin caller. static_files ships the sample PDF
-# inside the function bundle (swap the file + redeploy to update the sample).
+# JWT check must not block the admin caller. The sample PDF lives in the
+# PRIVATE partner-assets Storage bucket (bundling it 413'd the deploy); swap
+# the sample by re-uploading to the same Storage path, no redeploy needed.
 [functions.partner-welcome]
 verify_jwt = false
-static_files = ["./functions/partner-welcome/assets/edens-table-6-week-sample.pdf"]
 
 # constitution-pdf renders the PAID Deep-Dive Guide. It is fetched server-side by
 # stripe-webhook (service role) on purchase, and the function additionally requires

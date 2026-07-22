@@ -9,11 +9,12 @@
 //   { action: "testsend" }                                  → sends to hello@ with [TEST] subject
 //   { action: "send", to, first_name, partner_link? }       → sends to one partner
 //
-// ATTACHMENT SLOT: ./assets/edens-table-6-week-sample.pdf — the compressed
-// email edition of the 6-week sample (from Canva folder FAHQJC-JvlU, merged
-// TG → Read-Aloud → Notebook → Field → Recipe → ATT, rasterized to fit under
-// recipient inbound limits). To swap the sample: replace that file at the same
-// path and redeploy this function.
+// ATTACHMENT SLOT: private Storage object partner-assets/edens-table-6-week-sample.pdf
+// — the compressed email edition of the 6-week sample (from Canva folder
+// FAHQJC-JvlU, merged TG → Read-Aloud → Notebook → Field → Recipe → ATT,
+// rasterized to fit under recipient inbound limits). To swap the sample:
+// upload the new file to the same Storage path (x-upsert). NO redeploy needed.
+// (Bundling the PDF as a static_files asset 413'd the deploy at 12.4 MB.)
 //
 // PARTNER LINK SLOT: `partner_link` renders a P.S. with the partner's private
 // at-cost Stripe Payment Link. Held out of the welcome send until fulfillment
@@ -24,7 +25,9 @@ import { applyUnsub } from '../_shared/email-unsubscribe.ts';
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
 const ADMIN_TOKEN = Deno.env.get('FOUNDERS_ADMIN_TOKEN') ?? '';
 
-const SAMPLE_PDF_URL = new URL('./assets/edens-table-6-week-sample.pdf', import.meta.url);
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
+const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const SAMPLE_PDF_STORAGE_PATH = 'partner-assets/edens-table-6-week-sample.pdf';
 const SAMPLE_PDF_FILENAME = 'Edens_Table_Sprouts_6_Week_Sample.pdf';
 const TEST_RECIPIENT = 'hello@edeninstitute.health';
 const FROM = 'Camila at The Eden Institute <hello@edeninstitute.health>';
@@ -100,7 +103,13 @@ ${psBlock}
 }
 
 async function samplePdfBase64(): Promise<string> {
-  const bytes = await Deno.readFile(SAMPLE_PDF_URL);
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${SAMPLE_PDF_STORAGE_PATH}`, {
+    headers: { Authorization: `Bearer ${SERVICE_ROLE_KEY}`, apikey: SERVICE_ROLE_KEY },
+  });
+  if (!res.ok) {
+    throw new Error(`sample PDF fetch failed: ${res.status} ${await res.text().catch(() => '')}`);
+  }
+  const bytes = new Uint8Array(await res.arrayBuffer());
   let bin = '';
   const CHUNK = 0x8000;
   for (let i = 0; i < bytes.length; i += CHUNK) {
