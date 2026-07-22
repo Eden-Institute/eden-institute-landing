@@ -1,0 +1,3110 @@
+{
+ "counts": {
+  "herbs": 66,
+  "clinical": 108,
+  "dietary": 24,
+  "incompat": 83,
+  "positive": 79,
+  "unclassified": 118
+ },
+ "multiMerged": 13,
+ "problemCount": 18,
+ "bySeverity": {
+  "fix_before_load": 10,
+  "cosmetic": 8
+ },
+ "problems": [
+  {
+   "herb_id": "H214",
+   "failureType": "changed_character",
+   "detail": "The 制/伏 positive pairing reads 「時珍曰伏水制雌黄熖消」 and is glossed 'subdues water'. The BCGM 卷13 苦參 氣味 note actually reads 伏汞 (subdues MERCURY): verified against the 本草綱目/草之二 text on zh.wikisource.org, which gives 「時珍曰：伏汞，製雌黃、焰硝。」 汞 has been reduced to 水, turning a named mineral drug into a nonsense object. Same class of defect as the H142 辰丹砂 glyph corruption. The error is inherited (harvest_verification_results.json carries 伏水 once, in the H214 classical_contraindications allySays string), so the upstream harvest string must be corrected too, not just the re-filing. Classification itself is now RIGHT: this attempt moved 伏/制 into positive pairings, where the earlier pass had it in drug_incompatibilities with relation 'other' (safety_field_decomposition.json, H214 record 1).",
+   "severity": "fix_before_load"
+  },
+  {
+   "herb_id": "H139",
+   "failureType": "other",
+   "detail": "陳藏器's 「生者墮胎」 is parked in unclassified as 'direction uncertain'. The verified harvest disagrees: harvest_verification_results.json, H139 classical_contraindications (verdict VERIFIED) counts it as one of 'Three contraindications: 張元素…; 朱震亨…; 陳藏器「生者墮胎」'. A pregnancy signal the verified record graded as a contraindication now reaches NO safety field. Not silently dropped (it is escalated with a reason), but it must not load in this state; two sources disagree and a human has to rule.",
+   "severity": "fix_before_load"
+  },
+  {
+   "herb_id": "H253",
+   "failureType": "other",
+   "detail": "Same pattern as H139: 「杀蛔堕胎」 (本草備要 1694) is parked in unclassified as direction-uncertain, while the verified harvest records it under the heading 'PREGNANCY: Wang Ang, 本草備要 1694, states it classically' (harvest_verification_results.json, H253 classical_contraindications, VERIFIED). The two caveats given are both sound (simplified-glyph transcription; BCGM assigns 墮胎 to the ROOT not the seed), but as filed the pregnancy signal reaches no safety field. 延胡索 H271 「通經堕胎」 is parked the same way, so this is a three-herb pattern in this slice, not a one-off.",
+   "severity": "fix_before_load"
+  },
+  {
+   "herb_id": "H139",
+   "failureType": "other",
+   "detail": "「蒸食消酒毒」 (陳藏器, BCGM 主治) is filed in positive_pairings with relation 解毒. It sits inside a 主治 run, the same sentence as 生者墮胎 and 可斷穀不飢作粉尤妙, so it is an INDICATION (steamed and eaten it dispels wine toxin in the drinker), not a 七情 drug relation. This is the exact distinction the same attempt drew correctly for H214's 殺䖝 ('an indication, not a 殺 drug-relation') and for H253's 杀蛔. Filing it as a relation creates a pairing row implying 酒 is a partner drug. Harmless in direction (it can never surface as a warning), but inconsistent with the attempt's own stated rule.",
+   "severity": "cosmetic"
+  },
+  {
+   "herb_id": "H272",
+   "failureType": "other",
+   "detail": "drug_incompatibilities contains 「之才曰惡𤣥參蛇蛻皮」 TWICE, byte-identical, same speaker, within a single record. The filed set should be three rows (BCGM 之才; 本草從新 惡元參; 神農本草經 七情表 惡蛇蛻、元參), not four. Content and relation tagging are correct; de-duplication defect only.",
+   "severity": "cosmetic"
+  },
+  {
+   "herb_id": "H284",
+   "failureType": "other",
+   "detail": "Same de-duplication defect: 「之才曰畏海蛤文蛤」 appears twice, byte-identical, within a single record, alongside the 1799 七情表 witness. Likely upstream, since the harvest verifier already flagged the H284 claims file for carrying a duplicated [CONTRA] line (harvest_verification_results.json, H284, verdict PARTLY_VERIFIED). Check the dedupe step rather than patching the two rows by hand.",
+   "severity": "cosmetic"
+  },
+  {
+   "herb_id": "H283",
+   "failureType": "positive_as_warning",
+   "detail": "Two INCOMPAT rows are composite quotes tagged with a single relation 反, and one of them carries a POSITIVE envoy inside drug_incompatibilities. Row: 反神農本草經 七情 appendix (1799)「栝蔞　枸杞為使；惡干薑；畏牛膝、乾漆；反烏頭。」 — 枸杞為使 (goji is its envoy) is a 使 relation and renders, from the incompatibility field, as though goji were a drug to avoid. Same shape in 反吳儀洛 (本草從新 1757, 栝蒌仁)「畏牛膝、乾漆。惡乾薑。反乌頭。」, which is filed under 反 although it states 畏 and 惡 relations too — the relation-collapse shape that produced the H142 defect in the first attempt, though here no glyph is corrupted and every individual relation is also filed correctly on its own row from the BCGM witness. Fix: split both composites by relation verb and route 枸杞為使 to envoy_pairings (where the 1799 envoy is in fact already filed separately).",
+   "severity": "fix_before_load"
+  },
+  {
+   "herb_id": "H283",
+   "failureType": "invented_item",
+   "detail": "INCOMPAT carries the reciprocal aconite entry verbatim as a gua lou incompatibility row: 反神農本草經 七情 appendix (1799)「烏頭、烏喙　莽草為使，反半夏、栝蔞、貝母、白蘞、白芨」. Only the 栝蔞 token in that line concerns this herb. As filed, the row imports 莽草為使 (aconite's envoy, a positive relation) plus 半夏、貝母、白蘞、白芨 — four substances that are aconite's antagonists, not Trichosanthes', into Trichosanthes' incompatibility list. The verifier cited this line as corroboration of 反烏頭 (harvest_verification_results.json, H283 classical_contraindications: 'Independently corroborated twice… and the reciprocal entry'), i.e. it is evidence, not a pairing of this herb's own. Fix: keep it as a corroboration/provenance note on the 反烏頭 row, not as a standalone incompatibility row.",
+   "severity": "fix_before_load"
+  },
+  {
+   "herb_id": "H206",
+   "failureType": "dropped_clause",
+   "detail": "The BCGM 1596 adulterant-toxicity warning for 茜草 is absent from all five buckets, including unclassified: 「勿用赤柳草根，真相似，只是味酸濇，誤服令人患内障眼，速服甘草水止之，即毒氣散」 (recorded in eastern_qc_pre1900_results.json, H206, 'ADULTERANT WARNING (BCGM 1596)') — a red-willow root looks identical, and taking it by mistake causes cataract, to be checked at once with licorice water. This is a stated 勿用 prohibition with a named harm, and it is exactly the category this same pass DID file for H169 (the 野菊/苦薏 adulterant clauses, filed as clinical with an identity/adulterant scope tag). One rule has to apply to both. Note the 忌鐵 / 勿犯鉛鐵氣 metal-contact rules for this herb are correctly excluded as preparation doctrine, consistent with H256's stated policy; this clause is not preparation doctrine.",
+   "severity": "fix_before_load"
+  },
+  {
+   "herb_id": "H281",
+   "failureType": "changed_character",
+   "detail": "INCOMPAT row 畏吳儀洛 (本草從新 1757)「畏萆。」 is a truncated drug name — 萆 alone is not a substance; the relation is 畏萆薢, as the BCGM row directly above it in the same bucket correctly gives (之才「畏萆薢」). This is now much improved on the first attempt: the string is attributed to its witness, and the verifier confirms the 本草從新 transcription itself prints 「畏萆。」 (harvest_verification_results.json, H281 classical_contraindications), so nothing was introduced by this pass. But if the row loads as-is it names no real substance and will not match any lookup key. Fix: footnote it as the 1757 transcription's truncation of 萆薢 rather than shipping a bare 萆. Related and now correctly handled: the 3-item 「惡乾薑、白蔹、芫花。」 vs the 4-item BCGM/1799 lists (missing 藜蘆) is a genuine source difference and is now labelled with its witness, which is what the earlier audit asked for.",
+   "severity": "cosmetic"
+  },
+  {
+   "herb_id": "H160",
+   "failureType": "dietary_as_clinical",
+   "detail": "Two CLINICAL rows are drinking-manner rules rather than patient-state prohibitions: 藏器曰「飲之宜熱冷則聚痰」 (drink it hot; drunk cold it gathers phlegm) and 李廷飛曰「大抵飲茶宜熱宜少不飲尤佳空腹最忌」 (drink it hot, drink it little, better not at all, worst on an empty stomach). The verifier files both under 'PREPARATION DOCTRINE — a temperature-management rule, not a processing rule' (eastern_qc_pre1900_results.json, H160), and the adjacent food clause from the same source run, 胡洽「與榧同食令人身重」, was routed to DIETARY. Same run, adjacent clauses, different buckets. This is the SAFE direction of the error (a manner rule shown as clinical, not a real prohibition demoted to diet), and 空腹 is arguably a patient state, so this is defensible rather than clearly wrong — but it is the one item the first attempt's own log flagged here that has not moved. Note the genuinely clinical rows in the same bucket (虚寒/血弱, 大渴及酒後, 服威靈仙土茯苓者) are correctly placed.",
+   "severity": "cosmetic"
+  },
+  {
+   "herb_id": "H268",
+   "failureType": "other",
+   "detail": "POSITIVE carries 殺神農本草經 七情 appendix (1799)「殺天雄、附子毒」 — two drugs. The project's other internal witness gives three: eastern_qc_pre1900_results.json (H268) records the 之才 line as 「殺天雄附子烏頭毒」, adding 烏頭. The filed two-drug form matches the 1799 string verbatim as transcribed by the verifier (harvest_verification_results.json, H268: 「遠志　得茯苓、冬葵子、龍骨，良；殺天雄、附子毒；畏珍珠、蜚蠊、藜蘆。」), and the BCGM 卷12下 之才 line contains no 殺 clause at all, so the filing follows the stronger evidence and nothing is inverted — this is a positive antidotal relation either way. Flagging only so the two internal files are reconciled before load rather than silently picked between.",
+   "severity": "cosmetic"
+  },
+  {
+   "herb_id": "H107",
+   "failureType": "dropped_clause",
+   "detail": "The one 制 (positive, toxicity-restraining) pairing this herb has is filed in no bucket, not even unclassified: BCGM 1596 發明「近醫毎以緑豆同用治病有效，葢豆寒椒熱，隂陽配合得宜，且以豆制椒毒也」 — physicians pair black pepper with mung bean, the bean being cold and the pepper hot, so the bean restrains the pepper's toxin (eastern_qc_pre1900_results.json, H107, 'PREPARATION DOCTRINE … an explicit toxicity-restraint pairing'). Parallel 制/伏 relations were filed to POSITIVE elsewhere in this same slice (H092 制雄黄, H182 伏硫黄, H206 汁制雄黄, H282 伏砒), so the omission is an inconsistency rather than a policy. No safety inversion — the effect is only that a mitigating pairing is missing.",
+   "severity": "cosmetic"
+  },
+  {
+   "herb_id": "H142",
+   "failureType": "changed_character",
+   "detail": "The 辰丹砂 defect is NOT fixed, only diluted. INCOMPAT still carries the BCGM row 惡之才曰「惡葱實辰丹砂牡丹藜蘆」 filed under the single verb 惡, with 辰 still absorbed into the substance string and no footnote saying it is the corrupt/illegible 畏 of the Siku transcription. A customer-facing list renders 「辰丹砂」 as though it were a drug (Chen-prefecture cinnabar). This pass DID add the corrective witnesses (1799 七情表 split as 惡蔥實 + 畏丹砂、牡丹、藜蘆, and 1757 畏丹皮、丹砂), which is an improvement over the previous attempt, but the two are left unreconciled: 牡丹 and 藜蘆 now appear under 惡 in one row and 畏 in another for the same herb, and nothing tells the loader which verb is correct. Verified against harvest_verification_results.json H142 pairings row, which states the 1799 table 「黃芩　山茱萸，龍骨為使；惡蔥實；畏丹砂、牡丹、藜蘆。」 splits exactly where the stray 辰 sits. Fix: keep the BCGM string verbatim but tag 辰 as the illegible verb and mark the row as superseded on relation type by the 1799 witness.",
+   "severity": "fix_before_load"
+  },
+  {
+   "herb_id": "H274",
+   "failureType": "dropped_clause",
+   "detail": "The Lei Xiao 御風草 co-use prohibition 「凡使天麻勿用御風草…若同用令人有腸結之患」 has been moved OUT of drug_incompatibilities into unclassified. It is the single most safety-load-bearing clause tian ma has: a named substance pair with a named harm (腸結, intestinal blockage), verified verbatim in harvest_verification_results.json (H274, classical_contraindications, VERIFIED). The record's stated reason is that the relation enum admits only 畏/惡/反 — but the previous pass filed this same clause inside drug_incompatibilities with relation 'other' (safety_field_decomposition.json, H274), so the field demonstrably can carry it. Direction here is genuinely negative, unlike the 勝/解毒 cases that were correctly moved to positive, so parking it in unclassified is not the same fix. If unclassified does not load, a real prohibition disappears. Fix: restore to drug_incompatibilities with an explicit non-七情 relation type, or extend the enum.",
+   "severity": "fix_before_load"
+  },
+  {
+   "herb_id": "H002",
+   "failureType": "other",
+   "detail": "CLINICAL carries the 附方 line 「咽乾乃虚中有熱不可服涼藥…」 as a second contraindication record. That line restricts COOLING DRUGS (涼藥) inside the 欬膿血 formula; it is not a restriction on 黃耆, which is warm. The record's own annotation concedes it is 'NOT a standalone herb-level contraindication', yet it sits in the contraindication bucket anyway, where a mechanical loader will publish 'dry throat means heat within deficiency, do not take cooling medicines' as an astragalus contraindication. The verifier's note (harvest_verification_results.json, H002) endorses it only as context, not as a contraindication. Contrast H175, where the analogous formula-scoped line genuinely restricts a chen-pi-containing formula and so belongs where it is. Fix: move to unclassified, or add a hard formula-scope field that suppresses it from the herb-level warning render.",
+   "severity": "fix_before_load"
+  },
+  {
+   "herb_id": "H140",
+   "failureType": "other",
+   "detail": "The fourth INCOMPAT row is malformed: it is typed 反, attributed to 吳儀洛 1757, and then bundles the 1799 七情 appendix inside the same row quoting 「丹參　畏鹹水，反藜蘆。」 followed by a second quote 「反藜蘆。」. One row therefore carries two independent witnesses and two different relations (畏 and 反). Consequence: the 1799 witness of 畏鹹水 is not filed as its own 畏 row, and a row typed 反 displays a 畏 relation inside its quoted text. No content is lost and no direction is inverted, so this is presentation only, but it should be split into separate per-witness, per-relation rows before load (compare the clean four-row structure this same herb had in the previous pass).",
+   "severity": "cosmetic"
+  },
+  {
+   "herb_id": "H215",
+   "failureType": "positive_as_warning",
+   "detail": "The p.94 record is filed whole into clinical_contraindications as 「…無甚感鬱之人藉以充潤腸胃當亦小有資補若傷冒時疫以此橫塞中焦羸尪雜症妄冀蘇起沉疴未覩其益必蒙其害世有良工其察鄙言」. Only the span 若傷冒時疫…必蒙其害 is a prohibition. The leading clause 無甚感鬱之人藉以充潤腸胃當亦小有資補 is a qualified POSITIVE indication (for a patient without much stagnation it fills and moistens the intestines and stomach and gives small supplementing benefit) and belongs in unclassified, kept adjacent to the contraindication it is contrasted with; the trailing 世有良工其察鄙言 is a rhetorical address to practitioners with no clinical content. As filed, any renderer that shows clinical_contraindications, and especially any that truncates, leads with a benefit statement under a contraindication heading, which inverts direction for that clause. Nothing is lost: all three spans are present verbatim and the record's own gloss states the contrast correctly, so this is misfiling, not a dropped clause. Note the same pass DID split the parallel p.93 run, correctly routing 山西通志謂黨參今無產者 to unclassified while keeping 舉世以代神草…胸滿氣隔之患 clinical, so the two records are handled inconsistently. Fix: keep 若傷冒時疫…必蒙其害 as the clinical text and move the opening positive clause and the closing rhetorical clause to unclassified with a pointer back to the contraindication. Consequence of the current state: unclassified holds 1 entry where the slice expects 3.",
+   "severity": "fix_before_load"
+  }
+ ],
+ "items": [
+  {
+   "herb_id": "H177",
+   "herb": "Forsythia (Lian Qiao) — Forsythia suspensa 連翹",
+   "clinical_contraindications": [],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "附方 (formula section) 「痔瘡腫痛{{SK notes|連翹煎湯熏洗後以刀上飛過緑礬入麝香貼之　集騐方}}」 — REASON: this is a treatment formula for haemorrhoid swelling and pain (fumigate/wash with Lianqiao decoction, then apply levigated green vitriol with musk), i.e. an indication plus its co-ingredients. It is not a warning of any kind and must not be filed as one. Recorded here only so that no clause from the verified text is dropped. Scope: this one 附方 only, not the drug as such.",
+    "VERIFIED ABSENCE — the BCGM 卷16 連翹 entry (釋名 → 集解 → 氣味 → 主治 → 發明 → 附方 → 翹根) has NO 脩治/修治 section and the 氣味 note contains no 忌 / 畏 / 惡 / 反 clause of any kind. 連翹 is likewise absent from the 七情 appendix in 卷三 of the Sun Xingyan 1799 Shennong Bencao Jing. There is nothing to file in any bucket."
+   ],
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu 卷16, 1596 (Siku Quanshu recension)",
+    "神農本草經 Shennong Bencao Jing, Sun Xingyan recension, 1799"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H257",
+   "herb": "Perilla Leaf (Zi Su Ye, 紫蘇)",
+   "clinical_contraindications": [
+    {
+     "text": "機曰宋仁宗命翰林院定湯飲奏曰紫蘇熟水第一以其能下胸膈浮氣也盖不知其久則泄人真氣焉",
+     "speaker": "機曰 Wang Ji (汪機), quoted in BCGM 卷十四 發明, 1596",
+     "gloss": "Wang Ji: Emperor Renzong of Song had the Hanlin Academy rank medicinal drinks and perilla hot-water was placed first, because it can bring down floating qi in the chest and diaphragm. What they did not realise is that over the long term it drains a person's true qi. — A prolonged-use caution.",
+     "scope": "whole drug, prolonged/habitual use as a daily beverage"
+    },
+    {
+     "text": "宗奭曰紫蘇其氣香其味微辛甘能散今人朝暮飲紫蘇湯甚無益醫家謂芳草致豪貴之{{SKchar2|927}}者此有一焉若脾胃寒人多致滑泄往往不覺",
+     "speaker": "宗奭曰 Kou Zongshi, quoted in BCGM 卷十四 發明, 1596",
+     "gloss": "Kou Zongshi: perilla is aromatic, faintly pungent-sweet, and dispersing. People who drink perilla decoction morning and night gain nothing by it; physicians speak of aromatic herbs bringing on the diseases of the rich and noble, and this is one of them. In people with a COLD SPLEEN AND STOMACH it frequently causes slippery diarrhoea, often without their noticing. TEXTUAL NOTE: the character shown as 疾 in some transcriptions is a lacuna here ({{SKchar2|927}}); 疾 is a standard restoration, not printed text in this SKQS recension.",
+     "scope": "whole drug; patient state = cold spleen and stomach 脾胃寒人"
+    },
+    {
+     "text": "氣虚表虚者禁之。（俗喜其芳香、旦暮恣食、不知泄真元之氣、古稱芳草致豪贵之疾、此類是也。）",
+     "speaker": "本草從新 Ben Cao Cong Xin (吳儀洛 Wu Yiluo), 1757",
+     "gloss": "Prohibited in those with qi deficiency or exterior deficiency. (Common folk delight in its fragrance and indulge in it morning and evening, not knowing that it drains the true original qi; the ancients' phrase about aromatic herbs bringing on the diseases of the rich and noble is exactly this sort of thing.) Here 疾 IS printed.",
+     "scope": "whole drug; patient state = 氣虚 / 表虚"
+    },
+    {
+     "text": "多服泄人真气",
+     "speaker": "本草備要 Ben Cao Bei Yao (汪昂 Wang Ang), 1694",
+     "gloss": "Taken in excess it drains a person's true qi. A dose/duration caution.",
+     "scope": "whole drug, excessive dosage"
+    },
+    {
+     "text": "蘇子…腸滑氣虚者禁之",
+     "speaker": "本草從新 Ben Cao Cong Xin (吳儀洛 Wu Yiluo), 1757",
+     "gloss": "Perilla SEED: prohibited in those with slippery intestines (loose stool) or qi deficiency.",
+     "scope": "the seed 蘇子 only, NOT the leaf or stem"
+    },
+    {
+     "text": "表弱气虚者忌用叶，肠滑气虚者忌用子",
+     "speaker": "本草備要 Ben Cao Bei Yao (汪昂 Wang Ang), 1694",
+     "gloss": "Those with a weak exterior or qi deficiency must avoid the LEAF; those with slippery intestines or qi deficiency must avoid the SEED. NOTE: the 忌 here is followed by a patient state plus a plant part, so it is CLINICAL, not dietary. The split-by-part rule is correctly attributed to BCBY 1694.",
+     "scope": "part-specific — leaf 叶 vs seed 子, stated as two separate rules"
+    }
+   ],
+   "dietary_avoidances": [
+    {
+     "text": "{{SK anchor|莖葉氣味辛温無毒}}{{SK notes|李廷飛曰不可同鯉魚食生毒瘡}}",
+     "speaker": "李廷飛曰 Li Tingfei, quoted in BCGM 卷十四 莖葉氣味 note, 1596",
+     "gloss": "Stem and leaf: pungent, warm, non-toxic. Li Tingfei: must not be eaten together with CARP (鯉魚), it produces poisonous sores. Tang/Song food-combining lore, not a clinical prohibition.",
+     "scope": "stem and leaf 莖葉"
+    },
+    {
+     "text": "忌鯉魚。",
+     "speaker": "本草從新 Ben Cao Cong Xin (吳儀洛 Wu Yiluo), 1757",
+     "gloss": "Avoid carp. 忌 here is followed by a FOOD, therefore dietary, not clinical.",
+     "scope": "whole drug"
+    },
+    {
+     "text": "忌鲤鱼。",
+     "speaker": "本草備要 Ben Cao Bei Yao (汪昂 Wang Ang), 1694 (simplified-character transcription)",
+     "gloss": "Avoid carp. Same dietary rule as BCCX, carried independently by BCBY.",
+     "scope": "whole drug"
+    }
+   ],
+   "drug_incompatibilities": [],
+   "positive_pairings": [
+    {
+     "text": "氣香者良。宜橘皮。",
+     "speaker": "本草從新 Ben Cao Cong Xin (吳儀洛 Wu Yiluo), 1757",
+     "gloss": "The more aromatic the better. It SUITS / is well paired with tangerine peel (橘皮). This is a recommended combination, a positive instruction — it must never render as a warning.",
+     "relation": "other"
+    },
+    {
+     "text": "气香者良。宜橘皮。",
+     "speaker": "本草備要 Ben Cao Bei Yao (汪昂 Wang Ang), 1694 (simplified-character transcription)",
+     "gloss": "The more aromatic the better. It suits tangerine peel. BCBY carries the identical pair 宜橘皮/忌鲤鱼 as BCCX.",
+     "relation": "other"
+    }
+   ],
+   "unclassified": [
+    "BCGM 卷十四 莖葉 「氣味辛温無毒」 and 主治 「下氣除寒中其子尤良{{别録}}」 with 時珍's 「解肌發表散風寒行氣寛中…」; seed 「子氣味辛温無毒主治下氣除寒温中{{SK notes|别錄}}」 — REASON: nature/flavour and 主治 (indications). Conditions being TREATED, not caused. Not a warning in any bucket.",
+    "本草從新 1757 「蘇梗（宣、順氣。）順氣安胎。功力稍緩、挟虚者宜之。」 — REASON: indication for the STEM (蘇梗). 安胎 = calms/secures the fetus and 挟虚者宜之 = suitable for those with concomitant deficiency. Both are positive indications. IMPORTANT: 安胎 must not be inverted into a pregnancy contraindication; the stem is here recommended in pregnancy."
+   ],
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu 卷十四, 1596",
+    "本草從新 Ben Cao Cong Xin (吳儀洛 Wu Yiluo), 1757",
+    "本草備要 Ben Cao Bei Yao (汪昂 Wang Ang), 1694"
+   ],
+   "recordsMerged": 3
+  },
+  {
+   "herb_id": "H261",
+   "herb": "Kanchnar / Kanchanara (Bauhinia variegata)",
+   "clinical_contraindications": [],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "VERIFIED ABSENCE, independently confirmed in two pre-1900 works. Dutt 1877 p.156 (BAUHINIA VARIEGATA; Sans. Kanchanara, Kovidara; Hind. Kachnar) gives 「the properties of both are said to be identical. The bark of Bauhinia variegata is described as alterative, tonic, astringent and useful in scrofula, skin diseases and ulcers」 followed by Chakradatta's and Sarangadhara's formulae (Kanchanara guggulu) — no caution anywhere. Dymock, Warden & Hooper, Pharmacographia Indica vol.1, 1890, gives Bhavaprakasa properties, Concan usage and the Makhzan's account (astringent, attenuant, tonic; checks diarrhoea, removes worms) — indications throughout, no restriction. REASON: everything present is an indication; nothing in either work reads as a contraindication, dietary avoidance, incompatibility or pairing."
+   ],
+   "sourcesUsed": [
+    "U. C. Dutt, The Materia Medica of the Hindus, 1877",
+    "Dymock, Warden & Hooper, Pharmacographia Indica, vol. 1, 1890"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H273",
+   "herb": "Uncaria (Gou Teng, 钩藤钩)",
+   "clinical_contraindications": [
+    {
+     "text": "但性稍寒。無火者勿服。",
+     "speaker": "本草從新 Ben Cao Cong Xin 卷五草部 (吳儀洛 Wu Yiluo), 1757",
+     "gloss": "But its nature is somewhat cold. Those WITHOUT FIRE (i.e. lacking a heat/fire pattern) must not take it. A patient-state prohibition.",
+     "scope": "whole drug"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "Surrounding entry text 「甘微苦寒。除心熱。平肝風。舒筋除眩。下氣宽中。…主肝風相火之病。風静火息。則諸證自平。（相火散行於胆、三焦、心包。）祛肝風而不燥。庶幾中和。故小兒科珍之。…有刺類钓钩。故名。」 — REASON: nature/flavour, indications (clears heart heat, calms liver wind, relaxes sinews, stops dizziness), mechanism and name etymology. Conditions being TREATED, not caused.",
+    "RETRIEVAL NOTE (not a clause): the Wikisource transcription of Ben Cao Cong Xin uses simplified 钩藤; searching only traditional 鉤藤/釣藤 returns nothing. That is a retrieval trap, not an absence."
+   ],
+   "sourcesUsed": [
+    "本草從新 Ben Cao Cong Xin 卷五, 吳儀洛 Wu Yiluo, 1757"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H035",
+   "herb": "Lion's Mane (猴頭, Hericium erinaceus)",
+   "clinical_contraindications": [],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "VERIFIED ABSENCE. No entry for 猴頭 exists in the Shennong Bencao Jing (Sun Xingyan recension, 1799), in the Bencao Gangmu 1596 fungus class (卷28 菜之五 芝栭類, fifteen named kinds, none of them Hericium), or in Ben Cao Cong Xin 1757. With no entry there is no contraindication line to quote, and reporting the absence is the correct result. RECORD-KEEPING NOTE: this is the herb whose row previously carried a FABRICATED 1848 'sweet, neutral' quote. The honest finding is that the pre-1900 record is silent — nothing may be synthesised to fill this."
+   ],
+   "sourcesUsed": [
+    "神農本草經 Shennong Bencao Jing, Sun Xingyan recension, 1799",
+    "本草綱目 Bencao Gangmu 卷28, 1596",
+    "本草從新 Ben Cao Cong Xin, 1757"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H050",
+   "herb": "Reishi (靈芝 / 六芝 — 青赤黄白黒紫芝)",
+   "clinical_contraindications": [],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [
+    {
+     "text": "惡常山",
+     "speaker": "之才曰 Xu Zhicai, quoted in BCGM 卷28 note to 青芝氣味, 1596",
+     "gloss": "Antagonised by 常山 (Dichroa febrifuga root). A genuine NEGATIVE relation.",
+     "relation": "惡"
+    },
+    {
+     "text": "畏扁青茵蔯蒿",
+     "speaker": "之才曰 Xu Zhicai, quoted in BCGM 卷28 note to 青芝氣味, 1596",
+     "gloss": "Feared by / diminished by 扁青 (azurite) and 茵蔯蒿 (Artemisia capillaris). Two named drugs in one verbatim clause. A genuine NEGATIVE relation.",
+     "relation": "畏"
+    }
+   ],
+   "positive_pairings": [
+    {
+     "text": "青赤黄白黒紫六芝並以薯蕷為之使",
+     "speaker": "之才曰 Xu Zhicai, quoted in BCGM 卷28 note to 青芝氣味, 1596",
+     "gloss": "All six zhi — blue-green, red, yellow, white, black and purple — take 薯蕷 (Dioscorea, Chinese yam) AS THEIR ENVOY (為之使). This is a guiding partner, a POSITIVE instruction. It must never render as an incompatibility.",
+     "relation": "使"
+    },
+    {
+     "text": "得髪良",
+     "speaker": "之才曰 Xu Zhicai, quoted in BCGM 卷28 note to 青芝氣味, 1596",
+     "gloss": "Combined with 髪 (human hair, i.e. 亂髮) it is good. A recommended combination.",
+     "relation": "other"
+    },
+    {
+     "text": "得蔴子仁白{{SKchar|2201}}子牡桂甚益人",
+     "speaker": "之才曰 Xu Zhicai, quoted in BCGM 卷28 note to 青芝氣味, 1596",
+     "gloss": "Combined with hemp seed kernel (蔴子仁), white gourd seed (白瓜子) and 牡桂 (cinnamon) it greatly benefits a person. A recommended combination. TEXTUAL NOTE, preserved deliberately: 白瓜子 stands as 白{{SKchar|2201}}子 in the Wikisource transcription; the same glyph resolves to 瓜 elsewhere in the same juan (白冬{{SKchar|2201}} = 白冬瓜), so the reading is sound, but it is not asserted silently.",
+     "relation": "other"
+    }
+   ],
+   "unclassified": [
+    "SCOPE NOTE applying to every relation above: 之才's note is attached to 青芝氣味 but explicitly governs all six zhi (青赤黄白黒紫六芝並…), so each of the four positive pairings and two incompatibilities applies to the whole zhi group, not to blue-green zhi alone."
+   ],
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu 卷28, 1596 (四庫全書本 / Siku Quanshu recension)"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H173",
+   "herb": "White Peony / Bai Shao (芍藥)",
+   "clinical_contraindications": [
+    {
+     "text": "宗奭曰芍藥須用單葉紅花者為佳然氣虚寒人禁之古人云減芍藥以避中寒誠不可忽",
+     "speaker": "宗奭曰 Kou Zongshi, quoted in BCGM 卷14 發明, 1596",
+     "gloss": "Kou Zongshi: for peony one should use the single-petalled red-flowered kind, which is best; however it is PROHIBITED in people with qi deficiency and cold. The ancients said 'reduce the peony to avoid cold in the centre' — this truly must not be neglected.",
+     "scope": "whole drug; patient state = 氣虚寒人"
+    },
+    {
+     "text": "震亨曰…下痢腹痛必炒用後重者不炒産後不可用者以其酸寒伐生發之氣也必不得已亦酒炒用之",
+     "speaker": "震亨曰 Zhu Zhenheng, quoted in BCGM 卷14 發明, 1596",
+     "gloss": "Zhu Zhenheng: for dysenteric diarrhoea with abdominal pain it must be used stir-fried; where there is tenesmus, do not stir-fry it. It MUST NOT BE USED POSTPARTUM, because its sourness and coldness attack the generating and upbearing qi. If it is absolutely unavoidable, use it stir-fried in wine. (The clause carries both a postpartum prohibition and its conditional workaround.)",
+     "scope": "whole drug; patient state = postpartum 産後"
+    },
+    {
+     "text": "時珍曰…産後肝血已虚不可更瀉故禁之",
+     "speaker": "時珍曰 Li Shizhen, BCGM 卷14 發明, 1596",
+     "gloss": "Li Shizhen: postpartum the liver blood is already deficient and must not be further drained, therefore it is prohibited.",
+     "scope": "whole drug; patient state = postpartum 産後"
+    },
+    {
+     "text": "又曰。產後忌用。",
+     "speaker": "本草從新 Ben Cao Cong Xin (吳儀洛 Wu Yiluo), 1757",
+     "gloss": "Also said: avoid using postpartum. 忌 here is followed by a PATIENT STATE, so it is clinical, not dietary. BCCX reproduces the same three BCGM opinions under this heading.",
+     "scope": "whole drug; patient state = postpartum 產後"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [
+    {
+     "text": "惡石斛芒消",
+     "speaker": "之才曰 Xu Zhicai, quoted in BCGM 卷14 氣味, 1596",
+     "gloss": "Antagonised by 石斛 (Dendrobium) and 芒消 (mirabilite).",
+     "relation": "惡"
+    },
+    {
+     "text": "畏消石鼈甲小薊",
+     "speaker": "之才曰 Xu Zhicai, quoted in BCGM 卷14 氣味, 1596",
+     "gloss": "Feared by / diminished by 消石 (niter), 鼈甲 (turtle shell) and 小薊 (Cirsium setosum).",
+     "relation": "畏"
+    },
+    {
+     "text": "反藜蘆",
+     "speaker": "之才曰 Xu Zhicai, quoted in BCGM 卷14 氣味, 1596",
+     "gloss": "OPPOSES 藜蘆 (Veratrum). The 反 relation, the most safety-load-bearing class of pairing in the corpus. Lexically distinct from 惡 and 畏 in the source.",
+     "relation": "反"
+    },
+    {
+     "text": "惡芒硝、石斛。",
+     "speaker": "本草從新 Ben Cao Cong Xin (吳儀洛 Wu Yiluo), 1757",
+     "gloss": "Antagonised by mirabilite and Dendrobium. Independent 1757 witness to the same pair (order reversed, 硝 for 消).",
+     "relation": "惡"
+    },
+    {
+     "text": "畏鳖甲、小蓟。",
+     "speaker": "本草從新 Ben Cao Cong Xin (吳儀洛 Wu Yiluo), 1757",
+     "gloss": "Feared by / diminished by turtle shell and Cirsium setosum. Independent 1757 witness. NOTE: BCCX's 畏 list omits 消石, which BCGM includes.",
+     "relation": "畏"
+    },
+    {
+     "text": "反藜蘆。",
+     "speaker": "本草從新 Ben Cao Cong Xin (吳儀洛 Wu Yiluo), 1757",
+     "gloss": "Opposes Veratrum. Independent 1757 witness to the 反 relation.",
+     "relation": "反"
+    }
+   ],
+   "positive_pairings": [
+    {
+     "text": "之才曰須丸為之使",
+     "speaker": "之才曰 Xu Zhicai, quoted in BCGM 卷14 氣味, 1596",
+     "gloss": "Xu Zhicai: 須丸 acts AS ITS ENVOY (為之使) — a guiding partner directing the formula. POSITIVE, never a warning. CORRECTION CARRIED FORWARD: 須丸 is a MINERAL drug (a form of hematite), not a person; an earlier gloss reading 'Xu Wan is its envoy' misread the term while quoting the characters correctly.",
+     "relation": "使"
+    }
+   ],
+   "unclassified": [
+    "「禹鍚曰别本須丸作雷丸」 (禹錫 Zhang Yuxi, quoted in BCGM 卷14) — REASON: a TEXTUAL VARIANT note recorded by BCGM itself, stating that another edition writes 雷丸 (Omphalia) where this one writes 須丸. It bears on the identity of the envoy drug in the positive pairing above but is not itself a clinical clause in any of the four buckets. Loader should surface it alongside the 使 entry.",
+    "Within 震亨's clause, the processing directions 「下痢腹痛必炒用後重者不炒」 and 「必不得已亦酒炒用之」 — REASON: preparation/processing instructions (stir-fry, do not stir-fry, wine-fry). Retained inside the verbatim clinical clause above rather than split out, but flagged here so they are not read as prohibitions in their own right."
+   ],
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu 卷14, 1596 (四庫全書本 / Siku Quanshu recension)",
+    "本草從新 Ben Cao Cong Xin (吳儀洛 Wu Yiluo), 1757"
+   ],
+   "recordsMerged": 2
+  },
+  {
+   "herb_id": "H214",
+   "herb": "Bitter Sophora / Ku Shen (苦參)",
+   "clinical_contraindications": [
+    {
+     "text": "…熱生風濕生虫故又能治風殺䖝惟腎水弱而相火勝者用之相宜若火衰精冷真元不足及年高之人不可用也",
+     "speaker": "本草綱目 BCGM juan 13 發明, 1596",
+     "gloss": "Heat generates wind and damp generates worms, hence it can also treat wind and kill worms. It is suitable ONLY for those whose kidney water is weak and whose ministerial fire is excessive. If the fire is declining, the essence cold, the true original qi insufficient, OR THE PERSON IS ADVANCED IN YEARS (及年高之人), it MUST NOT BE USED. The 及年高之人 limb is part of the verbatim text and must not be trimmed.",
+     "scope": "whole drug; patient states = declining fire / cold essence / insufficient true original qi / advanced age"
+    },
+    {
+     "text": "久服黄連苦参而反熱者…氣增不已則臟氣有偏勝…故有暴夭",
+     "speaker": "本草綱目 BCGM juan 13 發明, 1596",
+     "gloss": "Those who take Coptis and Kushen over a long period and paradoxically develop heat… when the qi is increased without cease, the organ qi becomes one-sidedly dominant… hence there are sudden untimely deaths. A PROLONGED-USE warning of the gravest kind. This clause was NOT captured by the original submission and is added here so nothing is dropped.",
+     "scope": "whole drug, prolonged use 久服"
+    },
+    {
+     "text": "肝腎虚而無熱者忌。（其氣能傷腎、沈括梦溪笔談云：久用苦參擦牙、逐病腰痛、由其氣傷腎也。）",
+     "speaker": "本草從新 Ben Cao Cong Xin (吳儀洛 Wu Yiluo), 1757",
+     "gloss": "Avoid in those with liver and kidney deficiency and no heat. (Its qi can injure the kidneys; Shen Kuo's Mengxi Bitan records that prolonged use of Kushen as a tooth-rub brought on lumbar pain, because its qi injures the kidneys.) 忌 here is followed by a PATIENT STATE, so clinical, not dietary.",
+     "scope": "whole drug; patient state = 肝腎虚而無熱"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [
+    {
+     "text": "惡貝母兎絲漏蘆",
+     "speaker": "之才曰 Xu Zhicai, quoted in BCGM juan 13 氣味 note, 1596",
+     "gloss": "Antagonised by 貝母 (Fritillaria), 兎絲 (Cuscuta) and 漏蘆 (Rhaponticum).",
+     "relation": "惡"
+    },
+    {
+     "text": "反藜蘆",
+     "speaker": "之才曰 Xu Zhicai, quoted in BCGM juan 13 氣味 note, 1596",
+     "gloss": "OPPOSES 藜蘆 (Veratrum). The 反 relation, lexically distinct from 惡 and 畏 in the source. Safety-load-bearing.",
+     "relation": "反"
+    },
+    {
+     "text": "惡貝母、菟絲、漏蘆。",
+     "speaker": "本草從新 Ben Cao Cong Xin (吳儀洛 Wu Yiluo), 1757",
+     "gloss": "Antagonised by Fritillaria, Cuscuta and Rhaponticum. Independent 1757 witness.",
+     "relation": "惡"
+    },
+    {
+     "text": "反藜蘆。",
+     "speaker": "本草從新 Ben Cao Cong Xin (吳儀洛 Wu Yiluo), 1757",
+     "gloss": "Opposes Veratrum. Independent 1757 witness to the 反 relation.",
+     "relation": "反"
+    },
+    {
+     "text": "惡貝母、漏蘆、菟絲子；",
+     "speaker": "神農本草經 Shennong Bencao Jing, Sun Xingyan recension juan 3, 1799",
+     "gloss": "Antagonised by Fritillaria, Rhaponticum and Cuscuta seed. Third independent pre-1900 witness (order differs; 菟絲子 written in full).",
+     "relation": "惡"
+    },
+    {
+     "text": "反藜蘆。",
+     "speaker": "神農本草經 Shennong Bencao Jing, Sun Xingyan recension juan 3, 1799",
+     "gloss": "Opposes Veratrum. Third independent pre-1900 witness. The 反 relation for 苦參/藜蘆 is attested in all three witnesses read (BCGM 1596, BCCX 1757, SBCJ Sun Xingyan 1799) and is fully classical, quite apart from the later 十八反 mnemonic packaging — that framework name was NOT verified and is not asserted here.",
+     "relation": "反"
+    }
+   ],
+   "positive_pairings": [
+    {
+     "text": "之才曰𤣥參為之使",
+     "speaker": "之才曰 Xu Zhicai, quoted in BCGM juan 13 氣味 note, 1596",
+     "gloss": "Xu Zhicai: 𤣥參 (Scrophularia) acts AS ITS ENVOY — a guiding partner. POSITIVE, never a warning.",
+     "relation": "使"
+    },
+    {
+     "text": "時珍曰伏水制雌黄熖消",
+     "speaker": "時珍曰 Li Shizhen, BCGM juan 13 氣味 note, 1596",
+     "gloss": "Li Shizhen: it SUBDUES (伏) water and CONTROLS (制) 雌黄 (orpiment) and 熖消 (niter/flame-nitre). This is the herb DOING SOMETHING BENEFICIAL to other drugs — taming their toxicity/violence. It is a capability, POSITIVE, and filing it as an incompatibility would invert the source exactly.",
+     "relation": "制伏"
+    },
+    {
+     "text": "元參爲使。",
+     "speaker": "本草從新 Ben Cao Cong Xin (吳儀洛 Wu Yiluo), 1757",
+     "gloss": "Scrophularia is its envoy. Independent 1757 witness (元參 for 𤣥參). POSITIVE.",
+     "relation": "使"
+    },
+    {
+     "text": "苦參　元參為使；",
+     "speaker": "神農本草經 Shennong Bencao Jing, Sun Xingyan recension juan 3, 1799",
+     "gloss": "Kushen: Scrophularia is its envoy. Third independent pre-1900 witness. POSITIVE.",
+     "relation": "使"
+    }
+   ],
+   "unclassified": [
+    "Within the BCGM 發明 clause, 「熱生風濕生虫故又能治風殺䖝」 — REASON: this 殺䖝 is an INDICATION (kills worms/parasites in the patient), not a 殺 drug-relation in the 七情 sense. It is a condition being TREATED. Retained inside the verbatim contraindication clause above but flagged here so no loader reads 殺䖝 as a drug pairing."
+   ],
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu juan 13, 1596",
+    "本草從新 Ben Cao Cong Xin (吳儀洛 Wu Yiluo), 1757",
+    "神農本草經 Shennong Bencao Jing, Sun Xingyan recension juan 3, 1799"
+   ],
+   "recordsMerged": 2
+  },
+  {
+   "herb_id": "H253",
+   "herb": "Job's Tears / Coix (薏苡仁)",
+   "clinical_contraindications": [
+    {
+     "text": "…令人能食。大便燥结。因寒筋急。勿用。",
+     "speaker": "本草從新 Ben Cao Cong Xin 卷十二 (吳儀洛 Wu Yiluo), 1757",
+     "gloss": "…it makes a person able to eat. In DRY, BOUND STOOL (大便燥结) and in SINEW TENSION ARISING FROM COLD (因寒筋急), DO NOT USE (勿用). Two distinct patient states under one prohibition.",
+     "scope": "whole drug; patient states = 大便燥结 and 因寒筋急"
+    },
+    {
+     "text": "宗奭曰薏苡仁本經云微寒主筋急拘攣…故可用薏苡若素問言因寒則筋急者不可更用此也…",
+     "speaker": "宗奭曰 Kou Zongshi, quoted in BCGM 卷二十三 發明, 1596",
+     "gloss": "Kou Zongshi: the Bencao Jing says Coix is slightly cold and governs sinew tension and cramping… so Coix may be used [where the tension is from heat/damp]; but where the Suwen speaks of sinew tension arising FROM COLD, this must not be used further. Attribution to 寇宗奭 confirmed.",
+     "scope": "whole drug; patient state = 因寒則筋急 (cold-caused sinew tension)"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "本草備要 1694 (汪昂 Wang Ang): 「…薏苡去湿要药，因寒因热，皆可用也。《衍义》云∶因寒筋急者不可用，恐不然」 — REASON: this is an explicit DISSENT, not a prohibition. Wang Ang states Coix is a key damp-dispelling drug usable whether the cause is cold or heat, and that the Bencao Yanyi's 因寒筋急者不可用 is, he suspects, not so. Filing it as a contraindication would reverse its meaning; filing it as a pairing would be wrong too. Loader should surface it as a countervailing classical opinion against the two 因寒筋急 contraindications above.",
+    "本草備要 1694 closing line: 「杀蛔堕胎」 (within 「但其力和缓，用之须倍于他药。杀蛔堕胎，炒熟微研。」) — REASON: DIRECTION CANNOT BE SETTLED from the text as given. 杀蛔 (kills roundworm) is an anthelmintic ACTION against a parasite, not a 七情 drug relation, so it does not belong in positive_pairings. 堕胎 sits in the same list-of-actions register and could read either as an abortifacient use (a capability) or as a pregnancy hazard (a warning); per the direction rule it is left here rather than guessed. TWO CAVEATS THE LOADER MUST CARRY: (a) the only reachable text is a SIMPLIFIED-character Wikisource transcription, so traditional 殺蛔墮胎 has NOT been confirmed against a woodblock scan — treat as a lead, not a citation; (b) BCGM assigns 墮胎 to the ROOT, not the seed — 卷二十三 根: 「煮服墮胎{{SK notes|藏器}}」, attributed to 陳藏器, and there it sits in a 主治 context meaning the root is USED to induce abortion. The classical abortifacient evidence for the SEED therefore rests on 本草備要 alone.",
+    "本草從新 1757 and 本草備要 1694: 「其力和緩。用之須倍於他藥。炒熟微研。」 / 「但其力和缓，用之须倍于他药。…炒熟微研。」 — REASON: DOSAGE and PROCESSING instructions (its power is mild and moderate, so use double the amount of other drugs; stir-fry until done and grind lightly). Not a warning in any of the four buckets.",
+    "TRANSCRIPTION CAUTION, carried forward from the verified record: the 本草備要 text available is a simplified-character Wikisource transcription with dropped glyphs. All BCBY strings above should be re-checked against a traditional woodblock witness before customer-facing publication."
+   ],
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu 卷二十三, 1596",
+    "本草備要 Ben Cao Bei Yao (汪昂 Wang Ang), 1694",
+    "本草從新 Ben Cao Cong Xin 卷十二 (吳儀洛 Wu Yiluo), 1757"
+   ],
+   "recordsMerged": 2
+  },
+  {
+   "herb_id": "H187",
+   "herb": "White Atractylodes (Bai Zhu) / 術",
+   "clinical_contraindications": [],
+   "dietary_avoidances": [
+    {
+     "text": "權曰忌桃李菘菜雀肉青魚",
+     "speaker": "權曰 = Zhen Quan",
+     "gloss": "Zhen Quan says: avoid (in the diet) peach 桃, plum 李, Chinese cabbage 菘菜, sparrow meat 雀肉, and black carp 青魚. Five separate food items, all listed here so none is lost. This is Tang food-combining lore, NOT a pattern-level or patient-state contraindication.",
+     "scope": "whole drug"
+    }
+   ],
+   "drug_incompatibilities": [],
+   "positive_pairings": [
+    {
+     "text": "之才曰防風地榆為之使",
+     "speaker": "之才曰 = Xu Zhicai",
+     "gloss": "Xu Zhicai says: Fang Feng 防風 and Di Yu 地榆 act as its ENVOYS (為之使) — guiding partners that direct the formula. This is a positive combining instruction, not a warning. Independently corroborated in the Sun Xingyan 1799 七情 appendix (卷三): 「術　防風、地榆為使。」",
+     "relation": "使"
+    }
+   ],
+   "unclassified": [
+    "Corroborating 七情 line, carried for provenance only, contains no new clause: 神農本草經 孫星衍輯 1799 卷三 七情表 「術　防風、地榆為使。」 — reason: duplicate of the 使 pairing already filed under positive_pairings; recorded so the second witness is not silently dropped."
+   ],
+   "sourcesUsed": [
+    "本草綱目 (Bencao Gangmu) 卷12下, 1596",
+    "神農本草經 孫星衍輯本 (Shennong Bencao Jing, Sun Xingyan recension) 卷三 七情表, 1799"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H271",
+   "herb": "Corydalis (Yan Hu Suo) / 延胡索",
+   "clinical_contraindications": [
+    {
+     "text": "經事先期",
+     "speaker": "本草從新 (吳儀洛), 1757 — unattributed within the work",
+     "gloss": "Menses arriving ahead of term. Item 1 of a three-item prohibition list governed by the shared predicate 均忌之 ('in all these cases avoid it'). Full source string: 「經事先期。虚而崩漏。產後虚晕。均忌之。」",
+     "scope": "whole drug"
+    },
+    {
+     "text": "虚而崩漏",
+     "speaker": "本草從新 (吳儀洛), 1757 — unattributed within the work",
+     "gloss": "Flooding and spotting (崩漏, abnormal uterine bleeding) arising from deficiency. Item 2 of the three-item list governed by 均忌之. Full source string: 「經事先期。虚而崩漏。產後虚晕。均忌之。」",
+     "scope": "whole drug"
+    },
+    {
+     "text": "產後虚晕",
+     "speaker": "本草從新 (吳儀洛), 1757 — unattributed within the work",
+     "gloss": "Postpartum deficiency dizziness/fainting. Item 3 of the three-item list governed by 均忌之. Full source string: 「經事先期。虚而崩漏。產後虚晕。均忌之。」",
+     "scope": "whole drug"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [
+    {
+     "text": "（獨用力迅、宜兼補氣血藥用。）",
+     "speaker": "本草從新 (吳儀洛), 1757 — parenthetical gloss in the work",
+     "gloss": "Used alone its force is swift/urgent; it is fitting to use it together with qi- and blood-supplementing medicines. A positive combining instruction (temper it with tonics), not a prohibition. Not one of the named 七情 relations, hence 'other'.",
+     "relation": "other"
+    }
+   ],
+   "unclassified": [
+    "「爲活血利氣之藥」 — reason: statement of function (a blood-quickening, qi-freeing medicine). Indication/action, not a warning of any kind.",
+    "「然辛溫走而不守。」 — reason: nature/flavour characterisation (acrid, warm; it moves and does not hold). Rationale for the cautions rather than a prohibition in itself.",
+    "「通經堕胎。」 — reason: DIRECTION UNCERTAIN. Appears inside a run of function statements, not clearly in a 主治 list and not clearly a warning. It may read either as a capability (frees the menses, brings down a fetus) or as a caution against use in pregnancy. Per the direction rule this must not be guessed; flagged for a human reading of the surrounding 本草從新 column.",
+    "「瘀滞有餘者宜之。」 — reason: positive indication (suitable for those with excess stasis and stagnation). The inverse of a contraindication, but it names no partner drug, so it is not a positive pairing either.",
+    "「生用破血。炒用調血。（酒炒行血、醋炒止血。）」 — reason: 修治/炮製 processing doctrine (raw breaks blood; dry-fried regulates blood; wine-fried moves blood; vinegar-fried stops bleeding). Preparation instruction, not a contraindication, not a food, not a 七情 relation."
+   ],
+   "sourcesUsed": [
+    "本草從新 (吳儀洛), 1757"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H272",
+   "herb": "Eucommia Bark / Du Zhong (杜仲)",
+   "clinical_contraindications": [
+    {
+     "text": "腎虽虚而火炽者勿用",
+     "speaker": "本草從新 (吳儀洛), 1757, 木部 — unattributed within the work",
+     "gloss": "Though the kidney be deficient, if fire is blazing, do not use it. A genuine patient-state prohibition. NOTE: the transcription carries simplified forms 虽/炽 (for 雖/熾) from a modern digital intermediary; the reading is not in doubt but the glyphs are not those of a pre-1900 print.",
+     "scope": "whole drug"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [
+    {
+     "text": "之才曰惡𤣥參蛇蛻皮",
+     "speaker": "之才曰 = Xu Zhicai",
+     "gloss": "Xu Zhicai: it is antagonised by Xuan Shen 𤣥參 (玄參, Scrophularia). First of two drugs in this single 惡 clause; split so neither is lost. Full source string: 「之才曰惡𤣥參蛇蛻皮」.",
+     "relation": "惡"
+    },
+    {
+     "text": "之才曰惡𤣥參蛇蛻皮",
+     "speaker": "之才曰 = Xu Zhicai",
+     "gloss": "Xu Zhicai: it is antagonised by She Tui Pi 蛇蛻皮 (sloughed snake skin). Second of two drugs in the same 惡 clause. Full source string: 「之才曰惡𤣥參蛇蛻皮」.",
+     "relation": "惡"
+    },
+    {
+     "text": "惡元參。",
+     "speaker": "本草從新 (吳儀洛), 1757, 木部 — unattributed within the work",
+     "gloss": "Antagonised by Yuan Shen 元參 (= 玄參 Scrophularia; 元 written for 玄 to avoid the Kangxi taboo). Independent 1757 restatement of the same relation Xu Zhicai gives; kept as its own record because it is a separate witness in a separate work.",
+     "relation": "惡"
+    },
+    {
+     "text": "杜仲　惡蛇蛻、元參。",
+     "speaker": "神農本草經 孫星衍輯本, 1799, 七情表",
+     "gloss": "Du Zhong is antagonised by sloughed snake skin 蛇蛻 and Xuan Shen 元參. Third witness to the same pair, from the 1799 七情 table.",
+     "relation": "惡"
+    }
+   ],
+   "positive_pairings": [],
+   "unclassified": [
+    "「產湖廣湖南者佳。」 — reason: provenance/quality note (that produced in Huguang and Hunan is best). Neither a warning nor a pairing.",
+    "Transcription caveat, not a clause: the 本草從新 string as harvested uses simplified glyphs 虽/炽 in 「腎虽虚而火炽者勿用」. Recorded here so the character-form issue travels with the data; the classification is unaffected."
+   ],
+   "sourcesUsed": [
+    "本草綱目 (Bencao Gangmu) 卷35上, 1596",
+    "本草從新 (吳儀洛) 木部, 1757",
+    "神農本草經 孫星衍輯本 七情表, 1799"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H284",
+   "herb": "Water Plantain (Ze Xie) / 澤瀉",
+   "clinical_contraindications": [
+    {
+     "text": "扁鵲曰多服病人眼",
+     "speaker": "扁鵲曰 = Bian Que",
+     "gloss": "Bian Que says: taken in quantity it sickens/harms a person's eyes. A dosage-related adverse effect rather than a patient-state exclusion, but it is a genuine clinical caution about the drug itself, so it is filed here and not as dietary lore.",
+     "scope": "whole drug (excessive/prolonged dosing)"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [
+    {
+     "text": "之才曰畏海蛤文蛤",
+     "speaker": "之才曰 = Xu Zhicai",
+     "gloss": "Xu Zhicai: it fears / is diminished by Hai Ge 海蛤 (clam shell). First of two drugs in this single 畏 clause; split so neither is lost. Full source string: 「之才曰畏海蛤文蛤」.",
+     "relation": "畏"
+    },
+    {
+     "text": "之才曰畏海蛤文蛤",
+     "speaker": "之才曰 = Xu Zhicai",
+     "gloss": "Xu Zhicai: it fears / is diminished by Wen Ge 文蛤 (a second clam shell drug). Second of two drugs in the same 畏 clause. Full source string: 「之才曰畏海蛤文蛤」.",
+     "relation": "畏"
+    },
+    {
+     "text": "澤瀉　畏海蛤、文蛤。",
+     "speaker": "神農本草經 孫星衍輯本, 1799, 七情表",
+     "gloss": "Ze Xie fears Hai Ge and Wen Ge. Independent 1799 witness to the same 畏 pair.",
+     "relation": "畏"
+    }
+   ],
+   "positive_pairings": [],
+   "unclassified": [
+    "「宗奭曰…本草引扁鵲云多服病人眼誠為行去其水也」 (寇宗奭 Kou Zongshi, BCGM 發明) — reason: commentary EXPLAINING the Bian Que eye caution (it is truly because the drug drives off the body's water). Explanatory gloss on a clause already filed, not an additional prohibition.",
+    "「好古曰本經云久服明目扁鵲云多服昏目何也」 (王好古 Wang Haogu, BCGM 發明) — reason: Wang Haogu poses the contradiction rather than resolving it — the Ben Jing says prolonged use brightens the eyes, Bian Que says heavy use dims them. It is a question about the tradition, not a directive, so it cannot be filed as a contraindication in either direction."
+   ],
+   "sourcesUsed": [
+    "本草綱目 (Bencao Gangmu) 卷19, 1596",
+    "神農本草經 孫星衍輯本 七情表, 1799"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H136",
+   "herb": "Fo-Ti (He Shou Wu) / 何首烏",
+   "clinical_contraindications": [],
+   "dietary_avoidances": [
+    {
+     "text": "忌諸血無鱗魚蘿蔔蒜葱",
+     "speaker": "時珍曰 = Li Shizhen (BCGM 氣味 note)",
+     "gloss": "Li Shizhen: avoid all blood 諸血, scaleless fish 無鱗魚, radish 蘿蔔, garlic 蒜, and scallion 葱. Five items, enumerated so none is lost. The full 忌 string in the source runs 「忌諸血無鱗魚蘿蔔蒜葱鐵器」; the sixth item 鐵器 (iron vessels) is not a food and is filed separately under unclassified.",
+     "scope": "whole drug"
+    },
+    {
+     "text": "忌猪肉血羊血無鱗魚觸藥無力",
+     "speaker": "何首烏傳, quoted in BCGM 集解",
+     "gloss": "Avoid pork and pig's blood 猪肉血, sheep's blood 羊血, and scaleless fish 無鱗魚; contact with them renders the medicine powerless 觸藥無力. Three food items plus the stated consequence. Attached to the He Shou Wu Zhuan's course of administration, not stated as a standing herb-level rule by Li Shizhen himself.",
+     "scope": "the 何首烏傳 dosing regimen quoted in 集解, i.e. for the duration of that course of taking the drug — not stated as a drug-level rule"
+    }
+   ],
+   "drug_incompatibilities": [],
+   "positive_pairings": [
+    {
+     "text": "時珍曰茯苓為之使",
+     "speaker": "時珍曰 = Li Shizhen",
+     "gloss": "Li Shizhen: Fu Ling 茯苓 (poria) acts as its ENVOY (為之使) — a guiding partner. Positive combining instruction, not a warning.",
+     "relation": "使"
+    },
+    {
+     "text": "同于地黄能伏硃砂",
+     "speaker": "時珍曰 = Li Shizhen (same BCGM 氣味 note)",
+     "gloss": "Together with Di Huang 于(干/乾)地黄 it can SUBDUE cinnabar 硃砂 (伏硃砂). 伏 is a positive control relation — the pair masters cinnabar's toxicity. This must never be rendered as 'do not combine with cinnabar'; the source says the opposite. 于 is the transcribed glyph and is preserved as harvested (read as 干/乾, dried Rehmannia).",
+     "relation": "制伏"
+    }
+   ],
+   "unclassified": [
+    "「鐵器」 (tail item of Li Shizhen's 忌 list, full string 「忌諸血無鱗魚蘿蔔蒜葱鐵器」) — reason: iron vessels are equipment, not a food, not a patient state, and not a 七情 drug relation. It is a preparation/handling avoidance and belongs in whatever field carries processing instructions; filing it as a dietary avoidance would misdescribe it and filing it as an incompatibility would be worse. Explicitly retained so it is not lost with the food items it was bundled with.",
+    "「氣味苦濇微溫無毒」 — reason: taste/nature/toxicity header (bitter, astringent, slightly warm, non-toxic). Not a warning; the 無毒 is a safety statement, not a prohibition.",
+    "「凡服用偶日二四六八日服訖以衣覆汗出導引尤良」 (何首烏傳, in BCGM 集解) — reason: dosing schedule and aftercare regimen (take on even days, 2/4/6/8; after taking, cover with clothing to sweat; daoyin exercise is especially good). Administration doctrine, not a contraindication. Carried because it is the clause the dietary 忌 list is attached to."
+   ],
+   "sourcesUsed": [
+    "本草綱目 (Bencao Gangmu) 卷十八上, 1596 (including the 何首烏傳 quoted in its 集解)"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H139",
+   "herb": "Kudzu (Ge Gen) / 葛根",
+   "clinical_contraindications": [
+    {
+     "text": "元素曰升陽生津脾虚作渴者非此不除勿多用恐傷胃氣",
+     "speaker": "元素曰 = Zhang Yuansu",
+     "gloss": "Zhang Yuansu: it raises yang and engenders fluids — for thirst from spleen deficiency nothing else will remove it — BUT do not use much, for fear of damaging stomach qi (勿多用恐傷胃氣). The prohibition is on quantity, not on the herb outright; the first half of the same clause is an indication and is noted so the whole string stays intact.",
+     "scope": "whole drug (dosage limit)"
+    },
+    {
+     "text": "震亨曰凡㿀痘已見紅㸃不可用葛根升麻湯恐表虚反増㿀爛也",
+     "speaker": "震亨曰 = Zhu Zhenheng",
+     "gloss": "Zhu Zhenheng: whenever pox 㿀痘 has already shown red spots, Ge Gen Sheng Ma Tang may NOT be used, for fear the exterior is made deficient and the pox instead worsens and ulcerates. Note the prohibition is stated against the named formula, not against the single herb.",
+     "scope": "the formula 葛根升麻湯, in the specific patient state of pox already showing red spots — a formula-level and stage-specific prohibition, not a herb-level one"
+    },
+    {
+     "text": "上盛下虛之人。雖有脾胃病。亦不宜服。",
+     "speaker": "本草從新 (吳儀洛) 卷五, 1757 — unattributed within the work",
+     "gloss": "A person with repletion above and deficiency below should not take it, even if they do have a spleen-stomach illness. Genuine patient-state prohibition.",
+     "scope": "whole drug"
+    },
+    {
+     "text": "即當用者，亦宜少用。多則反傷胃氣。以其升散太過也。",
+     "speaker": "本草從新 (吳儀洛) 卷五, 1757 — unattributed within the work",
+     "gloss": "Even those for whom it IS indicated should use little; much of it will instead damage stomach qi, because its raising and dissipating action is excessive. A dosage limit. FLAGGED: the harvester dropped this qualifier from the submitted fragment — it is restored here.",
+     "scope": "whole drug (dosage limit)"
+    },
+    {
+     "text": "（夏月表虛汗多、尤忌。）",
+     "speaker": "本草從新 (吳儀洛) 卷五, 1757 — parenthetical gloss in the work",
+     "gloss": "In summer months, with exterior deficiency and profuse sweating, it is especially to be avoided. 忌 here governs a PATIENT STATE, not a food, so this is clinical and not dietary.",
+     "scope": "whole drug, seasonally qualified"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [
+    {
+     "text": "蒸食消酒毒",
+     "speaker": "藏器 = Chen Cangqi (BCGM 主治)",
+     "gloss": "Steamed and eaten, it DISPELS alcohol toxin 消酒毒. An antidote capability, the same shape as 解…毒 — the herb acts beneficially on another substance's toxicity. It is not a prohibition and must never be rendered as 'do not combine with alcohol'. Appears within the 主治 list, so it is an indication as well as a capability.",
+     "relation": "解毒"
+    }
+   ],
+   "unclassified": [
+    "「生者墮胎」 (藏器 Chen Cangqi, BCGM 主治) — reason: DIRECTION UNCERTAIN by rule. 墮胎 sits inside a 主治 (indications) list, where the convention is that a term names something the drug is used FOR — i.e. the raw root is used to bring down a fetus. Read that way it is a therapeutic action, not a warning. It cannot be filed as a contraindication without inverting the 主治 convention, and it cannot be filed as a plain indication without risking a real pregnancy-safety signal being buried. Escalated rather than guessed.",
+    "「可斷穀不飢作粉尤妙」 (藏器 Chen Cangqi, BCGM 主治) — reason: famine-food / grain-abstention use (it can replace grain so one does not hunger; made into a powder it is especially fine). A dietary USE, the opposite of a dietary avoidance; no prohibition present.",
+    "「升陽生津脾虚作渴者非此不除」 (元素 Zhang Yuansu) — reason: the indication half of the Zhang Yuansu clause. Retained separately for visibility; the clause as a whole is already filed under clinical_contraindications for its 勿多用恐傷胃氣 tail, and is not being double-counted as a warning.",
+    "Transcription caveat, not a clause: the 1757 本草從新 lines were harvested in SIMPLIFIED characters (虽/虚), which indicates a modern digital intermediary rather than a pre-1900 print. Classification is unaffected but the glyph forms should not be presented as the printed text."
+   ],
+   "sourcesUsed": [
+    "本草綱目 (四庫全書本) 卷18上, 1596",
+    "本草從新 (吳儀洛) 卷五, 1757"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H246",
+   "herb": "Longan (龍眼)",
+   "clinical_contraindications": [],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "CONFIRMED GAP, not an omission: the whole BCGM 卷31 龍眼 entry (氣味/主治/發明/附方) carries NO patient exclusion, and 本草從新 龍眼肉 ends with a Daoist chewing method and carries no 忌/禁/戒 clause anywhere. All four buckets are legitimately empty for this herb. Recorded explicitly so the emptiness reads as a verified finding rather than as a record that failed to load.",
+    "「李廷飛曰生者沸湯瀹過食不動脾」 (廷飛曰 = Li Tingfei, BCGM) — reason: preparation instruction, not a prohibition. Blanch the RAW fruit in boiling water before eating and it will not disturb the spleen. It tells you how to make the fruit safe, so filing it as a contraindication would invert it; but it names no partner drug, so it is not a 七情 positive pairing either.",
+    "「久服，強魂、聰明、輕身、不老，通神明」 (神農本草經 孫星衍輯本, 1799) — reason: benefit claim for prolonged use (strengthens the hun, sharpens hearing and sight, lightens the body, prevents ageing, frees the shen-ming). Indication, not a warning. Carried so the whole of the 1799 entry is accounted for."
+   ],
+   "sourcesUsed": [
+    "本草綱目 (四庫全書本) 卷31, 1596",
+    "本草從新 (吳儀洛), 1757",
+    "神農本草經 孫星衍輯本, 1799"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H249",
+   "herb": "Cordyceps (Dong Chong Xia Cao) / 冬蟲夏草",
+   "clinical_contraindications": [],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "CONFIRMED GAP, verified by reading both entries end to end: 本草從新 1757 gives function, taste/nature, provenance and natural history ONLY — no 忌, no 禁, no 畏/惡/反, and no 修治/炮製 instruction of any kind. 植物名實圖考 1848 adds only regional distribution plus a culinary note. All four buckets are legitimately empty. Recorded so the emptiness reads as a verified finding, not a failed load.",
+    "「羊城中採以饌云鮮美蓋與啖禾蟲同」 (植物名實圖考, 1848) — reason: culinary/ethnographic note (in Guangzhou it is gathered as a dish and called delicious, much as people eat the rice-paddy worm). Neither warning nor pairing.",
+    "「冬在土中身如老蠶有毛能動」 (植物名實圖考, 1848) — reason: natural-history description of the WILD whole caterpillar-fungus. Carried because it establishes what the classical sources are actually describing.",
+    "PROVENANCE FLAG, not a source clause: cultured mycelium is absent from both works — both describe only the wild whole caterpillar-fungus. Any Bensky-sourced Cs-4 statement therefore fails the pre-1900 rule and must not be presented as classical. Noted here because it bears on what may be shown in a 'classical contraindications' field, but it originates outside the verified text."
+   ],
+   "sourcesUsed": [
+    "本草從新 (吳儀洛), 1757",
+    "植物名實圖考, 1848"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H269",
+   "herb": "Chinese Yam / Shan Yao (薯蕷 / 山藥)",
+   "clinical_contraindications": [],
+   "dietary_avoidances": [
+    {
+     "text": "惟和麫作䬪飥則動氣為不能制麫毒也",
+     "speaker": "詵曰 = Meng Shen (孟詵), BCGM 卷二十七 發明",
+     "gloss": "Meng Shen: ONLY when it is mixed with wheat flour 麫 and made into botuo 䬪飥 (a boiled noodle/dough dish) does it stir qi 動氣 — because it cannot control wheat's toxin 為不能制麫毒也. IMPORTANT READING: the phrase contains 制…毒, but it is NEGATED (為不能制 = 'because it is unable to control'). This is the REASON for the avoidance, not a positive control claim. It must not be filed as a 制伏 pairing.",
+     "scope": "whole drug, but only in the specific combination with wheat flour"
+    },
+    {
+     "text": "勿同麵食。",
+     "speaker": "本草從新 (吳儀洛), 1757, 山藥 — unattributed within the work",
+     "gloss": "Do not eat it together with wheat/noodles. The 1757 restatement of Meng Shen's wheat-flour avoidance, in plain imperative form. Kept as its own record because it is a separate witness in a separate work.",
+     "scope": "whole drug, in combination with wheat"
+    }
+   ],
+   "drug_incompatibilities": [
+    {
+     "text": "之才曰紫芝爲之使惡甘遂",
+     "speaker": "之才曰 = Xu Zhicai, BCGM 卷二十七 根氣味 note",
+     "gloss": "Xu Zhicai: it is antagonised by Gan Sui 甘遂 (Euphorbia kansui). The 紫芝爲之使 half of this same string is a POSITIVE envoy relation and is filed under positive_pairings — the one string carries one negative and one positive relation and must not be loaded as a single warning.",
+     "relation": "惡"
+    },
+    {
+     "text": "（…二月、八月采根。惡甘遂）",
+     "speaker": "吳普 (Wu Pu) gloss inside the 署豫 entry, 神農本草經 孫星衍輯本, 1799",
+     "gloss": "Antagonised by Gan Sui 甘遂. Second witness, from the Wu Pu gloss in the 1799 recension. The 二月、八月采根 portion of the same parenthesis is harvest timing and is filed under unclassified.",
+     "relation": "惡"
+    },
+    {
+     "text": "薯蕷，紫芝為使，惡甘遂。",
+     "speaker": "神農本草經 孫星衍輯本, 1799, 七情表",
+     "gloss": "Shu Yu: antagonised by Gan Sui 甘遂. Third witness, from the 1799 七情 table. The 紫芝為使 half is positive and is filed under positive_pairings.",
+     "relation": "惡"
+    }
+   ],
+   "positive_pairings": [
+    {
+     "text": "之才曰紫芝爲之使惡甘遂",
+     "speaker": "之才曰 = Xu Zhicai, BCGM 卷二十七 根氣味 note",
+     "gloss": "Xu Zhicai: Zi Zhi 紫芝 (purple reishi) acts as its ENVOY (爲之使) — a guiding partner directing the formula. Positive instruction. Extracted from the same string that also carries the 惡甘遂 antagonism.",
+     "relation": "使"
+    },
+    {
+     "text": "薯蕷，紫芝為使，惡甘遂。",
+     "speaker": "神農本草經 孫星衍輯本, 1799, 七情表",
+     "gloss": "Shu Yu: Zi Zhi 紫芝 serves as envoy. Second witness to the same positive envoy relation, from the 1799 七情 table.",
+     "relation": "使"
+    }
+   ],
+   "unclassified": [
+    "「利丈夫助隂力」 (詵曰 = 孟詵, BCGM 發明) — reason: indication/benefit claim (benefits men, aids yin power). Not a warning.",
+    "「熟煮和蜜或爲湯煎或爲粉並佳乾之入藥更妙」 (詵曰 = 孟詵, BCGM 發明) — reason: preparation doctrine (cook it through with honey, or as a decoction, or as a powder — all fine; dried for medicinal use is finer still). Processing instruction, not a contraindication. Carried because it is the clause the wheat-flour avoidance is contrasted against (惟… = 'only when…').",
+    "「色白而堅者佳。（形圓者、爲西山藥、形扁者、爲怀山藥…）」 (本草從新, 1757) — reason: quality selection and provenance/variety note (white and firm is best; round-form = Xi Shan Yao, flat-form = Huai Shan Yao). 怀 is a simplified glyph for 懷, preserved as harvested. Neither warning nor pairing.",
+    "「普曰神農甘小温桐君雷公甘凉無毒」 (普曰 = 吳普 Wu Pu, citing 神農, 桐君 and 雷公, BCGM) — reason: competing taste/nature attributions (Shennong: sweet, slightly warm; Tong Jun and Lei Gong: sweet, cool, non-toxic). Materia-medica header data, not a warning.",
+    "「二月、八月采根」 (吳普 gloss, 神農本草經 孫星衍輯本, 1799) — reason: harvest timing for the root. Split off from the parenthesis whose other half (惡甘遂) is filed as an incompatibility, so that neither half is lost."
+   ],
+   "sourcesUsed": [
+    "本草綱目 (Bencao Gangmu) 卷二十七, 1596",
+    "本草從新 (吳儀洛) 卷一, 1757",
+    "神農本草經 孫星衍輯本 卷一 及 七情表, 1799"
+   ],
+   "recordsMerged": 2
+  },
+  {
+   "herb_id": "H256",
+   "herb": "Mimosa (Silk Tree Bark) 合歡",
+   "clinical_contraindications": [],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "NO CLAUSES PRESENT. Verified absence: the BCGM 卷35下 合歡 entry (釋名/集解/木皮/發明/附方) contains no 忌, 畏, 惡, 反 or 禁 clause anywhere; the only processing note is 「去粗皮炒用」 (strip the coarse bark, dry-fry before use), which is a preparation instruction, not a warning. Sun Xingyan 1799 合歡 has no 七情 appendix entry (合歡 occurs only twice in that text, contents list and body). Nothing to file in any bucket."
+   ],
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu, 卷35下 (1596)",
+    "神農本草經 Shennong Bencao Jing, Sun Xingyan recension (1799)"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H282",
+   "herb": "Moutan (Mu Dan Pi) 牡丹皮",
+   "clinical_contraindications": [
+    {
+     "text": "胃氣虚寒。經行過期不净者勿服。",
+     "speaker": "吳儀洛 (本草從新, 1757)",
+     "gloss": "Those with cold-deficient stomach qi, and those whose menses run past term without clearing, must not take it.",
+     "scope": "whole drug (牡丹皮)"
+    },
+    {
+     "text": "胎前亦宜酌用。",
+     "speaker": "吳儀洛 (本草從新, 1757)",
+     "gloss": "Before birth (i.e. in pregnancy) it should likewise be used only with careful judgement.",
+     "scope": "whole drug (牡丹皮), pregnancy"
+    }
+   ],
+   "dietary_avoidances": [
+    {
+     "text": "忌蒜胡荽",
+     "speaker": "大明曰 (Da Ming, quoted in 本草綱目 卷十四, 1596)",
+     "gloss": "Avoid garlic and coriander (Chinese cilantro).",
+     "scope": "whole drug (牡丹皮)"
+    },
+    {
+     "text": "忌蒜、胡荽。",
+     "speaker": "吳儀洛 (本草從新, 1757)",
+     "gloss": "Avoid garlic and coriander. Wu Yiluo repeats the Da Ming pair verbatim.",
+     "scope": "whole drug (牡丹皮)"
+    }
+   ],
+   "drug_incompatibilities": [
+    {
+     "text": "之才畏貝母大黄兎絲子",
+     "speaker": "之才 Xu Zhicai (quoted in 本草綱目 卷十四, 1596)",
+     "gloss": "Fears / is diminished by Bei Mu (Fritillaria), Da Huang (rhubarb), Tu Si Zi (Cuscuta seed).",
+     "relation": "畏"
+    },
+    {
+     "text": "畏貝母、菟絲、大黃。",
+     "speaker": "吳儀洛 (本草從新, 1757)",
+     "gloss": "Fears / is diminished by Bei Mu, Tu Si (Cuscuta), Da Huang. Same triad as Xu Zhicai, order differs, 菟 written for 兎.",
+     "relation": "畏"
+    }
+   ],
+   "positive_pairings": [
+    {
+     "text": "伏砒",
+     "speaker": "大明曰 (Da Ming, quoted in 本草綱目 卷十四, 1596)",
+     "gloss": "POSITIVE. It subdues / controls arsenic (砒). A capability of the herb, not a prohibition on combining with arsenic.",
+     "relation": "制伏"
+    },
+    {
+     "text": "伏砒。",
+     "speaker": "吳儀洛 (本草從新, 1757)",
+     "gloss": "POSITIVE. Subdues arsenic. Wu Yiluo carries the Da Ming clause; note it sits immediately after 忌蒜、胡荽 in both sources, so the run 「忌蒜、胡荽、伏砒」 must be split, not read as one avoidance list.",
+     "relation": "制伏"
+    }
+   ],
+   "unclassified": [
+    "《吳普》曰：牡丹，神農、岐伯：辛；李氏：小寒；雷公、桐君：苦，無毒；黃帝：苦，有毒。 — 氣味 (flavour/nature) register from 吳普 via Sun Xingyan 1799. Not a prohibition, so not a contraindication; recorded here because the 黃帝 minority reading 「苦，有毒」 (bitter, TOXIC) is safety-adjacent metadata. Attribution note: cite this reading to Sun Xingyan 1799, NOT to the BCGM, because the SKQS BCGM transcription garbles the same register as 「普曰神農岐伯辛雷公桐君苦無毒桐君苦有毒」 with 桐君 twice."
+   ],
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu, 卷十四 (1596)",
+    "本草從新 Ben Cao Cong Xin, 吳儀洛 (1757)",
+    "神農本草經 Shennong Bencao Jing, Sun Xingyan recension (1799)"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H283",
+   "herb": "Trichosanthes / Gua Lou 栝樓",
+   "clinical_contraindications": [
+    {
+     "text": "寒胃滑腸。胃虚食少。脾虚泄瀉。勿投。",
+     "speaker": "吳儀洛 (本草從新 卷五草部, 1757)",
+     "gloss": "It chills the stomach and makes the intestines slippery. In stomach deficiency with poor appetite, and in spleen-deficiency diarrhoea, do not administer it.",
+     "scope": "栝蒌仁 (the seed) — this is the closing line of the 栝蒌仁 entry, so it attaches to the seed, not to the root"
+    },
+    {
+     "text": "脾胃虚寒者。均宜戒用。",
+     "speaker": "吳儀洛 (本草從新 卷五草部, 1757)",
+     "gloss": "Those with cold-deficient spleen and stomach should in all cases refrain from using it.",
+     "scope": "天花粉 (the root, 即栝蒌根) — stated in the 天花粉 entry"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [
+    {
+     "text": "惡乾薑",
+     "speaker": "之才 Xu Zhicai (quoted in 本草綱目 卷18上, 1596, root/天花粉 subsection)",
+     "gloss": "Is antagonised by dried ginger (Gan Jiang).",
+     "relation": "惡"
+    },
+    {
+     "text": "畏牛膝乾漆",
+     "speaker": "之才 Xu Zhicai (quoted in 本草綱目 卷18上, 1596, root/天花粉 subsection)",
+     "gloss": "Fears / is diminished by Niu Xi (Achyranthes) and Gan Qi (dried lacquer).",
+     "relation": "畏"
+    },
+    {
+     "text": "反烏頭",
+     "speaker": "之才 Xu Zhicai (quoted in 本草綱目 卷18上, 1596, root/天花粉 subsection)",
+     "gloss": "OPPOSES Wu Tou (aconite). One of the 十八反 Eighteen Antagonisms — the most safety-load-bearing pairing in this entry. Must never be lost.",
+     "relation": "反"
+    },
+    {
+     "text": "栝蔞　枸杞為使；惡干薑；畏牛膝、乾漆；反烏頭。",
+     "speaker": "神農本草經 七情 appendix, Sun Xingyan recension (1799)",
+     "gloss": "Independent corroboration of the whole set: Gou Qi as envoy; antagonised by dried ginger; fears Achyranthes and dried lacquer; OPPOSES aconite. Filed here for the three negative relations; the 枸杞為使 clause is filed separately under positive_pairings.",
+     "relation": "反"
+    },
+    {
+     "text": "烏頭、烏喙　莽草為使，反半夏、栝蔞、貝母、白蘞、白芨",
+     "speaker": "神農本草經 七情 appendix, Sun Xingyan recension (1799)",
+     "gloss": "RECIPROCAL entry read from the aconite side: Wu Tou / Wu Hui oppose Ban Xia, GUA LOU, Bei Mu, Bai Lian, Bai Ji. Confirms 反烏頭 bidirectionally. Note 莽草為使 inside this line is aconite's envoy, not Gua Lou's.",
+     "relation": "反"
+    },
+    {
+     "text": "畏牛膝、乾漆。惡乾薑。反乌頭。",
+     "speaker": "吳儀洛 (本草從新, 1757, 栝蒌仁)",
+     "gloss": "Wu Yiluo repeats the same three negative relations under the seed: fears Achyranthes and dried lacquer; antagonised by dried ginger; OPPOSES aconite.",
+     "relation": "反"
+    }
+   ],
+   "positive_pairings": [
+    {
+     "text": "枸[杞]為之使",
+     "speaker": "之才 Xu Zhicai (quoted in 本草綱目 卷18上, 1596, root/天花粉 subsection)",
+     "gloss": "POSITIVE. Gou Qi (Lycium) acts as its ENVOY, the guiding partner that directs it in a formula. Transcription note: the 杞 renders as a SKchar placeholder in the Wikisource markup; everything else is verbatim.",
+     "relation": "使"
+    },
+    {
+     "text": "枸杞為使",
+     "speaker": "神農本草經 七情 appendix, Sun Xingyan recension (1799)",
+     "gloss": "POSITIVE. Gou Qi as envoy. Corroborates the Xu Zhicai clause.",
+     "relation": "使"
+    },
+    {
+     "text": "枸杞爲使。",
+     "speaker": "吳儀洛 (本草從新, 1757, 栝蒌仁)",
+     "gloss": "POSITIVE. Gou Qi as envoy, recorded under the seed.",
+     "relation": "使"
+    }
+   ],
+   "unclassified": [
+    "畏惡同栝蒌。 (吳儀洛, 本草從新 1757, 天花粉 entry) — cross-reference, not a stated pairing: 'its 畏 and 惡 relations are the same as those of 栝蒌'. Names no drug of its own and spans TWO relations at once (畏 and 惡), so it cannot be filed under a single relation value. Resolves in practice to 畏牛膝、乾漆 and 惡乾薑 as listed above, now attached to the root as well as the seed.",
+    "通乳消腫。治结胸胸痹。酒黃熱痢。二便不通。炒香酒服。止一切血。 (吳儀洛, 本草從新 1757, 栝蒌仁) — 主治 INDICATIONS plus a preparation note, i.e. conditions TREATED, not caused. Retained here so the run is demonstrably not dropped; it precedes 「寒胃滑腸…勿投」 in the same sentence block, which is why the prohibition must be cut off from it deliberately.",
+    "腫毒發背。乳痈瘡痔。 … 即栝蒌根。澄粉食。大宜虚熱人。 (吳儀洛, 本草從新 1757, 天花粉) — 主治 indications, an identity gloss (天花粉 = the 栝蒌 root) and a positive suitability statement ('very suitable for people with deficiency-heat'). Not warnings. Recorded so that the only prohibition in that entry, 「脾胃虚寒者。均宜戒用。」, is seen to have been extracted from surrounding indication text rather than the whole block being filed as a warning."
+   ],
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu, 卷18上 (1596)",
+    "神農本草經 Shennong Bencao Jing, Sun Xingyan recension (1799)",
+    "本草從新 Ben Cao Cong Xin, 吳儀洛, 卷五草部 (1757)"
+   ],
+   "recordsMerged": 2
+  },
+  {
+   "herb_id": "H022",
+   "herb": "Ginseng (Asian) 人參",
+   "clinical_contraindications": [
+    {
+     "text": "夏月少使人參發心痃之病",
+     "speaker": "斆曰 Lei Xiao (quoted in 本草綱目 卷12上 正誤, 1596)",
+     "gloss": "In the summer months use ginseng sparingly; it provokes the disorder of 心痃 (a heart/epigastric knotted-pain condition).",
+     "scope": "whole drug, seasonal restriction"
+    },
+    {
+     "text": "凡酒色過度損傷肺腎真隂隂虚火動勞{{SKchar|1033}}吐血欬血等證勿用之",
+     "speaker": "王綸曰 Wang Lun (quoted in 本草綱目 卷12上 正誤, 1596)",
+     "gloss": "In all cases of excess in wine and sex damaging the true yin of lung and kidney, yin deficiency with stirring fire, taxation cough(?), blood vomiting, blood-streaked cough and the like, do not use it. VERBATIM CAUTION: the Siku transcription leaves one glyph unrendered as {{SKchar|1033}} exactly where a reading of 嗽 (cough, giving 勞嗽) has been proposed; 嗽 is the submitter's reading, NOT visible text in this recension, so the placeholder is preserved here rather than silently resolved.",
+     "scope": "whole drug"
+    },
+    {
+     "text": "葢人參入手太隂能補火故肺受火邪者忌之",
+     "speaker": "王綸曰 Wang Lun (quoted in 本草綱目 卷12上 正誤, 1596)",
+     "gloss": "Because ginseng enters the hand-taiyin (lung) and can supplement fire, those whose lungs have received fire-evil must avoid it. Rationale clause continuous with the prohibition above.",
+     "scope": "whole drug"
+    },
+    {
+     "text": "若誤用參耆甘温之劑則病日増服之過多則死不可治",
+     "speaker": "王綸曰 Wang Lun (quoted in 本草綱目 卷12上 正誤, 1596)",
+     "gloss": "If sweet-warm formulas of ginseng and astragalus are used in error the illness worsens daily; taken in excess it kills and cannot be treated. Severity clause of the same prohibition.",
+     "scope": "whole drug, and 參耆 (ginseng + astragalus) sweet-warm formulas"
+    },
+    {
+     "text": "但闭氣。肺有火熱。及肺氣不利者忌之。",
+     "speaker": "吳儀洛 (本草從新, 1757)",
+     "gloss": "It does however block qi. Those with fire-heat in the lung, and those whose lung qi is not free-flowing, must avoid it. (Wikisource transcription uses simplified 闭.)",
+     "scope": "whole drug"
+    },
+    {
+     "text": "實表。表有邪者忌之。",
+     "speaker": "吳儀洛 (本草從新, 1757)",
+     "gloss": "It solidifies the exterior. Those with evil lodged in the exterior must avoid it.",
+     "scope": "whole drug"
+    },
+    {
+     "text": "凡痧痘斑毒。欲出未出。但闷熱而不見點。若誤用之。以阻截其路。爲祸尤烈。",
+     "speaker": "吳儀洛 (本草從新, 1757)",
+     "gloss": "In all cases of measles/pox/rash-toxin about to erupt but not yet erupted, where there is only stifling heat and no spots visible, using it in error blocks off their route of exit and the harm is especially fierce. (Transcription's simplified 闷/祸 preserved.)",
+     "scope": "whole drug"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [
+    {
+     "text": "惡溲疏鹵鹹",
+     "speaker": "之才曰 Xu Zhicai (quoted in 本草綱目 卷12上, 1596)",
+     "gloss": "Is antagonised by Sou Shu (Deutzia) and Lu Xian (mineral salt/bittern).",
+     "relation": "惡"
+    },
+    {
+     "text": "反藜蘆",
+     "speaker": "之才曰 Xu Zhicai (quoted in 本草綱目 卷12上, 1596)",
+     "gloss": "OPPOSES Li Lu (Veratrum). One of the 十八反 Eighteen Antagonisms.",
+     "relation": "反"
+    },
+    {
+     "text": "一云畏五靈脂",
+     "speaker": "之才曰 Xu Zhicai / 一云 alternate tradition (quoted in 本草綱目 卷12上, 1596)",
+     "gloss": "One tradition says: fears / is diminished by Wu Ling Zhi (flying-squirrel faeces). The 一云 marks this as a variant reading, not the main line.",
+     "relation": "畏"
+    },
+    {
+     "text": "惡皂莢黑豆",
+     "speaker": "之才曰 Xu Zhicai / 一云 alternate tradition (quoted in 本草綱目 卷12上, 1596)",
+     "gloss": "Is antagonised by Zao Jia (gleditsia pod) and black soybean. Part of the same 一云 variant run.",
+     "relation": "惡"
+    },
+    {
+     "text": "震亨曰人參入手大隂與藜蘆相反服參一兩入藜蘆一錢其功盡廢也",
+     "speaker": "震亨曰 Zhu Zhenheng (quoted in 本草綱目 卷12上, 1596)",
+     "gloss": "Ginseng enters the hand-taiyin and is MUTUALLY OPPOSED (相反) to Li Lu: take one liang of ginseng with one qian of Li Lu and its efficacy is entirely destroyed. Note this is one continuous sentence in the source; the channel-entry statement and the antagonism statement are not separate lines.",
+     "relation": "反"
+    }
+   ],
+   "positive_pairings": [
+    {
+     "text": "茯苓馬藺為之使",
+     "speaker": "之才曰 Xu Zhicai (quoted in 本草綱目 卷12上, 1596)",
+     "gloss": "POSITIVE. Fu Ling (Poria) and Ma Lin (Iris lactea) act as its ENVOYS, guiding partners that direct it in a formula.",
+     "relation": "使"
+    }
+   ],
+   "unclassified": [
+    "動紫石英 (之才曰, 本草綱目 卷12上, 1596) — 'stirs / agitates Zi Shi Ying (fluorite)'. 動 is NOT one of the three negative seven-relations terms (畏惡反), so it cannot be filed as an incompatibility under the permitted relation values; nor is it a benefit the herb confers, so it is not a positive pairing. It closes the 一云 variant run 「一云畏五靈脂惡皂莢黑豆動紫石英」 and is preserved here rather than being forced into a bucket."
+   ],
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu, 四庫全書本, 卷十二上 (1596)",
+    "本草從新 Ben Cao Cong Xin, 吳儀洛 (1757)"
+   ],
+   "recordsMerged": 2
+  },
+  {
+   "herb_id": "H169",
+   "herb": "Chrysanthemum / Ju Hua 菊花",
+   "clinical_contraindications": [
+    {
+     "text": "但不得用野菊名苦薏者爾",
+     "speaker": "時珍 Li Shizhen (本草綱目 卷十五 氣味 note, 1596)",
+     "gloss": "Only, one must not use the wild chrysanthemum, the one called Ku Yi. A prohibition on the material itself rather than on a patient state.",
+     "scope": "identity/adulterant: prohibits 野菊 (wild chrysanthemum, 苦薏), NOT the true 甘菊 that is the drug"
+    },
+    {
+     "text": "故景煥牧竪閑談云真菊延齡野菊泄人正如黄精益夀鉤吻殺人之意",
+     "speaker": "景煥 Jing Huan, 牧竪閑談, quoted by 時珍 (本草綱目 卷十五, 1596)",
+     "gloss": "Hence Jing Huan's Mu Shu Xian Tan says: true chrysanthemum extends the years, wild chrysanthemum purges (drains) a person, exactly in the sense that Huang Jing benefits longevity while Gou Wen kills. States the harm from the wrong species.",
+     "scope": "identity/adulterant: harm attaches to 野菊, not to the true drug"
+    },
+    {
+     "text": "（花小味苦者、名苦薏、非真菊也、景焕牧竖闲談云：真菊延龄、野菊瀉人。）",
+     "speaker": "吳儀洛 (本草從新 卷三草部, 1757, 甘菊花)",
+     "gloss": "Those with small flowers and a bitter taste are called Ku Yi and are not the true chrysanthemum; Jing Huan's Mu Shu Xian Tan says true chrysanthemum extends the years, wild chrysanthemum purges a person. Wu Yiluo repeats the same adulterant prohibition. Orthography note: this Wikisource transcription uses simplified 焕/竖/谈/龄/瀉 where the BCGM line reads 煥/竪/談/齡/泄.",
+     "scope": "identity/adulterant: 苦薏 / 野菊, not the true drug"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "一種青莖而大作蒿艾氣味苦不堪食者名苦薏非真菊也葉正相似惟以甘苦别之 (陶弘景 Tao Hongjing, 集解, 本草綱目 卷十五, 1596) — botanical DIFFERENTIATION note: one kind with green stems, large, giving off an artemisia smell, bitter in taste and unfit to eat, is called Ku Yi and is not the true chrysanthemum; the leaves look just alike, and only sweet-versus-bitter tells them apart. 不堪食 describes the adulterant's unfitness, not a dietary avoidance for the drug, and the clause states no prohibition of its own, so it is a descriptive identification aid rather than a warning.",
+    "家园所種。杭產者良。 … 有黃白二種。单瓣味甘者入藥。 (吳儀洛, 本草從新 1757) — SOURCING and SELECTION guidance: garden-grown, Hangzhou produce is best; there are yellow and white kinds; the single-petalled sweet-tasting sort is the one that enters medicine. A quality specification, not a contraindication. Recorded so the bracketed adulterant warning is seen to have been lifted out of an otherwise non-prohibitive sentence rather than the whole line being filed as a warning."
+   ],
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu, 卷十五 (1596)",
+    "本草從新 Ben Cao Cong Xin, 卷三草部 (1757)"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H170",
+   "herb": "Goji / Gou Qi Zi 枸杞子",
+   "clinical_contraindications": [
+    {
+     "text": "便滑者勿用。",
+     "speaker": "吳儀洛 (本草從新 卷九木部 灌木類, 1757, 枸杞子)",
+     "gloss": "Those with slippery stools (loose bowels) must not use it.",
+     "scope": "whole drug — the berry (枸杞子)"
+    },
+    {
+     "text": "有痼疾人勿服",
+     "speaker": "本草綱目 卷36 附方 (1596)",
+     "gloss": "People with a chronic/entrenched illness must not take it. SCOPE WARNING: this clause attaches to a 附方 (appended formula) built on 枸杞根 (the ROOT, i.e. Di Gu Pi), NOT to the berry. It must not be promoted into a herb-level contraindication for goji berries.",
+     "scope": "a single 附方 (appended formula) using 枸杞根 (root) — formula-level and root-level only, NOT the berry"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "至于子則甘平而潤性滋而補不能退熱止能補腎潤肺生精益氣此乃平補之藥 (本草綱目 卷36 發明, 1596) — PROPERTIES statement about the berry: sweet, neutral and moistening, enriching and supplementing in nature; it CANNOT reduce heat, it can only supplement the kidney, moisten the lung, generate essence and boost qi; it is a balanced tonic. 不能退熱 is a limit on what the drug does, not a prohibition on who may take it, so it is neither a contraindication nor a pairing. Filed here so the limitation is not lost.",
+    "南方樹止數尺。北方並是大樹。以甘州所產。紅潤少核者佳。酒潤搗。 (吳儀洛, 本草從新 1757) — SOURCING and PROCESSING note immediately following 便滑者勿用: southern plants are only a few feet tall, northern ones are large trees; Ganzhou produce, red and plump with few seeds, is best; moisten with wine and pound. Not a warning. Recorded so the prohibition is seen to have been cut cleanly from the sentence run that follows it.",
+    "VERIFIED ABSENCE: the whole BCGM 枸杞 entry was read for any other prohibition attaching to the BERRY and none was found. The only near-neighbour is 有痼疾人勿服, which is filed above with its 枸杞根 附方 scope."
+   ],
+   "sourcesUsed": [
+    "本草從新 Ben Cao Cong Xin, 吳儀洛, 卷九 (1757)",
+    "本草綱目 Bencao Gangmu, 四庫全書本, 卷36 (1596)"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H267",
+   "herb": "Capillaris Wormwood / Yin Chen Hao 茵陳蒿",
+   "clinical_contraindications": [
+    {
+     "text": "按黃胆須分陰黃、陽黃。陽黃宜茵陳。陰黃宜溫補。若用茵陳。多致不救。",
+     "speaker": "吳儀洛 (按, i.e. the author's own note; 本草從新, 1757, 茵陳)",
+     "gloss": "Note: in jaundice one must distinguish yin jaundice from yang jaundice. Yang jaundice is suited to Yin Chen. Yin jaundice calls for warming and supplementing; if Yin Chen is used there it most often leads to a case beyond saving. The prohibition is the 陰黃 half: Yin Chen is contraindicated in yin-type jaundice. Kept as one verbatim block because the yang-jaundice clause is what defines the boundary of the prohibition. Orthography note: 胆 for 疸 is the Wikisource transcription's, not an introduced error.",
+     "scope": "whole drug (茵陳), restricted to the 陰黃 (yin jaundice) presentation"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [],
+   "sourcesUsed": [
+    "本草從新 Ben Cao Cong Xin, 吳儀洛 (1757)"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H268",
+   "herb": "Chinese Senega / Polygala (Yuan Zhi) 遠志",
+   "clinical_contraindications": [
+    {
+     "text": "不可多用獨用。",
+     "speaker": "吳儀洛 (本草從新, 1757)",
+     "gloss": "It must not be used in large amounts nor used alone.",
+     "scope": "whole drug — dosage and solo-use restriction"
+    },
+    {
+     "text": "純虚無滞者忌。",
+     "speaker": "吳儀洛 (本草從新, 1757)",
+     "gloss": "Those of pure deficiency with no stagnation must avoid it. 忌 here is followed by a PATIENT STATE, so this is clinical, not dietary.",
+     "scope": "whole drug"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [
+    {
+     "text": "畏珍珠藜蘆蜚蠊齊蛤",
+     "speaker": "之才曰 Xu Zhicai (quoted in 本草綱目 卷12下 氣味 note, 1596)",
+     "gloss": "Fears / is diminished by Zhen Zhu (pearl), Li Lu (Veratrum), Fei Lian (cockroach) and Qi Ge. Note the BCGM immediately follows this with a dispute over what 齊蛤 even is (see unclassified), and the Sun Xingyan 1799 recension omits 齊蛤 from the list altogether.",
+     "relation": "畏"
+    },
+    {
+     "text": "畏珍珠、藜蘆。",
+     "speaker": "吳儀洛 (本草從新, 1757)",
+     "gloss": "Fears / is diminished by pearl and Veratrum. Wu Yiluo carries only two of the four.",
+     "relation": "畏"
+    },
+    {
+     "text": "畏珍珠、蜚蠊、藜蘆。",
+     "speaker": "神農本草經 七情 appendix, Sun Xingyan recension (1799), juan 3",
+     "gloss": "Fears / is diminished by pearl, cockroach and Veratrum. Three of the four; 齊蛤 absent from this recension.",
+     "relation": "畏"
+    }
+   ],
+   "positive_pairings": [
+    {
+     "text": "逺志小草得茯苓冬葵子龍骨良",
+     "speaker": "之才曰 Xu Zhicai (quoted in 本草綱目 卷12下 氣味 note, 1596)",
+     "gloss": "POSITIVE. Yuan Zhi AND Xiao Cao (the aerial part) are improved by obtaining Fu Ling (Poria), Dong Kui Zi (mallow seed) and Long Gu (dragon bone) — a beneficial combination, filed as 'other' because 得…良 is a benefit-from-combination formula rather than a named 使/相須 term. SCOPE: the clause names 小草 alongside 遠志, so the relation set covers the aerial part as well as the root.",
+     "relation": "other"
+    },
+    {
+     "text": "得茯苓、龍骨良。",
+     "speaker": "吳儀洛 (本草從新, 1757)",
+     "gloss": "POSITIVE. Improved by obtaining Poria and dragon bone. Wu Yiluo drops 冬葵子 from the triad.",
+     "relation": "other"
+    },
+    {
+     "text": "得茯苓、冬葵子、龍骨，良",
+     "speaker": "神農本草經 七情 appendix, Sun Xingyan recension (1799), juan 3",
+     "gloss": "POSITIVE. Improved by obtaining Poria, mallow seed and dragon bone. Full triad, matching Xu Zhicai.",
+     "relation": "other"
+    },
+    {
+     "text": "殺天雄、附子毒",
+     "speaker": "神農本草經 七情 appendix, Sun Xingyan recension (1799), juan 3",
+     "gloss": "POSITIVE, AND CRITICAL NOT TO INVERT. Yuan Zhi NEUTRALISES the toxicity of Tian Xiong and Fu Zi (aconite preparations) — i.e. it makes aconite safer. This is an antidote capability of the herb. Filed as an incompatibility it would read 'do not combine with aconite', the exact opposite of what the source says.",
+     "relation": "殺"
+    }
+   ],
+   "unclassified": [
+    "𢎞景曰藥無齊蛤恐是百合也 (陶弘景 Tao Hongjing, quoted in 本草綱目 卷12下, 1596) — IDENTITY DISPUTE, not a pairing: 'among the drugs there is no Qi Ge; it is probably Bai He (lily).' Bears on which drug the 畏齊蛤 clause actually names.",
+    "權曰是蠐螬也 (權曰 Zhen Quan, quoted in 本草綱目 卷12下, 1596) — IDENTITY DISPUTE: 'it is Qi Cao (grub).' Second competing identification of 齊蛤.",
+    "恭曰藥録下卷有齊蛤陶說非也 (恭曰 Su Gong, quoted in 本草綱目 卷12下, 1596) — IDENTITY DISPUTE: 'the lower juan of the Yao Lu does contain Qi Ge; Tao's account is wrong.' Third position. All three are recorded because the 畏齊蛤 entry above is only as reliable as the identification of 齊蛤, which the BCGM itself leaves unsettled."
+   ],
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu, 卷12下 (1596)",
+    "本草從新 Ben Cao Cong Xin (1757)",
+    "神農本草經 Shennong Bencao Jing, Sun Xingyan recension, juan 3 (1799)"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H270",
+   "herb": "Cornelian Cherry (Shan Zhu Yu) 山茱萸 — Cornus officinalis",
+   "clinical_contraindications": [
+    {
+     "text": "月事過多。强陽不痿。小便不利者。不宜用。",
+     "speaker": "本草從新 (吳儀洛, 1757), 卷九木部 — unattributed in the text itself",
+     "gloss": "Not suitable for use in THREE states: (1) 月事過多 excessive menstruation; (2) 强陽不痿 persistent strong yang that will not subside (priapism); (3) 小便不利 inhibited urination. All three are governed by the single closing verb 不宜用.",
+     "scope": "whole drug"
+    },
+    {
+     "text": "去核。（核能滑精。）",
+     "speaker": "本草從新 (吳儀洛, 1757), 卷九木部",
+     "gloss": "Remove the pit. The pit can cause seminal leakage (滑精). A part-level caution and processing instruction, not a whole-drug prohibition.",
+     "scope": "a named part — the pit/stone (核) only"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [
+    {
+     "text": "惡桔梗防風防己",
+     "speaker": "之才曰 (Xu Zhicai), quoted in 本草綱目 卷36 氣味 note, 1596",
+     "gloss": "Antagonised by Platycodon (桔梗), Saposhnikovia (防風) and Stephania (防己).",
+     "relation": "惡"
+    },
+    {
+     "text": "惡桔梗、防風、防己。",
+     "speaker": "神農本草經 孫星衍輯本 (1799), 卷三 七情 appendix, s.v. 山茱萸",
+     "gloss": "Independent corroboration of the same three antagonists in the Sun Xingyan recension.",
+     "relation": "惡"
+    },
+    {
+     "text": "惡防己、防風、桔梗。",
+     "speaker": "本草從新 (吳儀洛, 1757), 卷九木部, closing line",
+     "gloss": "Same three antagonists, in Wu Yiluo's reordering (防己 first).",
+     "relation": "惡"
+    }
+   ],
+   "positive_pairings": [
+    {
+     "text": "蓼實為之使",
+     "speaker": "之才曰 (Xu Zhicai), quoted in 本草綱目 卷36 氣味 note, 1596",
+     "gloss": "Polygonum fruit (蓼實) acts as its ENVOY / guiding partner. POSITIVE — a pairing instruction, not a warning.",
+     "relation": "使"
+    },
+    {
+     "text": "蓼實為使",
+     "speaker": "神農本草經 孫星衍輯本 (1799), 卷三 七情 appendix, s.v. 山茱萸",
+     "gloss": "Same envoy relation in the Sun Xingyan recension. POSITIVE.",
+     "relation": "使"
+    }
+   ],
+   "unclassified": [
+    "「陳久者良。」 (本草從新 1757, 卷九木部) — a quality/ageing note: long-aged material is better. Neither a prohibition, a diet note, nor a drug relation; carried here so it is not lost."
+   ],
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu, 卷36 (1596)",
+    "本草從新 Ben Cao Cong Xin, 吳儀洛, 卷九木部 (1757)",
+    "神農本草經 Shennong Bencao Jing, 孫星衍 Sun Xingyan recension, 卷三 (1799)"
+   ],
+   "recordsMerged": 2
+  },
+  {
+   "herb_id": "H014",
+   "herb": "Eleuthero (五加皮 / 五加)",
+   "clinical_contraindications": [
+    {
+     "text": "下部無風寒溼邪而有火。及肝腎虚而有火者。勿服。",
+     "speaker": "本草從新 (吳儀洛, 1757), 卷九木部, immediately after 酿酒尤良（王纶曰…）",
+     "gloss": "Do not take it where the lower body has no wind-cold-damp evil but does have fire, nor where liver and kidney are deficient with fire present.",
+     "scope": "whole drug"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [
+    {
+     "text": "惡𤣥參蛇皮",
+     "speaker": "之才曰 (Xu Zhicai), quoted in 本草綱目 卷36 五加, 根皮 氣味 note, 1596",
+     "gloss": "Antagonised by Scrophularia (玄參) and snake slough (蛇皮).",
+     "relation": "惡"
+    },
+    {
+     "text": "畏蛇皮、元參。",
+     "speaker": "神農本草經 孫星衍輯本 (1799) 七情 appendix, s.v. 五加皮",
+     "gloss": "Variant reading of the SAME relation with a different verb: the Sun Xingyan recension has 畏 (fears / is diminished by) where BCGM has 惡. Recorded separately because the verb differs by source; the drugs are the same two.",
+     "relation": "畏"
+    }
+   ],
+   "positive_pairings": [
+    {
+     "text": "逺志為之使",
+     "speaker": "之才曰 (Xu Zhicai), quoted in 本草綱目 卷36 五加, 根皮 氣味 note, 1596",
+     "gloss": "Polygala (遠志) acts as its ENVOY / guiding partner. POSITIVE — a pairing instruction, not a warning.",
+     "relation": "使"
+    },
+    {
+     "text": "遠志為使",
+     "speaker": "神農本草經 孫星衍輯本 (1799) 七情 appendix, s.v. 五加皮",
+     "gloss": "Same envoy relation in the Sun Xingyan recension. POSITIVE.",
+     "relation": "使"
+    }
+   ],
+   "unclassified": [],
+   "sourcesUsed": [
+    "本草從新 Ben Cao Cong Xin, 吳儀洛, 卷九 (木部) (1757)",
+    "本草綱目 Bencao Gangmu, 卷36 (1596)",
+    "神農本草經 Shennong Bencao Jing, 孫星衍 Sun Xingyan recension, 七情 appendix (1799)"
+   ],
+   "recordsMerged": 2
+  },
+  {
+   "herb_id": "H020",
+   "herb": "Ginkgo (銀杏 / 白果)",
+   "clinical_contraindications": [
+    {
+     "text": "然食多則收令太過令人氣壅臚脹昏頓故物類相感志言銀杏能醉人而三元延壽書言白果食滿千箇者死又云昔有飢者同以白果代飯食飽次日皆死也",
+     "speaker": "本草綱目 卷30 發明 (1596) — unattributed within the quoted run; the passage itself cites 物類相感志 and 三元延壽書",
+     "gloss": "Eating much of it makes the astringing action excessive, causing qi congestion, abdominal distension and stupor. Cited reports: the 物類相感志 says ginkgo can intoxicate; the 三元延壽書 says one who eats a full thousand nuts dies, and records starving people who ate them in place of rice and were all dead the next day. An overdose / lethality warning.",
+     "scope": "whole drug (the nut, 白果)"
+    },
+    {
+     "text": "時珍曰熟食小苦微甘性温有小毒多食令人臚脹",
+     "speaker": "時珍曰 (Li Shizhen), 本草綱目 卷30 氣味 note, 1596",
+     "gloss": "Cooked it is slightly bitter, faintly sweet, warm in nature, and SLIGHTLY TOXIC (有小毒); eating much of it causes abdominal distension.",
+     "scope": "whole drug"
+    },
+    {
+     "text": "瑞曰多食壅氣動風小兒多食昏霍發驚引疳",
+     "speaker": "瑞曰 (Wu Rui, 吳瑞), 本草綱目 卷30 氣味 note, 1596",
+     "gloss": "Eating much congests qi and stirs wind; in children, eating much causes clouding and sudden derangement, provokes fright convulsions and brings on gan (malnutrition) disorder. Note: the eel clause that follows in the same run is filed under dietary avoidances.",
+     "scope": "whole drug; the second half is specific to children (小兒)"
+    },
+    {
+     "text": "多食則收濇太過。令人壅氣胪胀。小兒發驚动疳。",
+     "speaker": "本草從新 (吳儀洛, 1757), 卷十",
+     "gloss": "Eating much makes the astringing-binding action excessive, congesting qi and distending the abdomen; in children it provokes fright and stirs gan disorder.",
+     "scope": "whole drug; final clause specific to children"
+    }
+   ],
+   "dietary_avoidances": [
+    {
+     "text": "同鰻鱺魚食患軟風",
+     "speaker": "瑞曰 (Wu Rui, 吳瑞), 本草綱目 卷30 氣味 note, 1596",
+     "gloss": "Eaten together with eel (鰻鱺魚) it brings on 軟風 (soft wind). A food-combining avoidance, not a drug incompatibility and not a clinical prohibition.",
+     "scope": "whole drug, as food"
+    }
+   ],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [],
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu, 卷30 (1596)",
+    "本草從新 Ben Cao Cong Xin, 吳儀洛, 卷十 (1757)"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H134",
+   "herb": "Bupleurum (Chai Hu 柴胡)",
+   "clinical_contraindications": [
+    {
+     "text": "宗奭曰柴胡本經並無一字治勞今人治勞方中鮮有不用者嗚呼凡此誤世甚多…若此等病茍無實熱醫者執而用之不死何待",
+     "speaker": "宗奭曰 (Kou Zongshi), 本草綱目 卷13 發明, 1596",
+     "gloss": "The Bencao Jing says not one word about Chai Hu treating taxation (勞); today it is in nearly every taxation formula, and this has misled the age greatly. In such diseases, if there is no genuine repletion heat and the physician insists on using it, what can follow but death. A prohibition on use in taxation without repletion heat.",
+     "scope": "whole drug"
+    },
+    {
+     "text": "時珍曰…惟勞在肺腎者不用可爾",
+     "speaker": "時珍曰 (Li Shizhen), 本草綱目 卷13 發明, 1596",
+     "gloss": "Only where the taxation is seated in lung and kidney should it not be used.",
+     "scope": "whole drug"
+    },
+    {
+     "text": "陰虚火炎氣升者。禁用。",
+     "speaker": "本草從新 (吳儀洛, 1757), 柴胡 entry",
+     "gloss": "Forbidden where yin is deficient with flaring fire and ascending qi.",
+     "scope": "whole drug"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [
+    {
+     "text": "惡皂莢",
+     "speaker": "之才曰 (Xu Zhicai), 本草綱目 卷13, 1596",
+     "gloss": "Antagonised by Gleditsia pod (皂莢).",
+     "relation": "惡"
+    },
+    {
+     "text": "畏女菀藜蘆",
+     "speaker": "之才曰 (Xu Zhicai), 本草綱目 卷13, 1596",
+     "gloss": "Fears / is diminished by Aster fastigiatus (女菀) and Veratrum (藜蘆).",
+     "relation": "畏"
+    }
+   ],
+   "positive_pairings": [
+    {
+     "text": "半夏為之使",
+     "speaker": "之才曰 (Xu Zhicai), 本草綱目 卷13, 1596",
+     "gloss": "Pinellia (半夏) acts as its ENVOY / guiding partner. POSITIVE — a pairing instruction, not a warning.",
+     "relation": "使"
+    }
+   ],
+   "unclassified": [],
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu (四庫全書本), 卷十三 (1596)",
+    "本草從新 Ben Cao Cong Xin, 吳儀洛 (1757)"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H182",
+   "herb": "Phellodendron (Huang Bai 黄蘗/黄柏)",
+   "clinical_contraindications": [
+    {
+     "text": "然必少壯氣盛能食者用之相宜若中氣不足而邪火熾甚者久服則有寒中之變近時虚損及縱慾求嗣之人用補陰藥往往以此二味為君日日服餌降令太過脾胃受傷真陽暗損精氣不暖致生他病蓋不知此物苦寒而滑滲且苦味久服有反從火化之害故葉氏醫學統㫖有四物加知母黄蘗久服傷胃不能生陰之戒",
+     "speaker": "時珍曰 (Li Shizhen), 本草綱目 卷三十五上 發明, 1596",
+     "gloss": "Suitable only for the young, strong, qi-abundant and good-eating. Where centre qi is insufficient while evil fire blazes, long use brings cold-in-the-centre transformation. People with deficiency-detriment, and those indulging desire while seeking heirs, commonly make this pair (知母 + 黄蘗) sovereign in yin-supplementing medicine and take it daily; the downbearing is excessive, spleen and stomach are damaged, true yang is covertly drained, essence-qi is not warmed, and other diseases arise. They do not know the drug is bitter-cold, slippery and percolating, and that a bitter flavour long taken carries the harm of paradoxically transforming into fire. Hence Ye's 醫學統㫖 warns that Si Wu Tang plus 知母 and 黄蘗, long taken, damages the stomach and cannot engender yin.",
+     "scope": "whole drug; the central warning is specifically about the 知母＋黄蘗 pair used as sovereign in yin-supplementing formulas, incl. 四物加知母黄蘗"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [
+    {
+     "text": "惡乾漆",
+     "speaker": "之才曰 (Xu Zhicai), 本草綱目 卷三十五上 氣味 note (not 發明), 1596",
+     "gloss": "Antagonised by dried lacquer (乾漆).",
+     "relation": "惡"
+    }
+   ],
+   "positive_pairings": [
+    {
+     "text": "伏硫黄",
+     "speaker": "之才曰 (Xu Zhicai), 本草綱目 卷三十五上 氣味 note, 1596",
+     "gloss": "It SUBDUES / controls sulphur (硫黄). POSITIVE — a capability of the drug acting on another substance, NOT a prohibition against combining with sulphur. Quoted contiguously with 惡乾漆 in the source (「之才曰惡乾漆伏硫黄」) but the two verbs point in opposite directions.",
+     "relation": "制伏"
+    }
+   ],
+   "unclassified": [],
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu, 卷三十五上 (1596)"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H243",
+   "herb": "Turkey Tail (雲芝, Trametes versicolor)",
+   "clinical_contraindications": [],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "NO CLASSICAL MATERIAL EXISTS for this drug. The verified record states that no 雲芝 entry appears anywhere in the complete 52-juan 本草綱目 (1596) or in 神農本草經 (孫星衍輯本, 1799); therefore no contraindication of any kind can be sourced for Trametes versicolor. All four buckets are correctly empty.",
+    "DELIBERATE NON-CARRY (recorded so the omission is auditable, not accidental): the neighbouring 芝 entry contains Xu Zhicai's 惡常山 and 畏扁青、茵蔯蒿. That material belongs to Ganoderma (靈芝), NOT to 雲芝/Trametes versicolor, and the verified record explicitly instructs that it must not be carried across. It is therefore intentionally excluded from this herb's incompatibilities."
+   ],
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu (四庫全書本), 卷01–卷52 complete (1596) — searched, no entry",
+    "神農本草經 Shennong Bencao Jing, 孫星衍輯本 (1799) — searched, no entry"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H277",
+   "herb": "Lily Bulb / Bai He (百合)",
+   "clinical_contraindications": [
+    {
+     "text": "中寒下陷者忌之。",
+     "speaker": "本草從新 (吳儀洛, 1757), 百合 entry, closing clause",
+     "gloss": "Avoid it where there is cold in the centre with downward sinking (中寒下陷). 忌 here governs a PATIENT STATE, not a food, so this is a clinical prohibition rather than a dietary note. Rationale supported by the entry's earlier 「利二便」 / 「善通二便」 — it moves the two excretions, which would worsen sinking.",
+     "scope": "whole drug"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "「善通二便。」 (本草從新 1757) — an INDICATION / action statement (it freely opens the two excretions), quoted in the record as the rationale for the contraindication that follows. Not itself a prohibition, so it is not filed as one; kept here so no part of the closing run is dropped.",
+    "「花白者入藥。」 (本草從新 1757) — a selection/identification note: the white-flowered kind is the one used medicinally. Neither a warning nor a pairing; recorded so the verbatim closing run 「善通二便。中寒下陷者忌之。花白者入藥。」 is fully accounted for."
+   ],
+   "sourcesUsed": [
+    "本草從新 Ben Cao Cong Xin, 吳儀洛 (1757)"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H278",
+   "herb": "Magnolia Bark (Hou Po 厚朴)",
+   "clinical_contraindications": [
+    {
+     "text": "一切客寒犯胃。溼氣侵脾之證。但可施於元氣未虚。邪氣方盛。若脾胃虚者。切勿沾唇。虽一時未見其害。而清純冲和之氣。潜傷默耗矣。",
+     "speaker": "本草從新 (吳儀洛, 1757), 卷八木部 厚朴",
+     "gloss": "For all patterns of guest-cold assailing the stomach and damp qi invading the spleen it may be applied ONLY where original qi is not yet deficient and evil qi is at its height. Where spleen and stomach are deficient, on no account let it touch the lips: though no harm is seen at the time, the clear, pure, harmonious qi is covertly damaged and silently consumed.",
+     "scope": "whole drug"
+    },
+    {
+     "text": "孕妇服之。大損胎元。",
+     "speaker": "本草從新 (吳儀洛, 1757), 卷八木部 厚朴",
+     "gloss": "If a pregnant woman takes it, it greatly damages the foetal origin. Pregnancy contraindication.",
+     "scope": "whole drug"
+    },
+    {
+     "text": "元素曰…孕婦忌之三也…誤服脫人元氣",
+     "speaker": "元素曰 (Zhang Yuansu), 本草綱目 卷35上 發明, 1596",
+     "gloss": "Third of Zhang Yuansu's cautions: pregnant women must avoid it; taken in error it strips a person's original qi. 忌 here governs a PATIENT STATE (pregnancy), so clinical, not dietary. This is a second, independent pregnancy warning distinct from the 本草從新 one above.",
+     "scope": "whole drug"
+    }
+   ],
+   "dietary_avoidances": [
+    {
+     "text": "忌豆。（犯之动氣。）",
+     "speaker": "本草從新 (吳儀洛, 1757), 卷八木部 厚朴",
+     "gloss": "Avoid beans (豆); transgressing this stirs the qi. A food-combining avoidance, not a clinical prohibition and not a drug incompatibility.",
+     "scope": "whole drug, as diet during use"
+    },
+    {
+     "text": "忌豆食之動氣",
+     "speaker": "之才曰 (Xu Zhicai) as the line stands in 本草綱目 卷35上 氣味 note, 1596",
+     "gloss": "Avoid beans; eating them stirs the qi. Provenance nuance recorded in the source material: BCGM runs this clause on to Xu Zhicai's seven-relations line, but 證類本草 (1108) attributes it instead to 藥性論 (see next entry). Substance identical either way.",
+     "scope": "whole drug, as diet during use"
+    },
+    {
+     "text": "藥性論云厚朴臣忌豆食之者動氣",
+     "speaker": "藥性論 (Yaoxing Lun), quoted in 證類本草 卷13, 1108",
+     "gloss": "The Yaoxing Lun's own wording: Hou Po is a minister drug; avoid beans, for one who eats them has the qi stirred. Kept verbatim as the earliest attribution of the bean avoidance.",
+     "scope": "whole drug, as diet during use"
+    }
+   ],
+   "drug_incompatibilities": [
+    {
+     "text": "惡泽瀉、硝石。",
+     "speaker": "本草從新 (吳儀洛, 1757), 卷八木部 厚朴",
+     "gloss": "Antagonised by Alisma (澤瀉) and niter (硝石). Two drugs only in this recension.",
+     "relation": "惡"
+    },
+    {
+     "text": "惡澤㵼硝石寒水石",
+     "speaker": "之才曰 (Xu Zhicai), 本草綱目 卷35上 氣味 note, 1596",
+     "gloss": "Antagonised by Alisma (澤瀉), niter (硝石) and glauberite/gypsum-type mineral 寒水石. NOTE the third item: BCGM carries 寒水石, which 本草從新 omits.",
+     "relation": "惡"
+    },
+    {
+     "text": "惡澤瀉寒水石消石",
+     "speaker": "證類本草 卷13, 1108",
+     "gloss": "Same three antagonists in the Zhenglei recension, with 消石 written for 硝石. Confirms 寒水石 belongs in the list.",
+     "relation": "惡"
+    }
+   ],
+   "positive_pairings": [
+    {
+     "text": "乾薑爲使。",
+     "speaker": "本草從新 (吳儀洛, 1757), 卷八木部 厚朴",
+     "gloss": "Dried ginger (乾薑) acts as its ENVOY / guiding partner. POSITIVE — a pairing instruction, not a warning.",
+     "relation": "使"
+    },
+    {
+     "text": "乾薑為之使",
+     "speaker": "之才曰 (Xu Zhicai), 本草綱目 卷35上 氣味 note (1596); identically in 證類本草 卷13 (1108)",
+     "gloss": "Same envoy relation, attested in both BCGM and the earlier Zhenglei Bencao. POSITIVE.",
+     "relation": "使"
+    }
+   ],
+   "unclassified": [
+    "「榛树皮也。」 (本草從新 1757, 卷八木部 厚朴) — an identification gloss embedded in the same unbroken verbatim run as the warnings. Not a prohibition, diet note or pairing; carried here so the quoted run is fully accounted for."
+   ],
+   "sourcesUsed": [
+    "本草從新 Ben Cao Cong Xin, 吳儀洛, 卷八 (木部) (1757)",
+    "本草綱目 Bencao Gangmu, 卷35上 (1596)",
+    "證類本草 Zhenglei Bencao, 卷13 (1108)"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H281",
+   "herb": "Siler (Fang Feng) 防風",
+   "clinical_contraindications": [
+    {
+     "text": "若血虚痉急。頭痛不因風寒。（内傷。）泄瀉不因寒溼。火升作嗽。陰虚盗汗。陽虚自汗者。竝禁用。",
+     "speaker": "吳儀洛 (Wu Yiluo), 本草從新 1757, unattributed compiler voice",
+     "gloss": "All prohibited: blood-deficiency spasm/tetany; headache NOT caused by wind-cold (i.e. internal damage); diarrhoea NOT caused by cold-damp; cough from fire rising; yin-deficiency night sweats; yang-deficiency spontaneous sweating.",
+     "scope": "whole drug"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [
+    {
+     "text": "畏萆薢",
+     "speaker": "之才曰 (Xu Zhicai), BCGM 卷13 氣味 note",
+     "gloss": "Fears / is diminished by bi xie (Dioscorea hypoglauca).",
+     "relation": "畏"
+    },
+    {
+     "text": "惡藜蘆白歛乾薑芫花",
+     "speaker": "之才曰 (Xu Zhicai), BCGM 卷13 氣味 note",
+     "gloss": "Antagonised by li lu (Veratrum), bai lian, dried ginger, yuan hua.",
+     "relation": "惡"
+    },
+    {
+     "text": "惡干薑、藜蘆、白蘞、芫花",
+     "speaker": "Shennong Bencao Jing, Sun Xingyan 1799 recension, 七情 appendix 卷三",
+     "gloss": "Antagonised by dried ginger, li lu, bai lian, yuan hua. Same four-item list as BCGM, different order and punctuation.",
+     "relation": "惡"
+    },
+    {
+     "text": "惡乾薑、白蔹、芫花。",
+     "speaker": "吳儀洛 (Wu Yiluo), 本草從新 1757, 防風",
+     "gloss": "Antagonised by dried ginger, bai lian, yuan hua. This 1757 list omits li lu.",
+     "relation": "惡"
+    },
+    {
+     "text": "畏萆。",
+     "speaker": "吳儀洛 (Wu Yiluo), 本草從新 1757, 防風",
+     "gloss": "Fears bi (xie) — the 1757 text has the abbreviated single character 萆.",
+     "relation": "畏"
+    }
+   ],
+   "positive_pairings": [
+    {
+     "text": "殺附子毒",
+     "speaker": "之才曰 (Xu Zhicai), BCGM 卷13 氣味 note",
+     "gloss": "POSITIVE. Fang Feng NEUTRALISES the toxicity of fu zi (aconite). It makes aconite safer. This is NOT a prohibition on combining the two.",
+     "relation": "殺"
+    },
+    {
+     "text": "殺附子毒。",
+     "speaker": "Shennong Bencao Jing, Sun Xingyan 1799 recension, 七情 appendix 卷三",
+     "gloss": "POSITIVE. Neutralises aconite toxicity. Independent corroboration of the same claim.",
+     "relation": "殺"
+    },
+    {
+     "text": "殺附子毒。",
+     "speaker": "吳儀洛 (Wu Yiluo), 本草從新 1757, 防風",
+     "gloss": "POSITIVE. Neutralises aconite toxicity. Third independent witness.",
+     "relation": "殺"
+    },
+    {
+     "text": "得葱白能行周身",
+     "speaker": "之才曰 (Xu Zhicai), BCGM 卷13 氣味 note",
+     "gloss": "POSITIVE. Combined with cong bai (scallion white) it can travel through the whole body.",
+     "relation": "other"
+    },
+    {
+     "text": "得澤瀉藁本療風",
+     "speaker": "之才曰 (Xu Zhicai), BCGM 卷13 氣味 note",
+     "gloss": "POSITIVE. Combined with ze xie and gao ben it treats wind.",
+     "relation": "other"
+    },
+    {
+     "text": "得當歸芍藥陽起石禹餘粮療婦人子臓風",
+     "speaker": "之才曰 (Xu Zhicai), BCGM 卷13 氣味 note",
+     "gloss": "POSITIVE. Combined with dang gui, shao yao, yang qi shi and yu yu liang it treats wind in the womb in women.",
+     "relation": "other"
+    }
+   ],
+   "unclassified": [
+    "「散目赤瘡疡。」 (本草從新 1757) — an INDICATION (disperses red eyes, sores and ulcers), not a contraindication. Carried here so the clause is not lost; it opens the run that ends in the six-item 竝禁用 exclusion list."
+   ],
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu 卷13, 1596",
+    "本草從新 Ben Cao Cong Xin, Wu Yiluo, 1757",
+    "神農本草經 Shennong Bencao Jing, Sun Xingyan recension, 1799"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H160",
+   "herb": "Green Tea 茗",
+   "clinical_contraindications": [
+    {
+     "text": "苦寒久食令人痩去人脂使人不睡",
+     "speaker": "藏器曰 (Chen Cangqi 陳藏器), BCGM 卷32 茗 葉氣味 note",
+     "gloss": "Bitter and cold; long consumption makes a person thin, strips body fat, and prevents sleep.",
+     "scope": "whole drug (leaf), prolonged use"
+    },
+    {
+     "text": "飲之宜熱冷則聚痰",
+     "speaker": "藏器曰 (Chen Cangqi 陳藏器), BCGM 卷32 茗 葉氣味 note",
+     "gloss": "It should be drunk hot; drunk cold it gathers phlegm.",
+     "scope": "whole drug (leaf), mode of use"
+    },
+    {
+     "text": "大渴及酒後飲茶水入腎經令人腰脚膀胱冷痛兼患水腫攣痺諸疾",
+     "speaker": "李廷飛曰 (Li Tingfei), BCGM 卷32 茗 葉氣味 note",
+     "gloss": "Drinking tea in great thirst or after wine sends the water into the kidney channel, causing cold pain in the lower back, legs and bladder, plus oedema, cramping and numbness disorders.",
+     "scope": "whole drug (leaf); patient states of extreme thirst and post-alcohol"
+    },
+    {
+     "text": "大抵飲茶宜熱宜少不飲尤佳空腹最忌",
+     "speaker": "李廷飛曰 (Li Tingfei), BCGM 卷32 茗 葉氣味 note",
+     "gloss": "In general tea should be drunk hot and in small amount; not drinking it is better still; on an empty stomach is the most forbidden. NOTE: the source-verification remark flags this sixth caution as previously un-harvested.",
+     "scope": "whole drug (leaf); 空腹 empty stomach"
+    },
+    {
+     "text": "若虚寒及血弱之人飲之既久則脾胃惡寒元氣暗損土不制水精血潛虚成痰飲成痞脹成痿痺成黄痩成嘔逆成洞瀉成腹痛成疝瘕種種内傷此茶之害也",
+     "speaker": "時珍曰 (Li Shizhen), BCGM 卷32 茗 發明",
+     "gloss": "In people of deficiency-cold or weak blood, long drinking makes spleen and stomach averse to cold, secretly damages original qi, earth fails to control water, essence and blood covertly empty; producing phlegm-rheum, glomus distension, atrophy-numbness, yellow emaciation, retching, throughflux diarrhoea, abdominal pain, hernia-conglomeration — every kind of internal damage. This is the harm of tea.",
+     "scope": "whole drug (leaf); patients of 虚寒 or 血弱"
+    },
+    {
+     "text": "服威靈仙土茯苓者忌飲茶",
+     "speaker": "時珍曰 (Li Shizhen), BCGM 卷32 茗 葉氣味 note",
+     "gloss": "Those taking wei ling xian or tu fu ling must avoid drinking tea. Filed as clinical because it prohibits the herb given a patient's concurrent medication; it is NOT one of the three 七情 negative relations (畏/惡/反), so it cannot go in drug_incompatibilities.",
+     "scope": "whole drug (leaf); patients concurrently taking 威靈仙 or 土茯苓"
+    }
+   ],
+   "dietary_avoidances": [
+    {
+     "text": "與榧同食令人身重",
+     "speaker": "胡洽曰 (Hu Qia), BCGM 卷32 茗 葉氣味 note",
+     "gloss": "Eaten together with fei (torreya nut) it makes the body heavy. Food-combining lore, not a clinical prohibition.",
+     "scope": "whole drug (leaf)"
+    }
+   ],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "「時珍早年盛氣毎飲新茗必至數椀輕汗發而肌骨清頗覺痛快中年胃氣稍損飲之即覺為害不痞悶嘔惡即腹冷洞泄故備述諸說以警同好焉」 (時珍曰, BCGM 卷32 發明) — Li Shizhen's first-person autobiographical account: in youth, vigorous qi, several bowls of new tea gave light sweat and clear flesh and bone; in middle age with stomach qi somewhat damaged, drinking it immediately harmed him, either glomus-oppression and retching or cold abdomen and throughflux diarrhoea; hence he sets out all these opinions to warn fellow enthusiasts. Testimony/narrative that motivates the warnings rather than stating a rule; not filed as a prohibition in its own right."
+   ],
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu, 1596, juan 32 (果部)"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H107",
+   "herb": "Black Pepper 胡椒",
+   "clinical_contraindications": [
+    {
+     "text": "辛熱純陽走氣助火昬目發瘡",
+     "speaker": "時珍曰 (Li Shizhen), BCGM 卷32 氣味",
+     "gloss": "Acrid, hot, pure yang; it races the qi and aids fire, dims the eyes and raises sores.",
+     "scope": "whole drug"
+    },
+    {
+     "text": "多食損肺令人吐血",
+     "speaker": "珣曰 (Li Xun 李珣), BCGM 卷32 氣味",
+     "gloss": "Eaten in quantity it damages the lung and causes a person to vomit blood.",
+     "scope": "whole drug; excessive dose"
+    },
+    {
+     "text": "胡椒屬火而性燥食之快膈喜之者衆積久則脾胃肺氣大傷凡病氣疾人益大其禍也",
+     "speaker": "震亨曰 (Zhu Zhenheng), BCGM 卷32 發明",
+     "gloss": "Pepper belongs to fire and is drying; eating it eases the diaphragm so many are fond of it, but accumulated over time it greatly damages spleen, stomach and lung qi; in anyone suffering a qi disorder it magnifies the calamity.",
+     "scope": "whole drug; prolonged use, and patients with qi disorders"
+    },
+    {
+     "text": "胡椒大辛熱純陽之物腸胃寒濕者宜之熱病人食之䡃火傷氣隂受其害",
+     "speaker": "時珍曰 (Li Shizhen), BCGM 卷32 發明",
+     "gloss": "Pepper is greatly acrid, hot, a pure-yang substance; suitable for those with cold-damp in intestines and stomach, but if a person with a heat disease eats it, it stirs fire, damages qi, and the yin suffers harm. Clause carries an indication (cold-damp) and its mirrored contraindication (heat disease) in one run; kept whole.",
+     "scope": "whole drug; patients with heat disease"
+    },
+    {
+     "text": "病咽㗋口齒者亦宜忌之",
+     "speaker": "時珍曰 (Li Shizhen), BCGM 卷32 發明",
+     "gloss": "Those with throat, mouth or tooth disease should likewise avoid it.",
+     "scope": "whole drug"
+    },
+    {
+     "text": "然損肺走氣。动火动血。損齒昏目。發瘡痔臟毒。必陰氣至足者。方可用。",
+     "speaker": "吳儀洛 (Wu Yiluo), 本草從新 卷十, 1757",
+     "gloss": "However it damages the lung and races the qi, stirs fire and stirs blood, damages the teeth and dims the eyes, raises sores, haemorrhoids and visceral toxin. Only one whose yin qi is fully sufficient may use it. (Transcription uses simplified 动 for 動.)",
+     "scope": "whole drug"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "「時珍自少嗜之嵗嵗病目而不疑及也後漸知其[未鐫之字]遂痛絶之目病亦止纔食一二粒即便昏澀此乃昔人所未試者」 (時珍曰, BCGM 卷32 發明) — Li Shizhen's autobiographical testimony: fond of pepper from youth, suffered eye disease year after year without suspecting it; on realising, he cut it off entirely and the eye disease stopped; even one or two grains now brings blurring and grittiness — something earlier writers never tested. Narrative evidence rather than a stated rule, so not filed as a prohibition. TRANSCRIPTION NOTE from the verification: in this Siku recension the character read as 害 in 「後漸知其害」 is an unrendered glyph placeholder, so the reading is plausible but not visible in the text; it is NOT reproduced here as 害."
+   ],
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu 卷32, 1596",
+    "本草從新 Ben Cao Cong Xin 卷十, Wu Yiluo, 1757"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H168",
+   "herb": "Chinese Rhubarb / Da Huang 大黃",
+   "clinical_contraindications": [
+    {
+     "text": "凡病在氣分及胃寒血虚并姙娠産後並勿輕用其性苦寒能傷元氣耗隂血故也",
+     "speaker": "時珍曰 (Li Shizhen), BCGM 卷17上 氣味",
+     "gloss": "Whenever the disease is in the qi division, or there is stomach cold, or blood deficiency, and in pregnancy and after childbirth — in all these do not use it lightly, because its nature is bitter-cold and can damage original qi and consume yin blood. The pregnancy caution is 1596 text, not a modern interpolation.",
+     "scope": "whole drug"
+    }
+   ],
+   "dietary_avoidances": [
+    {
+     "text": "忌冷水",
+     "speaker": "權曰 (Zhen Quan), BCGM 卷17上 氣味",
+     "gloss": "Avoid cold water. An ingestion/consumption avoidance, not a patient-state prohibition — 忌 here is followed by a thing consumed, not by a condition.",
+     "scope": "whole drug"
+    }
+   ],
+   "drug_incompatibilities": [
+    {
+     "text": "惡乾漆",
+     "speaker": "權曰 (Zhen Quan), BCGM 卷17上 氣味",
+     "gloss": "Antagonised by gan qi (dried lacquer).",
+     "relation": "惡"
+    }
+   ],
+   "positive_pairings": [
+    {
+     "text": "黄芩為之使",
+     "speaker": "之才曰 (Xu Zhicai), BCGM 卷17上 氣味",
+     "gloss": "POSITIVE. Huang qin acts as its ENVOY (使) — a guiding partner directing the formula. Not a warning.",
+     "relation": "使"
+    }
+   ],
+   "unclassified": [
+    "「無所畏」 (之才曰, BCGM 卷17上 氣味, standing between 黄芩為之使 and 權曰忌冷水) — 'there is nothing it fears', i.e. an explicit statement that Da Huang has NO 畏 relation. It is the negation of an incompatibility, so it belongs in neither the negative nor the positive bucket; recorded here so it is not lost and so it is never mis-rendered as a 畏 pairing."
+   ],
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu (四庫全書本) 卷十七上, 1596"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H206",
+   "herb": "Manjistha / Qian Cao 茜草 (Rubia cordifolia)",
+   "clinical_contraindications": [
+    {
+     "text": "無瘀滞者忌投。",
+     "speaker": "吳儀洛 (Wu Yiluo), 本草從新 1757, 卷五草部 茜草",
+     "gloss": "In one who has no blood stasis or stagnation, do not administer it. (Transcription variant 滞 for 滯.) 忌 here is followed by a patient state, so this is clinical, not dietary.",
+     "scope": "whole drug"
+    },
+    {
+     "text": "if taken to the extent of about 3 drachms several times daily, it powerfully affects the nervous system, inducing temporary delirium, &c., with evident determination to the uterine system",
+     "speaker": "Dr. G. Playfair, note to his translation of the Talif-i-sharif (p. 150), quoted in Dymock, Pharmacographia Indica Vol. II, 1891, p. 232",
+     "gloss": "Large-dose toxicity: about 3 drachms several times daily powerfully affects the nervous system, causing temporary delirium, with marked determination of blood to the uterus. English-language source, quoted verbatim from the scanned text.",
+     "scope": "whole drug at large repeated doses (~3 drachms several times daily)"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [
+    {
+     "text": "畏鼠姑",
+     "speaker": "之才曰 (Xu Zhicai), BCGM 1596 卷十八下 氣味 note",
+     "gloss": "Fears / is diminished by shu gu.",
+     "relation": "畏"
+    }
+   ],
+   "positive_pairings": [
+    {
+     "text": "汁制雄黄",
+     "speaker": "之才曰 (Xu Zhicai), BCGM 1596 卷十八下 氣味 note",
+     "gloss": "POSITIVE. Its JUICE CONTROLS (制) realgar (xiong huang) — i.e. it subdues/processes realgar's toxicity. A capability, not a prohibition on combining.",
+     "relation": "制伏"
+    }
+   ],
+   "unclassified": [
+    "「崩晕扑損。痔瘡疖。」 (本草從新 1757, 卷五草部 茜草, the run immediately preceding 無瘀滞者忌投) — INDICATIONS: flooding with dizziness, injury from falls and blows, haemorrhoidal sores and boils. Conditions TREATED, not caused or prohibited. Carried here so the clause is not lost."
+   ],
+   "sourcesUsed": [
+    "本草從新 Ben Cao Cong Xin 卷五草部, Wu Yiluo, 1757",
+    "本草綱目 Bencao Gangmu 卷十八下, 1596",
+    "Dymock, Pharmacographia Indica Vol. II, 1891, p. 232"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H266",
+   "herb": "Anemarrhena (Zhi Mu) 知母",
+   "clinical_contraindications": [
+    {
+     "text": "多服令人洩",
+     "speaker": "別錄 (Mingyi Bielu layer), quoted in BCGM 卷12上 主治",
+     "gloss": "Taken in quantity it causes a person to have diarrhoea. Sits at the tail of a 主治 run but is a dose caution, correctly assigned to the 別錄 layer.",
+     "scope": "whole drug; excessive dose"
+    },
+    {
+     "text": "傷胃滑腸。令人作瀉。",
+     "speaker": "吳儀洛 (Wu Yiluo), 本草從新 1757, 卷一草部 山草類 知母",
+     "gloss": "It damages the stomach and makes the intestines slippery; it causes a person to purge.",
+     "scope": "whole drug"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "「療傷寒乆瘧煩熱脇下邪氣膈中惡及風汗内疽」 (BCGM 卷12上 主治, 別錄 layer, the run immediately preceding 多服令人洩) — INDICATIONS: treats cold damage, chronic malaria, vexing heat, evil qi below the ribs, malignity within the diaphragm, wind-sweating, internal abscess. Conditions TREATED, not prohibitions. Carried here so nothing from the run is dropped. Source transcription carries a wiki markup remnant 「{{SK notes|别録}}」 marking the 別錄 attribution; that is apparatus, not text."
+   ],
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu (四庫全書本) 卷12上, 1596",
+    "本草從新 Ben Cao Cong Xin 卷一, Wu Yiluo, 1757"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H084",
+   "herb": "Boswellia / Frankincense 乳香",
+   "clinical_contraindications": [
+    {
+     "text": "瘡疽已溃勿服。",
+     "speaker": "吳儀洛 (Wu Yiluo), 本草從新 卷七木部 乳香, 1757",
+     "gloss": "Once a sore or abscess has already ulcerated, do not take it internally. (Transcription uses simplified 溃 for 潰.)",
+     "scope": "whole drug, internal use; patients whose sores have already ulcerated"
+    },
+    {
+     "text": "脓多勿敷。",
+     "speaker": "吳儀洛 (Wu Yiluo), 本草從新 卷七木部 乳香, 1757",
+     "gloss": "Where pus is copious, do not apply it as a dressing. (Transcription uses simplified 脓 for 膿.)",
+     "scope": "external/topical application only, not internal use"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "「止泄痢。」 (本草從新 卷七木部 乳香, 1757, opening the same closing line) — an INDICATION: stops diarrhoea and dysentery. Not a contraindication.",
+    "「出諸番。」 (same line, closing it) — PROVENANCE: it comes from the foreign countries. Neither warning nor pairing.",
+    "「痈疽已溃。法當咸禁。」 — belongs to the ADJACENT 沒藥 (myrrh) entry in 本草從新 卷七, cited by the verifier only to show the once-ulcerated rule is a real doctrine in this text and not a transcription artefact. It is NOT a Boswellia clause and must not be filed under this herb."
+   ],
+   "sourcesUsed": [
+    "本草從新 Ben Cao Cong Xin juan 7, Wu Yiluo, 1757"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H092",
+   "herb": "Dong Quai 當歸",
+   "clinical_contraindications": [
+    {
+     "text": "极善滑腸。瀉者禁用。",
+     "speaker": "吳儀洛 (Wu Yiluo), 本草從新 當歸, 1757",
+     "gloss": "Extremely apt to make the intestines slippery; in one who is already purging, use is forbidden. (Transcription uses simplified 极 for 極.)",
+     "scope": "whole drug"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [
+    {
+     "text": "惡䕡茹濕麫",
+     "speaker": "之才曰 (Xu Zhicai), BCGM 卷十四, 1596",
+     "gloss": "Antagonised by lü ru and by 濕麫 (damp wheat flour/noodles). NOTE: 濕麫 is a foodstuff, but the source states the relation as 惡, a 七情 antagonism, so it is filed by its stated relation rather than as dietary lore.",
+     "relation": "惡"
+    },
+    {
+     "text": "畏菖蒲海藻牡蒙生薑",
+     "speaker": "之才曰 (Xu Zhicai), BCGM 卷十四, 1596",
+     "gloss": "Fears / is diminished by chang pu, hai zao, mu meng, sheng jiang (fresh ginger).",
+     "relation": "畏"
+    },
+    {
+     "text": "畏菖蒲、海藻、生薑。",
+     "speaker": "吳儀洛 (Wu Yiluo), 本草從新 當歸, 1757",
+     "gloss": "Fears chang pu, hai zao, fresh ginger. The 1757 list drops 牡蒙 relative to BCGM.",
+     "relation": "畏"
+    },
+    {
+     "text": "惡溼面。",
+     "speaker": "吳儀洛 (Wu Yiluo), 本草從新 當歸, 1757",
+     "gloss": "Antagonised by damp wheat flour/noodles. Same item as BCGM's 濕麫, here written 溼面 (transcription's simplified form).",
+     "relation": "惡"
+    }
+   ],
+   "positive_pairings": [
+    {
+     "text": "制雄黄",
+     "speaker": "之才曰 (Xu Zhicai), BCGM 卷十四, 1596",
+     "gloss": "POSITIVE. It CONTROLS/subdues (制) realgar (xiong huang). A capability over another drug, not a prohibition. Stands at the very end of the 之才 run, immediately after 生薑, and must not be swept into the preceding 畏 list.",
+     "relation": "制伏"
+    }
+   ],
+   "unclassified": [
+    "「宜酒制。治吐血。宜醋炒。」 (本草從新 當歸, 1757, between 瀉者禁用 and 畏菖蒲…) — PREPARATION instruction plus an indication: best processed with wine; treats blood vomiting; best stir-fried with vinegar. Neither warning nor 七情 pairing. Carried here so the run is complete."
+   ],
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu 卷十四, 1596",
+    "本草從新 Ben Cao Cong Xin 卷一, Wu Yiluo, 1757"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H002",
+   "herb": "Astragalus (黃耆)",
+   "recordsMerged": 2,
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu (1596), Siku Quanshu recension 卷十二上"
+   ],
+   "clinical_contraindications": [
+    {
+     "text": "震亨曰黄耆補元氣肥白而多汗者為宜若面黒形實而瘦者服之令人胸滿宜以三抝湯瀉之",
+     "speaker": "震亨曰 (Zhu Zhenheng)",
+     "gloss": "Huang Qi supplements original qi and suits those who are pale, plump and sweat a lot; but if the face is dark and the body solid and thin, taking it causes chest fullness, and San-ao Tang should be used to drain it.",
+     "scope": "whole drug"
+    },
+    {
+     "text": "咽乾乃虚中有熱不可服涼藥…",
+     "speaker": "unattributed 附方 note (BCGM 欬膿血 formula)",
+     "gloss": "Dry throat means heat within deficiency; cooling drugs must not be taken.",
+     "scope": "inside the 附方 for 欬膿血 (coughing pus and blood), NOT a standalone herb-level contraindication; it restricts cooling drugs in that formula context"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [
+    {
+     "text": "惡{{SKchar|1841}}甲白鮮皮",
+     "speaker": "之才曰 (Xu Zhicai)",
+     "gloss": "Antagonised by [SKchar|1841]-jia and bai xian pi (Dictamnus bark). The lacuna glyph is very probably 龜 (i.e. 龜甲, tortoise plastron): the same glyph occurs in the fixed binome 蓍龜 in the 釋名 of this entry. Left verbatim, not resolved.",
+     "relation": "惡"
+    }
+   ],
+   "positive_pairings": [
+    {
+     "text": "之才曰茯苓為之使",
+     "speaker": "之才曰 (Xu Zhicai)",
+     "gloss": "Fu Ling (Poria) acts as its envoy/guide.",
+     "relation": "使"
+    }
+   ],
+   "unclassified": [
+    "「𢎞景曰出隴西者温補出白水者冷補又有赤色者可作膏用消癰腫」 (Tao Hongjing) — varietal/provenance description of warming vs cooling supplementation and a red-coloured type made into a paste for abscesses. Not a warning of any kind; it is a materia-medica quality note.",
+    "「大明曰…白水耆涼無毒排膿治血及煩悶熱毒骨蒸勞赤水耆涼無毒治血退熱毒餘功並同木耆涼無毒…」 (Da Ming) — varietal natures and indications (主治 context). Direction is treats-not-causes; not a prohibition."
+   ]
+  },
+  {
+   "herb_id": "H179",
+   "herb": "Guduchi / Giloy (Tinospora cordifolia)",
+   "recordsMerged": 1,
+   "sourcesUsed": [
+    "U. C. Dutt, The Materia Medica of the Hindus (1877)",
+    "Dymock, Warden & Hooper, Pharmacographia Indica, vol. 1 (1890)"
+   ],
+   "clinical_contraindications": [],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "「considered to be cold and dry, or according to Arabic and Persian writers, hot and dry in the first degree」 (Dymock, Pharmacographia Indica vol. 1) — a nature/quality statement, not a caution, restriction or incompatibility. Recorded so the clause is not dropped.",
+    "VERIFIED ABSENCE, not a clause: Dutt 1877 pp.105-107 (Guduchi; Beng. Gulancha) is entirely indications and formulae (Dhatrimodaka, Guduchyadi taila, Vrihat/Vata guduchyadi taila) with no caution, restriction or incompatibility; Dymock 1890 likewise gives only uses in fever, rheumatism and jaundice. The absence holds across these two reachable pre-1900 works only — Aṣṭāṅgahṛdaya and the Sanskrit originals were not consulted."
+   ]
+  },
+  {
+   "herb_id": "H180",
+   "herb": "Japanese Honeysuckle (Jin Yin Hua 金銀花)",
+   "recordsMerged": 1,
+   "sourcesUsed": [
+    "本草從新 Ben Cao Cong Xin 卷五, 吳儀洛 Wu Yiluo (1757)"
+   ],
+   "clinical_contraindications": [],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "「禀春氣以生。性极中和。故無禁忌。」 (吳儀洛 Wu Yiluo, 本草從新 1757) — an EXPLICIT STATEMENT THAT THERE ARE NO CONTRAINDICATIONS ('it receives spring qi in growing; its nature is utterly moderate, therefore there are no prohibitions'). It must never be rendered as a warning; it is the opposite of one. Filed here because no positive/negative bucket fits a declaration of absence.",
+    "「甘平。除熱解毒。補虚。…治痈疽疥癣。杨梅惡瘡。腸血痢。五種尸疰。」 — nature (sweet, neutral) and indications only (主治 context); conditions treated, not caused.",
+    "「其藤葉名忍冬。」 — nomenclature note (the vine and leaf are called Ren Dong). Not a warning."
+   ]
+  },
+  {
+   "herb_id": "H181",
+   "herb": "Ophiopogon (Mai Men Dong 麥門冬)",
+   "recordsMerged": 1,
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu (四庫全書本) 卷十六 (1596)",
+    "本草從新 Ben Cao Cong Xin, 吳儀洛 Wu Yiluo (1757)"
+   ],
+   "clinical_contraindications": [
+    {
+     "text": "宗奭曰麥門冬治肺熱之功為多其味苦但専泄而不専收寒多人禁服",
+     "speaker": "宗奭曰 (Kou Zongshi)",
+     "gloss": "Mai Men Dong mostly works by treating lung heat; its flavour is bitter, it only drains and does not astringe, so people with much cold are forbidden to take it.",
+     "scope": "whole drug"
+    },
+    {
+     "text": "時珍曰按趙繼宗儒醫精要云…此方惟火盛氣壯之人服之相宜若氣弱胃寒者必不可餌也",
+     "speaker": "時珍曰 (Li Shizhen), citing 趙繼宗 Zhao Jizong's 儒醫精要",
+     "gloss": "This formula suits only people with exuberant fire and robust qi; those with weak qi and cold stomach absolutely must not take it.",
+     "scope": "stated of 此方 (Zhao Jizong's formula) rather than of the drug as such, though Li Shizhen offers it as general guidance on the herb"
+    },
+    {
+     "text": "性寒而潤。虚寒泄瀉者勿用。",
+     "speaker": "吳儀洛 Wu Yiluo (本草從新 1757, 麥門冬)",
+     "gloss": "Its nature is cold and moistening; those with deficiency-cold diarrhoea must not use it.",
+     "scope": "whole drug"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [
+    {
+     "text": "惡款冬苦瓠苦芺",
+     "speaker": "之才曰 (Xu Zhicai)",
+     "gloss": "Antagonised by kuan dong (coltsfoot), ku hu (bitter gourd) and ku ao.",
+     "relation": "惡"
+    },
+    {
+     "text": "畏苦參青蘘木耳",
+     "speaker": "之才曰 (Xu Zhicai)",
+     "gloss": "Diminished by / fears ku shen (Sophora), qing rang (sesame leaf) and mu er (wood ear fungus).",
+     "relation": "畏"
+    }
+   ],
+   "positive_pairings": [
+    {
+     "text": "之才曰地黄車前為之使",
+     "speaker": "之才曰 (Xu Zhicai)",
+     "gloss": "Di Huang (Rehmannia) and Che Qian (plantain seed) act as its envoys/guides.",
+     "relation": "使"
+    },
+    {
+     "text": "伏石鍾乳",
+     "speaker": "之才曰 (Xu Zhicai)",
+     "gloss": "It subdues/controls shi zhong ru (stalactite). POSITIVE: the herb acts on the mineral, this is a capability, not a prohibition on combining.",
+     "relation": "制伏"
+    }
+   ],
+   "unclassified": []
+  },
+  {
+   "herb_id": "H265",
+   "herb": "Amomum / Sha Ren (砂仁 / 縮砂)",
+   "recordsMerged": 1,
+   "sourcesUsed": [
+    "本草從新 Ben Cao Cong Xin 卷二草部 (1757)",
+    "本草綱目 Bencao Gangmu 卷十四 (1596)"
+   ],
+   "clinical_contraindications": [
+    {
+     "text": "辛窜性燥。血虚火炎者勿用。",
+     "speaker": "吳儀洛 Wu Yiluo (本草從新 1757, 砂仁)",
+     "gloss": "Acrid, penetrating and drying in nature; those with blood deficiency and flaring fire must not use it.",
+     "scope": "whole drug"
+    },
+    {
+     "text": "胎妇多服耗氣。必致難產。",
+     "speaker": "吳儀洛 Wu Yiluo (本草從新 1757, 砂仁)",
+     "gloss": "If a pregnant woman takes much of it, it consumes qi and will certainly cause difficult labour. Note: this is a DOSE limit in pregnancy (多服), not a blanket pregnancy ban — the same drug is used to calm the fetus in BCGM (see unclassified).",
+     "scope": "whole drug, pregnancy, excessive use"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "「出岭南。炒去衣研。」 (本草從新 1757) — provenance (Lingnan) and processing instruction (dry-fry, remove the husk, grind). Not a warning.",
+    "「和中行氣止痛安胎{{SK notes|楊士瀛}}」 (BCGM 1596 卷十四 主治, attributed 楊士瀛 Yang Shiying) — 主治/indications context: harmonises the centre, moves qi, stops pain, CALMS THE FETUS. Direction is treats-not-causes; it is the countervailing evidence to the pregnancy dose limit above, not itself a caution.",
+    "附方 「子癎昬冐{{SK notes|縮砂和皮炒黑熱酒調下二錢…此方安胎止痛皆效}}」 (BCGM 1596) — formula for eclampsia with clouding; indication and preparation, not a prohibition.",
+    "附方 「妊娠胎動{{SK notes|…縮砂熨斗内炒熟去皮用仁擣碎每服二錢熱酒調下…}}」 (BCGM 1596) — formula for restless fetus in pregnancy; indication and preparation, not a prohibition."
+   ]
+  },
+  {
+   "herb_id": "H276",
+   "herb": "Grey Atractylodes (Cang Zhu 蒼术/蒼朮)",
+   "recordsMerged": 1,
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu (四庫全書本) 卷十二下 (1596)",
+    "本草從新 Ben Cao Cong Xin 卷一, 吳儀洛 Wu Yiluo (1757)"
+   ],
+   "clinical_contraindications": [
+    {
+     "text": "燥結多汗者忌用。",
+     "speaker": "吳儀洛 Wu Yiluo (本草從新 1757 卷一, 蒼朮)",
+     "gloss": "Those with dryness-constipation and profuse sweating must avoid using it. (忌 here governs a PATIENT STATE, so clinical, not dietary.)",
+     "scope": "whole drug"
+    }
+   ],
+   "dietary_avoidances": [
+    {
+     "text": "權曰忌桃李菘菜雀肉青魚",
+     "speaker": "權曰 (Zhen Quan), BCGM 卷十二下",
+     "gloss": "Avoid peaches, plums, Chinese cabbage, sparrow meat and mackerel/black carp. Tang food-combining lore, not a clinical warning.",
+     "scope": "stated in the 白术 portion of the shared 术 entry; reaches 蒼术 only via the cross-reference 忌同白术 (see unclassified)"
+    },
+    {
+     "text": "忌桃李雀肉",
+     "speaker": "unattributed 附方 processing note, BCGM 卷十二下",
+     "gloss": "Avoid peaches, plums and sparrow meat. Same food-combining lore, shorter list.",
+     "scope": "attached to one 附方 processing note inside the entry, not stated of the drug as such"
+    }
+   ],
+   "drug_incompatibilities": [],
+   "positive_pairings": [
+    {
+     "text": "之才曰防風地榆為之使",
+     "speaker": "之才曰 (Xu Zhicai), BCGM 卷十二下",
+     "gloss": "Fang Feng (Saposhnikovia) and Di Yu (Sanguisorba) act as its envoys/guides.",
+     "relation": "使"
+    },
+    {
+     "text": "二朮皆防風、地榆為使。",
+     "speaker": "吳儀洛 Wu Yiluo (本草從新 1757 卷一, closing line of 蒼朮)",
+     "gloss": "For both Atractylodes (bai zhu and cang zhu), Fang Feng and Di Yu are the envoys. This confirms the envoy pair applies to Cang Zhu too.",
+     "relation": "使"
+    }
+   ],
+   "unclassified": [
+    "「入足太隂陽明手太隂陽明太陽之經　忌同白术」 (BCGM 1596 卷十二下, end of the 蒼术氣味 note) — AMBIGUOUS AND FLAGGED. Reading A (the one the verified record takes): 'its avoidances are the same as Bai Zhu's', a cross-reference to the 忌桃李菘菜雀肉青魚 list earlier in the same entry, hence dietary. Reading B: 'avoid using it together with Bai Zhu', which would be a drug-level avoidance — but 忌 is not one of 畏/惡/反 so it cannot enter drug_incompatibilities. Held here rather than filed under either bucket so a reviewer decides. The channel-entry clause preceding it (足太陰/陽明, 手太陰/陽明/太陽) is meridian attribution, not a warning."
+   ]
+  },
+  {
+   "herb_id": "H142",
+   "herb": "Baikal Skullcap (Huang Qin 黃芩)",
+   "recordsMerged": 2,
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu (1596) 卷十三",
+    "本草從新 Ben Cao Cong Xin (1757)",
+    "神農本草經 Shennong Bencao Jing, 孫星衍 Sun Xingyan recension (1799) 卷三 七情表"
+   ],
+   "clinical_contraindications": [
+    {
+     "text": "…若因飲寒受寒腹中痛及飲水心下悸小便不利而脉不數者是裏無熱證則黄芩不可用也若熱厥腹痛肺熱而小便不利者黄芩其可不用乎",
+     "speaker": "時珍 (Li Shizhen), BCGM 卷十三 發明",
+     "gloss": "If abdominal pain comes from drinking cold or contracting cold, or there is palpitation below the heart from drinking water with inhibited urination and a non-rapid pulse, this is an interior WITHOUT heat, and Huang Qin may not be used. But for heat-reversal abdominal pain, or lung heat with inhibited urination, how could Huang Qin not be used?",
+     "scope": "whole drug"
+    },
+    {
+     "text": "震亨曰黄芩降痰假其降火也…若肺虛者多用則傷肺必先以天門冬保定肺氣而後用之",
+     "speaker": "震亨曰 (Zhu Zhenheng), BCGM 卷十三 發明",
+     "gloss": "Huang Qin brings phlegm down by way of bringing fire down; but in lung deficiency, using much of it injures the lung — one must first secure lung qi with Tian Men Dong (Asparagus) and only then use it. A qualified caution, not an absolute ban: the proviso names the corrective partner.",
+     "scope": "whole drug, lung-deficiency patients, high dose"
+    },
+    {
+     "text": "苦寒傷胃。虚寒者。均宜戒。",
+     "speaker": "吳儀洛 Wu Yiluo (本草從新 1757, 黃芩)",
+     "gloss": "Bitter and cold, it injures the stomach; those with deficiency-cold should all abstain from it.",
+     "scope": "whole drug"
+    },
+    {
+     "text": "胎前若非實熱而服之。陰損胎元矣。",
+     "speaker": "吳儀洛 Wu Yiluo (本草從新 1757, 黃芩)",
+     "gloss": "Taken before birth when the pattern is NOT excess heat, it covertly damages the fetal origin. A qualified pregnancy caution: BCGM records the calm-the-fetus use only under heat patterns.",
+     "scope": "whole drug, pregnancy, absent an excess-heat pattern"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [
+    {
+     "text": "惡葱實辰丹砂牡丹藜蘆",
+     "speaker": "之才曰 (Xu Zhicai), BCGM 卷十三 氣味",
+     "gloss": "Antagonised by cong shi (onion seed), chen/dan sha (cinnabar), mu dan (tree peony) and li lu (Veratrum). NOTE: the Sun Xingyan recension splits this differently, putting only 蔥實 under 惡 and 丹砂/牡丹/藜蘆 under 畏 — both readings preserved as separate entries here.",
+     "relation": "惡"
+    },
+    {
+     "text": "畏丹皮、丹砂。",
+     "speaker": "吳儀洛 Wu Yiluo (本草從新 1757, closing line of 黃芩)",
+     "gloss": "Fears / is diminished by dan pi (tree peony bark) and dan sha (cinnabar).",
+     "relation": "畏"
+    },
+    {
+     "text": "惡蔥實",
+     "speaker": "神農本草經, 孫星衍 Sun Xingyan recension (1799) 卷三 七情表",
+     "gloss": "Antagonised by onion seed.",
+     "relation": "惡"
+    },
+    {
+     "text": "畏丹砂、牡丹、藜蘆",
+     "speaker": "神農本草經, 孫星衍 Sun Xingyan recension (1799) 卷三 七情表",
+     "gloss": "Fears / is diminished by cinnabar, tree peony and Veratrum.",
+     "relation": "畏"
+    }
+   ],
+   "positive_pairings": [
+    {
+     "text": "之才曰山茱萸龍骨為之使",
+     "speaker": "之才曰 (Xu Zhicai), BCGM 卷十三 氣味",
+     "gloss": "Shan Zhu Yu (Cornus) and Long Gu (dragon bone) act as its envoys/guides.",
+     "relation": "使"
+    },
+    {
+     "text": "山茱萸，龍骨為使",
+     "speaker": "神農本草經, 孫星衍 Sun Xingyan recension (1799) 卷三 七情表",
+     "gloss": "Cornus and dragon bone are its envoys.",
+     "relation": "使"
+    },
+    {
+     "text": "山茱、龍骨爲使。",
+     "speaker": "吳儀洛 Wu Yiluo (本草從新 1757, closing line of 黃芩)",
+     "gloss": "Cornus and dragon bone are its envoys.",
+     "relation": "使"
+    },
+    {
+     "text": "得厚朴黄連止腹痛",
+     "speaker": "之才曰 (Xu Zhicai), BCGM 卷十三 氣味",
+     "gloss": "Combined with Hou Po (magnolia bark) and Huang Lian (coptis) it stops abdominal pain. A 得 combination instruction, positive.",
+     "relation": "other"
+    },
+    {
+     "text": "得五味子牡蠣令人有子",
+     "speaker": "之才曰 (Xu Zhicai), BCGM 卷十三 氣味",
+     "gloss": "Combined with Wu Wei Zi (schisandra) and Mu Li (oyster shell) it makes people able to conceive.",
+     "relation": "other"
+    },
+    {
+     "text": "得黄茋白歛赤小豆療䑕瘻",
+     "speaker": "之才曰 (Xu Zhicai), BCGM 卷十三 氣味",
+     "gloss": "Combined with Huang Qi (astragalus), Bai Lian (Ampelopsis) and Chi Xiao Dou (adzuki) it treats scrofulous fistula.",
+     "relation": "other"
+    },
+    {
+     "text": "時珍曰得酒上行",
+     "speaker": "時珍曰 (Li Shizhen), BCGM 卷十三 氣味",
+     "gloss": "With wine it travels upward.",
+     "relation": "other"
+    },
+    {
+     "text": "得豬膽汁除肝膽火",
+     "speaker": "時珍曰 (Li Shizhen), BCGM 卷十三 氣味",
+     "gloss": "With pig bile it removes liver and gallbladder fire.",
+     "relation": "other"
+    },
+    {
+     "text": "得柴胡退寒熱",
+     "speaker": "時珍曰 (Li Shizhen), BCGM 卷十三 氣味",
+     "gloss": "With Chai Hu (bupleurum) it resolves alternating chills and fever.",
+     "relation": "other"
+    },
+    {
+     "text": "得芍藥治下痢",
+     "speaker": "時珍曰 (Li Shizhen), BCGM 卷十三 氣味",
+     "gloss": "With Shao Yao (peony) it treats dysenteric diarrhoea.",
+     "relation": "other"
+    },
+    {
+     "text": "得桑白皮瀉肺火",
+     "speaker": "時珍曰 (Li Shizhen), BCGM 卷十三 氣味",
+     "gloss": "With Sang Bai Pi (mulberry root bark) it drains lung fire.",
+     "relation": "other"
+    },
+    {
+     "text": "得白术安胎",
+     "speaker": "時珍曰 (Li Shizhen), BCGM 卷十三 氣味",
+     "gloss": "With Bai Zhu (Atractylodes macrocephala) it calms the fetus.",
+     "relation": "other"
+    },
+    {
+     "text": "胎孕宜清熱凉血…黄芩白术乃安胎聖藥",
+     "speaker": "震亨 (Zhu Zhenheng), BCGM 卷十三",
+     "gloss": "In pregnancy one should clear heat and cool the blood; Huang Qin with Bai Zhu are the sagely fetus-calming drugs. Mutual reinforcement, and the direct counterweight to the 本草從新 pregnancy caution above.",
+     "relation": "相須"
+    }
+   ],
+   "unclassified": []
+  },
+  {
+   "herb_id": "H176",
+   "herb": "Coptis / Goldthread (黃連)",
+   "recordsMerged": 1,
+   "sourcesUsed": [
+    "本草綱目 Bencao Gangmu 卷十三 (1596)",
+    "神農本草經 Shennong Bencao Jing, 孫星衍 Sun Xingyan recension (1799) 七情表"
+   ],
+   "clinical_contraindications": [],
+   "dietary_avoidances": [
+    {
+     "text": "權曰忌豬肉",
+     "speaker": "權曰 (Zhen Quan), BCGM 卷十三 氣味",
+     "gloss": "Avoid pork. 忌 here governs a FOOD, so dietary, not clinical.",
+     "scope": "whole drug"
+    },
+    {
+     "text": "惡冷水",
+     "speaker": "權曰 (Zhen Quan), BCGM 卷十三 氣味",
+     "gloss": "Dislikes / is spoiled by cold water. FLAGGED: the character is 惡, but the object 冷水 is a dietary item (cold water taken while on the drug), not a materia medica, so it is filed as a dietary avoidance rather than as a 七情 drug antagonism. It sits inside Zhen Quan's food clause, immediately after 忌豬肉.",
+     "scope": "whole drug"
+    },
+    {
+     "text": "斆曰服此藥至十兩不得食豬肉若服至三年一生不得食也",
+     "speaker": "斆曰 (Lei Xiao), BCGM 卷十三 氣味",
+     "gloss": "Once ten liang of this drug have been taken, pork must not be eaten; if taken for three years, it must not be eaten for life. A dose-linked food avoidance.",
+     "scope": "whole drug, cumulative dose"
+    },
+    {
+     "text": "時珍曰道書言服黄連犯豬肉令人泄瀉…",
+     "speaker": "時珍曰 (Li Shizhen), BCGM 卷十三 氣味",
+     "gloss": "The Daoist books say that taking Huang Lian and transgressing with pork causes diarrhoea. NOTE: the source passage continues past this point; only the quoted span was verified.",
+     "scope": "whole drug"
+    }
+   ],
+   "drug_incompatibilities": [
+    {
+     "text": "惡菊花𤣥参白鮮皮芫花白殭蠶",
+     "speaker": "之才曰 (Xu Zhicai), BCGM 卷十三 氣味",
+     "gloss": "Antagonised by ju hua (chrysanthemum), xuan shen (Scrophularia), bai xian pi (Dictamnus bark), yuan hua (Daphne) and bai jiang can (stiff silkworm).",
+     "relation": "惡"
+    },
+    {
+     "text": "畏款冬牛膝",
+     "speaker": "之才曰 (Xu Zhicai), BCGM 卷十三 氣味",
+     "gloss": "Fears / is diminished by kuan dong (coltsfoot) and niu xi (Achyranthes).",
+     "relation": "畏"
+    },
+    {
+     "text": "惡菊花、芫花、元參、白蘚皮",
+     "speaker": "神農本草經, 孫星衍 Sun Xingyan recension (1799) 七情表",
+     "gloss": "Antagonised by chrysanthemum, Daphne, Scrophularia and Dictamnus bark. (Independent corroboration; 白殭蠶 is absent from this list.)",
+     "relation": "惡"
+    },
+    {
+     "text": "畏款冬",
+     "speaker": "神農本草經, 孫星衍 Sun Xingyan recension (1799) 七情表",
+     "gloss": "Fears coltsfoot. (This recension omits 牛膝.)",
+     "relation": "畏"
+    }
+   ],
+   "positive_pairings": [
+    {
+     "text": "之才曰黄芩龍骨理石為之使",
+     "speaker": "之才曰 (Xu Zhicai), BCGM 卷十三 氣味",
+     "gloss": "Huang Qin (Scutellaria), Long Gu (dragon bone) and Li Shi (gypsum-type mineral) act as its envoys/guides.",
+     "relation": "使"
+    },
+    {
+     "text": "勝烏頭",
+     "speaker": "之才曰 (Xu Zhicai), BCGM 卷十三 氣味",
+     "gloss": "It OVERCOMES / subdues wu tou (aconite). POSITIVE — Huang Lian acts on aconite. This is emphatically NOT a warning against combining the two, and must never be filed or rendered as one.",
+     "relation": "勝"
+    },
+    {
+     "text": "解巴豆毒",
+     "speaker": "之才曰 (Xu Zhicai), BCGM 卷十三 氣味",
+     "gloss": "It RESOLVES croton (ba dou) poison. POSITIVE — an antidote capability, not a prohibition.",
+     "relation": "解毒"
+    },
+    {
+     "text": "黃芩、龍骨、理石為使",
+     "speaker": "神農本草經, 孫星衍 Sun Xingyan recension (1799) 七情表",
+     "gloss": "Scutellaria, dragon bone and li shi are its envoys.",
+     "relation": "使"
+    },
+    {
+     "text": "勝烏頭",
+     "speaker": "神農本草經, 孫星衍 Sun Xingyan recension (1799) 七情表",
+     "gloss": "It overcomes aconite. POSITIVE, corroborating the BCGM clause.",
+     "relation": "勝"
+    },
+    {
+     "text": "解巴豆毒",
+     "speaker": "神農本草經, 孫星衍 Sun Xingyan recension (1799) 七情表",
+     "gloss": "It resolves croton poison. POSITIVE, corroborating the BCGM clause.",
+     "relation": "解毒"
+    }
+   ],
+   "unclassified": [
+    "「别録曰㣲寒」 (Mingyi Bielu) — nature statement (slightly cold). Not a warning.",
+    "「普曰神農岐伯黄帝雷公苦無毒李當之小寒」 (Wu Pu, citing Shennong, Qi Bo, Huang Di, Lei Gong; and Li Dangzhi) — flavour/toxicity opinions: bitter, non-toxic; Li Dangzhi says slightly cold. A NON-TOXIC statement, the opposite of a caution."
+   ]
+  },
+  {
+   "herb_id": "H178",
+   "herb": "Gardenia (Zhi Zi, 梔子/巵子)",
+   "clinical_contraindications": [],
+   "dietary_avoidances": [
+    {
+     "text": "忌酒麩煎炙",
+     "speaker": "unattributed (本草綱目 附方, 李時珍 comp.)",
+     "gloss": "avoid wine, bran, and fried/broiled foods",
+     "scope": "a single 附方 (formula) inside the BCGM 卷三十六 巵子 entry — NOT a herb-level avoidance. The specific formula is not identified in the verified record."
+    }
+   ],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "「宗奭曰…巵子雖寒而無毒治胃中熱氣既亡血亡津液腑臟無潤養内生虚熱非此物不可去也」 — REASON: 發明 (efficacy discussion) by 寇宗奭 Kou Zongshi. States the drug is cold but non-toxic and indispensable for internally generated deficiency heat. This is an indication/efficacy claim, not a restriction. Filed here so it is not silently dropped.",
+    "「震亨曰治上焦中焦連殻用下焦去殻洗去黄漿炒用治血病炒黒用」 — REASON: 脩治 (processing) by 朱震亨 Zhu Zhenheng. Burner-specific preparation instruction (keep husk for upper/middle burner; remove husk, wash off yellow pulp and stir-fry for lower burner; char-fry for blood disorders). A positive handling directive, not a prohibition and not a drug-drug relation.",
+    "「好古曰去心胸中熱用仁去肌表熱用皮」 — REASON: 脩治 (processing) by 王好古 Wang Haogu. Part-selection instruction (kernel for heat in heart/chest; husk for heat in the exterior). Positive directive, part-scoped, not a prohibition.",
+    "ABSENCE NOTE: the whole 卷三十六 巵子 entry was read and contains NO 忌/禁 directed at any patient type. The only 忌 in the entry is the formula-scoped diet note filed above."
+   ],
+   "sourcesUsed": [
+    "本草綱目 (Bencao Gangmu), 1596, Siku Quanshu recension 卷三十六"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H193",
+   "herb": "Vasa / Vasaka (Adhatoda vasica)",
+   "clinical_contraindications": [],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "VERIFIED ABSENCE, two independent pre-1900 works. Dutt 1877 (JUSTICIA ADHATODA; Syn. Adhatoda Vasica; Sans. Vasaka, Atarusha, pp. 214-215) carries expectorant/antispasmodic uses plus the Vasavaleha and Vasachandanadi taila formulae — no restriction of any kind. Dymock, Warden & Hooper, Pharmacographia Indica vol. 3 (ADHATODA VASICA) carries Nighanta and Makhzan-el-Adwiya material that is entirely indications (phlegm, bile, blood impurities; asthma, cough, fever, vomiting, gonorrhoea, leprosy, phthisis). REASON: 主治-equivalent indication context — conditions being TREATED, not caused, and therefore not a warning in any bucket. No clause exists to file; nothing was dropped."
+   ],
+   "sourcesUsed": [
+    "U. C. Dutt, The Materia Medica of the Hindus, 1877",
+    "Dymock, Warden & Hooper, Pharmacographia Indica, vol. 3, 1893"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H198",
+   "herb": "Bhringaraj",
+   "clinical_contraindications": [],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "VERIFIED ABSENCE, two independent pre-1900 works. Dutt 1877, pp. 181-183 (WEDELIA CALENDULACEA; Sans. Bhringaraja, Kesaraja — Dutt notes bhringaraja/kesaraja are used as synonyms for Wedelia calendulacea and Eclipta prostrata): leaves held tonic, alterative, useful in cough, cephalalgia, skin diseases and alopecia, followed by three oil/powder formulas. No caution, no prohibition, no toxicity note, no pregnancy note. Dymock, Pharmacographia Indica vol. II, pp. 266-268 (ECLIPTA ALBA, Hassk.): Nighanta description \"bitter, pungent, hot, and dry\", used as tonic and deobstruent in hepatic and splenic enlargement and skin disease. REASON: indication/quality context only — conditions TREATED, not caused. No clause exists to file in any bucket; nothing was dropped."
+   ],
+   "sourcesUsed": [
+    "U. C. Dutt, The Materia Medica of the Hindus, 1877",
+    "Dymock, Warden & Hooper, Pharmacographia Indica, vol. II, 1891"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H240",
+   "herb": "Asafoetida (Hing)",
+   "clinical_contraindications": [
+    {
+     "text": "虚人虽有痞积。當先養胃氣。胃强則堅积漸磨而消矣。不宜用此。臭烈更傷胃氣。",
+     "speaker": "unattributed (本草從新, 吳儀洛 Wu Yiluo, 1757, 阿魏 entry)",
+     "gloss": "In a deficient person, even where there is glomus and accumulation, one must first nourish stomach qi; once the stomach is strong the hard accumulation is gradually ground down and dispersed. This [drug] is not suitable to use — its foul pungency further injures stomach qi.",
+     "scope": "whole drug. Patient-state prohibition (虚人 / deficient constitution), preceded in the same passage by the rationale 「人之血氣。闻香則順。闻臭則逆。」 (a person's blood and qi flow smoothly with fragrance and run counter with stench), which is the reasoning for this prohibition and is retained here as context."
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "「हिङ्गूष्णं पाचनं रुच्यं तीक्ष्णं वातबलासनुत् / शूलगुल्मोदरानाहकृमिघ्नं पित्तवर्द्धनम् १०१」 (Bhavaprakasha Nighantu, हरीतक्यादिवर्गः, v. 101) — REASON: पित्तवर्द्धनम् (\"increases pitta\") is the closing word of the SAME verse that lists the virtues (hot, digestive, appetising, sharp, destroys vata and kapha, kills colic/gulma/abdominal distension/worms). It is a stated GUNA (property), not a prohibition: the text nowhere says to avoid the drug in pitta conditions. Treating it as a clinical contraindication would require an inference the source does not make, so it is filed here rather than invented into a warning bucket. Flag for a Sanskritist/clinical reviewer to decide whether it should be surfaced as a caution.",
+    "「सहस्रवेधि जतुकं बाह्लीकं हिङ्गु रामठम् २.१००」 (Bhavaprakasha Nighantu, v. 100) — REASON: synonym list / nomenclature only (sahasravedhi, jatuka, bahlika, hingu, ramatha). No warning content; recorded so no verified clause is dropped."
+   ],
+   "sourcesUsed": [
+    "भावप्रकाशनिघण्टुः (Bhavaprakasha Nighantu), Bhavamishra, 16th century",
+    "本草從新 (Ben Cao Cong Xin), 吳儀洛, 1757"
+   ],
+   "recordsMerged": 2
+  },
+  {
+   "herb_id": "H275",
+   "herb": "Glossy Privet Fruit (Nu Zhen Zi, 女貞子)",
+   "clinical_contraindications": [
+    {
+     "text": "純陰至静之品。唯陰虚有火者宜之。否則腹痛作瀉。",
+     "speaker": "unattributed (本草從新, 吳儀洛 Wu Yiluo, 1757, 卷九木部 女贞子)",
+     "gloss": "A purely yin, utterly quiet substance. Only those with yin deficiency and fire are suited to it; otherwise there is abdominal pain and diarrhoea.",
+     "scope": "whole drug. Framed as a restriction-to-one-patient-state (陰虚有火者) with a named adverse outcome (腹痛作瀉) for everyone else — i.e. contraindicated outside yin-deficiency-with-fire."
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "「女贞、冬青。時珍作二種。實一物也。」 — REASON: identity/nomenclature note (Li Shizhen treated 女貞 and 冬青 as two kinds; they are in fact one thing). Contiguous with the contraindication in the source but carries no warning content. Recorded so nothing is dropped."
+   ],
+   "sourcesUsed": [
+    "本草從新 (Ben Cao Cong Xin), 吳儀洛, 1757, 卷九木部"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H055",
+   "herb": "Schisandra (五味子)",
+   "clinical_contraindications": [
+    {
+     "text": "但有外邪者不可驟用恐閉其邪氣必先發散而後用之乃良",
+     "speaker": "杲曰 (Li Gao)",
+     "gloss": "But those who have an external pathogen must not use it abruptly, for fear of shutting the pathogenic qi in; one must first disperse [the exterior] and only then use it — that is best.",
+     "scope": "whole drug. Appears in BCGM 卷18上 發明 immediately after the indication clause 「又五味子收肺氣乃火熱必用之藥故治嗽以之為君」 (it gathers lung qi, an essential drug for fire-heat, used as sovereign to treat cough) — that leading clause is 主治/發明 context, i.e. what the drug TREATS, and is not itself a warning."
+    },
+    {
+     "text": "唯風邪在表。痧疹初發。一切停飲。肺家有實熱者。皆當禁之。",
+     "speaker": "unattributed (本草從新, 吳儀洛 Wu Yiluo, 1757)",
+     "gloss": "Only where wind-pathogen is in the exterior, where measles/rash is first erupting, in any case of retained fluids, and where the lung has repletion heat — in all of these it must be prohibited.",
+     "scope": "whole drug. FOUR distinct prohibited states in one sentence closed by 皆當禁之; none may be split off or lost: (1) 風邪在表, (2) 痧疹初發, (3) 一切停飲, (4) 肺家有實熱者."
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [
+    {
+     "text": "惡萎㽔",
+     "speaker": "之才曰 (Xu Zhicai), 本草綱目 卷18上, 1596",
+     "gloss": "is antagonised by Wei-rui (Polygonatum odoratum). Rare graph 萎㽔 preserved exactly as printed in the Siku recension.",
+     "relation": "惡"
+    },
+    {
+     "text": "惡葳蕤",
+     "speaker": "unattributed (本草從新, 吳儀洛 Wu Yiluo, 1757)",
+     "gloss": "is antagonised by Wei-rui (Polygonatum odoratum); 葳蕤 is the standard orthography of the same drug as BCGM's 萎㽔.",
+     "relation": "惡"
+    },
+    {
+     "text": "惡葳蕤",
+     "speaker": "神農本草經 七情 appendix, 孫星衍輯 (Sun Xingyan recension), 1799",
+     "gloss": "is antagonised by Wei-rui. Independent corroboration of the same relation, within the line 「五味子　蓯蓉為使；惡葳蕤；勝烏頭。」",
+     "relation": "惡"
+    }
+   ],
+   "positive_pairings": [
+    {
+     "text": "蓯蓉為之使",
+     "speaker": "之才曰 (Xu Zhicai), 本草綱目 卷18上, 1596",
+     "gloss": "Cistanche (Rou Cong Rong) acts as its ENVOY / guiding assistant. POSITIVE — a pairing instruction, not a prohibition.",
+     "relation": "使"
+    },
+    {
+     "text": "勝烏頭",
+     "speaker": "之才曰 (Xu Zhicai), 本草綱目 卷18上, 1596",
+     "gloss": "it SUBDUES / overcomes Wu Tou (aconite). POSITIVE — Schisandra acts beneficially upon aconite. This must NEVER be filed as an incompatibility; doing so inverts the source into a false 'do not combine with aconite' warning.",
+     "relation": "勝"
+    },
+    {
+     "text": "苁蓉爲使",
+     "speaker": "unattributed (本草從新, 吳儀洛 Wu Yiluo, 1757)",
+     "gloss": "Cistanche acts as envoy. POSITIVE. Same relation as the BCGM line, in simplified-mixed transcription (苁蓉 = 蓯蓉).",
+     "relation": "使"
+    },
+    {
+     "text": "蓯蓉為使",
+     "speaker": "神農本草經 七情 appendix, 孫星衍輯 (Sun Xingyan recension), 1799",
+     "gloss": "Cistanche acts as envoy. POSITIVE. From the line 「五味子　蓯蓉為使；惡葳蕤；勝烏頭。」",
+     "relation": "使"
+    },
+    {
+     "text": "勝烏頭",
+     "speaker": "神農本草經 七情 appendix, 孫星衍輯 (Sun Xingyan recension), 1799",
+     "gloss": "it SUBDUES aconite. POSITIVE. Independent third-source corroboration that 勝烏頭 belongs to the positive half of the 七情, not to the incompatibilities.",
+     "relation": "勝"
+    }
+   ],
+   "unclassified": [
+    "「又五味子收肺氣乃火熱必用之藥故治嗽以之為君」 (杲曰, BCGM 卷18上 發明) — REASON: indication/efficacy context (gathers lung qi; essential for fire-heat; sovereign drug for cough). Retained here for completeness; the prohibition that follows it in the same sentence is filed under clinical_contraindications."
+   ],
+   "sourcesUsed": [
+    "本草綱目 (Bencao Gangmu), 四庫全書本 卷18上, 1596",
+    "本草從新 (Ben Cao Cong Xin), 吳儀洛, 1757",
+    "神農本草經 (Shennong Bencao Jing), 孫星衍輯 Sun Xingyan recension, 1799"
+   ],
+   "recordsMerged": 2
+  },
+  {
+   "herb_id": "H175",
+   "herb": "Aged Tangerine Peel / Chen Pi (陳皮/黃橘皮)",
+   "clinical_contraindications": [
+    {
+     "text": "獨用則瀉肺損脾",
+     "speaker": "李杲 Li Gao (continuous 發明 passage), 本草綱目 卷三十 黃橘皮, 1596",
+     "gloss": "used ALONE it drains the lung and injures the spleen.",
+     "scope": "whole drug; a mode-of-use caution (solo administration). NOT a 七情 relation — 獨用 is not one of 畏/惡/反, so it does not belong in drug_incompatibilities."
+    },
+    {
+     "text": "但多用久服能損元氣也",
+     "speaker": "李杲 Li Gao (same continuous passage), 本草綱目 卷三十 黃橘皮, 1596",
+     "gloss": "but used in large amounts or taken for a long time it can damage the original qi (yuan qi).",
+     "scope": "whole drug; dose- and duration-scoped caution. The intervening clause 「其體輕浮一能導胸中寒邪二破滯氣三益脾胃加青皮减半用之去滯氣推陳致新」 (light and floating in body; 1. leads out cold pathogen in the chest, 2. breaks stagnant qi, 3. benefits spleen and stomach; add Qing Pi at half dose to remove stagnant qi and push out the old to bring in the new) is efficacy/combination guidance and is filed under positive_pairings/unclassified, not as a warning."
+    },
+    {
+     "text": "惟氣實人服之相宜氣不足者不宜用之也",
+     "speaker": "時珍 Li Shizhen (珍按), 本草綱目 卷三十, 1596",
+     "gloss": "only a person with qi repletion is suited to taking it; one whose qi is insufficient should not use it.",
+     "scope": "FORMULA-SCOPED, not the drug as such — attaches to the 潤下丸 (Danxi's變 of 二賢散), per the full sentence 「珍按二賢散丹溪變之為潤下丸用治痰氣有效惟氣實人服之相宜氣不足者不宜用之也」. Must not be promoted to a herb-level contraindication."
+    },
+    {
+     "text": "氣虽中和。亦損真元。無滞勿用。",
+     "speaker": "unattributed (本草從新, 吳儀洛 Wu Yiluo, 1757, 卷十)",
+     "gloss": "Though its qi is moderate and harmonious, it still damages the true origin [qi]. Where there is no stagnation, do not use it.",
+     "scope": "whole drug. Two clauses held together in the source: a harm statement (亦損真元) and an outright prohibition absent the target pattern (無滞勿用). Transcription note: the Wikisource text is mixed simplified (虽 for 雖, 滞 for 滯)."
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [
+    {
+     "text": "加青皮减半用之去滯氣推陳致新",
+     "speaker": "李杲 Li Gao, 本草綱目 卷三十 黃橘皮, 1596",
+     "gloss": "add Qing Pi (green tangerine peel) at half the dose to remove stagnant qi and push out the old to bring in the new. POSITIVE — a combination instruction, the direct counterweight to 獨用則瀉肺損脾.",
+     "relation": "other"
+    }
+   ],
+   "unclassified": [
+    "「其體輕浮一能導胸中寒邪二破滯氣三益脾胃」 (李杲, BCGM 卷三十) — REASON: efficacy/property statement (light and floating in body; leads out cold pathogen in the chest, breaks stagnant qi, benefits spleen and stomach). This is the material the submitted claim's ellipsis hid; it is indication context, not a warning.",
+    "「二賢散丹溪變之為潤下丸用治痰氣有效」 (時珍 珍按, BCGM 卷三十) — REASON: formula history and indication (Danxi transformed Er Xian San into Run Xia Wan; effective for phlegm-qi). Sets the scope for the 氣不足者不宜用之 prohibition filed above; no warning content of its own."
+   ],
+   "sourcesUsed": [
+    "本草綱目 (Bencao Gangmu), 1596, 卷三十 黃橘皮",
+    "本草從新 (Ben Cao Cong Xin), 吳儀洛, 1757, 卷十"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H186",
+   "herb": "Szechuan Lovage / Chuan Xiong (芎藭)",
+   "clinical_contraindications": [],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [
+    {
+     "text": "畏黄連",
+     "speaker": "之才曰 (Xu Zhicai), 本草綱目 卷十四, 1596",
+     "gloss": "it FEARS / is diminished by Huang Lian (Coptis).",
+     "relation": "畏"
+    }
+   ],
+   "positive_pairings": [
+    {
+     "text": "白芷為之使",
+     "speaker": "之才曰 (Xu Zhicai), 本草綱目 卷十四, 1596",
+     "gloss": "Bai Zhi (Angelica dahurica) acts as its ENVOY / guiding assistant. POSITIVE.",
+     "relation": "使"
+    },
+    {
+     "text": "伏雌黄",
+     "speaker": "之才曰 (Xu Zhicai), 本草綱目 卷十四, 1596",
+     "gloss": "it SUBDUES / controls Ci Huang (orpiment, arsenic trisulphide). POSITIVE — Chuan Xiong acts beneficially upon a toxic mineral. Must NEVER be filed as an incompatibility; 伏 is a control/subdue relation, not a prohibition.",
+     "relation": "制伏"
+    },
+    {
+     "text": "得細辛療金瘡止痛",
+     "speaker": "之才曰 (Xu Zhicai), 本草綱目 卷十四, 1596",
+     "gloss": "obtained with Xi Xin (Asarum) it treats incised wounds and stops pain. POSITIVE — a 得-pairing with an indication.",
+     "relation": "other"
+    },
+    {
+     "text": "得牡蠣療頭風吐逆",
+     "speaker": "之才曰 (Xu Zhicai), 本草綱目 卷十四, 1596",
+     "gloss": "obtained with Mu Li (oyster shell) it treats head-wind and vomiting/counterflow. POSITIVE — a 得-pairing with an indication.",
+     "relation": "other"
+    },
+    {
+     "text": "白芷為使",
+     "speaker": "神農本草經 七情表, 孫星衍輯 (Sun Xingyan recension), 1799",
+     "gloss": "Bai Zhi acts as envoy. POSITIVE. Independent partial corroboration of the BCGM line.",
+     "relation": "使"
+    }
+   ],
+   "unclassified": [
+    "CONTEXT NOTE (no clause dropped): the 之才 line sits in BCGM 卷十四 under the heading 「根 氣味辛温無毒」 (root; acrid, warm, non-toxic) and immediately follows the 元素 (Zhang Yuansu) line. 辛温無毒 is a nature/flavour/toxicity statement, not a warning. The Sun Xingyan 七情表 corroborates only the 白芷為使 relation; it does not list 畏黄連 or 伏雌黄."
+   ],
+   "sourcesUsed": [
+    "本草綱目 (Bencao Gangmu), 1596, 卷十四",
+    "神農本草經 (Shennong Bencao Jing), 孫星衍輯 Sun Xingyan recension, 1799, 七情表"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H227",
+   "herb": "Epimedium / Yin Yang Huo (淫羊藿)",
+   "clinical_contraindications": [
+    {
+     "text": "相火易动。遠之。",
+     "speaker": "吳儀洛 (Wu Yiluo) — unattributed in the 本草從新 entry text",
+     "gloss": "Those in whom the ministerial fire (xiang huo) is easily stirred should keep away from it.",
+     "scope": "whole drug"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "「辛香甘溫。入肝腎。補命門。益精氣。堅筋骨。利小便。」 — 氣味 (flavour/nature) and 功能 (actions) statement, not a prohibition of any kind. Kept here so no clause of the source string is dropped.",
+    "「治絕陽不兴。絕陰不產。冷風劳氣。四肢不仁。（手足麻木。）」 — 主治 (indications) context: these are conditions the herb TREATS, not conditions it causes or is forbidden in. Direction rule applied; must never be read as a contraindication."
+   ],
+   "sourcesUsed": [
+    "本草從新 (吳儀洛), 1757"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H231",
+   "herb": "Notoginseng / San Qi (三七, 一名山漆)",
+   "clinical_contraindications": [
+    {
+     "text": "能損新血。無瘀者勿用。",
+     "speaker": "吳儀洛 (Wu Yiluo) — unattributed in the 本草從新 entry text",
+     "gloss": "It can damage newly generated blood; those without blood stasis must not use it.",
+     "scope": "whole drug"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "「爲金瘡杖瘡要藥。（杖時先服一二錢、則血不冲心…大抵陽明厥陰血分之藥、故治血病。）」 — 主治/功能 context: essential drug for metal-inflicted and cudgel wounds, taken BEFORE a beating so blood does not surge to the heart; a channel-attribution note (yangming/jueyin blood aspect). An indication and a usage instruction, not a prohibition. The rationale clause 能損新血 was kept attached to 無瘀者勿用 above because it is the stated ground of that prohibition."
+   ],
+   "sourcesUsed": [
+    "本草從新 (吳儀洛), 1757"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H263",
+   "herb": "Sweet Wormwood / Qing Hao (青蒿)",
+   "clinical_contraindications": [
+    {
+     "text": "寒而泄瀉者。仍當避之。",
+     "speaker": "吳儀洛 (Wu Yiluo) — unattributed in the 本草從新 卷三草部 entry text",
+     "gloss": "Those who are cold and have diarrhoea should still avoid it.",
+     "scope": "whole drug"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "「明目。清暑辟秽。」 — 功能/主治 (brightens the eyes, clears summerheat, dispels filth). Indication context, not a warning.",
+    "「凡苦寒藥。多與胃家不利。惟青蒿芬芳袭脾。宜於血虚有熱之人。以其不犯冲和之氣爾。」 — a general remark that bitter-cold drugs mostly disagree with the stomach, stated expressly as an EXCEPTION in qing hao's favour (it is aromatic, suits blood-vacuity-with-heat patients, does not offend the harmonious qi). Filing this as a contraindication would invert the source: the passage exempts qing hao rather than restricting it.",
+    "「使子勿使葉。使根勿使茎。」 — plant-part selection instruction (use the seed not the leaf, the root not the stem). NOTE: 使 here is the ordinary verb \"use\", NOT the 七情 envoy relation 為之使; it is not a positive pairing. It is also not a patient-state prohibition, so it is not a clinical contraindication. Scope would be plant part.",
+    "「熬膏良。」 — preparation note (good when decocted down to a paste). Not a warning."
+   ],
+   "sourcesUsed": [
+    "本草從新 (吳儀洛), 1757, 卷三草部"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H274",
+   "herb": "Gastrodia / Tian Ma (天麻)",
+   "clinical_contraindications": [
+    {
+     "text": "血液衰少。及非真中風者。忌用。（風藥能燥血故也…）",
+     "speaker": "吳儀洛 (Wu Yiluo) — unattributed in the 本草從新 天麻 entry text",
+     "gloss": "Those whose blood and fluids are depleted, and those who do not have true wind-stroke, should avoid using it. (Because wind-dispelling drugs can dry the blood.)",
+     "scope": "whole drug"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "「斆曰凡使天麻勿用御風草二物相似只是葉莖不同御風草根莖斑葉背白有青㸃使御風草即勿使天麻若同用令人有腸結之患」 (本草綱目 卷十二下 集解; speaker 斆 = Lei Xiao) — SAFETY-BEARING CO-USE PROHIBITION, deliberately not dropped. It forbids combining 天麻 with 御風草 (they are look-alikes differing only in leaf and stem; yufengcao has mottled root and stem and white leaf-backs with green spots), stating that using them together gives the patient 腸結 (intestinal blockage). It is filed here ONLY because the drug_incompatibilities relation enum admits solely 畏 / 惡 / 反, and this clause uses none of the three; it is also not a patient-state prohibition, so it does not belong in clinical_contraindications as defined. It must be carried forward, not discarded — see notes."
+   ],
+   "sourcesUsed": [
+    "本草綱目 (四庫全書本), 1596, 卷十二下",
+    "本草從新 (吳儀洛), 1757"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H290",
+   "herb": "Maitake (Grifola frondosa)",
+   "clinical_contraindications": [],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "No entry for this drug exists in any of the three works consulted, therefore no contraindication, avoidance, incompatibility or pairing text exists to classify. Verified by direct reading of the 本草綱目 1596 卷28 菜之五 fungus roster (fifteen kinds listed, none Grifola), by full-text search of the Sun Xingyan 1799 recension of the 神農本草經, and by full-text search of 本草從新 1757. The absence is the finding; nothing may be supplied from outside these sources."
+   ],
+   "sourcesUsed": [
+    "神農本草經 (孫星衍 Sun Xingyan recension), 1799",
+    "本草綱目, 1596, 卷28",
+    "本草從新, 1757"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H140",
+   "herb": "Red Sage / Dan Shen (丹參)",
+   "clinical_contraindications": [
+    {
+     "text": "虽能補血。長於行血。無瘀。斟酌用之。",
+     "speaker": "吳儀洛 (Wu Yiluo) — unattributed in the 本草從新 entry text",
+     "gloss": "Although it can supplement blood, its strength is moving blood; where there is no stasis, use it only with deliberation.",
+     "scope": "whole drug"
+    }
+   ],
+   "dietary_avoidances": [
+    {
+     "text": "忌醋。",
+     "speaker": "吳儀洛 (Wu Yiluo) — unattributed in the 本草從新 entry text",
+     "gloss": "Avoid vinegar.",
+     "scope": "whole drug"
+    }
+   ],
+   "drug_incompatibilities": [
+    {
+     "text": "畏鹽水",
+     "speaker": "之才 (Xu Zhicai), quoted in 本草綱目 卷12下 氣味",
+     "gloss": "Fears / is diminished by salt water (yan shui).",
+     "relation": "畏"
+    },
+    {
+     "text": "反藜蘆",
+     "speaker": "之才 (Xu Zhicai), quoted in 本草綱目 卷12下 氣味",
+     "gloss": "Opposes Li Lu (Veratrum) — one of the Eighteen Antagonisms 十八反.",
+     "relation": "反"
+    },
+    {
+     "text": "畏鹹水。",
+     "speaker": "吳儀洛 (Wu Yiluo) — unattributed in the 本草從新 entry text",
+     "gloss": "Fears / is diminished by salt(y) water. Text-line variant of the 本草綱目 鹽水; the 神農本草經 (孫星衍 1799) 七情 appendix independently gives 「丹參　畏鹹水，反藜蘆。」 (transcribed there as 味鹹水, evidently for 畏鹹水). Variant, not an invention.",
+     "relation": "畏"
+    },
+    {
+     "text": "反藜蘆。",
+     "speaker": "吳儀洛 (Wu Yiluo) — unattributed in the 本草從新 entry text; independently in the 神農本草經 (孫星衍 1799) 七情 appendix as 「丹參　畏鹹水，反藜蘆。」",
+     "gloss": "Opposes Li Lu (Veratrum) — Eighteen Antagonisms 十八反. Three independent pre-1900 witnesses.",
+     "relation": "反"
+    }
+   ],
+   "positive_pairings": [],
+   "unclassified": [],
+   "sourcesUsed": [
+    "本草綱目 (四庫全書本), 1596, 卷12下",
+    "本草從新 (吳儀洛), 1757",
+    "神農本草經 (孫星衍 Sun Xingyan recension), 1799 — 七情 appendix"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H185",
+   "herb": "Sour Jujube Seed / Suan Zao Ren (酸棗仁)",
+   "clinical_contraindications": [],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [
+    {
+     "text": "之才曰惡防己",
+     "speaker": "之才 (Xu Zhicai), quoted in 本草綱目 juan 36 氣味 note",
+     "gloss": "Is antagonised by Fang Ji (Stephania).",
+     "relation": "惡"
+    },
+    {
+     "text": "酸棗仁　惡防己。",
+     "speaker": "unattributed — 神農本草經 (孫星衍 Sun Xingyan recension) 1799, juan 3 pairing table, wood upper section",
+     "gloss": "Suan Zao Ren is antagonised by Fang Ji. Second independent pre-1900 witness to the same relation.",
+     "relation": "惡"
+    }
+   ],
+   "positive_pairings": [],
+   "unclassified": [
+    "「宗奭曰微熱」 (speaker 宗奭 = Kou Zongshi) — 氣味 note, slightly warm. Nature statement, not a warning.",
+    "「時珍曰仁味甘氣平」 (speaker 時珍 = Li Shizhen) — 氣味 note, the kernel is sweet in flavour and balanced in qi. Not a warning.",
+    "「斆曰用仁以葉拌蒸半日去皮尖」 (speaker 斆 = Lei Xiao) — 炮製 processing instruction: use the kernel, steam it half a day mixed with the leaves, remove skin and tip. A preparation directive, not a prohibition and not a 七情 relation.",
+    "「酸棗氣味酸平無毒」 — 氣味 header for the fruit: sour, balanced, non-toxic. Retained so the whole source string is accounted for."
+   ],
+   "sourcesUsed": [
+    "本草綱目, 1596, juan 36",
+    "神農本草經 (孫星衍 Sun Xingyan recension), 1799, juan 3"
+   ],
+   "recordsMerged": 1
+  },
+  {
+   "herb_id": "H215",
+   "herb": "Codonopsis / Dang Shen (黨參)",
+   "clinical_contraindications": [
+    {
+     "text": "舉世以代神草莫知其非而服者亦多胸滿氣隔之患",
+     "speaker": "吳其濬 (Wu Qijun) — 植物名實圖考 卷之七, 道光刻本, page 93",
+     "gloss": "The whole world uses it as a substitute for the divine herb (ginseng) without knowing this is wrong, and those who take it so also often suffer the trouble of chest fullness and blocked qi. An observed harm from use, stated as a caution.",
+     "scope": "whole drug, specifically when used as a substitute for ginseng"
+    },
+    {
+     "text": "若傷冒時疫以此橫塞中焦羸尪雜症妄冀蘇起沉疴未覩其益必蒙其害",
+     "speaker": "吳其濬 (Wu Qijun) — 植物名實圖考 卷之七, 道光刻本, page 94",
+     "gloss": "If in cases of externally contracted seasonal epidemic disease this is used, it blocks the middle burner crosswise; and in emaciated, debilitated, miscellaneous conditions, recklessly hoping to revive a deep-seated illness with it, one will not see its benefit but will surely suffer its harm.",
+     "scope": "whole drug"
+    }
+   ],
+   "dietary_avoidances": [],
+   "drug_incompatibilities": [],
+   "positive_pairings": [],
+   "unclassified": [
+    "「山西通志謂黨參今無產者」 — provenance/supply remark (the Shanxi gazetteer says dang shen is no longer produced there). Bears on authenticity and substitution, not a prohibition.",
+    "「無甚感鬱之人藉以充潤腸胃當亦小有資補」 — a qualified positive indication: for people without much contraction or stagnation, it can be relied on to fill and moisten the intestines and stomach and gives some small supplementing benefit. Direction rule: this is what it DOES help, not a warning. Kept adjacent to the 若傷冒時疫… contraindication it is contrasted with.",
+    "「世有良工其察鄙言」 — rhetorical closing address to skilled practitioners. No clinical content."
+   ],
+   "sourcesUsed": [
+    "植物名實圖考 (吳其濬), 1848, 卷之七"
+   ],
+   "recordsMerged": 1
+  }
+ ],
+ "report": "# Load verdict: classical contraindications decomposition\n\n## 1. What is safe to load\n\nAll 66 herbs were audited, not a sample. The four slices cover 18 + 24 + 23 + 1 = 66 records, checked line by line against `harvest_verification_results.json` and `eastern_qc_pre1900_results.json`.\n\n| Bucket | Rows | Findings | Verdict |\n|---|---|---|---|\n| dietary_avoidances | 24 | 0 | **Load.** Not one finding in any slice, in either direction. |\n| positive_pairings | 79 | 1 fix, 3 cosmetic | **Load after one character fix** (H214 伏水 → 伏汞). |\n| clinical_contraindications | 108 | 3 fix, 1 cosmetic | **Hold.** Three named herbs, all small. |\n| drug_incompatibilities | 83 | 4 fix, 4 cosmetic | **Hold.** The most defective bucket. |\n| unclassified | 118 | n/a | **Not a field.** Review queue, must not render. |\n\nBlockers, named:\n\n**drug_incompatibilities** carries two rows on H283 (栝蔞) that would actively mislead. One quotes goji as gua lou's *envoy* from inside the incompatibility field, so a helper reads as a hazard. The other imports aconite's reciprocal entry whole, which drags 半夏, 貝母, 白蘞 and 白芨 into gua lou's avoid list, four substances that are not gua lou's antagonists at all. Separately, H142 (黃芩) still renders 辰丹砂 as though 辰 were part of a drug name, and the corrective 1799 witness now sits beside it with a different relation verb and nothing telling the loader which wins. And H274 (天麻) had its single most safety-bearing clause, the 御風草 co-use prohibition with 腸結 as the named harm, moved out of this bucket into unclassified on a schema technicality. Nothing was deleted, but if unclassified does not load, a real prohibition vanishes.\n\n**clinical_contraindications** has three. H002 (黃耆) carries a formula-scoped line restricting *cooling drugs* as though it were a contraindication of a warm herb. H215 (黨參) kept a whole page run intact, so a qualified benefit statement now leads a row under a contraindication heading. H206 (茜草) is the one genuine hole: the BCGM adulterant warning, red-willow root looks identical and taking it causes cataract, is in no bucket at all, not even unclassified, even though the same pass filed the parallel H169 adulterant clauses correctly.\n\n**positive_pairings** has one real error and it is cosmetic in direction but not in appearance: 伏汞 (subdues mercury) was reduced to 伏水, which makes the sentence nonsense. It is inherited from the harvest file, so the upstream string needs correcting too, not just the filing.\n\n## 2. Did the two known failures recur\n\n**Multi-record splitting: fixed.** 13 of 13 expected multi-record herbs merged into single objects. Every herb the brief named as a prior loss was checked clause by clause and is whole: H257 carries all six clinical clauses plus all three 忌鯉魚 rows, H214 carries the full four-limb 火衰/精冷/真元不足/年高之人 list including the age limb that trims easily off a long run, H270's three-item list is complete, H271's three-item prohibition is intact and split into three rows. Two clauses the harvest itself had dropped were recovered (H022, H278). One genuine omission survives (H206, above) and one minor one (H107's 綠豆 pairing, a mitigating relation, so no safety consequence).\n\n**Positive relations filed as warnings: not recurred at the relation level.** Every 使 envoy, every 殺X毒, every 勝 and 解毒 and 制 and 伏 is in positive_pairings across all four slices. The schema fix worked. Two residues remain, both structural rather than a return of the old failure: the H283 composite rows described above, where an envoy is quoted *inside* an incompatibility row, and H215, where a positive clause sits inside a clinical row because the record was kept whole. Both are misfiling of a fragment, not a whole relation pointed the wrong way.\n\nOne thing to be plain about: 18 findings on 66 herbs is not a clean run. It is a run whose remaining errors are mostly in the safe direction.\n\n## 3. Was splitting the field the right call\n\nOf 412 rows that all sat in one field labelled \"classical contraindications\":\n\n| What it actually is | Rows | Share |\n|---|---|---|\n| Clinical contraindication | 108 | 26% |\n| Drug incompatibility | 83 | 20% |\n| **Positive pairing** | **79** | **19%** |\n| Food lore | 24 | 6% |\n| Needs a human | 118 | 29% |\n\nRoughly a quarter of a field called \"contraindications\" is a contraindication. Counting only rows that got a firm label, it is 37%.\n\nThe number that matters is 79. Nearly one row in five in a field displayed to customers as a warning is a statement that two substances *should* be used together, or that one *neutralises* the other's toxicity. 苦參 subdues orpiment. 何首烏 with 地黃 subdues cinnabar. 遠志 kills aconite's toxin. Displayed unsplit, each of those tells a reader to avoid exactly the combination classical practice recommends, which is the precise inversion of the source. Under the original schema, which listed 殺 as a kind of incompatibility, that is where they were headed.\n\n## 4. What positive_pairings is worth alone\n\n79 rows across 66 herbs, in three families: envoy relations (X 為之使, the herb that directs or potentiates), toxicity-neutralising partners (殺, 勝, 解毒), and subduing or restraining pairs (制, 伏). Attested examples include 玄參 as envoy to 苦參 across three separate witnesses, 茯苓 to 何首烏, 紫芝 to 薯蕷, 防風 and 地榆 to their herb, plus 殺附子毒, 制雄黄, 伏硫黄, 伏砒, 解巴豆毒, 勝烏頭, and one recommended food pairing (宜橘皮) that sat immediately beside a 忌鯉魚 prohibition in the same two works and would have been swept negative by proximity alone.\n\nIs it enough to be useful. Yes, with a caveat. 79 rows is thin as coverage (it averages a bit over one per herb and the distribution is uneven, some herbs have none and that is correct, H215 genuinely has no 七情 relations in its source). But it is enough to stand up a real feature: a \"traditionally paired with\" layer on monographs, an antidote and mitigation view, and a formulation-logic surface that has no Western herbal equivalent because Western sources do not encode drug-to-drug relations this way. It is also fully cited, every row carries its witness and speaker, which is what makes it defensible in customer-facing copy.\n\nTwo housekeeping notes before it is worth much: H139's 蒸食消酒毒 is an indication (it dispels wine toxin *in the drinker*), not a drug relation, and filing it here creates a pairing row implying 酒 is a partner drug. And H268's antidotal list reads two drugs in one internal file and three in another; the filed version follows the stronger evidence, but the two files should be reconciled rather than silently chosen between.\n\n## 5. What is still unclassified or unknown\n\n118 rows, the largest bucket, and it is doing real work rather than being a dumping ground. It holds verified absences with the evidence of absence recorded (H177, H261, H035, where a fabricated 1848 quote was previously carried and the honest finding is that the pre-1900 record is silent), textual lacunae preserved verbatim rather than guessed at, formula-scoped lines that must not become herb-level warnings, equipment rules such as 鐵器, variant readings, and one countervailing opinion where 汪昂 in 1694 explicitly rejects a contraindication that two other sources assert. That last one is deliberately not filed either way.\n\nThe honest problems:\n\nThree pregnancy signals are parked in unclassified as direction-uncertain (H139 生者墮胎, H253 杀蛔堕胎, H271 通經堕胎). In each case the verified harvest counted the clause as a contraindication. So a signal the verification step graded as a warning currently reaches no safety field. It is escalated with a reason, not silently dropped, but two sources disagree and a person has to rule before this loads.\n\nWhat is genuinely unknown: whether unclassified has any load destination at all, which determines whether H274's prohibition is merely delayed or lost. Whether the deduplication step is broken more widely, since the byte-identical duplicate rows on H272 and H284 look upstream and only two slices were checked for it. Whether H253's simplified-character transcription matches a woodblock scan, which was flagged as a lead rather than a citation. And the H281 「畏萆。」 truncation is in the 1757 printing itself, so it is a source defect this project inherits, not one it introduced, and it names no substance a lookup key can match.\n\nRecommended sequence: fix the ten items, re-run the audit on the touched herbs only, then decide bucket by bucket. dietary and positive can be settled first; the other two need the H283, H142, H274, H002, H215 and H206 calls made by a human first."
+}
