@@ -9,24 +9,47 @@
 -- herb citations whose quoted text was not in the work it named. The columns
 -- come first; the content comes after someone has checked it.
 --
--- ── Why these four ──────────────────────────────────────────────────────────
--- shennong_grade
---   The Shennong Bencao Jing (c. 200 CE) sorts drugs into three grades, and the
---   grade encodes intended DURATION of use. Upper grade (上品) is non-toxic and
---   explicitly sanctioned for prolonged daily use, usually with the formula
---   久服輕身延年, "prolonged use lightens the body and extends years". Middle
---   grade (中品) are correctives, not daily-life drugs. Lower grade (下品) are
---   for acute attack and are often toxic.
---   This bears directly on a product that recommends daily herbs. Dong Quai,
---   widely treated as a daily women's tonic, is MIDDLE grade and carries no
---   prolonged-use formula.
+-- ── THE WORLDVIEW FILTER GOVERNS EVERY COLUMN BELOW ───────────────────────
+-- Lock #14 + Lock #44, restated by the founder 2026-07-22: take the observations
+-- and diagnoses these frameworks got right, discard any spiritual attribution,
+-- filter everything through a Biblical worldview. "That is the hardest lock of
+-- the entire thing." Full test and worked examples: docs/worldview-filter.md.
 --
--- channel_entry
---   Where a drug goes, as distinct from what it does. Two herbs can both drain
---   heat and land in entirely different places. There is no Western equivalent
---   and no existing column can express it. Store the original characters:
---   Astragalus is 入手足太隂氣分, Lung and Spleen at the QI DIVISION specifically,
---   and the qi-division precision is the whole herb.
+-- The test: does the claim describe what the body or the herb is DOING, or does
+-- it claim where life comes from and what humans are for? The first is an
+-- observation, take it. The second is attribution, discard it. Discarding the
+-- attribution is NOT discarding the source: we still cite who observed what.
+--
+-- TWO PROPOSED COLUMNS DID NOT SURVIVE THIS TEST, and they were the two the
+-- research pass was most enthusiastic about. That is worth recording, because
+-- the failure mode here is not malice, it is enthusiasm.
+--
+-- 1. channel_entry: DROPPED, not merely renamed.
+--    歸經 was proposed as the most distinctive addition in the whole harvest.
+--    But its observational half is ALREADY IN THIS TABLE: astragalus
+--    入手足太陰氣分 names Lung and Spleen, and system_affinity already reads
+--    "Immune, Cardiovascular, Lungs, Spleen". What a channel_entry column would
+--    add beyond that is the meridian model itself, which asserts that qi travels
+--    in named channels. The content IS the cosmology. Where a classical source
+--    names a site of action this table is missing, it belongs in
+--    system_affinity, not in a new column that carries the framework with it.
+--
+-- 2. shennong_grade -> traditional_use_duration: RENAMED AND REFRAMED.
+--    The Shennong Bencao Jing (c. 200 CE) sorts drugs into three grades, and the
+--    grade does encode a real observation: after centuries of use some plants
+--    were found non-toxic and safe to take for long periods, and others toxic
+--    and reserved for acute attack. That observation is exactly what this brand
+--    exists to recover, and it bears directly on a product recommending daily
+--    herbs. Dong Quai, widely treated as a daily women's tonic, is in the
+--    corrective class and carries no prolonged-use formula.
+--    What did NOT survive is the framing. The upper grade is defined by
+--    久服輕身延年, "prolonged use lightens the body and extends years", and 輕身 is
+--    Daoist immortality-cultivation vocabulary. The three tiers are
+--    養命 / 養性 / 治病, nourishing destiny / nourishing nature / treating disease,
+--    so the top tier is a claim about transcendence rather than health. The
+--    column is therefore named for what it OBSERVES (duration and toxicity), the
+--    values state duration rather than rank, and the Shennong provenance stays in
+--    the comment as a historical attribution, not an endorsement.
 --
 -- preparation_doctrine
 --   Repeatedly the classical vehicle is not the shipped form. Ashwagandha's is
@@ -75,8 +98,7 @@
 begin;
 
 alter table public.herbs
-  add column if not exists shennong_grade              text,
-  add column if not exists channel_entry               text,
+  add column if not exists traditional_use_duration     text,
   add column if not exists preparation_doctrine        text,
   add column if not exists classical_contraindications text,
   add column if not exists drug_incompatibilities      text,
@@ -88,19 +110,16 @@ alter table public.herbs
 -- the Yuan, so neither carries an ancient warrant for daily use, and that is a
 -- finding worth recording rather than a NULL.
 alter table public.herbs
-  drop constraint if exists herbs_shennong_grade_check;
+  drop constraint if exists herbs_traditional_use_duration_check;
 alter table public.herbs
-  add constraint herbs_shennong_grade_check
+  add constraint herbs_traditional_use_duration_check
   check (
-    shennong_grade is null
-    or shennong_grade = any (array['upper','middle','lower','not_in_canon','later_entry'])
+    traditional_use_duration is null
+    or traditional_use_duration = any (array['long_term','corrective','acute_only','not_classified','later_entry'])
   );
 
-comment on column public.herbs.shennong_grade is
-  'Shennong Bencao Jing (c. 200 CE) grade, which encodes intended DURATION of use. upper = 上品, non-toxic, sanctioned for prolonged daily use. middle = 中品, corrective rather than daily. lower = 下品, acute attack, often toxic. not_in_canon = the drug has no classical entry. later_entry = it enters the corpus after the Han canon (e.g. black pepper at the Tang Bencao, 659 CE), so no ancient daily-use warrant exists. Cite the recension, e.g. the Sun Xingyan recension (1799).';
-
-comment on column public.herbs.channel_entry is
-  'Classical channel or meridian entry (歸經), preserved in the source''s own characters with the naming authority. Says WHERE a drug goes rather than what it does. No Western equivalent.';
+comment on column public.herbs.traditional_use_duration is
+  'How long a tradition found this plant safe to take, and at what toxicity. long_term = classed non-toxic and suitable for prolonged use. corrective = used to correct a condition, not for indefinite daily use. acute_only = reserved for acute attack, often toxic. not_classified = no classical entry exists. later_entry = the plant enters the corpus after the Han canon (black pepper at the Tang Bencao, 659 CE; ginkgo at the Yuan), so no ancient long-use warrant exists. DERIVED FROM the Shennong Bencao Jing three-grade classification, cited by recension (e.g. Sun Xingyan, 1799). Records the OBSERVATION about toxicity and duration; deliberately does NOT carry the classification''s own framing, which is Daoist life-extension (久服輕身延年) and fails the worldview filter. See docs/worldview-filter.md.';
 
 comment on column public.herbs.preparation_doctrine is
   'Classical processing and vehicle, quoted from a pre-1900 source. Records where the traditional preparation differs from the shipped form, and any hard prohibition (e.g. rehmannia must not contact copper or iron; bupleurum must not meet fire).';

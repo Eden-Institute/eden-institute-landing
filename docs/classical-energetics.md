@@ -1,3 +1,13 @@
+> ## ⚠ READ `docs/worldview-filter.md` FIRST
+>
+> Everything here is filtered through Lock #14 + Lock #44: take the observations these
+> frameworks got right, discard the spiritual attribution. Two proposed columns did not
+> survive that test, and they were the two this research pass was most enthusiastic about.
+> **`channel_entry` was dropped** (its observational half is already in `system_affinity`;
+> the remainder is the meridian model itself). **`shennong_grade` became
+> `traditional_use_duration`**, keeping the toxicity-and-duration observation and discarding
+> the 久服輕身延年 life-extension framing.
+
 # Classical energetics: what the pre-1900 sources carry, and what we do with it
 
 Companion to migration `20260721180000_classical_energetics_columns.sql`, which adds the
@@ -28,11 +38,11 @@ checked was a real substring of the named work, in the named juan, under a named
 
 | Field | Verified | Partly | Loaded? |
 |---|---|---|---|
-| `shennong_grade` | 72 | 1 | **Yes, 70 of them** |
+| `traditional_use_duration` | 72 | 1 | **Yes, 70 of them** |
 | `classical_contraindications` | 80 | 16 | No |
-| `channel_entry` | 70 | 15 | No |
+| `channel_entry` | 70 | 15 | **DROPPED, fails the worldview filter** |
 
-**Only `shennong_grade` is loaded** (`20260721190000_load_verified_shennong_grades.sql`). It is
+**Only `traditional_use_duration` is loaded** (`20260721190000_load_traditional_use_duration.sql`). It is
 the field whose values rest on an objective test rather than a quotation: which juan the entry
 falls in, or the 本經X品 note in the 1596 head line. Most were confirmed by both routes.
 
@@ -81,32 +91,32 @@ and is labelled as one.
 | Addition | Found in | Rough reach across 300 |
 |---|---|---|
 | Preparation doctrine | 13-14 of 15 | most herbs with any classical entry |
-| Shennong grade (incl. informative absence) | 11 of 15 | every herb with a Chinese entry |
+| Use-duration class (incl. informative absence) | 11 of 15 | every herb with a Chinese entry |
 | Contraindications | 10 of 15 | two thirds of herbs with a classical entry |
-| Channel entry | 8 full, 3 partial of 15 | Chinese-tradition herbs only |
+| ~~Channel entry~~ DROPPED | 8 full, 3 partial of 15 | fails the worldview filter; observational half already in `system_affinity` |
 | Incompatibility and envoy pairs | 8 of 15 | Chinese-tradition herbs only |
 | Adulteration or fraud warning | 5 of 15 | a third, concentrated in commercial roots |
 | Provenance-dependent action | 4 of 15 | a quarter |
 | Guna | 2 of 4 Ayurvedic | Ayurvedic subset only |
 | **Vipaka** | **0 of 4 Ayurvedic** | **zero without a Sanskrit source** |
 
-### Shennong grade, the one that earns its column
+### Use-duration class, the one that earns its column
 
-The grade encodes intended **duration** of use, which is the question a daily-herb product
-asks every day.
+The classical grade encodes intended **duration** of use, which is the question a daily-herb
+product asks every day. The observation is kept; the 久服輕身延年 life-extension framing is not.
 
-| Herb | Grade | What it licenses |
+| Herb | Class | What it reflects |
 |---|---|---|
-| Astragalus | 上品 upper | daily use warranted |
-| Ginseng | 上品 upper | 久服輕身延年 |
-| Reishi | 上品 upper | all six zhi, explicitly non-toxic |
-| Schisandra | 上品 upper | prolonged use sanctioned |
-| Rehmannia | 上品 upper | 久服，輕身、不老 |
-| Bupleurum | 上品 upper | 久服，輕身、明目、益精 |
-| **Dong Quai** | **中品 middle** | **not the indefinite-daily class; no 久服 formula** |
-| Ginkgo | later entry | enters at the Yuan; no ancient daily-use warrant |
-| Black pepper | later entry | Tang Bencao (659 CE), plus a 1757 有毒 note |
-| Lion's Mane | not in canon | no classical entry at all |
+| Astragalus | long_term | found safe over long periods |
+| Ginseng | long_term | classed non-toxic |
+| Reishi | long_term | all six zhi, explicitly non-toxic |
+| Schisandra | long_term | prolonged use sanctioned |
+| Rehmannia | long_term | classed non-toxic |
+| Bupleurum | long_term | classed non-toxic |
+| **Dong Quai** | **corrective** | **not the indefinite-daily class** |
+| Ginkgo | later_entry | enters at the Yuan; no ancient long-use warrant |
+| Black pepper | later_entry | Tang Bencao (659 CE), plus a 1757 有毒 note |
+| Lion's Mane | not_classified | no classical entry at all |
 
 ### Vipaka is empty and should stay empty
 
@@ -146,7 +156,7 @@ question and no column answers it.**
 
 1. **Verify the harvest.** Independent re-reading of the quoted lines, in the original texts,
    before anything is loaded. This is the gate.
-2. **Load `shennong_grade` first.** Small closed vocabulary, unambiguous in the source, fast to
+2. **Load `traditional_use_duration` first.** Small closed vocabulary, unambiguous in the source, fast to
    check, and it answers a live product question.
 3. **Then `classical_contraindications`**, as the field most likely to be asked for by a
    practitioner customer and the one whose absence is a real gap.
