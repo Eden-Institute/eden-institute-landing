@@ -2,7 +2,7 @@
 // Public read of the founding-500 window, powering the live counter and the
 // post-sellout price flip on /preorder (PreorderBuyBox island).
 //
-// Response: { sold, cap, closed }
+// Response: { sold, cap, closed, sms_enabled }
 //   sold   — net founding units claimed, CLAMPED to cap for display: the checkout
 //            gate can overshoot by a few under simultaneous checkout, and
 //            "502 of 500" must never render.
@@ -10,6 +10,13 @@
 //   closed — the one-way latch: true once the cap was ever reached. The island
 //            flips its display to retail pricing off this flag; billing truth
 //            stays with create-checkout, which reads the same founding_gate RPC.
+//   sms_enabled — whether to show the SMS consent checkbox at all. Driven by the
+//            SMS_CONSENT_ENABLED secret so it flips with no redeploy, the same
+//            pattern as PREORDERS_LIVE. Set it to "true" ONLY once A2P 10DLC
+//            registration is approved and the Twilio line can actually send.
+//            Until then the order flow still fires preorder_received_sms for any
+//            consenting order, which fails and throws, and the buyer who asked to
+//            be texted hears nothing. The island fails CLOSED on this field.
 //
 // The founding_units_sold / founding_gate RPCs stay service-role-only; this EF is
 // the single public window onto them, and it exposes no order data. Calling
@@ -54,8 +61,10 @@ serve(async (req: Request) => {
     const status = await getFoundingGate(adminClient, gate.id)
     const sold = status.cap != null ? Math.min(status.sold, status.cap) : status.sold
 
+    const smsEnabled = Deno.env.get("SMS_CONSENT_ENABLED") === "true"
+
     return new Response(
-      JSON.stringify({ sold, cap: status.cap, closed: status.closed }),
+      JSON.stringify({ sold, cap: status.cap, closed: status.closed, sms_enabled: smsEnabled }),
       {
         headers: {
           ...corsHeaders,
