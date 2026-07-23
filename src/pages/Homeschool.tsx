@@ -169,7 +169,7 @@ const Homeschool = () => {
    */
   const openReserveFounders = () => openWaitlist({
     title: "Reserve Founders Pricing",
-    subtitle: "We'll email you the moment preorder opens July 29. The first 500 kits sell at the $249 Founders price before the $349 retail price begins.",
+    subtitle: "Preorder is open now. The first 500 kits sell at the $249 Founders price before the $349 retail price begins.",
     source: "reserve",
   });
   const openSproutsLeadMagnet = () => openWaitlist({
@@ -360,7 +360,7 @@ const Homeschool = () => {
           <div className="max-w-3xl mx-auto mb-12 text-center rounded-lg p-5" style={{ backgroundColor: "hsl(var(--eden-bark))" }}>
             <p className="font-accent text-xs tracking-[0.25em] uppercase mb-2" style={{ color: "hsl(var(--eden-gold))" }}>How Founders pricing works</p>
             <p className="font-body text-sm text-white leading-relaxed">
-              Preorder opens July 29. The first <strong>500 kits</strong> sell at the Founders price of <strong>$249</strong>. After the 500th kit, the price moves automatically to the <strong>$349</strong> retail price. Join the free sample list and we'll email you the moment preorder opens.
+              Preorder is open now. The first <strong>500 kits</strong> sell at the Founders price of <strong>$249</strong>. After the 500th kit, the price moves automatically to the <strong>$349</strong> retail price. The free two-week sample is still yours if you would rather try it first.
             </p>
           </div>
 

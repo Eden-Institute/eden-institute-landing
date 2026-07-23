@@ -540,7 +540,7 @@ function CreditsEditor({ answers, onWrite }: {
   return (
     <>
       <textarea className="ef-input" rows={6} value={c.text}
-        placeholder={"One herb a week\nAll year long\nPreorders open July 29"}
+        placeholder={"One herb a week\nAll year long\nPreorders are open now"}
         onChange={(e) => set("text", e.target.value)} />
       <div className="ef-slider" style={{ marginTop: 10 }}>
         <span className="ef-slider-l">Roll speed</span>
@@ -733,7 +733,7 @@ function FreeText({ node, answers, onWrite }: {
   const value = (answers[node.writes] as string) ?? "";
   return (
     <textarea className="ef-input" rows={4} value={value}
-      placeholder="e.g. Lead with the July 29 date, and keep it warmer than usual."
+      placeholder="e.g. Lead with the founding 500, and keep it warmer than usual."
       onChange={(e) => onWrite(node.writes, e.target.value)} />
   );
 }
