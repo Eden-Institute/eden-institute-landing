@@ -35,11 +35,9 @@ const courseJsonLd = {
 
 // Free two-week sample CTAs — the magnet capture that also feeds launch/preorder
 // updates (replaces the old "reserve Founders pricing" waitlist framing).
-const SPROUTS_MAGNET = {
-  source: "sprouts_magnet",
-  title: "Your free 2-week Sprouts sample",
-  subtitle: "Five full lessons, yours to print and teach. We'll also email you the moment preorder opens.",
-};
+// SPROUTS_MAGNET retired at launch: the Sprouts card now sends buyers to /preorder
+// instead of the sample modal. The hero sample CTA (DualLeadMagnetCTAs) is unchanged
+// and carries its own copy, so the free sample is still available.
 const SEEDLINGS_MAGNET = {
   source: "seedlings_magnet",
   title: "Your free 2-week Seedlings sample",
@@ -170,7 +168,7 @@ const KIT = {
           Five full lessons per week — Teacher Guide, Student Notebook, Field Cards, Recipe Cards, and Around-the-Table deck. Delivered to your email instantly, free.
         </p>
         <p class="mt-4 font-accent text-xs tracking-[0.2em] uppercase" style="color:hsl(var(--eden-sage))">
-          Full curriculum preorder opens July 29
+          Full curriculum preorder is open now
         </p>
       </div>
     </div>
@@ -189,7 +187,7 @@ const KIT = {
           <h3 class="font-serif text-lg font-bold mb-1" style="color:hsl(var(--eden-bark))">Sprouts</h3>
           <p class="font-accent text-xs tracking-widest uppercase mb-3" style="color:hsl(var(--eden-gold))">Grades K-2</p>
           <p class="font-body text-sm text-muted-foreground mb-4 leading-relaxed">Wonder, stories, and simple plant identification. Kitchen labs and memory songs.</p>
-          <span class="text-xs font-body px-2 py-1 rounded" style="background-color:hsl(var(--eden-gold) / 0.15);color:hsl(var(--eden-gold))">Preorder opens July 29</span>
+          <span class="text-xs font-body px-2 py-1 rounded" style="background-color:hsl(var(--eden-gold) / 0.15);color:hsl(var(--eden-gold))">Preorder open now</span>
         </div>
         <div class="rounded-lg p-6 border-2" style="border-color:hsl(var(--eden-gold));background-color:hsl(var(--eden-cream))">
           <BookOpen className="w-6 h-6 mb-3" color="hsl(var(--eden-gold))" />
@@ -333,14 +331,14 @@ const KIT = {
   <section id="pricing" class="py-20 md:py-24 px-6" style="background-color:hsl(var(--eden-cream))">
     <div class="max-w-6xl mx-auto">
       <div class="text-center mb-8">
-        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold))">Preorder · opens July 29</p>
-        <h2 class="font-serif text-3xl md:text-4xl font-bold mb-4" style="color:hsl(var(--eden-bark))">Be first when the store opens.</h2>
+        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold))">Preorder · open now</p>
+        <h2 class="font-serif text-3xl md:text-4xl font-bold mb-4" style="color:hsl(var(--eden-bark))">Be one of the founding 500 families.</h2>
       </div>
 
       <div class="max-w-3xl mx-auto mb-8 text-center rounded-lg p-5" style="background-color:hsl(var(--eden-bark))">
-        <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2" style="color:hsl(var(--eden-gold))">How to be first</p>
+        <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2" style="color:hsl(var(--eden-gold))">How the founding 500 works</p>
         <p class="font-body text-sm text-white leading-relaxed">
-          Preorder opens July 29. The first <strong>500 kits</strong> sell at the Founders price of <strong>$249</strong>; after the 500th kit, the price moves automatically to the <strong>$349</strong> retail price. Start the free two-week sample and we'll email you the moment preorder opens. No waitlist, no obligation.
+          Preorder is open now. The first <strong>500 kits</strong> sell at the Founders price of <strong>$249</strong>; after the 500th kit, the price moves automatically to the <strong>$349</strong> retail price. The free two-week sample is still yours if you would rather try it first. No waitlist, no obligation.
         </p>
       </div>
 
@@ -357,7 +355,7 @@ const KIT = {
           </div>
           <div class="p-6 flex flex-col flex-1">
             <p class="font-accent text-xs tracking-widest uppercase mb-2" style="color:hsl(var(--eden-gold))">Sprouts Complete · K-2</p>
-            <h3 class="font-serif text-xl font-bold mb-3" style="color:hsl(var(--eden-bark))">Preorder opens July 29</h3>
+            <h3 class="font-serif text-xl font-bold mb-3" style="color:hsl(var(--eden-bark))">Preorder open now</h3>
             <div class="mb-4">
               <p class="font-serif text-3xl font-bold mb-1" style="color:hsl(var(--eden-bark))">$249 <span class="font-body text-base font-normal text-muted-foreground line-through ml-2">$349</span></p>
               <p class="font-accent text-xs uppercase tracking-wider" style="color:hsl(var(--eden-sage))">Founders price · $100 below retail</p>
@@ -370,10 +368,10 @@ const KIT = {
               <li>· 36 Recipe Cards</li>
               <li>· Around the Table deck (144 cards)</li>
             </ul>
-            <Button variant="eden" size="xl" className="w-full" data-waitlist-source={SPROUTS_MAGNET.source} data-waitlist-title={SPROUTS_MAGNET.title} data-waitlist-subtitle={SPROUTS_MAGNET.subtitle}>
-              Start the free 2-week sample
-            </Button>
-            <p class="font-body text-xs text-muted-foreground text-center mt-3">We'll email you the moment preorder opens.</p>
+            <a href="/preorder" class="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 font-body bg-eden-forest text-eden-parchment hover:bg-eden-forest-light border border-eden-gold/20 tracking-wider uppercase font-serif h-14 rounded-sm px-12 py-4 text-sm w-full">
+              Preorder the Sprouts kit
+            </a>
+            <p class="font-body text-xs text-muted-foreground text-center mt-3">$249 while the founding 500 last.</p>
           </div>
         </div>
 
