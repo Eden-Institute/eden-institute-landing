@@ -73,6 +73,47 @@ interface ParsedEmail {
   tld: string;
 }
 
+/**
+ * Structural deliverability check, run BEFORE the typo heuristics.
+ *
+ * Why: parseEmail() bails out when the domain has no dot, and checkEmail()
+ * historically read that null as "looks fine". That hole let six undeliverable
+ * addresses into the July 2026 launch sequence, each failing on all six sends:
+ *   cassandraburke400@gmail   jen_enserink@hotmail   whollyedenlife@gmail
+ *   ckp1968@hotmailcom        kalahhester@gmailc     (no dot in the domain)
+ *   laurenhinken.@outlook.com (local part ends in a dot)
+ * A domain with no dot at all is not a "maybe"; it cannot receive mail.
+ */
+export function hasDeliverableShape(raw: string): boolean {
+  const email = (raw || "").trim();
+  const at = email.lastIndexOf("@");
+  if (at < 1 || at === email.length - 1) return false;
+  const local = email.slice(0, at);
+  const domain = email.slice(at + 1).toLowerCase();
+  // Local part: no whitespace or stray @, and no leading/trailing/doubled dots.
+  if (!/^[^\s@]+$/.test(local)) return false;
+  if (local.startsWith(".") || local.endsWith(".") || local.includes("..")) return false;
+  // Domain: at least one dot, no empty labels, no whitespace or stray @.
+  if (!/^[^\s@.]+(\.[^\s@.]+)+$/.test(domain)) return false;
+  return domain.slice(domain.lastIndexOf(".") + 1).length >= 2;
+}
+
+/** Best-effort correction for a structurally broken domain, or null. */
+function nearestDomain(local: string, domain: string): string | null {
+  let best: string | null = null;
+  let bestDist = Infinity;
+  for (const candidate of POPULAR_DOMAINS) {
+    const dist = levenshtein(domain, candidate);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = candidate;
+    }
+  }
+  // Looser than the fuzzy pass below: we already KNOW this address is broken,
+  // so a slightly more distant guess is still more useful than no guess.
+  return best && bestDist <= 3 ? `${local}@${best}` : null;
+}
+
 function parseEmail(email: string): ParsedEmail | null {
   const at = email.lastIndexOf("@");
   if (at < 1) return null;
@@ -98,6 +139,18 @@ function parseEmail(email: string): ParsedEmail | null {
  */
 export function checkEmail(raw: string): EmailCheck {
   const email = (raw || "").trim();
+
+  // 0. Structurally undeliverable (no dot in the domain, local part ending in a
+  //    dot, empty labels). Blocked outright; a suggestion is offered when one
+  //    can be inferred, but the block does NOT depend on having one.
+  if (email && !hasDeliverableShape(email)) {
+    const at = email.lastIndexOf("@");
+    const suggestion = at > 0
+      ? nearestDomain(email.slice(0, at).replace(/\.+$/, ""), email.slice(at + 1).toLowerCase())
+      : null;
+    return { suggestion, invalid: true };
+  }
+
   const parsed = parseEmail(email);
   if (!parsed) return { suggestion: null, invalid: false };
   const { local, domain, sld, tld } = parsed;

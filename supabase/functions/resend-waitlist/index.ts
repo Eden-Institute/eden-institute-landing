@@ -576,6 +576,10 @@ Deno.serve(async (req) => {
     // Reject clearly-undeliverable / mistyped domains (e.g. gmail.con,
     // gmail.co, live.con, passmail.ner) before creating a Resend contact
     // that can only hard-bounce. Mirrors client-side src/lib/emailTypos.ts.
+    if (!hasDeliverableShape(normalizedEmail)) {
+      return json(400, { error: 'That email address does not look complete. Please check it and try again.' });
+    }
+
     const emailTypoSuggestion = detectEmailTypo(normalizedEmail);
     if (emailTypoSuggestion) {
       return json(400, { error: `That email address looks misspelled. Did you mean ${emailTypoSuggestion}?`, suggestion: emailTypoSuggestion });
@@ -991,6 +995,26 @@ Deno.serve(async (req) => {
 // correction, or null if the domain looks fine. Conservative: only flags
 // guaranteed-bad domains (dead TLDs, single-domain providers on the wrong TLD)
 // so it never hard-blocks an unusual-but-valid address. Mirrors src/lib/emailTypos.ts.
+// Structural deliverability check, run BEFORE detectEmailTypo.
+//
+// detectEmailTypo deliberately returns null when the domain has no dot, and the
+// caller read that as "address is fine". That hole let six undeliverable
+// addresses into the July 2026 launch sequence, each failing on all six sends:
+// four with no dot in the domain (gmail, hotmail), one with a mangled TLD run
+// together (hotmailcom, gmailc), and one whose local part ended in a dot.
+// A domain with no dot cannot receive mail, so it is rejected outright.
+// Mirrors hasDeliverableShape in src/lib/emailTypos.ts.
+function hasDeliverableShape(email: string): boolean {
+  const at = email.lastIndexOf('@');
+  if (at < 1 || at === email.length - 1) return false;
+  const local = email.slice(0, at);
+  const domain = email.slice(at + 1);
+  if (!/^[^\s@]+$/.test(local)) return false;
+  if (local.startsWith('.') || local.endsWith('.') || local.includes('..')) return false;
+  if (!/^[^\s@.]+(\.[^\s@.]+)+$/.test(domain)) return false;
+  return domain.slice(domain.lastIndexOf('.') + 1).length >= 2;
+}
+
 function detectEmailTypo(email: string): string | null {
   const at = email.lastIndexOf('@');
   if (at < 1) return null;

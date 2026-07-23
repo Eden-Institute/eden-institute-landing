@@ -55,6 +55,13 @@ with audience as (
     select lower(customer_email) from public.orders
      where status not in ('cancelled', 'refunded')
   )
+  -- Structurally undeliverable addresses. Six of these are already in the list
+  -- (gmail / hotmail with no dot, hotmailcom, gmailc, a local part ending in a
+  -- dot) and each one failed on all six vision-arc sends. Without this filter
+  -- they would take 10 more rows apiece and fail 60 more times on launch day.
+  -- Same shape rule as hasDeliverableShape() in resend-waitlist.
+  and lower(email) ~ '^[^[:space:]@.]([^[:space:]@]*[^[:space:]@.])?@[^[:space:]@.]+(\.[^[:space:]@.]+)+$'
+  and lower(email) !~ '\.\.'
   order by lower(email), joined_at asc
 ),
 -- Recipients still receiving the vision arc: anchor after it finishes.
