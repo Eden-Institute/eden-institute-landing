@@ -61,6 +61,13 @@ interface FoundingStatus {
   closed: boolean;
 }
 
+// SMS consent is gated on the server flag `sms_enabled` from preorder-status
+// (secret SMS_CONSENT_ENABLED). It fails CLOSED, the opposite of the founding
+// display: showing "yes, text me" while A2P 10DLC registration is still pending
+// means the buyer opts in and then hears nothing, and every send throws. Better
+// to not ask until we can actually deliver.
+const SMS_DEFAULT_ENABLED = false;
+
 interface DisplayProduct {
   sku: string;
   eyebrow: string;
@@ -120,9 +127,11 @@ export default function PreorderBuyBox() {
   // once we know the run is gone, do not invite another attempt that will also fail.
   const [soldOut, setSoldOut] = useState(false);
   const [founding, setFounding] = useState<FoundingStatus>({ sold: null, cap: null, closed: false });
+  const [smsEnabled, setSmsEnabled] = useState(SMS_DEFAULT_ENABLED);
 
   // Founding-window status, fetched once on mount. Any failure keeps the default
   // (founding display, no counter): fail open exactly like the server gate.
+  // The SMS flag rides the same response but fails CLOSED, see SMS_DEFAULT_ENABLED.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -134,8 +143,9 @@ export default function PreorderBuyBox() {
           cap: typeof data.cap === "number" ? data.cap : null,
           closed: data.closed,
         });
+        setSmsEnabled(data.sms_enabled === true);
       } catch {
-        // status unavailable; founding display stands
+        // status unavailable; founding display stands and SMS stays hidden
       }
     })();
     return () => {
@@ -246,7 +256,9 @@ export default function PreorderBuyBox() {
         body: {
           ...getFbAttribution(),
           items,
-          sms_consent: smsConsent,
+          // Belt and braces: never record consent we never asked for, even if the
+          // flag flipped off between mount and checkout.
+          sms_consent: smsEnabled && smsConsent,
           accepted_ship_window: true,
           accepted_founding_member: true,
           // Which wording checkbox 2 actually showed (the founding-member line, or the
@@ -472,23 +484,26 @@ export default function PreorderBuyBox() {
       )}
 
       {/* SMS consent: explicit opt-in, NEVER pre-checked. Stored on the order; the
-          preorder-received text sends only when this was checked. */}
-      <div
-        className="max-w-2xl mx-auto rounded-lg border p-4 flex items-start gap-3"
-        style={{ borderColor: "hsl(var(--eden-gold) / 0.3)", backgroundColor: "hsl(var(--eden-cream) / 0.6)" }}
-      >
-        <input
-          id="preorder-sms-consent"
-          type="checkbox"
-          checked={smsConsent}
-          onChange={(e) => setSmsConsent(e.target.checked)}
-          className="mt-1 h-4 w-4 shrink-0"
-        />
-        <label htmlFor="preorder-sms-consent" className="font-body text-sm leading-relaxed cursor-pointer" style={{ color: "hsl(var(--eden-bark))" }}>
-          Optional: yes, text me updates about my preorder at the phone number I provide at
-          checkout. Message and data rates may apply. Reply STOP at any time to opt out.
-        </label>
-      </div>
+          preorder-received text sends only when this was checked. Hidden entirely
+          until the server says SMS can actually be delivered (sms_enabled). */}
+      {smsEnabled && (
+        <div
+          className="max-w-2xl mx-auto rounded-lg border p-4 flex items-start gap-3"
+          style={{ borderColor: "hsl(var(--eden-gold) / 0.3)", backgroundColor: "hsl(var(--eden-cream) / 0.6)" }}
+        >
+          <input
+            id="preorder-sms-consent"
+            type="checkbox"
+            checked={smsConsent}
+            onChange={(e) => setSmsConsent(e.target.checked)}
+            className="mt-1 h-4 w-4 shrink-0"
+          />
+          <label htmlFor="preorder-sms-consent" className="font-body text-sm leading-relaxed cursor-pointer" style={{ color: "hsl(var(--eden-bark))" }}>
+            Optional: yes, text me updates about my preorder at the phone number I provide at
+            checkout. Message and data rates may apply. Reply STOP at any time to opt out.
+          </label>
+        </div>
+      )}
 
       {/* ── Preorder modal: step 1 disclaimer, step 2 notebook add-on ─────────── */}
       {modalOpen && (
