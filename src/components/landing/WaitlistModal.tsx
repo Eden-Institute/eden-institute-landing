@@ -67,9 +67,13 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
     // Guard against misspelled email domains before we create a Resend contact
     // that can only ever hard-bounce.
     const check = checkEmail(email);
-    // 1. Dead/undeliverable domain (gmail.con, gmail.co): always block.
-    if (check.invalid && check.suggestion) {
-      setEmailSuggestion(check.suggestion);
+    // 1. Dead/undeliverable domain (gmail.con, gmail.co) or a structurally
+    //    broken address (gmail with no dot, a local part ending in a dot).
+    //    Always block. Do NOT require a suggestion: the structural cases often
+    //    have no confident correction, and requiring one used to let them
+    //    through to a send that could only fail.
+    if (check.invalid) {
+      if (check.suggestion) setEmailSuggestion(check.suggestion);
       setError("That email address looks misspelled. Please check it.");
       return;
     }
