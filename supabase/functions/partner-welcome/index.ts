@@ -212,6 +212,16 @@ Deno.serve(async (req) => {
       subject: action === 'testsend' ? `[TEST] ${SUBJECT}` : SUBJECT,
       html: finalHtml,
       headers: unsubHeaders,
+      // Resend tags -> resend-webhook -> public.email_events.campaign / .email_key.
+      // Without these, partner sends land in email_events with NULL email_key, which
+      // makes them invisible to founder_email_engagement (it filters `email_key is not
+      // null`). Untagged partner mail was therefore missing from the Emails tab
+      // entirely, and only reachable by matching on the raw recipient address.
+      // Resend restricts tag values to ASCII letters, numbers, underscore and dash.
+      tags: [
+        { name: 'campaign', value: 'partner_program' },
+        { name: 'email_key', value: action === 'testsend' ? 'partner_welcome_test' : 'partner_welcome' },
+      ],
     };
 
     const res = await fetch('https://api.resend.com/emails', {

@@ -27,10 +27,11 @@ import OrdersTab from "@/components/founder/OrdersTab";
 import FunnelTab from "@/components/founder/FunnelTab";
 import FeedbackTriageTab from "@/components/founder/FeedbackTriageTab";
 import BroadcastTab from "@/components/founder/BroadcastTab";
+import PartnersTab from "@/components/founder/PartnersTab";
 
 const FOUNDER_EMAIL = "hello@edeninstitute.health";
 
-type Tab = "leads" | "traffic" | "orders" | "broadcast" | "funnel" | "crm" | "emails" | "revenue" | "feedback";
+type Tab = "leads" | "traffic" | "orders" | "broadcast" | "funnel" | "crm" | "emails" | "revenue" | "feedback" | "partners";
 
 interface LeadRow {
   email: string;
@@ -142,8 +143,8 @@ export default function FounderLeads() {
   const isFounder = !!user && user.email?.toLowerCase() === FOUNDER_EMAIL;
 
   const load = useCallback(async () => {
-    // CRM, Emails, Revenue, Orders, Funnel, and Feedback tabs fetch their own data inside their components.
-    if (tab === "crm" || tab === "emails" || tab === "revenue" || tab === "orders" || tab === "broadcast" || tab === "funnel" || tab === "feedback") return;
+    // CRM, Emails, Revenue, Orders, Funnel, Feedback, and Partners tabs fetch their own data inside their components.
+    if (tab === "crm" || tab === "emails" || tab === "revenue" || tab === "orders" || tab === "broadcast" || tab === "funnel" || tab === "feedback" || tab === "partners") return;
     const since = sinceISO(WINDOWS[windowIdx].days);
     setLoading(true);
     setError(null);
@@ -314,7 +315,7 @@ export default function FounderLeads() {
 
         {/* Tabs */}
         <div className="flex gap-1 mb-4 border-b border-border flex-wrap">
-          {(["leads", "traffic", "orders", "broadcast", "funnel", "emails", "revenue", "crm", "feedback"] as Tab[]).map((t) => (
+          {(["leads", "traffic", "orders", "broadcast", "funnel", "emails", "revenue", "crm", "partners", "feedback"] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -325,7 +326,7 @@ export default function FounderLeads() {
                   : { borderColor: "transparent", color: "hsl(var(--muted-foreground))" }
               }
             >
-              {t === "leads" ? "Lead magnets" : t === "traffic" ? "Website traffic" : t === "orders" ? "Orders" : t === "broadcast" ? "Broadcast" : t === "funnel" ? "Funnel" : t === "emails" ? "Emails" : t === "revenue" ? "Revenue" : t === "crm" ? "CRM" : "Feedback"}
+              {t === "leads" ? "Lead magnets" : t === "traffic" ? "Website traffic" : t === "orders" ? "Orders" : t === "broadcast" ? "Broadcast" : t === "funnel" ? "Funnel" : t === "emails" ? "Emails" : t === "revenue" ? "Revenue" : t === "crm" ? "CRM" : t === "partners" ? "Partners" : "Feedback"}
             </button>
           ))}
         </div>
@@ -522,6 +523,8 @@ export default function FounderLeads() {
           <RevenueTab since={sinceISO(WINDOWS[windowIdx].days)} />
         ) : tab === "feedback" ? (
           <FeedbackTriageTab />
+        ) : tab === "partners" ? (
+          <PartnersTab />
         ) : (
           <CrmTab since={sinceISO(WINDOWS[windowIdx].days)} />
         )}
