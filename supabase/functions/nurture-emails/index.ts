@@ -55,6 +55,7 @@ import {
 } from '../_shared/homeschool-followup-templates.ts';
 import {
   buildLaunchEmail,
+  variantForEmail,
   CONVERSION_FIRST_POSITION,
   EMAIL_7_RESEND_POSITION,
 } from '../_shared/launch-sequence-templates.ts';
@@ -770,7 +771,12 @@ async function drainLaunchQueue(): Promise<QueueResult> {
           ? await foundersFormUrl(email, firstName, 'launch_7')
           : undefined;
 
-      const built = buildLaunchEmail(pos, firstName, founding, foundersUrl);
+      // Position 18 runs a subject-line split test. The arm is derived from the
+      // address, not from a counter or a random draw, so a retry after a send
+      // failure cannot move someone between arms and skew the read.
+      const variant = variantForEmail(email);
+
+      const built = buildLaunchEmail(pos, firstName, founding, foundersUrl, variant);
       if (!built) {
         await supabaseQuery(`launch_email_queue?id=eq.${row.id}`, {
           method: 'PATCH',
@@ -784,11 +790,15 @@ async function drainLaunchQueue(): Promise<QueueResult> {
         continue;
       }
 
-      // Position 18 is tagged launch_7_resend, not launch_18, so the make-good's
-      // opens and clicks are measurable against launch_7's own numbers in
-      // email_events instead of hiding behind a position number nothing else uses.
+      // Position 18 is tagged launch_7_resend_<arm>, not launch_18, so the
+      // make-good's opens and clicks are measurable against launch_7's own
+      // numbers in email_events instead of hiding behind a position number
+      // nothing else uses, and so the two subject lines can be scored against
+      // each other. Resend tag values allow [A-Za-z0-9_-] only.
       const emailKey =
-        pos === EMAIL_7_RESEND_POSITION ? 'launch_7_resend' : `launch_${pos}`;
+        pos === EMAIL_7_RESEND_POSITION
+          ? `launch_7_resend_${variant}`
+          : `launch_${pos}`;
       const send = await sendEmail(
         email,
         built.subject,
