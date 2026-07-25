@@ -101,6 +101,23 @@ async function ensureTable(sql: ReturnType<typeof postgres>): Promise<void> {
     updated_at timestamptz NOT NULL DEFAULT now()
   )`;
 }
+// Fallback path for a submission whose signed token is missing or unreadable.
+// The page can no longer disable its own button (see public/sprouts-founders.html),
+// so a damaged link arrives here as a plain email address instead. We accept it
+// ONLY if that address already exists on the homeschool waitlist, which keeps
+// this from becoming an open endpoint for writing arbitrary rows.
+async function emailIsOnWaitlist(email: string): Promise<boolean> {
+  try {
+    return await withDb(async (sql) => {
+      const rows = await sql`SELECT 1 FROM public.waitlist_signups WHERE lower(email) = ${email.trim().toLowerCase()} LIMIT 1`;
+      return (rows as unknown as unknown[]).length > 0;
+    });
+  } catch (err) {
+    console.error('founders-lock emailIsOnWaitlist failed:', String(err));
+    return false;
+  }
+}
+
 async function upsertInterest(email: string, name: string, phone: string, consent: boolean, source: string): Promise<void> {
   await withDb(async (sql) => {
     await ensureTable(sql);
@@ -352,35 +369,56 @@ Deno.serve(async (req) => {
 
   // POST: form submission from the hosted page (JSON), with a form-encoded fallback.
   if (req.method === 'POST') {
-    let token = '', name = '', phoneRaw = '', consent = false;
+    let token = '', name = '', phoneRaw = '', consent = false, emailRaw = '';
     const ct = req.headers.get('content-type') ?? '';
     if (ct.includes('application/json')) {
       const body = await req.json().catch(() => ({})) as Record<string, unknown>;
       token = String(body.t ?? '');
       name = String(body.name ?? '').trim();
       phoneRaw = String(body.phone ?? '');
+      emailRaw = String(body.email ?? '').trim();
       consent = body.sms_consent === true || body.sms_consent === 'yes';
     } else {
       const form = await req.formData().catch(() => null);
       token = String(form?.get('t') ?? '');
       name = String(form?.get('name') ?? '').trim();
       phoneRaw = String(form?.get('phone') ?? '');
+      emailRaw = String(form?.get('email') ?? '').trim();
       consent = String(form?.get('sms_consent') ?? '') === 'yes';
     }
+
+    // Resolve the reserving address. A valid signed token always wins. If the
+    // token is missing or unreadable (a mangled link, a forwarded email, a
+    // rewritten href), fall back to the address typed on the page, but only
+    // when it is already on the waitlist. A reservation must not be lost just
+    // because the link got damaged in transit: that is exactly the failure
+    // this whole day was spent recovering from.
     const v = token ? await verify(token) : null;
-    if (!v || typeof v.e !== 'string') return jsonRes(400, { ok: false, error: 'invalid_token' });
+    let reserveEmail = '';
+    let reserveSource = 'sprouts_upgrade_email1';
+    if (v && typeof v.e === 'string') {
+      reserveEmail = v.e as string;
+      reserveSource = (v.c as string) ?? reserveSource;
+    } else if (emailRaw && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailRaw) && await emailIsOnWaitlist(emailRaw)) {
+      reserveEmail = emailRaw.toLowerCase();
+      reserveSource = 'launch_7_untokened';
+      console.log('founders-lock: accepted untokened reservation for', reserveEmail);
+    } else {
+      return jsonRes(400, { ok: false, error: 'invalid_token' });
+    }
+
     const phone = normalizePhone(phoneRaw);
     if (!name || !phone) return jsonRes(400, { ok: false, error: 'missing_fields' });
     try {
-      await upsertInterest(v.e as string, name, phone, consent, (v.c as string) ?? 'sprouts_upgrade_email1');
-      await addContact(v.e as string, name);
+      await upsertInterest(reserveEmail, name, phone, consent, reserveSource);
+      await addContact(reserveEmail, name);
       if (consent && phone) {
         await sendSms(phone, "You're on the Sprouts founder's list. We'll text you the moment preorders open, before anyone else. Grace and health, Camila at The Eden Institute. Reply STOP to opt out.").catch(() => {});
       }
       // Confirmation email. Best effort so a Resend hiccup never loses a
       // reservation that is already saved, but LOGGED (unlike the SMS above,
       // whose empty catch hid the fact that founders got nothing in writing).
-      await sendConfirmation(v.e as string, name).catch((e) => {
+      await sendConfirmation(reserveEmail, name).catch((e) => {
         console.error('founders-lock confirmation email failed:', String(e));
       });
     } catch (err) {
