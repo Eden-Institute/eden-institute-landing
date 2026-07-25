@@ -32,13 +32,13 @@
     <h1>Reserve your $249 founder's price</h1>
     <p class="lead">You will be first to know when preorders open, by email, before we announce it anywhere else. Add your details to lock it in.</p>
     <div class="err" id="err" style="display:none"></div>
-    <form id="f">
+    <form id="f" autocomplete="off">
       <label>Email</label>
-      <input type="email" id="email" disabled>
+      <input type="email" id="email" autocomplete="off" placeholder="you@example.com" required>
       <label>Your name</label>
-      <input type="text" id="name" placeholder="First name" required>
+      <input type="text" id="name" placeholder="First name" autocomplete="off" required>
       <label>Mobile number</label>
-      <input type="tel" id="phone" placeholder="(555) 123-4567" required>
+      <input type="tel" id="phone" placeholder="(555) 123-4567" autocomplete="off" required>
       <p class="consent"><span>In case we need to reach you about your kit. We will confirm everything by email.</span></p>
       <button type="submit" id="btn">Lock in my $249 founder's price</button>
     </form>
@@ -50,21 +50,47 @@
   var token = qs('t') || '';
   function decode(t){ try { var p = t.split('.')[0].replace(/-/g,'+').replace(/_/g,'/'); return JSON.parse(decodeURIComponent(escape(atob(p)))); } catch(e){ return null; } }
   function showErr(m){ var e = document.getElementById('err'); e.textContent = m; e.style.display = 'block'; }
+  // THE BUTTON IS NEVER DISABLED. On 2026-07-25 a tokenless link disabled this
+  // form for 1,382 families and captured zero reservations, then a second link
+  // problem (Gmail rewriting hrefs through google.com/url) hid the token again.
+  // A reservation must survive ANY damage to the link: if we cannot read the
+  // token, we ask for the email instead and let the server take it from there.
   var payload = decode(token);
-  if (payload && payload.e) document.getElementById('email').value = payload.e;
-  if (payload && payload.n) document.getElementById('name').value = payload.n;
-  if (!payload || !payload.e) { showErr('This link is missing or invalid. Please use the button in your email again.'); document.getElementById('btn').disabled = true; }
+  var emailEl = document.getElementById('email');
+  var nameEl = document.getElementById('name');
+
+  function applyToken() {
+    if (payload && payload.e && !emailEl.value) emailEl.value = payload.e;
+    if (payload && payload.n && !nameEl.value) nameEl.value = payload.n;
+  }
+  applyToken();
+  // Browser autofill runs AFTER this script and will happily overwrite these
+  // fields with the account owner's own saved details, which is how a link for
+  // one person can end up showing another person's name. Re-assert ours.
+  setTimeout(applyToken, 150);
+  setTimeout(applyToken, 600);
+
+  if (payload && payload.e) {
+    // Known recipient: show the address, but keep it editable so a wrong or
+    // shared link is never a dead end.
+    emailEl.readOnly = false;
+  } else {
+    showErr('We could not read your personal link, so please type the email address you signed up with and we will lock in your price.');
+  }
+
   document.getElementById('f').addEventListener('submit', function(ev){
     ev.preventDefault();
     var name = document.getElementById('name').value.trim();
     var phone = document.getElementById('phone').value.trim();
+    var email = emailEl.value.trim();
+    if (!email) { showErr('Please add the email address you signed up with.'); return; }
     // No SMS consent is collected while we cannot actually send a text. The
     // number is kept so Camila can phone a founder if something goes wrong with
     // their order. Restore an explicit opt-in checkbox before sending any SMS.
     var consent = false;
     if (!name || !phone) { showErr('Please add your name and a mobile number.'); return; }
     var btn = document.getElementById('btn'); btn.disabled = true; btn.textContent = 'Locking it in...';
-    fetch(EF, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ t: token, name: name, phone: phone, sms_consent: consent }) })
+    fetch(EF, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ t: token, email: email, name: name, phone: phone, sms_consent: consent }) })
       .then(function(r){ return r.json(); })
       .then(function(d){
         if (d && d.ok) {
