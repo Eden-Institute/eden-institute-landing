@@ -54,6 +54,7 @@ import {
   buildMagnetWeek7Email,
 } from '../_shared/homeschool-followup-templates.ts';
 import { buildLaunchEmail, CONVERSION_FIRST_POSITION } from '../_shared/launch-sequence-templates.ts';
+import { foundersFormUrl } from '../_shared/founders-link.ts';
 import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
 
@@ -744,7 +745,12 @@ async function drainLaunchQueue(): Promise<QueueResult> {
         continue;
       }
 
-      const built = buildLaunchEmail(pos, firstName, founding);
+      // Email 7's Reserve button points at the founders-price page, which
+      // disables itself unless the URL carries a signed `?t=` token. Sign it
+      // per recipient; every other position ignores this argument.
+      const foundersUrl = pos === 7 ? await foundersFormUrl(email, firstName, 'launch_7') : undefined;
+
+      const built = buildLaunchEmail(pos, firstName, founding, foundersUrl);
       if (!built) {
         await supabaseQuery(`launch_email_queue?id=eq.${row.id}`, {
           method: 'PATCH',

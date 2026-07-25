@@ -63,8 +63,11 @@ const WEBSITE_URL = 'https://edeninstitute.health';
 const FACEBOOK_URL = 'https://www.facebook.com/TheEdenInstituteBiblicalHerbalism';
 const INSTAGRAM_URL = 'https://instagram.com/the_eden_institute';
 const PINTEREST_URL = 'https://pin.it/6AuiXypgA';
-// Primary CTA target for Email 7: the live founders-price capture page.
-const FOUNDERS_URL = 'https://edeninstitute.health/sprouts-founders.html';
+// Primary CTA target for Email 7 is the founders-price capture page, but that
+// page REQUIRES a signed `?t=` token or it disables its own Reserve button. The
+// bare URL constant that used to live here shipped a dead button to 1,149
+// families on 2026-07-25. The signed URL is now built per recipient by the
+// caller via _shared/founders-link.ts and passed into buildLaunchEmail7.
 // Primary CTA target for the conversion series (8-17): the preorder page
 // shipped by PR #227 (web/pages/preorder.astro).
 const PREORDER_URL = 'https://edeninstitute.health/preorder';
@@ -422,7 +425,17 @@ export function buildLaunchEmail6(firstName: string): { subject: string; html: s
 // Scripture anchor: Esther 4:14 · Mountain Rose shop button
 // Preorder open date locked 2026-07-16: July 29.
 // ══════════════════════════════════════════════════════════════
-export function buildLaunchEmail7(firstName: string): { subject: string; html: string } {
+// `foundersUrl` MUST be a signed founders-page URL from foundersFormUrl() in
+// _shared/founders-link.ts. Passing a bare page URL renders a disabled button.
+export function buildLaunchEmail7(
+  firstName: string,
+  foundersUrl: string,
+): { subject: string; html: string } {
+  if (!foundersUrl || !foundersUrl.includes('?t=')) {
+    // Fail loudly. The 2026-07-25 incident was a SILENT dead link; a thrown
+    // error marks the queue row failed and surfaces in logs instead.
+    throw new Error('buildLaunchEmail7: signed foundersUrl (with ?t=) is required');
+  }
   const body =
     `${p(`Hi ${firstName},`)}` +
     `${p(`Two weeks ago I told you something was being planted. You have seen the vision, walked through Sprouts, met the method, looked up the whole path from kindergarten to graduation. Today I get to say the words I have been holding back all month:`)}` +
@@ -436,7 +449,7 @@ export function buildLaunchEmail7(firstName: string): { subject: string; html: s
     `${goldDivider()}` +
     `${p(`I keep coming back to Mordecai&rsquo;s words to Esther at her own threshold moment: &ldquo;And who knows whether you have not attained royalty for such a time as this?&rdquo; (Esther 4:14, NASB). I do not think it is an accident that you are homeschooling now, in a generation hungry to recover what was lost, with tools in reach that our grandmothers could only pass down by memory. Perhaps your family is at this table for such a time as this.`)}` +
     `${p(`Reserve your founding spot below, and you will be the first to know the moment the doors open.`)}` +
-    `${brandButton('Reserve Your Founding Spot', FOUNDERS_URL)}` +
+    `${brandButton('Reserve Your Founding Spot', foundersUrl)}` +
     `${p(`It begins with Sprouts. It begins very soon. And I could not be more honored to build it alongside your family.`)}` +
     `${signature()}`;
   return {
@@ -705,7 +718,8 @@ const LAUNCH_BUILDERS: Record<number, (firstName: string, founding?: boolean) =>
   4: buildLaunchEmail4,
   5: buildLaunchEmail5,
   6: buildLaunchEmail6,
-  7: buildLaunchEmail7,
+  // 7 is deliberately absent: buildLaunchEmail7 needs a per-recipient signed
+  // founders URL, not `founding`, so buildLaunchEmail() dispatches it directly.
   8: buildLaunchEmail8,
   9: buildLaunchEmail9,
   10: buildLaunchEmail10,
@@ -719,11 +733,15 @@ const LAUNCH_BUILDERS: Record<number, (firstName: string, founding?: boolean) =>
 };
 
 // `founding` only affects positions 8-17 (the 1-7 builders ignore it).
+// `foundersUrl` is REQUIRED for position 7 and must come from foundersFormUrl()
+// in _shared/founders-link.ts; every other position ignores it.
 export function buildLaunchEmail(
   position: number,
   firstName: string,
   founding = true,
+  foundersUrl?: string,
 ): { subject: string; html: string } | null {
+  if (position === 7) return buildLaunchEmail7(firstName, foundersUrl ?? '');
   const builder = LAUNCH_BUILDERS[position];
   return builder ? builder(firstName, founding) : null;
 }
