@@ -237,7 +237,7 @@ function announcementHtml(firstName: string, formLink: string, unsub: string): s
   ${dlGroup('Week 1 &middot; Lavender', W1)}
   ${dlGroup('Week 2 &middot; Chamomile', W2)}
   <div style="border-top:1px solid #E0D7C2;margin:22px 0 6px;"></div>
-  ${para('Preorders for a limited run of 500 kits open soon, and this list hears first. Add your name and phone number and we will email and text you the moment preorders open, before we announce it anywhere else, and hold your founding price of $249 for the complete 36-week kit. Once preorders reach 500 kits, the founding price rises to $349.')}
+  ${para('Preorders for a limited run of 500 kits open soon, and this list hears first. Add your name and phone number and we will email you the moment preorders open, before we announce it anywhere else, and hold your founding price of $249 for the complete 36-week kit. Once preorders reach 500 kits, the founding price rises to $349.')}
   ${bigButton("Reserve my $249 price + first access", formLink)}
   <p style="font-family:Georgia,serif;font-size:13px;color:#8A8470;text-align:center;margin:0;">We post on Facebook too, but our list always hears first. <a href="https://www.facebook.com/TheEdenInstituteBiblicalHerbalism" style="color:${B.sage};">Follow along.</a></p>
   <p style="font-family:Georgia,serif;font-size:15px;line-height:1.6;color:${B.text};margin:22px 0 2px;">Grace and health,</p>
@@ -261,7 +261,7 @@ function shell(inner: string): string {
 function formPage(email: string, name: string, token: string, err = ''): string {
   return shell(`
 <h1 style="font-size:23px;color:${B.deep};margin:0 0 10px;">Reserve your $249 founder's price</h1>
-<p style="font-size:15px;line-height:1.7;color:${B.text};margin:0 0 18px;">You will be first to know when preorders open, by email and text, before we announce it anywhere else. Add your details to lock it in.</p>
+<p style="font-size:15px;line-height:1.7;color:${B.text};margin:0 0 18px;">You will be first to know when preorders open, by email, before we announce it anywhere else. Add your details to lock it in.</p>
 ${err ? `<p style="font-size:14px;color:#993C1D;margin:0 0 14px;">${err}</p>` : ''}
 <form method="POST" action="${SUPABASE_URL}/functions/v1/founders-lock">
   <input type="hidden" name="t" value="${token}">
@@ -269,12 +269,9 @@ ${err ? `<p style="font-size:14px;color:#993C1D;margin:0 0 14px;">${err}</p>` : 
   <input type="email" value="${email}" disabled style="width:100%;box-sizing:border-box;padding:11px;border:1px solid #D9CFB8;border-radius:8px;background:#EEE7D6;color:#6b665a;font-size:15px;margin:0 0 14px;">
   <label style="display:block;font-size:13px;color:${B.text};margin:0 0 4px;">Your name</label>
   <input type="text" name="name" value="${name}" required placeholder="First name" style="width:100%;box-sizing:border-box;padding:11px;border:1px solid #D9CFB8;border-radius:8px;font-size:15px;margin:0 0 14px;">
-  <label style="display:block;font-size:13px;color:${B.text};margin:0 0 4px;">Mobile number (for preorder alerts)</label>
+  <label style="display:block;font-size:13px;color:${B.text};margin:0 0 4px;">Mobile number</label>
   <input type="tel" name="phone" required placeholder="(555) 123-4567" style="width:100%;box-sizing:border-box;padding:11px;border:1px solid #D9CFB8;border-radius:8px;font-size:15px;margin:0 0 14px;">
-  <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;color:${B.text};margin:0 0 18px;line-height:1.5;">
-    <input type="checkbox" name="sms_consent" value="yes" checked style="margin-top:3px;">
-    <span>Yes, text me Sprouts preorder and founding-price alerts at this number. Message and data rates may apply; reply STOP to opt out anytime.</span>
-  </label>
+  <p style="font-size:13px;color:${B.text};margin:0 0 18px;line-height:1.5;">In case we need to reach you about your kit. We will confirm everything by email.</p>
   <button type="submit" style="width:100%;background:${B.gold};color:${B.forest};font-family:Georgia,serif;font-size:16px;font-weight:bold;border:none;padding:15px;border-radius:8px;cursor:pointer;">Lock in my $249 founder's price</button>
 </form>`);
 }
@@ -284,7 +281,7 @@ function confirmationPage(name: string): string {
 <div style="text-align:center;">
 <div style="font-size:40px;color:${B.gold};">&#9826;</div>
 <h1 style="font-size:24px;color:${B.deep};margin:8px 0 12px;">You&rsquo;re locked in, ${n}.</h1>
-<p style="font-size:16px;line-height:1.7;color:${B.text};margin:0 0 14px;">Your founding price of <strong>$249</strong> for the complete 36-week Sprouts kit is reserved, and you are on the first-access list. When preorders open, you will hear from us by email and text before we announce it anywhere else.</p>
+<p style="font-size:16px;line-height:1.7;color:${B.text};margin:0 0 14px;">Your founding price of <strong>$249</strong> for the complete 36-week Sprouts kit is reserved, and you are on the first-access list. When preorders open, you will hear from us by email before we announce it anywhere else. Check your inbox, a confirmation is on its way.</p>
 <a href="https://www.facebook.com/TheEdenInstituteBiblicalHerbalism" style="display:inline-block;background:${B.gold};color:${B.forest};font-size:15px;font-weight:bold;text-decoration:none;padding:13px 28px;border-radius:8px;">Follow along on Facebook</a>
 <p style="font-size:15px;color:${B.text};margin:24px 0 0;">Grace and health,<br><strong>Camila</strong></p>
 </div>`);
