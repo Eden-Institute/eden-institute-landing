@@ -182,6 +182,47 @@ const para = (t: string) => `<p style="font-family:Georgia,serif;font-size:15px;
 function bigButton(label: string, href: string): string {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0;"><tr><td align="center"><a href="${href}" target="_blank" style="display:inline-block;background:${B.gold};color:${B.forest};font-family:Georgia,serif;font-size:16px;font-weight:bold;text-decoration:none;padding:15px 32px;border-radius:8px;">${label}</a></td></tr></table>`;
 }
+// ── Reservation confirmation ──
+// Sent immediately after a successful founders-form submit. Before this existed,
+// a reservation produced NO confirmation of any kind: the SMS is best-effort and
+// silently no-ops while Twilio A2P is unapproved, so founders got only the
+// on-page message and nothing in writing. Deliberately promises EMAIL ONLY, not
+// text, because we cannot currently deliver a text.
+const CONFIRM_SUBJECT = 'Your $249 founding price is reserved';
+function confirmationHtml(firstName: string, unsub: string): string {
+  const name = firstName || 'friend';
+  return `<!doctype html><html><body style="margin:0;background:#EFE9DA;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EFE9DA;padding:24px 0;"><tr><td align="center">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background:${B.cream};border-radius:10px;overflow:hidden;">
+<tr><td style="background:${B.forest};padding:24px;text-align:center;"><div style="color:${B.gold};font-family:Georgia,serif;font-size:20px;letter-spacing:2px;">THE EDEN INSTITUTE</div><div style="color:${B.footer};font-family:Georgia,serif;font-size:11px;letter-spacing:1.5px;margin-top:5px;">BIBLICAL HERBALISM</div></td></tr>
+<tr><td style="padding:28px 30px;">
+  <p style="font-family:Georgia,serif;font-size:17px;color:${B.deep};margin:0 0 18px;">Hi ${name},</p>
+  ${para('Your founding price of <strong>$249</strong> for the complete 36-week Sprouts kit is reserved, and your family is on the first-access list.')}
+  ${para('Preorders open <strong>July 29</strong>. You will hear from me by email before we announce it anywhere else.')}
+  ${para('Nothing is owed today. This simply holds your place and your price. Once the first 500 kits are claimed, the founding price rises to $349.')}
+  ${para('Thank you for building this alongside us. It matters more than you know that the first families through the door are ones who chose it early.')}
+  <p style="font-family:Georgia,serif;font-size:15px;line-height:1.75;color:${B.text};margin:22px 0 4px;">Grace and health,</p>
+  <p style="font-family:Georgia,serif;font-size:15px;color:${B.deep};font-weight:bold;margin:0;">Camila</p>
+  <p style="font-family:Georgia,serif;font-size:13px;color:${B.text};margin:4px 0 0;">The Eden Institute</p>
+</td></tr>
+<tr><td style="background:${B.forest};padding:18px 24px;text-align:center;">
+  <div style="font-family:Georgia,serif;font-size:11px;color:${B.footer};">Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Unit 3262, Clarksville, TN 37043</div>
+  <div style="margin-top:8px;"><a href="${unsub}" style="font-family:Georgia,serif;font-size:11px;color:${B.footer};text-decoration:underline;">Unsubscribe</a></div>
+</td></tr>
+</table></td></tr></table></body></html>`;
+}
+
+async function sendConfirmation(email: string, name: string): Promise<void> {
+  if (!RESEND_API_KEY) return;
+  const html = confirmationHtml(name, unsubUrl(await unsubToken(email)));
+  const r = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: FROM, to: [email], subject: CONFIRM_SUBJECT, html }),
+  });
+  if (!r.ok) throw new Error(`resend ${r.status}: ${await r.text()}`);
+}
+
 function announcementHtml(firstName: string, formLink: string, unsub: string): string {
   const name = firstName || 'friend';
   return `<!doctype html><html><body style="margin:0;background:#EFE9DA;">
@@ -339,6 +380,12 @@ Deno.serve(async (req) => {
       if (consent && phone) {
         await sendSms(phone, "You're on the Sprouts founder's list. We'll text you the moment preorders open, before anyone else. Grace and health, Camila at The Eden Institute. Reply STOP to opt out.").catch(() => {});
       }
+      // Confirmation email. Best effort so a Resend hiccup never loses a
+      // reservation that is already saved, but LOGGED (unlike the SMS above,
+      // whose empty catch hid the fact that founders got nothing in writing).
+      await sendConfirmation(v.e as string, name).catch((e) => {
+        console.error('founders-lock confirmation email failed:', String(e));
+      });
     } catch (err) {
       console.error('founders-lock submit failed:', String(err));
       return jsonRes(500, { ok: false, error: 'save_failed' });
