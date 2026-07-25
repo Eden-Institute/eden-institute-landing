@@ -32,14 +32,20 @@
     <h1>Reserve your $249 founder's price</h1>
     <p class="lead">You will be first to know when preorders open, by email, before we announce it anywhere else. Add your details to lock it in.</p>
     <div class="err" id="err" style="display:none"></div>
-    <form id="f" autocomplete="off">
+    <!-- NO `required` ATTRIBUTES AND novalidate ON THE FORM. Native HTML5
+         validation blocks the submit event BEFORE any of our code runs and only
+         signals it with a tooltip that frequently does not render, so the click
+         is silently swallowed and the visitor sees nothing happen at all. That
+         is precisely what a founder hit on 2026-07-25. All checking is done in
+         JS below, where every failure raises a VISIBLE message. -->
+    <form id="f" autocomplete="off" novalidate>
       <label>Email</label>
-      <input type="email" id="email" autocomplete="off" placeholder="you@example.com" required>
+      <input type="email" id="email" autocomplete="off" placeholder="you@example.com">
       <label>Your name</label>
-      <input type="text" id="name" placeholder="First name" autocomplete="off" required>
-      <label>Mobile number</label>
-      <input type="tel" id="phone" placeholder="(555) 123-4567" autocomplete="off" required>
-      <p class="consent"><span>In case we need to reach you about your kit. We will confirm everything by email.</span></p>
+      <input type="text" id="name" placeholder="First name" autocomplete="off">
+      <label>Mobile number (optional)</label>
+      <input type="tel" id="phone" placeholder="(555) 123-4567" autocomplete="off">
+      <p class="consent"><span>Only if you would like us to be able to reach you about your kit. We will confirm everything by email.</span></p>
       <button type="submit" id="btn">Lock in my $249 founder's price</button>
     </form>
   </div>
@@ -49,7 +55,14 @@
   function qs(k){ return new URLSearchParams(location.search).get(k); }
   var token = qs('t') || '';
   function decode(t){ try { var p = t.split('.')[0].replace(/-/g,'+').replace(/_/g,'/'); return JSON.parse(decodeURIComponent(escape(atob(p)))); } catch(e){ return null; } }
-  function showErr(m){ var e = document.getElementById('err'); e.textContent = m; e.style.display = 'block'; }
+  function showErr(m){
+    var e = document.getElementById('err');
+    e.textContent = m;
+    e.style.display = 'block';
+    // Scroll it into view: an error the visitor cannot see is the same as no
+    // error at all, which is how a blocked submit reads as "nothing happened".
+    if (e.scrollIntoView) e.scrollIntoView({ block: 'center' });
+  }
   // THE BUTTON IS NEVER DISABLED. On 2026-07-25 a tokenless link disabled this
   // form for 1,382 families and captured zero reservations, then a second link
   // problem (Gmail rewriting hrefs through google.com/url) hid the token again.
@@ -88,7 +101,11 @@
     // number is kept so Camila can phone a founder if something goes wrong with
     // their order. Restore an explicit opt-in checkbox before sending any SMS.
     var consent = false;
-    if (!name || !phone) { showErr('Please add your name and a mobile number.'); return; }
+    // The PHONE IS OPTIONAL. It was required until 2026-07-25, when a founder
+    // clicked the button with it empty and the browser silently swallowed the
+    // submit. A reservation is worth far more than a phone number, and the
+    // column is nullable, so a missing number must never block one.
+    if (!name) { showErr('Please add your first name so we know who to hold this for.'); return; }
     var btn = document.getElementById('btn'); btn.disabled = true; btn.textContent = 'Locking it in...';
     fetch(EF, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ t: token, email: email, name: name, phone: phone, sms_consent: consent }) })
       .then(function(r){ return r.json(); })
