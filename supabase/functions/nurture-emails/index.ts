@@ -53,7 +53,12 @@ import {
   buildMagnetWeek6Email,
   buildMagnetWeek7Email,
 } from '../_shared/homeschool-followup-templates.ts';
-import { buildLaunchEmail, CONVERSION_FIRST_POSITION } from '../_shared/launch-sequence-templates.ts';
+import {
+  buildLaunchEmail,
+  variantForEmail,
+  CONVERSION_FIRST_POSITION,
+  EMAIL_7_RESEND_POSITION,
+} from '../_shared/launch-sequence-templates.ts';
 import { foundersFormUrl } from '../_shared/founders-link.ts';
 import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
@@ -708,8 +713,17 @@ async function drainLaunchQueue(): Promise<QueueResult> {
   }
   if (rows.length > 0) console.log(`drainLaunchQueue: found ${rows.length} due rows`);
   // One founding-gate check per run, only when conversion rows are due.
+  // Position 18 (the Email 7 make-good) is excluded even though 18 >= 8: its
+  // builder ignores `founding`, and founding_gate is a volatile RPC that stamps
+  // the one-way founding_closed_at latch, so it is not called for nothing.
   let founding = true;
-  if (rows.some((r: any) => r.sequence_position >= CONVERSION_FIRST_POSITION)) {
+  if (
+    rows.some(
+      (r: any) =>
+        r.sequence_position >= CONVERSION_FIRST_POSITION &&
+        r.sequence_position !== EMAIL_7_RESEND_POSITION,
+    )
+  ) {
     founding = await foundingWindowOpen();
     if (!founding) console.log('drainLaunchQueue: founding window CLOSED, using retail copy');
   }
@@ -747,10 +761,22 @@ async function drainLaunchQueue(): Promise<QueueResult> {
 
       // Email 7's Reserve button points at the founders-price page, which
       // disables itself unless the URL carries a signed `?t=` token. Sign it
-      // per recipient; every other position ignores this argument.
-      const foundersUrl = pos === 7 ? await foundersFormUrl(email, firstName, 'launch_7') : undefined;
+      // per recipient; every other position ignores this argument. Position 18
+      // is the Email 7 make-good resend and carries the same button, so it is
+      // signed with the same 'launch_7' source: a reservation captured from
+      // either send is the same founder from the same campaign, and
+      // founders_interest.source stays comparable across the two.
+      const foundersUrl =
+        pos === 7 || pos === EMAIL_7_RESEND_POSITION
+          ? await foundersFormUrl(email, firstName, 'launch_7')
+          : undefined;
 
-      const built = buildLaunchEmail(pos, firstName, founding, foundersUrl);
+      // Position 18 runs a subject-line split test. The arm is derived from the
+      // address, not from a counter or a random draw, so a retry after a send
+      // failure cannot move someone between arms and skew the read.
+      const variant = variantForEmail(email);
+
+      const built = buildLaunchEmail(pos, firstName, founding, foundersUrl, variant);
       if (!built) {
         await supabaseQuery(`launch_email_queue?id=eq.${row.id}`, {
           method: 'PATCH',
@@ -764,12 +790,21 @@ async function drainLaunchQueue(): Promise<QueueResult> {
         continue;
       }
 
+      // Position 18 is tagged launch_7_resend_<arm>, not launch_18, so the
+      // make-good's opens and clicks are measurable against launch_7's own
+      // numbers in email_events instead of hiding behind a position number
+      // nothing else uses, and so the two subject lines can be scored against
+      // each other. Resend tag values allow [A-Za-z0-9_-] only.
+      const emailKey =
+        pos === EMAIL_7_RESEND_POSITION
+          ? `launch_7_resend_${variant}`
+          : `launch_${pos}`;
       const send = await sendEmail(
         email,
         built.subject,
         built.html,
         'homeschool',
-        engagementTags('launch_2026', `launch_${pos}`),
+        engagementTags('launch_2026', emailKey),
       );
       if (send.ok) {
         await supabaseQuery(`launch_email_queue?id=eq.${row.id}`, {

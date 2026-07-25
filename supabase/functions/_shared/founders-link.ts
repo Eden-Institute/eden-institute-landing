@@ -7,8 +7,9 @@
 //                                   btn.disabled = true; }
 // Launch email 7 originally linked to the bare page URL with no token, so the
 // Reserve button rendered permanently disabled for every recipient (found
-// 2026-07-25, after E7 had gone to 1,149 families). This module makes the signed
-// URL the only way to build that link.
+// 2026-07-25, final count 1,382 families per launch_email_queue; the 1,149 in
+// the original incident note was a mid-drain snapshot). This module makes the
+// signed URL the only way to build that link.
 //
 // The token scheme MUST stay byte-identical to founders-lock/index.ts `sign()`,
 // because that function verifies it:

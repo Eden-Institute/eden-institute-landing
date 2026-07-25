@@ -65,8 +65,10 @@ const INSTAGRAM_URL = 'https://instagram.com/the_eden_institute';
 const PINTEREST_URL = 'https://pin.it/6AuiXypgA';
 // Primary CTA target for Email 7 is the founders-price capture page, but that
 // page REQUIRES a signed `?t=` token or it disables its own Reserve button. The
-// bare URL constant that used to live here shipped a dead button to 1,149
-// families on 2026-07-25. The signed URL is now built per recipient by the
+// bare URL constant that used to live here shipped a dead button to 1,382
+// families on 2026-07-25 (the 1,149 first recorded was a mid-incident count;
+// the queue kept draining afterwards, final figure verified against
+// launch_email_queue). The signed URL is now built per recipient by the
 // caller via _shared/founders-link.ts and passed into buildLaunchEmail7.
 // Primary CTA target for the conversion series (8-17): the preorder page
 // shipped by PR #227 (web/pages/preorder.astro).
@@ -462,11 +464,105 @@ export function buildLaunchEmail7(
 }
 
 // ══════════════════════════════════════════════════════════════
+// EMAIL 7 RESEND (queue position 18) — the Jul 25 make-good
+// ══════════════════════════════════════════════════════════════
+// WHY THIS EXISTS. Email 7 reached 1,382 families on 2026-07-25 with a Reserve
+// button that pointed at the bare founders page URL. That page disables its own
+// submit button without a signed `?t=` token, so the CTA was 100% dead and ZERO
+// reservations were captured. 232 of those families opened it and 12 clicked the
+// dead button. A deploy cannot repair mail that has already sent, so this is a
+// second, honest send to exactly that cohort.
+//
+// It carries the FULL Email 7 offer rather than a bare apology, because 1,150 of
+// the 1,382 never opened Email 7 at all: a note that only says "the link was
+// broken" would be meaningless to 83% of the audience. Founder-approved
+// 2026-07-25.
+//
+// Same signed-URL contract as buildLaunchEmail7: it THROWS rather than ship a
+// second dead button, which is the whole point of this email.
+// SUBJECT LINE SPLIT TEST. The body is byte-identical in both variants; only
+// the subject and the preheader differ. The point is not this email: it is
+// Wednesday's launch blast to the full list, the largest send of the year,
+// whose subject is currently chosen by taste alone. 1,375 recipients split
+// evenly is enough to tell a 15% open rate from a 22% one, and the answer lands
+// two days before it is needed.
+//   a = personal + curiosity gap   ("Sarah, this was my fault")
+//   b = loss aversion + the number ("Don't lose your $249 founding price ...")
+export type ResendSubjectVariant = 'a' | 'b';
+
+// FNV-1a over the lowercased address. Deterministic and synchronous on purpose:
+// the same address always lands in the same arm, so a retry after a send
+// failure cannot flip someone between variants and corrupt the measurement,
+// and the assignment can be reproduced later from the address alone.
+export function variantForEmail(email: string): ResendSubjectVariant {
+  let h = 0x811c9dc5;
+  const s = (email || '').trim().toLowerCase();
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h % 2 === 0 ? 'a' : 'b';
+}
+
+export function buildLaunchEmail7Resend(
+  firstName: string,
+  foundersUrl: string,
+  variant: ResendSubjectVariant = 'a',
+): { subject: string; html: string } {
+  if (!foundersUrl || !foundersUrl.includes('?t=')) {
+    throw new Error('buildLaunchEmail7Resend: signed foundersUrl (with ?t=) is required');
+  }
+  // Every recipient in the incident cohort has a real first name on file, but
+  // the drainer defaults a missing one to 'friend', and "friend, this was my
+  // fault" would undo the whole point of variant a.
+  const named =
+    !!firstName && firstName.trim() !== '' && firstName.trim().toLowerCase() !== 'friend';
+  const subject =
+    variant === 'b'
+      ? `Don't lose your $249 founding price over my mistake`
+      : named
+      ? `${firstName}, this was my fault`
+      : `This was my fault`;
+  const preview =
+    variant === 'b'
+      ? `The button was broken. It is fixed, and your spot is open until July 29.`
+      : `The Reserve button in my last email did not work. Here is one that does.`;
+  const body =
+    `${preheader(preview)}` +
+    `${p(`Hi ${firstName},`)}` +
+    `${p(`I owe you a quick apology. The email I sent about founding families and the July 29 preorder had a Reserve button that did not work. It was broken on our end, not yours. If you clicked it and nothing happened, that is why, and I am sorry.`)}` +
+    `${p(`Here is the working link.`)}` +
+    `${brandButton('Reserve Your Founding Spot', foundersUrl)}` +
+    `${p(`In case that first email never reached you, here is what it said.`)}` +
+    `${p(`<strong>Preorder opens July 29.</strong>`, 'text-align:center;font-size:18px;')}` +
+    `${goldDivider()}` +
+    `${heading(`WHAT FOUNDING FAMILIES RECEIVE`)}` +
+    `${bullet(`<strong>First access.</strong> Founding families order before the doors open wide, from the first kits made.`)}` +
+    `${bullet(`<strong>Founding status.</strong> You are not a customer; you are one of the homes this was built with. That standing stays with your family as every future band opens.`)}` +
+    `${bullet(`<strong>A seat at the beginning.</strong> Your children will be among the very first in the country to learn this way, and your feedback will shape every band that follows them up the path.`)}` +
+    `${goldDivider()}` +
+    `${p(`Reserving costs nothing today. It holds your place and your founding price, and it means you hear from me the moment the doors open, before we announce it anywhere else.`)}` +
+    `${brandButton('Reserve Your Founding Spot', foundersUrl)}` +
+    `${p(`Thank you for your patience with a small team building something new for your table.`)}` +
+    `${signature()}`;
+  return {
+    subject,
+    html: launchWrapper(
+      body,
+      `While you wait for your kit, begin your family apothecary. Your first herbs can be on the shelf before Sprouts arrives.`,
+    ),
+  };
+}
+
+// ══════════════════════════════════════════════════════════════
 // PREORDER CONVERSION SERIES (8-17)
 // ══════════════════════════════════════════════════════════════
 
 // Hidden preheader: the inbox preview line under the subject. Kept invisible
-// in the rendered email (conversion emails only; 1-7 predate this helper).
+// in the rendered email. Used by the conversion emails (8-17) and by the
+// Email 7 make-good resend; emails 1-7 themselves predate this helper, which is
+// why Gmail showed "Hi Sarah, I owe you a quick apology" as their preview line.
+// Declared here but hoisted, so the resend builder above can call it.
 function preheader(text: string): string {
   return `<div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${text}</div>`;
 }
@@ -708,8 +804,12 @@ export function buildLaunchEmail17(firstName: string, founding = true): { subjec
 // ── Dispatch table for the queue drainer ──
 // 1-7: pre-launch vision arc (fixed dates / signup drip).
 // 8-17: preorder conversion series (launch-day blast; purchase-suppressed).
+// 18:   one-off Email 7 make-good resend (2026-07-25 dead-link incident). It is
+//       NOT part of the drip: the signup trigger enqueues 1-17 only, and
+//       position 18 rows exist solely for the 1,382 who received the broken E7.
 export const LAUNCH_SEQUENCE_LENGTH = 7;
 export const CONVERSION_FIRST_POSITION = 8;
+export const EMAIL_7_RESEND_POSITION = 18;
 
 const LAUNCH_BUILDERS: Record<number, (firstName: string, founding?: boolean) => { subject: string; html: string }> = {
   1: buildLaunchEmail1,
@@ -733,15 +833,21 @@ const LAUNCH_BUILDERS: Record<number, (firstName: string, founding?: boolean) =>
 };
 
 // `founding` only affects positions 8-17 (the 1-7 builders ignore it).
-// `foundersUrl` is REQUIRED for position 7 and must come from foundersFormUrl()
-// in _shared/founders-link.ts; every other position ignores it.
+// `foundersUrl` is REQUIRED for positions 7 and 18 and must come from
+// foundersFormUrl() in _shared/founders-link.ts; every other position ignores it.
+// `variant` only affects position 18 (the subject-line split test); pass it from
+// variantForEmail(recipientEmail) so the arm is stable across retries.
 export function buildLaunchEmail(
   position: number,
   firstName: string,
   founding = true,
   foundersUrl?: string,
+  variant: ResendSubjectVariant = 'a',
 ): { subject: string; html: string } | null {
   if (position === 7) return buildLaunchEmail7(firstName, foundersUrl ?? '');
+  if (position === EMAIL_7_RESEND_POSITION) {
+    return buildLaunchEmail7Resend(firstName, foundersUrl ?? '', variant);
+  }
   const builder = LAUNCH_BUILDERS[position];
   return builder ? builder(firstName, founding) : null;
 }
