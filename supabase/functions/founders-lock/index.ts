@@ -407,8 +407,12 @@ Deno.serve(async (req) => {
       return jsonRes(400, { ok: false, error: 'invalid_token' });
     }
 
+    // Phone is OPTIONAL (founders_interest.phone is nullable). It was required
+    // until 2026-07-25, when requiring it silently blocked a reservation at the
+    // browser-validation layer. A captured founder without a number beats a lost
+    // founder with one.
     const phone = normalizePhone(phoneRaw);
-    if (!name || !phone) return jsonRes(400, { ok: false, error: 'missing_fields' });
+    if (!name) return jsonRes(400, { ok: false, error: 'missing_fields' });
     try {
       await upsertInterest(reserveEmail, name, phone, consent, reserveSource);
       await addContact(reserveEmail, name);
