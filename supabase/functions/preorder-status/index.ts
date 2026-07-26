@@ -2,7 +2,7 @@
 // Public read of the founding-500 window, powering the live counter and the
 // post-sellout price flip on /preorder (PreorderBuyBox island).
 //
-// Response: { sold, cap, closed, sms_enabled }
+// Response: { sold, cap, closed, sms_enabled, preorders_live }
 //   sold   — net founding units claimed, CLAMPED to cap for display: the checkout
 //            gate can overshoot by a few under simultaneous checkout, and
 //            "502 of 500" must never render.
@@ -17,6 +17,16 @@
 //            Until then the order flow still fires preorder_received_sms for any
 //            consenting order, which fails and throws, and the buyer who asked to
 //            be texted hears nothing. The island fails CLOSED on this field.
+//   preorders_live — whether the store is open, read straight off the
+//            PREORDERS_LIVE secret. Added 2026-07-25 so launch morning is a
+//            SINGLE action: flip the secret and /homeschool becomes the live
+//            preorder page on the next load, with no merge, no deploy and no
+//            cache purge. Before this, the page could only discover the store
+//            was shut by attempting checkout and being refused.
+//            The island fails OPEN on this field (shows the buy state if the
+//            status call fails), which is safe because create-checkout is the
+//            real gate and refuses regardless. Failing closed would mean a
+//            status outage on launch morning takes the store down.
 //
 // The founding_units_sold / founding_gate RPCs stay service-role-only; this EF is
 // the single public window onto them, and it exposes no order data. Calling
@@ -62,16 +72,27 @@ serve(async (req: Request) => {
     const sold = status.cap != null ? Math.min(status.sold, status.cap) : status.sold
 
     const smsEnabled = Deno.env.get("SMS_CONSENT_ENABLED") === "true"
+    // Same string check create-checkout uses, so the page and the gate can
+    // never disagree about what "live" means.
+    const preordersLive = Deno.env.get("PREORDERS_LIVE") === "true"
 
     return new Response(
-      JSON.stringify({ sold, cap: status.cap, closed: status.closed, sms_enabled: smsEnabled }),
+      JSON.stringify({
+        sold,
+        cap: status.cap,
+        closed: status.closed,
+        sms_enabled: smsEnabled,
+        preorders_live: preordersLive,
+      }),
       {
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          // Brief CDN/browser cache: the counter may lag sales by up to a minute,
-          // which is fine for a display number; billing never reads this endpoint.
-          "Cache-Control": "public, max-age=30, s-maxage=30",
+          // Short cache. It bounds how long after the launch-morning flip a
+          // visitor can still be served the pre-launch state: at most 10s,
+          // rather than the 30s the counter alone was happy with. Billing
+          // never reads this endpoint.
+          "Cache-Control": "public, max-age=10, s-maxage=10",
         },
         status: 200,
       },

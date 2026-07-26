@@ -61,6 +61,16 @@ interface FoundingStatus {
   closed: boolean;
 }
 
+// Launch morning must be ONE action: flip the PREORDERS_LIVE secret. This page
+// reads that flag from preorder-status on every load, so the store opens with
+// no merge, no deploy and no cache purge.
+//
+// Fails OPEN (defaults true) on purpose. create-checkout is the real gate and
+// refuses regardless, so the worst case of a status outage before launch is a
+// buyer clicking and being told preorder has not opened. Failing closed would
+// mean a status outage ON launch morning silently shuts the store.
+const PREORDERS_LIVE_DEFAULT = true;
+
 // SMS consent is gated on the server flag `sms_enabled` from preorder-status
 // (secret SMS_CONSENT_ENABLED). It fails CLOSED, the opposite of the founding
 // display: showing "yes, text me" while A2P 10DLC registration is still pending
@@ -80,35 +90,28 @@ interface DisplayProduct {
   highlight: boolean;
 }
 
+// Kit ONLY. The standalone Student Notebook card was removed (founder decision
+// 2026-07-25): the notebook is now offered exclusively as the step-2 add-on
+// inside the kit flow, so there is one product, one decision, one session.
 const PRODUCTS: DisplayProduct[] = [
   {
     sku: "sprouts_kit",
-    eyebrow: "Sprouts Complete Kit · K-2",
+    eyebrow: "Sprouts Complete Kit · Grades K-2",
     name: "Sprouts Complete Kit",
     founding: "$249",
     retail: "$349",
     discountLine: "Founding price · $100 below retail",
-    blurb: "The full 36-week Sprouts year: every component, one box.",
+    blurb: "The full 36-week year. Every component, one box.",
     bullets: [
-      "36 weekly lessons",
-      "Teacher Guide + Student Notebook",
+      "36 weekly lessons, 180 daily lessons",
+      "240-page Teacher's Guide, no prep required",
+      "224-page Student Notebook",
+      "Read-Aloud Storybook",
       "36 Herb Field Cards",
       "36 Recipe Cards",
       "Around the Table deck (144 cards)",
     ],
     highlight: true,
-  },
-  {
-    sku: "sprouts_notebook",
-    eyebrow: "Add-on · for siblings",
-    name: "Extra Student Notebook",
-    founding: "$19.00",
-    retail: "$24.99",
-    discountLine: "Founding price",
-    blurb:
-      "A second consumable notebook so another child can work the same year. Adding one to a kit order? It ships in the same box at no extra shipping cost.",
-    bullets: ["The full 36-week Student Notebook", "One per additional student"],
-    highlight: false,
   },
 ];
 
@@ -116,7 +119,9 @@ function money(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
-type Flow = "kit" | "notebook";
+// Kit is the only flow now. Kept as a named type so `flow !== null` still reads
+// as "modal open" and the dialog wiring below is unchanged.
+type Flow = "kit";
 
 export default function PreorderBuyBox() {
   const [smsConsent, setSmsConsent] = useState(false); // MUST default unchecked
@@ -128,6 +133,7 @@ export default function PreorderBuyBox() {
   const [soldOut, setSoldOut] = useState(false);
   const [founding, setFounding] = useState<FoundingStatus>({ sold: null, cap: null, closed: false });
   const [smsEnabled, setSmsEnabled] = useState(SMS_DEFAULT_ENABLED);
+  const [preordersLive, setPreordersLive] = useState(PREORDERS_LIVE_DEFAULT);
 
   // Founding-window status, fetched once on mount. Any failure keeps the default
   // (founding display, no counter): fail open exactly like the server gate.
@@ -144,6 +150,10 @@ export default function PreorderBuyBox() {
           closed: data.closed,
         });
         setSmsEnabled(data.sms_enabled === true);
+        // Only honour an explicit boolean. An older deployment of
+        // preorder-status omits this field entirely, and `undefined` must not
+        // be read as "closed" or the store would appear shut.
+        if (typeof data.preorders_live === "boolean") setPreordersLive(data.preorders_live);
       } catch {
         // status unavailable; founding display stands and SMS stays hidden
       }
@@ -175,7 +185,8 @@ export default function PreorderBuyBox() {
     setError(null);
     setFlow(f);
     setStep(1);
-    setNotebookQty(f === "notebook" ? 1 : 0);
+    // Always 0. The add-on is an offer, not a pre-loaded quantity.
+    setNotebookQty(0);
     // A buyer who already accepted in this tab (e.g. backed out of Stripe) gets the
     // boxes pre-checked; the disclaimer itself is still shown.
     let prior = false;
@@ -283,6 +294,11 @@ export default function PreorderBuyBox() {
         if (code === "PREORDERS_NOT_LIVE") {
           setNotLive(true);
           closeModal();
+          // Must clear busy. Without it the CTA stays disabled reading
+          // "Opening secure checkout…" forever and the buyer has to reload the
+          // page. Found by dark-test 2026-07-25; every other early-return in
+          // this handler already clears it.
+          setBusy(false);
           return;
         }
         // The print run is finite. The EF refuses before creating a Stripe session,
@@ -318,9 +334,6 @@ export default function PreorderBuyBox() {
   }
 
   function cartFor(qty: number): { sku: string; qty: number }[] {
-    if (flow === "notebook") {
-      return [{ sku: "sprouts_notebook", qty: Math.max(1, qty) }];
-    }
     const items: { sku: string; qty: number }[] = [{ sku: "sprouts_kit", qty: 1 }];
     if (qty > 0) items.push({ sku: "sprouts_notebook", qty });
     return items;
@@ -329,15 +342,19 @@ export default function PreorderBuyBox() {
   // Founding window closed = display retail everywhere. Billing truth stays with
   // create-checkout; these cents only drive the display copy and order summary.
   const closed = founding.closed;
-  const foundingCap = founding.cap ?? 500;
+  // The store is open only if the secret says so AND we have not been refused
+  // mid-session. `notLive` is the backstop for the window between a flip and
+  // the cached status response catching up.
+  const storeOpen = preordersLive && !notLive;
   const kitCents = closed ? KIT_RETAIL_CENTS : KIT_PRICE_CENTS;
   const nbCents = closed ? NOTEBOOK_RETAIL_CENTS : NOTEBOOK_PRICE_CENTS;
 
-  const nbCount = flow === "notebook" ? Math.max(1, notebookQty) : notebookQty;
+  const nbCount = notebookQty;
+  // Shipping stays a flat $12 regardless of notebook quantity. That row is the
+  // on-screen PROOF of the "ships together, no extra shipping" claim, so it
+  // renders even when qty is 0. Do not hide it.
   const summary: { label: string; cents: number }[] = [
-    ...(flow === "kit"
-      ? [{ label: closed ? "Sprouts Complete Kit" : "Sprouts Complete Kit (founding)", cents: kitCents }]
-      : []),
+    { label: closed ? "Sprouts Complete Kit" : "Sprouts Complete Kit (founding)", cents: kitCents },
     ...(nbCount > 0
       ? [{ label: `Extra Student Notebook × ${nbCount}`, cents: nbCents * nbCount }]
       : []),
@@ -399,32 +416,57 @@ export default function PreorderBuyBox() {
             Preorder has not opened yet.
           </p>
           <p className="font-body text-sm text-muted-foreground">
-            We are finishing production samples. Grab the free two-week sample on the homeschool
-            page and we will email you the moment preorder opens.
+            We are finishing production samples. Preorder opens July 29, and this page will be
+            live the moment it does.
           </p>
         </div>
       )}
 
-      {/* Founding-window line: live counter while open, claimed notice once closed.
-          Counter renders only from the first sale (a zero counter sells nothing). */}
-      {closed ? (
+      {/* NO COUNTER. Founder decision 2026-07-25, and it is deliberate: the
+          Founding Families tier (50) is positioned as prestige, not as a race.
+          A standing number reads as an honour; a ticking one reads as a sales
+          tactic and invites arithmetic we do not want a prospect doing here.
+          Do NOT reinstate a "N of M claimed" line.
+
+          The preorder-status fetch above STAYS. It still drives the one-way
+          `closed` latch that flips the $249 price to $349 after 500 kits. Only
+          the visible counter is gone. */}
+      {/* Pre-launch banner. Rendered only while PREORDERS_LIVE is false, and it
+          disappears on the next page load after the secret is flipped. */}
+      {!storeOpen && !soldOut && (
         <div
-          className="max-w-2xl mx-auto rounded-lg border-2 p-4 mb-8 text-center"
+          className="max-w-2xl mx-auto rounded-lg border-2 p-5 mb-8 text-center"
           style={{ borderColor: "hsl(var(--eden-gold))", backgroundColor: "hsl(var(--eden-cream))" }}
         >
-          <p className="font-body text-sm font-semibold" style={{ color: "hsl(var(--eden-bark))" }}>
-            The founding {foundingCap} have been claimed. Sprouts is now {PRODUCTS[0].retail} at
-            its standard retail price, and every preorder still joins the first print run.
+          <p className="font-accent text-xs tracking-[0.3em] uppercase mb-2" style={{ color: "hsl(var(--eden-gold))" }}>
+            Opens Wednesday
+          </p>
+          <p className="font-serif text-2xl font-bold mb-2" style={{ color: "hsl(var(--eden-bark))" }}>
+            Preorder opens July 29.
+          </p>
+          <p className="font-body text-sm" style={{ color: "hsl(var(--eden-bark))" }}>
+            Everything below is the kit, the terms, and the price exactly as they will be. The
+            only thing not open yet is the button.
           </p>
         </div>
-      ) : founding.sold !== null && founding.sold > 0 && founding.cap ? (
-        <p className="font-body text-sm text-center mb-8" style={{ color: "hsl(var(--eden-bark))" }} aria-live="polite">
-          <strong>{founding.sold} of {founding.cap}</strong> founding kits claimed
-          {" · "}only {founding.cap - founding.sold} left at {PRODUCTS[0].founding}
-        </p>
-      ) : null}
+      )}
 
-      <div className="grid md:grid-cols-2 gap-6 mb-4 max-w-4xl mx-auto">
+      <div className="max-w-2xl mx-auto text-center mb-8">
+        <p className="font-serif text-xl italic mb-2" style={{ color: "hsl(var(--eden-bark))" }}>
+          {closed
+            ? "The fifty Founding Families are in."
+            : "Fifty Founding Families. That is the whole round."}
+        </p>
+        <p className="font-body text-sm" style={{ color: "hsl(var(--eden-bark))" }}>
+          {closed
+            ? `Preorder is still open at ${PRODUCTS[0].retail} and every kit still ships in the first print run.`
+            : `${PRODUCTS[0].founding} while the founding price lasts. It rises to ${PRODUCTS[0].retail} after the first 500 kits.`}
+        </p>
+      </div>
+
+      {/* Single product, so it is centred on a comfortable reading width rather
+          than sitting in the left cell of the old two-up grid. */}
+      <div className="mb-4 max-w-md mx-auto">
         {PRODUCTS.map((p) => (
           <div
             key={p.sku}
@@ -461,12 +503,18 @@ export default function PreorderBuyBox() {
               ))}
             </ul>
             <button
-              onClick={() => openModal(p.sku === "sprouts_kit" ? "kit" : "notebook")}
-              disabled={busy || notLive || soldOut}
+              onClick={() => openModal("kit")}
+              disabled={busy || !storeOpen || soldOut}
               className="font-body text-sm font-semibold px-8 py-4 rounded-sm w-full transition-opacity hover:opacity-90 disabled:opacity-50"
               style={{ backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-parchment))" }}
             >
-              {busy ? "Opening secure checkout…" : soldOut ? "Sold out" : `Preorder ${p.name}`}
+              {busy
+                ? "Opening secure checkout…"
+                : soldOut
+                  ? "Sold out"
+                  : !storeOpen
+                    ? "Preorder opens July 29"
+                    : `Preorder ${p.name}`}
             </button>
           </div>
         ))}
@@ -528,7 +576,7 @@ export default function PreorderBuyBox() {
                   className="font-serif text-2xl font-bold mb-4"
                   style={{ color: "hsl(var(--eden-bark))" }}
                 >
-                  {closed ? "Before you preorder" : "Before you join the founding 500"}
+                  {closed ? "Before you preorder" : "Before you join us"}
                 </h2>
                 <div className="font-body text-sm leading-relaxed space-y-3 mb-5" style={{ color: "hsl(var(--eden-bark))" }}>
                   <p>Eden's Table is not sitting in a warehouse yet.</p>
@@ -563,15 +611,22 @@ export default function PreorderBuyBox() {
                   </p>
                   {closed ? (
                     <p>
-                      <strong>The founding {foundingCap} have been claimed.</strong> Your preorder
+                      <strong>The founding price is gone.</strong> Your preorder
                       joins the same first print run at the standard retail price, and you get the
                       same updates the whole way through.
                     </p>
                   ) : (
+                    /* Rank is not known until payment clears, so this must NOT
+                       tell every buyer they are a Founding Family. Founding
+                       Family status = first 50 PAID orders (founder decision
+                       2026-07-25). The founding PRICE is separate and runs to
+                       500 kits. Keep these two claims distinct. */
                     <p>
-                      <strong>You are a founding member.</strong> The founding 500 are the only
-                      reason there is a first round at all. You are locked in at the founding price,
-                      and you have a voice in what we build next.
+                      <strong>You are funding the first round.</strong> Every preorder at the
+                      founding price saves $100 and helps pay for the print run. The first fifty
+                      families to order also become our Founding Families, with the private group,
+                      Coffee and Curriculum, and a vote on what we build next. If you are one of
+                      the fifty, we will tell you in your confirmation email.
                     </p>
                   )}
                   <p>
@@ -595,8 +650,8 @@ export default function PreorderBuyBox() {
                     />
                     <label htmlFor="ack-ship-window" className="font-body text-sm leading-relaxed cursor-pointer" style={{ color: "hsl(var(--eden-bark))" }}>
                       I understand this is a preorder for products still being manufactured. We
-                      are aiming to ship {SHIP_TARGET}, and my {flow === "kit" ? "kit" : "order"} is
-                      guaranteed to ship on or before {SHIP_GUARANTEE}.
+                      are aiming to ship {SHIP_TARGET}, and my kit is guaranteed to ship on or
+                      before {SHIP_GUARANTEE}.
                     </label>
                   </div>
                   <div className="flex items-start gap-3">
@@ -608,9 +663,10 @@ export default function PreorderBuyBox() {
                       className="mt-1 h-4 w-4 shrink-0"
                     />
                     <label htmlFor="ack-founding" className="font-body text-sm leading-relaxed cursor-pointer" style={{ color: "hsl(var(--eden-bark))" }}>
-                      {closed
-                        ? "I understand that my preorder helps build Eden's Table, and I am ready to be part of this journey."
-                        : "I understand that I am a founding member helping to build Eden's Table, and I am ready to be part of this journey."}
+                      {/* Must be true for EVERY buyer regardless of rank. Do not
+                          reintroduce a "I am a founding member" claim here. */}
+                      I understand that my preorder helps build Eden's Table, and I am ready to be
+                      part of this journey.
                     </label>
                   </div>
                 </div>
@@ -649,26 +705,20 @@ export default function PreorderBuyBox() {
                   className="font-serif text-2xl font-bold mb-3"
                   style={{ color: "hsl(var(--eden-bark))" }}
                 >
-                  {flow === "kit" ? "Teaching more than one child?" : "How many notebooks?"}
+                  Teaching more than one child?
                 </h2>
-                {flow === "kit" ? (
-                  <div className="font-body text-sm leading-relaxed space-y-3 mb-5" style={{ color: "hsl(var(--eden-bark))" }}>
-                    <p>
-                      Your kit already includes one Student Notebook. If you have another child
-                      working through the year alongside them, add a second notebook so they each
-                      have their own to draw in, press leaves into, and keep.
-                    </p>
-                    <p>
-                      {closed ? "" : "Founding price, "}{money(nbCents)} each. Entirely optional, and it
-                      ships in the same box at no extra shipping cost.
-                    </p>
-                  </div>
-                ) : (
-                  <p className="font-body text-sm leading-relaxed mb-5" style={{ color: "hsl(var(--eden-bark))" }}>
-                    One consumable Student Notebook per child, {money(nbCents)} each
-                    {closed ? "" : " at the founding price"}.
+                <div className="font-body text-sm leading-relaxed space-y-3 mb-5" style={{ color: "hsl(var(--eden-bark))" }}>
+                  <p>
+                    Your kit already includes one Student Notebook. If another child is working
+                    through the year alongside them, add a notebook now so each of them has their
+                    own to draw in, press leaves into, and keep at the end of the year.
                   </p>
-                )}
+                  <p>
+                    Add student notebooks now. Shipping is included, because everything ships
+                    together in the same box. {closed ? "" : "Founding price, "}
+                    {money(nbCents)} each.
+                  </p>
+                </div>
 
                 <div className="flex items-center justify-between rounded-lg border p-4 mb-2" style={{ borderColor: "hsl(var(--eden-gold) / 0.4)" }}>
                   <span className="font-body text-sm font-semibold" style={{ color: "hsl(var(--eden-bark))" }}>
@@ -676,7 +726,7 @@ export default function PreorderBuyBox() {
                   </span>
                   <div className="flex items-center gap-3">
                     <button
-                      onClick={() => setNotebookQty((q) => Math.max(flow === "notebook" ? 1 : 0, q - 1))}
+                      onClick={() => setNotebookQty((q) => Math.max(0, q - 1))}
                       aria-label="One fewer notebook"
                       className="h-9 w-9 rounded-sm border font-body text-lg leading-none"
                       style={{ borderColor: "hsl(var(--border))", color: "hsl(var(--eden-bark))" }}
@@ -698,7 +748,7 @@ export default function PreorderBuyBox() {
                 </div>
                 {notebookQty >= NOTEBOOK_MAX_QTY && (
                   <p className="font-body text-xs text-muted-foreground mb-4">
-                    Teaching a co-op or a large family? Email{" "}
+                    Need more than five? Email{" "}
                     <a href="mailto:hello@edeninstitute.health" className="underline">
                       hello@edeninstitute.health
                     </a>{" "}
@@ -723,7 +773,7 @@ export default function PreorderBuyBox() {
                   <p className="font-body text-xs text-muted-foreground mt-2">
                     {closed
                       ? "Sales tax calculated at checkout. The checkout page always shows your final price."
-                      : "Sales tax calculated at checkout. Founding prices shown while the founding 500 lasts; the checkout page always shows your final price."}
+                      : "Sales tax calculated at checkout. Founding prices shown while the founding price lasts. The checkout page always shows your final price."}
                   </p>
                 </div>
 
@@ -735,25 +785,17 @@ export default function PreorderBuyBox() {
                 >
                   {busy ? "Opening secure checkout…" : "Continue to checkout"}
                 </button>
-                {flow === "kit" ? (
-                  <button
-                    onClick={() => checkout(cartFor(0))}
-                    disabled={busy}
-                    className="font-body text-sm font-semibold px-8 py-3 rounded-sm w-full border transition-opacity hover:opacity-80 disabled:opacity-50"
-                    style={{ borderColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-forest))", backgroundColor: "transparent" }}
-                  >
-                    Just the kit, thanks
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setStep(1)}
-                    disabled={busy}
-                    className="font-body text-sm px-8 py-3 rounded-sm w-full border transition-opacity hover:opacity-80"
-                    style={{ borderColor: "hsl(var(--border))", color: "hsl(var(--eden-bark))", backgroundColor: "transparent" }}
-                  >
-                    Back
-                  </button>
-                )}
+                {/* "Just the kit, thanks" must stay equally easy to press. This is
+                    the line between an offer and a dark pattern, and with this
+                    audience the difference is the whole relationship. */}
+                <button
+                  onClick={() => checkout(cartFor(0))}
+                  disabled={busy}
+                  className="font-body text-sm font-semibold px-8 py-3 rounded-sm w-full border transition-opacity hover:opacity-80 disabled:opacity-50"
+                  style={{ borderColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-forest))", backgroundColor: "transparent" }}
+                >
+                  Just the kit, thanks
+                </button>
               </>
             )}
           </div>
