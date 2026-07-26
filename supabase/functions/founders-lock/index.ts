@@ -256,7 +256,7 @@ function announcementHtml(firstName: string, formLink: string, unsub: string): s
   <div style="border-top:1px solid #E0D7C2;margin:22px 0 6px;"></div>
   ${para('Preorders for a limited run of 500 kits open soon, and this list hears first. Add your name and phone number and we will email you the moment preorders open, before we announce it anywhere else, and hold your founding price of $249 for the complete 36-week kit. Once preorders reach 500 kits, the founding price rises to $349.')}
   ${bigButton("Reserve my $249 price + first access", formLink)}
-  <p style="font-family:Georgia,serif;font-size:13px;color:#8A8470;text-align:center;margin:0;">We post on Facebook too, but our list always hears first. <a href="https://www.facebook.com/TheEdenInstituteBiblicalHerbalism" style="color:${B.sage};">Follow along.</a></p>
+  <p style="font-family:Georgia,serif;font-size:13px;color:#8A8470;text-align:center;margin:0;">We post on Facebook too, but our list always hears first. <a href="https://www.facebook.com/EdensTableHomeschoolCurriculum" style="color:${B.sage};">Follow along.</a></p>
   <p style="font-family:Georgia,serif;font-size:15px;line-height:1.6;color:${B.text};margin:22px 0 2px;">Grace and health,</p>
   <p style="font-family:Georgia,serif;font-size:15px;font-weight:bold;color:${B.deep};margin:0;">Camila</p>
   <p style="font-family:Georgia,serif;font-size:13px;color:${B.text};margin:3px 0 0;">The Eden Institute</p>
@@ -299,7 +299,7 @@ function confirmationPage(name: string): string {
 <div style="font-size:40px;color:${B.gold};">&#9826;</div>
 <h1 style="font-size:24px;color:${B.deep};margin:8px 0 12px;">You&rsquo;re locked in, ${n}.</h1>
 <p style="font-size:16px;line-height:1.7;color:${B.text};margin:0 0 14px;">Your founding price of <strong>$249</strong> for the complete 36-week Sprouts kit is reserved, and you are on the first-access list. When preorders open, you will hear from us by email before we announce it anywhere else. Check your inbox, a confirmation is on its way.</p>
-<a href="https://www.facebook.com/TheEdenInstituteBiblicalHerbalism" style="display:inline-block;background:${B.gold};color:${B.forest};font-size:15px;font-weight:bold;text-decoration:none;padding:13px 28px;border-radius:8px;">Follow along on Facebook</a>
+<a href="https://www.facebook.com/EdensTableHomeschoolCurriculum" style="display:inline-block;background:${B.gold};color:${B.forest};font-size:15px;font-weight:bold;text-decoration:none;padding:13px 28px;border-radius:8px;">Follow along on Facebook</a>
 <p style="font-size:15px;color:${B.text};margin:24px 0 0;">Grace and health,<br><strong>Camila</strong></p>
 </div>`);
 }
