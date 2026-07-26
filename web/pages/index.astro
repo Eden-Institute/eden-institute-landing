@@ -263,6 +263,18 @@ const meta = {
             <li><a href="/contact" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">Customer Service</a></li>
             <li><a href="/returns" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">Returns &amp; Refunds</a></li>
           </ul>
+
+          {/* Socials live in this column rather than a fifth one, because the grid
+              above is fixed at 4 columns. URLs verified in-browser 2026-07-26 and
+              kept in lockstep with web/components/Footer.astro, which serves every
+              other marketing page. This page suppresses that shared footer via
+              hideFooter, which is why the list has to be repeated here. */}
+          <p class="uppercase mb-5 mt-8" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:11px;letter-spacing:0.18em;color:hsl(var(--green-mid))">FOLLOW</p>
+          <ul class="space-y-3">
+            <li><a href="https://www.instagram.com/edenstablehomeschoolcurriculum/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">Instagram</a></li>
+            <li><a href="https://www.facebook.com/EdensTableHomeschoolCurriculum" target="_blank" rel="noopener noreferrer" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">Facebook</a></li>
+            <li><a href="https://www.pinterest.com/TheEdenInstituteBoards/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">Pinterest</a></li>
+          </ul>
         </div>
       </div>
       <div class="mt-12 pt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center" style="border-top:1px solid hsl(var(--sage-pale) / 0.25);font-family:'EB Garamond', Georgia, serif;font-size:12px;color:hsl(var(--ink-soft))">
