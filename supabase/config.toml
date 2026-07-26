@@ -51,21 +51,10 @@ verify_jwt = false
 [functions.constitution-pdf]
 verify_jwt = true
 
-# studio-generate is the founder-only /studio AI engine and holds the LLM provider
-# keys. verify_jwt MUST stay true; the EF additionally checks the founder email.
-[functions.studio-generate]
-verify_jwt = true
-
-# studio-image (Gemini image gen) and canva-connect (Canva OAuth + round-trip)
-# are the other two founder-only /studio EFs and each holds provider secrets.
-# Like studio-generate they gate on the founder email internally; pinning
-# verify_jwt here keeps a stray `--no-verify-jwt` deploy from removing the
-# gateway check (Lock #72).
-[functions.studio-image]
-verify_jwt = true
-
-[functions.canva-connect]
-verify_jwt = true
+# studio-generate, studio-image and canva-connect removed 2026-07-26 with the rest
+# of the Ad Studio. They must also be UNDEPLOYED from the project; deleting the
+# source alone leaves the old bundles serving in production, still holding the LLM,
+# Gemini and Canva provider secrets.
 
 [functions.practitioner-waitlist-signup]
 verify_jwt = false

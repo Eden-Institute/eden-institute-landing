@@ -47,8 +47,9 @@ export const ROUTES = {
 
   // ── Founder / admin (auth-walled; server-gated by is_founder()) ──
   FOUNDER_LEADS: "/founder",
-  // Ad workroom: fully client-side tool, no data surface; boundary = founder gate in the page.
-  FOUNDER_STUDIO: "/studio",
+  // FOUNDER_STUDIO ("/studio") removed 2026-07-26. The Ad Studio was retired at the
+  // founder's request. Its route, 20 source files, 10 test files, 3 edge functions
+  // and 8 tables were removed together; see chore/remove-studio.
 
   // Practitioner clinical workspace (Phase 3), launched 2026-07-09: linked
   // from ApothecaryNav for practitioner-tier users. Server boundary:
