@@ -6,7 +6,6 @@
 // 2026-07-25 when the page became a single-offer preorder page. The only
 // interactive island here now is PreorderBuyBox.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
-import CoopLicensing from "../components/CoopLicensing.astro";
 import PreorderBuyBox from "../components/islands/PreorderBuyBox.tsx";
 import { Button } from "@/components/ui/button";
 import { Sprout, BookOpen, Users } from "lucide-react";
@@ -550,13 +549,16 @@ const KIT = {
 
       <PreorderBuyBox client:only="react" />
 
-      <div class="max-w-3xl mx-auto text-center mt-10 space-y-3">
+      <div class="max-w-3xl mx-auto text-center mt-10">
         <p class="font-body text-xs text-muted-foreground">Questions? Email <a href="mailto:hello@edeninstitute.health" class="underline">hello@edeninstitute.health</a> and a real person (Camila) answers.</p>
-        <p class="font-serif italic text-base" style="color:hsl(var(--eden-bark))">Teaching a group? See co-op and group pricing below.</p>
       </div>
     </div>
   </section>
 
-  <CoopLicensing />
-
+  {/* Co-op / group licensing section removed 2026-07-25 at founder request,
+      pending a decision on group pricing. The component still exists at
+      web/components/CoopLicensing.astro and is now unused; re-add
+      <CoopLicensing /> here to restore it. Its $15/$13/$11 volume tiers
+      overlapped the buy box, which sells up to 5 notebooks at $19. Resolve
+      that overlap before bringing it back. */}
 </MarketingLayout>

@@ -703,7 +703,7 @@ export default function PreorderBuyBox() {
                 </div>
                 {notebookQty >= NOTEBOOK_MAX_QTY && (
                   <p className="font-body text-xs text-muted-foreground mb-4">
-                    Teaching a co-op or a large family? Email{" "}
+                    Need more than five? Email{" "}
                     <a href="mailto:hello@edeninstitute.health" className="underline">
                       hello@edeninstitute.health
                     </a>{" "}
