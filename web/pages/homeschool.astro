@@ -2,18 +2,19 @@
 // /homeschool — Astro port of src/pages/Homeschool.tsx. Pre-rendered to static
 // HTML for SEO (the page's whole reason for existing). Content/classes mirror
 // the React page exactly. The signup CTAs are static buttons with
-// data-waitlist-* attrs; WaitlistController (one island) opens the modal.
+// The lead-magnet capture and its WaitlistController island were removed
+// 2026-07-25 when the page became a single-offer preorder page. The only
+// interactive island here now is PreorderBuyBox.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
-import DualLeadMagnetCTAs from "../components/DualLeadMagnetCTAs.astro";
 import CoopLicensing from "../components/CoopLicensing.astro";
-import WaitlistController from "../components/islands/WaitlistController.tsx";
+import PreorderBuyBox from "../components/islands/PreorderBuyBox.tsx";
 import { Button } from "@/components/ui/button";
 import { Sprout, BookOpen, Users } from "lucide-react";
 
 const meta = {
   title: "Christian Homeschool Herbalism Curriculum (K-12) | Eden's Table",
   description:
-    "A Christ-centered homeschool curriculum that teaches Biblical herbalism and the body God designed — open-and-go weekly lessons for K-2 and 3-5, rooted in Scripture and creation stewardship.",
+    "A Christ-centered homeschool curriculum that teaches Biblical herbalism and the body God designed. Open-and-go weekly lessons for K-2 and 3-5, rooted in Scripture and creation stewardship.",
   canonical: "https://edeninstitute.health/homeschool",
 };
 
@@ -22,7 +23,7 @@ const meta = {
 const courseJsonLd = {
   "@context": "https://schema.org",
   "@type": "Course",
-  name: "Eden's Table — Christian Homeschool Herbalism Curriculum",
+  name: "Eden's Table: Christian Homeschool Herbalism Curriculum",
   description:
     "A Christ-centered, Scripture-anchored K-12 homeschool curriculum teaching herbalism and the body God designed. Open-and-go weekly lessons for Sprouts (K-2) and Seedlings (3-5).",
   url: "https://edeninstitute.health/homeschool",
@@ -33,18 +34,11 @@ const courseJsonLd = {
   audience: { "@type": "EducationalAudience", educationalRole: "homeschooling family" },
 };
 
-// Free two-week sample CTAs — the magnet capture that also feeds launch/preorder
-// updates (replaces the old "reserve Founders pricing" waitlist framing).
-const SPROUTS_MAGNET = {
-  source: "sprouts_magnet",
-  title: "Your free 2-week Sprouts sample",
-  subtitle: "Five full lessons, yours to print and teach. We'll also email you the moment preorder opens.",
-};
-const SEEDLINGS_MAGNET = {
-  source: "seedlings_magnet",
-  title: "Your free 2-week Seedlings sample",
-  subtitle: "Five full lessons at Seedlings depth. We'll also email you when Seedlings opens.",
-};
+// Lead magnets SUNSET on this page (founder decision 2026-07-25). The free
+// two-week sample is no longer offered here: one page, one offer, and that
+// offer is the preorder. The magnet PDFs, the resend-waitlist EF, and the
+// nurture sequences all still exist and still work; only the website capture
+// is gone. Reintroduce via a paid trial later, not here.
 const FACEBOOK_URL = "https://www.facebook.com/TheEdenInstituteBiblicalHerbalism/";
 
 // Component showcases. Copy is deliberately BAND-AGNOSTIC: one description sells
@@ -156,22 +150,71 @@ const KIT = {
       </h1>
       <div class="w-16 h-px mx-auto my-8" style="background-color:hsl(var(--eden-gold))"></div>
       <p class="font-body text-lg text-muted-foreground max-w-2xl mx-auto mb-6 leading-relaxed">
-        A K-12 Biblical herbalism curriculum for homeschool families. Open-and-go lesson plans, memory songs, kitchen labs, garden activities, and a recurring family story — rooted in Scripture and creation stewardship.
+        A K-12 Biblical herbalism curriculum for homeschool families. Open-and-go lesson plans, memory songs, kitchen labs, garden activities, and a recurring family story, all rooted in Scripture and creation stewardship.
       </p>
       <p class="font-accent text-sm tracking-wider uppercase mb-8" style="color:hsl(var(--eden-sage))">
-        Sprouts (K-2) + Seedlings (3-5) · Free sample weeks — sent to your inbox today
+        Sprouts (K-2) · The complete 36-week year, in one box
       </p>
+      {/* id="early-access" is load-bearing: the homepage links to
+          /homeschool#early-access (index.astro). Keep it even though the
+          lead-magnet capture that originally lived here is gone. */}
       <div id="early-access" class="flex flex-col items-center gap-4 scroll-mt-28">
-        <p class="font-accent text-xs tracking-[0.3em] uppercase" style="color:hsl(var(--eden-gold))">
-          Start free — two real weeks, yours to print and teach today
-        </p>
-        <DualLeadMagnetCTAs size="xl" variant="eden" />
+        <a href="#pricing">
+          <Button variant="eden" size="xl">Preorder the Sprouts Kit · $249</Button>
+        </a>
         <p class="font-body text-sm text-muted-foreground max-w-md mx-auto mt-1">
-          Five full lessons per week — Teacher Guide, Student Notebook, Field Cards, Recipe Cards, and Around-the-Table deck. Delivered to your email instantly, free.
+          Founding price for the first 500 kits, then $349 retail. Flat $12 shipping per order.
         </p>
-        <p class="mt-4 font-accent text-xs tracking-[0.2em] uppercase" style="color:hsl(var(--eden-sage))">
-          Full curriculum preorder opens July 29
+        <p class="mt-2 font-accent text-xs tracking-[0.2em] uppercase" style="color:hsl(var(--eden-sage))">
+          Aiming to ship early November 2026 · Guaranteed on or before December 31, 2026
         </p>
+      </div>
+    </div>
+  </section>
+
+  {/* §1.5 Why buy an herbalism curriculum (copy doc Section 1) */}
+  <section class="py-16 md:py-20 px-6 bg-background">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-10">
+        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold))">Why this. Why now.</p>
+        <h2 class="font-serif text-3xl md:text-4xl font-bold leading-tight" style="color:hsl(var(--eden-bark))">
+          School will teach her the parts of a flower.<br />It will not teach her what the flower is for.
+        </h2>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-8 items-center mb-12">
+        <div class="font-body text-base md:text-lg leading-relaxed text-foreground space-y-4">
+          <p>I spent years as a credentialed classroom teacher with a Master's in education. I know what is in the standards, and I know what is not. Somewhere in there a child learns to label a stem, a root, and a petal. Nowhere in there does a child learn what to reach for when her throat hurts, what is happening inside her body while it heals, or why any of it was put here in the first place.</p>
+          <p class="font-serif text-lg italic" style="color:hsl(var(--eden-bark))">That is not a small gap. That is the entire practical use of the subject, left out.</p>
+        </div>
+        <div>
+          <div class="rounded-lg overflow-hidden bg-white shadow-sm border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+            <img src="/showcases/ET_WeekAtAGlance.png" alt="Week 5 of the Sprouts Teacher's Guide, showing the calendula week laid out Monday through Friday with the scripture, the kitchen lab supply list, and the subjects woven through the week." loading="lazy" width="1275" height="1650" class="w-full h-auto" />
+          </div>
+          <p class="font-accent text-xs tracking-[0.25em] uppercase mt-2 text-center" style="color:hsl(var(--eden-gold))">One real week, exactly as it arrives · Week 5 · Calendula</p>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="rounded-lg p-6" style="background-color:hsl(var(--eden-cream))">
+          <h3 class="font-serif text-lg font-bold mb-3" style="color:hsl(var(--eden-bark))">Health stewardship is not a hobby subject.</h3>
+          <p class="font-body text-sm leading-relaxed text-muted-foreground">Your child is going to live in one body for the whole of her life. She will make decisions about it every single day, starting long before she is grown. Teaching her to understand it, care for it, and pay attention to what it is telling her is not enrichment. It is one of the more practical things you will ever hand her, and we treat it that way, as a subject with a scope, a sequence, and a full year of work.</p>
+        </div>
+        <div class="rounded-lg p-6" style="background-color:hsl(var(--eden-cream))">
+          <h3 class="font-serif text-lg font-bold mb-3" style="color:hsl(var(--eden-bark))">One plant a week. Ten subjects come with it.</h3>
+          <p class="font-body text-sm leading-relaxed text-muted-foreground">This is not herbalism bolted onto your existing school day. A single week on a single plant carries Bible, science, language arts, math, art, history, geography, Latin, health, and character, and the Week at a Glance page tells you which day carries which. You are not stacking ten subjects into a morning. You are teaching one plant well, and the disciplines arrive with it.</p>
+        </div>
+        <div class="rounded-lg p-6" style="background-color:hsl(var(--eden-cream))">
+          <h3 class="font-serif text-lg font-bold mb-3" style="color:hsl(var(--eden-bark))">The year your children are in is the one you have.</h3>
+          <p class="font-body text-sm leading-relaxed text-muted-foreground">Sprouts is K-2, and it is the first band we are printing. Seedlings, Cultivators, and Practitioners follow it. A child who starts this year grows through the whole sequence with us. A child who waits starts it a year older, in a year we cannot give back.</p>
+        </div>
+      </div>
+
+      <div class="text-center mt-10">
+        <a href="#pricing">
+          <Button variant="eden" size="xl">Preorder the Sprouts Kit · $249</Button>
+        </a>
+        <p class="font-body text-xs text-muted-foreground mt-3">Founding price for the first 500 kits. Retail is $349.</p>
       </div>
     </div>
   </section>
@@ -181,7 +224,7 @@ const KIT = {
     <div class="max-w-5xl mx-auto">
       <div class="text-center mb-12">
         <h2 class="font-serif text-3xl font-bold mb-4" style="color:hsl(var(--eden-bark))">Four Grade Bands. One Family Vision.</h2>
-        <p class="font-body text-muted-foreground max-w-2xl mx-auto">Eden's Table grows with your children — from wonder-filled kitchen labs to clinical reasoning in high school.</p>
+        <p class="font-body text-muted-foreground max-w-2xl mx-auto">Eden's Table grows with your children, from wonder-filled kitchen labs to clinical reasoning in high school.</p>
       </div>
       <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
         <div class="rounded-lg p-6 border-2" style="border-color:hsl(var(--eden-gold));background-color:hsl(var(--eden-cream))">
@@ -264,7 +307,11 @@ const KIT = {
         </div>
         <p class="font-body text-base md:text-lg max-w-3xl mx-auto leading-relaxed text-foreground mb-8 text-center">{s.body}</p>
         <blockquote class="font-serif text-xl italic text-center mb-10 max-w-2xl mx-auto" style="color:hsl(var(--eden-bark))">“{s.quote}”</blockquote>
-        <DualLeadMagnetCTAs />
+        <div class="text-center">
+          <a href="#pricing">
+            <Button variant="eden" size="xl">Preorder the Sprouts Kit · $249</Button>
+          </a>
+        </div>
       </div>
     </section>
   ))}
@@ -295,12 +342,14 @@ const KIT = {
           “You are not buying a stack of books. You are buying the shape of your family's next school year.”
         </blockquote>
         <p class="font-body text-sm mb-2" style="color:rgba(255,255,255,0.7)">
-          Each kit includes one Student Notebook. Additional notebooks are sold separately, so every child in your family can keep a book of their own.
+          Each kit includes one Student Notebook. If you have more than one child, you can add notebooks on the last screen before checkout, and they ship free in the same box.
         </p>
         <p class="font-body text-sm mb-8" style="color:rgba(255,255,255,0.7)">
           The herbs themselves are not in the box. Each week uses a small amount of a common dried herb from your pantry, your garden, or the <a href="/homeschool/herbs" class="underline" style="color:hsl(var(--eden-gold))">herb list we keep for you</a>, so nothing in your kit ever expires.
         </p>
-        <DualLeadMagnetCTAs />
+        <a href="#pricing">
+          <Button variant="eden" size="xl">Preorder the Sprouts Kit · $249</Button>
+        </a>
       </div>
     </div>
   </section>
@@ -329,83 +378,180 @@ const KIT = {
     </div>
   </section>
 
-  {/* §10 Pricing & preorder */}
-  <section id="pricing" class="py-20 md:py-24 px-6" style="background-color:hsl(var(--eden-cream))">
+  {/* §9.6 Testimonials (copy doc Section 3) */}
+  <section class="py-16 md:py-20 px-6" style="background-color:hsl(var(--eden-cream) / 0.4)">
     <div class="max-w-6xl mx-auto">
-      <div class="text-center mb-8">
-        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold))">Preorder · opens July 29</p>
-        <h2 class="font-serif text-3xl md:text-4xl font-bold mb-4" style="color:hsl(var(--eden-bark))">Be first when the store opens.</h2>
+      <div class="text-center mb-10 max-w-3xl mx-auto">
+        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold))">From families already teaching it</p>
+        <h2 class="font-serif text-3xl md:text-4xl font-bold mb-4" style="color:hsl(var(--eden-bark))">They taught two weeks of it before anyone printed a thing.</h2>
+        <p class="font-body text-muted-foreground leading-relaxed">Everything below is from a family who took the free sample and taught it at their own table. The kit has not shipped yet, so nobody is reviewing a box. They are telling you what happened in their kitchen.</p>
       </div>
 
-      <div class="max-w-3xl mx-auto mb-8 text-center rounded-lg p-5" style="background-color:hsl(var(--eden-bark))">
-        <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2" style="color:hsl(var(--eden-gold))">How to be first</p>
-        <p class="font-body text-sm text-white leading-relaxed">
-          Preorder opens July 29. The first <strong>500 kits</strong> sell at the Founders price of <strong>$249</strong>; after the 500th kit, the price moves automatically to the <strong>$349</strong> retail price. Start the free two-week sample and we'll email you the moment preorder opens. No waitlist, no obligation.
+      {/* Lead card */}
+      <div class="max-w-4xl mx-auto rounded-lg p-8 mb-6 bg-white border-2" style="border-color:hsl(var(--eden-gold))">
+        <p class="font-accent text-xs tracking-[0.25em] uppercase mb-4" style="color:hsl(var(--eden-gold))">Everything in one week</p>
+        <p class="font-body text-base md:text-lg leading-relaxed text-foreground mb-4">
+          “I am a mother who has been homeschooling kids for over 18 years. I had the opportunity to review some of the lessons in the elementary grades and these lessons are amazing for someone who wants to add herbs/gardening plus faith based lessons to their curriculum. As a homesteading family, I would have loved to have something like this when my kids were little. The balance of faith and herb/gardening is perfect, it is a complete lesson and well thought out. The lessons for younger kids are easy to understand and get a little more in depth when moving up a level. Each week you study a new herb/plant and everything is included for the week. With the stories, table cards, questions, scriptures, recipes, and everything together it covers core subjects like math, reading, faith, and herbs/plants; this is a great addition to a homeschooling curriculum.”
+        </p>
+        <p class="font-serif text-base italic" style="color:hsl(var(--eden-bark))">– Amanda, homeschooling 18 years · Dream Chasers Homestead</p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="rounded-lg bg-white border overflow-hidden flex flex-col" style="border-color:hsl(var(--eden-gold) / 0.3)">
+          <img src="/showcases/ET_Testimonial_Kids2.png" alt="Two children holding up their own botanical drawings beside the printed lavender, chamomile and elderberry field cards at an outdoor table." loading="lazy" class="w-full h-auto" />
+          <div class="p-6 flex flex-col flex-1">
+            <p class="font-accent text-xs tracking-[0.25em] uppercase mb-3" style="color:hsl(var(--eden-gold))">No complaining</p>
+            <p class="font-body text-sm leading-relaxed text-foreground mb-4 flex-1">“I just wanted you to see how into it they are! No complaining and actually asking to do their &lsquo;learning&rsquo;!!”</p>
+            <p class="font-serif text-sm italic" style="color:hsl(var(--eden-bark))">– Kati, former nurse and paramedic</p>
+          </div>
+        </div>
+
+        <div class="rounded-lg bg-white border p-6 flex flex-col" style="border-color:hsl(var(--eden-gold) / 0.3)">
+          <p class="font-accent text-xs tracking-[0.25em] uppercase mb-3" style="color:hsl(var(--eden-gold))">Depth without overwhelm</p>
+          <p class="font-body text-sm leading-relaxed text-foreground mb-4 flex-1">“This curriculum is truly amazing! I have numerous herbal books from all sorts of authors, and this curriculum truly puts it into bite-size chunks of information while still incorporating incredible vocabulary, concepts, and quality stories. The fact that you are incorporating all these other topics beyond just herbal information is truly incredible as well. I truly love everything about it so far and can't wait until it launches! It is exactly what I was looking for and I am so excited for what will unfold in the years to come as we dive deep as a family.”</p>
+          <p class="font-serif text-sm italic" style="color:hsl(var(--eden-bark))">– Kendria Scriver, curriculum writer</p>
+        </div>
+
+        <div class="rounded-lg bg-white border p-6 flex flex-col" style="border-color:hsl(var(--eden-gold) / 0.3)">
+          <p class="font-accent text-xs tracking-[0.25em] uppercase mb-3" style="color:hsl(var(--eden-gold))">Spent hours in the sample</p>
+          <p class="font-body text-sm leading-relaxed text-foreground mb-4 flex-1">“Ahhhhhh I just spent the last few hours poring over the free sample you sent us. This curriculum is absolutely fantastic. I cannot wait to buy this in the fall. This will be our kids favourite curriculum to explore.”</p>
+          <p class="font-serif text-sm italic" style="color:hsl(var(--eden-bark))">– Coralee, who read the free sample cover to cover</p>
+        </div>
+      </div>
+
+      <div class="max-w-3xl mx-auto mt-8 text-center space-y-2">
+        <p class="font-serif text-base italic" style="color:hsl(var(--eden-bark))">“This is a beautiful curriculum to start. I've just begun reading our teaching guide.” <span class="font-body text-sm not-italic text-muted-foreground">– Brooke, Clarksville, TN</span></p>
+        <p class="font-serif text-base italic" style="color:hsl(var(--eden-bark))">“LOVE this!” <span class="font-body text-sm not-italic text-muted-foreground">– Ems Glenn</span></p>
+      </div>
+    </div>
+  </section>
+
+  {/* §9.7 Objections (copy doc Section 4) */}
+  <section class="py-16 md:py-20 px-6 bg-background">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-12 max-w-3xl mx-auto">
+        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold))">Before you decide</p>
+        <h2 class="font-serif text-3xl md:text-4xl font-bold mb-4" style="color:hsl(var(--eden-bark))">The Questions We'd Ask If We Were You.</h2>
+        <p class="font-body text-muted-foreground leading-relaxed">Three things families hesitate over. All three are deliberate. Here is the reasoning behind each one, in full.</p>
+      </div>
+
+      {/* Objection 1 */}
+      <div class="grid md:grid-cols-2 gap-8 items-center mb-16">
+        <div class="rounded-lg overflow-hidden bg-white shadow-sm">
+          <img src="/showcases/ET_Kit_Open.webp" alt="The Eden's Table kit open, showing the Teacher's Guide, Student Notebook, storybook and all three card decks." loading="lazy" width="1024" height="1024" class="w-full h-auto" />
+        </div>
+        <div>
+          <h3 class="font-serif text-2xl font-bold mb-4" style="color:hsl(var(--eden-bark))">$249 is one purchase instead of six.</h3>
+          <div class="font-body text-sm md:text-base leading-relaxed text-muted-foreground space-y-3">
+            <p>Here is the comparison we would want, so here it is. A typical year assembled from separate curricula means a science program, a nature study, a Bible curriculum, a handwriting or copywork book, an art component, and a read-aloud list. Six purchases, six shipping charges, six teacher's guides written by six people who never spoke to each other, and a stack of evenings spent making them line up.</p>
+            <p>Eden's Table is one box. Thirty-six weeks, 180 daily lessons, and six components that were built together, week by week, as one year. Bible, science, language arts, math, art, history, geography, Latin, health, and character are already woven in, already scheduled, already telling you which day carries which.</p>
+            <p>At the founding price that is $249 for the year. Divided across 36 weeks, it is under $7 a week for your entire core. And it is one decision, made once, in July, instead of six decisions you are still second-guessing in October.</p>
+          </div>
+          <div class="mt-5 rounded-lg p-5" style="background-color:hsl(var(--eden-cream));border:1px solid hsl(var(--eden-gold) / 0.4)">
+            <p class="font-body text-sm leading-relaxed" style="color:hsl(var(--eden-bark))">What you are not also buying: a separate science curriculum. A separate nature study. A separate Bible curriculum. A separate art plan. A separate read-aloud list. A second evening of your week spent making all of them agree with each other.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Objection 2 */}
+      <div class="grid md:grid-cols-2 gap-8 items-center mb-16">
+        <div class="md:order-2 rounded-lg overflow-hidden bg-white shadow-sm border" style="border-color:hsl(var(--eden-gold) / 0.2)">
+          <img src="/showcases/Sprouts_W2_ATT_FAITH_FRONT.png" alt="An Around the Table Faith discussion card from Week 2." loading="lazy" class="w-full h-auto" />
+        </div>
+        <div class="md:order-1">
+          <h3 class="font-serif text-2xl font-bold mb-4" style="color:hsl(var(--eden-bark))">We worship the Creator. We study what He made.</h3>
+          <div class="font-body text-sm md:text-base leading-relaxed text-muted-foreground space-y-3">
+            <p>This is the question we most want asked, so let us answer it completely.</p>
+            <p>We believe the Creator God made everything. We believe we were placed, on purpose, in a garden, among plants and among people, and that both were made with complementary patterns. A plant that soothes and a body that can be soothed were designed to meet. That is not a coincidence and it is not magic. It is design.</p>
+            <p>So when your child learns those patterns, she is doing what a person does in a museum built by someone she loves. She notices the craftsmanship, and the noticing sends her back to the One who did the work. Appreciation moves toward the Creator. It never stops at the creation.</p>
+            <p>That line is not a marketing sentence for us. It is the line we edit against. There is no life force in these pages, no energy that belongs to the plant itself, no spiritual property attributed to any created thing. Every energetic and every observation in this curriculum is drawn from historical Western herbal sources and taught as what it is: observed pattern in a made world. Herbalism here is stewardship of Yahweh's creation. It is not alternative medicine and it is not pantheism, and if we ever blur that, write to us and we will fix it.</p>
+          </div>
+          <div class="mt-5 rounded-lg p-5" style="background-color:hsl(var(--eden-cream));border:1px solid hsl(var(--eden-gold) / 0.4)">
+            <p class="font-body text-sm leading-relaxed" style="color:hsl(var(--eden-bark))">The test we run on every single line before it ships: Does this credit the plant, or does it credit the One who made the plant? If it credits the plant, it does not go in the book.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Objection 3 */}
+      <div class="grid md:grid-cols-2 gap-8 items-start mb-10">
+        <div>
+          <div class="rounded-lg overflow-hidden bg-white shadow-sm" style="max-width:420px">
+            <img src="/showcases/ET_Founder.jpg" alt="Camila, founder of The Eden Institute, at home among her plants and herbal books." loading="lazy" width="800" height="1067" class="w-full h-auto" />
+          </div>
+          <p class="font-body text-xs text-muted-foreground mt-2" style="max-width:420px">Camila. Master's in Education, credentialed classroom teacher, and the person who answers your email.</p>
+        </div>
+        <div>
+          <h3 class="font-serif text-2xl font-bold mb-4" style="color:hsl(var(--eden-bark))">We only move at the speed of cash.</h3>
+          <div class="font-body text-sm md:text-base leading-relaxed text-muted-foreground space-y-3">
+            <p>Eden's Table is not sitting in a warehouse. Right now it is finished manuscripts, finished art, and a printer waiting on a go-ahead. What it does not have is a first print run, and that is precisely what your preorder pays for.</p>
+            <p>We could have borrowed the money and shipped you a box in September. We are not going to. No debt, no investors, no line of credit. This company does what we teach families to do, which is live inside what it actually has. The cost of that conviction is time, and we are not going to pretend otherwise or hide it behind a cheerful shipping date.</p>
+            <p>We are aiming for early November 2026. Your kit is guaranteed to ship on or before December 31, 2026. If we cannot make that date we will write to you before it passes, and you can cancel for a full refund, no conversation required.</p>
+            <p>So the honest version is this. You are not buying from our inventory. You are the reason there is going to be one.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Founding families */}
+      <div class="max-w-3xl mx-auto rounded-lg p-8" style="background-color:hsl(var(--eden-forest))">
+        <p class="font-accent text-xs tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold))">Fifty Founding Families</p>
+        <h4 class="font-serif text-2xl font-bold mb-4 text-white">Anyone can preorder. Fifty families get to shape what comes next.</h4>
+        <p class="font-body text-sm mb-5" style="color:rgba(255,255,255,0.85)">The first fifty families to order are the Founding Families. Not a label, a role. This is what it carries:</p>
+        <ul class="font-body text-sm space-y-3 mb-6" style="color:rgba(255,255,255,0.85)">
+          <li>· <strong class="text-white">The private Founding Families group.</strong> A closed room, those fifty families only, where we bring real decisions before they are made. Not a fan page. The place where we ask what you actually need next, and build that.</li>
+          <li>· <strong class="text-white">Coffee and Curriculum.</strong> Live sessions where we walk through the roadmap out loud, answer questions in real time, and let Founding Families weigh in on what gets built and in what order.</li>
+          <li>· <strong class="text-white">A voice as your children grow.</strong> Sprouts is K-2. Seedlings is 3-5, then Cultivators for middle school, then Practitioners for high school. Founding Families are in the room for every one of those, which means the band your child ages into gets shaped partly by the parents who got there first.</li>
+          <li>· <strong class="text-white">First look at everything</strong>, before anyone else sees it.</li>
+        </ul>
+        <p class="font-body text-sm" style="color:rgba(255,255,255,0.75)">Every preorder helps fund this print run, and every preorder at the founding price saves $100. Only the first fifty get the room.</p>
+      </div>
+
+      <div class="max-w-3xl mx-auto text-center mt-10">
+        <p class="font-serif text-xl italic mb-6" style="color:hsl(var(--eden-bark))">Good things are worth the wait. We would rather build this well than rush a box out the door with your family's name on it.</p>
+        <a href="#pricing">
+          <Button variant="eden" size="xl">Become a Founding Family · $249</Button>
+        </a>
+        <p class="font-body text-xs text-muted-foreground mt-3">Aiming for early November 2026. Guaranteed on or before December 31, 2026, or your money back.</p>
+      </div>
+    </div>
+  </section>
+
+  {/* §10 Buy box (copy doc Section 5). The kit is the ONLY product; the notebook
+      is the step-2 add-on inside the modal. FTC preorder terms render ABOVE the
+      CTA, which is the legal basis for charging today on an unshipped product. */}
+  <section id="pricing" class="py-20 md:py-24 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-10">
+        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold))">Founding Preorder</p>
+        <h2 class="font-serif text-3xl md:text-4xl font-bold mb-4" style="color:hsl(var(--eden-bark))">Be one of the fifty.</h2>
+        <p class="font-body text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          This is a founding preorder. Your patience helps fund the founding of this curriculum. The first fifty families to order become our Founding Families, with a private group, a seat at Coffee and Curriculum, and a vote on what we build next. Every founding preorder saves $100 on the complete kit.
         </p>
       </div>
 
-      <div class="max-w-3xl mx-auto mb-12 text-center">
-        <a href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-3 px-8 py-4 rounded-lg font-accent text-sm tracking-[0.15em] uppercase text-white transition-opacity hover:opacity-90" style="background-color:hsl(var(--eden-forest))">
-          Follow us on Facebook for launch updates →
-        </a>
-      </div>
-
-      <div class="grid md:grid-cols-2 gap-6 mb-10 max-w-4xl mx-auto">
-        <div class="rounded-lg overflow-hidden border-2 bg-white flex flex-col" style="border-color:hsl(var(--eden-gold))">
-          <div class="aspect-[4/3] overflow-hidden bg-white">
-            <img src="/showcases/SproutsBundle.png" alt="Sprouts Complete bundle composition" loading="lazy" class="w-full h-full object-cover" />
+      {/* PREORDER TERMS, in plain language. Must stay ABOVE the CTA and must not
+          be summarised, collapsed behind a toggle, or moved below the fold. */}
+      <div class="max-w-2xl mx-auto mb-12">
+        <h3 class="font-serif text-xl font-bold mb-5 text-center" style="color:hsl(var(--eden-bark))">Preorder terms, in plain language</h3>
+        <div class="space-y-4">
+          <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+            <p class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">This is a founding preorder.</p>
+            <p class="font-body text-sm text-muted-foreground leading-relaxed">Your patience helps fund the founding of this curriculum. The complete kit is $249 for the first 500 kits, then $349 retail. Separately, the first fifty families to order become our Founding Families and carry that standing as every later grade band opens.</p>
           </div>
-          <div class="p-6 flex flex-col flex-1">
-            <p class="font-accent text-xs tracking-widest uppercase mb-2" style="color:hsl(var(--eden-gold))">Sprouts Complete · K-2</p>
-            <h3 class="font-serif text-xl font-bold mb-3" style="color:hsl(var(--eden-bark))">Preorder opens July 29</h3>
-            <div class="mb-4">
-              <p class="font-serif text-3xl font-bold mb-1" style="color:hsl(var(--eden-bark))">$249 <span class="font-body text-base font-normal text-muted-foreground line-through ml-2">$349</span></p>
-              <p class="font-accent text-xs uppercase tracking-wider" style="color:hsl(var(--eden-sage))">Founders price · $100 below retail</p>
-            </div>
-            <ul class="font-body text-sm text-muted-foreground space-y-1.5 mb-6 flex-1">
-              <li>· 36 weekly lessons</li>
-              <li>· Teacher Guide + Student Notebook</li>
-              <li>· Read-Aloud Storybook</li>
-              <li>· 36 Herb Field Cards</li>
-              <li>· 36 Recipe Cards</li>
-              <li>· Around the Table deck (144 cards)</li>
-            </ul>
-            <Button variant="eden" size="xl" className="w-full" data-waitlist-source={SPROUTS_MAGNET.source} data-waitlist-title={SPROUTS_MAGNET.title} data-waitlist-subtitle={SPROUTS_MAGNET.subtitle}>
-              Start the free 2-week sample
-            </Button>
-            <p class="font-body text-xs text-muted-foreground text-center mt-3">We'll email you the moment preorder opens.</p>
+          <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+            <p class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">Aiming for early November 2026. Guaranteed on or before December 31, 2026.</p>
+            <p class="font-body text-sm text-muted-foreground leading-relaxed">The first date is our honest target and it may move. The second is a promise: if your order has not shipped by December 31, 2026, we will write to you before that date and you can cancel for a full refund. We will email you updates as production progresses.</p>
           </div>
-        </div>
-
-        <div class="rounded-lg overflow-hidden border-2 bg-white flex flex-col" style="border-color:hsl(var(--border))">
-          <div class="aspect-[4/3] overflow-hidden bg-white">
-            <img src="/showcases/SeedlingsBundle.png" alt="Seedlings Complete bundle composition" loading="lazy" class="w-full h-full object-cover" />
-          </div>
-          <div class="p-6 flex flex-col flex-1">
-            <p class="font-accent text-xs tracking-widest uppercase mb-2" style="color:hsl(var(--eden-sage))">Seedlings Complete · 3-5</p>
-            <h3 class="font-serif text-xl font-bold mb-3" style="color:hsl(var(--eden-bark))">Coming after Sprouts</h3>
-            <div class="mb-4">
-              <p class="font-serif text-2xl font-bold mb-1" style="color:hsl(var(--eden-bark))">$249 <span class="font-body text-sm font-normal text-muted-foreground">at launch</span></p>
-              <p class="font-accent text-xs uppercase tracking-wider" style="color:hsl(var(--eden-sage))">Sprouts opens first · Seedlings follows</p>
-            </div>
-            <ul class="font-body text-sm text-muted-foreground space-y-1.5 mb-6 flex-1">
-              <li>· 36 weekly lessons at Seedlings depth</li>
-              <li>· Teacher Guide + Student Notebook</li>
-              <li>· Read-Aloud Storybook</li>
-              <li>· 36 Herb Field Cards</li>
-              <li>· 36 Recipe Cards</li>
-              <li>· Around the Table deck (144 cards)</li>
-            </ul>
-            <Button variant="eden" size="xl" className="w-full" data-waitlist-source={SEEDLINGS_MAGNET.source} data-waitlist-title={SEEDLINGS_MAGNET.title} data-waitlist-subtitle={SEEDLINGS_MAGNET.subtitle}>
-              Get the free Seedlings sample
-            </Button>
-            <p class="font-body text-xs text-muted-foreground text-center mt-3">We'll email you when Seedlings opens.</p>
+          <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+            <p class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">Your card is charged today.</p>
+            <p class="font-body text-sm text-muted-foreground leading-relaxed">Your checkout total includes a flat $12 shipping charge and any sales tax. If we cannot ship within the estimated window, we will notify you, and you may request a full refund at any point before your order ships.</p>
           </div>
         </div>
       </div>
 
-      <div class="max-w-3xl mx-auto text-center space-y-3">
-        <p class="font-body text-sm text-muted-foreground leading-relaxed">All Founders Edition seats include a voice in shaping Seedlings and first-look at Cultivators and Practitioners as those bands roll out.</p>
+      <PreorderBuyBox client:only="react" />
+
+      <div class="max-w-3xl mx-auto text-center mt-10 space-y-3">
+        <p class="font-body text-xs text-muted-foreground">Questions? Email <a href="mailto:hello@edeninstitute.health" class="underline">hello@edeninstitute.health</a> and a real person (Camila) answers.</p>
         <p class="font-serif italic text-base" style="color:hsl(var(--eden-bark))">Teaching a group? See co-op and group pricing below.</p>
       </div>
     </div>
@@ -413,5 +559,4 @@ const KIT = {
 
   <CoopLicensing />
 
-  <WaitlistController client:only="react" />
 </MarketingLayout>
