@@ -61,6 +61,16 @@ interface FoundingStatus {
   closed: boolean;
 }
 
+// Launch morning must be ONE action: flip the PREORDERS_LIVE secret. This page
+// reads that flag from preorder-status on every load, so the store opens with
+// no merge, no deploy and no cache purge.
+//
+// Fails OPEN (defaults true) on purpose. create-checkout is the real gate and
+// refuses regardless, so the worst case of a status outage before launch is a
+// buyer clicking and being told preorder has not opened. Failing closed would
+// mean a status outage ON launch morning silently shuts the store.
+const PREORDERS_LIVE_DEFAULT = true;
+
 // SMS consent is gated on the server flag `sms_enabled` from preorder-status
 // (secret SMS_CONSENT_ENABLED). It fails CLOSED, the opposite of the founding
 // display: showing "yes, text me" while A2P 10DLC registration is still pending
@@ -123,6 +133,7 @@ export default function PreorderBuyBox() {
   const [soldOut, setSoldOut] = useState(false);
   const [founding, setFounding] = useState<FoundingStatus>({ sold: null, cap: null, closed: false });
   const [smsEnabled, setSmsEnabled] = useState(SMS_DEFAULT_ENABLED);
+  const [preordersLive, setPreordersLive] = useState(PREORDERS_LIVE_DEFAULT);
 
   // Founding-window status, fetched once on mount. Any failure keeps the default
   // (founding display, no counter): fail open exactly like the server gate.
@@ -139,6 +150,10 @@ export default function PreorderBuyBox() {
           closed: data.closed,
         });
         setSmsEnabled(data.sms_enabled === true);
+        // Only honour an explicit boolean. An older deployment of
+        // preorder-status omits this field entirely, and `undefined` must not
+        // be read as "closed" or the store would appear shut.
+        if (typeof data.preorders_live === "boolean") setPreordersLive(data.preorders_live);
       } catch {
         // status unavailable; founding display stands and SMS stays hidden
       }
@@ -327,6 +342,10 @@ export default function PreorderBuyBox() {
   // Founding window closed = display retail everywhere. Billing truth stays with
   // create-checkout; these cents only drive the display copy and order summary.
   const closed = founding.closed;
+  // The store is open only if the secret says so AND we have not been refused
+  // mid-session. `notLive` is the backstop for the window between a flip and
+  // the cached status response catching up.
+  const storeOpen = preordersLive && !notLive;
   const kitCents = closed ? KIT_RETAIL_CENTS : KIT_PRICE_CENTS;
   const nbCents = closed ? NOTEBOOK_RETAIL_CENTS : NOTEBOOK_PRICE_CENTS;
 
@@ -412,6 +431,26 @@ export default function PreorderBuyBox() {
           The preorder-status fetch above STAYS. It still drives the one-way
           `closed` latch that flips the $249 price to $349 after 500 kits. Only
           the visible counter is gone. */}
+      {/* Pre-launch banner. Rendered only while PREORDERS_LIVE is false, and it
+          disappears on the next page load after the secret is flipped. */}
+      {!storeOpen && !soldOut && (
+        <div
+          className="max-w-2xl mx-auto rounded-lg border-2 p-5 mb-8 text-center"
+          style={{ borderColor: "hsl(var(--eden-gold))", backgroundColor: "hsl(var(--eden-cream))" }}
+        >
+          <p className="font-accent text-xs tracking-[0.3em] uppercase mb-2" style={{ color: "hsl(var(--eden-gold))" }}>
+            Opens Wednesday
+          </p>
+          <p className="font-serif text-2xl font-bold mb-2" style={{ color: "hsl(var(--eden-bark))" }}>
+            Preorder opens July 29.
+          </p>
+          <p className="font-body text-sm" style={{ color: "hsl(var(--eden-bark))" }}>
+            Everything below is the kit, the terms, and the price exactly as they will be. The
+            only thing not open yet is the button.
+          </p>
+        </div>
+      )}
+
       <div className="max-w-2xl mx-auto text-center mb-8">
         <p className="font-serif text-xl italic mb-2" style={{ color: "hsl(var(--eden-bark))" }}>
           {closed
@@ -465,11 +504,17 @@ export default function PreorderBuyBox() {
             </ul>
             <button
               onClick={() => openModal("kit")}
-              disabled={busy || notLive || soldOut}
+              disabled={busy || !storeOpen || soldOut}
               className="font-body text-sm font-semibold px-8 py-4 rounded-sm w-full transition-opacity hover:opacity-90 disabled:opacity-50"
               style={{ backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-parchment))" }}
             >
-              {busy ? "Opening secure checkout…" : soldOut ? "Sold out" : `Preorder ${p.name}`}
+              {busy
+                ? "Opening secure checkout…"
+                : soldOut
+                  ? "Sold out"
+                  : !storeOpen
+                    ? "Preorder opens July 29"
+                    : `Preorder ${p.name}`}
             </button>
           </div>
         ))}
