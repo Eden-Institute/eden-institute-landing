@@ -60,7 +60,7 @@ const MOUNTAIN_ROSE_AFFILIATE_URL = '[MOUNTAIN_ROSE_AFFILIATE_URL]';
 // [WEBSITE_URL]: canonical marketing site. Live value already correct.
 const WEBSITE_URL = 'https://edeninstitute.health';
 // Social links (same values the canonical emailWrapper chrome uses).
-const FACEBOOK_URL = 'https://www.facebook.com/TheEdenInstituteBiblicalHerbalism';
+const FACEBOOK_URL = 'https://www.facebook.com/EdensTableHomeschoolCurriculum';
 // Handle changed 2026-07-26 (the_eden_institute -> edenstablehomeschoolcurriculum) as part of the
 // Eden's Table social rebrand. Instagram does NOT redirect old usernames; the old URL 404s, verified
 // in-browser. Any template still carrying the old handle ships a dead link.

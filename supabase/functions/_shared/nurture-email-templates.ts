@@ -136,7 +136,7 @@ ${shopApothecaryCard()}
 <tr><td style="font-family:Georgia,serif;font-size:14px;font-weight:bold;color:#FFFFFF;text-align:center;">The Eden Institute</td></tr>
 <tr><td style="text-align:center;padding-top:6px;"><a href="https://edeninstitute.health" style="font-family:Georgia,serif;font-size:13px;color:#FFFFFF;text-decoration:underline;">edeninstitute.health</a></td></tr>
 <tr><td style="text-align:center;padding-top:14px;">
-<a href="https://www.facebook.com/share/1CRzWj7wmz/?mibextid=wwXIfr" style="font-family:Georgia,serif;font-size:12px;color:#FFFFFF;text-decoration:underline;">Facebook</a>
+<a href="https://www.facebook.com/EdensTableHomeschoolCurriculum" style="font-family:Georgia,serif;font-size:12px;color:#FFFFFF;text-decoration:underline;">Facebook</a>
 &nbsp;|&nbsp;
 <a href="https://instagram.com/edenstablehomeschoolcurriculum" style="font-family:Georgia,serif;font-size:12px;color:#FFFFFF;text-decoration:underline;">Instagram</a>
 &nbsp;|&nbsp;
@@ -423,10 +423,10 @@ ${signature()}`;
 
 
 // ── Sprouts/Seedlings lead-magnet nurture (Phase 3.1.2) ──
-const FACEBOOK_URL = 'https://www.facebook.com/TheEdenInstituteBiblicalHerbalism';
+const FACEBOOK_URL = 'https://www.facebook.com/EdensTableHomeschoolCurriculum';
 
 function facebookButton(label: string, url: string): string {
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0;"><tr><td align="center"><table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr><td align="center" style="background-color:${BRAND.gold};border-radius:10px;"><a href="${url}" target="_blank" style="display:inline-block;background-color:${BRAND.gold};color:${BRAND.forest};font-family:Georgia,serif;font-size:17px;font-weight:bold;text-decoration:none;text-align:center;padding:16px 44px;border-radius:10px;line-height:24px;mso-line-height-rule:exactly;letter-spacing:0.3px;">&#9826;&nbsp; ${label} &nbsp;&rarr;</a></td></tr></table><p style="font-family:Georgia,serif;font-size:13px;color:${BRAND.footerText};margin:10px 0 0 0;font-style:italic;">@TheEdenInstituteBiblicalHerbalism</p></td></tr></table>`;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0;"><tr><td align="center"><table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr><td align="center" style="background-color:${BRAND.gold};border-radius:10px;"><a href="${url}" target="_blank" style="display:inline-block;background-color:${BRAND.gold};color:${BRAND.forest};font-family:Georgia,serif;font-size:17px;font-weight:bold;text-decoration:none;text-align:center;padding:16px 44px;border-radius:10px;line-height:24px;mso-line-height-rule:exactly;letter-spacing:0.3px;">&#9826;&nbsp; ${label} &nbsp;&rarr;</a></td></tr></table><p style="font-family:Georgia,serif;font-size:13px;color:${BRAND.footerText};margin:10px 0 0 0;font-style:italic;">@EdensTableHomeschoolCurriculum</p></td></tr></table>`;
 }
 
 // Day 7: Week 2 downloads (Sprouts→Chamomile, Seedlings→Tulsi). Links the PDFs
