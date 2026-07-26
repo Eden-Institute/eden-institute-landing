@@ -190,4 +190,47 @@ const productJsonLd = productSpecs.map((p) => ({
       </p>
     </div>
   </section>
+
+  {/*
+    Pinterest `checkout` conversion.
+
+    Stripe returns buyers to /preorder?checkout=success&session_id=cs_... (see
+    create-checkout/index.ts), so this page is both the ad landing page AND the
+    post-purchase page. The base tag in MarketingLayout already fired `page`;
+    this adds the purchase event on top of it.
+
+    Two guards, both deliberate:
+      1. Only fires when checkout=success AND a session_id is present. A bare
+         /preorder visit must never count as a sale.
+      2. Deduped in sessionStorage against the session_id, so a refresh or a
+         back-button return does not double-count one order.
+
+    Order VALUE is intentionally NOT sent from the browser. The amount lives in
+    the Stripe session, and anything read from the URL is attacker-editable —
+    inflated revenue in Pinterest reporting would corrupt the ROAS number the ad
+    budget is judged on. If value-based bidding is wanted later, send it
+    server-side from stripe-webhook via the Conversions API, where the amount is
+    trustworthy.
+  */}
+  <script is:inline>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('checkout') !== 'success') return;
+      var sessionId = params.get('session_id');
+      if (!sessionId) return;
+
+      var key = 'pintrk_checkout_' + sessionId;
+      try {
+        if (window.sessionStorage.getItem(key)) return;
+        window.sessionStorage.setItem(key, '1');
+      } catch (e) {
+        // Private mode / storage blocked. Fire once rather than not at all;
+        // a rare double-count beats silently losing every conversion.
+      }
+
+      if (typeof window.pintrk === 'function') {
+        window.pintrk('track', 'checkout', { order_id: sessionId });
+      }
+    })();
+  </script>
 </MarketingLayout>

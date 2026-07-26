@@ -99,6 +99,32 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     {pageJsonLd.map((block) => (
       <script type="application/ld+json" set:html={JSON.stringify(block)} />
     ))}
+
+    {/*
+      Pinterest tag. Tag ID 2613485320295, read off ads.pinterest.com for
+      advertiser 549770068824 (the TheEdenInstitute ad account) on 2026-07-26 —
+      NOT the advertiser id, which is a different number. Verify in Pinterest's
+      Tag manager before changing it.
+
+      Lives here rather than in the SPA entry because every ad landing page is
+      Astro: /preorder, /homeschool, /courses. The SPA is behind auth and is not
+      an ad destination, so tagging it would add tracking without adding signal.
+
+      The `checkout` conversion fires from /preorder itself, because Stripe's
+      success_url returns buyers to /preorder?checkout=success. See preorder.astro.
+    */}
+    <script is:inline>
+      !function(e){if(!window.pintrk){window.pintrk=function(){window.pintrk.queue.push(
+      Array.prototype.slice.call(arguments))};var n=window.pintrk;n.queue=[],n.version="3.0";
+      var t=document.createElement("script");t.async=!0,t.src=e;var r=document.getElementsByTagName("script")[0];
+      r.parentNode.insertBefore(t,r)}}("https://s.pinimg.com/ct/core.js");
+      pintrk('load', '2613485320295');
+      pintrk('page');
+    </script>
+    <noscript>
+      <img height="1" width="1" style="display:none;" alt=""
+        src="https://ct.pinterest.com/v3/?event=init&tid=2613485320295&noscript=1" />
+    </noscript>
   </head>
   <body>
     <Navbar />
