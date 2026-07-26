@@ -1,7 +1,7 @@
 -- Retire the Ad Studio, founder decision 2026-07-26.
 --
 -- THIS MIGRATION DESTROYS DATA AND CANNOT BE UNDONE. Row counts read from
--- production immediately before it was written:
+-- production immediately before it ran:
 --
 --   studio_projects          4
 --   studio_assets            4
@@ -12,37 +12,33 @@
 --   studio_exports           0
 --   studio_rate_limits       0
 --
--- Nothing outside the studio reads any of these. Checked before writing:
+-- Nothing outside the studio reads any of these. Checked before deleting:
 -- `_shared/checkout-rate-limit.ts` only MENTIONS the studio limiter in a comment,
 -- it does not import it, so the preorder checkout path is untouched.
 --
--- Storage: three buckets go with it. Objects must be deleted before the bucket
--- row, or the delete fails on the foreign key.
+-- STORAGE IS DELIBERATELY ABSENT FROM THIS FILE.
 --
--- The Canva token is revoked implicitly by dropping it, but the authorisation
--- still exists on Canva's side. Disconnect the app from the Canva account too if
--- a clean break is wanted.
+-- The first version tried to `delete from storage.objects` and drop the storage
+-- policies. Supabase rejects that outright:
+--
+--   ERROR: Direct deletion from storage tables is not allowed.
+--          Use the Storage API instead. (SQLSTATE 42501)
+--
+-- The whole migration rolled back, so nothing was lost, but the lesson is worth
+-- keeping: buckets cannot be torn down from SQL. The three studio buckets
+-- (studio-assets, studio-collateral, studio-exports) were emptied and deleted via
+-- the Storage API on 2026-07-26 before this migration was re-run, and their
+-- policies went with them. Note that the `empty` call is ASYNCHRONOUS: the first
+-- delete attempt raced the queued empty job and failed with an empty error body.
+-- Retrying after the queue drained succeeded.
+--
+-- The Canva OAuth token dies with studio_canva_tokens, but the authorisation still
+-- exists on Canva's side. Disconnect the app there too for a clean break.
 
 begin;
 
--- ── Storage: objects first, then the buckets ──
-delete from storage.objects
- where bucket_id in ('studio-assets', 'studio-collateral', 'studio-exports');
-
-drop policy if exists "studio assets founder select"      on storage.objects;
-drop policy if exists "studio assets founder insert"      on storage.objects;
-drop policy if exists "studio assets founder update"      on storage.objects;
-drop policy if exists "studio assets founder delete"      on storage.objects;
-drop policy if exists "studio collateral founder insert"  on storage.objects;
-drop policy if exists "studio collateral founder update"  on storage.objects;
-drop policy if exists "studio collateral founder delete"  on storage.objects;
-drop policy if exists "studio exports bucket founder all" on storage.objects;
-
-delete from storage.buckets
- where id in ('studio-assets', 'studio-collateral', 'studio-exports');
-
--- ── Tables. `cascade` handles the FK web between projects, assets,
---    transforms, versions and exports, plus their policies and triggers. ──
+-- `cascade` handles the FK web between projects, assets, transforms, versions and
+-- exports, along with their policies, indexes and triggers.
 drop table if exists public.studio_asset_transforms cascade;
 drop table if exists public.studio_asset_versions   cascade;
 drop table if exists public.studio_exports          cascade;
@@ -52,8 +48,8 @@ drop table if exists public.studio_brand_tokens     cascade;
 drop table if exists public.studio_canva_tokens     cascade;
 drop table if exists public.studio_rate_limits      cascade;
 
--- ── The rate-limit RPC. Dropped after its table so nothing references a
---    missing relation mid-transaction. ──
+-- The rate-limit RPC, dropped after its table so nothing references a missing
+-- relation mid-transaction.
 drop function if exists public.studio_rate_bump(text);
 
 commit;
