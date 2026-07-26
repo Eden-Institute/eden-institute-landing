@@ -2,6 +2,25 @@
 // Astro-native port of src/components/landing/Footer.tsx — plain <a href>.
 const year = new Date().getFullYear();
 const FOOTER_BG_IMG = "https://images.unsplash.com/photo-1726996155615-e986ed87c9d4?auto=format&fit=crop&w=1920&q=80";
+
+// Social profiles. Every one of these was opened in a browser on 2026-07-26 and
+// confirmed to resolve — none are inferred from a handle.
+//
+// The 2026-07-26 rebrand renamed all three to Eden's Table. Instagram and Facebook
+// changed USERNAME as well as display name, and neither platform redirects an old
+// username: both old URLs now 404. If these ever change again, grep the whole repo,
+// including supabase/functions/_shared/, because the email templates carry their own
+// copies and a stale one ships a dead link to the whole list.
+//
+// Pinterest is the account with the verified domain and the ad account
+// (id 1122311307048395117). Note the username is TheEdenInstituteBoards, NOT
+// "theedeninstitute" — that is a separate, near-empty duplicate account with no
+// domain claim. Do not "correct" this URL to the shorter-looking one.
+const SOCIALS = [
+  { label: "Instagram", href: "https://www.instagram.com/edenstablehomeschoolcurriculum/" },
+  { label: "Facebook", href: "https://www.facebook.com/EdensTableHomeschoolCurriculum" },
+  { label: "Pinterest", href: "https://www.pinterest.com/TheEdenInstituteBoards/" },
+];
 ---
 
 <footer class="relative overflow-hidden">
@@ -19,6 +38,17 @@ const FOOTER_BG_IMG = "https://images.unsplash.com/photo-1726996155615-e986ed87c
         <p class="font-body text-sm mb-4">edeninstitute.health</p>
         <div class="eden-divider"></div>
         <p class="font-accent text-sm tracking-[0.1em] md:tracking-[0.3em] uppercase" style="color:hsl(var(--eden-gold))">"Back to Eden. Back to Truth."</p>
+        <div class="mt-6 flex items-center justify-center gap-4 text-sm font-body flex-wrap">
+          {SOCIALS.map((s) => (
+            <a
+              href={s.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="hover:opacity-70 transition-opacity underline underline-offset-4"
+              style="color:hsl(var(--eden-gold))"
+            >{s.label}</a>
+          ))}
+        </div>
         <div class="mt-6 flex items-center justify-center gap-2 text-xs font-body flex-wrap" style="color:hsl(var(--eden-parchment) / 0.3)">
           <a href="/why-eden" class="hover:opacity-70 transition-colors" style="color:hsl(var(--eden-parchment) / 0.5)">Why Eden</a>
           <span>|</span>

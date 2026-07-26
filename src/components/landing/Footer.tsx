@@ -3,6 +3,17 @@ import { ROUTES } from "@/lib/routes";
 
 const FOOTER_BG_IMG = "https://images.unsplash.com/photo-1726996155615-e986ed87c9d4?auto=format&fit=crop&w=1920&q=80";
 
+// Keep in lockstep with web/components/Footer.astro, which carries the same list
+// for the Astro marketing pages. See the long note there for why these exact URLs.
+// Short version: verified in-browser 2026-07-26; the old Instagram and Facebook
+// usernames now 404 because neither platform redirects; and the Pinterest account
+// is TheEdenInstituteBoards, not the near-empty "theedeninstitute" duplicate.
+const SOCIALS = [
+  { label: "Instagram", href: "https://www.instagram.com/edenstablehomeschoolcurriculum/" },
+  { label: "Facebook", href: "https://www.facebook.com/EdensTableHomeschoolCurriculum" },
+  { label: "Pinterest", href: "https://www.pinterest.com/TheEdenInstituteBoards/" },
+];
+
 const Footer = () => {
   return (
     <footer className="relative overflow-hidden">
@@ -30,6 +41,21 @@ const Footer = () => {
             <p className="font-accent text-sm tracking-[0.1em] md:tracking-[0.3em] uppercase" style={{ color: "hsl(var(--eden-gold))" }}>
               "Back to Eden. Back to Truth."
             </p>
+
+            <div className="mt-6 flex items-center justify-center gap-4 text-sm font-body flex-wrap">
+              {SOCIALS.map((s) => (
+                <a
+                  key={s.label}
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:opacity-70 transition-opacity underline underline-offset-4"
+                  style={{ color: "hsl(var(--eden-gold))" }}
+                >
+                  {s.label}
+                </a>
+              ))}
+            </div>
 
             <div className="mt-6 flex items-center justify-center gap-2 text-xs font-body flex-wrap" style={{ color: "hsl(var(--eden-parchment) / 0.3)" }}>
               <Link to={ROUTES.WHY_EDEN} className="hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
