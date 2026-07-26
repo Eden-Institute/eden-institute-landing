@@ -61,7 +61,10 @@ const MOUNTAIN_ROSE_AFFILIATE_URL = '[MOUNTAIN_ROSE_AFFILIATE_URL]';
 const WEBSITE_URL = 'https://edeninstitute.health';
 // Social links (same values the canonical emailWrapper chrome uses).
 const FACEBOOK_URL = 'https://www.facebook.com/TheEdenInstituteBiblicalHerbalism';
-const INSTAGRAM_URL = 'https://instagram.com/the_eden_institute';
+// Handle changed 2026-07-26 (the_eden_institute -> edenstablehomeschoolcurriculum) as part of the
+// Eden's Table social rebrand. Instagram does NOT redirect old usernames; the old URL 404s, verified
+// in-browser. Any template still carrying the old handle ships a dead link.
+const INSTAGRAM_URL = 'https://instagram.com/edenstablehomeschoolcurriculum';
 const PINTEREST_URL = 'https://pin.it/6AuiXypgA';
 // Primary CTA target for Email 7 is the founders-price capture page, but that
 // page REQUIRES a signed `?t=` token or it disables its own Reserve button. The

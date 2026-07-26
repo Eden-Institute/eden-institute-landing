@@ -138,7 +138,7 @@ ${shopApothecaryCard()}
 <tr><td style="text-align:center;padding-top:14px;">
 <a href="https://www.facebook.com/share/1CRzWj7wmz/?mibextid=wwXIfr" style="font-family:Georgia,serif;font-size:12px;color:#FFFFFF;text-decoration:underline;">Facebook</a>
 &nbsp;|&nbsp;
-<a href="https://instagram.com/the_eden_institute" style="font-family:Georgia,serif;font-size:12px;color:#FFFFFF;text-decoration:underline;">Instagram</a>
+<a href="https://instagram.com/edenstablehomeschoolcurriculum" style="font-family:Georgia,serif;font-size:12px;color:#FFFFFF;text-decoration:underline;">Instagram</a>
 &nbsp;|&nbsp;
 <a href="https://pin.it/6AuiXypgA" style="font-family:Georgia,serif;font-size:12px;color:#FFFFFF;text-decoration:underline;">Pinterest</a>
 </td></tr>
