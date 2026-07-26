@@ -1,0 +1,173 @@
+---
+// /freebies — the free-sample capture, given its own page.
+//
+// WHY THIS EXISTS. The lead-magnet capture used to live on /homeschool. PR #364
+// sunset it there on 2026-07-25 ("one page, one offer, and that offer is the
+// preorder"), which left the site with NO free entry point at all. That is fine for
+// warm email traffic, which arrives ready to buy, and wrong for cold traffic, which
+// has never heard of Eden.
+//
+// Cold traffic is the whole point: Pinterest's own top expansion chip for
+// "christian homeschool curriculum" is "Free", ranked ahead of every grade level
+// (verified on-platform 2026-07-26). The funnel is Pinterest -> /freebies ->
+// /homeschool, and this page is the middle step.
+//
+// NOTHING NEW IS BUILT HERE. The magnet PDFs, the resend-waitlist edge function and
+// the nurture sequences were all left intact by #364; only the website capture was
+// removed. This page re-mounts the two components that were orphaned by it:
+// DualLeadMagnetCTAs (the static buttons, rendered by Astro so they are in the HTML
+// for SEO) and WaitlistController (the one island, which opens the modal).
+//
+// Copy here deliberately carries NO em dashes, per Lock #27.
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+import DualLeadMagnetCTAs from "../components/DualLeadMagnetCTAs.astro";
+import WaitlistController from "../components/islands/WaitlistController.tsx";
+import { BookOpen, NotebookPen, Leaf, ChefHat, MessagesSquare } from "lucide-react";
+
+const meta = {
+  title: "Free Christian Homeschool Herbalism Curriculum Samples | Eden's Table",
+  description:
+    "Two free weeks of Eden's Table, the Christ-centered homeschool herbalism curriculum. Five full lessons per week for Sprouts (K-2) or Seedlings (3-5). Print it and teach it the same morning.",
+  canonical: "https://edeninstitute.health/freebies",
+};
+
+// Keywords in this JSON-LD mirror the Pinterest keyword tiers in
+// Biblical Herbalism/Pinterest Automation, so the page and the pins pointing at it
+// are optimised for the same searches rather than competing.
+const offerJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Course",
+  name: "Eden's Table Free Sample Weeks",
+  description:
+    "Two free sample weeks of a Christ-centered K-5 homeschool herbalism curriculum, delivered by email. Five full open-and-go lessons per week.",
+  url: "https://edeninstitute.health/freebies",
+  inLanguage: "en",
+  educationalLevel: "K-5",
+  isAccessibleForFree: true,
+  about: [
+    "free homeschool curriculum",
+    "christian homeschool curriculum",
+    "homeschool herbalism for kids",
+    "nature study homeschool",
+    "free homeschool printables",
+  ],
+  provider: { "@type": "Organization", name: "The Eden Institute", url: "https://edeninstitute.health" },
+  audience: { "@type": "EducationalAudience", educationalRole: "homeschooling family" },
+};
+
+// The five components that arrive in a sample week. Mirrors the component set the
+// curriculum actually ships; do not add one here that is not in the PDFs.
+const components = [
+  { icon: BookOpen, name: "Teacher Guide", note: "Every word you need, laid out day by day." },
+  { icon: NotebookPen, name: "Student Notebook", note: "Five day pages your child works through." },
+  { icon: Leaf, name: "Field Cards", note: "Take the plant identification outside." },
+  { icon: ChefHat, name: "Recipe Cards", note: "One kitchen lab per week, real ingredients." },
+  { icon: MessagesSquare, name: "Around-the-Table Deck", note: "Discussion cards for the dinner table." },
+];
+
+const steps = [
+  { n: "1", t: "Pick your grade band", d: "Sprouts is K through 2. Seedlings is 3 through 5. Same six components, two depths." },
+  { n: "2", t: "Check your inbox", d: "Week 1 arrives immediately. Week 2 follows in seven days." },
+  { n: "3", t: "Print it and teach it", d: "No prep box, no lesson planning, no screens. Open the guide and go." },
+];
+---
+
+<MarketingLayout
+  title={meta.title}
+  description={meta.description}
+  canonical={meta.canonical}
+  jsonLd={offerJsonLd}
+>
+  {/* §1 Hero. The two CTAs are the entire job of this page, so they sit above the
+      fold with nothing competing for the click. No pricing, no preorder banner. */}
+  <section class="py-20 md:py-28 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-4xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-6" style="color:hsl(var(--eden-gold))">
+        Free Sample Weeks
+      </p>
+      <h1 class="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
+        Two Real Weeks,<br /><span class="italic">Yours to Keep.</span>
+      </h1>
+      <div class="w-16 h-px mx-auto my-8" style="background-color:hsl(var(--eden-gold))"></div>
+      <p class="font-body text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
+        Eden's Table is a Christ-centered homeschool herbalism curriculum. These are not
+        previews or samplers. They are two complete weeks, five full lessons each, the
+        same pages families teach from all year.
+      </p>
+
+      <div id="get-free" class="flex flex-col items-center gap-4 scroll-mt-28">
+        <p class="font-accent text-xs tracking-[0.3em] uppercase" style="color:hsl(var(--eden-gold))">
+          Choose your grade band
+        </p>
+        <DualLeadMagnetCTAs size="xl" variant="eden" />
+        <p class="font-body text-sm text-muted-foreground max-w-md mx-auto mt-1">
+          Sent to your email straight away, free. No card, no obligation.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  {/* §2 What actually arrives. Answers "is this a real thing or a teaser". */}
+  <section class="py-16 px-6 bg-background">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="font-serif text-3xl md:text-4xl text-center mb-4" style="color:hsl(var(--eden-bark))">
+        What lands in your inbox
+      </h2>
+      <p class="font-body text-center text-muted-foreground max-w-2xl mx-auto mb-12">
+        Every sample week carries all five components, exactly as the full curriculum does.
+      </p>
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {components.map((c) => (
+          <div class="p-6 rounded-sm border" style="border-color:hsl(var(--eden-gold)/0.25);background-color:hsl(var(--eden-cream)/0.4)">
+            {/* lucide icons are React components: `className` + lucide's own
+                `color` prop, never a `style` string, which fails SSR. Matches the
+                house pattern at homeschool.astro:230. */}
+            <c.icon className="w-6 h-6 mb-4" color="hsl(var(--eden-sage))" aria-hidden="true" />
+            <h3 class="font-serif text-xl mb-2" style="color:hsl(var(--eden-bark))">{c.name}</h3>
+            <p class="font-body text-sm text-muted-foreground leading-relaxed">{c.note}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* §3 How it works. Three steps, because the objection is effort, not price. */}
+  <section class="py-16 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-4xl mx-auto">
+      <h2 class="font-serif text-3xl md:text-4xl text-center mb-12" style="color:hsl(var(--eden-bark))">
+        How it works
+      </h2>
+      <div class="grid gap-8 md:grid-cols-3">
+        {steps.map((s) => (
+          <div class="text-center">
+            <p class="font-serif text-5xl mb-4" style="color:hsl(var(--eden-gold))">{s.n}</p>
+            <h3 class="font-serif text-xl mb-3" style="color:hsl(var(--eden-bark))">{s.t}</h3>
+            <p class="font-body text-sm text-muted-foreground leading-relaxed">{s.d}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* §4 Closing CTA, then the one route onward to the paid offer. */}
+  <section class="py-20 px-6 bg-background">
+    <div class="max-w-3xl mx-auto text-center">
+      <h2 class="font-serif text-3xl md:text-4xl mb-6" style="color:hsl(var(--eden-bark))">
+        Start with a week you did not have to plan
+      </h2>
+      <div class="w-16 h-px mx-auto my-8" style="background-color:hsl(var(--eden-gold))"></div>
+      <DualLeadMagnetCTAs size="xl" variant="eden" />
+      <p class="font-body text-sm text-muted-foreground mt-10">
+        Already know you want the full year?
+        <a href="/homeschool" class="underline underline-offset-4" style="color:hsl(var(--eden-sage))">
+          See the whole curriculum
+        </a>.
+      </p>
+    </div>
+  </section>
+
+  {/* client:only, matching how /homeschool mounted it before #364. The controller
+      touches localStorage and the Supabase client at module load, so it must never
+      be server-rendered during the static build. */}
+  <WaitlistController client:only="react" />
+</MarketingLayout>
