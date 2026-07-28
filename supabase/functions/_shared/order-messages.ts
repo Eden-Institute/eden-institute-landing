@@ -82,7 +82,7 @@ export function buildPreorderConfirmationEmail(order: OrderRow): { subject: stri
 
 export function preorderSmsText(order: OrderRow): string {
   const ref = order.order_number ? ` Order ${order.order_number}.` : '';
-  return `Thank you for your preorder from The Eden Institute.${ref} Your card was charged today. We are aiming to ship ${SHIP_TARGET}, guaranteed on or before ${SHIP_GUARANTEE_TEXT}. You may cancel for a full refund any time before it ships. Reply STOP to opt out.`;
+  return `Thank you for your preorder from The Eden Institute (edeninstitute.health).${ref} Your card was charged today. We are aiming to ship ${SHIP_TARGET}, guaranteed on or before ${SHIP_GUARANTEE_TEXT}. You may cancel for a full refund any time before it ships. Reply STOP to opt out.`;
 }
 
 async function sendResendEmail(to: string, subject: string, html: string): Promise<string | null> {
