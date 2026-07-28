@@ -60,6 +60,7 @@ import {
   EMAIL_7_RESEND_POSITION,
 } from '../_shared/launch-sequence-templates.ts';
 import { foundersFormUrl } from '../_shared/founders-link.ts';
+import { buildBuyerEmail } from '../_shared/buyer-sequence-templates.ts';
 import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
 
@@ -851,6 +852,136 @@ async function drainLaunchQueue(): Promise<QueueResult> {
   return result;
 }
 
+// ── Buyer nurture (public.buyer_email_queue) ──────────────────────────────
+// The other half of the launch queue's purchase suppression. When a family
+// preorders, every pending launch row for them is cancelled, which before this
+// left them with one confirmation email and roughly fourteen weeks of silence
+// until the kit shipped. Six emails now carry them across that wait.
+//
+// Rows are keyed by ORDER, not by email, so a family who buys twice gets one
+// sequence per order rather than losing the second to a unique-email conflict.
+//
+// Two independent guards, because the cost of getting this wrong is emailing
+// someone about a kit they cancelled:
+//   1. trg_cancel_buyer_sequence cancels pending rows the moment an order
+//      turns cancelled or refunded
+//   2. the order's CURRENT status is re-read here at send time, embedded in
+//      the same query, in case a status changed without the trigger firing
+//      (a direct SQL update, a restore from backup)
+const BUYER_QUEUE_BATCH = 100;
+
+async function drainBuyerQueue(): Promise<QueueResult> {
+  const result: QueueResult = { processed: 0, sent: 0, failed: 0 };
+  const nowIso = new Date().toISOString();
+  const rows = await supabaseQuery(
+    `buyer_email_queue?select=id,order_id,recipient_email,first_name,sequence_position,retry_count,orders(status)` +
+      `&status=eq.pending&scheduled_for=lte.${encodeURIComponent(nowIso)}` +
+      `&order=scheduled_for.asc&limit=${BUYER_QUEUE_BATCH}`,
+  );
+  if (!Array.isArray(rows)) {
+    console.error('drainBuyerQueue: unexpected query result', JSON.stringify(rows));
+    return result;
+  }
+  if (rows.length > 0) console.log(`drainBuyerQueue: found ${rows.length} due rows`);
+
+  for (const row of rows) {
+    result.processed++;
+    try {
+      const email = String(row.recipient_email);
+      const firstName = row.first_name || 'friend';
+      const pos = row.sequence_position;
+      const orderStatus = row.orders?.status;
+
+      if (orderStatus === 'cancelled' || orderStatus === 'refunded') {
+        await supabaseQuery(`buyer_email_queue?id=eq.${row.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: 'cancelled',
+            error_message: `order ${orderStatus}`,
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        continue;
+      }
+
+      if (await isUnsubscribed(email, 'homeschool')) {
+        await supabaseQuery(`buyer_email_queue?id=eq.${row.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: 'cancelled',
+            error_message: 'recipient unsubscribed (homeschool)',
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        continue;
+      }
+
+      const built = buildBuyerEmail(pos, firstName);
+      if (!built) {
+        await supabaseQuery(`buyer_email_queue?id=eq.${row.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: 'failed',
+            error_message: `Unknown buyer sequence_position ${pos}`,
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        result.failed++;
+        continue;
+      }
+
+      const send = await sendEmail(
+        email,
+        built.subject,
+        built.html,
+        'homeschool',
+        engagementTags('buyer_2026', `buyer_${pos}`),
+      );
+      if (send.ok) {
+        await supabaseQuery(`buyer_email_queue?id=eq.${row.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: 'sent',
+            sent_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        result.sent++;
+      } else {
+        const newRetry = (row.retry_count ?? 0) + 1;
+        const terminal = newRetry >= MAX_RETRIES;
+        await supabaseQuery(`buyer_email_queue?id=eq.${row.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: terminal ? 'failed' : 'pending',
+            retry_count: newRetry,
+            error_message: send.error,
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        if (terminal) result.failed++;
+      }
+      await new Promise((r) => setTimeout(r, RATE_LIMIT_MS));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`drainBuyerQueue: row ${row.id} threw:`, message);
+      const newRetry = (row.retry_count ?? 0) + 1;
+      const terminal = newRetry >= MAX_RETRIES;
+      await supabaseQuery(`buyer_email_queue?id=eq.${row.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status: terminal ? 'failed' : 'pending',
+          retry_count: newRetry,
+          error_message: message,
+          updated_at: new Date().toISOString(),
+        }),
+      });
+      if (terminal) result.failed++;
+    }
+  }
+  return result;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -874,16 +1005,17 @@ Deno.serve(async (req) => {
     const queue = await drainNurtureQueue();
     const magnet = await drainMagnetQueue();
     const launch = await drainLaunchQueue();
+    const buyer = await drainBuyerQueue();
     const legacy_email5 = await legacyEmail5();
 
     console.log(
       `nurture-emails run: queue=${JSON.stringify(
         queue,
-      )} magnet=${JSON.stringify(magnet)} launch=${JSON.stringify(launch)} legacy_email5=${JSON.stringify(legacy_email5)}`,
+      )} magnet=${JSON.stringify(magnet)} launch=${JSON.stringify(launch)} buyer=${JSON.stringify(buyer)} legacy_email5=${JSON.stringify(legacy_email5)}`,
     );
 
     return new Response(
-      JSON.stringify({ success: true, queue, magnet, launch, legacy_email5 }),
+      JSON.stringify({ success: true, queue, magnet, launch, buyer, legacy_email5 }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
