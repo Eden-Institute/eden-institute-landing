@@ -204,8 +204,10 @@ function bigButton(label: string, href: string): string {
 // Sent immediately after a successful founders-form submit. Before this existed,
 // a reservation produced NO confirmation of any kind: the SMS is best-effort and
 // silently no-ops while Twilio A2P is unapproved, so founders got only the
-// on-page message and nothing in writing. Deliberately promises EMAIL ONLY, not
-// text, because we cannot currently deliver a text.
+// on-page message and nothing in writing. The SMS is now a real path again
+// (A2P campaign CM441d10daf7fa12e8916e09629371ce25, opt-in box restored on
+// sprouts-founders.html), but this email is still the guaranteed one: it sends
+// whether or not they consented to a text, so it must stand on its own.
 const CONFIRM_SUBJECT = 'Your $249 founding price is reserved';
 function confirmationHtml(firstName: string, unsub: string): string {
   const name = firstName || 'friend';
@@ -216,7 +218,7 @@ function confirmationHtml(firstName: string, unsub: string): string {
 <tr><td style="padding:28px 30px;">
   <p style="font-family:Georgia,serif;font-size:17px;color:${B.deep};margin:0 0 18px;">Hi ${name},</p>
   ${para('Your founding price of <strong>$249</strong> for the complete 36-week Sprouts kit is reserved, and your family is on the first-access list.')}
-  ${para('Preorders open <strong>July 29</strong>. You will hear from me by email before we announce it anywhere else.')}
+  ${para(`Preorders are open now. You can complete yours at <a href="https://edeninstitute.health/preorder" style="color:${B.sage};text-decoration:underline;">edeninstitute.health/preorder</a> whenever you are ready.`)}
   ${para('Nothing is owed today. This simply holds your place and your price. Once the first 500 kits are claimed, the founding price rises to $349.')}
   ${para('Thank you for building this alongside us. It matters more than you know that the first families through the door are ones who chose it early.')}
   <p style="font-family:Georgia,serif;font-size:15px;line-height:1.75;color:${B.text};margin:22px 0 4px;">Grace and health,</p>
@@ -279,7 +281,7 @@ function shell(inner: string): string {
 function formPage(email: string, name: string, token: string, err = ''): string {
   return shell(`
 <h1 style="font-size:23px;color:${B.deep};margin:0 0 10px;">Reserve your $249 founder's price</h1>
-<p style="font-size:15px;line-height:1.7;color:${B.text};margin:0 0 18px;">You will be first to know when preorders open, by email, before we announce it anywhere else. Add your details to lock it in.</p>
+<p style="font-size:15px;line-height:1.7;color:${B.text};margin:0 0 18px;">Preorders are open now. Add your details to lock in your founding price of $249, and we will confirm everything by email.</p>
 ${err ? `<p style="font-size:14px;color:#993C1D;margin:0 0 14px;">${err}</p>` : ''}
 <form method="POST" action="${SUPABASE_URL}/functions/v1/founders-lock">
   <input type="hidden" name="t" value="${token}">
@@ -299,7 +301,7 @@ function confirmationPage(name: string): string {
 <div style="text-align:center;">
 <div style="font-size:40px;color:${B.gold};">&#9826;</div>
 <h1 style="font-size:24px;color:${B.deep};margin:8px 0 12px;">You&rsquo;re locked in, ${n}.</h1>
-<p style="font-size:16px;line-height:1.7;color:${B.text};margin:0 0 14px;">Your founding price of <strong>$249</strong> for the complete 36-week Sprouts kit is reserved, and you are on the first-access list. When preorders open, you will hear from us by email before we announce it anywhere else. Check your inbox, a confirmation is on its way.</p>
+<p style="font-size:16px;line-height:1.7;color:${B.text};margin:0 0 14px;">Your founding price of <strong>$249</strong> for the complete 36-week Sprouts kit is reserved, and you are on the first-access list. Preorders are open now, and you can complete yours whenever you are ready. Check your inbox, a confirmation is on its way.</p>
 <a href="https://www.facebook.com/EdensTableHomeschoolCurriculum" style="display:inline-block;background:${B.gold};color:${B.forest};font-size:15px;font-weight:bold;text-decoration:none;padding:13px 28px;border-radius:8px;">Follow along on Facebook</a>
 <p style="font-size:15px;color:${B.text};margin:24px 0 0;">Grace and health,<br><strong>Camila</strong></p>
 </div>`);
