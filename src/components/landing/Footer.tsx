@@ -49,7 +49,7 @@ const Footer = () => {
                   href={s.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:opacity-70 transition-opacity underline underline-offset-4"
+                  className="inline-flex items-center min-h-[44px] hover:opacity-70 transition-opacity underline underline-offset-4"
                   style={{ color: "hsl(var(--eden-gold))" }}
                 >
                   {s.label}
@@ -58,29 +58,29 @@ const Footer = () => {
             </div>
 
             <div className="mt-6 flex items-center justify-center gap-2 text-xs font-body flex-wrap" style={{ color: "hsl(var(--eden-parchment) / 0.3)" }}>
-              <Link to={ROUTES.WHY_EDEN} className="hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
+              <Link to={ROUTES.WHY_EDEN} className="inline-flex items-center min-h-[44px] px-0.5 hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
                 Why Eden
               </Link>
               <span>|</span>
-              <Link to={ROUTES.TERMS} className="hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
+              <Link to={ROUTES.TERMS} className="inline-flex items-center min-h-[44px] px-0.5 hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
                 Terms &amp; Conditions
               </Link>
               <span>|</span>
-              <Link to={ROUTES.PRIVACY} className="hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
+              <Link to={ROUTES.PRIVACY} className="inline-flex items-center min-h-[44px] px-0.5 hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
                 Privacy Policy
               </Link>
               <span>|</span>
-              <Link to={ROUTES.COOKIES} className="hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
+              <Link to={ROUTES.COOKIES} className="inline-flex items-center min-h-[44px] px-0.5 hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
                 Cookie Policy
               </Link>
               <span>|</span>
               {/* /returns and /contact are static Astro pages, not SPA routes —
                   plain <a> so the browser does a full navigation. */}
-              <a href="/returns" className="hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
+              <a href="/returns" className="inline-flex items-center min-h-[44px] px-0.5 hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
                 Returns &amp; Refunds
               </a>
               <span>|</span>
-              <a href="/contact" className="hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
+              <a href="/contact" className="inline-flex items-center min-h-[44px] px-0.5 hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
                 Contact
               </a>
             </div>
