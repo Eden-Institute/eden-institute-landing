@@ -51,6 +51,10 @@
     {
       "path": "/api/cron/founder-evening-recap",
       "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/launch-email-preview",
+      "schedule": "0 15 * * *"
     }
   ]
 }
