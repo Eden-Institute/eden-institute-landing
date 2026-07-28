@@ -418,7 +418,11 @@ Deno.serve(async (req) => {
       await upsertInterest(reserveEmail, name, phone, consent, reserveSource);
       await addContact(reserveEmail, name);
       if (consent && phone) {
-        await sendSms(phone, "You're on the Sprouts founder's list. We'll text you the moment preorders open, before anyone else. Grace and health, Camila at The Eden Institute. Reply STOP to opt out.").catch(() => {});
+        // Deliberately worded so it stays true whether preorders opened early or
+        // open on the announced date. The previous copy promised to text "the
+        // moment preorders open", which went stale the instant PREORDERS_LIVE
+        // was flipped. Do not reintroduce a promise about a future event here.
+        await sendSms(phone, "Your $249 founding price for the Sprouts kit is reserved. The Eden Institute, edeninstitute.health. Watch your email for the link. Reply STOP to opt out.").catch(() => {});
       }
       // Confirmation email. Best effort so a Resend hiccup never loses a
       // reservation that is already saved, but LOGGED (unlike the SMS above,
