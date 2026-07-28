@@ -156,6 +156,23 @@ function verseCard(quote: string, ref: string): string {
 </table>`;
 }
 
+// A customer testimonial card. Same panel as verseCard so the two read as one
+// system, but the attribution line carries a name and who the person is rather
+// than a Scripture reference.
+//
+// EVERY quote passed to this helper must be a real, attributed thing a real
+// family actually wrote, copied verbatim from web/pages/homeschool.astro where
+// it is already published. Trimming to a shorter span is fine; rewording,
+// merging two people, or inventing an attribution is not.
+function quoteCard(quote: string, attribution: string): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">
+<tr><td style="background-color:${BRAND.bgOuter};padding:18px 22px;border-left:3px solid ${BRAND.gold};">
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.65;color:${BRAND.forest};margin:0 0 8px 0;font-style:italic;">&ldquo;${quote}&rdquo;</p>
+<p style="font-family:Georgia,serif;font-size:13px;color:${BRAND.footerText};margin:0;">${attribution}</p>
+</td></tr>
+</table>`;
+}
+
 // ── The standard launch footer: ONE component, rendered identically in all
 // seven emails. Optional Mountain Rose shop block (emails 3, 5, 7 only) sits
 // above it; the per-email framing line is the only thing that varies there.
@@ -615,10 +632,19 @@ export function buildLaunchEmail8(firstName: string, founding = true): { subject
   };
 }
 
-// ── EMAIL 9 — Day 2 — inside the box ──
+// ── EMAIL 9 — Day 2 — inside the box, then the case for buying now ──
+// Conversion rebuild 2026-07-28 (founder direction: "push the sale"). The box
+// walkthrough stays, because knowing what arrives is what makes the price
+// legible, and three things are added behind it:
+//   1. the one-purchase-instead-of-six argument, lifted from the /homeschool
+//      objections section so the site and the emails make the SAME case
+//   2. two real testimonials, verbatim from that page
+//   3. the fact that both families taught it before anything was printed, which
+//      is the honest answer to "why would I pay months ahead"
+// No research or statistics: none exist on the site, and none will be invented.
 export function buildLaunchEmail9(firstName: string, founding = true): { subject: string; html: string } {
   const body =
-    `${preheader(`A look inside the Sprouts kit, piece by piece.`)}` +
+    `${preheader(`Six components, 180 lessons, and what it replaces.`)}` +
     `${p(`Hi ${firstName},`)}` +
     `${p(`Before you decide anything, I want you to see exactly what arrives at your door. So open the box with me.`)}` +
     `${bullet(`<strong>The Teacher&rsquo;s Guide</strong>: your entire year, laid out day by day. Monday you meet the herb in a story. By Friday your crew is chanting a rhyme they will keep for life.`)}` +
@@ -628,7 +654,21 @@ export function buildLaunchEmail9(firstName: string, founding = true): { subject
     `${bullet(`<strong>Around the Table Cards</strong>: dinner questions that need zero prep.`)}` +
     `${bullet(`<strong>The Read-Aloud Storybook</strong>: the Eden family, week after week, carrying it all.`)}` +
     `${spacer(8)}` +
-    `${p(`Thirty-six herbs. Thirty-six weeks. Science, history, geography, language, and Scripture, all gathered around one living thing your child can hold. Solomon wrote, &ldquo;Train up a child in the way he should go, even when he is old he will not depart from it&rdquo; (Proverbs 22:6, NASB). That is what a year of this rhythm builds: a way, not just a workbook.`)}` +
+    `${p(`Thirty-six weeks. 180 daily lessons. Six components built together, week by week, as one year rather than six things you have to make agree with each other.`)}` +
+    `${goldDivider()}` +
+    `${heading(`One purchase instead of six`)}` +
+    `${p(`A typical year assembled from separate curricula means a science program, a nature study, a Bible curriculum, a copywork book, an art component, and a read-aloud list. Six purchases, six teacher&rsquo;s guides written by six people who never spoke to each other, and a stack of evenings spent making them line up.`)}` +
+    `${p(`Eden&rsquo;s Table is one box. Bible, science, language arts, math, art, history, geography, Latin, health, and character are already woven in, already scheduled, already telling you which day carries which.`)}` +
+    `${p(founding
+      ? `At the founding price that is <strong>$249 for the year</strong>. Across 36 weeks, under $7 a week for your entire core. One decision, made once, in July, instead of six decisions you are still second-guessing in October.`
+      : `That is <strong>$349 for the year</strong>. Across 36 weeks, under $10 a week for your entire core. One decision, made once, instead of six you are still second-guessing in October.`)}` +
+    `${p(`What you are not also buying: a separate science curriculum. A separate nature study. A separate Bible curriculum. A separate art plan. A separate read-aloud list. A second evening of your week spent making all of them agree with each other.`)}` +
+    `${goldDivider()}` +
+    `${heading(`They taught it before anyone printed a thing`)}` +
+    `${p(`I know what it is to be asked for money months before a box arrives. So I would rather you hear from families who already sat down and taught this at their own tables, using the free weeks. Nobody below is reviewing a box. They are telling you what happened in their kitchen.`)}` +
+    `${quoteCard(`This curriculum is truly amazing! I have numerous herbal books from all sorts of authors, and this curriculum truly puts it into bite-size chunks of information while still incorporating incredible vocabulary, concepts, and quality stories. The fact that you are incorporating all these other topics beyond just herbal information is truly incredible as well.`, `Kendria Scriver, curriculum writer`)}` +
+    `${quoteCard(`Ahhhhhh I just spent the last few hours poring over the free sample you sent us. This curriculum is absolutely fantastic. I cannot wait to buy this in the fall. This will be our kids favourite curriculum to explore.`, `Coralee, who read the free sample cover to cover`)}` +
+    `${p(`Solomon wrote, &ldquo;Train up a child in the way he should go, even when he is old he will not depart from it&rdquo; (Proverbs 22:6, NASB). That is what a year of this rhythm builds: a way, not just a workbook.`)}` +
     `${p(founding
       ? `Founding families bring the whole kit home for $249 while the first 500 last. Then it is $349.`
       : `The whole kit, the whole year, comes home for $349.`)}` +
