@@ -24,7 +24,7 @@ const Privacy = () => {
           <div className="relative z-10">
             <h1 className="font-serif text-3xl md:text-4xl font-bold mb-2" style={{ color: "hsl(var(--eden-parchment))" }}>Privacy Policy</h1>
             <p className="font-body text-sm" style={{ color: "hsl(var(--eden-parchment) / 0.8)" }}>The Eden Institute — edeninstitute.health</p>
-            <p className="font-body text-xs mt-2" style={{ color: "hsl(var(--eden-parchment) / 0.6)" }}>Effective Date: June 9, 2026 · Last Updated: March 11, 2026</p>
+            <p className="font-body text-xs mt-2" style={{ color: "hsl(var(--eden-parchment) / 0.6)" }}>Effective Date: June 9, 2026 · Last Updated: July 28, 2026</p>
           </div>
         </header>
 
@@ -41,6 +41,7 @@ const Privacy = () => {
               <li>Name and email address (when creating an account or taking the Body Pattern Quiz).</li>
               <li>Password (encrypted and stored securely).</li>
               <li>Payment information (processed securely by Stripe — we do not store credit card numbers).</li>
+              <li>Mobile phone number (only when you provide one at checkout or on a reservation form).</li>
               <li>Quiz responses and body pattern results.</li>
               <li>Community posts and discussion contributions.</li>
             </ul>
@@ -68,8 +69,13 @@ const Privacy = () => {
           </section>
 
           <section>
-            <h2 className="font-serif text-xl font-semibold text-primary mb-3">4. Email Communications</h2>
+            <h2 className="font-serif text-xl font-semibold text-primary mb-3">4. Email and Text Message Communications</h2>
+            <h3 className="font-serif text-lg font-medium text-foreground/80 mb-2">Email</h3>
             <p>When you take the Body Pattern Quiz, you consent to receiving a nurture email sequence related to your quiz results and our educational offerings. You may unsubscribe from marketing emails at any time by clicking the "Unsubscribe" link in any email. Transactional emails (such as enrollment confirmations and invoices) are not subject to unsubscribe as they are necessary for service delivery.</p>
+            <h3 className="font-serif text-lg font-medium text-foreground/80 mb-2 mt-4">Text messages (SMS)</h3>
+            <p>We send text messages only to customers who explicitly opt in by checking an unchecked box at checkout, or on a reservation form, next to language describing the messages they will receive. We never add a phone number to text messaging without that affirmative opt-in, and we never obtain phone numbers by purchase, rental, or exchange.</p>
+            <p className="mt-2">These messages are transactional and relate to an order you placed, such as confirming a preorder, its amount, its expected ship window, and your right to cancel. Message frequency is low, typically one to two messages per order. Message and data rates may apply. You may cancel at any time by replying STOP, and you may reply HELP for assistance.</p>
+            <p className="mt-2"><strong>Mobile information is never sold, rented, or shared with third parties or affiliates for marketing or promotional purposes.</strong> Phone numbers are shared only with the messaging provider that delivers the message on our behalf, strictly for that delivery, and with no other party. Opting out of text messages does not affect your order or your email preferences.</p>
           </section>
 
           <section>
@@ -79,6 +85,7 @@ const Privacy = () => {
               <li><strong>Stripe</strong> — for payment processing.</li>
               <li><strong>LearnWorlds</strong> — for course delivery and student management.</li>
               <li><strong>Resend</strong> — for email delivery.</li>
+              <li><strong>Twilio</strong> — for text message delivery, to customers who opted in.</li>
             </ul>
             <p className="mt-2">These providers are contractually obligated to protect your information and use it only for the purposes we specify.</p>
             <p className="mt-2">We may also disclose information if required by law, court order, or governmental regulation, or to protect the rights, property, or safety of The Eden Institute, our users, or others.</p>
