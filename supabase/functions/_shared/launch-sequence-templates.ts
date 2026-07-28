@@ -606,28 +606,40 @@ function preorderButton(label = 'Preorder Your Kit'): string {
 
 // ── EMAIL 8 — Day 0 — launch blast (founder-approved copy, $249) ──
 export function buildLaunchEmail8(firstName: string, founding = true): { subject: string; html: string } {
+  // Two SEPARATE claims, and they must stay separate (founder decision
+  // 2026-07-25, mirrored in PreorderBuyBox.tsx): Founding Family status is the
+  // first 50 PAID orders, the founding PRICE runs to 500 kits. Rank is not known
+  // until payment clears, so this may never tell a reader they ARE one of the
+  // fifty.
+  //
+  // ⚠️ It also must not say the CONFIRMATION email will tell them. That email is
+  // one fixed template (buildPreorderConfirmationEmail) with no Founding Family
+  // logic in it, so as of 2026-07-28 that promise had nothing behind it and the
+  // first buyers would have waited for a message that never came. Reworded to a
+  // promise the founder can keep by hand: sort orders by created_at, take the
+  // first 50. If confirmation-time detection is built later, this line can name
+  // the confirmation email again.
   const offer = founding
     ? `${goldDivider()}` +
-      `${p(`Here is what founding looks like. The complete kit will sell for <strong>$349</strong>. The first 500 founding families preorder it for <strong>$249</strong>, and that founding standing stays with your family as every older grade band opens.`)}` +
-      `${p(`When the 500 are claimed, the founding price is gone for good.`)}`
+      `${p(`<strong>The first 50 families to order</strong> become our Founding Families: the private group, a seat at Coffee and Curriculum, and a vote on what we build next. That standing stays with your family as every later grade band opens. If you are one of the fifty, I will tell you.`)}` +
+      `${p(`<strong>The first 500 kits</strong> are <strong>$249</strong> instead of <strong>$349</strong>. That is $100 off. When the 500 are claimed, the founding price is gone for good.`)}`
     : `${goldDivider()}` +
-      `${p(`The complete kit is <strong>$349</strong>: a full year of curriculum, every component, one box on your doorstep. Preorder now and yours will be among the first to ship.`)}`;
+      `${p(`The complete kit is <strong>$349</strong>: a full year of curriculum, every component, one box on your doorstep.`)}`;
   const body =
     `${preheader(founding
-      ? `Founding families preorder Eden's Table for $249 before it becomes $349.`
-      : `Eden's Table preorder is open. Bring the whole year home.`)}` +
+      ? `$249 for the first 500 kits. Limited print run, first come, first served.`
+      : `Limited print run, first come, first served.`)}` +
+    `${heading(`Preorders are open!!`)}` +
     `${p(`Hi ${firstName},`)}` +
-    `${p(`Some morning soon, your kitchen could smell like lavender while your six-year-old tells you what it does, and where God planted it first.`)}` +
-    `${p(`That is the whole dream. And the doors are open: it is on the table.`)}` +
-    `${p(`If you have homeschooled longer than a season, you know the ache. Science in one book, history in another, faith tacked on at the end, and you stitching it all together at ten o&rsquo;clock at night. Meanwhile the world keeps teaching our children that their bodies are machines and health comes from a bottle.`)}` +
-    `${p(`Eden&rsquo;s Table was built to mend that. One herb each week becomes the doorway to every subject: the science of how it serves the body God designed, the history of the grandmothers and physicians who trusted it, the geography of where He planted it, all of it woven through Scripture at your own table. Thirty-six herbs. A full year of project-based learning your children do with their hands, not just their pencils.`)}` +
-    `${p(`And you do not need to be an herbalist to teach it. The Teacher&rsquo;s Guide lays out your week day by day. You open it, and you teach.`)}` +
-    `${p(`More than a thousand homeschool families have already pulled up a chair through the free preview weeks. Their kitchens, and their kids, are why we kept building.`)}` +
+    `${p(`Preorders for Eden&rsquo;s Table Sprouts are open right now.`)}` +
+    `${p(`This is a limited print run. Kits ship in the order they are paid for, first come, first served.`)}` +
     offer +
-    `${preorderButton()}` +
+    `${goldDivider()}` +
+    `${p(`Six components, 36 weeks, 180 daily lessons. Kits ship ${EMAIL_SHIP_TARGET}.`)}` +
+    `${preorderButton(`Preorder Now`)}` +
     `${signature()}`;
   return {
-    subject: founding ? `The first 500 kits are on the table` : `The kits are on the table`,
+    subject: `Preorders are open!!`,
     html: launchWrapper(body),
   };
 }
