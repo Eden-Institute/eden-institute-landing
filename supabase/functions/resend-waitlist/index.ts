@@ -922,18 +922,23 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Phase 3.1.2: enqueue the magnet Day-7 (Week 2) + Day-14 (Facebook) sends into
+    // Phase 3.1.2: enqueue the magnet Day-7 (Week 2) send into
     // public.magnet_email_queue (NOT nurture_email_queue, which is the quiz drip).
     // Drained by the nurture-emails cron. Non-fatal: a failure here never blocks signup.
+    //
+    // 2026-07-28: position 3 (Day-14 Facebook) is NO LONGER enqueued. A new lead
+    // now gets free week 1 inline, free week 2 on day 7, and then the preorder
+    // series from day 9 (enqueue_launch_sequence_on_signup, migration
+    // 20260728233000). Positions 4-7 chain off 3 via MAGNET_CHAIN_NEXT in
+    // nurture-emails, so dropping 3 ends the whole W3-W7 tail without touching
+    // the chain map, and without stranding anyone already partway through it.
     if (welcomeSent && entry_funnel === 'edens_table' && (source === 'sprouts_magnet' || source === 'seedlings_magnet')) {
       try {
         const band = source === 'sprouts_magnet' ? 'sprouts' : 'seedlings';
         const nowMs = Date.now();
         const day7 = new Date(nowMs + 7 * 24 * 60 * 60 * 1000).toISOString();
-        const day14 = new Date(nowMs + 14 * 24 * 60 * 60 * 1000).toISOString();
         const magnetRows = [
           { recipient_email: normalizedEmail, first_name: firstNameSafe, band, sequence_position: 2, scheduled_for: day7, status: 'pending' },
-          { recipient_email: normalizedEmail, first_name: firstNameSafe, band, sequence_position: 3, scheduled_for: day14, status: 'pending' },
         ];
         const mqRes = await fetch(`${SUPABASE_URL}/rest/v1/magnet_email_queue?on_conflict=recipient_email,band,sequence_position`, {
           method: 'POST',
@@ -949,7 +954,7 @@ Deno.serve(async (req) => {
           const t = await mqRes.text().catch(() => '<unreadable>');
           console.error('magnet_email_queue UPSERT failed', { status: mqRes.status, body: t, email: normalizedEmail });
         } else {
-          console.log('Magnet Week 2 + Facebook emails enqueued for', normalizedEmail, `(${band}, days 7/14)`);
+          console.log('Magnet Week 2 enqueued for', normalizedEmail, `(${band}, day 7)`);
         }
       } catch (mqErr) {
         console.error('Magnet enqueue error:', String(mqErr));
