@@ -185,7 +185,13 @@ async function sendSms(toPhone: string, body: string): Promise<{ skipped?: boole
   return { status: r.status };
 }
 
-// ── Email #1 (locked copy: gratitude + read-aloud + updated downloads + first-access CTA) ──
+// ── Email #1 (locked copy: gratitude + read-aloud + updated downloads + founding-price CTA) ──
+// Copy is LOCKED and changes need founder approval. Approved change 2026-07-28: the
+// preorder paragraph and CTA promised "first access" and to email "the moment preorders
+// open". PREORDERS_LIVE was already true, so both were describing an event that had
+// already happened. Rewritten to say preorders are open and the price holds while the
+// first 500 kits last. Everything above this line (gratitude, read-aloud, downloads)
+// is untouched. This blast already sent once; the rewrite only matters on a resend.
 const W1: [string, string][] = [
   ['Read-Aloud: Meet the Family', `${LM}/hs-sprouts-w1-ra-lavender.pdf`], ["Teacher's Guide", `${LM}/hs-sprouts-w1-tg-lavender.pdf`], ['Student Notebook', `${LM}/hs-sprouts-w1-nb-lavender.pdf`], ['Around the Table Cards', `${LM}/hs-sprouts-w1-att-lavender.pdf`], ['Field Cards', `${LM}/hs-sprouts-w1-fc-lavender.pdf`], ['Recipe Cards', `${LM}/hs-sprouts-w1-rc-lavender.pdf`],
 ];
@@ -217,7 +223,7 @@ function confirmationHtml(firstName: string, unsub: string): string {
 <tr><td style="background:${B.forest};padding:24px;text-align:center;"><div style="color:${B.gold};font-family:Georgia,serif;font-size:20px;letter-spacing:2px;">THE EDEN INSTITUTE</div><div style="color:${B.footer};font-family:Georgia,serif;font-size:11px;letter-spacing:1.5px;margin-top:5px;">BIBLICAL HERBALISM</div></td></tr>
 <tr><td style="padding:28px 30px;">
   <p style="font-family:Georgia,serif;font-size:17px;color:${B.deep};margin:0 0 18px;">Hi ${name},</p>
-  ${para('Your founding price of <strong>$249</strong> for the complete 36-week Sprouts kit is reserved, and your family is on the first-access list.')}
+  ${para('Your founding price of <strong>$249</strong> for the complete 36-week Sprouts kit is reserved, and your family is on the founders list.')}
   ${para(`Preorders are open now. You can complete yours at <a href="https://edeninstitute.health/preorder" style="color:${B.sage};text-decoration:underline;">edeninstitute.health/preorder</a> whenever you are ready.`)}
   ${para('Nothing is owed today. This simply holds your place and your price. Once the first 500 kits are claimed, the founding price rises to $349.')}
   ${para('Thank you for building this alongside us. It matters more than you know that the first families through the door are ones who chose it early.')}
@@ -257,8 +263,8 @@ function announcementHtml(firstName: string, formLink: string, unsub: string): s
   ${dlGroup('Week 1 &middot; Lavender', W1)}
   ${dlGroup('Week 2 &middot; Chamomile', W2)}
   <div style="border-top:1px solid #E0D7C2;margin:22px 0 6px;"></div>
-  ${para('Preorders for a limited run of 500 kits open soon, and this list hears first. Add your name and phone number and we will email you the moment preorders open, before we announce it anywhere else, and hold your founding price of $249 for the complete 36-week kit. Once preorders reach 500 kits, the founding price rises to $349.')}
-  ${bigButton("Reserve my $249 price + first access", formLink)}
+  ${para('Preorders for a limited run of 500 kits are open now, and the founding price of $249 for the complete 36-week kit holds while they last. Add your name and we will lock that price in for you and confirm everything by email. Once preorders reach 500 kits, the price rises to $349.')}
+  ${bigButton("Lock in my $249 founding price", formLink)}
   <p style="font-family:Georgia,serif;font-size:13px;color:#8A8470;text-align:center;margin:0;">We post on Facebook too, but our list always hears first. <a href="https://www.facebook.com/EdensTableHomeschoolCurriculum" style="color:${B.sage};">Follow along.</a></p>
   <p style="font-family:Georgia,serif;font-size:15px;line-height:1.6;color:${B.text};margin:22px 0 2px;">Grace and health,</p>
   <p style="font-family:Georgia,serif;font-size:15px;font-weight:bold;color:${B.deep};margin:0;">Camila</p>
@@ -301,7 +307,7 @@ function confirmationPage(name: string): string {
 <div style="text-align:center;">
 <div style="font-size:40px;color:${B.gold};">&#9826;</div>
 <h1 style="font-size:24px;color:${B.deep};margin:8px 0 12px;">You&rsquo;re locked in, ${n}.</h1>
-<p style="font-size:16px;line-height:1.7;color:${B.text};margin:0 0 14px;">Your founding price of <strong>$249</strong> for the complete 36-week Sprouts kit is reserved, and you are on the first-access list. Preorders are open now, and you can complete yours whenever you are ready. Check your inbox, a confirmation is on its way.</p>
+<p style="font-size:16px;line-height:1.7;color:${B.text};margin:0 0 14px;">Your founding price of <strong>$249</strong> for the complete 36-week Sprouts kit is reserved, and you are on the founders list. Preorders are open now, and you can complete yours whenever you are ready. Check your inbox, a confirmation is on its way.</p>
 <a href="https://www.facebook.com/EdensTableHomeschoolCurriculum" style="display:inline-block;background:${B.gold};color:${B.forest};font-size:15px;font-weight:bold;text-decoration:none;padding:13px 28px;border-radius:8px;">Follow along on Facebook</a>
 <p style="font-size:15px;color:${B.text};margin:24px 0 0;">Grace and health,<br><strong>Camila</strong></p>
 </div>`);
