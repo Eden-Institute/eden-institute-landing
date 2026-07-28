@@ -24,7 +24,7 @@ const Terms = () => {
           <div className="relative z-10">
             <h1 className="font-serif text-3xl md:text-4xl font-bold mb-2" style={{ color: "hsl(var(--eden-parchment))" }}>Terms and Conditions</h1>
             <p className="font-body text-sm" style={{ color: "hsl(var(--eden-parchment) / 0.8)" }}>The Eden Institute — edeninstitute.health</p>
-            <p className="font-body text-xs mt-2" style={{ color: "hsl(var(--eden-parchment) / 0.6)" }}>Effective Date: June 9, 2026 · Last Updated: March 11, 2026</p>
+            <p className="font-body text-xs mt-2" style={{ color: "hsl(var(--eden-parchment) / 0.6)" }}>Effective Date: June 9, 2026 · Last Updated: July 28, 2026</p>
           </div>
         </header>
 
@@ -133,27 +133,38 @@ const Terms = () => {
           </section>
 
           <section>
-            <h2 className="font-serif text-xl font-semibold text-primary mb-3">18. Governing Law</h2>
+            <h2 className="font-serif text-xl font-semibold text-primary mb-3">18. Text Message (SMS) Program</h2>
+            <p>We operate a text message program for customers who choose to receive order updates by text. Participation is entirely optional and is never a condition of any purchase.</p>
+            <p className="mt-2"><strong>How you opt in.</strong> You opt in by checking a box, which is never pre-checked, at checkout or on a reservation form, next to language describing the messages you will receive and providing the mobile number you want us to use. We do not add any number to the program without that affirmative opt-in.</p>
+            <p className="mt-2"><strong>What we send and how often.</strong> Messages are transactional and concern an order you placed, such as confirming a preorder, the amount charged, the expected ship window, and your right to cancel before shipment. Message frequency is low, typically one to two messages per order. We do not send promotional or marketing text messages under this program.</p>
+            <p className="mt-2"><strong>Cost.</strong> We do not charge for these messages. Message and data rates may apply according to your plan with your mobile carrier.</p>
+            <p className="mt-2"><strong>How to stop, and how to get help.</strong> Reply STOP to any message to cancel, and you will receive a single confirmation that no further messages will be sent. Reply HELP for assistance, or contact us at <a href="mailto:hello@edeninstitute.health" className="text-accent underline hover:text-accent/80">hello@edeninstitute.health</a> or (931) 575-5895. Opting out of text messages does not cancel your order and does not change your email preferences.</p>
+            <p className="mt-2"><strong>Carriers.</strong> Carriers are not liable for delayed or undelivered messages. Delivery is not guaranteed and may be affected by your carrier, device, or coverage.</p>
+            <p className="mt-2"><strong>Your information.</strong> Mobile information is never sold, rented, or shared with third parties or affiliates for marketing or promotional purposes. See our <Link to={ROUTES.PRIVACY} className="text-accent underline hover:text-accent/80">Privacy Policy</Link> for details.</p>
+          </section>
+
+          <section>
+            <h2 className="font-serif text-xl font-semibold text-primary mb-3">19. Governing Law</h2>
             <p>These Terms and Conditions shall be governed by and construed in accordance with the laws of the State of Tennessee, United States, without regard to conflict of law principles. Any disputes arising under these Terms shall be subject to the exclusive jurisdiction of the courts located in Montgomery County, Tennessee.</p>
           </section>
 
           <section>
-            <h2 className="font-serif text-xl font-semibold text-primary mb-3">19. Severability</h2>
+            <h2 className="font-serif text-xl font-semibold text-primary mb-3">20. Severability</h2>
             <p>If any provision of these Terms is found to be unlawful, void, or unenforceable, that provision shall be deemed severed and shall not affect the validity and enforceability of the remaining provisions.</p>
           </section>
 
           <section>
-            <h2 className="font-serif text-xl font-semibold text-primary mb-3">20. No Waiver</h2>
+            <h2 className="font-serif text-xl font-semibold text-primary mb-3">21. No Waiver</h2>
             <p>Our failure to enforce any right or provision of these Terms shall not constitute a waiver of such right or provision.</p>
           </section>
 
           <section>
-            <h2 className="font-serif text-xl font-semibold text-primary mb-3">21. Entire Agreement</h2>
+            <h2 className="font-serif text-xl font-semibold text-primary mb-3">22. Entire Agreement</h2>
             <p>These Terms and Conditions, together with our <Link to={ROUTES.PRIVACY} className="text-accent underline hover:text-accent/80">Privacy Policy</Link> and <Link to={ROUTES.COOKIES} className="text-accent underline hover:text-accent/80">Cookie Policy</Link>, constitute the entire agreement between you and The Eden Institute regarding your use of the website and Services.</p>
           </section>
 
           <section>
-            <h2 className="font-serif text-xl font-semibold text-primary mb-3">22. Contact</h2>
+            <h2 className="font-serif text-xl font-semibold text-primary mb-3">23. Contact</h2>
             <p>If you have questions about these Terms, please contact us at:</p>
             <address className="mt-3 not-italic text-foreground/70">
               <p className="font-semibold">The Eden Institute</p>
