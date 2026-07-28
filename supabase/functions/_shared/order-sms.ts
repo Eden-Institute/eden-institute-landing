@@ -13,14 +13,27 @@ export function normalizePhone(raw: string | null | undefined): string {
   return `+${s}`;
 }
 
+/**
+ * Basic-auth pair for the Twilio REST API. Prefers the scoped API key, which can be
+ * revoked on its own, over TWILIO_AUTH_TOKEN, which is the master credential for the
+ * whole account. Either way the URL still carries the account SID. Returns an empty
+ * password when neither credential is configured, which callers treat as "skip".
+ */
+export function twilioBasicAuth(accountSid: string | undefined): [string, string] {
+  const keySid = Deno.env.get('TWILIO_API_KEY_SID');
+  const keySecret = Deno.env.get('TWILIO_API_KEY_SECRET');
+  if (keySid && keySecret) return [keySid, keySecret];
+  return [accountSid ?? '', Deno.env.get('TWILIO_AUTH_TOKEN') ?? ''];
+}
+
 /** Returns the Twilio message SID on success, or null if skipped (unconfigured / no number). */
 export async function sendSms(toPhoneRaw: string | null | undefined, body: string): Promise<string | null> {
   const sid = Deno.env.get('TWILIO_ACCOUNT_SID');
-  const tok = Deno.env.get('TWILIO_AUTH_TOKEN');
   const from = Deno.env.get('TWILIO_FROM');
   const msvc = Deno.env.get('TWILIO_MESSAGING_SERVICE_SID');
   const to = normalizePhone(toPhoneRaw);
-  if (!sid || !tok || (!from && !msvc) || !to) return null; // not configured / no number -> skip
+  const [user, pass] = twilioBasicAuth(sid);
+  if (!sid || !pass || (!from && !msvc) || !to) return null; // not configured / no number -> skip
 
   const params = new URLSearchParams();
   params.set('To', to);
@@ -31,7 +44,7 @@ export async function sendSms(toPhoneRaw: string | null | undefined, body: strin
   const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
     method: 'POST',
     headers: {
-      Authorization: `Basic ${btoa(`${sid}:${tok}`)}`,
+      Authorization: `Basic ${btoa(`${user}:${pass}`)}`,
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: params.toString(),

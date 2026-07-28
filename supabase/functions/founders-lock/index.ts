@@ -21,6 +21,7 @@
 
 import postgres from 'https://deno.land/x/postgresjs@v3.4.5/mod.js';
 import { shopApothecaryCard } from '../_shared/shop-cta.ts';
+import { twilioBasicAuth } from '../_shared/order-sms.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -172,15 +173,15 @@ function normalizePhone(raw: string): string {
 }
 async function sendSms(toPhone: string, body: string): Promise<{ skipped?: boolean; status?: number }> {
   const sid = Deno.env.get('TWILIO_ACCOUNT_SID');
-  const tok = Deno.env.get('TWILIO_AUTH_TOKEN');
   const from = Deno.env.get('TWILIO_FROM');
   const msvc = Deno.env.get('TWILIO_MESSAGING_SERVICE_SID');
-  if (!sid || !tok || (!from && !msvc) || !toPhone) return { skipped: true };
+  const [user, pass] = twilioBasicAuth(sid);
+  if (!sid || !pass || (!from && !msvc) || !toPhone) return { skipped: true };
   const params = new URLSearchParams();
   params.set('To', toPhone);
   if (msvc) params.set('MessagingServiceSid', msvc); else params.set('From', from!);
   params.set('Body', body);
-  const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, { method: 'POST', headers: { Authorization: 'Basic ' + btoa(`${sid}:${tok}`), 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
+  const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, { method: 'POST', headers: { Authorization: 'Basic ' + btoa(`${user}:${pass}`), 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
   return { status: r.status };
 }
 
@@ -327,7 +328,7 @@ Deno.serve(async (req) => {
     if (action === 'diag') {
       let dbOk = false, dbErr = '';
       try { await withDb(async (sql) => { await ensureTable(sql); await sql`SELECT 1`; }); dbOk = true; } catch (err) { dbErr = String(err); }
-      return jsonRes(200, { hasDbUrl: !!DB_URL, hasResend: !!RESEND_API_KEY, hasTwilio: !!(Deno.env.get('TWILIO_ACCOUNT_SID') && Deno.env.get('TWILIO_AUTH_TOKEN')), dbOk, dbErr });
+      return jsonRes(200, { hasDbUrl: !!DB_URL, hasResend: !!RESEND_API_KEY, hasTwilio: !!(Deno.env.get('TWILIO_ACCOUNT_SID') && twilioBasicAuth(Deno.env.get('TWILIO_ACCOUNT_SID'))[1]), dbOk, dbErr });
     }
     if (action === 'signlink') return jsonRes(200, { url: formUrl(await formToken(e, n, c)) });
     if (action === 'testsend') {
