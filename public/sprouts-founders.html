@@ -46,6 +46,13 @@
       <label>Mobile number (optional)</label>
       <input type="tel" id="phone" placeholder="(555) 123-4567" autocomplete="off">
       <p class="consent"><span>Only if you would like us to be able to reach you about your kit. We will confirm everything by email.</span></p>
+      <!-- SMS opt-in. MUST stay unchecked by default: an affirmative, unchecked-by-default
+           box is what the A2P 10DLC campaign registration describes, and a pre-checked box
+           is not consent. Consent is only honoured when a phone number is also given. -->
+      <p class="consent">
+        <input type="checkbox" id="sms">
+        <label for="sms">Optional: yes, text me updates about my Sprouts kit at the number above. Message and data rates may apply. Reply STOP at any time to opt out.</label>
+      </p>
       <button type="submit" id="btn">Lock in my $249 founder's price</button>
     </form>
   </div>
@@ -97,10 +104,11 @@
     var phone = document.getElementById('phone').value.trim();
     var email = emailEl.value.trim();
     if (!email) { showErr('Please add the email address you signed up with.'); return; }
-    // No SMS consent is collected while we cannot actually send a text. The
-    // number is kept so Camila can phone a founder if something goes wrong with
-    // their order. Restore an explicit opt-in checkbox before sending any SMS.
-    var consent = false;
+    // SMS consent, read from the unchecked-by-default box above. A2P campaign
+    // CM441d10daf7fa12e8916e09629371ce25 covers this traffic. founders-lock only
+    // texts when consent AND a phone number are both present, so leaving the
+    // number blank still opts out no matter what this box says.
+    var consent = document.getElementById('sms').checked;
     // The PHONE IS OPTIONAL. It was required until 2026-07-25, when a founder
     // clicked the button with it empty and the browser silently swallowed the
     // submit. A reservation is worth far more than a phone number, and the
