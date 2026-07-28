@@ -16,10 +16,25 @@ const seedlingsSubtitle =
   "Check your inbox — your free Seedlings Week 1 (Elderberry) downloads are on their way right now. Five real lessons to print and teach today. Week 2 (Tulsi) follows in seven days.";
 ---
 
+{/*
+  The className here is not decoration, it stops these buttons breaking the
+  page on a phone. The shadcn base carries whitespace-nowrap and size="lg" is
+  h-12 px-10, so an unwrappable label plus 80px of horizontal padding rendered
+  each button 411px wide inside a 375px viewport: 18px clipped off BOTH edges,
+  on the free-sample capture page that feeds the whole email sequence.
+  Measured 2026-07-28.
+
+  whitespace-normal lets the label wrap, h-auto + min-h-[48px] stops wrapped
+  text being clipped by the fixed height while keeping the 44px tap target,
+  and px-6 gives the text room back on small screens. w-full sm:w-auto because
+  the parent is flex-col on mobile (fill) and flex-row above it (share).
+  Same shape as the buttons in courses.astro, which already solved this.
+*/}
 <div class="flex flex-col sm:flex-row gap-3 justify-center items-stretch">
   <Button
     variant={variant}
     size={size}
+    className="w-full sm:w-auto whitespace-normal h-auto min-h-[48px] py-3 px-6 sm:px-10 leading-snug"
     data-waitlist-source="sprouts_magnet"
     data-waitlist-title="Get Sprouts Weeks 1 + 2 — Free"
     data-waitlist-subtitle={sproutsSubtitle}
@@ -29,6 +44,7 @@ const seedlingsSubtitle =
   <Button
     variant={variant}
     size={size}
+    className="w-full sm:w-auto whitespace-normal h-auto min-h-[48px] py-3 px-6 sm:px-10 leading-snug"
     data-waitlist-source="seedlings_magnet"
     data-waitlist-title="Get Seedlings Weeks 1 + 2 — Free"
     data-waitlist-subtitle={seedlingsSubtitle}
