@@ -21,17 +21,34 @@ const navLinks = [
       <span class="font-serif text-xl text-[#3B4A3F] tracking-wide">The Eden Institute</span>
       <span class="text-xs text-[#7A8C7E] tracking-widest uppercase font-sans">Biblical Herbalism Education</span>
     </a>
-    <nav class="hidden min-[880px]:flex items-center gap-8">
+    {/*
+      Breakpoint is 1140px, not 880px, and the arithmetic is why. The row is
+      capped at max-w-6xl (1152px) minus px-6 either side, so it never gets more
+      than 1104px however wide the window is. The three groups need:
+        logo 211 + nav 553 (at gap-6) + buttons 301 = 1065px
+      At the old 880px the desktop nav appeared roughly 200px short of fitting,
+      and because the cap applies at every width above 1152 it never came right:
+      at gap-8 the content wanted 1113px against 1104px available, so "Eden's
+      Table" and "The Book" wrapped to two lines and the buttons sat flush
+      against "Contact" with a zero-pixel gap. Measured on production 2026-07-28.
+
+      gap-6 buys back 48px (6 gaps x 8px) leaving 31px of headroom, and
+      whitespace-nowrap guarantees a label can never break mid-phrase again.
+      1140 is 1121 (the true minimum) plus a small margin for font fallback and
+      scrollbar differences. Between 880 and 1140 the hamburger menu takes over,
+      which already carries every link and both buttons.
+    */}
+    <nav class="hidden min-[1140px]:flex items-center gap-6">
       {navLinks.map((link) => (
         <a
           href={link.href}
           target={link.external ? "_blank" : undefined}
           rel={link.external ? "noopener noreferrer" : undefined}
-          class="text-sm font-sans text-[#4A5C4E] hover:text-[#2E3D32] tracking-wide transition-colors duration-200"
+          class="text-sm font-sans text-[#4A5C4E] hover:text-[#2E3D32] tracking-wide transition-colors duration-200 whitespace-nowrap"
         >{link.label}</a>
       ))}
     </nav>
-    <div class="hidden min-[880px]:flex items-center gap-3">
+    <div class="hidden min-[1140px]:flex items-center gap-3">
       <a
         href="/homeschool/herbs"
         class="text-sm font-sans px-5 py-2 rounded-sm tracking-wide transition-colors duration-200 min-h-[44px] inline-flex items-center"
@@ -46,7 +63,7 @@ const navLinks = [
     </div>
     <button
       id="eden-nav-toggle"
-      class="min-[880px]:hidden text-[#3B4A3F] min-h-[44px] min-w-[44px] flex items-center justify-center"
+      class="min-[1140px]:hidden text-[#3B4A3F] min-h-[44px] min-w-[44px] flex items-center justify-center"
       aria-label="Toggle menu"
       aria-expanded="false"
     >
@@ -54,7 +71,7 @@ const navLinks = [
       <svg id="eden-nav-close-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
     </button>
   </div>
-  <div id="eden-nav-mobile" class="hidden min-[880px]:hidden bg-[#FAF8F3] border-t border-[#D6CDB8] px-6 pb-6 pt-4 flex-col gap-5">
+  <div id="eden-nav-mobile" class="hidden min-[1140px]:hidden bg-[#FAF8F3] border-t border-[#D6CDB8] px-6 pb-6 pt-4 flex-col gap-5">
     {navLinks.map((link) => (
       <a
         href={link.href}
