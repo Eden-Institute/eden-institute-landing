@@ -40,7 +40,16 @@ export function buildPreorderConfirmationEmail(order: OrderRow): { subject: stri
   const amount = money(order.amount_total_cents);
   const body =
     p(`Hi ${firstName(order)},`) +
-    p(`Thank you. Your founding preorder is confirmed, and you are officially a founding member.`) +
+    // Wording is deliberately tier-NEUTRAL. This template has no way to tell a
+    // founding buyer from a retail one: OrderRow carries no product_id and no
+    // founding flag, and it fires on the paid transition for every order,
+    // including those placed after the founding 500 close. It therefore may not
+    // assert the founding price OR "founding member" status.
+    // It also may not imply Founding Family status, which is a SEPARATE tier
+    // (first 50 PAID orders, founder decision 2026-07-25) that this email cannot
+    // detect either. See PreorderBuyBox.tsx and launch email 8, which both keep
+    // the two claims apart.
+    p(`Thank you. Your preorder is confirmed and your kit is reserved in the first print run.`) +
     heading('Your order') +
     // The order number is the handle the customer needs for any later question, and
     // /returns tells them to quote it. Before this it existed nowhere they could see.
@@ -49,7 +58,8 @@ export function buildPreorderConfirmationEmail(order: OrderRow): { subject: stri
         + `Keep this. Quote it in any email to us about your order.`)
       : '') +
     p(`${item}${amount ? `: ${amount} (charged today)` : ''}`) +
-    p(`This is a founding preorder. Your patience helps fund the founding of this curriculum, and in exchange you receive the founding price and founding-member status.`) +
+    p(`Your patience helps fund the first print run of this curriculum. The amount above is what you paid today.`) +
+    p(`If your order is one of the first fifty, I will write to you separately about Founding Families.`) +
     // Two dates, deliberately. The first is what we are aiming for; the second is the
     // binding commitment the FTC delay-notice clock runs on. Both must be plainly
     // visible: if only the target were prominent, it would become the stated time.
@@ -59,7 +69,7 @@ export function buildPreorderConfirmationEmail(order: OrderRow): { subject: stri
       + `cancel for a full refund.`) +
     p(`Your card was charged today. You can also cancel for a full refund at any point `
       + `before your order ships, by replying to this email.`) +
-    p(`We are so grateful to have you with us at the founding of this.`) +
+    p(`We are so grateful to have you with us this early.`) +
     signature();
   // Transactional email: neutralize the marketing unsubscribe placeholder baked into
   // emailWrapper, and correct its quiz-funnel footer reason for purchase receipts.
@@ -67,12 +77,12 @@ export function buildPreorderConfirmationEmail(order: OrderRow): { subject: stri
     .split('{{UNSUB_URL}}').join('https://edeninstitute.health')
     .split("You're receiving this because you completed the Constitutional Assessment at edeninstitute.health.")
     .join("You're receiving this because you placed a preorder at edeninstitute.health.");
-  return { subject: 'Your founding preorder is confirmed', html };
+  return { subject: 'Your preorder is confirmed', html };
 }
 
 export function preorderSmsText(order: OrderRow): string {
   const ref = order.order_number ? ` Order ${order.order_number}.` : '';
-  return `Thank you for your founding preorder from The Eden Institute.${ref} Your card was charged today. We are aiming to ship ${SHIP_TARGET}, guaranteed on or before ${SHIP_GUARANTEE_TEXT}. You may cancel for a full refund any time before it ships. Reply STOP to opt out.`;
+  return `Thank you for your preorder from The Eden Institute.${ref} Your card was charged today. We are aiming to ship ${SHIP_TARGET}, guaranteed on or before ${SHIP_GUARANTEE_TEXT}. You may cancel for a full refund any time before it ships. Reply STOP to opt out.`;
 }
 
 async function sendResendEmail(to: string, subject: string, html: string): Promise<string | null> {
