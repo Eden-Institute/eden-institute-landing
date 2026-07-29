@@ -25,6 +25,21 @@ interface WaitlistModalProps {
    */
   source?: string;
   /**
+   * Optional next step shown on the SUCCESS screen, after the email is captured.
+   *
+   * Why this exists: the moment someone has just handed over their email is the
+   * highest-intent moment in the funnel, and the success screen was a dead end
+   * ("You're on the list. We'll be in touch."). This turns it into a doorway.
+   *
+   * Optional on purpose. This modal is shared by the quiz, community, courses and
+   * partner funnels; when these are undefined the success screen renders exactly
+   * as before, so no other surface changes.
+   */
+  successCtaHref?: string;
+  successCtaLabel?: string;
+  /** One or two sentences above the button, giving a reason to click. */
+  successCtaBlurb?: string;
+  /**
    * Explicit entry_funnel override, forwarded to the resend-waitlist EF.
    * Takes precedence over the legacy audienceId→funnel mapping there, so a
    * surface that shares an audienceId with another funnel (e.g. Community and
@@ -39,7 +54,7 @@ interface WaitlistModalProps {
   metadata?: Record<string, unknown>;
 }
 
-const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source = "waitlist", funnel, metadata }: WaitlistModalProps) => {
+const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source = "waitlist", funnel, metadata, successCtaHref, successCtaLabel, successCtaBlurb }: WaitlistModalProps) => {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
@@ -143,6 +158,20 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
           <div className="py-8 text-center">
             <p className="font-accent text-lg text-foreground italic mb-2">You're on the list. We'll be in touch.</p>
             <p className="font-body text-xs text-muted-foreground/70 italic">Using Gmail? Your first email may arrive in your Promotions or Spam folder. Please move it to your Primary inbox so you don't miss anything from us.</p>
+            {successCtaHref && successCtaLabel && (
+              <div className="mt-6 pt-6 border-t border-border">
+                {successCtaBlurb && (
+                  <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">{successCtaBlurb}</p>
+                )}
+                <a
+                  href={successCtaHref}
+                  className="inline-flex items-center justify-center min-h-[44px] px-6 py-3 rounded-sm font-body text-sm tracking-wide transition-colors duration-200"
+                  style={{ backgroundColor: "#2E3D32", color: "#FAF8F3" }}
+                >
+                  {successCtaLabel}
+                </a>
+              </div>
+            )}
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5 pt-2">
