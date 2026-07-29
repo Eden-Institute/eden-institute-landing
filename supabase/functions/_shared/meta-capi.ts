@@ -159,3 +159,121 @@ export async function sendMetaCapiPurchase(opts: {
     return false
   }
 }
+
+/**
+ * Report a started checkout to Meta.
+ *
+ * WHY THIS EXISTS. Purchase is the event we actually care about, but at a $249
+ * price point a campaign generates a handful of purchases a week, and Meta needs
+ * roughly 50 conversions per ad set per week to learn who a buyer is. Optimizing
+ * for Purchase with that little data is asking the algorithm to model something
+ * it has almost never seen. InitiateCheckout sits one step earlier: far higher
+ * intent than a Lead, far more volume than a Purchase. It is the signal a
+ * purchase-focused campaign can actually be trained on.
+ *
+ * Server-side for the same reasons Purchase is: ad blockers and ITP suppress
+ * browser Pixel calls, and this fires at the moment the Stripe session is
+ * created, which cannot be lost to an abandoned redirect.
+ *
+ * Dedupe: event_id is the Stripe checkout session id, the SAME id the later
+ * Purchase carries. Meta dedupes on (event_name, event_id), and the names differ,
+ * so the two never collide. It does mean a checkout and its resulting purchase
+ * are joinable by session id in reporting.
+ *
+ * UNLIKE Purchase, value is optional here. Meta requires a value for Purchase and
+ * rejects the event without one; InitiateCheckout has no such rule. We send a
+ * value only when the caller knows one, rather than inventing a number.
+ *
+ * Never throws. A buyer must never fail to reach Stripe because Meta is slow.
+ */
+export async function sendMetaCapiInitiateCheckout(opts: {
+  /** Stripe checkout session id, doubles as the Meta dedupe key. */
+  eventId: string
+  /**
+   * Meta attribution cookies, collected client-side only after marketing consent.
+   * Sent RAW: Meta matches them verbatim against the browser that saw the ad, and
+   * hashing them would silently destroy the match. Without at least one of these
+   * (or an email) the event cannot be attributed and is skipped.
+   */
+  fbp?: string | null
+  fbc?: string | null
+  /** Buyer email if the caller already holds one. Hashed before transmission. */
+  email?: string | null
+  /** Minor units. Optional: omitted rather than guessed when unknown. */
+  valueCents?: number | null
+  currency?: string | null
+  /** Product identifier for reporting breakdowns, e.g. the primary SKU. */
+  contentName?: string | null
+  /** Total units in the cart. */
+  numItems?: number | null
+}): Promise<boolean> {
+  if (!META_CAPI_ACCESS_TOKEN) return false
+  try {
+    const userData: Record<string, unknown> = {}
+    if (opts.email) userData.em = [await sha256Hex(opts.email)]
+    if (opts.fbp) userData.fbp = opts.fbp
+    if (opts.fbc) userData.fbc = opts.fbc
+
+    // Meta requires at least one identifier. At checkout-start we usually have no
+    // email yet (Stripe collects it on the next screen), so in practice this is
+    // fbp/fbc. A visitor with neither declined marketing cookies or blocked the
+    // pixel, and could not have been attributed to an ad anyway.
+    if (Object.keys(userData).length === 0) {
+      console.log(
+        `Meta CAPI InitiateCheckout skipped: no fbp/fbc/email to match (session=${opts.eventId})`,
+      )
+      return false
+    }
+
+    const customData: Record<string, unknown> = {}
+    if (opts.valueCents != null && opts.valueCents > 0) {
+      customData.value = opts.valueCents / 100
+      customData.currency = (opts.currency ?? "usd").toUpperCase()
+    }
+    if (opts.contentName) customData.content_name = opts.contentName
+    if (opts.numItems != null && opts.numItems > 0) customData.num_items = opts.numItems
+
+    const payload = {
+      data: [
+        {
+          event_name: "InitiateCheckout",
+          event_time: Math.floor(Date.now() / 1000),
+          event_id: opts.eventId,
+          action_source: "website",
+          event_source_url: "https://edeninstitute.health/preorder",
+          user_data: userData,
+          custom_data: customData,
+        },
+      ],
+    }
+
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 2500)
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/v19.0/${META_PIXEL_ID}/events?access_token=${encodeURIComponent(META_CAPI_ACCESS_TOKEN)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          signal: ctrl.signal,
+        },
+      )
+      if (!res.ok) {
+        console.error(
+          "Meta CAPI InitiateCheckout failed",
+          res.status,
+          await res.text().catch(() => ""),
+        )
+        return false
+      }
+      console.log(`Meta CAPI InitiateCheckout sent (session=${opts.eventId})`)
+      return true
+    } finally {
+      clearTimeout(timer)
+    }
+  } catch (e) {
+    console.error("Meta CAPI InitiateCheckout error", String(e))
+    return false
+  }
+}
