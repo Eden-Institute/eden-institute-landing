@@ -298,7 +298,7 @@ const Index = () => {
           <div className="grid grid-cols-1 min-[880px]:grid-cols-4 gap-6">
             {[
               {
-                badge: "PREORDER OPENS JULY 29",
+                badge: "PREORDER OPEN NOW",
                 eyebrow: "FOR THE FAMILY",
                 title: "Eden's Table",
                 subtitle: "K-12 Homeschool Curriculum",
