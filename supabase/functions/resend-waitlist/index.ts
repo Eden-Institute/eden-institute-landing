@@ -303,7 +303,7 @@ ${closingBlock()}`;
 <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">You're in. Your seat at the Eden's Table Founders Club is reserved.</p>
 ${goldDivider()}
 ${goldLabel('HOW FOUNDERS PRICING WORKS')}
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Preorder opens <strong>July 29</strong>. The first <strong>500 kits</strong> sell at the Founders price: <strong>$249</strong>, before the $349 retail price begins. No code needed. Founders pricing applies automatically while the first 500 kits last, and we will email you the moment the doors open.</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Preorders are <strong>open now</strong>. The first <strong>500 kits</strong> sell at the Founders price: <strong>$249</strong>, before the $349 retail price begins. No code needed. Founders pricing applies automatically while the first 500 kits last. You can preorder any time at <a href="https://edeninstitute.health/preorder" style="color:#5C7A5C;text-decoration:underline;">edeninstitute.health/preorder</a>.</p>
 <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 24px 0;">Until then, you'll hear from us once a month with progress notes &mdash; what's being built, what's being tested, what we're learning.</p>
 ${goldDivider()}
 ${goldLabel('WANT LESSONS IN HAND TODAY?')}
