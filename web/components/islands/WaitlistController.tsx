@@ -19,6 +19,9 @@ const HS_AUD = "a48cb66e-b2a9-461d-98a6-bb1b12f72693";
 interface Cfg {
   title: string;
   subtitle?: string;
+  ctaHref?: string;
+  ctaLabel?: string;
+  ctaBlurb?: string;
   source: string;
 }
 
@@ -36,6 +39,9 @@ export default function WaitlistController() {
           source: el.getAttribute("data-waitlist-source") || "waitlist",
           title: el.getAttribute("data-waitlist-title") || "",
           subtitle: el.getAttribute("data-waitlist-subtitle") || undefined,
+          ctaHref: el.getAttribute("data-waitlist-cta-href") || undefined,
+          ctaLabel: el.getAttribute("data-waitlist-cta-label") || undefined,
+          ctaBlurb: el.getAttribute("data-waitlist-cta-blurb") || undefined,
         });
         setOpen(true);
       };
@@ -52,6 +58,9 @@ export default function WaitlistController() {
       audienceId={HS_AUD}
       title={cfg.title}
       subtitle={cfg.subtitle}
+      successCtaHref={cfg.ctaHref}
+      successCtaLabel={cfg.ctaLabel}
+      successCtaBlurb={cfg.ctaBlurb}
       source={cfg.source}
     />
   );
