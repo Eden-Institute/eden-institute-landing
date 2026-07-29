@@ -49,6 +49,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { FOUNDING_GATE_SKU, PREORDER_FLAT_SHIPPING_CENTS, PREORDER_PRODUCTS, SHIP_WINDOW, preorderProductBySku } from "../_shared/order-config.ts"
 import { getFoundingGate, getStockGate } from "../_shared/order-db.ts"
 import { enforceCheckoutRateLimit } from "../_shared/checkout-rate-limit.ts"
+import { sendMetaCapiInitiateCheckout } from "../_shared/meta-capi.ts"
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2024-12-18.acacia",
@@ -803,6 +804,30 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
     `preorder checkout: cart=${cart.map((c) => `${c.sku}x${c.qty}`).join("+")} founding=${isFounding} sms_consent=${smsConsent}` +
       `${isAdminTest ? " [ADMIN TEST]" : ""} session=${session.id}`,
   )
+
+  // Tell Meta a checkout started. This is the signal a purchase-focused campaign
+  // is actually trainable on: at $249 a campaign produces a handful of purchases
+  // a week, far under the ~50 conversions per ad set per week Meta needs to learn,
+  // whereas everyone who reaches Stripe fires this.
+  //
+  // Deliberately NOT awaited into the response path beyond its own 2.5s timeout,
+  // and the sender never throws: a buyer must never fail to reach Stripe because
+  // Meta is slow. Admin test sessions are excluded so internal checks cannot
+  // pollute the optimization signal.
+  //
+  // event_id is the Stripe session id, the same id the later Purchase carries.
+  // Meta dedupes on (event_name, event_id) and the names differ, so they do not
+  // collide, but the pair stays joinable in reporting.
+  if (!isAdminTest) {
+    await sendMetaCapiInitiateCheckout({
+      eventId: session.id,
+      fbp: typeof body.fbp === "string" ? body.fbp : null,
+      fbc: typeof body.fbc === "string" ? body.fbc : null,
+      email: typeof body.email === "string" ? body.email : null,
+      contentName: primarySku,
+      numItems: cart.reduce((n, c) => n + c.qty, 0),
+    })
+  }
 
   return new Response(
     JSON.stringify({ url: session.url, session_id: session.id, is_founding: isFounding }),
