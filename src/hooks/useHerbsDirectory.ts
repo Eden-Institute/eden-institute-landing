@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import { useCurrentTier, type Tier } from "@/hooks/useCurrentTier";
+import { useCurrentTier } from "@/hooks/useCurrentTier";
+import { isSubscriberTier } from "@/lib/tiers";
 
 /**
  * Row shape returned by `public.herbs_directory_v` — Stage 6.3.6 unified
@@ -17,11 +18,11 @@ import { useCurrentTier, type Tier } from "@/hooks/useCurrentTier";
 export type HerbDirectoryRow =
   Database["public"]["Views"]["herbs_directory_v"]["Row"];
 
-const SUBSCRIBER_TIERS: ReadonlyArray<Tier> = ["seed", "root", "practitioner"];
-
-export function isSubscriberTier(tier: Tier | undefined): boolean {
-  return tier !== undefined && SUBSCRIBER_TIERS.includes(tier);
-}
+// Moved to `@/lib/tiers` so that importing this predicate no longer drags in
+// the Supabase client (which this module imports, and which constructs itself
+// at import time). Imported as well as re-exported: `export { x } from "..."`
+// alone creates no local binding, and useHerbsDirectory() below calls it.
+export { isSubscriberTier };
 
 /**
  * Single entry point for the herb-directory read surface.
