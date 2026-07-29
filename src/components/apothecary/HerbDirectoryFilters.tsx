@@ -2,7 +2,9 @@ import { useState } from "react";
 import { X, Search, Info } from "lucide-react";
 import type { HerbRow } from "@/hooks/useApothecaryHerbs";
 import type { Tier } from "@/hooks/useCurrentTier";
-import { isSubscriberTier } from "@/hooks/useHerbsDirectory";
+// From @/lib/tiers, not @/hooks/useHerbsDirectory: the hook module builds a
+// Supabase client at import time, which broke this file's unit tests on CI.
+import { isSubscriberTier } from "@/lib/tiers";
 import { Link } from "react-router-dom";
 import { ROUTES } from "@/lib/routes";
 import { type EdenPatternName } from "@/lib/edenPattern";
