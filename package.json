@@ -17,7 +17,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@astrojs/react": "^5.0.7",
+    "@astrojs/react": "^3.6.3",
     "@astrojs/tailwind": "^6.0.2",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.11",
