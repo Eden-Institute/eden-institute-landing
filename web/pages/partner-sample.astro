@@ -1,0 +1,117 @@
+---
+// /partner-sample — private download page for founding partners.
+//
+// Reached only via the link the founder pastes into her welcome email. The
+// email carries ONE short edeninstitute.health URL instead of six Supabase
+// signed URLs, because Gmail rewrites every link in an API-created draft
+// through google.com/url with no `usg` signature, landing the recipient on a
+// "Redirect Notice" interstitial per button. Links the founder types or pastes
+// herself are not rewritten, so a single pasted URL arrives clean.
+//
+// The `?k=` secret is validated by /api/partner-sample, which brokers a short
+// lived signed URL per click. This page holds no credentials: without a valid
+// k every button 403s, so the page itself is harmless if it is ever found.
+// noindex + robots.txt keep it out of search results regardless.
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+
+const meta = {
+  title: "Your Eden's Table sample · The Eden Institute",
+  description: "Private download page for Eden's Table founding partners.",
+  canonical: "https://edeninstitute.health/partner-sample",
+};
+
+// Order is the reading order of a week, matching the welcome email.
+const components = [
+  { slug: "read-aloud", label: "Read-Aloud", note: "The week's story, read together." },
+  { slug: "teachers-guide", label: "Teacher's Guide", note: "Everything you need to teach the week." },
+  { slug: "student-notebook", label: "Student Notebook", note: "The child's write-in pages." },
+  { slug: "field-cards", label: "Field Cards", note: "Take these outside for plant identification." },
+  { slug: "recipe-cards", label: "Recipe Cards", note: "The week's kitchen work." },
+  { slug: "around-the-table-cards", label: "Around the Table Cards", note: "Discussion prompts for mealtimes." },
+];
+---
+
+<MarketingLayout
+  title={meta.title}
+  description={meta.description}
+  canonical={meta.canonical}
+  noindex={true}
+>
+  <section class="pt-20 pb-10 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold))">
+        Founding Partner
+      </p>
+      <h1 class="font-serif text-4xl md:text-5xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
+        Your six-week sample
+      </h1>
+      <div class="w-16 h-px mx-auto my-6" style="background-color:hsl(var(--eden-gold))"></div>
+      <p class="font-body text-lg text-muted-foreground leading-relaxed">
+        Six weeks of Eden's Table, yours to keep. Take your time with it.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-12 px-6 bg-background">
+    <div class="max-w-2xl mx-auto">
+      <div id="ps-locked" class="hidden rounded-lg p-6 bg-white border text-center" style="border-color:hsl(var(--eden-gold) / 0.4)">
+        <h2 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-forest))">
+          This link is incomplete
+        </h2>
+        <p class="font-body text-sm text-muted-foreground leading-relaxed">
+          Please open the full link from your welcome email. If it still does not work,
+          reply to that email or write to hello@edeninstitute.health and we will send you
+          a fresh one the same day.
+        </p>
+      </div>
+
+      <div id="ps-downloads" class="hidden space-y-3">
+        {components.map((c) => (
+          <a
+            href="#"
+            data-slug={c.slug}
+            class="ps-dl flex items-center justify-between gap-4 rounded-lg p-5 bg-white border no-underline transition-colors hover:bg-[hsl(var(--eden-cream))]"
+            style="border-color:hsl(var(--eden-gold) / 0.3)"
+          >
+            <span>
+              <span class="block font-serif text-base font-bold" style="color:hsl(var(--eden-forest))">{c.label}</span>
+              <span class="block font-body text-sm text-muted-foreground">{c.note}</span>
+            </span>
+            <span
+              class="shrink-0 font-accent text-xs tracking-[0.2em] uppercase border-2 px-4 py-2"
+              style="border-color:hsl(var(--eden-forest));color:hsl(var(--eden-forest))"
+            >Download</span>
+          </a>
+        ))}
+
+        <p class="font-body text-sm text-muted-foreground leading-relaxed pt-6">
+          These are digital files of a curriculum that will only ever exist in print, so
+          please keep them within your own family rather than sharing or forwarding them.
+          Thank you for guarding that with us.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <script is:inline>
+    // The secret travels in the URL the founder pastes. It is never stored in
+    // this page, so a crawler or a stray visitor gets the "incomplete" panel.
+    (function () {
+      var k = new URLSearchParams(window.location.search).get("k");
+      var downloads = document.getElementById("ps-downloads");
+      var locked = document.getElementById("ps-locked");
+      if (!k) {
+        locked.classList.remove("hidden");
+        return;
+      }
+      var links = document.querySelectorAll("a.ps-dl");
+      for (var i = 0; i < links.length; i++) {
+        links[i].setAttribute(
+          "href",
+          "/api/partner-sample?k=" + encodeURIComponent(k) + "&f=" + links[i].getAttribute("data-slug")
+        );
+      }
+      downloads.classList.remove("hidden");
+    })();
+  </script>
+</MarketingLayout>
