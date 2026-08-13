@@ -5,6 +5,7 @@
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /partner-sample
 Disallow: /apothecary/auth/
 Disallow: /apothecary/account
 Disallow: /apothecary/profiles

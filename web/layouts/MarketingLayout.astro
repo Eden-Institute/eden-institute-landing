@@ -18,6 +18,9 @@ export interface Props {
   /** Pages with their own bespoke footer (e.g. the homepage) opt out of the
       shared <Footer />. Defaults to false so all other pages are unaffected. */
   hideFooter?: boolean;
+  /** Private, link-only pages (e.g. /partner-sample) keep themselves out of the
+      index. Defaults to false, so every existing page stays "index, follow". */
+  noindex?: boolean;
 }
 
 const {
@@ -28,6 +31,7 @@ const {
   ogType = "website",
   jsonLd,
   hideFooter = false,
+  noindex = false,
 } = Astro.props;
 
 // Sitewide identity — present on every marketing page.
@@ -67,7 +71,7 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content={noindex ? "noindex, nofollow" : "index, follow"} />
     <meta name="author" content="The Eden Institute" />
     <meta name="theme-color" content="#1C3A2E" />
 
