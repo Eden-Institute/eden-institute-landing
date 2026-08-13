@@ -66,8 +66,20 @@ export default async function handler(req: Request): Promise<Response> {
   const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!expectedKey || !supabaseUrl || !serviceRoleKey) {
-    console.error('partner-sample: missing PARTNER_SAMPLE_KEY, SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+  // Name the missing variable. The first version of this logged all three names
+  // in one string, which cost three diagnosis rounds on 2026-08-13: the log
+  // could not distinguish "PARTNER_SAMPLE_KEY saved empty" (what had actually
+  // happened, and it is Sensitive so its value cannot be read back in the UI)
+  // from a missing Supabase URL. A 500 here always means an absent env var; a
+  // wrong key returns 403.
+  const missing = [
+    ['PARTNER_SAMPLE_KEY', expectedKey],
+    ['SUPABASE_URL or VITE_SUPABASE_URL', supabaseUrl],
+    ['SUPABASE_SERVICE_ROLE_KEY', serviceRoleKey],
+  ].filter(([, v]) => !v).map(([n]) => n);
+
+  if (missing.length > 0) {
+    console.error(`partner-sample: missing env ${missing.join(', ')}`);
     return fail(500, 'Server misconfigured');
   }
 
