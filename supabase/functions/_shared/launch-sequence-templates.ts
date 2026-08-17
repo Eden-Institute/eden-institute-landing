@@ -672,7 +672,7 @@ export function buildLaunchEmail9(firstName: string, founding = true): { subject
     `${p(`A typical year assembled from separate curricula means a science program, a nature study, a Bible curriculum, a copywork book, an art component, and a read-aloud list. Six purchases, six teacher&rsquo;s guides written by six people who never spoke to each other, and a stack of evenings spent making them line up.`)}` +
     `${p(`Eden&rsquo;s Table is one box. Bible, science, language arts, math, art, history, geography, Latin, health, and character are already woven in, already scheduled, already telling you which day carries which.`)}` +
     `${p(founding
-      ? `At the founding price that is <strong>$249 for the year</strong>. Across 36 weeks, under $7 a week for your entire core. One decision, made once, in July, instead of six decisions you are still second-guessing in October.`
+      ? `At the founding price that is <strong>$249 for the year</strong>. Across 36 weeks, under $7 a week for your entire core. One decision, made once, instead of six decisions you are still second-guessing in October.`
       : `That is <strong>$349 for the year</strong>. Across 36 weeks, under $10 a week for your entire core. One decision, made once, instead of six you are still second-guessing in October.`)}` +
     `${p(`What you are not also buying: a separate science curriculum. A separate nature study. A separate Bible curriculum. A separate art plan. A separate read-aloud list. A second evening of your week spent making all of them agree with each other.`)}` +
     `${goldDivider()}` +
