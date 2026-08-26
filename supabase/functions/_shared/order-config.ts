@@ -20,7 +20,7 @@
 // Revised 2026-08-26 (founder decision). The first print run moved to spring 2027 so
 // kits reach families before the school year starts. TARGET is a SHIP month, not a
 // delivery date: shipping in July puts kits in hand before August, which is the goal.
-export const SHIP_TARGET = 'July 2027';
+export const SHIP_TARGET = 'July 31, 2027';
 export const SHIP_GUARANTEE_TEXT = 'September 30, 2027';
 export const SHIP_GUARANTEE_DATE = '2027-09-30';
 
