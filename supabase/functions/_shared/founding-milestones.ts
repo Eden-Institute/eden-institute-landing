@@ -19,6 +19,7 @@
 
 import { Db, getFoundingGate } from './order-db.ts';
 import { FOUNDING_GATE_SKU } from './order-config.ts';
+import { applyFoundingCapPolicy } from './starter-credit.ts';
 
 // Intermediate milestones per the founder brief; the cap itself (the flip moment) is
 // always appended, so a config change to founding_qty_limit keeps the final ping.
@@ -27,7 +28,65 @@ const INTERMEDIATE_MILESTONES = [250, 400, 475, 490];
 // deno-lint-ignore no-explicit-any
 function errCode(err: any): string | undefined { return err?.code; }
 
-export async function notifyFoundingMilestones(db: Db): Promise<void> {
+/**
+ * Run the Starter Unit credit phase transition if, and only if, the founding
+ * window has actually latched closed.
+ *
+ * Reads the LATCH (products.founding_closed_at, via the founding_gate RPC) rather
+ * than comparing sold >= cap itself. The latch is set-once under concurrency and
+ * survives refunds, so it is the only honest answer to "did the founding 500
+ * sell out". Comparing counts here would re-open on a refund and could run the
+ * transition twice.
+ *
+ * Never throws: this is called from a best-effort path, and a phase-transition
+ * failure must not be able to 500 the webhook and make Stripe retry a recorded
+ * order. The transition claim is idempotent, so the next kit sale retries it.
+ */
+async function runStarterCreditPhase(db: Db, stripe?: StripeLike): Promise<void> {
+  try {
+    const { data: gate } = await db.from('products')
+      .select('id').eq('sku', FOUNDING_GATE_SKU).maybeSingle();
+    if (!gate?.id) return;
+
+    const status = await getFoundingGate(db, gate.id);
+    if (!status.closed) return;
+
+    const outcome = await applyFoundingCapPolicy(db, stripe, { soldAtTrigger: status.sold });
+    if (outcome.transitioned) {
+      console.log(
+        `starter credit phase transition ran once at ${status.sold} units ` +
+          `(policy=${outcome.policy}, codes affected=${outcome.codesAffected})`,
+      );
+    }
+  } catch (err) {
+    console.error(
+      'starter credit phase transition failed (will retry on the next kit sale):',
+      err instanceof Error ? err.message : String(err),
+    );
+  }
+}
+
+// deno-lint-ignore no-explicit-any
+type StripeLike = any;
+
+/**
+ * @param stripe Optional Stripe client. Required only to run the starter-credit
+ *   phase transition at the cap; omit it and the milestone emails still work
+ *   exactly as before, which keeps every existing caller valid.
+ */
+export async function notifyFoundingMilestones(db: Db, stripe?: StripeLike): Promise<void> {
+  // The founding cap is also the moment the Starter Unit credits change footing.
+  // Running it HERE rather than in a separate monitor is deliberate: this function
+  // already executes on the kit-recording path and already reads the latched
+  // founding gate, so the trigger is the same latch that flips the price. A
+  // separate cron would be a second source of truth for the same event, and the
+  // 2026-08-17 dead-scheduled-task incident is what that looks like when it rots.
+  //
+  // Deliberately OUTSIDE the RESEND_API_KEY early-return below: the phase
+  // transition is a fact about pricing and must happen whether or not the
+  // founder's notification email can be sent.
+  await runStarterCreditPhase(db, stripe);
+
   const resendKey = Deno.env.get('RESEND_API_KEY');
   if (!resendKey) {
     // Bail BEFORE claiming any milestone: an unclaimed milestone is re-attempted on

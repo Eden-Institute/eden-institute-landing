@@ -128,3 +128,20 @@ verify_jwt = true
 
 [functions.replay-quiz-completion-failures]
 verify_jwt = true
+
+# starter-fulfill stamps and delivers the paid Starter Unit PDFs. It bundles the
+# service-role key and mints signed URLs for paid content, so it is invoked only
+# server-to-server: by stripe-webhook on purchase, and by the Vercel cron drain.
+# It additionally requires role=service_role via _shared/require-service-role.ts,
+# so verify_jwt MUST stay true or that claim check could be forged.
+[functions.starter-fulfill]
+verify_jwt = true
+
+# --- Category 1 (continued): Public-frontend functions ---
+
+# starter-download is the re-request flow for expired download links. The buyer
+# clicks it straight from an email with no Supabase session, so the gateway JWT
+# check must not block them. The per-purchase download_token IS the credential;
+# the function validates it and rate-limits per token.
+[functions.starter-download]
+verify_jwt = false

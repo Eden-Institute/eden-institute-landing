@@ -1,0 +1,115 @@
+---
+// /starter/thank-you — Starter Unit order confirmation.
+//
+// Reached from Stripe's success_url with ?session_id={CHECKOUT_SESSION_ID}.
+//
+// Does THREE jobs, in this order of importance:
+//   1. Reassure. The buyer has just paid for something with no physical trace, so
+//      the page must show the actual files, not just say an email is coming.
+//   2. Repeat the credit code (spec section 3). A buyer who deletes the email
+//      still has it, and it is the whole point of the product.
+//   3. Point at the kit. This is the conversion moment: they have just decided
+//      they trust us enough to pay, which is the warmest they will ever be.
+//
+// noindex: a confirmation page has nothing to offer search, and the session id in
+// the URL should not end up in an index.
+//
+// Copy rule: no em dashes (feedback_no_em_dashes).
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import StarterDownloads from "../../components/islands/StarterDownloads.tsx";
+
+const KIT_FOUNDING = "$249";
+const KIT_RETAIL = "$349";
+
+const meta = {
+  title: "Your Starter Unit is ready · Eden's Table | The Eden Institute",
+  description: "Download your Eden's Table Sprouts Starter Unit.",
+  canonical: "https://edeninstitute.health/starter/thank-you",
+};
+---
+
+<MarketingLayout
+  title={meta.title}
+  description={meta.description}
+  canonical={meta.canonical}
+  noindex={true}
+>
+  <section class="pt-20 pb-10 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold))">
+        Thank you
+      </p>
+      <h1 class="font-serif text-4xl md:text-5xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
+        Your first six weeks are ready.
+      </h1>
+      <div class="w-16 h-px mx-auto my-6" style="background-color:hsl(var(--eden-gold))"></div>
+      <p class="font-body text-lg text-muted-foreground leading-relaxed">
+        They are downloading below, and a copy is on its way to your inbox with your
+        credit code.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-12 px-6 bg-background">
+    <div class="max-w-xl mx-auto">
+      <StarterDownloads client:only="react" mode="session" showCredit={true} />
+    </div>
+  </section>
+
+  <!-- The upgrade route. -->
+  <section class="py-16 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto text-center">
+      <h2 class="font-serif text-3xl font-bold mb-6" style="color:hsl(var(--eden-bark))">
+        When you are ready for the whole year.
+      </h2>
+      <p class="font-body text-base text-muted-foreground leading-relaxed mb-8">
+        The Sprouts Complete Kit is all 36 weeks in print: the Teacher's Guide, the Student
+        Notebook, the Read-Aloud storybook and all three card sets in a box. It is
+        {KIT_FOUNDING} for the founding 500 families and {KIT_RETAIL} after that. Your
+        credit comes off either way, so there is no hurry and no penalty for taking your
+        time with the six weeks you just bought.
+      </p>
+      <a
+        href="/preorder"
+        data-cta="starter-thankyou-to-kit"
+        class="inline-block font-accent text-sm tracking-[0.2em] uppercase font-bold px-8 py-4 rounded-md"
+        style="background-color:hsl(var(--eden-forest));color:hsl(var(--eden-cream))"
+      >
+        See the complete kit
+      </a>
+    </div>
+  </section>
+</MarketingLayout>
+
+<script>
+  // Purchase conversion for the Starter Unit, tagged DISTINCTLY from kit
+  // purchases so the two never merge in reporting. The kit fires
+  // "purchase_confirmed" from HomeschoolWelcome.tsx; this deliberately uses its
+  // own event name and its own item id.
+  //
+  // The server-side Meta Conversions API Purchase is fired by stripe-webhook with
+  // the Stripe session id as event_id, so this browser-side event and that one
+  // dedupe against each other rather than double-counting revenue.
+  //
+  // Guarded on sessionStorage so a refresh of the confirmation page does not
+  // report a second sale. gtag may be absent entirely (no marketing consent), and
+  // that is fine: analytics never break the page.
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get("session_id");
+    const key = `starter_conv_${sessionId ?? "none"}`;
+    if (sessionId && !sessionStorage.getItem(key)) {
+      sessionStorage.setItem(key, "1");
+      (window as any).gtag?.("event", "starter_unit_purchase", {
+        event_category: "conversion",
+        event_label: "sprouts_starter_unit",
+        value: 39.0,
+        currency: "USD",
+        transaction_id: sessionId,
+        items: [{ item_id: "sprouts_starter_unit", item_name: "Sprouts Starter Unit", price: 39.0, quantity: 1 }],
+      });
+    }
+  } catch {
+    // Analytics never break the page.
+  }
+</script>

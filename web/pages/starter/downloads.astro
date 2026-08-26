@@ -1,0 +1,57 @@
+---
+// /starter/downloads — re-request flow for expired Starter Unit links.
+//
+// Signed download URLs last seven days. This is where a buyer whose links have
+// lapsed gets fresh ones, reached by the durable ?t= token from their delivery
+// email. It is the alternative to handing out permanent file access, and it means
+// a lapsed link is a mild inconvenience rather than a support email.
+//
+// The page holds no credentials of its own: without a valid token the island
+// renders a refusal, so the page is harmless if it is ever found. noindex keeps
+// it out of search regardless, matching /partner-sample.
+//
+// Copy rule: no em dashes (feedback_no_em_dashes).
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import StarterDownloads from "../../components/islands/StarterDownloads.tsx";
+
+const meta = {
+  title: "Your Starter Unit downloads · Eden's Table | The Eden Institute",
+  description: "Fresh download links for your Eden's Table Sprouts Starter Unit.",
+  canonical: "https://edeninstitute.health/starter/downloads",
+};
+---
+
+<MarketingLayout
+  title={meta.title}
+  description={meta.description}
+  canonical={meta.canonical}
+  noindex={true}
+>
+  <section class="pt-20 pb-10 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold))">
+        Eden's Table · Sprouts
+      </p>
+      <h1 class="font-serif text-4xl md:text-5xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
+        Your Starter Unit
+      </h1>
+      <div class="w-16 h-px mx-auto my-6" style="background-color:hsl(var(--eden-gold))"></div>
+      <p class="font-body text-lg text-muted-foreground leading-relaxed">
+        Fresh links, good for another seven days. Come back here any time.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-12 px-6 bg-background">
+    <div class="max-w-xl mx-auto">
+      <StarterDownloads client:only="react" mode="token" />
+      <p class="font-body text-sm text-muted-foreground text-center mt-8">
+        Something not working? Email
+        <a href="mailto:hello@edeninstitute.health" class="underline" style="color:hsl(var(--eden-forest))">
+          hello@edeninstitute.health
+        </a>
+        and we will send your files by hand.
+      </p>
+    </div>
+  </section>
+</MarketingLayout>

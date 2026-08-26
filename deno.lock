@@ -163,12 +163,13 @@
     "https://deno.land/std@0.224.0/internal/mod.ts": "534125398c8e7426183e12dc255bb635d94e06d0f93c60a297723abe69d3b22e",
     "https://deno.land/x/postgresjs@v3.4.5/mod.js": "cb68f17d6d90df318934deccdb469d740be0888e7a597a9e7eea7100ce36a252",
     "https://esm.sh/@supabase/supabase-js@2.108.2": "7fbe17c4ef67b80d388cef1f0a0c7ecb28b2b1c3c4110875925a4bc82ff28e13",
+    "https://esm.sh/pdf-lib@1.17.1?target=denonext": "cf7c5527829cb9bbb3aa20d339c530067441c10eb98880360aea9e77c3c87ff8",
     "https://esm.sh/stripe@14.21.0?target=denonext": "f6487cd8974b4c445fe2ed8188d0a680f425bedf793abdead16796e719749d30"
   },
   "workspace": {
     "packageJson": {
       "dependencies": [
-        "npm:@astrojs/react@^5.0.7",
+        "npm:@astrojs/react@^3.6.3",
         "npm:@astrojs/tailwind@^6.0.2",
         "npm:@eslint/js@^9.32.0",
         "npm:@hookform/resolvers@^3.10.0",
