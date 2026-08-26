@@ -29,7 +29,7 @@ import PreorderBuyBox from "../components/islands/PreorderBuyBox.tsx";
 // Keep in sync with supabase/functions/_shared/order-config.ts.
 // Revised 2026-08-26. Keep in lockstep with _shared/order-config.ts, which this file
 // deliberately does NOT import (Astro build vs Deno edge runtime).
-const SHIP_TARGET = "July 2027";
+const SHIP_TARGET = "July 31, 2027";
 const SHIP_GUARANTEE = "September 30, 2027";
 
 const meta = {
@@ -130,8 +130,8 @@ const productJsonLd = productSpecs.map((p) => ({
         <div class="font-body text-base leading-relaxed space-y-4" style="color:hsl(var(--eden-bark))">
           <p>Before you decide anything, here is where this actually stands.</p>
           <p>
-            Kits will be in your hands before the school year starts. We are aiming to ship
-            {SHIP_TARGET}, and guaranteed on or before {SHIP_GUARANTEE}. The first print run
+            Kits will be in your hands before the next school year begins. I am aiming for
+            {SHIP_TARGET}, and guaranteeing on or before {SHIP_GUARANTEE}. The first print run
             goes to press in the spring, and everything between now and then is production:
             proofs, paper, dielines, and the long quiet stretch where a thing gets made.
           </p>

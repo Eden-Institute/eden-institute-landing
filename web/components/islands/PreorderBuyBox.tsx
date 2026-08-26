@@ -46,7 +46,7 @@ import { getFbAttribution } from "@/lib/fbAttribution";
 // treated as the stated shipping time and pull the deadline forward by two months.
 // Keep in sync with supabase/functions/_shared/order-config.ts.
 // Revised 2026-08-26. Keep in lockstep with _shared/order-config.ts and preorder.astro.
-const SHIP_TARGET = "July 2027";
+const SHIP_TARGET = "July 31, 2027";
 const SHIP_GUARANTEE = "September 30, 2027";
 const NOTEBOOK_MAX_QTY = 5;
 const KIT_PRICE_CENTS = 24900;
