@@ -50,6 +50,8 @@ import { FOUNDING_GATE_SKU, PREORDER_FLAT_SHIPPING_CENTS, PREORDER_PRODUCTS, SHI
 import { getFoundingGate, getStockGate } from "../_shared/order-db.ts"
 import { enforceCheckoutRateLimit } from "../_shared/checkout-rate-limit.ts"
 import { sendMetaCapiInitiateCheckout } from "../_shared/meta-capi.ts"
+import { STARTER_LOOKUP_KEY } from "../_shared/starter-config.ts"
+import { evaluateRedemption, findCreditByCode } from "../_shared/starter-credit.ts"
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2024-12-18.acacia",
@@ -89,6 +91,31 @@ const ONE_OFF_LOOKUP_KEYS = new Set([
   "seedlings_complete",
   "two_band_bundle",
   "nb_addon",
+  // Eden's Table Sprouts Starter Unit ($39 digital, weeks 1-6 of Sprouts).
+  // Rides the ordinary one-off dispatch rather than getting its own branch: it is
+  // a plain digital product, and the only thing special about it happens AFTER
+  // payment (the kit credit), which is stripe-webhook's business, not this file's.
+  STARTER_LOOKUP_KEY,
+])
+
+// Lookup_keys that must NOT show Stripe's "add promotion code" field.
+//
+// The Starter Unit is a funnel product priced to convert, not to discount, and
+// more importantly Stripe refuses to create a session carrying both `discounts`
+// and `allow_promotion_codes`. Keeping the field off here means the no-stacking
+// guarantee is structural rather than something we have to police.
+const NO_PROMO_LOOKUP_KEYS = new Set([
+  STARTER_LOOKUP_KEY,
+])
+
+// Lookup_keys that need a real Stripe Customer created at checkout.
+//
+// The Starter Unit credit is a promotion code BOUND TO A CUSTOMER, which is what
+// makes it non-transferable (Stripe rejects any other customer with
+// promotion_code_customer_mismatch). No Customer at purchase time means no
+// binding, so this is load-bearing, not a nicety.
+const CUSTOMER_REQUIRED_LOOKUP_KEYS = new Set([
+  STARTER_LOOKUP_KEY,
 ])
 
 // Bundle-restricted lookup_keys — require JWT auth AND
@@ -416,16 +443,52 @@ serve(async (req) => {
       encodeURIComponent(lookup_key)
     const homeschoolDefaultCancel = "https://edeninstitute.health/homeschool#pricing"
 
+    const isStarter = lookup_key === STARTER_LOOKUP_KEY
+
+    // REFUSE TO SELL THE STARTER UNIT IF THE CREDIT CANNOT BE ISSUED.
+    //
+    // The $39 credit toward the kit is not a bonus, it is the product's entire
+    // proposition and it is promised in the hero, the FAQ, the confirmation page
+    // and the refund policy. Minting the code needs
+    // STRIPE_STARTER_CREDIT_COUPON_ID, and that only gets consulted AFTER payment,
+    // in the webhook. So without this guard a misconfigured deploy takes $39 and
+    // then discovers it cannot deliver the thing it just sold, one buyer at a
+    // time, with nothing visible on the storefront.
+    //
+    // Failing closed here costs a sale we could not honour anyway. It also makes
+    // the misconfiguration obvious the moment anyone presses the button, instead
+    // of at the first refund request.
+    if (isStarter && !Deno.env.get("STRIPE_STARTER_CREDIT_COUPON_ID")) {
+      console.error(
+        "create-checkout: STRIPE_STARTER_CREDIT_COUPON_ID is not set; refusing to sell the " +
+          "Starter Unit rather than take money for a credit we cannot issue",
+      )
+      return new Response(
+        JSON.stringify({
+          error: "The Starter Unit is not available right now. Please try again shortly, or email hello@edeninstitute.health.",
+          code: "STARTER_NOT_CONFIGURED",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 },
+      )
+    }
+
+    const starterDefaultSuccess =
+      "https://edeninstitute.health/starter/thank-you?session_id={CHECKOUT_SESSION_ID}"
+
     const defaultSuccessUrl = isSubscription
       ? "https://edeninstitute.health/apothecary/welcome?session_id={CHECKOUT_SESSION_ID}"
-      : isPhysical
-        ? homeschoolDefaultSuccess
-        : "https://edeninstitute.health/assessment"
+      : isStarter
+        ? starterDefaultSuccess
+        : isPhysical
+          ? homeschoolDefaultSuccess
+          : "https://edeninstitute.health/assessment"
     const defaultCancelUrl = isSubscription
       ? "https://edeninstitute.health/apothecary/pricing"
-      : isPhysical
-        ? homeschoolDefaultCancel
-        : "https://edeninstitute.health/assessment"
+      : isStarter
+        ? "https://edeninstitute.health/starter"
+        : isPhysical
+          ? homeschoolDefaultCancel
+          : "https://edeninstitute.health/assessment"
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode,
@@ -436,7 +499,7 @@ serve(async (req) => {
       // to an arbitrary host after payment.
       success_url: isSafeReturnUrl(success_url) ? success_url : defaultSuccessUrl,
       cancel_url: isSafeReturnUrl(cancel_url) ? cancel_url : defaultCancelUrl,
-      allow_promotion_codes: true,
+      allow_promotion_codes: !NO_PROMO_LOOKUP_KEYS.has(lookup_key),
       // Stripe Tax: calculates tax on every session (subscriptions, digital,
       // and physical alike). Requires Stripe Tax configured on the account
       // (origin address + registrations) — confirmed done 2026-07-02. Without
@@ -492,7 +555,10 @@ serve(async (req) => {
     // persistent Stripe Customer the webhook can link to the auto-provisioned
     // Supabase user, and means repeat purchases (e.g., adding the bundle
     // add-on later) can reuse the same Customer.
-    if (mode === "payment" && isPhysical && !stripeCustomerId) {
+    if (
+      mode === "payment" && !stripeCustomerId &&
+      (isPhysical || CUSTOMER_REQUIRED_LOOKUP_KEYS.has(lookup_key))
+    ) {
       sessionParams.customer_creation = "always"
     }
 
@@ -743,6 +809,70 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
     ? "preorder_supporter"
     : "founding_member"
 
+  // ---- Starter Unit credit redemption -------------------------------------
+  //
+  // Optional `credit_code` on the request. Three things have to be true before a
+  // discount is attached, and all three are checked HERE so the buyer gets a
+  // sentence they can act on rather than a raw Stripe error:
+  //
+  //   1. The code exists, is unspent, is active, and belongs to this email.
+  //      (evaluateRedemption, which is pure and unit-tested.)
+  //   2. The cart actually contains the kit. Stripe would reject a coupon that
+  //      matches nothing in the order, but its wording ("does not apply to
+  //      anything in this order") reads like a broken code rather than a missing
+  //      kit, and this is the single most likely honest mistake a buyer makes.
+  //   3. We know who they are, because the promotion code is bound to a Stripe
+  //      Customer and only that Customer may redeem it.
+  //
+  // Point 3 is why the session below switches from `customer_creation: "always"`
+  // to an explicit `customer`. Creating a FRESH Customer here, which is what the
+  // preorder path does by default, would hand Stripe a customer that is not the
+  // one the code is bound to, and Stripe would refuse the buyer's own valid
+  // credit with promotion_code_customer_mismatch. That failure would look exactly
+  // like a bug in the credit rather than in the session setup.
+  const rawCreditCode = typeof body.credit_code === "string" ? body.credit_code.trim() : ""
+  let appliedCredit: { promotionCodeId: string; code: string; customerId: string } | null = null
+
+  if (rawCreditCode) {
+    const buyerEmail = typeof body.email === "string" ? body.email : ""
+    if (!buyerEmail) {
+      return new Response(
+        JSON.stringify({
+          error: "Please enter the email address you used for your Starter Unit so we can check your credit.",
+          code: "CREDIT_EMAIL_REQUIRED",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
+      )
+    }
+
+    if (!cart.some((c) => c.sku === FOUNDING_GATE_SKU)) {
+      return new Response(
+        JSON.stringify({
+          error: "Your Starter Unit credit applies to the Sprouts Complete Kit. Add the kit to use it.",
+          code: "CREDIT_KIT_REQUIRED",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
+      )
+    }
+
+    const credit = await findCreditByCode(adminClient, rawCreditCode)
+    const verdict = evaluateRedemption(credit, buyerEmail)
+    if (!verdict.ok) {
+      console.warn(
+        `starter credit refused: code=${rawCreditCode} email=${buyerEmail} reason=${verdict.code}`,
+      )
+      return new Response(
+        JSON.stringify({ error: verdict.message, code: verdict.code }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
+      )
+    }
+    appliedCredit = {
+      promotionCodeId: verdict.credit.stripe_promotion_code_id,
+      code: verdict.credit.code,
+      customerId: verdict.credit.stripe_customer_id,
+    }
+  }
+
   // preorder_sku stays the webhook's Branch-0 detection key (kit first if present);
   // preorder_cart is the fallback record if the webhook's line_items expansion fails.
   // Values stay far under Stripe's 500-char metadata cap (max one line per product).
@@ -790,12 +920,37 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
     // Phone powers the consented preorder SMS. Collected by Stripe so we never
     // hold a number the buyer didn't give at checkout.
     phone_number_collection: { enabled: true },
-    customer_creation: "always",
     metadata,
     payment_intent_data: { metadata },
   }
+
+  if (appliedCredit) {
+    // Bind the session to the Customer the credit belongs to. This is both the
+    // only way the discount can apply AND a second, Stripe-side enforcement of
+    // the email lock: any other Customer is refused outright.
+    sessionParams.customer = appliedCredit.customerId
+    // Stripe Tax refuses a session with a pre-existing Customer unless it is told
+    // it may save the address the payer enters. Same reason the subscription path
+    // sets this (learned on the Practitioner launch, 2026-07-09).
+    sessionParams.customer_update = { address: "auto", name: "auto" }
+    sessionParams.discounts = [{ promotion_code: appliedCredit.promotionCodeId }]
+    // NOT setting allow_promotion_codes is what makes the credit non-stackable:
+    // Stripe rejects a session carrying both, and Checkout takes at most one
+    // discount, so there is no second slot to stack into.
+    // `metadata` is the same object sessionParams.metadata and
+    // payment_intent_data.metadata both reference, so writing to it here lands on
+    // both, and the webhook can attribute the redemption from either one.
+    metadata.starter_credit_code = appliedCredit.code
+    metadata.starter_credit_promo_id = appliedCredit.promotionCodeId
+  } else {
+    sessionParams.customer_creation = "always"
+  }
+
   if (typeof body.email === "string" && body.email) {
-    sessionParams.customer_email = body.email
+    // customer_email and customer are mutually exclusive in Stripe. When a credit
+    // is applied the Customer already carries the email, so setting both would
+    // 400 the whole checkout.
+    if (!appliedCredit) sessionParams.customer_email = body.email
   }
 
   const session = await stripe.checkout.sessions.create(sessionParams)

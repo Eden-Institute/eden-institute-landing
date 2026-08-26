@@ -170,6 +170,17 @@ export default function PreorderBuyBox() {
   const [ackShipWindow, setAckShipWindow] = useState(false);
   const [ackFounding, setAckFounding] = useState(false);
   const [notebookQty, setNotebookQty] = useState(0); // kit flow add-on qty; notebook flow floors at 1
+
+  // Starter Unit credit redemption. Both are optional and default empty, so the
+  // ordinary preorder path is byte-identical to before.
+  //
+  // The email is collected HERE, unlike the rest of this flow where Stripe
+  // collects it, because the credit is locked to the address the Starter Unit was
+  // bought with and that check has to happen before a session is created. Asking
+  // only when a code is entered keeps it off the path of buyers who have none.
+  const [creditOpen, setCreditOpen] = useState(false);
+  const [creditCode, setCreditCode] = useState("");
+  const [creditEmail, setCreditEmail] = useState("");
   const dialogRef = useRef<HTMLDivElement>(null);
 
   const qs = useMemo(
@@ -277,6 +288,13 @@ export default function PreorderBuyBox() {
           // post-sellout supporter line). The acceptance boolean above stays the gate;
           // this stamps the shown variant into session metadata as evidence.
           member_ack_variant: closed ? "preorder_supporter" : "founding_member",
+          // Starter Unit credit, only when the buyer actually entered one. The EF
+          // validates the code against the email and refuses with a readable
+          // message (CREDIT_NOT_FOUND / CREDIT_ALREADY_REDEEMED /
+          // CREDIT_EMAIL_MISMATCH), which the error handler below surfaces.
+          ...(creditCode.trim()
+            ? { credit_code: creditCode.trim(), email: creditEmail.trim() }
+            : {}),
         },
         headers: adminToken ? { "x-preorder-admin": adminToken } : undefined,
       });
@@ -757,6 +775,59 @@ export default function PreorderBuyBox() {
                   </p>
                 )}
 
+                {/* Starter Unit credit. Collapsed by default: most buyers have no
+                    code, and an always-open discount field invites people to go
+                    hunting for one instead of checking out. */}
+                <div className="mt-3 mb-1">
+                  {!creditOpen ? (
+                    <button
+                      type="button"
+                      onClick={() => setCreditOpen(true)}
+                      className="font-body text-sm underline"
+                      style={{ color: "hsl(var(--eden-forest))" }}
+                    >
+                      Have a Starter Unit credit?
+                    </button>
+                  ) : (
+                    <div
+                      className="rounded-lg p-4"
+                      style={{ border: "1px dashed hsl(var(--eden-gold))" }}
+                    >
+                      <p className="font-body text-xs text-muted-foreground mb-3">
+                        Enter your credit code and the email address you bought your Starter
+                        Unit with. Credits are tied to that address and can be used once.
+                      </p>
+                      {/* No `required` on either input, and the checkout button is
+                          never disabled by them. Native HTML5 validation blocks a
+                          submit BEFORE any JS runs and its tooltip often fails to
+                          render, which is exactly how the Reserve CTA silently
+                          swallowed clicks in July. The EF is the real gate. */}
+                      <input
+                        type="text"
+                        value={creditCode}
+                        onChange={(e) => setCreditCode(e.target.value)}
+                        placeholder="EDEN-S-XXXXXX"
+                        autoComplete="off"
+                        autoCapitalize="characters"
+                        spellCheck={false}
+                        aria-label="Starter Unit credit code"
+                        className="w-full font-body text-sm px-3 py-2 rounded-sm border mb-2"
+                        style={{ borderColor: "hsl(var(--eden-gold) / 0.6)" }}
+                      />
+                      <input
+                        type="email"
+                        value={creditEmail}
+                        onChange={(e) => setCreditEmail(e.target.value)}
+                        placeholder="the email you used for your Starter Unit"
+                        autoComplete="email"
+                        aria-label="Starter Unit email address"
+                        className="w-full font-body text-sm px-3 py-2 rounded-sm border"
+                        style={{ borderColor: "hsl(var(--eden-gold) / 0.6)" }}
+                      />
+                    </div>
+                  )}
+                </div>
+
                 <div className="rounded-lg p-4 mb-5 mt-3" style={{ backgroundColor: "hsl(var(--eden-cream) / 0.6)" }}>
                   {summary.map((l) => (
                     <div key={l.label} className="flex justify-between font-body text-sm mb-1" style={{ color: "hsl(var(--eden-bark))" }}>
@@ -771,6 +842,19 @@ export default function PreorderBuyBox() {
                     <span>Total before tax</span>
                     <span>{money(summaryTotal)}</span>
                   </div>
+                  {creditCode.trim() && (
+                    // Deliberately NOT shown as a line item in the summary above.
+                    // The code has not been validated yet, and rendering a minus
+                    // $39 that Stripe may then refuse would be a worse experience
+                    // than not promising it until it is real.
+                    <div
+                      className="flex justify-between font-body text-sm pt-2 mt-2 border-t"
+                      style={{ color: "hsl(var(--eden-forest))", borderColor: "hsl(var(--eden-gold) / 0.4)" }}
+                    >
+                      <span>Starter Unit credit</span>
+                      <span>applied at checkout</span>
+                    </div>
+                  )}
                   <p className="font-body text-xs text-muted-foreground mt-2">
                     {closed
                       ? "Sales tax calculated at checkout. The checkout page always shows your final price."

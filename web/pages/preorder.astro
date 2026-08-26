@@ -248,6 +248,43 @@ const productJsonLd = productSpecs.map((p) => ({
   </section>
 
   {/*
+    Lower-commitment entry point.
+
+    Placed AFTER the buy box and the terms, not before, so it never pulls someone
+    who is ready to preorder into a $39 decision instead of a $249 one. It is here
+    for the reader who has scrolled the whole page and is still not sure, whose
+    alternative is closing the tab.
+
+    The "costs you nothing" claim is literally true and worth stating plainly: the
+    credit is the full $39 and it survives the founding sellout, so a starter buyer
+    who later buys the kit pays exactly what a direct buyer pays.
+  */}
+  <section class="py-14 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto text-center">
+      <p class="font-accent text-xs tracking-[0.25em] uppercase mb-4" style="color:hsl(var(--eden-gold))">
+        Not ready for the whole year?
+      </p>
+      <h2 class="font-serif text-2xl md:text-3xl font-bold mb-5" style="color:hsl(var(--eden-bark))">
+        Start with six weeks for $39.
+      </h2>
+      <p class="font-body text-base text-muted-foreground leading-relaxed mb-7">
+        The Starter Unit is weeks 1 to 6 of Sprouts, the Teacher's Guide and the Student
+        Notebook, as an instant download. Teach it, see how it sits with your family, and
+        the whole $39 comes off the kit whenever you are ready. If you go on to buy the
+        kit, it has cost you nothing.
+      </p>
+      <a
+        href="/starter"
+        data-cta="preorder-to-starter"
+        class="inline-block font-accent text-sm tracking-[0.2em] uppercase font-bold px-8 py-4 rounded-md border-2"
+        style="border-color:hsl(var(--eden-forest));color:hsl(var(--eden-forest))"
+      >
+        See the Starter Unit
+      </a>
+    </div>
+  </section>
+
+  {/*
     Pinterest `checkout` conversion.
 
     Stripe returns buyers to /preorder?checkout=success&session_id=cs_... (see

@@ -39,6 +39,8 @@ import { productForPriceId } from "../_shared/order-config.ts"
 import { captureException } from "../_shared/sentry.ts"
 import { sendMetaCapiPurchase } from "../_shared/meta-capi.ts"
 import { getGuideByNickname, getGuideBySlug } from "../_shared/guide/registry.ts"
+import { STARTER_LOOKUP_KEY } from "../_shared/starter-config.ts"
+import { creditIssuanceOpen, issueStarterCredit, markCreditRedeemed } from "../_shared/starter-credit.ts"
 
 /**
  * Normalize a constitution identifier to a guide-registry slug.
@@ -344,6 +346,19 @@ serve(async (req) => {
         if (pi) {
           const applied = await applyRefundByPaymentIntent(adminClient, pi)
           console.log(`charge.refunded: ${applied ? "order -> refunded" : "no matching order"} (pi=${pi}, charge=${charge.id})`)
+          // A refunded Starter Unit takes its credit with it. The published
+          // policy on /returns says so, and an uncancelled credit would let
+          // someone buy the starter for $39, refund it, and still hold $39 off
+          // the kit. Best-effort: the refund itself is already recorded, so a
+          // failure here is logged loudly for manual cleanup rather than made
+          // into a 500 that has Stripe retry a completed refund.
+          await cancelCreditForRefundedStarter(pi).catch((err) =>
+            console.error(
+              `[pi=${pi}] starter credit cancellation after refund FAILED; ` +
+                `the credit may still be live and should be deactivated by hand: ` +
+                (err instanceof Error ? err.message : String(err)),
+            )
+          )
         } else {
           console.warn(`charge.refunded without payment_intent; charge=${charge.id}`)
         }
@@ -670,12 +685,49 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
         )
       }
     }
+    // If this kit was bought with a Starter Unit credit, close the loop.
+    //
+    // The promotion code id is stamped into session metadata by create-checkout,
+    // which is more reliable than reading total_details.breakdown.discounts (that
+    // needs an expansion the webhook payload does not carry). markCreditRedeemed
+    // is a compare-and-set on redeemed_at, so a Stripe retry reports no-op instead
+    // of overwriting the original timestamp, which is the one number the whole
+    // starter-to-kit conversion metric is computed from.
+    //
+    // Best-effort: the kit order is already recorded and the buyer already
+    // charged, so a failure here is a reporting gap, never a reason to 500 and
+    // have Stripe retry a completed order.
+    const creditPromoId = (session.metadata?.starter_credit_promo_id as string | undefined) ?? null
+    if (creditPromoId) {
+      try {
+        const { data: kitOrder } = await adminClient
+          .from("orders").select("id").eq("stripe_checkout_session_id", session.id).maybeSingle()
+        const out = await markCreditRedeemed(adminClient, {
+          promotionCodeId: creditPromoId,
+          orderId: kitOrder?.id ?? null,
+          sessionId: session.id,
+        })
+        if (!out.redeemed) {
+          console.log(`[${session.id}] starter credit ${creditPromoId} was already marked redeemed; no-op`)
+        }
+      } catch (err) {
+        console.error(
+          `[${session.id}] starter credit redemption writeback failed: ` +
+            (err instanceof Error ? err.message : String(err)),
+        )
+      }
+    }
+
     // Founder milestone pings (250/400/475/490/cap) ride the recording path so the
     // final ping lands at the actual flip moment, and this call also advances the
     // one-way founding latch at payment time. Best-effort: a milestone or Resend
     // failure must never 500 the webhook and make Stripe retry a recorded order.
+    //
+    // The cap milestone is ALSO what runs the starter-credit phase transition, so
+    // there is no separate 500-unit monitor, no cron and no polling: the trigger
+    // is the same latch that flips the price.
     try {
-      await notifyFoundingMilestones(adminClient)
+      await notifyFoundingMilestones(adminClient, stripe)
     } catch (err) {
       console.error("founding milestone check failed:", err instanceof Error ? err.message : String(err))
     }
@@ -740,6 +792,12 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
     lookupKey === "nb_addon"
   ) {
     await recordHomeschoolOrder(session, lookupKey, email)
+    return
+  }
+
+  // Branch 2b: Eden's Table Sprouts Starter Unit ($39 digital).
+  if (lookupKey === STARTER_LOOKUP_KEY) {
+    await handleStarterUnitPurchase(session, email)
     return
   }
 
@@ -859,6 +917,193 @@ async function recordDigitalOrder(
     throw new Error(`digital order upsert failed for session ${session.id}: ${error.message}`)
   }
   console.log(`Recorded digital sale: ${label} ${session.amount_total ?? "?"} ${session.currency ?? ""} session=${session.id}`)
+}
+
+// ---------- Starter Unit ----------
+
+/**
+ * Eden's Table Sprouts Starter Unit: record the sale, issue the kit credit, and
+ * queue delivery.
+ *
+ * ORDER OF OPERATIONS IS DELIBERATE, and it is the same lesson the Deep-Dive
+ * Guide branch above learned the hard way:
+ *
+ *   1. RECORD THE SALE first, always, before anything that can bail out. A buyer
+ *      whose delivery fails must still exist in the ledger.
+ *   2. ISSUE THE CREDIT. Idempotent on the session id, so a Stripe retry returns
+ *      the same code rather than minting a second one.
+ *   3. QUEUE the delivery and return. The actual work (stamping ~20MB of PDFs and
+ *      sending) happens in starter-fulfill, because doing it inline risks the
+ *      webhook timing out, and a timed-out webhook is retried, which means
+ *      re-doing work that already half-happened.
+ *
+ * Steps 2 and 3 are best-effort with respect to the HTTP response: neither may
+ * throw the webhook into a 500, because Stripe would then retry an event whose
+ * sale is already recorded. Both are individually recoverable (the credit by a
+ * re-run of this branch, the delivery by the cron drain), and both log loudly.
+ *
+ * IDEMPOTENCY, end to end: `orders` is unique on stripe_checkout_session_id,
+ * `starter_credits` is unique on stripe_checkout_session_id, and
+ * `starter_deliveries` is unique on stripe_checkout_session_id. A duplicate
+ * delivery of this event therefore records nothing new, issues no second code,
+ * and queues no second email. That is the acceptance criterion, enforced by three
+ * database constraints rather than by hoping this function runs once.
+ */
+async function handleStarterUnitPurchase(
+  session: Stripe.Checkout.Session,
+  email: string | null,
+): Promise<void> {
+  const sid = session.id
+
+  // Async payment methods fire checkout.session.completed before money moves.
+  if (session.payment_status !== "paid") {
+    console.warn(`[${sid}] starter unit completed with payment_status=${session.payment_status}; not fulfilling`)
+    return
+  }
+  if (!email) {
+    // Nothing to deliver to. The sale is still recorded below so it is visible.
+    console.error(`[${sid}] starter unit purchase carries NO email; recording the sale, cannot deliver`)
+  }
+
+  // 1. The sale.
+  await recordDigitalOrder(session, STARTER_LOOKUP_KEY, email)
+  const { data: orderRow } = await adminClient
+    .from("orders").select("id").eq("stripe_checkout_session_id", sid).maybeSingle()
+  const orderId = orderRow?.id ?? null
+
+  if (!email) return
+
+  const stripeCustomerId =
+    typeof session.customer === "string" ? session.customer : session.customer?.id ?? null
+  const purchaserName = session.customer_details?.name ?? null
+
+  // 2. The credit.
+  let creditCode: string | null = null
+  try {
+    if (!stripeCustomerId) {
+      // Without a Customer the code cannot be bound, and an UNBOUND code is a
+      // transferable $39 that anyone can use. Refuse to issue rather than issue a
+      // shareable one; create-checkout sets customer_creation="always" for this
+      // product, so reaching here means something upstream changed.
+      throw new Error("no Stripe Customer on the session; refusing to issue an unbound credit")
+    }
+    if (!(await creditIssuanceOpen(adminClient))) {
+      console.log(`[${sid}] credit issuance is closed under the current policy; no code issued`)
+    } else {
+      const issued = await issueStarterCredit(adminClient, stripe, {
+        sessionId: sid,
+        orderId,
+        email,
+        purchaserName,
+        stripeCustomerId,
+      })
+      creditCode = issued.code
+    }
+  } catch (err) {
+    console.error(
+      `[${sid}] starter credit issuance FAILED (sale is recorded, delivery will go without a code): ` +
+        (err instanceof Error ? err.message : String(err)),
+    )
+  }
+
+  // 3. The delivery work item.
+  try {
+    const { error } = await adminClient.from("starter_deliveries").insert({
+      stripe_checkout_session_id: sid,
+      order_id: orderId,
+      email,
+      purchaser_name: purchaserName,
+      status: "pending",
+      // 32 hex chars of CSPRNG. This is the durable re-request key, so it has to
+      // be unguessable in the same way the /partner-sample ?k= secret is.
+      download_token: crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, ""),
+    })
+    // deno-lint-ignore no-explicit-any
+    if (error && (error as any).code !== "23505") throw error
+    // deno-lint-ignore no-explicit-any
+    if (error && (error as any).code === "23505") {
+      console.log(`[${sid}] delivery already queued (duplicate webhook delivery); not queueing again`)
+      return
+    }
+  } catch (err) {
+    console.error(
+      `[${sid}] starter delivery could not be queued: ` +
+        (err instanceof Error ? err.message : String(err)),
+    )
+    return
+  }
+
+  // Kick the fulfiller so delivery is near-immediate rather than waiting for the
+  // next cron tick. Deliberately NOT awaited into the webhook's response path and
+  // deliberately unable to throw: the work item is durable, so the worst case of
+  // this call failing is a delivery that arrives on the next drain instead of now.
+  void kickStarterFulfill(sid)
+}
+
+/**
+ * Cancel the kit credit attached to a refunded Starter Unit purchase.
+ *
+ * Published policy (/returns, 2026-08-26): "If a Starter Unit purchase is
+ * refunded, its credit is cancelled with it." Without this, a $39 purchase could
+ * be refunded and still leave a live $39 credit, which is a free kit discount for
+ * the cost of a support email.
+ *
+ * An ALREADY-REDEEMED credit is deliberately left alone. If the buyer has already
+ * spent it on a kit, revoking it retroactively would not claw anything back (the
+ * kit sale is done) and the row is the evidence of what happened. Deactivating it
+ * would only corrupt the redemption record.
+ */
+async function cancelCreditForRefundedStarter(paymentIntentId: string): Promise<void> {
+  const { data: order } = await adminClient
+    .from("orders").select("stripe_checkout_session_id, lookup_key")
+    .eq("stripe_payment_intent_id", paymentIntentId).maybeSingle()
+  if (!order || order.lookup_key !== STARTER_LOOKUP_KEY) return
+
+  const { data: credit } = await adminClient
+    .from("starter_credits").select("id, code, stripe_promotion_code_id, redeemed_at, deactivated_at")
+    .eq("stripe_checkout_session_id", order.stripe_checkout_session_id).maybeSingle()
+  if (!credit) return
+
+  if (credit.redeemed_at) {
+    console.log(
+      `[${order.stripe_checkout_session_id}] starter refunded but credit ${credit.code} was already ` +
+        `redeemed; leaving the redemption record intact`,
+    )
+    return
+  }
+  if (credit.deactivated_at) return
+
+  // Stripe first. If it fails we throw, our row stays active, and the mismatch is
+  // in the safe direction: a code live with us but dead at Stripe would refuse at
+  // checkout with an opaque error.
+  await stripe.promotionCodes.update(credit.stripe_promotion_code_id, { active: false })
+  const { error } = await adminClient.from("starter_credits")
+    .update({ deactivated_at: new Date().toISOString(), deactivated_reason: "starter_purchase_refunded" })
+    .eq("id", credit.id)
+  if (error) throw new Error(`local credit deactivation write failed: ${error.message}`)
+  console.log(`[${order.stripe_checkout_session_id}] starter refunded; credit ${credit.code} cancelled`)
+}
+
+/** Fire-and-forget nudge to starter-fulfill. Never throws. */
+async function kickStarterFulfill(sessionId: string): Promise<void> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/starter-fulfill`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ session_id: sessionId }),
+    })
+    if (!res.ok) {
+      console.warn(`[${sessionId}] starter-fulfill kick returned ${res.status}; cron will pick it up`)
+    }
+  } catch (err) {
+    console.warn(
+      `[${sessionId}] starter-fulfill kick failed; cron will pick it up: ` +
+        (err instanceof Error ? err.message : String(err)),
+    )
+  }
 }
 
 // ---------- Homeschool order recording ----------

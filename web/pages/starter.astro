@@ -1,0 +1,252 @@
+---
+// /starter — Eden's Table Sprouts Starter Unit ($39 digital, weeks 1-6).
+//
+// A DEDICATED page, not a variant of /preorder. Purchase intent is different: a
+// preorder buyer has already decided and is committing to a 2027 ship date, while
+// a starter buyer is deciding whether this curriculum suits their family at all.
+// Folding the two together would make the kit page argue with itself.
+//
+// COPY POSITION, and it is load-bearing. This is a STARTER UNIT: six complete
+// weeks with everything needed to teach them. It is never a "sample", "preview",
+// "lite" or "partial" version, because every one of those words tells a reader
+// that what they bought is the lesser thing. The plant cards are absent because
+// they are made for hands, and that is stated as a design decision rather than an
+// apology.
+//
+// The credit sits ABOVE THE FOLD, in the hero, because the whole product exists
+// to convert to the $249 kit. Someone who scrolls past the hero and never learns
+// the $39 comes back has been sold a different product to the one intended.
+//
+// Prices here are display copy. The only billing truth is the Stripe Price that
+// create-checkout resolves from lookup_key "sprouts_starter_unit". Keep in sync
+// with supabase/functions/_shared/starter-config.ts (STARTER_PRICE_CENTS 3900,
+// STARTER_CREDIT_CENTS 3900) and _shared/order-config.ts (kit 24900 / 34900).
+//
+// Copy rule: no em dashes (feedback_no_em_dashes).
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+import StarterBuyBox from "../components/islands/StarterBuyBox.tsx";
+
+const PRICE = "$39";
+const CREDIT = "$39";
+const KIT_FOUNDING = "$249";
+const KIT_RETAIL = "$349";
+
+const meta = {
+  title: "Sprouts Starter Unit · Eden's Table | The Eden Institute",
+  description:
+    "Six weeks of Eden's Table Sprouts (K-2), Teacher's Guide and Student Notebook, as an instant " +
+    PRICE + " download. The full " + PRICE + " comes off the Sprouts Complete Kit when you are ready.",
+  canonical: "https://edeninstitute.health/starter",
+};
+
+const included = [
+  {
+    title: "Six full weeks",
+    body: "Weeks 1 to 6 of the 36-week Sprouts year, complete and in order. Thirty daily lessons, not excerpts.",
+  },
+  {
+    title: "The Teacher's Guide",
+    body: "Every daily lesson plan for those six weeks, with the scope and sequence, the botany behind each herb, and what to say when a five year old asks why.",
+  },
+  {
+    title: "The Student Notebook",
+    body: "The child's write-in pages: six labelled botanical drawings, six kitchen-lab observations, weekly vocabulary and a written review each week.",
+  },
+  {
+    title: "Sprouts, kindergarten through second grade",
+    body: "Written for readers and pre-readers together, so an older sibling and a younger one can sit at the same table.",
+  },
+];
+
+// Spec-required FAQ coverage: what happens after purchase, can it be printed,
+// does it include the cards, how the credit works, other grade bands.
+const faqs = [
+  {
+    q: "What happens right after I buy?",
+    a: "You will get an email within about a minute with two download links, one for the Teacher's Guide and one for the Student Notebook. The links stay live for seven days. Save the files to your own device and they are yours to keep. If the links lapse before you get to them, there is a link in that same email to send yourself fresh ones.",
+  },
+  {
+    q: "Can I print it?",
+    a: "Yes. Print as much of it as you like for your own household, as often as you like. The Student Notebook in particular is meant to be printed, because children write in it. Both files are laid out for ordinary home printers on letter paper.",
+  },
+  {
+    q: "Does this include the plant cards?",
+    a: "No, and that is on purpose. The Field Cards, Recipe Cards and Around the Table Cards are made to be carried outside, propped against a mixing bowl and passed around a table by small hands. They are printed on heavy card for exactly that reason. A PDF of them would be a worse version of the thing, so they stay in the printed kit where they work.",
+  },
+  {
+    q: "How does the " + CREDIT + " credit work?",
+    a: "Your delivery email carries a credit code. When you buy the Sprouts Complete Kit, enter that code at checkout and " + CREDIT + " comes off. The code is tied to the email address you buy with and can be used once, so it is not transferable. It does not expire when the founding 500 kits sell out: if you come back later, it still comes off whatever the price is then.",
+  },
+  {
+    q: "What if I want a different grade band?",
+    a: "Sprouts covers kindergarten through second grade. Seedlings, for grades three through five, is in production and is not available as a starter unit yet. If that is the band you need, email hello@edeninstitute.health and we will tell you the moment it is ready rather than sell you the wrong year.",
+  },
+  {
+    q: "Is it refundable?",
+    a: "Because it is a digital download, it is not refundable once the files have been downloaded. That is stated here rather than after you buy, so you can decide with it in front of you. If something is wrong with the files, email hello@edeninstitute.health and we will fix it.",
+  },
+];
+
+const productJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Product",
+  name: "Eden's Table: Sprouts Starter Unit",
+  sku: "sprouts_starter_unit",
+  description:
+    "Weeks 1 to 6 of the Eden's Table Sprouts (K-2) Biblical herbalism curriculum, delivered as PDF. " +
+    "Includes the Teacher's Guide and the Student Notebook for those six weeks. " +
+    "Printed plant card sets are exclusive to the physical kit.",
+  brand: { "@type": "Brand", name: "Eden's Table" },
+  offers: {
+    "@type": "Offer",
+    price: "39.00",
+    priceCurrency: "USD",
+    availability: "https://schema.org/InStock",
+    url: "https://edeninstitute.health/starter",
+  },
+};
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+
+<MarketingLayout
+  title={meta.title}
+  description={meta.description}
+  canonical={meta.canonical}
+  jsonLd={[productJsonLd, faqJsonLd]}
+>
+  <!-- HERO. The credit is inside it, deliberately, because it is the reason the
+       product exists.
+       MEASURED ON A 375x812 PHONE, which is where most of this traffic lands.
+       The first draft put the buy button at y=782 with a height of 52, so its
+       bottom half sat below the fold: the primary CTA was clipped on the primary
+       device. Every mobile size below (pt, text size, margins) is tuned so the
+       credit box AND the whole button clear 812px. If you edit this hero, measure
+       it again rather than eyeballing it. Desktop keeps the larger type via md:. -->
+  <section class="pt-12 md:pt-20 pb-10 md:pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-3xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3 md:mb-4" style="color:hsl(var(--eden-gold))">
+        Eden's Table · Sprouts, K-2
+      </p>
+      <h1 class="font-serif text-4xl md:text-5xl font-bold leading-tight mb-4 md:mb-6" style="color:hsl(var(--eden-bark))">
+        Start teaching this week.
+      </h1>
+      <div class="w-16 h-px mx-auto my-4 md:my-6" style="background-color:hsl(var(--eden-gold))"></div>
+      <p class="font-body text-base md:text-xl text-muted-foreground leading-relaxed mb-5 md:mb-8">
+        The first six weeks of Eden's Table, Sprouts. The Teacher's Guide and the Student
+        Notebook, complete, as an instant download for {PRICE}. Sit down with it tonight
+        and know whether this is the way your family wants to learn plants.
+      </p>
+
+      <!-- The credit, above the fold. -->
+      <div
+        class="rounded-lg p-4 md:p-6 mb-5 md:mb-8 text-left md:text-center"
+        style="background-color:hsl(var(--background));border:2px dashed hsl(var(--eden-gold))"
+      >
+        <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2 md:mb-3" style="color:hsl(var(--eden-gold))">
+          The whole {CREDIT} comes back
+        </p>
+        <p class="font-body text-sm md:text-lg leading-relaxed" style="color:hsl(var(--eden-bark))">
+          Every Starter Unit comes with a credit code worth <strong>{CREDIT} off the Sprouts
+          Complete Kit</strong>. Use it whenever you are ready. If you go on to buy the kit,
+          the Starter Unit has cost you nothing.
+        </p>
+      </div>
+
+      <div class="flex justify-center">
+        <StarterBuyBox client:only="react" cta="starter-hero-buy" wide={true} />
+      </div>
+    </div>
+  </section>
+
+  <!-- WHAT IS INCLUDED -->
+  <section class="py-16 px-6 bg-background">
+    <div class="max-w-3xl mx-auto">
+      <h2 class="font-serif text-3xl font-bold mb-8 text-center" style="color:hsl(var(--eden-forest))">
+        What you get
+      </h2>
+      <div class="grid gap-4 md:grid-cols-2">
+        {included.map((item) => (
+          <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+            <h3 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-forest))">{item.title}</h3>
+            <p class="font-body text-sm text-muted-foreground leading-relaxed">{item.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- PLANT CARDS: framed as a feature, which is what it is. -->
+  <section class="py-16 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto text-center">
+      <p class="font-accent text-xs tracking-[0.25em] uppercase mb-4" style="color:hsl(var(--eden-gold))">
+        Made for hands, not screens
+      </p>
+      <h2 class="font-serif text-3xl font-bold mb-6" style="color:hsl(var(--eden-bark))">
+        The plant cards stay in the box.
+      </h2>
+      <p class="font-body text-lg text-muted-foreground leading-relaxed">
+        The Field Cards go outside and get compared against a real leaf. The Recipe Cards
+        get propped against a mixing bowl with flour on them. The Around the Table Cards get
+        passed between people at dinner. All three are printed on heavy card because that is
+        what they are for. We have not made screen versions of them, and we are not going to.
+        They live in the printed kit, where they work.
+      </p>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="py-16 px-6 bg-background">
+    <div class="max-w-2xl mx-auto">
+      <h2 class="font-serif text-3xl font-bold mb-8 text-center" style="color:hsl(var(--eden-forest))">
+        Questions
+      </h2>
+      <div class="space-y-4">
+        {faqs.map((f) => (
+          <details class="rounded-lg bg-white border p-5" style="border-color:hsl(var(--eden-gold) / 0.3)">
+            <summary class="font-serif text-base font-bold cursor-pointer" style="color:hsl(var(--eden-forest))">
+              {f.q}
+            </summary>
+            <p class="font-body text-sm text-muted-foreground leading-relaxed mt-3">{f.a}</p>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- CLOSING BUY + the route on to the kit -->
+  <section class="py-16 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto text-center">
+      <h2 class="font-serif text-3xl font-bold mb-6" style="color:hsl(var(--eden-bark))">
+        Six weeks, {PRICE}, in your inbox in a minute.
+      </h2>
+      <div class="flex justify-center mb-10">
+        <StarterBuyBox client:only="react" cta="starter-bottom-buy" wide={true} />
+      </div>
+
+      <div class="pt-8" style="border-top:1px solid hsl(var(--eden-gold) / 0.4)">
+        <p class="font-body text-base text-muted-foreground leading-relaxed mb-4">
+          Already know you want the whole year? The Sprouts Complete Kit is the full 36 weeks
+          in print, with all three card sets and the Read-Aloud storybook, at {KIT_FOUNDING}
+          for the founding 500 and {KIT_RETAIL} after.
+        </p>
+        <a
+          href="/preorder"
+          data-cta="starter-to-kit-upgrade"
+          class="inline-block font-accent text-sm tracking-[0.2em] uppercase font-bold px-8 py-4 rounded-md border-2"
+          style="border-color:hsl(var(--eden-forest));color:hsl(var(--eden-forest))"
+        >
+          See the complete kit
+        </a>
+      </div>
+    </div>
+  </section>
+</MarketingLayout>
