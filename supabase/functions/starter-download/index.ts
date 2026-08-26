@@ -35,9 +35,21 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
+// Must list every header the browser actually sends, or the PREFLIGHT fails and
+// the request never leaves the browser at all.
+//
+// This shipped as just 'content-type' and broke the confirmation page on the very
+// first real purchase (2026-08-26). The client sends `apikey`, which was not in
+// this list, so Chrome refused the request before it was made. From the page it
+// looked like the server was unreachable, which sent the diagnosis in exactly the
+// wrong direction: fulfilment had in fact completed perfectly 2.7 seconds after
+// checkout, and the buyer's email was already sent.
+//
+// This is the same list every other public function in this project uses. There
+// was no reason to deviate from it and deviating is what caused the outage.
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
 };
 
