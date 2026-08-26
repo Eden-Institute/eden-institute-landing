@@ -111,11 +111,22 @@ export default function StarterDownloads({ mode, showCredit = false }: Props) {
           return;
         }
         setState({ kind: "ready", data: body as Payload });
-      } catch {
+      } catch (err) {
+        // A THROW here is not an HTTP error, it is the request never leaving the
+        // browser: CORS preflight refused, offline, or a blocked request. The
+        // first real purchase hit exactly this (a missing `apikey` in the
+        // function's Access-Control-Allow-Headers) and the old copy said "we
+        // could not reach the server. Check your connection", which blamed the
+        // buyer's wifi for our bug and, worse, implied the purchase had failed.
+        //
+        // It had not. Fulfilment runs server-side off the Stripe webhook and had
+        // already finished. So the copy now leads with the thing that is both
+        // true and the thing a person who has just paid actually needs to hear.
+        console.error("starter downloads fetch failed:", err);
         setState({
           kind: "error",
           message:
-            "We could not reach the server. Check your connection and refresh, or use the link in your Starter Unit email.",
+            "Your purchase went through and your files are on their way by email, we just could not show them on this page. Check your inbox in a minute or two. If nothing arrives, email hello@edeninstitute.health and we will send them straight to you.",
         });
       }
     }
