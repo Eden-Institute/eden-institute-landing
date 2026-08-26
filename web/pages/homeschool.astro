@@ -144,27 +144,67 @@ const KIT = {
 
 <MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} jsonLd={courseJsonLd}>
   {/* §1 Hero */}
-  <section class="py-20 md:py-28 px-6" style="background-color:hsl(var(--eden-cream))">
+  {/* Mobile spacing here is MEASURED, not eyeballed. On a 375x812 phone the
+      original hero pushed the credit line to y=816, i.e. the one sentence that
+      explains why both buttons exist started below the fold. Every md: prefix
+      below preserves the desktop look while buying that line back on mobile.
+      If you edit this hero, re-measure it. */}
+  <section class="py-12 md:py-28 px-6" style="background-color:hsl(var(--eden-cream))">
     <div class="max-w-4xl mx-auto text-center">
-      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-6" style="color:hsl(var(--eden-gold))">Eden's Table</p>
-      <h1 class="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4 md:mb-6" style="color:hsl(var(--eden-gold))">Eden's Table</p>
+      <h1 class="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-4 md:mb-6" style="color:hsl(var(--eden-bark))">
         Herbalism for the<br /><span class="italic">Whole Family Table.</span>
       </h1>
-      <div class="w-16 h-px mx-auto my-8" style="background-color:hsl(var(--eden-gold))"></div>
-      <p class="font-body text-lg text-muted-foreground max-w-2xl mx-auto mb-6 leading-relaxed">
+      <div class="w-16 h-px mx-auto my-5 md:my-8" style="background-color:hsl(var(--eden-gold))"></div>
+      <p class="font-body text-base md:text-lg text-muted-foreground max-w-2xl mx-auto mb-4 md:mb-6 leading-relaxed">
         A K-12 Biblical herbalism curriculum for homeschool families. Open-and-go lesson plans, memory songs, kitchen labs, garden activities, and a recurring family story, all rooted in Scripture and creation stewardship.
       </p>
-      <p class="font-accent text-sm tracking-wider uppercase mb-8" style="color:hsl(var(--eden-sage))">
+      <p class="font-accent text-sm tracking-wider uppercase mb-5 md:mb-8" style="color:hsl(var(--eden-sage))">
         Sprouts (K-2) · The complete 36-week year, in one box
       </p>
       {/* id="early-access" is load-bearing: the homepage links to
           /homeschool#early-access (index.astro). Keep it even though the
           lead-magnet capture that originally lived here is gone. */}
+      {/* TWO doors, deliberately. The kit is the commitment and stays the primary
+          filled button; the Starter Unit is the lower-commitment way in for a
+          reader who is not ready to spend $249 on something that ships in 2027,
+          whose only other option is to close the tab.
+
+          They are NOT presented as equals. Same size so neither looks like an
+          afterthought, but filled vs outline keeps the kit visually first, and
+          the kit sits left / first in the DOM so it is what a screen reader and a
+          scanning eye reach first.
+
+          The credit line directly under them is what makes the pair honest rather
+          than a fork in the road: choosing the small door costs nothing, because
+          the $39 comes off the kit later. Without that sentence the two buttons
+          compete; with it they are a sequence.
+
+          data-cta on both so the split is actually measurable in cta_events. The
+          hero had no beacons at all before this. */}
       <div id="early-access" class="flex flex-col items-center gap-4 scroll-mt-28">
-        <a href="#pricing">
-          <Button variant="eden" size="xl">Preorder the Sprouts Kit · $249</Button>
-        </a>
-        <p class="font-body text-sm text-muted-foreground max-w-md mx-auto mt-1">
+        <div class="flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:gap-4 w-full max-w-xl">
+          <a href="#pricing" data-cta="homeschool-hero-preorder" class="inline-flex w-full sm:w-auto">
+            <Button variant="eden" size="xl" className="w-full h-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6">
+              Preorder the Sprouts Kit · $249
+            </Button>
+          </a>
+          <a href="/starter" data-cta="homeschool-hero-starter" class="inline-flex w-full sm:w-auto">
+            <Button variant="eden-outline" size="xl" className="w-full h-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6">
+              Start with 6 Weeks Digital · $39
+            </Button>
+          </a>
+        </div>
+
+        {/* The whole point of showing both. Keep the two numbers and the word
+            "deducted" together: a reader skimming should be able to take the
+            meaning from this one line without reading the rest of the page. */}
+        <p class="font-body text-sm max-w-lg mx-auto mt-1 leading-relaxed" style="color:hsl(var(--eden-bark))">
+          Buy both and the <strong>$39 is deducted from the $249</strong>, so starting
+          small costs you nothing.
+        </p>
+
+        <p class="font-body text-sm text-muted-foreground max-w-md mx-auto">
           Founding price for the first 500 kits, then $349 retail. Flat $12 shipping per order.
         </p>
         <p class="mt-2 font-accent text-xs tracking-[0.2em] uppercase" style="color:hsl(var(--eden-sage))">
