@@ -303,7 +303,7 @@ const Index = () => {
                 title: "Eden's Table",
                 subtitle: "K-12 Homeschool Curriculum",
                 body: "The family doorway. Children learn how God designed their bodies and the plants He gave — alongside the parent who teaches them.",
-                cta: "Get the first two weeks free →",
+                cta: "Preorder, or start for $39 →",
                 href: "/homeschool#early-access",
                 external: false,
               },
