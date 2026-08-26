@@ -84,7 +84,7 @@ const PREORDER_URL = 'https://edeninstitute.health/preorder';
 // "when do kits arrive?" by name, and under 16 CFR 435 the answer must carry
 // the guaranteed date, not just a promise of a shipping-confirmation email.
 // Revised 2026-08-26. Mirrors _shared/order-config.ts; this file keeps its own copy.
-const EMAIL_SHIP_TARGET = 'July 2027';
+const EMAIL_SHIP_TARGET = 'July 31, 2027';
 const EMAIL_SHIP_GUARANTEE = 'September 30, 2027';
 // ──────────────────────────────────────────────────────────────────────────
 
