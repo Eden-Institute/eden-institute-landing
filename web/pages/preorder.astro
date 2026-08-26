@@ -117,6 +117,59 @@ const productJsonLd = productSpecs.map((p) => ({
     </div>
   </section>
 
+  {/* FOUNDER'S NOTE — sits between the hero and the buy box so it is read before
+      any decision. Deliberately forward-facing: it states the dates and names the
+      first-print-run learning curve, and makes NO reference to any earlier date.
+      Founder decision 2026-08-26. */}
+  <section class="pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto">
+      <div class="border-l-2 pl-6 py-2" style="border-color:hsl(var(--eden-gold))">
+        <p class="font-accent text-xs tracking-[0.25em] uppercase mb-4" style="color:hsl(var(--eden-gold))">
+          A note from Camila
+        </p>
+        <div class="font-body text-base leading-relaxed space-y-4" style="color:hsl(var(--eden-bark))">
+          <p>Before you decide anything, here is where this actually stands.</p>
+          <p>
+            Kits will be in your hands before the school year starts. We are aiming to ship
+            {SHIP_TARGET}, and guaranteed on or before {SHIP_GUARANTEE}. The first print run
+            goes to press in the spring, and everything between now and then is production:
+            proofs, paper, dielines, and the long quiet stretch where a thing gets made.
+          </p>
+          <p>Let me be plain about something.</p>
+          <p>
+            This is my first print run. I am a teacher and a homeschool mother, not a
+            manufacturer, and I am learning this as I go: paper weights and box dielines,
+            proof rounds, and the production lead times nobody warns you about. I would
+            rather tell you that honestly than perform an expertise I do not have yet.
+          </p>
+          <p>So here is the promise I can make that has nothing to do with printers.</p>
+          <p>
+            You will hear from me on the first of every month, whether there is news or not.
+            If anything changes, you will know within seven days, with the actual reason
+            rather than a vague apology. And you can take a full refund at any point before
+            your kit ships, for any reason, without a moment of awkwardness.
+          </p>
+          <p>
+            I would rather earn your trust with the boring part, which is telling you the
+            truth on a schedule.
+          </p>
+          <p>
+            And I want you to know what you are actually joining. The founding 500 are not a
+            discount tier. You are the families funding the first print run of a curriculum
+            that does not exist anywhere else. Your name goes in the first edition. And
+            between now and summer you get to watch it be made: the proofs, the paper, the
+            illustrations, the week we find out whether the field cards survive a real
+            garden. I will bring you in on the decisions I have not made yet.
+          </p>
+          <p class="font-serif" style="color:hsl(var(--eden-forest))">
+            Camila Johnson<br />
+            <span class="font-body text-sm text-muted-foreground">Founder, The Eden Institute</span>
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   {/* BUY BOX (island) */}
   <section class="py-12 px-6 bg-background">
     <div class="max-w-5xl mx-auto">
