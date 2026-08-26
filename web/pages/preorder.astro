@@ -27,8 +27,10 @@ import PreorderBuyBox from "../components/islands/PreorderBuyBox.tsx";
 // is the BINDING commitment the FTC delay-notice clock runs on. Both must stay visible:
 // if only the target were prominent it could be treated as the stated shipping time.
 // Keep in sync with supabase/functions/_shared/order-config.ts.
-const SHIP_TARGET = "early November 2026";
-const SHIP_GUARANTEE = "December 31, 2026";
+// Revised 2026-08-26. Keep in lockstep with _shared/order-config.ts, which this file
+// deliberately does NOT import (Astro build vs Deno edge runtime).
+const SHIP_TARGET = "July 2027";
+const SHIP_GUARANTEE = "September 30, 2027";
 
 const meta = {
   title: "Founding Preorder · Eden's Table Sprouts | The Eden Institute",

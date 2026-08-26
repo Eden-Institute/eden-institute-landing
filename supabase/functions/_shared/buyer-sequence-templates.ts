@@ -38,8 +38,9 @@
 const WEBSITE_URL = 'https://edeninstitute.health';
 const HERB_SOURCING_URL = 'https://edeninstitute.health/homeschool/herbs';
 
-const SHIP_TARGET = 'early November 2026';
-const SHIP_GUARANTEE = 'December 31, 2026';
+// Revised 2026-08-26. Mirrors _shared/order-config.ts; this file keeps its own copy.
+const SHIP_TARGET = 'July 2027';
+const SHIP_GUARANTEE = 'September 30, 2027';
 
 const BRAND = {
   bgOuter: '#F5F0E8',

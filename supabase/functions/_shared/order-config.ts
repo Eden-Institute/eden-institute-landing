@@ -17,9 +17,12 @@
 //
 // The authoritative date also lives in products.ships_on (migration 20260719210000) so a
 // later preorder wave carries its own; these constants are the copy for THIS wave.
-export const SHIP_TARGET = 'early November 2026';
-export const SHIP_GUARANTEE_TEXT = 'December 31, 2026';
-export const SHIP_GUARANTEE_DATE = '2026-12-31';
+// Revised 2026-08-26 (founder decision). The first print run moved to spring 2027 so
+// kits reach families before the school year starts. TARGET is a SHIP month, not a
+// delivery date: shipping in July puts kits in hand before August, which is the goal.
+export const SHIP_TARGET = 'July 2027';
+export const SHIP_GUARANTEE_TEXT = 'September 30, 2027';
+export const SHIP_GUARANTEE_DATE = '2027-09-30';
 
 // What the buyer accepts in the disclaimer checkbox, stamped into session metadata and
 // the accepted_ship_window_text column. Carries BOTH dates so the acceptance evidence
