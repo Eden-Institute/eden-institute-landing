@@ -45,8 +45,9 @@ import { getFbAttribution } from "@/lib/fbAttribution";
 // clock runs on. Both must stay visible: if only the target were prominent, it could be
 // treated as the stated shipping time and pull the deadline forward by two months.
 // Keep in sync with supabase/functions/_shared/order-config.ts.
-const SHIP_TARGET = "early November 2026";
-const SHIP_GUARANTEE = "December 31, 2026";
+// Revised 2026-08-26. Keep in lockstep with _shared/order-config.ts and preorder.astro.
+const SHIP_TARGET = "July 2027";
+const SHIP_GUARANTEE = "September 30, 2027";
 const NOTEBOOK_MAX_QTY = 5;
 const KIT_PRICE_CENTS = 24900;
 const KIT_RETAIL_CENTS = 34900;

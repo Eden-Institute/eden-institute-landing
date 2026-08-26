@@ -83,8 +83,9 @@ const PREORDER_URL = 'https://edeninstitute.health/preorder';
 // it there and mirror it here. Email 15 states both because that FAQ asks
 // "when do kits arrive?" by name, and under 16 CFR 435 the answer must carry
 // the guaranteed date, not just a promise of a shipping-confirmation email.
-const EMAIL_SHIP_TARGET = 'early November 2026';
-const EMAIL_SHIP_GUARANTEE = 'December 31, 2026';
+// Revised 2026-08-26. Mirrors _shared/order-config.ts; this file keeps its own copy.
+const EMAIL_SHIP_TARGET = 'July 2027';
+const EMAIL_SHIP_GUARANTEE = 'September 30, 2027';
 // ──────────────────────────────────────────────────────────────────────────
 
 const SHOP_FALLBACK_URL = 'https://edeninstitute.health/homeschool/herbs';

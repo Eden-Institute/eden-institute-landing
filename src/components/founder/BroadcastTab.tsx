@@ -55,7 +55,7 @@ export default function BroadcastTab() {
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [revisedDate, setRevisedDate] = useState("");
-  const [currentShipsOn, setCurrentShipsOn] = useState("2026-12-31");
+  const [currentShipsOn, setCurrentShipsOn] = useState("2027-09-30");
 
   const [preview, setPreview] = useState<PreviewResult | null>(null);
   const [busy, setBusy] = useState<"preview" | "send" | null>(null);
