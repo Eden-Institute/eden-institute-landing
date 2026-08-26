@@ -930,9 +930,24 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
     // the email lock: any other Customer is refused outright.
     sessionParams.customer = appliedCredit.customerId
     // Stripe Tax refuses a session with a pre-existing Customer unless it is told
-    // it may save the address the payer enters. Same reason the subscription path
-    // sets this (learned on the Practitioner launch, 2026-07-09).
-    sessionParams.customer_update = { address: "auto", name: "auto" }
+    // it may save what the payer enters back onto that Customer.
+    //
+    // `shipping: "auto"` is NOT optional here and its absence is not a warning:
+    // this branch is the only one that combines a pre-existing `customer` with
+    // shipping_address_collection AND automatic_tax, and Stripe hard-refuses that
+    // combination with
+    //   "Automatic tax calculation uses fields saved on the Customer. To collect
+    //    a shipping address with `automatic_tax` enabled, set
+    //    customer_update[shipping] to 'auto'"
+    // The first version set only address and name, which meant every attempt to
+    // REDEEM a credit 500'd. Nothing else in the feature would have shown it:
+    // issuing worked, the email worked, both refusal guards worked, and the one
+    // path that was broken was the one the whole product exists for. Caught on a
+    // real code before a customer reached it (2026-08-26).
+    //
+    // The subscription branch above sets only address because it collects no
+    // shipping address at all.
+    sessionParams.customer_update = { address: "auto", name: "auto", shipping: "auto" }
     sessionParams.discounts = [{ promotion_code: appliedCredit.promotionCodeId }]
     // NOT setting allow_promotion_codes is what makes the credit non-stackable:
     // Stripe rejects a session carrying both, and Checkout takes at most one
