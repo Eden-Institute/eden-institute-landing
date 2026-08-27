@@ -137,6 +137,14 @@ verify_jwt = true
 [functions.starter-fulfill]
 verify_jwt = true
 
+# list-announce mails the whole homeschool list. It is the single most dangerous
+# function in the project by blast radius, so it is service-role only via
+# _shared/require-service-role.ts and verify_jwt MUST stay true or that claim
+# check could be forged. Nothing in a browser should be one request away from
+# mailing 1,400 people.
+[functions.list-announce]
+verify_jwt = true
+
 # --- Category 1 (continued): Public-frontend functions ---
 
 # starter-download is the re-request flow for expired download links. The buyer
