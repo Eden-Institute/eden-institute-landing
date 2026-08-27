@@ -23,6 +23,7 @@ export interface StarterEmailModel {
   email: string;
   teachersGuideUrl: string;
   studentNotebookUrl: string;
+  readAloudUrl: string;
   creditCode: string | null;
   downloadToken: string;
   linksExpireAt: Date;
@@ -92,16 +93,17 @@ ${ctaButton('See the full kit', KIT_URL)}
 </td></tr>
 <tr><td style="padding:34px 36px;">
 ${para(greeting)}
-${para(`Here are your first six weeks of Eden's Table, Sprouts. Everything you need to start teaching is in these two files.`)}
+${para(`Here are your first six weeks of Eden's Table, Sprouts. Everything you need to start teaching is in these three files.`)}
 
 ${sectionLabel('Your downloads')}
 ${ctaButton("Teacher's Guide", m.teachersGuideUrl)}
 ${ctaButton('Student Notebook', m.studentNotebookUrl)}
+${ctaButton('Read-Aloud Storybook', m.readAloudUrl)}
 ${para(`<span style="font-size:14px;color:#5A6B5F;">These links work until <strong>${expires}</strong>. Download them onto your own device and they are yours to keep. If the links lapse before you get to them, <a href="${rerequestUrl}" style="color:#1C3A2E;">request fresh ones here</a> and we will send new ones straight away.</span>`)}
 ${creditBlock}
 ${rule()}
 ${sectionLabel('About the plant cards')}
-${para(`The Field Cards, Recipe Cards and Around the Table Cards are not in this download, and that is deliberate. They are made to be carried outside, propped against a mixing bowl and passed around a table by small hands. A screen cannot do any of that, so they stay in the printed kit where they belong.`)}
+${para(`The Field Cards, Recipe Cards and Around the Table Cards are not in this download, and that is deliberate. They are made to be carried outside, propped against a mixing bowl and passed around a table by small hands. A screen cannot do any of that, so they stay in the printed kit where they belong. The storybook is different, which is why it is here: a story reads aloud just as well from a screen.`)}
 ${rule()}
 ${para(`<span style="font-size:14px;color:#5A6B5F;">${STARTER_LICENSE_LINE} If you teach a co-op or a classroom, reply to this email and we will sort out the right licence for you.</span>`)}
 ${para(`<span style="font-size:14px;color:#5A6B5F;">Because this is a digital download, it is not refundable once the files have been downloaded. Our full policy is <a href="${RETURNS_URL}" style="color:#1C3A2E;">here</a>.</span>`)}
@@ -121,6 +123,7 @@ ${para(`<strong>Camila</strong><br><span style="font-size:14px;">The Eden Instit
     '',
     `Teacher's Guide: ${m.teachersGuideUrl}`,
     `Student Notebook: ${m.studentNotebookUrl}`,
+    `Read-Aloud Storybook: ${m.readAloudUrl}`,
     '',
     `These links work until ${expires}. Download them onto your own device and they are yours to keep.`,
     `If they lapse, request fresh ones here: ${rerequestUrl}`,
@@ -134,7 +137,7 @@ ${para(`<strong>Camila</strong><br><span style="font-size:14px;">The Eden Instit
         '',
       ]
       : []),
-    'About the plant cards: the Field Cards, Recipe Cards and Around the Table Cards are not in this download, and that is deliberate. They are made to be carried outside and passed around a table, so they stay in the printed kit.',
+    'About the plant cards: the Field Cards, Recipe Cards and Around the Table Cards are not in this download, and that is deliberate. They are made to be carried outside and passed around a table, so they stay in the printed kit. The storybook is different, which is why it is here.',
     '',
     STARTER_LICENSE_LINE,
     'If you teach a co-op or a classroom, reply to this email and we will sort out the right licence for you.',
