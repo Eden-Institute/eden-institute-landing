@@ -1,8 +1,11 @@
 // supabase/functions/_shared/starter-config.ts
 //
 // Single source of truth for the Eden's Table Sprouts Starter Unit: a $39 digital
-// product carrying weeks 1-6 of the Sprouts (K-2) band (Teacher's Guide and
-// Student Notebook only), plus the $39 credit toward the $249 kit.
+// product carrying weeks 1-6 of the Sprouts (K-2) band (Teacher's Guide, Student
+// Notebook and the Read-Aloud storybook), plus the $39 credit toward the $249 kit.
+//
+// The three printed CARD SETS stay print-exclusive. That is a product decision, not
+// an oversight: they are made to be carried outside and passed around a table.
 //
 // NO STRIPE OBJECT IDs ARE HARDCODED HERE, deliberately.
 //
@@ -90,6 +93,11 @@ export const STARTER_SOURCE_BUCKET = 'partner-assets';
 export const STARTER_MASTERS = {
   teachersGuide: 'sample/edens-table-6wk-teachers-guide.pdf',
   studentNotebook: 'sample/edens-table-6wk-student-notebook.pdf',
+  // Added 2026-08-26 (founder decision): the Read-Aloud storybook ships with the
+  // paid Starter Unit too. This is the SAME six-week file the founding partners
+  // receive, carrying the stories that cover weeks 1 to 6, not the full 36-week
+  // book. Confirmed by Camila rather than inferred from the filename.
+  readAloud: 'sample/edens-table-6wk-read-aloud.pdf',
 } as const;
 
 /** Private bucket holding the per-buyer stamped copies. Never public. */
@@ -99,6 +107,7 @@ export const STARTER_BUCKET = 'starter-unit';
 export const STARTER_FILENAMES = {
   teachersGuide: "Edens-Table-Sprouts-Starter-Teachers-Guide.pdf",
   studentNotebook: "Edens-Table-Sprouts-Starter-Student-Notebook.pdf",
+  readAloud: "Edens-Table-Sprouts-Starter-Read-Aloud.pdf",
 } as const;
 
 /**

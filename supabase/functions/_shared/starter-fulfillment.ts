@@ -70,6 +70,7 @@ export interface DeliveryRow {
   sent_at: string | null;
   tg_object_path: string | null;
   nb_object_path: string | null;
+  ra_object_path: string | null;
   download_token: string;
 }
 
@@ -156,14 +157,15 @@ export async function signedUrl(path: string, filename: string, ttl = DOWNLOAD_U
 
 /** Fresh links for an already-stamped delivery. Backs the re-request flow. */
 export async function mintDownloadLinks(
-  delivery: Pick<DeliveryRow, 'tg_object_path' | 'nb_object_path'>,
-): Promise<{ teachersGuide: string; studentNotebook: string }> {
-  if (!delivery.tg_object_path || !delivery.nb_object_path) {
+  delivery: Pick<DeliveryRow, 'tg_object_path' | 'nb_object_path' | 'ra_object_path'>,
+): Promise<{ teachersGuide: string; studentNotebook: string; readAloud: string }> {
+  if (!delivery.tg_object_path || !delivery.nb_object_path || !delivery.ra_object_path) {
     throw new Error('delivery has no stamped objects yet');
   }
   return {
     teachersGuide: await signedUrl(delivery.tg_object_path, STARTER_FILENAMES.teachersGuide),
     studentNotebook: await signedUrl(delivery.nb_object_path, STARTER_FILENAMES.studentNotebook),
+    readAloud: await signedUrl(delivery.ra_object_path, STARTER_FILENAMES.readAloud),
   };
 }
 
@@ -205,48 +207,79 @@ export async function fulfilStarterDelivery(
   await logStage(db, delivery, attempt, 'claim', true);
 
   try {
-    let tgPath = delivery.tg_object_path;
-    let nbPath = delivery.nb_object_path;
+    // Each file is stamped INDEPENDENTLY when its path is missing, rather than
+    // all-or-nothing. Two reasons:
+    //   1. A delivery that was fulfilled before the Read-Aloud was added has two
+    //      paths and a null third. Per-file stamping heals it on the next pass
+    //      instead of needing a data migration or a forced re-stamp of 20MB.
+    //   2. A partial upload failure only redoes the file that failed.
+    const stampOpts = {
+      purchaserName: delivery.purchaser_name,
+      email: delivery.email,
+      licenseLine: STARTER_LICENSE_LINE,
+    };
 
-    if (!tgPath || !nbPath) {
-      const stampOpts = {
-        purchaserName: delivery.purchaser_name,
-        email: delivery.email,
-        licenseLine: STARTER_LICENSE_LINE,
-      };
+    const plan = [
+      { key: 'tg_object_path', master: STARTER_MASTERS.teachersGuide, out: 'teachers-guide.pdf', have: delivery.tg_object_path },
+      { key: 'nb_object_path', master: STARTER_MASTERS.studentNotebook, out: 'student-notebook.pdf', have: delivery.nb_object_path },
+      { key: 'ra_object_path', master: STARTER_MASTERS.readAloud, out: 'read-aloud.pdf', have: delivery.ra_object_path },
+    ] as const;
 
-      // Sequential on purpose. See the memory note in the file header.
+    const paths: Record<string, string> = {};
+    const missing = plan.filter((f) => !f.have);
+    for (const f of plan) if (f.have) paths[f.key] = f.have;
+
+    if (missing.length) {
+      // Sequential on purpose. Measured on the real masters: 54 pages / 12.74MB in
+      // 193ms and 47 / 7.22MB in 104ms, peaking around 122MB RSS. Doing all three
+      // at once would roughly triple the peak against a 256MB ceiling to save a
+      // few hundred milliseconds of a request that is dominated by I/O anyway.
+      let bytes = 0, pages: number[] = [];
       const t0 = performance.now();
-      const tgMaster = await storageDownload(STARTER_SOURCE_BUCKET, STARTER_MASTERS.teachersGuide);
-      const nbMaster = await storageDownload(STARTER_SOURCE_BUCKET, STARTER_MASTERS.studentNotebook);
+      const loaded: Array<{ key: string; out: string; data: Uint8Array }> = [];
+      for (const f of missing) {
+        const data = await storageDownload(STARTER_SOURCE_BUCKET, f.master);
+        bytes += data.length;
+        loaded.push({ key: f.key, out: f.out, data });
+      }
       await logStage(db, delivery, attempt, 'fetch_master', true,
-        `${tgMaster.length + nbMaster.length} bytes`, Math.round(performance.now() - t0));
+        `${missing.length} file(s), ${bytes} bytes`, Math.round(performance.now() - t0));
 
       const t1 = performance.now();
-      const tg = await stampFooter(tgMaster, stampOpts);
-      const nb = await stampFooter(nbMaster, stampOpts);
+      const stamped: Array<{ key: string; out: string; data: Uint8Array }> = [];
+      for (const f of loaded) {
+        const r = await stampFooter(f.data, stampOpts);
+        pages.push(r.pagesStamped);
+        stamped.push({ key: f.key, out: f.out, data: r.bytes });
+      }
       await logStage(db, delivery, attempt, 'stamp', true,
-        `${tg.pagesStamped}+${nb.pagesStamped} pages`, Math.round(performance.now() - t1));
+        `${pages.join('+')} pages`, Math.round(performance.now() - t1));
 
       const t2 = performance.now();
-      tgPath = `personalised/${delivery.id}/teachers-guide.pdf`;
-      nbPath = `personalised/${delivery.id}/student-notebook.pdf`;
-      await storageUpload(STARTER_BUCKET, tgPath, tg.bytes);
-      await storageUpload(STARTER_BUCKET, nbPath, nb.bytes);
-      await logStage(db, delivery, attempt, 'upload', true, undefined, Math.round(performance.now() - t2));
+      for (const f of stamped) {
+        const path = `personalised/${delivery.id}/${f.out}`;
+        await storageUpload(STARTER_BUCKET, path, f.data);
+        paths[f.key] = path;
+      }
+      await logStage(db, delivery, attempt, 'upload', true,
+        `${stamped.length} file(s)`, Math.round(performance.now() - t2));
 
-      // Persist the paths BEFORE the email. If the send fails, the retry re-signs
-      // rather than re-stamping.
+      // Persist BEFORE the email. If the send fails, the retry re-signs rather
+      // than re-stamping.
       const { error } = await db.from('starter_deliveries')
-        .update({ tg_object_path: tgPath, nb_object_path: nbPath, updated_at: new Date().toISOString() })
+        .update({ ...paths, updated_at: new Date().toISOString() })
         .eq('id', delivery.id);
       if (error) throw new Error(`object path writeback failed: ${error.message}`);
     } else {
-      await logStage(db, delivery, attempt, 'stamp', true, 'reused existing stamped objects');
+      await logStage(db, delivery, attempt, 'stamp', true, 'reused all three stamped objects');
     }
 
     const t3 = performance.now();
-    const links = await mintDownloadLinks({ tg_object_path: tgPath, nb_object_path: nbPath });
+    const links = await mintDownloadLinks({
+      tg_object_path: paths.tg_object_path,
+      nb_object_path: paths.nb_object_path,
+      ra_object_path: paths.ra_object_path,
+    });
     const expiresAt = new Date(Date.now() + DOWNLOAD_URL_TTL_SECONDS * 1000);
     await logStage(db, delivery, attempt, 'sign', true, `expires ${expiresAt.toISOString()}`,
       Math.round(performance.now() - t3));
@@ -256,6 +289,7 @@ export async function fulfilStarterDelivery(
       email: delivery.email,
       teachersGuideUrl: links.teachersGuide,
       studentNotebookUrl: links.studentNotebook,
+      readAloudUrl: links.readAloud,
       creditCode,
       downloadToken: delivery.download_token,
       linksExpireAt: expiresAt,

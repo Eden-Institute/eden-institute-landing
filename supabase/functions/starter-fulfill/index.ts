@@ -44,7 +44,7 @@ const DRAIN_BATCH = 5;
 const MAX_ATTEMPTS = 5;
 
 const DELIVERY_COLUMNS =
-  'id, stripe_checkout_session_id, order_id, email, purchaser_name, status, attempts, sent_at, tg_object_path, nb_object_path, download_token';
+  'id, stripe_checkout_session_id, order_id, email, purchaser_name, status, attempts, sent_at, tg_object_path, nb_object_path, ra_object_path, download_token';
 
 function json(status: number, body: Record<string, unknown>): Response {
   return new Response(JSON.stringify(body), {

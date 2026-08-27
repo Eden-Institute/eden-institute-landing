@@ -57,6 +57,7 @@ const corsHeaders = {
 const FILES = {
   'teachers-guide': { key: 'tg_object_path', filename: STARTER_FILENAMES.teachersGuide, label: "Teacher's Guide" },
   'student-notebook': { key: 'nb_object_path', filename: STARTER_FILENAMES.studentNotebook, label: 'Student Notebook' },
+  'read-aloud': { key: 'ra_object_path', filename: STARTER_FILENAMES.readAloud, label: 'Read-Aloud Storybook' },
 } as const;
 
 type FileSlug = keyof typeof FILES;
@@ -135,7 +136,7 @@ serve(async (req) => {
 
   const lookup = adminClient
     .from('starter_deliveries')
-    .select('id, stripe_checkout_session_id, email, status, tg_object_path, nb_object_path, download_token');
+    .select('id, stripe_checkout_session_id, email, status, tg_object_path, nb_object_path, ra_object_path, download_token');
   const { data, error } = await (token
     ? lookup.eq('download_token', token)
     : lookup.eq('stripe_checkout_session_id', sessionId)
@@ -152,7 +153,7 @@ serve(async (req) => {
   // A delivery that has not been stamped yet has nothing to hand over. This is a
   // real state: a buyer can click the re-request link from a confirmation page
   // before the fulfiller has finished, seconds after paying.
-  if (!data.tg_object_path || !data.nb_object_path) {
+  if (!data.tg_object_path || !data.nb_object_path || !data.ra_object_path) {
     console.log(`[${sid}] re-request arrived before fulfilment completed (status=${data.status})`);
     return json(409, {
       error: 'Your files are still being prepared. This usually takes under a minute. Please refresh shortly.',
@@ -180,7 +181,11 @@ serve(async (req) => {
       .eq('id', data.id).then(undefined, () => {});
 
     if (slug && slug in FILES) {
-      const target = slug === 'teachers-guide' ? links.teachersGuide : links.studentNotebook;
+      const target = slug === 'teachers-guide'
+        ? links.teachersGuide
+        : slug === 'student-notebook'
+          ? links.studentNotebook
+          : links.readAloud;
       return new Response(null, {
         status: 302,
         headers: { ...corsHeaders, Location: target, 'Cache-Control': 'no-store' },
@@ -205,6 +210,7 @@ serve(async (req) => {
       files: [
         { slug: 'teachers-guide', label: FILES['teachers-guide'].label, url: links.teachersGuide },
         { slug: 'student-notebook', label: FILES['student-notebook'].label, url: links.studentNotebook },
+        { slug: 'read-aloud', label: FILES['read-aloud'].label, url: links.readAloud },
       ],
     });
   } catch (err) {

@@ -34,7 +34,7 @@ const KIT_RETAIL = "$349";
 const meta = {
   title: "Sprouts Starter Unit · Eden's Table | The Eden Institute",
   description:
-    "Six weeks of Eden's Table Sprouts (K-2), Teacher's Guide and Student Notebook, as an instant " +
+    "Six weeks of Eden's Table Sprouts (K-2): Teacher's Guide, Student Notebook and Read-Aloud storybook, as an instant " +
     PRICE + " download. The full " + PRICE + " comes off the Sprouts Complete Kit when you are ready.",
   canonical: "https://edeninstitute.health/starter",
 };
@@ -53,6 +53,10 @@ const included = [
     body: "The child's write-in pages: six labelled botanical drawings, six kitchen-lab observations, weekly vocabulary and a written review each week.",
   },
   {
+    title: "The Read-Aloud Storybook",
+    body: "The stories that carry weeks 1 to 6, the ones the whole table listens to. A story reads aloud just as well from a screen, so it comes with the download.",
+  },
+  {
     title: "Sprouts, kindergarten through second grade",
     body: "Written for readers and pre-readers together, so an older sibling and a younger one can sit at the same table.",
   },
@@ -63,15 +67,15 @@ const included = [
 const faqs = [
   {
     q: "What happens right after I buy?",
-    a: "You will get an email within about a minute with two download links, one for the Teacher's Guide and one for the Student Notebook. The links stay live for seven days. Save the files to your own device and they are yours to keep. If the links lapse before you get to them, there is a link in that same email to send yourself fresh ones.",
+    a: "You will get an email within about a minute with three download links: the Teacher's Guide, the Student Notebook and the Read-Aloud storybook. The links stay live for seven days. Save the files to your own device and they are yours to keep. If the links lapse before you get to them, there is a link in that same email to send yourself fresh ones.",
   },
   {
     q: "Can I print it?",
-    a: "Yes. Print as much of it as you like for your own household, as often as you like. The Student Notebook in particular is meant to be printed, because children write in it. Both files are laid out for ordinary home printers on letter paper.",
+    a: "Yes. Print as much of it as you like for your own household, as often as you like. The Student Notebook in particular is meant to be printed, because children write in it. All three files are laid out for ordinary home printers on letter paper.",
   },
   {
     q: "Does this include the plant cards?",
-    a: "No, and that is on purpose. The Field Cards, Recipe Cards and Around the Table Cards are made to be carried outside, propped against a mixing bowl and passed around a table by small hands. They are printed on heavy card for exactly that reason. A PDF of them would be a worse version of the thing, so they stay in the printed kit where they work.",
+    a: "No, and that is on purpose. The Field Cards, Recipe Cards and Around the Table Cards are made to be carried outside, propped against a mixing bowl and passed around a table by small hands. They are printed on heavy card for exactly that reason. A PDF of them would be a worse version of the thing, so they stay in the printed kit where they work. The Read-Aloud storybook is a different case, and it IS included: a story reads aloud just as well from a screen.",
   },
   {
     q: "How does the " + CREDIT + " credit work?",
@@ -94,7 +98,7 @@ const productJsonLd = {
   sku: "sprouts_starter_unit",
   description:
     "Weeks 1 to 6 of the Eden's Table Sprouts (K-2) Biblical herbalism curriculum, delivered as PDF. " +
-    "Includes the Teacher's Guide and the Student Notebook for those six weeks. " +
+    "Includes the Teacher's Guide, the Student Notebook and the Read-Aloud storybook for those six weeks. " +
     "Printed plant card sets are exclusive to the physical kit.",
   brand: { "@type": "Brand", name: "Eden's Table" },
   offers: {
@@ -141,8 +145,9 @@ const faqJsonLd = {
       </h1>
       <div class="w-16 h-px mx-auto my-4 md:my-6" style="background-color:hsl(var(--eden-gold))"></div>
       <p class="font-body text-base md:text-xl text-muted-foreground leading-relaxed mb-5 md:mb-8">
-        The first six weeks of Eden's Table, Sprouts. The Teacher's Guide and the Student
-        Notebook, complete, as an instant download for {PRICE}. Sit down with it tonight
+        The first six weeks of Eden's Table, Sprouts. The Teacher's Guide, the Student
+        Notebook and the Read-Aloud storybook, complete, as an instant download for {PRICE}.
+        Sit down with it tonight
         and know whether this is the way your family wants to learn plants.
       </p>
 
@@ -198,7 +203,8 @@ const faqJsonLd = {
         get propped against a mixing bowl with flour on them. The Around the Table Cards get
         passed between people at dinner. All three are printed on heavy card because that is
         what they are for. We have not made screen versions of them, and we are not going to.
-        They live in the printed kit, where they work.
+        They live in the printed kit, where they work. The storybook is the one thing that
+        loses nothing on a screen, which is why it comes with your download.
       </p>
     </div>
   </section>
