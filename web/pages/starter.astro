@@ -82,8 +82,12 @@ const faqs = [
     a: "Your delivery email carries a credit code. When you buy the Sprouts Complete Kit, enter that code at checkout and " + CREDIT + " comes off. The code is tied to the email address you buy with and can be used once, so it is not transferable. It does not expire when the founding 500 kits sell out: if you come back later, it still comes off whatever the price is then.",
   },
   {
-    q: "What if I want a different grade band?",
-    a: "Sprouts covers kindergarten through second grade. Seedlings, for grades three through five, is in production and is not available as a starter unit yet. If that is the band you need, email hello@edeninstitute.health and we will tell you the moment it is ready rather than sell you the wrong year.",
+    q: "My children are older than K-2. Should I wait for Seedlings?",
+    a: "Almost always, no. Start with Sprouts. Skipping it does not move your child ahead, it removes 36 of the 72 plants they would otherwise finish with, and no later year goes back for them. The full reasoning is just above, under “Starting with Sprouts when your children are older”. Seedlings, for grades three through five, is in production and is not available as a starter unit yet.",
+  },
+  {
+    q: "Will an older child find it babyish?",
+    a: "This is the fear worth naming, so here is the honest answer. The reading level is K-2. The plant work is not. A nine year old identifying yarrow by the feel of the leaf underside is doing exactly what a fifteen year old does in Practitioners, with less vocabulary attached. What older children tend to resent is being talked down to, and the Teacher’s Guide never explains a plant twice. Take the six weeks for $39 and let your child tell you, rather than guessing on their behalf.",
   },
   {
     q: "Is it refundable?",
@@ -206,6 +210,96 @@ const faqJsonLd = {
         They live in the printed kit, where they work. The storybook is the one thing that
         loses nothing on a screen, which is why it comes with your download.
       </p>
+    </div>
+  </section>
+
+  <!-- OLDER CHILDREN. The single biggest objection to a K-2 product, and the one
+       that loses the sale silently: a parent with an eight year old decides this
+       is not for them and closes the tab without ever asking.
+       A VISIBLE section, not a collapsed FAQ row, and deliberately so. Accordion
+       content is hidden by default, and hidden copy does not handle objections.
+       /homeschool deep-links here (#older-kids) from beside the four band cards,
+       which is exactly where that doubt forms. -->
+  <section id="older-kids" class="py-16 px-6 scroll-mt-20 bg-background">
+    <div class="max-w-3xl mx-auto">
+      <div class="text-center mb-10">
+        <p class="font-accent text-xs tracking-[0.25em] uppercase mb-4" style="color:hsl(var(--eden-gold))">
+          If your children are older
+        </p>
+        <h2 class="font-serif text-3xl md:text-4xl font-bold leading-tight mb-5" style="color:hsl(var(--eden-bark))">
+          Starting with Sprouts when your children are older.
+        </h2>
+        <p class="font-body text-lg text-muted-foreground leading-relaxed">
+          Parents of eight, ten and twelve year olds ask this constantly, and the honest
+          answer surprises most of them. Start here anyway. Four reasons.
+        </p>
+      </div>
+
+      <div class="space-y-5">
+        <div class="rounded-lg p-6 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.35)">
+          <h3 class="font-serif text-xl font-bold mb-2" style="color:hsl(var(--eden-forest))">
+            1. Skipping Sprouts costs you 36 plants, permanently.
+          </h3>
+          <p class="font-body text-base text-muted-foreground leading-relaxed">
+            Sprouts and Seedlings are not the same year at two reading levels. They teach
+            <strong>different plants</strong>. Sprouts covers 36. Seedlings covers another 36.
+            A family who works through both finishes with <strong>72 named and usable
+            species</strong>, which is a real apothecary. Begin at Seedlings and the first 36
+            are simply gone, because no later band circles back to collect them.
+          </p>
+        </div>
+
+        <div class="rounded-lg p-6 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.35)">
+          <h3 class="font-serif text-xl font-bold mb-2" style="color:hsl(var(--eden-forest))">
+            2. Sprouts is the first pass, not the shallow one.
+          </h3>
+          <p class="font-body text-base text-muted-foreground leading-relaxed">
+            Those 72 plants come back. In Cultivators, grades 6 to 8, your child meets them
+            again through body pattern thinking and terrain. In Practitioners, grades 9 to 12,
+            they meet them a third time at clinical depth. The plant a seven year old learns to
+            recognize by smell is the same plant they reason about at sixteen. Missing the
+            first pass does not save a year. It removes the floor the next two stand on.
+          </p>
+        </div>
+
+        <div class="rounded-lg p-6 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.35)">
+          <h3 class="font-serif text-xl font-bold mb-2" style="color:hsl(var(--eden-forest))">
+            3. The sensory work is the actual skill being taught.
+          </h3>
+          <p class="font-body text-base text-muted-foreground leading-relaxed">
+            Crush the leaf. Smell it. Taste it. Turn it over and feel the underside. That is not
+            a warm-up for the real lesson, it <em>is</em> the lesson, and it is how a child
+            learns to approach any living thing: look closely, use every sense, notice before
+            you name. A child who skips it learns <em>about</em> plants. A child who does it
+            learns to <em>know</em> them, and that habit of observation carries into every
+            nature study they ever do. It is the one thing that genuinely does not transfer
+            from a book, and it is the reason age matters less here than people expect.
+          </p>
+        </div>
+
+        <div class="rounded-lg p-6 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.35)">
+          <h3 class="font-serif text-xl font-bold mb-2" style="color:hsl(var(--eden-forest))">
+            4. One year, taught once, to every child at your table.
+          </h3>
+          <p class="font-body text-base text-muted-foreground leading-relaxed">
+            The reading level is K-2 so the youngest can join, and the plant work is real enough
+            that the oldest is not bored by it. You teach one week, once, to everybody. An older
+            child simply goes further within it: longer notebook entries, the botanical drawing
+            done properly, the harder questions on the discussion cards. They also move faster,
+            so a year of Sprouts often takes an older child considerably less than a year.
+          </p>
+        </div>
+      </div>
+
+      <div class="text-center mt-10">
+        <p class="font-body text-base text-muted-foreground leading-relaxed mb-6 max-w-xl mx-auto">
+          You do not have to take our word for any of this. Six weeks is $39, and if you go on
+          to buy the kit that $39 comes off it, so finding out costs you nothing.
+        </p>
+        <div class="flex justify-center">
+          <StarterBuyBox client:only="react" cta="starter-olderkids-buy" wide={true} />
+        </div>
+      </div>
     </div>
   </section>
 
