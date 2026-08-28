@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { metaTrack } from "@/lib/metaPixel";
 import { getMarketingConsent } from "@/lib/consent";
 import { checkEmail } from "@/lib/emailTypos";
+import { getAttribution } from "@/lib/attribution";
 
 interface WaitlistModalProps {
   open: boolean;
@@ -106,6 +107,10 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
 
     try {
       const fbEventId = crypto.randomUUID();
+      // Where this person actually came from. The EF has always stored these;
+      // until 2026-08-28 the form never sent them, so 0 of 1,731 signups had a
+      // utm_source. See src/lib/attribution.ts.
+      const attribution = getAttribution();
       const marketingConsent = getMarketingConsent() === "granted";
       const { data, error: fnError } = await supabase.functions.invoke("resend-waitlist", {
         body: {
@@ -115,6 +120,7 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
           source,
           fbEventId,
           marketingConsent,
+          ...attribution,
           ...(funnel ? { entry_funnel: funnel } : {}),
           ...(metadata ? { metadata } : {}),
         },
