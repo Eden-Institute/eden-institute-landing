@@ -43,7 +43,7 @@ import {
   buildNurtureArc1,
   buildNurtureArc2,
   buildNurtureArc3,
-  buildMagnetWeek2Email,
+  buildStarterOfferEmail,
   buildMagnetWeek3FacebookEmail,
   toSlug,
 } from '../_shared/nurture-email-templates.ts';
@@ -565,8 +565,13 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
       let built: { subject: string; html: string };
       let emailKey: string;
       if (pos === 2) {
-        built = buildMagnetWeek2Email(firstName, band, Date.parse(row.created_at) >= STORY_CUTOFF_MS);
-        emailKey = `magnet_w2_${band}`;
+        // Position 2 used to deliver the free Week 2 downloads. Retired 2026-08-27
+        // when the lead magnet dropped to ONE free week; the slot now carries the
+        // paid Starter Unit offer instead of ending the free arc on a Facebook
+        // teaser that sold nothing. New engagement key so the founder dashboard
+        // does not silently merge two different emails under one label.
+        built = buildStarterOfferEmail(firstName, band);
+        emailKey = `magnet_starter_offer_${band}`;
       } else if (pos === 3) {
         built = buildMagnetWeek3FacebookEmail(firstName);
         emailKey = MAGNET_KEY_BY_POS[3];

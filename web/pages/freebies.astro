@@ -27,7 +27,7 @@ import { BookOpen, NotebookPen, Leaf, ChefHat, MessagesSquare } from "lucide-rea
 const meta = {
   title: "Free Christian Homeschool Herbalism Curriculum Samples | Eden's Table",
   description:
-    "Two free weeks of Eden's Table, the Christ-centered homeschool herbalism curriculum. Five full lessons per week for Sprouts (K-2) or Seedlings (3-5). Print it and teach it the same morning.",
+    "A free week of Eden's Table, the Christ-centered homeschool herbalism curriculum. Five full lessons, all six components, for Sprouts (K-2) or Seedlings (3-5). Print it and teach it the same morning.",
   canonical: "https://edeninstitute.health/freebies",
 };
 
@@ -37,9 +37,9 @@ const meta = {
 const offerJsonLd = {
   "@context": "https://schema.org",
   "@type": "Course",
-  name: "Eden's Table Free Sample Weeks",
+  name: "Eden's Table Free Sample Week",
   description:
-    "Two free sample weeks of a Christ-centered K-5 homeschool herbalism curriculum, delivered by email. Five full open-and-go lessons per week.",
+    "A free sample week of a Christ-centered K-5 homeschool herbalism curriculum, delivered by email. Five full open-and-go lessons, every component a week is meant to have.",
   url: "https://edeninstitute.health/freebies",
   inLanguage: "en",
   educationalLevel: "K-5",
@@ -67,7 +67,7 @@ const components = [
 
 const steps = [
   { n: "1", t: "Pick your grade band", d: "Sprouts is K through 2. Seedlings is 3 through 5. Same six components, two depths." },
-  { n: "2", t: "Check your inbox", d: "Week 1 arrives immediately. Week 2 follows in seven days." },
+  { n: "2", t: "Check your inbox", d: "Week 1 arrives immediately, all five days and all six components. Nothing else to wait for." },
   { n: "3", t: "Print it and teach it", d: "No prep box, no lesson planning, no screens. Open the guide and go." },
 ];
 ---
@@ -83,16 +83,16 @@ const steps = [
   <section class="py-20 md:py-28 px-6" style="background-color:hsl(var(--eden-cream))">
     <div class="max-w-4xl mx-auto text-center">
       <p class="font-accent text-sm tracking-[0.3em] uppercase mb-6" style="color:hsl(var(--eden-gold))">
-        Free Sample Weeks
+        Free Sample Week
       </p>
       <h1 class="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
-        Two Real Weeks,<br /><span class="italic">Yours to Keep.</span>
+        One Real Week,<br /><span class="italic">Yours to Keep.</span>
       </h1>
       <div class="w-16 h-px mx-auto my-8" style="background-color:hsl(var(--eden-gold))"></div>
       <p class="font-body text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
-        Eden's Table is a Christ-centered homeschool herbalism curriculum. These are not
-        previews or samplers. They are two complete weeks, five full lessons each, the
-        same pages families teach from all year.
+        Eden's Table is a Christ-centered homeschool herbalism curriculum. This is not a
+        preview or a sampler. It is one complete week, five full lessons, the same pages
+        families teach from all year.
       </p>
 
       <div id="get-free" class="flex flex-col items-center gap-4 scroll-mt-28">
@@ -114,7 +114,7 @@ const steps = [
         What lands in your inbox
       </h2>
       <p class="font-body text-center text-muted-foreground max-w-2xl mx-auto mb-12">
-        Every sample week carries all five components, exactly as the full curriculum does.
+        Your sample week carries every component, exactly as the full curriculum does.
       </p>
       <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {components.map((c) => (
@@ -158,6 +158,12 @@ const steps = [
       <div class="w-16 h-px mx-auto my-8" style="background-color:hsl(var(--eden-gold))"></div>
       <DualLeadMagnetCTAs size="xl" variant="eden" />
       <p class="font-body text-sm text-muted-foreground mt-10">
+        Ready for the next five weeks?
+        <a href="/starter" class="underline underline-offset-4" style="color:hsl(var(--eden-sage))">
+          Weeks 1 through 6 are $39
+        </a>, and the whole $39 comes off the printed kit later.
+      </p>
+      <p class="font-body text-sm text-muted-foreground mt-3">
         Already know you want the full year?
         <a href="/homeschool" class="underline underline-offset-4" style="color:hsl(var(--eden-sage))">
           See the whole curriculum

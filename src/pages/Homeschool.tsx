@@ -173,13 +173,13 @@ const Homeschool = () => {
     source: "reserve",
   });
   const openSproutsLeadMagnet = () => openWaitlist({
-    title: "Get Sprouts Weeks 1 + 2 — Free",
-    subtitle: "Check your inbox — your free Sprouts Week 1 (Lavender) downloads are on their way right now. Five real lessons to print and teach today. Week 2 (Chamomile) follows in seven days.",
+    title: "Get Sprouts Week 1 — Free",
+    subtitle: "Check your inbox — your free Sprouts Week 1 (Lavender) downloads are on their way right now. Five real lessons and all six components, to print and teach today.",
     source: "sprouts_magnet",
   });
   const openSeedlingsLeadMagnet = () => openWaitlist({
-    title: "Get Seedlings Weeks 1 + 2 — Free",
-    subtitle: "Check your inbox — your free Seedlings Week 1 (Elderberry) downloads are on their way right now. Five real lessons to print and teach today. Week 2 (Tulsi) follows in seven days.",
+    title: "Get Seedlings Week 1 — Free",
+    subtitle: "Check your inbox — your free Seedlings Week 1 (Elderberry) downloads are on their way right now. Five real lessons and every component, to print and teach today.",
     source: "seedlings_magnet",
   });
 
@@ -196,10 +196,10 @@ const Homeschool = () => {
   }) => (
     <div className="flex flex-col sm:flex-row gap-3 justify-center items-stretch">
       <Button variant={variant} size={size} onClick={openSproutsLeadMagnet}>
-        Get Sprouts (K-2) Weeks 1 + 2 — Free
+        Get Sprouts (K-2) Week 1 — Free
       </Button>
       <Button variant={variant} size={size} onClick={openSeedlingsLeadMagnet}>
-        Get Seedlings (3-5) Weeks 1 + 2 — Free
+        Get Seedlings (3-5) Week 1 — Free
       </Button>
     </div>
   );
@@ -267,7 +267,7 @@ const Homeschool = () => {
           </p>
           <div id="early-access" className="flex flex-col items-center gap-4 scroll-mt-28">
             <p className="font-accent text-xs tracking-[0.3em] uppercase" style={{ color: "hsl(var(--eden-gold))" }}>
-              Start free — two real weeks, yours to print and teach today
+              Start free — one real week, yours to print and teach today
             </p>
             <DualLeadMagnetCTAs size="xl" variant="eden" />
             <p className="font-body text-sm text-muted-foreground max-w-md mx-auto mt-1">

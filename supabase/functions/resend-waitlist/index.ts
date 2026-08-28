@@ -331,10 +331,10 @@ ${ctaButton('FIELD CARDS', 'https://edeninstitute.health/lead-magnets/hs-sprouts
 ${ctaButton('RECIPE CARDS', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-rc-lavender.pdf')}
 ${ctaButton('AROUND THE TABLE CARDS', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-att-lavender.pdf')}
 ${goldDivider()}
-${goldLabel('WEEK 2 ARRIVES IN ONE WEEK')}
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Seven days from today, you'll receive Week 2 &mdash; Chamomile, more downloads, the same Sprouts rhythm. If it hasn't arrived by Day 8, just reply to this email and I'll send it manually.</p>
+${goldLabel('THIS IS A WHOLE WEEK')}
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Nothing has been held back from it. Lavender is Week 1 of the curriculum exactly as it is taught, with every component a week is meant to have, and it stands on its own. Teach it whenever the week suits you. In about a week I will write again about the five weeks that follow it, and there is nothing you need to do before then.</p>
 ${closingBlock()}`;
-  return { subject: 'Sprouts Week 1 (Lavender) — Your Free Preview', html: emailWrapper(body) };
+  return { subject: 'Your Sprouts Week 1 (Lavender) is ready', html: emailWrapper(body) };
 }
 
 function buildSeedlingsMagnetEmail(firstName: string): { subject: string; html: string } {
@@ -349,10 +349,10 @@ ${ctaButton('FIELD CARDS', 'https://edeninstitute.health/lead-magnets/hs-seedlin
 ${ctaButton('RECIPE CARDS', 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-rc-elderberry.pdf')}
 ${ctaButton('AROUND THE TABLE CARDS', 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-att-elderberry.pdf')}
 ${goldDivider()}
-${goldLabel('WEEK 2 ARRIVES IN ONE WEEK')}
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Seven days from today, you'll receive Week 2 &mdash; Tulsi, more downloads, the same Seedlings depth. If it hasn't arrived by Day 8, just reply to this email and I'll send it manually.</p>
+${goldLabel('THIS IS A WHOLE WEEK')}
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Nothing has been held back from it. Elderberry is Week 1 of the curriculum exactly as it is taught, with every component a week is meant to have, and it stands on its own. Teach it whenever the week suits you. In about a week I will write again with what comes next, and there is nothing you need to do before then.</p>
 ${closingBlock()}`;
-  return { subject: 'Seedlings Week 1 (Elderberry) — Your Free Preview', html: emailWrapper(body) };
+  return { subject: 'Your Seedlings Week 1 (Elderberry) is ready', html: emailWrapper(body) };
 }
 
 
@@ -893,7 +893,9 @@ Deno.serve(async (req) => {
       //   'sprouts_magnet'    → Sprouts W1 (Lavender) with 6 PDF download buttons
       //   'seedlings_magnet'  → Seedlings W1 (Elderberry) with 6 PDF download buttons
       // Day-7 Week-2 send is Phase 3.1.2 (nurture_email_queue + Vercel cron sender);
-      // for now the email tells recipients to reply if Week 2 doesn't arrive by Day 8.
+      // The Day 0 email no longer promises a Week 2, so there is nothing for a
+      // recipient to chase if this enqueue fails. Position 2 now carries the paid
+      // Starter Unit offer (founder decision 2026-08-27, one free week per band).
       if (source === 'sprouts_magnet') {
         emailContent = buildSproutsMagnetEmail(firstNameSafe);
       } else if (source === 'seedlings_magnet') {
@@ -922,7 +924,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Phase 3.1.2: enqueue the magnet Day-7 (Week 2) send into
+    // Enqueue the magnet Day-7 send into
     // public.magnet_email_queue (NOT nurture_email_queue, which is the quiz drip).
     // Drained by the nurture-emails cron. Non-fatal: a failure here never blocks signup.
     //
@@ -954,7 +956,7 @@ Deno.serve(async (req) => {
           const t = await mqRes.text().catch(() => '<unreadable>');
           console.error('magnet_email_queue UPSERT failed', { status: mqRes.status, body: t, email: normalizedEmail });
         } else {
-          console.log('Magnet Week 2 enqueued for', normalizedEmail, `(${band}, day 7)`);
+          console.log('Magnet day-7 Starter offer enqueued for', normalizedEmail, `(${band})`);
         }
       } catch (mqErr) {
         console.error('Magnet enqueue error:', String(mqErr));
