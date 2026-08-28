@@ -46,8 +46,12 @@ const EMAIL_LABELS: Record<string, string> = {
   arc_1: "Quiz arc · 1 (day 11)",
   arc_2: "Quiz arc · 2 (day 14)",
   arc_3: "Quiz arc · 3 (day 17)",
-  magnet_w2_sprouts: "Homeschool · Sprouts Week 2",
-  magnet_w2_seedlings: "Homeschool · Seedlings Week 2",
+  // Retired 2026-08-27 with the two-week lead magnet. Kept so historical rows
+  // keep a readable label instead of falling back to a raw key.
+  magnet_w2_sprouts: "Homeschool · Sprouts Week 2 (retired)",
+  magnet_w2_seedlings: "Homeschool · Seedlings Week 2 (retired)",
+  magnet_starter_offer_sprouts: "Homeschool · Starter Unit offer (Sprouts)",
+  magnet_starter_offer_seedlings: "Homeschool · Starter Unit offer (Seedlings)",
   magnet_w3_fb: "Homeschool · Week 3 (Facebook)",
 };
 

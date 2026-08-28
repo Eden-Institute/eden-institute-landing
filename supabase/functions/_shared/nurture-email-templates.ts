@@ -97,7 +97,22 @@ const AMAZON_URLS: Record<string, string> = {
 
 // ── HTML helpers ──
 
-export function emailWrapper(bodyContent: string): string {
+/** Which list this email is FOR, which decides the "why am I getting this" footer line.
+ *
+ *  This exists because every lead-magnet email told homeschool subscribers
+ *  "You're receiving this because you completed the Constitutional Assessment".
+ *  They never took the quiz. The unsubscribe LIST was always correct (the magnet
+ *  drains pass 'homeschool'); it was only the visible sentence that was wrong,
+ *  which is worse than it sounds: a false provenance line is the first thing a
+ *  recipient reads when deciding whether an email is legitimate. */
+export type EmailProvenance = 'constitution' | 'homeschool';
+
+const PROVENANCE_LINE: Record<EmailProvenance, string> = {
+  constitution: 'You&rsquo;re receiving this because you completed the Constitutional Assessment at edeninstitute.health.',
+  homeschool: 'You&rsquo;re receiving this because you requested a free week of Eden&rsquo;s Table from The Eden Institute.',
+};
+
+export function emailWrapper(bodyContent: string, provenance: EmailProvenance = 'constitution'): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>The Eden Institute</title>
@@ -143,7 +158,7 @@ ${shopApothecaryCard()}
 <a href="https://pin.it/6AuiXypgA" style="font-family:Georgia,serif;font-size:12px;color:#FFFFFF;text-decoration:underline;">Pinterest</a>
 </td></tr>
 <tr><td style="text-align:center;padding-top:14px;font-family:Georgia,serif;font-size:13px;color:${BRAND.gold};font-style:italic;">Back to Eden. Back to Truth.</td></tr>
-<tr><td style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;padding-top:16px;">You're receiving this because you completed the Constitutional Assessment at edeninstitute.health.</td></tr>
+<tr><td style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;padding-top:16px;">${PROVENANCE_LINE[provenance]}</td></tr>
 <tr><td style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;padding-top:6px;">Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Unit 3262, Clarksville, TN 37043</td></tr>
 <tr><td style="text-align:center;padding-top:8px;"><a href="{{UNSUB_URL}}" style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-decoration:underline;">Unsubscribe</a></td></tr>
 </table>
@@ -429,39 +444,63 @@ function facebookButton(label: string, url: string): string {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0;"><tr><td align="center"><table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr><td align="center" style="background-color:${BRAND.gold};border-radius:10px;"><a href="${url}" target="_blank" style="display:inline-block;background-color:${BRAND.gold};color:${BRAND.forest};font-family:Georgia,serif;font-size:17px;font-weight:bold;text-decoration:none;text-align:center;padding:16px 44px;border-radius:10px;line-height:24px;mso-line-height-rule:exactly;letter-spacing:0.3px;">&#9826;&nbsp; ${label} &nbsp;&rarr;</a></td></tr></table><p style="font-family:Georgia,serif;font-size:13px;color:${BRAND.footerText};margin:10px 0 0 0;font-style:italic;">@EdensTableHomeschoolCurriculum</p></td></tr></table>`;
 }
 
-// Day 7: Week 2 downloads (Sprouts→Chamomile, Seedlings→Tulsi). Links the PDFs
-// already hosted in public/lead-magnets/.
-export function buildMagnetWeek2Email(firstName: string, band: 'sprouts' | 'seedlings', includeStory = false): { subject: string; html: string } {
+// Day 7: the Starter Unit offer. REPLACES buildMagnetWeek2Email.
+//
+// WHY THE OLD ONE IS GONE. Founder decision 2026-08-27: the free lead magnet drops
+// from TWO weeks per band to ONE, so the paid six-week Starter Unit has something to
+// sell. Week 2 (Chamomile for Sprouts, Tulsi for Seedlings) is retired FROM THE OFFER.
+// The PDFs stay exactly where they are in public/lead-magnets/, because founders-lock
+// links six of them inside a one-time blast already delivered to 832 people on
+// 2026-06-30 and removing the files would break those delivered emails.
+//
+// This slot was also the single biggest hole in the funnel: it used to hand over the
+// last free download and then close on a Facebook teaser. The moment the free material
+// ends is the natural moment to sell, and it sold nothing.
+//
+// 🔴 THE HONESTY CONSTRAINT THAT SHAPES THIS COPY. The FREE week 1 carries SIX
+// components (Teacher's Guide, Notebook, Read-Aloud, Field, Recipe and Around the Table
+// cards). The PAID $39 Starter Unit carries THREE (Teacher's Guide, Notebook,
+// Read-Aloud) for six weeks, because the combined card files for weeks 1 to 6 do not
+// exist yet. So the paid weeks have FEWER component types than the free week the reader
+// is holding. That is not something to bury: a parent who buys and then opens week 2
+// expecting cards has a refund conversation, not a surprise. Founder decision
+// 2026-08-27 was to keep the free week generous and state the difference plainly, which
+// is what the "what is and is not in it" paragraph below does. Do not soften it.
+//
+// BAND AWARENESS. There is no Seedlings Starter Unit. Rather than sell a Sprouts
+// product to a Seedlings parent with no framing, the Seedlings variant leads with the
+// argument /starter already makes at #older-kids: the two bands share no plants, so
+// starting at Sprouts with an older child repeats nothing and ends in 72 species.
+export function buildStarterOfferEmail(firstName: string, band: 'sprouts' | 'seedlings'): { subject: string; html: string } {
   const isSprouts = band === 'sprouts';
-  const herb = isSprouts ? 'Chamomile' : 'Tulsi';
-  const label = isSprouts ? 'SPROUTS' : 'SEEDLINGS';
-  const slugHerb = isSprouts ? 'chamomile' : 'tulsi';
-  const prefix = isSprouts ? 'hs-sprouts-w2' : 'hs-seedlings-w2';
-  const base = 'https://edeninstitute.health/lead-magnets';
-  const dl = (kind: string) => `${base}/${prefix}-${kind}-${slugHerb}.pdf`;
-  // Sprouts ships a read-aloud installment every week (Week 1 = "Meet the Family",
-  // Week 2 = "Story 1"), so Week 2 always includes it, listed first. Seedlings is
-  // unchanged: its story stays gated by the sender and appended last.
-  const showStory = isSprouts ? true : includeStory;
-  const storyEntry: [string, string] = [
-    isSprouts ? 'STORY 1 (READ-ALOUD)' : 'STORY 7 (READ-ALOUD)',
-    isSprouts ? `${base}/hs-sprouts-story-1.pdf` : `${base}/hs-seedlings-story-7.pdf`,
-  ];
-  const core: [string, string][] = [
-    ["TEACHER'S GUIDE", dl('tg')],
-    ['STUDENT NOTEBOOK', dl('nb')],
-    ['FIELD CARDS', dl('fc')],
-    ['RECIPE CARDS', dl('rc')],
-    ['AROUND THE TABLE CARDS', dl('att')],
-  ];
-  const downloads: [string, string][] = isSprouts
-    ? [storyEntry, ...core]
-    : (showStory ? [...core, storyEntry] : core);
-  const buttons = downloads.map(([t, u]) => brandButton(t, u)).join('');
-  const countWord = showStory ? 'six' : 'five';
-  const countLabel = showStory ? 'SIX' : 'FIVE';
-  const body = `${p(`Hi ${firstName},`)}${p(`Welcome to Week 2. This week&rsquo;s herb is <strong>${herb}</strong> &mdash; the same gentle rhythm, ${countWord} more downloads to print and teach.`)}${goldDivider()}${heading(`YOUR ${countLabel} DOWNLOADS &mdash; ${label} WEEK 2 (${herb.toUpperCase()})`)}${buttons}${goldDivider()}${p(`That wraps your free two-week preview. In about a week I&rsquo;ll share a little of the story behind this whole project &mdash; I hope you&rsquo;ll come along for the ride.`)}${signature()}`;
-  return { subject: `${isSprouts ? 'Sprouts' : 'Seedlings'} Week 2 (${herb}) — Your Free Preview`, html: emailWrapper(body) };
+  const week1Herb = isSprouts ? 'Lavender' : 'Elderberry';
+
+  const opening = isSprouts
+    ? p(`You have had your ${week1Herb} week for about a week now. If you taught it, I hope it was a good one. If it is still sitting in the printer queue, that is all right too.`) +
+      p(`The question I get next, almost every time, is the same one: what comes after it?`)
+    : p(`You have had your ${week1Herb} week for about a week now. If you taught it, I hope it was a good one. If it is still sitting in the printer queue, that is all right too.`) +
+      p(`I want to be straight with you about what comes next, because the honest answer has a wrinkle in it.`) +
+      p(`The next six weeks of <strong>Seedlings</strong> are not ready to sell yet. What is ready is the first six weeks of <strong>Sprouts</strong>, and before you skip past that as being for younger children, it is worth thirty seconds of your time.`) +
+      p(`The two bands share no plants. Each covers a different thirty-six, so a family that does both ends with seventy-two named species, and an older child who starts at Sprouts repeats nothing when she moves up. Sprouts does not teach a list of plants. It teaches how to look at one, and a nine year old who can name a plant but cannot tell you its smell or the edge of its leaf has not outgrown that. She skipped it.`);
+
+  const offer =
+    heading('The first six weeks, ready now') +
+    p(`The <strong>Sprouts Starter Unit</strong> is weeks 1 through 6, as an instant download for <strong>$39</strong>. It reaches your inbox in about a minute and it is yours to keep.`) +
+    p(`<strong>What is in it, plainly.</strong> Six weeks of the Teacher&rsquo;s Guide, six weeks of the Student Notebook, and the Read-Aloud storybook that carries those weeks. Three things, complete, for all six weeks.`) +
+    p(`<strong>And what is not.</strong> The Field Cards, Recipe Cards and Around the Table cards you already have for ${week1Herb} do not come with it. Those are made to be carried outside, propped against a mixing bowl and passed around a table, and they arrive on heavy card with the printed kit. I would rather tell you that now than have you open week 2 looking for them.`) +
+    brandButton('Start with weeks 1 through 6 · $39', 'https://edeninstitute.health/starter');
+
+  const kit =
+    goldDivider() +
+    p(`If you would rather wait for the printed kit, that is a real option and the $39 is not wasted either way: the whole amount comes off the kit price if you buy it later. The kit is aiming to ship <strong>July 31, 2027</strong>, guaranteed on or before September 30, 2027, which is the honest reason the digital six weeks exist at all.`) +
+    p(`And if this is simply not the month for it, keep teaching ${week1Herb}. It is a whole week and it stands on its own.`);
+
+  const body = p(`Hi ${firstName},`) + opening + goldDivider() + offer + kit + signature();
+
+  return {
+    subject: isSprouts ? `What comes after ${week1Herb}` : `What comes after ${week1Herb}, honestly`,
+    html: emailWrapper(body, 'homeschool'),
+  };
 }
 
 // ── Quiz 3-arc (runs AFTER the constitution drip; queue positions 5/6/7 at
@@ -495,6 +534,6 @@ export function buildNurtureArc3(firstName: string, _constitutionName: string, _
 
 // Day 14: the "come along for the ride" Facebook pitch. Band-agnostic.
 export function buildMagnetWeek3FacebookEmail(firstName: string): { subject: string; html: string } {
-  const body = `${p(`Hi ${firstName},`)}${p(`By now you&rsquo;ve walked through your first two weeks of Eden&rsquo;s Table around your own kitchen table. Before you go further, I wanted to step out from behind the curriculum for a moment and tell you the story underneath it.`)}${p(`For as long as I can remember, I&rsquo;ve wanted to build something of my own. But it wasn&rsquo;t until late last year that God finally made it clear <em>what</em> that something should be &mdash; this. A Christ-centered way to teach our children the bodies He designed and the plants He gave to tend them.`)}${p(`This is a true passion project for me, and watching it come to life has been humbling in the best way. The encouragement and the sheer number of families asking for this curriculum have been such a blessing &mdash; far more than I expected.`)}${goldDivider()}${heading('Come along for the ride.')}${p(`I&rsquo;d love for you to follow the journey as I build this in real time. I&rsquo;ll be posting often on our Facebook page &mdash; the progress, the roadblocks, the honest struggles, and the praise reports along the way. It&rsquo;s the behind-the-scenes of a dream being built, and it&rsquo;s so much sweeter with you walking it alongside me.`)}${facebookButton('Follow the Journey on Facebook', FACEBOOK_URL)}${goldDivider()}${heading('Know a family who&rsquo;d love this?')}${p(`If a friend comes to mind &mdash; another homeschool mom, a family at church, someone who wants to raise their children close to God&rsquo;s creation &mdash; would you forward this email to them, or share the page? Word of mouth from families like yours is how Eden&rsquo;s Table grows.`)}${p(`<strong>And keep an eye out:</strong> pre-orders open soon. The moment I lock in the right print partner I&rsquo;ll open the doors &mdash; and the families following along will be first to know.`)}${signature()}`;
-  return { subject: 'Come along for the ride — the story behind Eden’s Table', html: emailWrapper(body) };
+  const body = `${p(`Hi ${firstName},`)}${p(`By now you&rsquo;ve walked through your first week of Eden&rsquo;s Table around your own kitchen table. Before you go further, I wanted to step out from behind the curriculum for a moment and tell you the story underneath it.`)}${p(`For as long as I can remember, I&rsquo;ve wanted to build something of my own. But it wasn&rsquo;t until late last year that God finally made it clear <em>what</em> that something should be &mdash; this. A Christ-centered way to teach our children the bodies He designed and the plants He gave to tend them.`)}${p(`This is a true passion project for me, and watching it come to life has been humbling in the best way. The encouragement and the sheer number of families asking for this curriculum have been such a blessing &mdash; far more than I expected.`)}${goldDivider()}${heading('Come along for the ride.')}${p(`I&rsquo;d love for you to follow the journey as I build this in real time. I&rsquo;ll be posting often on our Facebook page &mdash; the progress, the roadblocks, the honest struggles, and the praise reports along the way. It&rsquo;s the behind-the-scenes of a dream being built, and it&rsquo;s so much sweeter with you walking it alongside me.`)}${facebookButton('Follow the Journey on Facebook', FACEBOOK_URL)}${goldDivider()}${heading('Know a family who&rsquo;d love this?')}${p(`If a friend comes to mind &mdash; another homeschool mom, a family at church, someone who wants to raise their children close to God&rsquo;s creation &mdash; would you forward this email to them, or share the page? Word of mouth from families like yours is how Eden&rsquo;s Table grows.`)}${p(`<strong>One thing worth correcting,</strong> because I think it has quietly cost families time: preorders are open. Checkout is live. There is no waiting list to join first and no date to watch for.`)}${p(`The printed kit is aiming to ship <strong>July 31, 2027</strong>, guaranteed on or before September 30, 2027, so it is not what you will be teaching from this school year. If you want Eden&rsquo;s Table at your table before then, the first six weeks are ready to download today for $39, and the whole $39 comes off the printed kit if you buy it later.`)}${brandButton('See the first six weeks', 'https://edeninstitute.health/starter')}${signature()}`;
+  return { subject: 'Come along for the ride, and one correction', html: emailWrapper(body, 'homeschool') };
 }
