@@ -10,6 +10,7 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { captureFirstTouch } from "@/lib/attribution";
 
 const SKIP_PREFIXES = ["/founder", "/apothecary/auth", "/apothecary/account"];
 
@@ -23,6 +24,7 @@ export default function PageViewTracker() {
     lastPath.current = path;
     if (SKIP_PREFIXES.some((p) => path.startsWith(p))) return;
 
+    captureFirstTouch();
     const params = new URLSearchParams(location.search);
     // Fire-and-forget. Analytics must never block render or surface an error.
     void supabase

@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getMarketingConsent, setMarketingConsent } from "@/lib/consent";
 import { loadMetaPixel, metaPageView } from "@/lib/metaPixel";
 import { Button } from "@/components/ui/button";
+import { captureFirstTouch } from "@/lib/attribution";
 
 const SKIP_PREFIXES = ["/founder", "/apothecary/auth", "/apothecary/account"];
 
@@ -48,6 +49,11 @@ export default function SiteAnalytics() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    // 0. Record first-touch attribution before anything else, so a visitor who
+    //    lands on a tagged link and navigates before signing up is still
+    //    credited to the link rather than to this site.
+    captureFirstTouch();
+
     // 1. Cookieless first-party page view (no consent required).
     const path = window.location.pathname;
     if (!SKIP_PREFIXES.some((p) => path.startsWith(p))) {
