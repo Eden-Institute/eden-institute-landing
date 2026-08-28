@@ -673,8 +673,8 @@ export function buildLaunchEmail9(firstName: string, founding = true): { subject
     `${p(`A typical year assembled from separate curricula means a science program, a nature study, a Bible curriculum, a copywork book, an art component, and a read-aloud list. Six purchases, six teacher&rsquo;s guides written by six people who never spoke to each other, and a stack of evenings spent making them line up.`)}` +
     `${p(`Eden&rsquo;s Table is one box. Bible, science, language arts, math, art, history, geography, Latin, health, and character are already woven in, already scheduled, already telling you which day carries which.`)}` +
     `${p(founding
-      ? `At the founding price that is <strong>$249 for the year</strong>. Across 36 weeks, under $7 a week for your entire core. One decision, made once, instead of six decisions you are still second-guessing in October.`
-      : `That is <strong>$349 for the year</strong>. Across 36 weeks, under $10 a week for your entire core. One decision, made once, instead of six you are still second-guessing in October.`)}` +
+      ? `At the founding price that is <strong>$249 for the year</strong>. Across 36 weeks, under $7 a week for your entire core. One decision, made once, instead of six decisions you are still second-guessing later.`
+      : `That is <strong>$349 for the year</strong>. Across 36 weeks, under $10 a week for your entire core. One decision, made once, instead of six you are still second-guessing later.`)}` +
     `${p(`What you are not also buying: a separate science curriculum. A separate nature study. A separate Bible curriculum. A separate art plan. A separate read-aloud list. A second evening of your week spent making all of them agree with each other.`)}` +
     `${goldDivider()}` +
     `${heading(`They taught it before anyone printed a thing`)}` +
@@ -698,7 +698,7 @@ export function buildLaunchEmail10(firstName: string, founding = true): { subjec
     `${p(`The most common question I hear, by far: &ldquo;I love this, but I don&rsquo;t know anything about herbs. Can I really teach it?&rdquo;`)}` +
     `${p(`Sweet friend, yes. Eden&rsquo;s Table was written for the mama who has never dried a flower in her life.`)}` +
     `${p(`Every week of the Teacher&rsquo;s Guide is laid out day by day: what to read, what to ask, what to prepare (almost nothing), and exactly what to say when little voices ask why. You are not the expert at the table. You are the guide reading the map, and the map is very good. Most days take about half an hour.`)}` +
-    `${p(`And here is the quiet gift nobody tells you about: you will learn it alongside them. By spring you will know 36 herbs, their stories, and their uses, not because you studied, but because you sat at the table with your kids.`)}` +
+    `${p(`And here is the quiet gift nobody tells you about: you will learn it alongside them. By the end of the year you will know 36 herbs, their stories, and their uses, not because you studied, but because you sat at the table with your kids.`)}` +
     `${p(`Teaching this way is also not a hunch. Researchers tried it with second graders, the very ages Sprouts is written for. They split the classrooms by chance so nobody could stack the deck, taught one group through hands-on projects and the other the usual way, and then measured what the children actually knew a year later. The project children came out about <strong>five to six months ahead in social studies and two months ahead in reading</strong>.`)}` +
     `${p(`Eden&rsquo;s Table was not one of the curricula in that study, and I will not pretend otherwise. What they were testing is the way it teaches: one real thing in the middle of the week, and every subject gathered around it.`)}` +
     `${p(`James wrote that if any of us lacks wisdom, we should &ldquo;ask of God, who gives to all generously and without reproach&rdquo; (James 1:5, NASB). He did not say ask the credentialed. Generously, to the asking mama, is how this knowledge has always been given.`)}` +
@@ -871,6 +871,385 @@ export const LAUNCH_SEQUENCE_LENGTH = 7;
 export const CONVERSION_FIRST_POSITION = 8;
 export const EMAIL_7_RESEND_POSITION = 18;
 
+// ── EMAIL 19 — Mon Aug 31 2026 — "You are not an herbalist": the podcast
+// answer, and the $39 Starter Unit ──
+// First of three. It ships four days after the 2026-08-27 list announcement so
+// the delay email is no longer the top unread message, and it does NOT repeat
+// that email: these readers already know the print run moved to July 2027, and
+// they already know why. The move is touched exactly once, obliquely ("what
+// moved last week was paper"), with no reason and no second apology, and it is
+// never mentioned again in emails two and three.
+//
+// WHAT IT DOES. On 2026-08-20 Camila recorded with Felice Gerwitz of Media
+// Angels. She went in braced for the question she most expects to be asked:
+// is this safe, and what business does a woman who is not a practicing
+// herbalist have handing plants to a six year old. The email answers it in
+// full, at more length than air time allows. The credential reframe is the
+// load-bearing beat: no, she is not an herbalist, she is a credentialed
+// teacher who arrived at plants backwards, through a curriculum problem.
+//
+// ⚠️ CORRECTION 2026-08-27, do not reintroduce. An earlier version of this
+// draft opened on Camila asking Felice Gerwitz, before recording, to put the
+// hardest question to her. CAMILA HAS CONFIRMED THAT NEVER HAPPENED. It was
+// invented by a previous drafter and it put words and an arrangement onto a
+// real, named person. The opening now rests on her own nerves and her own
+// preparation, which are hers to describe. Never rebuild the email on an
+// interaction with a host that was not verified with Camila first.
+//
+// FOUNDER FACTS CONFIRMED BY CAMILA AND SAFE TO STATE: the M.Ed.; that she is
+// Brazilian; that she did undertake formal herbalism training and found the
+// spirituality either absent or resolved into Far Eastern metaphysics, which
+// is the origin of the worldview rule. All three stay.
+//
+// WHAT IS DELIBERATELY NOT HERE.
+//   · Any episode link, air date, episode number, listener count, or estimate
+//     of when anything publishes. As of the send date NOTHING has aired.
+//     Recorded so far: Southern Appalachian Herbs (Judson, 07-16), Media
+//     Angels (Felice Gerwitz, 08-20), Home(school) with Steph (Stephany,
+//     08-20), Hearty Homemaker (Brianne, 08-24). Still upcoming at send:
+//     Planted on Purpose (Aurie Riley, 08-28), Minimalist Moms (Diane Boden,
+//     09-10), Nature Cure Family Health (Dr Lauren Deville, 09-18), The
+//     Homeschool How To (Cheryl, 2027-01-06). The email may promise links when
+//     they air, and does. It may not imply anything is listenable yet, and it
+//     carries NO COUNT of recordings, because Aurie Riley records 08-28, three
+//     days before this sends, and any number written today goes stale.
+//   · The Ultimate Homeschool Podcast Network, and any show of Camila's own.
+//     Not settled. Not mentioned.
+//   · Any words attributed to Felice Gerwitz. No transcript has been read. The
+//     question in the third paragraph is carried explicitly as the question
+//     CAMILA EXPECTS, in her own words, never as something a host said.
+//   · The Southern Appalachian Herbs paragraph (Judson, 07-16). Cut rather
+//     than written: no verified detail of what he pressed her on is in hand,
+//     and a real man does not get an invented quote.
+//   · Week 6 hands-on work. The exhibit stops at find it, name it, draw it
+//     labeled, because nobody has read the live Teacher's Guide this week.
+//   · Any per-week Safety note as evidence. Those live on the RECIPE CARD
+//     deck, and the $39 Starter Unit contains ONLY the Teacher's Guide, the
+//     Student Notebook and the Read-Aloud. The safety argument is grounded
+//     instead in the ten same-day preparation families, in the absence of any
+//     published pediatric dosing formula, and in the Teacher's Guide, which
+//     the buyer does receive.
+//   · "No garden." FALSE and deleted. Friday is Garden & Review every week,
+//     Unit 1 (weeks 1-6) is titled "In the Garden God Made", and Week 5 Friday
+//     plants calendula seeds. Do not reintroduce a softer version of it.
+//   · "The one way we use it." FALSE. Weeks 3, 4, 5 and 6 are each two-prep,
+//     so four of the six Starter Unit weeks use more than one preparation.
+//     The copy says "how we use it".
+//   · The word Wednesday. The announcement went out Thursday 2026-08-27 and
+//     this sends the following Monday, so the copy says last week.
+//   · Any founding-500 benefit or perk. PRICE ONLY. No manufacturer, freight,
+//     customs or printer name; no funding or investment talk.
+//   · The words terrain, tissue state and constitution. Not taught in the
+//     first six weeks, so the email cannot promise them.
+//
+// AVAILABLE BUT NOT USED: Kati's testimonial (emailed 2026-06-29 about week 1,
+// written permission 2026-07-12). It is about engagement, not credibility or
+// safety, so it does not serve this email's argument. It belongs in email two
+// or three. If it is ever used here, quote it verbatim and attribute it as
+// "Kati, whose children did week 1 in June". June, not July.
+//
+// SCRIPTURE. Genesis 1:29, which Email 16 also anchors on. Reused on purpose:
+// it is the verse the "given" argument is built from, and the two sends are far
+// apart. The quoted span is copied verbatim from Email 16 rather than retyped,
+// so the NASB wording stays verified. It gets the verseCard rather than an
+// inline quote because the email lingers on the one word given.
+//
+// CTA. One button, to the Starter Unit at /starter, NOT preorderButton(): the
+// ask in all three emails is the $39 digital six weeks, not the printed kit.
+// Same label and same URL in all three. If a second builder needs it, promote
+// the literal to a STARTER_URL const beside PREORDER_URL. No PS, no second
+// link, no countdown, no scarcity.
+//
+// `founding` touches ONE sentence, the last line of the price paragraph. The
+// post-founding variant states $349 and says nothing about $249, the 500 or
+// founding standing, in body, subject or preheader. Note that the KIT price
+// does move, $249 to $349, so no "the price does not move" line may appear
+// anywhere near it; any such reassurance is scoped to the $39 explicitly.
+//
+// WIRING. 🔴 Add `19: buildLaunchEmail19` to LAUNCH_BUILDERS. Exporting the
+// function is NOT enough: buildLaunchEmail() dispatches through that map and
+// returns null for an unregistered position, so an exported-but-unregistered
+// builder fails silently at send time. PRE-SEND: run the render QA script
+// (zero em dashes, en dash and middot only) and suppress the five refund-bound
+// preorder buyers.
+export function buildLaunchEmail19(firstName: string, founding = true): { subject: string; html: string } {
+  const body =
+    `${preheader(`The question I am always ready for. Here is the whole answer.`)}` +
+    `${p(`Hi ${firstName},`)}` +
+    `${p(`On August 20 I recorded with Felice Gerwitz of Media Angels. There is one question I am always ready for, and no interview is ever long enough to answer it properly.`)}` +
+    `${p(`It is the question I expect from every careful mother who finds us, and I would rather answer it here, in full, than hope nobody asks it: what business does a woman who is not a practicing herbalist have handing plants to a six year old, and is it safe?`)}` +
+    `${p(`Here is the whole answer. Eden&rsquo;s Table is not a remedy guide. There are no protocols in it, and there is no best-herb-for-anxiety list, because those already exist in abundance and I think they are part of the problem.`)}` +
+    `${p(`And no, I am not an herbalist. I am a teacher. I hold an M.Ed., I know how to build a scope and sequence, and I came to the plants backwards: this was a curriculum problem before it was ever a plant problem.`)}` +
+    `${p(`When I enrolled in formal herbalism training, the spirituality was either absent or it resolved into Far Eastern metaphysics. I did not want to throw out the plants along with the framework, because the observations were sound and the attribution was not. So the rule for all thirty-six weeks became: keep every observation, discard the spiritual attribution. No cosmic energy, no meridian metaphysics, no borrowed mysticism.`)}` +
+    `${p(`Most herb material written for families is a table: symptom on the left, plant on the right. A child who memorizes that has learned a list, not a plant. Weeks 1 through 6 teach one plant known five ways: what it is, how to tell it from the thing growing beside it, which part is used, how we use it, and where the line is.`)}` +
+    `${p(`And the safety answer is in the design rather than in a disclaimer. There are ten families of preparation in the whole year and every one of them is same day: tea, decoction, cold infusion, poultice, compress, syrup, honey infusion, honegar, culinary work, and the fresh leaf itself. No tinctures, no infused oils, no salves, nothing curing on a shelf for six weeks. And there is no dosing formula published anywhere in thirty-six weeks, because dosing a child is not what this is. The Teacher&rsquo;s Guide is one of the three things in the $39, and it is where those boundaries live.`)}` +
+    `${p(`So the honest description of the work is botany, plant identification, nature study, kitchen work and stewardship. A mother teaching her child to name a plant, draw it and cook with it is not practicing medicine. She is doing what mothers did for most of history.`)}` +
+    `${p(`What moved last week was paper. The curriculum itself is finished, thirty-six weeks, one plant a week.`)}` +
+    `${p(`Week 6 is plantain, <em>Plantago major</em>. It is likely growing in your yard right now, in the patch you have been pulling it out of for years without knowing its name. Your child finds it, names it, and draws it labeled.`)}` +
+    `${verseCard(`Behold, I have given you every plant yielding seed that is on the surface of all the earth`, `Genesis 1:29`)}` +
+    `${p(`Given. That one word does all the theological work, and it is why the week opens in Scripture rather than in a remedy.`)}` +
+    `${p(`I have been recording these conversations all summer and not one of them has aired yet. When each one does, the link comes to this list the same day. You are hearing the answers before the audience does, which is the right order after what I asked of you last week.`)}` +
+    `${goldDivider()}` +
+    `${p(founding
+      ? `Weeks 1 through 6 are $39, digital, instant download: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those six weeks. The full $39 comes off the printed kit if you buy it later. The printed Sprouts Complete Kit is $249 for the founding 500 families and $349 after that.`
+      : `Weeks 1 through 6 are $39, digital, instant download: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those six weeks. The full $39 comes off the printed kit if you buy it later. The printed Sprouts Complete Kit is $349.`)}` +
+    `${brandButton('Start with Weeks 1 through 6', 'https://edeninstitute.health/starter')}` +
+    `${signature()}`;
+  return { subject: `"You are not an herbalist"`, html: launchWrapper(body) };
+}
+
+// ── EMAIL 20 — Post-announcement arc, #2 — the multi-age objection ──
+//
+// Answers the one question that lands in the inbox most weeks: "aren't my kids
+// too old (or too young) for a K-2 curriculum?" It does not recap the 8/27
+// announcement and does not re-argue the print delay; those readers already
+// know the kit moved to July 2027. The whole email earns the $39 Starter Unit
+// by showing the mechanism, not by adding urgency. No new offer, no scarcity.
+//
+// SEND: Friday 2026-09-04 by default. Camila may move it to Tuesday 2026-09-01
+// so it also serves the first-of-the-month update she promises on /preorder.
+// Either date is now safe. The podcast paragraph carries EXPLICIT DATES instead
+// of "next week / the week after", so nothing in it breaks if the send slips.
+//
+// ⚠️ CORRECTION 2026-08-27, do not reintroduce, three of them.
+//   1. THE TESTIMONIAL WAS INVENTED. The previous draft said "A mother wrote in
+//      July to say it was the week that stayed with her children." No such note
+//      exists, and the month was wrong on top of it. It is replaced below with
+//      Kati's actual words, emailed 2026-06-29 about WEEK 1, copied verbatim,
+//      in quoteCard. Written permission, Kati, 2026-07-12: "Yes I'm happy for
+//      you to use my comments, they are genuine!" The month is JUNE. Do not
+//      paraphrase this quote into different words, do not trim it into a
+//      different sentence, and do not add a second testimonial beside it.
+//      There is exactly one real testimonial and this is it.
+//   2. THE SCHEDULE WAS WRONG. The previous draft called Minimalist Moms with
+//      Diane Boden "next week". It records 2026-09-10, two weeks out from
+//      drafting. Both remaining shows now carry their real dates.
+//   3. THE OPENING WAS UNVERIFIED. It attributed the multi-age question to a
+//      host asking it on air in August. Nothing in hand verifies that, and the
+//      related "I asked Felice Gerwitz, before recording, to put the hardest
+//      question to me" framing that reached email 19 was invented outright and
+//      has been confirmed by Camila as something that never happened. The
+//      question is now sourced where it is actually true: her inbox.
+//
+// VERIFIED, with sources, because several of these have been written wrong before:
+//   · No overlap between bands. Edens_Table_Product_Copy.md:54, verbatim: "Each
+//     band covers a different thirty-six plants, so a family that works through
+//     both ends with seventy-two named and usable species." Confirmed again in
+//     the week-1 guide itself: Sprouts W1 is Lavender, Seedlings W1 is
+//     Elderberry (Elevated_Teacher_Guide_W1.md:10 and :68). The sentence "both
+//     bands cover all 72 herbs" is FALSE and must never reach a draft. This
+//     argument and the sensory-observation argument below are both
+//     founder-sourced and verified; neither may be cut for length.
+//   · Support / Stretch rails run per day through week 1
+//     (Elevated_Teacher_Guide_W1.md:23, :31, :39, :47, :59), and the "younger
+//     sprouts" down-curation is Camila's own wording to Caroline on 2026-08-17
+//     (Partner Program/influencer_outreach_templates.md:19).
+//   · The week shape in the integration paragraph is the real one: Mon
+//     read-aloud, Tue discovery, Wed kitchen lab, Thu history and art, Fri
+//     GARDEN and review (Elevated_Teacher_Guide_W1.md:15-51). Friday is
+//     "Garden & Review" in EVERY week, Unit 1 (weeks 1-6) is titled "In the
+//     Garden God Made", and week 5 Friday plants calendula seeds. Any draft
+//     that says or implies "no garden" is FALSE. This revision names the Friday
+//     garden out loud so that false claim cannot creep back in here.
+//   · Week 1 is Lavender. Week 4 is Peppermint, week 6 is Plantain
+//     (Plantago major). Thirty-six weeks, one plant a week.
+//
+// NOTE for the reviewer on quoteCard: its own doc comment says every quote must
+// be copied from web/pages/homeschool.astro, where the published testimonials
+// live. Kati is not on that page yet. The quote here is still verbatim and
+// still permissioned, so quoteCard is the right helper, but either publish Kati
+// to homeschool.astro before send or widen that comment. Do NOT resolve it by
+// swapping in a different quote.
+//
+// PODCASTS: no episode has aired anywhere yet, so this email links to nothing,
+// never says "listen", never estimates when anything will air, and promises
+// links on publish instead. Only shows with a RECORDED date are described as
+// done: Home(school) with Steph (Stephany, 2026-08-20) and the Hearty
+// Homemaker (Brianne, 2026-08-24). Planted on Purpose with Aurie Riley records
+// 2026-08-28, which is after this was drafted and before this sends, so its
+// status at send time is unknown and it is deliberately NOT in the copy; see
+// gate 3. Media Angels / Felice Gerwitz is not named here because email 19
+// carries that thread. The Ultimate Homeschool Podcast Network and any show of
+// Camila's own are unsettled and are not mentioned. Do not add an episode
+// number, an air date, or a download figure.
+//
+// FOUNDER GATES, open at time of writing:
+//   1. The shipped Starter Unit PDFs have outlined fonts and no text layer, so
+//      the Support/Stretch and younger-sprouts rails are verified in the week-1
+//      guide but NOT page-confirmed across weeks 1-6. Weeks 1-6 is the product
+//      being sold here, not the full kit. Confirm before send.
+//   2. If Camila confirms a real on-air moment where a host put the multi-age
+//      question to her, the opening can name it. Until then it stays the inbox.
+//   3. If the 2026-08-28 Planted on Purpose recording happens as booked, Camila
+//      may add "and Aurie Riley on Planted on Purpose" to the recorded-shows
+//      sentence before send. Add it only after it has actually recorded.
+//
+// The 224-page Student Notebook figure is deliberately absent: that is the full
+// 36-week notebook, not the six weeks being sold here. No salve, balm, wash,
+// tincture, infused oil or dosing guidance is claimed anywhere: the curriculum
+// teaches ten same-day preparation families and publishes no pediatric dosing
+// formula. No per-week Safety note is cited as evidence either, because those
+// live on the RECIPE CARD deck and the $39 Starter Unit contains only the
+// Teacher's Guide, the Student Notebook and the Read-Aloud.
+//
+// The price paragraph is meant to be word for word identical across emails 19,
+// 20 and 21. Diff it before merge; do not improve it here in isolation. As of
+// this revision it is NOT identical: email 19 states both kit prices in one
+// sentence and omits the ship dates, while this one splits them and carries
+// EMAIL_SHIP_TARGET / EMAIL_SHIP_GUARANTEE. Reconcile all three in one pass.
+// `founding` touches the printed-kit line only. Note that the KIT price DOES
+// move, $249 to $349, so no "the price does not move" reassurance may appear
+// near it; any such line is scoped to the $39 explicitly. Founding-500 PRICE
+// only, never the perk. No manufacturer, freight, customs or printer name, and
+// no funding or investment talk. The CTA points at /starter, not PREORDER_URL,
+// so it calls brandButton directly rather than preorderButton().
+//
+// WIRING. 🔴 Add `20: buildLaunchEmail20` to LAUNCH_BUILDERS. Exporting the
+// function is NOT enough: buildLaunchEmail() dispatches through that map and
+// returns null for an unregistered position, so an exported-but-unregistered
+// builder fails silently at send time. PRE-SEND: run the render QA script
+// (zero em dashes, en dash and middot only) and suppress the five refund-bound
+// preorder buyers.
+export function buildLaunchEmail20(firstName: string, founding = true): { subject: string; html: string } {
+  const body =
+    `${preheader(`Sprouts and Seedlings share no plants. Starting here repeats nothing.`)}` +
+    `${p(`Hi ${firstName},`)}` +
+    `${p(`The question that reaches my inbox most weeks is this one: what does a week look like when you have a four year old and a nine year old at the same table?`)}` +
+    `${p(`One plant. One week. One kitchen table, at three depths. A younger sprouts section curates the week down so a four year old can take part, and stretch notes take it up for an older child. Nobody is sent off to do something separate.`)}` +
+    `${p(`Sprouts and Seedlings do not share a single plant. Each band covers a different thirty-six, so a family that does both ends with seventy-two named species, and a child who starts here repeats nothing when she moves up.`)}` +
+    `${p(`Sprouts does not teach a list of plants. It teaches how to look at one: form first, then touch, then smell, then taste, with the science coming out of what she just sensed rather than announced to her first. A nine year old who can name a plant but cannot tell you its smell, the edge of its leaf, or the ground it chooses has not outgrown week one. She skipped it, and there is no higher.`)}` +
+    `${p(`Here is my test. If you removed the plant, the whole week would collapse: the read-aloud and its vocabulary, the kitchen lab, how families used this plant before there were pharmacies, a drawing she labels herself, Friday in the garden, and the patience a growing thing requires. Integrated, not decorated.`)}` +
+    `${p(`Week 1 is lavender. Kati wrote to me in June, while her children were in the middle of it:`)}` +
+    `${quoteCard(`I just wanted you to see how in to it they are! No complaining and actually asking to do their &lsquo;learning&rsquo;!! Yahoo`, `Kati, whose children did week 1 in June`)}` +
+    `${p(`It is digital, so an older child can move at her own speed, and the Read-Aloud storybook keeps a nine year old and a five year old at the same table without one bored and the other lost.`)}` +
+    `${p(`Stephany had me on Home(school) with Steph in August, and Brianne on the Hearty Homemaker a few days later. Both are homeschooling mothers with mixed-age tables of their own.`)}` +
+    `${p(`Minimalist Moms with Diane Boden records on September 10, and Nature Cure Family Health with Dr Lauren Deville on September 18. Nothing has aired yet. Every link comes to you the day it publishes.`)}` +
+    `${verseCard(`O taste and see that the LORD is good; How blessed is the man who takes refuge in Him!`, `Psalm 34:8`)}` +
+    `${p(`Teaching a child to taste and see before she is taught to conclude is not a method I invented. It is older than I am, and the goodness is the Giver&rsquo;s.`)}` +
+    `${goldDivider()}` +
+    `${p(`The Sprouts Starter Unit is <strong>$39</strong>, digital, instant download: weeks 1 through 6, with the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook. The full $39 comes off the printed kit if you buy it later.`)}` +
+    `${p(founding
+      ? `The printed kit is <strong>$249</strong> while the first 500 last, then $349. Kits ship ${EMAIL_SHIP_TARGET}, guaranteed on or before ${EMAIL_SHIP_GUARANTEE}.`
+      : `The printed kit is <strong>$349</strong>. Kits ship ${EMAIL_SHIP_TARGET}, guaranteed on or before ${EMAIL_SHIP_GUARANTEE}.`)}` +
+    `${brandButton('Start with Weeks 1 through 6', 'https://edeninstitute.health/starter')}` +
+    `${signature()}`;
+  return { subject: `Aren't my kids too old for this?`, html: launchWrapper(body) };
+}
+
+// -- EMAIL 21, the safety question, answered here before a host asks it --
+//
+// Third and last of the post-delay Starter Unit notes (19, 20, 21). The reader
+// already knows the print run moved to July 2027: that was the 2026-08-27
+// announcement, and this sequence builds on it rather than restating it.
+//
+// The hook is the one piece of leverage this email has that 19 and 20 did not:
+// the question has NOT been asked yet. Camila records with Dr Lauren Deville of
+// Nature Cure Family Health on 2026-09-18, and she answers the safety question
+// here first, in writing, for the list that gave her its patience. That is the
+// repayment for 8/27, and it is why this must send BEFORE 2026-09-18 while the
+// hook is still unspent.
+//
+// REGISTRATION: this builder MUST be added to the LAUNCH_BUILDERS map as
+// `21: buildLaunchEmail21,`. An earlier draft of this email was exported but
+// never registered, and buildLaunchEmail(21, ...) would have returned null,
+// which the caller treats as "no such position" and skips silently. Exporting
+// is not shipping.
+//
+// SEND-MORNING GATES, before this is queued:
+//   1. PODCAST STATE. As of 2026-08-27 the recorded set is exactly four:
+//      Southern Appalachian Herbs (7/16), Media Angels (8/20), Home(school)
+//      with Steph (8/20), Hearty Homemaker (8/24). Planted on Purpose with
+//      Aurie Riley records 2026-08-28 and is NOT yet recorded, so it sits in
+//      the booked line below. If it has happened by send morning, move it up
+//      into the recorded sentence. Minimalist Moms with Diane Boden is
+//      2026-09-10, NOT "tomorrow"; The Homeschool How To with Cheryl is
+//      2027-01-06.
+//   2. Suppress the five preorder-hold buyers.
+//   3. FOUNDER VERIFY the safety paragraph against the live Teacher's Guide.
+//      The ten same-day preparation families and the absence claims are read
+//      off Eden_Table_Sprouts_Content_Manual_v1_4.md and are safe.
+//   4. Confirm the Read-Aloud title. Story 2 sits at week 4, peppermint, and
+//      the title carries an accented o: it renders here as
+//      Vov&oacute;&rsquo;s Lineage and must never ship without the accent.
+//
+// CORRECTIONS APPLIED to the prior draft, each one a factual error:
+//   - "No garden." DELETED. It is false for exactly the six weeks being sold.
+//     Friday is "Garden & Review" every week, Unit 1 (weeks 1 to 6) is titled
+//     "In the Garden God Made", and week 5 Friday plants calendula seeds. The
+//     line is replaced by the TRUE garden facts, not by a softer false version.
+//   - "the one way we use it" -> "how we use it". Weeks 3, 4, 5 and 6 are each
+//     two-prep, so four of the six weeks on offer use more than one.
+//   - The safety argument no longer leans on per-week Safety notes. Those live
+//     on the Recipe Card deck, which the $39 Starter Unit does NOT contain. It
+//     is grounded in the Teacher's Guide and the ten same-day preparations.
+//   - "No equipment" CUT and "most weeks use a plant you can buy dried" CUT.
+//     Both were unquantified claims across all 36 weeks and neither is verified
+//     for weeks 1 to 6. Steam-juicer syrup is one of the ten families.
+//   - "in six weeks" CUT. Nothing has aired. No air date, no estimate of one,
+//     no "listen here". The only podcast promise is that the link comes to this
+//     list the same day each episode publishes.
+//   - "the price does not move" REWRITTEN and scoped explicitly to the $39
+//     Starter Unit. The KIT price does move, $249 to $349 once the founding 500
+//     fill, so an unscoped reassurance sitting one paragraph below the kit
+//     prices reads as a promise Eden cannot keep. If emails 19 and 20 carry the
+//     same unscoped line, fix it there in the same session.
+//
+// DELIBERATELY NOT SAID, each one a recorded decision:
+//   - No per-plant caution for weeks 1 to 6. The email makes absence claims
+//     instead, which hold across the whole book.
+//   - No hint of any 2027 network show. Terms are unsettled.
+//   - No episode links, no air dates, no "listen here". Nothing has aired.
+//   - Dr Lauren Deville is "of Nature Cure Family Health" and nothing else. No
+//     degree, no specialty, no practice, no location, and no claim about what
+//     she will ask, only what Camila is preparing for.
+//   - No claim that Camila asked any host to put the hardest question to her.
+//     That interaction was invented by an earlier drafter and is now denied.
+//
+// Scripture anchor: Isaiah 40:11, aimed at the mother's own slow year with her
+// own child, NOT at the print schedule. Galatians 6:9 was the alternate and was
+// rejected: "do not grow weary" this close to a delay notice reads as a hint
+// about the print run.
+//
+// The price paragraph is carried word for word from emails 19 and 20. If it
+// changes in one, it changes in all three. The founding branch obeys the
+// standing rule: post-founding copy names neither $249, the 500, nor founding
+// standing, in body, subject or preheader.
+//
+// STARTER_URL is declared locally because this module deliberately imports
+// nothing (see the file header). It mirrors STARTER_PAGE_URL in
+// _shared/starter-config.ts, which is the authoritative value. When emails 19
+// and 20 land in this file, lift it to a module const beside PREORDER_URL.
+export function buildLaunchEmail21(firstName: string, founding = true): { subject: string; html: string } {
+  const STARTER_URL = 'https://edeninstitute.health/starter';
+  const body =
+    `${preheader(`I sit down with Dr Lauren Deville on the 18th. Here is my answer, in writing, first.`)}` +
+    `${p(`Hi ${firstName},`)}` +
+    `${p(`On September 18 I sit down with Dr Lauren Deville of Nature Cure Family Health. The question I am bracing for is whether any of this belongs in the hands of a six year old. It is the right question, and I am glad someone is finally going to ask it out loud.`)}` +
+    `${p(`I would rather answer it here first, in writing, for the people who already gave me their patience, than have you hear it secondhand on somebody else&rsquo;s show.`)}` +
+    `${goldDivider()}` +
+    `${p(`Safety is not a warning box at the back of the book. It is written into the Teacher&rsquo;s Guide, inside the lesson itself, where a mother actually reads it. Every week names the plant, the part we use, and how we use it.`)}` +
+    `${p(`Everything a child makes comes from ten same-day kitchen preparations: tea, decoction, cold infusion, spit-poultice, compress, steam-juicer syrup, honegar, same-day honey infusion, culinary and fresh leaf. No salves, no balms, no washes, no tinctures, no infused oils, no dropper bottles, nothing that needs a shelf to cure on. Nothing a child makes has to sit and wait. No dosing formula for children is printed anywhere in it.`)}` +
+    `${p(`You do not need to know any of it before you teach it. That is not a consolation prize for nervous mothers, it is the pedagogy: a child learns more watching her mother learn than watching her perform an expertise she does not have.`)}` +
+    `${p(`And there is a garden in it. Friday is Garden and Review every single week, the first unit is called <em>In the Garden God Made</em>, and in week 5 you go outside and plant calendula seeds.`)}` +
+    `${p(`Week 4 is peppermint, and week 4 is where the read-aloud is <em>Vov&oacute;&rsquo;s Lineage</em>, about what a grandmother hands down. I am Brazilian. That one is my own grandmother.`)}` +
+    `${goldDivider()}` +
+    `${p(`Since July I have recorded with Southern Appalachian Herbs, Media Angels, Home(school) with Steph, Hearty Homemaker and Planted on Purpose with Aurie Riley. Still ahead of me: Diane Boden at Minimalist Moms on the tenth, Dr Lauren Deville on the eighteenth, and Cheryl at The Homeschool How To in January.`)}` +
+    `${p(`Not one of them has aired. When each does, the link comes to this list the same day. That is the only promise I am making about any of it.`)}` +
+    `${p(`None of it puts one thing in your child&rsquo;s hands this autumn. Weeks 1 through 6 do.`)}` +
+    `${goldDivider()}` +
+    `${p(`Isaiah watched God come in strength, then said how He moves through a field:`)}` +
+    `${verseCard(`Like a shepherd He will tend His flock, in His arm He will gather the lambs and carry them in His bosom; He will gently lead the nursing ewes.`, 'Isaiah 40:11')}` +
+    `${p(`That is the pace I want for your year, and the one I am still learning for mine.`)}` +
+    `${p(`The Sprouts Starter Unit is <strong>$39</strong>: weeks 1 through 6, digital, instant download, with the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those six weeks. Buy the printed kit later and the whole $39 comes off it.`)}` +
+    `${p(founding
+      ? `The printed kit is <strong>$249</strong> for the founding 500 families and <strong>$349</strong> after.`
+      : `The printed kit is <strong>$349</strong>.`)}` +
+    `${p(`This is the third and last of these notes. The <strong>$39</strong> Starter Unit is not going anywhere and there is no deadline on it. If this is not the year for it, I will still be here when it is.`)}` +
+    `${brandButton(`Start with Weeks 1 through 6`, STARTER_URL)}` +
+    `${signature()}`;
+  return { subject: `Would you hand this to a six year old?`, html: launchWrapper(body) };
+}
+
 const LAUNCH_BUILDERS: Record<number, (firstName: string, founding?: boolean) => { subject: string; html: string }> = {
   1: buildLaunchEmail1,
   2: buildLaunchEmail2,
@@ -890,6 +1269,13 @@ const LAUNCH_BUILDERS: Record<number, (firstName: string, founding?: boolean) =>
   15: buildLaunchEmail15,
   16: buildLaunchEmail16,
   17: buildLaunchEmail17,
+  // Post-delay Starter Unit arc, added 2026-08-27. Registration is NOT optional:
+  // buildLaunchEmail() dispatches through this map and returns null for an
+  // unregistered position, so an exported-but-unregistered builder fails
+  // SILENTLY at send time rather than at compile time.
+  19: buildLaunchEmail19,
+  20: buildLaunchEmail20,
+  21: buildLaunchEmail21,
 };
 
 // `founding` only affects positions 8-17 (the 1-7 builders ignore it).
