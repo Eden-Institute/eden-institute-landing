@@ -22,8 +22,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface PartnerRow {
+  // Null since 2026-08-31: a partner served by an Instagram DM link has no address on file.
+  // She is recorded, shown here, and deliberately excluded from the follow-up cadence.
+  email: string | null;
   name: string;
-  email: string;
   handle: string | null;
   status: string;
   welcome_sent_at: string | null;
@@ -32,6 +34,13 @@ interface PartnerRow {
   first_open: string | null;
   last_click: string | null;
   clicked_urls: string[];
+}
+
+// Row identity. Email was the key until 2026-08-31, when it became nullable — several
+// handle-only partners would all have keyed on `null` and React would have treated them as
+// one row. The RPC returns no id, so fall through email -> handle -> name.
+function partnerKey(p: PartnerRow): string {
+  return p.email ?? p.handle ?? p.name;
 }
 
 function fmtDate(iso: string | null): string {
@@ -133,7 +142,7 @@ export default function PartnersTab() {
                   {list.map((p) => {
                     const sig = engagementLabel(p);
                     return (
-                      <tr key={p.email} className="border-t border-border align-top">
+                      <tr key={partnerKey(p)} className="border-t border-border align-top">
                         <Td>
                           <span className="font-semibold">{p.name}</span>
                           {p.handle && (
@@ -141,7 +150,7 @@ export default function PartnersTab() {
                           )}
                           <br />
                           <span className="font-mono text-[11px] text-muted-foreground break-all">
-                            {p.email}
+                            {p.email ?? "no email on file — served on Instagram"}
                           </span>
                         </Td>
                         <Td className="whitespace-nowrap">{fmtDate(p.welcome_sent_at)}</Td>
@@ -186,7 +195,7 @@ export default function PartnersTab() {
                 <tbody>
                   {list.flatMap((p) =>
                     (p.clicked_urls ?? []).map((u, i) => (
-                      <tr key={`${p.email}-${i}`} className="border-t border-border align-top">
+                      <tr key={`${partnerKey(p)}-${i}`} className="border-t border-border align-top">
                         <Td className="whitespace-nowrap">{i === 0 ? p.name : ""}</Td>
                         <Td className="font-mono text-xs break-all">{u}</Td>
                       </tr>
