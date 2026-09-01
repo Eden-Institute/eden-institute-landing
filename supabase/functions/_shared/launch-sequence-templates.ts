@@ -940,7 +940,7 @@ export const EMAIL_7_RESEND_POSITION = 18;
 //   · Any founding-500 benefit or perk. PRICE ONLY. No manufacturer, freight,
 //     customs or printer name; no funding or investment talk.
 //   · The words terrain, tissue state and constitution. Not taught in the
-//     first six weeks, so the email cannot promise them.
+//     first nine weeks, so the email cannot promise them.
 //
 // AVAILABLE BUT NOT USED: Kati's testimonial (emailed 2026-06-29 about week 1,
 // written permission 2026-07-12). It is about engagement, not credibility or
@@ -955,7 +955,7 @@ export const EMAIL_7_RESEND_POSITION = 18;
 // inline quote because the email lingers on the one word given.
 //
 // CTA. One button, to the Starter Unit at /starter, NOT preorderButton(): the
-// ask in all three emails is the $39 digital six weeks, not the printed kit.
+// ask in all three emails is the $39 digital nine weeks, not the printed kit.
 // Same label and same URL in all three. If a second builder needs it, promote
 // the literal to a STARTER_URL const beside PREORDER_URL. No PS, no second
 // link, no countdown, no scarcity.
@@ -981,7 +981,7 @@ export function buildLaunchEmail19(firstName: string, founding = true): { subjec
     `${p(`Here is the whole answer. Eden&rsquo;s Table is not a remedy guide. There are no protocols in it, and there is no best-herb-for-anxiety list, because those already exist in abundance and I think they are part of the problem.`)}` +
     `${p(`And no, I am not an herbalist. I am a teacher. I hold an M.Ed., I know how to build a scope and sequence, and I came to the plants backwards: this was a curriculum problem before it was ever a plant problem.`)}` +
     `${p(`When I enrolled in formal herbalism training, the spirituality was either absent or it resolved into Far Eastern metaphysics. I did not want to throw out the plants along with the framework, because the observations were sound and the attribution was not. So the rule for all thirty-six weeks became: keep every observation, discard the spiritual attribution. No cosmic energy, no meridian metaphysics, no borrowed mysticism.`)}` +
-    `${p(`Most herb material written for families is a table: symptom on the left, plant on the right. A child who memorizes that has learned a list, not a plant. Weeks 1 through 6 teach one plant known five ways: what it is, how to tell it from the thing growing beside it, which part is used, how we use it, and where the line is.`)}` +
+    `${p(`Most herb material written for families is a table: symptom on the left, plant on the right. A child who memorizes that has learned a list, not a plant. Weeks 1 through 9 teach one plant known five ways: what it is, how to tell it from the thing growing beside it, which part is used, how we use it, and where the line is.`)}` +
     `${p(`And the safety answer is in the design rather than in a disclaimer. There are ten families of preparation in the whole year and every one of them is same day: tea, decoction, cold infusion, poultice, compress, syrup, honey infusion, honegar, culinary work, and the fresh leaf itself. No tinctures, no infused oils, no salves, nothing curing on a shelf for six weeks. And there is no dosing formula published anywhere in thirty-six weeks, because dosing a child is not what this is. The Teacher&rsquo;s Guide is one of the three things in the $39, and it is where those boundaries live.`)}` +
     `${p(`So the honest description of the work is botany, plant identification, nature study, kitchen work and stewardship. A mother teaching her child to name a plant, draw it and cook with it is not practicing medicine. She is doing what mothers did for most of history.`)}` +
     `${p(`What moved last week was paper. The curriculum itself is finished, thirty-six weeks, one plant a week.`)}` +
@@ -991,9 +991,9 @@ export function buildLaunchEmail19(firstName: string, founding = true): { subjec
     `${p(`I have been recording these conversations all summer and not one of them has aired yet. When each one does, the link comes to this list the same day. You are hearing the answers before the audience does, which is the right order after what I asked of you last week.`)}` +
     `${goldDivider()}` +
     `${p(founding
-      ? `Weeks 1 through 6 are $39, digital, instant download: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those six weeks. The full $39 comes off the printed kit if you buy it later. The printed Sprouts Complete Kit is $249 for the founding 500 families and $349 after that.`
-      : `Weeks 1 through 6 are $39, digital, instant download: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those six weeks. The full $39 comes off the printed kit if you buy it later. The printed Sprouts Complete Kit is $349.`)}` +
-    `${brandButton('Start with Weeks 1 through 6', 'https://edeninstitute.health/starter')}` +
+      ? `Weeks 1 through 9 are $39, digital, instant download: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks. The full $39 comes off the printed kit if you buy it later. The printed Sprouts Complete Kit is $249 for the founding 500 families and $349 after that.`
+      : `Weeks 1 through 9 are $39, digital, instant download: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks. The full $39 comes off the printed kit if you buy it later. The printed Sprouts Complete Kit is $349.`)}` +
+    `${brandButton('Start with Weeks 1 through 9', 'https://edeninstitute.health/starter')}` +
     `${signature()}`;
   return { subject: `"You are not an herbalist"`, html: launchWrapper(body) };
 }
@@ -1085,7 +1085,7 @@ export function buildLaunchEmail19(firstName: string, founding = true): { subjec
 //      sentence before send. Add it only after it has actually recorded.
 //
 // The 224-page Student Notebook figure is deliberately absent: that is the full
-// 36-week notebook, not the six weeks being sold here. No salve, balm, wash,
+// 36-week notebook, not the nine weeks being sold here. No salve, balm, wash,
 // tincture, infused oil or dosing guidance is claimed anywhere: the curriculum
 // teaches ten same-day preparation families and publishes no pediatric dosing
 // formula. No per-week Safety note is cited as evidence either, because those
@@ -1127,11 +1127,11 @@ export function buildLaunchEmail20(firstName: string, founding = true): { subjec
     `${verseCard(`O taste and see that the LORD is good; How blessed is the man who takes refuge in Him!`, `Psalm 34:8`)}` +
     `${p(`Teaching a child to taste and see before she is taught to conclude is not a method I invented. It is older than I am, and the goodness is the Giver&rsquo;s.`)}` +
     `${goldDivider()}` +
-    `${p(`The Sprouts Starter Unit is <strong>$39</strong>, digital, instant download: weeks 1 through 6, with the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook. The full $39 comes off the printed kit if you buy it later.`)}` +
+    `${p(`The Sprouts Starter Unit is <strong>$39</strong>, digital, instant download: weeks 1 through 9, with the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook. The full $39 comes off the printed kit if you buy it later.`)}` +
     `${p(founding
       ? `The printed kit is <strong>$249</strong> while the first 500 last, then $349. Kits ship ${EMAIL_SHIP_TARGET}, guaranteed on or before ${EMAIL_SHIP_GUARANTEE}.`
       : `The printed kit is <strong>$349</strong>. Kits ship ${EMAIL_SHIP_TARGET}, guaranteed on or before ${EMAIL_SHIP_GUARANTEE}.`)}` +
-    `${brandButton('Start with Weeks 1 through 6', 'https://edeninstitute.health/starter')}` +
+    `${brandButton('Start with Weeks 1 through 9', 'https://edeninstitute.health/starter')}` +
     `${signature()}`;
   return { subject: `Aren't my kids too old for this?`, html: launchWrapper(body) };
 }
@@ -1173,12 +1173,13 @@ export function buildLaunchEmail20(firstName: string, founding = true): { subjec
 //      Vov&oacute;&rsquo;s Lineage and must never ship without the accent.
 //
 // CORRECTIONS APPLIED to the prior draft, each one a factual error:
-//   - "No garden." DELETED. It is false for exactly the six weeks being sold.
+//   - "No garden." DELETED. It is false for exactly the nine weeks being sold.
 //     Friday is "Garden & Review" every week, Unit 1 (weeks 1 to 6) is titled
 //     "In the Garden God Made", and week 5 Friday plants calendula seeds. The
 //     line is replaced by the TRUE garden facts, not by a softer false version.
 //   - "the one way we use it" -> "how we use it". Weeks 3, 4, 5 and 6 are each
-//     two-prep, so four of the six weeks on offer use more than one.
+//     two-prep, so four of the six weeks then on offer used more than one.
+//     NOT re-counted for the nine-week cut; recount before reusing the claim.
 //   - The safety argument no longer leans on per-week Safety notes. Those live
 //     on the Recipe Card deck, which the $39 Starter Unit does NOT contain. It
 //     is grounded in the Teacher's Guide and the ten same-day preparations.
@@ -1235,17 +1236,17 @@ export function buildLaunchEmail21(firstName: string, founding = true): { subjec
     `${goldDivider()}` +
     `${p(`Since July I have recorded with Southern Appalachian Herbs, Media Angels, Home(school) with Steph, Hearty Homemaker and Planted on Purpose with Aurie Riley. Still ahead of me: Diane Boden at Minimalist Moms on the tenth, Dr Lauren Deville on the eighteenth, and Cheryl at The Homeschool How To in January.`)}` +
     `${p(`Not one of them has aired. When each does, the link comes to this list the same day. That is the only promise I am making about any of it.`)}` +
-    `${p(`None of it puts one thing in your child&rsquo;s hands this autumn. Weeks 1 through 6 do.`)}` +
+    `${p(`None of it puts one thing in your child&rsquo;s hands this autumn. Weeks 1 through 9 do.`)}` +
     `${goldDivider()}` +
     `${p(`Isaiah watched God come in strength, then said how He moves through a field:`)}` +
     `${verseCard(`Like a shepherd He will tend His flock, in His arm He will gather the lambs and carry them in His bosom; He will gently lead the nursing ewes.`, 'Isaiah 40:11')}` +
     `${p(`That is the pace I want for your year, and the one I am still learning for mine.`)}` +
-    `${p(`The Sprouts Starter Unit is <strong>$39</strong>: weeks 1 through 6, digital, instant download, with the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those six weeks. Buy the printed kit later and the whole $39 comes off it.`)}` +
+    `${p(`The Sprouts Starter Unit is <strong>$39</strong>: weeks 1 through 9, digital, instant download, with the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks. Buy the printed kit later and the whole $39 comes off it.`)}` +
     `${p(founding
       ? `The printed kit is <strong>$249</strong> for the founding 500 families and <strong>$349</strong> after.`
       : `The printed kit is <strong>$349</strong>.`)}` +
     `${p(`This is the third and last of these notes. The <strong>$39</strong> Starter Unit is not going anywhere and there is no deadline on it. If this is not the year for it, I will still be here when it is.`)}` +
-    `${brandButton(`Start with Weeks 1 through 6`, STARTER_URL)}` +
+    `${brandButton(`Start with Weeks 1 through 9`, STARTER_URL)}` +
     `${signature()}`;
   return { subject: `Would you hand this to a six year old?`, html: launchWrapper(body) };
 }
