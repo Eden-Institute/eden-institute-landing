@@ -1,12 +1,12 @@
 ---
-// /starter — Eden's Table Sprouts Starter Unit ($39 digital, weeks 1-6).
+// /starter — Eden's Table Sprouts Starter Unit ($39 digital, weeks 1-9).
 //
 // A DEDICATED page, not a variant of /preorder. Purchase intent is different: a
 // preorder buyer has already decided and is committing to a 2027 ship date, while
 // a starter buyer is deciding whether this curriculum suits their family at all.
 // Folding the two together would make the kit page argue with itself.
 //
-// COPY POSITION, and it is load-bearing. This is a STARTER UNIT: six complete
+// COPY POSITION, and it is load-bearing. This is a STARTER UNIT: nine complete
 // weeks with everything needed to teach them. It is never a "sample", "preview",
 // "lite" or "partial" version, because every one of those words tells a reader
 // that what they bought is the lesser thing. The plant cards are absent because
@@ -34,27 +34,31 @@ const KIT_RETAIL = "$349";
 const meta = {
   title: "Sprouts Starter Unit · Eden's Table | The Eden Institute",
   description:
-    "Six weeks of Eden's Table Sprouts (K-2): Teacher's Guide, Student Notebook and Read-Aloud storybook, as an instant " +
+    "Nine weeks of Eden's Table Sprouts (K-2): Teacher's Guide, Student Notebook and Read-Aloud storybook, as an instant " +
     PRICE + " download. The full " + PRICE + " comes off the Sprouts Complete Kit when you are ready.",
   canonical: "https://edeninstitute.health/starter",
 };
 
 const included = [
   {
-    title: "Six full weeks",
-    body: "Weeks 1 to 6 of the 36-week Sprouts year, complete and in order. Thirty daily lessons, not excerpts.",
+    title: "Nine full weeks",
+    body: "Weeks 1 to 9 of the 36-week Sprouts year, complete and in order. Forty-five daily lessons, not excerpts. That is a full quarter of the school year.",
+  },
+  {
+    title: "A unit finished, and the next one opened",
+    body: "Unit 1, In the Garden God Made, runs its full six weeks and closes. Then weeks 7 to 9 open Unit 2, When Your Body Talks, where the work turns from wonder at the design to reading the body's signals. You do not sample a unit. You finish one, and feel the year turn into the next.",
   },
   {
     title: "The Teacher's Guide",
-    body: "Every daily lesson plan for those six weeks, with the scope and sequence, the botany behind each herb, and what to say when a five year old asks why.",
+    body: "Every daily lesson plan for those nine weeks, with the standards alignment, the botany behind each herb, and what to say when a five year old asks why.",
   },
   {
     title: "The Student Notebook",
-    body: "The child's write-in pages: six labelled botanical drawings, six kitchen-lab observations, weekly vocabulary and a written review each week.",
+    body: "The child's write-in pages: nine labelled botanical drawings, nine kitchen-lab observations, forty-five vocabulary words that never repeat, and a written review each week.",
   },
   {
     title: "The Read-Aloud Storybook",
-    body: "The stories that carry weeks 1 to 6, the ones the whole table listens to. A story reads aloud just as well from a screen, so it comes with your download. The family's story runs all 36 weeks. These are the first six of it.",
+    body: "The storybook has seven readings across the whole 36-week year, not one a week. Four of them fall inside these nine: the opening, Welcome to the Table, and then Life Force, Vovó's Lineage and Symptoms as Signals. The next one is not until week 18. A story reads aloud just as well from a screen, so it comes with your download.",
   },
   {
     title: "Sprouts, kindergarten through second grade",
@@ -71,7 +75,11 @@ const faqs = [
   },
   {
     q: "Can I print it?",
-    a: "Yes. Print as much of it as you like for your own household, as often as you like. The Student Notebook in particular is meant to be printed, because children write in it. All three files are laid out for ordinary home printers on letter paper.",
+    a: "Yes. Print as much of it as you like for your own household, as often as you like. The Student Notebook in particular is meant to be printed, because children write in it. The Teacher's Guide and the Student Notebook are letter size, so they come straight off an ordinary home printer. The storybook is a smaller 6 by 8 storybook page, which prints on letter paper with a margin around it.",
+  },
+  {
+    q: "Why nine weeks?",
+    a: "Because nine weeks is a quarter of the year, and it is where the curriculum reaches a natural edge. Unit 1 finishes at week 6. Weeks 7 through 9 open Unit 2, so you see not just one unit but how the year moves between them. Four of the storybook's seven readings fall inside it, and the next one is not until week 18. Stopping at six would have handed you a finished unit and no idea what came after it.",
   },
   {
     q: "Does this include the plant cards?",
@@ -87,7 +95,7 @@ const faqs = [
   },
   {
     q: "Will an older child find it babyish?",
-    a: "This is the fear worth naming, so here is the honest answer. The reading level is K-2. The plant work is not. A nine year old identifying yarrow by the feel of the leaf underside is doing exactly what a fifteen year old does in Practitioners, with less vocabulary attached. What older children tend to resent is being talked down to, and the Teacher’s Guide never explains a plant twice. Take the six weeks for $39 and let your child tell you, rather than guessing on their behalf.",
+    a: "This is the fear worth naming, so here is the honest answer. The reading level is K-2. The plant work is not. A nine year old identifying yarrow by the feel of the leaf underside is doing exactly what a fifteen year old does in Practitioners, with less vocabulary attached. What older children tend to resent is being talked down to, and the Teacher’s Guide never explains a plant twice. Take the nine weeks for $39 and let your child tell you, rather than guessing on their behalf.",
   },
   {
     q: "Is it refundable?",
@@ -101,8 +109,8 @@ const productJsonLd = {
   name: "Eden's Table: Sprouts Starter Unit",
   sku: "sprouts_starter_unit",
   description:
-    "Weeks 1 to 6 of the Eden's Table Sprouts (K-2) Biblical herbalism curriculum, delivered as PDF. " +
-    "Includes the Teacher's Guide, the Student Notebook and the Read-Aloud storybook for those six weeks. " +
+    "Weeks 1 to 9 of the Eden's Table Sprouts (K-2) Biblical herbalism curriculum, delivered as PDF. " +
+    "Includes the Teacher's Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks. " +
     "Printed plant card sets are exclusive to the physical kit.",
   brand: { "@type": "Brand", name: "Eden's Table" },
   offers: {
@@ -149,7 +157,7 @@ const faqJsonLd = {
       </h1>
       <div class="w-16 h-px mx-auto my-4 md:my-6" style="background-color:hsl(var(--eden-gold))"></div>
       <p class="font-body text-base md:text-xl text-muted-foreground leading-relaxed mb-5 md:mb-8">
-        The first six weeks of Eden's Table, Sprouts. The Teacher's Guide, the Student
+        The first nine weeks of Eden's Table, Sprouts. The Teacher's Guide, the Student
         Notebook and the Read-Aloud storybook, complete, as an instant download for {PRICE}.
         Sit down with it tonight
         and know whether this is the way your family wants to learn plants.
@@ -190,6 +198,33 @@ const faqJsonLd = {
           </div>
         ))}
       </div>
+    </div>
+  </section>
+
+  <!-- WEEK 9. The only genuinely new EXPERIENCE the three extra weeks buy, so it
+       gets a band of its own rather than a line in a card. Every lab in weeks 1
+       to 8 is finished in one sitting; week 9 is the first that is not, and that
+       is the honest answer to "why nine and not six". Verified against the
+       Teacher's Guide, Week 09 Wednesday: 2 Tbsp root, 2 cups cool water, soak
+       4 hours or overnight, strain, sweeten. Do not inflate that into a long
+       steep; the curriculum is same-day by design and says so. -->
+  <section class="py-16 px-6 bg-background">
+    <div class="max-w-2xl mx-auto text-center">
+      <p class="font-accent text-xs tracking-[0.25em] uppercase mb-4" style="color:hsl(var(--eden-gold))">
+        The ninth week
+      </p>
+      <h2 class="font-serif text-3xl font-bold mb-6" style="color:hsl(var(--eden-bark))">
+        By week nine, it is not just tea.
+      </h2>
+      <p class="font-body text-lg text-muted-foreground leading-relaxed">
+        The first labs are quick. Measure, pour, steep five minutes, taste. By Week 9 your
+        child meets marshmallow root, and it does not work that way. Its softness will not
+        come out in hot water, so the jar is filled with cool water in the morning and then
+        left alone. Hours later they come back, strain the silky liquid through a sieve, stir
+        in honey, and taste what waiting made. It is the first lab in the curriculum a child
+        starts and has to return to, and it is a good part of why the unit runs to nine weeks
+        rather than six.
+      </p>
     </div>
   </section>
 
@@ -293,7 +328,7 @@ const faqJsonLd = {
 
       <div class="text-center mt-10">
         <p class="font-body text-base text-muted-foreground leading-relaxed mb-6 max-w-xl mx-auto">
-          You do not have to take our word for any of this. Six weeks is $39, and if you go on
+          You do not have to take our word for any of this. Nine weeks is $39, and if you go on
           to buy the kit that $39 comes off it, so finding out costs you nothing.
         </p>
         <div class="flex justify-center">
@@ -326,7 +361,7 @@ const faqJsonLd = {
   <section class="py-16 px-6" style="background-color:hsl(var(--eden-cream))">
     <div class="max-w-2xl mx-auto text-center">
       <h2 class="font-serif text-3xl font-bold mb-6" style="color:hsl(var(--eden-bark))">
-        Six weeks, {PRICE}, in your inbox in a minute.
+        Nine weeks, {PRICE}, in your inbox in a minute.
       </h2>
       <div class="flex justify-center mb-10">
         <StarterBuyBox client:only="react" cta="starter-bottom-buy" wide={true} />

@@ -1,7 +1,7 @@
 // supabase/functions/_shared/starter-config.ts
 //
 // Single source of truth for the Eden's Table Sprouts Starter Unit: a $39 digital
-// product carrying weeks 1-6 of the Sprouts (K-2) band (Teacher's Guide, Student
+// product carrying weeks 1-9 of the Sprouts (K-2) band (Teacher's Guide, Student
 // Notebook and the Read-Aloud storybook), plus the $39 credit toward the $249 kit.
 //
 // The three printed CARD SETS stay print-exclusive. That is a product decision, not
@@ -75,29 +75,32 @@ export const CREDIT_EXPIRY_POLICY: CreditExpiryPolicy = 'honour_retail';
 export const DOWNLOAD_URL_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 /**
- * Master PDFs. These are the SAME objects the founding-partner six-week sample
- * serves, read-only, and they are never written back to.
+ * Master PDFs. Read-only; never written back to.
  *
- * Founder decision 2026-08-26: reuse the existing files rather than cut a second
- * set, so the partner gift and the paid starter unit cannot drift apart. The
- * personalised copies are written to a DIFFERENT bucket (see STARTER_BUCKET), so
- * nothing here is mutated and the 42 founding partners keep exactly the files
- * their existing links already point at.
+ * FOUNDER DECISION 2026-09-01, and it REVERSES the 2026-08-26 decision above it.
+ * These are no longer the partner sample files. The two products are now
+ * deliberately different things:
  *
- * Trade-off worth knowing: because these are shared, re-uploading a partner sample
- * component silently changes what new starter buyers receive. That is usually what
- * you want. If the two ever need to diverge, change the paths here and nothing
- * else moves.
+ *   PARTNER GIFT   six components (all three card sets included), SIX weeks.
+ *   STARTER UNIT   three components (no card sets),               NINE weeks.
+ *
+ * Because the week counts differ, one set of files can no longer serve both. The
+ * partner lane keeps pointing at the `6wk` objects (api/partner-sample.ts and
+ * functions/partner-welcome), so the 42 founding partners' existing links are
+ * untouched and keep serving exactly what they were promised.
+ *
+ * Consequence to know: re-uploading a partner sample component NO LONGER affects
+ * starter buyers, and vice versa. The two lanes must now be updated separately.
  */
 export const STARTER_SOURCE_BUCKET = 'partner-assets';
 export const STARTER_MASTERS = {
-  teachersGuide: 'sample/edens-table-6wk-teachers-guide.pdf',
-  studentNotebook: 'sample/edens-table-6wk-student-notebook.pdf',
-  // Added 2026-08-26 (founder decision): the Read-Aloud storybook ships with the
-  // paid Starter Unit too. This is the SAME six-week file the founding partners
-  // receive, carrying the stories that cover weeks 1 to 6, not the full 36-week
-  // book. Confirmed by Camila rather than inferred from the filename.
-  readAloud: 'sample/edens-table-6wk-read-aloud.pdf',
+  teachersGuide: 'sample/edens-table-9wk-teachers-guide.pdf',
+  studentNotebook: 'sample/edens-table-9wk-student-notebook.pdf',
+  // The Read-Aloud storybook ships with the paid Starter Unit. This nine-week cut
+  // carries FOUR of the year's seven readings (the opening plus stories one to
+  // three, at weeks 1, 2, 4 and 7), not the full 36-week book. Verified against
+  // the storybook's own contents page, not inferred from the filename.
+  readAloud: 'sample/edens-table-9wk-read-aloud.pdf',
 } as const;
 
 /** Private bucket holding the per-buyer stamped copies. Never public. */
