@@ -93,7 +93,7 @@ ${ctaButton('See the full kit', KIT_URL)}
 </td></tr>
 <tr><td style="padding:34px 36px;">
 ${para(greeting)}
-${para(`Here are your first six weeks of Eden's Table, Sprouts. Everything you need to start teaching is in these three files.`)}
+${para(`Here are your first nine weeks of Eden's Table, Sprouts. Everything you need to start teaching is in these three files.`)}
 
 ${sectionLabel('Your downloads')}
 ${ctaButton("Teacher's Guide", m.teachersGuideUrl)}
@@ -119,7 +119,7 @@ ${para(`<strong>Camila</strong><br><span style="font-size:14px;">The Eden Instit
   const text = [
     greeting,
     '',
-    "Here are your first six weeks of Eden's Table, Sprouts.",
+    "Here are your first nine weeks of Eden's Table, Sprouts.",
     '',
     `Teacher's Guide: ${m.teachersGuideUrl}`,
     `Student Notebook: ${m.studentNotebookUrl}`,
