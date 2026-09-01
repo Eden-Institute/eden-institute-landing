@@ -52,7 +52,7 @@ const SITE = "https://edeninstitute.health";
 // so it is a constant in source rather than a request parameter.
 const CAMPAIGN = "starter_announcement_2026_08_27";
 
-const SUBJECT = "An honest update, and the six weeks you can start now";
+const SUBJECT = "An honest update, and the nine weeks you can start now";
 
 // Ship dates mirror _shared/order-config.ts and _shared/launch-sequence-templates.ts.
 // They are duplicated here deliberately, exactly as launch-sequence-templates duplicates
@@ -155,7 +155,7 @@ function signature(): string {
  */
 function buildAnnouncement(firstName: string): string {
   const body =
-    preheader(`The print run moved to 2027. The first six weeks are ready to download today.`) +
+    preheader(`The print run moved to 2027. The first nine weeks are ready to download today.`) +
     p(`Hi ${firstName},`) +
     p(`I would rather you hear this from me than notice it on the website.`) +
     p(`<strong>The first Eden&rsquo;s Table print run has moved.</strong> Kits are now aiming to ship ${SHIP_TARGET}, and every kit is guaranteed to ship on or before ${SHIP_GUARANTEE}. If you were planning to start Eden&rsquo;s Table this fall, that is not what you were hoping to read, and I am not going to soften it.`) +
@@ -168,15 +168,15 @@ function buildAnnouncement(firstName: string): string {
     goldDivider() +
     p(`But I kept thinking about the families who told me they wanted to start <em>this</em> year. A promise about next summer does nothing for a child who is five right now.`) +
     p(`<strong>So I built the part that does not need a printing press.</strong>`) +
-    p(`The first six weeks of Sprouts are finished, and you can download them today. Not a sample and not a preview. Six complete weeks:`) +
-    bullet(`The <strong>Teacher&rsquo;s Guide</strong> for those six weeks. Every daily lesson, the botany behind each herb, and what to say when a five year old asks why.`) +
+    p(`The first nine weeks of Sprouts are finished, and you can download them today. Not a sample and not a preview. Nine complete weeks:`) +
+    bullet(`The <strong>Teacher&rsquo;s Guide</strong> for those nine weeks. Every daily lesson, the botany behind each herb, and what to say when a five year old asks why.`) +
     bullet(`The <strong>Student Notebook</strong> pages your child works in.`) +
-    bullet(`The <strong>Read-Aloud storybook</strong> that carries weeks 1 to 6, the part the whole table listens to.`) +
+    bullet(`The <strong>Read-Aloud storybook</strong>, four of the year&rsquo;s seven story readings, the part the whole table listens to.`) +
     p(`It is ${STARTER_PRICE}, it reaches your inbox in about a minute, and it is yours to keep.`) +
     goldDivider() +
     p(`<strong>And here is the part that matters most.</strong> If you go on to order the printed kit, the entire ${STARTER_PRICE} comes off the price. Not a percentage, and not a code you have to remember. The full ${STARTER_PRICE}, credited to you.`) +
-    p(`Which means starting now costs you nothing against the kit. And if the six weeks turn out not to suit your family, you will have spent ${STARTER_PRICE} to find that out for certain, instead of ${KIT_FOUNDING}.`) +
-    brandButton(`Start the first six weeks &nbsp;&rarr;`, `${SITE}/starter`) +
+    p(`Which means starting now costs you nothing against the kit. And if the nine weeks turn out not to suit your family, you will have spent ${STARTER_PRICE} to find that out for certain, instead of ${KIT_FOUNDING}.`) +
+    brandButton(`Start the first nine weeks &nbsp;&rarr;`, `${SITE}/starter`) +
     p(
       `The kit itself is unchanged: ${KIT_FOUNDING} for the founding 500 families, ${KIT_RETAIL} after that.`,
       `text-align:center;font-size:15px;color:${BRAND.footerText};`,
