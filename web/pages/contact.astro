@@ -4,6 +4,12 @@
 // match the Eden's Table brand to the legal publisher (Rooted in Faith
 // Ventures LLC) and reach a real support channel. Copy uses no em dashes.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
+// Hero watermark: public domain botanical plate from Koehler's Medizinal-Pflanzen
+// (1887), desaturated to a sage wash, feathered, and cleared through the middle
+// where the text sits. See #428 for the full treatment and the contrast maths:
+// muted-foreground on eden-cream is only 5.3:1 before any image, so the clearing
+// is load-bearing, not decorative. Rendered at 24% with mix-blend-mode:multiply.
+import heroContact from "@/assets/hero-contact.jpg";
 
 const meta = {
   title: "Contact Eden's Table | The Eden Institute",
@@ -36,8 +42,9 @@ const contactJsonLd = {
 ---
 
 <MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} jsonLd={contactJsonLd}>
-  <section class="pt-20 pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
-    <div class="max-w-2xl mx-auto text-center">
+  <section class="relative overflow-hidden pt-20 pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <img src={heroContact.src} alt="" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" style="opacity:0.24;mix-blend-mode:multiply" />
+    <div class="relative z-10 max-w-2xl mx-auto text-center">
       <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold))">
         Customer Service
       </p>
