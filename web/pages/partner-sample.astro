@@ -8,6 +8,14 @@
 // "Redirect Notice" interstitial per button. Links the founder types or pastes
 // herself are not rewritten, so a single pasted URL arrives clean.
 //
+// The link comes in two equivalent forms. Prefer the path form when pasting:
+//   /partner-sample/<key>    302s to the query form via vercel.json
+//   /partner-sample?k=<key>  the original, still honoured for links already sent
+// The path form was added 2026-09-02 because hand-pasting the query form dropped
+// the `?k=` twice and partners got "This link is incomplete". Note the redirect
+// cannot be a rewrite: the `k` below is read from window.location.search on the
+// client, so the browser URL has to end up carrying the query.
+//
 // The `?k=` secret is validated by /api/partner-sample, which brokers a short
 // lived signed URL per click. This page holds no credentials: without a valid
 // k every button 403s, so the page itself is harmless if it is ever found.
