@@ -65,6 +65,11 @@
     --green-deep: 150 35% 18%;
     --green-dark: 150 30% 22%;
     --honey: 40 55% 50%;
+    /* Text-only companions, same reasoning as --eden-gold-ink: --honey is 2.66:1
+       on white and --green-mid 4.43:1 on cream, both under AA for small text,
+       but both are also used on dark grounds where darkening them is wrong. */
+    --honey-ink: 40 55% 32%;
+    --green-mid-ink: 140 15% 32%;
     --rust: 15 50% 42%;
     --ink: 30 25% 12%;
     --ink-soft: 30 15% 30%;

@@ -61,7 +61,7 @@ export default function Navbar() {
       <div className="max-w-[1340px] mx-auto px-6 py-4 flex items-center justify-between">
         <Link to="/" className="flex flex-col leading-tight">
           <span className="font-serif text-xl text-[#3B4A3F] tracking-wide">The Eden Institute</span>
-          <span className="text-xs text-[#7A8C7E] tracking-widest uppercase font-sans">Biblical Herbalism Education</span>
+          <span className="text-xs text-[#5A6B5E] tracking-widest uppercase font-sans">Biblical Herbalism Education</span>
         </Link>
         <nav className="hidden min-[1340px]:flex items-center gap-4">
           {navLinks.map((link) => renderLink(link))}
