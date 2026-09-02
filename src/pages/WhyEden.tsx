@@ -7,6 +7,11 @@ import { WorldviewBand } from "@/components/landing/WorldviewBand";
 import { useJourneyAwareQuizCTA } from "@/hooks/useJourneyAwareQuizCTA";
 import { ROUTES } from "@/lib/routes";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
+// Hero botanical + content panel, matching the Astro page of the same route
+// (see #433). These React pages are the SPA fallbacks: navigating in-app, e.g.
+// from the Apothecary, renders THESE rather than the Astro build, so the two
+// must be kept in step or the in-app page looks untreated.
+import heroWhyEden from "@/assets/hero-why-eden.jpg";
 
 const WhyEden = () => {
   useDocumentMeta({
@@ -28,8 +33,23 @@ const WhyEden = () => {
       <Navbar />
 
       {/* HERO */}
-      <section className="pt-20 section-padding-lg" style={{ backgroundColor: "hsl(var(--eden-parchment))" }}>
-        <div className="eden-container px-6">
+      <section className="relative overflow-hidden pt-20 section-padding-lg" style={{ backgroundColor: "hsl(var(--eden-parchment))" }}>
+        <img
+          src={heroWhyEden}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+          style={{ opacity: 0.95, mixBlendMode: "multiply" }}
+        />
+        <div
+          className="relative z-10 eden-container px-6 rounded-lg"
+          style={{
+            backgroundColor: "hsl(0 0% 100% / 0.92)",
+            border: "1px solid hsl(var(--eden-gold) / 0.35)",
+            padding: "clamp(26px, 3.5vw, 52px)",
+            boxShadow: "0 2px 18px -10px rgba(30,62,46,0.28)",
+          }}
+        >
           <div className="max-w-3xl mx-auto text-center">
             <ScrollReveal>
               <p className="font-accent text-xs tracking-widest uppercase mb-4" style={{ color: "hsl(var(--eden-gold-ink))" }}>
