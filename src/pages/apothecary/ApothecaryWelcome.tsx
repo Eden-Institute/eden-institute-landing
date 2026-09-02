@@ -7,6 +7,11 @@ import MateriaMedicaPlate from "@/components/MateriaMedicaPlate";
 import { HERB_SLUGS } from "@/components/materiaMedicaHerbs";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { ROUTES } from "@/lib/routes";
+// Hero botanical: public domain elderberry plate from Koehler's Medizinal-Pflanzen
+// (1887), built at this hero's own aspect and mirrored either side of the content
+// panel. Same treatment as the Astro heroes in #433: 95% multiply behind a 92%
+// white panel, which is what keeps the type legible over full-colour artwork.
+import heroApothecary from "@/assets/hero-apothecary.jpg";
 
 /**
  * ApothecaryWelcome — what an ANONYMOUS visitor sees at bare /apothecary
@@ -36,13 +41,28 @@ export default function ApothecaryWelcome() {
     <div className="bg-background">
       {/* ── Hero: the quiz is the single primary action ── */}
       <section
-        className="py-20 md:py-28 px-6"
+        className="relative overflow-hidden py-20 md:py-28 px-6"
         style={{ backgroundColor: "hsl(var(--eden-cream))" }}
       >
-        <div className="max-w-4xl mx-auto text-center">
+        <img
+          src={heroApothecary}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+          style={{ opacity: 0.95, mixBlendMode: "multiply" }}
+        />
+        <div
+          className="relative z-10 max-w-4xl mx-auto text-center rounded-lg"
+          style={{
+            backgroundColor: "hsl(0 0% 100% / 0.92)",
+            border: "1px solid hsl(var(--eden-gold) / 0.35)",
+            padding: "clamp(26px, 3.5vw, 52px)",
+            boxShadow: "0 2px 18px -10px rgba(30,62,46,0.28)",
+          }}
+        >
           <p
             className="font-accent text-sm tracking-[0.3em] uppercase mb-6"
-            style={{ color: "hsl(var(--eden-gold))" }}
+            style={{ color: "hsl(var(--eden-gold-ink))" }}
           >
             Eden Apothecary
           </p>
