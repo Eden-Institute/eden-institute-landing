@@ -39,7 +39,7 @@ const Community = () => {
 
       <section className="py-20 md:py-28 px-6" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
         <div className="max-w-4xl mx-auto text-center">
-          <p className="font-accent text-sm tracking-[0.3em] uppercase mb-6" style={{ color: "hsl(var(--eden-gold))" }}>
+          <p className="font-accent text-sm tracking-[0.3em] uppercase mb-6" style={{ color: "hsl(var(--eden-gold-ink))" }}>
             The Rooted Community
           </p>
           <h1

@@ -96,7 +96,7 @@ const Terms = () => {
 
           <section>
             <h2 className="font-serif text-xl font-semibold text-primary mb-3">11. Health and Medical Disclaimer</h2>
-            <p className="font-semibold text-accent">IMPORTANT: The Eden Institute provides educational content about herbalism, nutrition, and wellness from a Biblical worldview. This content is for educational and informational purposes only and is not intended to diagnose, treat, cure, or prevent any disease or medical condition.</p>
+            <p className="font-semibold" style={{ color: "hsl(var(--eden-gold-ink))" }}>IMPORTANT: The Eden Institute provides educational content about herbalism, nutrition, and wellness from a Biblical worldview. This content is for educational and informational purposes only and is not intended to diagnose, treat, cure, or prevent any disease or medical condition.</p>
             <p className="mt-2">Nothing on this website or in our courses should be construed as medical advice. Always consult a qualified healthcare provider before making changes to your health regimen, especially if you are pregnant, nursing, taking medications, or managing a diagnosed medical condition.</p>
             <p className="mt-2">The Eden Institute, its founder, instructors, and affiliates assume no liability for any adverse effects resulting from the use or application of information presented in our courses.</p>
           </section>
@@ -129,7 +129,7 @@ const Terms = () => {
 
           <section>
             <h2 className="font-serif text-xl font-semibold text-primary mb-3">17. Privacy</h2>
-            <p>Your use of the website is also governed by our <Link to={ROUTES.PRIVACY} className="text-accent underline hover:text-accent/80">Privacy Policy</Link>. By using our Services, you consent to the collection and use of information as described therein.</p>
+            <p>Your use of the website is also governed by our <Link to={ROUTES.PRIVACY} className="underline hover:opacity-80" style={{ color: "hsl(var(--eden-gold-ink))" }}>Privacy Policy</Link>. By using our Services, you consent to the collection and use of information as described therein.</p>
           </section>
 
           <section>
@@ -138,9 +138,9 @@ const Terms = () => {
             <p className="mt-2"><strong>How you opt in.</strong> You opt in by checking a box, which is never pre-checked, at checkout or on a reservation form, next to language describing the messages you will receive and providing the mobile number you want us to use. We do not add any number to the program without that affirmative opt-in.</p>
             <p className="mt-2"><strong>What we send and how often.</strong> Messages are transactional and concern an order you placed or a reservation you made, such as confirming a preorder, the amount charged, the expected ship window, and your right to cancel before shipment, or confirming that a founding price has been reserved for you. Message frequency is low, typically one to two messages per order or reservation. We do not send promotional or marketing text messages under this program.</p>
             <p className="mt-2"><strong>Cost.</strong> We do not charge for these messages. Message and data rates may apply according to your plan with your mobile carrier.</p>
-            <p className="mt-2"><strong>How to stop, and how to get help.</strong> Reply STOP to any message to cancel, and you will receive a single confirmation that no further messages will be sent. Reply HELP for assistance, or contact us at <a href="mailto:hello@edeninstitute.health" className="text-accent underline hover:text-accent/80">hello@edeninstitute.health</a> or (931) 575-5895. Opting out of text messages does not cancel your order and does not change your email preferences.</p>
+            <p className="mt-2"><strong>How to stop, and how to get help.</strong> Reply STOP to any message to cancel, and you will receive a single confirmation that no further messages will be sent. Reply HELP for assistance, or contact us at <a href="mailto:hello@edeninstitute.health" className="underline hover:opacity-80" style={{ color: "hsl(var(--eden-gold-ink))" }}>hello@edeninstitute.health</a> or (931) 575-5895. Opting out of text messages does not cancel your order and does not change your email preferences.</p>
             <p className="mt-2"><strong>Carriers.</strong> Carriers are not liable for delayed or undelivered messages. Delivery is not guaranteed and may be affected by your carrier, device, or coverage.</p>
-            <p className="mt-2"><strong>Your information.</strong> Mobile information is never sold, rented, or shared with third parties or affiliates for marketing or promotional purposes. See our <Link to={ROUTES.PRIVACY} className="text-accent underline hover:text-accent/80">Privacy Policy</Link> for details.</p>
+            <p className="mt-2"><strong>Your information.</strong> Mobile information is never sold, rented, or shared with third parties or affiliates for marketing or promotional purposes. See our <Link to={ROUTES.PRIVACY} className="underline hover:opacity-80" style={{ color: "hsl(var(--eden-gold-ink))" }}>Privacy Policy</Link> for details.</p>
           </section>
 
           <section>
@@ -160,7 +160,7 @@ const Terms = () => {
 
           <section>
             <h2 className="font-serif text-xl font-semibold text-primary mb-3">22. Entire Agreement</h2>
-            <p>These Terms and Conditions, together with our <Link to={ROUTES.PRIVACY} className="text-accent underline hover:text-accent/80">Privacy Policy</Link> and <Link to={ROUTES.COOKIES} className="text-accent underline hover:text-accent/80">Cookie Policy</Link>, constitute the entire agreement between you and The Eden Institute regarding your use of the website and Services.</p>
+            <p>These Terms and Conditions, together with our <Link to={ROUTES.PRIVACY} className="underline hover:opacity-80" style={{ color: "hsl(var(--eden-gold-ink))" }}>Privacy Policy</Link> and <Link to={ROUTES.COOKIES} className="underline hover:opacity-80" style={{ color: "hsl(var(--eden-gold-ink))" }}>Cookie Policy</Link>, constitute the entire agreement between you and The Eden Institute regarding your use of the website and Services.</p>
           </section>
 
           <section>
@@ -172,7 +172,7 @@ const Terms = () => {
               <p>303 Holly Cir, Unit 3262</p>
               <p>Clarksville, TN 37043, United States</p>
               <p>Website: edeninstitute.health</p>
-              <p>Email: <a href="mailto:hello@edeninstitute.health" className="text-accent underline">hello@edeninstitute.health</a></p>
+              <p>Email: <a href="mailto:hello@edeninstitute.health" className="underline" style={{ color: "hsl(var(--eden-gold-ink))" }}>hello@edeninstitute.health</a></p>
             </address>
           </section>
         </article>

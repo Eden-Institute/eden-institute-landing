@@ -48,7 +48,7 @@ export function WorldviewBand({
           {caption ? (
             <p
               className="font-accent text-xs tracking-[0.3em] uppercase mb-4 text-center"
-              style={{ color: "hsl(var(--eden-gold))" }}
+              style={{ color: "hsl(var(--eden-gold-ink))" }}
             >
               {caption}
             </p>

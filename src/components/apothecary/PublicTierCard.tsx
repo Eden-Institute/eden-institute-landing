@@ -63,7 +63,7 @@ export function PublicTierCard({
       {highlighted && (
         <p
           className="font-accent text-xs tracking-[0.3em] uppercase mb-3 text-center"
-          style={{ color: "hsl(var(--eden-gold))" }}
+          style={{ color: "hsl(var(--eden-gold-ink))" }}
         >
           Most chosen
         </p>
@@ -76,7 +76,7 @@ export function PublicTierCard({
       </h3>
       <p
         className="font-accent text-[11px] tracking-[0.25em] uppercase mb-3"
-        style={{ color: "hsl(var(--eden-gold))" }}
+        style={{ color: "hsl(var(--eden-gold-ink))" }}
       >
         For {persona}
       </p>

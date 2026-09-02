@@ -111,7 +111,7 @@ export default function Pricing() {
         <div className="max-w-4xl mx-auto text-center">
           <p
             className="font-accent text-sm tracking-[0.3em] uppercase mb-4"
-            style={{ color: "hsl(var(--eden-gold))" }}
+            style={{ color: "hsl(var(--eden-gold-ink))" }}
           >
             Choose your plan
           </p>
@@ -171,7 +171,7 @@ export default function Pricing() {
                 Yearly
                 <span
                   className="ml-2 font-accent text-[10px] tracking-[0.2em] uppercase"
-                  style={{ color: "hsl(var(--eden-gold))" }}
+                  style={{ color: "hsl(var(--eden-gold-ink))" }}
                 >
                   Save
                 </span>
@@ -277,7 +277,7 @@ export default function Pricing() {
           <div className="text-center mt-8 space-y-1">
             <p
               className="font-accent text-xs tracking-[0.25em] uppercase"
-              style={{ color: "hsl(var(--eden-gold))" }}
+              style={{ color: "hsl(var(--eden-gold-ink))" }}
             >
               Founding member pricing
             </p>
@@ -289,7 +289,7 @@ export default function Pricing() {
           <div className="text-center mt-12">
             <p
               className="font-accent text-xs tracking-[0.3em] uppercase mb-2"
-              style={{ color: "hsl(var(--eden-gold))" }}
+              style={{ color: "hsl(var(--eden-gold-ink))" }}
             >
               The Practitioner tier is open
             </p>

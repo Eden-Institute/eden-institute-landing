@@ -139,7 +139,7 @@ function AxisSpectrum({ axisLabel, leftLabel, rightLabel, position, isInconclusi
     <div className="mb-5">
       <div className="flex items-baseline justify-between mb-1.5">
         <span className="font-accent text-xs tracking-[0.15em] uppercase" style={{ color: "#1C3A2E" }}>{leftLabel}</span>
-        <span className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: isInconclusive ? "#C9A84C" : "hsl(30, 10%, 40%)" }}>
+        <span className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: isInconclusive ? "hsl(var(--eden-gold-ink))" : "hsl(30, 10%, 40%)" }}>
           {axisLabel}{isInconclusive ? " – balanced" : ""}
         </span>
         <span className="font-accent text-xs tracking-[0.15em] uppercase" style={{ color: "#1C3A2E" }}>{rightLabel}</span>
@@ -554,7 +554,7 @@ const Assessment = () => {
 
       {diagnosticMode && targetProfile && phase === "quiz" && (
         <div className="max-w-2xl mx-auto px-6 pt-8">
-          <p className="font-accent text-xs tracking-[0.2em] uppercase mb-1" style={{ color: "#C9A84C" }}>
+          <p className="font-accent text-xs tracking-[0.2em] uppercase mb-1" style={{ color: "hsl(var(--eden-gold-ink))" }}>
             Pattern of Eden Quiz
           </p>
           <h1 className="font-serif text-2xl md:text-3xl font-bold" style={{ color: "#1C3A2E" }}>
@@ -567,7 +567,7 @@ const Assessment = () => {
         <div className="max-w-2xl mx-auto px-6 py-12">
           <div className="mb-10">
             <div className="flex items-center justify-between mb-3">
-              <span className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: "#C9A84C" }}>{axisLabel}</span>
+              <span className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: "hsl(var(--eden-gold-ink))" }}>{axisLabel}</span>
               <span className="font-body text-sm" style={{ color: "#1C3A2E" }}>Question {currentQ + 1} of {questions.length}</span>
             </div>
             <div className="w-full h-2 rounded-full" style={{ backgroundColor: "hsl(40, 20%, 80%)" }}>
@@ -593,12 +593,12 @@ const Assessment = () => {
       {phase === "followup" && currentFollowup && (
         <div className="max-w-2xl mx-auto px-6 py-12">
           <div className="mb-8 text-center">
-            <p className="font-accent text-xs tracking-[0.3em] uppercase mb-2" style={{ color: "#C9A84C" }}>Targeted Follow-Up</p>
+            <p className="font-accent text-xs tracking-[0.3em] uppercase mb-2" style={{ color: "hsl(var(--eden-gold-ink))" }}>Targeted Follow-Up</p>
             <p className="font-body text-sm" style={{ color: "#1C3A2E" }}>A few sharper questions to resolve your {axisDisplayLabel(currentFollowup.axis)} axis.</p>
           </div>
           <div className="mb-10">
             <div className="flex items-center justify-between mb-3">
-              <span className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: "#C9A84C" }}>{axisDisplayLabel(currentFollowup.axis)} Axis</span>
+              <span className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: "hsl(var(--eden-gold-ink))" }}>{axisDisplayLabel(currentFollowup.axis)} Axis</span>
               <span className="font-body text-sm" style={{ color: "#1C3A2E" }}>Follow-up {followupIdx + 1} of {followupQueue.length}</span>
             </div>
             <div className="w-full h-2 rounded-full" style={{ backgroundColor: "hsl(40, 20%, 80%)" }}>
@@ -623,7 +623,7 @@ const Assessment = () => {
 
       {phase === "auto-submitting" && (
         <div className="max-w-xl mx-auto px-6 py-16 text-center">
-          <p className="font-accent text-sm tracking-[0.3em] uppercase mb-3" style={{ color: "#C9A84C" }}>Recording your Pattern</p>
+          <p className="font-accent text-sm tracking-[0.3em] uppercase mb-3" style={{ color: "hsl(var(--eden-gold-ink))" }}>Recording your Pattern</p>
           <p className="font-body text-base" style={{ color: "#1C3A2E" }}>One moment — saving your results to your account…</p>
         </div>
       )}
@@ -635,10 +635,10 @@ const Assessment = () => {
       )}
       {phase === "diagnostic-saved" && profile && targetProfile && (
         <div className="max-w-xl mx-auto px-6 py-16 text-center">
-          <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>Pattern Recorded</span>
+          <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "hsl(var(--eden-gold-ink))" }}>Pattern Recorded</span>
           <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-2" style={{ color: "#1C3A2E" }}>{profile.nickname}</h2>
           <p className="font-body text-base mb-1" style={{ color: "#1C3A2E" }}>{constitutionType}</p>
-          <p className="font-accent text-lg italic mb-8" style={{ color: "#C9A84C" }}>{profile.tagline}</p>
+          <p className="font-accent text-lg italic mb-8" style={{ color: "hsl(var(--eden-gold-ink))" }}>{profile.tagline}</p>
           <p className="font-body text-base" style={{ color: "#1C3A2E" }}>Saved to {targetProfile.is_self ? "your profile" : targetProfile.name + "'s profile"}. Returning to the directory…</p>
         </div>
       )}
@@ -647,7 +647,7 @@ const Assessment = () => {
           when profileIdParam is in URL but diagnosticMode didn't engage. */}
       {phase === "profile-resolution-error" && (
         <div className="max-w-xl mx-auto px-6 py-16 text-center">
-          <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>Profile didn't load</span>
+          <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "hsl(var(--eden-gold-ink))" }}>Profile didn't load</span>
           <h2 className="font-serif text-2xl md:text-3xl font-bold mt-4 mb-4" style={{ color: "#1C3A2E" }}>The selected profile didn't load on this page.</h2>
           <p className="font-body text-base mb-2" style={{ color: "#1C3A2E" }}>{error || "Please go back to the apothecary, confirm the profile picker shows the right person, and click the quiz button again."}</p>
           <p className="font-body text-sm italic mb-8" style={{ color: "hsl(30, 10%, 40%)" }}>Your answers were not saved. Nothing was written to any account.</p>
@@ -657,10 +657,10 @@ const Assessment = () => {
 
       {phase === "gate" && profile && !diagnosticMode && (
         <div className="max-w-xl mx-auto px-6 py-16 text-center">
-          <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>Your Body Pattern</span>
+          <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "hsl(var(--eden-gold-ink))" }}>Your Body Pattern</span>
           <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-2" style={{ color: "#1C3A2E" }}>{profile.nickname}</h2>
           <p className="font-body text-base mb-1" style={{ color: "#1C3A2E" }}>{constitutionType}</p>
-          <p className="font-accent text-lg italic mb-8" style={{ color: "#C9A84C" }}>{profile.tagline}</p>
+          <p className="font-accent text-lg italic mb-8" style={{ color: "hsl(var(--eden-gold-ink))" }}>{profile.tagline}</p>
           <div className="p-8 border rounded" style={{ borderColor: "hsl(40, 20%, 80%)", backgroundColor: "white" }}>
             <h3 className="font-serif text-xl font-bold mb-2" style={{ color: "#1C3A2E" }}>Get Your Full Body Pattern Profile</h3>
             <p className="font-body text-sm mb-6" style={{ color: "hsl(30, 10%, 40%)" }}>Enter your name and email to receive your full body pattern profile and personalized herb recommendations.</p>
@@ -675,7 +675,7 @@ const Assessment = () => {
                     mobile autocomplete engines insert between '@' and the
                     domain) and lowercase before HTML5 type=email validation. */}
                 <input type="email" value={email} onChange={(e) => { setEmail(e.target.value.replace(/\s+/g, "").toLowerCase().trim()); setEmailSuggestion(null); }} onBlur={() => setEmailSuggestion(checkEmail(email).suggestion)} required placeholder="your@email.com" className="w-full px-4 py-3 border font-body focus:outline-none transition-colors" style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }} />
-                {emailSuggestion && (<p className="font-body text-sm mt-2" style={{ color: "#C9A84C" }}>Did you mean <button type="button" onClick={() => { setEmail(emailSuggestion); setEmailSuggestion(null); setError(""); }} className="underline font-semibold">{emailSuggestion}</button>?</p>)}
+                {emailSuggestion && (<p className="font-body text-sm mt-2" style={{ color: "hsl(var(--eden-gold-ink))" }}>Did you mean <button type="button" onClick={() => { setEmail(emailSuggestion); setEmailSuggestion(null); setError(""); }} className="underline font-semibold">{emailSuggestion}</button>?</p>)}
               </div>
               {error && <p className="font-body text-sm text-destructive">{error}</p>}
               <Button type="submit" variant="eden" size="xl" className="w-full" disabled={loading}>{loading ? "Submitting…" : "→ Send Me My Results"}</Button>
@@ -687,7 +687,7 @@ const Assessment = () => {
       {phase === "inconclusive" && (
         <div className="max-w-xl mx-auto px-6 py-16">
           <div className="text-center">
-            <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>Genuinely Balanced Terrain</span>
+            <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "hsl(var(--eden-gold-ink))" }}>Genuinely Balanced Terrain</span>
             <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-6" style={{ color: "#1C3A2E" }}>Your terrain doesn't lean to one side on {neutralAxes.length === 1 ? "this axis" : "these axes"}.</h2>
           </div>
           <div className="my-10 p-6 rounded" style={{ backgroundColor: "white", border: "1px solid hsl(40, 20%, 80%)" }}>
@@ -715,7 +715,7 @@ const Assessment = () => {
                 <div>
                   <label className="block font-accent text-xs tracking-[0.2em] uppercase mb-2" style={{ color: "hsl(30, 10%, 40%)" }}>Email Address</label>
                   <input type="email" value={email} onChange={(e) => { setEmail(e.target.value.replace(/\s+/g, "").toLowerCase().trim()); setEmailSuggestion(null); }} onBlur={() => setEmailSuggestion(checkEmail(email).suggestion)} required placeholder="your@email.com" className="w-full px-4 py-3 border font-body focus:outline-none transition-colors" style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }} />
-                {emailSuggestion && (<p className="font-body text-sm mt-2" style={{ color: "#C9A84C" }}>Did you mean <button type="button" onClick={() => { setEmail(emailSuggestion); setEmailSuggestion(null); setError(""); }} className="underline font-semibold">{emailSuggestion}</button>?</p>)}
+                {emailSuggestion && (<p className="font-body text-sm mt-2" style={{ color: "hsl(var(--eden-gold-ink))" }}>Did you mean <button type="button" onClick={() => { setEmail(emailSuggestion); setEmailSuggestion(null); setError(""); }} className="underline font-semibold">{emailSuggestion}</button>?</p>)}
                 </div>
                 {error && <p className="font-body text-sm text-destructive">{error}</p>}
                 <Button type="submit" variant="eden" size="xl" className="w-full" disabled={loading}>{loading ? "Saving…" : "→ Save My Reading"}</Button>
@@ -728,7 +728,7 @@ const Assessment = () => {
 
       {phase === "balanced-thanks" && (
         <div className="max-w-xl mx-auto px-6 py-16 text-center">
-          <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "#C9A84C" }}>Reading Saved</span>
+          <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "hsl(var(--eden-gold-ink))" }}>Reading Saved</span>
           <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-6" style={{ color: "#1C3A2E" }}>Thanks, your reading is captured.</h2>
           <p className="font-body text-base leading-relaxed mb-8" style={{ color: "#1C3A2E" }}>Your terrain is genuinely balanced, which is its own clinical category. We've saved your email, and the deeper diagnostic, built to resolve balanced cases like yours, is part of the Practitioner tier. We'll let you know when it opens.</p>
           <Button variant="eden" size="lg" onClick={() => navigate(ROUTES.HOME)}>Back to home</Button>

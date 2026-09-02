@@ -215,7 +215,7 @@ const Homeschool = () => {
       >
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10">
-            <p className="font-accent text-sm tracking-[0.3em] uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>{s.eyebrow}</p>
+            <p className="font-accent text-sm tracking-[0.3em] uppercase mb-3" style={{ color: "hsl(var(--eden-gold-ink))" }}>{s.eyebrow}</p>
             <h2 className="font-serif text-3xl md:text-4xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>{s.title}</h2>
           </div>
           {/* Both notebook mockups are now landscape (same aspect), so a plain
@@ -223,20 +223,20 @@ const Homeschool = () => {
               letterbox — symmetric without altering either image. */}
           <div className="grid md:grid-cols-2 gap-4 md:gap-6 mb-8">
             <div>
-              <p className="font-accent text-xs tracking-[0.25em] uppercase mb-2 text-center" style={{ color: "hsl(var(--eden-gold))" }}>Sprouts · K-2</p>
+              <p className="font-accent text-xs tracking-[0.25em] uppercase mb-2 text-center" style={{ color: "hsl(var(--eden-gold-ink))" }}>Sprouts · K-2</p>
               <div className="rounded-lg overflow-hidden bg-white shadow-sm">
                 <img src={s.sproutsSrc} alt={s.sproutsAlt} loading="lazy" className="w-full h-auto" />
               </div>
             </div>
             <div>
-              <p className="font-accent text-xs tracking-[0.25em] uppercase mb-2 text-center" style={{ color: "hsl(var(--eden-gold))" }}>Seedlings · 3-5</p>
+              <p className="font-accent text-xs tracking-[0.25em] uppercase mb-2 text-center" style={{ color: "hsl(var(--eden-gold-ink))" }}>Seedlings · 3-5</p>
               <div className="rounded-lg overflow-hidden bg-white shadow-sm">
                 <img src={s.seedlingsSrc} alt={s.seedlingsAlt} loading="lazy" className="w-full h-auto" />
               </div>
             </div>
           </div>
           <div className="max-w-3xl mx-auto mb-8 text-center rounded-lg p-6" style={{ backgroundColor: "hsl(var(--eden-cream))", border: "1px solid hsl(var(--eden-gold) / 0.3)" }}>
-            <p className="font-accent text-xs tracking-[0.25em] uppercase mb-2" style={{ color: "hsl(var(--eden-gold))" }}>What deepens at Seedlings</p>
+            <p className="font-accent text-xs tracking-[0.25em] uppercase mb-2" style={{ color: "hsl(var(--eden-gold-ink))" }}>What deepens at Seedlings</p>
             <p className="font-serif text-lg italic" style={{ color: "hsl(var(--eden-bark))" }}>{s.deepens}</p>
           </div>
           <p className="font-body text-base md:text-lg max-w-3xl mx-auto leading-relaxed text-foreground mb-8 text-center">{s.body}</p>
@@ -254,7 +254,7 @@ const Homeschool = () => {
       {/* §1 Hero */}
       <section className="py-20 md:py-28 px-6" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
         <div className="max-w-4xl mx-auto text-center">
-          <p className="font-accent text-sm tracking-[0.3em] uppercase mb-6" style={{ color: "hsl(var(--eden-gold))" }}>Eden's Table</p>
+          <p className="font-accent text-sm tracking-[0.3em] uppercase mb-6" style={{ color: "hsl(var(--eden-gold-ink))" }}>Eden's Table</p>
           <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6" style={{ color: "hsl(var(--eden-bark))" }}>
             Herbalism for the<br /><span className="italic">Whole Family Table.</span>
           </h1>
@@ -262,11 +262,11 @@ const Homeschool = () => {
           <p className="font-body text-lg text-muted-foreground max-w-2xl mx-auto mb-6 leading-relaxed">
             A K-12 Biblical herbalism curriculum for homeschool families. Open-and-go lesson plans, memory songs, kitchen labs, garden activities, and a recurring family story — rooted in Scripture and creation stewardship.
           </p>
-          <p className="font-accent text-sm tracking-wider uppercase mb-8" style={{ color: "hsl(var(--eden-sage))" }}>
+          <p className="font-accent text-sm tracking-wider uppercase mb-8" style={{ color: "hsl(var(--eden-sage-ink))" }}>
             Sprouts (K-2) + Seedlings (3-5) · Free sample weeks — sent to your inbox today
           </p>
           <div id="early-access" className="flex flex-col items-center gap-4 scroll-mt-28">
-            <p className="font-accent text-xs tracking-[0.3em] uppercase" style={{ color: "hsl(var(--eden-gold))" }}>
+            <p className="font-accent text-xs tracking-[0.3em] uppercase" style={{ color: "hsl(var(--eden-gold-ink))" }}>
               Start free — one real week, yours to print and teach today
             </p>
             <DualLeadMagnetCTAs size="xl" variant="eden" />
@@ -277,7 +277,7 @@ const Homeschool = () => {
               type="button"
               onClick={openReserveFounders}
               className="mt-4 font-accent text-xs tracking-[0.2em] uppercase underline underline-offset-4 transition-colors hover:opacity-80"
-              style={{ color: "hsl(var(--eden-sage))" }}
+              style={{ color: "hsl(var(--eden-sage-ink))" }}
             >
               Planning ahead? Reserve Founders pricing →
             </button>
@@ -296,16 +296,16 @@ const Homeschool = () => {
             <div className="rounded-lg p-6 border-2" style={{ borderColor: "hsl(var(--eden-gold))", backgroundColor: "hsl(var(--eden-cream))" }}>
               <Sprout className="w-6 h-6 mb-3" style={{ color: "hsl(var(--eden-gold))" }} />
               <h3 className="font-serif text-lg font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>Sprouts</h3>
-              <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>Grades K-2</p>
+              <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold-ink))" }}>Grades K-2</p>
               <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">Wonder, stories, and simple plant identification. Kitchen labs and memory songs.</p>
-              <span className="text-xs font-body px-2 py-1 rounded" style={{ backgroundColor: "hsl(var(--eden-gold) / 0.15)", color: "hsl(var(--eden-gold))" }}>Ships 2027</span>
+              <span className="text-xs font-body px-2 py-1 rounded" style={{ backgroundColor: "hsl(var(--eden-gold) / 0.15)", color: "hsl(var(--eden-gold-ink))" }}>Ships 2027</span>
             </div>
             <div className="rounded-lg p-6 border-2" style={{ borderColor: "hsl(var(--eden-gold))", backgroundColor: "hsl(var(--eden-cream))" }}>
               <BookOpen className="w-6 h-6 mb-3" style={{ color: "hsl(var(--eden-gold))" }} />
               <h3 className="font-serif text-lg font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>Seedlings</h3>
-              <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>Grades 3-5</p>
+              <p className="font-accent text-xs tracking-widest uppercase mb-3" style={{ color: "hsl(var(--eden-gold-ink))" }}>Grades 3-5</p>
               <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">Body systems basics, herb profiles, and family dinner discussions.</p>
-              <span className="text-xs font-body px-2 py-1 rounded" style={{ backgroundColor: "hsl(var(--eden-gold) / 0.15)", color: "hsl(var(--eden-gold))" }}>Ships 2027</span>
+              <span className="text-xs font-body px-2 py-1 rounded" style={{ backgroundColor: "hsl(var(--eden-gold) / 0.15)", color: "hsl(var(--eden-gold-ink))" }}>Ships 2027</span>
             </div>
             <div className="rounded-lg p-6 border opacity-75" style={{ borderColor: "hsl(var(--border))" }}>
               <BookOpen className="w-6 h-6 mb-3 text-muted-foreground" />
@@ -353,7 +353,7 @@ const Homeschool = () => {
       <section id="pricing" className="py-20 md:py-24 px-6" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
-            <p className="font-accent text-sm tracking-[0.3em] uppercase mb-3" style={{ color: "hsl(var(--eden-gold))" }}>Founders Pricing · first 500 kits</p>
+            <p className="font-accent text-sm tracking-[0.3em] uppercase mb-3" style={{ color: "hsl(var(--eden-gold-ink))" }}>Founders Pricing · first 500 kits</p>
             <h2 className="font-serif text-3xl md:text-4xl font-bold mb-4" style={{ color: "hsl(var(--eden-bark))" }}>Reserve your seat at the table.</h2>
           </div>
 
@@ -371,13 +371,13 @@ const Homeschool = () => {
                 <img src="/showcases/SproutsBundle.png" alt="Sprouts Complete bundle composition" loading="lazy" className="w-full h-full object-cover" />
               </div>
               <div className="p-6 flex flex-col flex-1">
-                <p className="font-accent text-xs tracking-widest uppercase mb-2" style={{ color: "hsl(var(--eden-gold))" }}>Sprouts Complete · Founders</p>
+                <p className="font-accent text-xs tracking-widest uppercase mb-2" style={{ color: "hsl(var(--eden-gold-ink))" }}>Sprouts Complete · Founders</p>
                 <h3 className="font-serif text-xl font-bold mb-3" style={{ color: "hsl(var(--eden-bark))" }}>Ships 2027</h3>
                 <div className="mb-4">
                   <p className="font-serif text-3xl font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>
                     $249 <span className="font-body text-base font-normal text-muted-foreground line-through ml-2">$349</span>
                   </p>
-                  <p className="font-accent text-xs uppercase tracking-wider" style={{ color: "hsl(var(--eden-sage))" }}>Founders price · $100 below retail</p>
+                  <p className="font-accent text-xs uppercase tracking-wider" style={{ color: "hsl(var(--eden-sage-ink))" }}>Founders price · $100 below retail</p>
                 </div>
                 <ul className="font-body text-sm text-muted-foreground space-y-1.5 mb-6 flex-1">
                   <li>· 36 weekly lessons</li>
@@ -398,13 +398,13 @@ const Homeschool = () => {
                 <img src="/showcases/SeedlingsBundle.png" alt="Seedlings Complete bundle composition" loading="lazy" className="w-full h-full object-cover" />
               </div>
               <div className="p-6 flex flex-col flex-1">
-                <p className="font-accent text-xs tracking-widest uppercase mb-2" style={{ color: "hsl(var(--eden-gold))" }}>Seedlings Complete · Founders</p>
+                <p className="font-accent text-xs tracking-widest uppercase mb-2" style={{ color: "hsl(var(--eden-gold-ink))" }}>Seedlings Complete · Founders</p>
                 <h3 className="font-serif text-xl font-bold mb-3" style={{ color: "hsl(var(--eden-bark))" }}>Ships 2027</h3>
                 <div className="mb-4">
                   <p className="font-serif text-3xl font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>
                     $249 <span className="font-body text-base font-normal text-muted-foreground line-through ml-2">$349</span>
                   </p>
-                  <p className="font-accent text-xs uppercase tracking-wider" style={{ color: "hsl(var(--eden-sage))" }}>Founders price · $100 below retail</p>
+                  <p className="font-accent text-xs uppercase tracking-wider" style={{ color: "hsl(var(--eden-sage-ink))" }}>Founders price · $100 below retail</p>
                 </div>
                 <ul className="font-body text-sm text-muted-foreground space-y-1.5 mb-6 flex-1">
                   <li>· 36 weekly lessons at Seedlings depth</li>
@@ -421,19 +421,19 @@ const Homeschool = () => {
 
             {/* Bundle */}
             <div className="rounded-lg overflow-hidden border-2 bg-white relative flex flex-col" style={{ borderColor: "hsl(var(--eden-sage))" }}>
-              <span className="absolute top-3 right-3 z-10 font-accent text-xs tracking-widest uppercase text-white px-3 py-1 rounded" style={{ backgroundColor: "hsl(var(--eden-sage))" }}>Best value</span>
+              <span className="absolute top-3 right-3 z-10 font-accent text-xs tracking-widest uppercase text-white px-3 py-1 rounded" style={{ backgroundColor: "hsl(var(--eden-sage-ink))" }}>Best value</span>
               <div className="grid grid-cols-2 aspect-[4/3] bg-white">
                 <img src="/showcases/SproutsBundle.png" alt="Sprouts box" loading="lazy" className="w-full h-full object-cover border-r-2 border-white" />
                 <img src="/showcases/SeedlingsBundle.png" alt="Seedlings box" loading="lazy" className="w-full h-full object-cover" />
               </div>
               <div className="p-6 flex flex-col flex-1">
-                <p className="font-accent text-xs tracking-widest uppercase mb-2" style={{ color: "hsl(var(--eden-sage))" }}>Two-Band Family Bundle</p>
+                <p className="font-accent text-xs tracking-widest uppercase mb-2" style={{ color: "hsl(var(--eden-sage-ink))" }}>Two-Band Family Bundle</p>
                 <h3 className="font-serif text-xl font-bold mb-3" style={{ color: "hsl(var(--eden-bark))" }}>Sprouts + Seedlings</h3>
                 <div className="mb-4">
                   <p className="font-serif text-3xl font-bold mb-1" style={{ color: "hsl(var(--eden-bark))" }}>
                     $449 <span className="font-body text-base font-normal text-muted-foreground line-through ml-2">$699</span>
                   </p>
-                  <p className="font-accent text-xs uppercase tracking-wider" style={{ color: "hsl(var(--eden-sage))" }}>Founders price · $250 below retail · Free shipping</p>
+                  <p className="font-accent text-xs uppercase tracking-wider" style={{ color: "hsl(var(--eden-sage-ink))" }}>Founders price · $250 below retail · Free shipping</p>
                 </div>
                 <ul className="font-body text-sm text-muted-foreground space-y-1.5 mb-6 flex-1">
                   <li>· Both bands ship together in 2027</li>

@@ -36,7 +36,7 @@ export function TierTwoWaitlistForm({ variant = "card" }: TierTwoWaitlistFormPro
     >
       <p
         className="font-accent text-xs tracking-[0.3em] uppercase mb-4"
-        style={{ color: "hsl(var(--eden-gold))" }}
+        style={{ color: "hsl(var(--eden-gold-ink))" }}
       >
         Coming Soon
       </p>

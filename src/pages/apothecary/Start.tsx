@@ -50,7 +50,7 @@ export default function Start() {
         <div className="max-w-4xl mx-auto text-center">
           <p
             className="font-accent text-xs tracking-[0.3em] uppercase mb-4"
-            style={{ color: "hsl(var(--eden-gold))" }}
+            style={{ color: "hsl(var(--eden-gold-ink))" }}
           >
             Eden Apothecary
           </p>
@@ -98,7 +98,7 @@ export default function Start() {
           <div className="text-center mb-10">
             <p
               className="font-accent text-xs tracking-[0.3em] uppercase mb-3"
-              style={{ color: "hsl(var(--eden-gold))" }}
+              style={{ color: "hsl(var(--eden-gold-ink))" }}
             >
               Inside the Apothecary
             </p>
@@ -116,7 +116,7 @@ export default function Start() {
             >
               <p
                 className="font-accent text-[11px] tracking-[0.3em] uppercase mb-2"
-                style={{ color: "hsl(var(--eden-gold))" }}
+                style={{ color: "hsl(var(--eden-gold-ink))" }}
               >
                 Symptom doorway
               </p>
@@ -138,7 +138,7 @@ export default function Start() {
             >
               <p
                 className="font-accent text-[11px] tracking-[0.3em] uppercase mb-2"
-                style={{ color: "hsl(var(--eden-gold))" }}
+                style={{ color: "hsl(var(--eden-gold-ink))" }}
               >
                 The Pattern of Eden
               </p>
@@ -160,7 +160,7 @@ export default function Start() {
             >
               <p
                 className="font-accent text-[11px] tracking-[0.3em] uppercase mb-2"
-                style={{ color: "hsl(var(--eden-gold))" }}
+                style={{ color: "hsl(var(--eden-gold-ink))" }}
               >
                 Clinical safety
               </p>
@@ -190,7 +190,7 @@ export default function Start() {
           <div className="text-center mb-10">
             <p
               className="font-accent text-sm tracking-[0.3em] uppercase mb-3"
-              style={{ color: "hsl(var(--eden-gold))" }}
+              style={{ color: "hsl(var(--eden-gold-ink))" }}
             >
               Choose your tier
             </p>
@@ -254,7 +254,7 @@ export default function Start() {
           <div className="text-center mt-10">
             <p
               className="font-accent text-xs tracking-[0.3em] uppercase mb-2"
-              style={{ color: "hsl(var(--eden-gold))" }}
+              style={{ color: "hsl(var(--eden-gold-ink))" }}
             >
               The Practitioner tier is open
             </p>
@@ -277,7 +277,7 @@ export default function Start() {
           <div className="text-center mb-10">
             <p
               className="font-accent text-xs tracking-[0.3em] uppercase mb-3"
-              style={{ color: "hsl(var(--eden-gold))" }}
+              style={{ color: "hsl(var(--eden-gold-ink))" }}
             >
               Common questions
             </p>

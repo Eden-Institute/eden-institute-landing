@@ -76,7 +76,7 @@ function TierCard({ tier }: TierCardProps) {
     >
       <p
         className="font-accent text-[11px] tracking-[0.25em] uppercase mb-2"
-        style={{ color: "hsl(var(--eden-gold))" }}
+        style={{ color: "hsl(var(--eden-gold-ink))" }}
       >
         For {tier.persona}
       </p>
@@ -167,7 +167,7 @@ export function TierComparison({
         <div className="text-center mb-10 md:mb-12">
           <p
             className="font-accent text-sm tracking-[0.3em] uppercase mb-3"
-            style={{ color: "hsl(var(--eden-gold))" }}
+            style={{ color: "hsl(var(--eden-gold-ink))" }}
           >
             {eyebrow}
           </p>

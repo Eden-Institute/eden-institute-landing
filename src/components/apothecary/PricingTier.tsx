@@ -150,7 +150,7 @@ export function PricingTier({
       {highlighted && (
         <p
           className="font-accent text-xs tracking-[0.3em] uppercase mb-3 text-center"
-          style={{ color: "hsl(var(--eden-gold))" }}
+          style={{ color: "hsl(var(--eden-gold-ink))" }}
         >
           Recommended
         </p>
@@ -166,7 +166,7 @@ export function PricingTier({
         {foundingBadge && (
           <p
             className="font-accent text-[10px] tracking-[0.25em] uppercase mb-1"
-            style={{ color: "hsl(var(--eden-gold))" }}
+            style={{ color: "hsl(var(--eden-gold-ink))" }}
           >
             {foundingBadge}
           </p>

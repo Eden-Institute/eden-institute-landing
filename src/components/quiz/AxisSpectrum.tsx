@@ -52,7 +52,7 @@ function AxisRow({
       <div className="flex items-center justify-between mb-2">
         <span
           className="font-accent text-xs tracking-[0.2em] uppercase"
-          style={{ color: "#C9A84C" }}
+          style={{ color: "hsl(var(--eden-gold-ink))" }}
         >
           {axisLabel}
         </span>

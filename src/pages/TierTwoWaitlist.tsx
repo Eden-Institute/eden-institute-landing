@@ -40,7 +40,7 @@ const TierTwoWaitlist = () => {
         <div className="max-w-4xl mx-auto text-center">
           <p
             className="font-accent text-sm tracking-[0.3em] uppercase mb-6"
-            style={{ color: "hsl(var(--eden-gold))" }}
+            style={{ color: "hsl(var(--eden-gold-ink))" }}
           >
             Tier 2 · Coming Soon
           </p>
