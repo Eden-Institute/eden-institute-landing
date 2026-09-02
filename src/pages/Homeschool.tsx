@@ -5,6 +5,11 @@ import WaitlistModal from "@/components/landing/WaitlistModal";
 import Navbar from "@/components/landing/Navbar";
 import { BookOpen, Sprout, Users } from "lucide-react";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
+// Hero botanical + content panel, matching the Astro page of the same route
+// (see #433). These React pages are the SPA fallbacks: navigating in-app, e.g.
+// from the Apothecary, renders THESE rather than the Astro build, so the two
+// must be kept in step or the in-app page looks untreated.
+import heroHomeschool from "@/assets/hero-homeschool.jpg";
 
 /**
  * Eden's Table waitlist audience (Resend).
@@ -252,8 +257,23 @@ const Homeschool = () => {
       <Navbar />
 
       {/* §1 Hero */}
-      <section className="py-20 md:py-28 px-6" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
-        <div className="max-w-4xl mx-auto text-center">
+      <section className="relative overflow-hidden py-20 md:py-28 px-6" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
+        <img
+          src={heroHomeschool}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+          style={{ opacity: 0.95, mixBlendMode: "multiply" }}
+        />
+        <div
+          className="relative z-10 max-w-4xl mx-auto text-center rounded-lg"
+          style={{
+            backgroundColor: "hsl(0 0% 100% / 0.92)",
+            border: "1px solid hsl(var(--eden-gold) / 0.35)",
+            padding: "clamp(26px, 3.5vw, 52px)",
+            boxShadow: "0 2px 18px -10px rgba(30,62,46,0.28)",
+          }}
+        >
           <p className="font-accent text-sm tracking-[0.3em] uppercase mb-6" style={{ color: "hsl(var(--eden-gold-ink))" }}>Eden's Table</p>
           <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6" style={{ color: "hsl(var(--eden-bark))" }}>
             Herbalism for the<br /><span className="italic">Whole Family Table.</span>
