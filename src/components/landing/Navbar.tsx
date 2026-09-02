@@ -85,7 +85,7 @@ export default function Navbar() {
         </button>
       </div>
       {open && (
-        <div className="min-[1340px]:hidden bg-[#FAF8F3] border-t border-[#D6CDB8] px-6 pb-6 pt-4 flex flex-col gap-5">
+        <div className="min-[1340px]:hidden bg-[#FAF8F3] border-t border-[#D6CDB8] px-6 pb-6 pt-4 flex flex-col gap-5 [&>a]:min-h-[44px] [&>a]:inline-flex [&>a]:items-center">
           {navLinks.map((link) => renderLink(link, () => setOpen(false)))}
           <Link
             to="/assessment"
