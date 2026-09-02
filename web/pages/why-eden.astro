@@ -78,7 +78,7 @@ const meta = {
       ScrollReveal, which would hide it in a no-JS render). */}
   <section class="px-6 py-16 md:py-24" style="background-color:hsl(var(--eden-cream))" aria-label="Source of vital force · Eden Institute worldview thesis">
     <div class="max-w-3xl mx-auto">
-      <p class="font-accent text-xs tracking-[0.3em] uppercase mb-4 text-center" style="color:hsl(var(--eden-gold))">
+      <p class="font-accent text-xs tracking-[0.3em] uppercase mb-4 text-center" style="color:hsl(var(--eden-gold-ink))">
         What we believe and what we don't
       </p>
       <p class="font-body text-base md:text-lg leading-relaxed" style="color:hsl(var(--eden-bark))">
@@ -121,7 +121,7 @@ const meta = {
         <div class="grid grid-cols-1 gap-8">
           {solutions.map((item) => (
             <div class="flex items-start gap-4 p-6 rounded-sm" style="background-color:hsl(var(--eden-cream));border:1px solid hsl(var(--eden-gold) / 0.2)">
-              <span class="font-serif text-xl mt-0.5 shrink-0" style="color:hsl(var(--eden-gold))">✦</span>
+              <span class="font-serif text-xl mt-0.5 shrink-0" style="color:hsl(var(--eden-gold-ink))">✦</span>
               <div>
                 <h3 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-forest))">{item.label}</h3>
                 <p class="font-body text-sm leading-relaxed" style="color:hsl(var(--eden-bark) / 0.85)">{item.body}</p>
@@ -152,7 +152,7 @@ const meta = {
               <ul class="space-y-3">
                 {col.items.map((item) => (
                   <li class="flex items-start gap-2 font-body text-sm" style={`color:${col.negative ? "hsl(var(--eden-bark) / 0.7)" : "hsl(var(--eden-parchment) / 0.9)"}`}>
-                    <span style={`color:${col.negative ? "hsl(var(--eden-bark) / 0.4)" : "hsl(var(--eden-gold))"}`}>{col.negative ? "–" : "✦"}</span>
+                    <span style={`color:${col.negative ? "hsl(var(--eden-bark) / 0.4)" : "hsl(var(--eden-gold-light))"}`}>{col.negative ? "–" : "✦"}</span>
                     {item}
                   </li>
                 ))}
