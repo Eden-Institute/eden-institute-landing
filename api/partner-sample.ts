@@ -23,6 +23,24 @@
 //   SUPABASE_SERVICE_ROLE_KEY   full service-role JWT (signing requires it)
 //   PARTNER_SAMPLE_KEY          shared secret embedded in the link the founder
 //                               pastes. Rotate to revoke every outstanding link.
+//
+// PASTE-SAFE PATH FORM, added 2026-09-02. The founder can paste either
+//   https://edeninstitute.health/partner-sample/<key>      (preferred)
+//   https://edeninstitute.health/partner-sample?k=<key>    (still works)
+// The path form exists because hand-pasting the query form silently DROPPED the
+// `?k=` twice (StacyLyn Harris and Christina both got "This link is incomplete"
+// and downloaded nothing). A path segment has nothing to lose. vercel.json
+// 302s /partner-sample/:key -> /partner-sample?k=:key; it must be a REDIRECT and
+// not a rewrite, because the page reads `k` from window.location.search on the
+// client, and a rewrite leaves the browser URL on the path form with no query.
+// It is deliberately NOT permanent: the key is rotatable, and a cached 301 for a
+// revoked key would be unfixable in the recipient's browser.
+//
+// Why the founder still pastes at all, re-proven 2026-09-02: EVERY href in an
+// API-created Gmail draft is rewritten through google.com/url. Tested a plain
+// word anchor, a url-as-anchor-text, and target="_blank" + rel="noopener"; all
+// three came back wrapped in the draft's stored HTML. No HTML shape escapes it,
+// so do not go looking for one again.
 
 /** Button slug -> Storage object path. Order is the reading order of a week. */
 const COMPONENTS: Record<string, string> = {

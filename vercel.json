@@ -19,6 +19,11 @@
       "source": "/go/deep-dive/:slug",
       "destination": "https://noeqztssupewjidpvhar.supabase.co/functions/v1/guide-checkout?slug=:slug",
       "permanent": false
+    },
+    {
+      "source": "/partner-sample/:key",
+      "destination": "/partner-sample?k=:key",
+      "permanent": false
     }
   ],
   "rewrites": [
