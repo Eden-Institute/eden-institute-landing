@@ -61,7 +61,7 @@ function StepCard({
           fontWeight: 300,
           fontSize: "48px",
           lineHeight: 1,
-          color: "hsl(var(--honey))",
+          color: "hsl(var(--honey-ink))",
         }}
       >
         {num}
@@ -112,7 +112,7 @@ function StepCard({
           padding: "10px 20px",
           borderRadius: "2px",
           backgroundColor: isHoney ? "hsl(var(--honey))" : "transparent",
-          color: isHoney ? "hsl(var(--green-deep))" : "hsl(var(--green-deep))",
+          color: isHoney ? "hsl(var(--footer-bg))" : "hsl(var(--green-deep))",
           border: isHoney
             ? "1px solid hsl(var(--honey))"
             : "1px solid hsl(var(--green-deep))",
@@ -183,7 +183,7 @@ const Index = () => {
               fontFamily: "'Cormorant Garamond', Georgia, serif",
               fontWeight: 600,
               fontSize: "11px",
-              color: "hsl(var(--green-mid))",
+              color: "hsl(var(--green-mid-ink))",
             }}
           >
             THE EDEN INSTITUTE
@@ -264,7 +264,7 @@ const Index = () => {
                 fontFamily: "'Cormorant Garamond', Georgia, serif",
                 fontWeight: 600,
                 fontSize: "11px",
-                color: "hsl(var(--green-mid))",
+                color: "hsl(var(--green-mid-ink))",
               }}
             >
               THE FRAMEWORK
@@ -352,7 +352,7 @@ const Index = () => {
                   className="self-start inline-block mb-5"
                   style={{
                     backgroundColor: "hsl(var(--honey) / 0.15)",
-                    color: "hsl(var(--honey))",
+                    color: "hsl(var(--honey-ink))",
                     fontFamily: "'Cormorant Garamond', Georgia, serif",
                     fontWeight: 600,
                     fontSize: "10px",
