@@ -20,6 +20,13 @@
 //
 // Copy here deliberately carries NO em dashes, per Lock #27.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
+// Hero watermark: public domain botanical plate from Koehler's Medizinal-Pflanzen
+// (1887), desaturated to a sage wash and feathered at the edges, matching the
+// watermark treatment in the Sprouts Student Notebook. Rendered at 24% with
+// mix-blend-mode:multiply, so the white ground vanishes and only the plant tints
+// the section. The image is 1920x1080 to match the hero aspect; do not swap in a
+// portrait plate, it will crop to a band across the middle of the plant.
+import heroFreebies from "@/assets/hero-freebies.jpg";
 import DualLeadMagnetCTAs from "../components/DualLeadMagnetCTAs.astro";
 import WaitlistController from "../components/islands/WaitlistController.tsx";
 import { BookOpen, NotebookPen, Leaf, ChefHat, MessagesSquare } from "lucide-react";
@@ -80,8 +87,9 @@ const steps = [
 >
   {/* §1 Hero. The two CTAs are the entire job of this page, so they sit above the
       fold with nothing competing for the click. No pricing, no preorder banner. */}
-  <section class="py-20 md:py-28 px-6" style="background-color:hsl(var(--eden-cream))">
-    <div class="max-w-4xl mx-auto text-center">
+  <section class="relative overflow-hidden py-20 md:py-28 px-6" style="background-color:hsl(var(--eden-cream))">
+    <img src={heroFreebies.src} alt="" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" style="opacity:0.24;mix-blend-mode:multiply" />
+    <div class="relative z-10 max-w-4xl mx-auto text-center">
       <p class="font-accent text-sm tracking-[0.3em] uppercase mb-6" style="color:hsl(var(--eden-gold))">
         Free Sample Week
       </p>
