@@ -42,11 +42,21 @@
     --eden-parchment: 40 33% 93%;
     --eden-parchment-dark: 40 25% 88%;
     --eden-gold: 40 55% 50%;
+    /* Text-only gold. --eden-gold is the brand accent and is 2.51:1 on eden-cream,
+       under the 4.5:1 AA floor for small text; it must not be darkened globally
+       because it is also used on the deep-green footer where darkening it is worse.
+       Use --eden-gold-ink for gold TEXT on light grounds. Measured 4.67:1 worst case
+       over the 70% hero watermarks. Brand palette SSOT is the Brand Voice Guide docx,
+       not this file. */
+    --eden-gold-ink: 40 55% 32%;
     --eden-gold-light: 40 60% 65%;
     --eden-bark: 30 25% 12%;
     --eden-bark-light: 30 15% 30%;
     --eden-cream: 40 40% 97%;
     --eden-sage: 140 15% 55%;
+    /* Text-only sage, same reasoning as --eden-gold-ink: --eden-sage is 2.82:1 on
+       eden-cream and fails AA for small text, but is also used on dark grounds. */
+    --eden-sage-ink: 140 15% 32%;
 
     /* Homepage semantic tokens */
     --cream: 40 33% 95%;
