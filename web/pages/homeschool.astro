@@ -226,7 +226,7 @@ const KIT = {
   <section class="py-16 md:py-20 px-6 bg-background">
     <div class="max-w-5xl mx-auto">
       <div class="text-center mb-10">
-        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold))">Why this. Why now.</p>
+        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">Why this. Why now.</p>
         <h2 class="font-serif text-3xl md:text-4xl font-bold leading-tight" style="color:hsl(var(--eden-bark))">
           School will teach her the parts of a flower.<br />It will not teach her what the flower is for.
         </h2>
@@ -241,7 +241,7 @@ const KIT = {
           <div class="rounded-lg overflow-hidden bg-white shadow-sm border" style="border-color:hsl(var(--eden-gold) / 0.3)">
             <img src="/showcases/ET_WeekAtAGlance.png" alt="Week 5 of the Sprouts Teacher's Guide, showing the calendula week laid out Monday through Friday with the scripture, the kitchen lab supply list, and the subjects woven through the week." loading="lazy" width="1275" height="1650" class="w-full h-auto" />
           </div>
-          <p class="font-accent text-xs tracking-[0.25em] uppercase mt-2 text-center" style="color:hsl(var(--eden-gold))">One real week, exactly as it arrives · Week 5 · Calendula</p>
+          <p class="font-accent text-xs tracking-[0.25em] uppercase mt-2 text-center" style="color:hsl(var(--eden-gold-ink))">One real week, exactly as it arrives · Week 5 · Calendula</p>
         </div>
       </div>
 
@@ -280,16 +280,16 @@ const KIT = {
         <div class="rounded-lg p-6 border-2" style="border-color:hsl(var(--eden-gold));background-color:hsl(var(--eden-cream))">
           <Sprout className="w-6 h-6 mb-3" color="hsl(var(--eden-gold))" />
           <h3 class="font-serif text-lg font-bold mb-1" style="color:hsl(var(--eden-bark))">Sprouts</h3>
-          <p class="font-accent text-xs tracking-widest uppercase mb-3" style="color:hsl(var(--eden-gold))">Grades K-2</p>
+          <p class="font-accent text-xs tracking-widest uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">Grades K-2</p>
           <p class="font-body text-sm text-muted-foreground mb-4 leading-relaxed">Wonder, stories, and simple plant identification. Kitchen labs and memory songs.</p>
-          <span class="text-xs font-body px-2 py-1 rounded" style="background-color:hsl(var(--eden-gold) / 0.15);color:hsl(var(--eden-gold))">Preorder open now</span>
+          <span class="text-xs font-body px-2 py-1 rounded" style="background-color:hsl(var(--eden-gold) / 0.15);color:hsl(var(--eden-gold-ink))">Preorder open now</span>
         </div>
         <div class="rounded-lg p-6 border-2" style="border-color:hsl(var(--eden-gold));background-color:hsl(var(--eden-cream))">
           <BookOpen className="w-6 h-6 mb-3" color="hsl(var(--eden-gold))" />
           <h3 class="font-serif text-lg font-bold mb-1" style="color:hsl(var(--eden-bark))">Seedlings</h3>
-          <p class="font-accent text-xs tracking-widest uppercase mb-3" style="color:hsl(var(--eden-gold))">Grades 3-5</p>
+          <p class="font-accent text-xs tracking-widest uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">Grades 3-5</p>
           <p class="font-body text-sm text-muted-foreground mb-4 leading-relaxed">Body systems basics, herb profiles, and family dinner discussions.</p>
-          <span class="text-xs font-body px-2 py-1 rounded" style="background-color:hsl(var(--eden-gold) / 0.15);color:hsl(var(--eden-gold))">Coming after Sprouts</span>
+          <span class="text-xs font-body px-2 py-1 rounded" style="background-color:hsl(var(--eden-gold) / 0.15);color:hsl(var(--eden-gold-ink))">Coming after Sprouts</span>
         </div>
         <div class="rounded-lg p-6 border opacity-75" style="border-color:hsl(var(--border))">
           <BookOpen className="w-6 h-6 mb-3 text-muted-foreground" />
@@ -359,7 +359,7 @@ const KIT = {
     <section id={`showcase-${s.id}`} class="py-16 md:py-20 px-6" style={`background-color:${idx % 2 === 0 ? "hsl(var(--background))" : "hsl(var(--eden-cream) / 0.4)"}`}>
       <div class="max-w-6xl mx-auto">
         <div class="text-center mb-10">
-          <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold))">{s.eyebrow}</p>
+          <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">{s.eyebrow}</p>
           <h2 class="font-serif text-3xl md:text-4xl font-bold" style="color:hsl(var(--eden-bark))">{s.title}</h2>
         </div>
         <div class={`grid items-start gap-4 md:gap-6 mb-8 ${s.insideSrc ? "md:grid-cols-2" : "max-w-xl mx-auto"}`}>
@@ -371,12 +371,12 @@ const KIT = {
               <div class="rounded-lg overflow-hidden bg-white shadow-sm">
                 <img src={s.insideSrc} alt={s.insideAlt} loading="lazy" width={s.insideW} height={s.insideH} class="w-full h-auto" />
               </div>
-              <p class="font-accent text-xs tracking-[0.25em] uppercase mt-2 text-center" style="color:hsl(var(--eden-gold))">{s.insideLabel}</p>
+              <p class="font-accent text-xs tracking-[0.25em] uppercase mt-2 text-center" style="color:hsl(var(--eden-gold-ink))">{s.insideLabel}</p>
             </div>
           )}
         </div>
         <div class="max-w-3xl mx-auto mb-8 text-center rounded-lg p-6" style="background-color:hsl(var(--eden-cream));border:1px solid hsl(var(--eden-gold) / 0.3)">
-          <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2" style="color:hsl(var(--eden-gold))">Sprouts K-2 and Seedlings 3-5</p>
+          <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2" style="color:hsl(var(--eden-gold-ink))">Sprouts K-2 and Seedlings 3-5</p>
           <p class="font-serif text-lg italic" style="color:hsl(var(--eden-bark))">{s.deepens}</p>
         </div>
         <p class="font-body text-base md:text-lg max-w-3xl mx-auto leading-relaxed text-foreground mb-8 text-center">{s.body}</p>
@@ -394,7 +394,7 @@ const KIT = {
   <section id="showcase-kit" class="py-16 md:py-20 px-6" style="background-color:hsl(var(--eden-forest))">
     <div class="max-w-6xl mx-auto">
       <div class="text-center mb-10">
-        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold))">The Complete Kit</p>
+        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-light))">The Complete Kit</p>
         <h2 class="font-serif text-3xl md:text-4xl font-bold text-white">Six components. Thirty-six weeks. One box.</h2>
       </div>
       <div class="grid md:grid-cols-2 gap-4 md:gap-6 mb-10">
@@ -419,7 +419,7 @@ const KIT = {
           Each kit includes one Student Notebook. If you have more than one child, you can add notebooks on the last screen before checkout, and they ship free in the same box.
         </p>
         <p class="font-body text-sm mb-8" style="color:rgba(255,255,255,0.7)">
-          The herbs themselves are not in the box. Each week uses a small amount of a common dried herb from your pantry, your garden, or the <a href="/homeschool/herbs" class="underline" style="color:hsl(var(--eden-gold))">herb list we keep for you</a>, so nothing in your kit ever expires.
+          The herbs themselves are not in the box. Each week uses a small amount of a common dried herb from your pantry, your garden, or the <a href="/homeschool/herbs" class="underline" style="color:hsl(var(--eden-gold-light))">herb list we keep for you</a>, so nothing in your kit ever expires.
         </p>
         <a href="#pricing">
           <Button variant="eden" size="xl">Preorder the Sprouts Kit · $249</Button>
@@ -431,7 +431,7 @@ const KIT = {
   {/* §9.45 Mockup disclaimer — nothing is printed yet; these are design mockups */}
   <section class="py-10 px-6 bg-background">
     <div class="max-w-3xl mx-auto text-center rounded-lg p-6 border" style="border-color:hsl(var(--eden-gold) / 0.3);background-color:hsl(var(--eden-cream) / 0.4)">
-      <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2" style="color:hsl(var(--eden-gold))">About these images</p>
+      <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2" style="color:hsl(var(--eden-gold-ink))">About these images</p>
       <p class="font-body text-sm text-muted-foreground leading-relaxed">
         The product photographs on this page are design mockups, created from the real curriculum files ahead of the first print run. They represent the size, binding, materials, and layout of what will arrive at your door. Final printed pieces may differ in small details.
       </p>
@@ -441,7 +441,7 @@ const KIT = {
   {/* §9.5 Herb sourcing — links to the parent herb-ordering page */}
   <section class="py-14 px-6 bg-background">
     <div class="max-w-3xl mx-auto text-center rounded-lg p-8 md:p-10 border" style="border-color:hsl(var(--eden-gold) / 0.3);background-color:hsl(var(--eden-cream) / 0.5)">
-      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold))">Already teaching?</p>
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">Already teaching?</p>
       <h2 class="font-serif text-2xl md:text-3xl font-bold mb-3" style="color:hsl(var(--eden-bark))">Order the herbs for every lesson.</h2>
       <p class="font-body text-muted-foreground max-w-xl mx-auto mb-6 leading-relaxed">
         Every herb your family studies, with a trusted source for each one. We have gathered the full Sprouts herb list in one place so you can stock your shelf for the year.
@@ -456,14 +456,14 @@ const KIT = {
   <section class="py-16 md:py-20 px-6" style="background-color:hsl(var(--eden-cream) / 0.4)">
     <div class="max-w-6xl mx-auto">
       <div class="text-center mb-10 max-w-3xl mx-auto">
-        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold))">From families already teaching it</p>
+        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">From families already teaching it</p>
         <h2 class="font-serif text-3xl md:text-4xl font-bold mb-4" style="color:hsl(var(--eden-bark))">They taught two weeks of it before anyone printed a thing.</h2>
         <p class="font-body text-muted-foreground leading-relaxed">Everything below is from a family who took the free sample and taught it at their own table. The kit has not shipped yet, so nobody is reviewing a box. They are telling you what happened in their kitchen.</p>
       </div>
 
       {/* Lead card */}
       <div class="max-w-4xl mx-auto rounded-lg p-8 mb-6 bg-white border-2" style="border-color:hsl(var(--eden-gold))">
-        <p class="font-accent text-xs tracking-[0.25em] uppercase mb-4" style="color:hsl(var(--eden-gold))">Everything in one week</p>
+        <p class="font-accent text-xs tracking-[0.25em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">Everything in one week</p>
         <p class="font-body text-base md:text-lg leading-relaxed text-foreground mb-4">
           “I am a mother who has been homeschooling kids for over 18 years. I had the opportunity to review some of the lessons in the elementary grades and these lessons are amazing for someone who wants to add herbs/gardening plus faith based lessons to their curriculum. As a homesteading family, I would have loved to have something like this when my kids were little. The balance of faith and herb/gardening is perfect, it is a complete lesson and well thought out. The lessons for younger kids are easy to understand and get a little more in depth when moving up a level. Each week you study a new herb/plant and everything is included for the week. With the stories, table cards, questions, scriptures, recipes, and everything together it covers core subjects like math, reading, faith, and herbs/plants; this is a great addition to a homeschooling curriculum.”
         </p>
@@ -474,20 +474,20 @@ const KIT = {
         <div class="rounded-lg bg-white border overflow-hidden flex flex-col" style="border-color:hsl(var(--eden-gold) / 0.3)">
           <img src="/showcases/ET_Testimonial_Kids2.png" width="353" height="252" alt="Two children holding up their own botanical drawings beside the printed lavender, chamomile and elderberry field cards at an outdoor table." loading="lazy" class="w-full h-auto" />
           <div class="p-6 flex flex-col flex-1">
-            <p class="font-accent text-xs tracking-[0.25em] uppercase mb-3" style="color:hsl(var(--eden-gold))">No complaining</p>
+            <p class="font-accent text-xs tracking-[0.25em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">No complaining</p>
             <p class="font-body text-sm leading-relaxed text-foreground mb-4 flex-1">“I just wanted you to see how into it they are! No complaining and actually asking to do their &lsquo;learning&rsquo;!!”</p>
             <p class="font-serif text-sm italic" style="color:hsl(var(--eden-bark))">– Kati, former nurse and paramedic</p>
           </div>
         </div>
 
         <div class="rounded-lg bg-white border p-6 flex flex-col" style="border-color:hsl(var(--eden-gold) / 0.3)">
-          <p class="font-accent text-xs tracking-[0.25em] uppercase mb-3" style="color:hsl(var(--eden-gold))">Depth without overwhelm</p>
+          <p class="font-accent text-xs tracking-[0.25em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">Depth without overwhelm</p>
           <p class="font-body text-sm leading-relaxed text-foreground mb-4 flex-1">“This curriculum is truly amazing! I have numerous herbal books from all sorts of authors, and this curriculum truly puts it into bite-size chunks of information while still incorporating incredible vocabulary, concepts, and quality stories. The fact that you are incorporating all these other topics beyond just herbal information is truly incredible as well. I truly love everything about it so far and can't wait until it launches! It is exactly what I was looking for and I am so excited for what will unfold in the years to come as we dive deep as a family.”</p>
           <p class="font-serif text-sm italic" style="color:hsl(var(--eden-bark))">– Kendria Scriver, curriculum writer</p>
         </div>
 
         <div class="rounded-lg bg-white border p-6 flex flex-col" style="border-color:hsl(var(--eden-gold) / 0.3)">
-          <p class="font-accent text-xs tracking-[0.25em] uppercase mb-3" style="color:hsl(var(--eden-gold))">Spent hours in the sample</p>
+          <p class="font-accent text-xs tracking-[0.25em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">Spent hours in the sample</p>
           <p class="font-body text-sm leading-relaxed text-foreground mb-4 flex-1">“Ahhhhhh I just spent the last few hours poring over the free sample you sent us. This curriculum is absolutely fantastic. I cannot wait to buy this in the fall. This will be our kids favourite curriculum to explore.”</p>
           <p class="font-serif text-sm italic" style="color:hsl(var(--eden-bark))">– Coralee, who read the free sample cover to cover</p>
         </div>
@@ -504,7 +504,7 @@ const KIT = {
   <section class="py-16 md:py-20 px-6 bg-background">
     <div class="max-w-5xl mx-auto">
       <div class="text-center mb-12 max-w-3xl mx-auto">
-        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold))">Before you decide</p>
+        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">Before you decide</p>
         <h2 class="font-serif text-3xl md:text-4xl font-bold mb-4" style="color:hsl(var(--eden-bark))">The Questions We'd Ask If We Were You.</h2>
         <p class="font-body text-muted-foreground leading-relaxed">Three things families hesitate over. All three are deliberate. Here is the reasoning behind each one, in full.</p>
       </div>
@@ -567,7 +567,7 @@ const KIT = {
 
       {/* Founding families */}
       <div class="max-w-3xl mx-auto rounded-lg p-8" style="background-color:hsl(var(--eden-forest))">
-        <p class="font-accent text-xs tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold))">Fifty Founding Families</p>
+        <p class="font-accent text-xs tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-light))">Fifty Founding Families</p>
         <h4 class="font-serif text-2xl font-bold mb-4 text-white">Anyone can preorder. Fifty families get to shape what comes next.</h4>
         <p class="font-body text-sm mb-5" style="color:rgba(255,255,255,0.85)">The first fifty families to order are the Founding Families. Not a label, a role. This is what it carries:</p>
         <ul class="font-body text-sm space-y-3 mb-6" style="color:rgba(255,255,255,0.85)">
@@ -595,7 +595,7 @@ const KIT = {
   <section id="pricing" class="py-20 md:py-24 px-6" style="background-color:hsl(var(--eden-cream))">
     <div class="max-w-5xl mx-auto">
       <div class="text-center mb-10">
-        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold))">Founding Preorder</p>
+        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">Founding Preorder</p>
         <h2 class="font-serif text-3xl md:text-4xl font-bold mb-4" style="color:hsl(var(--eden-bark))">Be one of the fifty.</h2>
         <p class="font-body text-muted-foreground max-w-2xl mx-auto leading-relaxed">
           This is a founding preorder. Your patience helps fund the founding of this curriculum. The first fifty families to order become our Founding Families, with a private group, a seat at Coffee and Curriculum, and a vote on what we build next. Every founding preorder saves $100 on the complete kit.
