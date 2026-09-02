@@ -13,6 +13,13 @@
 //     with a resolved Pattern can be re-added as a client:only island later.
 // Navbar / Footer / analytics come from MarketingLayout.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
+// Hero watermark: public domain botanical plate from Koehler's Medizinal-Pflanzen
+// (1887), desaturated to a sage wash and feathered at the edges, matching the
+// watermark treatment in the Sprouts Student Notebook. Rendered at 24% with
+// mix-blend-mode:multiply, so the white ground vanishes and only the plant tints
+// the section. The image is 1920x1080 to match the hero aspect; do not swap in a
+// portrait plate, it will crop to a band across the middle of the plant.
+import heroWhyEden from "@/assets/hero-why-eden.jpg";
 
 const problems = [
   { heading: "Most herbal programs are spiritually compromised.", body: "Chakras. Doshas. Moon cycles. Energy fields. These frameworks are borrowed from Hinduism, Buddhism, and paganism, and they appear in mainstream herbalism education with regularity. For a Christian trying to learn herbalism, navigating this is exhausting and often disqualifying." },
@@ -48,8 +55,9 @@ const meta = {
   ogType="article"
 >
   {/* HERO */}
-  <section class="pt-20 section-padding-lg" style="background-color:hsl(var(--eden-parchment))">
-    <div class="eden-container px-6">
+  <section class="relative overflow-hidden pt-20 section-padding-lg" style="background-color:hsl(var(--eden-parchment))">
+    <img src={heroWhyEden.src} alt="" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" style="opacity:0.24;mix-blend-mode:multiply" />
+    <div class="relative z-10 eden-container px-6">
       <div class="max-w-3xl mx-auto text-center">
         <p class="font-accent text-xs tracking-widest uppercase mb-4" style="color:hsl(var(--eden-gold))">
           Why Eden Institute

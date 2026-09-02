@@ -17,6 +17,13 @@
 //   • Tier 3 stays a disabled "TBD" control.
 // Navbar / Footer / analytics come from MarketingLayout.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
+// Hero watermark: public domain botanical plate from Koehler's Medizinal-Pflanzen
+// (1887), desaturated to a sage wash and feathered at the edges, matching the
+// watermark treatment in the Sprouts Student Notebook. Rendered at 24% with
+// mix-blend-mode:multiply, so the white ground vanishes and only the plant tints
+// the section. The image is 1920x1080 to match the hero aspect; do not swap in a
+// portrait plate, it will crop to a band across the middle of the plant.
+import heroCourses from "@/assets/hero-courses.jpg";
 import { Button } from "@/components/ui/button";
 import { BookOpen, CheckCircle, Clock, GraduationCap, Users } from "lucide-react";
 
@@ -85,8 +92,9 @@ const courseJsonLd = {
   jsonLd={courseJsonLd}
 >
   {/* HERO */}
-  <section class="px-6 py-20 md:py-28" style="background-color:hsl(var(--eden-cream))">
-    <div class="mx-auto max-w-4xl text-center">
+  <section class="relative overflow-hidden px-6 py-20 md:py-28" style="background-color:hsl(var(--eden-cream))">
+    <img src={heroCourses.src} alt="" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" style="opacity:0.24;mix-blend-mode:multiply" />
+    <div class="relative z-10 mx-auto max-w-4xl text-center">
       <p class="mb-6 font-accent text-sm uppercase tracking-[0.3em]" style="color:hsl(var(--eden-gold))">
         Biblical Clinical Herbalism
       </p>
