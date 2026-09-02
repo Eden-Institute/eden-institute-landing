@@ -105,7 +105,7 @@ const HomeschoolWelcome = () => {
         <div className="max-w-2xl mx-auto text-center">
           <p
             className="font-accent text-sm tracking-[0.3em] uppercase mb-6"
-            style={{ color: "hsl(var(--eden-gold))" }}
+            style={{ color: "hsl(var(--eden-gold-ink))" }}
           >
             Order Confirmed
           </p>
@@ -129,7 +129,7 @@ const HomeschoolWelcome = () => {
           >
             <p
               className="font-accent text-xs tracking-widest uppercase mb-2"
-              style={{ color: "hsl(var(--eden-gold))" }}
+              style={{ color: "hsl(var(--eden-gold-ink))" }}
             >
               You ordered
             </p>
@@ -142,7 +142,7 @@ const HomeschoolWelcome = () => {
 
             <p
               className="font-accent text-xs tracking-widest uppercase mb-2"
-              style={{ color: "hsl(var(--eden-gold))" }}
+              style={{ color: "hsl(var(--eden-gold-ink))" }}
             >
               Ship window
             </p>
@@ -152,7 +152,7 @@ const HomeschoolWelcome = () => {
 
             <p
               className="font-accent text-xs tracking-widest uppercase mb-2"
-              style={{ color: "hsl(var(--eden-gold))" }}
+              style={{ color: "hsl(var(--eden-gold-ink))" }}
             >
               What happens next
             </p>
@@ -185,7 +185,7 @@ const HomeschoolWelcome = () => {
             <Link to={ROUTES.HOME}>
               <span
                 className="font-accent text-sm tracking-wider uppercase underline-offset-4 hover:underline cursor-pointer"
-                style={{ color: "hsl(var(--eden-gold))" }}
+                style={{ color: "hsl(var(--eden-gold-ink))" }}
               >
                 Explore the rest of Eden Institute →
               </span>

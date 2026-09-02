@@ -32,7 +32,7 @@ const WhyEden = () => {
         <div className="eden-container px-6">
           <div className="max-w-3xl mx-auto text-center">
             <ScrollReveal>
-              <p className="font-accent text-xs tracking-widest uppercase mb-4" style={{ color: "hsl(var(--eden-gold))" }}>
+              <p className="font-accent text-xs tracking-widest uppercase mb-4" style={{ color: "hsl(var(--eden-gold-ink))" }}>
                 Why Eden Institute
               </p>
               <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] mb-6" style={{ color: "hsl(var(--eden-forest))" }}>
@@ -99,7 +99,7 @@ const WhyEden = () => {
               ].map((item, i) => (
                 <ScrollReveal key={i} delay={i * 100}>
                   <div className="flex items-start gap-4 p-6 rounded-sm" style={{ backgroundColor: "hsl(var(--eden-cream))", border: "1px solid hsl(var(--eden-gold) / 0.2)" }}>
-                    <span className="font-serif text-xl mt-0.5 shrink-0" style={{ color: "hsl(var(--eden-gold))" }}>✦</span>
+                    <span className="font-serif text-xl mt-0.5 shrink-0" style={{ color: "hsl(var(--eden-gold-ink))" }}>✦</span>
                     <div>
                       <h3 className="font-serif text-lg font-bold mb-2" style={{ color: "hsl(var(--eden-forest))" }}>{item.label}</h3>
                       <p className="font-body text-sm leading-relaxed" style={{ color: "hsl(var(--eden-bark) / 0.85)" }}>{item.body}</p>
@@ -138,7 +138,7 @@ const WhyEden = () => {
                     <ul className="space-y-3">
                       {col.items.map((item, j) => (
                         <li key={j} className="flex items-start gap-2 font-body text-sm" style={{ color: col.negative ? "hsl(var(--eden-bark) / 0.7)" : "hsl(var(--eden-parchment) / 0.9)" }}>
-                          <span style={{ color: col.negative ? "hsl(var(--eden-bark) / 0.4)" : "hsl(var(--eden-gold))" }}>{col.negative ? "—" : "✦"}</span>
+                          <span style={{ color: col.negative ? "hsl(var(--eden-bark) / 0.4)" : "hsl(var(--eden-gold-light))" }}>{col.negative ? "—" : "✦"}</span>
                           {item}
                         </li>
                       ))}

@@ -76,7 +76,7 @@ const Cookies = () => {
               <p>303 Holly Cir, Unit 3262</p>
               <p>Clarksville, TN 37043, United States</p>
               <p>Website: edeninstitute.health</p>
-              <p>Email: <a href="mailto:hello@edeninstitute.health" className="text-accent underline">hello@edeninstitute.health</a></p>
+              <p>Email: <a href="mailto:hello@edeninstitute.health" className="underline" style={{ color: "hsl(var(--eden-gold-ink))" }}>hello@edeninstitute.health</a></p>
             </address>
           </section>
         </article>

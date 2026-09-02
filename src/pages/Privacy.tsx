@@ -50,7 +50,7 @@ const Privacy = () => {
               <li>IP address and approximate location.</li>
               <li>Browser type, device type, and operating system.</li>
               <li>Pages visited, time spent on pages, and navigation patterns.</li>
-              <li>Cookies and similar tracking technologies (see our <Link to={ROUTES.COOKIES} className="text-accent underline hover:text-accent/80">Cookie Policy</Link>).</li>
+              <li>Cookies and similar tracking technologies (see our <Link to={ROUTES.COOKIES} className="underline hover:opacity-80" style={{ color: "hsl(var(--eden-gold-ink))" }}>Cookie Policy</Link>).</li>
             </ul>
           </section>
 
@@ -138,7 +138,7 @@ const Privacy = () => {
               <p>303 Holly Cir, Unit 3262</p>
               <p>Clarksville, TN 37043, United States</p>
               <p>Website: edeninstitute.health</p>
-              <p>Email: <a href="mailto:hello@edeninstitute.health" className="text-accent underline">hello@edeninstitute.health</a></p>
+              <p>Email: <a href="mailto:hello@edeninstitute.health" className="underline" style={{ color: "hsl(var(--eden-gold-ink))" }}>hello@edeninstitute.health</a></p>
             </address>
           </section>
         </article>

@@ -234,7 +234,7 @@ export default function ApothecaryWelcome() {
           <div className="text-center mb-12">
             <p
               className="font-accent text-sm tracking-[0.3em] uppercase mb-4"
-              style={{ color: "hsl(var(--eden-gold))" }}
+              style={{ color: "hsl(var(--eden-gold-ink))" }}
             >
               Materia Medica
             </p>
