@@ -106,7 +106,8 @@ function buyerWrapper(bodyContent: string): string {
 </td></tr>
 <tr><td style="padding:32px 28px;">${bodyContent}</td></tr>
 <tr><td style="background-color:${BRAND.bgOuter};padding:20px 28px;">
-<p style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;margin:0;">You are receiving this because you preordered Eden&rsquo;s Table. You may cancel for a full refund any time before your kit ships.</p>
+<p style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;margin:0 0 8px 0;">You are receiving this because you preordered Eden&rsquo;s Table. You may cancel for a full refund any time before your kit ships.</p>
+<p style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;margin:0;">Prefer not to get these updates? <a href="{{UNSUB_URL}}" style="color:${BRAND.footerText};text-decoration:underline;">Unsubscribe</a>. Order and shipping notices are separate and will still reach you.</p>
 </td></tr>
 </table>
 </td></tr></table>

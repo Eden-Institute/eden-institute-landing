@@ -909,12 +909,14 @@ async function drainBuyerQueue(): Promise<QueueResult> {
         continue;
       }
 
-      if (await isUnsubscribed(email, 'homeschool')) {
+      // Buyer emails have their own list (postpurchase, 2026-09-03) so a
+      // homeschool-preview opt-out does not silence a paying buyer's updates.
+      if (await isUnsubscribed(email, 'postpurchase')) {
         await supabaseQuery(`buyer_email_queue?id=eq.${row.id}`, {
           method: 'PATCH',
           body: JSON.stringify({
             status: 'cancelled',
-            error_message: 'recipient unsubscribed (homeschool)',
+            error_message: 'recipient unsubscribed (postpurchase)',
             updated_at: new Date().toISOString(),
           }),
         });
@@ -939,7 +941,7 @@ async function drainBuyerQueue(): Promise<QueueResult> {
         email,
         built.subject,
         built.html,
-        'homeschool',
+        'postpurchase',
         engagementTags('buyer_2026', `buyer_${pos}`),
       );
       if (send.ok) {
