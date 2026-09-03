@@ -2,8 +2,8 @@ import type { CSSProperties, ReactNode } from "react";
 
 /**
  * BotanicalHero: the page-top treatment shared by every signed-in Apothecary
- * surface. Same structure as the ApothecaryWelcome hero (#436), the Astro
- * marketing heroes (#433) and the Welcome body bands (#440): a full-colour,
+ * surface, and since punch #184 the ApothecaryWelcome hero and pattern band
+ * as well. Same structure as the Astro marketing heroes (#433): a full-colour,
  * public-domain plate from Koehler's Medizinal-Pflanzen (1887) runs the height
  * of the section at 95% multiply, and the words sit on a 92% white panel with
  * a gold hairline. The panel is what keeps type legible over full-colour
@@ -29,7 +29,14 @@ interface BotanicalHeroProps {
   className?: string;
   /** Panel width and alignment, e.g. "max-w-4xl text-center". */
   panelClassName?: string;
+  /** Spread last onto the panel, e.g. a tighter padding for a body band. */
   panelStyle?: CSSProperties;
+  /**
+   * Section ground. Heroes sit on eden-cream; the Welcome pattern band sits
+   * on the page ground (--background, parchment) so it reads as body, not
+   * hero. The plate multiplies over whichever is chosen.
+   */
+  ground?: "cream" | "background";
   "aria-label"?: string;
 }
 
@@ -39,12 +46,18 @@ export function BotanicalHero({
   className = "py-12 md:py-16 px-6",
   panelClassName = "max-w-5xl",
   panelStyle,
+  ground = "cream",
   "aria-label": ariaLabel,
 }: BotanicalHeroProps) {
   return (
     <section
       className={`relative overflow-hidden ${className}`}
-      style={{ backgroundColor: "hsl(var(--eden-cream))" }}
+      style={{
+        backgroundColor:
+          ground === "background"
+            ? "hsl(var(--background))"
+            : "hsl(var(--eden-cream))",
+      }}
       aria-label={ariaLabel}
     >
       <img

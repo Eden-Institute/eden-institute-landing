@@ -3,6 +3,7 @@ import { Leaf, Shield, Smartphone, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WorldviewBand } from "@/components/landing/WorldviewBand";
 import { TierComparison } from "@/components/apothecary/TierComparison";
+import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
 import MateriaMedicaPlate from "@/components/MateriaMedicaPlate";
 import { HERB_SLUGS } from "@/components/materiaMedicaHerbs";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
@@ -11,6 +12,8 @@ import { ROUTES } from "@/lib/routes";
 // (1887), built at this hero's own aspect and mirrored either side of the content
 // panel. Same treatment as the Astro heroes in #433: 95% multiply behind a 92%
 // white panel, which is what keeps the type legible over full-colour artwork.
+// Both plates render through BotanicalHero, the component every signed-in
+// Apothecary page uses, so the treatment has one source of truth.
 import heroApothecary from "@/assets/hero-apothecary.jpg";
 import bandPatterns from "@/assets/band-patterns.jpg";
 
@@ -41,202 +44,176 @@ export default function ApothecaryWelcome() {
   return (
     <div className="bg-background">
       {/* ── Hero: the quiz is the single primary action ── */}
-      <section
-        className="relative overflow-hidden py-20 md:py-28 px-6"
-        style={{ backgroundColor: "hsl(var(--eden-cream))" }}
+      <BotanicalHero
+        image={heroApothecary}
+        className="py-20 md:py-28 px-6"
+        panelClassName="max-w-4xl text-center"
       >
-        <img
-          src={heroApothecary}
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-          style={{ opacity: 0.95, mixBlendMode: "multiply" }}
-        />
-        <div
-          className="relative z-10 max-w-4xl mx-auto text-center rounded-lg"
-          style={{
-            backgroundColor: "hsl(0 0% 100% / 0.92)",
-            border: "1px solid hsl(var(--eden-gold) / 0.35)",
-            padding: "clamp(26px, 3.5vw, 52px)",
-            boxShadow: "0 2px 18px -10px rgba(30,62,46,0.28)",
-          }}
+        <p
+          className="font-accent text-sm tracking-[0.3em] uppercase mb-6"
+          style={{ color: "hsl(var(--eden-gold-ink))" }}
         >
-          <p
-            className="font-accent text-sm tracking-[0.3em] uppercase mb-6"
-            style={{ color: "hsl(var(--eden-gold-ink))" }}
-          >
-            Eden Apothecary
-          </p>
-          <h1
-            className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6"
-            style={{ color: "hsl(var(--eden-bark))" }}
-          >
-            Which of the eight body patterns
-            <br />
-            <span className="italic">did God design you with?</span>
-          </h1>
-          <div
-            className="w-16 h-px mx-auto my-8"
-            style={{ backgroundColor: "hsl(var(--eden-gold))" }}
-          />
-          <p className="font-body text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
-            Take the free 2-minute Pattern of Eden quiz and meet the herbs
-            that fit your Pattern. Rooted in Biblical terrain medicine.
-            Built for Christian families.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button variant="eden" size="xl" asChild>
-              <Link to={ROUTES.ASSESSMENT} data-cta="apothecary-quiz-hero">
-                Take the 2-Minute Quiz
-              </Link>
-            </Button>
-            <Button variant="eden-outline" size="xl" asChild>
-              <a href="#tiers" data-cta="apothecary-hero-see-plans">
-                See Plans
-              </a>
-            </Button>
-          </div>
-          <p className="font-body text-xs text-muted-foreground mt-4">
-            No account needed to start. Already have one?{" "}
-            <Link
-              to={ROUTES.APOTHECARY_SIGNIN}
-              className="underline underline-offset-4 hover:text-foreground transition-colors"
-            >
-              Sign in
+          Eden Apothecary
+        </p>
+        <h1
+          className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6"
+          style={{ color: "hsl(var(--eden-bark))" }}
+        >
+          Which of the eight body patterns
+          <br />
+          <span className="italic">did God design you with?</span>
+        </h1>
+        <div
+          className="w-16 h-px mx-auto my-8"
+          style={{ backgroundColor: "hsl(var(--eden-gold))" }}
+        />
+        <p className="font-body text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
+          Take the free 2-minute Pattern of Eden quiz and meet the herbs
+          that fit your Pattern. Rooted in Biblical terrain medicine.
+          Built for Christian families.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Button variant="eden" size="xl" asChild>
+            <Link to={ROUTES.ASSESSMENT} data-cta="apothecary-quiz-hero">
+              Take the 2-Minute Quiz
             </Link>
-            .
-          </p>
+          </Button>
+          <Button variant="eden-outline" size="xl" asChild>
+            <a href="#tiers" data-cta="apothecary-hero-see-plans">
+              See Plans
+            </a>
+          </Button>
         </div>
-      </section>
+        <p className="font-body text-xs text-muted-foreground mt-4">
+          No account needed to start. Already have one?{" "}
+          <Link
+            to={ROUTES.APOTHECARY_SIGNIN}
+            className="underline underline-offset-4 hover:text-foreground transition-colors"
+          >
+            Sign in
+          </Link>
+          .
+        </p>
+      </BotanicalHero>
 
       <WorldviewBand caption="On the source of vital force" headline={null} />
 
       {/* ── What the app is ── */}
-      <section className="relative overflow-hidden py-16 px-6 bg-background">
-      <img
-        src={bandPatterns}
-        alt=""
-        aria-hidden="true"
-        className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-        style={{ opacity: 0.95, mixBlendMode: "multiply" }}
-      />
-        <div className="relative z-10 max-w-5xl mx-auto rounded-lg"
-        style={{
-          backgroundColor: "hsl(0 0% 100% / 0.92)",
-          border: "1px solid hsl(var(--eden-gold) / 0.35)",
-          padding: "clamp(24px, 3vw, 44px)",
-          boxShadow: "0 2px 18px -10px rgba(30,62,46,0.28)",
-        }}
-        >
-          <div className="text-center mb-12">
-            <h2
-              className="font-serif text-3xl font-bold mb-4"
+      <BotanicalHero
+        image={bandPatterns}
+        ground="background"
+        className="py-16 px-6"
+        panelClassName="max-w-5xl"
+        panelStyle={{ padding: "clamp(24px, 3vw, 44px)" }}
+      >
+        <div className="text-center mb-12">
+          <h2
+            className="font-serif text-3xl font-bold mb-4"
+            style={{ color: "hsl(var(--eden-bark))" }}
+          >
+            Built Around Your Body Pattern
+          </h2>
+          <p className="font-body text-muted-foreground max-w-2xl mx-auto">
+            Eight body patterns. One personalised herb library. Terrain
+            intelligence, not symptom lookup.
+          </p>
+        </div>
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div
+            className="rounded-lg p-6 border"
+            style={{
+              borderColor: "hsl(var(--border))",
+              backgroundColor: "hsl(var(--eden-cream) / 0.4)",
+            }}
+          >
+            <Smartphone
+              className="w-7 h-7 mb-4"
+              style={{ color: "hsl(var(--eden-gold))" }}
+            />
+            <h3
+              className="font-serif text-base font-semibold mb-2"
               style={{ color: "hsl(var(--eden-bark))" }}
             >
-              Built Around Your Body Pattern
-            </h2>
-            <p className="font-body text-muted-foreground max-w-2xl mx-auto">
-              Eight body patterns. One personalised herb library. Terrain
-              intelligence, not symptom lookup.
+              Body Pattern Quiz
+            </h3>
+            <p className="font-body text-sm text-muted-foreground leading-relaxed">
+              Discover your innate body pattern in 2 minutes. All 8 patterns
+              mapped to herbs, tissues, and tendencies.
             </p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div
-              className="rounded-lg p-6 border"
-              style={{
-                borderColor: "hsl(var(--border))",
-                backgroundColor: "hsl(var(--eden-cream) / 0.4)",
-              }}
+          <div
+            className="rounded-lg p-6 border"
+            style={{
+              borderColor: "hsl(var(--border))",
+              backgroundColor: "hsl(var(--eden-cream) / 0.4)",
+            }}
+          >
+            <Leaf
+              className="w-7 h-7 mb-4"
+              style={{ color: "hsl(var(--eden-gold))" }}
+            />
+            <h3
+              className="font-serif text-base font-semibold mb-2"
+              style={{ color: "hsl(var(--eden-bark))" }}
             >
-              <Smartphone
-                className="w-7 h-7 mb-4"
-                style={{ color: "hsl(var(--eden-gold))" }}
-              />
-              <h3
-                className="font-serif text-base font-semibold mb-2"
-                style={{ color: "hsl(var(--eden-bark))" }}
-              >
-                Body Pattern Quiz
-              </h3>
-              <p className="font-body text-sm text-muted-foreground leading-relaxed">
-                Discover your innate body pattern in 2 minutes. All 8 patterns
-                mapped to herbs, tissues, and tendencies.
-              </p>
-            </div>
-            <div
-              className="rounded-lg p-6 border"
-              style={{
-                borderColor: "hsl(var(--border))",
-                backgroundColor: "hsl(var(--eden-cream) / 0.4)",
-              }}
+              Herb Library
+            </h3>
+            <p className="font-body text-sm text-muted-foreground leading-relaxed">
+              300 herb monographs with terrain intelligence: energetics,
+              tissue affinities, body pattern matches, and safety notes.
+            </p>
+          </div>
+          <div
+            className="rounded-lg p-6 border"
+            style={{
+              borderColor: "hsl(var(--border))",
+              backgroundColor: "hsl(var(--eden-cream) / 0.4)",
+            }}
+          >
+            <Shield
+              className="w-7 h-7 mb-4"
+              style={{ color: "hsl(var(--eden-gold))" }}
+            />
+            <h3
+              className="font-serif text-base font-semibold mb-2"
+              style={{ color: "hsl(var(--eden-bark))" }}
             >
-              <Leaf
-                className="w-7 h-7 mb-4"
-                style={{ color: "hsl(var(--eden-gold))" }}
-              />
-              <h3
-                className="font-serif text-base font-semibold mb-2"
-                style={{ color: "hsl(var(--eden-bark))" }}
-              >
-                Herb Library
-              </h3>
-              <p className="font-body text-sm text-muted-foreground leading-relaxed">
-                300 herb monographs with terrain intelligence: energetics,
-                tissue affinities, body pattern matches, and safety notes.
-              </p>
-            </div>
-            <div
-              className="rounded-lg p-6 border"
-              style={{
-                borderColor: "hsl(var(--border))",
-                backgroundColor: "hsl(var(--eden-cream) / 0.4)",
-              }}
+              Biblical Foundation
+            </h3>
+            {/* Customer copy only — the internal editorial rule this
+                reflects (classical observation in, theological attribution
+                out) is Lock #44; the register citation stays out of the UI. */}
+            <p className="font-body text-sm text-muted-foreground leading-relaxed">
+              Yahweh as the source of vital force, named plainly. Classical
+              pattern observation honored across traditions, anchored in
+              Scripture alone.
+            </p>
+          </div>
+          <div
+            className="rounded-lg p-6 border"
+            style={{
+              borderColor: "hsl(var(--border))",
+              backgroundColor: "hsl(var(--eden-cream) / 0.4)",
+            }}
+          >
+            <Star
+              className="w-7 h-7 mb-4"
+              style={{ color: "hsl(var(--eden-gold))" }}
+            />
+            <h3
+              className="font-serif text-base font-semibold mb-2"
+              style={{ color: "hsl(var(--eden-bark))" }}
             >
-              <Shield
-                className="w-7 h-7 mb-4"
-                style={{ color: "hsl(var(--eden-gold))" }}
-              />
-              <h3
-                className="font-serif text-base font-semibold mb-2"
-                style={{ color: "hsl(var(--eden-bark))" }}
-              >
-                Biblical Foundation
-              </h3>
-              {/* Customer copy only — the internal editorial rule this
-                  reflects (classical observation in, theological attribution
-                  out) is Lock #44; the register citation stays out of the UI. */}
-              <p className="font-body text-sm text-muted-foreground leading-relaxed">
-                Yahweh as the source of vital force, named plainly. Classical
-                pattern observation honored across traditions, anchored in
-                Scripture alone.
-              </p>
-            </div>
-            <div
-              className="rounded-lg p-6 border"
-              style={{
-                borderColor: "hsl(var(--border))",
-                backgroundColor: "hsl(var(--eden-cream) / 0.4)",
-              }}
-            >
-              <Star
-                className="w-7 h-7 mb-4"
-                style={{ color: "hsl(var(--eden-gold))" }}
-              />
-              <h3
-                className="font-serif text-base font-semibold mb-2"
-                style={{ color: "hsl(var(--eden-bark))" }}
-              >
-                Course Integration
-              </h3>
-              <p className="font-body text-sm text-muted-foreground leading-relaxed">
-                Built as the clinical companion to the Eden Institute courses,
-                so what you study in class is at your fingertips in the
-                kitchen.
-              </p>
-            </div>
+              Course Integration
+            </h3>
+            <p className="font-body text-sm text-muted-foreground leading-relaxed">
+              Built as the clinical companion to the Eden Institute courses,
+              so what you study in class is at your fingertips in the
+              kitchen.
+            </p>
           </div>
         </div>
-      </section>
+      </BotanicalHero>
 
       {/* ── Materia Medica plate showcase: the herb-plate collection, drawn in
           Eden's antique apothecary style. Backs up the "herb library" claim
