@@ -32,7 +32,8 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { claimStripeEvent, markEventProcessed, markEventError } from "../_shared/order-db.ts"
+import { claimStripeEvent, markEventProcessed, markEventError, getOrderByPaymentIntent } from "../_shared/order-db.ts"
+import { setContactProperties } from "../_shared/resend-contacts.ts"
 import { recordPreorderFromSession, applyRefundByPaymentIntent, ResolvedLineItem } from "../_shared/order-flow.ts"
 import { notifyFoundingMilestones } from "../_shared/founding-milestones.ts"
 import { productForPriceId } from "../_shared/order-config.ts"
@@ -346,6 +347,11 @@ serve(async (req) => {
         if (pi) {
           const applied = await applyRefundByPaymentIntent(adminClient, pi)
           console.log(`charge.refunded: ${applied ? "order -> refunded" : "no matching order"} (pi=${pi}, charge=${charge.id})`)
+          if (applied) {
+            // The refund changes purchase_status / founding on the Resend contact.
+            const refundedOrder = await getOrderByPaymentIntent(adminClient, pi).catch(() => null)
+            await syncPurchaseProperties(refundedOrder?.customer_email ?? null, `refund ${pi}`)
+          }
           // A refunded Starter Unit takes its credit with it. The published
           // policy on /returns says so, and an uncancelled credit would let
           // someone buy the starter for $39, refund it, and still hold $39 off
@@ -638,6 +644,44 @@ async function resolvePreorderLineItems(
   return [{ sku: preorderSku, isFounding, quantity: 1 }]
 }
 
+/**
+ * Project purchase_status + founding onto the buyer's Resend contact (nurture
+ * roadmap Phase 1, 2026-09-03). Reads the SAME view the nightly
+ * contact-properties-sync uses (resend_contact_state_computed), so the webhook
+ * can never disagree with it about what "preordered" or "founding" means.
+ *
+ * Best-effort by design: the order is already recorded and the buyer already
+ * charged, so a Resend hiccup must never 500 the webhook and make Stripe retry
+ * completed work. A buyer who never joined the list has no row in the view and
+ * is skipped; they are a customer, not a marketing contact.
+ */
+async function syncPurchaseProperties(email: string | null | undefined, context: string): Promise<void> {
+  const normalized = (email ?? "").trim().toLowerCase()
+  if (!normalized) return
+  try {
+    const { data, error } = await adminClient
+      .from("resend_contact_state_computed")
+      .select("first_name, purchase_status, founding")
+      .eq("email", normalized)
+      .maybeSingle()
+    if (error) throw error
+    if (!data) {
+      console.log(`[${context}] ${normalized} is not a reachable list contact; purchase properties not written`)
+      return
+    }
+    const result = await setContactProperties(
+      normalized,
+      { purchase_status: data.purchase_status, founding: data.founding },
+      { firstName: data.first_name, createIfMissing: false },
+    )
+    if (!result.ok) {
+      console.warn(`[${context}] Resend purchase properties write failed: ${result.status} ${result.error ?? ""}`)
+    }
+  } catch (err) {
+    console.error(`[${context}] purchase properties sync threw:`, err instanceof Error ? err.message : String(err))
+  }
+}
+
 async function handleOneOffPayment(session: Stripe.Checkout.Session) {
   // ---- Branch 0: founding-preorder products (Sprouts Kit, Student Notebook, ...) ----
   // Detected by the preorder_sku metadata stamped at checkout. Full lifecycle: record the
@@ -660,6 +704,9 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
     const isFounding = session.metadata?.is_founding === "true"
     const items = await resolvePreorderLineItems(session, preorderSku, isFounding)
     const orderNumber = await recordPreorderFromSession(adminClient, session, items)
+
+    // Resend contact: purchase_status -> preordered, founding -> true/false.
+    await syncPurchaseProperties(session.customer_details?.email ?? session.customer_email, session.id)
 
     // Echo the order number back onto the PaymentIntent.
     //
@@ -833,6 +880,7 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
 
   // 1. The sale itself. Idempotent on the session id, so a Stripe retry is a no-op.
   await recordDigitalOrder(session, lookupKey, email)
+  await syncPurchaseProperties(email, session.id)
 
   // 2. Attribution. Best effort: a missing quiz row is a reporting gap, not a
   //    reason to withhold a paid product, so this never returns early any more.
@@ -967,6 +1015,7 @@ async function handleStarterUnitPurchase(
 
   // 1. The sale.
   await recordDigitalOrder(session, STARTER_LOOKUP_KEY, email)
+  await syncPurchaseProperties(email, sid)
   const { data: orderRow } = await adminClient
     .from("orders").select("id").eq("stripe_checkout_session_id", sid).maybeSingle()
   const orderId = orderRow?.id ?? null

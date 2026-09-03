@@ -145,6 +145,13 @@ verify_jwt = true
 [functions.list-announce]
 verify_jwt = true
 
+# contact-properties-sync projects funnel / band / purchase / quiz / engagement
+# state from Postgres onto Resend contacts. Invoked only by the Vercel cron and
+# by hand with the service-role key; it additionally requires role=service_role
+# via _shared/require-service-role.ts, so verify_jwt MUST stay true.
+[functions.contact-properties-sync]
+verify_jwt = true
+
 # --- Category 1 (continued): Public-frontend functions ---
 
 # starter-download is the re-request flow for expired download links. The buyer

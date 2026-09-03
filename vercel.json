@@ -64,6 +64,10 @@
     {
       "path": "/api/cron/drain-starter-deliveries",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/sync-contact-properties",
+      "schedule": "30 8 * * *"
     }
   ]
 }
