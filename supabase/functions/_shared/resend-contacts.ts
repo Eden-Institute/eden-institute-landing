@@ -152,7 +152,9 @@ export async function setContactProperties(
     };
     const firstName = (opts.firstName ?? '').trim();
     if (firstName) createPayload.first_name = firstName;
-    if (RESEND_MASTER_AUDIENCE_ID) createPayload.segments = [RESEND_MASTER_AUDIENCE_ID];
+    // Resend wants segment references as objects, not bare ids: a bare string 422s
+    // with "Invalid input: expected object, received string" (seen 2026-09-03).
+    if (RESEND_MASTER_AUDIENCE_ID) createPayload.segments = [{ id: RESEND_MASTER_AUDIENCE_ID }];
 
     const create = await fetch(`${API}/contacts`, {
       method: 'POST',
