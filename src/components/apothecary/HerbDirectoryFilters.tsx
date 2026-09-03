@@ -588,7 +588,7 @@ export interface MatchesFiltersOptions {
    * original reader complaint was about. The red flag was gone; the herb
    * was invisible instead.
    */
-  curatedVerdicts?: Map<string, CuratedHerbPatternRow>;
+  curatedVerdicts?: ReadonlyMap<string, CuratedHerbPatternRow>;
 }
 
 /**
