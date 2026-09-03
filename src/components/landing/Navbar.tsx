@@ -18,8 +18,8 @@ import { Menu, X } from "lucide-react";
 // with it, the old 1152px cap left the row a single pixel of slack. The logo
 // already returns home. See the Astro file for the full width arithmetic.
 const navLinks = [
-  { label: "Homeschool Curriculum", href: "/homeschool", external: false },
-  { label: "Adult Courses", href: "/courses", external: false },
+  { label: "Homeschool Curriculum", href: "/homeschool", external: false, hardNav: true },
+  { label: "Adult Courses", href: "/courses", external: false, hardNav: true },
   { label: "Herb Reference App", href: "/apothecary", external: false },
   { label: "Buy the Book", href: "https://www.amazon.com/dp/B0GPW5BZ32?tag=theedeninstit-20", external: true },
   { label: "Contact", href: "/contact", external: false, hardNav: true },

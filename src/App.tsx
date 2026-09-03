@@ -12,7 +12,6 @@ import PageViewTracker from "@/components/utils/PageViewTracker";
 import CtaClickTracker from "@/components/utils/CtaClickTracker";
 import MetaPixelTracker from "@/components/utils/MetaPixelTracker";
 import Index from "./pages/Index";
-import WhyEden from "./pages/WhyEden";
 import Assessment from "./pages/Assessment";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
@@ -22,10 +21,7 @@ import NotFound from "./pages/NotFound";
 import GuideSuccess from "./pages/GuideSuccess";
 import Results from "./pages/Results";
 import GuideLanding from "./pages/GuideLanding";
-import Courses from "./pages/Courses";
-import Homeschool from "./pages/Homeschool";
 import HomeschoolWelcome from "./pages/HomeschoolWelcome";
-import Community from "./pages/Community";
 import TierTwoWaitlist from "./pages/TierTwoWaitlist";
 import FounderLeads from "./pages/FounderLeads";
 import PractitionerClinic from "./pages/PractitionerClinic";
@@ -105,8 +101,12 @@ const App = () => (
                 after the visitor accepts marketing cookies). */}
             <MetaPixelTracker />
             <Routes>
+              {/* /why-eden, /courses, /homeschool and /community are served by the
+                  ASTRO build and are canonical there. Their React duplicates were
+                  deleted because the two had drifted apart in copy and CTAs, and a
+                  visitor saw a different page depending on how they arrived. Links
+                  to these routes must be a real navigation, not a router <Link>. */}
               <Route path={ROUTES.HOME} element={<Index />} />
-              <Route path={ROUTES.WHY_EDEN} element={<WhyEden />} />
               <Route path={ROUTES.ASSESSMENT} element={<Assessment />} />
               {/* v4.1.1 hotfix — defensive alias for the public quiz route.
                   The Navbar's state-aware CTA briefly pointed at /quiz (PR #65)
@@ -129,8 +129,6 @@ const App = () => (
               <Route path={ROUTES.GUIDE_SUCCESS} element={<GuideSuccess />} />
               <Route path="/guide/:constitutionSlug" element={<GuideLanding />} />
               <Route path="/results/:constitutionSlug" element={<Results />} />
-              <Route path={ROUTES.COURSES} element={<Courses />} />
-              <Route path={ROUTES.HOMESCHOOL} element={<Homeschool />} />
               {/* /homeschool/welcome — Stripe Checkout success_url redirect
                   target for homeschool product purchases (sprouts_complete,
                   seedlings_complete, two_band_bundle). Receives session_id
@@ -139,7 +137,6 @@ const App = () => (
                   stripe-webhook EF handles fulfillment (Supabase user
                   provisioning + bundle_buyer flag) server-side. */}
               <Route path={ROUTES.HOMESCHOOL_WELCOME} element={<HomeschoolWelcome />} />
-              <Route path={ROUTES.COMMUNITY} element={<Community />} />
               <Route path={ROUTES.TIER_TWO_WAITLIST} element={<TierTwoWaitlist />} />
               {/* Founder-only lead-magnet dashboard. RequireAuth bounces anon
                   visitors to sign-in (return_to=/founder); the page itself shows

@@ -58,9 +58,9 @@ const Footer = () => {
             </div>
 
             <div className="mt-6 flex items-center justify-center gap-2 text-xs font-body flex-wrap" style={{ color: "hsl(var(--eden-parchment) / 0.3)" }}>
-              <Link to={ROUTES.WHY_EDEN} className="inline-flex items-center min-h-[44px] px-0.5 hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
+              <a href={ROUTES.WHY_EDEN} className="inline-flex items-center min-h-[44px] px-0.5 hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
                 Why Eden
-              </Link>
+              </a>
               <span>|</span>
               <Link to={ROUTES.TERMS} className="inline-flex items-center min-h-[44px] px-0.5 hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
                 Terms &amp; Conditions
