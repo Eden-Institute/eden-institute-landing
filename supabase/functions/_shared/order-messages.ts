@@ -73,8 +73,13 @@ export function buildPreorderConfirmationEmail(order: OrderRow): { subject: stri
     signature();
   // Transactional email: neutralize the marketing unsubscribe placeholder baked into
   // emailWrapper, and correct its quiz-funnel footer reason for purchase receipts.
+  // The wrapper writes the apostrophe as &rsquo;, so the replacement has to match
+  // that form. The straight-apostrophe version below it never matched, and every
+  // confirmation sent before 2026-09-03 carried the quiz footer reason.
   const html = emailWrapper(body)
     .split('{{UNSUB_URL}}').join('https://edeninstitute.health')
+    .split("You&rsquo;re receiving this because you completed the Constitutional Assessment at edeninstitute.health.")
+    .join("You&rsquo;re receiving this because you placed a preorder at edeninstitute.health.")
     .split("You're receiving this because you completed the Constitutional Assessment at edeninstitute.health.")
     .join("You're receiving this because you placed a preorder at edeninstitute.health.");
   return { subject: 'Your preorder is confirmed', html };
