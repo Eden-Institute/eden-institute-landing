@@ -12,6 +12,7 @@ import { ROUTES } from "@/lib/routes";
 // panel. Same treatment as the Astro heroes in #433: 95% multiply behind a 92%
 // white panel, which is what keeps the type legible over full-colour artwork.
 import heroApothecary from "@/assets/hero-apothecary.jpg";
+import bandPatterns from "@/assets/band-patterns.jpg";
 
 /**
  * ApothecaryWelcome — what an ANONYMOUS visitor sees at bare /apothecary
@@ -111,8 +112,22 @@ export default function ApothecaryWelcome() {
       <WorldviewBand caption="On the source of vital force" headline={null} />
 
       {/* ── What the app is ── */}
-      <section className="py-16 px-6 bg-background">
-        <div className="max-w-5xl mx-auto">
+      <section className="relative overflow-hidden py-16 px-6 bg-background">
+      <img
+        src={bandPatterns}
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+        style={{ opacity: 0.95, mixBlendMode: "multiply" }}
+      />
+        <div className="relative z-10 max-w-5xl mx-auto rounded-lg"
+        style={{
+          backgroundColor: "hsl(0 0% 100% / 0.92)",
+          border: "1px solid hsl(var(--eden-gold) / 0.35)",
+          padding: "clamp(24px, 3vw, 44px)",
+          boxShadow: "0 2px 18px -10px rgba(30,62,46,0.28)",
+        }}
+        >
           <div className="text-center mb-12">
             <h2
               className="font-serif text-3xl font-bold mb-4"

@@ -20,6 +20,10 @@
  * interactions, generous line-height, responsive Tailwind utilities.
  */
 import ScrollReveal from "@/components/landing/ScrollReveal";
+// Botanical band, same treatment as the heroes in #433: a full-colour plate at
+// 95% multiply with the content on a 92% white panel, which is what keeps the
+// type legible over artwork. Used only by ApothecaryWelcome.
+import bandVitalForce from "@/assets/band-vital-force.jpg";
 
 interface WorldviewBandProps {
   /**
@@ -39,11 +43,25 @@ export function WorldviewBand({
 }: WorldviewBandProps) {
   return (
     <section
-      className="px-6 py-16 md:py-24"
+      className="relative overflow-hidden px-6 py-16 md:py-24"
       style={{ backgroundColor: "hsl(var(--eden-cream))" }}
       aria-label="Source of vital force — Eden Institute worldview thesis"
     >
-      <div className="max-w-3xl mx-auto">
+      <img
+        src={bandVitalForce}
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+        style={{ opacity: 0.95, mixBlendMode: "multiply" }}
+      />
+      <div className="relative z-10 max-w-3xl mx-auto rounded-lg"
+        style={{
+          backgroundColor: "hsl(0 0% 100% / 0.92)",
+          border: "1px solid hsl(var(--eden-gold) / 0.35)",
+          padding: "clamp(24px, 3vw, 44px)",
+          boxShadow: "0 2px 18px -10px rgba(30,62,46,0.28)",
+        }}
+      >
         <ScrollReveal>
           {caption ? (
             <p
