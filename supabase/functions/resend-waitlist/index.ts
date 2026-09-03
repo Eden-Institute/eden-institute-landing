@@ -5,7 +5,7 @@
 import { buildNurtureEmail1, toSlug } from '../_shared/nurture-email-templates.ts';
 import { shopApothecaryCard } from '../_shared/shop-cta.ts';
 import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
-
+import { setContactProperties, type ContactProperties } from '../_shared/resend-contacts.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -639,6 +639,7 @@ Deno.serve(async (req) => {
     // we handle that as success). Skipped if the Supabase row already has a
     // resend_contact_id from a prior sync.
     let resendContactId: string | null = existingResendContactId;
+    let createdContactNow = false;
     if (!resendContactId) {
       try {
         const contactRes = await fetch(
@@ -659,6 +660,7 @@ Deno.serve(async (req) => {
         if (contactRes.ok) {
           const contactData = await contactRes.json();
           resendContactId = contactData?.id ?? null;
+          createdContactNow = true;
           console.log('Resend contact created:', resendContactId);
         } else if (contactRes.status === 409) {
           // Contact already exists in this audience. Not an error, just means
@@ -961,6 +963,45 @@ Deno.serve(async (req) => {
       } catch (mqErr) {
         console.error('Magnet enqueue error:', String(mqErr));
       }
+    }
+
+    // ── Resend contact properties (nurture roadmap Phase 1, 2026-09-03) ──
+    // Point write of what THIS signup tells us: funnel, band, quiz_status. The
+    // nightly contact-properties-sync recomputes every key from Postgres
+    // (view resend_contact_state_computed), so a miss here is repaired later
+    // and is never fatal to the signup. funnel is written only when this
+    // request created the contact or the funnel is edens_table, so a later
+    // quiz signup cannot demote a homeschool lead's funnel value.
+    try {
+      const props: ContactProperties = {};
+      if (createdContactNow || entry_funnel === 'edens_table') props.funnel = entry_funnel;
+      if (entry_funnel === 'edens_table' && (source === 'sprouts_magnet' || source === 'seedlings_magnet')) {
+        const band = source === 'sprouts_magnet' ? 'sprouts' : 'seedlings';
+        const otherBand = band === 'sprouts' ? 'seedlings' : 'sprouts';
+        // A both-band family has magnet rows for both bands; the row for THIS
+        // band was just enqueued above, so only the other band is checked.
+        const otherRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/magnet_email_queue?recipient_email=eq.${encodeURIComponent(normalizedEmail)}&band=eq.${otherBand}&select=id&limit=1`,
+          {
+            headers: {
+              apikey: SUPABASE_SERVICE_ROLE_KEY!,
+              Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            },
+          },
+        );
+        const otherRows = otherRes.ok ? await otherRes.json().catch(() => []) : [];
+        props.band = Array.isArray(otherRows) && otherRows.length > 0 ? 'both' : band;
+      }
+      if (source === 'constitution_assessment') props.quiz_status = 'completed';
+      const propWrite = await setContactProperties(normalizedEmail, props, {
+        firstName: firstNameSafe,
+        createIfMissing: false,
+      });
+      if (!propWrite.ok) {
+        console.warn('Resend contact properties write failed:', propWrite.status, propWrite.error);
+      }
+    } catch (propErr) {
+      console.warn('Resend contact properties exception:', String(propErr));
     }
 
     // ── Meta Conversions API (server-side Lead) ──
