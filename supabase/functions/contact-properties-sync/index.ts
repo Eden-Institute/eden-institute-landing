@@ -15,16 +15,18 @@
 // Modes (JSON body):
 //   { "mode": "preview" }                        counts per value + delta size, NO writes
 //   { "mode": "ensure_properties" }              create the six property keys on Resend
-//   { "mode": "sync",  "batch": 300 }            write up to `batch` changed contacts
-//   { "mode": "full",  "batch": 300 }            same, ignoring the stored hash (backfill)
+//   { "mode": "sync",  "batch": 100 }            write up to `batch` changed contacts (max 120)
+//   { "mode": "full",  "batch": 100 }            same, ignoring the stored hash (backfill)
 //   { "mode": "sync",  "email": "a@b.c" }        force one contact, ignoring the hash
 //
 // Every write goes through _shared/resend-contacts.ts and never throws. The
 // response carries `remaining`, so a driver can loop until it reads zero, the
 // same shape list-announce uses.
 //
-// Rate: one PATCH every 300 ms (Resend Pro allows 10 req/s; this leaves room for
-// the live sends). 300 rows is ~90 s, inside the edge-function wall clock.
+// Rate: one PATCH every 200 ms plus the state upsert, about 0.6-0.8 s per row all
+// in. The edge-function wall clock is 150 s (a first attempt at 300 rows died with
+// WORKER_RESOURCE_LIMIT at 150 s on 2026-09-03), so batches are capped at 120 and
+// default to 100; a driver loops on `remaining` for a backfill.
 
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
 import {
@@ -37,9 +39,9 @@ import {
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
-const DEFAULT_BATCH = 300;
-const MAX_BATCH = 400;
-const WRITE_SPACING_MS = 300;
+const DEFAULT_BATCH = 100;
+const MAX_BATCH = 120;
+const WRITE_SPACING_MS = 200;
 const PAGE = 1000; // PostgREST caps at 1000 rows per request
 
 const corsHeaders = {

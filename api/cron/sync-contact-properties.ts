@@ -9,9 +9,10 @@
 //   1. Vercel Cron auto-injects `Authorization: Bearer ${CRON_SECRET}`.
 //   2. Forward to the Supabase EF with SUPABASE_SERVICE_ROLE_KEY.
 //
-// The EF processes at most `batch` changed contacts per call and reports
-// `remaining`. On an ordinary night the delta is small and one call finishes
-// it; after a big send the tail simply carries into the next night.
+// The EF processes at most `batch` changed contacts per call (100, about
+// 70 s; the EF wall clock is 150 s) and reports `remaining`. On an ordinary
+// night the delta is small and one call finishes it; after a big send the
+// tail carries into the next night.
 //
 // Required env vars (already set for the other crons):
 //   CRON_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
@@ -65,7 +66,7 @@ export default async function handler(req: Request): Promise<Response> {
         'Authorization': `Bearer ${serviceRoleKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ mode: 'sync', batch: 300, source: 'vercel-cron', invoked_at: new Date().toISOString() }),
+      body: JSON.stringify({ mode: 'sync', batch: 100, source: 'vercel-cron', invoked_at: new Date().toISOString() }),
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
