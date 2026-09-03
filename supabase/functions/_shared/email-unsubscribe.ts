@@ -16,12 +16,17 @@
 // browser). Rotating it invalidates outstanding unsubscribe links — acceptable;
 // a recipient can still unsubscribe from any newer email.
 
-export type EmailList = 'constitution' | 'homeschool';
+// postpurchase (2026-09-03): the buyer track (buyer_email_queue). Kept apart from
+// homeschool so a buyer can stop the insider-track emails without touching the
+// homeschool previews, and vice versa. Order and shipping notices are
+// transactional and carry no list at all.
+export type EmailList = 'constitution' | 'homeschool' | 'postpurchase';
 
 // Human-readable list names shown on the confirmation page.
 export const EMAIL_LISTS: Record<EmailList, string> = {
   constitution: 'your constitution emails',
   homeschool: 'the homeschool preview emails',
+  postpurchase: "the Eden's Table buyer updates",
 };
 
 export function isEmailList(value: unknown): value is EmailList {

@@ -115,6 +115,77 @@ async function fetchFoundingStatus(): Promise<FoundingStatus | null> {
 // copy once the founding_gate latch closes). Coarse by design: the digest
 // labels all of yesterday's rows with today's window state, so a row captured
 // minutes before the flip can be mislabeled; acceptable for founder reporting.
+// ── Rail health (2026-09-03) ──
+// A queue that has stopped draining reports "nothing due" exactly like a healthy
+// one, so the digest shows the four liveness numbers per rail (view
+// email_queue_health) plus the nightly Resend contact-property sync. Best-effort:
+// a failure here never blocks the lead digest.
+interface RailHealthRow {
+  rail: string;
+  overdue: number;
+  due_24h: number;
+  sent_24h: number;
+  failed_24h: number;
+}
+
+interface ContactSyncHealth {
+  total: number;
+  synced_36h: number;
+  failed: number;
+  last_synced_at: string | null;
+}
+
+async function fetchRailHealth(): Promise<{ rails: RailHealthRow[]; sync: ContactSyncHealth | null }> {
+  let rails: RailHealthRow[] = [];
+  let sync: ContactSyncHealth | null = null;
+  try {
+    const res = await sbFetch('/rest/v1/email_queue_health?select=rail,overdue,due_24h,sent_24h,failed_24h');
+    if (res.ok) {
+      const rows = await res.json();
+      if (Array.isArray(rows)) {
+        rails = rows.map((r) => ({
+          rail: String(r.rail),
+          overdue: Number(r.overdue ?? 0),
+          due_24h: Number(r.due_24h ?? 0),
+          sent_24h: Number(r.sent_24h ?? 0),
+          failed_24h: Number(r.failed_24h ?? 0),
+        }));
+      }
+    } else {
+      console.error('notify-founder-digest: email_queue_health fetch failed', res.status);
+    }
+  } catch (e) {
+    console.error('notify-founder-digest: email_queue_health error', e instanceof Error ? e.message : String(e));
+  }
+  try {
+    // ~1,600 rows; the table is one row per reachable contact.
+    const res = await sbFetch('/rest/v1/resend_contact_state?select=state_hash,synced_at&limit=5000', {
+      headers: { Range: '0-4999', 'Range-Unit': 'items' },
+    });
+    if (res.ok) {
+      const rows = await res.json();
+      if (Array.isArray(rows)) {
+        const cutoff = Date.now() - 36 * 60 * 60 * 1000;
+        let synced36h = 0;
+        let failed = 0;
+        let last: string | null = null;
+        for (const r of rows) {
+          const t = typeof r.synced_at === 'string' ? r.synced_at : null;
+          if (t && new Date(t).getTime() >= cutoff) synced36h++;
+          if (typeof r.state_hash === 'string' && r.state_hash.startsWith('FAILED:')) failed++;
+          if (t && (!last || t > last)) last = t;
+        }
+        sync = { total: rows.length, synced_36h: synced36h, failed, last_synced_at: last };
+      }
+    } else {
+      console.error('notify-founder-digest: resend_contact_state fetch failed', res.status);
+    }
+  } catch (e) {
+    console.error('notify-founder-digest: resend_contact_state error', e instanceof Error ? e.message : String(e));
+  }
+  return { rails, sync };
+}
+
 function magnetLabel(funnel: string, source: string, foundingClosed = false): {
   magnet: string;
   welcomeSubject: string;
@@ -217,6 +288,7 @@ function buildDigestEmail(
   digestDate: string,
   punchItems: PunchItem[],
   founding: FoundingStatus | null,
+  health: { rails: RailHealthRow[]; sync: ContactSyncHealth | null } = { rails: [], sync: null },
 ): {
   subject: string;
   html: string;
@@ -343,6 +415,52 @@ ${founding.closed
 </table>
 ` : '';
 
+  // ── Rail health: the four queues + the Resend contact sync ──
+  const railLabel: Record<string, string> = {
+    nurture_email_queue: 'Quiz drip (nurture_email_queue)',
+    magnet_email_queue: 'Homeschool magnet (magnet_email_queue)',
+    launch_email_queue: 'Preorder / Starter series (launch_email_queue)',
+    buyer_email_queue: 'Buyer track (buyer_email_queue)',
+  };
+  const railRows = health.rails.map((r) => {
+    const bad = r.overdue > 0 || r.failed_24h > 0;
+    const color = bad ? '#8B2E2E' : '#1C3A2E';
+    return `
+    <tr>
+      <td style="padding:6px 10px;border-bottom:1px solid #F0EAD8;font-family:Georgia,serif;font-size:13px;color:${color};">${esc(railLabel[r.rail] ?? r.rail)}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #F0EAD8;font-family:Georgia,serif;font-size:13px;color:${color};text-align:right;font-weight:${r.overdue > 0 ? 'bold' : 'normal'};">${r.overdue}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #F0EAD8;font-family:Georgia,serif;font-size:13px;color:#1C3A2E;text-align:right;">${r.due_24h}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #F0EAD8;font-family:Georgia,serif;font-size:13px;color:#1C3A2E;text-align:right;">${r.sent_24h}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #F0EAD8;font-family:Georgia,serif;font-size:13px;color:${color};text-align:right;font-weight:${r.failed_24h > 0 ? 'bold' : 'normal'};">${r.failed_24h}</td>
+    </tr>`;
+  }).join('');
+  const syncLine = health.sync
+    ? (() => {
+        const s = health.sync!;
+        const stale = s.synced_36h === 0;
+        const color = stale || s.failed > 0 ? '#8B2E2E' : '#1C3A2E';
+        const when = s.last_synced_at ? formatLocal(s.last_synced_at) : 'never';
+        return `<p style="font-family:Georgia,serif;font-size:13px;color:${color};margin:8px 0 0 0;">Resend contact properties: ${s.total} contacts tracked, ${s.synced_36h} written in the last 36h, ${s.failed} failing, last write ${esc(when)} CT.${stale ? ' <strong>The nightly sync did not run.</strong>' : ''}</p>`;
+      })()
+    : '';
+  const railSection = health.rails.length > 0 ? `
+<p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:2px;color:#C9A84C;text-transform:uppercase;margin:16px 0 8px 0;">Email rails</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:4px;">
+<thead>
+<tr style="background:#F5F0E8;">
+<th style="padding:8px 10px;text-align:left;font-family:Georgia,serif;font-size:11px;letter-spacing:1px;color:#6B6560;text-transform:uppercase;border-bottom:2px solid #C9A84C;">Rail</th>
+<th style="padding:8px 10px;text-align:right;font-family:Georgia,serif;font-size:11px;letter-spacing:1px;color:#6B6560;text-transform:uppercase;border-bottom:2px solid #C9A84C;">Overdue</th>
+<th style="padding:8px 10px;text-align:right;font-family:Georgia,serif;font-size:11px;letter-spacing:1px;color:#6B6560;text-transform:uppercase;border-bottom:2px solid #C9A84C;">Due 24h</th>
+<th style="padding:8px 10px;text-align:right;font-family:Georgia,serif;font-size:11px;letter-spacing:1px;color:#6B6560;text-transform:uppercase;border-bottom:2px solid #C9A84C;">Sent 24h</th>
+<th style="padding:8px 10px;text-align:right;font-family:Georgia,serif;font-size:11px;letter-spacing:1px;color:#6B6560;text-transform:uppercase;border-bottom:2px solid #C9A84C;">Failed 24h</th>
+</tr>
+</thead>
+<tbody>${railRows}</tbody>
+</table>
+<p style="font-family:Georgia,serif;font-size:11px;color:#6B6560;margin:4px 0 0 0;font-style:italic;">Overdue = pending more than an hour past its send time. Any number other than 0 there means the drain is not running.</p>
+${syncLine}
+` : '';
+
   const html = `<!DOCTYPE html>
 <html><body style="margin:0;padding:0;background:#F5F0E8;font-family:Georgia,serif;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F5F0E8;">
@@ -358,6 +476,7 @@ ${founding.closed
 <p style="font-family:Georgia,serif;font-size:14px;color:#3D3832;margin:0 0 4px 0;">Digest for <strong>${esc(digestDate)}</strong> (America/Chicago)</p>
 ${capturesBlock}
 ${foundingSection}
+${railSection}
 ${punchSection}
 
 <p style="font-family:Georgia,serif;font-size:12px;color:#6B6560;margin:24px 0 0 0;font-style:italic;">
@@ -395,6 +514,19 @@ The Eden Institute · edeninstitute.health · automated daily digest
         ? `Founding kits: all ${founding.limit} claimed (${founding.sold} net units) — retail pricing live, latched one-way`
         : `Founding kits: ${founding.sold} of ${founding.limit} claimed (${Math.max(0, founding.limit - founding.sold)} remaining at $249)`,
     );
+  }
+  if (health.rails.length > 0) {
+    lines.push(
+      '',
+      'Email rails (overdue / due 24h / sent 24h / failed 24h):',
+      ...health.rails.map((r) => `  ${r.overdue} / ${r.due_24h} / ${r.sent_24h} / ${r.failed_24h}\t${railLabel[r.rail] ?? r.rail}`),
+    );
+    if (health.sync) {
+      lines.push(
+        `  Resend contact properties: ${health.sync.total} tracked, ${health.sync.synced_36h} written in 36h, ${health.sync.failed} failing` +
+          (health.sync.synced_36h === 0 ? ' — NIGHTLY SYNC DID NOT RUN' : ''),
+      );
+    }
   }
   if (punchCount > 0) {
     lines.push(
@@ -530,6 +662,9 @@ Deno.serve(async (req) => {
     // ── Founding-kit runway (best-effort; null until preorder tables exist) ──
     const founding = await fetchFoundingStatus();
 
+    // ── Rail health (best-effort) ──
+    const health = await fetchRailHealth();
+
     // ── Zero path: skip only when there are no captures AND no open punch items ──
     if ((!rows || rows.length === 0) && punchItems.length === 0) {
       await sbFetch(`/rest/v1/digest_runs?id=eq.${digestRunId}`, {
@@ -546,7 +681,7 @@ Deno.serve(async (req) => {
 
     // ── Build + send digest ──
     const captureRows: CaptureRow[] = Array.isArray(rows) ? rows : [];
-    const { subject, html, text } = buildDigestEmail(captureRows, digestDate, punchItems, founding);
+    const { subject, html, text } = buildDigestEmail(captureRows, digestDate, punchItems, founding, health);
 
     const resendRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
