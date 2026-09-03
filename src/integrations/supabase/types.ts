@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       actions: {
@@ -93,6 +68,150 @@ export type Database = {
           description?: string | null
           system_id?: string
           system_name?: string
+        }
+        Relationships: []
+      }
+      broadcast_rate_limits: {
+        Row: {
+          actor_key: string
+          count: number
+          window_started_at: string
+        }
+        Insert: {
+          actor_key: string
+          count?: number
+          window_started_at?: string
+        }
+        Update: {
+          actor_key?: string
+          count?: number
+          window_started_at?: string
+        }
+        Relationships: []
+      }
+      broadcasts: {
+        Row: {
+          body_html: string | null
+          body_markdown: string
+          created_at: string
+          created_by: string | null
+          failed_count: number
+          id: string
+          idempotency_key: string | null
+          kind: Database["public"]["Enums"]["broadcast_kind"]
+          requires_opt_in: boolean
+          revised_ship_date: string | null
+          sent_at: string | null
+          sent_count: number
+          subject: string
+        }
+        Insert: {
+          body_html?: string | null
+          body_markdown: string
+          created_at?: string
+          created_by?: string | null
+          failed_count?: number
+          id?: string
+          idempotency_key?: string | null
+          kind?: Database["public"]["Enums"]["broadcast_kind"]
+          requires_opt_in?: boolean
+          revised_ship_date?: string | null
+          sent_at?: string | null
+          sent_count?: number
+          subject: string
+        }
+        Update: {
+          body_html?: string | null
+          body_markdown?: string
+          created_at?: string
+          created_by?: string | null
+          failed_count?: number
+          id?: string
+          idempotency_key?: string | null
+          kind?: Database["public"]["Enums"]["broadcast_kind"]
+          requires_opt_in?: boolean
+          revised_ship_date?: string | null
+          sent_at?: string | null
+          sent_count?: number
+          subject?: string
+        }
+        Relationships: []
+      }
+      buyer_email_queue: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          first_name: string | null
+          id: string
+          order_id: string
+          recipient_email: string
+          retry_count: number
+          scheduled_for: string
+          sent_at: string | null
+          sequence_position: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          first_name?: string | null
+          id?: string
+          order_id: string
+          recipient_email: string
+          retry_count?: number
+          scheduled_for: string
+          sent_at?: string | null
+          sequence_position: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          first_name?: string | null
+          id?: string
+          order_id?: string
+          recipient_email?: string
+          retry_count?: number
+          scheduled_for?: string
+          sent_at?: string | null
+          sequence_position?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buyer_email_queue_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buyer_email_queue_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "preorder_broadcast_list"
+            referencedColumns: ["order_id"]
+          },
+        ]
+      }
+      checkout_rate_limits: {
+        Row: {
+          count: number
+          ip_hash: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          ip_hash: string
+          window_start: string
+        }
+        Update: {
+          count?: number
+          ip_hash?: string
+          window_start?: string
         }
         Relationships: []
       }
@@ -933,6 +1052,77 @@ export type Database = {
         }
         Relationships: []
       }
+      founding_milestones: {
+        Row: {
+          milestone: number
+          notified_at: string
+          product_id: string
+          sold_at_notify: number
+        }
+        Insert: {
+          milestone: number
+          notified_at?: string
+          product_id: string
+          sold_at_notify: number
+        }
+        Update: {
+          milestone?: number
+          notified_at?: string
+          product_id?: string
+          sold_at_notify?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "founding_milestones_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      founding_partners: {
+        Row: {
+          created_at: string
+          email: string | null
+          follow_ups: number
+          handle: string | null
+          id: string
+          last_touch_at: string | null
+          name: string
+          notes: string | null
+          status: string
+          updated_at: string
+          welcome_sent_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          follow_ups?: number
+          handle?: string | null
+          id?: string
+          last_touch_at?: string | null
+          name: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          welcome_sent_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          follow_ups?: number
+          handle?: string | null
+          id?: string
+          last_touch_at?: string | null
+          name?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          welcome_sent_at?: string | null
+        }
+        Relationships: []
+      }
       herb_favorites: {
         Row: {
           created_at: string
@@ -1049,6 +1239,7 @@ export type Database = {
       }
       herbs: {
         Row: {
+          adulterant_warnings: string | null
           ayurvedic_dosha_aggravates: string | null
           ayurvedic_dosha_match: string | null
           biblical_traditional_reference: string | null
@@ -1056,11 +1247,15 @@ export type Database = {
           cautions: string | null
           chief_complaints: string | null
           children_safety: string | null
+          classical_contraindications: string | null
           common_name: string
           contraindications_general: string | null
           created_date: string | null
+          dietary_avoidances: string | null
           dosage_notes: string | null
+          drug_incompatibilities: string | null
           drug_interactions: string | null
+          energetics_citation: Json | null
           energetics_summary: string | null
           herb_id: string
           image_filename: string | null
@@ -1070,8 +1265,11 @@ export type Database = {
           notes: string | null
           part_used: string | null
           plant_family: string | null
+          positive_pairings: string | null
           pregnancy_safety: string | null
+          preparation_doctrine: string | null
           preparation_methods: string | null
+          primary_axis: string | null
           primary_sources: string | null
           primary_text_citation: Json | null
           pronunciation: string | null
@@ -1089,9 +1287,11 @@ export type Database = {
           tissue_states_contraindicated: string | null
           tissue_states_indicated: string | null
           traditional_observations: Json | null
+          traditional_use_duration: string | null
           western_constitution_match: string | null
         }
         Insert: {
+          adulterant_warnings?: string | null
           ayurvedic_dosha_aggravates?: string | null
           ayurvedic_dosha_match?: string | null
           biblical_traditional_reference?: string | null
@@ -1099,11 +1299,15 @@ export type Database = {
           cautions?: string | null
           chief_complaints?: string | null
           children_safety?: string | null
+          classical_contraindications?: string | null
           common_name: string
           contraindications_general?: string | null
           created_date?: string | null
+          dietary_avoidances?: string | null
           dosage_notes?: string | null
+          drug_incompatibilities?: string | null
           drug_interactions?: string | null
+          energetics_citation?: Json | null
           energetics_summary?: string | null
           herb_id: string
           image_filename?: string | null
@@ -1113,8 +1317,11 @@ export type Database = {
           notes?: string | null
           part_used?: string | null
           plant_family?: string | null
+          positive_pairings?: string | null
           pregnancy_safety?: string | null
+          preparation_doctrine?: string | null
           preparation_methods?: string | null
+          primary_axis?: string | null
           primary_sources?: string | null
           primary_text_citation?: Json | null
           pronunciation?: string | null
@@ -1132,9 +1339,11 @@ export type Database = {
           tissue_states_contraindicated?: string | null
           tissue_states_indicated?: string | null
           traditional_observations?: Json | null
+          traditional_use_duration?: string | null
           western_constitution_match?: string | null
         }
         Update: {
+          adulterant_warnings?: string | null
           ayurvedic_dosha_aggravates?: string | null
           ayurvedic_dosha_match?: string | null
           biblical_traditional_reference?: string | null
@@ -1142,11 +1351,15 @@ export type Database = {
           cautions?: string | null
           chief_complaints?: string | null
           children_safety?: string | null
+          classical_contraindications?: string | null
           common_name?: string
           contraindications_general?: string | null
           created_date?: string | null
+          dietary_avoidances?: string | null
           dosage_notes?: string | null
+          drug_incompatibilities?: string | null
           drug_interactions?: string | null
+          energetics_citation?: Json | null
           energetics_summary?: string | null
           herb_id?: string
           image_filename?: string | null
@@ -1156,8 +1369,11 @@ export type Database = {
           notes?: string | null
           part_used?: string | null
           plant_family?: string | null
+          positive_pairings?: string | null
           pregnancy_safety?: string | null
+          preparation_doctrine?: string | null
           preparation_methods?: string | null
+          primary_axis?: string | null
           primary_sources?: string | null
           primary_text_citation?: Json | null
           pronunciation?: string | null
@@ -1175,6 +1391,7 @@ export type Database = {
           tissue_states_contraindicated?: string | null
           tissue_states_indicated?: string | null
           traditional_observations?: Json | null
+          traditional_use_duration?: string | null
           western_constitution_match?: string | null
         }
         Relationships: []
@@ -1528,6 +1745,8 @@ export type Database = {
       herbs_eden_patterns: {
         Row: {
           aggravating_axes: number
+          benefit_note: string | null
+          condition_note: string | null
           created_at: string
           derivation: string
           herb_id: string
@@ -1543,6 +1762,8 @@ export type Database = {
         }
         Insert: {
           aggravating_axes?: number
+          benefit_note?: string | null
+          condition_note?: string | null
           created_at?: string
           derivation?: string
           herb_id: string
@@ -1558,6 +1779,8 @@ export type Database = {
         }
         Update: {
           aggravating_axes?: number
+          benefit_note?: string | null
+          condition_note?: string | null
           created_at?: string
           derivation?: string
           herb_id?: string
@@ -2065,6 +2288,30 @@ export type Database = {
         }
         Relationships: []
       }
+      launch_email_previews: {
+        Row: {
+          resend_id: string | null
+          scheduled_for: string
+          sent_at: string
+          sequence_position: number
+          subject: string | null
+        }
+        Insert: {
+          resend_id?: string | null
+          scheduled_for: string
+          sent_at?: string
+          sequence_position: number
+          subject?: string | null
+        }
+        Update: {
+          resend_id?: string | null
+          scheduled_for?: string
+          sent_at?: string
+          sequence_position?: number
+          subject?: string | null
+        }
+        Relationships: []
+      }
       launch_email_queue: {
         Row: {
           created_at: string
@@ -2242,6 +2489,67 @@ export type Database = {
         }
         Relationships: []
       }
+      order_delay_notices: {
+        Row: {
+          auto_cancelled_at: string | null
+          broadcast_id: string
+          id: string
+          notice_number: number
+          order_id: string
+          requires_opt_in: boolean
+          responded_at: string | null
+          response: string | null
+          revised_ship_date: string | null
+          sent_at: string
+        }
+        Insert: {
+          auto_cancelled_at?: string | null
+          broadcast_id: string
+          id?: string
+          notice_number: number
+          order_id: string
+          requires_opt_in: boolean
+          responded_at?: string | null
+          response?: string | null
+          revised_ship_date?: string | null
+          sent_at?: string
+        }
+        Update: {
+          auto_cancelled_at?: string | null
+          broadcast_id?: string
+          id?: string
+          notice_number?: number
+          order_id?: string
+          requires_opt_in?: boolean
+          responded_at?: string | null
+          response?: string | null
+          revised_ship_date?: string | null
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_delay_notices_broadcast_id_fkey"
+            columns: ["broadcast_id"]
+            isOneToOne: false
+            referencedRelation: "broadcasts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_delay_notices_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_delay_notices_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "preorder_broadcast_list"
+            referencedColumns: ["order_id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
@@ -2308,6 +2616,7 @@ export type Database = {
           id: string
           is_preorder: boolean
           lookup_key: string
+          order_number: string
           payment_status: string | null
           product_label: string | null
           quantity: number
@@ -2335,6 +2644,7 @@ export type Database = {
           id?: string
           is_preorder?: boolean
           lookup_key: string
+          order_number?: string
           payment_status?: string | null
           product_label?: string | null
           quantity?: number
@@ -2362,6 +2672,7 @@ export type Database = {
           id?: string
           is_preorder?: boolean
           lookup_key?: string
+          order_number?: string
           payment_status?: string | null
           product_label?: string | null
           quantity?: number
@@ -2375,6 +2686,114 @@ export type Database = {
           stripe_payment_intent_id?: string | null
           tax_cents?: number | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      outreach_influencers: {
+        Row: {
+          converted: boolean
+          date_sourced: string | null
+          display_name: string | null
+          disqualify_reason: string | null
+          followers: number | null
+          handle: string
+          last_contacted: string | null
+          next_touch_due: string | null
+          next_touch_no: string | null
+          outcome: string | null
+          outcome_date: string | null
+          profile_url: string | null
+          status: string | null
+          synced_at: string
+          touches: number
+        }
+        Insert: {
+          converted?: boolean
+          date_sourced?: string | null
+          display_name?: string | null
+          disqualify_reason?: string | null
+          followers?: number | null
+          handle: string
+          last_contacted?: string | null
+          next_touch_due?: string | null
+          next_touch_no?: string | null
+          outcome?: string | null
+          outcome_date?: string | null
+          profile_url?: string | null
+          status?: string | null
+          synced_at?: string
+          touches?: number
+        }
+        Update: {
+          converted?: boolean
+          date_sourced?: string | null
+          display_name?: string | null
+          disqualify_reason?: string | null
+          followers?: number | null
+          handle?: string
+          last_contacted?: string | null
+          next_touch_due?: string | null
+          next_touch_no?: string | null
+          outcome?: string | null
+          outcome_date?: string | null
+          profile_url?: string | null
+          status?: string | null
+          synced_at?: string
+          touches?: number
+        }
+        Relationships: []
+      }
+      outreach_podcasts: {
+        Row: {
+          email: string | null
+          episodes: number | null
+          first_pitch: string | null
+          host: string | null
+          last_episode: string | null
+          last_touch: string | null
+          next_action: string | null
+          next_action_due: string | null
+          recording_date: string | null
+          show: string
+          status: string | null
+          sub_niche: string | null
+          synced_at: string
+          takes_guests: string | null
+          touches: number
+        }
+        Insert: {
+          email?: string | null
+          episodes?: number | null
+          first_pitch?: string | null
+          host?: string | null
+          last_episode?: string | null
+          last_touch?: string | null
+          next_action?: string | null
+          next_action_due?: string | null
+          recording_date?: string | null
+          show: string
+          status?: string | null
+          sub_niche?: string | null
+          synced_at?: string
+          takes_guests?: string | null
+          touches?: number
+        }
+        Update: {
+          email?: string | null
+          episodes?: number | null
+          first_pitch?: string | null
+          host?: string | null
+          last_episode?: string | null
+          last_touch?: string | null
+          next_action?: string | null
+          next_action_due?: string | null
+          recording_date?: string | null
+          show?: string
+          status?: string | null
+          sub_niche?: string | null
+          synced_at?: string
+          takes_guests?: string | null
+          touches?: number
         }
         Relationships: []
       }
@@ -2504,6 +2923,84 @@ export type Database = {
           subscription_id?: string
           tier?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          customer_email: string | null
+          description: string | null
+          fee_cents: number | null
+          id: string
+          is_internal: boolean
+          kind: string
+          lookup_key: string | null
+          net_cents: number | null
+          occurred_at: string
+          period_end: string | null
+          period_start: string | null
+          raw: Json | null
+          status: string
+          stripe_charge_id: string | null
+          stripe_customer_id: string | null
+          stripe_event_id: string | null
+          stripe_invoice_id: string | null
+          stripe_payment_intent_id: string | null
+          stripe_subscription_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          description?: string | null
+          fee_cents?: number | null
+          id?: string
+          is_internal?: boolean
+          kind: string
+          lookup_key?: string | null
+          net_cents?: number | null
+          occurred_at: string
+          period_end?: string | null
+          period_start?: string | null
+          raw?: Json | null
+          status: string
+          stripe_charge_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_event_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_subscription_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          description?: string | null
+          fee_cents?: number | null
+          id?: string
+          is_internal?: boolean
+          kind?: string
+          lookup_key?: string | null
+          net_cents?: number | null
+          occurred_at?: string
+          period_end?: string | null
+          period_start?: string | null
+          raw?: Json | null
+          status?: string
+          stripe_charge_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_event_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_subscription_id?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -2748,6 +3245,7 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
+          founding_closed_at: string | null
           founding_price_cents: number
           founding_qty_limit: number | null
           founding_until: string | null
@@ -2758,6 +3256,7 @@ export type Database = {
           retail_price_cents: number
           ships_on: string | null
           sku: string
+          stock_qty: number | null
           stripe_founding_price_id: string | null
           stripe_retail_price_id: string | null
           updated_at: string
@@ -2765,6 +3264,7 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string
+          founding_closed_at?: string | null
           founding_price_cents: number
           founding_qty_limit?: number | null
           founding_until?: string | null
@@ -2775,6 +3275,7 @@ export type Database = {
           retail_price_cents: number
           ships_on?: string | null
           sku: string
+          stock_qty?: number | null
           stripe_founding_price_id?: string | null
           stripe_retail_price_id?: string | null
           updated_at?: string
@@ -2782,6 +3283,7 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string
+          founding_closed_at?: string | null
           founding_price_cents?: number
           founding_qty_limit?: number | null
           founding_until?: string | null
@@ -2792,6 +3294,7 @@ export type Database = {
           retail_price_cents?: number
           ships_on?: string | null
           sku?: string
+          stock_qty?: number | null
           stripe_founding_price_id?: string | null
           stripe_retail_price_id?: string | null
           updated_at?: string
@@ -3004,6 +3507,57 @@ export type Database = {
         }
         Relationships: []
       }
+      resend_contact_state: {
+        Row: {
+          band: string | null
+          created_at: string
+          email: string
+          engagement_tier: string | null
+          founding: string | null
+          funnel: string | null
+          last_error: string | null
+          last_status: number | null
+          purchase_status: string | null
+          quiz_status: string | null
+          segments: string[]
+          state_hash: string
+          synced_at: string
+          updated_at: string
+        }
+        Insert: {
+          band?: string | null
+          created_at?: string
+          email: string
+          engagement_tier?: string | null
+          founding?: string | null
+          funnel?: string | null
+          last_error?: string | null
+          last_status?: number | null
+          purchase_status?: string | null
+          quiz_status?: string | null
+          segments?: string[]
+          state_hash: string
+          synced_at?: string
+          updated_at?: string
+        }
+        Update: {
+          band?: string | null
+          created_at?: string
+          email?: string
+          engagement_tier?: string | null
+          founding?: string | null
+          funnel?: string | null
+          last_error?: string | null
+          last_status?: number | null
+          purchase_status?: string | null
+          quiz_status?: string | null
+          segments?: string[]
+          state_hash?: string
+          synced_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       schema_fields: {
         Row: {
           column_name: string | null
@@ -3088,6 +3642,232 @@ export type Database = {
         }
         Relationships: []
       }
+      starter_credit_phases: {
+        Row: {
+          codes_affected: number
+          founding_units_at_trigger: number
+          phase: string
+          policy: string
+          triggered_at: string
+        }
+        Insert: {
+          codes_affected?: number
+          founding_units_at_trigger: number
+          phase: string
+          policy: string
+          triggered_at?: string
+        }
+        Update: {
+          codes_affected?: number
+          founding_units_at_trigger?: number
+          phase?: string
+          policy?: string
+          triggered_at?: string
+        }
+        Relationships: []
+      }
+      starter_credits: {
+        Row: {
+          amount_cents: number
+          code: string
+          created_at: string
+          deactivated_at: string | null
+          deactivated_reason: string | null
+          email: string
+          id: string
+          issued_at: string
+          order_id: string | null
+          purchaser_name: string | null
+          redeemed_at: string | null
+          redeemed_order_id: string | null
+          redeemed_session_id: string | null
+          stripe_checkout_session_id: string
+          stripe_customer_id: string
+          stripe_promotion_code_id: string
+        }
+        Insert: {
+          amount_cents: number
+          code: string
+          created_at?: string
+          deactivated_at?: string | null
+          deactivated_reason?: string | null
+          email: string
+          id?: string
+          issued_at?: string
+          order_id?: string | null
+          purchaser_name?: string | null
+          redeemed_at?: string | null
+          redeemed_order_id?: string | null
+          redeemed_session_id?: string | null
+          stripe_checkout_session_id: string
+          stripe_customer_id: string
+          stripe_promotion_code_id: string
+        }
+        Update: {
+          amount_cents?: number
+          code?: string
+          created_at?: string
+          deactivated_at?: string | null
+          deactivated_reason?: string | null
+          email?: string
+          id?: string
+          issued_at?: string
+          order_id?: string | null
+          purchaser_name?: string | null
+          redeemed_at?: string | null
+          redeemed_order_id?: string | null
+          redeemed_session_id?: string | null
+          stripe_checkout_session_id?: string
+          stripe_customer_id?: string
+          stripe_promotion_code_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "starter_credits_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "starter_credits_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "preorder_broadcast_list"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "starter_credits_redeemed_order_id_fkey"
+            columns: ["redeemed_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "starter_credits_redeemed_order_id_fkey"
+            columns: ["redeemed_order_id"]
+            isOneToOne: false
+            referencedRelation: "preorder_broadcast_list"
+            referencedColumns: ["order_id"]
+          },
+        ]
+      }
+      starter_deliveries: {
+        Row: {
+          attempts: number
+          created_at: string
+          download_token: string
+          email: string
+          id: string
+          last_error: string | null
+          links_expire_at: string | null
+          nb_object_path: string | null
+          order_id: string | null
+          purchaser_name: string | null
+          ra_object_path: string | null
+          sent_at: string | null
+          status: string
+          stripe_checkout_session_id: string
+          tg_object_path: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          download_token: string
+          email: string
+          id?: string
+          last_error?: string | null
+          links_expire_at?: string | null
+          nb_object_path?: string | null
+          order_id?: string | null
+          purchaser_name?: string | null
+          ra_object_path?: string | null
+          sent_at?: string | null
+          status?: string
+          stripe_checkout_session_id: string
+          tg_object_path?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          download_token?: string
+          email?: string
+          id?: string
+          last_error?: string | null
+          links_expire_at?: string | null
+          nb_object_path?: string | null
+          order_id?: string | null
+          purchaser_name?: string | null
+          ra_object_path?: string | null
+          sent_at?: string | null
+          status?: string
+          stripe_checkout_session_id?: string
+          tg_object_path?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "starter_deliveries_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "starter_deliveries_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "preorder_broadcast_list"
+            referencedColumns: ["order_id"]
+          },
+        ]
+      }
+      starter_delivery_attempts: {
+        Row: {
+          attempt: number
+          created_at: string
+          delivery_id: string | null
+          detail: string | null
+          duration_ms: number | null
+          id: string
+          ok: boolean
+          stage: string
+          stripe_checkout_session_id: string
+        }
+        Insert: {
+          attempt: number
+          created_at?: string
+          delivery_id?: string | null
+          detail?: string | null
+          duration_ms?: number | null
+          id?: string
+          ok: boolean
+          stage: string
+          stripe_checkout_session_id: string
+        }
+        Update: {
+          attempt?: number
+          created_at?: string
+          delivery_id?: string | null
+          detail?: string | null
+          duration_ms?: number | null
+          id?: string
+          ok?: boolean
+          stage?: string
+          stripe_checkout_session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "starter_delivery_attempts_delivery_id_fkey"
+            columns: ["delivery_id"]
+            isOneToOne: false
+            referencedRelation: "starter_deliveries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stripe_events: {
         Row: {
           error: string | null
@@ -3117,320 +3897,6 @@ export type Database = {
           type?: string
         }
         Relationships: []
-      }
-      studio_asset_transforms: {
-        Row: {
-          asset_id: string
-          color_adjust: Json
-          created_at: string
-          crop: Json
-          id: string
-          opacity: number
-          project_id: string
-          updated_at: string
-        }
-        Insert: {
-          asset_id: string
-          color_adjust?: Json
-          created_at?: string
-          crop?: Json
-          id?: string
-          opacity?: number
-          project_id: string
-          updated_at?: string
-        }
-        Update: {
-          asset_id?: string
-          color_adjust?: Json
-          created_at?: string
-          crop?: Json
-          id?: string
-          opacity?: number
-          project_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "studio_asset_transforms_asset_id_fkey"
-            columns: ["asset_id"]
-            isOneToOne: false
-            referencedRelation: "studio_assets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "studio_asset_transforms_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "studio_projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      studio_asset_versions: {
-        Row: {
-          asset_id: string
-          created_at: string
-          id: string
-          source: string
-          storage_path: string
-          version_number: number
-        }
-        Insert: {
-          asset_id: string
-          created_at?: string
-          id?: string
-          source: string
-          storage_path: string
-          version_number: number
-        }
-        Update: {
-          asset_id?: string
-          created_at?: string
-          id?: string
-          source?: string
-          storage_path?: string
-          version_number?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "studio_asset_versions_asset_id_fkey"
-            columns: ["asset_id"]
-            isOneToOne: false
-            referencedRelation: "studio_assets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      studio_assets: {
-        Row: {
-          ai_prompt: string | null
-          campaign_tag: string
-          created_at: string
-          created_by: string
-          filename: string
-          id: string
-          kind: string
-          mime_type: string | null
-          project_id: string | null
-          size_bytes: number | null
-          source: string
-          storage_path: string
-        }
-        Insert: {
-          ai_prompt?: string | null
-          campaign_tag?: string
-          created_at?: string
-          created_by: string
-          filename: string
-          id?: string
-          kind?: string
-          mime_type?: string | null
-          project_id?: string | null
-          size_bytes?: number | null
-          source?: string
-          storage_path: string
-        }
-        Update: {
-          ai_prompt?: string | null
-          campaign_tag?: string
-          created_at?: string
-          created_by?: string
-          filename?: string
-          id?: string
-          kind?: string
-          mime_type?: string | null
-          project_id?: string | null
-          size_bytes?: number | null
-          source?: string
-          storage_path?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "studio_assets_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "studio_projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      studio_brand_tokens: {
-        Row: {
-          id: string
-          kind: string
-          label: string
-          sort_order: number
-          token_key: string
-          usage: string | null
-          value: string
-        }
-        Insert: {
-          id?: string
-          kind: string
-          label: string
-          sort_order?: number
-          token_key: string
-          usage?: string | null
-          value: string
-        }
-        Update: {
-          id?: string
-          kind?: string
-          label?: string
-          sort_order?: number
-          token_key?: string
-          usage?: string | null
-          value?: string
-        }
-        Relationships: []
-      }
-      studio_canva_tokens: {
-        Row: {
-          access_token: string
-          created_at: string
-          expires_at: string
-          id: string
-          refresh_token: string
-          scope: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          access_token: string
-          created_at?: string
-          expires_at: string
-          id?: string
-          refresh_token: string
-          scope?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          access_token?: string
-          created_at?: string
-          expires_at?: string
-          id?: string
-          refresh_token?: string
-          scope?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      studio_exports: {
-        Row: {
-          aspect_ratio: string
-          batch_id: string | null
-          created_by: string
-          exported_at: string
-          format: string
-          height: number | null
-          id: string
-          project_id: string
-          storage_path: string | null
-          width: number | null
-        }
-        Insert: {
-          aspect_ratio: string
-          batch_id?: string | null
-          created_by: string
-          exported_at?: string
-          format: string
-          height?: number | null
-          id?: string
-          project_id: string
-          storage_path?: string | null
-          width?: number | null
-        }
-        Update: {
-          aspect_ratio?: string
-          batch_id?: string | null
-          created_by?: string
-          exported_at?: string
-          format?: string
-          height?: number | null
-          id?: string
-          project_id?: string
-          storage_path?: string | null
-          width?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "studio_exports_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "studio_projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      studio_projects: {
-        Row: {
-          ad_type: string
-          campaign_tag: string
-          canva_asset_id: string | null
-          canva_design_id: string | null
-          canva_edit_url: string | null
-          canva_synced_at: string | null
-          created_at: string
-          created_by: string
-          current_step: number
-          id: string
-          platforms: string[]
-          product: string
-          slides: Json
-          state: Json
-          status: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          ad_type?: string
-          campaign_tag?: string
-          canva_asset_id?: string | null
-          canva_design_id?: string | null
-          canva_edit_url?: string | null
-          canva_synced_at?: string | null
-          created_at?: string
-          created_by: string
-          current_step?: number
-          id?: string
-          platforms?: string[]
-          product?: string
-          slides?: Json
-          state?: Json
-          status?: string
-          title?: string
-          updated_at?: string
-        }
-        Update: {
-          ad_type?: string
-          campaign_tag?: string
-          canva_asset_id?: string | null
-          canva_design_id?: string | null
-          canva_edit_url?: string | null
-          canva_synced_at?: string | null
-          created_at?: string
-          created_by?: string
-          current_step?: number
-          id?: string
-          platforms?: string[]
-          product?: string
-          slides?: Json
-          state?: Json
-          status?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "studio_projects_canva_asset_id_fkey"
-            columns: ["canva_asset_id"]
-            isOneToOne: false
-            referencedRelation: "studio_assets"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       subscription_events: {
         Row: {
@@ -3778,6 +4244,16 @@ export type Database = {
             referencedColumns: ["slug"]
           },
         ]
+      }
+      email_queue_health: {
+        Row: {
+          due_24h: number | null
+          failed_24h: number | null
+          overdue: number | null
+          rail: string | null
+          sent_24h: number | null
+        }
+        Relationships: []
       }
       herbs_clinical_v: {
         Row: {
@@ -4236,6 +4712,19 @@ export type Database = {
         }
         Relationships: []
       }
+      resend_contact_state_computed: {
+        Row: {
+          band: string | null
+          email: string | null
+          engagement_tier: string | null
+          first_name: string | null
+          founding: string | null
+          funnel: string | null
+          purchase_status: string | null
+          quiz_status: string | null
+        }
+        Relationships: []
+      }
       tier_2_waitlist: {
         Row: {
           created_at: string | null
@@ -4322,6 +4811,14 @@ export type Database = {
       }
     }
     Functions: {
+      broadcast_rate_bump: {
+        Args: { p_key: string; p_window_seconds: number }
+        Returns: number
+      }
+      checkout_rate_bump: {
+        Args: { p_ip_hash: string; p_window_seconds?: number }
+        Returns: number
+      }
       clinical_case_file: {
         Args: { p_person_profile_id: string; p_practitioner: string }
         Returns: Json
@@ -4370,9 +4867,20 @@ export type Database = {
       }
       current_user_at_least: { Args: { min_tier: string }; Returns: boolean }
       current_user_tier: { Args: never; Returns: string }
+      delay_notices_awaiting_action: {
+        Args: never
+        Returns: {
+          amount_total_cents: number
+          customer_email: string
+          days_since_notice: number
+          notice_sent_at: string
+          order_id: string
+        }[]
+      }
       eden_classify_moisture: { Args: { value: string }; Returns: string }
       eden_classify_temperature: { Args: { value: string }; Returns: string }
       eden_classify_tone: { Args: { value: string }; Returns: string }
+      eden_leading_clause: { Args: { value: string }; Returns: string }
       eden_pattern_canonical_slug: { Args: { raw: string }; Returns: string }
       feedback_merge: {
         Args: { p_canonical: string; p_duplicate: string }
@@ -4424,14 +4932,100 @@ export type Database = {
       }
       founder_lead_summary: { Args: { p_since?: string }; Returns: Json }
       founder_orders: { Args: { p_since: string }; Returns: Json }
+      founder_outreach_influencers: {
+        Args: never
+        Returns: {
+          converted: boolean
+          date_sourced: string | null
+          display_name: string | null
+          disqualify_reason: string | null
+          followers: number | null
+          handle: string
+          last_contacted: string | null
+          next_touch_due: string | null
+          next_touch_no: string | null
+          outcome: string | null
+          outcome_date: string | null
+          profile_url: string | null
+          status: string | null
+          synced_at: string
+          touches: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "outreach_influencers"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      founder_outreach_podcasts: {
+        Args: never
+        Returns: {
+          email: string | null
+          episodes: number | null
+          first_pitch: string | null
+          host: string | null
+          last_episode: string | null
+          last_touch: string | null
+          next_action: string | null
+          next_action_due: string | null
+          recording_date: string | null
+          show: string
+          status: string | null
+          sub_niche: string | null
+          synced_at: string
+          takes_guests: string | null
+          touches: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "outreach_podcasts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      founder_partner_awaiting_email: {
+        Args: never
+        Returns: {
+          days_waiting: number
+          handle: string
+          id: string
+          name: string
+          welcome_sent_at: string
+        }[]
+      }
+      founder_partner_due: {
+        Args: never
+        Returns: {
+          days_overdue: number
+          email: string
+          follow_ups: number
+          handle: string
+          last_touch_at: string
+          name: string
+          next_due: string
+          welcome_sent_at: string
+        }[]
+      }
+      founder_partner_engagement: { Args: never; Returns: Json }
+      founder_payments: { Args: { p_since: string }; Returns: Json }
       founder_revenue: { Args: { p_since: string }; Returns: Json }
       founder_traffic: { Args: { p_since?: string }; Returns: Json }
+      founding_gate: {
+        Args: { p_product_id: string }
+        Returns: {
+          cap: number
+          closed: boolean
+          sold: number
+        }[]
+      }
       founding_units_sold: { Args: { p_product_id: string }; Returns: number }
       has_tier: {
         Args: { required: Database["public"]["Enums"]["subscription_tier"] }
         Returns: boolean
       }
       is_founder: { Args: never; Returns: boolean }
+      is_internal_email: { Args: { p_email: string }; Returns: boolean }
       is_internal_tester: { Args: { p_email: string }; Returns: boolean }
       lead_capture_digest_window: {
         Args: { p_window_end: string; p_window_start: string }
@@ -4481,10 +5075,33 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      starter_conversion_report: {
+        Args: never
+        Returns: {
+          attributed_kit_cents: number
+          codes_issued: number
+          codes_outstanding: number
+          codes_redeemed: number
+          gross_starter_cents: number
+          median_days_to_redeem: number
+          redemption_rate: number
+          units_sold: number
+        }[]
+      }
+      stock_gate: {
+        Args: { p_product_id: string }
+        Returns: {
+          cap: number
+          remaining: number
+          sold: number
+          sold_out: boolean
+        }[]
+      }
       tier_rank: {
         Args: { t: Database["public"]["Enums"]["subscription_tier"] }
         Returns: number
       }
+      units_sold: { Args: { p_product_id: string }; Returns: number }
       waitlist_apply_resend_event: {
         Args: {
           p_contact_id: string
@@ -4498,6 +5115,7 @@ export type Database = {
     }
     Enums: {
       biological_sex_enum: "male" | "female"
+      broadcast_kind: "update" | "delay_notice"
       contraindication_kind:
         | "drug_interaction"
         | "condition"
@@ -4554,12 +5172,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4583,11 +5201,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4608,11 +5226,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4633,11 +5251,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4650,11 +5268,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4664,12 +5282,10 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       biological_sex_enum: ["male", "female"],
+      broadcast_kind: ["update", "delay_notice"],
       contraindication_kind: [
         "drug_interaction",
         "condition",
