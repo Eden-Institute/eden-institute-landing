@@ -15,6 +15,7 @@
 // Modes (JSON body):
 //   { "mode": "preview" }                        counts per value + delta size, NO writes
 //   { "mode": "ensure_properties" }              create the six property keys on Resend
+//   { "mode": "get",   "email": "a@b.c" }        read the contact back from Resend (verification)
 //   { "mode": "sync",  "batch": 100 }            write up to `batch` changed contacts (max 120)
 //   { "mode": "full",  "batch": 100 }            same, ignoring the stored hash (backfill)
 //   { "mode": "sync",  "email": "a@b.c" }        force one contact, ignoring the hash
@@ -32,6 +33,7 @@ import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-se
 import {
   CONTACT_PROPERTY_KEYS,
   ensureContactProperties,
+  getContact,
   setContactProperties,
   type ContactProperties,
 } from '../_shared/resend-contacts.ts';
@@ -178,6 +180,12 @@ Deno.serve(async (req) => {
     if (mode === 'ensure_properties') {
       const result = await ensureContactProperties();
       return json(result.failed.length ? 502 : 200, { mode, ...result });
+    }
+
+    if (mode === 'get') {
+      if (!onlyEmail) return json(400, { error: 'email required for mode get' });
+      const contact = await getContact(onlyEmail);
+      return json(contact.status === 200 ? 200 : 502, { mode, email: onlyEmail, ...contact });
     }
 
     const computedPath = onlyEmail
