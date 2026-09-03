@@ -105,6 +105,11 @@ export function HerbFavoriteHeart({
     });
   };
 
+  // w-auto is load-bearing on phones. The global mobile rule in index.css
+  // (section button { width: 100% } under 768px) otherwise stretches this
+  // absolutely-positioned button across its container, and the icon lands
+  // centred over the title instead of top-right (punch #183). The same rule
+  // is why the empty-state chips in ApothecaryHome carry inline width: auto.
   return (
     <button
       type="button"
@@ -116,7 +121,7 @@ export function HerbFavoriteHeart({
           : `Save ${herbName ?? herbId} to favorites`
       }
       aria-pressed={fav}
-      className={`absolute top-3 right-3 z-10 p-2 rounded-full transition-colors hover:bg-[hsl(var(--eden-cream))] disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center ${className}`}
+      className={`absolute top-3 right-3 z-10 p-2 rounded-full transition-colors hover:bg-[hsl(var(--eden-cream))] disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] w-auto flex items-center justify-center ${className}`}
       style={{
         color: fav
           ? "hsl(var(--eden-gold))"
