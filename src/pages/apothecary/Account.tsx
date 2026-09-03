@@ -10,6 +10,10 @@ import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
 import { ManageSubscriptionButton } from "@/components/apothecary/ManageSubscriptionButton";
 import { ReadingSizeCard } from "@/components/apothecary/ReadingSizeCard";
 import { JourneyCTA } from "@/components/journey/JourneyCTA";
+import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
+// Hero botanical: caraway (Carum carvi), Koehler 1887. Built at this hero's
+// aspect, 1600x360 for its ~1440x340 with the panel at desktop.
+import heroAccount from "@/assets/hero-account.jpg";
 
 /**
  * Columns we read from public.profiles for the Account page. Source: PR #7
@@ -205,13 +209,16 @@ export default function Account() {
   const showGuideCta = !(tier === "practitioner" && guideIsPurchaseCta);
 
   return (
-    <section className="py-12 md:py-16 px-6">
-      <div className="max-w-3xl mx-auto space-y-10">
-        {/* Header */}
+    <div>
+      <BotanicalHero
+        image={heroAccount}
+        className="py-10 md:py-14 px-6"
+        panelClassName="max-w-3xl"
+      >
         <header className="space-y-3">
           <p
             className="font-accent text-xs tracking-[0.3em] uppercase"
-            style={{ color: "hsl(var(--eden-gold))" }}
+            style={{ color: "hsl(var(--eden-gold-ink))" }}
           >
             Your Account
           </p>
@@ -223,229 +230,233 @@ export default function Account() {
           </h1>
           <p className="font-body text-muted-foreground">{user?.email}</p>
         </header>
+      </BotanicalHero>
 
-        {/* PR γ (2026-05-02): dominant journey CTA at the top of the
-            authed surface. Mirrors the homepage placement from PR β
-            (commit 56cdddb) so the user sees the same one-step-at-a-time
-            guidance whether they enter via / or directly into
-            /apothecary/account. JourneyCTA is self-contained — it
-            consumes useTierAwareCTA and the App-scoped
-            ActiveProfileContext internally, so switching the active
-            person-profile picker propagates here without prop wiring. */}
-        <section aria-label="Your next step at Eden Institute">
-          <JourneyCTA />
-        </section>
+      <section className="py-10 md:py-12 px-6">
+        <div className="max-w-3xl mx-auto space-y-10">
+          {/* PR γ (2026-05-02): dominant journey CTA at the top of the
+              authed surface. Mirrors the homepage placement from PR β
+              (commit 56cdddb) so the user sees the same one-step-at-a-time
+              guidance whether they enter via / or directly into
+              /apothecary/account. JourneyCTA is self-contained — it
+              consumes useTierAwareCTA and the App-scoped
+              ActiveProfileContext internally, so switching the active
+              person-profile picker propagates here without prop wiring. */}
+          <section aria-label="Your next step at Eden Institute">
+            <JourneyCTA />
+          </section>
 
-        {/* Body Pattern card. Surfaces the user's quiz result so their
-            account page reflects the work they've already done. Fixes
-            Phase 5 #5 ("quiz responses didn't seem to register").
+          {/* Body Pattern card. Surfaces the user's quiz result so their
+              account page reflects the work they've already done. Fixes
+              Phase 5 #5 ("quiz responses didn't seem to register").
 
-            2026-04-30 (tier-aware CTA propagation): the secondary CTA in
-            the with-Pattern branch is the state-aware guide CTA from
-            useTierAwareCTA(). A small text link below the buttons
-            preserves the retake affordance — patterns can shift over
-            time per the terrain framing (Lock #14).
+              2026-04-30 (tier-aware CTA propagation): the secondary CTA in
+              the with-Pattern branch is the state-aware guide CTA from
+              useTierAwareCTA(). A small text link below the buttons
+              preserves the retake affordance — patterns can shift over
+              time per the terrain framing (Lock #14).
 
-            PR γ (2026-05-02): no-Pattern branch's "Take the Pattern of
-            Eden quiz" Button removed (duplicated JourneyCTA's quiz
-            step). Body copy preserved as descriptive context; the
-            dominant action lives in JourneyCTA above. */}
-        <section
-          className="rounded-lg border p-6 space-y-4"
-          style={{
-            borderColor: "hsl(var(--border))",
-            backgroundColor: "hsl(var(--eden-cream) / 0.3)",
-          }}
-        >
-          <div>
-            <p
-              className="font-accent text-xs tracking-[0.2em] uppercase mb-1"
-              style={{ color: "hsl(var(--eden-gold))" }}
-            >
-              Your Body Pattern
-            </p>
-            {constitutionPretty ? (
-              <>
-                <h2
-                  className="font-serif text-2xl font-semibold"
-                  style={{ color: "hsl(var(--eden-bark))" }}
-                >
-                  {constitutionPretty}
-                </h2>
-                <p className="font-body text-sm text-muted-foreground mt-1">
-                  Your body pattern shapes how every herb works for you. Your
-                  matched herbs are highlighted in the Apothecary directory.
-                </p>
-              </>
-            ) : (
-              <>
-                <h2
-                  className="font-serif text-2xl font-semibold"
-                  style={{ color: "hsl(var(--eden-bark))" }}
-                >
-                  Not yet known
-                </h2>
-                <p className="font-body text-sm text-muted-foreground mt-1">
-                  Take the Pattern of Eden quiz to find your body pattern.
-                  We&apos;ll highlight the herbs that meet your terrain across
-                  the Apothecary.
-                </p>
-              </>
-            )}
-          </div>
-          {/* PR γ: the contextual button row only renders in the
-              with-Pattern branch. The no-Pattern branch's quiz Button
-              was removed — JourneyCTA at the top of the page is the
-              dominant quiz action. */}
-          {constitutionPretty && (
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <Button variant="eden" asChild>
-                <Link to={ROUTES.APOTHECARY}>View matched herbs</Link>
-              </Button>
-              {/* State-aware guide CTA (PR #106 / 2026-04-30). Surfaces
-                  the user's (Pattern, guide-purchased) state machine via
-                  useTierAwareCTA(). Anchors the visual Pattern → guide
-                  relationship within the Pattern card; the dominant
-                  cross-page journey CTA lives in <JourneyCTA /> above. */}
-              {showGuideCta && (
-                <Button
-                  variant="eden-outline"
-                  className="whitespace-normal h-auto text-center min-h-[44px] py-2"
-                  asChild
-                >
-                  <Link to={guideCta.href}>{guideCta.label}</Link>
-                </Button>
-              )}
-            </div>
-          )}
-          {/* De-prioritized retake affordance. Patterns can shift over time
-              (terrain framing, Lock #14), so we preserve the retake path —
-              but as a small text link rather than a primary button. Only
-              rendered when the user already has a Pattern; the no-Pattern
-              branch's primary action lives in JourneyCTA at the top. */}
-          {constitutionPretty && (
-            <p className="font-body text-xs italic text-muted-foreground pt-1">
-              Patterns shift over time.{" "}
-              <Link
-                to={ROUTES.ASSESSMENT}
-                className="underline underline-offset-2 hover:text-foreground"
-              >
-                Retake the quiz →
-              </Link>
-            </p>
-          )}
-        </section>
-
-        {/* Subscription card */}
-        <section
-          className="rounded-lg border p-6 space-y-5"
-          style={{
-            borderColor: "hsl(var(--border))",
-            backgroundColor: "hsl(var(--eden-cream) / 0.3)",
-          }}
-        >
-          <div className="flex items-start justify-between gap-4 flex-wrap">
+              PR γ (2026-05-02): no-Pattern branch's "Take the Pattern of
+              Eden quiz" Button removed (duplicated JourneyCTA's quiz
+              step). Body copy preserved as descriptive context; the
+              dominant action lives in JourneyCTA above. */}
+          <section
+            className="rounded-lg border p-6 space-y-4"
+            style={{
+              borderColor: "hsl(var(--border))",
+              backgroundColor: "hsl(var(--eden-cream) / 0.3)",
+            }}
+          >
             <div>
               <p
                 className="font-accent text-xs tracking-[0.2em] uppercase mb-1"
                 style={{ color: "hsl(var(--eden-gold))" }}
               >
-                Current Plan
+                Your Body Pattern
               </p>
-              <h2
-                className="font-serif text-2xl font-semibold"
-                style={{ color: "hsl(var(--eden-bark))" }}
-              >
-                {tier ? tierDisplayName[tier] || "Free" : "–"}
-              </h2>
+              {constitutionPretty ? (
+                <>
+                  <h2
+                    className="font-serif text-2xl font-semibold"
+                    style={{ color: "hsl(var(--eden-bark))" }}
+                  >
+                    {constitutionPretty}
+                  </h2>
+                  <p className="font-body text-sm text-muted-foreground mt-1">
+                    Your body pattern shapes how every herb works for you. Your
+                    matched herbs are highlighted in the Apothecary directory.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h2
+                    className="font-serif text-2xl font-semibold"
+                    style={{ color: "hsl(var(--eden-bark))" }}
+                  >
+                    Not yet known
+                  </h2>
+                  <p className="font-body text-sm text-muted-foreground mt-1">
+                    Take the Pattern of Eden quiz to find your body pattern.
+                    We&apos;ll highlight the herbs that meet your terrain across
+                    the Apothecary.
+                  </p>
+                </>
+              )}
             </div>
-            {profile.is_founding_member && (
-              <span
-                className="font-accent text-xs tracking-[0.2em] uppercase px-3 py-1 rounded-full border"
-                style={{
-                  color: "hsl(var(--eden-gold))",
-                  borderColor: "hsl(var(--eden-gold))",
-                }}
-              >
-                Founding Member
-              </span>
-            )}
-          </div>
-
-          {hasPaidTier && (
-            <div
-              className="space-y-3 pt-4 border-t"
-              style={{ borderColor: "hsl(var(--border))" }}
-            >
-              <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
-                {statusLabel && (
-                  <>
-                    <dt className="font-body text-muted-foreground">
-                      Status
-                    </dt>
-                    <dd className="font-body">{statusLabel}</dd>
-                  </>
+            {/* PR γ: the contextual button row only renders in the
+                with-Pattern branch. The no-Pattern branch's quiz Button
+                was removed — JourneyCTA at the top of the page is the
+                dominant quiz action. */}
+            {constitutionPretty && (
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <Button variant="eden" asChild>
+                  <Link to={ROUTES.APOTHECARY}>View matched herbs</Link>
+                </Button>
+                {/* State-aware guide CTA (PR #106 / 2026-04-30). Surfaces
+                    the user's (Pattern, guide-purchased) state machine via
+                    useTierAwareCTA(). Anchors the visual Pattern → guide
+                    relationship within the Pattern card; the dominant
+                    cross-page journey CTA lives in <JourneyCTA /> above. */}
+                {showGuideCta && (
+                  <Button
+                    variant="eden-outline"
+                    className="whitespace-normal h-auto text-center min-h-[44px] py-2"
+                    asChild
+                  >
+                    <Link to={guideCta.href}>{guideCta.label}</Link>
+                  </Button>
                 )}
-                <dt className="font-body text-muted-foreground">
-                  {profile.cancel_at_period_end ? "Access ends" : "Renews"}
-                </dt>
-                <dd className="font-body">
-                  {formatDate(profile.current_period_end)}
-                </dd>
-              </dl>
-              {profile.cancel_at_period_end && (
+              </div>
+            )}
+            {/* De-prioritized retake affordance. Patterns can shift over time
+                (terrain framing, Lock #14), so we preserve the retake path —
+                but as a small text link rather than a primary button. Only
+                rendered when the user already has a Pattern; the no-Pattern
+                branch's primary action lives in JourneyCTA at the top. */}
+            {constitutionPretty && (
+              <p className="font-body text-xs italic text-muted-foreground pt-1">
+                Patterns shift over time.{" "}
+                <Link
+                  to={ROUTES.ASSESSMENT}
+                  className="underline underline-offset-2 hover:text-foreground"
+                >
+                  Retake the quiz →
+                </Link>
+              </p>
+            )}
+          </section>
+
+          {/* Subscription card */}
+          <section
+            className="rounded-lg border p-6 space-y-5"
+            style={{
+              borderColor: "hsl(var(--border))",
+              backgroundColor: "hsl(var(--eden-cream) / 0.3)",
+            }}
+          >
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
                 <p
-                  className="font-body text-sm"
+                  className="font-accent text-xs tracking-[0.2em] uppercase mb-1"
+                  style={{ color: "hsl(var(--eden-gold))" }}
+                >
+                  Current Plan
+                </p>
+                <h2
+                  className="font-serif text-2xl font-semibold"
                   style={{ color: "hsl(var(--eden-bark))" }}
                 >
-                  Your subscription is scheduled to cancel at the end of the
-                  current period. You can reactivate from the billing portal.
-                </p>
-              )}
-              {profile.subscription_status === "past_due" && (
-                <p
-                  className="font-body text-sm"
-                  style={{ color: "hsl(var(--destructive))" }}
+                  {tier ? tierDisplayName[tier] || "Free" : "–"}
+                </h2>
+              </div>
+              {profile.is_founding_member && (
+                <span
+                  className="font-accent text-xs tracking-[0.2em] uppercase px-3 py-1 rounded-full border"
+                  style={{
+                    color: "hsl(var(--eden-gold))",
+                    borderColor: "hsl(var(--eden-gold))",
+                  }}
                 >
-                  Your last payment didn&apos;t go through. Update your payment
-                  method in the billing portal to keep your access.
-                </p>
+                  Founding Member
+                </span>
               )}
             </div>
-          )}
 
-          <div
-            className="flex flex-col sm:flex-row gap-3 pt-4 border-t"
+            {hasPaidTier && (
+              <div
+                className="space-y-3 pt-4 border-t"
+                style={{ borderColor: "hsl(var(--border))" }}
+              >
+                <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
+                  {statusLabel && (
+                    <>
+                      <dt className="font-body text-muted-foreground">
+                        Status
+                      </dt>
+                      <dd className="font-body">{statusLabel}</dd>
+                    </>
+                  )}
+                  <dt className="font-body text-muted-foreground">
+                    {profile.cancel_at_period_end ? "Access ends" : "Renews"}
+                  </dt>
+                  <dd className="font-body">
+                    {formatDate(profile.current_period_end)}
+                  </dd>
+                </dl>
+                {profile.cancel_at_period_end && (
+                  <p
+                    className="font-body text-sm"
+                    style={{ color: "hsl(var(--eden-bark))" }}
+                  >
+                    Your subscription is scheduled to cancel at the end of the
+                    current period. You can reactivate from the billing portal.
+                  </p>
+                )}
+                {profile.subscription_status === "past_due" && (
+                  <p
+                    className="font-body text-sm"
+                    style={{ color: "hsl(var(--destructive))" }}
+                  >
+                    Your last payment didn&apos;t go through. Update your payment
+                    method in the billing portal to keep your access.
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div
+              className="flex flex-col sm:flex-row gap-3 pt-4 border-t"
+              style={{ borderColor: "hsl(var(--border))" }}
+            >
+              {hasStripeCustomer && (
+                <ManageSubscriptionButton />
+              )}
+              {!hasPaidTier && (
+                <Button variant={hasStripeCustomer ? "eden-outline" : "eden"} asChild>
+                  <Link to={ROUTES.APOTHECARY_PRICING}>
+                    {hasStripeCustomer ? "Choose a new plan" : "Choose a plan"}
+                  </Link>
+                </Button>
+              )}
+            </div>
+          </section>
+
+          {/* Reading size — per-reader text scale (eden.font_scale). Placed
+              after the subscription card and before sign-out so it reads as a
+              setting rather than an upsell. */}
+          <ReadingSizeCard />
+
+          {/* Sign out */}
+          <section
+            className="pt-4 border-t"
             style={{ borderColor: "hsl(var(--border))" }}
           >
-            {hasStripeCustomer && (
-              <ManageSubscriptionButton />
-            )}
-            {!hasPaidTier && (
-              <Button variant={hasStripeCustomer ? "eden-outline" : "eden"} asChild>
-                <Link to={ROUTES.APOTHECARY_PRICING}>
-                  {hasStripeCustomer ? "Choose a new plan" : "Choose a plan"}
-                </Link>
-              </Button>
-            )}
-          </div>
-        </section>
-
-        {/* Reading size — per-reader text scale (eden.font_scale). Placed
-            after the subscription card and before sign-out so it reads as a
-            setting rather than an upsell. */}
-        <ReadingSizeCard />
-
-        {/* Sign out */}
-        <section
-          className="pt-4 border-t"
-          style={{ borderColor: "hsl(var(--border))" }}
-        >
-          <Button variant="eden-outline" onClick={() => signOut()}>
-            Sign out
-          </Button>
-        </section>
-      </div>
-    </section>
+            <Button variant="eden-outline" onClick={() => signOut()}>
+              Sign out
+            </Button>
+          </section>
+        </div>
+      </section>
+    </div>
   );
 }

@@ -5,6 +5,10 @@ import { PublicTierCard } from "@/components/apothecary/PublicTierCard";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
+import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
+// Hero botanical: sage (Salvia officinalis), Koehler 1887. Built at this
+// hero's aspect, 1600x640 for its ~1440x640 with the panel at desktop.
+import heroStart from "@/assets/hero-start.jpg";
 
 /**
  * Public tier-select landing page (`/apothecary/start`).
@@ -43,51 +47,50 @@ export default function Start() {
   return (
     <div>
       {/* Hero */}
-      <section
+      <BotanicalHero
+        image={heroStart}
         className="py-16 md:py-24 px-6"
-        style={{ backgroundColor: "hsl(var(--eden-cream))" }}
+        panelClassName="max-w-4xl text-center"
       >
-        <div className="max-w-4xl mx-auto text-center">
-          <p
-            className="font-accent text-xs tracking-[0.3em] uppercase mb-4"
-            style={{ color: "hsl(var(--eden-gold-ink))" }}
-          >
-            Eden Apothecary
-          </p>
-          <h1
-            className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6"
-            style={{ color: "hsl(var(--eden-bark))" }}
-          >
-            A clinical reasoning app,{" "}
-            <span className="italic">not a symptom index.</span>
-          </h1>
-          <p className="font-body text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-8">
-            One hundred herbs anchored to body patterns, tissue states, and
-            stewardship, taught the way the body actually organizes itself.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button variant="eden" size="lg" asChild>
-              <Link to={ROUTES.ASSESSMENT} data-cta="start-quiz-hero">
-                Take the 2-Minute Quiz
-              </Link>
-            </Button>
-            <Button variant="eden-outline" size="lg" asChild>
-              <a href="#tiers" data-cta="start-see-plans">See the plans</a>
-            </Button>
-          </div>
-          <p className="font-body text-xs text-muted-foreground mt-4">
-            No account needed to start. Free for as long as you'd like.
-            Already have an account?{" "}
-            <Link
-              to={ROUTES.APOTHECARY_SIGNIN}
-              className="underline underline-offset-4 hover:text-foreground transition-colors"
-            >
-              Sign in
+        <p
+          className="font-accent text-xs tracking-[0.3em] uppercase mb-4"
+          style={{ color: "hsl(var(--eden-gold-ink))" }}
+        >
+          Eden Apothecary
+        </p>
+        <h1
+          className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6"
+          style={{ color: "hsl(var(--eden-bark))" }}
+        >
+          A clinical reasoning app,{" "}
+          <span className="italic">not a symptom index.</span>
+        </h1>
+        <p className="font-body text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-8">
+          One hundred herbs anchored to body patterns, tissue states, and
+          stewardship, taught the way the body actually organizes itself.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Button variant="eden" size="lg" asChild>
+            <Link to={ROUTES.ASSESSMENT} data-cta="start-quiz-hero">
+              Take the 2-Minute Quiz
             </Link>
-            .
-          </p>
+          </Button>
+          <Button variant="eden-outline" size="lg" asChild>
+            <a href="#tiers" data-cta="start-see-plans">See the plans</a>
+          </Button>
         </div>
-      </section>
+        <p className="font-body text-xs text-muted-foreground mt-4">
+          No account needed to start. Free for as long as you'd like.
+          Already have an account?{" "}
+          <Link
+            to={ROUTES.APOTHECARY_SIGNIN}
+            className="underline underline-offset-4 hover:text-foreground transition-colors"
+          >
+            Sign in
+          </Link>
+          .
+        </p>
+      </BotanicalHero>
 
       {/* Product peek */}
       <section

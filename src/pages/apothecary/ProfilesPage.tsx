@@ -12,6 +12,10 @@ import {
 import { useCurrentTier, type Tier } from "@/hooks/useCurrentTier";
 import { ProfileFormDialog } from "@/components/apothecary/ProfileFormDialog";
 import { resolveEdenPattern, PATTERN_PROFILES } from "@/lib/edenPattern";
+import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
+// Hero botanical: linden (Tilia), Koehler 1887. Built at this hero's aspect,
+// 1600x300 for its ~1440x280 with the panel at desktop.
+import heroProfiles from "@/assets/hero-profiles.jpg";
 
 // Tier-cap restructure v2 (2026-04-30) — mirror of
 // public.person_profile_cap_for_tier(tier text) in the corresponding
@@ -169,114 +173,122 @@ function ProfilesPageContent() {
   });
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10">
-      <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
-        <div>
-          <h1 className="font-serif text-3xl font-semibold">
-            {tier === "practitioner" ? "Patient profiles" : "Family profiles"}
-          </h1>
-          <p className="font-body text-sm text-muted-foreground mt-1">
-            {profiles.length} of {cap} profile{cap === 1 ? "" : "s"} used.
-            Pattern-quiz results land on each profile automatically.
-          </p>
-        </div>
-        <Button
-          variant="eden"
-          disabled={!canAddMore}
-          onClick={() => setShowAddForm(true)}
-          className="min-h-[44px] shrink-0"
-        >
-          <Plus className="w-4 h-4 mr-1.5" />
-          {canAddMore ? "Add profile" : `Cap reached (${cap})`}
-        </Button>
-      </header>
-
-      {profiles.length === 0 ? (
-        <div
-          className="rounded-lg border border-dashed border-border/60 bg-card p-10 text-center"
-          style={{ borderColor: "hsl(var(--eden-bark) / 0.2)" }}
-        >
-          <h2 className="font-serif text-lg font-semibold">No profiles yet</h2>
-          <p className="font-body text-sm text-muted-foreground mt-2 max-w-md mx-auto">
-            {tier === "practitioner"
-              ? "Start by adding yourself or your first patient. Each patient gets their own profile so the directory can match herbs to their specific terrain."
-              : "Start by adding yourself. Each family member gets their own profile so the directory can match herbs to their specific terrain."}
-          </p>
+    <div>
+      <BotanicalHero
+        image={heroProfiles}
+        className="py-10 md:py-12 px-6"
+        panelClassName="max-w-4xl"
+      >
+        <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <h1 className="font-serif text-3xl font-semibold">
+              {tier === "practitioner" ? "Patient profiles" : "Family profiles"}
+            </h1>
+            <p className="font-body text-sm text-muted-foreground mt-1">
+              {profiles.length} of {cap} profile{cap === 1 ? "" : "s"} used.
+              Pattern-quiz results land on each profile automatically.
+            </p>
+          </div>
           <Button
             variant="eden"
+            disabled={!canAddMore}
             onClick={() => setShowAddForm(true)}
-            className="mt-5 min-h-[44px]"
+            className="min-h-[44px] shrink-0"
           >
             <Plus className="w-4 h-4 mr-1.5" />
-            Add your profile
+            {canAddMore ? "Add profile" : `Cap reached (${cap})`}
           </Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {profiles.map((p) => (
-            <ProfileCard
-              key={p.id}
-              profile={p}
-              onEdit={() => setEditingProfile(p)}
-              onDelete={() => setDeletingProfile(p)}
-            />
-          ))}
-        </div>
-      )}
+        </header>
+      </BotanicalHero>
 
-      <ProfileFormDialog
-        open={showAddForm}
-        onClose={() => setShowAddForm(false)}
-        mode="create"
-      />
-      {editingProfile && (
-        <ProfileFormDialog
-          open={true}
-          onClose={() => setEditingProfile(null)}
-          mode="edit"
-          profile={editingProfile}
-        />
-      )}
-
-      {/* Delete confirmation */}
-      {deletingProfile && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
-          onClick={() => !deleteMutation.isPending && setDeletingProfile(null)}
-        >
+      <div className="max-w-4xl mx-auto px-6 py-10">
+        {profiles.length === 0 ? (
           <div
-            className="bg-card rounded-lg border border-border p-6 max-w-md w-full mx-4"
-            onClick={(e) => e.stopPropagation()}
+            className="rounded-lg border border-dashed border-border/60 bg-card p-10 text-center"
+            style={{ borderColor: "hsl(var(--eden-bark) / 0.2)" }}
           >
-            <h3 className="font-serif text-lg font-semibold">
-              Delete profile?
-            </h3>
-            <p className="font-body text-sm text-muted-foreground mt-2">
-              This permanently removes <strong>{deletingProfile.name}</strong>{" "}
-              and any diagnostic data attached to this profile. Cannot be
-              undone.
+            <h2 className="font-serif text-lg font-semibold">No profiles yet</h2>
+            <p className="font-body text-sm text-muted-foreground mt-2 max-w-md mx-auto">
+              {tier === "practitioner"
+                ? "Start by adding yourself or your first patient. Each patient gets their own profile so the directory can match herbs to their specific terrain."
+                : "Start by adding yourself. Each family member gets their own profile so the directory can match herbs to their specific terrain."}
             </p>
-            <div className="mt-5 flex items-center justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setDeletingProfile(null)}
-                disabled={deleteMutation.isPending}
-                className="min-h-[44px]"
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => deleteMutation.mutate(deletingProfile.id)}
-                disabled={deleteMutation.isPending}
-                className="min-h-[44px]"
-              >
-                {deleteMutation.isPending ? "Deleting…" : "Delete profile"}
-              </Button>
+            <Button
+              variant="eden"
+              onClick={() => setShowAddForm(true)}
+              className="mt-5 min-h-[44px]"
+            >
+              <Plus className="w-4 h-4 mr-1.5" />
+              Add your profile
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {profiles.map((p) => (
+              <ProfileCard
+                key={p.id}
+                profile={p}
+                onEdit={() => setEditingProfile(p)}
+                onDelete={() => setDeletingProfile(p)}
+              />
+            ))}
+          </div>
+        )}
+
+        <ProfileFormDialog
+          open={showAddForm}
+          onClose={() => setShowAddForm(false)}
+          mode="create"
+        />
+        {editingProfile && (
+          <ProfileFormDialog
+            open={true}
+            onClose={() => setEditingProfile(null)}
+            mode="edit"
+            profile={editingProfile}
+          />
+        )}
+
+        {/* Delete confirmation */}
+        {deletingProfile && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+            onClick={() => !deleteMutation.isPending && setDeletingProfile(null)}
+          >
+            <div
+              className="bg-card rounded-lg border border-border p-6 max-w-md w-full mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="font-serif text-lg font-semibold">
+                Delete profile?
+              </h3>
+              <p className="font-body text-sm text-muted-foreground mt-2">
+                This permanently removes <strong>{deletingProfile.name}</strong>{" "}
+                and any diagnostic data attached to this profile. Cannot be
+                undone.
+              </p>
+              <div className="mt-5 flex items-center justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setDeletingProfile(null)}
+                  disabled={deleteMutation.isPending}
+                  className="min-h-[44px]"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => deleteMutation.mutate(deletingProfile.id)}
+                  disabled={deleteMutation.isPending}
+                  className="min-h-[44px]"
+                >
+                  {deleteMutation.isPending ? "Deleting…" : "Delete profile"}
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
