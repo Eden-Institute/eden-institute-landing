@@ -185,6 +185,19 @@ export async function setContactProperties(
   }
 }
 
+/** Read one contact back from Resend (GET /contacts/{email}); for verification, never throws. */
+export async function getContact(email: string): Promise<{ status: number; contact: unknown }> {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized || !RESEND_CONTACTS_KEY) return { status: 0, contact: null };
+  try {
+    const res = await fetch(`${API}/contacts/${encodeURIComponent(normalized)}`, { headers: authHeaders() });
+    const body = await res.json().catch(() => null);
+    return { status: res.status, contact: body };
+  } catch (err) {
+    return { status: 0, contact: err instanceof Error ? err.message : String(err) };
+  }
+}
+
 export interface EnsurePropertiesResult {
   created: string[];
   existing: string[];
