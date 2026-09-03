@@ -3,6 +3,10 @@ import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 import { PUBLIC_TIERS, type PublicTierSpec } from "@/lib/apothecaryTiers";
+// Botanical band, same treatment as the heroes in #433: a full-colour plate at
+// 95% multiply with the content on a 92% white panel, which is what keeps the
+// type legible over artwork. Used only by ApothecaryWelcome.
+import bandPricing from "@/assets/band-pricing.jpg";
 
 interface TierCardProps {
   tier: PublicTierSpec;
@@ -160,10 +164,17 @@ export function TierComparison({
   return (
     <section
       id="tiers"
-      className="py-16 md:py-20 px-6"
+      className="relative overflow-hidden py-16 md:py-20 px-6"
       style={{ backgroundColor: bgColor }}
     >
-      <div className="max-w-6xl mx-auto">
+      <img
+        src={bandPricing}
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+        style={{ opacity: 0.95, mixBlendMode: "multiply" }}
+      />
+      <div className="relative z-10 max-w-6xl mx-auto">
         <div className="text-center mb-10 md:mb-12">
           <p
             className="font-accent text-sm tracking-[0.3em] uppercase mb-3"
