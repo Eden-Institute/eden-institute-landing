@@ -19,6 +19,11 @@ import {
 } from "@/components/apothecary/HerbDirectoryFilters";
 import { DirectorySkeleton } from "@/components/apothecary/DirectorySkeleton";
 import { ApothecaryDisclaimer } from "@/components/apothecary/ApothecaryDisclaimer";
+import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
+// Hero botanical: the same elderberry plate as the signed-out /apothecary hero
+// (#436, Koehler 1887), so the page keeps one identity in both states. Built
+// at THIS hero's aspect, 1600x520 for its ~1440x480 with the panel at desktop.
+import heroHome from "@/assets/hero-apothecary-home.jpg";
 
 import { ROUTES } from "@/lib/routes";
 
@@ -442,71 +447,66 @@ export default function ApothecaryHome() {
 
   return (
     <div>
-      <section
-        className="py-12 md:py-16 px-6"
-        style={{ backgroundColor: "hsl(var(--eden-cream))" }}
-      >
-        <div className="max-w-5xl mx-auto">
+      <BotanicalHero image={heroHome} panelClassName="max-w-5xl">
+        <p
+          className="font-accent text-xs tracking-[0.3em] uppercase mb-4"
+          style={{ color: "hsl(var(--eden-gold-ink))" }}
+        >
+          Eden Apothecary
+        </p>
+        <h1
+          className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-4"
+          style={{ color: "hsl(var(--eden-bark))" }}
+        >
+          Materia medica, <span className="italic">terrain-first.</span>
+        </h1>
+        <p className="font-body text-base md:text-lg text-muted-foreground max-w-2xl leading-relaxed">
+          {subtitle}
+        </p>
+        {tierBadge && (
           <p
-            className="font-accent text-xs tracking-[0.3em] uppercase mb-4"
-            style={{ color: "hsl(var(--eden-gold))" }}
+            className="font-accent text-[11px] tracking-[0.25em] uppercase mt-5"
+            style={{ color: "hsl(var(--eden-gold-ink))" }}
           >
-            Eden Apothecary
+            Viewing as {tierBadge}
+            {activePattern && (
+              <span className="ml-2 text-muted-foreground">
+                · Your Pattern: {activePattern}
+              </span>
+            )}
           </p>
-          <h1
-            className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-4"
+        )}
+        {/* Practitioner home entry point: the nav's Clinic link is
+            desktop-only chrome, so the hero carries a tap-friendly door
+            into the paid workspace on every viewport. */}
+        {tier === "practitioner" && (
+          <div className="mt-5">
+            <Button variant="eden" size="sm" asChild data-cta="home-clinic">
+              <Link to={ROUTES.PRACTITIONER_CLINIC}>Open your Clinic</Link>
+            </Button>
+          </div>
+        )}
+        {/* CRO Phase 3: exposure progress. Denominator is the live
+            directory count for numeric consistency with the "{visible}
+            of {total} herbs" line in the filter panel below. */}
+        {studiedCount > 0 && (
+          <p
+            className="font-body text-sm mt-4"
             style={{ color: "hsl(var(--eden-bark))" }}
           >
-            Materia medica, <span className="italic">terrain-first.</span>
-          </h1>
-          <p className="font-body text-base md:text-lg text-muted-foreground max-w-2xl leading-relaxed">
-            {subtitle}
+            You've studied{" "}
+            <span className="font-medium">{studiedCount}</span> of{" "}
+            {herbs.length} herbs.
+            {patternShort && unexploredMatches > 0 && (
+              <span className="text-muted-foreground">
+                {" "}
+                Your {patternShort} matches {unexploredMatches} more you
+                haven't opened.
+              </span>
+            )}
           </p>
-          {tierBadge && (
-            <p
-              className="font-accent text-[11px] tracking-[0.25em] uppercase mt-5"
-              style={{ color: "hsl(var(--eden-gold))" }}
-            >
-              Viewing as {tierBadge}
-              {activePattern && (
-                <span className="ml-2 text-muted-foreground">
-                  · Your Pattern: {activePattern}
-                </span>
-              )}
-            </p>
-          )}
-          {/* Practitioner home entry point: the nav's Clinic link is
-              desktop-only chrome, so the hero carries a tap-friendly door
-              into the paid workspace on every viewport. */}
-          {tier === "practitioner" && (
-            <div className="mt-5">
-              <Button variant="eden" size="sm" asChild data-cta="home-clinic">
-                <Link to={ROUTES.PRACTITIONER_CLINIC}>Open your Clinic</Link>
-              </Button>
-            </div>
-          )}
-          {/* CRO Phase 3: exposure progress. Denominator is the live
-              directory count for numeric consistency with the "{visible}
-              of {total} herbs" line in the filter panel below. */}
-          {studiedCount > 0 && (
-            <p
-              className="font-body text-sm mt-4"
-              style={{ color: "hsl(var(--eden-bark))" }}
-            >
-              You've studied{" "}
-              <span className="font-medium">{studiedCount}</span> of{" "}
-              {herbs.length} herbs.
-              {patternShort && unexploredMatches > 0 && (
-                <span className="text-muted-foreground">
-                  {" "}
-                  Your {patternShort} matches {unexploredMatches} more you
-                  haven't opened.
-                </span>
-              )}
-            </p>
-          )}
-        </div>
-      </section>
+        )}
+      </BotanicalHero>
 
       <section className="px-6">
         <div className="max-w-6xl mx-auto pt-8">

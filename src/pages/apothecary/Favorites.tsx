@@ -11,6 +11,10 @@ import { ApothecaryDisclaimer } from "@/components/apothecary/ApothecaryDisclaim
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
+import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
+// Hero botanical: cabbage rose (Rosa centifolia), Koehler 1887. Built at this
+// hero's aspect, 1600x400 for its ~1440x390 with the panel at desktop.
+import heroFavorites from "@/assets/hero-favorites.jpg";
 
 /**
  * /apothecary/favorites — active-profile save-favorites listing surface.
@@ -88,33 +92,28 @@ function FavoritesContent() {
 
   return (
     <div>
-      <section
-        className="py-12 md:py-16 px-6"
-        style={{ backgroundColor: "hsl(var(--eden-cream))" }}
-      >
-        <div className="max-w-5xl mx-auto">
-          <p
-            className="font-accent text-xs tracking-[0.3em] uppercase mb-4"
-            style={{ color: "hsl(var(--eden-gold))" }}
-          >
-            Saved herbs
-          </p>
-          <h1
-            className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-4"
-            style={{ color: "hsl(var(--eden-bark))" }}
-          >
-            Herbs you're coming back to.
-          </h1>
-          {/* Tier-honest: free lists are device-local localStorage, not
-              profile rows — saying "profile" to a free user promises
-              cross-device persistence they don't have. */}
-          <p className="font-body text-base md:text-lg text-muted-foreground max-w-2xl leading-relaxed">
-            {isSubscriber
-              ? "Saved to this profile. Pattern-aware, your match badges still apply. Tap the heart on any card to remove it."
-              : "Saved on this device. Pattern-aware, your match badges still apply. Tap the heart on any card to remove it."}
-          </p>
-        </div>
-      </section>
+      <BotanicalHero image={heroFavorites} panelClassName="max-w-5xl">
+        <p
+          className="font-accent text-xs tracking-[0.3em] uppercase mb-4"
+          style={{ color: "hsl(var(--eden-gold-ink))" }}
+        >
+          Saved herbs
+        </p>
+        <h1
+          className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-4"
+          style={{ color: "hsl(var(--eden-bark))" }}
+        >
+          Herbs you're coming back to.
+        </h1>
+        {/* Tier-honest: free lists are device-local localStorage, not
+            profile rows — saying "profile" to a free user promises
+            cross-device persistence they don't have. */}
+        <p className="font-body text-base md:text-lg text-muted-foreground max-w-2xl leading-relaxed">
+          {isSubscriber
+            ? "Saved to this profile. Pattern-aware, your match badges still apply. Tap the heart on any card to remove it."
+            : "Saved on this device. Pattern-aware, your match badges still apply. Tap the heart on any card to remove it."}
+        </p>
+      </BotanicalHero>
 
       <section className="px-6 py-10">
         <div className="max-w-6xl mx-auto">

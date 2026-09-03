@@ -14,6 +14,11 @@ import { computeMatchRelationship } from "@/lib/edenPattern";
 import { findHerbByParam, herbParam, HERB_ALIASES } from "@/lib/herbLinks";
 import { ROUTES } from "@/lib/routes";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
+import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
+// Header botanical: juniper (Juniperus communis), Koehler 1887. Deliberately
+// a fine, neutral texture so it never competes with the herb being read.
+// Built at this header's aspect, 1600x480 for its ~1440x460 with the panel.
+import heroMonograph from "@/assets/hero-monograph.jpg";
 
 /**
  * HerbMonograph — the public per-herb page at /apothecary/:herbId
@@ -176,11 +181,12 @@ export default function HerbMonograph() {
   return (
     <div>
       {/* ── Identity header (Band 1 — always present) ── */}
-      <section
+      <BotanicalHero
+        image={heroMonograph}
         className="py-10 md:py-14 px-6"
-        style={{ backgroundColor: "hsl(var(--eden-cream))" }}
+        panelClassName="max-w-3xl"
       >
-        <div className="max-w-3xl mx-auto relative">
+        <div className="relative">
           {/* Heart sits absolute top-right of this relative container.
               Locked rows get no heart — the lock owns that slot, matching
               HerbCard. */}
@@ -198,7 +204,7 @@ export default function HerbMonograph() {
           </Link>
           <p
             className="font-accent text-xs tracking-[0.3em] uppercase mb-3"
-            style={{ color: "hsl(var(--eden-gold))" }}
+            style={{ color: "hsl(var(--eden-gold-ink))" }}
           >
             Herb monograph
           </p>
@@ -313,7 +319,7 @@ export default function HerbMonograph() {
             </div>
           )}
         </div>
-      </section>
+      </BotanicalHero>
 
       <div className="max-w-3xl mx-auto px-6 py-10 space-y-10">
         {complaintNames.length > 0 && (

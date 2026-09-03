@@ -10,6 +10,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { trackCta } from "@/lib/trackCta";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
+import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
+// Hero botanical: lemon balm, the same plate as the pricing band on the
+// signed-out /apothecary page (#440). Koehler 1887. Built at this hero's
+// aspect, 1600x500 for its ~1440x480 with the panel at desktop.
+import heroPricing from "@/assets/hero-pricing.jpg";
 
 import { getFbAttribution } from "@/lib/fbAttribution";
 type BillingCycle = "monthly" | "yearly";
@@ -104,32 +109,31 @@ export default function Pricing() {
           Resuming your checkout…
         </div>
       )}
-      <section
+      <BotanicalHero
+        image={heroPricing}
         className="py-16 md:py-20 px-6"
-        style={{ backgroundColor: "hsl(var(--eden-cream))" }}
+        panelClassName="max-w-4xl text-center"
       >
-        <div className="max-w-4xl mx-auto text-center">
-          <p
-            className="font-accent text-sm tracking-[0.3em] uppercase mb-4"
-            style={{ color: "hsl(var(--eden-gold-ink))" }}
-          >
-            Choose your plan
-          </p>
-          <h1
-            className="font-serif text-4xl md:text-5xl font-bold leading-tight mb-6"
-            style={{ color: "hsl(var(--eden-bark))" }}
-          >
-            App plans for every stage
-            <br />
-            <span className="italic">of the practice.</span>
-          </h1>
-          <p className="font-body text-lg text-muted-foreground max-w-2xl mx-auto">
-            Free access to the herb directory and the Pattern quiz. Paid
-            tiers open the full clinical depth: actions, tissue states, and
-            contraindications for every herb.
-          </p>
-        </div>
-      </section>
+        <p
+          className="font-accent text-sm tracking-[0.3em] uppercase mb-4"
+          style={{ color: "hsl(var(--eden-gold-ink))" }}
+        >
+          Choose your plan
+        </p>
+        <h1
+          className="font-serif text-4xl md:text-5xl font-bold leading-tight mb-6"
+          style={{ color: "hsl(var(--eden-bark))" }}
+        >
+          App plans for every stage
+          <br />
+          <span className="italic">of the practice.</span>
+        </h1>
+        <p className="font-body text-lg text-muted-foreground max-w-2xl mx-auto">
+          Free access to the herb directory and the Pattern quiz. Paid
+          tiers open the full clinical depth: actions, tissue states, and
+          contraindications for every herb.
+        </p>
+      </BotanicalHero>
 
       <section className="py-12 px-6 bg-background">
         <div className="max-w-5xl mx-auto">

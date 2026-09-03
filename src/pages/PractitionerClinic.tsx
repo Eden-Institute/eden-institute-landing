@@ -20,6 +20,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
+import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
+// Header botanical: wormwood (Artemisia absinthium), Koehler 1887, the
+// dispensary bitter. Built at this band's aspect, 1600x260 for its ~1440x240
+// with the panel at desktop. Hidden in print with the rest of the chrome.
+import heroClinic from "@/assets/hero-clinic.jpg";
 
 const EF_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/practitioner-clinical`;
 
@@ -315,9 +320,13 @@ export default function PractitionerClinic() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8 print:p-0">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-baseline justify-between mb-6 print:hidden">
+    <div className="min-h-screen bg-background">
+      <BotanicalHero
+        image={heroClinic}
+        className="py-8 md:py-10 px-4 md:px-8 print:hidden"
+        panelClassName="max-w-6xl"
+      >
+        <div className="flex items-baseline justify-between">
           <div>
             <h1 className="font-display text-2xl">Practitioner clinic</h1>
             <p className="font-body text-xs text-muted-foreground">
@@ -326,6 +335,10 @@ export default function PractitionerClinic() {
             </p>
           </div>
         </div>
+      </BotanicalHero>
+      {/* box-content keeps the 6xl content width the page had when the
+          padding lived on the root. */}
+      <div className="max-w-6xl mx-auto box-content p-4 md:p-8 print:p-0">
 
         {error && (
           <p className="font-body text-sm text-destructive mb-4 print:hidden">{error}
