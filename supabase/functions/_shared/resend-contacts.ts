@@ -198,6 +198,123 @@ export async function getContact(email: string): Promise<{ status: number; conta
   }
 }
 
+// ── Segments ────────────────────────────────────────────────────────────────
+// Resend Segments are STATIC membership groups (verified in the dashboard
+// 2026-09-03: "Create segment" asks for a name only and a new segment is empty;
+// the Segments API takes a name only). There is no filter builder, so the
+// "segments built from properties" the roadmap asks for are maintained by code:
+// contact-properties-sync derives the wanted set from the same computed row and
+// calls POST / DELETE /contacts/{email}/segments/{segmentId} for the difference.
+// Segment names below are the ones a human sees in the dashboard.
+
+export interface SegmentRule {
+  name: string;
+  test: (p: ContactProperties) => boolean;
+}
+
+export const SEGMENT_RULES: readonly SegmentRule[] = [
+  { name: 'Sprouts families', test: (p) => p.band === 'sprouts' || p.band === 'both' },
+  { name: 'Seedlings families', test: (p) => p.band === 'seedlings' || p.band === 'both' },
+  { name: 'Buyers', test: (p) => p.purchase_status === 'purchased' || p.purchase_status === 'preordered' },
+  {
+    name: 'Starter buyers, no preorder',
+    test: (p) => p.purchase_status === 'purchased' && p.funnel === 'edens_table',
+  },
+  { name: 'Cold contacts', test: (p) => p.engagement_tier === 'cold' },
+  { name: 'Quiz completed', test: (p) => p.quiz_status === 'completed' },
+];
+
+/** Sorted list of segment names a contact with these properties belongs in. */
+export function desiredSegments(props: ContactProperties): string[] {
+  return SEGMENT_RULES.filter((r) => r.test(props)).map((r) => r.name).sort();
+}
+
+/** name -> id for every segment on the team (paginated). Throws on a non-2xx. */
+export async function listSegments(): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  let after: string | null = null;
+  for (let page = 0; page < 20; page++) {
+    const url = `${API}/segments?limit=100${after ? `&after=${encodeURIComponent(after)}` : ''}`;
+    const res = await fetch(url, { headers: authHeaders() });
+    if (!res.ok) throw new Error(`GET /segments ${res.status}: ${await readBody(res)}`);
+    const data = await res.json() as { data?: Array<{ id?: string; name?: string }>; has_more?: boolean };
+    const rows = data.data ?? [];
+    for (const s of rows) if (s.id && s.name) out.set(s.name, s.id);
+    if (!data.has_more || rows.length === 0) break;
+    after = String(rows[rows.length - 1].id);
+  }
+  return out;
+}
+
+/** Make sure every named segment exists; returns name -> id. Never throws. */
+export async function ensureSegments(
+  names: readonly string[],
+): Promise<{ ids: Map<string, string>; created: string[]; failed: { name: string; status: number; body: string }[] }> {
+  const created: string[] = [];
+  const failed: { name: string; status: number; body: string }[] = [];
+  let ids = new Map<string, string>();
+  try {
+    ids = await listSegments();
+  } catch (err) {
+    failed.push({ name: '*list*', status: 0, body: err instanceof Error ? err.message : String(err) });
+    return { ids, created, failed };
+  }
+  for (const name of names) {
+    if (ids.has(name)) continue;
+    try {
+      const res = await fetch(`${API}/segments`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ name }),
+      });
+      const body = await res.json().catch(() => null) as { id?: string } | null;
+      if (res.ok && body?.id) {
+        ids.set(name, body.id);
+        created.push(name);
+      } else {
+        failed.push({ name, status: res.status, body: JSON.stringify(body).slice(0, 200) });
+      }
+    } catch (err) {
+      failed.push({ name, status: 0, body: err instanceof Error ? err.message : String(err) });
+    }
+  }
+  return { ids, created, failed };
+}
+
+/** POST /contacts/{email}/segments/{id}. Already a member counts as ok. Never throws. */
+export async function addContactToSegment(email: string, segmentId: string): Promise<PropertyWriteResult> {
+  try {
+    const res = await fetch(
+      `${API}/contacts/${encodeURIComponent(email.trim().toLowerCase())}/segments/${segmentId}`,
+      { method: 'POST', headers: authHeaders() },
+    );
+    if (res.ok || res.status === 409) {
+      await res.body?.cancel();
+      return { ok: true, status: res.status, action: 'patched' };
+    }
+    return { ok: false, status: res.status, action: 'failed', error: await readBody(res) };
+  } catch (err) {
+    return { ok: false, status: 0, action: 'failed', error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+/** DELETE /contacts/{email}/segments/{id}. Not a member (404) counts as ok. Never throws. */
+export async function removeContactFromSegment(email: string, segmentId: string): Promise<PropertyWriteResult> {
+  try {
+    const res = await fetch(
+      `${API}/contacts/${encodeURIComponent(email.trim().toLowerCase())}/segments/${segmentId}`,
+      { method: 'DELETE', headers: authHeaders() },
+    );
+    if (res.ok || res.status === 404) {
+      await res.body?.cancel();
+      return { ok: true, status: res.status, action: 'patched' };
+    }
+    return { ok: false, status: res.status, action: 'failed', error: await readBody(res) };
+  } catch (err) {
+    return { ok: false, status: 0, action: 'failed', error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
 export interface EnsurePropertiesResult {
   created: string[];
   existing: string[];

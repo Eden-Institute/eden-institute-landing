@@ -16,6 +16,13 @@
 //   { "mode": "preview" }                        counts per value + delta size, NO writes
 //   { "mode": "ensure_properties" }              create the six property keys on Resend
 //   { "mode": "get",   "email": "a@b.c" }        read the contact back from Resend (verification)
+//   { "mode": "ensure_segments" }                create the SEGMENT_RULES segments on Resend
+//
+// Segment membership (static Resend segments, see _shared/resend-contacts.ts
+// SEGMENT_RULES) is maintained in the same pass: the wanted set is derived from
+// the computed row, diffed against resend_contact_state.segments, and the
+// difference is pushed with add/remove calls. A property hash change is what
+// makes a row due, and every membership change implies one.
 //   { "mode": "sync",  "batch": 100 }            write up to `batch` changed contacts (max 120)
 //   { "mode": "full",  "batch": 100 }            same, ignoring the stored hash (backfill)
 //   { "mode": "sync",  "email": "a@b.c" }        force one contact, ignoring the hash
@@ -32,8 +39,13 @@
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
 import {
   CONTACT_PROPERTY_KEYS,
+  SEGMENT_RULES,
+  addContactToSegment,
+  desiredSegments,
   ensureContactProperties,
+  ensureSegments,
   getContact,
+  removeContactFromSegment,
   setContactProperties,
   type ContactProperties,
 } from '../_shared/resend-contacts.ts';
@@ -103,6 +115,7 @@ interface ComputedRow {
 interface StateRow {
   email: string;
   state_hash: string;
+  segments: string[] | null;
 }
 
 function propsOf(row: ComputedRow): ContactProperties {
@@ -114,6 +127,13 @@ function propsOf(row: ComputedRow): ContactProperties {
     quiz_status: row.quiz_status,
     engagement_tier: row.engagement_tier,
   };
+}
+
+function sameStringSet(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  const sa = [...a].sort();
+  const sb = [...b].sort();
+  return sa.every((v, i) => v === sb[i]);
 }
 
 function hashOf(row: ComputedRow): string {
@@ -133,7 +153,7 @@ function distribution(rows: ComputedRow[]): Record<string, Record<string, number
   return out;
 }
 
-async function upsertState(row: ComputedRow, hash: string, status: number, error: string | null): Promise<void> {
+async function upsertState(row: ComputedRow, hash: string, status: number, error: string | null, segments: string[]): Promise<void> {
   const res = await rest('resend_contact_state?on_conflict=email', {
     method: 'POST',
     headers: { Prefer: 'return=minimal,resolution=merge-duplicates' },
@@ -146,6 +166,7 @@ async function upsertState(row: ComputedRow, hash: string, status: number, error
       quiz_status: row.quiz_status,
       engagement_tier: row.engagement_tier,
       state_hash: hash,
+      segments,
       synced_at: new Date().toISOString(),
       last_status: status,
       last_error: error,
@@ -181,6 +202,15 @@ Deno.serve(async (req) => {
       const result = await ensureContactProperties();
       return json(result.failed.length ? 502 : 200, { mode, ...result });
     }
+    if (mode === 'ensure_segments') {
+      const result = await ensureSegments(SEGMENT_RULES.map((r) => r.name));
+      return json(result.failed.length ? 502 : 200, {
+        mode,
+        segments: Object.fromEntries(result.ids),
+        created: result.created,
+        failed: result.failed,
+      });
+    }
 
     if (mode === 'get') {
       if (!onlyEmail) return json(400, { error: 'email required for mode get' });
@@ -194,7 +224,7 @@ Deno.serve(async (req) => {
     const computed = await fetchAll<ComputedRow>(computedPath);
 
     if (mode === 'preview') {
-      const state = await fetchAll<StateRow>('resend_contact_state?select=email,state_hash');
+      const state = await fetchAll<StateRow>('resend_contact_state?select=email,state_hash,segments');
       const known = new Map(state.map((s) => [s.email, s.state_hash]));
       const delta = computed.filter((r) => known.get(r.email) !== hashOf(r)).length;
       return json(200, {
@@ -208,19 +238,36 @@ Deno.serve(async (req) => {
 
     if (mode !== 'sync' && mode !== 'full') return json(400, { error: `unknown mode '${mode}'` });
 
+    const state = await fetchAll<StateRow>('resend_contact_state?select=email,state_hash,segments');
+    const knownHash = new Map(state.map((s) => [s.email, s.state_hash]));
+    const knownSegments = new Map(state.map((s) => [s.email, s.segments ?? []]));
     let due: ComputedRow[];
     if (mode === 'full' || onlyEmail) {
       due = computed;
     } else {
-      const state = await fetchAll<StateRow>('resend_contact_state?select=email,state_hash');
-      const known = new Map(state.map((s) => [s.email, s.state_hash]));
-      due = computed.filter((r) => known.get(r.email) !== hashOf(r));
+      // Due when the property hash changed OR the recorded segment membership
+      // no longer matches what the rules want (self-healing for membership).
+      due = computed.filter((r) =>
+        knownHash.get(r.email) !== hashOf(r) ||
+        !sameStringSet(knownSegments.get(r.email) ?? [], desiredSegments(propsOf(r)))
+      );
+    }
+
+    // Segment ids, resolved once per run (creating any that are missing).
+    let segmentIds = new Map<string, string>();
+    if (due.length > 0) {
+      const ensured = await ensureSegments(SEGMENT_RULES.map((r) => r.name));
+      segmentIds = ensured.ids;
+      if (ensured.failed.length) console.error('ensureSegments failures', JSON.stringify(ensured.failed));
     }
 
     const slice = due.slice(0, batch);
     let ok = 0;
     let failed = 0;
     let created = 0;
+    let segmentAdds = 0;
+    let segmentRemoves = 0;
+    let segmentFailures = 0;
     const failures: Array<{ email: string; status: number; error?: string }> = [];
 
     for (const row of slice) {
@@ -232,12 +279,41 @@ Deno.serve(async (req) => {
       if (result.ok) {
         ok++;
         if (result.action === 'created') created++;
-        await upsertState(row, hash, result.status, null);
+
+        // Segment membership: push the difference between wanted and recorded.
+        const wanted = desiredSegments(propsOf(row));
+        const have = knownSegments.get(row.email) ?? [];
+        const nowHas = new Set(have);
+        let membershipClean = true;
+        for (const name of wanted) {
+          if (nowHas.has(name)) continue;
+          const id = segmentIds.get(name);
+          if (!id) { membershipClean = false; continue; }
+          const r = await addContactToSegment(row.email, id);
+          if (r.ok) { nowHas.add(name); segmentAdds++; } else { membershipClean = false; segmentFailures++; }
+          await new Promise((res) => setTimeout(res, 120));
+        }
+        for (const name of have) {
+          if (wanted.includes(name)) continue;
+          const id = segmentIds.get(name);
+          if (!id) { nowHas.delete(name); continue; }
+          const r = await removeContactFromSegment(row.email, id);
+          if (r.ok) { nowHas.delete(name); segmentRemoves++; } else { membershipClean = false; segmentFailures++; }
+          await new Promise((res) => setTimeout(res, 120));
+        }
+        // A membership miss keeps a FAILED hash so the row is retried next run.
+        await upsertState(
+          row,
+          membershipClean ? hash : `FAILED:segments:${new Date().toISOString()}`,
+          result.status,
+          membershipClean ? null : 'segment membership incomplete',
+          [...nowHas].sort(),
+        );
       } else {
         failed++;
         if (failures.length < 20) failures.push({ email: row.email, status: result.status, error: result.error });
         // A FAILED hash never equals a computed hash, so the row is retried next run.
-        await upsertState(row, `FAILED:${new Date().toISOString()}`, result.status, result.error ?? null);
+        await upsertState(row, `FAILED:${new Date().toISOString()}`, result.status, result.error ?? null, knownSegments.get(row.email) ?? []);
         // 429 = slow down for the rest of this run.
         if (result.status === 429) await new Promise((r) => setTimeout(r, 2000));
       }
@@ -252,6 +328,9 @@ Deno.serve(async (req) => {
       ok,
       created,
       failed,
+      segment_adds: segmentAdds,
+      segment_removes: segmentRemoves,
+      segment_failures: segmentFailures,
       remaining: Math.max(0, due.length - slice.length),
       failures,
     };
