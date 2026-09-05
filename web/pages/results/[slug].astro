@@ -1,0 +1,161 @@
+---
+// /results/:slug - pre-rendered Pattern pages (8 of them).
+//
+// These URLs were already in the sitemap and already carried the comment in
+// src/pages/Results.tsx that they are "intentionally URL-slug-driven for SEO,
+// one canonical URL per Pattern, indexable individually". They were not
+// indexable: the SPA rendered them client-side, so a crawler fetching
+// /results/frozen-knot received 4,693 bytes of app shell with the site-wide
+// default title. Verified on the live site 2026-09-05.
+//
+// KNOWN TRADE-OFF, deliberate: a static file at this path is served on a hard
+// load, so a SIGNED-IN reader no longer gets Results.tsx's active-profile
+// redirect (switch the profile picker to a person whose Pattern differs, hard
+// load someone else's Pattern URL, and this page will no longer bounce you to
+// your own). Anonymous visitors were never redirected by design, and they are
+// the entire audience this page exists to win. In-app client-side navigation
+// is untouched: React Router still handles links followed inside the SPA.
+//
+// Content is imported from src/lib/constitution-data.ts, the same module the
+// React page reads, so the two cannot drift.
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import { constitutionProfiles } from "@/lib/constitution-data";
+import { CONSTITUTION_MAP } from "@/lib/constitution-utils";
+import { herbParam } from "@/lib/herbLinks";
+import { getPublicHerbs, getHerbRoster } from "../../lib/herbsPublic";
+import { Button } from "@/components/ui/button";
+import heroMonograph from "@/assets/hero-monograph.jpg";
+
+export function getStaticPaths() {
+  return Object.entries(CONSTITUTION_MAP)
+    .filter(([type]) => !!constitutionProfiles[type])
+    .map(([type, { slug }]) => ({ params: { slug }, props: { type } }));
+}
+
+const { type } = Astro.props as { type: string };
+const { slug } = Astro.params as { slug: string };
+const profile = constitutionProfiles[type];
+const canonical = `https://edeninstitute.health/results/${slug}`;
+
+// Where each matched herb should link.
+//
+// Free-tier herbs have a pre-rendered /herbs/:slug profile. Seed-tier ones do
+// not, and must keep pointing into the app, which renders their locked preview
+// and the Seed CTA. Resolving both against the live roster at build time means
+// a tier change flows through on the next deploy with nothing to remember.
+//
+// An authored slug matching NEITHER is a broken link, and the build fails on
+// it rather than shipping one. That guard caught a real defect the day it was
+// written: constitution-data.ts carried herbSlug "bayberry" while the row is
+// "Bayberry (Wax Myrtle)" ("bayberry-wax-myrtle"), so The Still Water's
+// Bayberry link had been landing on the monograph not-found state in
+// production. Fixed in the same commit.
+const [publicHerbs, roster] = await Promise.all([getPublicHerbs(), getHerbRoster()]);
+const publicSlugs = new Set(publicHerbs.map((h) => herbParam(h)));
+const rosterSlugs = new Set(roster.map((h) => herbParam(h)));
+
+function herbHref(herbSlug: string): string {
+  if (publicSlugs.has(herbSlug)) return `/herbs/${herbSlug}`;
+  if (rosterSlugs.has(herbSlug)) return `/apothecary/${herbSlug}`;
+  throw new Error(
+    `results/[slug]: "${herbSlug}" (Pattern "${profile.nickname}") matches no herb in herbs_directory_v. ` +
+      "Fix the herbSlug in src/lib/constitution-data.ts; do not ship a link that lands on not-found.",
+  );
+}
+
+// Same strings the React page sets via useDocumentMeta, so the crawler and the
+// app agree on what this page is. (Em dash swapped for a middot per house style.)
+const title = `Your Body Pattern: ${profile.nickname} · The Eden Institute`;
+const description = `Your body pattern is ${profile.nickname} (${type}). ${profile.tagline} See the herbs that meet this pattern and how to begin.`;
+
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "https://edeninstitute.health/" },
+      { "@type": "ListItem", position: 2, name: "Assessment", item: "https://edeninstitute.health/assessment" },
+      { "@type": "ListItem", position: 3, name: profile.nickname, item: canonical },
+    ],
+  },
+];
+---
+
+<MarketingLayout title={title} description={description} canonical={canonical} ogType="article" jsonLd={jsonLd}>
+  <section class="relative overflow-hidden py-16 md:py-24 px-6" style="background-color:hsl(var(--eden-cream))">
+    <img
+      src={heroMonograph.src}
+      alt=""
+      aria-hidden="true"
+      class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+      style="opacity:0.9;mix-blend-mode:multiply"
+    />
+    <div
+      class="relative z-10 max-w-3xl mx-auto text-center rounded-lg"
+      style="background-color:hsl(0 0% 100% / 0.92);border:1px solid hsl(var(--eden-gold) / 0.35);padding:clamp(26px, 3.5vw, 52px);box-shadow:0 2px 18px -10px rgba(30,62,46,0.28)"
+    >
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-5" style="color:hsl(var(--eden-gold-ink))">
+        Body Pattern · {type}
+      </p>
+      <h1 class="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-5" style="color:hsl(var(--eden-bark))">
+        {profile.nickname}
+      </h1>
+      <p class="font-serif italic text-xl" style="color:hsl(var(--eden-forest))">{profile.tagline}</p>
+    </div>
+  </section>
+
+  <section class="py-14 px-6 bg-background">
+    <div class="max-w-3xl mx-auto space-y-14">
+      <div class="space-y-5">
+        {profile.description.map((paragraph) => (
+          <p class="font-body text-lg leading-relaxed" style="color:hsl(var(--eden-bark))">{paragraph}</p>
+        ))}
+      </div>
+
+      <div>
+        <h2 class="font-serif text-2xl font-bold mb-5" style="color:hsl(var(--eden-bark))">
+          Herbs that meet this pattern
+        </h2>
+        <ul class="space-y-3">
+          {profile.herbs.map((herb) => (
+            <li
+              class="rounded-lg p-5 border"
+              style="border-color:hsl(var(--border));background-color:hsl(var(--eden-cream) / 0.4)"
+            >
+              <a href={herbHref(herb.herbSlug)} class="font-serif text-lg font-semibold hover:underline" style="color:hsl(var(--eden-forest))">
+                {herb.name}
+              </a>
+              <p class="font-body text-base mt-1 leading-relaxed" style="color:hsl(var(--eden-bark))">{herb.note}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div
+        class="rounded-lg p-8 border text-center"
+        style="border-color:hsl(var(--eden-gold) / 0.4);background-color:hsl(var(--eden-cream) / 0.6)"
+      >
+        <h2 class="font-serif text-2xl font-bold mb-3" style="color:hsl(var(--eden-bark))">
+          Is this actually your pattern?
+        </h2>
+        <p class="font-body text-base text-muted-foreground max-w-xl mx-auto mb-6 leading-relaxed">
+          This page describes one of eight patterns. The free assessment reads yours across temperature,
+          moisture and tone, then matches herbs to the result.
+        </p>
+        <div class="flex flex-wrap gap-3 justify-center">
+          <a href="/assessment"><Button variant="eden" size="xl">Take the free assessment</Button></a>
+          <!-- Plain link on purpose: /go/deep-dive/:slug is the vercel.json
+               redirect into the guide-checkout function, so the buy path works
+               with no JavaScript on a static page. -->
+          <a href={`/go/deep-dive/${slug}`} data-product="constitution-guide">
+            <Button variant="outline" size="xl">Get the Deep-Dive Guide, $4.99</Button>
+          </a>
+        </div>
+        <p class="font-body text-sm text-muted-foreground mt-6">
+          Want the full clinical study for every herb?
+          <a href="/apothecary/pricing#tier-seed" class="underline">Seed is $7.99/mo</a>.
+        </p>
+      </div>
+    </div>
+  </section>
+</MarketingLayout>
