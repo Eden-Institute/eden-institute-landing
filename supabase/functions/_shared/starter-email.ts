@@ -21,12 +21,8 @@ import { STARTER_LICENSE_LINE, STARTER_PRICE_CENTS, STARTER_CREDIT_CENTS } from 
 export interface StarterEmailModel {
   firstName: string | null;
   email: string;
-  teachersGuideUrl: string;
-  studentNotebookUrl: string;
-  readAloudUrl: string;
   creditCode: string | null;
   downloadToken: string;
-  linksExpireAt: Date;
 }
 
 const KIT_URL = 'https://edeninstitute.health/preorder';
@@ -50,11 +46,6 @@ function sectionLabel(text: string): string {
   return `<p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:3px;color:#8A6D1F;text-transform:uppercase;margin:0 0 18px 0;">${text}</p>`;
 }
 
-/** Long-form date, e.g. "2 September 2026". Avoids US/UK numeric ambiguity. */
-function formatDate(d: Date): string {
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-}
-
 function dollars(cents: number): string {
   return cents % 100 === 0 ? `$${cents / 100}` : `$${(cents / 100).toFixed(2)}`;
 }
@@ -65,8 +56,20 @@ export function renderStarterDeliveryEmail(m: StarterEmailModel): {
   text: string;
 } {
   const greeting = m.firstName ? `${m.firstName},` : 'Hello,';
-  const expires = formatDate(m.linksExpireAt);
-  const rerequestUrl = `https://edeninstitute.health/starter/downloads?t=${encodeURIComponent(m.downloadToken)}`;
+
+  // ONE link, to a page, and it never expires.
+  //
+  // This email used to carry three signed URLs pointing straight at the PDFs.
+  // Two things were wrong with that. They lapsed after seven days, so the email
+  // a buyer kept became useless and the way back was a sentence of small grey
+  // text. And a raw PDF link is exactly what a mail app's embedded browser
+  // cannot handle: on 2026-09-05 a buyer tapped hers, got a white screen, and
+  // reasonably concluded the product was broken. It was not. The files were
+  // perfect and the link resolved to a valid 13 MB PDF when fetched outside her
+  // mail app.
+  //
+  // A page can explain itself. A PDF cannot.
+  const downloadsUrl = `https://edeninstitute.health/starter/downloads?t=${encodeURIComponent(m.downloadToken)}`;
 
   const creditBlock = m.creditCode
     ? `
@@ -96,10 +99,10 @@ ${para(greeting)}
 ${para(`Here are your first nine weeks of Eden's Table, Sprouts. Everything you need to start teaching is in these three files.`)}
 
 ${sectionLabel('Your downloads')}
-${ctaButton("Teacher's Guide", m.teachersGuideUrl)}
-${ctaButton('Student Notebook', m.studentNotebookUrl)}
-${ctaButton('Read-Aloud Storybook', m.readAloudUrl)}
-${para(`<span style="font-size:14px;color:#5A6B5F;">These links work until <strong>${expires}</strong>. Download them onto your own device and they are yours to keep. If the links lapse before you get to them, <a href="${rerequestUrl}" style="color:#1C3A2E;">request fresh ones here</a> and we will send new ones straight away.</span>`)}
+${para(`Your Teacher's Guide, Student Notebook and Read-Aloud Storybook are waiting on one page:`)}
+${ctaButton('Open your downloads', downloadsUrl)}
+${para(`<span style="font-size:14px;color:#5A6B5F;">Save this email. That link does not expire, so you can come back to it any time, on any device.</span>`)}
+${para(`<span style="font-size:14px;color:#5A6B5F;"><strong>If a file opens as a blank white screen</strong>, you are not doing anything wrong. Some email apps open links in a small built in browser that cannot display a PDF. Press and hold the link instead of tapping it, choose Open in Safari or Open in Chrome, and it will open properly. Opening this email on a computer works too.</span>`)}
 ${creditBlock}
 ${rule()}
 ${sectionLabel('About the plant cards')}
@@ -121,12 +124,12 @@ ${para(`<strong>Camila</strong><br><span style="font-size:14px;">The Eden Instit
     '',
     "Here are your first nine weeks of Eden's Table, Sprouts.",
     '',
-    `Teacher's Guide: ${m.teachersGuideUrl}`,
-    `Student Notebook: ${m.studentNotebookUrl}`,
-    `Read-Aloud Storybook: ${m.readAloudUrl}`,
+    "Your Teacher's Guide, Student Notebook and Read-Aloud Storybook are on one page:",
+    downloadsUrl,
     '',
-    `These links work until ${expires}. Download them onto your own device and they are yours to keep.`,
-    `If they lapse, request fresh ones here: ${rerequestUrl}`,
+    'Save this email. That link does not expire, so you can come back to it any time, on any device.',
+    '',
+    'If a file opens as a blank white screen, you are not doing anything wrong. Some email apps open links in a small built in browser that cannot display a PDF. Press and hold the link instead of tapping it, choose Open in Safari or Open in Chrome, and it will open properly. Opening this email on a computer works too.',
     '',
     ...(m.creditCode
       ? [

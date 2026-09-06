@@ -1,10 +1,14 @@
 ---
-// /starter/downloads — re-request flow for expired Starter Unit links.
+// /starter/downloads — where a Starter Unit buyer gets their files.
 //
-// Signed download URLs last seven days. This is where a buyer whose links have
-// lapsed gets fresh ones, reached by the durable ?t= token from their delivery
-// email. It is the alternative to handing out permanent file access, and it means
-// a lapsed link is a mild inconvenience rather than a support email.
+// As of 2026-09-05 this is the PRIMARY destination, not just the re-request
+// path. The delivery email now sends buyers here rather than at three raw PDF
+// URLs, because a page can explain itself and a PDF cannot: a buyer tapped a
+// direct link from inside her mail app, got a white screen from an embedded
+// browser with no PDF viewer, and had no way to tell that from a broken product.
+//
+// Signed URLs still last seven days; the ?t= token in the email does not expire,
+// so the same email keeps working months later, on any device.
 //
 // The page holds no credentials of its own: without a valid token the island
 // renders a refusal, so the page is harmless if it is ever found. noindex keeps
@@ -37,7 +41,8 @@ const meta = {
       </h1>
       <div class="w-16 h-px mx-auto my-6" style="background-color:hsl(var(--eden-gold))"></div>
       <p class="font-body text-lg text-muted-foreground leading-relaxed">
-        Fresh links, good for another seven days. Come back here any time.
+        Your Teacher's Guide, Student Notebook and Read-Aloud Storybook. Come back to this
+        page any time, on any device.
       </p>
     </div>
   </section>
@@ -45,6 +50,24 @@ const meta = {
   <section class="py-12 px-6 bg-background">
     <div class="max-w-xl mx-auto">
       <StarterDownloads client:only="react" mode="token" />
+      {/* client:only means this island renders nothing at all server-side, so a
+          reader whose JavaScript never runs would otherwise meet an empty box on
+          the page they were sent to for their paid files. This is the floor. */}
+      <noscript>
+        <div
+          class="rounded-lg p-6 text-center"
+          style="background-color:hsl(var(--eden-cream));border:1px solid hsl(var(--eden-gold))"
+        >
+          <p class="font-body text-base" style="color:hsl(var(--eden-bark))">
+            This page needs JavaScript to fetch your files securely. If you are reading this,
+            it is switched off or blocked. Open this link in Safari or Chrome, or email
+            <a href="mailto:hello@edeninstitute.health" class="underline" style="color:hsl(var(--eden-forest))">
+              hello@edeninstitute.health
+            </a>
+            and we will send your three files straight to you by hand.
+          </p>
+        </div>
+      </noscript>
       <p class="font-body text-sm text-muted-foreground text-center mt-8">
         Something not working? Email
         <a href="mailto:hello@edeninstitute.health" class="underline" style="color:hsl(var(--eden-forest))">

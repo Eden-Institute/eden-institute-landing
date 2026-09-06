@@ -181,11 +181,16 @@ serve(async (req) => {
       .eq('id', data.id).then(undefined, () => {});
 
     if (slug && slug in FILES) {
-      const target = slug === 'teachers-guide'
+      const pair = slug === 'teachers-guide'
         ? links.teachersGuide
         : slug === 'student-notebook'
           ? links.studentNotebook
           : links.readAloud;
+      // `view`, not `save`. This shortcut is the one a buyer can reach straight
+      // from a link, and a forced attachment is precisely what an embedded mail
+      // browser cannot complete. Inline at least renders wherever a PDF viewer
+      // exists. `?f=<slug>&save=1` opts back into the download disposition.
+      const target = url.searchParams.get('save') === '1' ? pair.save : pair.view;
       return new Response(null, {
         status: 302,
         headers: { ...corsHeaders, Location: target, 'Cache-Control': 'no-store' },
@@ -207,10 +212,29 @@ serve(async (req) => {
       download_token: data.download_token,
       credit_code: credit?.code ?? null,
       credit_redeemed: !!credit?.redeemed_at,
+      // Two URLs per file, deliberately. `url` opens inline, which is the one
+      // that survives an embedded mail browser; `save_url` forces the download
+      // under a readable filename, which is what a desktop reader wants. The
+      // page offers both rather than guessing which kind of device is asking.
       files: [
-        { slug: 'teachers-guide', label: FILES['teachers-guide'].label, url: links.teachersGuide },
-        { slug: 'student-notebook', label: FILES['student-notebook'].label, url: links.studentNotebook },
-        { slug: 'read-aloud', label: FILES['read-aloud'].label, url: links.readAloud },
+        {
+          slug: 'teachers-guide',
+          label: FILES['teachers-guide'].label,
+          url: links.teachersGuide.view,
+          save_url: links.teachersGuide.save,
+        },
+        {
+          slug: 'student-notebook',
+          label: FILES['student-notebook'].label,
+          url: links.studentNotebook.view,
+          save_url: links.studentNotebook.save,
+        },
+        {
+          slug: 'read-aloud',
+          label: FILES['read-aloud'].label,
+          url: links.readAloud.view,
+          save_url: links.readAloud.save,
+        },
       ],
     });
   } catch (err) {
