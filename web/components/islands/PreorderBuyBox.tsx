@@ -125,6 +125,15 @@ function money(cents: number): string {
 type Flow = "kit";
 
 export default function PreorderBuyBox() {
+  // Affiliate code from the sharing link, read once at mount. This island is
+  // client:only, so window is always defined by the time it runs.
+  const [promoParam] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get("promo")?.trim() || "";
+    } catch {
+      return "";
+    }
+  });
   const [smsConsent, setSmsConsent] = useState(false); // MUST default unchecked
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -295,6 +304,15 @@ export default function PreorderBuyBox() {
           ...(creditCode.trim()
             ? { credit_code: creditCode.trim(), email: creditEmail.trim() }
             : {}),
+          // Affiliate link support: /preorder?promo=LEISHA10 arrives at checkout
+          // with the 10% already applied, so a partner shares one link rather
+          // than a code their audience has to remember and retype. Same
+          // parameter the Apothecary pricing page has used since 2026-07-09.
+          //
+          // A Starter credit wins if both are present: create-checkout applies
+          // the credit and ignores this, because Checkout takes one discount and
+          // the credit is the one the buyer has already paid for.
+          ...(promoParam ? { promo_code: promoParam } : {}),
         },
         headers: adminToken ? { "x-preorder-admin": adminToken } : undefined,
       });

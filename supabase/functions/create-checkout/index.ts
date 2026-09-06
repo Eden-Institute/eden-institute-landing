@@ -959,6 +959,58 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
     metadata.starter_credit_promo_id = appliedCredit.promotionCodeId
   } else {
     sessionParams.customer_creation = "always"
+
+    // AFFILIATE PROMOTION CODES ON THE KIT.
+    //
+    // Until 2026-09-06 this branch set neither `allow_promotion_codes` nor any
+    // `discounts`, and Stripe defaults the former to false. So the kit checkout
+    // had NO promotion-code field at all, and this branch ignored a `promo_code`
+    // in the body. Verified on a real live session that day: the page rendered
+    // the kit at $249 plus $12 shipping with nowhere to enter a code.
+    //
+    // That made the affiliate programme unusable on the only product it pays
+    // commission for. KAMI10 and RAISINGARROWS10 had been live since 2026-08-31
+    // against a checkout that could not accept them.
+    //
+    // Two ways in now, mirroring the lookup_key branch above:
+    //   ?promo=CODE on /preorder  -> pre-applied, no hunting for the field
+    //   no promo in the URL       -> Stripe's own "Add promotion code" field
+    //
+    // Stripe refuses a session carrying both `discounts` and
+    // `allow_promotion_codes`, and Checkout takes at most one discount, so these
+    // are deliberately exclusive. The credit branch above is untouched: a Starter
+    // credit still means no promo field, which is what keeps it non-stackable.
+    const bodyPromoCode = typeof body.promo_code === "string" ? body.promo_code.trim() : ""
+    let promoApplied = false
+    if (bodyPromoCode) {
+      try {
+        const promoList = await stripe.promotionCodes.list({
+          code: bodyPromoCode,
+          active: true,
+          limit: 1,
+        })
+        const promo = promoList.data[0]
+        if (promo) {
+          sessionParams.discounts = [{ promotion_code: promo.id }]
+          promoApplied = true
+          // Stripe stores only the promotion code ID on the order, so the human
+          // string is recorded here too. Without it, attributing a referral means
+          // resolving an opaque id against the Affiliates tab by hand.
+          metadata.affiliate_promo_code = promo.code
+          metadata.affiliate_promo_id = promo.id
+        } else {
+          console.warn(`promo_code '${bodyPromoCode}' not found/active; leaving the manual field enabled`)
+        }
+      } catch (err) {
+        console.warn(
+          "promo_code lookup failed; leaving the manual field enabled: " +
+            (err instanceof Error ? err.message : String(err)),
+        )
+      }
+    }
+    // Fails OPEN to the manual field: a bad or expired affiliate code must never
+    // leave a buyer unable to enter a good one.
+    if (!promoApplied) sessionParams.allow_promotion_codes = true
   }
 
   if (typeof body.email === "string" && body.email) {
