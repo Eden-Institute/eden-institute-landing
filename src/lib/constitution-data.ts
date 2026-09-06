@@ -200,7 +200,12 @@ export const constitutionProfiles: Record<string, ConstitutionProfile> = {
       { name: "Juniper Berry", note: "Warming diuretic that drains waterlogged tissue.", herbSlug: "juniper-berry" },
       { name: "Thyme", note: "Dries respiratory dampness and warms digestion.", herbSlug: "thyme" },
       { name: "Elecampane", note: "Warms and dries cold, damp lungs and sluggish digestion.", herbSlug: "elecampane" },
-      { name: "Bayberry", note: "Powerful warming astringent that tones lax, boggy tissue.", herbSlug: "bayberry" },
+      // herbSlug was "bayberry" until 2026-09-05, but the row is
+      // "Bayberry (Wax Myrtle)" (H108), so the derived slug is
+      // "bayberry-wax-myrtle" and this link had been landing on the monograph
+      // not-found state in production. Caught by the build-time resolver in
+      // web/pages/results/[slug].astro; verified against herbs_directory_v.
+      { name: "Bayberry", note: "Powerful warming astringent that tones lax, boggy tissue.", herbSlug: "bayberry-wax-myrtle" },
     ],
     amazonUrl: "https://www.amazon.com/hz/wishlist/ls/2OV04T0L7C1FA?ref_=wl_share",
   },

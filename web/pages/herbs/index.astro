@@ -1,0 +1,109 @@
+---
+// /herbs - public index of every free-tier monograph.
+//
+// Two jobs. For a reader it is a browsable materia medica. For a crawler it is
+// the hub that links all 155 monograph pages from one place, so the set is
+// discoverable without relying on the sitemap alone.
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import { ApothecaryDisclaimer } from "@/components/apothecary/ApothecaryDisclaimer";
+import { herbParam } from "@/lib/herbLinks";
+import { getPublicHerbs } from "../../lib/herbsPublic";
+import { Button } from "@/components/ui/button";
+import heroHerbs from "@/assets/hero-herbs.jpg";
+
+const herbs = await getPublicHerbs();
+
+// Group A-Z on the first letter of common_name. Anything that does not start
+// with a letter lands under "#", which keeps the grouping total-function.
+const groups = new Map<string, typeof herbs>();
+for (const herb of herbs) {
+  const initial = herb.common_name.charAt(0).toUpperCase();
+  const key = /[A-Z]/.test(initial) ? initial : "#";
+  const bucket = groups.get(key);
+  if (bucket) bucket.push(herb);
+  else groups.set(key, [herb]);
+}
+const letters = [...groups.keys()].sort();
+
+const meta = {
+  title: "Herb Profiles · Energetics, Safety and Traditional Use | The Eden Institute",
+  description: `Browse ${herbs.length} herb profiles with energetics, pregnancy and breastfeeding safety, children's safety and the traditional record for each plant. Free to read.`,
+  canonical: "https://edeninstitute.health/herbs",
+};
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: "Eden Apothecary herb profiles",
+  url: meta.canonical,
+  description: meta.description,
+  isPartOf: { "@type": "WebSite", name: "The Eden Institute", url: "https://edeninstitute.health/" },
+};
+---
+
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} jsonLd={jsonLd}>
+  <section class="relative overflow-hidden py-20 md:py-24 px-6" style="background-color:hsl(var(--eden-cream))">
+    <img
+      src={heroHerbs.src}
+      alt=""
+      aria-hidden="true"
+      class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+      style="opacity:0.95;mix-blend-mode:multiply"
+    />
+    <div
+      class="relative z-10 max-w-4xl mx-auto text-center rounded-lg"
+      style="background-color:hsl(0 0% 100% / 0.92);border:1px solid hsl(var(--eden-gold) / 0.35);padding:clamp(26px, 3.5vw, 52px);box-shadow:0 2px 18px -10px rgba(30,62,46,0.28)"
+    >
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-6" style="color:hsl(var(--eden-gold-ink))">
+        Eden Apothecary
+      </p>
+      <h1 class="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
+        Herb <span class="italic">Profiles</span>
+      </h1>
+      <div class="w-16 h-px mx-auto my-8" style="background-color:hsl(var(--eden-gold-ink))"></div>
+      <p class="font-body text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed" style="color:hsl(var(--eden-bark))">
+        {herbs.length} plants, each with its energetics, its safety in pregnancy, in nursing and for children,
+        and what the traditional record says about it. Free to read, no account needed.
+      </p>
+      <a href="/assessment"><Button variant="eden" size="xl">Find your pattern first</Button></a>
+    </div>
+  </section>
+
+  <section class="py-16 px-6 bg-background">
+    <div class="max-w-5xl mx-auto">
+      <nav class="flex flex-wrap gap-2 justify-center mb-12" aria-label="Jump to letter">
+        {letters.map((letter) => (
+          <a
+            href={`#letter-${letter === "#" ? "other" : letter}`}
+            class="font-accent text-sm px-3 py-1.5 rounded border"
+            style="border-color:hsl(var(--eden-gold) / 0.4);color:hsl(var(--eden-forest))"
+          >{letter}</a>
+        ))}
+      </nav>
+
+      <div class="space-y-12">
+        {letters.map((letter) => (
+          <div id={`letter-${letter === "#" ? "other" : letter}`}>
+            <h2 class="font-serif text-2xl font-bold mb-5 pb-2 border-b" style="color:hsl(var(--eden-bark));border-color:hsl(var(--eden-gold) / 0.3)">
+              {letter}
+            </h2>
+            <ul class="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3">
+              {groups.get(letter)!.map((herb) => (
+                <li>
+                  <a href={`/herbs/${herbParam(herb)}`} class="font-body hover:underline" style="color:hsl(var(--eden-forest))">
+                    {herb.common_name}
+                  </a>
+                  {herb.latin_name && (
+                    <span class="font-serif italic text-sm text-muted-foreground"> · {herb.latin_name}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      <ApothecaryDisclaimer />
+    </div>
+  </section>
+</MarketingLayout>

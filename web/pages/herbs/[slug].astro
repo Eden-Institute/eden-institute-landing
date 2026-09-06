@@ -1,0 +1,266 @@
+---
+// /herbs/:slug - public, pre-rendered herb monograph.
+//
+// One static page per free-tier herb (155 on 2026-09-05). This is the SEO
+// surface: the app's /apothecary/:herbId renders the same herb live, with tier
+// gating and favorites, but it is client-rendered and a crawler sees nothing
+// there. See web/lib/herbsPublic.ts for why these live on their own path.
+//
+// Content is DB-driven and nothing on this page is authored here. Every
+// sentence comes from herbs_public, so the page cannot drift from the app.
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import { ApothecaryDisclaimer } from "@/components/apothecary/ApothecaryDisclaimer";
+import { herbParam } from "@/lib/herbLinks";
+import { getPublicHerbs, type PublicHerb } from "../../lib/herbsPublic";
+import { Button } from "@/components/ui/button";
+import heroMonograph from "@/assets/hero-monograph.jpg";
+
+export async function getStaticPaths() {
+  const herbs = await getPublicHerbs();
+  return herbs.map((herb) => ({
+    params: { slug: herbParam(herb) },
+    props: { herb, siblings: herbs },
+  }));
+}
+
+interface Props {
+  herb: PublicHerb;
+  siblings: PublicHerb[];
+}
+
+const { herb, siblings } = Astro.props as Props;
+const slug = herbParam(herb);
+const canonical = `https://edeninstitute.health/herbs/${slug}`;
+
+// Title carries the pair people actually search: common name and Latin name.
+const title = herb.latin_name
+  ? `${herb.common_name} (${herb.latin_name}) · Herb Profile | The Eden Institute`
+  : `${herb.common_name} · Herb Profile | The Eden Institute`;
+
+// Description is the real energetics line, trimmed to a length Google will
+// render whole. No invented copy: if the row has no summary we fall back to
+// the identity facts, which are always present.
+function clamp(text: string, max = 155): string {
+  const flat = text.replace(/\s+/g, " ").trim();
+  if (flat.length <= max) return flat;
+  return flat.slice(0, flat.lastIndexOf(" ", max - 1)).replace(/[,;:.]$/, "") + "...";
+}
+const description = clamp(
+  herb.energetics_summary ??
+    [herb.common_name, herb.latin_name, herb.part_used ? `${herb.part_used} used` : ""]
+      .filter(Boolean)
+      .join(", "),
+);
+
+// Identity facts, rendered only where the row actually carries a value.
+const facts: { label: string; value: string }[] = [
+  { label: "Botanical name", value: herb.latin_name ?? "" },
+  { label: "Family", value: herb.plant_family ?? "" },
+  { label: "Part used", value: herb.part_used ?? "" },
+  { label: "Taste", value: herb.taste ?? "" },
+  { label: "Temperature", value: herb.temperature ?? "" },
+  { label: "Moisture", value: herb.moisture ?? "" },
+].filter((f) => f.value.trim().length > 0);
+
+// Safety block. These fields answer the questions people type into a search
+// bar almost verbatim ("is chamomile safe while breastfeeding"), which is why
+// they also become the FAQ structured data below.
+const safety: { label: string; question: string; value: string }[] = [
+  {
+    label: "In pregnancy",
+    question: `Is ${herb.common_name} safe during pregnancy?`,
+    value: herb.pregnancy_safety ?? "",
+  },
+  {
+    label: "While breastfeeding",
+    question: `Is ${herb.common_name} safe while breastfeeding?`,
+    value: herb.breastfeeding_safety ?? "",
+  },
+  {
+    label: "For children",
+    question: `Is ${herb.common_name} safe for children?`,
+    value: herb.children_safety ?? "",
+  },
+  {
+    label: "Cautions",
+    question: `What are the cautions for ${herb.common_name}?`,
+    value: herb.cautions ?? "",
+  },
+  {
+    label: "General contraindications",
+    question: `Who should avoid ${herb.common_name}?`,
+    value: herb.contraindications_general ?? "",
+  },
+].filter((s) => s.value.trim().length > 0);
+
+// Previous / next by common_name, so a crawler (and a reader) can walk the
+// whole set from any single page without returning to the index.
+const position = siblings.findIndex((h) => h.herb_id === herb.herb_id);
+const prev = position > 0 ? siblings[position - 1] : null;
+const next = position >= 0 && position < siblings.length - 1 ? siblings[position + 1] : null;
+
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "https://edeninstitute.health/" },
+      { "@type": "ListItem", position: 2, name: "Herbs", item: "https://edeninstitute.health/herbs" },
+      { "@type": "ListItem", position: 3, name: herb.common_name, item: canonical },
+    ],
+  },
+  ...(safety.length
+    ? [
+        {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: safety.map((s) => ({
+            "@type": "Question",
+            name: s.question,
+            acceptedAnswer: { "@type": "Answer", text: s.value },
+          })),
+        },
+      ]
+    : []),
+];
+---
+
+<MarketingLayout title={title} description={description} canonical={canonical} ogType="article" jsonLd={jsonLd}>
+  <!-- Header -->
+  <section class="relative overflow-hidden py-16 md:py-20 px-6" style="background-color:hsl(var(--eden-cream))">
+    <img
+      src={heroMonograph.src}
+      alt=""
+      aria-hidden="true"
+      class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+      style="opacity:0.9;mix-blend-mode:multiply"
+    />
+    <div
+      class="relative z-10 max-w-3xl mx-auto rounded-lg"
+      style="background-color:hsl(0 0% 100% / 0.92);border:1px solid hsl(var(--eden-gold) / 0.35);padding:clamp(24px, 3vw, 44px);box-shadow:0 2px 18px -10px rgba(30,62,46,0.28)"
+    >
+      <p class="font-accent text-xs tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">
+        <a href="/herbs" class="hover:underline">Eden Apothecary · Herb Profile</a>
+      </p>
+      <h1 class="font-serif text-4xl md:text-5xl font-bold leading-tight" style="color:hsl(var(--eden-bark))">
+        {herb.common_name}
+      </h1>
+      {herb.latin_name && (
+        <p class="font-serif italic text-lg mt-3" style="color:hsl(var(--eden-forest))">{herb.latin_name}</p>
+      )}
+      {herb.pronunciation && (
+        <p class="font-body text-sm text-muted-foreground mt-1">Pronounced {herb.pronunciation}</p>
+      )}
+      {herb.energetics_summary && (
+        <Fragment>
+          <div class="w-16 h-px my-6" style="background-color:hsl(var(--eden-gold-ink))"></div>
+          <p class="font-body text-lg leading-relaxed" style="color:hsl(var(--eden-bark))">
+            {herb.energetics_summary}
+          </p>
+        </Fragment>
+      )}
+    </div>
+  </section>
+
+  <section class="py-14 px-6 bg-background">
+    <div class="max-w-3xl mx-auto space-y-14">
+      <!-- Identity -->
+      {facts.length > 0 && (
+        <div>
+          <h2 class="font-serif text-2xl font-bold mb-5" style="color:hsl(var(--eden-bark))">At a glance</h2>
+          <dl class="grid sm:grid-cols-2 gap-x-8 gap-y-4">
+            {facts.map((f) => (
+              <div class="border-b pb-3" style="border-color:hsl(var(--border))">
+                <dt class="font-accent text-[11px] tracking-[0.2em] uppercase" style="color:hsl(var(--eden-gold-ink))">
+                  {f.label}
+                </dt>
+                <dd class="font-body text-base mt-1" style="color:hsl(var(--eden-bark))">{f.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
+
+      <!-- Safety -->
+      {safety.length > 0 && (
+        <div>
+          <h2 class="font-serif text-2xl font-bold mb-5" style="color:hsl(var(--eden-bark))">
+            Safety at a glance
+          </h2>
+          <div class="space-y-4">
+            {safety.map((s) => (
+              <div
+                class="rounded-lg p-5 border"
+                style="border-color:hsl(var(--border));background-color:hsl(var(--eden-cream) / 0.4)"
+              >
+                <h3 class="font-accent text-[11px] tracking-[0.2em] uppercase mb-2" style="color:hsl(var(--eden-gold-ink))">
+                  {s.label}
+                </h3>
+                <p class="font-body text-base leading-relaxed" style="color:hsl(var(--eden-bark))">{s.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <!-- Stewardship -->
+      {herb.stewardship_note && (
+        <div>
+          <h2 class="font-serif text-2xl font-bold mb-4" style="color:hsl(var(--eden-bark))">Stewardship</h2>
+          <p class="font-body text-base leading-relaxed" style="color:hsl(var(--eden-bark))">{herb.stewardship_note}</p>
+        </div>
+      )}
+
+      <!-- Traditional record -->
+      {herb.biblical_traditional_reference && (
+        <div>
+          <h2 class="font-serif text-2xl font-bold mb-4" style="color:hsl(var(--eden-bark))">In the traditional record</h2>
+          <p class="font-body text-base leading-relaxed" style="color:hsl(var(--eden-bark))">
+            {herb.biblical_traditional_reference}
+          </p>
+        </div>
+      )}
+
+      <!-- Conversion band -->
+      <div
+        class="rounded-lg p-8 border text-center"
+        style="border-color:hsl(var(--eden-gold) / 0.4);background-color:hsl(var(--eden-cream) / 0.6)"
+      >
+        <h2 class="font-serif text-2xl font-bold mb-3" style="color:hsl(var(--eden-bark))">
+          Which herbs suit <span class="italic">your</span> body?
+        </h2>
+        <p class="font-body text-base text-muted-foreground max-w-xl mx-auto mb-6 leading-relaxed">
+          The same herb can calm one person and wire another. Our free assessment reads your pattern across
+          temperature, moisture and tone, then matches herbs to it.
+        </p>
+        <div class="flex flex-wrap gap-3 justify-center">
+          <a href="/assessment"><Button variant="eden" size="xl">Take the free assessment</Button></a>
+          <a href={`/apothecary/${slug}`}>
+            <Button variant="outline" size="xl">Open {herb.common_name} in the Apothecary</Button>
+          </a>
+        </div>
+        <p class="font-body text-sm text-muted-foreground mt-6">
+          Teaching children at home? <a href="/homeschool" class="underline">Eden's Table</a> builds a full
+          herbalism curriculum around plants like this one.
+        </p>
+      </div>
+
+      <!-- Walk the set -->
+      <nav class="flex justify-between gap-4 pt-2" aria-label="Herb index navigation">
+        {prev ? (
+          <a href={`/herbs/${herbParam(prev)}`} class="font-body text-sm hover:underline" style="color:hsl(var(--eden-forest))">
+            &larr; {prev.common_name}
+          </a>
+        ) : <span></span>}
+        <a href="/herbs" class="font-body text-sm hover:underline" style="color:hsl(var(--eden-forest))">All herbs</a>
+        {next ? (
+          <a href={`/herbs/${herbParam(next)}`} class="font-body text-sm hover:underline" style="color:hsl(var(--eden-forest))">
+            {next.common_name} &rarr;
+          </a>
+        ) : <span></span>}
+      </nav>
+
+      <ApothecaryDisclaimer />
+    </div>
+  </section>
+</MarketingLayout>
