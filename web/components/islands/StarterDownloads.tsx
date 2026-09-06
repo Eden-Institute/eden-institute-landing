@@ -28,7 +28,10 @@ const POLL_MS = 3000;
 interface FileLink {
   slug: string;
   label: string;
+  /** Opens inline. The link that survives a mail app's embedded browser. */
   url: string;
+  /** Forces a download under a readable filename. Absent on older responses. */
+  save_url?: string;
 }
 
 interface Payload {
@@ -177,17 +180,47 @@ export default function StarterDownloads({ mode, showCredit = false }: Props) {
     <div>
       <div className="space-y-3">
         {data.files.map((f) => (
-          <a
-            key={f.slug}
-            href={f.url}
-            data-cta={`starter-download-${f.slug}`}
-            className="flex items-center justify-center w-full font-accent text-sm tracking-[0.2em] uppercase font-bold px-6 py-4 rounded-md border-2"
-            style={{ borderColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-forest))" }}
-          >
-            {f.label}
-          </a>
+          <div key={f.slug}>
+            <a
+              href={f.url}
+              data-cta={`starter-download-${f.slug}`}
+              className="flex items-center justify-center w-full font-accent text-sm tracking-[0.2em] uppercase font-bold px-6 py-4 rounded-md border-2"
+              style={{ borderColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-forest))" }}
+            >
+              {f.label}
+            </a>
+            {f.save_url && (
+              <p className="text-center mt-1.5">
+                <a
+                  href={f.save_url}
+                  data-cta={`starter-save-${f.slug}`}
+                  className="font-body text-xs underline"
+                  style={{ color: "hsl(var(--eden-forest))" }}
+                >
+                  or save it to your device
+                </a>
+              </p>
+            )}
+          </div>
         ))}
       </div>
+
+      {/* The single most useful sentence on this page.
+          A buyer wrote in on 2026-09-05 to say her downloads were "just blank".
+          Her files were perfect and her link resolved to a valid 13 MB PDF; her
+          mail app had opened it in an embedded browser with no PDF viewer. She
+          had no way to know that, so she assumed the product was broken. Anyone
+          who lands here after tapping a link deserves to be told before they
+          reach the same conclusion. */}
+      <p
+        className="font-body text-sm mt-6 rounded-lg p-4"
+        style={{ backgroundColor: "hsl(var(--eden-cream))", color: "hsl(var(--eden-bark))" }}
+      >
+        <strong>Seeing a blank white screen?</strong> That is your email app, not your
+        files. Some apps open links in a small built in browser that cannot display a
+        PDF. Press and hold the link instead of tapping it, choose Open in Safari or
+        Open in Chrome, and it will open properly.
+      </p>
 
       <p className="font-body text-xs mt-4 text-muted-foreground text-center">
         These links work until {expires}. Save the files to your device and they are yours

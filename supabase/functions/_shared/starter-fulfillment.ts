@@ -133,12 +133,41 @@ async function storageUpload(bucket: string, path: string, bytes: Uint8Array): P
 }
 
 /**
- * Mint a signed URL for one private object.
+ * Two URLs for the same signed object, because one link cannot serve both jobs.
  *
- * `download` makes the browser save the file under a readable name instead of
- * opening a tab titled with a uuid.
+ * `save` carries Supabase's `download` parameter, which sets
+ * `Content-Disposition: attachment` so the file lands on disk under a readable
+ * name instead of a uuid. That is the right behaviour on a desktop browser and
+ * the WRONG behaviour inside a mail app.
+ *
+ * `view` omits it, so the response is served inline and a browser with a PDF
+ * viewer simply renders it.
+ *
+ * WHY THIS SPLIT EXISTS. On 2026-09-05 a buyer wrote in to say her download
+ * links were "just blank". They were not: her exact link resolved 302 -> 200 and
+ * returned a valid 13 MB PDF when fetched, and the file itself was checked page
+ * by page with zero blank pages. What failed was the last inch. Her mail app
+ * opened the link in its own embedded browser, which has no PDF viewer and no
+ * way to accept an attachment, so it opened a tab and showed her white space.
+ * Forcing the attachment made it unrecoverable rather than merely awkward.
+ *
+ * So links that a buyer might tap from inside an email default to `view`, and
+ * `save` is offered as the deliberate second action on a real web page.
  */
-export async function signedUrl(path: string, filename: string, ttl = DOWNLOAD_URL_TTL_SECONDS): Promise<string> {
+export interface DownloadPair {
+  view: string;
+  save: string;
+}
+
+/**
+ * Mint a signed URL pair for one private object. Signs ONCE; the two forms
+ * differ only by the trailing `download` parameter.
+ */
+export async function signedUrl(
+  path: string,
+  filename: string,
+  ttl = DOWNLOAD_URL_TTL_SECONDS,
+): Promise<DownloadPair> {
   const res = await fetch(`${supabaseUrl()}/storage/v1/object/sign/${STARTER_BUCKET}/${path}`, {
     method: 'POST',
     headers: {
@@ -152,13 +181,14 @@ export async function signedUrl(path: string, filename: string, ttl = DOWNLOAD_U
     throw new Error(`signing ${path} failed: ${res.status} ${await res.text().catch(() => '')}`);
   }
   const { signedURL } = await res.json() as { signedURL: string };
-  return `${supabaseUrl()}/storage/v1${signedURL}&download=${encodeURIComponent(filename)}`;
+  const view = `${supabaseUrl()}/storage/v1${signedURL}`;
+  return { view, save: `${view}&download=${encodeURIComponent(filename)}` };
 }
 
 /** Fresh links for an already-stamped delivery. Backs the re-request flow. */
 export async function mintDownloadLinks(
   delivery: Pick<DeliveryRow, 'tg_object_path' | 'nb_object_path' | 'ra_object_path'>,
-): Promise<{ teachersGuide: string; studentNotebook: string; readAloud: string }> {
+): Promise<{ teachersGuide: DownloadPair; studentNotebook: DownloadPair; readAloud: DownloadPair }> {
   if (!delivery.tg_object_path || !delivery.nb_object_path || !delivery.ra_object_path) {
     throw new Error('delivery has no stamped objects yet');
   }
@@ -274,8 +304,11 @@ export async function fulfilStarterDelivery(
       await logStage(db, delivery, attempt, 'stamp', true, 'reused all three stamped objects');
     }
 
+    // Signed here as a reachability check, not to be pasted into the email: if
+    // any of the three objects cannot be signed, the buyer should not be told
+    // their files are ready. The result is deliberately discarded.
     const t3 = performance.now();
-    const links = await mintDownloadLinks({
+    await mintDownloadLinks({
       tg_object_path: paths.tg_object_path,
       nb_object_path: paths.nb_object_path,
       ra_object_path: paths.ra_object_path,
@@ -284,15 +317,18 @@ export async function fulfilStarterDelivery(
     await logStage(db, delivery, attempt, 'sign', true, `expires ${expiresAt.toISOString()}`,
       Math.round(performance.now() - t3));
 
+    // The email carries the DURABLE token link, not these signed URLs.
+    //
+    // Signing still happens above and is still logged as its own stage, because
+    // it is the last cheap proof that all three objects exist and are reachable
+    // before a buyer is told their files are ready. What changed on 2026-09-05
+    // is only where the buyer is sent: at a page that can explain itself, rather
+    // than at three raw PDFs that some mail apps render as a white screen.
     const model: StarterEmailModel = {
       firstName: (delivery.purchaser_name ?? '').trim().split(/\s+/)[0] || null,
       email: delivery.email,
-      teachersGuideUrl: links.teachersGuide,
-      studentNotebookUrl: links.studentNotebook,
-      readAloudUrl: links.readAloud,
       creditCode,
       downloadToken: delivery.download_token,
-      linksExpireAt: expiresAt,
     };
 
     const t4 = performance.now();
