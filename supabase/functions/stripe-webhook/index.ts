@@ -26,6 +26,12 @@
 //                                       two_band_bundle → record legacy order row +
 //                                                         provision user + bundle-buyer flag
 //   charge.refunded                → preorder order → refunded (suppresses messaging)
+//   charge.succeeded               → LearnWorlds course purchase → course_sales
+//                                     (Foundations Course sells on LearnWorlds through THIS
+//                                     Stripe account via Stripe Connect; those charges carry
+//                                     `application` and never come from our Checkout Sessions.
+//                                     LearnWorlds webhooks are a paid-plan feature, so this is
+//                                     the only sale signal we get. Added 2026-09-10.)
 //
 // Errors are captured to Sentry (SENTRY_DSN secret; graceful no-op without it).
 
@@ -319,6 +325,14 @@ serve(async (req) => {
           postalCode: billingAddr?.postal_code ?? null,
           country: billingAddr?.country ?? null,
         })
+        break
+      }
+
+      case "charge.succeeded": {
+        // Only LearnWorlds course purchases are recorded here; everything else
+        // (our own Checkout Sessions, subscription invoices) is already ledgered by
+        // the events above and is deliberately ignored to avoid double-counting.
+        await recordLearnWorldsCourseSale(event, event.data.object as Stripe.Charge)
         break
       }
 
@@ -1575,4 +1589,56 @@ function tierFromLookupKey(key: string | null): "free" | "seed" | "root" | "prac
 function toIso(unixSeconds: number | null | undefined): string | null {
   if (!unixSeconds) return null
   return new Date(unixSeconds * 1000).toISOString()
+}
+
+// ── LearnWorlds course sale (charge.succeeded) ──
+// The Foundations Course ($97) is sold on learn.edeninstitute.health. LearnWorlds
+// is connected to this same Stripe account through Stripe Connect (Payment
+// gateway → "Connected with: hello@edeninstitute.health"), so every course
+// purchase lands here as a charge created by the LearnWorlds platform
+// application. Those charges are distinguishable from our own:
+//   - `application` is set (a Connect platform created it); our Checkout Session
+//     charges have application = null;
+//   - there is no `invoice` (subscriptions always have one);
+//   - none of our metadata keys (lookup_key / preorder_sku) are present.
+// The course_sales row uses the charge id as lw_event_id, so Stripe retries
+// dedupe on the existing unique index. Never throws: a ledger miss must not
+// fail the webhook.
+async function recordLearnWorldsCourseSale(event: Stripe.Event, charge: Stripe.Charge) {
+  try {
+    if (charge.status !== "succeeded") return
+    if (charge.invoice) return
+    const meta = charge.metadata ?? {}
+    if (meta.lookup_key || meta.preorder_sku) return
+    const desc = charge.description ?? ""
+    const fromConnectApp = !!charge.application
+    const looksLikeCourse = /back to eden|foundations|learnworlds/i.test(desc)
+    if (!fromConnectApp && !looksLikeCourse) {
+      console.log(`charge.succeeded: not a LearnWorlds charge, ignored (charge=${charge.id}, desc="${desc}")`)
+      return
+    }
+
+    const email = (charge.billing_details?.email ?? charge.receipt_email ?? "").toLowerCase() || null
+    const { error } = await adminClient.from("course_sales").insert({
+      lw_event_id: charge.id,
+      product_id: null,
+      product_title: desc || "LearnWorlds purchase",
+      email,
+      amount_cents: charge.amount,
+      currency: charge.currency ?? "usd",
+      occurred_at: new Date((charge.created ?? event.created) * 1000).toISOString(),
+      raw: charge,
+    })
+    // 23505 = already recorded (Stripe retry). Expected, not a failure.
+    // deno-lint-ignore no-explicit-any
+    if (error && (error as any).code !== "23505") {
+      console.error("charge.succeeded: course_sales insert failed", error)
+      await captureException(error, { function: "stripe-webhook", step: "recordLearnWorldsCourseSale", charge: charge.id })
+      return
+    }
+    console.log(`charge.succeeded: LearnWorlds course sale recorded (charge=${charge.id}, ${charge.amount} ${charge.currency}, ${email ?? "no email"})`)
+  } catch (err) {
+    console.error("charge.succeeded: recordLearnWorldsCourseSale threw", err)
+    await captureException(err, { function: "stripe-webhook", step: "recordLearnWorldsCourseSale" })
+  }
 }
