@@ -1,0 +1,126 @@
+---
+// /books: the printed Sprouts curriculum, sold as one set and printed to order
+// by Lulu.
+//
+// A DEDICATED page, not a variant of /preorder. The kit preorder is a 2027
+// commitment with a disclaimer modal; this set prints and ships in days and
+// needs neither. Folding them into /preorder would make that page argue with
+// itself.
+//
+// THE PRICE IS NOT IN THIS FILE. The buy box reads it from the
+// print_products_public view. Do not add a price to the copy below.
+//
+// COPY STATUS: the sentences here are factual placeholders written by Claude
+// on 2026-09-10 so the page renders and can be tested end to end. The founder
+// writes the voice before this page is linked from anywhere. Facts stated are
+// the locked Lulu configuration (trim, binding), the founder's decision that
+// the three books sell together only, and the 48-hour cancellation window
+// from LULU_PRODUCTION_DELAY_MINUTES.
+//
+// Copy rule: no em dashes.
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+import PrintBuyBox from "../components/islands/PrintBuyBox.tsx";
+
+const meta = {
+  title: "Printed Sprouts Curriculum Set · Eden's Table | The Eden Institute",
+  description:
+    "The Eden's Table Sprouts (K-2) Teacher's Guide, Student Notebook and Read-Aloud storybook as one printed set, printed to order and shipped to your door.",
+  canonical: "https://edeninstitute.health/books",
+};
+
+const books = [
+  {
+    title: "Teacher's Guide",
+    body: "Every daily lesson for the 36-week Sprouts year. Letter size, full color, coil bound so it lies flat on the table while you teach.",
+  },
+  {
+    title: "Student Notebook",
+    body: "The child's write-in pages for all 36 weeks: botanical drawings, kitchen-lab observations, vocabulary and a weekly review. Letter size, coil bound.",
+  },
+  {
+    title: "Read-Aloud Storybook",
+    body: "The seven readings that run through the year, in a small paperback sized for a lap.",
+  },
+];
+
+const faqs = [
+  {
+    q: "Can I buy just one of the books?",
+    a: "No. The three are written to be used together, one week at a time, so they come as one set.",
+  },
+  {
+    q: "How is it printed?",
+    a: "Each set is printed for you when you order, by our print partner, and shipped directly to your address. Nothing sits in a warehouse.",
+  },
+  {
+    q: "When will it arrive?",
+    a: "Printing begins 48 hours after you order. That pause is deliberate: it is your window to change your mind or fix an address for a full refund. After that your books print and ship, and you get an email with tracking the moment they are on their way.",
+  },
+  {
+    q: "Can I return it?",
+    a: "Because each set is printed to order, it cannot be returned once printing has begun. If a book arrives damaged or misprinted, email hello@edeninstitute.health with a photo within 14 days of delivery and we will replace it.",
+  },
+  {
+    q: "Is this the Complete Kit?",
+    a: "No. The Sprouts Complete Kit also includes the Field Cards, Recipe Cards and Around the Table Cards, which are printed on heavy card stock in a separate print run. This set is the three books.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} jsonLd={faqJsonLd}>
+  <section class="pt-16 md:pt-20 pb-10 md:pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-3xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3 md:mb-4" style="color:hsl(var(--eden-gold-ink))">
+        Eden's Table · Sprouts, K-2
+      </p>
+      <h1 class="font-serif text-4xl md:text-5xl font-bold leading-tight mb-4 md:mb-6" style="color:hsl(var(--eden-bark))">
+        The three books, printed for you.
+      </h1>
+      <div class="w-16 h-px mx-auto my-4 md:my-6" style="background-color:hsl(var(--eden-gold-ink))"></div>
+      <p class="font-body text-base md:text-xl text-muted-foreground leading-relaxed" style="color:hsl(var(--eden-bark))">
+        The Teacher's Guide, the Student Notebook and the Read-Aloud storybook for the full
+        36-week Sprouts year, as one set, printed to order and shipped to your door.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-12 px-6 bg-background">
+    <div class="max-w-5xl mx-auto grid gap-8 md:grid-cols-[1fr_380px] items-start">
+      <div class="grid gap-4">
+        {books.map((b) => (
+          <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+            <h2 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-forest))">{b.title}</h2>
+            <p class="font-body text-sm text-muted-foreground leading-relaxed">{b.body}</p>
+          </div>
+        ))}
+      </div>
+      <div class="md:sticky md:top-24">
+        <PrintBuyBox client:only="react" cta="books-buy" />
+      </div>
+    </div>
+  </section>
+
+  <section class="py-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto">
+      <h2 class="font-serif text-2xl font-bold mb-6 text-center" style="color:hsl(var(--eden-forest))">Questions</h2>
+      <div class="space-y-4">
+        {faqs.map((f) => (
+          <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+            <h3 class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">{f.q}</h3>
+            <p class="font-body text-sm text-muted-foreground leading-relaxed">{f.a}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+</MarketingLayout>

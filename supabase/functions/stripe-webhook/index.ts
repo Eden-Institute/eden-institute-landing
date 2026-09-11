@@ -20,6 +20,7 @@
 //   checkout.session.completed     → one-time payment completion (mode='payment')
 //                                     → dispatch by metadata / lookup_key:
 //                                       preorder_sku → preorder order + preorder_hold + messages
+//                                       print_sku    → retail order + ready_to_fulfill + Lulu job queued
 //                                       deep_dive_guide → quiz_completions.purchased_guide
 //                                       course_*        → quiz_completions.purchased_course
 //                                       sprouts/seedlings/nb_addon → record legacy order row
@@ -40,7 +41,8 @@ import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { claimStripeEvent, markEventProcessed, markEventError, getOrderByPaymentIntent } from "../_shared/order-db.ts"
 import { setContactProperties } from "../_shared/resend-contacts.ts"
-import { recordPreorderFromSession, applyRefundByPaymentIntent, ResolvedLineItem } from "../_shared/order-flow.ts"
+import { recordPreorderFromSession, recordRetailOrderFromSession, applyRefundByPaymentIntent, ResolvedLineItem } from "../_shared/order-flow.ts"
+import { cancelLuluForRefund, enqueueLuluJob } from "../_shared/lulu-fulfillment.ts"
 import { notifyFoundingMilestones } from "../_shared/founding-milestones.ts"
 import { productForPriceId } from "../_shared/order-config.ts"
 import { captureException } from "../_shared/sentry.ts"
@@ -359,6 +361,12 @@ serve(async (req) => {
           ? charge.payment_intent
           : charge.payment_intent?.id ?? null
         if (pi) {
+          // Print-on-demand: stop the print if Lulu still can (inside its production
+          // delay). Never throws; a refused cancel emails the founder.
+          const luluCancel = await cancelLuluForRefund(adminClient, pi)
+          if (luluCancel.outcome !== "no_order" && luluCancel.outcome !== "no_job") {
+            console.log(`charge.refunded: Lulu cancel for pi=${pi}: ${luluCancel.outcome}${luluCancel.detail ? ` (${luluCancel.detail})` : ""}`)
+          }
           const applied = await applyRefundByPaymentIntent(adminClient, pi)
           console.log(`charge.refunded: ${applied ? "order -> refunded" : "no matching order"} (pi=${pi}, charge=${charge.id})`)
           if (applied) {
@@ -697,6 +705,52 @@ async function syncPurchaseProperties(email: string | null | undefined, context:
 }
 
 async function handleOneOffPayment(session: Stripe.Checkout.Session) {
+  // ---- Branch 0b: print shop (Lulu print-on-demand books) ----
+  // Detected by the print_sku metadata stamped by create-checkout's print branch.
+  // Record the order (is_preorder=false, fulfillment='lulu'), paid -> ready_to_fulfill
+  // (fires the order confirmation), queue the Lulu job, kick lulu-submit. The kick
+  // and the queue are best-effort with respect to the HTTP response: the sale is
+  // recorded first and the cron drain recovers anything the kick misses.
+  const printSku = (session.metadata?.print_sku as string | undefined) ?? null
+  if (printSku) {
+    if (session.payment_status !== "paid") {
+      console.warn(`print shop session ${session.id} completed with payment_status=${session.payment_status}; order NOT recorded`)
+      return
+    }
+    const items = await resolvePrintLineItems(session, printSku)
+    const orderNumber = await recordRetailOrderFromSession(adminClient, session, items, { fulfillment: "lulu" })
+    await syncPurchaseProperties(session.customer_details?.email ?? session.customer_email, session.id)
+
+    const printPi = typeof session.payment_intent === "string" ? session.payment_intent : null
+    if (orderNumber && printPi) {
+      try {
+        await stripe.paymentIntents.update(printPi, { metadata: { order_number: orderNumber } })
+      } catch (err) {
+        console.error(`order_number writeback failed for ${orderNumber} on ${printPi}:`, err instanceof Error ? err.message : String(err))
+      }
+    }
+
+    const { data: orderRow, error: orderErr } = await adminClient
+      .from("orders").select("id").eq("stripe_checkout_session_id", session.id).maybeSingle()
+    if (orderErr || !orderRow?.id) {
+      console.error(`[${session.id}] print order recorded but could not be re-read to queue its Lulu job: ${orderErr?.message ?? "no row"}`)
+      return
+    }
+    try {
+      const { queued } = await enqueueLuluJob(adminClient, orderRow.id)
+      console.log(`[${session.id}] Lulu job ${queued ? "queued" : "already queued"} for order ${orderNumber ?? orderRow.id}`)
+    } catch (err) {
+      // The order exists and the buyer has been emailed. Loud, but not a 500: Stripe
+      // would retry a completed sale. The drain's stuck count is where a missing job
+      // surfaces, and Resubmit on /founder creates one by hand.
+      console.error(`[${session.id}] Lulu job could not be queued: ${err instanceof Error ? err.message : String(err)}`)
+      await captureException(err, { function: "stripe-webhook", stage: "enqueueLuluJob", session_id: session.id })
+      return
+    }
+    void kickLuluSubmit(orderRow.id)
+    return
+  }
+
   // ---- Branch 0: founding-preorder products (Sprouts Kit, Student Notebook, ...) ----
   // Detected by the preorder_sku metadata stamped at checkout. Full lifecycle: record the
   // order + one line item per cart line, transition to preorder_hold, and fire the
@@ -982,6 +1036,84 @@ async function recordDigitalOrder(
 }
 
 // ---------- Starter Unit ----------
+
+/**
+ * Resolve a print-shop session's cart lines, most-authoritative source first:
+ *   1. Stripe line_items expansion, mapped back to SKUs through
+ *      products.stripe_retail_price_id (the print shop sells at retail only).
+ *   2. metadata.print_cart (JSON stamped by create-checkout).
+ *   3. metadata.print_sku alone as a single qty-1 line.
+ */
+async function resolvePrintLineItems(
+  session: Stripe.Checkout.Session,
+  printSku: string,
+): Promise<ResolvedLineItem[]> {
+  try {
+    const expanded = await stripe.checkout.sessions.retrieve(session.id, { expand: ["line_items.data.price"] })
+    const lines = expanded.line_items?.data ?? []
+    const priceIds: string[] = []
+    for (const li of lines) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const id = (li.price as any)?.id
+      if (typeof id === "string") priceIds.push(id)
+    }
+    const { data: products, error } = await adminClient
+      .from("products").select("sku, stripe_retail_price_id").in("stripe_retail_price_id", priceIds)
+    if (error) throw error
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const skuByPrice = new Map<string, string>((products ?? []).map((p: any) => [p.stripe_retail_price_id, p.sku]))
+    const items: ResolvedLineItem[] = []
+    for (const li of lines) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const price = li.price as any
+      const sku = skuByPrice.get(price?.id)
+      if (!sku) {
+        console.warn(`print session ${session.id}: line price ${price?.id ?? "(none)"} matches no product`)
+        continue
+      }
+      items.push({
+        sku,
+        isFounding: false,
+        quantity: li.quantity ?? 1,
+        unitPriceCents: typeof price?.unit_amount === "number" ? price.unit_amount : null,
+      })
+    }
+    if (items.length > 0 && items.length === lines.length) return items
+    console.warn(`print session ${session.id}: resolved ${items.length}/${lines.length} expanded lines; falling back to metadata`)
+  } catch (err) {
+    console.warn(`print session ${session.id}: line_items expansion failed (${err instanceof Error ? err.message : String(err)}); falling back to metadata`)
+  }
+
+  const rawCart = session.metadata?.print_cart
+  if (typeof rawCart === "string" && rawCart) {
+    try {
+      const parsed = JSON.parse(rawCart)
+      if (Array.isArray(parsed)) {
+        const items = parsed
+          .filter((c) => typeof c?.sku === "string" && Number.isInteger(c?.qty) && c.qty > 0)
+          .map((c) => ({ sku: c.sku as string, isFounding: false, quantity: c.qty as number }))
+        if (items.length > 0) return items
+      }
+    } catch {
+      // fall through
+    }
+  }
+  return [{ sku: printSku, isFounding: false, quantity: 1 }]
+}
+
+/** Fire-and-forget nudge to lulu-submit. Never throws; the cron drain is the backstop. */
+async function kickLuluSubmit(orderId: string): Promise<void> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/lulu-submit`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ order_id: orderId }),
+    })
+    if (!res.ok) console.warn(`[order ${orderId}] lulu-submit kick returned ${res.status}; cron will pick it up`)
+  } catch (err) {
+    console.warn(`[order ${orderId}] lulu-submit kick failed; cron will pick it up: ${err instanceof Error ? err.message : String(err)}`)
+  }
+}
 
 /**
  * Eden's Table Sprouts Starter Unit: record the sale, issue the kit credit, and
