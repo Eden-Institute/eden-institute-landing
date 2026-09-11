@@ -1,0 +1,97 @@
+---
+// /books/thank-you: order confirmation for the printed Sprouts set.
+//
+// Reached from Stripe's success_url with ?session_id={CHECKOUT_SESSION_ID}.
+// Built 2026-09-11 after the first real order landed the buyer back on /books
+// with only a small notice inside the buy box, which read as "did that work?".
+//
+// Three jobs, in order: reassure with the order number, say exactly what
+// happens next with dates, and show the receipt. The island does the live
+// part; this file is the frame.
+//
+// noindex: a confirmation page has nothing to offer search, and the session id
+// in the URL must never end up in an index.
+//
+// Copy rule: no em dashes.
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import PrintThankYou from "../../components/islands/PrintThankYou.tsx";
+
+const meta = {
+  title: "Your order is confirmed · Eden's Table | The Eden Institute",
+  description: "Order confirmation for the printed Eden's Table Sprouts curriculum set.",
+  canonical: "https://edeninstitute.health/books/thank-you",
+};
+---
+
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} noindex={true}>
+  <section class="pt-20 pb-10 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">
+        Thank you
+      </p>
+      <h1 class="font-serif text-4xl md:text-5xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
+        Your order is confirmed.
+      </h1>
+      <div class="w-16 h-px mx-auto my-6" style="background-color:hsl(var(--eden-gold))"></div>
+      <p class="font-body text-lg text-muted-foreground leading-relaxed">
+        Your books will be printed just for you and shipped to your door. Here is your order
+        and exactly what happens next.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-12 px-6 bg-background">
+    <div class="max-w-xl mx-auto">
+      <PrintThankYou client:only="react" />
+    </div>
+  </section>
+
+  <section class="py-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto text-center">
+      <h2 class="font-serif text-2xl font-bold mb-4" style="color:hsl(var(--eden-bark))">
+        While you wait
+      </h2>
+      <p class="font-body text-base text-muted-foreground leading-relaxed mb-6">
+        The first nine weeks of Sprouts are available today as an instant download, so you can read
+        ahead and plan your first lessons before the printed books arrive.
+      </p>
+      <a
+        href="/starter"
+        data-cta="books-thankyou-to-starter"
+        class="inline-block font-accent text-sm tracking-[0.2em] uppercase font-bold px-8 py-4 rounded-md"
+        style="background-color:hsl(var(--eden-forest));color:hsl(var(--eden-cream))"
+      >
+        See the Starter Unit
+      </a>
+      <p class="font-body text-sm text-muted-foreground mt-6">
+        Questions about your order: <a href="mailto:hello@edeninstitute.health" class="underline" style="color:hsl(var(--eden-forest))">hello@edeninstitute.health</a>
+        or <a href="tel:+19315755895" class="underline" style="color:hsl(var(--eden-forest))">(931) 575-5895</a>, Monday to Friday, 9am to 5pm Central.
+      </p>
+    </div>
+  </section>
+</MarketingLayout>
+
+<script>
+  // Purchase conversion for the printed set, tagged distinctly from the kit and
+  // the Starter Unit. The server-side Meta Purchase fires from stripe-webhook with
+  // the session id as event_id, so the two dedupe. Guarded on sessionStorage so a
+  // refresh never reports a second sale. gtag may be absent (no consent).
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get("session_id");
+    const key = `print_set_conv_${sessionId ?? "none"}`;
+    if (sessionId && !sessionStorage.getItem(key)) {
+      sessionStorage.setItem(key, "1");
+      (window as any).gtag?.("event", "print_set_purchase", {
+        event_category: "conversion",
+        event_label: "sprouts_print_set",
+        value: 249.0,
+        currency: "USD",
+        transaction_id: sessionId,
+        items: [{ item_id: "sprouts_print_set", item_name: "Sprouts Printed Curriculum Set", price: 249.0, quantity: 1 }],
+      });
+    }
+  } catch {
+    // Analytics never break the page.
+  }
+</script>

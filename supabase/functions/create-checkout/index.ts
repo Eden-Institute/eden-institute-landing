@@ -59,7 +59,10 @@ import { enforceCheckoutRateLimit } from "../_shared/checkout-rate-limit.ts"
 import { sendMetaCapiInitiateCheckout } from "../_shared/meta-capi.ts"
 import { STARTER_LOOKUP_KEY } from "../_shared/starter-config.ts"
 import { evaluateRedemption, findCreditByCode } from "../_shared/starter-credit.ts"
-import { LULU_PRODUCTS, PRINT_SHOP_URL, luluProductBySku } from "../_shared/lulu-config.ts"
+import { LULU_PRODUCTION_DELAY_MINUTES, LULU_PRODUCTS, PRINT_SHOP_URL, luluProductBySku } from "../_shared/lulu-config.ts"
+
+/** Hours a buyer has to cancel a print order, for Stripe's checkout copy. */
+const PRINT_CANCEL_HOURS = Math.round(LULU_PRODUCTION_DELAY_MINUTES / 60)
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2024-12-18.acacia",
@@ -1159,9 +1162,12 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
   if (typeof body.fbc === "string" && body.fbc) metadata.fbc = body.fbc
   if (isAdminTest) metadata.print_test = "true"
 
+  // Success lands on a real confirmation page, never back on the shop page: the
+  // first live order (2026-09-11) returned to /books with a small notice inside
+  // the buy box and the buyer could not tell whether it had worked.
   const successUrl = isSafeReturnUrl(body.success_url)
     ? body.success_url
-    : `${PRINT_SHOP_URL}?checkout=success&session_id={CHECKOUT_SESSION_ID}`
+    : `${PRINT_SHOP_URL}/thank-you?session_id={CHECKOUT_SESSION_ID}`
   const cancelUrl = isSafeReturnUrl(body.cancel_url)
     ? body.cancel_url
     : `${PRINT_SHOP_URL}?checkout=cancelled`
@@ -1188,6 +1194,19 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
     // shipped/delivered texts.
     phone_number_collection: { enabled: true },
     customer_creation: "always",
+    // The words on Stripe's own screen. A buyer reads these next to the Pay
+    // button and next to the address form, which is where the two facts that
+    // matter most (printed to order, 48-hour change window) belong.
+    custom_text: {
+      submit: {
+        message:
+          `Printed to order for you and shipped within the United States, tracked. ` +
+          `Printing begins ${PRINT_CANCEL_HOURS} hours after your order; until then you can cancel or correct your address for a full refund.`,
+      },
+      shipping_address: {
+        message: "Your books ship from our print partner to this address. Please check the apartment or unit number.",
+      },
+    },
     metadata,
     payment_intent_data: { metadata },
   }
