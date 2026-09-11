@@ -140,11 +140,9 @@ counts (240, 224, and NULL for the Read-Aloud until its final count is known).
    until both read `NORMALIZED` (or `ERROR` with reasons). Repeat for `nb` and `ra`.
 6. **Register the webhook** (once per environment):
    `{ "action": "subscribe_webhook", "url": "https://noeqztssupewjidpvhar.supabase.co/functions/v1/lulu-webhook" }`.
-7. **Returns policy.** `/returns` does not yet mention the printed set. The
-   facts to write from: no returns once printing begins; 48-hour cancellation
-   window; damaged copies replaced (Lulu's terms give no time limit, a Lulu
-   help article says 30 days from shipment; the page currently promises 14
-   days for other physical goods).
+7. **Returns policy.** Done 2026-09-11: `/returns` has a "Printed books,
+   printed to order" section (48-hour cancellation, no returns once printing
+   starts, damaged copies replaced against a photo within 14 days of delivery).
 8. **Sales tax on Lulu's invoice.** Stripe Tax charges the buyer; Lulu also
    charges us tax on the print job. Whether a resale certificate removes that is
    a CPA question.

@@ -109,59 +109,66 @@ function trackingBits(order: OrderRow): { carrier: string; code: string; link: s
 
 const PRINT_CANCEL_HOURS = Math.round(LULU_PRODUCTION_DELAY_MINUTES / 60);
 
-// ── Print-on-demand order emails (2026-09-10) ────────────────────────────────
-// COPY STATUS: written by Claude as factual placeholders so the rail can be
-// tested end to end. The founder writes the voice before the shop opens.
-// Facts: the cancellation window equals Lulu's production delay; tracking comes
-// from Lulu's SHIPPED status.
+// ── Print-on-demand order emails ─────────────────────────────────────────────
+// Written 2026-09-11 in the founder's voice, from her own pages and mail. Facts
+// only from the code: the cancellation window equals Lulu's production delay;
+// tracking comes from Lulu's SHIPPED status; MAIL transit is about two weeks.
 
 export function buildOrderConfirmationEmail(order: OrderRow): { subject: string; html: string } {
-  const item = order.product_label ? order.product_label : 'your order';
+  const item = order.product_label ? order.product_label : 'your Sprouts set';
   const amount = money(order.amount_total_cents);
   const body =
     p(`Hi ${firstName(order)},`) +
-    p(`Thank you. Your order is confirmed.`) +
+    p(`Thank you!! Your order is in and your books are about to be printed just for you.`) +
     heading('Your order') +
     (order.order_number
       ? p(`Order number: <strong>${order.order_number}</strong><br>`
-        + `Keep this. Quote it in any email to us about your order.`)
+        + `Keep this one. It is how I find you fast if you ever need anything.`)
       : '') +
-    p(`${item}${amount ? `: ${amount} (charged today)` : ''}`) +
-    p(`Each book is printed for you when you order. Printing begins <strong>${PRINT_CANCEL_HOURS} hours</strong> `
-      + `after your order, and until then you can change your mind or correct your address for a full refund `
-      + `by replying to this email. Once printing has begun the order cannot be changed.`) +
-    p(`You will get an email with tracking the moment your books are on their way.`) +
+    p(`${item}${amount ? `: ${amount}, charged today` : ''}`) +
+    heading('What happens now') +
+    p(`Because each set is printed for you and nobody else, there is a <strong>${PRINT_CANCEL_HOURS} hour pause</strong> `
+      + `before printing starts. That is your window. If the address is wrong, if you meant two sets, if you `
+      + `changed your mind, just reply to this email and I will fix it or refund you in full. Once printing `
+      + `starts it cannot be changed.`) +
+    p(`After that your books print, get packed and go in the mail, and you will get an email from me with `
+      + `tracking the day they ship. Plan on about two to three weeks from today to your door.`) +
+    p(`I am so glad you are starting. Week 1 is waiting for you.`) +
     signature();
-  return { subject: 'Your order is confirmed', html: wrapTransactional(body, 'placed an order') };
+  return { subject: `Your Sprouts books are ordered${order.order_number ? ` (${order.order_number})` : ''}`, html: wrapTransactional(body, 'placed an order') };
 }
 
 export function buildShippedEmail(order: OrderRow): { subject: string; html: string } {
-  const item = order.product_label ? order.product_label : 'your order';
+  const item = order.product_label ? order.product_label : 'your Sprouts set';
   const { carrier, code, link } = trackingBits(order);
   const body =
     p(`Hi ${firstName(order)},`) +
-    p(`It is on the way. Your <strong>${item}</strong> has shipped with ${carrier}.`) +
+    p(`They are on the way!! Your <strong>${item}</strong> shipped today${carrier !== 'the carrier' ? ` with ${carrier}` : ''}.`) +
     heading('Tracking') +
     (code ? p(`Tracking number: <strong>${code}</strong>`) : '') +
     (link
       ? p(`<a href="${link}" style="display:inline-block;background-color:${BRAND.forest};color:#F5F0E8;font-family:Georgia,serif;font-size:16px;font-weight:bold;padding:12px 28px;text-decoration:none;">Track your package</a>`)
       : '') +
-    (!code && !link ? p(`The carrier has not issued a tracking number yet. Reply to this email if it has not arrived within two weeks.`) : '') +
+    (!code && !link ? p(`The carrier has not posted a tracking number yet. If nothing has arrived in two weeks, reply to this email and I will chase it.`) : '') +
+    p(`Mail usually takes a week or two. When the box lands, open the Teacher's Guide to Week 1 and read it `
+      + `together at the table before you do anything else. That is the whole method.`) +
     (order.order_number ? p(`Order number: ${order.order_number}`) : '') +
     signature();
-  return { subject: 'Your order is on its way', html: wrapTransactional(body, 'placed an order') };
+  return { subject: 'Your Sprouts books shipped', html: wrapTransactional(body, 'placed an order') };
 }
 
 export function buildDeliveredEmail(order: OrderRow): { subject: string; html: string } {
-  const item = order.product_label ? order.product_label : 'your order';
+  const item = order.product_label ? order.product_label : 'your Sprouts set';
   const body =
     p(`Hi ${firstName(order)},`) +
-    p(`Your <strong>${item}</strong> was delivered today.`) +
-    p(`If it is not where you expected, check with anyone else at home first, then any porch, side door `
-      + `or mailroom the carrier might use. If it still does not turn up, reply to this email and we will sort it out with you.`) +
-    p(`If a book arrived damaged or misprinted, reply with a photo and we will replace it.`) +
+    p(`Your <strong>${item}</strong> was delivered today!`) +
+    p(`If it is not where you expected, check with everyone at home first, then the porch, the side door `
+      + `and anywhere else the mail carrier likes to hide things. Still nothing? Reply to this email and we `
+      + `will sort it out together.`) +
+    p(`If a book arrived bent, misprinted or damaged, send me a photo and I will replace it, no charge.`) +
+    p(`Now go find a plant. Week 1 starts whenever you are ready.`) +
     signature();
-  return { subject: "Your Eden's Table order has arrived", html: wrapTransactional(body, 'placed an order') };
+  return { subject: 'Your Sprouts books are here', html: wrapTransactional(body, 'placed an order') };
 }
 
 export function buildOrderEmail(templateKey: string, order: OrderRow): { subject: string; html: string } {
@@ -181,11 +188,11 @@ export function orderSmsText(templateKey: string, order: OrderRow): string {
     case 'preorder_received_sms':
       return preorderSmsText(order);
     case 'order_received_sms':
-      return `Thank you for your order from The Eden Institute (edeninstitute.health).${ref} Your card was charged today. Your books are printed to order; tracking will follow by email and text when they ship. Reply STOP to opt out.`;
+      return `Thank you for your Sprouts order from The Eden Institute!${ref} Your card was charged today. Your books print in ${PRINT_CANCEL_HOURS} hours; reply to your confirmation email before then to change anything. I will text you when they ship. Reply STOP to opt out.`;
     case 'shipped_sms':
-      return `Your Eden's Table order has shipped with ${carrier}.${link ? ` Track it: ${link}` : ''}${code ? ` (tracking ${code})` : ''} Reply STOP to opt out.`;
+      return `Your Sprouts books shipped today${carrier !== 'the carrier' ? ` with ${carrier}` : ''}!${link ? ` Track them: ${link}` : ''}${code ? ` (tracking ${code})` : ''} Reply STOP to opt out.`;
     case 'delivered_sms':
-      return `Your Eden's Table order was delivered. Reply to your confirmation email if anything is wrong with it. Reply STOP to opt out.`;
+      return `Your Sprouts books were delivered today! Anything wrong with them, reply to your confirmation email and I will make it right. Reply STOP to opt out.`;
     default:
       throw new Error(`No SMS builder for template '${templateKey}'`);
   }

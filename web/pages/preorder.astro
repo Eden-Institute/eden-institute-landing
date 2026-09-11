@@ -182,6 +182,12 @@ const productJsonLd = productSpecs.map((p) => ({
   <section class="py-12 px-6 bg-background">
     <div class="max-w-5xl mx-auto">
       <PreorderBuyBox client:only="react" />
+      {/* Added 2026-09-11 with /books: the same $249 buys the three printed books
+          now. Kept short and under the box so it never competes with the kit. */}
+      <p class="font-body text-sm text-center max-w-xl mx-auto mt-6 leading-relaxed" style="color:hsl(var(--eden-bark))">
+        Rather start this school year? The three books on their own are printed to order and at your door in about two weeks, for the same $249.
+        <a href="/books" data-cta="preorder-to-books" class="underline font-bold" style="color:hsl(var(--eden-forest))">See the printed set</a>.
+      </p>
     </div>
   </section>
 

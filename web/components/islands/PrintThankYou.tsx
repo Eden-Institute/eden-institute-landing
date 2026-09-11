@@ -257,6 +257,24 @@ export default function PrintThankYou() {
           <div className="flex justify-between gap-4 font-bold mt-1"><span>Charged today</span><span>{money(status.amount_total_cents)}</span></div>
         </div>
       </div>
+
+      {status.stage === "received" && (
+        <div className={card} style={cardStyle}>
+          <h2 className="font-serif text-xl font-bold mb-2" style={forest}>While you wait</h2>
+          <p className="font-body text-sm text-muted-foreground leading-relaxed mb-4">
+            The first nine weeks of Sprouts are a $39 download, so you can read ahead and plan your first
+            lessons tonight instead of in two weeks. Or just wait for the box. Either is fine.
+          </p>
+          <a
+            href="/starter"
+            data-cta="books-thankyou-to-starter"
+            className="inline-block font-accent text-xs tracking-[0.2em] uppercase font-bold px-6 py-3 rounded-md"
+            style={{ backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-cream))" }}
+          >
+            See the Starter Unit
+          </a>
+        </div>
+      )}
     </div>
   );
 }

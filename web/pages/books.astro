@@ -4,18 +4,17 @@
 //
 // A DEDICATED page, not a variant of /preorder. The kit preorder is a 2027
 // commitment with a disclaimer modal; this set prints and ships in days and
-// needs neither. Folding them into /preorder would make that page argue with
-// itself.
+// needs neither.
 //
 // THE PRICE IS NOT IN THIS FILE. The buy box reads it from the
-// print_products_public view. Do not add a price to the copy below.
+// print_products_public view. The $249 in the copy below is the positioning
+// line the founder chose (same price as the founding kit, the difference is
+// when you get it); if the price ever changes, this copy changes with it.
 //
-// COPY STATUS: the sentences here are factual placeholders written by Claude
-// on 2026-09-10 so the page renders and can be tested end to end. The founder
-// writes the voice before this page is linked from anywhere. Facts stated are
-// the locked Lulu configuration (trim, binding), the founder's decision that
-// the three books sell together only, and the 48-hour cancellation window
-// from LULU_PRODUCTION_DELAY_MINUTES.
+// Positioning, founder decision 2026-09-10: the set is $249 on purpose, the
+// same as the founding kit. The kit will not ship for almost a year, so this
+// is not a budget choice. Pay $249 and start now, or pay $249 and wait. The
+// set stays at $249 after the founding kits are gone.
 //
 // Copy rule: no em dashes.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
@@ -24,47 +23,72 @@ import PrintBuyBox from "../components/islands/PrintBuyBox.tsx";
 const meta = {
   title: "Printed Sprouts Curriculum Set · Eden's Table | The Eden Institute",
   description:
-    "The Eden's Table Sprouts (K-2) Teacher's Guide, Student Notebook and Read-Aloud storybook as one printed set, printed to order and shipped to your door.",
+    "The Eden's Table Sprouts (K-2) Teacher's Guide, Student Notebook and Read-Aloud storybook, printed to order and at your door in about two weeks. $249, the same as the founding kit. The kit ships next summer. These ship now.",
   canonical: "https://edeninstitute.health/books",
 };
 
 const books = [
   {
-    title: "Teacher's Guide",
-    body: "Every daily lesson for the 36-week Sprouts year. Letter size, full color, coil bound so it lies flat on the table while you teach.",
+    title: "The Teacher's Guide",
+    pages: "240 pages, letter size, coil bound",
+    body: "Every day of all 36 weeks, written out. What to read, what to say, what to put on the table, and which subjects that week's plant is carrying. It lies flat while you teach, because you will have a child on your lap and a mug in your other hand.",
   },
   {
-    title: "Student Notebook",
-    body: "The child's write-in pages for all 36 weeks: botanical drawings, kitchen-lab observations, vocabulary and a weekly review. Letter size, coil bound.",
+    title: "The Student Notebook",
+    pages: "224 pages, letter size, coil bound",
+    body: "Her pages. She draws the plant she just held, writes what it smelled like, copies the verse, and answers a question in her own handwriting every week. By May it is a full year of her work, dated and in order, which is also your record keeping done.",
   },
   {
-    title: "Read-Aloud Storybook",
-    body: "The seven readings that run through the year, in a small paperback sized for a lap.",
+    title: "The Read-Aloud Storybook",
+    pages: "112 pages, small paperback",
+    body: "The seven stories that run through the year, sized for a lap. This is the one you read on the couch. It is the same storybook that comes in the kit.",
   },
 ];
 
 const faqs = [
   {
-    q: "Can I buy just one of the books?",
-    a: "No. The three are written to be used together, one week at a time, so they come as one set.",
+    q: "Why is it the same price as the kit?",
+    a: "Because the books are the curriculum. The kit adds the three card decks and the box, and I priced the founding kit low to fund the print run. What you are choosing here is not a cheaper version. It is the same year of school in your hands in two weeks instead of next summer.",
   },
   {
-    q: "How is it printed?",
-    a: "Each set is printed for you when you order, by our print partner, and shipped directly to your address. Nothing sits in a warehouse.",
+    q: "Can I buy just one of the three?",
+    a: "No. They are written to be used together, one plant a week, and one without the others would leave you stuck by Wednesday.",
   },
   {
-    q: "When will it arrive?",
-    a: "Printing begins 48 hours after you order. That pause is deliberate: it is your window to change your mind or fix an address for a full refund. After that your books print and ship, and you get an email with tracking the moment they are on their way.",
+    q: "What if I order this and later want the kit?",
+    a: "Order the kit when you are ready. You will already have the books, so the cards and the box are what you are adding. There is no credit between the two, so you know that before you order.",
+  },
+  {
+    q: "How is it printed, and how long does it take?",
+    a: "Each set is printed for you when you order, by our print partner, and mailed straight to your address. Printing starts 48 hours after you order. That pause is on purpose: it is your window to fix a typo in your address or change your mind for a full refund. After that it prints, and you get a tracking email the day it ships. Plan on about two to three weeks from order to your door.",
   },
   {
     q: "Can I return it?",
-    a: "Because each set is printed to order, it cannot be returned once printing has begun. If a book arrives damaged or misprinted, email hello@edeninstitute.health with a photo within 14 days of delivery and we will replace it.",
+    a: "Once printing has started, no, because it was printed for you and nobody else. Before that, yes, for a full refund, just reply to your confirmation email. If a book arrives bent, misprinted or damaged, send me a photo within 14 days and I will replace it at no cost to you.",
   },
   {
-    q: "Is this the Complete Kit?",
-    a: "No. The Sprouts Complete Kit also includes the Field Cards, Recipe Cards and Around the Table Cards, which are printed on heavy card stock in a separate print run. This set is the three books.",
+    q: "Is this a good place to start, or should I try the $39 Starter Unit first?",
+    a: "If you are still deciding whether this is how your family wants to learn, start with the nine-week Starter Unit. It is a download, it is $39, and the $39 comes off the kit later. If you have already decided and you want the whole year on paper now, this is the page.",
   },
 ];
+
+const productJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Product",
+  name: "Eden's Table: Sprouts Printed Curriculum Set",
+  sku: "sprouts_print_set",
+  description:
+    "The Eden's Table Sprouts (K-2) Teacher's Guide (240 pages), Student Notebook (224 pages) and Read-Aloud Storybook (112 pages), printed to order and shipped within the United States. 36 weeks, 180 daily lessons, one plant a week.",
+  brand: { "@type": "Brand", name: "Eden's Table" },
+  offers: {
+    "@type": "Offer",
+    price: "249.00",
+    priceCurrency: "USD",
+    availability: "https://schema.org/InStock",
+    url: meta.canonical,
+    seller: { "@type": "Organization", name: "Rooted in Faith Ventures LLC" },
+  },
+};
 
 const faqJsonLd = {
   "@context": "https://schema.org",
@@ -77,32 +101,67 @@ const faqJsonLd = {
 };
 ---
 
-<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} jsonLd={faqJsonLd}>
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} jsonLd={[productJsonLd, faqJsonLd]}>
   <section class="pt-16 md:pt-20 pb-10 md:pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
     <div class="max-w-3xl mx-auto text-center">
       <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3 md:mb-4" style="color:hsl(var(--eden-gold-ink))">
         Eden's Table · Sprouts, K-2
       </p>
       <h1 class="font-serif text-4xl md:text-5xl font-bold leading-tight mb-4 md:mb-6" style="color:hsl(var(--eden-bark))">
-        The three books, printed for you.
+        The whole year, printed, in your hands in about two weeks.
       </h1>
       <div class="w-16 h-px mx-auto my-4 md:my-6" style="background-color:hsl(var(--eden-gold-ink))"></div>
-      <p class="font-body text-base md:text-xl text-muted-foreground leading-relaxed" style="color:hsl(var(--eden-bark))">
-        The Teacher's Guide, the Student Notebook and the Read-Aloud storybook for the full
-        36-week Sprouts year, as one set, printed to order and shipped to your door.
+      <p class="font-body text-base md:text-xl leading-relaxed" style="color:hsl(var(--eden-bark))">
+        The Teacher's Guide, the Student Notebook and the Read-Aloud storybook for all 36 weeks
+        of Sprouts, printed to order and mailed to your door. It is $249, the same as the founding
+        kit. The kit ships next summer. These ship now.
       </p>
     </div>
   </section>
 
+  <!-- THE CHOICE, in plain words. This is the founder's positioning and the one
+       thing a reader must take from the page: same money, the difference is
+       when. -->
   <section class="py-12 px-6 bg-background">
+    <div class="max-w-2xl mx-auto">
+      <p class="font-accent text-xs tracking-[0.25em] uppercase mb-4 text-center" style="color:hsl(var(--eden-gold-ink))">
+        Same price. The difference is when.
+      </p>
+      <div class="font-body text-base md:text-lg leading-relaxed space-y-4" style="color:hsl(var(--eden-bark))">
+        <p>
+          The Sprouts Complete Kit is $249 for the first 500 families, and it does not ship until
+          next summer, because the card decks and the box are printed in one big run and we are
+          still filling it. I did not want you sitting on a curriculum you paid for while your
+          kindergartner turned into a first grader.
+        </p>
+        <p>
+          So the three books, which are the curriculum itself, print on their own, one set at a
+          time, and go in the mail within days. Same $249. You just get to start this school year
+          instead of next.
+        </p>
+        <p>
+          If you want the cards and the box, <a href="/preorder" class="underline" style="color:hsl(var(--eden-forest))">preorder the kit</a>.
+          If you want to be teaching by the end of the month, this is the page.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-12 px-6" style="background-color:hsl(var(--eden-cream))">
     <div class="max-w-5xl mx-auto grid gap-8 md:grid-cols-[1fr_380px] items-start">
       <div class="grid gap-4">
+        <h2 class="font-serif text-2xl font-bold" style="color:hsl(var(--eden-forest))">What is in the set</h2>
         {books.map((b) => (
           <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
-            <h2 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-forest))">{b.title}</h2>
+            <h3 class="font-serif text-lg font-bold mb-1" style="color:hsl(var(--eden-forest))">{b.title}</h3>
+            <p class="font-accent text-xs tracking-[0.2em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">{b.pages}</p>
             <p class="font-body text-sm text-muted-foreground leading-relaxed">{b.body}</p>
           </div>
         ))}
+        <p class="font-body text-sm text-muted-foreground leading-relaxed">
+          The herbs are not in the box and never were. Each week uses a small amount of a common
+          dried herb from your pantry, your garden, or the <a href="/homeschool/herbs" class="underline" style="color:hsl(var(--eden-forest))">herb list we keep for you</a>.
+        </p>
       </div>
       <div class="md:sticky md:top-24">
         <PrintBuyBox client:only="react" cta="books-buy" />
@@ -110,9 +169,9 @@ const faqJsonLd = {
     </div>
   </section>
 
-  <section class="py-12 px-6" style="background-color:hsl(var(--eden-cream))">
+  <section class="py-12 px-6 bg-background">
     <div class="max-w-2xl mx-auto">
-      <h2 class="font-serif text-2xl font-bold mb-6 text-center" style="color:hsl(var(--eden-forest))">Questions</h2>
+      <h2 class="font-serif text-2xl font-bold mb-6 text-center" style="color:hsl(var(--eden-forest))">Questions I get asked</h2>
       <div class="space-y-4">
         {faqs.map((f) => (
           <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
@@ -121,6 +180,9 @@ const faqJsonLd = {
           </div>
         ))}
       </div>
+      <p class="font-body text-sm text-muted-foreground text-center mt-8">
+        Anything else, email me: <a href="mailto:hello@edeninstitute.health" class="underline" style="color:hsl(var(--eden-forest))">hello@edeninstitute.health</a>
+      </p>
     </div>
   </section>
 </MarketingLayout>
