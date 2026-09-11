@@ -22,7 +22,11 @@ export type OrderStatus =
 
 // Allowed edges. cancelled/refunded are reachable from any non-terminal state.
 const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  paid: ['preorder_hold', 'cancelled', 'refunded'],
+  // paid -> ready_to_fulfill is the retail / print-on-demand edge (an in-stock or
+  // Lulu order skips the preorder hold). It was missing on the first production
+  // order, ET-1026 on 2026-09-11: the order recorded, the transition was silently
+  // ignored, no confirmation went out and the Lulu job refused the order.
+  paid: ['preorder_hold', 'ready_to_fulfill', 'cancelled', 'refunded'],
   preorder_hold: ['ready_to_fulfill', 'cancelled', 'refunded'],
   ready_to_fulfill: ['label_created', 'in_production', 'cancelled', 'refunded'],
   label_created: ['shipped', 'cancelled', 'refunded'],
