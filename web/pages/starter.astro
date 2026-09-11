@@ -31,6 +31,7 @@ import MarketingLayout from "../layouts/MarketingLayout.astro";
 // is load-bearing, not decorative. Rendered at 24% with mix-blend-mode:multiply.
 import heroStarter from "@/assets/hero-starter.jpg";
 import StarterBuyBox from "../components/islands/StarterBuyBox.tsx";
+import ComponentShowcases from "../components/ComponentShowcases.astro";
 
 const PRICE = "$39";
 const CREDIT = "$39";
@@ -185,7 +186,7 @@ const faqJsonLd = {
         </p>
       </div>
 
-      <div class="flex justify-center">
+      <div id="early-access" class="flex justify-center scroll-mt-28">
         <StarterBuyBox client:only="react" cta="starter-hero-buy" wide={true} />
       </div>
     </div>
@@ -193,10 +194,24 @@ const faqJsonLd = {
 
   <!-- WHAT IS INCLUDED -->
   <section class="py-16 px-6 bg-background">
-    <div class="max-w-3xl mx-auto">
+    <div class="max-w-4xl mx-auto">
       <h2 class="font-serif text-3xl font-bold mb-8 text-center" style="color:hsl(var(--eden-forest))">
         What you get
       </h2>
+      {/* The polished product image plus the short list, before the long copy.
+          A buyer scanning on a phone gets the whole answer in one screen. */}
+      <div class="grid gap-8 md:grid-cols-[1fr_1.1fr] items-center mb-10">
+        <div class="rounded-lg overflow-hidden bg-white shadow-sm border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+          <img src="/showcases/ET_StarterUnit.webp" alt="Sprouts Starter Unit: the Teacher's Guide, Student Notebook and Read-Aloud Storybook for the first nine weeks, as a digital download" loading="lazy" width="1024" height="1024" class="w-full h-auto" />
+        </div>
+        <ul class="font-body text-base space-y-3" style="color:hsl(var(--eden-bark))">
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Teacher's Guide, weeks 1 to 9.</strong> Forty-five daily lesson plans, scripted, with the Week at a Glance for each week.</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Student Notebook, weeks 1 to 9.</strong> Her write-in pages: drawings, kitchen-lab observations, vocabulary, weekly review.</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Read-Aloud Storybook.</strong> The four readings that fall in these nine weeks.</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>PDF, instant download.</strong> Print at home; letter size for the two books, small storybook page for the stories.</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>A $39 credit toward the Sprouts Complete Kit.</strong> Tied to your email, used once.</span></li>
+        </ul>
+      </div>
       <div class="grid gap-4 md:grid-cols-2">
         {included.map((item) => (
           <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
@@ -207,6 +222,10 @@ const faqJsonLd = {
       </div>
     </div>
   </section>
+
+  {/* The three books, with the same copy and photos as the hub. The note under
+      each heading keeps the claim honest: nine weeks of it, not thirty-six. */}
+  <ComponentShowcases only={["story", "tg", "nb"]} note="In the Starter Unit: weeks 1 to 9 of this, as a download." cta={{ href: "#early-access", label: "Get the Starter Unit · $39", dataCta: "starter-showcase-buy" }} />
 
   <!-- WEEK 9. The only genuinely new EXPERIENCE the three extra weeks buy, so it
        gets a band of its own rather than a line in a card. Every lab in weeks 1

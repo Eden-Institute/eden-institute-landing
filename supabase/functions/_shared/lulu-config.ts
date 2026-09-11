@@ -82,14 +82,22 @@ export interface LuluProduct {
   maxQtyPerOrder: number;
 }
 
-// The one sellable product. Cap of 2 sets per order is an engineering default
-// (a second set for a sibling household), not a founder rule; raise it if asked.
+// The sellable products. The set (founder decision 2026-09-10: the three books
+// together, never separately) and, since 2026-09-11, an extra Student Notebook
+// for siblings at $29.99, printed in the same job and shipped in the same
+// parcel. Caps are engineering defaults, not founder rules; raise on request.
 export const LULU_PRODUCTS: LuluProduct[] = [
   {
     sku: 'sprouts_print_set',
     name: 'Sprouts Printed Curriculum Set',
     books: ['tg', 'nb', 'ra'],
     maxQtyPerOrder: 2,
+  },
+  {
+    sku: 'sprouts_nb_print',
+    name: 'Extra Student Notebook, printed',
+    books: ['nb'],
+    maxQtyPerOrder: 5,
   },
 ];
 

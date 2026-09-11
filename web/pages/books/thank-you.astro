@@ -15,6 +15,7 @@
 // Copy rule: no em dashes.
 import MarketingLayout from "../../layouts/MarketingLayout.astro";
 import PrintThankYou from "../../components/islands/PrintThankYou.tsx";
+import heroBooks from "@/assets/hero-books.jpg";
 
 const meta = {
   title: "Your order is confirmed · Eden's Table | The Eden Institute",
@@ -27,8 +28,9 @@ const meta = {
   <!-- The island owns the headline as well as the cards: the words "Your order is
        confirmed" must never sit above a card that says the order was refunded,
        which is exactly what the first version did for ET-1026. -->
-  <section class="pt-20 pb-14 px-6" style="background-color:hsl(var(--eden-cream))">
-    <div class="max-w-xl mx-auto">
+  <section class="relative overflow-hidden pt-20 pb-14 px-6" style="background-color:hsl(var(--eden-cream))">
+    <img src={heroBooks.src} alt="" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" style="opacity:0.95;mix-blend-mode:multiply" />
+    <div class="relative z-10 max-w-xl mx-auto">
       <PrintThankYou client:only="react" />
     </div>
   </section>

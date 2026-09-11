@@ -19,6 +19,11 @@
 // Copy rule: no em dashes.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 import PrintBuyBox from "../components/islands/PrintBuyBox.tsx";
+import ComponentShowcases from "../components/ComponentShowcases.astro";
+// Hero watermark: calendula, public domain (Koehler's Medizinal-Pflanzen), built
+// with scripts/build_hero.py and contrast-audited (worst 4.73:1, floor 4.5).
+// Same treatment as /starter and /preorder.
+import heroBooks from "@/assets/hero-books.jpg";
 
 const meta = {
   title: "Printed Sprouts Curriculum Set · Eden's Table | The Eden Institute",
@@ -52,7 +57,7 @@ const faqs = [
   },
   {
     q: "Can I buy just one of the three?",
-    a: "No. They are written to be used together, one plant a week, and one without the others would leave you stuck by Wednesday.",
+    a: "No. They are written to be used together, one plant a week, and one without the others would leave you stuck by Wednesday. The one exception is the Student Notebook: it is the write-in book, so you can add extra copies for siblings at checkout, $29.99 each, printed and shipped with your set.",
   },
   {
     q: "What if I order this and later want the kit?",
@@ -102,8 +107,9 @@ const faqJsonLd = {
 ---
 
 <MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} jsonLd={[productJsonLd, faqJsonLd]}>
-  <section class="pt-16 md:pt-20 pb-10 md:pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
-    <div class="max-w-3xl mx-auto text-center">
+  <section class="relative overflow-hidden pt-16 md:pt-20 pb-10 md:pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <img src={heroBooks.src} alt="" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" style="opacity:0.95;mix-blend-mode:multiply" />
+    <div class="relative z-10 max-w-3xl mx-auto text-center rounded-lg" style="background-color:hsl(0 0% 100% / 0.92);border:1px solid hsl(var(--eden-gold) / 0.35);padding:clamp(26px, 3.5vw, 52px);box-shadow:0 2px 18px -10px rgba(30,62,46,0.28)">
       <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3 md:mb-4" style="color:hsl(var(--eden-gold-ink))">
         Eden's Table · Sprouts, K-2
       </p>
@@ -151,6 +157,15 @@ const faqJsonLd = {
     <div class="max-w-5xl mx-auto grid gap-8 md:grid-cols-[1fr_380px] items-start">
       <div class="grid gap-4">
         <h2 class="font-serif text-2xl font-bold" style="color:hsl(var(--eden-forest))">What is in the set</h2>
+        <div class="rounded-lg overflow-hidden bg-white shadow-sm border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+          <img src="/showcases/ET_PrintSet.webp" alt="The three printed Sprouts books on a linen cloth: the coil-bound Teacher's Guide and Student Notebook, and the Read-Aloud Storybook" loading="eager" width="1024" height="1024" class="w-full h-auto" />
+        </div>
+        <ul class="font-body text-base space-y-2 mb-2" style="color:hsl(var(--eden-bark))">
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Teacher's Guide,</strong> 240 pages, letter size, coil bound. All 36 weeks.</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Student Notebook,</strong> 224 pages, letter size, coil bound. All 36 weeks.</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Read-Aloud Storybook,</strong> 112 pages, small paperback. All seven stories.</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Printed to order, mailed to you,</strong> tracked, within the United States.</span></li>
+        </ul>
         {books.map((b) => (
           <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
             <h3 class="font-serif text-lg font-bold mb-1" style="color:hsl(var(--eden-forest))">{b.title}</h3>
@@ -163,11 +178,14 @@ const faqJsonLd = {
           dried herb from your pantry, your garden, or the <a href="/homeschool/herbs" class="underline" style="color:hsl(var(--eden-forest))">herb list we keep for you</a>.
         </p>
       </div>
-      <div class="md:sticky md:top-24">
+      <div id="buy" class="md:sticky md:top-24 scroll-mt-24">
         <PrintBuyBox client:only="react" cta="books-buy" />
       </div>
     </div>
   </section>
+
+  {/* The three books in full, same copy and photos as the hub. */}
+  <ComponentShowcases only={["story", "tg", "nb"]} note="All 36 weeks of this, printed and coil bound, in the set." cta={{ href: "#buy", label: "Order the printed set · $249", dataCta: "books-showcase-buy" }} />
 
   <section class="py-12 px-6 bg-background">
     <div class="max-w-2xl mx-auto">

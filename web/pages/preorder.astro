@@ -28,6 +28,7 @@ import MarketingLayout from "../layouts/MarketingLayout.astro";
 // is load-bearing, not decorative. Rendered at 24% with mix-blend-mode:multiply.
 import heroPreorder from "@/assets/hero-preorder.jpg";
 import PreorderBuyBox from "../components/islands/PreorderBuyBox.tsx";
+import ComponentShowcases from "../components/ComponentShowcases.astro";
 
 // Two dates, deliberately. SHIP_TARGET is what we aim for and talk about; SHIP_GUARANTEE
 // is the BINDING commitment the FTC delay-notice clock runs on. Both must stay visible:
@@ -178,8 +179,29 @@ const productJsonLd = productSpecs.map((p) => ({
     </div>
   </section>
 
-  {/* BUY BOX (island) */}
+  {/* WHAT IS IN THE KIT: the open box and the six lines, before the buy box. */}
   <section class="py-12 px-6 bg-background">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="font-serif text-2xl md:text-3xl font-bold mb-6 text-center" style="color:hsl(var(--eden-bark))">What is in the kit</h2>
+      <div class="grid gap-8 md:grid-cols-2 items-center">
+        <div class="rounded-lg overflow-hidden bg-white shadow-sm border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+          <img src="/showcases/ET_Kit_Open.webp" alt="The Eden's Table kit box open, showing the Teacher's Guide, Student Notebook, storybook and all three card decks" loading="lazy" width="1024" height="1024" class="w-full h-auto" />
+        </div>
+        <ul class="font-body text-base space-y-3" style="color:hsl(var(--eden-bark))">
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Teacher's Guide,</strong> 240 pages, coil bound. Every day of all 36 weeks.</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Student Notebook,</strong> 224 pages, coil bound. Add more for siblings at checkout.</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Read-Aloud Storybook,</strong> the seven stories of the year.</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>36 Herb Field Cards,</strong> heritage plate on the front, the working side on the back.</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>36 Recipe Cards,</strong> one kitchen lab a week, safety printed on the card.</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>144 Around the Table cards,</strong> four questions a week: Body, Faith, Family, Wonder.</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span>All in one box, shipped to you. The herbs come from your pantry or our <a href="/homeschool/herbs" class="underline" style="color:hsl(var(--eden-forest))">herb list</a>.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  {/* BUY BOX (island) */}
+  <section id="buy" class="py-12 px-6 bg-background scroll-mt-24">
     <div class="max-w-5xl mx-auto">
       <PreorderBuyBox client:only="react" />
       {/* Added 2026-09-11 with /books: the same $249 buys the three printed books
@@ -190,6 +212,9 @@ const productJsonLd = productSpecs.map((p) => ({
       </p>
     </div>
   </section>
+
+  {/* All six components, same copy and photos as the hub. */}
+  <ComponentShowcases cta={{ href: "#buy", label: "Preorder the kit · $249", dataCta: "preorder-showcase-buy" }} />
 
   {/* CURRICULUM SPECIFICATIONS — ESA vendor readiness. One spec block per
       product, adjacent to the buy box so reviewers see grade level, subject,
