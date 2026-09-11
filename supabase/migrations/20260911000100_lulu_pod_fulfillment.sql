@@ -50,6 +50,13 @@ alter table public.products
 comment on column public.products.fulfillment is
   'stock = we ship it ourselves; lulu = printed and shipped to order by Lulu; digital = delivered by email.';
 
+-- product_type was locked to kit/notebook by 20260630120000. The set is neither
+-- (three books, no cards). Widening the check is what let the first db push of
+-- this file fail on the insert below, 2026-09-11.
+alter table public.products drop constraint if exists products_product_type_check;
+alter table public.products add constraint products_product_type_check
+  check (product_type in ('kit', 'notebook', 'book_set'));
+
 -- The set. founding_price_cents is NOT NULL on this table and unused on this
 -- rail, so it equals the retail price. stripe_retail_price_id is the LIVE Price
 -- read back from the Stripe Dashboard on 2026-09-10 (product
