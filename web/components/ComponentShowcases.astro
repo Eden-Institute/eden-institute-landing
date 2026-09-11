@@ -1,0 +1,154 @@
+---
+// The six Eden's Table components, each with the founder-approved marketing
+// copy and the polished product photos. ONE source, rendered on every page
+// that sells any of them: /homeschool (all six), /preorder (all six),
+// /books (the three books) and /starter (the three books, nine weeks).
+//
+// Moved out of homeschool.astro on 2026-09-11 at the founder's direction so
+// the "what is included" story is visible on every applicable track, not
+// just the hub. Copy is deliberately BAND-AGNOSTIC; the `deepens` line
+// carries the Sprouts/Seedlings difference.
+//
+// IMAGES: the founder's polished product photos (Sprouts (K-2)/Product
+// Images/Polished Images, 2026-09-09 to 09-11), converted to 1024px webp
+// under the long-standing ET_* names so nothing else on the site moved.
+//
+// Props:
+//   only   - component ids to render, in this order. Default: all six.
+//   cta    - { href, label } for the button under each component. Omit for none.
+//   note   - one sentence shown under the eyebrow on every component, e.g. the
+//            Starter Unit's "weeks 1 to 9 of this".
+import { Button } from "@/components/ui/button";
+
+export interface Showcase {
+  id: "story" | "tg" | "nb" | "fc" | "rc" | "att";
+  eyebrow: string;
+  title: string;
+  src: string;
+  alt: string;
+  insideSrc?: string;
+  insideAlt?: string;
+  insideLabel?: string;
+  deepens: string;
+  body: string;
+  quote: string;
+}
+
+export const SHOWCASES: Showcase[] = [
+  {
+    id: "story",
+    eyebrow: "Component 1 · Read-Aloud Storybook",
+    title: "Every week begins with a story.",
+    src: "/showcases/ET_Story_Cover.webp",
+    alt: "Eden's Table Read-Aloud Storybook, front cover, with the botanical leaf border",
+    insideSrc: "/showcases/ET_Story_Inside.webp",
+    insideAlt: "Read-Aloud Storybook open to a story spread",
+    insideLabel: "Inside the storybook",
+    deepens: "The same family, carried across both bands. A simple parable at K-2 becomes a story of real choices at 3-5.",
+    body: "Before there is a lesson about a plant, there is a family. Vovó in the garden. PopPop with his hands in the dirt. A scraped knee, a jar on a windowsill, a grandmother who knows which flower to reach for. The botany, the scripture, and the kitchen lab all hang on that narrative hook, which is why a child who cannot yet define a term can still tell you exactly why Vovó chose the plant she chose. This is the piece that makes the curriculum stick, and it is the piece most curricula skip. Facts taught cold are facts forgotten by Friday.",
+    quote: "It is the least academic-looking thing in the box, and it is doing the most important work in it.",
+  },
+  {
+    id: "tg",
+    eyebrow: "Component 2 · Teacher's Guide",
+    title: "You do not need to know herbalism to teach this.",
+    src: "/showcases/ET_TG_Cover.webp",
+    alt: "Eden's Table Teacher's Guide, coil-bound front cover",
+    insideSrc: "/showcases/ET_TG_Inside.webp",
+    insideAlt: "Teacher's Guide open to a week spread, with the Week at a Glance and the daily lesson pages",
+    insideLabel: "Inside the guide",
+    deepens: "Every lesson is written at two depths, so a younger and an older child work the same week at one table.",
+    body: "Open the guide on Monday morning and the week is already built. The read-aloud is scripted, the discussion questions are written, the memory verse is chosen, and the kitchen lab tells you exactly which supplies to set on the counter. Nothing is left for you to research the night before. What makes this guide unusual is how much it carries at once: a single week on a single plant quietly weaves Bible, science, language arts, math, art, history, geography, Latin, health, and character, and the Week at a Glance page tells you which day carries which. You are not stacking ten subjects into a day. You are teaching one plant well, and the disciplines come with it.",
+    quote: "It lies flat on the counter while your hands are busy, open to Wednesday, while the herb steeps.",
+  },
+  {
+    id: "nb",
+    eyebrow: "Component 3 · Student Notebook",
+    title: "The book your child fills in herself.",
+    src: "/showcases/ET_NB_Cover.webp",
+    alt: "Eden's Table Student Notebook, coil-bound front cover",
+    insideSrc: "/showcases/ET_NB_Inside.webp",
+    insideAlt: "Student Notebook open to a week's pages, with observation fields and a drawing box",
+    insideLabel: "Inside the notebook",
+    deepens: "Color, smell, taste and texture at K-2 become measurements, ratios, and a hypothesis at 3-5.",
+    body: "It is a consumable workbook, but calling it that undersells what happens on the page. She draws the plant she just held. She records what it smelled like. She answers, in her own handwriting, a question that has no answer key, because some of the best questions in this curriculum genuinely do not have one. The enrichment work is deliberately marked optional, complete it if you have time, because a curriculum that punishes a hard week is a curriculum abandoned in February. This is also the practical answer to the record-keeping question: dated, sequential, in your child's own hand, showing observation, narration, scripture copywork, and real measurement across thirty-six weeks.",
+    quote: "It satisfies a reviewer. Far more importantly, it is the thing she carries to her grandfather and says look what I made.",
+  },
+  {
+    id: "fc",
+    eyebrow: "Component 4 · Herb Field Cards",
+    title: "By the end of the year she can name plants most adults cannot.",
+    src: "/showcases/ET_FieldCards.webp",
+    alt: "Eden's Table Herb Field Cards, fanned out with their box",
+    deepens: "Each band covers a different 36 plants. A family that works through both ends with 72 named and usable species.",
+    body: "Each card carries a heritage botanical illustration on the front, the kind you would expect in a nineteenth-century plate book, alongside the plant's common name and its Latin binomial. The back is the working side: what the plant tastes like, what it does, and how it is prepared at a level your child can genuinely handle. The card format does something a textbook cannot. It is portable, so it goes in a pocket on a walk. It is durable, so it survives the walk. And it is a set, which triggers the collecting instinct children already have. Children who will not sit still for a botany chapter will absolutely sort, quiz, and trade a deck of cards they own.",
+    quote: "The learning stops being confined to school hours and starts following your family outdoors.",
+  },
+  {
+    id: "rc",
+    eyebrow: "Component 5 · Recipe Cards",
+    title: "The card that lives on your counter.",
+    src: "/showcases/ET_RecipeCards.webp",
+    alt: "Eden's Table Recipe Cards with their box",
+    deepens: "Steeping and infusing early. Decoctions, oxymels, and syrups later.",
+    body: "Each week's kitchen lab gets its own card: what to gather, what to do, in steps your child can follow with your hands nearby. The preparations are matched to what she can actually manage at her level, which means they start simple and grow genuinely ambitious as she does. Wednesday is the day the week stops being about a plant and starts being with one. Your child measures, steeps, stirs, smells, and tastes, then records what she observed in her notebook and says whether it worked. Real chemistry, learned the way it has always been learned in a family kitchen, with an adult paying attention. Safety instruction is printed on the card itself rather than buried in a manual, so the caution arrives at the moment it is needed.",
+    quote: "Long after the week is finished, your child is still the one who says I know how to make that, and then does.",
+  },
+  {
+    id: "att",
+    eyebrow: "Component 6 · Around the Table",
+    title: "Four questions a week, and the curriculum walks into your dinner.",
+    src: "/showcases/ET_ATTCards.webp",
+    alt: "Eden's Table Around the Table discussion cards with their box",
+    deepens: "Same four categories at both bands. At 3-5 the questions add abstract reasoning and the classical tradition.",
+    body: "Each week's set carries one card in each of four directions: Body, Faith, Family, and Wonder. What is happening inside you when a wound heals. What God says about healing and the healed. What it means to care for the people at this table. And the questions with no clean answer at all, the ones a child turns over for days. These are written as genuine questions, not comprehension checks with an answer in the back. Nobody is being quizzed. A young child, an older sibling, and a grandparent can all answer the same card honestly and differently, which is exactly the conversation you want.",
+    quote: "It is the difference between a curriculum your family completes and a curriculum your family talks about.",
+  },
+];
+
+interface Props {
+  only?: Showcase["id"][];
+  cta?: { href: string; label: string; dataCta?: string };
+  note?: string;
+}
+const { only, cta, note } = Astro.props;
+const items = only ? only.map((id) => SHOWCASES.find((s) => s.id === id)!).filter(Boolean) : SHOWCASES;
+---
+
+{items.map((s, i) => (
+  <section id={`showcase-${s.id}`} class={`py-16 md:py-20 px-6 ${i % 2 === 0 ? "bg-background" : ""}`} style={i % 2 === 1 ? "background-color:hsl(var(--eden-cream) / 0.4)" : ""}>
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-8">
+        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">{s.eyebrow}</p>
+        <h2 class="font-serif text-3xl md:text-4xl font-bold" style="color:hsl(var(--eden-bark))">{s.title}</h2>
+        {note && <p class="font-body text-sm mt-3" style="color:hsl(var(--eden-sage-ink))">{note}</p>}
+      </div>
+      <div class={`grid gap-4 md:gap-6 mb-8 ${s.insideSrc ? "md:grid-cols-2" : "md:grid-cols-1 max-w-2xl mx-auto"}`}>
+        <div class="rounded-lg overflow-hidden bg-white shadow-sm border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+          <img src={s.src} alt={s.alt} loading="lazy" width="1024" height="1024" class="w-full h-auto" />
+        </div>
+        {s.insideSrc && (
+          <div>
+            <div class="rounded-lg overflow-hidden bg-white shadow-sm border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+              <img src={s.insideSrc} alt={s.insideAlt} loading="lazy" width="1024" height="1024" class="w-full h-auto" />
+            </div>
+            <p class="font-accent text-xs tracking-[0.25em] uppercase mt-2 text-center" style="color:hsl(var(--eden-gold-ink))">{s.insideLabel}</p>
+          </div>
+        )}
+      </div>
+      <div class="text-center mb-6">
+        <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2" style="color:hsl(var(--eden-gold-ink))">Sprouts K-2 and Seedlings 3-5</p>
+        <p class="font-serif text-lg italic" style="color:hsl(var(--eden-bark))">{s.deepens}</p>
+      </div>
+      <p class="font-body text-base md:text-lg max-w-3xl mx-auto leading-relaxed text-foreground mb-8 text-center">{s.body}</p>
+      <blockquote class="font-serif text-xl italic text-center mb-10 max-w-2xl mx-auto" style="color:hsl(var(--eden-bark))">“{s.quote}”</blockquote>
+      {cta && (
+        <div class="text-center">
+          <a href={cta.href} data-cta={cta.dataCta}>
+            <Button variant="eden" size="xl">{cta.label}</Button>
+          </a>
+        </div>
+      )}
+    </div>
+  </section>
+))}

@@ -2,9 +2,10 @@
 // /homeschool — Astro port of src/pages/Homeschool.tsx. Pre-rendered to static
 // HTML for SEO (the page's whole reason for existing). Content/classes mirror
 // the React page exactly. The signup CTAs are static buttons with
-// The lead-magnet capture and its WaitlistController island were removed
-// 2026-07-25 when the page became a single-offer preorder page. The only
-// interactive island here now is PreorderBuyBox.
+// 2026-07-25: the page became a single-offer preorder page and lost its
+// lead-magnet capture. 2026-09-11: it became the hub again (founder direction),
+// with every band and every way in on one page. Islands: PreorderBuyBox for
+// the kit and WaitlistController for the free-week and "tell me when" modals.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 // Hero watermark: public domain botanical plate from Koehler's Medizinal-Pflanzen
 // (1887), desaturated to a sage wash and feathered at the edges, matching the
@@ -15,12 +16,13 @@ import MarketingLayout from "../layouts/MarketingLayout.astro";
 import heroHomeschool from "@/assets/hero-homeschool.jpg";
 import PreorderBuyBox from "../components/islands/PreorderBuyBox.tsx";
 import { Button } from "@/components/ui/button";
-import { Sprout, BookOpen, Users } from "lucide-react";
+import WaitlistController from "../components/islands/WaitlistController.tsx";
+import ComponentShowcases from "../components/ComponentShowcases.astro";
 
 const meta = {
   title: "Christian Homeschool Herbalism Curriculum (K-12) | Eden's Table",
   description:
-    "A Christ-centered homeschool curriculum that teaches Biblical herbalism and the body God designed. Open-and-go weekly lessons for K-2 and 3-5, rooted in Scripture and creation stewardship.",
+    "A Christ-centered homeschool herbalism curriculum for K-12, one plant a week. Sprouts (K-2) is available now: a free week, a $39 Starter Unit, the printed set or the complete kit. Seedlings (3-5) is next, then Cultivators and Practitioners.",
   canonical: "https://edeninstitute.health/homeschool",
 };
 
@@ -50,102 +52,170 @@ const courseJsonLd = {
 // 2026-07-28. PR #368 fixed the shared footers and missed this page constant.
 const FACEBOOK_URL = "https://www.facebook.com/EdensTableHomeschoolCurriculum";
 
-// Component showcases. Copy is deliberately BAND-AGNOSTIC: one description sells
-// both Sprouts (K-2) and Seedlings (3-5), because the two bands are the same six
-// components at two depths. The per-showcase `deepens` line carries the band
-// difference so the comparison isn't lost.
+// Component showcases live in web/components/ComponentShowcases.astro since
+// 2026-09-11, so /preorder, /books and /starter show the same six-component
+// story with the same polished photos. Do not add a copy here.
+
+// THE HUB DATA. One entry per band, rebuilt 2026-09-11 (founder direction:
+// everything lands on /homeschool, a band strip up top, four options per band).
 //
-// IMAGES: every image is a design mockup from the founder's Mockups folder
-// (Products/App/Eden Apothecary/_showcase_assets/Bundles/Mockups) — founder
-// decision 2026-07-17: ONLY that folder, all 11 images. See the disclaimer
-// section below; nothing is printed yet. Note the TG/NB/storybook interior
-// spreads carry AI-garbled micro-text at zoom — swap in regenerated files
-// (same ET_*.webp names) when the founder updates the folder.
-// insideW/insideH are the intrinsic dimensions, reserved to prevent layout shift.
-const SHOWCASES = [
+// Prices here are display copy. Billing truth lives in Stripe via
+// create-checkout: kit 24900 founding / 34900 retail (order-config.ts), Starter
+// Unit 3900 (starter-config.ts), printed set 24900 (products table). Change a
+// price there first, then here.
+//
+// Launch timing for the later bands is the founder's stated plan, 2026-09-11:
+// Cultivators late 2027, Practitioners 2028. Neither has a product; both get a
+// "tell me when" capture whose source tag is stored so the list can be
+// segmented later. Seedlings has its free week live; everything after it is
+// "coming very soon" by founder decision the same day.
+interface Rung {
+  step: string;
+  title: string;
+  price: string;
+  /** Retail price shown crossed out beside the founding price. */
+  was?: string;
+  points: string[];
+  when: string;
+  button?: string;
+  href?: string;
+  cta?: string;
+  primary?: boolean;
+  soon?: boolean;
+  modal?: { source: string; title: string; subtitle: string };
+}
+interface Band {
+  id: "sprouts" | "seedlings" | "cultivators" | "practitioners";
+  name: string;
+  grades: string;
+  status: string;
+  live: boolean;
+  blurb: string;
+  rungs?: Rung[];
+  planned?: string[];
+}
+
+const BANDS: Band[] = [
   {
-    id: "story",
-    eyebrow: "Component 1 · Read-Aloud Storybook",
-    title: "Every week begins with a story.",
-    src: "/showcases/ET_Story_Cover.webp",
-    alt: "Eden's Table Read-Aloud Storybook, cover",
-    insideSrc: "/showcases/ET_Story_Inside.webp",
-    insideAlt: "Read-Aloud Storybook open to the introductory story, Meet the Family",
-    insideLabel: "Inside the storybook",
-    insideW: 1024,
-    insideH: 1024,
-    deepens: "The same family, carried across both bands. A simple parable at K-2 becomes a story of real choices at 3-5.",
-    body: "Before there is a lesson about a plant, there is a family. Vovó in the garden. PopPop with his hands in the dirt. A scraped knee, a jar on a windowsill, a grandmother who knows which flower to reach for. The botany, the scripture, and the kitchen lab all hang on that narrative hook, which is why a child who cannot yet define a term can still tell you exactly why Vovó chose the plant she chose. This is the piece that makes the curriculum stick, and it is the piece most curricula skip. Facts taught cold are facts forgotten by Friday.",
-    quote: "It is the least academic-looking thing in the box, and it is doing the most important work in it.",
+    id: "sprouts",
+    name: "Sprouts",
+    grades: "Grades K-2",
+    status: "Available now",
+    live: true,
+    blurb: "Wonder, stories, and learning 36 plants by sight. Kitchen labs, memory songs, and a family at the center of every week. This is where every child starts, even the older ones.",
+    rungs: [
+      {
+        step: "Step 1 · Try it",
+        title: "Week 1, free",
+        price: "$0",
+        points: ["Five full lessons on Lavender", "All six components, as PDFs", "In your inbox in a minute"],
+        when: "Print it and teach it today.",
+        button: "Get Week 1 free",
+        cta: "homeschool-sprouts-free",
+        modal: {
+          source: "sprouts_magnet",
+          title: "Get Sprouts Week 1 · Free",
+          subtitle: "Check your inbox. Your free Sprouts Week 1 (Lavender) downloads are on their way right now. Five real lessons and all six components, to print and teach today.",
+        },
+      },
+      {
+        step: "Step 2 · Start now",
+        title: "Starter Unit, weeks 1 to 9",
+        price: "$39",
+        points: ["A full quarter of the year", "Teacher's Guide, Notebook and storybook", "Instant download"],
+        when: "Tonight. The $39 comes off the kit later.",
+        button: "Get the Starter Unit",
+        href: "/starter",
+        cta: "homeschool-sprouts-starter",
+      },
+      {
+        step: "Step 3 · The whole year, in print",
+        title: "Printed Curriculum Set",
+        price: "$249",
+        points: ["All 36 weeks, three printed books", "Teacher's Guide, Notebook, storybook", "Printed to order, mailed to you"],
+        when: "At your door in about two weeks.",
+        button: "Order the printed set",
+        href: "/books",
+        cta: "homeschool-sprouts-books",
+        primary: true,
+      },
+      {
+        step: "Step 4 · Everything in one box",
+        title: "Sprouts Complete Kit",
+        price: "$249",
+        was: "$349",
+        points: ["The three books plus all three card decks", "Field, Recipe and Around the Table cards", "Founding price for the first 500, then $349"],
+        when: "Ships summer 2027. Cancel any time before it ships.",
+        button: "Preorder the kit",
+        href: "#pricing",
+        cta: "homeschool-sprouts-kit",
+        primary: true,
+      },
+    ],
   },
   {
-    id: "tg",
-    eyebrow: "Component 2 · Teacher's Guide",
-    title: "You do not need to know herbalism to teach this.",
-    src: "/showcases/ET_TG_Cover.webp",
-    alt: "Eden's Table Teacher's Guide, spiral-bound cover",
-    insideSrc: "/showcases/ET_TG_Inside.webp",
-    insideAlt: "Teacher's Guide open to a calendula week spread, with the Week at a Glance, read-aloud and discussion pages",
-    insideLabel: "Inside the guide",
-    insideW: 1024,
-    insideH: 1024,
-    deepens: "Every lesson is written at two depths, so a younger and an older child work the same week at one table.",
-    body: "Open the guide on Monday morning and the week is already built. The read-aloud is scripted, the discussion questions are written, the memory verse is chosen, and the kitchen lab tells you exactly which supplies to set on the counter. Nothing is left for you to research the night before. What makes this guide unusual is how much it carries at once: a single week on a single plant quietly weaves Bible, science, language arts, math, art, history, geography, Latin, health, and character, and the Week at a Glance page tells you which day carries which. You are not stacking ten subjects into a day. You are teaching one plant well, and the disciplines come with it.",
-    quote: "It lies flat on the counter while your hands are busy, open to Wednesday, while the herb steeps.",
+    id: "seedlings",
+    name: "Seedlings",
+    grades: "Grades 3-5",
+    status: "Free week now, the rest very soon",
+    live: true,
+    blurb: "Body systems, herb profiles, a hypothesis tracked across a week, and dinner-table questions with real reasoning in them. A different 36 plants from Sprouts, so a family who does both finishes with 72.",
+    rungs: [
+      {
+        step: "Step 1 · Try it",
+        title: "Week 1, free",
+        price: "$0",
+        points: ["Five full lessons on Elderberry", "Every component, as PDFs", "In your inbox in a minute"],
+        when: "Print it and teach it today.",
+        button: "Get Week 1 free",
+        cta: "homeschool-seedlings-free",
+        modal: {
+          source: "seedlings_magnet",
+          title: "Get Seedlings Week 1 · Free",
+          subtitle: "Check your inbox. Your free Seedlings Week 1 (Elderberry) downloads are on their way right now. Five real lessons and every component, to print and teach today.",
+        },
+      },
+      { step: "Step 2 · Start now", title: "Starter Unit, weeks 1 to 9", price: "$39", points: ["A full quarter of the year", "Teacher's Guide, Notebook and storybook", "Instant download"], when: "Being finished now.", soon: true },
+      { step: "Step 3 · The whole year, in print", title: "Printed Curriculum Set", price: "$249", points: ["All 36 weeks, three printed books", "Printed to order, mailed to you"], when: "Being finished now.", soon: true },
+      { step: "Step 4 · Everything in one box", title: "Seedlings Complete Kit", price: "$249", was: "$349", points: ["The three books plus all three card decks", "Founding price for the first 500"], when: "Preorder opens after Sprouts.", soon: true },
+    ],
   },
   {
-    id: "nb",
-    eyebrow: "Component 3 · Student Notebook",
-    title: "The book your child fills in herself.",
-    src: "/showcases/ET_NB_Cover.webp",
-    alt: "Eden's Table Student Notebook, spiral-bound cover",
-    insideSrc: "/showcases/ET_NB_Inside.webp",
-    insideAlt: "Student Notebook open to the Tuesday Discovery and Wednesday Kitchen Lab spread, with observation fields and a star rating",
-    insideLabel: "Inside the notebook",
-    insideW: 1024,
-    insideH: 1024,
-    deepens: "Color, smell, taste and texture at K-2 become measurements, ratios, and a hypothesis at 3-5.",
-    body: "It is a consumable workbook, but calling it that undersells what happens on the page. She draws the plant she just held. She records what it smelled like. She answers, in her own handwriting, a question that has no answer key, because some of the best questions in this curriculum genuinely do not have one. The enrichment work is deliberately marked optional, complete it if you have time, because a curriculum that punishes a hard week is a curriculum abandoned in February. This is also the practical answer to the record-keeping question: dated, sequential, in your child's own hand, showing observation, narration, scripture copywork, and real measurement across thirty-six weeks.",
-    quote: "It satisfies a reviewer. Far more importantly, it is the thing she carries to her grandfather and says look what I made.",
+    id: "cultivators",
+    name: "Cultivators",
+    grades: "Grades 6-8",
+    status: "Planned for late 2027",
+    live: false,
+    blurb: "The second pass at the 72 plants your child already knows, this time through body patterns and terrain: why the same plant helps one person and not another, and how a garden becomes a remedy.",
+    planned: [
+      "Revisits all 72 Sprouts and Seedlings plants at a deeper level, so nothing learned is wasted",
+      "Body pattern thinking and the basics of terrain",
+      "Garden to remedy: growing, harvesting, drying and preparing, start to finish",
+      "Same six components, written for a middle schooler who wants the why",
+    ],
   },
   {
-    id: "fc",
-    eyebrow: "Component 4 · Herb Field Cards",
-    title: "By the end of the year she can name plants most adults cannot.",
-    src: "/showcases/ET_FieldCards.webp",
-    alt: "Eden's Table Herb Field Cards with storage box, showing a calendula card front and back",
-    deepens: "Each band covers a different 36 plants. A family that works through both ends with 72 named and usable species.",
-    body: "Each card carries a heritage botanical illustration on the front, the kind you would expect in a nineteenth-century plate book, alongside the plant's common name and its Latin binomial. The back is the working side: what the plant tastes like, what it does, and how it is prepared at a level your child can genuinely handle. The card format does something a textbook cannot. It is portable, so it goes in a pocket on a walk. It is durable, so it survives the walk. And it is a set, which triggers the collecting instinct children already have. Children who will not sit still for a botany chapter will absolutely sort, quiz, and trade a deck of cards they own.",
-    quote: "The learning stops being confined to school hours and starts following your family outdoors.",
-  },
-  {
-    id: "rc",
-    eyebrow: "Component 5 · Recipe Cards",
-    title: "The card that lives on your counter.",
-    src: "/showcases/ET_RecipeCards.webp",
-    alt: "Eden's Table Recipe Cards with display box, showing a calendula skin dressing card",
-    deepens: "Steeping and infusing early. Decoctions, oxymels, and syrups later.",
-    body: "Each week's kitchen lab gets its own card: what to gather, what to do, in steps your child can follow with your hands nearby. The preparations are matched to what she can actually manage at her level, which means they start simple and grow genuinely ambitious as she does. Wednesday is the day the week stops being about a plant and starts being with one. Your child measures, steeps, stirs, smells, and tastes, then records what she observed in her notebook and says whether it worked. Real chemistry, learned the way it has always been learned in a family kitchen, with an adult paying attention. Safety instruction is printed on the card itself rather than buried in a manual, so the caution arrives at the moment it is needed.",
-    quote: "Long after the week is finished, your child is still the one who says I know how to make that, and then does.",
-  },
-  {
-    id: "att",
-    eyebrow: "Component 6 · Around the Table",
-    title: "Four questions a week, and the curriculum walks into your dinner.",
-    src: "/showcases/ET_ATTCards.webp",
-    alt: "Eden's Table Around the Table discussion cards with box, showing Body, Faith, Family and Wonder cards",
-    deepens: "Same four categories at both bands. At 3-5 the questions add abstract reasoning and the classical tradition.",
-    body: "Each week's set carries one card in each of four directions: Body, Faith, Family, and Wonder. What is happening inside you when a wound heals. What God says about healing and the healed. What it means to care for the people at this table. And the questions with no clean answer at all, the ones a child turns over for days. These are written as genuine questions, not comprehension checks with an answer in the back. Nobody is being quizzed. A young child, an older sibling, and a grandparent can all answer the same card honestly and differently, which is exactly the conversation you want.",
-    quote: "It is the difference between a curriculum your family completes and a curriculum your family talks about.",
+    id: "practitioners",
+    name: "Practitioners",
+    grades: "Grades 9-12",
+    status: "Planned for 2028",
+    live: false,
+    blurb: "The third pass at the 72 plants, at clinical depth. A high schooler who has grown up with these plants learns to reason about them the way a practitioner does.",
+    planned: [
+      "The 72 plants a third time, now as materia medica",
+      "Clinical literacy: reading a body, matching a plant to a pattern, knowing when to refer",
+      "Real-world application, the kind that outlasts the diploma",
+      "Same six components, written for a teenager ready for real responsibility",
+    ],
   },
 ];
 
 // The kit section (§9.4) — the six components as one purchase.
 const KIT = {
-  closedSrc: "/showcases/ET_Kit_Closed.webp",
-  closedAlt: "The Eden's Table complete curriculum kit box, closed",
   openSrc: "/showcases/ET_Kit_Open.webp",
   openAlt: "The Eden's Table kit box open, showing the Teacher's Guide, Student Notebook, storybook and all three card decks",
+  setSrc: "/showcases/ET_PrintSet.webp",
+  setAlt: "The three printed Sprouts books, the Teacher's Guide, Student Notebook and Read-Aloud Storybook, on a linen cloth",
 };
 ---
 
@@ -168,7 +238,7 @@ const KIT = {
         A K-12 Biblical herbalism curriculum for homeschool families. Open-and-go lesson plans, memory songs, kitchen labs, garden activities, and a recurring family story, all rooted in Scripture and creation stewardship.
       </p>
       <p class="font-accent text-sm tracking-wider uppercase mb-5 md:mb-8" style="color:hsl(var(--eden-sage-ink))">
-        Sprouts (K-2) · The complete 36-week year, in one box
+        Sprouts (K-2) · The complete 36-week year, three ways in
       </p>
       {/* id="early-access" is load-bearing: the homepage links to
           /homeschool#early-access (index.astro). Keep it even though the
@@ -191,42 +261,49 @@ const KIT = {
           data-cta on both so the split is actually measurable in cta_events. The
           hero had no beacons at all before this. */}
       <div id="early-access" class="flex flex-col items-center gap-4 scroll-mt-28">
-        <div class="flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:gap-4 w-full max-w-xl">
-          <a href="#pricing" data-cta="homeschool-hero-preorder" class="inline-flex w-full sm:w-auto">
-            <Button variant="eden" size="xl" className="w-full h-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6">
-              Preorder the Sprouts Kit · $249
+        {/* Three doors, founder direction 2026-09-11. The printed year leads
+            because it is the thing a family can start this month; the kit sits
+            beside it at the same price; the $39 is the outlined try-it door.
+            Mobile stacks them in that order. */}
+        <div class="grid gap-3 sm:grid-cols-3 sm:gap-4 w-full max-w-3xl">
+          <a href="/books" data-cta="homeschool-hero-books" class="inline-flex w-full">
+            <Button variant="eden" size="xl" className="w-full h-full flex-col whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-4">
+              <span class="block">Get the printed year now</span>
+              <span class="block mt-1 whitespace-nowrap">$249</span>
             </Button>
           </a>
-          <a href="/starter" data-cta="homeschool-hero-starter" class="inline-flex w-full sm:w-auto">
-            <Button variant="eden-outline" size="xl" className="w-full h-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6">
-              Start with 9 Weeks Digital · $39
+          <a href="#pricing" data-cta="homeschool-hero-preorder" class="inline-flex w-full">
+            <Button variant="eden" size="xl" className="w-full h-full flex-col whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-4">
+              <span class="block">Preorder the Complete Kit</span>
+              <span class="block mt-1 whitespace-nowrap"><span class="line-through opacity-70 font-normal">$349</span> $249</span>
+            </Button>
+          </a>
+          <a href="/starter" data-cta="homeschool-hero-starter" class="inline-flex w-full">
+            <Button variant="eden-outline" size="xl" className="w-full h-full flex-col whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-4">
+              <span class="block">Try 9 weeks digital</span>
+              <span class="block mt-1 whitespace-nowrap">$39</span>
             </Button>
           </a>
         </div>
 
-        {/* The whole point of showing both. Keep the two numbers and the word
-            "deducted" together: a reader skimming should be able to take the
-            meaning from this one line without reading the rest of the page. */}
-        <p class="font-body text-sm max-w-lg mx-auto mt-1 leading-relaxed" style="color:hsl(var(--eden-bark))">
-          Buy both and the <strong>$39 is deducted from the $249</strong>, so starting
-          small costs you nothing.
+        {/* One line per door, so a reader skimming can take the meaning from
+            here without reading the rest of the page. */}
+        <p class="font-body text-sm max-w-2xl mx-auto mt-1 leading-relaxed" style="color:hsl(var(--eden-bark))">
+          <strong>The printed year</strong> is the three books, at your door in about two weeks.
+          <strong>The kit</strong> adds the three card decks and the box, ships summer 2027, and the
+          <strong>$39 comes off the kit</strong> if you try nine weeks first.
         </p>
 
         <p class="font-body text-sm text-muted-foreground max-w-md mx-auto">
-          Founding price for the first 500 kits, then $349 retail. Flat $12 shipping per order.
+          Kit founding price for the first 500, then $349 retail. Flat $12 shipping per order.
         </p>
         <p class="mt-2 font-accent text-xs tracking-[0.2em] uppercase" style="color:hsl(var(--eden-sage-ink))">
-          Aiming to ship July 31, 2027 · Guaranteed on or before September 30, 2027
+          Kit: aiming to ship July 31, 2027 · Guaranteed on or before September 30, 2027
         </p>
 
-        {/* The third door, added 2026-09-11 with /books. Same $249 as the kit:
-            the founder's positioning is that this is not a cheaper option, it
-            is the same year of school in hand now instead of next summer. */}
-        <p class="font-body text-sm max-w-lg mx-auto mt-4 leading-relaxed rounded-md px-4 py-3" style="color:hsl(var(--eden-bark));background-color:hsl(0 0% 100% / 0.7);border:1px dashed hsl(var(--eden-gold))">
-          <strong>Do not want to wait until next summer?</strong> The three books, printed to order and at your door in about two weeks, are
-          <a href="/books" data-cta="homeschool-hero-books" class="underline font-bold" style="color:hsl(var(--eden-forest))">$249 today</a>.
-          Same price as the kit, without the cards and the box.
-        </p>
+        <a href="#bands" data-cta="homeschool-hero-bands" class="font-body text-sm underline underline-offset-4 mt-3" style="color:hsl(var(--eden-forest))">
+          See every option for every grade band, K through 12
+        </a>
       </div>
     </div>
   </section>
@@ -278,50 +355,121 @@ const KIT = {
     </div>
   </section>
 
-  {/* §2 Four Grade Bands */}
-  <section class="py-16 px-6 bg-background">
-    <div class="max-w-5xl mx-auto">
-      <div class="text-center mb-12">
-        <h2 class="font-serif text-3xl font-bold mb-4" style="color:hsl(var(--eden-bark))">Four Grade Bands. One Family Vision.</h2>
-        <p class="font-body text-muted-foreground max-w-2xl mx-auto">Eden's Table grows with your children, from wonder-filled kitchen labs to clinical reasoning in high school.</p>
+  {/* §2 THE FOUR BANDS AND WHAT EACH ONE OFFERS. Rebuilt 2026-09-11 (founder
+      direction): /homeschool is the hub. A band strip up top jumps to the band a
+      parent needs; each band shows its whole ladder in four columns so the
+      choice is visible in one glance: free week, $39 Starter, $249 printed set,
+      $249 kit. The deep pages (/freebies, /starter, /books, /preorder) stay
+      where they are and the cards link to them; sent emails still point at them.
+      Later bands show what is planned and when, with one "tell me when" button. */}
+  <section id="bands" class="py-14 md:py-20 px-6 bg-background scroll-mt-24">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-8">
+        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">Four grade bands</p>
+        <h2 class="font-serif text-3xl md:text-4xl font-bold mb-3" style="color:hsl(var(--eden-bark))">Find your children's band. Then pick how you want to start.</h2>
+        <p class="font-body text-muted-foreground max-w-2xl mx-auto">Same six components at every band, taught at four depths. A child who starts in Sprouts grows through all four with us.</p>
       </div>
-      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div class="rounded-lg p-6 border-2" style="border-color:hsl(var(--eden-gold));background-color:hsl(var(--eden-cream))">
-          <Sprout className="w-6 h-6 mb-3" color="hsl(var(--eden-gold))" />
-          <h3 class="font-serif text-lg font-bold mb-1" style="color:hsl(var(--eden-bark))">Sprouts</h3>
-          <p class="font-accent text-xs tracking-widest uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">Grades K-2</p>
-          <p class="font-body text-sm text-muted-foreground mb-4 leading-relaxed">Wonder, stories, and simple plant identification. Kitchen labs and memory songs.</p>
-          <span class="text-xs font-body px-2 py-1 rounded" style="background-color:hsl(var(--eden-gold) / 0.15);color:hsl(var(--eden-gold-ink))">Preorder open now</span>
-        </div>
-        <div class="rounded-lg p-6 border-2" style="border-color:hsl(var(--eden-gold));background-color:hsl(var(--eden-cream))">
-          <BookOpen className="w-6 h-6 mb-3" color="hsl(var(--eden-gold))" />
-          <h3 class="font-serif text-lg font-bold mb-1" style="color:hsl(var(--eden-bark))">Seedlings</h3>
-          <p class="font-accent text-xs tracking-widest uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">Grades 3-5</p>
-          <p class="font-body text-sm text-muted-foreground mb-4 leading-relaxed">Body systems basics, herb profiles, and family dinner discussions.</p>
-          <span class="text-xs font-body px-2 py-1 rounded" style="background-color:hsl(var(--eden-gold) / 0.15);color:hsl(var(--eden-gold-ink))">Coming after Sprouts</span>
-        </div>
-        <div class="rounded-lg p-6 border opacity-75" style="border-color:hsl(var(--border))">
-          <BookOpen className="w-6 h-6 mb-3 text-muted-foreground" />
-          <h3 class="font-serif text-lg font-bold mb-1" style="color:hsl(var(--eden-bark))">Cultivators</h3>
-          <p class="font-accent text-xs tracking-widest uppercase mb-3 text-muted-foreground">Grades 6-8</p>
-          <p class="font-body text-sm text-muted-foreground mb-4 leading-relaxed">Body pattern thinking, terrain basics, and garden-to-remedy workflows.</p>
-          <span class="text-xs font-body px-2 py-1 rounded bg-muted text-muted-foreground">Launches after 2027</span>
-        </div>
-        <div class="rounded-lg p-6 border opacity-75" style="border-color:hsl(var(--border))">
-          <Users className="w-6 h-6 mb-3 text-muted-foreground" />
-          <h3 class="font-serif text-lg font-bold mb-1" style="color:hsl(var(--eden-bark))">Practitioners</h3>
-          <p class="font-accent text-xs tracking-widest uppercase mb-3 text-muted-foreground">Grades 9-12</p>
-          <p class="font-body text-sm text-muted-foreground mb-4 leading-relaxed">Clinical literacy, materia medica, and real-world application.</p>
-          <span class="text-xs font-body px-2 py-1 rounded bg-muted text-muted-foreground">Launches after 2028</span>
-        </div>
+
+      {/* Band strip. Plain anchor links, so it works with no JS and on any phone. */}
+      <nav aria-label="Grade bands" class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-12">
+        {BANDS.map((b) => (
+          <a href={`#${b.id}`} class="rounded-lg p-4 border-2 text-left transition-colors hover:bg-white" style={`border-color:${b.live ? "hsl(var(--eden-gold))" : "hsl(var(--border))"};background-color:${b.live ? "hsl(var(--eden-cream))" : "transparent"}`}>
+            <p class="font-serif text-lg font-bold" style="color:hsl(var(--eden-bark))">{b.name}</p>
+            <p class="font-accent text-xs tracking-widest uppercase mb-2" style={`color:${b.live ? "hsl(var(--eden-gold-ink))" : "hsl(var(--muted-foreground))"}`}>{b.grades}</p>
+            <span class="text-xs font-body px-2 py-1 rounded inline-block" style={b.live ? "background-color:hsl(var(--eden-gold) / 0.15);color:hsl(var(--eden-gold-ink))" : "background-color:hsl(var(--muted));color:hsl(var(--muted-foreground))"}>{b.status}</span>
+          </a>
+        ))}
+      </nav>
+
+      {/* One ladder per band. */}
+      <div class="space-y-14">
+        {BANDS.map((b) => (
+          <div id={b.id} class="scroll-mt-24">
+            <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
+              <div>
+                <p class="font-accent text-xs tracking-[0.25em] uppercase mb-1" style="color:hsl(var(--eden-gold-ink))">{b.grades}</p>
+                <h3 class="font-serif text-2xl md:text-3xl font-bold" style="color:hsl(var(--eden-bark))">{b.name}</h3>
+                <p class="font-body text-sm md:text-base text-muted-foreground mt-2 max-w-2xl leading-relaxed">{b.blurb}</p>
+              </div>
+              {!b.live && (
+                <span class="text-xs font-body px-3 py-1.5 rounded self-start md:self-auto" style="background-color:hsl(var(--muted));color:hsl(var(--muted-foreground))">{b.status}</span>
+              )}
+            </div>
+
+            {b.rungs ? (
+              <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {b.rungs.map((r) => (
+                  <div class={`rounded-lg p-5 border-2 flex flex-col ${r.soon ? "opacity-80" : ""}`} style={`border-color:${r.soon ? "hsl(var(--border))" : "hsl(var(--eden-gold) / 0.6)"};background-color:${r.soon ? "transparent" : "hsl(var(--eden-cream))"}`}>
+                    <p class="font-accent text-[10px] tracking-[0.25em] uppercase mb-2" style="color:hsl(var(--eden-gold-ink))">{r.step}</p>
+                    <h4 class="font-serif text-lg font-bold leading-snug" style="color:hsl(var(--eden-bark))">{r.title}</h4>
+                    <p class="font-serif text-2xl font-bold my-2" style="color:hsl(var(--eden-forest))">
+                      {r.was && <span class="font-body text-base font-normal line-through mr-2 text-muted-foreground">{r.was}</span>}{r.price}
+                      {r.was && <span class="block font-accent text-[10px] tracking-[0.2em] uppercase mt-1" style="color:hsl(var(--eden-gold-ink))">Founding price, first 500</span>}
+                    </p>
+                    <ul class="font-body text-sm text-muted-foreground space-y-1 mb-3">
+                      {r.points.map((pt) => <li>{pt}</li>)}
+                    </ul>
+                    <p class="font-body text-xs font-bold mb-4 mt-auto" style="color:hsl(var(--eden-bark))">{r.when}</p>
+                    {r.soon ? (
+                      <span class="inline-flex items-center justify-center font-accent text-xs tracking-[0.2em] uppercase font-bold px-4 py-3 rounded-md border-2 border-dashed" style="border-color:hsl(var(--border));color:hsl(var(--muted-foreground))">Coming very soon</span>
+                    ) : r.modal ? (
+                      <Button
+                        variant="eden-outline"
+                        size="lg"
+                        className="w-full whitespace-normal h-auto min-h-[48px] py-3 px-4 leading-snug"
+                        data-cta={r.cta}
+                        data-waitlist-source={r.modal.source}
+                        data-waitlist-title={r.modal.title}
+                        data-waitlist-subtitle={r.modal.subtitle}
+                        data-waitlist-cta-href="https://edeninstitute.health/homeschool?utm_source=modal&utm_medium=post_signup&utm_campaign=free_weeks_followup"
+                        data-waitlist-cta-label="See the full year"
+                      >{r.button}</Button>
+                    ) : (
+                      <a href={r.href} data-cta={r.cta} class="inline-flex w-full">
+                        <Button variant={r.primary ? "eden" : "eden-outline"} size="lg" className="w-full whitespace-normal h-auto min-h-[48px] py-3 px-4 leading-snug">{r.button}</Button>
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div class="rounded-lg p-6 md:p-8 border" style="border-color:hsl(var(--border));background-color:hsl(var(--eden-cream) / 0.4)">
+                <div class="grid md:grid-cols-[1fr_auto] gap-6 items-center">
+                  <ul class="font-body text-sm md:text-base text-muted-foreground space-y-2 leading-relaxed">
+                    {b.planned!.map((pt) => <li>· {pt}</li>)}
+                  </ul>
+                  <div class="text-center md:text-right">
+                    <Button
+                      variant="eden-outline"
+                      size="lg"
+                      className="whitespace-normal h-auto min-h-[48px] py-3 px-6 leading-snug"
+                      data-cta={`homeschool-${b.id}-waitlist`}
+                      data-waitlist-source={`${b.id}_waitlist`}
+                      data-waitlist-title={`Tell me when ${b.name} opens`}
+                      data-waitlist-subtitle={`You are on the list. I will email you the moment ${b.name} has a date, and nothing else in between.`}
+                      data-waitlist-cta-href="https://edeninstitute.health/homeschool#sprouts"
+                      data-waitlist-cta-label="Start with Sprouts today"
+                    >Tell me when it opens</Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {b.id === "sprouts" && (
+              <p class="font-body text-sm text-muted-foreground mt-4 max-w-3xl leading-relaxed">
+                The two $249 options are the same price on purpose. The printed set is the curriculum, in your hands in about two weeks. The kit adds the three card decks and the box, and it ships next summer. Pay the same either way; the difference is when you start. The $39 Starter Unit comes off the kit, not the printed set.
+              </p>
+            )}
+          </div>
+        ))}
       </div>
-    </div>
+
       {/* The single biggest silent objection on this page. A parent with an eight
           year old reads "Sprouts, Grades K-2", concludes it is not for them, and
           leaves without ever asking. This catches that thought at the exact moment
           it forms and routes it to the answer on /starter, where the case is made
           in full and there is a $39 way to test it. */}
-      <div class="mt-10 rounded-lg p-6 md:p-7 text-center" style="background-color:hsl(var(--eden-cream));border:1px dashed hsl(var(--eden-gold))">
+      <div class="mt-12 rounded-lg p-6 md:p-7 text-center" style="background-color:hsl(var(--eden-cream));border:1px dashed hsl(var(--eden-gold))">
         <p class="font-serif text-lg md:text-xl font-bold mb-2" style="color:hsl(var(--eden-bark))">
           Children a bit older, and not sure Sprouts is the right place to start?
         </p>
@@ -339,7 +487,7 @@ const KIT = {
           Why we say start at Sprouts anyway
         </a>
       </div>
-
+    </div>
   </section>
 
   {/* §3 Three Pillars */}
@@ -363,41 +511,8 @@ const KIT = {
     </div>
   </section>
 
-  {/* §4-§9 Component showcases — band-agnostic copy, one or two images each */}
-  {SHOWCASES.map((s, idx) => (
-    <section id={`showcase-${s.id}`} class="py-16 md:py-20 px-6" style={`background-color:${idx % 2 === 0 ? "hsl(var(--background))" : "hsl(var(--eden-cream) / 0.4)"}`}>
-      <div class="max-w-6xl mx-auto">
-        <div class="text-center mb-10">
-          <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">{s.eyebrow}</p>
-          <h2 class="font-serif text-3xl md:text-4xl font-bold" style="color:hsl(var(--eden-bark))">{s.title}</h2>
-        </div>
-        <div class={`grid items-start gap-4 md:gap-6 mb-8 ${s.insideSrc ? "md:grid-cols-2" : "max-w-xl mx-auto"}`}>
-          <div class="rounded-lg overflow-hidden bg-white shadow-sm">
-            <img src={s.src} alt={s.alt} loading="lazy" width="1024" height="1024" class="w-full h-auto" />
-          </div>
-          {s.insideSrc && (
-            <div>
-              <div class="rounded-lg overflow-hidden bg-white shadow-sm">
-                <img src={s.insideSrc} alt={s.insideAlt} loading="lazy" width={s.insideW} height={s.insideH} class="w-full h-auto" />
-              </div>
-              <p class="font-accent text-xs tracking-[0.25em] uppercase mt-2 text-center" style="color:hsl(var(--eden-gold-ink))">{s.insideLabel}</p>
-            </div>
-          )}
-        </div>
-        <div class="max-w-3xl mx-auto mb-8 text-center rounded-lg p-6" style="background-color:hsl(var(--eden-cream));border:1px solid hsl(var(--eden-gold) / 0.3)">
-          <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2" style="color:hsl(var(--eden-gold-ink))">Sprouts K-2 and Seedlings 3-5</p>
-          <p class="font-serif text-lg italic" style="color:hsl(var(--eden-bark))">{s.deepens}</p>
-        </div>
-        <p class="font-body text-base md:text-lg max-w-3xl mx-auto leading-relaxed text-foreground mb-8 text-center">{s.body}</p>
-        <blockquote class="font-serif text-xl italic text-center mb-10 max-w-2xl mx-auto" style="color:hsl(var(--eden-bark))">“{s.quote}”</blockquote>
-        <div class="text-center">
-          <a href="#pricing">
-            <Button variant="eden" size="xl">Preorder the Sprouts Kit · $249</Button>
-          </a>
-        </div>
-      </div>
-    </section>
-  ))}
+  {/* §4-§9 Component showcases: the shared six, with the kit CTA under each. */}
+  <ComponentShowcases cta={{ href: "#pricing", label: "Preorder the Sprouts Kit · $249", dataCta: "homeschool-showcase-preorder" }} />
 
   {/* §9.4 The complete kit — the six components as one purchase */}
   <section id="showcase-kit" class="py-16 md:py-20 px-6" style="background-color:hsl(var(--eden-forest))">
@@ -407,11 +522,17 @@ const KIT = {
         <h2 class="font-serif text-3xl md:text-4xl font-bold text-white">Six components. Thirty-six weeks. One box.</h2>
       </div>
       <div class="grid md:grid-cols-2 gap-4 md:gap-6 mb-10">
-        <div class="rounded-lg overflow-hidden bg-white shadow-sm">
-          <img src={KIT.closedSrc} alt={KIT.closedAlt} loading="lazy" width="1024" height="1024" class="w-full h-auto" />
+        <div>
+          <div class="rounded-lg overflow-hidden bg-white shadow-sm">
+            <img src={KIT.openSrc} alt={KIT.openAlt} loading="lazy" width="1024" height="1024" class="w-full h-auto" />
+          </div>
+          <p class="font-accent text-xs tracking-[0.25em] uppercase mt-2 text-center" style="color:hsl(var(--eden-gold-light))">The complete kit · ships summer 2027</p>
         </div>
-        <div class="rounded-lg overflow-hidden bg-white shadow-sm">
-          <img src={KIT.openSrc} alt={KIT.openAlt} loading="lazy" width="1024" height="1024" class="w-full h-auto" />
+        <div>
+          <div class="rounded-lg overflow-hidden bg-white shadow-sm">
+            <img src={KIT.setSrc} alt={KIT.setAlt} loading="lazy" width="1024" height="1024" class="w-full h-auto" />
+          </div>
+          <p class="font-accent text-xs tracking-[0.25em] uppercase mt-2 text-center" style="color:hsl(var(--eden-gold-light))">The three books · <a href="/books" class="underline">printed to order now</a></p>
         </div>
       </div>
       <div class="max-w-3xl mx-auto text-center">
@@ -442,7 +563,7 @@ const KIT = {
     <div class="max-w-3xl mx-auto text-center rounded-lg p-6 border" style="border-color:hsl(var(--eden-gold) / 0.3);background-color:hsl(var(--eden-cream) / 0.4)">
       <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2" style="color:hsl(var(--eden-gold-ink))">About these images</p>
       <p class="font-body text-sm text-muted-foreground leading-relaxed">
-        The product photographs on this page are design mockups, created from the real curriculum files ahead of the first print run. They represent the size, binding, materials, and layout of what will arrive at your door. Final printed pieces may differ in small details.
+        The book and card photographs on this page are the real products, photographed from the finished files. The kit box itself is a design mockup ahead of the first print run and may differ in small details.
       </p>
     </div>
   </section>
@@ -638,6 +759,8 @@ const KIT = {
       </div>
     </div>
   </section>
+
+  <WaitlistController client:only="react" />
 
   {/* Co-op / group licensing section removed 2026-07-25 at founder request,
       pending a decision on group pricing. The component still exists at

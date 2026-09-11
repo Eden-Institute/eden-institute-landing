@@ -29,10 +29,13 @@ interface PrintProduct {
   shipping_tier_cents: number;
 }
 
-/** Per-order cap. Mirrors _shared/lulu-config.ts; the edge function is the gate. */
+/** Per-order caps. Mirror _shared/lulu-config.ts; the edge function is the gate. */
 const MAX_QTY: Record<string, number> = {
   sprouts_print_set: 2,
+  sprouts_nb_print: 5,
 };
+const SET_SKU = "sprouts_print_set";
+const NB_SKU = "sprouts_nb_print";
 
 function money(cents: number): string {
   return (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -44,8 +47,11 @@ interface Props {
 
 export default function PrintBuyBox({ cta }: Props) {
   const [product, setProduct] = useState<PrintProduct | null | undefined>(undefined);
+  /** The extra-notebook product, when its row is complete; null hides the option. */
+  const [notebook, setNotebook] = useState<PrintProduct | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
+  const [nbQty, setNbQty] = useState(0);
   const [smsConsent, setSmsConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,21 +71,23 @@ export default function PrintBuyBox({ cta }: Props) {
       const { data, error: e } = await (supabase as any)
         .from("print_products_public")
         .select("sku, name, retail_price_cents, shipping_tier_cents")
-        .eq("sku", "sprouts_print_set")
-        .maybeSingle();
+        .in("sku", [SET_SKU, NB_SKU]);
       if (e) {
         setLoadError("We could not load the set right now. Please refresh, or email hello@edeninstitute.health.");
         setProduct(null);
         return;
       }
-      setProduct((data as PrintProduct | null) ?? null);
+      const rows = (data ?? []) as PrintProduct[];
+      setProduct(rows.find((r) => r.sku === SET_SKU) ?? null);
+      setNotebook(rows.find((r) => r.sku === NB_SKU) ?? null);
     })();
   }, []);
 
   const max = product ? MAX_QTY[product.sku] ?? 2 : 2;
-  const subtotal = product ? product.retail_price_cents * qty : 0;
+  const nbMax = notebook ? MAX_QTY[notebook.sku] ?? 5 : 0;
+  const subtotal = (product ? product.retail_price_cents * qty : 0) + (notebook ? notebook.retail_price_cents * nbQty : 0);
   // One parcel, one shipping charge, whatever the quantity.
-  const shipping = product ? product.shipping_tier_cents : 0;
+  const shipping = product ? Math.max(product.shipping_tier_cents, nbQty > 0 && notebook ? notebook.shipping_tier_cents : 0) : 0;
 
   async function startCheckout() {
     if (!product) return;
@@ -90,7 +98,10 @@ export default function PrintBuyBox({ cta }: Props) {
         body: {
           ...getFbAttribution(),
           print_shop: true,
-          items: [{ sku: product.sku, qty }],
+          items: [
+            { sku: product.sku, qty },
+            ...(notebook && nbQty > 0 ? [{ sku: notebook.sku, qty: nbQty }] : []),
+          ],
           sms_consent: smsConsent,
           success_url: "https://edeninstitute.health/books/thank-you?session_id={CHECKOUT_SESSION_ID}",
           cancel_url: "https://edeninstitute.health/books?checkout=cancelled",
@@ -159,8 +170,27 @@ export default function PrintBuyBox({ cta }: Props) {
             </select>
           </label>
 
+          {notebook && (
+            <label className="mt-3 flex items-center gap-3 font-body text-sm" style={{ color: "hsl(var(--eden-bark))" }}>
+              <span>Extra Student Notebooks for siblings, {money(notebook.retail_price_cents)} each</span>
+              <select
+                value={nbQty}
+                onChange={(e) => setNbQty(Number(e.target.value))}
+                className="rounded-md border px-2 py-1 bg-background"
+                style={{ borderColor: "hsl(var(--eden-gold) / 0.5)" }}
+              >
+                {Array.from({ length: nbMax + 1 }, (_, i) => i).map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+            </label>
+          )}
+
           <div className="mt-4 font-body text-sm" style={{ color: "hsl(var(--eden-bark))" }}>
-            <div className="flex justify-between"><span>{qty} × set</span><span>{money(subtotal)}</span></div>
+            <div className="flex justify-between"><span>{qty} × set</span><span>{money(product.retail_price_cents * qty)}</span></div>
+            {notebook && nbQty > 0 && (
+              <div className="flex justify-between"><span>{nbQty} × extra notebook</span><span>{money(notebook.retail_price_cents * nbQty)}</span></div>
+            )}
             <div className="flex justify-between"><span>Shipping (one parcel)</span><span>{money(shipping)}</span></div>
             <div className="flex justify-between font-bold mt-1"><span>Total before tax</span><span>{money(subtotal + shipping)}</span></div>
           </div>

@@ -94,6 +94,11 @@ $249.00, flat shipping $12.00, `fulfillment='lulu'`, active, and
 `prod_VEnlvZetV0GZuJ`, created by the founder in the Dashboard 2026-09-10, $249.00
 USD one-off, tax code txcd_99999999). Nothing on the product row is left blank.
 
+`products` row `sprouts_nb_print` (migration 20260911200000): "Extra Student
+Notebook, printed", $29.99, shipping tier $12 (the cart charges the MAX tier,
+so it rides in the set's parcel for no extra shipping), printable `nb` only.
+Live Stripe product `prod_VF6XcSOc0qCfid`, price `price_1UEcJx2NWfYbCZT8ClSdmBjd`, seeded by the migration.
+
 `lulu_printables` rows `tg`, `nb`, `ra` with the verified package ids and page
 counts (240, 224, and NULL for the Read-Aloud until its final count is known).
 **Left NULL:** `interior_url`, `cover_url` on all three, and `page_count` on
