@@ -55,7 +55,9 @@ export default function PrintBuyBox({ cta }: Props) {
     const params = new URLSearchParams(window.location.search);
     const state = params.get("checkout");
     if (state === "cancelled") setNotice("No payment was taken. The set is still here whenever you are ready.");
-    if (state === "success") setNotice("Thank you. Your order is confirmed and a receipt is on its way to your inbox.");
+    // ?checkout=success is the OLD return address (before /books/thank-you). Kept
+    // so a stale tab or bookmark still reads as a success, not a blank page.
+    if (state === "success") setNotice("Thank you. Your order is confirmed and your confirmation email is on its way.");
 
     (async () => {
       // The view is newer than the generated Supabase types, hence the cast.
@@ -90,7 +92,7 @@ export default function PrintBuyBox({ cta }: Props) {
           print_shop: true,
           items: [{ sku: product.sku, qty }],
           sms_consent: smsConsent,
-          success_url: "https://edeninstitute.health/books?checkout=success&session_id={CHECKOUT_SESSION_ID}",
+          success_url: "https://edeninstitute.health/books/thank-you?session_id={CHECKOUT_SESSION_ID}",
           cancel_url: "https://edeninstitute.health/books?checkout=cancelled",
         },
       });
@@ -187,10 +189,13 @@ export default function PrintBuyBox({ cta }: Props) {
             <p className="font-body text-sm mt-3" style={{ color: "hsl(var(--destructive))" }} role="alert">{error}</p>
           )}
 
+          <ul className="font-body text-xs mt-4 space-y-1 text-muted-foreground">
+            <li>Secure checkout by Stripe. Card, Apple Pay or Google Pay.</li>
+            <li>Printed to order for you and shipped tracked within the United States, usually at your door in about two to three weeks.</li>
+            <li>Change your mind or fix your address within 48 hours for a full refund, before printing begins.</li>
+          </ul>
           <p className="font-body text-xs mt-3 text-muted-foreground">
-            Printed to order for you and shipped within the United States. You can cancel for a full
-            refund within 48 hours of ordering, before printing begins.{" "}
-            <a href="/returns" className="underline" style={{ color: "hsl(var(--eden-forest))" }}>Read the policy</a>{" "}
+            <a href="/returns" className="underline" style={{ color: "hsl(var(--eden-forest))" }}>Read the full policy</a>{" "}
             before you buy.
           </p>
         </>

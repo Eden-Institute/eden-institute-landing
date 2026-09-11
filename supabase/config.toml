@@ -72,6 +72,12 @@ verify_jwt = false
 [functions.preorder-status]
 verify_jwt = false
 
+# Buyer's own order for /books/thank-you, proven by the Stripe Checkout session
+# id from the success redirect. Anonymous caller, no JWT; exposes no card,
+# phone or street address.
+[functions.print-order-status]
+verify_jwt = false
+
 # A buyer's one-click answer to an FTC delay notice (consent or cancel). Reached
 # from an email link with no Supabase session, so verify_jwt MUST stay false;
 # security is the HMAC token, not a JWT. 435.2(b)(3) requires the cancellation

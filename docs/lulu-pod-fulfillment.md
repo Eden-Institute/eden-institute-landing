@@ -50,6 +50,7 @@ so she can decide what to tell the buyer.
 | Cron drain | `api/cron/drain-lulu-jobs.ts`, `vercel.json` |
 | Migrations | `20260911000000_lulu_pod_in_production_state.sql`, `20260911000100_lulu_pod_fulfillment.sql` |
 | Storefront | `web/pages/books.astro`, `web/components/islands/PrintBuyBox.tsx` |
+| Confirmation page | `web/pages/books/thank-you.astro`, `web/components/islands/PrintThankYou.tsx`, `print-order-status` (public) |
 | Dashboard | `src/components/founder/OrdersTab.tsx` (Lulu column + actions) |
 
 ## Verified Lulu facts this build relies on
