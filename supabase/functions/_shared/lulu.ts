@@ -36,8 +36,11 @@ export class LuluApiError extends Error {
 let tokenCache: { token: string; expiresAt: number } | null = null;
 
 function credentials(): { key: string; secret: string } {
-  const key = Deno.env.get('LULU_CLIENT_KEY');
-  const secret = Deno.env.get('LULU_CLIENT_SECRET');
+  // Trimmed: the Supabase secrets form is a multi-line textarea, and a pasted
+  // value can carry a trailing newline that turns a valid pair into
+  // "invalid_client" at Lulu's token endpoint.
+  const key = (Deno.env.get('LULU_CLIENT_KEY') ?? '').trim();
+  const secret = (Deno.env.get('LULU_CLIENT_SECRET') ?? '').trim();
   if (!key) throw new Error('LULU_CLIENT_KEY missing');
   if (!secret) throw new Error('LULU_CLIENT_SECRET missing');
   return { key, secret };

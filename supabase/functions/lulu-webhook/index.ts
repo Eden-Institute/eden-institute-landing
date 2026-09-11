@@ -33,7 +33,7 @@ function json(status: number, body: Record<string, unknown>): Response {
 serve(async (req) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
 
-  const secret = Deno.env.get('LULU_CLIENT_SECRET');
+  const secret = (Deno.env.get('LULU_CLIENT_SECRET') ?? '').trim();
   if (!secret) {
     console.error('LULU_CLIENT_SECRET missing; refusing all webhook traffic');
     return new Response('Not configured', { status: 503 });
