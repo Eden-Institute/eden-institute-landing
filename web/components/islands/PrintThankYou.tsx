@@ -87,13 +87,24 @@ export default function PrintThankYou() {
     };
   }, []);
 
-  const card = "rounded-lg p-5 md:p-6 bg-white border";
+  const card = "rounded-lg p-5 md:p-6 bg-white border shadow-sm";
   const cardStyle = { borderColor: "hsl(var(--eden-gold) / 0.35)" };
   const forest = { color: "hsl(var(--eden-forest))" };
   const bark = { color: "hsl(var(--eden-bark))" };
 
+  const Hero = ({ eyebrow, title, sub }: { eyebrow: string; title: string; sub: string }) => (
+    <div className="text-center mb-8">
+      <p className="font-accent text-sm tracking-[0.3em] uppercase mb-4" style={{ color: "hsl(var(--eden-gold-ink))" }}>{eyebrow}</p>
+      <h1 className="font-serif text-4xl md:text-5xl font-bold leading-tight mb-5" style={bark}>{title}</h1>
+      <div className="w-16 h-px mx-auto my-5" style={{ backgroundColor: "hsl(var(--eden-gold))" }}></div>
+      <p className="font-body text-lg text-muted-foreground leading-relaxed">{sub}</p>
+    </div>
+  );
+
   if (noSession) {
     return (
+      <div>
+      <Hero eyebrow="Eden's Table" title="Your order" sub="This page shows an order right after checkout." />
       <div className={card} style={cardStyle}>
         <p className="font-body text-base" style={bark}>
           This page shows an order right after checkout. If you have just paid and landed here without your
@@ -101,21 +112,27 @@ export default function PrintThankYou() {
           Questions: <a href="mailto:hello@edeninstitute.health" className="underline" style={forest}>hello@edeninstitute.health</a>.
         </p>
       </div>
+      </div>
     );
   }
 
   if (!status) {
     return (
+      <div>
+      <Hero eyebrow="Thank you" title="One moment." sub="Confirming your order with our payment provider." />
       <div className={card} style={cardStyle}>
         <p className="font-body text-base" style={bark}>
-          Confirming your order with our payment provider{tries > 2 ? ". Almost there" : ""}...
+          {tries > 2 ? "Almost there. This usually takes a few seconds." : "Checking your payment..."}
         </p>
+      </div>
       </div>
     );
   }
 
   if (status.pending) {
     return (
+      <div>
+      <Hero eyebrow="Thank you" title="Your payment went through." sub="Your order is being recorded now." />
       <div className={card} style={cardStyle}>
         <p className="font-body text-base leading-relaxed" style={bark}>
           Your payment went through and your order is being recorded now. Your confirmation email, with your
@@ -123,6 +140,7 @@ export default function PrintThankYou() {
           <a href="mailto:hello@edeninstitute.health" className="underline" style={forest}>hello@edeninstitute.health</a>{" "}
           and we will sort it out.
         </p>
+      </div>
       </div>
     );
   }
@@ -135,18 +153,43 @@ export default function PrintThankYou() {
 
   if (status.stage === "cancelled") {
     return (
+      <div>
+      <Hero eyebrow="Eden's Table" title={`Order ${status.order_number} was cancelled.`} sub="It has been refunded in full and nothing will print or ship." />
       <div className={card} style={cardStyle}>
-        <p className="font-serif text-xl font-bold mb-2" style={forest}>Order {status.order_number} has been cancelled and refunded.</p>
         <p className="font-body text-base" style={bark}>
-          Nothing will print or ship. Refunds take 5 to 10 days to show on your statement. Questions:{" "}
-          <a href="mailto:hello@edeninstitute.health" className="underline" style={forest}>hello@edeninstitute.health</a>.
+          Refunds take 5 to 10 days to show on your statement. If you did not ask for this, or you would like
+          to order again, email <a href="mailto:hello@edeninstitute.health" className="underline" style={forest}>hello@edeninstitute.health</a>.
         </p>
+      </div>
       </div>
     );
   }
 
+  const heroTitle = status.stage === "delivered"
+    ? "Your books have arrived."
+    : status.stage === "shipped"
+    ? "Your books are on their way."
+    : "Your order is confirmed.";
+  const heroSub = status.stage === "delivered"
+    ? "We hope they bless your table."
+    : status.stage === "shipped"
+    ? "Tracking is below and in your inbox."
+    : "Your books will be printed just for you and shipped to your door. Here is your order and exactly what happens next.";
+
   return (
     <div className="space-y-5">
+      <Hero eyebrow="Thank you" title={heroTitle} sub={heroSub} />
+      {status.tracking && (status.tracking.url || status.tracking.number) && (
+        <div className={card} style={cardStyle}>
+          <h2 className="font-serif text-xl font-bold mb-2" style={forest}>Tracking</h2>
+          <p className="font-body text-sm" style={bark}>
+            {status.tracking.carrier ? `${status.tracking.carrier}: ` : ""}
+            {status.tracking.url
+              ? <a href={status.tracking.url} target="_blank" rel="noreferrer" className="underline" style={forest}>{status.tracking.number ?? "Track your package"}</a>
+              : status.tracking.number}
+          </p>
+        </div>
+      )}
       {/* 1. The number. */}
       <div className={card} style={cardStyle}>
         <p className="font-accent text-xs tracking-[0.25em] uppercase mb-2" style={{ color: "hsl(var(--eden-gold-ink))" }}>
