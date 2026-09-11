@@ -19,8 +19,8 @@ interface TierTwoWaitlistFormProps {
  * when Tier 2 opens. Single source of truth, so the /tier-2-waitlist page and
  * the homepage modal render the same thing. No Edge Function call.
  *
- * Tier 1 founding offer: $97 for the first 100 students, then $197. The price
- * is applied automatically on the LearnWorlds enrollment page — never a coupon
+ * Tier 1 is $97, full stop (founder decision 2026-09-10: no price increase is
+ * advertised anywhere). The price is set on the LearnWorlds enrollment page — never a coupon
  * code here (an in-app code once stacked on LearnWorlds' built-in discount and
  * dropped the course to $0).
  */
@@ -52,7 +52,7 @@ export function TierTwoWaitlistForm({ variant = "card" }: TierTwoWaitlistFormPro
       />
       <p className="font-body text-base leading-relaxed text-muted-foreground mb-2">
         Tier 1 — the Foundations of Constitutional Herbalism — is{" "}
-        <strong style={{ color: "hsl(var(--eden-bark))" }}>$97 for the first 100 founding students</strong>, then $197.
+        <strong style={{ color: "hsl(var(--eden-bark))" }}>$97</strong>. One payment, self-paced, lifetime access.
       </p>
       <p className="font-body text-base leading-relaxed text-muted-foreground mb-7">
         Tier 1 students are the first to hear when Tier 2 opens — and Tier 2 grows straight out of the foundation you build now.
@@ -67,7 +67,7 @@ export function TierTwoWaitlistForm({ variant = "card" }: TierTwoWaitlistFormPro
         </Button>
       </a>
       <p className="font-body text-xs text-center text-muted-foreground mt-4">
-        Founding price applied at checkout — no code needed.
+        No coupon code needed. The price you see is the price.
       </p>
     </div>
   );

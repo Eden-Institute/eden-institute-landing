@@ -308,7 +308,7 @@ const Index = () => {
                 external: false,
               },
               {
-                badge: "FOUNDATIONS LIVE · $97 → $197 ON AUGUST 1",
+                badge: "FOUNDATIONS LIVE · $97",
                 eyebrow: "FOR THE ADULT",
                 title: "Eden Institute Courses",
                 subtitle: "Adult Courses · Foundations + Body Systems",
