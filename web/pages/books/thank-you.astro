@@ -6,8 +6,8 @@
 // with only a small notice inside the buy box, which read as "did that work?".
 //
 // Three jobs, in order: reassure with the order number, say exactly what
-// happens next with dates, and show the receipt. The island does the live
-// part; this file is the frame.
+// happens next with dates, and show the receipt. The island renders all of it,
+// headline included, so the headline can never contradict the order's state.
 //
 // noindex: a confirmation page has nothing to offer search, and the session id
 // in the URL must never end up in an index.
@@ -24,23 +24,10 @@ const meta = {
 ---
 
 <MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} noindex={true}>
-  <section class="pt-20 pb-10 px-6" style="background-color:hsl(var(--eden-cream))">
-    <div class="max-w-2xl mx-auto text-center">
-      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">
-        Thank you
-      </p>
-      <h1 class="font-serif text-4xl md:text-5xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
-        Your order is confirmed.
-      </h1>
-      <div class="w-16 h-px mx-auto my-6" style="background-color:hsl(var(--eden-gold))"></div>
-      <p class="font-body text-lg text-muted-foreground leading-relaxed">
-        Your books will be printed just for you and shipped to your door. Here is your order
-        and exactly what happens next.
-      </p>
-    </div>
-  </section>
-
-  <section class="py-12 px-6 bg-background">
+  <!-- The island owns the headline as well as the cards: the words "Your order is
+       confirmed" must never sit above a card that says the order was refunded,
+       which is exactly what the first version did for ET-1026. -->
+  <section class="pt-20 pb-14 px-6" style="background-color:hsl(var(--eden-cream))">
     <div class="max-w-xl mx-auto">
       <PrintThankYou client:only="react" />
     </div>
