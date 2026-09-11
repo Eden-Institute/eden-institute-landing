@@ -22,6 +22,22 @@ export interface OrderRow {
   currency: string | null;
   sms_consent: boolean;
   status: OrderStatus;
+  is_preorder?: boolean;
+  /** Which rail fulfils the order: 'stock' | 'lulu' | 'digital'; null on legacy rows. */
+  fulfillment?: string | null;
+  /** Stripe-collected address as stored: { line1, line2, city, state, postal_code, country }. */
+  // deno-lint-ignore no-explicit-any
+  shipping_address?: any;
+  stripe_checkout_session_id?: string;
+  stripe_payment_intent_id?: string | null;
+  // Print-on-demand (Lulu) and tracking fields, migration 20260911000100.
+  lulu_print_job_id?: number | null;
+  lulu_status?: string | null;
+  shipping_carrier?: string | null;
+  tracking_number?: string | null;
+  tracking_url?: string | null;
+  shipped_at?: string | null;
+  delivered_at?: string | null;
 }
 
 // deno-lint-ignore no-explicit-any

@@ -107,6 +107,12 @@ verify_jwt = false
 [functions.learnworlds-webhook]
 verify_jwt = false
 
+# Lulu print-job status webhook (print-on-demand books). Authenticity is the
+# Lulu-HMAC-SHA256 signature over the raw body, keyed with our Lulu client
+# secret, not a Supabase JWT. Deploy with --no-verify-jwt.
+[functions.lulu-webhook]
+verify_jwt = false
+
 [functions.founders-lock]
 verify_jwt = false
 
@@ -135,6 +141,19 @@ verify_jwt = true
 # It additionally requires role=service_role via _shared/require-service-role.ts,
 # so verify_jwt MUST stay true or that claim check could be forged.
 [functions.starter-fulfill]
+verify_jwt = true
+
+# lulu-submit hands paid print-on-demand orders to Lulu (a real print order
+# on our card). Invoked only server-to-server: by stripe-webhook on purchase
+# and by the Vercel cron drain. Requires role=service_role via
+# _shared/require-service-role.ts, so verify_jwt MUST stay true.
+[functions.lulu-submit]
+verify_jwt = true
+
+# lulu-admin: founder-only Lulu actions (resubmit, cancel, refresh, validate
+# files). Checks the founder's user JWT in code; the gateway validates the
+# signature first.
+[functions.lulu-admin]
 verify_jwt = true
 
 # list-announce mails the whole homeschool list. It is the single most dangerous

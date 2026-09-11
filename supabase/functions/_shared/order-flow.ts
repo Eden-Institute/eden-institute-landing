@@ -147,6 +147,77 @@ export async function recordPreorderFromSession(
   return orderNumber;
 }
 
+/**
+ * Record a completed RETAIL Checkout Session: an in-stock or print-on-demand purchase
+ * that ships within days rather than a preorder. Same idempotency as
+ * recordPreorderFromSession (order UNIQUE on session id, items UNIQUE on (order,
+ * product), transitions via the state machine, messages via message_log), but:
+ *   - is_preorder is FALSE, so preorder_broadcast_list never mails these buyers kit news;
+ *   - no disclaimer acceptance is recorded, because none was asked;
+ *   - the order goes paid -> ready_to_fulfill, which fires the order confirmation
+ *     (edge paid -> ready_to_fulfill in order-messages.ts) and is where the fulfilment
+ *     rail (lulu-submit) picks it up.
+ */
+export async function recordRetailOrderFromSession(
+  db: Db,
+  session: CheckoutSessionLike,
+  items: ResolvedLineItem[],
+  opts: { fulfillment: 'stock' | 'lulu' | 'digital' },
+): Promise<string | null> {
+  const email = (session.customer_details?.email ?? session.customer_email ?? '').toLowerCase().trim();
+  const phone = session.customer_details?.phone ?? null;
+  const smsConsent = session.metadata?.sms_consent === 'true' || session.metadata?.sms_consent === true;
+  const shipping = session.shipping_details ?? session.collected_information?.shipping_details ?? null;
+
+  const resolved: {
+    line: ResolvedLineItem;
+    prod: NonNullable<Awaited<ReturnType<typeof productBySku>>>;
+  }[] = [];
+  for (const line of items) {
+    const prod = await productBySku(db, line.sku);
+    if (prod) resolved.push({ line, prod });
+    else console.error(`recordRetailOrderFromSession: unknown sku '${line.sku}' on session ${session.id}; line skipped`);
+  }
+
+  const order = {
+    stripe_checkout_session_id: session.id,
+    stripe_payment_intent_id: typeof session.payment_intent === 'string' ? session.payment_intent : null,
+    stripe_customer_id: typeof session.customer === 'string' ? session.customer : null,
+    status: 'paid' as OrderStatus,
+    customer_email: email,
+    customer_phone: phone,
+    shipping_name: shipping?.name ?? session.customer_details?.name ?? null,
+    shipping_address: shipping?.address ?? null,
+    lookup_key: items[0]?.sku ?? null,
+    product_label: resolved.length
+      ? buildProductLabel(resolved.map((r) => ({ name: r.prod.name ?? r.line.sku, quantity: r.line.quantity })))
+      : items[0]?.sku ?? 'order',
+    amount_total_cents: session.amount_total ?? null,
+    tax_cents: session.total_details?.amount_tax ?? null,
+    currency: session.currency ?? 'usd',
+    payment_status: session.payment_status ?? null,
+    sms_consent: smsConsent,
+    is_preorder: false,
+    fulfillment: opts.fulfillment,
+    raw: session,
+  };
+
+  const { id: orderId, order_number: orderNumber } = await upsertOrderPaid(db, order);
+
+  for (const { line, prod } of resolved) {
+    await addOrderItem(db, {
+      order_id: orderId,
+      product_id: prod.id,
+      quantity: line.quantity,
+      unit_price_cents: line.unitPriceCents ?? prod.retail_price_cents,
+      is_founding: false,
+    });
+  }
+
+  await transition(db, orderId, 'ready_to_fulfill');
+  return orderNumber;
+}
+
 /** Apply a refund: locate the order by payment_intent and move it to `refunded` (no messages). */
 export async function applyRefundByPaymentIntent(db: Db, paymentIntentId: string): Promise<boolean> {
   const order = await getOrderByPaymentIntent(db, paymentIntentId);
@@ -168,14 +239,16 @@ export async function transition(db: Db, orderId: string, to: OrderStatus): Prom
     // Already at the destination: a webhook retry after a crash BETWEEN the status
     // write and message dispatch lands here, so dispatch must still run or the
     // confirmation email/SMS is permanently lost. message_log dedupes real sends,
-    // and terminal states dispatch nothing, so this is replay-safe.
-    await dispatchTransitionMessages(db, order, to);
+    // and terminal states dispatch nothing, so this is replay-safe. The source
+    // state is unknown here; the dispatcher infers it where a message depends on it.
+    await dispatchTransitionMessages(db, order, to, null);
     return;
   }
   if (!canTransition(order.status, to)) {
     console.warn(`transition: ignoring disallowed ${order.status} -> ${to} for ${orderId}`);
     return;
   }
+  const from = order.status;
   await setOrderStatus(db, orderId, to);
-  await dispatchTransitionMessages(db, { ...order, status: to }, to);
+  await dispatchTransitionMessages(db, { ...order, status: to }, to, from);
 }

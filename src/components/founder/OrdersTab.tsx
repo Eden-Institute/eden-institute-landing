@@ -1,11 +1,13 @@
 // src/components/founder/OrdersTab.tsx
 //
-// Founder dashboard · Orders tab (preorder system Phase 1). READ-ONLY view of the
-// orders table via the founder_orders RPC (SECURITY DEFINER, is_founder()-gated like
-// every other founder_* RPC, so non-founder accounts get 'Not authorized' from the
-// server regardless of the UI). No actions here by design: refunds are issued in the
-// Stripe Dashboard (the charge.refunded webhook syncs our status), cancellation is a
-// founder-run SQL/MCP update in Phase 1, and shipping actions are Phase 2.
+// Founder dashboard · Orders tab. View of the orders table via the founder_orders
+// RPC (SECURITY DEFINER, is_founder()-gated like every other founder_* RPC, so
+// non-founder accounts get 'Not authorized' from the server regardless of the UI).
+// Refunds are issued in the Stripe Dashboard (the charge.refunded webhook syncs
+// our status). The only actions here are the Lulu print-on-demand controls
+// (Resubmit / Cancel at Lulu / Refresh), which call the founder-gated lulu-admin
+// edge function; every state change still flows through the shared transition
+// engine, so the buttons cannot do anything a webhook could not.
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +28,13 @@ interface OrderMsg {
   created_at: string;
 }
 
+interface LuluJob {
+  status: "pending" | "in_progress" | "submitted" | "failed" | "cancelled";
+  attempts: number;
+  last_error: string | null;
+  submitted_at: string | null;
+}
+
 interface OrderRow {
   id: string;
   /** Customer-facing identifier (ET-1001...). What a buyer quotes in support email. */
@@ -44,6 +53,18 @@ interface OrderRow {
   is_preorder: boolean;
   product_label: string | null;
   created_at: string;
+  /** 'stock' | 'lulu' | 'digital' | null on legacy rows. */
+  fulfillment: string | null;
+  lulu_print_job_id: number | null;
+  lulu_status: string | null;
+  lulu_status_message: string | null;
+  lulu_cost_cents: number | null;
+  shipping_carrier: string | null;
+  tracking_number: string | null;
+  tracking_url: string | null;
+  shipped_at: string | null;
+  delivered_at: string | null;
+  lulu_job: LuluJob | null;
   items: OrderItem[];
   messages: OrderMsg[];
 }
@@ -53,6 +74,11 @@ interface OrdersPayload {
   summary: {
     total: number;
     preorder_hold: number;
+    ready_to_fulfill: number;
+    in_production: number;
+    shipped: number;
+    delivered: number;
+    lulu_cost_cents: number;
     cancelled: number;
     refunded: number;
     sms_consent: number;
@@ -83,7 +109,7 @@ function statusStyle(status: string): React.CSSProperties {
   if (status === "cancelled" || status === "refunded") {
     return { backgroundColor: "hsl(var(--destructive) / 0.12)", color: "hsl(var(--destructive))" };
   }
-  if (status === "preorder_hold") {
+  if (status === "preorder_hold" || status === "ready_to_fulfill" || status === "in_production") {
     return { backgroundColor: "hsl(var(--eden-gold) / 0.18)", color: "hsl(var(--eden-bark))" };
   }
   return { backgroundColor: "hsl(var(--eden-sage) / 0.18)", color: "hsl(var(--eden-forest))" };
@@ -93,6 +119,8 @@ export default function OrdersTab({ since }: { since: string }) {
   const [payload, setPayload] = useState<OrdersPayload | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [acting, setActing] = useState<string | null>(null);
+  const [actionNote, setActionNote] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -114,6 +142,31 @@ export default function OrdersTab({ since }: { since: string }) {
     load();
   }, [load]);
 
+  // Lulu actions. Each one round-trips lulu-admin and then reloads, so what the
+  // table shows is always what the database says, never what the click hoped.
+  const luluAction = useCallback(async (action: "resubmit" | "cancel" | "refresh", o: OrderRow) => {
+    const ref = o.order_number ?? o.id;
+    if (action === "cancel" && !window.confirm(`Cancel the Lulu print for ${ref}? This only works before printing starts. It does NOT refund the buyer; do that in Stripe.`)) return;
+    setActing(`${action}:${o.id}`);
+    setActionNote(null);
+    try {
+      const { data, error: e } = await supabase.functions.invoke("lulu-admin", { body: { action, order_id: o.id } });
+      if (e) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const ctx = (e as any)?.context;
+        let detail: { error?: string } | null = null;
+        try { detail = ctx && typeof ctx.json === "function" ? await ctx.json() : null; } catch { detail = null; }
+        throw new Error(detail?.error ?? e.message);
+      }
+      setActionNote(`${ref}: ${action} → ${JSON.stringify(data)}`);
+    } catch (err) {
+      setActionNote(`${ref}: ${action} failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setActing(null);
+      load();
+    }
+  }, [load]);
+
   const s = payload?.summary;
   const orders = payload?.orders ?? [];
 
@@ -131,12 +184,25 @@ export default function OrdersTab({ since }: { since: string }) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
         <Stat label="Preorders held" value={n(s?.preorder_hold)} />
         <Stat label="Gross (excl. cancelled/refunded)" value={unknown ? "—" : money(s?.gross_cents ?? 0)} />
         <Stat label="SMS opt-ins" value={n(s?.sms_consent)} />
         <Stat label="Cancelled + refunded" value={unknown ? "—" : String((s?.cancelled ?? 0) + (s?.refunded ?? 0))} />
       </div>
+      {/* Fulfilment queue. "Awaiting printer" that stays non-zero means lulu-submit
+          is not getting through; the drain log says why. */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+        <Stat label="Awaiting printer" value={n(s?.ready_to_fulfill)} />
+        <Stat label="At the printer" value={n(s?.in_production)} />
+        <Stat label="Shipped / delivered" value={unknown ? "—" : `${s?.shipped ?? 0} / ${s?.delivered ?? 0}`} />
+        <Stat label="Print cost (Lulu)" value={unknown ? "—" : money(s?.lulu_cost_cents ?? 0)} />
+      </div>
+      {actionNote && (
+        <p className="font-body text-xs mb-4 rounded-md px-3 py-2 break-all" style={{ backgroundColor: "hsl(var(--eden-cream))", color: "hsl(var(--eden-bark))" }}>
+          {actionNote}
+        </p>
+      )}
 
       <section className="mb-4">
         <div className="flex items-center justify-between">
@@ -151,7 +217,7 @@ export default function OrdersTab({ since }: { since: string }) {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-muted/40">
-                {["Order / Customer", "Items", "Amount", "Status", "SMS", "Messages", "Date (CT)"].map((h) => (
+                {["Order / Customer", "Items", "Amount", "Status", "Fulfilment", "SMS", "Messages", "Date (CT)"].map((h) => (
                   <th key={h} className="px-3 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground">
                     {h}
                   </th>
@@ -214,6 +280,52 @@ export default function OrdersTab({ since }: { since: string }) {
                       {o.status.replace(/_/g, " ")}
                     </span>
                   </td>
+                  <td className="px-3 py-2 font-body text-xs">
+                    {o.fulfillment === "lulu" ? (
+                      <div className="space-y-1 min-w-[160px]">
+                        <div>
+                          <span className="font-semibold" style={{ color: "hsl(var(--eden-forest))" }}>Lulu</span>{" "}
+                          {o.lulu_print_job_id ? <span className="font-mono">#{o.lulu_print_job_id}</span> : <span className="text-muted-foreground">(not submitted)</span>}
+                          {o.lulu_status && <span className="ml-1 text-muted-foreground">{o.lulu_status}</span>}
+                        </div>
+                        {o.tracking_number && (
+                          <div>
+                            {o.tracking_url
+                              ? <a href={o.tracking_url} target="_blank" rel="noreferrer" className="underline" style={{ color: "hsl(var(--eden-forest))" }}>{o.shipping_carrier ?? "Track"} {o.tracking_number}</a>
+                              : <span>{o.shipping_carrier ?? ""} {o.tracking_number}</span>}
+                          </div>
+                        )}
+                        {o.lulu_cost_cents != null && <div className="text-muted-foreground">cost {money(o.lulu_cost_cents)}</div>}
+                        {o.lulu_job && o.lulu_job.status !== "submitted" && (
+                          <div style={{ color: o.lulu_job.status === "failed" ? "hsl(var(--destructive))" : undefined }}>
+                            job {o.lulu_job.status} ({o.lulu_job.attempts} tries)
+                            {o.lulu_job.last_error && <span className="block break-all">{o.lulu_job.last_error}</span>}
+                          </div>
+                        )}
+                        {o.status !== "cancelled" && o.status !== "refunded" && (
+                          <div className="flex flex-wrap gap-1 pt-1">
+                            {(!o.lulu_print_job_id || o.lulu_job?.status === "failed" || o.lulu_job?.status === "cancelled") && o.status !== "shipped" && o.status !== "delivered" && (
+                              <Button variant="outline" size="sm" disabled={acting !== null} onClick={() => luluAction("resubmit", o)}>
+                                {acting === `resubmit:${o.id}` ? "…" : "Resubmit"}
+                              </Button>
+                            )}
+                            {o.lulu_print_job_id && (
+                              <Button variant="outline" size="sm" disabled={acting !== null} onClick={() => luluAction("refresh", o)}>
+                                {acting === `refresh:${o.id}` ? "…" : "Refresh"}
+                              </Button>
+                            )}
+                            {o.lulu_print_job_id && o.status === "in_production" && (
+                              <Button variant="outline" size="sm" disabled={acting !== null} onClick={() => luluAction("cancel", o)}>
+                                {acting === `cancel:${o.id}` ? "…" : "Cancel at Lulu"}
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">{o.fulfillment ?? (o.is_preorder ? "kit run" : "—")}</span>
+                    )}
+                  </td>
                   <td className="px-3 py-2 font-body text-sm">{o.sms_consent ? "Yes" : "No"}</td>
                   <td className="px-3 py-2 font-body text-xs text-muted-foreground">
                     {o.messages.length === 0
@@ -235,7 +347,7 @@ export default function OrdersTab({ since }: { since: string }) {
               ))}
               {orders.length === 0 && !loading && !error && (
                 <tr>
-                  <td className="px-3 py-3 font-body text-sm text-muted-foreground" colSpan={7}>
+                  <td className="px-3 py-3 font-body text-sm text-muted-foreground" colSpan={8}>
                     No orders in this window yet.
                   </td>
                 </tr>
@@ -244,8 +356,10 @@ export default function OrdersTab({ since }: { since: string }) {
           </table>
         </div>
         <p className="font-body text-[11px] text-muted-foreground mt-2">
-          Read-only. Refunds are issued from the Stripe Dashboard; the charge.refunded webhook
-          updates the status here automatically. Showing up to 500 most recent orders in the window.
+          Refunds are issued from the Stripe Dashboard; the charge.refunded webhook updates the
+          status here automatically and, for printed books, tries to stop the print at Lulu.
+          "Cancel at Lulu" stops the print only; it does not refund. Showing up to 500 most
+          recent orders in the window.
         </p>
       </section>
     </>

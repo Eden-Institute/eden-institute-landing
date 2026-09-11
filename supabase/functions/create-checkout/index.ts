@@ -23,6 +23,13 @@
 //      500-kit founding gate; flat $12 shipping per order; sms_consent
 //      captured from an explicit unchecked checkbox on /preorder and
 //      stamped into session metadata.
+//   5. PRINT SHOP (Lulu print-on-demand, 2026-09-10) — mode="payment",
+//      anonymous, requested with `print_shop: true` + `items`. One sellable
+//      product (the three-book set; founder decision: never sold separately),
+//      retail price only (no founding gate, no disclaimer modal). Gated by
+//      PRINT_SHOP_LIVE and refuses any product whose row is not fully
+//      configured (PRINT_SHOP_NOT_CONFIGURED), so a half-set-up product can
+//      never take money.
 //
 // Bundle-restricted gating: nb_addon ($39 Add-on Student Notebook) requires
 // the calling user to be a Two-Band Bundle buyer. Enforced by:
@@ -52,6 +59,7 @@ import { enforceCheckoutRateLimit } from "../_shared/checkout-rate-limit.ts"
 import { sendMetaCapiInitiateCheckout } from "../_shared/meta-capi.ts"
 import { STARTER_LOOKUP_KEY } from "../_shared/starter-config.ts"
 import { evaluateRedemption, findCreditByCode } from "../_shared/starter-credit.ts"
+import { LULU_PRODUCTS, PRINT_SHOP_URL, luluProductBySku } from "../_shared/lulu-config.ts"
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2024-12-18.acacia",
@@ -230,6 +238,12 @@ serve(async (req) => {
       fbp: bodyFbp,
       fbc: bodyFbc,
     } = body
+
+    // 1a. Print shop (Lulu print-on-demand books). An EXPLICIT flag, checked
+    //     BEFORE the preorder cart branch, which also keys on `items`.
+    if (body.print_shop === true || body.print_shop === "true") {
+      return await handlePrintCheckout(req, body)
+    }
 
     // 1b. Founding-preorder branch (preorder system Phase 1). Distinct request
     //     shape: { items: [{sku, qty}], sms_consent, accepted_ship_window,
@@ -1053,6 +1067,172 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
 
   return new Response(
     JSON.stringify({ url: session.url, session_id: session.id, is_founding: isFounding }),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+  )
+}
+
+// ---------- Print shop (Lulu print-on-demand) ----------
+//
+// Request: { print_shop: true, items: [{sku, qty}], sms_consent?, email?,
+//            promo_code?, success_url?, cancel_url?, fbp?, fbc? }
+//
+// The printed Sprouts set (Teacher's Guide + Student Notebook + Read-Aloud, sold
+// together only). Everything that decides money comes from the products table
+// (Stripe Price id, shipping tier) and this branch REFUSES with
+// PRINT_SHOP_NOT_CONFIGURED when any of it is missing, naming the SKU. That is
+// deliberate: a guessed default here would be a real charge to a real card.
+//
+// Shipping: one parcel, one charge, the highest shipping_tier_cents in the cart
+// (the blended formula approved for the July fulfilment design). Tax: automatic.
+// deno-lint-ignore no-explicit-any
+async function handlePrintCheckout(req: Request, body: Record<string, any>): Promise<Response> {
+  const live = Deno.env.get("PRINT_SHOP_LIVE") === "true"
+  const adminToken = Deno.env.get("PREORDER_ADMIN_TOKEN")
+  const isAdminTest = !!adminToken && req.headers.get("x-preorder-admin") === adminToken
+  if (!live && !isAdminTest) {
+    return new Response(
+      JSON.stringify({ error: "The printed books are not on sale yet.", code: "PRINT_SHOP_NOT_LIVE" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
+    )
+  }
+
+  const rawItems: unknown[] = Array.isArray(body.items) ? body.items : []
+  if (rawItems.length === 0 || rawItems.length > LULU_PRODUCTS.length) {
+    return jsonError("Cart must contain between 1 line and one line per product", 400)
+  }
+  const seen = new Set<string>()
+  const cart: { sku: string; qty: number }[] = []
+  for (const raw of rawItems) {
+    const sku = typeof (raw as any)?.sku === "string" ? (raw as any).sku : ""
+    const qty = (raw as any)?.qty
+    const product = luluProductBySku(sku)
+    if (!product) return jsonError(`Unknown product '${sku}'`, 404)
+    if (seen.has(sku)) return jsonError(`Duplicate cart line for '${sku}'; use qty instead`, 400)
+    seen.add(sku)
+    if (!Number.isInteger(qty) || qty < 1 || qty > product.maxQtyPerOrder) {
+      return jsonError(`Quantity for '${sku}' must be a whole number between 1 and ${product.maxQtyPerOrder}`, 400)
+    }
+    cart.push({ sku, qty })
+  }
+
+  const adminClient = admin()
+  const { data: products, error: productError } = await adminClient
+    .from("products")
+    .select("id, sku, name, active, fulfillment, stripe_retail_price_id, shipping_tier_cents")
+    .in("sku", cart.map((c) => c.sku))
+  if (productError) return jsonError(`Product lookup failed: ${productError.message}`, 500)
+  const bySku = new Map<string, any>((products ?? []).map((p: any) => [p.sku, p]))
+
+  for (const line of cart) {
+    const p = bySku.get(line.sku)
+    if (!p || !p.active) {
+      return jsonError(`'${line.sku}' is not available right now`, 403)
+    }
+    const missing: string[] = []
+    if (p.fulfillment !== "lulu") missing.push("fulfillment='lulu'")
+    if (!p.stripe_retail_price_id) missing.push("stripe_retail_price_id")
+    if (p.shipping_tier_cents == null) missing.push("shipping_tier_cents")
+    if (missing.length) {
+      // Loud on our side, gentle on the buyer's. A product row that is not finished
+      // is an operations problem, never a customer-facing price.
+      console.error(`print shop: '${line.sku}' is not configured (missing ${missing.join(", ")}); refusing checkout`)
+      return new Response(
+        JSON.stringify({ error: "The printed set is not quite ready to order. Please check back soon.", code: "PRINT_SHOP_NOT_CONFIGURED", sku: line.sku }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 },
+      )
+    }
+  }
+
+  const lineItems = cart.map((line) => ({ price: bySku.get(line.sku).stripe_retail_price_id as string, quantity: line.qty }))
+  const shippingCents = cart.reduce((n, line) => Math.max(n, bySku.get(line.sku).shipping_tier_cents as number), 0)
+  const smsConsent = body.sms_consent === true || body.sms_consent === "true"
+
+  // print_sku is the webhook's detection key; print_cart is the fallback record if
+  // the webhook's line_items expansion fails. Far under Stripe's 500-char cap.
+  const metadata: Record<string, string> = {
+    print_sku: cart[0].sku,
+    print_cart: JSON.stringify(cart),
+    fulfillment: "lulu",
+    sms_consent: String(smsConsent),
+  }
+  if (typeof body.fbp === "string" && body.fbp) metadata.fbp = body.fbp
+  if (typeof body.fbc === "string" && body.fbc) metadata.fbc = body.fbc
+  if (isAdminTest) metadata.print_test = "true"
+
+  const successUrl = isSafeReturnUrl(body.success_url)
+    ? body.success_url
+    : `${PRINT_SHOP_URL}?checkout=success&session_id={CHECKOUT_SESSION_ID}`
+  const cancelUrl = isSafeReturnUrl(body.cancel_url)
+    ? body.cancel_url
+    : `${PRINT_SHOP_URL}?checkout=cancelled`
+
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    mode: "payment",
+    line_items: lineItems,
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    automatic_tax: { enabled: true },
+    // US-only for now, the same as the kit preorder.
+    shipping_address_collection: { allowed_countries: ["US"] },
+    shipping_options: [{
+      shipping_rate_data: {
+        type: "fixed_amount",
+        fixed_amount: { amount: shippingCents, currency: "usd" },
+        display_name: "Shipping",
+        tax_behavior: "exclusive",
+        tax_code: "txcd_92010001",
+      },
+    }],
+    // Lulu's carriers REQUIRE a phone number on every shipment, so this is not
+    // optional here the way it is a nicety elsewhere. It also powers the consented
+    // shipped/delivered texts.
+    phone_number_collection: { enabled: true },
+    customer_creation: "always",
+    metadata,
+    payment_intent_data: { metadata },
+  }
+
+  // Affiliate codes, same two ways in as the kit: ?promo=CODE pre-applied, else
+  // Stripe's own field. Stripe refuses a session carrying both, so exclusive.
+  const bodyPromoCode = typeof body.promo_code === "string" ? body.promo_code.trim() : ""
+  let promoApplied = false
+  if (bodyPromoCode) {
+    try {
+      const promoList = await stripe.promotionCodes.list({ code: bodyPromoCode, active: true, limit: 1 })
+      const promo = promoList.data[0]
+      if (promo) {
+        sessionParams.discounts = [{ promotion_code: promo.id }]
+        promoApplied = true
+        metadata.affiliate_promo_code = promo.code
+        metadata.affiliate_promo_id = promo.id
+      }
+    } catch (err) {
+      console.warn("print shop promo_code lookup failed; leaving the manual field enabled: " + (err instanceof Error ? err.message : String(err)))
+    }
+  }
+  if (!promoApplied) sessionParams.allow_promotion_codes = true
+
+  if (typeof body.email === "string" && body.email) sessionParams.customer_email = body.email
+
+  const session = await stripe.checkout.sessions.create(sessionParams)
+  console.log(
+    `print shop checkout: cart=${cart.map((c) => `${c.sku}x${c.qty}`).join("+")} shipping=${shippingCents} sms_consent=${smsConsent}` +
+      `${isAdminTest ? " [ADMIN TEST]" : ""} session=${session.id}`,
+  )
+
+  if (!isAdminTest) {
+    await sendMetaCapiInitiateCheckout({
+      eventId: session.id,
+      fbp: typeof body.fbp === "string" ? body.fbp : null,
+      fbc: typeof body.fbc === "string" ? body.fbc : null,
+      email: typeof body.email === "string" ? body.email : null,
+      contentName: cart[0].sku,
+      numItems: cart.reduce((n, c) => n + c.qty, 0),
+    })
+  }
+
+  return new Response(
+    JSON.stringify({ url: session.url, session_id: session.id }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
   )
 }
