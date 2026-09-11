@@ -9,10 +9,28 @@
 // Reads the founder_revenue RPC (SECURITY DEFINER, is_founder()-gated).
 // Amazon kit/book affiliate income is NOT here — it lives only in Amazon
 // Associates — so a footnote says so rather than implying $0.
+//
+// The Foundations Course section also reads founder_course_funnel, which
+// stitches the course funnel together so "is the course worth it" can be
+// answered at all: site clicks (outbound_clicks, written by api/go/course.ts
+// because every site CTA now goes through /go/course?src=<page>), email
+// clicks/clickers and course-email opens (email_events, Resend), and sales
+// (course_sales, LearnWorlds). Before this the course sold off-site and no
+// click on the site left a trace.
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import PaymentsPanel from "./PaymentsPanel";
+
+interface CourseFunnel {
+  site_clicks: number;
+  site_clicks_by_source: { source: string; clicks: number }[];
+  email_clicks: number;
+  email_clickers: number;
+  email_cta_opens: number;
+  sales: number;
+  revenue_cents: number;
+}
 
 interface Revenue {
   subscriptions: {
@@ -35,12 +53,15 @@ function money(cents: number, currency: string): string {
 
 export default function RevenueTab({ since }: { since: string }) {
   const [data, setData] = useState<Revenue | null>(null);
+  const [funnel, setFunnel] = useState<CourseFunnel | null>(null);
+  const [funnelError, setFunnelError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setFunnelError(null);
     try {
       const { data: res, error: e } = await supabase.rpc(
         "founder_revenue" as never,
@@ -52,6 +73,19 @@ export default function RevenueTab({ since }: { since: string }) {
       setError(err instanceof Error ? err.message : "Could not load revenue data.");
     } finally {
       setLoading(false);
+    }
+    // Separate try so a funnel failure (e.g. migration not applied yet) never
+    // blanks the revenue numbers above it.
+    try {
+      const { data: res, error: e } = await supabase.rpc(
+        "founder_course_funnel" as never,
+        { p_since: since } as never,
+      );
+      if (e) throw e;
+      setFunnel((res as CourseFunnel | null) ?? null);
+    } catch (err) {
+      setFunnel(null);
+      setFunnelError(err instanceof Error ? err.message : "Could not load the course funnel.");
     }
   }, [since]);
 
@@ -113,6 +147,58 @@ export default function RevenueTab({ since }: { since: string }) {
 
       <section className="mb-8">
         <SectionLabel>Foundations Course (LearnWorlds)</SectionLabel>
+
+        {/* Course funnel: site clicks → email clicks → sales, all in the window.
+            Site clicks only exist from the day /go/course went live, so an
+            older window is not "zero interest", it is "not yet counted". */}
+        <div className="mt-3 rounded-lg border border-border bg-card p-4">
+          <p className="font-accent text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-2">
+            Course funnel (window)
+          </p>
+          {funnelError && (
+            <p className="font-body text-sm text-destructive mb-2">{funnelError}</p>
+          )}
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 font-body text-sm">
+            <FunnelRow label="Site clicks to the course">
+              {funnel ? (
+                <>
+                  <span className="font-semibold">{funnel.site_clicks}</span>
+                  {funnel.site_clicks_by_source.length > 0 && (
+                    <span className="text-muted-foreground">
+                      {" "}·{" "}
+                      {funnel.site_clicks_by_source
+                        .map((s) => `${s.source} ${s.clicks}`)
+                        .join(" · ")}
+                    </span>
+                  )}
+                </>
+              ) : "—"}
+            </FunnelRow>
+            <FunnelRow label="Email clicks to the course">
+              {funnel ? (
+                <>
+                  <span className="font-semibold">{funnel.email_clicks}</span>
+                  <span className="text-muted-foreground"> · {funnel.email_clickers} people</span>
+                </>
+              ) : "—"}
+            </FunnelRow>
+            <FunnelRow label="People who opened a course email">
+              {funnel ? <span className="font-semibold">{funnel.email_cta_opens}</span> : "—"}
+            </FunnelRow>
+            <FunnelRow label="Sales">
+              {funnel ? (
+                <>
+                  <span className="font-semibold">{funnel.sales}</span>
+                  <span className="text-muted-foreground"> · {money(funnel.revenue_cents, course?.currency ?? "usd")}</span>
+                </>
+              ) : "—"}
+            </FunnelRow>
+          </dl>
+          <p className="font-body text-[11px] text-muted-foreground mt-3">
+            Site clicks are counted by <code>/go/course</code>, which every course button on the site now goes through, so they start from the day that shipped. Email clicks come from Resend. Sales come from the LearnWorlds webhook.
+          </p>
+        </div>
+
         {course && course.orders > 0 ? (
           <div className="mt-3 rounded-lg border border-border bg-card p-4">
             <p className="font-body text-sm">
@@ -120,7 +206,9 @@ export default function RevenueTab({ since }: { since: string }) {
               <span className="font-semibold">{money(course.revenue_cents, course.currency)}</span> in this window.
             </p>
           </div>
-        ) : (
+        ) : unknown ? null : (
+          // Setup steps only while sales === 0 and the query actually answered;
+          // a dead query must not read as "no sales yet".
           <div className="mt-3 rounded-lg border border-border bg-card p-6">
             <p className="font-accent text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-2">
               No course sales recorded {loading ? "…" : "yet"}
@@ -143,6 +231,15 @@ export default function RevenueTab({ since }: { since: string }) {
         Subscriptions are a live snapshot (no per-event history). Guide sales are all-time (no purchase timestamp recorded). Course orders/revenue are within the selected window. Amazon kit + book income is affiliate revenue tracked only in Amazon Associates, not here.
       </p>
     </div>
+  );
+}
+
+function FunnelRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="sm:text-right">{children}</dd>
+    </>
   );
 }
 

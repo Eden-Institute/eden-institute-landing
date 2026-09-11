@@ -64,8 +64,10 @@ export interface ComputeTierAwareCTAsArgs {
   amazonKitUrl: string | null;
 }
 
-const FOUNDATIONS_COURSE_URL =
-  "https://learn.edeninstitute.health/course/back-to-eden1";
+// Goes through api/go/course.ts so the click is counted (course sells
+// off-site on LearnWorlds; this is the only way to see if the CTA works).
+// JourneyCTA renders this as a plain <a>, so the relative path is fine.
+const FOUNDATIONS_COURSE_URL = "/go/course?src=journey";
 
 function computeTierAwareCTAs(
   args: ComputeTierAwareCTAsArgs,

@@ -32,6 +32,10 @@
       "destination": "https://noeqztssupewjidpvhar.supabase.co/functions/v1/preorder-response"
     },
     {
+      "source": "/go/course",
+      "destination": "/api/go/course"
+    },
+    {
       "source": "/((?!_astro/|_spa/|api/|favicon|robots\\.txt|sitemap\\.xml|.*\\.(?:png|svg|jpg|jpeg|webp|gif|ico|txt|xml|json|js|css|map|woff2?)).*)",
       "destination": "/_spa/index.html"
     }

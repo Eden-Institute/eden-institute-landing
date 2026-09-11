@@ -335,7 +335,7 @@ const GuideTemplate = ({ guide }: Props) => {
               Learn to read your body pattern, understand your body's language, and match it to God's provision in the plant world.
             </p>
             <a
-              href="https://learn.edeninstitute.health/course/back-to-eden1"
+              href="/go/course?src=guide"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block px-8 py-3 uppercase font-bold no-underline"
