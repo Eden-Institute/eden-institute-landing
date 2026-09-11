@@ -341,7 +341,7 @@ const GuideTemplate = ({ guide }: Props) => {
               className="inline-block px-8 py-3 uppercase font-bold no-underline"
               style={{ backgroundColor: COLORS.gold, color: COLORS.forest, fontFamily: EYEBROW, fontSize: "0.75rem", letterSpacing: "0.16em" }}
             >
-              Enroll Now – $197
+              Enroll Now – $97
             </a>
           </div>
         </section>

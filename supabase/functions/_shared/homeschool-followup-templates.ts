@@ -63,7 +63,7 @@ export function buildMagnetWeek4Email(firstName: string): { subject: string; htm
     `${p(`The <strong>Cultivators</strong> (middle school) and <strong>Practitioners</strong> (high school) bands are in development. But you don&rsquo;t have to wait to bring this to your older children.`)}` +
     `${p(`<strong>Back to Eden: Foundations of Biblical Herbalism</strong> is the adult course all of Eden&rsquo;s Table grew from. It covers the Biblical framework for wellness, your God-given constitution, plant energetics, tissue states, and terrain-based thinking. When you learn it, you can lead your middle and high schoolers through it directly. The same Scripture-rooted, clinically grounded foundation, taught to you so you can teach them. A stopgap that is really a strong beginning.`)}` +
     `${brandButton('Begin the Foundations Course &nbsp;&middot;&nbsp; $97', COURSE_URL)}` +
-    `${p(`Founding price is $97 (normally $197), held through January 1, 2027.`)}` +
+    `${p(`$97, one payment, lifetime access. No deadline and no price jump.`)}` +
     `${signature()}`;
   return { subject: 'For your older kids, a way to start now', html: emailWrapper(body) };
 }
