@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 
-const TIER_1_URL = "https://learn.edeninstitute.health/course/back-to-eden1";
+// Goes through api/go/course.ts so the click is counted (course sells
+// off-site on LearnWorlds; this is the only way to see if the CTA works).
+const TIER_1_URL = "/go/course?src=tier2";
 
 interface TierTwoWaitlistFormProps {
   /** Retained for call-site compatibility; no longer used (no signup here). */

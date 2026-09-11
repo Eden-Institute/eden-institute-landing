@@ -27,7 +27,9 @@ import heroCourses from "@/assets/hero-courses.jpg";
 import { Button } from "@/components/ui/button";
 import { BookOpen, CheckCircle, Clock, GraduationCap, Users } from "lucide-react";
 
-const T1 = "https://learn.edeninstitute.health/course/back-to-eden1";
+// Goes through api/go/course.ts so the click is counted (course sells
+// off-site on LearnWorlds; this is the only way to see if the CTA works).
+const T1 = "/go/course?src=courses";
 const BOOK_URL = "https://www.amazon.com/dp/B0GPT81RDF?tag=mobile088c05e-20";
 // Static no-Pattern fallback (matches the React page's anonymous-visitor path).
 const amazonKitUrl = BOOK_URL;

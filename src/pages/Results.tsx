@@ -438,7 +438,7 @@ const Results = () => {
               in the plant world.
             </p>
             <a
-              href="https://learn.edeninstitute.health/course/back-to-eden1"
+              href="/go/course?src=results"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center w-full px-4 py-3 font-serif font-bold text-sm tracking-wider uppercase transition-colors rounded"
