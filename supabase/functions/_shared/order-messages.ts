@@ -11,6 +11,7 @@ import { LULU_PRODUCTION_DELAY_MINUTES } from './lulu-config.ts';
 import { Db, OrderRow, hasSentMessage, logMessage } from './order-db.ts';
 import { sendSms } from './order-sms.ts';
 import { captureException } from './sentry.ts';
+import { Receipt, loadOrderReceipt, renderReceiptHtml } from './receipt.ts';
 
 const FROM = 'Camila at The Eden Institute <hello@edeninstitute.health>';
 const REPLY_TO = 'hello@edeninstitute.health';
@@ -114,7 +115,12 @@ const PRINT_CANCEL_HOURS = Math.round(LULU_PRODUCTION_DELAY_MINUTES / 60);
 // only from the code: the cancellation window equals Lulu's production delay;
 // tracking comes from Lulu's SHIPPED status; MAIL transit is about two weeks.
 
-export function buildOrderConfirmationEmail(order: OrderRow): { subject: string; html: string } {
+// 2026-09-12, scholarship states: the confirmation is now an ITEMIZED receipt
+// with the word "curriculum" on every line (see _shared/receipt.ts). `receipt` is
+// loaded by the dispatcher from order_items; if it is missing (no items written,
+// a DB hiccup) the old single line is the fallback, so the buyer still hears from
+// us. The fallback is logged, because it is not scholarship-ready.
+export function buildOrderConfirmationEmail(order: OrderRow, receipt: Receipt | null = null): { subject: string; html: string } {
   const item = order.product_label ? order.product_label : 'your Sprouts set';
   const amount = money(order.amount_total_cents);
   const body =
@@ -125,7 +131,10 @@ export function buildOrderConfirmationEmail(order: OrderRow): { subject: string;
       ? p(`Order number: <strong>${order.order_number}</strong><br>`
         + `Keep this one. It is how I find you fast if you ever need anything.`)
       : '') +
-    p(`${item}${amount ? `: ${amount}, charged today` : ''}`) +
+    (receipt
+      ? renderReceiptHtml(receipt) +
+        p(`<span style="font-size:14px;">Using a scholarship or education savings account? This receipt is itemized for your records, and Stripe also emails you a numbered invoice you can download as a PDF.</span>`)
+      : p(`${item}${amount ? `: ${amount}, charged today` : ''}`)) +
     heading('What happens now') +
     p(`Because each set is printed for you and nobody else, there is a <strong>${PRINT_CANCEL_HOURS} hour pause</strong> `
       + `before printing starts. That is your window. If the address is wrong, if you meant two sets, if you `
@@ -171,10 +180,10 @@ export function buildDeliveredEmail(order: OrderRow): { subject: string; html: s
   return { subject: 'Your Sprouts books are here', html: wrapTransactional(body, 'placed an order') };
 }
 
-export function buildOrderEmail(templateKey: string, order: OrderRow): { subject: string; html: string } {
+export function buildOrderEmail(templateKey: string, order: OrderRow, receipt: Receipt | null = null): { subject: string; html: string } {
   switch (templateKey) {
     case 'preorder_confirmation': return buildPreorderConfirmationEmail(order);
-    case 'order_confirmation': return buildOrderConfirmationEmail(order);
+    case 'order_confirmation': return buildOrderConfirmationEmail(order, receipt);
     case 'shipped': return buildShippedEmail(order);
     case 'delivered': return buildDeliveredEmail(order);
     default: throw new Error(`No email builder for template '${templateKey}'`);
@@ -282,7 +291,18 @@ export async function dispatchTransitionMessages(
     let ok = false;
     try {
       if (def.channel === 'email') {
-        const { subject, html } = buildOrderEmail(def.templateKey, order);
+        // The receipt is only needed on the confirmation, and a failure to load it
+        // must never cost the buyer their email: fall back and log it loudly.
+        let receipt: Receipt | null = null;
+        if (def.templateKey === 'order_confirmation') {
+          try {
+            receipt = await loadOrderReceipt(db, order);
+          } catch (e) {
+            console.error('order_confirmation: receipt load threw, sending unitemized:', String(e));
+          }
+          if (!receipt) console.error(`order_confirmation: NO itemized receipt for ${order.order_number ?? order.id}; sent the single-line fallback`);
+        }
+        const { subject, html } = buildOrderEmail(def.templateKey, order, receipt);
         providerId = await sendResendEmail(order.customer_email, subject, html);
       } else {
         providerId = await sendSms(order.customer_phone, orderSmsText(def.templateKey, order));

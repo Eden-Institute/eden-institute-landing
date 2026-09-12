@@ -16,16 +16,28 @@
 // are sent rather than drafted so it would survive either way, but keeping one
 // button style across every Eden email is worth more than the fill.
 
-import { STARTER_LICENSE_LINE, STARTER_PRICE_CENTS, STARTER_CREDIT_CENTS } from './starter-config.ts';
+import { STARTER_LICENSE_LINE } from './starter-config.ts';
+import { Receipt, renderReceiptHtml, renderReceiptText } from './receipt.ts';
 
 export interface StarterEmailModel {
   firstName: string | null;
   email: string;
   creditCode: string | null;
   downloadToken: string;
+  /**
+   * The itemized receipt (2026-09-12, scholarship states). Optional so a missing
+   * order row can never block a buyer's files; the fulfiller logs when it is null.
+   */
+  receipt?: Receipt | null;
 }
 
-const KIT_URL = 'https://edeninstitute.health/preorder';
+// 2026-09-12, the print-first pivot. This delivery email used to hand the buyer
+// their $39 kit credit code and send them to /preorder. The kit is off sale, so
+// the credit is still MINTED (stripe-webhook and starter-credit.ts unchanged) and
+// simply not mentioned. Founder plan: when the boxed edition launches, Starter
+// buyers are the first list she mails and the credit is what opens that email.
+// Do not restore the credit block here while the kit is off sale.
+const PRINT_SET_URL = 'https://edeninstitute.health/books';
 const RETURNS_URL = 'https://edeninstitute.health/returns';
 
 function para(text: string): string {
@@ -71,18 +83,12 @@ export function renderStarterDeliveryEmail(m: StarterEmailModel): {
   // A page can explain itself. A PDF cannot.
   const downloadsUrl = `https://edeninstitute.health/starter/downloads?t=${encodeURIComponent(m.downloadToken)}`;
 
-  const creditBlock = m.creditCode
-    ? `
+  const creditBlock = `
 ${rule()}
-${sectionLabel('Your credit toward the full kit')}
-${para(`The ${dollars(STARTER_PRICE_CENTS)} you just spent comes straight off the Sprouts Complete Kit. Use this code at checkout and it takes ${dollars(STARTER_CREDIT_CENTS)} off:`)}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:6px 0 18px 0;">
-<span style="display:inline-block;border:2px dashed #C9A84C;background-color:#FBF7EF;color:#1C3A2E;font-family:Georgia,serif;font-size:22px;font-weight:bold;letter-spacing:3px;padding:16px 28px;">${m.creditCode}</span>
-</td></tr></table>
-${para(`The code is tied to this email address and can be used once. It does not expire when the founding 500 sell out: if you come back later, it still comes off the price you see then.`)}
-${ctaButton('See the full kit', KIT_URL)}
-`
-    : '';
+${sectionLabel('When you want the rest of the year')}
+${para(`These nine weeks are a full quarter. The other twenty-seven are finished too, and they are printed to order: the Teacher's Guide, the Student Notebook and the whole Read-Aloud storybook, mailed to you in about two weeks. There is no hurry at all, and nothing here stops working if you never buy it.`)}
+${ctaButton('See the printed year', PRINT_SET_URL)}
+`;
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -104,9 +110,10 @@ ${ctaButton('Open your downloads', downloadsUrl)}
 ${para(`<span style="font-size:14px;color:#5A6B5F;">Save this email. That link does not expire, so you can come back to it any time, on any device.</span>`)}
 ${para(`<span style="font-size:14px;color:#5A6B5F;"><strong>If a file opens as a blank white screen</strong>, you are not doing anything wrong. Some email apps open links in a small built in browser that cannot display a PDF. Press and hold the link instead of tapping it, choose Open in Safari or Open in Chrome, and it will open properly. Opening this email on a computer works too.</span>`)}
 ${creditBlock}
-${rule()}
-${sectionLabel('About the plant cards')}
-${para(`The Field Cards, Recipe Cards and Around the Table Cards are not in this download, and that is deliberate. They are made to be carried outside, propped against a mixing bowl and passed around a table by small hands. A screen cannot do any of that, so they stay in the printed kit where they belong. The storybook is different, which is why it is here: a story reads aloud just as well from a screen.`)}
+${m.receipt ? `${rule()}
+${sectionLabel('Your receipt')}
+${renderReceiptHtml(m.receipt)}
+${para(`<span style="font-size:14px;color:#5A6B5F;">Using a scholarship or education savings account? This receipt is itemized for your records, and Stripe also emails you a numbered invoice you can download as a PDF.</span>`)}` : ''}
 ${rule()}
 ${para(`<span style="font-size:14px;color:#5A6B5F;">${STARTER_LICENSE_LINE} If you teach a co-op or a classroom, reply to this email and we will sort out the right licence for you.</span>`)}
 ${para(`<span style="font-size:14px;color:#5A6B5F;">Because this is a digital download, it is not refundable once the files have been downloaded. Our full policy is <a href="${RETURNS_URL}" style="color:#1C3A2E;">here</a>.</span>`)}
@@ -131,17 +138,10 @@ ${para(`<strong>Camila</strong><br><span style="font-size:14px;">The Eden Instit
     '',
     'If a file opens as a blank white screen, you are not doing anything wrong. Some email apps open links in a small built in browser that cannot display a PDF. Press and hold the link instead of tapping it, choose Open in Safari or Open in Chrome, and it will open properly. Opening this email on a computer works too.',
     '',
-    ...(m.creditCode
-      ? [
-        `YOUR CREDIT TOWARD THE FULL KIT: ${m.creditCode}`,
-        `That is ${dollars(STARTER_CREDIT_CENTS)} off the Sprouts Complete Kit. It is tied to this email address and can be used once.`,
-        `It does not expire when the founding 500 sell out.`,
-        `See the full kit: ${KIT_URL}`,
-        '',
-      ]
-      : []),
-    'About the plant cards: the Field Cards, Recipe Cards and Around the Table Cards are not in this download, and that is deliberate. They are made to be carried outside and passed around a table, so they stay in the printed kit. The storybook is different, which is why it is here.',
+    'When you want the rest of the year: the other twenty-seven weeks are finished and printed to order, mailed to you in about two weeks.',
+    `See the printed year: ${PRINT_SET_URL}`,
     '',
+    ...(m.receipt ? [renderReceiptText(m.receipt), ''] : []),
     STARTER_LICENSE_LINE,
     'If you teach a co-op or a classroom, reply to this email and we will sort out the right licence for you.',
     '',

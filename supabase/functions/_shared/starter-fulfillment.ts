@@ -34,6 +34,7 @@ import {
   STARTER_SOURCE_BUCKET,
 } from './starter-config.ts';
 import { renderStarterDeliveryEmail, StarterEmailModel } from './starter-email.ts';
+import { Receipt, starterReceipt } from './receipt.ts';
 
 /**
  * Read a required env var at CALL time, not module-load time, and name it when
@@ -324,11 +325,29 @@ export async function fulfilStarterDelivery(
     // before a buyer is told their files are ready. What changed on 2026-09-05
     // is only where the buyer is sent: at a page that can explain itself, rather
     // than at three raw PDFs that some mail apps render as a white screen.
+    // Itemized receipt (2026-09-12, scholarship states). Read from the order row
+    // the webhook wrote. Best effort BY DESIGN: a missing order must never hold
+    // back a buyer's files, so a miss is logged and the email goes without it.
+    let receipt: Receipt | null = null;
+    if (delivery.order_id) {
+      try {
+        const { data: orderRow } = await db.from('orders')
+          .select('order_number, created_at, amount_total_cents, tax_cents, raw')
+          .eq('id', delivery.order_id)
+          .maybeSingle();
+        if (orderRow) receipt = starterReceipt(orderRow);
+      } catch (e) {
+        console.error(`[${sid}] receipt load threw; sending without it:`, String(e));
+      }
+    }
+    if (!receipt) console.error(`[${sid}] NO itemized receipt on this delivery (order_id=${delivery.order_id ?? 'null'})`);
+
     const model: StarterEmailModel = {
       firstName: (delivery.purchaser_name ?? '').trim().split(/\s+/)[0] || null,
       email: delivery.email,
       creditCode,
       downloadToken: delivery.download_token,
+      receipt,
     };
 
     const t4 = performance.now();

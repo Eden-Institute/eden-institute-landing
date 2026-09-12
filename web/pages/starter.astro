@@ -1,10 +1,6 @@
 ---
 // /starter — Eden's Table Sprouts Starter Unit ($39 digital, weeks 1-9).
 //
-// A DEDICATED page, not a variant of /preorder. Purchase intent is different: a
-// preorder buyer has already decided and is committing to a 2027 ship date, while
-// a starter buyer is deciding whether this curriculum suits their family at all.
-// Folding the two together would make the kit page argue with itself.
 //
 // COPY POSITION, and it is load-bearing. This is a STARTER UNIT: nine complete
 // weeks with everything needed to teach them. It is never a "sample", "preview",
@@ -13,14 +9,22 @@
 // they are made for hands, and that is stated as a design decision rather than an
 // apology.
 //
-// The credit sits ABOVE THE FOLD, in the hero, because the whole product exists
-// to convert to the $249 kit. Someone who scrolls past the hero and never learns
-// the $39 comes back has been sold a different product to the one intended.
+// 🔴 THE $39 KIT CREDIT IS STILL MINTED, AND IS NO LONGER ADVERTISED HERE.
+// Founder decision 2026-09-12, the print-first pivot. The kit came off the site,
+// so a credit against it cannot be sold as a benefit: there is nothing to spend
+// it on today. stripe-webhook and starter-credit.ts are UNCHANGED and every
+// Starter Unit purchase still mints a code. The plan is deliberate, in her words:
+// when the boxed edition launches, Starter buyers are the first list she mails
+// and the credit they did not know they had is what opens that email.
+//
+// So do NOT "fix" this by deleting the minting code, and do NOT put the credit
+// back on the page while the kit is off sale. The hero credit panel, the bundled
+// bullet, the credit FAQ and the closing kit CTA are all on b8751c1.
 //
 // Prices here are display copy. The only billing truth is the Stripe Price that
 // create-checkout resolves from lookup_key "sprouts_starter_unit". Keep in sync
 // with supabase/functions/_shared/starter-config.ts (STARTER_PRICE_CENTS 3900,
-// STARTER_CREDIT_CENTS 3900) and _shared/order-config.ts (kit 24900 / 34900).
+// STARTER_CREDIT_CENTS 3900).
 //
 // Copy rule: no em dashes (feedback_no_em_dashes).
 import MarketingLayout from "../layouts/MarketingLayout.astro";
@@ -34,15 +38,13 @@ import StarterBuyBox from "../components/islands/StarterBuyBox.tsx";
 import ComponentShowcases from "../components/ComponentShowcases.astro";
 
 const PRICE = "$39";
-const CREDIT = "$39";
-const KIT_FOUNDING = "$249";
-const KIT_RETAIL = "$349";
+const SET_PRICE = "$249";
 
 const meta = {
   title: "Sprouts Starter Unit · Eden's Table | The Eden Institute",
   description:
     "Nine weeks of Eden's Table Sprouts (K-2): Teacher's Guide, Student Notebook and Read-Aloud storybook, as an instant " +
-    PRICE + " download. The full " + PRICE + " comes off the Sprouts Complete Kit when you are ready.",
+    PRICE + " download. A full quarter of the year, ready to teach tonight.",
   canonical: "https://edeninstitute.health/starter",
 };
 
@@ -89,12 +91,8 @@ const faqs = [
     a: "Because nine weeks is a quarter of the year, and it is where the curriculum reaches a natural edge. Unit 1 finishes at week 6. Weeks 7 through 9 open Unit 2, so you see not just one unit but how the year moves between them. Four of the storybook's seven readings fall inside it, and the next one is not until week 18. Stopping at six would have handed you a finished unit and no idea what came after it.",
   },
   {
-    q: "Does this include the plant cards?",
-    a: "No, and that is on purpose. The Field Cards, Recipe Cards and Around the Table Cards are made to be carried outside, propped against a mixing bowl and passed around a table by small hands. They are printed on heavy card for exactly that reason. A PDF of them would be a worse version of the thing, so they stay in the printed kit where they work. The Read-Aloud storybook is a different case, and it IS included: a story reads aloud just as well from a screen.",
-  },
-  {
-    q: "How does the " + CREDIT + " credit work?",
-    a: "Your delivery email carries a credit code. When you buy the Sprouts Complete Kit, enter that code at checkout and " + CREDIT + " comes off. The code is tied to the email address you buy with and can be used once, so it is not transferable. It does not expire when the founding 500 kits sell out: if you come back later, it still comes off whatever the price is then.",
+    q: "What is in the download, exactly?",
+    a: "The Teacher's Guide, the Student Notebook and the Read-Aloud storybook for weeks 1 through 9, as PDFs you print at home. That is everything you need to teach those nine weeks. Nothing is held back and there is no upgrade you need to buy to make it work.",
   },
   {
     q: "My children are older than K-2. Should I wait for Seedlings?",
@@ -117,8 +115,7 @@ const productJsonLd = {
   sku: "sprouts_starter_unit",
   description:
     "Weeks 1 to 9 of the Eden's Table Sprouts (K-2) Biblical herbalism curriculum, delivered as PDF. " +
-    "Includes the Teacher's Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks. " +
-    "Printed plant card sets are exclusive to the physical kit.",
+    "Includes the Teacher's Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks.",
   brand: { "@type": "Brand", name: "Eden's Table" },
   offers: {
     "@type": "Offer",
@@ -171,18 +168,21 @@ const faqJsonLd = {
         and know whether this is the way your family wants to learn plants.
       </p>
 
-      <!-- The credit, above the fold. -->
+      {/* Was the kit-credit panel until 2026-09-12. Replaced with what the nine
+          weeks actually are, since the credit is no longer advertised. An HTML
+          comment would ship this text to the page source, so it is an Astro
+          expression comment. */}
       <div
         class="rounded-lg p-4 md:p-6 mb-5 md:mb-8 text-left md:text-center"
         style="background-color:hsl(var(--background));border:2px dashed hsl(var(--eden-gold))"
       >
         <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2 md:mb-3" style="color:hsl(var(--eden-gold-ink))">
-          The whole {CREDIT} comes back when you buy the kit
+          A full quarter of the year, not a sample
         </p>
         <p class="font-body text-sm md:text-lg leading-relaxed" style="color:hsl(var(--eden-bark))">
-          Every Starter Unit comes with a credit code worth <strong>{CREDIT} off the Sprouts
-          Complete Kit</strong>. Use it whenever you are ready. If you go on to buy the kit,
-          the Starter Unit has cost you nothing.
+          Nine complete weeks with everything you need to teach them: forty-five daily lessons,
+          the write-in Notebook pages and four storybook readings. Teach it tonight and decide
+          about the rest of the year later.
         </p>
       </div>
 
@@ -209,7 +209,7 @@ const faqJsonLd = {
           <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Student Notebook, weeks 1 to 9.</strong> Her write-in pages: drawings, kitchen-lab observations, vocabulary, weekly review.</span></li>
           <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Read-Aloud Storybook.</strong> The four readings that fall in these nine weeks.</span></li>
           <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>PDF, instant download.</strong> Print at home; letter size for the two books, small storybook page for the stories.</span></li>
-          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>A $39 credit toward the Sprouts Complete Kit.</strong> Tied to your email, used once.</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Yours to keep and reprint.</strong> Print it again for the next child, as often as you like.</span></li>
         </ul>
       </div>
       <div class="grid gap-4 md:grid-cols-2">
@@ -254,22 +254,24 @@ const faqJsonLd = {
     </div>
   </section>
 
-  <!-- PLANT CARDS: framed as a feature, which is what it is. -->
+  {/* Was the "plant cards stay in the box" section, which existed to explain an
+      absence against the kit. With the kit off the site there is no absence to
+      explain, so the section says what the nine weeks give you instead. The old
+      copy is on b8751c1. */}
   <section class="py-16 px-6" style="background-color:hsl(var(--eden-cream))">
     <div class="max-w-2xl mx-auto text-center">
       <p class="font-accent text-xs tracking-[0.25em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">
-        Made for hands, not screens
+        Nine weeks, finished
       </p>
       <h2 class="font-serif text-3xl font-bold mb-6" style="color:hsl(var(--eden-bark))">
-        The plant cards stay in the box.
+        This is not a preview of the curriculum. It is a quarter of it.
       </h2>
       <p class="font-body text-lg text-muted-foreground leading-relaxed">
-        The Field Cards go outside and get compared against a real leaf. The Recipe Cards
-        get propped against a mixing bowl with flour on them. The Around the Table Cards get
-        passed between people at dinner. All three are printed on heavy card because that is
-        what they are for. We have not made screen versions of them, and we are not going to.
-        They live in the printed kit, where they work. The storybook is the one thing that
-        loses nothing on a screen, which is why it comes with your download.
+        Forty-five daily lessons, written out the same way every other week of the year is
+        written out. The same kitchen labs, the same memory work, the same dinner-table
+        questions, the same stories. Nothing is thinned down because it is the trial. If you
+        teach these nine weeks and stop, your child has still learned nine plants by sight and
+        you have still had nine weeks of school you did not have to plan.
       </p>
     </div>
   </section>
@@ -354,8 +356,8 @@ const faqJsonLd = {
 
       <div class="text-center mt-10">
         <p class="font-body text-base text-muted-foreground leading-relaxed mb-6 max-w-xl mx-auto">
-          You do not have to take our word for any of this. Nine weeks is $39, and if you go on
-          to buy the kit that $39 comes off it, so finding out costs you nothing.
+          You do not have to take our word for any of this. Nine weeks is $39, which is about
+          four dollars a week, and your child will tell you the rest.
         </p>
         <div class="flex justify-center">
           <StarterBuyBox client:only="react" cta="starter-olderkids-buy" wide={true} />
@@ -383,7 +385,7 @@ const faqJsonLd = {
     </div>
   </section>
 
-  <!-- CLOSING BUY + the route on to the kit -->
+  <!-- CLOSING BUY + the route on to the printed year -->
   <section class="py-16 px-6" style="background-color:hsl(var(--eden-cream))">
     <div class="max-w-2xl mx-auto text-center">
       <h2 class="font-serif text-3xl font-bold mb-6" style="color:hsl(var(--eden-bark))">
@@ -395,17 +397,17 @@ const faqJsonLd = {
 
       <div class="pt-8" style="border-top:1px solid hsl(var(--eden-gold) / 0.4)">
         <p class="font-body text-base text-muted-foreground leading-relaxed mb-4">
-          Already know you want the whole year? The Sprouts Complete Kit is the full 36 weeks
-          in print, with all three card sets and the rest of the storybook, at {KIT_FOUNDING}
-          for the founding 500 and {KIT_RETAIL} after.
+          Already know you want the whole year? The Printed Curriculum Set is all 36 weeks in
+          three printed books, {SET_PRICE} plus flat $12 shipping, printed to order and at your
+          door in about two weeks.
         </p>
         <a
-          href="/preorder"
-          data-cta="starter-to-kit-upgrade"
+          href="/books"
+          data-cta="starter-to-books-upgrade"
           class="inline-block font-accent text-sm tracking-[0.2em] uppercase font-bold px-8 py-4 rounded-md border-2"
           style="border-color:hsl(var(--eden-forest));color:hsl(var(--eden-forest))"
         >
-          See the complete kit
+          See the printed year
         </a>
       </div>
     </div>

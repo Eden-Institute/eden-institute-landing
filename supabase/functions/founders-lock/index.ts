@@ -1,6 +1,26 @@
 // ── founders-lock ──
 // Sprouts preorder "founder's price + first access" capture.
 //
+// 🛑 CLOSED 2026-09-12, the print-first pivot (founder: "close the founders-lock
+// page before merge"). The kit came off the site and preorders are not being
+// taken, so this function must not accept another reservation or send another
+// word of the founding-price campaign.
+//
+// What changed, and nothing else:
+//   - POST returns 410 `preorders_closed` and writes NO row, adds NO Resend
+//     contact, sends NO SMS and NO confirmation email. A cached copy of the old
+//     form in somebody's browser therefore cannot still reserve anything.
+//   - The admin `send` and `testsend` actions refuse, because the campaign copy
+//     they blast says "preorders for a limited run of 500 kits are open now".
+//   - GET still 302s to /sprouts-founders.html, which now carries a closed
+//     notice at the same URL. It cannot 404: signed links to it are inside
+//     already-sent launch emails 7 and 18.
+//   - `diag`, `signlink` and `dryrun` are untouched: they are read-only.
+//
+// The reservation path, the announcement copy and the confirmation email are all
+// intact below and on b8751c1. Phase two is flipping CLOSED to false and
+// restoring public/sprouts-founders.html, not a rewrite.
+//
 // The CTA button in the announcement email links here with a signed token
 // (HMAC over {email, name, source}, same key/scheme as the unsubscribe EF).
 //   GET  ?t=<token>  -> branded form: email is known, they add name + phone +
@@ -33,6 +53,13 @@ const SUBJECT = 'You spoke, we listened: the first two weeks of Sprouts just got
 
 const B = { forest: '#2C3E2D', deep: '#1C3A2E', gold: '#C5A44E', sage: '#5C7A5C', text: '#3D3832', cream: '#F7F2E8', footer: '#CDBF9B' };
 const LM = 'https://edeninstitute.health/lead-magnets';
+
+// The one-line gate. Flip to false for phase two, and restore
+// public/sprouts-founders.html in the same commit or the form will be a closed
+// notice pointing at a working endpoint.
+const CLOSED = true;
+const CLOSED_MSG =
+  'Preorders are closed. The printed Sprouts curriculum is available now at https://edeninstitute.health/books';
 
 // ── b64url + HMAC (mirrors _shared/email-unsubscribe.ts) ──
 function b64urlEncode(bytes: Uint8Array): string {
@@ -284,6 +311,11 @@ function shell(inner: string): string {
 <tr><td style="background:${B.forest};padding:24px;text-align:center;"><div style="color:${B.gold};font-size:20px;letter-spacing:2px;">THE EDEN INSTITUTE</div></td></tr>
 <tr><td style="padding:32px 30px;">${inner}</td></tr></table></td></tr></table></body></html>`;
 }
+// DEAD CODE since the GET handler began redirecting to the hosted page at
+// edeninstitute.health/sprouts-founders.html (the Supabase functions domain
+// forces text/plain + nosniff, so this could not be served as HTML anyway).
+// Kept for phase two. Do NOT wire it back up while CLOSED is true: it still says
+// "Reserve your $249 founder's price" and posts to an endpoint that returns 410.
 function formPage(email: string, name: string, token: string, err = ''): string {
   return shell(`
 <h1 style="font-size:23px;color:${B.deep};margin:0 0 10px;">Reserve your $249 founder's price</h1>
@@ -340,6 +372,9 @@ Deno.serve(async (req) => {
     }
     if (action === 'signlink') return jsonRes(200, { url: formUrl(await formToken(e, n, c)) });
     if (action === 'testsend') {
+      // The announcement copy says preorders are open and the founding price
+      // holds. Both are false since 2026-09-12.
+      if (CLOSED) return jsonRes(410, { error: 'preorders_closed', message: CLOSED_MSG });
       if (!e) return jsonRes(400, { error: 'missing to' });
       const html = announcementHtml(n, formUrl(await formToken(e, n, c)), unsubUrl(await unsubToken(e)));
       const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: FROM, to: [e], subject: SUBJECT, html }) });
@@ -356,6 +391,8 @@ Deno.serve(async (req) => {
       return jsonRes(200, out);
     }
     if (action === 'send') {
+      // Same reason as testsend, and this one blasts the whole waitlist.
+      if (CLOSED) return jsonRes(410, { error: 'preorders_closed', message: CLOSED_MSG });
       if (url.searchParams.get('confirm') !== 'SEND') return jsonRes(400, { error: 'append &confirm=SEND to actually send' });
       const src = url.searchParams.get('source') ?? 'sprouts_magnet';
       const batch = Math.min(Number(url.searchParams.get('batch') ?? '50'), 200);
@@ -378,6 +415,14 @@ Deno.serve(async (req) => {
 
   // POST: form submission from the hosted page (JSON), with a form-encoded fallback.
   if (req.method === 'POST') {
+    // Closed 2026-09-12. Refuse before parsing the body, before ensureTable, and
+    // before any Resend or Twilio call, so a stale cached form cannot write a
+    // founders_interest row or trigger a confirmation promising a $249 kit.
+    // 410 rather than 404: the endpoint existed and is deliberately withdrawn.
+    if (CLOSED) {
+      console.log('founders-lock: refused a reservation, preorders are closed');
+      return jsonRes(410, { ok: false, error: 'preorders_closed', message: CLOSED_MSG });
+    }
     let token = '', name = '', phoneRaw = '', consent = false, emailRaw = '';
     const ct = req.headers.get('content-type') ?? '';
     if (ct.includes('application/json')) {

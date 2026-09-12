@@ -14,7 +14,6 @@ import MarketingLayout from "../layouts/MarketingLayout.astro";
 // the section. The image is 1920x1080 to match the hero aspect; do not swap in a
 // portrait plate, it will crop to a band across the middle of the plant.
 import heroHomeschool from "@/assets/hero-homeschool.jpg";
-import PreorderBuyBox from "../components/islands/PreorderBuyBox.tsx";
 import { Button } from "@/components/ui/button";
 import WaitlistController from "../components/islands/WaitlistController.tsx";
 import ComponentShowcases from "../components/ComponentShowcases.astro";
@@ -22,7 +21,7 @@ import ComponentShowcases from "../components/ComponentShowcases.astro";
 const meta = {
   title: "Christian Homeschool Herbalism Curriculum (K-12) | Eden's Table",
   description:
-    "A Christ-centered homeschool herbalism curriculum for K-12, one plant a week. Sprouts (K-2) is available now: a free week, a $39 Starter Unit, the printed set or the complete kit. Seedlings (3-5) is next, then Cultivators and Practitioners.",
+    "A Christ-centered homeschool herbalism curriculum for K-12, one plant a week. Sprouts (K-2) is available now: a free week, a $39 Starter Unit, or the full 36-week printed set. Seedlings (3-5) is next, then Cultivators and Practitioners.",
   canonical: "https://edeninstitute.health/homeschool",
 };
 
@@ -108,14 +107,14 @@ const BANDS: Band[] = [
         step: "Step 1 · Try it",
         title: "Week 1, free",
         price: "$0",
-        points: ["Five full lessons on Lavender", "All six components, as PDFs", "In your inbox in a minute"],
+        points: ["Five full lessons on Lavender", "Teacher's Guide, Notebook and story, as PDFs", "In your inbox in a minute"],
         when: "Print it and teach it today.",
         button: "Get Week 1 free",
         cta: "homeschool-sprouts-free",
         modal: {
           source: "sprouts_magnet",
           title: "Get Sprouts Week 1 · Free",
-          subtitle: "Check your inbox. Your free Sprouts Week 1 (Lavender) downloads are on their way right now. Five real lessons and all six components, to print and teach today.",
+          subtitle: "Check your inbox. Your free Sprouts Week 1 (Lavender) downloads are on their way right now. Five real lessons, the Teacher's Guide, the Notebook and the story, to print and teach today.",
         },
       },
       {
@@ -123,7 +122,7 @@ const BANDS: Band[] = [
         title: "Starter Unit, weeks 1 to 9",
         price: "$39",
         points: ["A full quarter of the year", "Teacher's Guide, Notebook and storybook", "Instant download"],
-        when: "Tonight. The $39 comes off the kit later.",
+        when: "Tonight. It downloads to your inbox in about a minute.",
         button: "Get the Starter Unit",
         href: "/starter",
         cta: "homeschool-sprouts-starter",
@@ -137,18 +136,6 @@ const BANDS: Band[] = [
         button: "Order the printed set",
         href: "/books",
         cta: "homeschool-sprouts-books",
-        primary: true,
-      },
-      {
-        step: "Step 4 · Everything in one box",
-        title: "Sprouts Complete Kit",
-        price: "$249",
-        was: "$349",
-        points: ["The three books plus all three card decks", "Field, Recipe and Around the Table cards", "Founding price for the first 500, then $349"],
-        when: "Ships summer 2027. Cancel any time before it ships.",
-        button: "Preorder the kit",
-        href: "#pricing",
-        cta: "homeschool-sprouts-kit",
         primary: true,
       },
     ],
@@ -165,19 +152,18 @@ const BANDS: Band[] = [
         step: "Step 1 · Try it",
         title: "Week 1, free",
         price: "$0",
-        points: ["Five full lessons on Elderberry", "Every component, as PDFs", "In your inbox in a minute"],
+        points: ["Five full lessons on Elderberry", "Teacher's Guide and Notebook, as PDFs", "In your inbox in a minute"],
         when: "Print it and teach it today.",
         button: "Get Week 1 free",
         cta: "homeschool-seedlings-free",
         modal: {
           source: "seedlings_magnet",
           title: "Get Seedlings Week 1 · Free",
-          subtitle: "Check your inbox. Your free Seedlings Week 1 (Elderberry) downloads are on their way right now. Five real lessons and every component, to print and teach today.",
+          subtitle: "Check your inbox. Your free Seedlings Week 1 (Elderberry) downloads are on their way right now. Five real lessons, the Teacher's Guide and the Notebook, to print and teach today.",
         },
       },
       { step: "Step 2 · Start now", title: "Starter Unit, weeks 1 to 9", price: "$39", points: ["A full quarter of the year", "Teacher's Guide, Notebook and storybook", "Instant download"], when: "Being finished now.", soon: true },
       { step: "Step 3 · The whole year, in print", title: "Printed Curriculum Set", price: "$249", points: ["All 36 weeks, three printed books", "Printed to order, mailed to you"], when: "Being finished now.", soon: true },
-      { step: "Step 4 · Everything in one box", title: "Seedlings Complete Kit", price: "$249", was: "$349", points: ["The three books plus all three card decks", "Founding price for the first 500"], when: "Preorder opens after Sprouts.", soon: true },
     ],
   },
   {
@@ -191,7 +177,7 @@ const BANDS: Band[] = [
       "Revisits all 72 Sprouts and Seedlings plants at a deeper level, so nothing learned is wasted",
       "Body pattern thinking and the basics of terrain",
       "Garden to remedy: growing, harvesting, drying and preparing, start to finish",
-      "Same six components, written for a middle schooler who wants the why",
+      "Same shape as the earlier bands, written for a middle schooler who wants the why",
     ],
   },
   {
@@ -205,15 +191,15 @@ const BANDS: Band[] = [
       "The 72 plants a third time, now as materia medica",
       "Clinical literacy: reading a body, matching a plant to a pattern, knowing when to refer",
       "Real-world application, the kind that outlasts the diploma",
-      "Same six components, written for a teenager ready for real responsibility",
+      "Same shape as the earlier bands, written for a teenager ready for real responsibility",
     ],
   },
 ];
 
-// The kit section (§9.4) — the six components as one purchase.
-const KIT = {
-  openSrc: "/showcases/ET_Kit_Open.webp",
-  openAlt: "The Eden's Table kit box open, showing the Teacher's Guide, Student Notebook, storybook and all three card decks",
+// The printed-year section (§9.4) — the three books as one purchase.
+// 2026-09-12: the kit box photo (ET_Kit_Open.webp) came out with the kit itself.
+// The file stays in public/showcases for phase two.
+const PRINT_SET = {
   setSrc: "/showcases/ET_PrintSet.webp",
   setAlt: "The three printed Sprouts books, the Teacher's Guide, Student Notebook and Read-Aloud Storybook, on a linen cloth",
 };
@@ -243,29 +229,12 @@ const KIT = {
       {/* id="early-access" is load-bearing: the homepage links to
           /homeschool#early-access (index.astro). Keep it even though the
           lead-magnet capture that originally lived here is gone. */}
-      {/* TWO doors, deliberately. The kit is the commitment and stays the primary
-          filled button; the Starter Unit is the lower-commitment way in for a
-          reader who is not ready to spend $249 on something that ships in 2027,
-          whose only other option is to close the tab.
-
-          They are NOT presented as equals. Same size so neither looks like an
-          afterthought, but filled vs outline keeps the kit visually first, and
-          the kit sits left / first in the DOM so it is what a screen reader and a
-          scanning eye reach first.
-
-          The credit line directly under them is what makes the pair honest rather
-          than a fork in the road: choosing the small door costs nothing, because
-          the $39 comes off the kit later. Without that sentence the two buttons
-          compete; with it they are a sequence.
-
-          data-cta on both so the split is actually measurable in cta_events. The
-          hero had no beacons at all before this. */}
       <div id="early-access" class="flex flex-col items-center gap-4 scroll-mt-28">
-        {/* Three doors, founder direction 2026-09-11. The printed year leads
-            because it is the thing a family can start this month; the kit sits
-            beside it at the same price; the $39 is the outlined try-it door.
-            Mobile stacks them in that order. */}
-        <div class="grid gap-3 sm:grid-cols-3 sm:gap-4 w-full max-w-3xl">
+        {/* TWO doors, founder direction 2026-09-12. The kit came off the site
+            with the print-first pivot, so the printed year leads and the $39 is
+            the outlined try-it door. The kit button, its copy and its buy box are
+            in git history on b8751c1 for phase two. */}
+        <div class="grid gap-3 sm:grid-cols-2 sm:gap-4 w-full max-w-xl">
           <a href="/books" data-cta="homeschool-hero-books" class="inline-flex w-full">
             <Button variant="eden" size="xl" className="w-full h-full flex-col whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-4">
               <span class="block">Get the printed year now</span>
@@ -273,18 +242,11 @@ const KIT = {
               <span class="block mt-1 text-[11px] sm:text-xs font-normal normal-case tracking-normal opacity-85">Same price. In your hands in about 2 weeks.</span>
             </Button>
           </a>
-          <a href="#pricing" data-cta="homeschool-hero-preorder" class="inline-flex w-full">
-            <Button variant="eden" size="xl" className="w-full h-full flex-col whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-4">
-              <span class="block">Preorder the Complete Kit</span>
-              <span class="block mt-1 whitespace-nowrap"><span class="line-through opacity-70 font-normal">$349</span> $249</span>
-              <span class="block mt-1 text-[11px] sm:text-xs font-normal normal-case tracking-normal opacity-85">Same price, more in the box. Ships by fall 2027.</span>
-            </Button>
-          </a>
           <a href="/starter" data-cta="homeschool-hero-starter" class="inline-flex w-full">
             <Button variant="eden-outline" size="xl" className="w-full h-full flex-col whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-4">
               <span class="block">Try 9 weeks digital</span>
               <span class="block mt-1 whitespace-nowrap">$39</span>
-              <span class="block mt-1 text-[11px] sm:text-xs font-normal normal-case tracking-normal opacity-85">Instant download. Comes off the kit later.</span>
+              <span class="block mt-1 text-[11px] sm:text-xs font-normal normal-case tracking-normal opacity-85">Instant download. Teach it tonight.</span>
             </Button>
           </a>
         </div>
@@ -292,16 +254,13 @@ const KIT = {
         {/* One line per door, so a reader skimming can take the meaning from
             here without reading the rest of the page. */}
         <p class="font-body text-sm max-w-2xl mx-auto mt-1 leading-relaxed" style="color:hsl(var(--eden-bark))">
-          <strong>The printed year</strong> is the three books, at your door in about two weeks.
-          <strong>The kit</strong> adds the three card decks and the box, ships summer 2027, and the
-          <strong>$39 comes off the kit</strong> if you try nine weeks first.
+          <strong>The printed year</strong> is the whole 36 weeks in three books, printed to order
+          and at your door in about two weeks. <strong>The Starter Unit</strong> is the first nine
+          weeks of it, as a download, if you would rather try before you commit.
         </p>
 
         <p class="font-body text-sm text-muted-foreground max-w-md mx-auto">
-          Kit founding price for the first 500, then $349 retail. Flat $12 shipping per order.
-        </p>
-        <p class="mt-2 font-accent text-xs tracking-[0.2em] uppercase" style="color:hsl(var(--eden-sage-ink))">
-          Kit: aiming to ship July 31, 2027 · Guaranteed on or before September 30, 2027
+          Flat $12 shipping per printed order. Extra Student Notebooks for siblings, $39.99 each.
         </p>
 
         <a href="#bands" data-cta="homeschool-hero-bands" class="font-body text-sm underline underline-offset-4 mt-3" style="color:hsl(var(--eden-forest))">
@@ -350,10 +309,10 @@ const KIT = {
       </div>
 
       <div class="text-center mt-10">
-        <a href="#pricing">
-          <Button variant="eden" size="xl">Preorder the Sprouts Kit · $249</Button>
+        <a href="/books" data-cta="homeschool-why-books">
+          <Button variant="eden" size="xl">Order the printed year · $249</Button>
         </a>
-        <p class="font-body text-xs text-muted-foreground mt-3">Founding price for the first 500 kits. Retail is $349.</p>
+        <p class="font-body text-xs text-muted-foreground mt-3">All 36 weeks in three books. Flat $12 shipping.</p>
       </div>
     </div>
   </section>
@@ -361,16 +320,17 @@ const KIT = {
   {/* §2 THE FOUR BANDS AND WHAT EACH ONE OFFERS. Rebuilt 2026-09-11 (founder
       direction): /homeschool is the hub. A band strip up top jumps to the band a
       parent needs; each band shows its whole ladder in four columns so the
-      choice is visible in one glance: free week, $39 Starter, $249 printed set,
-      $249 kit. The deep pages (/freebies, /starter, /books, /preorder) stay
-      where they are and the cards link to them; sent emails still point at them.
+      choice is visible in one glance: free week, $39 Starter, $249 printed set.
+      The fourth rung was the $249 kit until the print-first pivot on 2026-09-12.
+      The deep pages (/freebies, /starter, /books) stay where they are and the
+      cards link to them; sent emails still point at them.
       Later bands show what is planned and when, with one "tell me when" button. */}
   <section id="bands" class="py-14 md:py-20 px-6 bg-background scroll-mt-24">
     <div class="max-w-6xl mx-auto">
       <div class="text-center mb-8">
         <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">Four grade bands</p>
         <h2 class="font-serif text-3xl md:text-4xl font-bold mb-3" style="color:hsl(var(--eden-bark))">Find your children's band. Then pick how you want to start.</h2>
-        <p class="font-body text-muted-foreground max-w-2xl mx-auto">Same six components at every band, taught at four depths. A child who starts in Sprouts grows through all four with us.</p>
+        <p class="font-body text-muted-foreground max-w-2xl mx-auto">The same curriculum at every band, taught at four depths. A child who starts in Sprouts grows through all four with us.</p>
       </div>
 
       {/* Band strip. Plain anchor links, so it works with no JS and on any phone. */}
@@ -460,7 +420,7 @@ const KIT = {
 
             {b.id === "sprouts" && (
               <p class="font-body text-sm text-muted-foreground mt-4 max-w-3xl leading-relaxed">
-                The two $249 options are the same price on purpose. The printed set is the curriculum, in your hands in about two weeks. The kit adds the three card decks and the box, and it ships next summer. Pay the same either way; the difference is when you start. The $39 Starter Unit comes off the kit, not the printed set.
+                Every step above is the same curriculum, in a different amount. The free week is one week of it, the Starter Unit is the first nine, and the printed set is all thirty-six on paper. Start wherever you like; nothing has to be bought in order.
               </p>
             )}
           </div>
@@ -514,48 +474,44 @@ const KIT = {
     </div>
   </section>
 
-  {/* §4-§9 Component showcases: the shared six, with the kit CTA under each. */}
-  <ComponentShowcases cta={{ href: "#pricing", label: "Preorder the Sprouts Kit · $249", dataCta: "homeschool-showcase-preorder" }} />
+  {/* §4-§9 Component showcases. 2026-09-12: the three card decks came out with
+      the kit. ComponentShowcases still defines all six; `only` is what changed,
+      so phase two is a one-line revert. */}
+  <ComponentShowcases only={["story", "tg", "nb"]} cta={{ href: "/books", label: "Order the printed year · $249", dataCta: "homeschool-showcase-books" }} />
 
-  {/* §9.4 The complete kit — the six components as one purchase */}
-  <section id="showcase-kit" class="py-16 md:py-20 px-6" style="background-color:hsl(var(--eden-forest))">
+  {/* §9.4 The printed year — the three books as one purchase. Was "the complete
+      kit, six components in one box" until 2026-09-12; the kit, its photo and its
+      card-deck paragraph are on b8751c1 for phase two. */}
+  <section id="showcase-print-set" class="py-16 md:py-20 px-6" style="background-color:hsl(var(--eden-forest))">
     <div class="max-w-6xl mx-auto">
       <div class="text-center mb-10">
-        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-light))">The Complete Kit</p>
-        <h2 class="font-serif text-3xl md:text-4xl font-bold text-white">Six components. Thirty-six weeks. One box.</h2>
+        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-light))">The Printed Curriculum Set</p>
+        <h2 class="font-serif text-3xl md:text-4xl font-bold text-white">Three books. Thirty-six weeks. Your whole year.</h2>
       </div>
-      <div class="grid md:grid-cols-2 gap-4 md:gap-6 mb-10">
-        <div>
-          <div class="rounded-lg overflow-hidden bg-white shadow-sm">
-            <img src={KIT.openSrc} alt={KIT.openAlt} loading="lazy" width="1024" height="1024" class="w-full h-auto" />
-          </div>
-          <p class="font-accent text-xs tracking-[0.25em] uppercase mt-2 text-center" style="color:hsl(var(--eden-gold-light))">The complete kit · ships summer 2027</p>
+      <div class="max-w-2xl mx-auto mb-10">
+        <div class="rounded-lg overflow-hidden bg-white shadow-sm">
+          <img src={PRINT_SET.setSrc} alt={PRINT_SET.setAlt} loading="lazy" width="1024" height="1024" class="w-full h-auto" />
         </div>
-        <div>
-          <div class="rounded-lg overflow-hidden bg-white shadow-sm">
-            <img src={KIT.setSrc} alt={KIT.setAlt} loading="lazy" width="1024" height="1024" class="w-full h-auto" />
-          </div>
-          <p class="font-accent text-xs tracking-[0.25em] uppercase mt-2 text-center" style="color:hsl(var(--eden-gold-light))">The three books · <a href="/books" class="underline">printed to order now</a></p>
-        </div>
+        <p class="font-accent text-xs tracking-[0.25em] uppercase mt-2 text-center" style="color:hsl(var(--eden-gold-light))">Printed to order · at your door in about two weeks</p>
       </div>
       <div class="max-w-3xl mx-auto text-center">
         <p class="font-body text-base md:text-lg leading-relaxed mb-6" style="color:rgba(255,255,255,0.85)">
-          One year, thirty-six plants, six components built to work as a single instrument. The Teacher's Guide that means you never prepare the night before. The Student Notebook your child fills in and keeps. The Read-Aloud that gives every week its story. Thirty-six Field Cards, thirty-six Recipe Cards, and one hundred forty-four Around the Table questions.
+          One year, thirty-six plants, three books built to work as a single instrument. The Teacher's Guide that means you never prepare the night before. The Student Notebook your child fills in and keeps. The Read-Aloud that gives every week its story.
         </p>
         <p class="font-body text-base md:text-lg leading-relaxed mb-8" style="color:rgba(255,255,255,0.85)">
-          Nothing here is filler and nothing is sold to you twice. Each piece does a job the others cannot. The story makes it memorable, the guide makes it teachable, the notebook makes it your child's own, and the cards carry it outdoors, into the kitchen, and to the dinner table. Bought separately, this would be six decisions and six gambles on whether the pieces fit together. They fit because they were designed together, week by week, as one year.
+          Nothing here is filler and nothing is sold to you twice. Each piece does a job the others cannot. The story makes it memorable, the guide makes it teachable, and the notebook makes it your child's own. Bought separately, this would be three decisions and three gambles on whether the pieces fit together. They fit because they were designed together, week by week, as one year.
         </p>
         <blockquote class="font-serif text-xl md:text-2xl italic mb-8 text-white">
           “You are not buying a stack of books. You are buying the shape of your family's next school year.”
         </blockquote>
         <p class="font-body text-sm mb-2" style="color:rgba(255,255,255,0.7)">
-          Each kit includes one Student Notebook. If you have more than one child, you can add notebooks on the last screen before checkout, and they ship free in the same box.
+          The set includes one Student Notebook. Teaching more than one child? Add up to five extra Notebooks at checkout, $39.99 each, and they ship in the same parcel.
         </p>
         <p class="font-body text-sm mb-8" style="color:rgba(255,255,255,0.7)">
-          The herbs themselves are not in the box. Each week uses a small amount of a common dried herb from your pantry, your garden, or the <a href="/homeschool/herbs" class="underline" style="color:hsl(var(--eden-gold-light))">herb list we keep for you</a>, so nothing in your kit ever expires.
+          The herbs themselves are not included. Each week uses a small amount of a common dried herb from your pantry, your garden, or the <a href="/homeschool/herbs" class="underline" style="color:hsl(var(--eden-gold-light))">herb list we keep for you</a>.
         </p>
-        <a href="#pricing">
-          <Button variant="eden" size="xl">Preorder the Sprouts Kit · $249</Button>
+        <a href="/books" data-cta="homeschool-print-set-books">
+          <Button variant="eden" size="xl">Order the printed year · $249</Button>
         </a>
       </div>
     </div>
@@ -566,7 +522,7 @@ const KIT = {
     <div class="max-w-3xl mx-auto text-center rounded-lg p-6 border" style="border-color:hsl(var(--eden-gold) / 0.3);background-color:hsl(var(--eden-cream) / 0.4)">
       <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2" style="color:hsl(var(--eden-gold-ink))">About these images</p>
       <p class="font-body text-sm text-muted-foreground leading-relaxed">
-        The book and card photographs on this page are the real products, photographed from the finished files. The kit box itself is a design mockup ahead of the first print run and may differ in small details.
+        The book photographs on this page are the real products, photographed from the finished files.
       </p>
     </div>
   </section>
@@ -591,7 +547,7 @@ const KIT = {
       <div class="text-center mb-10 max-w-3xl mx-auto">
         <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">From families already teaching it</p>
         <h2 class="font-serif text-3xl md:text-4xl font-bold mb-4" style="color:hsl(var(--eden-bark))">They taught two weeks of it before anyone printed a thing.</h2>
-        <p class="font-body text-muted-foreground leading-relaxed">Everything below is from a family who took the free sample and taught it at their own table. The kit has not shipped yet, so nobody is reviewing a box. They are telling you what happened in their kitchen.</p>
+        <p class="font-body text-muted-foreground leading-relaxed">Everything below is from a family who took the free sample and taught it at their own table. Nobody here is reviewing a box. They are telling you what happened in their kitchen.</p>
       </div>
 
       {/* Lead card */}
@@ -605,7 +561,7 @@ const KIT = {
 
       <div class="grid md:grid-cols-3 gap-6">
         <div class="rounded-lg bg-white border overflow-hidden flex flex-col" style="border-color:hsl(var(--eden-gold) / 0.3)">
-          <img src="/showcases/ET_Testimonial_Kids2.png" width="353" height="252" alt="Two children holding up their own botanical drawings beside the printed lavender, chamomile and elderberry field cards at an outdoor table." loading="lazy" class="w-full h-auto" />
+          <img src="/showcases/ET_Testimonial_Kids2.png" width="353" height="252" alt="Two children holding up their own botanical drawings beside printed lavender, fennel and elderberry plant pages at an outdoor table." loading="lazy" class="w-full h-auto" />
           <div class="p-6 flex flex-col flex-1">
             <p class="font-accent text-xs tracking-[0.25em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">No complaining</p>
             <p class="font-body text-sm leading-relaxed text-foreground mb-4 flex-1">“I just wanted you to see how into it they are! No complaining and actually asking to do their &lsquo;learning&rsquo;!!”</p>
@@ -645,14 +601,14 @@ const KIT = {
       {/* Objection 1 */}
       <div class="grid md:grid-cols-2 gap-8 items-center mb-16">
         <div class="rounded-lg overflow-hidden bg-white shadow-sm">
-          <img src="/showcases/ET_Kit_Open.webp" alt="The Eden's Table kit open, showing the Teacher's Guide, Student Notebook, storybook and all three card decks." loading="lazy" width="1024" height="1024" class="w-full h-auto" />
+          <img src="/showcases/ET_PrintSet.webp" alt="The three printed Sprouts books, the Teacher's Guide, Student Notebook and Read-Aloud Storybook, on a linen cloth." loading="lazy" width="1024" height="1024" class="w-full h-auto" />
         </div>
         <div>
           <h3 class="font-serif text-2xl font-bold mb-4" style="color:hsl(var(--eden-bark))">$249 is one purchase instead of six.</h3>
           <div class="font-body text-sm md:text-base leading-relaxed text-muted-foreground space-y-3">
             <p>Here is the comparison we would want, so here it is. A typical year assembled from separate curricula means a science program, a nature study, a Bible curriculum, a handwriting or copywork book, an art component, and a read-aloud list. Six purchases, six shipping charges, six teacher's guides written by six people who never spoke to each other, and a stack of evenings spent making them line up.</p>
-            <p>Eden's Table is one box. Thirty-six weeks, 180 daily lessons, and six components that were built together, week by week, as one year. Bible, science, language arts, math, art, history, geography, Latin, health, and character are already woven in, already scheduled, already telling you which day carries which.</p>
-            <p>At the founding price that is $249 for the year. Divided across 36 weeks, it is under $7 a week for your entire core. And it is one decision, made once, in July, instead of six decisions you are still second-guessing in October.</p>
+            <p>Eden's Table is one set. Thirty-six weeks, 180 daily lessons, and three books that were built together, week by week, as one year. Bible, science, language arts, math, art, history, geography, Latin, health, and character are already woven in, already scheduled, already telling you which day carries which.</p>
+            <p>That is $249 for the year. Divided across 36 weeks, it is under $7 a week for your entire core. And it is one decision, made once, instead of six decisions you are still second-guessing in October.</p>
           </div>
           <div class="mt-5 rounded-lg p-5" style="background-color:hsl(var(--eden-cream));border:1px solid hsl(var(--eden-gold) / 0.4)">
             <p class="font-body text-sm leading-relaxed" style="color:hsl(var(--eden-bark))">What you are not also buying: a separate science curriculum. A separate nature study. A separate Bible curriculum. A separate art plan. A separate read-aloud list. A second evening of your week spent making all of them agree with each other.</p>
@@ -663,7 +619,10 @@ const KIT = {
       {/* Objection 2 */}
       <div class="grid md:grid-cols-2 gap-8 items-center mb-16">
         <div class="md:order-2 rounded-lg overflow-hidden bg-white shadow-sm border" style="border-color:hsl(var(--eden-gold) / 0.2)">
-          <img src="/showcases/Sprouts_W2_ATT_FAITH_FRONT.png" width="240" height="336" alt="An Around the Table Faith discussion card from Week 2." loading="lazy" class="w-full h-auto" />
+          {/* Was an Around the Table Faith card until 2026-09-12. The card decks
+              came off the site with the kit, so the faith content is shown from
+              the Teacher's Guide instead, which is a book a family can buy today. */}
+          <img src="/showcases/Sprouts_W2_TG_Chamomile_p2_Monday.png" width="240" height="336" alt="A Monday lesson page from the Sprouts Teacher's Guide, Week 2, chamomile." loading="lazy" class="w-full h-auto" />
         </div>
         <div class="md:order-1">
           <h3 class="font-serif text-2xl font-bold mb-4" style="color:hsl(var(--eden-bark))">We worship the Creator. We study what He made.</h3>
@@ -690,73 +649,53 @@ const KIT = {
         <div>
           <h3 class="font-serif text-2xl font-bold mb-4" style="color:hsl(var(--eden-bark))">We only move at the speed of cash.</h3>
           <div class="font-body text-sm md:text-base leading-relaxed text-muted-foreground space-y-3">
-            <p>Eden's Table is not sitting in a warehouse. Right now it is finished manuscripts, finished art, and a printer waiting on a go-ahead. What it does not have is a first print run, and that is precisely what your preorder pays for.</p>
-            <p>We could have borrowed the money and shipped you a box in September. We are not going to. No debt, no investors, no line of credit. This company does what we teach families to do, which is live inside what it actually has. The cost of that conviction is time, and we are not going to pretend otherwise or hide it behind a cheerful shipping date.</p>
-            <p>We are aiming for July 31, 2027. Your kit is guaranteed to ship on or before September 30, 2027. If we cannot make that date we will write to you before it passes, and you can cancel for a full refund, no conversation required.</p>
-            <p>So the honest version is this. You are not buying from our inventory. You are the reason there is going to be one.</p>
+            <p>No debt, no investors, no line of credit. This company does what we teach families to do, which is live inside what it actually has. The cost of that conviction is time, and we are not going to pretend otherwise or hide it behind a cheerful shipping date.</p>
+            <p>That is why the shelf here is short. The three printed books are finished and they print to order, one set at a time, as families ask for them. There is no warehouse, no back order and no minimum we had to hit before your copy could exist.</p>
+            <p>A larger boxed edition needs a single big print run paid for up front, all at once. We do not have that money yet, so it is not for sale. When the books have earned it, we will build it.</p>
+            <p>So the honest version is this. You are buying a finished thing at a fair price, and that is what builds the next one.</p>
           </div>
         </div>
       </div>
 
-      {/* Founding families */}
-      <div class="max-w-3xl mx-auto rounded-lg p-8" style="background-color:hsl(var(--eden-forest))">
-        <p class="font-accent text-xs tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-light))">Fifty Founding Families</p>
-        <h4 class="font-serif text-2xl font-bold mb-4 text-white">Anyone can preorder. Fifty families get to shape what comes next.</h4>
-        <p class="font-body text-sm mb-5" style="color:rgba(255,255,255,0.85)">The first fifty families to order are the Founding Families. Not a label, a role. This is what it carries:</p>
-        <ul class="font-body text-sm space-y-3 mb-6" style="color:rgba(255,255,255,0.85)">
-          <li>· <strong class="text-white">The private Founding Families group.</strong> A closed room, those fifty families only, where we bring real decisions before they are made. Not a fan page. The place where we ask what you actually need next, and build that.</li>
-          <li>· <strong class="text-white">Coffee and Curriculum.</strong> Live sessions where we walk through the roadmap out loud, answer questions in real time, and let Founding Families weigh in on what gets built and in what order.</li>
-          <li>· <strong class="text-white">A voice as your children grow.</strong> Sprouts is K-2. Seedlings is 3-5, then Cultivators for middle school, then Practitioners for high school. Founding Families are in the room for every one of those, which means the band your child ages into gets shaped partly by the parents who got there first.</li>
-          <li>· <strong class="text-white">First look at everything</strong>, before anyone else sees it.</li>
-        </ul>
-        <p class="font-body text-sm" style="color:rgba(255,255,255,0.75)">Every preorder helps fund this print run, and every preorder at the founding price saves $100. Only the first fifty get the room.</p>
-      </div>
+      {/* The Fifty Founding Families block lived here until 2026-09-12. It was
+          built entirely on the preorder (a private group, Coffee and Curriculum,
+          $100 off, first fifty to order) and there is nothing to be first fifty
+          of while the kit is off sale. It is intact on b8751c1 for phase two. */}
 
       <div class="max-w-3xl mx-auto text-center mt-10">
         <p class="font-serif text-xl italic mb-6" style="color:hsl(var(--eden-bark))">Good things are worth the wait. We would rather build this well than rush a box out the door with your family's name on it.</p>
-        <a href="#pricing">
-          <Button variant="eden" size="xl">Become a Founding Family · $249</Button>
+        <a href="/books" data-cta="homeschool-objections-books">
+          <Button variant="eden" size="xl">Order the printed year · $249</Button>
         </a>
-        <p class="font-body text-xs text-muted-foreground mt-3">Aiming for July 31, 2027. Guaranteed on or before September 30, 2027, or your money back.</p>
+        <p class="font-body text-xs text-muted-foreground mt-3">All 36 weeks in three books, printed to order. At your door in about two weeks.</p>
       </div>
     </div>
   </section>
 
-  {/* §10 Buy box (copy doc Section 5). The kit is the ONLY product; the notebook
-      is the step-2 add-on inside the modal. FTC preorder terms render ABOVE the
-      CTA, which is the legal basis for charging today on an unshipped product. */}
+  {/* §10 Close. Until 2026-09-12 this was the founding-preorder buy box: FTC
+      preorder terms above a PreorderBuyBox island. The kit came off the site with
+      the print-first pivot, so the anchor now closes on the printed year. The id
+      stays "pricing" on purpose, because sent emails, podcast show notes and the
+      old showcase CTAs all point at /homeschool#pricing and must keep landing on
+      something real. The preorder section is on b8751c1 for phase two. */}
   <section id="pricing" class="py-20 md:py-24 px-6" style="background-color:hsl(var(--eden-cream))">
-    <div class="max-w-5xl mx-auto">
-      <div class="text-center mb-10">
-        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">Founding Preorder</p>
-        <h2 class="font-serif text-3xl md:text-4xl font-bold mb-4" style="color:hsl(var(--eden-bark))">Be one of the fifty.</h2>
-        <p class="font-body text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-          This is a founding preorder. Your patience helps fund the founding of this curriculum. The first fifty families to order become our Founding Families, with a private group, a seat at Coffee and Curriculum, and a vote on what we build next. Every founding preorder saves $100 on the complete kit.
-        </p>
+    <div class="max-w-3xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">Start this month</p>
+      <h2 class="font-serif text-3xl md:text-4xl font-bold mb-4" style="color:hsl(var(--eden-bark))">The whole year, on paper, in about two weeks.</h2>
+      <p class="font-body text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-8">
+        All thirty-six weeks of Sprouts in three printed books: the Teacher's Guide, the Student Notebook and the Read-Aloud Storybook. $249 plus flat $12 shipping. Printed to order, so nothing sits in a warehouse and nothing is back-ordered.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-3 justify-center items-center">
+        <a href="/books" data-cta="homeschool-pricing-books">
+          <Button variant="eden" size="xl">Order the printed year · $249</Button>
+        </a>
+        <a href="/starter" data-cta="homeschool-pricing-starter">
+          <Button variant="eden-outline" size="xl">Try nine weeks first · $39</Button>
+        </a>
       </div>
-
-      {/* PREORDER TERMS, in plain language. Must stay ABOVE the CTA and must not
-          be summarised, collapsed behind a toggle, or moved below the fold. */}
-      <div class="max-w-2xl mx-auto mb-12">
-        <h3 class="font-serif text-xl font-bold mb-5 text-center" style="color:hsl(var(--eden-bark))">Preorder terms, in plain language</h3>
-        <div class="space-y-4">
-          <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
-            <p class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">This is a founding preorder.</p>
-            <p class="font-body text-sm text-muted-foreground leading-relaxed">Your patience helps fund the founding of this curriculum. The complete kit is $249 for the first 500 kits, then $349 retail. Separately, the first fifty families to order become our Founding Families and carry that standing as every later grade band opens.</p>
-          </div>
-          <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
-            <p class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">Aiming for July 31, 2027. Guaranteed on or before September 30, 2027.</p>
-            <p class="font-body text-sm text-muted-foreground leading-relaxed">The first date is our honest target and it may move. The second is a promise: if your order has not shipped by September 30, 2027, we will write to you before that date and you can cancel for a full refund. We will email you updates as production progresses.</p>
-          </div>
-          <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
-            <p class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">Your card is charged today.</p>
-            <p class="font-body text-sm text-muted-foreground leading-relaxed">Your checkout total includes a flat $12 shipping charge and any sales tax. If we cannot ship within the estimated window, we will notify you, and you may request a full refund at any point before your order ships.</p>
-          </div>
-        </div>
-      </div>
-
-      <PreorderBuyBox client:only="react" />
-
+      <p class="font-body text-sm text-muted-foreground mt-6">
+        Not ready to spend anything? <a href="/freebies" class="underline" style="color:hsl(var(--eden-forest))" data-cta="homeschool-pricing-free">Week 1 is free</a>.
+      </p>
       <div class="max-w-3xl mx-auto text-center mt-10">
         <p class="font-body text-xs text-muted-foreground">Questions? Email <a href="mailto:hello@edeninstitute.health" class="underline">hello@edeninstitute.health</a> and a real person (Camila) answers.</p>
       </div>

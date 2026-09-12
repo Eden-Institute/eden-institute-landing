@@ -49,6 +49,7 @@ import { captureException } from "../_shared/sentry.ts"
 import { sendMetaCapiPurchase } from "../_shared/meta-capi.ts"
 import { getGuideByNickname, getGuideBySlug } from "../_shared/guide/registry.ts"
 import { STARTER_LOOKUP_KEY } from "../_shared/starter-config.ts"
+import { STARTER_ORDER_LABEL } from "../_shared/receipt.ts"
 import { creditIssuanceOpen, issueStarterCredit, markCreditRedeemed } from "../_shared/starter-credit.ts"
 
 /**
@@ -1008,9 +1009,13 @@ async function recordDigitalOrder(
   email: string | null,
 ) {
   const nickname = (session.metadata?.constitution_nickname as string | undefined) ?? null
+  // 2026-09-12: the Starter Unit used to fall through to the raw key
+  // "sprouts_starter_unit", which is what buyers and scholarship reviewers saw.
   const label = lookupKey === "deep_dive_guide"
     ? `Deep-Dive Guide${nickname ? `: ${nickname}` : ""}`
-    : lookupKey
+    : lookupKey === STARTER_LOOKUP_KEY
+      ? STARTER_ORDER_LABEL
+      : lookupKey
 
   const { error } = await adminClient.from("orders").upsert({
     stripe_checkout_session_id: session.id,

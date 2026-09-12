@@ -29,12 +29,12 @@ import MarketingLayout from "../layouts/MarketingLayout.astro";
 import heroFreebies from "@/assets/hero-freebies.jpg";
 import DualLeadMagnetCTAs from "../components/DualLeadMagnetCTAs.astro";
 import WaitlistController from "../components/islands/WaitlistController.tsx";
-import { BookOpen, NotebookPen, Leaf, ChefHat, MessagesSquare } from "lucide-react";
+import { BookOpen, NotebookPen, Leaf } from "lucide-react";
 
 const meta = {
   title: "Free Christian Homeschool Herbalism Curriculum Samples | Eden's Table",
   description:
-    "A free week of Eden's Table, the Christ-centered homeschool herbalism curriculum. Five full lessons, all six components, for Sprouts (K-2) or Seedlings (3-5). Print it and teach it the same morning.",
+    "A free week of Eden's Table, the Christ-centered homeschool herbalism curriculum. Five full lessons, for Sprouts (K-2) or Seedlings (3-5). Print it and teach it the same morning.",
   canonical: "https://edeninstitute.health/freebies",
 };
 
@@ -46,7 +46,7 @@ const offerJsonLd = {
   "@type": "Course",
   name: "Eden's Table Free Sample Week",
   description:
-    "A free sample week of a Christ-centered K-5 homeschool herbalism curriculum, delivered by email. Five full open-and-go lessons, every component a week is meant to have.",
+    "A free sample week of a Christ-centered K-5 homeschool herbalism curriculum, delivered by email. Five full open-and-go lessons, taught from the same pages families use all year.",
   url: "https://edeninstitute.health/freebies",
   inLanguage: "en",
   educationalLevel: "K-5",
@@ -62,19 +62,21 @@ const offerJsonLd = {
   audience: { "@type": "EducationalAudience", educationalRole: "homeschooling family" },
 };
 
-// The five components that arrive in a sample week. Mirrors the component set the
-// curriculum actually ships; do not add one here that is not in the PDFs.
+// What actually arrives in a free week. MUST match the PDFs the welcome email
+// links in resend-waitlist, and nothing else.
+// 2026-09-12, founder instruction: the three card decks were retired from the
+// free week for both bands. Sprouts sends three files, Seedlings sends two;
+// the Read-Aloud entry below says so rather than implying both bands get it.
+// The card PDFs are still on disk so links in already-sent email keep working.
 const components = [
   { icon: BookOpen, name: "Teacher Guide", note: "Every word you need, laid out day by day." },
   { icon: NotebookPen, name: "Student Notebook", note: "Five day pages your child works through." },
-  { icon: Leaf, name: "Field Cards", note: "Take the plant identification outside." },
-  { icon: ChefHat, name: "Recipe Cards", note: "One kitchen lab per week, real ingredients." },
-  { icon: MessagesSquare, name: "Around-the-Table Deck", note: "Discussion cards for the dinner table." },
+  { icon: Leaf, name: "Read-Aloud Story", note: "Meet the Eden family. Sprouts Week 1 only." },
 ];
 
 const steps = [
-  { n: "1", t: "Pick your grade band", d: "Sprouts is K through 2. Seedlings is 3 through 5. Same six components, two depths." },
-  { n: "2", t: "Check your inbox", d: "Week 1 arrives immediately, all five days and all six components. Nothing else to wait for." },
+  { n: "1", t: "Pick your grade band", d: "Sprouts is K through 2. Seedlings is 3 through 5. Same curriculum, two depths." },
+  { n: "2", t: "Check your inbox", d: "Week 1 arrives immediately, all five days of it. Nothing else to wait for." },
   { n: "3", t: "Print it and teach it", d: "No prep box, no lesson planning, no screens. Open the guide and go." },
 ];
 ---
@@ -122,7 +124,7 @@ const steps = [
         What lands in your inbox
       </h2>
       <p class="font-body text-center text-muted-foreground max-w-2xl mx-auto mb-12">
-        Your sample week carries every component, exactly as the full curriculum does.
+        Five full days, taught from the same pages families use all year.
       </p>
       <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {components.map((c) => (
@@ -169,12 +171,12 @@ const steps = [
         Ready for the next eight weeks?
         <a href="/starter" class="underline underline-offset-4" style="color:hsl(var(--eden-sage-ink))">
           Weeks 1 through 9 are $39
-        </a>, and the whole $39 comes off the printed kit later.
+        </a>, as an instant download.
       </p>
       <p class="font-body text-sm text-muted-foreground mt-3">
         Already know you want the full year?
-        <a href="/homeschool" class="underline underline-offset-4" style="color:hsl(var(--eden-sage-ink))">
-          See the whole curriculum
+        <a href="/books" class="underline underline-offset-4" style="color:hsl(var(--eden-sage-ink))">
+          All 36 weeks in print, $249
         </a>.
       </p>
     </div>
