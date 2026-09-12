@@ -104,7 +104,12 @@ export default function StarterBuyBox({ cta, wide = false }: Props) {
         </p>
       )}
 
-      <p className="font-body text-xs mt-3 text-muted-foreground">
+      {/* Founder 2026-09-12: sits under every buy button so nobody pays thinking
+          this is the whole year. "Starter" and "one quarter", never "partial". */}
+      <p className="font-body text-sm mt-3 font-semibold" style={{ color: "hsl(var(--eden-bark))" }}>
+        The starter: weeks 1 to 9, one quarter of the 36-week year.
+      </p>
+      <p className="font-body text-xs mt-2 text-muted-foreground">
         Instant download. Because this is a digital product, it is not refundable once
         the files have been downloaded.{" "}
         <a href="/returns" className="underline" style={{ color: "hsl(var(--eden-forest))" }}>
