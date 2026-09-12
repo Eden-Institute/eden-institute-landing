@@ -298,12 +298,12 @@ const Index = () => {
           <div className="grid grid-cols-1 min-[880px]:grid-cols-4 gap-6">
             {[
               {
-                badge: "PREORDER OPEN NOW",
+                badge: "PRINTED CURRICULUM · SHIPS NOW",
                 eyebrow: "FOR THE FAMILY",
                 title: "Eden's Table",
                 subtitle: "K-12 Homeschool Curriculum",
-                body: "The family doorway. Children learn how God designed their bodies and the plants He gave — alongside the parent who teaches them.",
-                cta: "Preorder, or start for $39 →",
+                body: "The family doorway. Children learn how God designed their bodies and the plants He gave, alongside the parent who teaches them.",
+                cta: "See the printed year, or start free →",
                 href: "/homeschool#early-access",
                 external: false,
               },
