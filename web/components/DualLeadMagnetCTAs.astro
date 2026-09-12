@@ -10,10 +10,13 @@ interface Props {
 }
 const { size = "lg", variant = "eden-outline" } = Astro.props;
 
+// 2026-09-12: the card decks were retired from the free week, both bands, so
+// these no longer promise "all six components". Keep them in step with the
+// modal subtitles in homeschool.astro and the welcome emails in resend-waitlist.
 const sproutsSubtitle =
-  "Check your inbox. Your free Sprouts Week 1 (Lavender) downloads are on their way right now. Five real lessons and all six components, to print and teach today.";
+  "Check your inbox. Your free Sprouts Week 1 (Lavender) downloads are on their way right now. Five real lessons, the Teacher's Guide, the Notebook and the story, to print and teach today.";
 const seedlingsSubtitle =
-  "Check your inbox. Your free Seedlings Week 1 (Elderberry) downloads are on their way right now. Five real lessons and every component, to print and teach today.";
+  "Check your inbox. Your free Seedlings Week 1 (Elderberry) downloads are on their way right now. Five real lessons, the Teacher's Guide and the Notebook, to print and teach today.";
 ---
 
 {/*

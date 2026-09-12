@@ -8,7 +8,7 @@
  * site-wide default <title> and no page content: /assessment, /apothecary,
  * /apothecary/start, /apothecary/pricing, /tier-2-waitlist, /terms and the
  * eight /results/* pages. Meanwhile the four pre-rendered pages that carry
- * revenue - /starter, /freebies, /preorder, /homeschool/herbs - were not
+ * revenue - /starter, /freebies, /books, /homeschool/herbs - were not
  * listed at all, and neither was a single herb monograph.
  *
  * Handing a crawler a dozen near-identical empty pages is not a neutral act;
@@ -54,7 +54,7 @@ const STATIC_PATHS = [
   "/homeschool/herbs",
   "/community",
   "/freebies",
-  "/preorder",
+  "/books",
   "/starter",
   "/contact",
   "/returns",

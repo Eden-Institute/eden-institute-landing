@@ -62,8 +62,6 @@ const SUBJECT = "Now available: start Sprouts on Monday";
 const SHIP_TARGET = "July 31, 2027";
 const SHIP_GUARANTEE = "September 30, 2027";
 
-const KIT_FOUNDING = "$249";
-const KIT_RETAIL = "$349";
 const STARTER_PRICE = "$39";
 
 const corsHeaders = {
@@ -167,8 +165,10 @@ function signature(): string {
  * Constraints, each one already on record:
  *  1. NO INVENTED URGENCY. Launch 21 says in writing "there is no deadline on it". No
  *     countdown, no scarcity, no expiring bonus. The calendar is the only clock.
- *  2. "The whole $39 comes off it", never "comes back". It is a credit against the kit,
- *     not a refund, and the download is not refundable once taken.
+ *  2. (Retired 2026-09-12 with the print-first pivot.) The email used to promise the
+ *     whole $39 comes off the kit. The kit is off sale and the credit is no longer
+ *     advertised anywhere, so this email says nothing about it. The download is still
+ *     not refundable once taken, and the copy still never calls the $39 a refund.
  *  3. Only Amanda is quoted. She is the sole tester who gave written permission to
  *     publish (2026-07-06). The other four testers are not named.
  *  4. No em dashes. No podcast air dates, because nothing has aired.
@@ -203,10 +203,10 @@ function buildAnnouncement(firstName: string): string {
       `Amanda, homeschooling 18 years, 9 in the house`,
     ) +
     goldDivider() +
-    p(`The Sprouts Starter Unit is <strong>${STARTER_PRICE}</strong>. Weeks 1 through 9, digital, in your inbox in about a minute: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks. Buy the printed kit later and the whole ${STARTER_PRICE} comes off it, so you will not pay for these nine weeks twice.`) +
+    p(`The Sprouts Starter Unit is <strong>${STARTER_PRICE}</strong>. Weeks 1 through 9, digital, in your inbox in about a minute: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks.`) +
     brandButton(`Start with weeks 1 through 9 &nbsp;&rarr;`, STARTER) +
     p(
-      `The printed Sprouts Complete Kit is still ${KIT_FOUNDING} for the founding 500 families and ${KIT_RETAIL} after that.`,
+      `The whole year in print, all thirty-six weeks in three books, is $249 and ships in about two weeks.`,
       `text-align:center;font-size:15px;color:${BRAND.footerText};`,
     ) +
     goldDivider() +

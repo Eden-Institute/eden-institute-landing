@@ -19,6 +19,12 @@ export interface OrderRow {
   shipping_name: string | null;
   product_label: string | null;
   amount_total_cents: number | null;
+  /** Sales tax in cents, from Stripe total_details. Read by the itemized receipt. */
+  tax_cents?: number | null;
+  created_at?: string;
+  /** The Stripe Checkout Session as received; shipping and discount totals live here. */
+  // deno-lint-ignore no-explicit-any
+  raw?: any;
   currency: string | null;
   sms_consent: boolean;
   status: OrderStatus;

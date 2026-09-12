@@ -58,6 +58,7 @@ import { getFoundingGate, getStockGate } from "../_shared/order-db.ts"
 import { enforceCheckoutRateLimit } from "../_shared/checkout-rate-limit.ts"
 import { sendMetaCapiInitiateCheckout } from "../_shared/meta-capi.ts"
 import { STARTER_LOOKUP_KEY } from "../_shared/starter-config.ts"
+import { curriculumInvoiceCreation } from "../_shared/receipt.ts"
 import { evaluateRedemption, findCreditByCode } from "../_shared/starter-credit.ts"
 import { LULU_PRODUCTION_DELAY_MINUTES, LULU_PRODUCTS, PRINT_SHOP_URL, luluProductBySku } from "../_shared/lulu-config.ts"
 
@@ -619,6 +620,15 @@ serve(async (req) => {
       // Also set on the session object so verify-session + stripe-webhook
       // can read session.metadata directly without expanding line_items.
       sessionParams.metadata = metadata
+    }
+
+    // Stripe invoicing for the Starter Unit (founder decision 2026-09-12,
+    // scholarship states): a numbered, itemized invoice with "Homeschool
+    // curriculum" on it, emailed by Stripe and downloadable as a PDF. Payment
+    // mode only; Stripe refuses invoice_creation on a subscription session.
+    // Validated in TEST mode against this exact session shape.
+    if (isStarter && mode === "payment") {
+      sessionParams.invoice_creation = curriculumInvoiceCreation("starter")
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams)
@@ -1209,6 +1219,11 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
     },
     metadata,
     payment_intent_data: { metadata },
+    // Stripe invoicing (founder decision 2026-09-12, scholarship states): a
+    // numbered, itemized invoice with "Homeschool curriculum" on it. Validated in
+    // TEST mode with shipping, automatic tax, phone collection, customer creation,
+    // custom text and promotion codes all present. See _shared/receipt.ts.
+    invoice_creation: curriculumInvoiceCreation("print"),
   }
 
   // Affiliate codes, same two ways in as the kit: ?promo=CODE pre-applied, else

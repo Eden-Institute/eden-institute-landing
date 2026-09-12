@@ -76,6 +76,12 @@ const PINTEREST_URL = 'https://pin.it/6AuiXypgA';
 // Primary CTA target for the conversion series (8-17): the preorder page
 // shipped by PR #227 (web/pages/preorder.astro).
 const PREORDER_URL = 'https://edeninstitute.health/preorder';
+// 2026-09-12, the print-first pivot. The kit came off the site and preorders are
+// closed, so the conversion series (8-12) sells the printed 36-week set instead.
+// PREORDER_URL stays for 13-17, which are retired (cancelled in the queue,
+// absent from the signup trigger) and kept verbatim for the phase-two kit launch.
+const PRINT_SET_URL = 'https://edeninstitute.health/books';
+const STARTER_URL = 'https://edeninstitute.health/starter';
 // Ship dates, kept as literals here so this module stays self-contained (it
 // imports nothing). These MUST match SHIP_TARGET / SHIP_GUARANTEE_TEXT in
 // _shared/order-config.ts, which is the authoritative source the checkout
@@ -592,7 +598,23 @@ function preorderButton(label = 'Preorder Your Kit'): string {
   return brandButton(label, PREORDER_URL);
 }
 
-// ── Founding-window copy variants ──
+// The printed-set CTA used by 8-12 since the print-first pivot (2026-09-12).
+function printSetButton(label = 'Order the printed year'): string {
+  return brandButton(label, PRINT_SET_URL);
+}
+
+// ── 2026-09-12, THE PRINT-FIRST PIVOT ──
+// Emails 8-12 were rewritten to sell the $249 printed 36-week set (three books,
+// printed to order, /books). The kit is off sale and preorders are closed, so
+// nothing below 8-12 may mention the kit, the card decks, the founding 500, the
+// $349 retail price or /preorder. The `founding` parameter is still accepted so
+// the LAUNCH_BUILDERS map type does not change, but 8-12 IGNORE it: the set is
+// $249 for everyone and does not move. The pre-pivot 8-12 are on b8751c1.
+//
+// 13-17 below are the ORIGINAL kit emails, untouched: cancelled in the queue and
+// absent from the signup trigger, kept for the phase-two kit launch.
+//
+// ── Founding-window copy variants (13-17 only, since the pivot) ──
 // Every conversion builder takes `founding` (default true). While the first
 // 500 kits last, copy carries the founding offer ($249, founding standing).
 // The moment the checkout's founding gate closes (the one-way
@@ -607,40 +629,27 @@ function preorderButton(label = 'Preorder Your Kit'): string {
 
 // ── EMAIL 8 — Day 0 — launch blast (founder-approved copy, $249) ──
 export function buildLaunchEmail8(firstName: string, founding = true): { subject: string; html: string } {
-  // Two SEPARATE claims, and they must stay separate (founder decision
-  // 2026-07-25, mirrored in PreorderBuyBox.tsx): Founding Family status is the
-  // first 50 PAID orders, the founding PRICE runs to 500 kits. Rank is not known
-  // until payment clears, so this may never tell a reader they ARE one of the
-  // fifty.
-  //
-  // ⚠️ It also must not say the CONFIRMATION email will tell them. That email is
-  // one fixed template (buildPreorderConfirmationEmail) with no Founding Family
-  // logic in it, so as of 2026-07-28 that promise had nothing behind it and the
-  // first buyers would have waited for a message that never came. Reworded to a
-  // promise the founder can keep by hand: sort orders by created_at, take the
-  // first 50. If confirmation-time detection is built later, this line can name
-  // the confirmation email again.
-  const offer = founding
-    ? `${goldDivider()}` +
-      `${p(`<strong>The first 50 families to order</strong> become our Founding Families: the private group, a seat at Coffee and Curriculum, and a vote on what we build next. That standing stays with your family as every later grade band opens. If you are one of the fifty, I will tell you.`)}` +
-      `${p(`<strong>The first 500 kits</strong> are <strong>$249</strong> instead of <strong>$349</strong>. That is $100 off. When the 500 are claimed, the founding price is gone for good.`)}`
-    : `${goldDivider()}` +
-      `${p(`The complete kit is <strong>$349</strong>: a full year of curriculum, every component, one box on your doorstep.`)}`;
+  // Day 0 of the conversion series. Until 2026-09-12 this was the launch blast
+  // ("Preorders are open!!"). It is now the plain announcement that the whole
+  // year exists on paper and ships in about two weeks. Facts: $249 + flat $12
+  // shipping, printed to order, 48-hour cancel window before printing starts,
+  // extra Student Notebooks $39.99 each (up to five). All from /books.
+  void founding;
   const body =
-    `${preheader(founding
-      ? `$249 for the first 500 kits. Limited print run, first come, first served.`
-      : `Limited print run, first come, first served.`)}` +
-    `${heading(`Preorders are open!!`)}` +
+    `${preheader(`All 36 weeks of Sprouts, printed, at your door in about two weeks.`)}` +
+    `${heading(`The whole year is ready`)}` +
     `${p(`Hi ${firstName},`)}` +
-    `${p(`Preorders for Eden&rsquo;s Table Sprouts are open right now.`)}` +
-    `${p(`This is a limited print run. Kits ship in the order they are paid for, first come, first served.`)}` +
-    offer +
+    `${p(`The full Sprouts year is finished and it is on paper. Three printed books, all thirty-six weeks, printed for you when you order and mailed straight to your door in about two weeks.`)}` +
+    `${p(`No waiting on a print run. You order it, it prints, it ships.`)}` +
     `${goldDivider()}` +
-    `${p(`Six components, 36 weeks, 180 daily lessons. Kits ship ${EMAIL_SHIP_TARGET}.`)}` +
-    `${preorderButton(`Preorder Now`)}` +
+    `${p(`<strong>What arrives:</strong> the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud Storybook, for every week of the year. One set is one child&rsquo;s year. Teaching more than one? Add an extra Student Notebook for each sibling at checkout, $39.99 each, and they ship in the same parcel.`)}` +
+    `${p(`<strong>$249</strong>, plus flat $12 shipping. That is under $7 a week for a full year of Bible, science, language arts, math, art, history, geography, Latin, health and character, already woven together.`)}` +
+    `${goldDivider()}` +
+    `${p(`Nothing is on back order and nothing is held back. If you would rather try it first, week 1 is still free and the first nine weeks are $39 as a download. If you already know, this is the page.`)}` +
+    `${printSetButton(`See the printed year`)}` +
     `${signature()}`;
   return {
-    subject: `Preorders are open!!`,
+    subject: `The whole year is ready`,
     html: launchWrapper(body),
   };
 }
@@ -656,42 +665,45 @@ export function buildLaunchEmail8(firstName: string, founding = true): { subject
 //      is the honest answer to "why would I pay months ahead"
 // No research or statistics: none exist on the site, and none will be invented.
 export function buildLaunchEmail9(firstName: string, founding = true): { subject: string; html: string } {
+  // Day 2. Was "Open the box with me", an unboxing of the six-component kit.
+  // The walkthrough stays because knowing what arrives is what makes the price
+  // legible; it now opens the three printed books. The one-purchase-instead-of-
+  // six argument and the two testimonials are unchanged: both families taught
+  // from the free weeks, so nothing about them depended on the box. Page counts
+  // are the measured ones (240 / 224 / 112, verified 2026-09-11).
+  void founding;
   const body =
-    `${preheader(`Six components, 180 lessons, and what it replaces.`)}` +
+    `${preheader(`Three books, 180 lessons, and what they replace.`)}` +
     `${p(`Hi ${firstName},`)}` +
-    `${p(`Before you decide anything, I want you to see exactly what arrives at your door. So open the box with me.`)}` +
-    `${bullet(`<strong>The Teacher&rsquo;s Guide</strong>: your entire year, laid out day by day. Monday you meet the herb in a story. By Friday your crew is chanting a rhyme they will keep for life.`)}` +
-    `${bullet(`<strong>The Student Notebook</strong>: five gentle pages a week, sized for K-2 hands.`)}` +
-    `${bullet(`<strong>Field Cards</strong>: the herb in hand. Taste, smell, where God planted it.`)}` +
-    `${bullet(`<strong>Recipe Cards</strong>: Wednesday in the kitchen, making something real together.`)}` +
-    `${bullet(`<strong>Around the Table Cards</strong>: dinner questions that need zero prep.`)}` +
-    `${bullet(`<strong>The Read-Aloud Storybook</strong>: the Eden family, week after week, carrying it all.`)}` +
+    `${p(`Before you decide anything, I want you to see exactly what arrives at your door. So open the parcel with me.`)}` +
+    `${bullet(`<strong>The Teacher&rsquo;s Guide</strong>, 240 pages, coil bound so it lies flat: your entire year, laid out day by day. Monday you meet the herb in a story. By Friday your crew is chanting a rhyme they will keep for life.`)}` +
+    `${bullet(`<strong>The Student Notebook</strong>, 224 pages, coil bound: five gentle pages a week, sized for K-2 hands. By May it is a full year of her own work, dated and in order.`)}` +
+    `${bullet(`<strong>The Read-Aloud Storybook</strong>, a small paperback sized for a lap: the Eden family, week after week, carrying it all.`)}` +
     `${spacer(8)}` +
-    `${p(`Thirty-six weeks. 180 daily lessons. Six components built together, week by week, as one year rather than six things you have to make agree with each other.`)}` +
+    `${p(`Thirty-six weeks. 180 daily lessons. Three books built together, week by week, as one year rather than three things you have to make agree with each other.`)}` +
     `${goldDivider()}` +
     `${heading(`One purchase instead of six`)}` +
     `${p(`A typical year assembled from separate curricula means a science program, a nature study, a Bible curriculum, a copywork book, an art component, and a read-aloud list. Six purchases, six teacher&rsquo;s guides written by six people who never spoke to each other, and a stack of evenings spent making them line up.`)}` +
-    `${p(`Eden&rsquo;s Table is one box. Bible, science, language arts, math, art, history, geography, Latin, health, and character are already woven in, already scheduled, already telling you which day carries which.`)}` +
-    `${p(founding
-      ? `At the founding price that is <strong>$249 for the year</strong>. Across 36 weeks, under $7 a week for your entire core. One decision, made once, instead of six decisions you are still second-guessing later.`
-      : `That is <strong>$349 for the year</strong>. Across 36 weeks, under $10 a week for your entire core. One decision, made once, instead of six you are still second-guessing later.`)}` +
+    `${p(`Eden&rsquo;s Table is one set. Bible, science, language arts, math, art, history, geography, Latin, health, and character are already woven in, already scheduled, already telling you which day carries which.`)}` +
+    `${p(`That is <strong>$249 for the year</strong>. Across 36 weeks, under $7 a week for your entire core. One decision, made once, instead of six decisions you are still second-guessing later.`)}` +
     `${p(`What you are not also buying: a separate science curriculum. A separate nature study. A separate Bible curriculum. A separate art plan. A separate read-aloud list. A second evening of your week spent making all of them agree with each other.`)}` +
     `${goldDivider()}` +
     `${heading(`They taught it before anyone printed a thing`)}` +
-    `${p(`I know what it is to be asked for money months before a box arrives. So I would rather you hear from families who already sat down and taught this at their own tables, using the free weeks. Nobody below is reviewing a box. They are telling you what happened in their kitchen.`)}` +
+    `${p(`Here are two families who sat down and taught this at their own tables, using the free weeks, before a single page was printed. Nobody below is reviewing a parcel. They are telling you what happened in their kitchen.`)}` +
     `${quoteCard(`This curriculum is truly amazing! I have numerous herbal books from all sorts of authors, and this curriculum truly puts it into bite-size chunks of information while still incorporating incredible vocabulary, concepts, and quality stories. The fact that you are incorporating all these other topics beyond just herbal information is truly incredible as well.`, `Kendria Scriver, curriculum writer`)}` +
     `${quoteCard(`Ahhhhhh I just spent the last few hours poring over the free sample you sent us. This curriculum is absolutely fantastic. I cannot wait to buy this in the fall. This will be our kids favourite curriculum to explore.`, `Coralee, who read the free sample cover to cover`)}` +
     `${p(`Solomon wrote, &ldquo;Train up a child in the way he should go, even when he is old he will not depart from it&rdquo; (Proverbs 22:6, NASB). That is what a year of this rhythm builds: a way, not just a workbook.`)}` +
-    `${p(founding
-      ? `Founding families bring the whole kit home for $249 while the first 500 last. Then it is $349.`
-      : `The whole kit, the whole year, comes home for $349.`)}` +
-    `${preorderButton()}` +
+    `${p(`The whole year, in three books, comes home for $249 plus $12 shipping, and it is printed the moment you order it.`)}` +
+    `${printSetButton()}` +
     `${signature()}`;
-  return { subject: `Open the box with me`, html: launchWrapper(body) };
+  return { subject: `Open the parcel with me`, html: launchWrapper(body) };
 }
 
 // ── EMAIL 10 — Day 4 — "I'm not an herbalist" objection ──
 export function buildLaunchEmail10(firstName: string, founding = true): { subject: string; html: string } {
+  // Day 4, the "I'm not an herbalist" objection. Body unchanged since 2026-07-28
+  // except the closing price line and the button, which pointed at the kit.
+  void founding;
   const body =
     `${preheader(`The Teacher's Guide does the heavy lifting. You just open it.`)}` +
     `${p(`Hi ${firstName},`)}` +
@@ -702,10 +714,8 @@ export function buildLaunchEmail10(firstName: string, founding = true): { subjec
     `${p(`Teaching this way is also not a hunch. Researchers tried it with second graders, the very ages Sprouts is written for. They split the classrooms by chance so nobody could stack the deck, taught one group through hands-on projects and the other the usual way, and then measured what the children actually knew a year later. The project children came out about <strong>five to six months ahead in social studies and two months ahead in reading</strong>.`)}` +
     `${p(`Eden&rsquo;s Table was not one of the curricula in that study, and I will not pretend otherwise. What they were testing is the way it teaches: one real thing in the middle of the week, and every subject gathered around it.`)}` +
     `${p(`James wrote that if any of us lacks wisdom, we should &ldquo;ask of God, who gives to all generously and without reproach&rdquo; (James 1:5, NASB). He did not say ask the credentialed. Generously, to the asking mama, is how this knowledge has always been given.`)}` +
-    `${p(founding
-      ? `The first 500 kits are $249 founding. After that, $349.`
-      : `The complete kit is $349, and it teaches you both.`)}` +
-    `${preorderButton()}` +
+    `${p(`The printed year is $249, and it teaches you both.`)}` +
+    `${printSetButton()}` +
     `${signature()}`;
   return { subject: `You don't have to be an herbalist`, html: launchWrapper(body) };
 }
@@ -713,43 +723,44 @@ export function buildLaunchEmail10(firstName: string, founding = true): { subjec
 // ── EMAIL 11 — Day 7 — what you're really buying (founding-centric email,
 // so the post-founding variant re-frames around joining the build itself) ──
 export function buildLaunchEmail11(firstName: string, founding = true): { subject: string; html: string } {
-  const opener = founding
-    ? `${p(`I want to be honest about what the founding 500 are actually buying, because it is more than $100 off.`)}` +
-      `${p(`Yes, the math is real: the kit will sell for $349, and founding families preorder it for $249. But the deeper thing is this. Eden&rsquo;s Table is a K-12 journey being built band by band, and the first 500 homes are not customers at the end of it. They are builders at the beginning of it. Your children&rsquo;s questions, your kitchen&rsquo;s discoveries, your feedback after week 9, all of it shapes Seedlings, Cultivators, and Practitioners before they reach anyone else&rsquo;s table.`)}`
-    : `${p(`I want to be honest about what a $349 Sprouts kit is actually buying, because it is more than a box of beautiful materials.`)}` +
-      `${p(`Eden&rsquo;s Table is a K-12 journey being built band by band, and the families walking it now are not customers at the end of something. They are builders at the beginning of it. Your children&rsquo;s questions, your kitchen&rsquo;s discoveries, your feedback after week 9, all of it shapes Seedlings, Cultivators, and Practitioners before they reach anyone else&rsquo;s table.`)}`;
-  const nehemiah = founding
-    ? `${p(`When Nehemiah stood before a wall in ruins, the people did not wait for it to be finished before they joined. &ldquo;Let us arise and build&rdquo; (Nehemiah 2:18, NASB), they said, and the ones who built first were named in the record forever. Founding standing works like that here: it stays with your family as every older band opens.`)}`
-    : `${p(`When Nehemiah stood before a wall in ruins, the people did not wait for it to be finished before they joined. &ldquo;Let us arise and build&rdquo; (Nehemiah 2:18, NASB), they said. The families who join while the wall is rising get to leave their fingerprints on it, and this wall has eleven more grades to go.`)}`;
+  // Day 7. Was "What founding families are really buying", built on founding
+  // standing and the $100 off. The Nehemiah frame survives because it was
+  // always about joining a build in progress, and that is more true now, not
+  // less: the printed year is what funds the bands after it. No founding
+  // standing, no $349, no "first 500" anywhere in this email.
+  void founding;
   const body =
-    `${preheader(founding
-      ? `Founding standing follows your family up every band.`
-      : `One kit is year one of a K-12 journey your family helps shape.`)}` +
+    `${preheader(`One set is year one of a K-12 journey your family helps shape.`)}` +
     `${p(`Hi ${firstName},`)}` +
-    opener +
-    nehemiah +
+    `${p(`I want to be honest about what a $249 set of Sprouts is actually buying, because it is more than three books.`)}` +
+    `${p(`Eden&rsquo;s Table is a K-12 journey being built band by band, and the families teaching from it now are not customers at the end of something. They are builders at the beginning of it. Your children&rsquo;s questions, your kitchen&rsquo;s discoveries, your feedback after week 9, all of it shapes Seedlings, Cultivators, and Practitioners before they reach anyone else&rsquo;s table.`)}` +
+    `${p(`It is also, plainly, what pays for them. I am building this without borrowing a dime, so every printed year that goes out the door is what funds the next band. There is no investor behind this. There is a kitchen table and the families around it.`)}` +
+    `${p(`When Nehemiah stood before a wall in ruins, the people did not wait for it to be finished before they joined. &ldquo;Let us arise and build&rdquo; (Nehemiah 2:18, NASB), they said. The families who join while the wall is rising get to leave their fingerprints on it, and this wall has eleven more grades to go.`)}` +
     `${p(`If you have been waiting for a sign that it is your moment to join, this is the week the wall is going up.`)}` +
-    `${preorderButton(founding ? 'Claim a Founding Kit' : 'Preorder Your Kit')}` +
+    `${printSetButton(`Order the printed year`)}` +
     `${signature()}`;
   return {
-    subject: founding ? `What founding families are really buying` : `What one kit is really buying`,
+    subject: `What one set is really buying`,
     html: launchWrapper(body),
   };
 }
 
 // ── EMAIL 12 — Day 10 — founder story ──
 export function buildLaunchEmail12(firstName: string, founding = true): { subject: string; html: string } {
+  // Day 10, the founder story. The story is unchanged. The close used to say
+  // "every kit that reaches a founding family's table"; it now says the honest
+  // thing about why the year comes in three books and prints to order.
+  void founding;
   const body =
     `${preheader(`Why a mama built a curriculum around a kitchen table.`)}` +
     `${p(`Hi ${firstName},`)}` +
     `${p(`Can I tell you where this actually came from?`)}` +
     `${p(`Not a publishing house. A kitchen table, with real children around it, in a home that wanted health and faith to live in the same conversation. The Eden family in the storybooks, Vov&oacute; and PopPop, Levi and Ruthie, Manny, Evie, and Gracie, they are woven from our real family: real scraped knees, real garden rows, real prayers over little fevers in the night.`)}` +
     `${p(`I built Eden&rsquo;s Table because I could not find it. I wanted my children to know that the God who made their bodies also planted their healing in the ground, and I wanted them to learn it the way faith is actually passed down: &ldquo;telling to the generation to come the praises of the LORD, and His strength and His wondrous works&rdquo; (Psalm 78:4, NASB). Not a unit study. An inheritance.`)}` +
-    `${p(founding
-      ? `Every kit that reaches a founding family&rsquo;s table carries that intention with it. It would be an honor for it to reach yours.`
-      : `Every kit that reaches a family&rsquo;s table carries that intention with it. It would be an honor for it to reach yours.`)}` +
-    `${p(founding ? `Founding price is $249 while the first 500 last.` : `The complete kit is $349.`)}` +
-    `${preorderButton()}` +
+    `${p(`It comes to you as three printed books, printed one set at a time when you order, because I am building this the way we teach families to live: inside what we actually have, without borrowing. That costs a couple of weeks at your end. It means your year is never waiting on mine.`)}` +
+    `${p(`Every set that reaches a family&rsquo;s table carries that intention with it. It would be an honor for it to reach yours.`)}` +
+    `${p(`The printed year is $249 plus $12 shipping, at your door in about two weeks.`)}` +
+    `${printSetButton()}` +
     `${signature()}`;
   return { subject: `The story under the table`, html: launchWrapper(body) };
 }
@@ -991,8 +1002,8 @@ export function buildLaunchEmail19(firstName: string, founding = true): { subjec
     `${p(`I have been recording these conversations all summer and not one of them has aired yet. When each one does, the link comes to this list the same day. You are hearing the answers before the audience does, which is the right order after what I asked of you last week.`)}` +
     `${goldDivider()}` +
     `${p(founding
-      ? `Weeks 1 through 9 are $39, digital, instant download: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks. The full $39 comes off the printed kit if you buy it later. The printed Sprouts Complete Kit is $249 for the founding 500 families and $349 after that.`
-      : `Weeks 1 through 9 are $39, digital, instant download: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks. The full $39 comes off the printed kit if you buy it later. The printed Sprouts Complete Kit is $349.`)}` +
+      ? `Weeks 1 through 9 are $39, digital, instant download: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks. The whole year, all thirty-six weeks in three printed books, is $249 and ships in about two weeks.`
+      : `Weeks 1 through 9 are $39, digital, instant download: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks. The whole year, all thirty-six weeks in three printed books, is $249 and ships in about two weeks.`)}` +
     `${brandButton('Start with Weeks 1 through 9', 'https://edeninstitute.health/starter')}` +
     `${signature()}`;
   return { subject: `"You are not an herbalist"`, html: launchWrapper(body) };
@@ -1127,10 +1138,10 @@ export function buildLaunchEmail20(firstName: string, founding = true): { subjec
     `${verseCard(`O taste and see that the LORD is good; How blessed is the man who takes refuge in Him!`, `Psalm 34:8`)}` +
     `${p(`Teaching a child to taste and see before she is taught to conclude is not a method I invented. It is older than I am, and the goodness is the Giver&rsquo;s.`)}` +
     `${goldDivider()}` +
-    `${p(`The Sprouts Starter Unit is <strong>$39</strong>, digital, instant download: weeks 1 through 9, with the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook. The full $39 comes off the printed kit if you buy it later.`)}` +
+    `${p(`The Sprouts Starter Unit is <strong>$39</strong>, digital, instant download: weeks 1 through 9, with the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook.`)}` +
     `${p(founding
-      ? `The printed kit is <strong>$249</strong> while the first 500 last, then $349. Kits ship ${EMAIL_SHIP_TARGET}, guaranteed on or before ${EMAIL_SHIP_GUARANTEE}.`
-      : `The printed kit is <strong>$349</strong>. Kits ship ${EMAIL_SHIP_TARGET}, guaranteed on or before ${EMAIL_SHIP_GUARANTEE}.`)}` +
+      ? `The whole year in print, all thirty-six weeks in three books, is <strong>$249</strong> and ships in about two weeks.`
+      : `The whole year in print, all thirty-six weeks in three books, is <strong>$249</strong> and ships in about two weeks.`)}` +
     `${brandButton('Start with Weeks 1 through 9', 'https://edeninstitute.health/starter')}` +
     `${signature()}`;
   return { subject: `Aren't my kids too old for this?`, html: launchWrapper(body) };
@@ -1241,10 +1252,10 @@ export function buildLaunchEmail21(firstName: string, founding = true): { subjec
     `${p(`Isaiah watched God come in strength, then said how He moves through a field:`)}` +
     `${verseCard(`Like a shepherd He will tend His flock, in His arm He will gather the lambs and carry them in His bosom; He will gently lead the nursing ewes.`, 'Isaiah 40:11')}` +
     `${p(`That is the pace I want for your year, and the one I am still learning for mine.`)}` +
-    `${p(`The Sprouts Starter Unit is <strong>$39</strong>: weeks 1 through 9, digital, instant download, with the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks. Buy the printed kit later and the whole $39 comes off it.`)}` +
+    `${p(`The Sprouts Starter Unit is <strong>$39</strong>: weeks 1 through 9, digital, instant download, with the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks.`)}` +
     `${p(founding
-      ? `The printed kit is <strong>$249</strong> for the founding 500 families and <strong>$349</strong> after.`
-      : `The printed kit is <strong>$349</strong>.`)}` +
+      ? `The whole year in print, all thirty-six weeks in three books, is <strong>$249</strong> and ships in about two weeks.`
+      : `The whole year in print, all thirty-six weeks in three books, is <strong>$249</strong> and ships in about two weeks.`)}` +
     `${p(`This is the third and last of these notes. The <strong>$39</strong> Starter Unit is not going anywhere and there is no deadline on it. If this is not the year for it, I will still be here when it is.`)}` +
     `${brandButton(`Start with Weeks 1 through 9`, STARTER_URL)}` +
     `${signature()}`;

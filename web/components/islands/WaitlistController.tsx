@@ -27,7 +27,11 @@ interface Cfg {
 
 export default function WaitlistController() {
   const [open, setOpen] = useState(false);
-  const [cfg, setCfg] = useState<Cfg>({ title: "", source: "reserve" });
+  // 2026-09-12: was "reserve", which routes to the Founders Club welcome and
+  // its "preorders are open, $249 for the first 500 kits" copy. Preorders are
+  // closed, so a trigger element that forgets data-waitlist-source must not be
+  // able to send that. "waitlist" falls through to the plain homeschool welcome.
+  const [cfg, setCfg] = useState<Cfg>({ title: "", source: "waitlist" });
 
   useEffect(() => {
     const buttons = Array.from(

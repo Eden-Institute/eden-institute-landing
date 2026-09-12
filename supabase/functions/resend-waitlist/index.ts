@@ -323,16 +323,13 @@ function buildSproutsMagnetEmail(firstName: string): { subject: string; html: st
 <p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
 <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Thank you for stepping into this work with us. What follows is a real week of curriculum &mdash; Week 1 of Sprouts, the band built for kindergarten through second grade. Not a sample stripped of substance. Five days with Lavender, a story your child will remember, and the small daily rhythms that turn a kitchen counter into a place of formation.</p>
 ${goldDivider()}
-${goldLabel('YOUR SIX DOWNLOADS &mdash; SPROUTS WEEK 1 (LAVENDER)')}
+${goldLabel('YOUR THREE DOWNLOADS &mdash; SPROUTS WEEK 1 (LAVENDER)')}
 ${ctaButton('MEET THE FAMILY (READ-ALOUD)', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-ra-lavender.pdf')}
 ${ctaButton("TEACHER'S GUIDE", 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-tg-lavender.pdf')}
 ${ctaButton('STUDENT NOTEBOOK', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-nb-lavender.pdf')}
-${ctaButton('FIELD CARDS', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-fc-lavender.pdf')}
-${ctaButton('RECIPE CARDS', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-rc-lavender.pdf')}
-${ctaButton('AROUND THE TABLE CARDS', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-att-lavender.pdf')}
 ${goldDivider()}
 ${goldLabel('THIS IS A WHOLE WEEK')}
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Nothing has been held back from it. Lavender is Week 1 of the curriculum exactly as it is taught, with every component a week is meant to have, and it stands on its own. Teach it whenever the week suits you. In about a week I will write again about the five weeks that follow it, and there is nothing you need to do before then.</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Lavender is Week 1 of the curriculum exactly as it is taught. Five full days, the same pages families teach from all year, and it stands on its own. The printed card decks are not part of the free week; everything you need to teach these five days is in the guide and the notebook. Teach it whenever the week suits you. In about a week I will write again about the weeks that follow it, and there is nothing you need to do before then.</p>
 ${closingBlock()}`;
   return { subject: 'Your Sprouts Week 1 (Lavender) is ready', html: emailWrapper(body) };
 }
@@ -342,15 +339,12 @@ function buildSeedlingsMagnetEmail(firstName: string): { subject: string; html: 
 <p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
 <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Thank you for stepping into this work with us. What follows is a real week of curriculum from Seedlings, our band for third through fifth graders. Seedlings is built for the child who has begun to ask <em>why</em> and <em>how</em> &mdash; the one who has outgrown a worksheet and is ready to track a hypothesis across a week. Week 1 starts with Elderberry.</p>
 ${goldDivider()}
-${goldLabel('YOUR FIVE DOWNLOADS &mdash; SEEDLINGS WEEK 1 (ELDERBERRY)')}
+${goldLabel('YOUR TWO DOWNLOADS &mdash; SEEDLINGS WEEK 1 (ELDERBERRY)')}
 ${ctaButton("TEACHER'S GUIDE", 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-tg-elderberry.pdf')}
 ${ctaButton('STUDENT NOTEBOOK', 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-nb-elderberry.pdf')}
-${ctaButton('FIELD CARDS', 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-fc-elderberry.pdf')}
-${ctaButton('RECIPE CARDS', 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-rc-elderberry.pdf')}
-${ctaButton('AROUND THE TABLE CARDS', 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-att-elderberry.pdf')}
 ${goldDivider()}
 ${goldLabel('THIS IS A WHOLE WEEK')}
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Nothing has been held back from it. Elderberry is Week 1 of the curriculum exactly as it is taught, with every component a week is meant to have, and it stands on its own. Teach it whenever the week suits you. In about a week I will write again with what comes next, and there is nothing you need to do before then.</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Elderberry is Week 1 of the curriculum exactly as it is taught. Five full days, the same pages families teach from all year, and it stands on its own. The printed card decks are not part of the free week; everything you need to teach these five days is in the guide and the notebook. Teach it whenever the week suits you. In about a week I will write again with what comes next, and there is nothing you need to do before then.</p>
 ${closingBlock()}`;
   return { subject: 'Your Seedlings Week 1 (Elderberry) is ready', html: emailWrapper(body) };
 }

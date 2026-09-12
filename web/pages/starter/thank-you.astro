@@ -18,8 +18,7 @@
 import MarketingLayout from "../../layouts/MarketingLayout.astro";
 import StarterDownloads from "../../components/islands/StarterDownloads.tsx";
 
-const KIT_FOUNDING = "$249";
-const KIT_RETAIL = "$349";
+const SET_PRICE = "$249";
 
 const meta = {
   title: "Your Starter Unit is ready · Eden's Table | The Eden Institute",
@@ -52,30 +51,31 @@ const meta = {
 
   <section class="py-12 px-6 bg-background">
     <div class="max-w-xl mx-auto">
-      <StarterDownloads client:only="react" mode="session" showCredit={true} />
+      <StarterDownloads client:only="react" mode="session" showCredit={false} />
     </div>
   </section>
 
-  <!-- The upgrade route. -->
+  {/* The upgrade route. Pointed at the kit until 2026-09-12; the kit came off
+      the site with the print-first pivot and the printed set is the whole year
+      now. Old block on b8751c1. */}
   <section class="py-16 px-6" style="background-color:hsl(var(--eden-cream))">
     <div class="max-w-2xl mx-auto text-center">
       <h2 class="font-serif text-3xl font-bold mb-6" style="color:hsl(var(--eden-bark))">
         When you are ready for the whole year.
       </h2>
       <p class="font-body text-base text-muted-foreground leading-relaxed mb-8">
-        The Sprouts Complete Kit is all 36 weeks in print: the Teacher's Guide, the Student
-        Notebook, the rest of the Read-Aloud storybook and all three card sets in a box. It is
-        {KIT_FOUNDING} for the founding 500 families and {KIT_RETAIL} after that. Your
-        credit comes off either way, so there is no hurry and no penalty for taking your
-        time with the nine weeks you just bought.
+        The Printed Curriculum Set is all 36 weeks on paper: the Teacher's Guide, the Student
+        Notebook and the whole Read-Aloud storybook, {SET_PRICE} plus flat $12 shipping. It is
+        printed for you when you order and arrives in about two weeks. No hurry, and no penalty
+        for taking your time with the nine weeks you just bought.
       </p>
       <a
-        href="/preorder"
-        data-cta="starter-thankyou-to-kit"
+        href="/books"
+        data-cta="starter-thankyou-to-books"
         class="inline-block font-accent text-sm tracking-[0.2em] uppercase font-bold px-8 py-4 rounded-md"
         style="background-color:hsl(var(--eden-forest));color:hsl(var(--eden-cream))"
       >
-        See the complete kit
+        See the printed year
       </a>
     </div>
   </section>

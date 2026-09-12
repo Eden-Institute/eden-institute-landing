@@ -1,367 +1,72 @@
 ---
-// /preorder — founding-preorder storefront (preorder system Phase 1).
-// Static marketing copy + compliance terms are pre-rendered here; the interactive
-// buy flow (SMS consent checkbox, checkout buttons, banners) is one island
-// (PreorderBuyBox). NOT linked from the navbar until launch; while the
-// PREORDERS_LIVE secret is false the create-checkout EF refuses public checkout
-// anyway, so this page can be deployed dark.
+// /preorder — PREORDERS CLOSED notice. 2026-09-12, founder decision (the
+// print-first pivot): the Sprouts Complete Kit came off the site until the print
+// run is funded, and preorders are no longer taken.
 //
-// Compliance (FTC Mail Order Rule; copy uses no em dashes):
-//   - founding-preorder framing ($100-off claim on the KIT only)
-//   - estimated ship window, stated as an estimate, BEFORE redirect to Stripe
-//   - card charged today + notify-and-refund right if we cannot ship in window
-//   - flat $12 shipping disclosed before redirect (PREORDER_FLAT_SHIPPING_CENTS)
+// WHY THIS PAGE STILL EXISTS instead of a redirect or a 404. Every preorder
+// confirmation, every delay notice, the launch and nurture sequences, the podcast
+// pitches and the five live buyers' threads all link here. A redirect into /books
+// would drop somebody expecting the kit onto a sales page with no explanation, and
+// a 404 breaks a year of sent email. So the URL keeps a short honest note.
 //
-// Founding sellout: the island (PreorderBuyBox) flips prices/copy live off the
-// preorder-status EF. The STATIC parts of this page are written to stay truthful
-// either way (meta description, hero support paragraph, spec Price rows, terms
-// card), EXCEPT these, which need the post-sellout manual sweep documented in
-// docs/preorder-system-phase-1.md Part 4 (the milestone-cap founder email links it):
-//   - hero H1 "Be one of the founding 500 families." + eyebrow "Founding Preorder"
-//   - meta.title "Founding Preorder · ..."
-//   - JSON-LD offer prices (kit 249.00, notebook 19.00 via productSpecs.priceUsd)
+// The full storefront is on b8751c1: the hero, the founding-500 framing, the FTC
+// preorder terms, the PreorderBuyBox island, the six ComponentShowcases and the
+// ESA product-spec tables (grade/subject/format/SKU/price, which state Education
+// Savings Account reviewers look for). Restore it from there for phase two rather
+// than rewriting it. /books carries the ESA-facing spec role in the meantime.
+//
+// The five existing preorders are untouched. They stay on their original terms:
+// aiming July 31, 2027, guaranteed on or before September 30, 2027, cancellable
+// for a full refund at any point before they ship (/returns).
+//
+// noindex, because there is nothing here to rank and the page exists only so old
+// links land somewhere true.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
-// Hero watermark: public domain botanical plate from Koehler's Medizinal-Pflanzen
-// (1887), desaturated to a sage wash, feathered, and cleared through the middle
-// where the text sits. See #428 for the full treatment and the contrast maths:
-// muted-foreground on eden-cream is only 5.3:1 before any image, so the clearing
-// is load-bearing, not decorative. Rendered at 24% with mix-blend-mode:multiply.
-import heroPreorder from "@/assets/hero-preorder.jpg";
-import PreorderBuyBox from "../components/islands/PreorderBuyBox.tsx";
-import ComponentShowcases from "../components/ComponentShowcases.astro";
-
-// Two dates, deliberately. SHIP_TARGET is what we aim for and talk about; SHIP_GUARANTEE
-// is the BINDING commitment the FTC delay-notice clock runs on. Both must stay visible:
-// if only the target were prominent it could be treated as the stated shipping time.
-// Keep in sync with supabase/functions/_shared/order-config.ts.
-// Revised 2026-08-26. Keep in lockstep with _shared/order-config.ts, which this file
-// deliberately does NOT import (Astro build vs Deno edge runtime).
-const SHIP_TARGET = "July 31, 2027";
-const SHIP_GUARANTEE = "September 30, 2027";
+import { Button } from "@/components/ui/button";
 
 const meta = {
-  title: "Founding Preorder · Eden's Table Sprouts | The Eden Institute",
+  title: "Preorders are closed | Eden's Table",
   description:
-    "Preorder the Sprouts (K-2) Biblical herbalism curriculum. $249 founding price for the first 500 kits, then $349 retail. Aiming to ship " + SHIP_TARGET + ", guaranteed on or before " + SHIP_GUARANTEE + ".",
+    "Preorders are closed. The full 36-week Sprouts printed curriculum is available now.",
   canonical: "https://edeninstitute.health/preorder",
 };
-
-// Product spec blocks (ESA vendor readiness): grade/subject/format/length/SKU/
-// price/objectives must be visible on the product page for state Education
-// Savings Account reviewers. Prices and SKUs must stay in sync with
-// supabase/functions/_shared/order-config.ts (kit 24900, notebook 1900).
-const productSpecs = [
-  {
-    name: "Eden's Table: Sprouts Complete Kit",
-    sku: "sprouts_kit",
-    priceUsd: "249.00",
-    rows: [
-      ["Grade level", "K-2"],
-      ["Subject", "Science and nature study (botany), with integrated reading, mathematics, history, geography, art, and health"],
-      ["Format", "Physical, six-component boxed curriculum"],
-      ["Length", "36 weeks, 6 units, 180 daily lessons"],
-      ["SKU", "sprouts_kit"],
-      ["Price", "$249 founding price for the first 500 kits; $349 retail after"],
-    ],
-    objectives:
-      "Grades K-2 science and nature study (botany, plant identification, and observation), integrating reading, mathematics, history, and geography. Across 36 weeks and 180 daily lessons, students identify 36 herbs by common and botanical name, record 36 labeled botanical drawings, complete 36 hands-on kitchen-lab observations, and build a 180-word vocabulary. Delivered as a single, complete course of study containing all required materials (a 240-page Teacher's Guide with daily lesson plans and scope and sequence, a 224-page student notebook, the Around the Table Read-Aloud storybook, and three instructional card sets), so the curriculum can be taught with no additional purchase.",
-  },
-  {
-    name: "Eden's Table: Sprouts Student Notebook",
-    sku: "sprouts_notebook",
-    priceUsd: "19.00",
-    rows: [
-      ["Grade level", "K-2"],
-      ["Subject", "Science and nature study workbook"],
-      ["Format", "Physical, single consumable workbook, 224 pages"],
-      ["Length", "36 weeks, 180 daily pages"],
-      ["SKU", "sprouts_notebook"],
-      ["Price", "$19.00 founding price while the first 500 kits last; $24.99 retail after"],
-    ],
-    objectives:
-      "Grades K-2 science and nature-study workbook. This 224-page consumable student notebook guides students through 180 daily pages of structured recording: 36 labeled botanical drawings, 36 documented kitchen-lab observations, weekly vocabulary practice, and 36 written weekly reviews, building skills in observation, classification, and scientific recording. A standalone instructional workbook that pairs with the Sprouts curriculum or supports any K-2 nature-study course.",
-  },
-];
-
-const productJsonLd = productSpecs.map((p) => ({
-  "@context": "https://schema.org",
-  "@type": "Product",
-  name: p.name,
-  sku: p.sku,
-  description: p.objectives,
-  brand: { "@type": "Brand", name: "Eden's Table" },
-  offers: {
-    "@type": "Offer",
-    price: p.priceUsd,
-    priceCurrency: "USD",
-    availability: "https://schema.org/PreOrder",
-    url: meta.canonical,
-    seller: { "@type": "Organization", name: "Rooted in Faith Ventures LLC" },
-  },
-}));
 ---
 
-<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} jsonLd={productJsonLd}>
-  {/* HERO */}
-  <section class="relative overflow-hidden pt-20 pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
-    <img src={heroPreorder.src} alt="" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" style="opacity:0.95;mix-blend-mode:multiply" />
-    <div class="relative z-10 max-w-3xl mx-auto text-center rounded-lg" style="background-color:hsl(0 0% 100% / 0.92);border:1px solid hsl(var(--eden-gold) / 0.35);padding:clamp(26px, 3.5vw, 52px);box-shadow:0 2px 18px -10px rgba(30,62,46,0.28)">
-      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">
-        Eden's Table · Founding Preorder
-      </p>
-      <h1 class="font-serif text-4xl md:text-5xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
-        Be one of the founding 500 families.
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} noindex={true}>
+  <section class="py-20 md:py-28 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto text-center rounded-lg" style="background-color:hsl(0 0% 100% / 0.92);border:1px solid hsl(var(--eden-gold) / 0.35);padding:clamp(26px, 3.5vw, 52px)">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">Eden's Table</p>
+      <h1 class="font-serif text-3xl md:text-4xl font-bold leading-tight mb-5" style="color:hsl(var(--eden-bark))">
+        Preorders are closed for now.
       </h1>
       <div class="w-16 h-px mx-auto my-6" style="background-color:hsl(var(--eden-gold-ink))"></div>
-      <p class="font-body text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto" style="color:hsl(var(--eden-bark))">
-        This is a founding preorder. Your patience helps fund the founding of this curriculum.
-        Families in the founding 500 receive $100 off the complete kit and founding-member
-        status, including a voice in shaping Seedlings and first look at every band that follows.
-      </p>
-      <p class="font-body text-base text-muted-foreground leading-relaxed max-w-2xl mx-auto mt-4">
-        The $249 founding price is reserved for the first 500 Sprouts kits. Once the 500th kit
-        is claimed, the price returns to its full retail of $349.
-      </p>
-    </div>
-  </section>
-
-  {/* FOUNDER'S NOTE — sits between the hero and the buy box so it is read before
-      any decision. Deliberately forward-facing: it states the dates and names the
-      first-print-run learning curve, and makes NO reference to any earlier date.
-      Founder decision 2026-08-26. */}
-  <section class="pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
-    <div class="max-w-2xl mx-auto">
-      <div class="border-l-2 pl-6 py-2" style="border-color:hsl(var(--eden-gold))">
-        <p class="font-accent text-xs tracking-[0.25em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">
-          A note from Camila
+      <div class="font-body text-base leading-relaxed space-y-4 text-left" style="color:hsl(var(--eden-bark))">
+        <p>
+          I stopped taking preorders on the boxed edition. It needs one large print run paid for
+          up front, and I am building this without borrowing, so it waits until the money is
+          actually there.
         </p>
-        <div class="font-body text-base leading-relaxed space-y-4" style="color:hsl(var(--eden-bark))">
-          <p>Before you decide anything, here is where this actually stands.</p>
-          <p>
-            Kits will be in your hands before the next school year begins. I am aiming for
-            {SHIP_TARGET}, and guaranteeing on or before {SHIP_GUARANTEE}. The first print run
-            goes to press in the spring, and everything between now and then is production:
-            proofs, paper, dielines, and the long quiet stretch where a thing gets made.
-          </p>
-          <p>Let me be plain about something.</p>
-          <p>
-            This is my first print run. I am a teacher and a homeschool mother, not a
-            manufacturer, and I am learning this as I go: paper weights and box dielines,
-            proof rounds, and the production lead times nobody warns you about. I would
-            rather tell you that honestly than perform an expertise I do not have yet.
-          </p>
-          <p>So here is the promise I can make that has nothing to do with printers.</p>
-          <p>
-            You will hear from me on the first of every month, whether there is news or not.
-            If anything changes, you will know within seven days, with the actual reason
-            rather than a vague apology. And you can take a full refund at any point before
-            your kit ships, for any reason, without a moment of awkwardness.
-          </p>
-          <p>
-            I would rather earn your trust with the boring part, which is telling you the
-            truth on a schedule.
-          </p>
-          <p>
-            And I want you to know what you are actually joining. The founding 500 are not a
-            discount tier. You are the families funding the first print run of a curriculum
-            that does not exist anywhere else. You get an invitation to a closed group that
-            will speak into the middle and high school curricula before they are written. And
-            between now and summer you get to watch it be made: the proofs, the paper, the
-            illustrations, the week we find out whether the field cards survive a real
-            garden. I will bring you in on the decisions I have not made yet.
-          </p>
-          <p class="font-serif" style="color:hsl(var(--eden-forest))">
-            Camila Johnson<br />
-            <span class="font-body text-sm text-muted-foreground">Founder, The Eden Institute</span>
-          </p>
-        </div>
+        <p>
+          What is ready is the curriculum itself. All thirty-six weeks of Sprouts are finished and
+          printed to order, three books, at your door in about two weeks.
+        </p>
+        <p>
+          If you already preordered, nothing about your order has changed and I have written to you
+          separately. Your dates, your price and your right to a full refund at any time before it
+          ships are all exactly where they were.
+        </p>
       </div>
-    </div>
-  </section>
-
-  {/* WHAT IS IN THE KIT: the open box and the six lines, before the buy box. */}
-  <section class="py-12 px-6 bg-background">
-    <div class="max-w-5xl mx-auto">
-      <h2 class="font-serif text-2xl md:text-3xl font-bold mb-6 text-center" style="color:hsl(var(--eden-bark))">What is in the kit</h2>
-      <div class="grid gap-8 md:grid-cols-2 items-center">
-        <div class="rounded-lg overflow-hidden bg-white shadow-sm border" style="border-color:hsl(var(--eden-gold) / 0.3)">
-          <img src="/showcases/ET_Kit_Open.webp" alt="The Eden's Table kit box open, showing the Teacher's Guide, Student Notebook, storybook and all three card decks" loading="lazy" width="1024" height="1024" class="w-full h-auto" />
-        </div>
-        <ul class="font-body text-base space-y-3" style="color:hsl(var(--eden-bark))">
-          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Teacher's Guide,</strong> 240 pages, coil bound. Every day of all 36 weeks.</span></li>
-          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Student Notebook,</strong> 224 pages, coil bound. Add more for siblings at checkout.</span></li>
-          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Read-Aloud Storybook,</strong> the seven stories of the year.</span></li>
-          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>36 Herb Field Cards,</strong> heritage plate on the front, the working side on the back.</span></li>
-          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>36 Recipe Cards,</strong> one kitchen lab a week, safety printed on the card.</span></li>
-          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>144 Around the Table cards,</strong> four questions a week: Body, Faith, Family, Wonder.</span></li>
-          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span>All in one box, shipped to you. The herbs come from your pantry or our <a href="/homeschool/herbs" class="underline" style="color:hsl(var(--eden-forest))">herb list</a>.</span></li>
-        </ul>
+      <div class="flex flex-col sm:flex-row gap-3 justify-center items-center mt-8">
+        <a href="/books" data-cta="preorder-closed-books">
+          <Button variant="eden" size="xl">See the printed year · $249</Button>
+        </a>
+        <a href="/starter" data-cta="preorder-closed-starter">
+          <Button variant="eden-outline" size="xl">Try nine weeks · $39</Button>
+        </a>
       </div>
-    </div>
-  </section>
-
-  {/* BUY BOX (island) */}
-  <section id="buy" class="py-12 px-6 bg-background scroll-mt-24">
-    <div class="max-w-5xl mx-auto">
-      <PreorderBuyBox client:only="react" />
-      {/* Added 2026-09-11 with /books: the same $249 buys the three printed books
-          now. Kept short and under the box so it never competes with the kit. */}
-      <p class="font-body text-sm text-center max-w-xl mx-auto mt-6 leading-relaxed" style="color:hsl(var(--eden-bark))">
-        Rather start this school year? The three books on their own are printed to order and at your door in about two weeks, for the same $249.
-        <a href="/books" data-cta="preorder-to-books" class="underline font-bold" style="color:hsl(var(--eden-forest))">See the printed set</a>.
+      <p class="font-body text-sm text-muted-foreground mt-6">
+        Questions about an existing order? Email <a href="mailto:hello@edeninstitute.health" class="underline">hello@edeninstitute.health</a> and I answer them myself.
       </p>
     </div>
   </section>
-
-  {/* All six components, same copy and photos as the hub. */}
-  <ComponentShowcases cta={{ href: "#buy", label: "Preorder the kit · $249", dataCta: "preorder-showcase-buy" }} />
-
-  {/* CURRICULUM SPECIFICATIONS — ESA vendor readiness. One spec block per
-      product, adjacent to the buy box so reviewers see grade level, subject,
-      format, length, SKU, price, and educational objectives without digging. */}
-  <section class="py-12 px-6 bg-background">
-    <div class="max-w-5xl mx-auto">
-      <h2 class="font-serif text-2xl font-bold mb-2 text-center" style="color:hsl(var(--eden-bark))">
-        Curriculum specifications
-      </h2>
-      <p class="font-body text-sm text-muted-foreground text-center mb-8">
-        Eden's Table is published by Rooted in Faith Ventures LLC.
-      </p>
-      <div class="grid gap-6 md:grid-cols-2 items-start">
-        {productSpecs.map((product) => (
-          <div class="rounded-lg p-6 bg-white border h-full" style="border-color:hsl(var(--eden-gold) / 0.3)">
-            <h3 class="font-serif text-xl font-bold mb-4" style="color:hsl(var(--eden-forest))">{product.name}</h3>
-            <dl class="space-y-2 mb-4">
-              {product.rows.map(([label, value]) => (
-                <div class="flex flex-col sm:flex-row sm:gap-2 text-sm font-body">
-                  <dt class="font-semibold shrink-0 sm:w-28" style="color:hsl(var(--eden-bark))">{label}</dt>
-                  <dd class="text-muted-foreground">{value}</dd>
-                </div>
-              ))}
-            </dl>
-            <p class="font-serif text-sm font-bold mb-1" style="color:hsl(var(--eden-forest))">Educational objectives</p>
-            <p class="font-body text-sm text-muted-foreground leading-relaxed">{product.objectives}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  </section>
-
-  {/* PREORDER TERMS — must be visible BEFORE the buyer is redirected to Stripe. */}
-  <section class="py-12 px-6" style="background-color:hsl(var(--eden-cream))">
-    <div class="max-w-2xl mx-auto">
-      <h2 class="font-serif text-2xl font-bold mb-6 text-center" style="color:hsl(var(--eden-bark))">
-        Preorder terms, in plain language
-      </h2>
-      <div class="space-y-4">
-        <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
-          <p class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">This is a founding preorder.</p>
-          <p class="font-body text-sm text-muted-foreground leading-relaxed">
-            Your patience helps fund the founding of this curriculum. Families in the first 500
-            kits receive the founding price ($100 off the complete kit) and founding-member
-            status; after the 500th kit, the kit sells at its $349 retail price.
-          </p>
-        </div>
-        <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
-          <p class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">Aiming for {SHIP_TARGET}. Guaranteed on or before {SHIP_GUARANTEE}.</p>
-          <p class="font-body text-sm text-muted-foreground leading-relaxed">
-            The first date is our honest target and it may move. The second is a promise: if your
-            order has not shipped by {SHIP_GUARANTEE}, we will write to you before that date and
-            you can cancel for a full refund. We will email you updates as production progresses.
-          </p>
-        </div>
-        <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
-          <p class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">Your card is charged today.</p>
-          <p class="font-body text-sm text-muted-foreground leading-relaxed">
-            Your checkout total includes a flat $12 shipping charge and any sales tax. If we
-            cannot ship within the estimated window, we will notify you, and you may request a
-            full refund at any point before your order ships.
-          </p>
-        </div>
-      </div>
-      <p class="font-body text-xs text-muted-foreground text-center mt-6">
-        Questions? Email <a href="mailto:hello@edeninstitute.health" class="underline">hello@edeninstitute.health</a> and a real person (Camila) answers.
-      </p>
-    </div>
-  </section>
-
-  {/*
-    Lower-commitment entry point.
-
-    Placed AFTER the buy box and the terms, not before, so it never pulls someone
-    who is ready to preorder into a $39 decision instead of a $249 one. It is here
-    for the reader who has scrolled the whole page and is still not sure, whose
-    alternative is closing the tab.
-
-    The "costs you nothing" claim is literally true and worth stating plainly: the
-    credit is the full $39 and it survives the founding sellout, so a starter buyer
-    who later buys the kit pays exactly what a direct buyer pays.
-  */}
-  <section class="py-14 px-6" style="background-color:hsl(var(--eden-cream))">
-    <div class="max-w-2xl mx-auto text-center">
-      <p class="font-accent text-xs tracking-[0.25em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">
-        Not ready for the whole year?
-      </p>
-      <h2 class="font-serif text-2xl md:text-3xl font-bold mb-5" style="color:hsl(var(--eden-bark))">
-        Start with nine weeks for $39.
-      </h2>
-      <p class="font-body text-base text-muted-foreground leading-relaxed mb-7">
-        The Starter Unit is weeks 1 to 9 of Sprouts: the Teacher's Guide, the Student
-        Notebook and the Read-Aloud storybook, as an instant download. Teach it, see how it sits with your family, and
-        the whole $39 comes off the kit whenever you are ready. If you go on to buy the
-        kit, it has cost you nothing.
-      </p>
-      <a
-        href="/starter"
-        data-cta="preorder-to-starter"
-        class="inline-block font-accent text-sm tracking-[0.2em] uppercase font-bold px-8 py-4 rounded-md border-2"
-        style="border-color:hsl(var(--eden-forest));color:hsl(var(--eden-forest))"
-      >
-        See the Starter Unit
-      </a>
-    </div>
-  </section>
-
-  {/*
-    Pinterest `checkout` conversion.
-
-    Stripe returns buyers to /preorder?checkout=success&session_id=cs_... (see
-    create-checkout/index.ts), so this page is both the ad landing page AND the
-    post-purchase page. The base tag in MarketingLayout already fired `page`;
-    this adds the purchase event on top of it.
-
-    Two guards, both deliberate:
-      1. Only fires when checkout=success AND a session_id is present. A bare
-         /preorder visit must never count as a sale.
-      2. Deduped in sessionStorage against the session_id, so a refresh or a
-         back-button return does not double-count one order.
-
-    Order VALUE is intentionally NOT sent from the browser. The amount lives in
-    the Stripe session, and anything read from the URL is attacker-editable —
-    inflated revenue in Pinterest reporting would corrupt the ROAS number the ad
-    budget is judged on. If value-based bidding is wanted later, send it
-    server-side from stripe-webhook via the Conversions API, where the amount is
-    trustworthy.
-  */}
-  <script is:inline>
-    (function () {
-      var params = new URLSearchParams(window.location.search);
-      if (params.get('checkout') !== 'success') return;
-      var sessionId = params.get('session_id');
-      if (!sessionId) return;
-
-      var key = 'pintrk_checkout_' + sessionId;
-      try {
-        if (window.sessionStorage.getItem(key)) return;
-        window.sessionStorage.setItem(key, '1');
-      } catch (e) {
-        // Private mode / storage blocked. Fire once rather than not at all;
-        // a rare double-count beats silently losing every conversion.
-      }
-
-      if (typeof window.pintrk === 'function') {
-        window.pintrk('track', 'checkout', { order_id: sessionId });
-      }
-    })();
-  </script>
 </MarketingLayout>

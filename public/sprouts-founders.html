@@ -3,134 +3,66 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Reserve your founder's price &middot; The Eden Institute</title>
+<meta name="robots" content="noindex, nofollow">
+<title>Preorders are closed &middot; The Eden Institute</title>
+<!--
+  CLOSED 2026-09-12, the print-first pivot (founder instruction: "close the
+  founders-lock page before merge").
+
+  This page was the Sprouts founder's-price reservation form: "Reserve your $249
+  founder's price. Preorders are open now." It is reached by a signed link that
+  sits inside already-sent launch emails 7 and 18, so it CANNOT become a 404
+  without breaking those. It stays at the same URL and tells the truth instead.
+
+  The form, its JavaScript and the POST to the founders-lock edge function are
+  all gone. The edge function ALSO refuses new reservations now, so a cached copy
+  of the old page in somebody's browser cannot still write a row.
+
+  The original page is on b8751c1 for phase two. Restore it there rather than
+  rewriting it, and re-open the edge function's POST at the same time.
+-->
 <style>
   body{margin:0;background:#EFE9DA;font-family:Georgia,'Times New Roman',serif;color:#3D3832;}
   .wrap{max-width:540px;margin:36px auto;background:#F7F2E8;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);}
   .hdr{background:#2C3E2D;padding:24px;text-align:center;}
   .hdr .mark{color:#C5A44E;font-size:20px;letter-spacing:2px;}
   .body{padding:30px 28px;}
-  h1{font-size:23px;color:#1C3A2E;margin:0 0 10px;}
-  p.lead{font-size:15px;line-height:1.7;margin:0 0 20px;}
-  label{display:block;font-size:13px;margin:0 0 4px;}
-  input[type=email],input[type=text],input[type=tel]{width:100%;box-sizing:border-box;padding:12px;border:1px solid #D9CFB8;border-radius:8px;font-size:15px;font-family:inherit;margin:0 0 14px;}
-  input[disabled]{background:#EEE7D6;color:#6b665a;}
-  .consent{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.5;margin:2px 0 18px;}
-  .consent input{margin-top:3px;}
-  button{width:100%;background:#C5A44E;color:#2C3E2D;font-family:inherit;font-size:16px;font-weight:bold;border:none;padding:15px;border-radius:8px;cursor:pointer;}
-  button:disabled{opacity:.6;cursor:default;}
-  .err{color:#993C1D;font-size:14px;margin:0 0 12px;}
-  .done{text-align:center;}
-  .done .gem{font-size:40px;color:#C5A44E;}
+  h1{font-size:23px;color:#1C3A2E;margin:0 0 12px;}
+  p{font-size:15px;line-height:1.7;margin:0 0 16px;}
+  .btn{display:block;text-align:center;background:#C5A44E;color:#2C3E2D;font-family:inherit;font-size:16px;font-weight:bold;text-decoration:none;padding:15px;border-radius:8px;margin:22px 0 10px;}
+  .btn.alt{background:transparent;color:#1C3A2E;border:2px solid #2C3E2D;}
+  .sig{font-size:15px;margin:26px 0 0;}
   a{color:#5C7A5C;}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="hdr"><div class="mark">THE EDEN INSTITUTE</div></div>
-  <div class="body" id="content">
-    <h1>Reserve your $249 founder's price</h1>
-    <p class="lead">Preorders are open now. Add your details to lock in your founding price of $249, and we will confirm everything by email.</p>
-    <div class="err" id="err" style="display:none"></div>
-    <!-- NO `required` ATTRIBUTES AND novalidate ON THE FORM. Native HTML5
-         validation blocks the submit event BEFORE any of our code runs and only
-         signals it with a tooltip that frequently does not render, so the click
-         is silently swallowed and the visitor sees nothing happen at all. That
-         is precisely what a founder hit on 2026-07-25. All checking is done in
-         JS below, where every failure raises a VISIBLE message. -->
-    <form id="f" autocomplete="off" novalidate>
-      <label>Email</label>
-      <input type="email" id="email" autocomplete="off" placeholder="you@example.com">
-      <label>Your name</label>
-      <input type="text" id="name" placeholder="First name" autocomplete="off">
-      <label>Mobile number (optional)</label>
-      <input type="tel" id="phone" placeholder="(555) 123-4567" autocomplete="off">
-      <p class="consent"><span>Only if you would like us to be able to reach you about your kit. We will confirm everything by email.</span></p>
-      <!-- SMS opt-in. MUST stay unchecked by default: an affirmative, unchecked-by-default
-           box is what the A2P 10DLC campaign registration describes, and a pre-checked box
-           is not consent. Consent is only honoured when a phone number is also given. -->
-      <p class="consent">
-        <input type="checkbox" id="sms">
-        <label for="sms">Optional: yes, text me updates about my Sprouts kit at the number above. Message and data rates may apply. Reply STOP at any time to opt out.</label>
-      </p>
-      <button type="submit" id="btn">Lock in my $249 founder's price</button>
-    </form>
+  <div class="body">
+    <h1>Preorders are closed for now.</h1>
+    <p>
+      If you followed a link from an older email of mine about reserving a founder's price,
+      thank you, and I am sorry it no longer goes where it said it would.
+    </p>
+    <p>
+      I stopped taking preorders on the boxed edition. It needs one large print run paid for
+      up front, and I am building this without borrowing, so it waits until the money is
+      actually there.
+    </p>
+    <p>
+      What is ready is the curriculum itself. All thirty-six weeks of Sprouts are finished and
+      printed to order, three books, at your door in about two weeks.
+    </p>
+    <a class="btn" href="https://edeninstitute.health/books">See the printed year &middot; $249</a>
+    <a class="btn alt" href="https://edeninstitute.health/freebies">Or start with Week 1, free</a>
+    <p style="font-size:14px;margin-top:20px;">
+      Already preordered? Nothing about your order has changed and I have written to you
+      separately. Questions either way, email
+      <a href="mailto:hello@edeninstitute.health">hello@edeninstitute.health</a> and I answer
+      them myself.
+    </p>
+    <p class="sig">Grace and health,<br><strong>Camila</strong></p>
   </div>
 </div>
-<script>
-  var EF = 'https://noeqztssupewjidpvhar.supabase.co/functions/v1/founders-lock';
-  function qs(k){ return new URLSearchParams(location.search).get(k); }
-  var token = qs('t') || '';
-  function decode(t){ try { var p = t.split('.')[0].replace(/-/g,'+').replace(/_/g,'/'); return JSON.parse(decodeURIComponent(escape(atob(p)))); } catch(e){ return null; } }
-  function showErr(m){
-    var e = document.getElementById('err');
-    e.textContent = m;
-    e.style.display = 'block';
-    // Scroll it into view: an error the visitor cannot see is the same as no
-    // error at all, which is how a blocked submit reads as "nothing happened".
-    if (e.scrollIntoView) e.scrollIntoView({ block: 'center' });
-  }
-  // THE BUTTON IS NEVER DISABLED. On 2026-07-25 a tokenless link disabled this
-  // form for 1,382 families and captured zero reservations, then a second link
-  // problem (Gmail rewriting hrefs through google.com/url) hid the token again.
-  // A reservation must survive ANY damage to the link: if we cannot read the
-  // token, we ask for the email instead and let the server take it from there.
-  var payload = decode(token);
-  var emailEl = document.getElementById('email');
-  var nameEl = document.getElementById('name');
-
-  function applyToken() {
-    if (payload && payload.e && !emailEl.value) emailEl.value = payload.e;
-    if (payload && payload.n && !nameEl.value) nameEl.value = payload.n;
-  }
-  applyToken();
-  // Browser autofill runs AFTER this script and will happily overwrite these
-  // fields with the account owner's own saved details, which is how a link for
-  // one person can end up showing another person's name. Re-assert ours.
-  setTimeout(applyToken, 150);
-  setTimeout(applyToken, 600);
-
-  if (payload && payload.e) {
-    // Known recipient: show the address, but keep it editable so a wrong or
-    // shared link is never a dead end.
-    emailEl.readOnly = false;
-  } else {
-    showErr('We could not read your personal link, so please type the email address you signed up with and we will lock in your price.');
-  }
-
-  document.getElementById('f').addEventListener('submit', function(ev){
-    ev.preventDefault();
-    var name = document.getElementById('name').value.trim();
-    var phone = document.getElementById('phone').value.trim();
-    var email = emailEl.value.trim();
-    if (!email) { showErr('Please add the email address you signed up with.'); return; }
-    // SMS consent, read from the unchecked-by-default box above. A2P campaign
-    // CM441d10daf7fa12e8916e09629371ce25 covers this traffic. founders-lock only
-    // texts when consent AND a phone number are both present, so leaving the
-    // number blank still opts out no matter what this box says.
-    var consent = document.getElementById('sms').checked;
-    // The PHONE IS OPTIONAL. It was required until 2026-07-25, when a founder
-    // clicked the button with it empty and the browser silently swallowed the
-    // submit. A reservation is worth far more than a phone number, and the
-    // column is nullable, so a missing number must never block one.
-    if (!name) { showErr('Please add your first name so we know who to hold this for.'); return; }
-    var btn = document.getElementById('btn'); btn.disabled = true; btn.textContent = 'Locking it in...';
-    fetch(EF, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ t: token, email: email, name: name, phone: phone, sms_consent: consent }) })
-      .then(function(r){ return r.json(); })
-      .then(function(d){
-        if (d && d.ok) {
-          document.getElementById('content').innerHTML =
-            '<div class="done"><div class="gem">&#9826;</div><h1>You’re locked in' + (d.name ? (', ' + d.name) : '') + '.</h1>' +
-            '<p class="lead">Your founding price of <strong>$249</strong> for the complete 36-week Sprouts kit is reserved, and you are on the founders list. Preorders are open now, and you can complete yours whenever you are ready. Check your inbox, a confirmation is on its way.</p>' +
-            '<p style="text-align:center"><a href="https://www.facebook.com/EdensTableHomeschoolCurriculum">Follow along on Facebook</a></p>' +
-            '<p class="lead" style="text-align:center">Grace and health,<br><strong>Camila</strong></p></div>';
-        } else {
-          showErr('Something went wrong (' + ((d && d.error) || 'unknown') + '). Please try again, or reply to the email and we will lock it in by hand.');
-          btn.disabled = false; btn.textContent = 'Lock in my $249 founder’s price';
-        }
-      })
-      .catch(function(){ showErr('Network error. Please try again.'); btn.disabled = false; btn.textContent = 'Lock in my $249 founder’s price'; });
-  });
-</script>
 </body>
 </html>

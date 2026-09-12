@@ -2,19 +2,15 @@
 // /books: the printed Sprouts curriculum, sold as one set and printed to order
 // by Lulu.
 //
-// A DEDICATED page, not a variant of /preorder. The kit preorder is a 2027
-// commitment with a disclaimer modal; this set prints and ships in days and
-// needs neither.
-//
 // THE PRICE IS NOT IN THIS FILE. The buy box reads it from the
-// print_products_public view. The $249 in the copy below is the positioning
-// line the founder chose (same price as the founding kit, the difference is
-// when you get it); if the price ever changes, this copy changes with it.
+// print_products_public view. The $249 in the copy below is display copy; if
+// the price ever changes, change it there first and then here.
 //
-// Positioning, founder decision 2026-09-10: the set is $249 on purpose, the
-// same as the founding kit. The kit will not ship for almost a year, so this
-// is not a budget choice. Pay $249 and start now, or pay $249 and wait. The
-// set stays at $249 after the founding kits are gone.
+// 2026-09-12, the print-first pivot: this page became the lead product. Until
+// today it was positioned against the $249 founding kit ("same price, the
+// difference is when"), because both were on sale. The kit came off the site,
+// so every comparison to it is gone and the page now argues for itself. The
+// old positioning copy and the kit FAQs are on b8751c1 for phase two.
 //
 // Copy rule: no em dashes.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
@@ -28,7 +24,7 @@ import heroBooks from "@/assets/hero-books.jpg";
 const meta = {
   title: "Printed Sprouts Curriculum Set · Eden's Table | The Eden Institute",
   description:
-    "The Eden's Table Sprouts (K-2) Teacher's Guide, Student Notebook and Read-Aloud storybook, printed to order and at your door in about two weeks. $249, the same as the founding kit. The kit ships next summer. These ship now.",
+    "The Eden's Table Sprouts (K-2) Teacher's Guide, Student Notebook and Read-Aloud storybook, printed to order and at your door in about two weeks. All 36 weeks, $249 plus flat $12 shipping.",
   canonical: "https://edeninstitute.health/books",
 };
 
@@ -46,22 +42,18 @@ const books = [
   {
     title: "The Read-Aloud Storybook",
     pages: "112 pages, small paperback",
-    body: "The seven stories that run through the year, sized for a lap. This is the one you read on the couch. It is the same storybook that comes in the kit.",
+    body: "The seven stories that run through the year, sized for a lap. This is the one you read on the couch, with a child under each arm.",
   },
 ];
 
 const faqs = [
   {
-    q: "Why is it the same price as the kit?",
-    a: "Because the books are the curriculum. The kit adds the three card decks and the box, and I priced the founding kit low to fund the print run. What you are choosing here is not a cheaper version. It is the same year of school in your hands in two weeks instead of next summer.",
+    q: "Is this the whole curriculum, or a sample of it?",
+    a: "The whole thing. All 36 weeks, 180 daily lessons, every plant, every story, every lab. There is no larger edition you are missing out on and nothing is held back for a later purchase.",
   },
   {
     q: "Can I buy just one of the three?",
     a: "No. They are written to be used together, one plant a week, and one without the others would leave you stuck by Wednesday. The one exception is the Student Notebook: it is the write-in book, so you can add extra copies for siblings at checkout, $39.99 each, printed and shipped with your set.",
-  },
-  {
-    q: "What if I order this and later want the kit?",
-    a: "Order the kit when you are ready. You will already have the books, so the cards and the box are what you are adding. There is no credit between the two, so you know that before you order.",
   },
   {
     q: "How is it printed, and how long does it take?",
@@ -73,7 +65,7 @@ const faqs = [
   },
   {
     q: "Is this a good place to start, or should I try the $39 Starter Unit first?",
-    a: "If you are still deciding whether this is how your family wants to learn, start with the nine-week Starter Unit. It is a download, it is $39, and the $39 comes off the kit later. If you have already decided and you want the whole year on paper now, this is the page.",
+    a: "If you are still deciding whether this is how your family wants to learn, start with the nine-week Starter Unit. It is a download and it is $39, so finding out costs you very little. If you have already decided and you want the whole year on paper, this is the page.",
   },
 ];
 
@@ -119,36 +111,35 @@ const faqJsonLd = {
       <div class="w-16 h-px mx-auto my-4 md:my-6" style="background-color:hsl(var(--eden-gold-ink))"></div>
       <p class="font-body text-base md:text-xl leading-relaxed" style="color:hsl(var(--eden-bark))">
         The Teacher's Guide, the Student Notebook and the Read-Aloud storybook for all 36 weeks
-        of Sprouts, printed to order and mailed to your door. It is $249, the same as the founding
-        kit. The kit ships next summer. These ship now. Teaching more than one child? Add extra
-        Student Notebooks at checkout, $39.99 each.
+        of Sprouts, printed to order and mailed to your door. $249 plus flat $12 shipping.
+        Teaching more than one child? Add extra Student Notebooks at checkout, $39.99 each.
       </p>
     </div>
   </section>
 
-  <!-- THE CHOICE, in plain words. This is the founder's positioning and the one
-       thing a reader must take from the page: same money, the difference is
-       when. -->
+  {/* WHY PRINTED TO ORDER. Replaced the kit-versus-books positioning block on
+      2026-09-12; the old copy is on b8751c1. The point a reader must take from
+      the page is now simply that nothing is on back order. */}
   <section class="py-12 px-6 bg-background">
     <div class="max-w-2xl mx-auto">
       <p class="font-accent text-xs tracking-[0.25em] uppercase mb-4 text-center" style="color:hsl(var(--eden-gold-ink))">
-        Same price. The difference is when.
+        Printed for you, not stacked in a warehouse.
       </p>
       <div class="font-body text-base md:text-lg leading-relaxed space-y-4" style="color:hsl(var(--eden-bark))">
         <p>
-          The Sprouts Complete Kit is $249 for the first 500 families, and it does not ship until
-          next summer, because the card decks and the box are printed in one big run and we are
-          still filling it. I did not want you sitting on a curriculum you paid for while your
-          kindergartner turned into a first grader.
+          Your set is printed after you order it, one set at a time, and mailed straight to your
+          address. There is no warehouse, no minimum order I had to hit first, and nothing to be
+          back-ordered on.
         </p>
         <p>
-          So the three books, which are the curriculum itself, print on their own, one set at a
-          time, and go in the mail within days. Same $249. You just get to start this school year
-          instead of next.
+          That is deliberate. I am building this without borrowing, so I would rather print your
+          copy when you ask for it than gamble on a room full of boxes. It costs a little time at
+          your end, about two to three weeks, and it means your year is never waiting on my cash
+          flow.
         </p>
         <p>
-          If you want the cards and the box, <a href="/preorder" class="underline" style="color:hsl(var(--eden-forest))">preorder the kit</a>.
-          If you want to be teaching by the end of the month, this is the page.
+          Not sure yet? Week 1 is <a href="/freebies" class="underline" style="color:hsl(var(--eden-forest))">free</a>,
+          and the first nine weeks are <a href="/starter" class="underline" style="color:hsl(var(--eden-forest))">$39 as a download</a>.
         </p>
       </div>
     </div>
