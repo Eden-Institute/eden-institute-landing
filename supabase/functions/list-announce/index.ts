@@ -50,9 +50,14 @@ const SITE = "https://edeninstitute.health";
 
 // The campaign key IS the idempotency key. Changing this string re-sends to everyone,
 // so it is a constant in source rather than a request parameter.
-const CAMPAIGN = "starter_showtheweek_2026_09_07";
+// 2026-09-12: the print-first pivot letter. The previous campaign
+// ("starter_showtheweek_2026_09_07", subject "Now available: start Sprouts on
+// Monday") already sent; its copy is on 7233f0e. A NEW key is what makes this a
+// new send: every address is claimed once per campaign in founders_send_log.
+const CAMPAIGN = "print_first_pivot_letter_2026_09_12";
 
-const SUBJECT = "Now available: start Sprouts on Monday";
+// Founder's pick, 2026-09-12, from three options workshopped in session.
+const SUBJECT = "The kit is coming off the website. Here is why.";
 
 // Ship dates mirror _shared/order-config.ts and _shared/launch-sequence-templates.ts.
 // They are duplicated here deliberately, exactly as launch-sequence-templates duplicates
@@ -142,80 +147,59 @@ function preheader(text: string): string {
   return `<div style="display:none;font-size:1px;color:${BRAND.bgOuter};line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">${text}</div>`;
 }
 
-function signature(): string {
-  return `<p style="font-family:Georgia,serif;font-size:16px;line-height:1.6;color:${BRAND.text};margin:24px 0 4px 0;">Grace and health,</p>
+// signoff: "In Him," for a personal letter (the founder's own sign-off, 2026-09-12),
+// "Grace and health," to match the automated sequence emails.
+function signature(signoff = "Grace and health,"): string {
+  return `<p style="font-family:Georgia,serif;font-size:16px;line-height:1.6;color:${BRAND.text};margin:24px 0 4px 0;">${signoff}</p>
 <p style="font-family:Georgia,serif;font-size:16px;color:${BRAND.text};font-weight:bold;margin:0;">Camila</p>
 <p style="font-family:Georgia,serif;font-size:14px;color:${BRAND.text};margin:4px 0 0 0;">The Eden Institute</p>
 <p style="font-family:Georgia,serif;font-size:14px;margin:4px 0 0 0;"><a href="${SITE}" style="color:${BRAND.sage};text-decoration:underline;">edeninstitute.health</a></p>`;
 }
 
 /**
- * The announcement, second pass.
+ * The print-first pivot letter to the homeschool list, 2026-09-12.
  *
- * WHY THIS EMAIL EXISTS AND WHY IT IS SHAPED LIKE THIS. Four emails have already told
- * this list that the nine weeks are ready: the Aug 27 announcement above, launch 19
- * (Aug 31), launch 20 (Sep 4), and launch 21 (queued). Measured 2026-09-05: 713 distinct
- * people OPENED them and 679 of those never clicked anything. Opens run 32 to 38 percent,
- * which is healthy. The failure is entirely the click, at roughly 0.6 percent.
+ * Workshopped with the founder in session. Decisions she made: subject line 1 of 3;
+ * the real money gap ($28,500 against $1,493) is deliberately NOT named; sign-off
+ * "In Him"; send before 2026-09-14, when the rewritten launch emails 8 to 12 start
+ * arriving, so nobody meets the printed year before hearing why the kit is gone.
  *
- * So this email does not describe the product a fifth time. It SHOWS one week, day by
- * day, transcribed off the real Teacher's Guide pages, and it carries FOUR links instead
- * of one button at the bottom, which is the likeliest mechanical cause of the click rate.
+ * Who it reaches, measured live the same day: 1,409 people. 533 came in through the
+ * Seedlings free week, so Seedlings gets its own sentence, with no date because none
+ * exists. 14 "reserved a $249 founding price" on the old founders form and were told
+ * they were locked in; nothing was ever charged, and the letter says so. Starter Unit
+ * buyers are NOT excluded this time (see recipients()): this is news for them too.
+ * The five kit buyers are excluded automatically and got their own letter; the
+ * kit-buyer paragraph below is only a safety net for a buyer who used another address.
  *
- * Constraints, each one already on record:
- *  1. NO INVENTED URGENCY. Launch 21 says in writing "there is no deadline on it". No
- *     countdown, no scarcity, no expiring bonus. The calendar is the only clock.
- *  2. (Retired 2026-09-12 with the print-first pivot.) The email used to promise the
- *     whole $39 comes off the kit. The kit is off sale and the credit is no longer
- *     advertised anywhere, so this email says nothing about it. The download is still
- *     not refundable once taken, and the copy still never calls the $39 a refund.
- *  3. Only Amanda is quoted. She is the sole tester who gave written permission to
- *     publish (2026-07-06). The other four testers are not named.
- *  4. No em dashes. No podcast air dates, because nothing has aired.
+ * "Same price as the kit. These ship in about two weeks" is the founder's own line,
+ * from her note to the affiliates that morning.
  *
- * The week 9 content is transcribed from FINAL_Sprouts_TG_Part1, printed pages 62 to 65,
- * read as rendered images because the PDF is a Canva export with no extractable text.
- * NOTE the content manual calls Wednesday a "marshmallow CONFECTION"; the actual page is
- * a cold infusion sweetened with honey. The page wins.
+ * Facts, all verified: set $249 + $12 flat shipping (print_products_public); free
+ * Week 1 exists for Sprouts and Seedlings only; the $39 nine weeks are Sprouts only.
+ * No em dashes. No "would rather X than Y".
  */
 function buildAnnouncement(firstName: string): string {
+  const BOOKS = `${SITE}/books`;
+  const FREE = `${SITE}/freebies`;
   const STARTER = `${SITE}/starter`;
   const body =
-    preheader(`No printing press, no 2027. Weeks 1 through 9 download the minute you buy them.`) +
+    preheader(`The whole year is printed and ready. The boxed kit waits until it is paid for.`) +
     p(`Hi ${firstName},`) +
-    p(`I keep hearing the same thing from mamas, and it is always some version of the same sentence: I do not want to wait.`) +
-    p(`Neither would I. So here is the part of Eden&rsquo;s Table that needs no printing press and no waiting. <strong>The first nine weeks of Sprouts are finished, and they download the minute you buy them.</strong>`) +
-    brandButton(`Get the Digital Starter Unit &nbsp;&middot;&nbsp; ${STARTER_PRICE}`, STARTER) +
-    p(`And rather than tell you a fourth time that they exist, let me actually show you one. Here is week 9, exactly as it sits in the Teacher&rsquo;s Guide.`) +
+    p(`I have taken the Complete Kit off the website, and I am not taking preorders for it anymore. I wanted you to hear that from me instead of noticing it on the site.`) +
+    p(`What is there instead is the curriculum itself, finished and in print. All 36 weeks of Sprouts in three books: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud Storybook. $249 plus $12 shipping. Same price as the kit. The kit would have shipped next summer. These ship in about two weeks.`) +
+    p(`Here is why. The kit costs more to print than I have, and I put it up for sale before I could pay for it. I am building this with no loans and no investors, because the borrower is slave to the lender, and I am not starting my life&rsquo;s work in debt.`) +
+    p(`I am a first time business owner with a big dream and a steep learning curve. My brain sees the whole thing from thirty thousand feet first, and then I come down and build the ladder up to it. The rung I set as step one was really step two.`) +
+    p(`So this is step one. If families want the printed year, that is what pays for the print run, and the kit comes back with the cards and the box in it. If they do not, I will take that as God&rsquo;s timing and not mine. I am praying over it, and I am not going to move faster than He is.`) +
     goldDivider() +
-    p(`<strong>Monday &middot; Read-Aloud &amp; Discussion.</strong> You open Psalm 1 and read about the tree planted by streams of water. Your child meets marshmallow root, a pale root that soaks quietly in water until it turns silky and slippery. That verse is the week&rsquo;s memory verse.`) +
-    p(`<strong>Tuesday &middot; Discovery.</strong> Where it grows and why. Marshmallow likes to keep its feet wet, in damp ground near streams and salt marshes, and that is how it earned its name, the mallow of the marsh. Your child draws it and labels root, stem and flower. The word for the day is EMOLLIENT.`) +
-    p(`<strong>Wednesday &middot; Kitchen Lab.</strong> Two tablespoons of dried root, two cups of cool water, soak four hours, strain the silky liquid, stir in honey. You start it in the morning and it soaks while you play.`) +
-    p(`<strong>Thursday &middot; History &amp; Art.</strong> Ancient Egypt, beside the Nile. People dug the root, found that soaked in water it turned soft and slippery like silk, and stirred its juice with honey into a chewy treat that was saved for kings and queens. That was the first marshmallow. Your child draws the Nile, grows tall marshmallow plants with pink flowers along its banks, adds a royal plate of honey sweets, and titles it &ldquo;The King&rsquo;s Sweet Root.&rdquo;`) +
-    p(`<strong>Friday &middot; Garden &amp; Review.</strong> The garden activity, the week&rsquo;s review questions, the verse one more time.`) +
-    goldDivider() +
-    p(`That is one week. There are nine, and every one is built to that same shape, so by week three nobody is asking what today is. ${textLink('See all nine weeks', STARTER)}.`) +
-    p(`Every page carries two extra lines, one for Little Sprouts and one for Older Sprouts. On that Wednesday the little ones spoon the root into the jar and give it a stir. The older ones add the water, strain it hours later, and feel how slippery it turned. Same lesson, same table, nobody sent off to do something separate.`) +
-    p(`The sources are printed on the page, not hidden at the back. Week 9 cites King&rsquo;s American Dispensatory (1898) and Grieve (1931). Every day lists its own learning benchmarks, so if you have to report, it is already written down for you.`) +
-    p(`<strong>If you start Monday, you finish the week of November 3.</strong> A full quarter of the year, done before the holidays. That is the only clock on this, and it is the reason I am writing again rather than waiting.`) +
-    quoteCard(
-      `I am a mother who has been homeschooling kids for over 18 years. The balance of faith and herb/gardening is perfect, it is a complete lesson and well thought out. The lessons for younger kids are easy to understand and get a little more in depth when moving up a level.`,
-      `Amanda, homeschooling 18 years, 9 in the house`,
-    ) +
-    goldDivider() +
-    p(`The Sprouts Starter Unit is <strong>${STARTER_PRICE}</strong>. Weeks 1 through 9, digital, in your inbox in about a minute: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks.`) +
-    brandButton(`Start with weeks 1 through 9 &nbsp;&rarr;`, STARTER) +
-    p(
-      `The whole year in print, all thirty-six weeks in three books, is $249 and ships in about two weeks.`,
-      `text-align:center;font-size:15px;color:${BRAND.footerText};`,
-    ) +
-    goldDivider() +
-    p(`There is no deadline on the ${STARTER_PRICE} and I am not going to invent one. The only thing running is the school year. If this is not your year, I will still be here when it is, and if you have a question you would rather ask me than read on a page, just hit reply. It comes straight to me.`) +
-    signature() +
-    p(
-      `<strong>P.S.</strong> Nine weeks started this Monday finish the week of November 3. If you would rather not wait until 2027 to begin, ${textLink('this is the part you can start today', STARTER)}.`,
-      `margin-top:24px;`,
-    );
+    p(`A few things you might be wondering:`) +
+    p(`If you came in for <strong>Seedlings</strong>: your free Week 1 is still yours, and the rest of the year is being finished now. I will tell you the day it is ready.`) +
+    p(`If you <strong>reserved a founding price</strong>: nothing was ever charged, and there is nothing to cancel. If the kit comes back, you will hear it from me first.`) +
+    p(`If you <strong>already ordered a kit</strong>: I wrote to you separately. Your order, your dates and your price have not changed.`) +
+    brandButton(`See the printed year &nbsp;&middot;&nbsp; $249`, BOOKS) +
+    p(`Not ready for that? ${textLink("Week 1 of Sprouts or Seedlings is free", FREE)}, and ${textLink(`the first nine weeks of Sprouts are a ${STARTER_PRICE} download`, STARTER)}.`) +
+    p(`Thank you for being patient with a first timer.`) +
+    signature("In Him,");
   return launchWrapper(body);
 }
 
@@ -305,7 +289,6 @@ async function recipients(db: ReturnType<typeof admin>): Promise<Recipient[]> {
   const buyers = new Set(
     await pagedColumn(db, "preorder_broadcast_list", "customer_email", "customer_email"),
   );
-  const started = await starterBuyers(db);
 
   // Already sent this campaign. Filtered here as well as claimed at send time: this
   // keeps the reported "remaining" honest across batches.
@@ -329,7 +312,9 @@ async function recipients(db: ReturnType<typeof admin>): Promise<Recipient[]> {
     const email = (r.email ?? "").trim().toLowerCase();
     if (!email || !email.includes("@")) continue;
     if (seen.has(email)) continue; // the list can hold the same address twice
-    if (optedOut.has(email) || buyers.has(email) || started.has(email) || sent.has(email)) continue;
+    // Starter Unit buyers are NOT excluded for the pivot letter (they were for the
+    // previous campaign, which sold them what they already owned).
+    if (optedOut.has(email) || buyers.has(email) || sent.has(email)) continue;
     seen.add(email);
     const name = (r.first_name ?? "").trim();
     // Never render "Hi ," at somebody. A neutral greeting is better than a blank.
