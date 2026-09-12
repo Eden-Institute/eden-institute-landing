@@ -1,0 +1,250 @@
+---
+// /curriculum — the page scholarship and ESA reviewers see (added 2026-09-12).
+//
+// WHY THIS PAGE EXISTS. Alabama's CHOOSE Act declined Eden on 2026-08-20 with no
+// specific reason, only that the product "doesn't meet current program guidelines"
+// and that "your catalog has been reviewed". The Alabama form had no description
+// field, so the reviewer judged Eden by the website on the application:
+// /homeschool, whose tab title reads "Christian Homeschool Herbalism Curriculum"
+// and whose copy uses "remedy", "alternative medicine" and "health stewardship".
+// Alabama has no Health, Nutrition or Wellness approved subject. Science and
+// Religion are both approved, and the curriculum fits "Curriculum and supplemental
+// reading materials" (Rule 810-28-1-.06(1)(e)).
+//
+// The same pages sat behind every other ESA listing (Odyssey in LA, UT and WY;
+// ClassWallet for AZ and NH; the CSF New Hampshire directory). Founder decision
+// 2026-09-12: leave the brand site and its SEO alone, publish ONE page that
+// describes Sprouts as Bible-based science and nature study, and point every
+// scholarship rail at it.
+//
+// RULES FOR EDITING THIS PAGE, all deliberate:
+// - hideNav + hideFooter: the shared navbar says "Biblical Herbalism Education"
+//   and "Shop Quality Herbs"; the shared footer links "Herb Profiles". This page
+//   renders its own plain header and footer instead.
+// - noindex: link-only, like /partner-sample. The brand site keeps its search
+//   rankings; this page is for reviewers who arrive by the URL on an application.
+// - Keep these words OFF the page: herbalism, herbal, herb, remedy, medicine,
+//   medicinal, health, wellness, healing, tea, tincture, body pattern, terrain,
+//   clinical. The same four-state research that removed "Herbalism" from ESA
+//   titles on 2026-07-20 applies here. Accuracy is not traded away: the
+//   curriculum IS plant study, and "science and nature study" and "botany" are
+//   the founder-locked, accurate framing.
+// - Prices are the ESA prices, identical to every marketplace listing. The set is
+//   $261 with shipping included; on the store that is the same $249 plus $12.
+// - No em dashes in visible copy.
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+
+const meta = {
+  title: "Eden's Table · Bible-Based Science and Nature Study Curriculum, Grades K-2",
+  description:
+    "Eden's Table is a 36-week Bible-based science and nature study curriculum for kindergarten through second grade, published by Rooted in Faith Ventures LLC. A printed three-book set, a nine-week digital starter unit, and extra student notebooks.",
+  canonical: "https://edeninstitute.health/curriculum",
+};
+
+const orgDescription =
+  "Publisher of Eden's Table, a Bible-based science and nature study curriculum for homeschooling families.";
+
+const week = [
+  { day: "Monday", body: "A read-aloud story opens the week, along with the week's Scripture memory verse." },
+  { day: "Tuesday", body: "Discovery and nature observation. The child studies the week's plant up close, draws it and labels it." },
+  { day: "Wednesday", body: "Hands-on kitchen science. The child measures, observes and records, using common kitchen ingredients families already have." },
+  { day: "Thursday", body: "History, geography and art, all carried by the same plant." },
+  { day: "Friday", body: "The garden, and a review of everything the week covered." },
+];
+
+const products = [
+  {
+    name: "Printed Curriculum Set",
+    esaName: "Sprouts K-2 36-Week Science and Nature Study Printed Curriculum Set, Bible-Based",
+    sku: "ET-SPR-K2-004",
+    price: "$261",
+    priceNote: "Shipping included",
+    img: "/showcases/ET_PrintSet.webp",
+    imgAlt: "The Eden's Table Sprouts printed curriculum set: Teacher's Guide, Student Notebook and Read-Aloud Storybook",
+    points: [
+      "Teacher's Guide, 240 pages, 8.5 x 11 inches, coil bound. The full year planned day by day, with scope and sequence.",
+      "Student Notebook, 224 pages, 8.5 x 11 inches, coil bound. The write-in book the child fills in across all 36 weeks.",
+      "Read-Aloud Storybook, 112 pages, 6 x 9 inches, paperback.",
+      "Printed to order and mailed in about two to three weeks.",
+    ],
+  },
+  {
+    name: "Starter Unit, digital",
+    esaName: "Sprouts K-2 9-Week Science and Nature Study Starter Unit, Bible-Based",
+    sku: "ET-SPR-K2-003",
+    price: "$39",
+    priceNote: "Instant download",
+    img: "/showcases/ET_StarterUnit.webp",
+    imgAlt: "The Eden's Table Sprouts nine-week starter unit",
+    points: [
+      "Weeks 1 through 9 of the same 36-week year.",
+      "Teacher's Guide pages, Student Notebook pages and Read-Aloud chapters for those nine weeks, printed at home.",
+      "Delivered by download link immediately after purchase. Nothing ships.",
+    ],
+  },
+  {
+    name: "Extra Student Notebook",
+    esaName: "Sprouts K-2 36-Week Science and Nature Study Extra Student Notebook, Bible-Based",
+    sku: "ET-SPR-K2-005",
+    price: "$39.99",
+    priceNote: "Shipping included",
+    img: "/showcases/ET_NB_Cover.webp",
+    imgAlt: "The Eden's Table Sprouts Student Notebook cover",
+    points: [
+      "A second write-in notebook for another child in a family already using the curriculum.",
+      "224 pages, 8.5 x 11 inches, coil bound, covering all 36 weeks.",
+      "A companion to the Printed Curriculum Set. It is not a standalone course and needs the Teacher's Guide to use.",
+    ],
+  },
+];
+---
+
+<MarketingLayout
+  title={meta.title}
+  description={meta.description}
+  canonical={meta.canonical}
+  hideNav
+  hideFooter
+  noindex
+  orgDescription={orgDescription}
+>
+  <header class="px-6 py-5 border-b bg-white" style="border-color:hsl(var(--eden-gold) / 0.3)">
+    <div class="max-w-4xl mx-auto flex items-center justify-between gap-4 flex-wrap">
+      <p class="font-serif text-xl font-bold" style="color:hsl(var(--eden-forest))">Eden's Table</p>
+      <p class="font-body text-xs text-muted-foreground">Published by Rooted in Faith Ventures LLC</p>
+    </div>
+  </header>
+
+  <section class="pt-16 pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">
+        Grades K-2 · Ages 5 to 7
+      </p>
+      <h1 class="font-serif text-4xl md:text-5xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
+        A Bible-based science and nature study curriculum
+      </h1>
+      <div class="w-16 h-px mx-auto my-6" style="background-color:hsl(var(--eden-gold))"></div>
+      <p class="font-body text-lg text-muted-foreground leading-relaxed">
+        Eden's Table is a full 36-week year of botany, plant identification and careful observation for
+        kindergarten through second grade. Each week centers on one plant, and reading, writing, math,
+        history, geography and art are woven into the study of it.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-12 px-6 bg-background">
+    <div class="max-w-2xl mx-auto space-y-4">
+      <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+        <h2 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-forest))">What the child does</h2>
+        <p class="font-body text-sm text-muted-foreground leading-relaxed">
+          Across 36 weeks and 180 planned lessons, a child studies one plant a week. She observes it,
+          draws and labels it, measures and records what she sees, and learns its common and botanical
+          names. By the end of the year she has a dated notebook in her own handwriting that doubles as a
+          portfolio for homeschool records. Every lesson is written at two depths, so a younger and an
+          older child can work the same week at the same table.
+        </p>
+      </div>
+
+      <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+        <h2 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-forest))">What the parent needs</h2>
+        <p class="font-body text-sm text-muted-foreground leading-relaxed">
+          No background in the subject. The read-alouds are scripted, the discussion questions are written,
+          and the supply list for each week is already made.
+        </p>
+      </div>
+
+      <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+        <h2 class="font-serif text-lg font-bold mb-3" style="color:hsl(var(--eden-forest))">A week at a glance</h2>
+        <ul class="space-y-2">
+          {week.map((w) => (
+            <li class="font-body text-sm text-muted-foreground leading-relaxed">
+              <strong style="color:hsl(var(--eden-bark))">{w.day}.</strong> {w.body}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-4xl mx-auto">
+      <h2 class="font-serif text-3xl font-bold text-center mb-8" style="color:hsl(var(--eden-bark))">What you can buy</h2>
+      <div class="grid gap-6 md:grid-cols-3">
+        {products.map((p) => (
+          <div class="rounded-lg bg-white border overflow-hidden flex flex-col" style="border-color:hsl(var(--eden-gold) / 0.3)">
+            <img src={p.img} alt={p.imgAlt} class="w-full aspect-square object-cover" loading="lazy" />
+            <div class="p-5 flex flex-col flex-1">
+              <h3 class="font-serif text-lg font-bold" style="color:hsl(var(--eden-forest))">{p.name}</h3>
+              <p class="font-serif text-2xl font-bold mt-1" style="color:hsl(var(--eden-bark))">{p.price}</p>
+              <p class="font-body text-xs text-muted-foreground mb-3">{p.priceNote}</p>
+              <ul class="space-y-2 mb-4">
+                {p.points.map((pt) => (
+                  <li class="font-body text-sm text-muted-foreground leading-relaxed">{pt}</li>
+                ))}
+              </ul>
+              <p class="font-body text-xs text-muted-foreground mt-auto pt-3 border-t" style="border-color:hsl(var(--eden-gold) / 0.2)">
+                Listed on scholarship marketplaces as <em>{p.esaName}</em>, SKU {p.sku}.
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="py-12 px-6 bg-background">
+    <div class="max-w-2xl mx-auto space-y-4">
+      <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+        <h2 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-forest))">What is not included</h2>
+        <p class="font-body text-sm text-muted-foreground leading-relaxed">
+          Books and printable files only. No food, plant material, supplements, vitamins, or any other
+          consumable or edible product is sold or shipped. Nothing in the curriculum expires.
+        </p>
+      </div>
+
+      <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+        <h2 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-forest))">Faith content</h2>
+        <p class="font-body text-sm text-muted-foreground leading-relaxed">
+          This is a Christian curriculum, and the faith content is part of its structure. Each week is
+          anchored in a Scripture memory verse (NASB, used with permission), and every lesson connects the
+          week's plant to God's design in creation. Families looking for a secular program should know this
+          before they buy.
+        </p>
+      </div>
+
+      <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+        <h2 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-forest))">Ordering with a scholarship or education savings account</h2>
+        <p class="font-body text-sm text-muted-foreground leading-relaxed mb-3">
+          Where Eden's Table is an approved provider, families can order through their program's marketplace
+          or provider directory. If you are not sure how your program works, write to us and we will help.
+        </p>
+        <p class="font-body text-sm text-muted-foreground leading-relaxed">
+          Families paying directly can order the
+          <a href="/books" class="underline">printed set and extra notebooks</a>
+          or the
+          <a href="/starter" class="underline">nine-week starter unit</a>
+          on our store.
+        </p>
+      </div>
+
+      <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+        <h2 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-forest))">Publisher and contact</h2>
+        <p class="font-body text-sm text-muted-foreground leading-relaxed">
+          Eden's Table is published by Rooted in Faith Ventures LLC, 303 Holly Cir, Unit 3262, Clarksville,
+          Tennessee 37043.
+          <a href="mailto:hello@edeninstitute.health" class="underline">hello@edeninstitute.health</a>,
+          phone <a href="tel:+19315755895" class="underline">(931) 575-5895</a>, Monday through Friday,
+          9am to 5pm Central.
+          <a href="/returns" class="underline">Return and refund policy</a>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="px-6 py-8 text-center" style="background-color:hsl(var(--eden-bark))">
+    <p class="font-serif text-lg font-semibold" style="color:hsl(var(--eden-parchment))">Eden's Table</p>
+    <p class="font-body text-xs mt-1" style="color:hsl(var(--eden-parchment) / 0.6)">
+      A Bible-based science and nature study curriculum · Rooted in Faith Ventures LLC
+    </p>
+  </footer>
+</MarketingLayout>

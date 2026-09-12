@@ -21,6 +21,15 @@ export interface Props {
   /** Private, link-only pages (e.g. /partner-sample) keep themselves out of the
       index. Defaults to false, so every existing page stays "index, follow". */
   noindex?: boolean;
+  /** Pages that render their own header opt out of the shared <Navbar />.
+      Defaults to false so all other pages are unaffected. Added for /curriculum,
+      the page scholarship reviewers see: the shared navbar carries "Biblical
+      Herbalism Education" and "Shop Quality Herbs", which is the framing state
+      ESA programs cannot place under an approved subject. */
+  hideNav?: boolean;
+  /** Overrides the sitewide Organization JSON-LD description for one page.
+      Defaults to the institute description, so every existing page is unchanged. */
+  orgDescription?: string;
 }
 
 const {
@@ -32,6 +41,8 @@ const {
   jsonLd,
   hideFooter = false,
   noindex = false,
+  hideNav = false,
+  orgDescription = "A structured, worldview-anchored, terrain-based clinical herbalism institute.",
 } = Astro.props;
 
 // Sitewide identity — present on every marketing page.
@@ -41,7 +52,7 @@ const orgJsonLd = {
   name: "The Eden Institute",
   url: "https://edeninstitute.health",
   logo: "https://edeninstitute.health/favicon.ico",
-  description: "A structured, worldview-anchored, terrain-based clinical herbalism institute.",
+  description: orgDescription,
   parentOrganization: { "@type": "Organization", name: "Rooted in Faith Ventures" },
   sameAs: ["https://twitter.com/edeninstitute"],
 };
@@ -142,7 +153,7 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PVRHXN8N"
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <!-- End Google Tag Manager (noscript) -->
-    <Navbar />
+    {hideNav ? null : <Navbar />}
     <slot />
     {hideFooter ? null : <Footer />}
     {/* client:only — never server-rendered. The shared Supabase client touches
