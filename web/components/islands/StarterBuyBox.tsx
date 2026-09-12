@@ -105,9 +105,9 @@ export default function StarterBuyBox({ cta, wide = false }: Props) {
       )}
 
       {/* Founder 2026-09-12: sits under every buy button so nobody pays thinking
-          this is the whole year. "Starter" and "one quarter", never "partial". */}
+          this is the whole year. "9-week starter", never "partial" or "quarter". */}
       <p className="font-body text-sm mt-3 font-semibold" style={{ color: "hsl(var(--eden-bark))" }}>
-        The starter: weeks 1 to 9, one quarter of the 36-week year.
+        The 9-week starter: weeks 1 to 9 of the 36-week year.
       </p>
       <p className="font-body text-xs mt-2 text-muted-foreground">
         Instant download. Because this is a digital product, it is not refundable once
