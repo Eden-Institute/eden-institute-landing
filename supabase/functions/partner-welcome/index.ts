@@ -136,8 +136,8 @@ ${rule()}
 ${sectionLabel('Your six-week sample')}
 ${downloadButtons}
 ${rule()}
-${para(`This sample covers six weeks. The full kits carry a family through a complete 36-week school year, with a new herb on the table each week.`)}
-${para(`A little honesty about where we are: we are pre-fulfillment right now and taking preorders, so we are still bringing the full physical kits to life. That is exactly why partners like you matter so much. You are not a name on a list, you are one of the very first people helping us build this, and I will not forget it.`)}
+${para(`This sample covers six weeks. The full curriculum carries a family through a complete 36-week school year, with a new herb on the table each week.`)}
+${para(`A little honesty about where we are: the whole Sprouts year is finished and in print now, and the boxed kit with the card decks is still ahead of us, waiting on its first print run. That is exactly why partners like you matter so much. You are not a name on a list, you are one of the very first people helping us build this, and I will not forget it.`)}
 ${para(`Here is my promise. Once our kits are in hand, if you love what you see, I would love to send you a full kit at our cost, simply what it takes to make it, as a thank-you for being one of our founding partners. And as the Lord grows this, we will keep finding ways to thank the people who believed in it early. Founder perks, for real.`)}
 ${para(`For now, take your time with the sample. If it resonates, an honest word to your community whenever it feels natural is the greatest gift you could give us, and a simple &quot;gifted&quot; note keeps everything above board.`)}
 ${para(`And when you do share, tag us so we can cheer you on and send people your way: <a href="https://www.instagram.com/edenstablehomeschoolcurriculum/" style="color:#1C3A2E;">@edenstablehomeschoolcurriculum</a> on Instagram and <a href="https://www.facebook.com/EdensTableHomeschoolCurriculum/" style="color:#1C3A2E;">Eden's Table Homeschool Curriculum</a> on Facebook.`)}

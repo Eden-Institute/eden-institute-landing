@@ -133,7 +133,7 @@ function ctaButton(label: string, href: string, variant: 'primary' | 'secondary'
 
 function closingBlock(): string {
   return `<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:24px 0 4px 0;">We'll be in touch soon.</p>
-<p style="font-family:Georgia,serif;font-size:16px;color:#1C3A2E;font-weight:bold;margin:0;">— Camila Johnson</p>
+<p style="font-family:Georgia,serif;font-size:16px;color:#1C3A2E;font-weight:bold;margin:0;">Camila Johnson</p>
 <p style="font-family:Georgia,serif;font-size:14px;color:#C9A84C;margin:4px 0 0 0;">The Eden Institute</p>`;
 }
 
@@ -190,10 +190,10 @@ function buildHomeschoolEmail(firstName: string): { subject: string; html: strin
     <p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
     <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 8px 0;">You're on the list.</p>
     <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 24px 0;">
-      Eden's Table is a K–12 Biblical herbalism curriculum being built for families who believe the earth was created with purpose — and that stewarding it well begins at home. You'll be among the first to see it, price it, and shape it.
+      Eden's Table is a K–12 Biblical herbalism curriculum being built for families who believe the earth was created with purpose, and that stewarding it well begins at home. You'll be among the first to see it, price it, and shape it.
     </p>
     <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 24px 0;">
-      While we finish building, consider starting with our adult foundations course. Most of our homeschool families tell us it changed how they teach — because it changed how they understand.
+      While we finish building, consider starting with our adult foundations course. Most of our homeschool families tell us it changed how they teach, because it changed how they understand.
     </p>
     ${ctaButton("Explore the Foundations Course", "https://learn.edeninstitute.health/course/back-to-eden1")}
     ${goldDivider()}
@@ -207,7 +207,7 @@ function buildHomeschoolEmail(firstName: string): { subject: string; html: strin
     <a href="{{UNSUB_URL}}" style="font-family:Georgia,serif;font-size:11px;color:#6B6560;text-decoration:underline;">Unsubscribe</a>
     </td></tr></table>`;
   return {
-    subject: "You're on the Eden's Table Waitlist — Here's What's Coming",
+    subject: "You're on the Eden's Table Waitlist: Here's What's Coming",
     html: `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#FAF8F3;">${body}${footer}</body></html>`
   };
 }
@@ -236,94 +236,16 @@ function buildCommunityEmail(firstName: string): { subject: string; html: string
 // ── Phase 3.1 Day-1: source-branched email builders for edens_table funnel ──
 // One welcome email per /homeschool CTA. Day-7 Week-2 send is Phase 3.1.2.
 
-// Latch-aware founding-window check for the Founders Club welcome copy, so a
-// signup AFTER the 500th kit never receives a $249 promise that no longer
-// exists. Same founding_gate RPC the checkout enforces (POST: the RPC is
-// volatile, it stamps the one-way latch when the cap is first reached).
-// Fails toward TRUE (founding copy): during the founding window a transient
-// error must not send retail copy to a real founding prospect, and
-// create-checkout independently enforces the real price either way.
-async function foundingWindowOpen(): Promise<boolean> {
-  try {
-    const prodRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/products?sku=eq.sprouts_kit&select=id&limit=1`,
-      {
-        headers: {
-          apikey: SUPABASE_SERVICE_ROLE_KEY!,
-          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        },
-      },
-    );
-    if (!prodRes.ok) return true;
-    const prods = await prodRes.json();
-    if (!Array.isArray(prods) || prods.length === 0) return true;
-    const gateRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/founding_gate`, {
-      method: 'POST',
-      headers: {
-        apikey: SUPABASE_SERVICE_ROLE_KEY!,
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ p_product_id: prods[0].id }),
-    });
-    if (!gateRes.ok) return true;
-    const rows = await gateRes.json();
-    const row = Array.isArray(rows) ? rows[0] : rows;
-    if (!row || typeof row.closed !== 'boolean') return true;
-    return !row.closed;
-  } catch (err) {
-    console.error('foundingWindowOpen check failed; defaulting to founding copy:', String(err));
-    return true;
-  }
-}
-
-function buildFoundersClubEmail(firstName: string, foundingOpen: boolean): { subject: string; html: string } {
-  if (!foundingOpen) {
-    const closedBody = `
-<p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">You're in. Your seat at Eden's Table is reserved.</p>
-${goldDivider()}
-${goldLabel('WHERE THINGS STAND')}
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">The first <strong>500 founding kits</strong> have been claimed, and Sprouts now sells at its standard <strong>$349</strong> retail price. Every preorder still joins the same first print run, and we will email you with every step of its progress.</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 24px 0;">You'll hear from us once a month with progress notes &mdash; what's being built, what's being tested, what we're learning.</p>
-${goldDivider()}
-${goldLabel('WANT LESSONS IN HAND TODAY?')}
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">You don't have to wait to start. Download a free sample week &mdash; five real, open-and-go lessons per band (Teacher Guide, Student Notebook, Field Cards, Recipe Cards, and the Around-the-Table deck), yours to print and teach this week. We'll email the downloads the moment you choose a band.</p>
-${ctaButton('GET FREE CURRICULUM SAMPLES', 'https://edeninstitute.health/homeschool#early-access')}
-${goldDivider()}
-${goldLabel('WHILE WE BUILD')}
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Eden's Table is the children's curriculum. The Eden Institute's adult Tier 1 Course &mdash; the Biblical Framework &mdash; is the soil it grew from. Most parents who go through it tell us their reading of Scripture changes.</p>
-${ctaButton('EXPLORE TIER 1 COURSE', 'https://edeninstitute.health/courses', 'secondary')}
-${goldDivider()}
-${closingBlock()}`;
-    return { subject: "Your seat at Eden's Table is reserved", html: emailWrapper(closedBody) };
-  }
-  const body = `
-<p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">You're in. Your seat at the Eden's Table Founders Club is reserved.</p>
-${goldDivider()}
-${goldLabel('HOW FOUNDERS PRICING WORKS')}
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Preorders are <strong>open now</strong>. The first <strong>500 kits</strong> sell at the Founders price: <strong>$249</strong>, before the $349 retail price begins. No code needed. Founders pricing applies automatically while the first 500 kits last. You can preorder any time at <a href="https://edeninstitute.health/preorder" style="color:#5C7A5C;text-decoration:underline;">edeninstitute.health/preorder</a>.</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 24px 0;">Until then, you'll hear from us once a month with progress notes &mdash; what's being built, what's being tested, what we're learning.</p>
-${goldDivider()}
-${goldLabel('WANT LESSONS IN HAND TODAY?')}
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">You don't have to wait to start. Download a free sample week &mdash; five real, open-and-go lessons per band (Teacher Guide, Student Notebook, Field Cards, Recipe Cards, and the Around-the-Table deck), yours to print and teach this week. We'll email the downloads the moment you choose a band.</p>
-${ctaButton('GET FREE CURRICULUM SAMPLES', 'https://edeninstitute.health/homeschool#early-access')}
-${goldDivider()}
-${goldLabel('WHILE WE BUILD')}
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Eden's Table is the children's curriculum. The Eden Institute's adult Tier 1 Course &mdash; the Biblical Framework &mdash; is the soil it grew from. Most parents who go through it tell us their reading of Scripture changes.</p>
-${ctaButton('EXPLORE TIER 1 COURSE', 'https://edeninstitute.health/courses', 'secondary')}
-${goldDivider()}
-${closingBlock()}`;
-  return { subject: "You're in the Founders Club at Eden's Table", html: emailWrapper(body) };
-}
+// The Founders Club welcome ("Preorders are open now ... $249") and its
+// founding-window check lived here until 2026-09-12. Deleted with the
+// print-first pivot; recover from git history (f0d7399) for phase two.
 
 function buildSproutsMagnetEmail(firstName: string): { subject: string; html: string } {
   const body = `
 <p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Thank you for stepping into this work with us. What follows is a real week of curriculum &mdash; Week 1 of Sprouts, the band built for kindergarten through second grade. Not a sample stripped of substance. Five days with Lavender, a story your child will remember, and the small daily rhythms that turn a kitchen counter into a place of formation.</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Thank you for stepping into this work with us. What follows is a real week of curriculum: Week 1 of Sprouts, the band built for kindergarten through second grade. Not a sample stripped of substance. Five days with Lavender, a story your child will remember, and the small daily rhythms that turn a kitchen counter into a place of formation.</p>
 ${goldDivider()}
-${goldLabel('YOUR THREE DOWNLOADS &mdash; SPROUTS WEEK 1 (LAVENDER)')}
+${goldLabel('YOUR THREE DOWNLOADS: SPROUTS WEEK 1 (LAVENDER)')}
 ${ctaButton('MEET THE FAMILY (READ-ALOUD)', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-ra-lavender.pdf')}
 ${ctaButton("TEACHER'S GUIDE", 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-tg-lavender.pdf')}
 ${ctaButton('STUDENT NOTEBOOK', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-nb-lavender.pdf')}
@@ -337,9 +259,9 @@ ${closingBlock()}`;
 function buildSeedlingsMagnetEmail(firstName: string): { subject: string; html: string } {
   const body = `
 <p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Thank you for stepping into this work with us. What follows is a real week of curriculum from Seedlings, our band for third through fifth graders. Seedlings is built for the child who has begun to ask <em>why</em> and <em>how</em> &mdash; the one who has outgrown a worksheet and is ready to track a hypothesis across a week. Week 1 starts with Elderberry.</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Thank you for stepping into this work with us. What follows is a real week of curriculum from Seedlings, our band for third through fifth graders. Seedlings is built for the child who has begun to ask <em>why</em> and <em>how</em>, the one who has outgrown a worksheet and is ready to track a hypothesis across a week. Week 1 starts with Elderberry.</p>
 ${goldDivider()}
-${goldLabel('YOUR TWO DOWNLOADS &mdash; SEEDLINGS WEEK 1 (ELDERBERRY)')}
+${goldLabel('YOUR TWO DOWNLOADS: SEEDLINGS WEEK 1 (ELDERBERRY)')}
 ${ctaButton("TEACHER'S GUIDE", 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-tg-elderberry.pdf')}
 ${ctaButton('STUDENT NOTEBOOK', 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-nb-elderberry.pdf')}
 ${goldDivider()}
@@ -467,7 +389,7 @@ ${ctaButton('→ JOIN THE FOUNDATIONS COURSE WAITLIST', 'https://edeninstitute.h
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="height:12px;font-size:0;line-height:0;">&nbsp;</td></tr></table>
 ${ctaButton('→ PURCHASE BOOK ONE', 'https://www.amazon.com/dp/B0GPW5BZ32', 'secondary')}
 ${goldDivider()}
-<p style="font-family:Georgia,serif;font-size:16px;color:#1C3A2E;font-weight:bold;margin:0;">— Camila Johnson</p>
+<p style="font-family:Georgia,serif;font-size:16px;color:#1C3A2E;font-weight:bold;margin:0;">Camila Johnson</p>
 <p style="font-family:Georgia,serif;font-size:14px;color:#C9A84C;margin:4px 0 0 0;">The Eden Institute</p>`;
 
   return {
@@ -896,9 +818,11 @@ Deno.serve(async (req) => {
         emailContent = buildSproutsMagnetEmail(firstNameSafe);
       } else if (source === 'seedlings_magnet') {
         emailContent = buildSeedlingsMagnetEmail(firstNameSafe);
-      } else if (source === 'reserve') {
-        emailContent = buildFoundersClubEmail(firstNameSafe, await foundingWindowOpen());
       } else {
+        // 'reserve' used to route to the Founders Club welcome ("Preorders are
+        // open now, the first 500 kits sell at $249"). Preorders closed on
+        // 2026-09-12 (print-first pivot), so that email and its founding-window
+        // check were deleted; the source now falls through here like any other.
         // Unknown source on edens_table funnel → legacy Homeschool welcome email
         // (the "Early Access" copy currently deployed; safest fallback for any
         // signups that hit this EF without a source we recognize).
