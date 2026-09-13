@@ -61,7 +61,7 @@ const TOP_HERBS: Record<string, { name: string; note: string }[]> = {
     { name: 'Oregon Grape Root', note: 'Cools damp heat and supports liver function.' },
   ],
   'drawn-bowstring': [
-    { name: 'Ashwagandha', note: 'Deeply restorative — calms anxiety while building strength.' },
+    { name: 'Ashwagandha', note: 'Deeply restorative. Calms anxiety while building strength.' },
     { name: 'Valerian', note: 'Releases the tension your body cannot let go of on its own.' },
     { name: 'Milky Oats', note: 'Slowly rebuilds an exhausted nervous system.' },
   ],
@@ -235,7 +235,7 @@ export function buildNurtureEmail1(
 </table>`).join('');
 
   const body = `
-${p(`You just took the Constitutional Assessment — and your result is in.`)}
+${p(`You just took the Constitutional Assessment, and your result is in.`)}
 ${spacer(4)}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;border:1px solid ${BRAND.gold};background-color:${BRAND.bgOuter};">
 <tr><td style="padding:24px;text-align:center;">
@@ -243,7 +243,7 @@ ${spacer(4)}
 <p style="font-family:Georgia,serif;font-size:24px;font-weight:bold;color:${BRAND.forest};margin:0;">${constitutionName}</p>
 </td></tr>
 </table>
-${p("This isn't a personality quiz or a horoscope. It's a pattern — one that shows up in your digestion, your energy, your skin, your sleep, and even in the herbs that work for you (and the ones that don't).")}
+${p("This isn't a personality quiz or a horoscope. It's a pattern, one that shows up in your digestion, your energy, your skin, your sleep, and even in the herbs that work for you (and the ones that don't).")}
 ${p("Here's the short version: your body has a specific combination of temperature tendency, fluid balance, and tissue tone. That combination determines how you respond to herbs, food, stress, and seasons. When you work WITH the pattern instead of against it, everything changes.")}
 ${goldDivider()}
 ${heading("YOUR TOP 3 HERBS")}
@@ -253,12 +253,12 @@ ${spacer(8)}
 ${p(`${link("See your full quiz results anytime →", `https://edeninstitute.health/results/${constitutionSlug}`)}`)}
 ${goldDivider()}
 ${heading("WANT THE FULL PICTURE?")}
-${p("Your Deep-Dive Guide includes all 10 matched herbs with actions, preparation methods, dosages, and safety notes — plus a caution list, lifestyle and nutrition guidance, and a Biblical framework for your constitutional pattern.")}
-${brandButton(`Get Your ${constitutionName.replace(/^The /i, '')} Deep-Dive Guide — $4.99`, `https://edeninstitute.health/go/deep-dive/${constitutionSlug}`)}
+${p("Your Deep-Dive Guide includes all 10 matched herbs with actions, preparation methods, dosages, and safety notes, plus a caution list, lifestyle and nutrition guidance, and a Biblical framework for your constitutional pattern.")}
+${brandButton(`Get Your ${constitutionName.replace(/^The /i, '')} Deep-Dive Guide: $4.99`, `https://edeninstitute.health/go/deep-dive/${constitutionSlug}`)}
 ${signature()}`;
 
   return {
-    subject: `Your body type is ${constitutionName} — here's what that means`,
+    subject: `Your body type is ${constitutionName}. Here's what that means`,
     html: emailWrapper(body),
   };
 }
@@ -272,7 +272,7 @@ export function buildNurtureEmail2(
   constitutionSlug: string,
 ): { subject: string; html: string } {
   const body = `
-${p("Have you ever tried an herb that everyone swore by — and it did nothing? Or worse, it made things worse?")}
+${p("Have you ever tried an herb that everyone swore by, and it did nothing? Or worse, it made things worse?")}
 ${spacer(4)}
 ${bullet("<strong>Chamomile</strong> makes some people jittery instead of calm.")}
 ${bullet("<strong>Ginger</strong> causes acid reflux in people who already run hot.")}
@@ -281,14 +281,14 @@ ${spacer(8)}
 ${p("This isn't random. It's constitutional.")}
 ${goldDivider()}
 ${heading("THE 3 AXES OF YOUR CONSTITUTION")}
-${subheading("1. TEMPERATURE — Do you run hot or cold?")}
-${p("This determines whether warming or cooling herbs serve you. Get it wrong and you add fuel to a fire — or ice to a glacier.")}
-${subheading("2. FLUID BALANCE — Do you run dry or damp?")}
+${subheading("1. TEMPERATURE: Do you run hot or cold?")}
+${p("This determines whether warming or cooling herbs serve you. Get it wrong and you add fuel to a fire, or ice to a glacier.")}
+${subheading("2. FLUID BALANCE: Do you run dry or damp?")}
 ${p("This determines whether moistening or drying herbs are appropriate. A dry body given a drying herb becomes brittle. A damp body given a moistening herb becomes waterlogged.")}
-${subheading("3. TISSUE TONE — Are you tense or relaxed?")}
+${subheading("3. TISSUE TONE: Are you tense or relaxed?")}
 ${p("This determines whether relaxing or toning herbs are needed. Tension needs release. Laxity needs structure.")}
 ${goldDivider()}
-${p(`Your quiz result — <strong>${constitutionName}</strong> — reflects your specific combination of these three axes. And that combination is why certain herbs work brilliantly for you and others backfire.`)}
+${p(`Your quiz result, <strong>${constitutionName}</strong>, reflects your specific combination of these three axes. And that combination is why certain herbs work brilliantly for you and others backfire.`)}
 ${p("This is the foundation of constitutional herbalism. Practitioners have been reading these patterns for 3,000 years in the Western clinical tradition. We've translated it into a framework that makes sense for modern Christian families.")}
 ${spacer(8)}
 ${p("<em>This is exactly what Tier 1 of the Foundations Course covers in depth.</em>")}
@@ -311,15 +311,15 @@ export function buildNurtureEmail3(
   constitutionSlug: string,
 ): { subject: string; html: string } {
   const body = `
-${p("She tried turmeric — it made her stomach burn. She tried valerian — it made her wired. She took elderberry every winter — and it did nothing.")}
+${p("She tried turmeric, and it made her stomach burn. She tried valerian, and it made her wired. She took elderberry every winter, and it did nothing.")}
 ${p("She wasn't doing anything wrong. She was asking the wrong question.")}
-${p(`She wasn't asking <em>"What herb fixes this symptom?"</em> She was asking <em>"What kind of body do I have — and what does IT need?"</em>`)}
+${p(`She wasn't asking <em>"What herb fixes this symptom?"</em> She was asking <em>"What kind of body do I have, and what does IT need?"</em>`)}
 ${goldDivider()}
 ${heading("THE DISCOVERY")}
-${p("She was running hot, dry, and tense. Turmeric was adding fuel to a fire. Valerian was the right idea — nervous system support — but the wrong execution for her pattern. Elderberry wasn't addressing her actual imbalance.")}
+${p("She was running hot, dry, and tense. Turmeric was adding fuel to a fire. Valerian was the right idea (nervous system support) but the wrong execution for her pattern. Elderberry wasn't addressing her actual imbalance.")}
 ${p("<strong>When she matched herbs to her constitution instead of her symptoms, the results were immediate.</strong>")}
 ${spacer(8)}
-${p(`You already know yours: <strong>${constitutionName}</strong>. The Foundations Course teaches you how to go deeper — how to read your constitution in real time, how to match it precisely to herbs, and how to build protocols that actually work.`)}
+${p(`You already know yours: <strong>${constitutionName}</strong>. The Foundations Course teaches you how to go deeper: how to read your constitution in real time, how to match it precisely to herbs, and how to build protocols that actually work.`)}
 ${goldDivider()}
 ${heading("\"BUT I DON'T HAVE TIME FOR A COURSE.\"")}
 ${p("The course is self-paced. No deadlines, no live sessions. Most students spend 2-3 hours per week. The knowledge lasts a lifetime.")}
@@ -355,15 +355,15 @@ ${goldDivider()}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;background-color:${BRAND.bgOuter};border:1px solid ${BRAND.gold};">
 <tr><td style="padding:24px;text-align:center;">
 <p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:3px;color:${BRAND.gold};text-transform:uppercase;margin:0 0 8px 0;">NOW ENROLLING</p>
-<p style="font-family:Georgia,serif;font-size:22px;font-weight:bold;color:${BRAND.forest};margin:0;">THE FOUNDATIONS OF CONSTITUTIONAL HERBALISM — TIER 1</p>
+<p style="font-family:Georgia,serif;font-size:22px;font-weight:bold;color:${BRAND.forest};margin:0;">THE FOUNDATIONS OF CONSTITUTIONAL HERBALISM, TIER 1</p>
 </td></tr>
 </table>
 ${heading("Part I: The Foundation")}
-${p("God's design, the 5 Tenets of Health, and terrain thinking — the Biblical and historical framework for plant medicine.")}
+${p("God's design, the 5 Tenets of Health, and terrain thinking: the Biblical and historical framework for plant medicine.")}
 ${heading("Part II: The Body Was Designed to Heal")}
-${p("The 3 axes, 8 constitutional types, and tissue states — how to understand the human body through constitution.")}
+${p("The 3 axes, 8 constitutional types, and tissue states: how to understand the human body through constitution.")}
 ${heading("Part III: Reading the Person")}
-${p("Constitutional assessment, herb matching, and protocols — how to match people to plants with precision.")}
+${p("Constitutional assessment, herb matching, and protocols: how to match people to plants with precision.")}
 ${goldDivider()}
 ${subheading("WHAT'S INCLUDED")}
 ${bullet("10 video lessons")}
@@ -388,13 +388,13 @@ ${subheading("\"Is this faith-based?\"")}
 ${p("Yes. Grounded in Scripture, with Yahweh as healer. Clinical rigor within a Biblical worldview.")}
 ${subheading("\"What if I can't finish in time?\"")}
 ${p("The course is entirely self-paced with lifetime access. There is no deadline.")}
-${brandButton("ENROLL NOW — THE FOUNDATIONS COURSE", "https://learn.edeninstitute.health/course/back-to-eden1")}
+${brandButton("ENROLL NOW: THE FOUNDATIONS COURSE", "https://learn.edeninstitute.health/course/back-to-eden1")}
 ${goldDivider()}
-${p("<strong>P.S.</strong> Tier 2 — Body Systems & Clinical Literacy — is coming. Tier 1 students are first to hear when it opens, so finishing Foundations puts you at the front of the line.")}
+${p("<strong>P.S.</strong> Tier 2, Body Systems & Clinical Literacy, is coming. Tier 1 students are first to hear when it opens, so finishing Foundations puts you at the front of the line.")}
 ${signature()}`;
 
   return {
-    subject: `Enrollment is open — your ${constitutionName} guide to herbs starts here`,
+    subject: `Enrollment is open: your ${constitutionName} guide to herbs starts here`,
     html: emailWrapper(body),
   };
 }
@@ -415,13 +415,13 @@ export function buildNurtureEmail5(
   );
 
   const body = `
-${p("No pressure. Truly. Not everyone is ready for a full course — and that's okay. Herbs meet you where you are.")}
+${p("No pressure. Truly. Not everyone is ready for a full course, and that's okay. Herbs meet you where you are.")}
 ${p(`Based on your constitutional type (<strong>${constitutionName}</strong>), I've put together a curated herb kit on Amazon. These are the specific herbs that match your body's pattern.`)}
 ${brandButton(`Shop Your ${constitutionName} Starter Kit`, amazonUrl)}
 ${spacer(8)}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;background-color:${BRAND.bgOuter};border-left:3px solid ${BRAND.gold};">
 <tr><td style="padding:16px 20px;">
-<p style="font-family:Georgia,serif;font-size:13px;color:${BRAND.footerText};margin:0;line-height:1.6;"><em>These are affiliate links — I earn a small commission if you purchase through them. It costs you nothing extra. It helps me keep building Eden Institute.</em></p>
+<p style="font-family:Georgia,serif;font-size:13px;color:${BRAND.footerText};margin:0;line-height:1.6;"><em>These are affiliate links. I earn a small commission if you purchase through them. It costs you nothing extra. It helps me keep building Eden Institute.</em></p>
 </td></tr>
 </table>
 ${p("If and when you're ready to go deeper, the Foundations Course is always available.")}
@@ -431,7 +431,7 @@ ${p("<strong>P.S.</strong> Ready to go deeper than the kit? The Foundations Cour
 ${signature()}`;
 
   return {
-    subject: `Your ${constitutionName} starter herb kit — curated just for you`,
+    subject: `Your ${constitutionName} starter herb kit, curated just for you`,
     html: emailWrapper(body),
   };
 }
@@ -519,20 +519,20 @@ const ARC_HOMESCHOOL_URL = 'https://edeninstitute.health/homeschool';
 // Day 11: Deep-Dive Guide + the Foundations class.
 export function buildNurtureArc1(firstName: string, constitutionName: string, constitutionSlug: string): { subject: string; html: string } {
   const patternShort = constitutionName.replace(/^The /i, '');
-  const body = `${p(`Hi ${firstName},`)}${p(`You&rsquo;ve spent two weeks getting to know your pattern, <strong>${constitutionName}</strong>. If you&rsquo;re ready to go further, there are two doors.`)}${goldDivider()}${heading('1 &mdash; Your Deep-Dive Guide')}${p(`Your ${patternShort} pattern in full: all 10 matched herbs with actions, preparation methods, dosages, and safety notes &mdash; plus a caution list, lifestyle and nutrition guidance, and the Biblical framework for your constitution.`)}${brandButton(`Get Your ${patternShort} Deep-Dive Guide &mdash; $4.99`, `https://edeninstitute.health/go/deep-dive/${constitutionSlug}`)}${goldDivider()}${heading('2 &mdash; The Foundations Class')}${p(`The guide hands you your pattern. The Foundations Course (Tier 1) teaches you to read and work with <em>any</em> constitution &mdash; yours, your children&rsquo;s, your whole household&rsquo;s.`)}${p(`It&rsquo;s <strong>$97</strong>, one payment, lifetime access. No coupon code needed.`)}${brandButton('Start the Foundations Class', ARC_COURSE_URL)}${p(`If you&rsquo;ve already begun &mdash; wonderful. Keep going.`)}${signature()}`;
-  return { subject: 'Now you know your pattern — go deeper', html: emailWrapper(body) };
+  const body = `${p(`Hi ${firstName},`)}${p(`You&rsquo;ve spent two weeks getting to know your pattern, <strong>${constitutionName}</strong>. If you&rsquo;re ready to go further, there are two doors.`)}${goldDivider()}${heading('1. Your Deep-Dive Guide')}${p(`Your ${patternShort} pattern in full: all 10 matched herbs with actions, preparation methods, dosages, and safety notes, plus a caution list, lifestyle and nutrition guidance, and the Biblical framework for your constitution.`)}${brandButton(`Get Your ${patternShort} Deep-Dive Guide: $4.99`, `https://edeninstitute.health/go/deep-dive/${constitutionSlug}`)}${goldDivider()}${heading('2. The Foundations Class')}${p(`The guide hands you your pattern. The Foundations Course (Tier 1) teaches you to read and work with <em>any</em> constitution: yours, your children&rsquo;s, your whole household&rsquo;s.`)}${p(`It&rsquo;s <strong>$97</strong>, one payment, lifetime access. No coupon code needed.`)}${brandButton('Start the Foundations Class', ARC_COURSE_URL)}${p(`If you&rsquo;ve already begun, wonderful. Keep going.`)}${signature()}`;
+  return { subject: 'Now you know your pattern. Go deeper', html: emailWrapper(body) };
 }
 
 // Day 14: the app + the book.
 export function buildNurtureArc2(firstName: string, constitutionName: string, _constitutionSlug: string): { subject: string; html: string } {
   const patternShort = constitutionName.replace(/^The /i, '');
-  const body = `${p(`Hi ${firstName},`)}${p(`Your pattern doesn&rsquo;t have to live in an inbox. Two ways to keep it close.`)}${goldDivider()}${heading('The Eden Apothecary app')}${p(`Pattern-aware herb guidance in your pocket &mdash; your ${patternShort} matched herbs, the full library, energetics and safety, all tied to your constitution. Free to start; Seed and Root unlock more depth when you want it.`)}${brandButton('Start Free in the App', ARC_APP_URL)}${goldDivider()}${heading('The book for your shelf')}${p(`When you&rsquo;d rather hold it in your hands, Book One is the companion to everything we teach.`)}${brandButton('Get the Book', withAffiliateTag(ARC_BOOK_ONE_URL))}${p(`<em>Affiliate link &mdash; Eden Institute earns a small commission at no extra cost to you.</em>`)}${signature()}`;
+  const body = `${p(`Hi ${firstName},`)}${p(`Your pattern doesn&rsquo;t have to live in an inbox. Two ways to keep it close.`)}${goldDivider()}${heading('The Eden Apothecary app')}${p(`Pattern-aware herb guidance in your pocket: your ${patternShort} matched herbs, the full library, energetics and safety, all tied to your constitution. Free to start; Seed and Root unlock more depth when you want it.`)}${brandButton('Start Free in the App', ARC_APP_URL)}${goldDivider()}${heading('The book for your shelf')}${p(`When you&rsquo;d rather hold it in your hands, Book One is the companion to everything we teach.`)}${brandButton('Get the Book', withAffiliateTag(ARC_BOOK_ONE_URL))}${p(`<em>Affiliate link. Eden Institute earns a small commission at no extra cost to you.</em>`)}${signature()}`;
   return { subject: 'Carry your pattern with you', html: emailWrapper(body) };
 }
 
 // Day 17: homeschool curriculum + Facebook.
 export function buildNurtureArc3(firstName: string, _constitutionName: string, _constitutionSlug: string): { subject: string; html: string } {
-  const body = `${p(`Hi ${firstName},`)}${p(`One last door &mdash; this one&rsquo;s for your family.`)}${goldDivider()}${heading('Eden&rsquo;s Table &mdash; for your children')}${p(`Our K&ndash;12 Biblical-herbalism curriculum teaches children the bodies God designed and the plants He gave to tend them &mdash; woven through Scripture, science, and the rhythms of your own kitchen table.`)}${brandButton('Explore Eden&rsquo;s Table', ARC_HOMESCHOOL_URL)}${goldDivider()}${heading('Come along for the ride')}${p(`I&rsquo;m building all of this in real time. Follow along on Facebook for the progress, the roadblocks, and the launch news &mdash; it&rsquo;s sweeter with you walking it alongside me.`)}${facebookButton('Follow the Journey on Facebook', FACEBOOK_URL)}${signature()}`;
+  const body = `${p(`Hi ${firstName},`)}${p(`One last door, and this one&rsquo;s for your family.`)}${goldDivider()}${heading('Eden&rsquo;s Table, for your children')}${p(`Our K&ndash;12 Biblical-herbalism curriculum teaches children the bodies God designed and the plants He gave to tend them, woven through Scripture, science, and the rhythms of your own kitchen table.`)}${brandButton('Explore Eden&rsquo;s Table', ARC_HOMESCHOOL_URL)}${goldDivider()}${heading('Come along for the ride')}${p(`I&rsquo;m building all of this in real time. Follow along on Facebook for the progress, the roadblocks, and the launch news. It&rsquo;s sweeter with you walking it alongside me.`)}${facebookButton('Follow the Journey on Facebook', FACEBOOK_URL)}${signature()}`;
   return { subject: 'For your table and your family', html: emailWrapper(body) };
 }
 
