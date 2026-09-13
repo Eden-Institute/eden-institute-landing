@@ -63,6 +63,8 @@ import { foundersFormUrl } from '../_shared/founders-link.ts';
 import { buildBuyerEmail } from '../_shared/buyer-sequence-templates.ts';
 import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
+import { pgrstFetch } from '../_shared/pgrst-retry.ts';
+import { captureException } from '../_shared/sentry.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -151,7 +153,7 @@ async function supabaseQuery(
   path: string,
   options: RequestInit = {},
 ): Promise<any> {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+  const res = await pgrstFetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...options,
     headers: {
       apikey: SUPABASE_SERVICE_ROLE_KEY!,
@@ -166,11 +168,38 @@ async function supabaseQuery(
   return res.json();
 }
 
+// Runs AFTER Resend accepted the email. If the row is not marked, the next run
+// sends the same email again: a gateway 504 on this PATCH did exactly that on
+// 2026-09-11 (constitution_5 five times to one subscriber) and 2026-09-13.
+// pgrstFetch already retried it; if it still failed, say so loudly instead of
+// carrying on as if it had worked. Never throws, so a failed mark cannot fall
+// into a caller's catch and be counted as a failed send.
+async function markSent(
+  table: string,
+  id: string,
+  fields: Record<string, unknown>,
+): Promise<void> {
+  let status: number | string;
+  try {
+    const res = await supabaseQuery(`${table}?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(fields),
+    });
+    if (res.ok) return;
+    status = res.status;
+  } catch (err) {
+    status = err instanceof Error ? err.name : 'error';
+  }
+  const message = `sent but could not mark ${table} ${id} (${status}); the next run will send this email again`;
+  console.error(`nurture-emails: ${message}`);
+  await captureException(new Error(message), { function: 'nurture-emails', table, id, status });
+}
+
 // Enqueue the next magnet position for this recipient at +7 days. Idempotent via
 // the (recipient_email, band, sequence_position) conflict target + merge.
 async function enqueueNextMagnet(row: any, nextPos: number): Promise<void> {
   const scheduledFor = new Date(Date.now() + MAGNET_CHAIN_DELAY_MS).toISOString();
-  const res = await fetch(
+  const res = await pgrstFetch(
     `${SUPABASE_URL}/rest/v1/magnet_email_queue?on_conflict=recipient_email,band,sequence_position`,
     {
       method: 'POST',
@@ -378,13 +407,10 @@ async function drainNurtureQueue(): Promise<QueueResult> {
         engagementTags('constitution', emailKey),
       );
       if (send.ok) {
-        await supabaseQuery(`nurture_email_queue?id=eq.${row.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({
-            status: 'sent',
-            sent_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }),
+        await markSent('nurture_email_queue', row.id, {
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         });
         result.sent++;
       } else {
@@ -471,10 +497,7 @@ async function legacyEmail5(): Promise<LegacyResult> {
       engagementTags('constitution', 'constitution_5'),
     );
     if (send.ok) {
-      await supabaseQuery(`quiz_completions?id=eq.${row.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ email_5_sent_at: now.toISOString() }),
-      });
+      await markSent('quiz_completions', row.id, { email_5_sent_at: now.toISOString() });
       sent++;
     }
     await new Promise((r) => setTimeout(r, RATE_LIMIT_MS));
@@ -604,9 +627,10 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
         engagementTags('homeschool', emailKey),
       );
       if (send.ok) {
-        await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ status: 'sent', sent_at: new Date().toISOString(), updated_at: new Date().toISOString() }),
+        await markSent('magnet_email_queue', row.id, {
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         });
         result.sent++;
         if (MAGNET_BAND_AGNOSTIC.has(pos)) sentAgnostic.add(dedupeKey);
@@ -687,7 +711,7 @@ async function foundingWindowOpen(): Promise<boolean> {
       `products?sku=eq.${FOUNDING_GATE_SKU}&select=id&limit=1`,
     );
     if (!Array.isArray(products) || products.length === 0) return true;
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/founding_gate`, {
+    const res = await pgrstFetch(`${SUPABASE_URL}/rest/v1/rpc/founding_gate`, {
       method: 'POST',
       headers: {
         apikey: SUPABASE_SERVICE_ROLE_KEY!,
@@ -813,13 +837,10 @@ async function drainLaunchQueue(): Promise<QueueResult> {
         engagementTags('launch_2026', emailKey),
       );
       if (send.ok) {
-        await supabaseQuery(`launch_email_queue?id=eq.${row.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({
-            status: 'sent',
-            sent_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }),
+        await markSent('launch_email_queue', row.id, {
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         });
         result.sent++;
       } else {
@@ -945,13 +966,10 @@ async function drainBuyerQueue(): Promise<QueueResult> {
         engagementTags('buyer_2026', `buyer_${pos}`),
       );
       if (send.ok) {
-        await supabaseQuery(`buyer_email_queue?id=eq.${row.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({
-            status: 'sent',
-            sent_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }),
+        await markSent('buyer_email_queue', row.id, {
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         });
         result.sent++;
       } else {
