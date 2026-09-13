@@ -1,5 +1,15 @@
 # Lulu print-on-demand fulfilment
 
+> **STATUS 2026-09-12: LIVE IN PRODUCTION.** The shop has been selling since 2026-09-11.
+> Production Lulu keys, `LULU_API_BASE` = production, `PRINT_SHOP_LIVE=true`,
+> `LULU_SHIPPING_LEVEL=MAIL`, webhook registered. All six files validated. The extra
+> Student Notebook is $39.99 (migration `20260911220000_notebook_price_3999.sql`).
+> Order ET-1026 proved pay, record, email/SMS, Lulu job, refund and Lulu cancel end to end.
+> **The "Founder steps" and "Test plan" sections below are the historical go-live record.**
+> Do not re-run them against production, and never unset `PRINT_SHOP_LIVE` as a "dark test":
+> that closes checkout for real buyers. The boxed kit is off sale (2026-09-12), so the
+> old $249 price-collision note no longer applies.
+
 Built 2026-09-10 on `feat/lulu-pod-fulfillment` (PR #458). The printed Sprouts
 curriculum sells on edeninstitute.health as ONE SET (Teacher's Guide, Student
 Notebook, Read-Aloud storybook; founder decision 2026-09-10: never sold
@@ -104,7 +114,7 @@ counts (240, 224, and NULL for the Read-Aloud until its final count is known).
 **Left NULL:** `interior_url`, `cover_url` on all three, and `page_count` on
 `ra`.
 
-## Founder steps before the first real order
+## Founder steps before the first real order (DONE 2026-09-11, historical)
 
 1. **Lulu accounts.** Production account at lulu.com (API keys appear under
    the developer portal), a separate sandbox account at
@@ -151,8 +161,7 @@ counts (240, 224, and NULL for the Read-Aloud until its final count is known).
 8. **Sales tax on Lulu's invoice.** Stripe Tax charges the buyer; Lulu also
    charges us tax on the print job. Whether a resale certificate removes that is
    a CPA question.
-9. **Price collision to be aware of.** $249 is also the founding price of the
-   Complete Kit on /preorder. Two $249 products can read as the same thing.
+9. ~~Price collision with the kit~~ Resolved 2026-09-12: the kit is off sale.
 
 ## Deploy
 
@@ -176,7 +185,7 @@ on the next production deploy.
 `config.toml` locks `lulu-webhook` to `verify_jwt=false` and `lulu-submit` /
 `lulu-admin` to `true`.
 
-## Test plan
+## Test plan (historical, do not re-run against production)
 
 Sandbox first, with `LULU_API_BASE=https://api.sandbox.lulu.com` and the
 sandbox key pair:

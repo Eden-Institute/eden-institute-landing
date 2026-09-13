@@ -165,6 +165,11 @@ const FREE_SHIPPING_LOOKUP_KEYS = new Set([
 const DISABLED_LOOKUP_KEYS = new Set([
   "practitioner_monthly",
   "practitioner_yearly",
+  // Founders Edition products, retired 2026-09-12 (kit off sale, no date).
+  "sprouts_complete",
+  "seedlings_complete",
+  "two_band_bundle",
+  "nb_addon",
 ])
 
 // Explicit Stripe price-ID overrides by lookup_key. When set, this exact
@@ -674,7 +679,7 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
   const isAdminTest = !!adminToken && req.headers.get("x-preorder-admin") === adminToken
   if (!live && !isAdminTest) {
     return new Response(
-      JSON.stringify({ error: "Preorder has not opened yet.", code: "PREORDERS_NOT_LIVE" }),
+      JSON.stringify({ error: "Preorders are closed for now.", code: "PREORDERS_NOT_LIVE" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
     )
   }

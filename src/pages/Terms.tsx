@@ -24,7 +24,7 @@ const Terms = () => {
           <div className="relative z-10">
             <h1 className="font-serif text-3xl md:text-4xl font-bold mb-2" style={{ color: "hsl(var(--eden-parchment))" }}>Terms and Conditions</h1>
             <p className="font-body text-sm" style={{ color: "hsl(var(--eden-parchment) / 0.8)" }}>The Eden Institute — edeninstitute.health</p>
-            <p className="font-body text-xs mt-2" style={{ color: "hsl(var(--eden-parchment) / 0.6)" }}>Effective Date: June 9, 2026 · Last Updated: July 28, 2026</p>
+            <p className="font-body text-xs mt-2" style={{ color: "hsl(var(--eden-parchment) / 0.6)" }}>Effective Date: June 9, 2026 · Last Updated: September 12, 2026</p>
           </div>
         </header>
 
@@ -71,7 +71,8 @@ const Terms = () => {
 
           <section>
             <h2 className="font-serif text-xl font-semibold text-primary mb-3">7. Refund Policy</h2>
-            <p>Due to the digital nature of our products, all sales are final once course access has been granted. If you experience a technical issue that prevents you from accessing your purchased course, please contact us within 14 days of purchase and we will work to resolve the issue.</p>
+            <p>Printed curriculum and other physical products are covered by our <a href="/returns" className="underline hover:opacity-80" style={{ color: "hsl(var(--eden-gold-ink))" }}>Returns and Refunds policy</a>, which governs cancellations, damaged items and returns for anything we ship. The rest of this section applies to digital products.</p>
+            <p className="mt-2">Due to the digital nature of our products, all sales are final once course access has been granted. If you experience a technical issue that prevents you from accessing your purchased course, please contact us within 14 days of purchase and we will work to resolve the issue.</p>
             <p className="mt-2">Refund requests for extenuating circumstances will be reviewed on a case-by-case basis at our sole discretion. To request a refund, contact us at the email address provided below.</p>
           </section>
 
@@ -134,9 +135,9 @@ const Terms = () => {
 
           <section>
             <h2 className="font-serif text-xl font-semibold text-primary mb-3">18. Text Message (SMS) Program</h2>
-            <p>We operate a text message program for customers who choose to receive order and reservation updates by text. Participation is entirely optional and is never a condition of any purchase.</p>
-            <p className="mt-2"><strong>How you opt in.</strong> You opt in by checking a box, which is never pre-checked, at checkout or on a reservation form, next to language describing the messages you will receive and providing the mobile number you want us to use. We do not add any number to the program without that affirmative opt-in.</p>
-            <p className="mt-2"><strong>What we send and how often.</strong> Messages are transactional and concern an order you placed or a reservation you made, such as confirming a preorder, the amount charged, the expected ship window, and your right to cancel before shipment, or confirming that a founding price has been reserved for you. Message frequency is low, typically one to two messages per order or reservation. We do not send promotional or marketing text messages under this program.</p>
+            <p>We operate a text message program for customers who choose to receive order updates by text. Participation is entirely optional and is never a condition of any purchase.</p>
+            <p className="mt-2"><strong>How you opt in.</strong> You opt in by checking a box, which is never pre-checked, at checkout, next to language describing the messages you will receive and providing the mobile number you want us to use. We do not add any number to the program without that affirmative opt-in.</p>
+            <p className="mt-2"><strong>What we send and how often.</strong> Messages are transactional and concern an order you placed, such as confirming the order, the amount charged, the expected ship window, your right to cancel before shipment, and when it ships. Message frequency is low, typically one to three messages per order. We do not send promotional or marketing text messages under this program.</p>
             <p className="mt-2"><strong>Cost.</strong> We do not charge for these messages. Message and data rates may apply according to your plan with your mobile carrier.</p>
             <p className="mt-2"><strong>How to stop, and how to get help.</strong> Reply STOP to any message to cancel, and you will receive a single confirmation that no further messages will be sent. Reply HELP for assistance, or contact us at <a href="mailto:hello@edeninstitute.health" className="underline hover:opacity-80" style={{ color: "hsl(var(--eden-gold-ink))" }}>hello@edeninstitute.health</a> or (931) 575-5895. Opting out of text messages does not cancel your order and does not change your email preferences.</p>
             <p className="mt-2"><strong>Carriers.</strong> Carriers are not liable for delayed or undelivered messages. Delivery is not guaranteed and may be affected by your carrier, device, or coverage.</p>

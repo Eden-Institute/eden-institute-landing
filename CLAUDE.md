@@ -2,6 +2,22 @@
 
 Working memory for Claude Code. Auto-loaded every session. Keep it high-signal.
 
+> **CURRENT STATE, 2026-09-12. Read this first; the June notes below are history.**
+>
+> - **Local clone:** `D:\dev\eden-institute-landing-repo`. Always branch from `origin/main` in a
+>   worktree; the shared clone may sit on someone else's branch. `main` is protected, merge by PR.
+> - **Continuity:** session logs now live in `Biblical Herbalism/_Ops (Claude working files)/Session Logs/`,
+>   and the working agreement is `Biblical Herbalism/CLAUDE.md` + `START_HERE.md`.
+> - **Eden's Table on sale:** free week 1 (Sprouts, Seedlings); Sprouts 9-week Starter $39 (digital);
+>   Sprouts Printed Curriculum Set $249 + $12 shipping, printed by Lulu (`docs/lulu-pod-fulfillment.md`),
+>   `PRINT_SHOP_LIVE=true`; extra printed Student Notebook $39.99.
+> - **Not on sale:** the boxed Complete Kit. Kit preorders CLOSED 2026-09-12, `PREORDERS_LIVE=false`,
+>   no founding price, no date. Five existing preorders are still served by buyer emails 1-6 and
+>   `order-config.ts` (SHIP_TARGET July 31 2027, guarantee Sept 30 2027). Launch emails 13-17 retired.
+> - **Seedlings:** free week only. Cultivators planned late 2027, Practitioners 2028.
+> - **After any change under `supabase/functions/_shared/`:** run the transitive stale sweep
+>   (`Biblical Herbalism/scripts/ef_stale_sweep.py`) and redeploy everything it names.
+
 ---
 
 ## ▶ START EVERY SESSION HERE

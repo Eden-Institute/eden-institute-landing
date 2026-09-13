@@ -7,7 +7,9 @@ import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { ROUTES } from "@/lib/routes";
 
 /**
- * /homeschool/welcome — order confirmation page for Eden's Table Founders Edition.
+ * /homeschool/welcome — generic order confirmation fallback (noindex).
+ * 2026-09-12: the Founders Edition products are retired and the kit is off
+ * sale, so every Founders Edition, 2027 and bundle string was removed.
  *
  * Reached via Stripe Checkout success_url redirect after a homeschool product
  * purchase. The URL carries two query params:
@@ -30,56 +32,38 @@ import { ROUTES } from "@/lib/routes";
  */
 const HomeschoolWelcome = () => {
   useDocumentMeta({
-    title: "Order Confirmed — Eden's Table Founders Edition | The Eden Institute",
+    title: "Order Confirmed | The Eden Institute",
     description:
-      "Your Founders Edition seat is reserved. Check your email for the receipt; your box ships in 2027.",
+      "Thank you for your order. Your receipt from Stripe is on its way to your inbox.",
     canonical: "https://edeninstitute.health/homeschool/welcome",
   });
+
+  // This page is only a fallback now. Keep it out of search results.
+  useEffect(() => {
+    const tag = document.createElement("meta");
+    tag.name = "robots";
+    tag.content = "noindex";
+    document.head.appendChild(tag);
+    return () => {
+      tag.remove();
+    };
+  }, []);
 
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get("session_id");
   const lookupKey = searchParams.get("lookup_key");
 
-  // Friendly product name + ship-window copy based on what was bought.
-  const purchase = useMemo(() => {
-    switch (lookupKey) {
-      case "sprouts_complete":
-        return {
-          productName: "Sprouts Complete · Founders Edition",
-          shipWindow: "Your box ships in 2027.",
-          nextStep:
-            "Watch your inbox for your Founders welcome email — it carries the first two weeks of Sprouts as a PDF preview so you can start before the box arrives.",
-        };
-      case "seedlings_complete":
-        return {
-          productName: "Seedlings Complete · Founders Edition",
-          shipWindow: "Your box ships in 2027.",
-          nextStep:
-            "Watch your inbox for your Founders welcome email — it carries the first two weeks of Seedlings as a PDF preview so you can start before the box arrives.",
-        };
-      case "two_band_bundle":
-        return {
-          productName: "Two-Band Family Bundle · Founders Edition",
-          shipWindow:
-            "Both bands ship together in 2027. Free shipping is included.",
-          nextStep:
-            "Watch your inbox for your Founders welcome email — and for an account setup link so you can manage your bundle, add extra Student Notebooks for additional children, and view your shipment status.",
-        };
-      case "nb_addon":
-        return {
-          productName: "Additional Student Notebook",
-          shipWindow: "Your extra notebook ships inside your Two-Band Bundle box.",
-          nextStep:
-            "You'll see this add-on listed on the same receipt as your bundle order.",
-        };
-      default:
-        return {
-          productName: "Eden's Table Founders Edition",
-          shipWindow: "Your box ships in 2027.",
-          nextStep: "Watch your inbox for your Founders welcome email with all the details.",
-        };
-    }
-  }, [lookupKey]);
+  // The Founders Edition products this page once named (sprouts_complete,
+  // seedlings_complete, two_band_bundle, nb_addon) are retired and blocked in
+  // create-checkout since 2026-09-12. Copy stays generic on purpose.
+  const purchase = useMemo(
+    () => ({
+      productName: "Your Eden's Table order",
+      nextStep:
+        "Watch your inbox for your order email. It has everything you need, and you can reply to it with any question.",
+    }),
+    [],
+  );
 
   // Tiny client-side analytics ping for conversion tracking. Idempotent;
   // the page doesn't re-fire on re-mount unless the user refreshes.
@@ -113,7 +97,7 @@ const HomeschoolWelcome = () => {
             className="font-serif text-3xl md:text-4xl font-bold mb-4"
             style={{ color: "hsl(var(--eden-bark))" }}
           >
-            Your seat at the table is reserved.
+            Thank you for your order.
           </h1>
           <div
             className="w-16 h-px mx-auto my-8"
@@ -138,16 +122,6 @@ const HomeschoolWelcome = () => {
               style={{ color: "hsl(var(--eden-bark))" }}
             >
               {purchase.productName}
-            </p>
-
-            <p
-              className="font-accent text-xs tracking-widest uppercase mb-2"
-              style={{ color: "hsl(var(--eden-gold-ink))" }}
-            >
-              Ship window
-            </p>
-            <p className="font-body text-base mb-4 text-foreground">
-              {purchase.shipWindow}
             </p>
 
             <p

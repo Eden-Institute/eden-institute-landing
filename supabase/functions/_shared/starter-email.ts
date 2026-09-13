@@ -86,7 +86,7 @@ export function renderStarterDeliveryEmail(m: StarterEmailModel): {
   const creditBlock = `
 ${rule()}
 ${sectionLabel('When you want the rest of the year')}
-${para(`These nine weeks are a full quarter. The other twenty-seven are finished too, and they are printed to order: the Teacher's Guide, the Student Notebook and the whole Read-Aloud storybook, mailed to you in about two weeks. There is no hurry at all, and nothing here stops working if you never buy it.`)}
+${para(`These are the first nine weeks of the 36-week year. The other twenty-seven are finished too, and the whole year is printed to order: the Teacher's Guide, the Student Notebook and the whole Read-Aloud storybook, at your door in about two to three weeks. There is no hurry at all, and nothing here stops working if you never buy it.`)}
 ${ctaButton('See the printed year', PRINT_SET_URL)}
 `;
 
@@ -138,7 +138,7 @@ ${para(`<strong>Camila</strong><br><span style="font-size:14px;">The Eden Instit
     '',
     'If a file opens as a blank white screen, you are not doing anything wrong. Some email apps open links in a small built in browser that cannot display a PDF. Press and hold the link instead of tapping it, choose Open in Safari or Open in Chrome, and it will open properly. Opening this email on a computer works too.',
     '',
-    'When you want the rest of the year: the other twenty-seven weeks are finished and printed to order, mailed to you in about two weeks.',
+    'When you want the rest of the year: the other twenty-seven weeks are finished and the whole year is printed to order, at your door in about two to three weeks.',
     `See the printed year: ${PRINT_SET_URL}`,
     '',
     ...(m.receipt ? [renderReceiptText(m.receipt), ''] : []),

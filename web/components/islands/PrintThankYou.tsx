@@ -263,7 +263,7 @@ export default function PrintThankYou() {
           <h2 className="font-serif text-xl font-bold mb-2" style={forest}>While you wait</h2>
           <p className="font-body text-sm text-muted-foreground leading-relaxed mb-4">
             The first nine weeks of Sprouts are a $39 download, so you can read ahead and plan your first
-            lessons tonight instead of in two weeks. Or just wait for the box. Either is fine.
+            lessons tonight instead of waiting for the mail. Or just wait for the books. Either is fine.
           </p>
           <a
             href="/starter"

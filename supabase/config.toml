@@ -69,6 +69,7 @@ verify_jwt = false
 
 # Public founding-500 counter for /preorder ({ sold, cap, closed }; read-only,
 # no order data). Called anonymously from the PreorderBuyBox island.
+# Founding-kit counter. Kit preorders closed 2026-09-12; kept for the /preorder notice.
 [functions.preorder-status]
 verify_jwt = false
 
@@ -119,6 +120,7 @@ verify_jwt = false
 [functions.lulu-webhook]
 verify_jwt = false
 
+# Retired founders-lock flow. CLOSED=true in code, returns 410.
 [functions.founders-lock]
 verify_jwt = false
 

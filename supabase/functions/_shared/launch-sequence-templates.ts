@@ -636,10 +636,10 @@ export function buildLaunchEmail8(firstName: string, founding = true): { subject
   // extra Student Notebooks $39.99 each (up to five). All from /books.
   void founding;
   const body =
-    `${preheader(`All 36 weeks of Sprouts, printed, at your door in about two weeks.`)}` +
+    `${preheader(`All 36 weeks of Sprouts, printed, at your door in about two to three weeks.`)}` +
     `${heading(`The whole year is ready`)}` +
     `${p(`Hi ${firstName},`)}` +
-    `${p(`The full Sprouts year is finished and it is on paper. Three printed books, all thirty-six weeks, printed for you when you order and mailed straight to your door in about two weeks.`)}` +
+    `${p(`The full Sprouts year is finished and it is on paper. Three printed books, all thirty-six weeks, printed for you when you order and mailed straight to your door in about two to three weeks.`)}` +
     `${p(`No waiting on a print run. You order it, it prints, it ships.`)}` +
     `${goldDivider()}` +
     `${p(`<strong>What arrives:</strong> the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud Storybook, for every week of the year. One set is one child&rsquo;s year. Teaching more than one? Add an extra Student Notebook for each sibling at checkout, $39.99 each, and they ship in the same parcel.`)}` +
@@ -759,7 +759,7 @@ export function buildLaunchEmail12(firstName: string, founding = true): { subjec
     `${p(`I built Eden&rsquo;s Table because I could not find it. I wanted my children to know that the God who made their bodies also planted their healing in the ground, and I wanted them to learn it the way faith is actually passed down: &ldquo;telling to the generation to come the praises of the LORD, and His strength and His wondrous works&rdquo; (Psalm 78:4, NASB). Not a unit study. An inheritance.`)}` +
     `${p(`It comes to you as three printed books, printed one set at a time when you order, because I am building this the way we teach families to live: inside what we actually have, without borrowing. That costs a couple of weeks at your end. It means your year is never waiting on mine.`)}` +
     `${p(`Every set that reaches a family&rsquo;s table carries that intention with it. It would be an honor for it to reach yours.`)}` +
-    `${p(`The printed year is $249 plus $12 shipping, at your door in about two weeks.`)}` +
+    `${p(`The printed year is $249 plus $12 shipping, at your door in about two to three weeks.`)}` +
     `${printSetButton()}` +
     `${signature()}`;
   return { subject: `The story under the table`, html: launchWrapper(body) };
@@ -995,15 +995,15 @@ export function buildLaunchEmail19(firstName: string, founding = true): { subjec
     `${p(`Most herb material written for families is a table: symptom on the left, plant on the right. A child who memorizes that has learned a list, not a plant. Weeks 1 through 9 teach one plant known five ways: what it is, how to tell it from the thing growing beside it, which part is used, how we use it, and where the line is.`)}` +
     `${p(`And the safety answer is in the design rather than in a disclaimer. There are ten families of preparation in the whole year and every one of them is same day: tea, decoction, cold infusion, poultice, compress, syrup, honey infusion, honegar, culinary work, and the fresh leaf itself. No tinctures, no infused oils, no salves, nothing curing on a shelf for six weeks. And there is no dosing formula published anywhere in thirty-six weeks, because dosing a child is not what this is. The Teacher&rsquo;s Guide is one of the three things in the $39, and it is where those boundaries live.`)}` +
     `${p(`So the honest description of the work is botany, plant identification, nature study, kitchen work and stewardship. A mother teaching her child to name a plant, draw it and cook with it is not practicing medicine. She is doing what mothers did for most of history.`)}` +
-    `${p(`What moved last week was paper. The curriculum itself is finished, thirty-six weeks, one plant a week.`)}` +
+    `${p(`The curriculum itself is finished, thirty-six weeks, one plant a week.`)}` +
     `${p(`Week 6 is plantain, <em>Plantago major</em>. It is likely growing in your yard right now, in the patch you have been pulling it out of for years without knowing its name. Your child finds it, names it, and draws it labeled.`)}` +
     `${verseCard(`Behold, I have given you every plant yielding seed that is on the surface of all the earth`, `Genesis 1:29`)}` +
     `${p(`Given. That one word does all the theological work, and it is why the week opens in Scripture rather than in a remedy.`)}` +
-    `${p(`I have been recording these conversations all summer and not one of them has aired yet. When each one does, the link comes to this list the same day. You are hearing the answers before the audience does, which is the right order after what I asked of you last week.`)}` +
+    `${p(`I have been recording these conversations all summer. When each one airs, the link comes to this list the same day.`)}` +
     `${goldDivider()}` +
     `${p(founding
-      ? `Weeks 1 through 9 are $39, digital, instant download: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks. The whole year, all thirty-six weeks in three printed books, is $249 and ships in about two weeks.`
-      : `Weeks 1 through 9 are $39, digital, instant download: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks. The whole year, all thirty-six weeks in three printed books, is $249 and ships in about two weeks.`)}` +
+      ? `Weeks 1 through 9 are $39, digital, instant download: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks. The whole year, all thirty-six weeks in three printed books, is $249 and is at your door in about two to three weeks.`
+      : `Weeks 1 through 9 are $39, digital, instant download: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks. The whole year, all thirty-six weeks in three printed books, is $249 and is at your door in about two to three weeks.`)}` +
     `${brandButton('Start with Weeks 1 through 9', 'https://edeninstitute.health/starter')}` +
     `${signature()}`;
   return { subject: `"You are not an herbalist"`, html: launchWrapper(body) };
@@ -1134,14 +1134,14 @@ export function buildLaunchEmail20(firstName: string, founding = true): { subjec
     `${quoteCard(`I just wanted you to see how in to it they are! No complaining and actually asking to do their &lsquo;learning&rsquo;!! Yahoo`, `Kati, whose children did week 1 in June`)}` +
     `${p(`It is digital, so an older child can move at her own speed, and the Read-Aloud storybook keeps a nine year old and a five year old at the same table without one bored and the other lost.`)}` +
     `${p(`Stephany had me on Home(school) with Steph in August, and Brianne on the Hearty Homemaker a few days later. Both are homeschooling mothers with mixed-age tables of their own.`)}` +
-    `${p(`Minimalist Moms with Diane Boden records on September 10, and Nature Cure Family Health with Dr Lauren Deville on September 18. Nothing has aired yet. Every link comes to you the day it publishes.`)}` +
+    `${p(`When each conversation airs, the link comes to this list the same day.`)}` +
     `${verseCard(`O taste and see that the LORD is good; How blessed is the man who takes refuge in Him!`, `Psalm 34:8`)}` +
     `${p(`Teaching a child to taste and see before she is taught to conclude is not a method I invented. It is older than I am, and the goodness is the Giver&rsquo;s.`)}` +
     `${goldDivider()}` +
     `${p(`The Sprouts Starter Unit is <strong>$39</strong>, digital, instant download: weeks 1 through 9, with the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook.`)}` +
     `${p(founding
-      ? `The whole year in print, all thirty-six weeks in three books, is <strong>$249</strong> and ships in about two weeks.`
-      : `The whole year in print, all thirty-six weeks in three books, is <strong>$249</strong> and ships in about two weeks.`)}` +
+      ? `The whole year in print, all thirty-six weeks in three books, is <strong>$249</strong> and is at your door in about two to three weeks.`
+      : `The whole year in print, all thirty-six weeks in three books, is <strong>$249</strong> and is at your door in about two to three weeks.`)}` +
     `${brandButton('Start with Weeks 1 through 9', 'https://edeninstitute.health/starter')}` +
     `${signature()}`;
   return { subject: `Aren't my kids too old for this?`, html: launchWrapper(body) };
@@ -1233,11 +1233,14 @@ export function buildLaunchEmail20(firstName: string, founding = true): { subjec
 // and 20 land in this file, lift it to a module const beside PREORDER_URL.
 export function buildLaunchEmail21(firstName: string, founding = true): { subject: string; html: string } {
   const STARTER_URL = 'https://edeninstitute.health/starter';
+  // 2026-09-12 stale sweep: the Deville recording is 2026-09-18. Signups keep
+  // receiving this email weeks later, so the dated hook only renders before then.
+  const beforeDeville = Date.now() < Date.UTC(2026, 8, 18, 12);
   const body =
-    `${preheader(`I sit down with Dr Lauren Deville on the 18th. Here is my answer, in writing, first.`)}` +
+    `${preheader(beforeDeville ? `I sit down with Dr Lauren Deville on the 18th. Here is my answer, in writing, first.` : `The question every careful mother asks. Here is my answer, in writing.`)}` +
     `${p(`Hi ${firstName},`)}` +
-    `${p(`On September 18 I sit down with Dr Lauren Deville of Nature Cure Family Health. The question I am bracing for is whether any of this belongs in the hands of a six year old. It is the right question, and I am glad someone is finally going to ask it out loud.`)}` +
-    `${p(`I would rather answer it here first, in writing, for the people who already gave me their patience, than have you hear it secondhand on somebody else&rsquo;s show.`)}` +
+    `${p(beforeDeville ? `On September 18 I sit down with Dr Lauren Deville of Nature Cure Family Health. The question I am bracing for is whether any of this belongs in the hands of a six year old. It is the right question, and I am glad someone is finally going to ask it out loud.` : `The question I hear most is whether any of this belongs in the hands of a six year old. It is the right question.`)}` +
+    `${p(beforeDeville ? `I would rather answer it here first, in writing, for the people who already gave me their patience, than have you hear it secondhand on somebody else&rsquo;s show.` : `I would rather answer it here, in writing, for the families on this list, than have you hear it secondhand on somebody else&rsquo;s show.`)}` +
     `${goldDivider()}` +
     `${p(`Safety is not a warning box at the back of the book. It is written into the Teacher&rsquo;s Guide, inside the lesson itself, where a mother actually reads it. Every week names the plant, the part we use, and how we use it.`)}` +
     `${p(`Everything a child makes comes from ten same-day kitchen preparations: tea, decoction, cold infusion, spit-poultice, compress, steam-juicer syrup, honegar, same-day honey infusion, culinary and fresh leaf. No salves, no balms, no washes, no tinctures, no infused oils, no dropper bottles, nothing that needs a shelf to cure on. Nothing a child makes has to sit and wait. No dosing formula for children is printed anywhere in it.`)}` +
@@ -1245,8 +1248,8 @@ export function buildLaunchEmail21(firstName: string, founding = true): { subjec
     `${p(`And there is a garden in it. Friday is Garden and Review every single week, the first unit is called <em>In the Garden God Made</em>, and in week 5 you go outside and plant calendula seeds.`)}` +
     `${p(`Week 4 is peppermint, and week 4 is where the read-aloud is <em>Vov&oacute;&rsquo;s Lineage</em>, about what a grandmother hands down. I am Brazilian. That one is my own grandmother.`)}` +
     `${goldDivider()}` +
-    `${p(`Since July I have recorded with Southern Appalachian Herbs, Media Angels, Home(school) with Steph, Hearty Homemaker and Planted on Purpose with Aurie Riley. Still ahead of me: Diane Boden at Minimalist Moms on the tenth, Dr Lauren Deville on the eighteenth, and Cheryl at The Homeschool How To in January.`)}` +
-    `${p(`Not one of them has aired. When each does, the link comes to this list the same day. That is the only promise I am making about any of it.`)}` +
+    `${p(`Since July I have recorded with Southern Appalachian Herbs, Media Angels, Home(school) with Steph, Hearty Homemaker and Planted on Purpose with Aurie Riley. ${beforeDeville ? `Still ahead of me: Dr Lauren Deville on the eighteenth, and Cheryl at The Homeschool How To in January.` : ``}`)}` +
+    `${p(`When each one airs, the link comes to this list the same day. That is the only promise I am making about any of it.`)}` +
     `${p(`None of it puts one thing in your child&rsquo;s hands this autumn. Weeks 1 through 9 do.`)}` +
     `${goldDivider()}` +
     `${p(`Isaiah watched God come in strength, then said how He moves through a field:`)}` +
@@ -1254,8 +1257,8 @@ export function buildLaunchEmail21(firstName: string, founding = true): { subjec
     `${p(`That is the pace I want for your year, and the one I am still learning for mine.`)}` +
     `${p(`The Sprouts Starter Unit is <strong>$39</strong>: weeks 1 through 9, digital, instant download, with the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks.`)}` +
     `${p(founding
-      ? `The whole year in print, all thirty-six weeks in three books, is <strong>$249</strong> and ships in about two weeks.`
-      : `The whole year in print, all thirty-six weeks in three books, is <strong>$249</strong> and ships in about two weeks.`)}` +
+      ? `The whole year in print, all thirty-six weeks in three books, is <strong>$249</strong> and is at your door in about two to three weeks.`
+      : `The whole year in print, all thirty-six weeks in three books, is <strong>$249</strong> and is at your door in about two to three weeks.`)}` +
     `${p(`This is the third and last of these notes. The <strong>$39</strong> Starter Unit is not going anywhere and there is no deadline on it. If this is not the year for it, I will still be here when it is.`)}` +
     `${brandButton(`Start with Weeks 1 through 9`, STARTER_URL)}` +
     `${signature()}`;

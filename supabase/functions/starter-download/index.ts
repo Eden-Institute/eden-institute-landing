@@ -17,7 +17,7 @@
 // re-request path "rather than permanent access". The signed URLs are the
 // time-limited part. The token is the re-request path, and a re-request path that
 // expires is just a shorter leash on the same file: the buyer paid for a
-// curriculum they are meant to teach from for six weeks, and a parent coming back
+// curriculum they are meant to teach from for nine weeks, and a parent coming back
 // in March to re-download onto a new laptop is the normal case, not abuse. What
 // the token cannot do is be guessed (32 hex chars of CSPRNG) or be found (it only
 // ever exists in that one buyer's inbox), and it can be revoked per buyer by
