@@ -9,10 +9,13 @@
 //      the SUPABASE_SERVICE_ROLE_KEY in the Authorization header.
 //   2. Resolves the digest window: yesterday 00:00 CT → today 00:00 CT
 //      (the previous full calendar day in Central Time).
-//   3. INSERTs a pending digest_runs row keyed on digest_date. If a row
-//      already exists for that date, INSERT fails on UNIQUE; we exit
-//      with skipped="already_ran". This is the idempotency guard for
-//      cron retries.
+//   3. Claims the day in digest_runs (UNIQUE digest_date) via
+//      _shared/digest-run-claim.ts. A day already sent or skipped_zero exits
+//      skipped="already_ran"; a day left failed, or pending by a run that died,
+//      is taken over and sent. A second Vercel cron at 14:37 UTC
+//      (api/cron/notify-founder-digest-retry.ts) re-invokes this so a morning
+//      the first run could not finish still goes out.
+//      Body {"date":"YYYY-MM-DD"} re-sends a missed past day.
 //   4. Calls lead_capture_digest_window RPC to fetch PII rows in the
 //      window, and fetches open/deferred founder_punch_list items.
 //      If BOTH are empty, marks the run skipped_zero (no email sent).
@@ -35,6 +38,7 @@
 
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
 import { pgrstFetch, pgrstReadFetch } from '../_shared/pgrst-retry.ts';
+import { addDays, centralToday, claimDigestRun, digestWindow, isRealYmd } from '../_shared/digest-run-claim.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -583,53 +587,44 @@ Deno.serve(async (req) => {
       return json(500, { error: 'Server configuration error' });
     }
 
-    // ── Resolve digest window: previous full calendar day in America/Chicago ──
-    // Day boundary uses CT regardless of DST. Output is digest_date = yesterday
-    // (CT). Window = [yesterday 00:00 CT, today 00:00 CT).
+    // ── Resolve the digest day: yesterday in America/Chicago ──
+    // Or {"date":"YYYY-MM-DD"} to re-send a missed past day (service role only,
+    // checked above). Window = [day 00:00, next day 00:00) at the fixed -06:00
+    // every digest has used, so a re-send counts the same leads.
     const nowUtc = new Date();
-    // Compute "yesterday in CT" via toLocaleString trick to avoid TZ lib.
-    const nowCt = new Date(nowUtc.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
-    const yesterdayCt = new Date(nowCt);
-    yesterdayCt.setDate(yesterdayCt.getDate() - 1);
-    const yyyy = yesterdayCt.getFullYear();
-    const mm = String(yesterdayCt.getMonth() + 1).padStart(2, '0');
-    const dd = String(yesterdayCt.getDate()).padStart(2, '0');
-    const digestDate = `${yyyy}-${mm}-${dd}`;
+    const todayCt = centralToday(nowUtc);
+    let digestDate = addDays(todayCt, -1);
+    const payload = await req.json().catch(() => ({})) as { date?: unknown };
+    if (payload && payload.date !== undefined) {
+      if (typeof payload.date !== 'string' || !isRealYmd(payload.date) || payload.date >= todayCt) {
+        return json(400, { error: 'date must be a past Central-time day as YYYY-MM-DD' });
+      }
+      digestDate = payload.date;
+    }
+    const { windowStart: windowStartCt, windowEnd: windowEndCt } = digestWindow(digestDate);
 
-    // Window bounds — compose CT midnight strings then let Postgres parse with TZ.
-    const windowStartCt = `${digestDate}T00:00:00-06:00`; // CST. Postgres normalizes to UTC.
-    const todayCt = new Date(yesterdayCt);
-    todayCt.setDate(todayCt.getDate() + 1);
-    const ty = todayCt.getFullYear();
-    const tm = String(todayCt.getMonth() + 1).padStart(2, '0');
-    const td = String(todayCt.getDate()).padStart(2, '0');
-    const windowEndCt = `${ty}-${tm}-${td}T00:00:00-06:00`;
-
-    // ── Idempotency INSERT ──
-    const insertRes = await sbFetch('/rest/v1/digest_runs', {
-      method: 'POST',
-      headers: {
-        'Prefer': 'return=representation',
-      },
-      body: JSON.stringify({
-        digest_date: digestDate,
-        window_start: windowStartCt,
-        window_end: windowEndCt,
-        status: 'pending',
-      }),
+    // ── Claim the day ──
+    // One run sends each day. A day left failed, or pending by a run that died,
+    // is taken over (see _shared/digest-run-claim.ts). The 14:37 UTC retry pass
+    // relies on this to finish a morning the 14:00 run could not.
+    const claim = await claimDigestRun((p, i) => sbFetch(p, i), {
+      digestDate,
+      windowStart: windowStartCt,
+      windowEnd: windowEndCt,
+      now: nowUtc,
     });
-
-    if (insertRes.status === 409) {
-      console.log(`notify-founder-digest: digest_runs row already exists for ${digestDate} — skipping`);
-      return json(200, { skipped: 'already_ran', digest_date: digestDate });
+    if (claim.kind === 'skip') {
+      console.log(`notify-founder-digest: ${digestDate} ${claim.reason} (row status ${claim.status}), skipping`);
+      return json(200, { skipped: claim.reason, status: claim.status, digest_date: digestDate });
     }
-    if (!insertRes.ok) {
-      const errText = await insertRes.text().catch(() => '');
-      console.error('notify-founder-digest: digest_runs INSERT failed', insertRes.status, errText);
-      return json(500, { error: 'Failed to create digest_runs row', detail: errText });
+    if (claim.kind === 'error') {
+      console.error('notify-founder-digest: could not claim digest_runs row', claim.detail);
+      return json(500, { error: 'Failed to claim digest_runs row', detail: claim.detail });
     }
-    const inserted = await insertRes.json();
-    const digestRunId = Array.isArray(inserted) ? inserted[0]?.id : inserted?.id;
+    if (claim.takeover) {
+      console.log(`notify-founder-digest: took over ${digestDate} (previous run ${claim.takeover})`);
+    }
+    const digestRunId = claim.id;
 
     // ── Fetch capture rows via RPC ──
     // Declared VOLATILE (so PostgREST needs a POST) but the body only SELECTs
