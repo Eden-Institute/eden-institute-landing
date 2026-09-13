@@ -30,6 +30,9 @@ export const SELLER_LEGAL_NAME = 'Rooted in Faith Ventures LLC';
 // is a legal document. If Camila files one, this line can say so.
 export const SELLER_BRANDS = "The Eden Institute, Eden's Table Homeschool Curriculum";
 export const SELLER_ADDRESS = '303 Holly Cir, Unit 3262, Clarksville, TN 37043';
+// Support contact on every receipt and invoice (founder decision 2026-09-13). The
+// phone matches web/pages/contact.astro.
+export const SELLER_CONTACT = 'hello@edeninstitute.health, (931) 575-5895';
 
 /**
  * Receipt names, keyed by SKU. Deliberately NOT products.name: that column drives
@@ -73,6 +76,32 @@ export interface Receipt {
   totalCents: number;
   /** e.g. 'K-2'. Shown on the receipt because program reviewers ask for it. */
   gradeLevel: string | null;
+  /** e.g. 'Visa ending 4242'. Null for a non-card payment or when unknown. */
+  paidWith: string | null;
+}
+
+const CARD_BRANDS: Record<string, string> = {
+  visa: 'Visa',
+  mastercard: 'Mastercard',
+  amex: 'American Express',
+  discover: 'Discover',
+  diners: 'Diners Club',
+  jcb: 'JCB',
+  unionpay: 'UnionPay',
+};
+
+/**
+ * "Visa ending 4242", from the card stripe-webhook stamps on orders.raw as
+ * eden_payment_card (Utah's ESA program requires the last 4 on a receipt). There
+ * is no card column on orders, so it rides in raw. Returns null for anything that
+ * is not a card with a 4-digit last4, so a receipt never prints "undefined".
+ */
+// deno-lint-ignore no-explicit-any
+export function paidWithFromRaw(raw: any): string | null {
+  const card = raw?.eden_payment_card;
+  if (typeof card?.last4 !== 'string' || !/^\d{4}$/.test(card.last4)) return null;
+  const brand = (typeof card.brand === 'string' && CARD_BRANDS[card.brand]) || 'Card';
+  return `${brand} ending ${card.last4}`;
 }
 
 export function usd(cents: number): string {
@@ -132,6 +161,7 @@ export async function loadOrderReceipt(db: Db, order: OrderRow): Promise<Receipt
     taxCents: num((order as any).tax_cents ?? totals.amount_tax),
     totalCents: num(order.amount_total_cents),
     gradeLevel: (firstSku && RECEIPT_NAMES[firstSku]?.grade) ?? null,
+    paidWith: paidWithFromRaw(raw),
   };
 }
 
@@ -158,6 +188,7 @@ export function starterReceipt(order: any): Receipt {
     taxCents: tax,
     totalCents: total,
     gradeLevel: RECEIPT_NAMES.sprouts_starter_unit.grade,
+    paidWith: paidWithFromRaw(raw),
   };
 }
 
@@ -205,7 +236,8 @@ export function renderReceiptHtml(r: Receipt): string {
     ${summary('Sales tax', r.taxCents)}
     ${summary('Total paid', r.totalCents, true)}
   </table>
-  <p style="${muted}margin-top:14px;">Sold by ${SELLER_LEGAL_NAME} (${SELLER_BRANDS}), ${SELLER_ADDRESS}. hello@edeninstitute.health</p>
+  ${r.paidWith ? `<p style="${muted}margin-top:10px;">Paid by ${r.paidWith}</p>` : ''}
+  <p style="${muted}margin-top:14px;">Sold by ${SELLER_LEGAL_NAME} (${SELLER_BRANDS}), ${SELLER_ADDRESS}. ${SELLER_CONTACT}</p>
 </td></tr>
 </table>`;
 }
@@ -227,8 +259,9 @@ export function renderReceiptText(r: Receipt): string {
   out.push('', `Subtotal   ${usd(subtotal)}`);
   if (r.discountCents > 0) out.push(`Discount   ${usd(-r.discountCents)}`);
   if (r.shippingCents > 0) out.push(`Shipping   ${usd(r.shippingCents)}`);
-  out.push(`Sales tax  ${usd(r.taxCents)}`, `Total paid ${usd(r.totalCents)}`, '');
-  out.push(`Sold by ${SELLER_LEGAL_NAME} (${SELLER_BRANDS}), ${SELLER_ADDRESS}. hello@edeninstitute.health`);
+  out.push(`Sales tax  ${usd(r.taxCents)}`, `Total paid ${usd(r.totalCents)}`);
+  if (r.paidWith) out.push(`Paid by ${r.paidWith}`);
+  out.push('', `Sold by ${SELLER_LEGAL_NAME} (${SELLER_BRANDS}), ${SELLER_ADDRESS}. ${SELLER_CONTACT}`);
   return out.join('\n');
 }
 
@@ -260,14 +293,14 @@ export function curriculumInvoiceCreation(kind: 'print' | 'starter') {
     enabled: true,
     invoice_data: {
       description: kind === 'print'
-        ? "Homeschool curriculum purchase: Eden's Table Sprouts printed curriculum, a K-12 Christian homeschool curriculum."
+        ? "Homeschool curriculum purchase: Eden's Table Sprouts printed curriculum, a K-2 Christian homeschool curriculum."
         : "Homeschool curriculum purchase: Eden's Table Sprouts Starter Unit, digital curriculum, weeks 1 to 9.",
       custom_fields: [
         { name: 'Item type', value: 'Homeschool curriculum' },
         { name: 'Grade level', value: grade },
         { name: 'Format', value: kind === 'print' ? 'Printed books, shipped' : 'Digital download (PDF)' },
       ],
-      footer: `${SELLER_LEGAL_NAME} (${SELLER_BRANDS}), ${SELLER_ADDRESS}. hello@edeninstitute.health`,
+      footer: `${SELLER_LEGAL_NAME} (${SELLER_BRANDS}), ${SELLER_ADDRESS}. ${SELLER_CONTACT}`,
       metadata: { receipt_kind: `curriculum_${kind}` },
     },
   };

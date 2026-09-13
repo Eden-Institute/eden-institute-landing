@@ -705,6 +705,28 @@ async function syncPurchaseProperties(email: string | null | undefined, context:
   }
 }
 
+/**
+ * The session plus the card brand and last 4, for the itemized receipt (Utah's ESA
+ * program requires the last 4). orders has no card column, so this rides on
+ * orders.raw as eden_payment_card, where receipt.ts reads it for both the print
+ * confirmation and the Starter delivery drain. Best effort: a Stripe error or a
+ * non-card payment returns the session untouched and the receipt omits the line.
+ */
+async function withPaymentCard(session: Stripe.Checkout.Session): Promise<Stripe.Checkout.Session> {
+  const pi = typeof session.payment_intent === "string" ? session.payment_intent : null
+  if (!pi) return session
+  try {
+    const intent = await stripe.paymentIntents.retrieve(pi, { expand: ["latest_charge"] })
+    const charge = intent.latest_charge
+    const card = charge && typeof charge === "object" ? charge.payment_method_details?.card : null
+    if (!card?.last4) return session
+    return { ...session, eden_payment_card: { brand: card.brand ?? null, last4: card.last4 } } as Stripe.Checkout.Session
+  } catch (err) {
+    console.warn(`[${session.id}] card lookup for the receipt failed; receipt omits it: ${err instanceof Error ? err.message : String(err)}`)
+    return session
+  }
+}
+
 async function handleOneOffPayment(session: Stripe.Checkout.Session) {
   // ---- Branch 0b: print shop (Lulu print-on-demand books) ----
   // Detected by the print_sku metadata stamped by create-checkout's print branch.
@@ -719,7 +741,7 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
       return
     }
     const items = await resolvePrintLineItems(session, printSku)
-    const orderNumber = await recordRetailOrderFromSession(adminClient, session, items, { fulfillment: "lulu" })
+    const orderNumber = await recordRetailOrderFromSession(adminClient, await withPaymentCard(session), items, { fulfillment: "lulu" })
     await syncPurchaseProperties(session.customer_details?.email ?? session.customer_email, session.id)
 
     const printPi = typeof session.payment_intent === "string" ? session.payment_intent : null
@@ -1165,7 +1187,7 @@ async function handleStarterUnitPurchase(
   }
 
   // 1. The sale.
-  await recordDigitalOrder(session, STARTER_LOOKUP_KEY, email)
+  await recordDigitalOrder(await withPaymentCard(session), STARTER_LOOKUP_KEY, email)
   await syncPurchaseProperties(email, sid)
   const { data: orderRow } = await adminClient
     .from("orders").select("id").eq("stripe_checkout_session_id", sid).maybeSingle()
