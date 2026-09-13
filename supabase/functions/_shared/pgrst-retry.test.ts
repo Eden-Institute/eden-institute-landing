@@ -147,6 +147,39 @@ Deno.test('retry log lines never carry the query string', async () => {
   }
 });
 
+Deno.test('repeatSafe override: a read-only RPC POST is retried when the caller opts in', async () => {
+  const calls: string[] = [];
+  let n = 0;
+  const f = makeRetryingFetch({
+    fetchImpl: (_input, init) => {
+      calls.push(init?.method ?? 'GET');
+      return Promise.resolve(new Response('[]', { status: n++ === 0 ? 504 : 200 }));
+    },
+    sleep: () => Promise.resolve(),
+    repeatSafe: () => true,
+  });
+  const { result } = await quietly(() =>
+    f('https://example.supabase.co/rest/v1/rpc/lead_capture_digest_window', { method: 'POST', body: '{}' })
+  );
+  assertEquals(result.status, 200);
+  assertEquals(calls, ['POST', 'POST']);
+});
+
+Deno.test('repeatSafe override still sends a stream body only once', async () => {
+  let calls = 0;
+  const f = makeRetryingFetch({
+    fetchImpl: () => { calls++; return Promise.resolve(new Response('', { status: 504 })); },
+    sleep: () => Promise.resolve(),
+    repeatSafe: () => true,
+  });
+  const res = await f('https://example.supabase.co/rest/v1/rpc/x', {
+    method: 'POST',
+    body: new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode('{}')); c.close(); } }),
+  });
+  assertEquals(res.status, 504);
+  assertEquals(calls, 1);
+});
+
 Deno.test('isRepeatSafe', () => {
   assertEquals(isRepeatSafe('get', null), true);
   assertEquals(isRepeatSafe('HEAD', null), true);

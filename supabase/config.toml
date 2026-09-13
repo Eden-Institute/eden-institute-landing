@@ -134,6 +134,9 @@ verify_jwt = false
 [functions.notify-founder-digest]
 verify_jwt = true
 
+[functions.founder-evening-recap]
+verify_jwt = true
+
 [functions.nurture-emails]
 verify_jwt = true
 

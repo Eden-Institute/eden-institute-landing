@@ -34,6 +34,7 @@
 // deno-lint-ignore-file no-explicit-any
 
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
+import { pgrstFetch, pgrstReadFetch } from '../_shared/pgrst-retry.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -547,14 +548,21 @@ function json(status: number, body: unknown): Response {
   });
 }
 
-async function sbFetch(path: string, init: RequestInit = {}): Promise<Response> {
+// pgrstFetch repeats a gateway 504 on reads and PATCHes; the idempotency INSERT
+// is sent once. The 2026-09-12 digest never went out because a 504 hit the RPC
+// and then the PATCH that should have marked the run failed.
+async function sbFetch(
+  path: string,
+  init: RequestInit = {},
+  fetchImpl: typeof pgrstFetch = pgrstFetch,
+): Promise<Response> {
   const headers = {
     'apikey': SUPABASE_SERVICE_ROLE_KEY,
     'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
     'Content-Type': 'application/json',
     ...(init.headers ?? {}),
   };
-  return fetch(`${SUPABASE_URL}${path}`, { ...init, headers });
+  return fetchImpl(`${SUPABASE_URL}${path}`, { ...init, headers });
 }
 
 Deno.serve(async (req) => {
@@ -624,13 +632,15 @@ Deno.serve(async (req) => {
     const digestRunId = Array.isArray(inserted) ? inserted[0]?.id : inserted?.id;
 
     // ── Fetch capture rows via RPC ──
+    // Declared VOLATILE (so PostgREST needs a POST) but the body only SELECTs
+    // waitlist_signups, so it is safe to repeat after a 504: pgrstReadFetch.
     const rpcRes = await sbFetch('/rest/v1/rpc/lead_capture_digest_window', {
       method: 'POST',
       body: JSON.stringify({
         p_window_start: windowStartCt,
         p_window_end: windowEndCt,
       }),
-    });
+    }, pgrstReadFetch);
     if (!rpcRes.ok) {
       const errText = await rpcRes.text().catch(() => '');
       console.error('notify-founder-digest: RPC failed', rpcRes.status, errText);

@@ -59,19 +59,22 @@ export interface RetryingFetchOptions {
   fetchImpl?: FetchLike;
   delaysMs?: readonly number[];
   sleep?: (ms: number) => Promise<void>;
+  /** Overrides isRepeatSafe. Only for a fetch whose every caller has checked the call changes nothing. */
+  repeatSafe?: (method: string, prefer: string | null) => boolean;
 }
 
 export function makeRetryingFetch(opts: RetryingFetchOptions = {}): FetchLike {
   const fetchImpl = opts.fetchImpl ?? ((input, init) => fetch(input, init));
   const delays = opts.delaysMs ?? RETRY_DELAYS_MS;
   const sleep = opts.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  const repeatSafe = opts.repeatSafe ?? isRepeatSafe;
 
   return async (input, init) => {
     const isRequest = input instanceof Request;
     const method = (init?.method ?? (isRequest ? input.method : 'GET')).toUpperCase();
     const headers = new Headers(init?.headers ?? (isRequest ? input.headers : undefined));
     // A stream body can only be read once, so a request carrying one is sent once.
-    const canRepeat = isRepeatSafe(method, headers.get('prefer')) &&
+    const canRepeat = repeatSafe(method, headers.get('prefer')) &&
       !(init?.body instanceof ReadableStream);
     const path = pathOf(input);
 
@@ -98,3 +101,11 @@ export function makeRetryingFetch(opts: RetryingFetchOptions = {}): FetchLike {
 
 /** Drop-in for fetch() on gateway calls; also pass as createClient's global.fetch. */
 export const pgrstFetch: FetchLike = makeRetryingFetch();
+
+/**
+ * Repeats EVERY request after a 502/503/504, POSTs included. Use it only for a
+ * call you have checked is read-only: an RPC whose body only SELECTs but is
+ * still declared VOLATILE, so PostgREST makes you POST it. Example:
+ * lead_capture_digest_window, whose 504 stopped the 2026-09-12 founder digest.
+ */
+export const pgrstReadFetch: FetchLike = makeRetryingFetch({ repeatSafe: () => true });
