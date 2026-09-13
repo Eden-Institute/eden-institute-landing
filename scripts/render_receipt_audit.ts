@@ -147,5 +147,40 @@ if (printReceipt) {
   check(t.includes("Subtotal   $249.00") && t.includes("Total paid $285.80"), "plain-text print receipt itemizes and totals");
 }
 
+// ── 10. Card last 4 (Utah ESA), support phone, K-2 on the print invoice (2026-09-13) ──
+const withCard = await loadOrderReceipt(fakeDb([
+  { quantity: 1, unit_price_cents: 24900, products: { sku: "sprouts_print_set", name: "x" } },
+// deno-lint-ignore no-explicit-any
+]) as any, { ...et1026, raw: { ...et1026.raw, eden_payment_card: { brand: "visa", last4: "4242" } } } as any);
+if (withCard && printReceipt) {
+  check(renderReceiptHtml(withCard).includes("Paid by Visa ending 4242"), "print HTML receipt shows the card brand and last 4");
+  check(renderReceiptText(withCard).includes("Paid by Visa ending 4242"), "print text receipt shows the card brand and last 4");
+  const noCard = renderReceiptHtml(printReceipt) + renderReceiptText(printReceipt);
+  check(!/Paid by/.test(noCard) && !/undefined/.test(noCard), "no card on the order -> no Paid by line and no 'undefined'");
+  for (const [label, out] of [["HTML", renderReceiptHtml(withCard)], ["text", renderReceiptText(withCard)]]) {
+    check(out.includes("hello@edeninstitute.health, (931) 575-5895"), `${label} seller line carries the support phone`);
+    check(!/—/.test(out), `${label} receipt with card has no em dash`);
+  }
+}
+const starterCard = starterReceipt({ order_number: "ET-1017", amount_total_cents: 4271, tax_cents: 371,
+  raw: { amount_subtotal: 3900, total_details: { amount_tax: 371 }, eden_payment_card: { brand: "amex", last4: "0005" } } });
+check(starterCard.paidWith === "American Express ending 0005", "Starter receipt reads the card from raw", String(starterCard.paidWith));
+for (const [card, want] of [
+  [{ brand: "somenewbrand", last4: "1234" }, "Card ending 1234"],
+  [{ brand: "visa" }, null],
+  [{ brand: "visa", last4: "42" }, null],
+  [null, null],
+] as const) {
+  // deno-lint-ignore no-explicit-any
+  const got = starterReceipt({ amount_total_cents: 3900, raw: { amount_subtotal: 3900, eden_payment_card: card } } as any).paidWith;
+  check(got === want, `card ${JSON.stringify(card)} -> ${JSON.stringify(want)}`, String(got));
+}
+for (const kind of ["print", "starter"] as const) {
+  const inv = curriculumInvoiceCreation(kind);
+  check(inv.invoice_data.footer.includes("(931) 575-5895"), `${kind} invoice footer carries the support phone`);
+  check(!/K-12/.test(inv.invoice_data.description), `${kind} invoice description does not say K-12`);
+}
+check(curriculumInvoiceCreation("print").invoice_data.description.includes("K-2"), "print invoice description says K-2, matching the Grade level field");
+
 console.log(failures ? `\n${failures} check(s) FAILED` : "\nALL CLEAN");
 Deno.exit(failures ? 1 : 0);
