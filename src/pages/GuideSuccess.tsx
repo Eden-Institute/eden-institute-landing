@@ -5,6 +5,7 @@ import type { FullGuideContent } from "@/lib/guide-types";
 import GuideTemplate from "@/components/guide/GuideTemplate";
 import Navbar from "@/components/landing/Navbar";
 import { ROUTES } from "@/lib/routes";
+import { readCheckoutSessionId } from "@/lib/checkoutSession";
 
 const GuideSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -15,7 +16,8 @@ const GuideSuccess = () => {
   const [guide, setGuide] = useState<FullGuideContent | null>(null);
 
   useEffect(() => {
-    const sessionId = searchParams.get("session_id");
+    // index.html's first script has already moved session_id out of the URL.
+    const sessionId = readCheckoutSessionId();
     if (!sessionId) {
       navigate(ROUTES.ASSESSMENT);
       return;

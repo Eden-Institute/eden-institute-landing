@@ -51,23 +51,40 @@ const meta = {
   // Purchase conversion for the printed set, tagged distinctly from the kit and
   // the Starter Unit. The server-side Meta Purchase fires from stripe-webhook with
   // the session id as event_id, so the two dedupe. Guarded on sessionStorage so a
-  // refresh never reports a second sale. gtag may be absent (no consent).
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const sessionId = params.get("session_id");
-    const key = `print_set_conv_${sessionId ?? "none"}`;
-    if (sessionId && !sessionStorage.getItem(key)) {
-      sessionStorage.setItem(key, "1");
-      (window as any).gtag?.("event", "print_set_purchase", {
-        event_category: "conversion",
-        event_label: "sprouts_print_set",
-        value: 249.0,
-        currency: "USD",
-        transaction_id: sessionId,
-        items: [{ item_id: "sprouts_print_set", item_name: "Sprouts Printed Curriculum Set", price: 249.0, quantity: 1 }],
-      });
+  // refresh never reports a second sale.
+  //
+  // The session id is a bearer credential, so GA4 never gets it: transaction_id
+  // is checkoutRef(session id), the first 32 hex characters of its SHA-256, the
+  // same reference the Pinterest checkout sends as event_id. Where crypto.subtle
+  // is unavailable the event goes without a transaction_id rather than with the
+  // raw id. The id is read with readCheckoutSessionId because the layout's first
+  // head script has already taken it out of the URL.
+  //
+  // gtag is defined on every page by the layout. After Decline, Google's
+  // ga-disable switch set there stops it sending anything.
+  import { readCheckoutSessionId } from "@/lib/checkoutSession";
+  import { checkoutRef } from "@/lib/pinterestTag";
+
+  (async () => {
+    try {
+      const sessionId = readCheckoutSessionId();
+      // The guard key uses the hashed reference, so the raw id is never
+      // written into a storage key name.
+      const ref = sessionId ? await checkoutRef(sessionId) : null;
+      const key = `print_set_conv_${ref ?? "noref"}`;
+      if (sessionId && !sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, "1");
+        (window as any).gtag?.("event", "print_set_purchase", {
+          event_category: "conversion",
+          event_label: "sprouts_print_set",
+          value: 249.0,
+          currency: "USD",
+          ...(ref ? { transaction_id: ref } : {}),
+          items: [{ item_id: "sprouts_print_set", item_name: "Sprouts Printed Curriculum Set", price: 249.0, quantity: 1 }],
+        });
+      }
+    } catch {
+      // Analytics never break the page.
     }
-  } catch {
-    // Analytics never break the page.
-  }
+  })();
 </script>

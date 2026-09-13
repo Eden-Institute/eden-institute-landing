@@ -89,6 +89,7 @@ const Privacy = () => {
               <li><strong>Lulu</strong> — for printing and shipping printed curriculum orders. Lulu receives the name, shipping address, email and phone number needed to print, ship and track your order.</li>
             </ul>
             <p className="mt-2">These providers are contractually obligated to protect your information and use it only for the purposes we specify.</p>
+            <p className="mt-2">We also use advertising measurement tools from Pinterest and Meta (Facebook) on our website. Our <Link to={ROUTES.COOKIES} className="underline hover:opacity-80" style={{ color: "hsl(var(--eden-gold-ink))" }}>Cookie Policy</Link> explains when they run, what is sent, and how to turn them off.</p>
             <p className="mt-2">We may also disclose information if required by law, court order, or governmental regulation, or to protect the rights, property, or safety of The Eden Institute, our users, or others.</p>
           </section>
 

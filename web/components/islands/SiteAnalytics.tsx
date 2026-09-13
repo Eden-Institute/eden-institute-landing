@@ -10,7 +10,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { getMarketingConsent, setMarketingConsent } from "@/lib/consent";
+import { applyTagConsent, getMarketingConsent, setMarketingConsent } from "@/lib/consent";
 import { loadMetaPixel, metaPageView } from "@/lib/metaPixel";
 import { Button } from "@/components/ui/button";
 import { captureFirstTouch } from "@/lib/attribution";
@@ -106,14 +106,19 @@ export default function SiteAnalytics() {
 
   if (!visible) return null;
 
+  // Google Analytics and the Pinterest tag run by default (founder decision
+  // 2026-09-13). applyTagConsent turns them off on Decline and back on on
+  // Accept; the layout's inline script re-applies a stored Decline on every load.
   const accept = () => {
     setMarketingConsent("granted");
+    applyTagConsent("granted");
     loadMetaPixel();
     metaPageView();
     setVisible(false);
   };
   const decline = () => {
     setMarketingConsent("denied");
+    applyTagConsent("denied");
     setVisible(false);
   };
 

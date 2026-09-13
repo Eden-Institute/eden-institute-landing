@@ -5,6 +5,8 @@ import Footer from "@/components/landing/Footer";
 import Navbar from "@/components/landing/Navbar";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { ROUTES } from "@/lib/routes";
+import { readCheckoutSessionId } from "@/lib/checkoutSession";
+import { checkoutRef } from "@/lib/pinterestTag";
 
 /**
  * /homeschool/welcome — generic order confirmation fallback (noindex).
@@ -50,7 +52,8 @@ const HomeschoolWelcome = () => {
   }, []);
 
   const [searchParams] = useSearchParams();
-  const sessionId = searchParams.get("session_id");
+  // index.html's first script has already moved session_id out of the URL.
+  const sessionId = readCheckoutSessionId();
   const lookupKey = searchParams.get("lookup_key");
 
   // The Founders Edition products this page once named (sprouts_complete,
@@ -67,15 +70,23 @@ const HomeschoolWelcome = () => {
 
   // Tiny client-side analytics ping for conversion tracking. Idempotent;
   // the page doesn't re-fire on re-mount unless the user refreshes.
+  // transaction_id is checkoutRef(session id), never the raw Stripe id, which
+  // unlocks the order; if hashing is unavailable it is left out.
   useEffect(() => {
-    if (sessionId) {
+    if (!sessionId) return;
+    let cancelled = false;
+    void checkoutRef(sessionId).then((ref) => {
+      if (cancelled) return;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).gtag?.("event", "purchase_confirmed", {
         event_category: "homeschool",
         event_label: lookupKey ?? "unknown",
-        transaction_id: sessionId,
+        ...(ref ? { transaction_id: ref } : {}),
       });
-    }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [sessionId, lookupKey]);
 
   return (

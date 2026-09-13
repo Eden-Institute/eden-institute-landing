@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { metaTrack } from "@/lib/metaPixel";
+import { pinSetHashedEmail, pinTrack } from "@/lib/pinterestTag";
 import { getMarketingConsent } from "@/lib/consent";
 import { checkEmail } from "@/lib/emailTypos";
 import { getAttribution } from "@/lib/attribution";
@@ -131,6 +132,10 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
 
       (window as any).gtag?.('event', 'email_submit', { event_category: 'conversion', event_label: source });
       metaTrack("Lead", { content_name: source, content_category: "waitlist" }, fbEventId);
+      // Pinterest lead, only after the signup is confirmed above. `email` is this
+      // submit's value, captured before the field is cleared below. The helper
+      // hashes it in the browser and attaches it only with marketing consent.
+      void pinSetHashedEmail(email).then(() => pinTrack("lead", { lead_type: source, event_id: fbEventId }));
       setSuccess(true);
       setFirstName("");
       setEmail("");

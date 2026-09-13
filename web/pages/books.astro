@@ -98,7 +98,19 @@ const faqJsonLd = {
 };
 ---
 
-<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} jsonLd={[productJsonLd, faqJsonLd]}>
+<MarketingLayout
+  title={meta.title}
+  description={meta.description}
+  canonical={meta.canonical}
+  jsonLd={[productJsonLd, faqJsonLd]}
+  ogType="product"
+  product={{
+    priceAmount: productJsonLd.offers.price,
+    priceCurrency: productJsonLd.offers.priceCurrency,
+    availability: "instock",
+    brand: productJsonLd.brand.name,
+  }}
+>
   <section class="relative overflow-hidden pt-16 md:pt-20 pb-10 md:pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
     <img src={heroBooks.src} alt="" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" style="opacity:0.95;mix-blend-mode:multiply" />
     <div class="relative z-10 max-w-3xl mx-auto text-center rounded-lg" style="background-color:hsl(0 0% 100% / 0.92);border:1px solid hsl(var(--eden-gold) / 0.35);padding:clamp(26px, 3.5vw, 52px);box-shadow:0 2px 18px -10px rgba(30,62,46,0.28)">

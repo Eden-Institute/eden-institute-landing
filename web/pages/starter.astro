@@ -150,6 +150,13 @@ const faqJsonLd = {
   description={meta.description}
   canonical={meta.canonical}
   jsonLd={[productJsonLd, faqJsonLd]}
+  ogType="product"
+  product={{
+    priceAmount: productJsonLd.offers.price,
+    priceCurrency: productJsonLd.offers.priceCurrency,
+    availability: "instock",
+    brand: productJsonLd.brand.name,
+  }}
 >
   <!-- HERO. The credit is inside it, deliberately, because it is the reason the
        product exists.

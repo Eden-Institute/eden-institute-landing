@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useSearchParams, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrentTier, Tier } from "@/hooks/useCurrentTier";
 import { ROUTES } from "@/lib/routes";
+import { readCheckoutSessionId } from "@/lib/checkoutSession";
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
 
 type Status = "verifying" | "confirmed" | "not_paid" | "missing_session" | "error";
@@ -20,8 +21,9 @@ const tierDisplayName: Record<Tier, string> = {
 };
 
 /**
- * Post-checkout landing. Reads ?session_id= from the query string (Stripe
- * substitutes {CHECKOUT_SESSION_ID} on redirect), validates the payment went
+ * Post-checkout landing. Reads the ?session_id= Stripe substitutes for
+ * {CHECKOUT_SESSION_ID} on redirect (via readCheckoutSessionId, since index.html
+ * moves it out of the URL before any tag loads), validates the payment went
  * through via verify-session Edge Function, then waits for the webhook to
  * reconcile profiles.subscription_tier before rendering confirmation.
  *
@@ -32,9 +34,10 @@ const tierDisplayName: Record<Tier, string> = {
  * Closes launch-blocker #51.
  */
 export default function Welcome() {
-  const [params] = useSearchParams();
   const navigate = useNavigate();
-  const sessionId = params.get("session_id");
+  // index.html's first script has already moved session_id out of the URL
+  // (src/lib/checkoutSession.ts).
+  const sessionId = readCheckoutSessionId();
   const { user, loading: authLoading } = useAuth();
   const { data: currentTier, refetch: refetchTier } = useCurrentTier();
   const queryClient = useQueryClient();

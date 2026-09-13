@@ -3,8 +3,11 @@
 // Fetches and renders a buyer's Starter Unit downloads plus their credit code.
 // Serves BOTH surfaces, because they differ only in which credential they hold:
 //
-//   /starter/thank-you  -> ?session_id= from Stripe's redirect (the email has not
-//                          arrived yet, so there is no token to use)
+//   /starter/thank-you  -> the session id from Stripe's redirect (the email has not
+//                          arrived yet, so there is no token to use), read with
+//                          readCheckoutSessionId: the layout's first head script
+//                          has already moved ?session_id= out of the URL into
+//                          sessionStorage, so a reload in the same tab still works
 //   /starter/downloads  -> ?t= the durable re-request token from the email
 //
 // POLLING, and why it is here. The webhook queues the delivery and a separate
@@ -17,8 +20,33 @@
 // Copy rule: no em dashes (feedback_no_em_dashes).
 
 import { useEffect, useRef, useState } from "react";
+import { pinCheckoutOnce } from "@/lib/pinterestTag";
+import { readCheckoutSessionId } from "@/lib/checkoutSession";
 
 const FUNCTIONS_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/starter-download`;
+
+/** Pre-tax Starter Unit price for ad reporting. Mirrors STARTER_PRICE_CENTS in
+ *  supabase/functions/_shared/starter-config.ts and PRICE_VALUE in StarterBuyBox. */
+const STARTER_PRICE_VALUE = 39;
+
+/**
+ * Pinterest checkout for the Starter Unit, /starter/thank-you only. Called when
+ * starter-download answers 200 or 409 for this session id: both mean a
+ * starter_deliveries row exists, and stripe-webhook writes that row only after
+ * its payment_status "paid" check. A made-up session id gets a 404 and reports
+ * nothing. No email is available here (starter-download does not return one),
+ * so this event carries no enhanced match. order_id and event_id are both a
+ * one-way reference derived from the session id (pinCheckoutOnce), never the
+ * session id itself, since there is no order number on this page.
+ */
+function reportPinterestCheckout(sessionId: string): void {
+  void pinCheckoutOnce(sessionId, {
+    value: STARTER_PRICE_VALUE,
+    currency: "USD",
+    order_quantity: 1,
+    line_items: [{ product_id: "sprouts_starter_unit", product_name: "Sprouts Starter Unit", product_price: STARTER_PRICE_VALUE, product_quantity: 1 }],
+  });
+}
 
 /** ~45 seconds of patience. Stamping two PDFs measured about 300ms, so anything
  *  slower than this is a real fault, not a slow queue. */
@@ -59,13 +87,14 @@ interface Props {
 export default function StarterDownloads({ mode, showCredit = false }: Props) {
   const [state, setState] = useState<State>({ kind: "loading" });
   const timer = useRef<number | null>(null);
+  /** The checkout is reported once per mount, not on every 409 poll. */
+  const checkoutReported = useRef(false);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
     const credential =
       mode === "session"
-        ? params.get("session_id") ?? ""
-        : params.get("t") ?? "";
+        ? readCheckoutSessionId() ?? ""
+        : new URLSearchParams(window.location.search).get("t") ?? "";
 
     if (!credential) {
       setState({
@@ -88,6 +117,11 @@ export default function StarterDownloads({ mode, showCredit = false }: Props) {
         const res = await fetch(`${FUNCTIONS_BASE}?${qs}`, {
           headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string },
         });
+
+        if (mode === "session" && (res.status === 409 || res.ok) && !checkoutReported.current) {
+          checkoutReported.current = true;
+          reportPinterestCheckout(credential);
+        }
 
         if (res.status === 409) {
           polls += 1;

@@ -1,7 +1,9 @@
 // web/components/islands/PrintThankYou.tsx
 //
-// The order confirmation on /books/thank-you. Reads ?session_id= from the
-// Stripe redirect, asks print-order-status for the buyer's own order, and shows:
+// The order confirmation on /books/thank-you. Reads the Stripe session id from
+// the redirect (readCheckoutSessionId: the layout's first head script has already
+// moved ?session_id= out of the URL into sessionStorage, so a reload in the same
+// tab still works), asks print-order-status for the buyer's own order, and shows:
 //   1. the order number (the handle /returns tells them to quote),
 //   2. exactly what happens next, with the two dates that matter
 //      (the cancellation deadline and the arrival window),
@@ -16,6 +18,8 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { centsToValue, pinCheckoutOnce } from "@/lib/pinterestTag";
+import { readCheckoutSessionId } from "@/lib/checkoutSession";
 
 interface Status {
   pending: boolean;
@@ -25,6 +29,8 @@ interface Status {
   items?: { name: string; quantity: number }[];
   amount_total_cents?: number | null;
   tax_cents?: number | null;
+  /** Lowercase ISO code from print-order-status, e.g. "usd". */
+  currency?: string;
   email?: string;
   ship_to?: { name: string | null; city: string | null; state: string | null };
   placed_at?: string;
@@ -54,13 +60,45 @@ function addDays(iso: string, days: number): Date {
   return d;
 }
 
+/**
+ * Pinterest checkout. Called only with a non-pending status, and
+ * print-order-status only returns one once stripe-webhook has recorded the
+ * order, which it does only for payment_status "paid". A refunded order
+ * (stage "cancelled") is not reported. Value is the amount before tax (total
+ * minus tax, shipping included), matching the buy box's addtocart value.
+ * order_id is the order number the buyer sees; event_id is a one-way reference
+ * derived from the session id (pinCheckoutOnce), never the session id itself.
+ * Nothing here can throw into the caller: the order display must never depend
+ * on ad reporting.
+ */
+function reportPinterestCheckout(sessionId: string, s: Status): void {
+  try {
+    if (s.pending || s.stage === "cancelled") return;
+    const quantity = (s.items ?? []).reduce((n, it) => n + (it.quantity || 0), 0) || 1;
+    const value = s.amount_total_cents != null ? centsToValue(s.amount_total_cents - (s.tax_cents ?? 0)) : undefined;
+    void pinCheckoutOnce(
+      sessionId,
+      {
+        ...(value != null ? { value } : {}),
+        currency: (s.currency ?? "usd").toUpperCase(),
+        order_quantity: quantity,
+        ...(s.order_number ? { order_id: s.order_number } : {}),
+        line_items: (s.items ?? []).map((it) => ({ product_name: it.name, product_quantity: it.quantity })),
+      },
+      s.email,
+    );
+  } catch {
+    // Analytics never break the page.
+  }
+}
+
 export default function PrintThankYou() {
   const [status, setStatus] = useState<Status | null>(null);
   const [tries, setTries] = useState(0);
   const [noSession, setNoSession] = useState(false);
 
   useEffect(() => {
-    const sessionId = new URLSearchParams(window.location.search).get("session_id");
+    const sessionId = readCheckoutSessionId();
     if (!sessionId) {
       setNoSession(true);
       return;
@@ -68,14 +106,19 @@ export default function PrintThankYou() {
     let cancelled = false;
     (async () => {
       for (let i = 0; i < 8 && !cancelled; i++) {
+        let found: Status | null = null;
         try {
           const { data, error } = await supabase.functions.invoke("print-order-status", { body: { session_id: sessionId } });
-          if (!error && data && !data.pending) {
-            setStatus(data as Status);
-            return;
-          }
+          if (!error && data && !data.pending) found = data as Status;
         } catch {
           // keep polling
+        }
+        if (found) {
+          setStatus(found);
+          // Outside the polling try on purpose: ad reporting can never turn a
+          // shown order back into the pending fallback.
+          reportPinterestCheckout(sessionId, found);
+          return;
         }
         setTries(i + 1);
         await new Promise((r) => setTimeout(r, 1500));
