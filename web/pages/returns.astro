@@ -34,8 +34,10 @@ const sections = [
   {
     // Added 2026-08-26. The credit is a promise attached to money already spent,
     // so what happens to it if the purchase is reversed has to be written down.
+    // 2026-09-13: qualified for scholarship-funded Starters, which the
+    // Scholarship and ESA purchases card below excludes.
     heading: "Starter Unit credit toward the Complete Kit",
-    body: "Every Starter Unit includes a single-use $39 credit toward the Sprouts Complete Kit. The Complete Kit is not currently on sale, so the credit cannot be spent today. It does not expire, and it is honored when the Complete Kit is offered again. The credit is tied to the email address used to buy the Starter Unit and is not transferable. If a Starter Unit purchase is refunded, its credit is cancelled with it. If you use the credit on a kit and later cancel that kit order, we refund what you paid for the kit and reinstate the credit.",
+    body: "Every Starter Unit includes a single-use $39 credit toward the Sprouts Complete Kit, unless the Starter Unit was paid with or reimbursed by scholarship funds (see Scholarship and ESA purchases below). The Complete Kit is not currently on sale, so the credit cannot be spent today. It does not expire, and it is honored when the Complete Kit is offered again. The credit is tied to the email address used to buy the Starter Unit and is not transferable. If a Starter Unit purchase is refunded, its credit is cancelled with it. If you use the credit on a kit and later cancel that kit order, we refund what you paid for the kit and reinstate the credit.",
   },
   {
     // Added 2026-09-11 with the printed Sprouts set (/books). Each set is
@@ -52,6 +54,21 @@ const sections = [
   {
     heading: "Damaged or incorrect orders",
     body: "If your order arrives damaged, defective, or incorrect, email hello@edeninstitute.health within 14 days of delivery with your order number and a photo. We will replace the item or issue a full refund, including shipping, at no cost to you.",
+  },
+  {
+    // Added 2026-09-13. Scholarship programs do not allow a vendor to refund or
+    // rebate program money to the parent: AZ A.R.S. 15-2402(J); NH CSF EFA Parent
+    // Handbook p.31 (back to CSF or ClassWallet within 30 days); WY WDE ESA Family
+    // Handbook p.16; AR EFA via ClassWallet. Arizona families may also pay on our
+    // own checkout by typing in the ClassWallet-issued ESA debit card number (ADE
+    // handbook printed p.48; MCC restrictions can still decline it), so that
+    // refund goes back to the same card. Invoice wording is
+    // program-neutral: NH and AR say Direct Pay, AZ says Pay Vendor. The $39
+    // Starter credit is a rebate on program money when the Starter was
+    // program-funded, so it is excluded here.
+    // Founder copy review needed before merge.
+    heading: "Scholarship and ESA purchases",
+    body: "If your order was paid with money from an ESA, EFA or scholarship program, any refund goes back to that program, never to you personally. If you paid on our checkout with a card your program issued, such as an Arizona ESA ClassWallet debit card, the refund goes back to that same card. If you ordered through your program's marketplace, or with an invoice paid through your program, such as Direct Pay or Pay Vendor, the refund goes back to your program account. If your program reimbursed you for an order you placed with us, tell us the order was reimbursed when you ask for a refund, so we can send the money back the way your program requires. The $39 Starter Unit credit does not apply to a Starter Unit that was paid with scholarship funds or reimbursed by a scholarship program.",
   },
 ];
 ---
