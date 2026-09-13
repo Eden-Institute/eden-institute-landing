@@ -25,11 +25,14 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { DeliveryRow, fulfilStarterDelivery } from '../_shared/starter-fulfillment.ts';
 import { captureException } from '../_shared/sentry.ts';
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
+import { pgrstFetch } from '../_shared/pgrst-retry.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+// global.fetch repeats the gateway's 504s on the delivery scan and other
+// repeat-safe calls; inserts and signed-URL POSTs are not repeated.
+const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { global: { fetch: pgrstFetch } });
 
 /**
  * How many deliveries one drain handles.

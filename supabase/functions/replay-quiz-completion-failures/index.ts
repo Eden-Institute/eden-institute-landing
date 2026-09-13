@@ -39,6 +39,8 @@
 //     + body. Row stays unresolved — next cron tick retries.
 
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
+// Repeats reads and PATCHes the gateway 504s; the INSERT replay is never repeated.
+import { pgrstFetch } from '../_shared/pgrst-retry.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -65,7 +67,7 @@ async function fetchPendingBatch(): Promise<FailureRow[]> {
     `&resolved_at=is.null` +
     `&order=received_at.asc` +
     `&limit=${BATCH_SIZE}`;
-  const res = await fetch(url, {
+  const res = await pgrstFetch(url, {
     headers: {
       apikey: SUPABASE_SERVICE_ROLE_KEY!,
       Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
@@ -124,7 +126,7 @@ async function replayInsert(row: FailureRow): Promise<{
     purchased_guide: false,
   };
 
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/quiz_completions`, {
+  const res = await pgrstFetch(`${SUPABASE_URL}/rest/v1/quiz_completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -163,7 +165,7 @@ async function markResolved(
   retryCount: number,
 ): Promise<void> {
   const url = `${SUPABASE_URL}/rest/v1/quiz_completion_failures?id=eq.${rowId}`;
-  const res = await fetch(url, {
+  const res = await pgrstFetch(url, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -192,7 +194,7 @@ async function markStillFailing(
   retryCount: number,
 ): Promise<void> {
   const url = `${SUPABASE_URL}/rest/v1/quiz_completion_failures?id=eq.${rowId}`;
-  const res = await fetch(url, {
+  const res = await pgrstFetch(url, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',

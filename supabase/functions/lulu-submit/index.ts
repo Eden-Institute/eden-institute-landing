@@ -28,10 +28,14 @@ import {
 } from '../_shared/lulu-fulfillment.ts';
 import { captureException } from '../_shared/sentry.ts';
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
+import { pgrstFetch } from '../_shared/pgrst-retry.ts';
 
+// global.fetch repeats the gateway's 504s on the job scan and other repeat-safe
+// calls (it was failing about every other run on 2026-09-13); inserts are not repeated.
 const adminClient = createClient(
   Deno.env.get('SUPABASE_URL')!,
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  { global: { fetch: pgrstFetch } },
 );
 
 /** Jobs per drain. Each is one Lulu round trip; a backlog drains on the next tick. */
