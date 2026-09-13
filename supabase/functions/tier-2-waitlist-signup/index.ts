@@ -89,7 +89,7 @@ function escapeHtml(s: string): string {
 
 function buildConfirmationEmail(rawFirstName: string): { subject: string; html: string } {
   const firstName = escapeHtml(rawFirstName);
-  const subject = "You're on the Tier 2 waitlist — your $497 founding code is reserved";
+  const subject = "You're on the Tier 2 waitlist: your $497 founding code is reserved";
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Tier 2 Waitlist Confirmed</title></head>
@@ -104,13 +104,13 @@ function buildConfirmationEmail(rawFirstName: string): { subject: string; html: 
 <tr><td style="border-top:2px solid #C5A44E;font-size:0;line-height:0;">&nbsp;</td></tr>
 <tr><td style="background-color:#FFFFFF;padding:32px 40px;">
 <p style="font-family:Georgia,serif;font-size:16px;line-height:1.6;color:#3D3832;margin:0 0 16px 0;">${firstName ? firstName + ',' : 'Friend,'}</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.6;color:#3D3832;margin:0 0 16px 0;">You're officially on the Tier 2 founding waitlist. We've reserved your spot — and your <strong>$497 founding access code</strong> is waiting.</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.6;color:#3D3832;margin:0 0 16px 0;">Tier 2 — <em>Body Systems &amp; Clinical Literacy</em> — is where students stop dabbling and start practicing. Fourteen modules. 127 lessons. Every major body system, studied through a terrain lens with Scripture as the anchor.</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.6;color:#3D3832;margin:0 0 16px 0;">You're officially on the Tier 2 founding waitlist. We've reserved your spot, and your <strong>$497 founding access code</strong> is waiting.</p>
+<p style="font-family:Georgia,serif;font-size:16px;line-height:1.6;color:#3D3832;margin:0 0 16px 0;">Tier 2, <em>Body Systems &amp; Clinical Literacy</em>, is where students stop dabbling and start practicing. Fourteen modules. 127 lessons. Every major body system, studied through a terrain lens with Scripture as the anchor.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;background-color:#F5F0E8;border-left:3px solid #C5A44E;">
 <tr><td style="padding:20px 24px;">
 <p style="font-family:Georgia,serif;font-size:14px;color:#6B6560;margin:0 0 8px 0;text-transform:uppercase;letter-spacing:2px;font-weight:bold;">What happens next</p>
-<p style="font-family:Georgia,serif;font-size:15px;line-height:1.6;color:#3D3832;margin:0 0 8px 0;"><strong>July 7, 2026</strong> — Early access opens. Your founding code arrives in your inbox that morning. Valid 14 days.</p>
-<p style="font-family:Georgia,serif;font-size:15px;line-height:1.6;color:#3D3832;margin:0;"><strong>October 8, 2026</strong> — Public launch at $1,497.</p>
+<p style="font-family:Georgia,serif;font-size:15px;line-height:1.6;color:#3D3832;margin:0 0 8px 0;"><strong>July 7, 2026</strong>: Early access opens. Your founding code arrives in your inbox that morning. Valid 14 days.</p>
+<p style="font-family:Georgia,serif;font-size:15px;line-height:1.6;color:#3D3832;margin:0;"><strong>October 8, 2026</strong>: Public launch at $1,497.</p>
 </td></tr>
 </table>
 <p style="font-family:Georgia,serif;font-size:15px;line-height:1.6;color:#3D3832;margin:0 0 16px 0;"><em>Using Gmail? Move this email to your Primary inbox so you don't miss your founding code on July 7.</em></p>
