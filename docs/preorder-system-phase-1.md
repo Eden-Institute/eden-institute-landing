@@ -1,5 +1,12 @@
 # Preorder System — Phase 1 (plan + build tracker)
 
+> **PREORDERS CLOSED 2026-09-12.** Founder decision: no new kit preorders until the print run
+> is funded, and no date is promised. The `PREORDERS_LIVE` secret MUST stay `false`
+> (create-checkout returns 403 `PREORDERS_NOT_LIVE`). /preorder is a noindex closed notice.
+> The five existing preorders still depend on this system: `order-config.ts` SHIP_TARGET
+> (July 31, 2027) and SHIP_GUARANTEE (Sept 30, 2027) are the live ship window, which
+> superseded the "Late Fall 2026" estimate recorded below. Everything below is history.
+
 Takes founding-preorder payments, records who bought what, confirms the order, stays
 compliant. No inventory, no shipping logistics in this phase (orders only reach
 `preorder_hold`).

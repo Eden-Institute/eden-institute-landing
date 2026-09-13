@@ -550,7 +550,7 @@ const Index = () => {
               <ul className="space-y-3">
                 <li><a href="/assessment" className="inline-flex items-center min-h-[44px]" style={{fontFamily: "'EB Garamond', Georgia, serif", fontSize: "15px", color: "hsl(var(--sage-pale))"}}>Pattern Quiz</a></li>
                 <li><a href={guideUrl} className="inline-flex items-center min-h-[44px]" style={{fontFamily: "'EB Garamond', Georgia, serif", fontSize: "15px", color: "hsl(var(--sage-pale))"}}>Deep Dive Guide</a></li>
-                <li><a href="/homeschool" className="inline-flex items-center min-h-[44px]" style={{fontFamily: "'EB Garamond', Georgia, serif", fontSize: "15px", color: "hsl(var(--sage-pale))"}}>Founders Edition</a></li>
+                <li><a href="/homeschool" className="inline-flex items-center min-h-[44px]" style={{fontFamily: "'EB Garamond', Georgia, serif", fontSize: "15px", color: "hsl(var(--sage-pale))"}}>Homeschool Curriculum</a></li>
                 <li><a href="/why-eden" className="inline-flex items-center min-h-[44px]" style={{fontFamily: "'EB Garamond', Georgia, serif", fontSize: "15px", color: "hsl(var(--sage-pale))"}}>Why Eden</a></li>
               </ul>
             </div>

@@ -41,7 +41,7 @@ export interface LuluBook {
 // Color, 80# coated white, gloss cover):
 //   Teacher's Guide     US Letter 8.5 x 11, coil bound, 240 pages
 //   Student Notebook    US Letter 8.5 x 11, coil bound, 224 pages
-//   Read-Aloud          A5 5.83 x 8.27, perfect bound, page count pending
+//   Read-Aloud          A5 5.83 x 8.27, perfect bound, page count 112
 //                       (Lulu requires at least 32 interior pages for
 //                       perfect bound; the founder is adding pages).
 //
@@ -67,7 +67,7 @@ export const LULU_BOOKS: LuluBook[] = [
     key: 'ra',
     title: "Eden's Table Sprouts: Read-Aloud Storybook",
     podPackageId: '0583X0827.FC.STD.PB.080CW444.GXX',
-    pageCount: null,
+    pageCount: 112,
   },
 ];
 
@@ -84,7 +84,7 @@ export interface LuluProduct {
 
 // The sellable products. The set (founder decision 2026-09-10: the three books
 // together, never separately) and, since 2026-09-11, an extra Student Notebook
-// for siblings at $29.99, printed in the same job and shipped in the same
+// for siblings at $39.99, printed in the same job and shipped in the same
 // parcel. Caps are engineering defaults, not founder rules; raise on request.
 export const LULU_PRODUCTS: LuluProduct[] = [
   {

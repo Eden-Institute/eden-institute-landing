@@ -99,7 +99,7 @@ function magnetLabel(funnel: string, source: string): string {
   if (funnel === "homeschool") {
     if (source === "sprouts_magnet") return "Homeschool · Sprouts (K-2) Magnet";
     if (source === "seedlings_magnet") return "Homeschool · Seedlings (3-5) Magnet";
-    if (source === "reserve") return "Homeschool · Eden's Table Founders Club";
+    if (source === "reserve") return "Homeschool · Founders Club (retired)";
     return "Homeschool · General CTA";
   }
   if (funnel === "edens_table") return "Eden's Table · General Waitlist";

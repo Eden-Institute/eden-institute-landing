@@ -125,7 +125,7 @@ export default function SiteAnalytics() {
       >
         <p className="font-body text-sm leading-relaxed mb-4 sm:mb-0 sm:flex-1">
           We use a few cookies to understand traffic and measure our ads. You can accept or decline
-          marketing cookies — essential, privacy-safe analytics stay on either way. See our{" "}
+          marketing cookies. Essential, privacy-safe analytics stay on either way. See our{" "}
           <a href="/cookies" className="underline" style={{ color: "hsl(var(--eden-gold))" }}>
             Cookie Policy
           </a>

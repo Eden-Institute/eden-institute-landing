@@ -279,7 +279,7 @@ export default function BroadcastTab() {
       <label className="block font-body text-sm">
         Message
         <textarea rows={12} value={body} className={`${field} font-mono`}
-          placeholder={"Blank line between paragraphs.\n\n## A heading looks like this\n\n[A link looks like this](https://edeninstitute.health/preorder)"}
+          placeholder={"Blank line between paragraphs.\n\n## A heading looks like this\n\n[A link looks like this](https://edeninstitute.health/books)"}
           onChange={(e) => { setBody(e.target.value); invalidate(); }} />
         <span className="text-xs text-muted-foreground">
           Paragraphs, ## headings, and [links](https://...). Everything else is shown as

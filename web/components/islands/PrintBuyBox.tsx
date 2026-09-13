@@ -118,7 +118,7 @@ export default function PrintBuyBox({ cta }: Props) {
           detail = null;
         }
         if (detail?.code === "PRINT_SHOP_NOT_LIVE") {
-          throw new Error("The printed set is not on sale yet. Join the list on /homeschool and we will tell you when it is.");
+          throw new Error("Checkout for the printed set is paused for a moment. Please email hello@edeninstitute.health and I will get your order in.");
         }
         throw new Error(detail?.error ?? fnError.message);
       }

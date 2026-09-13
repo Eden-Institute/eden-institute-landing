@@ -1,3 +1,8 @@
+-- ============================================================================
+-- DO NOT RUN. RETIRED 2026-09-12.
+-- This July 2026 backfill queues retired launch emails to the whole list, and kit
+-- preorders are closed. Kept for history only.
+-- ============================================================================
 -- ONE-TIME BACKFILL — July 2026 Sprouts preorder launch sequence.
 --
 -- Run this in the Supabase dashboard SQL editor (role=postgres) IMMEDIATELY

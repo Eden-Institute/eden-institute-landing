@@ -1,3 +1,9 @@
+-- ============================================================================
+-- DO NOT RUN. RETIRED 2026-09-12.
+-- Launch emails 13-17 are retired (kept only for a phase-two kit launch) and kit
+-- preorders are closed. Running this would queue retired founding-price emails
+-- to the whole list. Kept for history only.
+-- ============================================================================
 -- LAUNCH-DAY BLAST — preorder conversion series (positions 8-17).
 --
 -- Run this in the Supabase dashboard SQL editor (role=postgres) AT THE MOMENT
