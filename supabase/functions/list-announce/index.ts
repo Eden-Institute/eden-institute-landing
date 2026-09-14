@@ -54,10 +54,15 @@ const SITE = "https://edeninstitute.health";
 // ("starter_showtheweek_2026_09_07", subject "Now available: start Sprouts on
 // Monday") already sent; its copy is on 7233f0e. A NEW key is what makes this a
 // new send: every address is claimed once per campaign in founders_send_log.
-const CAMPAIGN = "print_first_pivot_letter_2026_09_12";
+// 2026-09-14: the ESA approval announcement. The previous campaign
+// ("print_first_pivot_letter_2026_09_12", subject "The kit is coming off the website.
+// Here is why.") already sent; its copy is on f6bfb83.
+const CAMPAIGN = "esa_approval_announcement_2026_09_14";
 
-// Founder's pick, 2026-09-12, from three options workshopped in session.
-const SUBJECT = "The kit is coming off the website. Here is why.";
+// Founder's pick, 2026-09-14, option 5 of five. Her first idea was "Check if you
+// qualify to get this ALL FOR FREE?"; "free" was dropped because an ESA purchase draws
+// down the family's own account (16 CFR 251.1(b)(1): "free" means paying nothing).
+const SUBJECT = "Check if you qualify to get this paid for by your ESA";
 
 // Ship dates mirror _shared/order-config.ts and _shared/launch-sequence-templates.ts.
 // They are duplicated here deliberately, exactly as launch-sequence-templates duplicates
@@ -157,48 +162,40 @@ function signature(signoff = "Grace and health,"): string {
 }
 
 /**
- * The print-first pivot letter to the homeschool list, 2026-09-12.
+ * The ESA approval announcement to the homeschool list, 2026-09-14.
  *
- * Workshopped with the founder in session. Decisions she made: subject line 1 of 3;
- * the real money gap ($28,500 against $1,493) is deliberately NOT named; sign-off
- * "In Him"; send before 2026-09-14, when the rewritten launch emails 8 to 12 start
- * arriving, so nobody meets the printed year before hearing why the kit is gone.
- *
- * Who it reaches, measured live the same day: 1,409 people. 533 came in through the
- * Seedlings free week, so Seedlings gets its own sentence, with no date because none
- * exists. 14 "reserved a $249 founding price" on the old founders form and were told
- * they were locked in; nothing was ever charged, and the letter says so. Starter Unit
- * buyers are NOT excluded this time (see recipients()): this is news for them too.
- * The five kit buyers are excluded automatically and got their own letter; the
- * kit-buyer paragraph below is only a safety net for a buyer who used another address.
- *
- * "Same price as the kit. These ship in about two weeks" is the founder's own line,
- * from her note to the affiliates that morning.
- *
- * Facts, all verified: set $249 + $12 flat shipping (print_products_public); free
- * Week 1 exists for Sprouts and Seedlings only; the $39 nine weeks are Sprouts only.
- * No em dashes. No "would rather X than Y".
+ * Copy approved in session from ESA_Approval_Announcement_Email_DRAFT_2026-09-14.docx
+ * (OneDrive, Eden's Table/Projects/ESA and Marketplace Vendor). Every state claim
+ * matches web/lib/esaStates.ts on f6bfb83, which the /esa pages render:
+ *   - "set up as a vendor", never "approved": Arizona REGISTERS vendors and says it has
+ *     no involvement in their marketing (ADE Parent Handbook 2025-26 p.64).
+ *   - Utah, Louisiana and Wyoming listings are Pending Approval at Odyssey, so the email
+ *     says they are still getting set up and offers to tell the family the day it opens.
+ *   - Florida and West Virginia are applied for, NOT approved.
+ * The ask ("tell me which state you live in") is the point of the email: replies land in
+ * hello@ and tell Camila where to apply next.
+ * No "free", no implied state endorsement, no em dashes.
  */
 function buildAnnouncement(firstName: string): string {
-  const BOOKS = `${SITE}/books`;
-  const FREE = `${SITE}/freebies`;
-  const STARTER = `${SITE}/starter`;
+  const ESA = `${SITE}/esa`;
+  const states: Array<[string, string]> = [
+    ["Arizona ESA", "arizona"],
+    ["Utah Fits All", "utah"],
+    ["Louisiana GATOR", "louisiana"],
+    ["Wyoming ESA", "wyoming"],
+    ["Arkansas EFA", "arkansas"],
+    ["Alabama CHOOSE Act", "alabama"],
+    ["New Hampshire EFA", "new-hampshire"],
+  ];
   const body =
-    preheader(`The whole year is printed and ready. The boxed kit waits until it is paid for.`) +
+    preheader(`Arizona, Utah, Louisiana, Wyoming, Arkansas, Alabama and New Hampshire. Not there? Tell me your state.`) +
     p(`Hi ${firstName},`) +
-    p(`I have taken the Complete Kit off the website, and I am not taking preorders for it anymore. I wanted you to hear that from me instead of noticing it on the site.`) +
-    p(`What is there instead is the curriculum itself, finished and in print. All 36 weeks of Sprouts in three books: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud Storybook. $249 plus $12 shipping. Same price as the kit. The kit would have shipped next summer. These are at your door in about two to three weeks.`) +
-    p(`Here is why. The kit costs more to print than I have, and I put it up for sale before I could pay for it. I am building this with no loans and no investors, because the borrower is slave to the lender, and I am not starting my life&rsquo;s work in debt.`) +
-    p(`I am a first time business owner with a big dream and a steep learning curve. My brain sees the whole thing from thirty thousand feet first, and then I come down and build the ladder up to it. The rung I set as step one was really step two.`) +
-    p(`So this is step one. If families want the printed year, that is what pays for the print run, and the kit comes back with the cards and the box in it. If they do not, I will take that as God&rsquo;s timing and not mine. I am praying over it, and I am not going to move faster than He is.`) +
-    goldDivider() +
-    p(`A few things you might be wondering:`) +
-    p(`If you came in for <strong>Seedlings</strong>: your free Week 1 is still yours, and the rest of the year is being finished now. I will tell you the day it is ready.`) +
-    p(`If you <strong>reserved a founding price</strong>: nothing was ever charged, and there is nothing to cancel. If the kit comes back, you will hear it from me first.`) +
-    p(`If you <strong>already ordered a kit</strong>: I wrote to you separately. Your order, your dates and your price have not changed.`) +
-    brandButton(`See the printed year &nbsp;&middot;&nbsp; $249`, BOOKS) +
-    p(`Not ready for that? ${textLink("Week 1 of Sprouts or Seedlings is free", FREE)}, and ${textLink(`the first nine weeks of Sprouts are a ${STARTER_PRICE} download`, STARTER)}.`) +
-    p(`Thank you for being patient with a first timer.`) +
+    p(`Big news!! Eden&rsquo;s Table is now set up as a vendor in seven state ESA and scholarship programs:`) +
+    states.map(([name, slug]) => bullet(textLink(name, `${ESA}/${slug}`))).join("") +
+    p(`If your family has one of these, your program may be able to pay for the printed Sprouts year instead of you paying out of pocket.`, "margin-top:16px;") +
+    p(`Every state does it a little differently, so I made a page for each one that shows exactly how buying works there right now. A couple are still getting set up on their end (Utah, Louisiana and Wyoming are waiting on marketplace approval), and if yours is one of those, just reply and I&rsquo;ll tell you the day it opens.`) +
+    brandButton(`Find your state`, ESA) +
+    p(`<strong>Not in one of those states?</strong> Hit reply and tell me which state you live in. I&rsquo;m deciding where to apply next based on where you all are, and Florida and West Virginia are already in the works.`) +
     signature("In Him,");
   return launchWrapper(body);
 }
@@ -312,8 +309,8 @@ async function recipients(db: ReturnType<typeof admin>): Promise<Recipient[]> {
     const email = (r.email ?? "").trim().toLowerCase();
     if (!email || !email.includes("@")) continue;
     if (seen.has(email)) continue; // the list can hold the same address twice
-    // Starter Unit buyers are NOT excluded for the pivot letter (they were for the
-    // previous campaign, which sold them what they already owned).
+    // Starter Unit buyers are NOT excluded: the ESA news applies to them too. Kit buyers
+    // (preorder_broadcast_list) stay excluded, as for every list-announce campaign.
     if (optedOut.has(email) || buyers.has(email) || sent.has(email)) continue;
     seen.add(email);
     const name = (r.first_name ?? "").trim();
