@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { getMarketingConsent, setMarketingConsent } from "@/lib/consent";
+import { applyTagConsent, getMarketingConsent, setMarketingConsent } from "@/lib/consent";
 import { loadMetaPixel, metaPageView } from "@/lib/metaPixel";
 import { ROUTES } from "@/lib/routes";
 
@@ -13,14 +13,19 @@ export default function ConsentBanner() {
   const [visible, setVisible] = useState(() => getMarketingConsent() === null);
   if (!visible) return null;
 
+  // Google Analytics runs by default (founder decision 2026-09-13).
+  // applyTagConsent turns it off on Decline and back on on Accept; index.html
+  // re-applies a stored Decline on every load. The SPA has no Pinterest tag.
   const accept = () => {
     setMarketingConsent("granted");
+    applyTagConsent("granted");
     loadMetaPixel();
     metaPageView(); // first PageView for this session now that consent is given
     setVisible(false);
   };
   const decline = () => {
     setMarketingConsent("denied");
+    applyTagConsent("denied");
     setVisible(false);
   };
 

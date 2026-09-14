@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import Navbar from "@/components/landing/Navbar";
 import { ROUTES } from "@/lib/routes";
 import { trackCta } from "@/lib/trackCta";
+import { readCheckoutSessionId } from "@/lib/checkoutSession";
 
 import { getFbAttribution } from "@/lib/fbAttribution";
 // Map slug → constitution type key
@@ -35,9 +36,11 @@ const GuideLanding = () => {
   const constitutionType = constitutionSlug ? slugToType[constitutionSlug] : null;
   const profile = constitutionType ? constitutionProfiles[constitutionType] : null;
 
-  // On mount: check for session_id (post-payment redirect)
+  // On mount: check for session_id (post-payment redirect). index.html's first
+  // script has already moved it out of the URL, so read it back from there
+  // (src/lib/checkoutSession.ts).
   useEffect(() => {
-    const sessionId = searchParams.get("session_id");
+    const sessionId = readCheckoutSessionId();
     if (!sessionId) return;
 
     setVerifying(true);
@@ -65,7 +68,7 @@ const GuideLanding = () => {
 
   // Check for prior purchase if no session_id
   useEffect(() => {
-    const sessionId = searchParams.get("session_id");
+    const sessionId = readCheckoutSessionId();
     if (sessionId) return;
 
     const checkPriorPurchase = async () => {

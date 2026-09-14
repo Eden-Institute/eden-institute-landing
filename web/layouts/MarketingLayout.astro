@@ -6,13 +6,24 @@ import "@/index.css";
 import Navbar from "../components/Navbar.astro";
 import Footer from "../components/Footer.astro";
 import SiteAnalytics from "../components/islands/SiteAnalytics.tsx";
+import { CHECKOUT_SESSION_STRIP_JS } from "@/lib/checkoutSession";
 
 export interface Props {
   title: string;
   description: string;
   canonical: string;
   ogImage?: string;
-  ogType?: "website" | "article";
+  ogType?: "website" | "article" | "product";
+  /** Product Rich Pin tags, for a single-product page someone can buy from.
+      Emitted only when ogType is "product". Pinterest reads product:price:amount
+      (no currency sign) and product:price:currency, plus og:availability.
+      Pass the same price the page's Product JSON-LD carries. */
+  product?: {
+    priceAmount: string;
+    priceCurrency: string;
+    availability: "instock" | "preorder" | "backorder" | "out of stock" | "discontinued";
+    brand?: string;
+  };
   /** Page-specific structured data (e.g. Course, FAQPage). Object or array. */
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
   /** Pages with their own bespoke footer (e.g. the homepage) opt out of the
@@ -38,6 +49,7 @@ const {
   canonical,
   ogImage = "https://edeninstitute.health/og-home-v1.4.png",
   ogType = "website",
+  product,
   jsonLd,
   hideFooter = false,
   noindex = false,
@@ -69,6 +81,42 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    {/*
+      Stripe session id out of the URL, the VERY FIRST script, on every page.
+      /books/thank-you and /starter/thank-you arrive as ?session_id=cs_..., a
+      bearer credential. This moves it into sessionStorage (and a window global
+      for this page load) and removes only that param from the address bar
+      before GTM, gtag('config') or the Pinterest tag can read location.href or
+      pass it on as the next page's referrer. The pages read it back with
+      readCheckoutSessionId(). Source and reasoning: src/lib/checkoutSession.ts.
+    */}
+    <script is:inline set:html={CHECKOUT_SESSION_STRIP_JS}></script>
+    {/*
+      Consent opt-out, first after the session-id strip above (founder decision 2026-09-13: run by
+      default, Decline turns it off). Google Analytics and the Pinterest tag
+      below run for every visitor until they click Decline on the cookie banner,
+      stored as localStorage 'eden-marketing-consent' = 'denied'
+      (src/lib/consent.ts). For that visitor this runs before the GTM and gtag
+      snippets on every page load:
+        window['ga-disable-G-5DVHEZPKL0'] = true  Google's switch that stops the
+                                                  Google tag setting cookies or
+                                                  sending data
+        gtag('consent', 'default', denied)        before gtag('config'), as
+                                                  Google requires
+      The Pinterest half is in the Pinterest snippet further down, before
+      pintrk('load') and pintrk('page'). The click itself is handled by
+      applyTagConsent() in src/lib/consent.ts.
+    */}
+    <script is:inline>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      try {
+        if (localStorage.getItem('eden-marketing-consent') === 'denied') {
+          window['ga-disable-G-5DVHEZPKL0'] = true;
+          gtag('consent', 'default', { analytics_storage: 'denied', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
+        }
+      } catch (e) {}
+    </script>
     <!-- Google Tag Manager (Curious Mind Marketplace container) -->
     <script is:inline>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -110,6 +158,15 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImage} />
+    {ogType === "product" && product && (
+      <>
+        <meta property="og:site_name" content="The Eden Institute" />
+        {product.brand && <meta property="og:brand" content={product.brand} />}
+        <meta property="product:price:amount" content={product.priceAmount} />
+        <meta property="product:price:currency" content={product.priceCurrency} />
+        <meta property="og:availability" content={product.availability} />
+      </>
+    )}
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@edeninstitute" />
     <meta name="twitter:title" content={title} />
@@ -129,17 +186,31 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
       Tag manager before changing it.
 
       Lives here rather than in the SPA entry because every ad landing page is
-      Astro: /preorder, /homeschool, /courses. The SPA is behind auth and is not
-      an ad destination, so tagging it would add tracking without adding signal.
+      Astro: /books, /starter, /homeschool, /freebies, /courses. The SPA is behind
+      auth and is not an ad destination, so tagging it would add tracking without
+      adding signal.
 
-      The `checkout` conversion fires from /preorder itself, because Stripe's
-      success_url returns buyers to /preorder?checkout=success. See preorder.astro.
+      Conversion events ride on this tag via src/lib/pinterestTag.ts:
+        lead      WaitlistModal, after resend-waitlist confirms the signup
+        addtocart PrintBuyBox (/books) and StarterBuyBox (/starter), on click
+        checkout  PrintThankYou (/books/thank-you) and StarterDownloads
+                  (/starter/thank-you), once the order is confirmed paid
+      The old /preorder checkout event went with that storefront in #475.
+
+      Consent: the setconsent line runs only for a visitor who clicked Decline.
+      It is queued before 'load' and 'page', and core.js replays the queue in
+      order, so for that visitor the tag sends no page event and makes no
+      cookie request (Pinterest's library keeps consent in memory, which is why
+      this is repeated on every page load). Accept or Decline clicks call
+      applyTagConsent() in src/lib/consent.ts. The noscript pixel below cannot
+      read the choice; a visitor without JavaScript also never sees the banner.
     */}
     <script is:inline>
       !function(e){if(!window.pintrk){window.pintrk=function(){window.pintrk.queue.push(
       Array.prototype.slice.call(arguments))};var n=window.pintrk;n.queue=[],n.version="3.0";
       var t=document.createElement("script");t.async=!0,t.src=e;var r=document.getElementsByTagName("script")[0];
       r.parentNode.insertBefore(t,r)}}("https://s.pinimg.com/ct/core.js");
+      try { if (localStorage.getItem('eden-marketing-consent') === 'denied') pintrk('setconsent', false); } catch (e) {}
       pintrk('load', '2613485320295');
       pintrk('page');
     </script>

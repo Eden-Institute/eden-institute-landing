@@ -18,11 +18,17 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getFbAttribution } from "@/lib/fbAttribution";
+import { pinTrack } from "@/lib/pinterestTag";
 
 const STARTER_LOOKUP_KEY = "sprouts_starter_unit";
 
 /** Display copy only. The Stripe Price is the billing truth. */
 const PRICE_LABEL = "$39";
+/** Pre-tax price for ad reporting. Mirrors STARTER_PRICE_CENTS in
+ *  supabase/functions/_shared/starter-config.ts. This button sends no promo
+ *  code and Checkout shows no promo field for this key (NO_PROMO_LOOKUP_KEYS in
+ *  create-checkout), so a sale from here is this amount before tax. */
+const PRICE_VALUE = 39;
 
 interface Props {
   /** Which button on the page this is, for the CTA funnel beacon. */
@@ -46,6 +52,14 @@ export default function StarterBuyBox({ cta, wide = false }: Props) {
   }, []);
 
   async function startCheckout() {
+    // Pinterest addtocart, on the click and BEFORE the await, because the
+    // redirect to Stripe below can cut off anything queued after it.
+    pinTrack("addtocart", {
+      value: PRICE_VALUE,
+      currency: "USD",
+      order_quantity: 1,
+      line_items: [{ product_id: STARTER_LOOKUP_KEY, product_name: "Sprouts Starter Unit", product_price: PRICE_VALUE, product_quantity: 1 }],
+    });
     setLoading(true);
     setError(null);
     setCancelled(false);

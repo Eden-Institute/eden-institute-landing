@@ -21,6 +21,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getFbAttribution } from "@/lib/fbAttribution";
+import { centsToValue, pinTrack } from "@/lib/pinterestTag";
 
 interface PrintProduct {
   sku: string;
@@ -91,6 +92,21 @@ export default function PrintBuyBox({ cta }: Props) {
 
   async function startCheckout() {
     if (!product) return;
+    // Pinterest addtocart, on the click and BEFORE the await: the redirect to
+    // Stripe below can cut off anything queued after it. Value is the "Total
+    // before tax" this box shows, the same basis the checkout event reports.
+    const nbCount = notebook && nbQty > 0 ? nbQty : 0;
+    pinTrack("addtocart", {
+      value: centsToValue(subtotal + shipping),
+      currency: "USD",
+      order_quantity: qty + nbCount,
+      line_items: [
+        { product_id: product.sku, product_name: product.name, product_price: centsToValue(product.retail_price_cents), product_quantity: qty },
+        ...(notebook && nbCount > 0
+          ? [{ product_id: notebook.sku, product_name: notebook.name, product_price: centsToValue(notebook.retail_price_cents), product_quantity: nbCount }]
+          : []),
+      ],
+    });
     setLoading(true);
     setError(null);
     try {

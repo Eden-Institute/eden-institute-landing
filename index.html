@@ -2,6 +2,62 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- Stripe session id out of the URL, the VERY FIRST script. The SPA's
+         post-checkout routes (/guide/:slug, /guide/success, /homeschool/welcome,
+         /apothecary/welcome) arrive as ?session_id=cs_..., a bearer credential.
+         This keeps it in sessionStorage and a window global and removes only
+         that param from the address bar before GTM and gtag read the URL. A
+         VERBATIM copy of CHECKOUT_SESSION_STRIP_JS in src/lib/checkoutSession.ts
+         (src/test/checkoutSession.test.ts fails if they drift). -->
+    <script>
+      (function () {
+        try {
+          var search = window.location.search;
+          if (!search || search.length < 2) return;
+          var parts = search.slice(1).split('&');
+          var kept = [];
+          var id = '';
+          var found = false;
+          for (var i = 0; i < parts.length; i++) {
+            var part = parts[i];
+            if (part === '') continue;
+            var eq = part.indexOf('=');
+            var rawKey = eq === -1 ? part : part.slice(0, eq);
+            var key = rawKey;
+            try { key = decodeURIComponent(rawKey.replace(/\+/g, ' ')); } catch (e) {}
+            if (key !== 'session_id') { kept.push(part); continue; }
+            found = true;
+            if (!id && eq !== -1) {
+              var rawVal = part.slice(eq + 1);
+              try { id = decodeURIComponent(rawVal.replace(/\+/g, ' ')); } catch (e) { id = rawVal; }
+            }
+          }
+          if (!found) return;
+          var path = window.location.pathname;
+          if (id) {
+            var entry = { id: id, path: path };
+            window.__edenCheckoutSession = entry;
+            try { window.sessionStorage.setItem('eden_checkout_session_id', JSON.stringify(entry)); } catch (e) {}
+          }
+          window.history.replaceState(window.history.state, '', path + (kept.length ? '?' + kept.join('&') : '') + window.location.hash);
+        } catch (e) {}
+      })();
+    </script>
+    <!-- Consent opt-out, first after the session-id strip (founder decision 2026-09-13: run by default,
+         Decline turns it off). A visitor whose stored choice is 'denied'
+         (src/lib/consent.ts) gets Google's ga-disable switch and a denied
+         consent default before GTM and gtag load. Mirrors
+         web/layouts/MarketingLayout.astro. -->
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      try {
+        if (localStorage.getItem('eden-marketing-consent') === 'denied') {
+          window['ga-disable-G-5DVHEZPKL0'] = true;
+          gtag('consent', 'default', { analytics_storage: 'denied', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
+        }
+      } catch (e) {}
+    </script>
     <!-- Google Tag Manager (Curious Mind Marketplace container) -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],

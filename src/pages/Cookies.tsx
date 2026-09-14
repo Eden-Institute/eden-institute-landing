@@ -22,7 +22,7 @@ const Cookies = () => {
           <div className="relative z-10">
             <h1 className="font-serif text-3xl md:text-4xl font-bold mb-2" style={{ color: "hsl(var(--eden-parchment))" }}>Cookie Policy</h1>
             <p className="font-body text-sm" style={{ color: "hsl(var(--eden-parchment) / 0.8)" }}>The Eden Institute — edeninstitute.health</p>
-            <p className="font-body text-xs mt-2" style={{ color: "hsl(var(--eden-parchment) / 0.6)" }}>Effective Date: June 9, 2026 · Last Updated: March 11, 2026</p>
+            <p className="font-body text-xs mt-2" style={{ color: "hsl(var(--eden-parchment) / 0.6)" }}>Effective Date: June 9, 2026 · Last Updated: September 13, 2026</p>
           </div>
         </header>
 
@@ -39,15 +39,22 @@ const Cookies = () => {
             <p className="mb-4">These are necessary for the website to function properly. They enable core features such as account login, course access, shopping cart functionality, and security. You cannot opt out of essential cookies as the site will not function without them.</p>
 
             <h3 className="font-serif text-lg font-medium text-foreground/80 mb-2">Analytics Cookies:</h3>
-            <p className="mb-4">These help us understand how visitors interact with our website by collecting information about pages visited, time spent on pages, and navigation patterns. This data is aggregated and anonymized. We may use tools such as Google Analytics for this purpose.</p>
+            <p className="mb-4">These help us understand how visitors use our website, such as which pages are visited, how long people stay on a page, and how they move around the site. We use Google Analytics for this. Google Analytics runs by default when you visit. If you click Decline on the cookie banner, we turn Google Analytics off for that browser.</p>
 
             <h3 className="font-serif text-lg font-medium text-foreground/80 mb-2">Marketing Cookies:</h3>
-            <p>These may be used to deliver relevant advertisements and track the effectiveness of marketing campaigns. We will only set marketing cookies with your explicit consent.</p>
+            <p className="mb-4">These help us measure our advertising. We use the Pinterest tag to measure visits, sign-ups and purchases on our website, including those that come from our Pinterest ads. The Pinterest tag runs by default when you visit. If you click Decline on the cookie banner, we tell Pinterest to stop, so the tag stops sending events from that browser and deletes the cookies it set on our website.</p>
+            <p className="mb-4">The Meta (Facebook) pixel works differently. It only loads after you click Accept.</p>
+            <p>When you give us your email address to get a freebie or join a waitlist, or when you buy printed books on our website, and only if you have clicked Accept, we also send Pinterest a hashed version of that email address. Hashing turns the address into a scrambled code in your browser before it is sent. Pinterest uses it to match the sign-up or purchase to a Pinterest account. If you have not clicked Accept, the email hash is not sent.</p>
           </section>
 
           <section>
             <h2 className="font-serif text-xl font-semibold text-primary mb-3">3. Your Cookie Choices</h2>
-            <p>When you first visit our website, you will be presented with a cookie consent banner that allows you to accept or reject non-essential cookies. You can also manage your cookie preferences at any time through the Cookie Preferences option available on our website.</p>
+            <p>When you first visit our website, you will see a cookie banner with two buttons:</p>
+            <ul className="list-disc pl-6 space-y-1 mt-2">
+              <li><strong>Decline</strong> turns Google Analytics and the Pinterest tag off for that browser. The Meta pixel stays off.</li>
+              <li><strong>Accept</strong> keeps Google Analytics and the Pinterest tag on, loads the Meta pixel, and allows the email hash described above to be sent to Pinterest.</li>
+            </ul>
+            <p className="mt-2">Until you choose, Google Analytics and the Pinterest tag run as normal. Your choice is saved in your browser, so it only applies to that browser on that device. To change it later, clear the cookies and site data for our website in your browser settings, and the banner will ask again.</p>
             <p className="mt-2">Additionally, you can control cookies through your browser settings. Most browsers allow you to block or delete cookies. However, blocking essential cookies may impair your ability to use certain features of the website.</p>
           </section>
 
@@ -57,7 +64,9 @@ const Cookies = () => {
             <ul className="list-disc pl-6 space-y-1 mt-2">
               <li><strong>LearnWorlds</strong> (course platform).</li>
               <li><strong>Stripe</strong> (payment processing).</li>
-              <li><strong>Google Analytics</strong> (website analytics).</li>
+              <li><strong>Google Analytics</strong> (website analytics). Runs by default; clicking Decline turns it off.</li>
+              <li><strong>Pinterest</strong> (advertising measurement). Runs by default; clicking Decline turns it off.</li>
+              <li><strong>Meta (Facebook)</strong> (advertising measurement). Only loads after you click Accept.</li>
             </ul>
             <p className="mt-2">These third parties have their own cookie and privacy policies, which we encourage you to review.</p>
           </section>
