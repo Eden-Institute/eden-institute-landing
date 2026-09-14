@@ -34,6 +34,7 @@ import { herbParam } from "@/lib/herbLinks";
 import { CONSTITUTION_MAP } from "@/lib/constitution-utils";
 import { constitutionProfiles } from "@/lib/constitution-data";
 import { getPublicHerbs } from "../lib/herbsPublic";
+import { ESA_STATES } from "../lib/esaStates";
 
 const ORIGIN = "https://edeninstitute.health";
 
@@ -59,6 +60,7 @@ const STATIC_PATHS = [
   "/contact",
   "/returns",
   "/herbs",
+  "/esa",
 ];
 
 export const GET: APIRoute = async () => {
@@ -70,7 +72,9 @@ export const GET: APIRoute = async () => {
 
   const herbPaths = herbs.map((herb) => `/herbs/${herbParam(herb)}`);
 
-  const urls = [...STATIC_PATHS, ...patternPaths, ...herbPaths];
+  const esaPaths = ESA_STATES.map((s) => `/esa/${s.slug}`);
+
+  const urls = [...STATIC_PATHS, ...esaPaths, ...patternPaths, ...herbPaths];
 
   const body = [
     '<?xml version="1.0" encoding="UTF-8"?>',
