@@ -103,29 +103,49 @@ export const ESA_STATES: EsaState[] = [
     short: "Arizona ESA",
     platform: "ClassWallet",
     approved: "July 2026",
-    status: "confirming",
+    status: "open",
     // Arizona wording is "registered", never "approved": the ADE Parent Handbook
     // 2025-26 p.64 says the program "has no involvement on vendors' marketing or
     // statements", and that a vendor accepting ESA funds does not make an item
     // allowable. The account holder decides. (Rules research 2026-09-14.)
-    statusLabel: "Registered vendor · buy today by reimbursement",
+    // Invoices open 2026-09-14: ClassWallet confirmed Arizona is attached to the vendor
+    // account (ESA_Catalog_Spec "ClassWallet call DONE"). LOCKED founder decision the same
+    // day: ClassWallet's 2.0408% Arizona fee is passed to the family as its own invoice line
+    // (ADE handbook allows a vendor processing fee). Set $261 + $5.33 = $266.33; notebook
+    // $39.99 + $0.82 = $40.81.
+    statusLabel: "Registered vendor · order by invoice today",
     summary:
-      "Yes. Eden's Table is a registered vendor for the Arizona Empowerment Scholarship Account program. You can order today and request reimbursement while we confirm direct payment through ClassWallet.",
+      "Yes. Eden's Table is a registered vendor for the Arizona Empowerment Scholarship Account program, and you can order today with an invoice you submit in ClassWallet.",
     howToBuy: [
       {
-        heading: "Order and request reimbursement",
-        body: "Order the printed set on our store ($249 plus $12 shipping). Your order confirmation email is an itemized receipt with the order number, date, each item, total paid and the card used, and Stripe emails its own receipt too. Upload both with your reimbursement request in ClassWallet. Arizona reviews every request, so check the current ESA Parent Handbook before you buy.",
+        heading: "1. Ask us for an invoice",
+        body: "Email us with the account holder's name as it shows in ClassWallet, your student's first and last name, which books you want, and the shipping address you have on file with the program. If more than one child is on the program, send each child's name and we will make a separate invoice for each.",
       },
       {
-        heading: "Paying with your ESA card",
-        body: "Some Arizona families pay on our checkout with the ESA card issued through ClassWallet. Card rules can still decline a purchase. If yours is declined, use reimbursement instead.",
+        heading: "2. Submit it in ClassWallet",
+        body: "We send the invoice back as a PDF, and you submit it in ClassWallet as a payment to a vendor. ClassWallet charges vendors a 2.0408% processing fee in Arizona, so the invoice shows it as its own line: the printed set comes to $266.33 and an extra notebook to $40.81. Arizona reviews every request, so check the current ESA Parent Handbook before you order.",
       },
       {
-        heading: "Paying us directly by invoice",
-        body: "We are confirming with ClassWallet how Arizona families can pay us directly. Email us and we will let you know as soon as it is set up.",
+        heading: "3. We print and ship",
+        body: "As soon as payment arrives we order your books. They are printed to order, so plan on about two to three weeks from there.",
+      },
+      {
+        heading: "Prefer to pay first and get reimbursed?",
+        body: "You can also order on our store ($249 plus $12 shipping) and request reimbursement. Your order confirmation email is an itemized receipt, and Stripe emails its own receipt too. Upload both with your reimbursement request in ClassWallet.",
       },
     ],
-    items: [SET, NOTEBOOK],
+    items: [
+      {
+        name: "Printed Curriculum Set",
+        price: "$266.33 by invoice",
+        note: "$261 ($249 plus $12 shipping) plus the $5.33 Arizona processing fee. Teacher's Guide, Student Notebook and Read-Aloud Storybook, all 36 weeks.",
+      },
+      {
+        name: "Extra Student Notebook",
+        price: "$40.81 by invoice",
+        note: "$39.99 with shipping, plus the $0.82 Arizona processing fee. A second write-in notebook for another child using the set.",
+      },
+    ],
     links: [
       { label: "Arizona Department of Education ESA program", href: "https://www.azed.gov/esa" },
       { label: "ESA Parent Handbook", href: "https://www.azed.gov/esa/parent-handbook" },
@@ -134,6 +154,10 @@ export const ESA_STATES: EsaState[] = [
       {
         q: "Is Eden's Table an allowed curriculum purchase for an Arizona ESA?",
         a: "Arizona lists curricula and supplementary materials as a qualified expense, and Eden's Table is a registered ESA vendor. Being a registered vendor does not by itself make a purchase allowable, and the program reviews every purchase, so check the current Parent Handbook for your situation.",
+      },
+      {
+        q: "Why is there a processing fee on an Arizona invoice?",
+        a: "ClassWallet charges vendors 2.0408% on Arizona ESA payments. The Arizona ESA Parent Handbook lets a vendor charge account holders a processing fee to offset it, so it is shown as its own line on your invoice. Arkansas, Alabama and New Hampshire invoices have no fee.",
       },
     ],
   },
@@ -233,22 +257,26 @@ export const ESA_STATES: EsaState[] = [
     short: "Alabama CHOOSE Act",
     platform: "ClassWallet",
     approved: "September 2026",
-    status: "confirming",
-    statusLabel: "Approved · invoices starting soon",
+    status: "open",
+    // Invoices open 2026-09-14: ClassWallet confirmed Alabama is attached ("you are now
+    // visible for the users in Alabama"); families submit our invoice through Direct Pay;
+    // no fee; a download is fine, date of service = the day the files are sent. Alabama
+    // has NO reimbursement. The Starter is offered on Alabama invoices only (founder).
+    statusLabel: "Approved · order by invoice today",
     summary:
-      "Yes. Eden's Table was approved as an Alabama CHOOSE Act Education Service Provider in September 2026. Alabama families pay approved providers by invoice, and we are finishing our payment setup now.",
+      "Yes. Eden's Table is an approved Alabama CHOOSE Act Education Service Provider, and you can order today with an invoice you submit in ClassWallet.",
     howToBuy: [
       {
-        heading: "How Alabama families pay",
-        body: "Alabama pays approved providers through Pay Vendor in ClassWallet, and every payment needs an invoice from the provider. When you submit it, choose the expense category for curriculum and supplemental reading materials.",
+        heading: "1. Ask us for an invoice",
+        body: "Email us with the parent's name, your student's first and last name, which items you want, and your shipping address for printed books. If more than one child is on the program, send each child's name and we will put each one on its own line.",
       },
       {
-        heading: "Ask us for an invoice",
-        body: "Email us with the parent's name, your student's first and last name, and which items you want. We are finishing our ClassWallet setup for Alabama, and we will send your invoice as soon as it is confirmed.",
+        heading: "2. Submit it in ClassWallet",
+        body: "We send the invoice back as a PDF. Submit it in ClassWallet as a Direct Pay (Pay Vendor) request and choose the expense category for curriculum and supplemental reading materials. Alabama does not reimburse purchases, so the invoice is the way to pay.",
       },
       {
-        heading: "Shipping",
-        body: "Printed books are printed to order and arrive in about two to three weeks after payment. The 9-week starter is a download.",
+        heading: "3. We send or ship",
+        body: "As soon as payment arrives, we email the 9-week starter files, or order your printed books, which are printed to order and arrive in about two to three weeks.",
       },
     ],
     items: [SET, STARTER, NOTEBOOK],
@@ -264,18 +292,29 @@ export const ESA_STATES: EsaState[] = [
     short: "New Hampshire EFA",
     platform: "ClassWallet, administered by Children's Scholarship Fund New Hampshire",
     approved: "July 2026",
-    status: "confirming",
-    statusLabel: "Approved · buy today by reimbursement",
+    status: "open",
+    // Invoices open 2026-09-14: ClassWallet confirmed CSF New Hampshire is attached; no fee
+    // to Eden (CSF pays it). EFAs are per student, so one invoice per student (CSF handbook
+    // p.18, p.29); ship only to the NH address on file with the program (p.18).
+    statusLabel: "Approved · order by invoice today",
     summary:
-      "Yes. Eden's Table is an approved New Hampshire EFA provider, listed in the Children's Scholarship Fund New Hampshire directory. You can order today and request reimbursement while we confirm direct payment through ClassWallet.",
+      "Yes. Eden's Table is an approved New Hampshire EFA provider, listed in the Children's Scholarship Fund New Hampshire directory, and you can order today with an invoice you submit in ClassWallet.",
     howToBuy: [
       {
-        heading: "Order and request reimbursement",
-        body: "Order the printed set on our store ($249 plus $12 shipping). Your order confirmation email is an itemized receipt, and Stripe emails its own receipt too. Upload both with your reimbursement request in ClassWallet. Every request is reviewed, so check the CSF New Hampshire Parent Handbook before you buy.",
+        heading: "1. Ask us for an invoice",
+        body: "Email us with the account holder's name as it shows in ClassWallet, your student's first and last name, which books you want, and the New Hampshire shipping address you have on file with the program. EFAs are per student, so if more than one child is on the program we make a separate invoice for each.",
       },
       {
-        heading: "Paying us directly by invoice",
-        body: "We are confirming with ClassWallet how New Hampshire families can pay us directly. Email us and we will let you know as soon as it is set up.",
+        heading: "2. Submit it in ClassWallet",
+        body: "We send the invoice back as a PDF, and you submit it in ClassWallet as a Direct Pay request. There is no processing fee on New Hampshire invoices.",
+      },
+      {
+        heading: "3. We print and ship",
+        body: "As soon as payment arrives we order your books. They are printed to order, so plan on about two to three weeks from there.",
+      },
+      {
+        heading: "Prefer to pay first and get reimbursed?",
+        body: "You can also order on our store ($249 plus $12 shipping) and request reimbursement in ClassWallet with your itemized receipt. Every request is reviewed, so check the CSF New Hampshire Parent Handbook first.",
       },
     ],
     items: [SET, NOTEBOOK],
