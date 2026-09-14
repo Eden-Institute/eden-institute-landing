@@ -118,12 +118,12 @@ export const ESA_STATES: EsaState[] = [
       "Yes. Eden's Table is a registered vendor for the Arizona Empowerment Scholarship Account program, and you can order today with an invoice you submit in ClassWallet.",
     howToBuy: [
       {
-        heading: "1. Ask us for an invoice",
-        body: "Email us with the account holder's name as it shows in ClassWallet, your student's first and last name, which books you want, and the shipping address you have on file with the program. If more than one child is on the program, send each child's name and we will make a separate invoice for each.",
+        heading: "1. Make your invoice with the form below",
+        body: "Enter the account holder's name as it shows in ClassWallet, each student's first and last name, what each student needs, and the shipping address you have on file with the program. Your invoice is ready to download right away, and we email you a copy. Each student gets their own invoice.",
       },
       {
         heading: "2. Submit it in ClassWallet",
-        body: "We send the invoice back as a PDF, and you submit it in ClassWallet as a payment to a vendor. ClassWallet charges vendors a 2.0408% processing fee in Arizona, so the invoice shows it as its own line: the printed set comes to $266.33 and an extra notebook to $40.81. Arizona reviews every request, so check the current ESA Parent Handbook before you order.",
+        body: "Submit the PDF invoice in ClassWallet as a payment to a vendor. ClassWallet charges vendors a 2.0408% processing fee in Arizona, so the invoice shows it as its own line: the printed set comes to $266.33 and an extra notebook to $40.81. Arizona reviews every request, so check the current ESA Parent Handbook before you order.",
       },
       {
         heading: "3. We print and ship",
@@ -224,12 +224,12 @@ export const ESA_STATES: EsaState[] = [
       "Yes. Eden's Table is an approved Arkansas EFA vendor, and you can order today with an invoice paid through ClassWallet Direct Pay.",
     howToBuy: [
       {
-        heading: "1. Ask us for an invoice",
-        body: "Email us with the account holder's name as it shows in ClassWallet, your student's first and last name, which books you want, and the shipping address you have on file with the program. If more than one child is on the program, send each child's name and we will make a separate invoice for each.",
+        heading: "1. Make your invoice with the form below",
+        body: "Enter the account holder's name as it shows in ClassWallet, each student's first and last name, what each student needs, and the shipping address you have on file with the program. Your invoice is ready to download right away, and we email you a copy. Each student gets their own invoice.",
       },
       {
         heading: "2. Upload it in ClassWallet",
-        body: "We send the invoice back as a PDF. Upload it as a Direct Pay request in ClassWallet. The Arkansas Department of Education reviews it (their goal is about two weeks, longer in busy seasons), and ClassWallet then pays us.",
+        body: "Upload the PDF invoice as a Direct Pay request in ClassWallet. The Arkansas Department of Education reviews it (their goal is about two weeks, longer in busy seasons), and ClassWallet then pays us.",
       },
       {
         heading: "3. We print and ship",
@@ -267,12 +267,12 @@ export const ESA_STATES: EsaState[] = [
       "Yes. Eden's Table is an approved Alabama CHOOSE Act Education Service Provider, and you can order today with an invoice you submit in ClassWallet.",
     howToBuy: [
       {
-        heading: "1. Ask us for an invoice",
-        body: "Email us with the parent's name, your student's first and last name, which items you want, and your shipping address for printed books. If more than one child is on the program, send each child's name and we will put each one on its own line.",
+        heading: "1. Make your invoice with the form below",
+        body: "Enter the parent's name, each student's first and last name, what each student needs, and your shipping address for printed books. Your invoice is ready to download right away, and we email you a copy. Each student gets their own invoice.",
       },
       {
         heading: "2. Submit it in ClassWallet",
-        body: "We send the invoice back as a PDF. Submit it in ClassWallet as a Direct Pay (Pay Vendor) request and choose the expense category for curriculum and supplemental reading materials. Alabama does not reimburse purchases, so the invoice is the way to pay.",
+        body: "Submit the PDF invoice in ClassWallet as a Direct Pay (Pay Vendor) request and choose the expense category for curriculum and supplemental reading materials. Alabama does not reimburse purchases, so the invoice is the way to pay.",
       },
       {
         heading: "3. We send or ship",
@@ -301,12 +301,12 @@ export const ESA_STATES: EsaState[] = [
       "Yes. Eden's Table is an approved New Hampshire EFA provider, listed in the Children's Scholarship Fund New Hampshire directory, and you can order today with an invoice you submit in ClassWallet.",
     howToBuy: [
       {
-        heading: "1. Ask us for an invoice",
-        body: "Email us with the account holder's name as it shows in ClassWallet, your student's first and last name, which books you want, and the New Hampshire shipping address you have on file with the program. EFAs are per student, so if more than one child is on the program we make a separate invoice for each.",
+        heading: "1. Make your invoice with the form below",
+        body: "Enter the account holder's name as it shows in ClassWallet, each student's first and last name, what each student needs, and the New Hampshire shipping address you have on file with the program. Your invoice is ready to download right away, and we email you a copy. EFAs are per student, so each student gets their own invoice.",
       },
       {
         heading: "2. Submit it in ClassWallet",
-        body: "We send the invoice back as a PDF, and you submit it in ClassWallet as a Direct Pay request. There is no processing fee on New Hampshire invoices.",
+        body: "Submit the PDF invoice in ClassWallet as a Direct Pay request. There is no processing fee on New Hampshire invoices.",
       },
       {
         heading: "3. We print and ship",

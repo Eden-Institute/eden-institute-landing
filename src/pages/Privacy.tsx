@@ -42,6 +42,7 @@ const Privacy = () => {
               <li>Password (encrypted and stored securely).</li>
               <li>Payment information (processed securely by Stripe — we do not store credit card numbers).</li>
               <li>Mobile phone number (only when you provide one at checkout).</li>
+              <li>For a scholarship (ESA or EFA) invoice: the parent or account holder's name, email and shipping address, and each student's first and last name, which the program requires on the invoice.</li>
               <li>Quiz responses and body pattern results.</li>
               <li>Community posts and discussion contributions.</li>
             </ul>
@@ -119,6 +120,7 @@ const Privacy = () => {
           <section>
             <h2 className="font-serif text-xl font-semibold text-primary mb-3">9. Children's Privacy</h2>
             <p>Our services are not directed to children under 13. We do not knowingly collect personal information from children under 13. If we become aware that we have collected information from a child under 13, we will take steps to delete it promptly.</p>
+            <p className="mt-2">When a parent requests a scholarship invoice, the parent gives us the student's name so it can be printed on the invoice, as the program requires. We use it only to make that invoice and fill the order, keep it private, and it appears only on the invoice the parent submits to their program.</p>
           </section>
 
           <section>

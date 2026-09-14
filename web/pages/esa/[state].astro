@@ -12,6 +12,8 @@
 // and footer (hideNav + hideFooter), because the shared navbar carries wording
 // scholarship programs cannot place under an approved subject.
 import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import EsaInvoiceForm from "../../components/islands/EsaInvoiceForm.tsx";
+import { ESA_INVOICE_STATE_BY_SLUG } from "../../lib/esaInvoice";
 import {
   ESA_STATES,
   ESA_PENDING,
@@ -78,6 +80,9 @@ const jsonLd = [
 const orgDescription =
   "Publisher of Eden's Table, a Bible-based science and nature study curriculum for homeschooling families.";
 
+// Instant-invoice form: only where the program pays by invoice today (status "open").
+const invoiceState = s.status === "open" ? ESA_INVOICE_STATE_BY_SLUG[s.slug] : undefined;
+
 const others = ESA_STATES.filter((o) => o.slug !== s.slug);
 const card = "rounded-lg p-5 bg-white border";
 const cardStyle = "border-color:hsl(var(--eden-gold) / 0.3)";
@@ -128,12 +133,22 @@ const cardStyle = "border-color:hsl(var(--eden-gold) / 0.3)";
           <p class="font-body text-sm text-muted-foreground leading-relaxed">{h.body}</p>
         </div>
       ))}
+      {invoiceState && (
+        <div id="invoice" class="pt-2">
+          <EsaInvoiceForm client:only="react" state={invoiceState} stateName={s.state} short={s.short} />
+          <noscript>
+            <p class="font-body text-sm text-muted-foreground">
+              The invoice form needs JavaScript. Email <a href={mailto} class="underline">{ESA_CONTACT_EMAIL}</a> and we will send your invoice by hand.
+            </p>
+          </noscript>
+        </div>
+      )}
       <div class="flex flex-wrap gap-3 pt-2">
         <a
           href={mailto}
-          class="font-body text-sm font-semibold rounded-md px-5 py-3"
-          style="background-color:hsl(var(--eden-forest)); color:hsl(var(--eden-parchment))"
-        >{s.status === "listing_pending" ? "Tell me when it opens" : s.status === "open" ? "Email us for an invoice" : "Email us a question"}</a>
+          class={invoiceState ? "font-body text-sm font-semibold rounded-md px-5 py-3 border" : "font-body text-sm font-semibold rounded-md px-5 py-3"}
+          style={invoiceState ? "border-color:hsl(var(--eden-forest)); color:hsl(var(--eden-forest))" : "background-color:hsl(var(--eden-forest)); color:hsl(var(--eden-parchment))"}
+        >{s.status === "listing_pending" ? "Tell me when it opens" : "Email us a question"}</a>
         {s.status !== "listing_pending" && s.slug !== "alabama" && (
           <a
             href="/books"
