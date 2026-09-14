@@ -1,0 +1,136 @@
+---
+// /esa: the hub for scholarship and ESA families. Added 2026-09-14.
+// Content lives in web/lib/esaStates.ts; read its rules block before editing.
+// Indexed. Plain header and footer, like /curriculum and /esa/<state>.
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import {
+  ESA_STATES,
+  ESA_PENDING,
+  ESA_COMMON_FAQ,
+  ESA_UPDATED,
+  ESA_CONTACT_EMAIL,
+  ESA_DISCLAIMER,
+} from "../../lib/esaStates";
+
+const canonical = "https://edeninstitute.health/esa";
+const stateNames = ESA_STATES.map((s) => s.state);
+const stateList = `${stateNames.slice(0, -1).join(", ")} and ${stateNames[stateNames.length - 1]}`;
+const title = "Use Your ESA for Eden's Table K-2 Science Curriculum";
+const description = `Eden's Table, a Bible-based K-2 science and nature study curriculum, is an approved or registered vendor in ${ESA_STATES.length} ESA and scholarship programs: ${stateList}. See how to buy in your state.`;
+
+const faq = [
+  {
+    q: "Which ESA and scholarship programs has Eden's Table been approved or registered in?",
+    a: ESA_STATES.map((s) => `${s.program} (since ${s.approved}; ${s.statusLabel.toLowerCase()})`).join("; ") + ".",
+  },
+  {
+    q: "Which programs has Eden's Table applied to?",
+    a: ESA_PENDING.map((p) => `${p.state}, ${p.program}: ${p.note}`).join(" "),
+  },
+  ...ESA_COMMON_FAQ,
+];
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+
+const orgDescription =
+  "Publisher of Eden's Table, a Bible-based science and nature study curriculum for homeschooling families.";
+const card = "rounded-lg p-5 bg-white border";
+const cardStyle = "border-color:hsl(var(--eden-gold) / 0.3)";
+---
+
+<MarketingLayout
+  title={title}
+  description={description}
+  canonical={canonical}
+  ogImage="https://edeninstitute.health/showcases/ET_PrintSet.webp"
+  jsonLd={jsonLd}
+  hideNav
+  hideFooter
+  orgDescription={orgDescription}
+>
+  <header class="px-6 py-5 border-b bg-white" style="border-color:hsl(var(--eden-gold) / 0.3)">
+    <div class="max-w-4xl mx-auto flex items-center justify-between gap-4 flex-wrap">
+      <p class="font-serif text-xl font-bold" style="color:hsl(var(--eden-forest))">Eden's Table</p>
+      <a href="/curriculum" class="font-body text-sm underline text-muted-foreground">About the curriculum</a>
+    </div>
+  </header>
+
+  <section class="pt-14 pb-10 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">
+        Scholarship and ESA families
+      </p>
+      <h1 class="font-serif text-3xl md:text-5xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
+        Can I use my ESA for Eden's Table?
+      </h1>
+      <p class="font-body text-lg text-muted-foreground leading-relaxed">
+        If you live in {stateList}, yes. Eden's Table is an approved or registered vendor in {ESA_STATES.length} education
+        savings account and scholarship programs. Pick your state to see how buying works there right now.
+      </p>
+      <p class="font-body text-xs text-muted-foreground mt-4">Updated {ESA_UPDATED}</p>
+    </div>
+  </section>
+
+  <section class="py-12 px-6 bg-background">
+    <div class="max-w-4xl mx-auto grid gap-4 sm:grid-cols-2">
+      {ESA_STATES.map((s) => (
+        <a href={`/esa/${s.slug}`} class={`${card} block hover:shadow-md transition-shadow`} style={cardStyle}>
+          <p class="font-serif text-xl font-bold" style="color:hsl(var(--eden-forest))">{s.state}</p>
+          <p class="font-body text-sm text-muted-foreground">{s.program}</p>
+          <p class="font-body text-sm font-semibold mt-2" style="color:hsl(var(--eden-bark))">{s.statusLabel}</p>
+        </a>
+      ))}
+    </div>
+    <div class="max-w-2xl mx-auto mt-8">
+      <div class={card} style={cardStyle}>
+        <h2 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-forest))">Not in one of these states?</h2>
+        <p class="font-body text-sm text-muted-foreground leading-relaxed mb-2">
+          Applied and waiting: {ESA_PENDING.map((p) => `${p.state} (${p.program})`).join(", ")}.
+        </p>
+        <p class="font-body text-sm text-muted-foreground leading-relaxed">
+          Tell us your state and program, and we will look into being approved there too.
+          <a href={`mailto:${ESA_CONTACT_EMAIL}?subject=${encodeURIComponent("Please apply in my state")}`} class="underline">Email us</a>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto">
+      <h2 class="font-serif text-2xl font-bold mb-6" style="color:hsl(var(--eden-bark))">Questions families ask</h2>
+      <div class="space-y-5">
+        {faq.map((f) => (
+          <div>
+            <h3 class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">{f.q}</h3>
+            <p class="font-body text-sm text-muted-foreground leading-relaxed">{f.a}</p>
+          </div>
+        ))}
+      </div>
+      <p class="font-body text-sm text-muted-foreground mt-6">
+        <a href="/curriculum" class="underline">Curriculum details</a> ·
+        <a href="/books" class="underline">The printed set</a> ·
+        <a href="/returns" class="underline">Return and refund policy</a>
+      </p>
+    </div>
+  </section>
+
+  <section class="py-8 px-6 bg-background">
+    <p class="max-w-2xl mx-auto font-body text-xs text-muted-foreground leading-relaxed text-center">{ESA_DISCLAIMER}</p>
+  </section>
+
+  <footer class="px-6 py-8 text-center" style="background-color:hsl(var(--eden-bark))">
+    <p class="font-serif text-lg font-semibold" style="color:hsl(var(--eden-parchment))">Eden's Table</p>
+    <p class="font-body text-xs mt-1" style="color:hsl(var(--eden-parchment) / 0.6)">
+      A Bible-based science and nature study curriculum · Published by Rooted in Faith Ventures LLC,
+      303 Holly Cir, Unit 3262, Clarksville, Tennessee 37043
+    </p>
+  </footer>
+</MarketingLayout>

@@ -1,0 +1,244 @@
+---
+// /esa/<state>: one page per scholarship program that approved Eden's Table.
+// Added 2026-09-14. All content lives in web/lib/esaStates.ts; read the rules
+// block at the top of that file before editing copy here.
+//
+// Built to be found and quoted. The H1 is the question parents ask ("Can I use
+// my Utah Fits All scholarship for Eden's Table?"), the first paragraph answers
+// it in one sentence, and the same questions ship as FAQPage JSON-LD so Google
+// and AI assistants can lift the answer with its source.
+//
+// Unlike /curriculum this page IS indexed. It shares /curriculum's plain header
+// and footer (hideNav + hideFooter), because the shared navbar carries wording
+// scholarship programs cannot place under an approved subject.
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import {
+  ESA_STATES,
+  ESA_PENDING,
+  ESA_COMMON_FAQ,
+  ESA_UPDATED,
+  ESA_CONTACT_EMAIL,
+  ESA_DISCLAIMER,
+  type EsaState,
+} from "../../lib/esaStates";
+
+export function getStaticPaths() {
+  return ESA_STATES.map((s) => ({ params: { state: s.slug }, props: { s } }));
+}
+
+const { s } = Astro.props as { s: EsaState };
+
+const canonical = `https://edeninstitute.health/esa/${s.slug}`;
+const title = `Use ${s.short} Funds for Eden's Table K-2 Curriculum`;
+const description = `${s.summary} Bible-based science and nature study for grades K-2.`;
+
+const mailSubject =
+  s.status === "listing_pending"
+    ? `Tell me when Eden's Table opens on ${s.short}`
+    : `Eden's Table with ${s.short}`;
+const mailto = `mailto:${ESA_CONTACT_EMAIL}?subject=${encodeURIComponent(mailSubject)}`;
+
+const faq = [
+  {
+    q: `Can I use my ${s.program} for Eden's Table?`,
+    a: s.summary,
+  },
+  {
+    q: `How do I buy Eden's Table with ${s.short}?`,
+    a: s.howToBuy.map((h) => h.body).join(" "),
+  },
+  {
+    q: `How much does Eden's Table cost with ${s.short}?`,
+    a: s.items.map((i) => `${i.name}: ${i.price} (${i.note})`).join(" "),
+  },
+  ...s.faq,
+  ...ESA_COMMON_FAQ,
+];
+
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faq.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Scholarship and ESA states", item: "https://edeninstitute.health/esa" },
+      { "@type": "ListItem", position: 2, name: s.state, item: canonical },
+    ],
+  },
+];
+
+const orgDescription =
+  "Publisher of Eden's Table, a Bible-based science and nature study curriculum for homeschooling families.";
+
+const others = ESA_STATES.filter((o) => o.slug !== s.slug);
+const card = "rounded-lg p-5 bg-white border";
+const cardStyle = "border-color:hsl(var(--eden-gold) / 0.3)";
+---
+
+<MarketingLayout
+  title={title}
+  description={description}
+  canonical={canonical}
+  ogImage="https://edeninstitute.health/showcases/ET_PrintSet.webp"
+  jsonLd={jsonLd}
+  hideNav
+  hideFooter
+  orgDescription={orgDescription}
+>
+  <header class="px-6 py-5 border-b bg-white" style="border-color:hsl(var(--eden-gold) / 0.3)">
+    <div class="max-w-4xl mx-auto flex items-center justify-between gap-4 flex-wrap">
+      <a href="/esa" class="font-serif text-xl font-bold" style="color:hsl(var(--eden-forest))">Eden's Table</a>
+      <a href="/esa" class="font-body text-sm underline text-muted-foreground">All scholarship states</a>
+    </div>
+  </header>
+
+  <section class="pt-14 pb-10 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">
+        {s.state} · Grades K-2
+      </p>
+      <h1 class="font-serif text-3xl md:text-5xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
+        Can I use my {s.program} for Eden's Table?
+      </h1>
+      <p
+        class="inline-block font-body text-sm font-semibold rounded-full px-4 py-1 mb-5 border"
+        style="background-color:hsl(var(--eden-gold) / 0.12); border-color:hsl(var(--eden-gold) / 0.5); color:hsl(var(--eden-bark))"
+      >{s.statusLabel}</p>
+      <p class="font-body text-lg text-muted-foreground leading-relaxed">{s.summary}</p>
+      <p class="font-body text-xs text-muted-foreground mt-4">Vendor since {s.approved} · Payment platform: {s.platform} · Updated {ESA_UPDATED}</p>
+    </div>
+  </section>
+
+  <section class="py-12 px-6 bg-background">
+    <div class="max-w-2xl mx-auto space-y-4">
+      <h2 class="font-serif text-2xl font-bold" style="color:hsl(var(--eden-bark))">
+        {s.status === "listing_pending" ? `Buying with ${s.short}` : `How to buy with ${s.short}`}
+      </h2>
+      {s.howToBuy.map((h) => (
+        <div class={card} style={cardStyle}>
+          <h3 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-forest))">{h.heading}</h3>
+          <p class="font-body text-sm text-muted-foreground leading-relaxed">{h.body}</p>
+        </div>
+      ))}
+      <div class="flex flex-wrap gap-3 pt-2">
+        <a
+          href={mailto}
+          class="font-body text-sm font-semibold rounded-md px-5 py-3"
+          style="background-color:hsl(var(--eden-forest)); color:hsl(var(--eden-parchment))"
+        >{s.status === "listing_pending" ? "Tell me when it opens" : s.status === "open" ? "Email us for an invoice" : "Email us a question"}</a>
+        {s.status !== "listing_pending" && s.slug !== "alabama" && (
+          <a
+            href="/books"
+            class="font-body text-sm font-semibold rounded-md px-5 py-3 border"
+            style="border-color:hsl(var(--eden-forest)); color:hsl(var(--eden-forest))"
+          >See the printed set</a>
+        )}
+      </div>
+      <p class="font-body text-xs text-muted-foreground">
+        Or write to <a href={mailto} class="underline">{ESA_CONTACT_EMAIL}</a>, or call
+        <a href="tel:+19315755895" class="underline">(931) 575-5895</a>, Monday through Friday, 9am to 5pm Central.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-4xl mx-auto">
+      <h2 class="font-serif text-2xl md:text-3xl font-bold text-center mb-8" style="color:hsl(var(--eden-bark))">
+        What {s.short} families can buy
+      </h2>
+      <div class="grid gap-6 md:grid-cols-[1fr_1.3fr] items-start">
+        <img
+          src="/showcases/ET_PrintSet.webp"
+          alt="The Eden's Table Sprouts printed curriculum set: Teacher's Guide, Student Notebook and Read-Aloud Storybook"
+          class="w-full rounded-lg border"
+          style={cardStyle}
+          loading="lazy"
+        />
+        <div class="space-y-4">
+          {s.items.map((i) => (
+            <div class={card} style={cardStyle}>
+              <div class="flex items-baseline justify-between gap-3 flex-wrap">
+                <h3 class="font-serif text-lg font-bold" style="color:hsl(var(--eden-forest))">{i.name}</h3>
+                <p class="font-serif text-xl font-bold" style="color:hsl(var(--eden-bark))">{i.price}</p>
+              </div>
+              <p class="font-body text-sm text-muted-foreground leading-relaxed mt-1">{i.note}</p>
+            </div>
+          ))}
+          <p class="font-body text-sm text-muted-foreground">
+            <a href="/curriculum" class="underline">See the full curriculum description, sample week and specifications</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-12 px-6 bg-background">
+    <div class="max-w-2xl mx-auto">
+      <h2 class="font-serif text-2xl font-bold mb-6" style="color:hsl(var(--eden-bark))">Questions {s.state} families ask</h2>
+      <div class="space-y-5">
+        {faq.map((f) => (
+          <div>
+            <h3 class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">{f.q}</h3>
+            <p class="font-body text-sm text-muted-foreground leading-relaxed">{f.a}</p>
+          </div>
+        ))}
+      </div>
+      <p class="font-body text-sm text-muted-foreground mt-6">
+        <a href="/returns" class="underline">Return and refund policy</a>
+      </p>
+    </div>
+  </section>
+
+  {s.links.length > 0 && (
+    <section class="pb-12 px-6 bg-background">
+      <div class="max-w-2xl mx-auto">
+        <div class={card} style={cardStyle}>
+          <h2 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-forest))">Official {s.short} information</h2>
+          <ul class="space-y-1">
+            {s.links.map((l) => (
+              <li class="font-body text-sm"><a href={l.href} class="underline" rel="noopener" target="_blank">{l.label}</a></li>
+            ))}
+          </ul>
+          <p class="font-body text-xs text-muted-foreground mt-3">
+            Program rules change. Your program's own handbook is the final word on what it will pay for.
+          </p>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section class="py-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto">
+      <h2 class="font-serif text-xl font-bold mb-4" style="color:hsl(var(--eden-bark))">Eden's Table in other states</h2>
+      <ul class="grid sm:grid-cols-2 gap-2">
+        {others.map((o) => (
+          <li class="font-body text-sm"><a href={`/esa/${o.slug}`} class="underline">{o.state}: {o.program}</a></li>
+        ))}
+      </ul>
+      <p class="font-body text-sm text-muted-foreground mt-4">
+        Applied and waiting: {ESA_PENDING.map((p) => `${p.state} (${p.program})`).join(", ")}.
+        Not in any of these? <a href={`mailto:${ESA_CONTACT_EMAIL}?subject=${encodeURIComponent("Please apply in my state")}`} class="underline">Tell us your state</a>.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-8 px-6 bg-background">
+    <p class="max-w-2xl mx-auto font-body text-xs text-muted-foreground leading-relaxed text-center">{ESA_DISCLAIMER}</p>
+  </section>
+
+  <footer class="px-6 py-8 text-center" style="background-color:hsl(var(--eden-bark))">
+    <p class="font-serif text-lg font-semibold" style="color:hsl(var(--eden-parchment))">Eden's Table</p>
+    <p class="font-body text-xs mt-1" style="color:hsl(var(--eden-parchment) / 0.6)">
+      A Bible-based science and nature study curriculum · Published by Rooted in Faith Ventures LLC,
+      303 Holly Cir, Unit 3262, Clarksville, Tennessee 37043
+    </p>
+  </footer>
+</MarketingLayout>
