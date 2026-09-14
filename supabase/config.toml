@@ -37,6 +37,11 @@ verify_jwt = false
 [functions.submit-partner-inquiry]
 verify_jwt = false
 
+# ESA invoice form on /esa/<state> (Arizona, Arkansas, Alabama, New Hampshire). Anonymous
+# families; the EF validates, rate-limits and issues the invoice itself. Added 2026-09-14.
+[functions.esa-invoice]
+verify_jwt = false
+
 # partner-welcome sends the founding-partner welcome email (6-week sample
 # attached). Gated by FOUNDERS_ADMIN_TOKEN in x-partner-admin, so the gateway
 # JWT check must not block the admin caller. The sample PDF lives in the
