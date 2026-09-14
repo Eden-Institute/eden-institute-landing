@@ -243,6 +243,8 @@ Deno.serve(async (req) => {
         student_name: plan.studentName,
         family_email: plan.email,
         ship_to: plan.shipTo,
+        ship_address: plan.printed ? sub.address : null,
+        phone: sub.phone || null,
         items: plan.items.map((i) => ({ sku: i.sku, qty: i.qty, unit_cents: i.unitCents, amount_cents: i.amountCents })),
         subtotal_cents: plan.subtotalCents,
         fee_cents: plan.feeCents,

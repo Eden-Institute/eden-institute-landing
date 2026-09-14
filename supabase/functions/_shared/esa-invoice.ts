@@ -185,6 +185,8 @@ export interface Submission {
   state: EsaStateCode;
   parentName: string;
   email: string;
+  /** Optional. Lulu needs a phone for the carrier; blank falls back to the business line at fulfilment. */
+  phone: string;
   address: Address | null;
   students: StudentInput[];
 }
@@ -234,6 +236,9 @@ export function parseSubmission(raw: unknown): { ok: true; value: Submission } |
   }
   const email = str(b.email, 120).toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return { ok: false, error: "Please enter a valid email address." };
+  // Same shape lulu.ts accepts (/^\+?[\d\s\-.\/()]{8,20}$/), so a phone that passes here passes at Lulu.
+  const phone = str(b.phone, 20);
+  if (phone && !/^\+?[\d\s\-.\/()]{8,20}$/.test(phone)) return { ok: false, error: "Please check the phone number, or leave it blank." };
 
   if (!Array.isArray(b.students) || b.students.length === 0) {
     return { ok: false, error: "Please add at least one student." };
@@ -273,7 +278,7 @@ export function parseSubmission(raw: unknown): { ok: true; value: Submission } |
       };
     }
   }
-  return { ok: true, value: { state, parentName, email, address, students } };
+  return { ok: true, value: { state, parentName, email, phone, address, students } };
 }
 
 export function formatAddress(a: Address | null, email: string): string {

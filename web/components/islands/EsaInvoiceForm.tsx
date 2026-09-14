@@ -64,6 +64,7 @@ export default function EsaInvoiceForm({ state, stateName, short }: Props) {
   const opts = ESA_STATE_OPTIONS[state];
   const [parentName, setParentName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [students, setStudents] = useState<Student[]>([{ first: "", last: "", choice: "set" }]);
   const [addr, setAddr] = useState<{ line1: string; line2: string; city: string; region: string; zip: string }>({
     line1: "",
@@ -103,7 +104,7 @@ export default function EsaInvoiceForm({ state, stateName, short }: Props) {
       const res = await fetch(ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-        body: JSON.stringify({ state, parentName, email, students, address: needsAddress ? addr : null, company }),
+        body: JSON.stringify({ state, parentName, email, phone, students, address: needsAddress ? addr : null, company }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data?.ok) throw new Error(data?.error || "Something went wrong. Please try again.");
@@ -234,6 +235,7 @@ export default function EsaInvoiceForm({ state, stateName, short }: Props) {
             </select>
             <input className={input} style={inputStyle} placeholder="ZIP" aria-label="ZIP code" inputMode="numeric" autoComplete="postal-code" value={addr.zip} onChange={(e) => setAddr({ ...addr, zip: e.target.value })} />
           </div>
+          <input className={input} style={inputStyle} type="tel" placeholder="Phone for the delivery carrier (optional)" aria-label="Phone for the delivery carrier (optional)" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
         </div>
       )}
 

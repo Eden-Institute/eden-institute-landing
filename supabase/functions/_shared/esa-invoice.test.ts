@@ -59,6 +59,16 @@ Deno.test("New Hampshire ships only to New Hampshire", () => {
   assert(good.ok);
 });
 
+Deno.test("phone is optional, and when given it must pass Lulu's shape", () => {
+  const blank = parseSubmission(base());
+  assert(blank.ok);
+  assertEquals(blank.value.phone, "");
+  const good = parseSubmission(base({ phone: "(480) 555-0134" }));
+  assert(good.ok);
+  assertEquals(good.value.phone, "(480) 555-0134");
+  assertEquals(parseSubmission(base({ phone: "call me" })).ok, false);
+});
+
 Deno.test("validation catches the obvious mistakes", () => {
   assertEquals(parseSubmission(base({ parentName: "Jane" })).ok, false);
   assertEquals(parseSubmission(base({ email: "nope" })).ok, false);

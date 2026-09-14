@@ -113,6 +113,43 @@ async function fetchFoundingStatus(): Promise<FoundingStatus | null> {
   }
 }
 
+// ── ESA scholarship invoices (added 2026-09-15) ──
+// Best-effort, like every section here: null when the esa_invoices table is unreachable.
+interface EsaDigest {
+  issuedYesterday: number;
+  unpaid: number;
+  unpaidCents: number;
+  paidYesterday: number;
+  awaitingConfirm: number;
+  failed: number;
+}
+
+async function fetchEsaStatus(windowStart: string, windowEnd: string): Promise<EsaDigest | null> {
+  try {
+    const res = await sbFetch('/rest/v1/esa_invoices?is_test=eq.false&select=status,total_cents,created_at,paid_at,fulfilment_status&limit=5000');
+    if (!res.ok) return null;
+    const rows: { status: string; total_cents: number; created_at: string; paid_at: string | null; fulfilment_status: string }[] = await res.json();
+    // Compare as instants: the window carries a -06:00 offset and the rows carry +00:00.
+    const ws = Date.parse(windowStart);
+    const we = Date.parse(windowEnd);
+    const inWindow = (t: string | null) => !!t && Date.parse(t) >= ws && Date.parse(t) < we;
+    const unpaid = rows.filter((r) => r.status === 'issued');
+    const confirmRes = await sbFetch('/rest/v1/esa_payment_confirmations?used_at=is.null&select=invoice_id&limit=1000');
+    const pending = confirmRes.ok ? new Set(((await confirmRes.json()) as { invoice_id: string }[]).map((r) => r.invoice_id)).size : 0;
+    return {
+      issuedYesterday: rows.filter((r) => inWindow(r.created_at)).length,
+      unpaid: unpaid.length,
+      unpaidCents: unpaid.reduce((t, r) => t + (r.total_cents ?? 0), 0),
+      paidYesterday: rows.filter((r) => inWindow(r.paid_at)).length,
+      awaitingConfirm: pending,
+      failed: rows.filter((r) => r.fulfilment_status === 'failed').length,
+    };
+  } catch (e) {
+    console.error('notify-founder-digest: esa-status fetch error', e instanceof Error ? e.message : String(e));
+    return null;
+  }
+}
+
 // ── Magnet identity mapping ──
 // (funnel, source) → human-readable magnet label + welcome email subject.
 // Updated in lockstep with resend-waitlist build* dispatch. `foundingClosed`
@@ -294,6 +331,7 @@ function buildDigestEmail(
   punchItems: PunchItem[],
   founding: FoundingStatus | null,
   health: { rails: RailHealthRow[]; sync: ContactSyncHealth | null } = { rails: [], sync: null },
+  esa: EsaDigest | null = null,
 ): {
   subject: string;
   html: string;
@@ -420,6 +458,20 @@ ${founding.closed
 </table>
 ` : '';
 
+  // ── ESA scholarship invoices ──
+  const esaMoney = (c: number) => `$${(c / 100).toFixed(2)}`;
+  const esaAlert = esa && (esa.awaitingConfirm > 0 || esa.failed > 0);
+  const esaSection = esa && (esa.unpaid > 0 || esa.issuedYesterday > 0 || esa.paidYesterday > 0 || esaAlert) ? `
+<p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:2px;color:#C9A84C;text-transform:uppercase;margin:16px 0 8px 0;">ESA invoices</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:8px;">
+<tr><td style="padding:10px 12px;background:#F5F0E8;border-left:3px solid ${esaAlert ? '#8B2E2E' : '#C9A84C'};font-family:Georgia,serif;font-size:14px;color:#1C3A2E;">
+${esa.issuedYesterday} issued yesterday · ${esa.paidYesterday} paid yesterday · ${esa.unpaid} waiting on payment (${esaMoney(esa.unpaidCents)})
+${esa.awaitingConfirm > 0 ? `<br><strong style="color:#8B2E2E;">${esa.awaitingConfirm} payment${esa.awaitingConfirm === 1 ? '' : 's'} waiting for your Confirm paid tap (check your email).</strong>` : ''}
+${esa.failed > 0 ? `<br><strong style="color:#8B2E2E;">${esa.failed} paid invoice${esa.failed === 1 ? '' : 's'} failed fulfilment.</strong>` : ''}
+</td></tr>
+</table>
+` : '';
+
   // ── Rail health: the four queues + the Resend contact sync ──
   const railLabel: Record<string, string> = {
     nurture_email_queue: 'Quiz drip (nurture_email_queue)',
@@ -481,6 +533,7 @@ ${syncLine}
 <p style="font-family:Georgia,serif;font-size:14px;color:#3D3832;margin:0 0 4px 0;">Digest for <strong>${esc(digestDate)}</strong> (America/Chicago)</p>
 ${capturesBlock}
 ${foundingSection}
+${esaSection}
 ${railSection}
 ${punchSection}
 
@@ -518,6 +571,14 @@ The Eden Institute · edeninstitute.health · automated daily digest
       founding.closed
         ? `Founding kits: all ${founding.limit} claimed (${founding.sold} net units) — retail pricing live, latched one-way`
         : `Founding kits: ${founding.sold} of ${founding.limit} claimed (${Math.max(0, founding.limit - founding.sold)} remaining at $249)`,
+    );
+  }
+  if (esa && (esa.unpaid > 0 || esa.issuedYesterday > 0 || esa.paidYesterday > 0 || esa.awaitingConfirm > 0 || esa.failed > 0)) {
+    lines.push(
+      '',
+      `ESA invoices: ${esa.issuedYesterday} issued yesterday, ${esa.paidYesterday} paid yesterday, ${esa.unpaid} waiting on payment ($${(esa.unpaidCents / 100).toFixed(2)})` +
+        (esa.awaitingConfirm > 0 ? `; ${esa.awaitingConfirm} WAITING FOR YOUR CONFIRM TAP` : '') +
+        (esa.failed > 0 ? `; ${esa.failed} FAILED FULFILMENT` : ''),
     );
   }
   if (health.rails.length > 0) {
@@ -670,8 +731,12 @@ Deno.serve(async (req) => {
     // ── Rail health (best-effort) ──
     const health = await fetchRailHealth();
 
+    // ── ESA invoices (best-effort) ──
+    const esa = await fetchEsaStatus(windowStartCt, windowEndCt);
+
     // ── Zero path: skip only when there are no captures AND no open punch items ──
-    if ((!rows || rows.length === 0) && punchItems.length === 0) {
+    const esaNeedsFounder = !!esa && (esa.awaitingConfirm > 0 || esa.failed > 0 || esa.issuedYesterday > 0 || esa.paidYesterday > 0);
+    if ((!rows || rows.length === 0) && punchItems.length === 0 && !esaNeedsFounder) {
       await sbFetch(`/rest/v1/digest_runs?id=eq.${digestRunId}`, {
         method: 'PATCH',
         body: JSON.stringify({
@@ -686,7 +751,7 @@ Deno.serve(async (req) => {
 
     // ── Build + send digest ──
     const captureRows: CaptureRow[] = Array.isArray(rows) ? rows : [];
-    const { subject, html, text } = buildDigestEmail(captureRows, digestDate, punchItems, founding, health);
+    const { subject, html, text } = buildDigestEmail(captureRows, digestDate, punchItems, founding, health, esa);
 
     const resendRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
