@@ -46,6 +46,22 @@ export interface Props {
       host its hero loads from). Emitted without crossorigin, which suits plain
       <img> and CSS background requests. Defaults to none. */
   preconnect?: string[];
+  /** Private pages whose URL carries a credential load NO third-party tags.
+      Set by /starter/downloads (?t=, the durable Starter download token) and
+      /partner-sample (?k=, the partner key). The credential stays in the URL on
+      purpose, so the emailed link, a copied link, a bookmark, a home screen
+      shortcut and "Open in Safari" all keep working on any device. What makes
+      that safe is that nothing third party is on the page to read it:
+        no Google Tag Manager, no Google Analytics (gtag), no Pinterest tag, no
+        Meta Pixel, and no cookie banner, because nothing left on the page
+        needs consent.
+      It also adds <meta name="referrer" content="no-referrer">, so no request
+      the page makes (fonts, images, the file downloads) and no page opened from
+      it is told the URL. The session id strip script stays first, unchanged,
+      and the cookieless first-party page view still records the path only.
+      Defaults to false, so every other page keeps all of its tags.
+      Test: src/test/privatePagesNoTags.astro.test.ts renders every page. */
+  noThirdPartyTags?: boolean;
 }
 
 const {
@@ -61,6 +77,7 @@ const {
   hideNav = false,
   orgDescription = "A structured, worldview-anchored, terrain-based clinical herbalism institute.",
   preconnect = [],
+  noThirdPartyTags = false,
 } = Astro.props;
 
 // Sitewide identity — present on every marketing page.
@@ -88,6 +105,12 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
   <head>
     <meta charset="UTF-8" />
     {/*
+      Private page (noThirdPartyTags): before anything in the head can fetch,
+      so the URL with its credential is never sent as a Referer, and a page
+      opened from here gets an empty document.referrer.
+    */}
+    {noThirdPartyTags && <meta name="referrer" content="no-referrer" />}
+    {/*
       Stripe session id out of the URL, the VERY FIRST script, on every page.
       /books/thank-you and /starter/thank-you arrive as ?session_id=cs_..., a
       bearer credential. This moves it into sessionStorage (and a window global
@@ -97,6 +120,14 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
       readCheckoutSessionId(). Source and reasoning: src/lib/checkoutSession.ts.
     */}
     <script is:inline set:html={CHECKOUT_SESSION_STRIP_JS}></script>
+    {/*
+      Third-party tags, in three guarded blocks: the consent script, GTM and
+      gtag just below, the Pinterest tag after the JSON-LD, and the GTM
+      noscript at the top of <body>. All three are left out of a private page
+      (noThirdPartyTags), and SiteAnalytics is told not to load the Meta Pixel
+      or show the cookie banner there.
+    */}
+    {!noThirdPartyTags && (<>
     {/*
       Consent opt-out, first after the session-id strip above (founder decision 2026-09-13: run by
       default, Decline turns it off). Google Analytics and the Pinterest tag
@@ -136,6 +167,7 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
       gtag('js', new Date());
       gtag('config', 'G-5DVHEZPKL0');
     </script>
+    </>)}
 
     <title>{title}</title>
     <meta name="description" content={description} />
@@ -214,6 +246,7 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
       applyTagConsent() in src/lib/consent.ts. The noscript pixel below cannot
       read the choice; a visitor without JavaScript also never sees the banner.
     */}
+    {!noThirdPartyTags && (<>
     <script is:inline>
       !function(e){if(!window.pintrk){window.pintrk=function(){window.pintrk.queue.push(
       Array.prototype.slice.call(arguments))};var n=window.pintrk;n.queue=[],n.version="3.0";
@@ -227,18 +260,22 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
       <img height="1" width="1" style="display:none;" alt=""
         src="https://ct.pinterest.com/v3/?event=init&tid=2613485320295&noscript=1" />
     </noscript>
+    </>)}
   </head>
   <body>
+    {!noThirdPartyTags && (<>
     <!-- Google Tag Manager (noscript) -->
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PVRHXN8N"
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <!-- End Google Tag Manager (noscript) -->
+    </>)}
     {hideNav ? null : <Navbar />}
     <slot />
     {hideFooter ? null : <Footer />}
     {/* client:only — never server-rendered. The shared Supabase client touches
         localStorage at module load, and analytics/consent is a browser-only
-        concern with no SEO value, so it must not run during the static build. */}
-    <SiteAnalytics client:only="react" />
+        concern with no SEO value, so it must not run during the static build.
+        thirdPartyTags={false} on a private page: no Meta Pixel, no banner. */}
+    <SiteAnalytics client:only="react" thirdPartyTags={!noThirdPartyTags} />
   </body>
 </html>

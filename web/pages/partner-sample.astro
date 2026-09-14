@@ -16,6 +16,16 @@
 // cannot be a rewrite: the `k` below is read from window.location.search on the
 // client, so the browser URL has to end up carrying the query.
 //
+// NO THIRD-PARTY TAGS HERE (noThirdPartyTags below). The key stays in the URL,
+// so every link already sent keeps working forever, copied, bookmarked or
+// opened in another browser. That is only safe because nothing on this page can
+// read the URL and send it on: no Google Analytics, no Google Tag Manager, no
+// Pinterest tag, no Meta Pixel, and a no-referrer policy for everything the
+// page fetches or opens. Forms that would otherwise fall through to the SPA
+// (which loads Google Analytics) with the key in the URL, such as
+// /partner-sample/<key>/ with a trailing slash or /Partner-Sample, are redirected
+// by vercel.json to this page first.
+//
 // The `?k=` secret is validated by /api/partner-sample, which brokers a short
 // lived signed URL per click. This page holds no credentials: without a valid
 // k every button 403s, so the page itself is harmless if it is ever found.
@@ -44,6 +54,7 @@ const components = [
   description={meta.description}
   canonical={meta.canonical}
   noindex={true}
+  noThirdPartyTags={true}
 >
   <section class="pt-20 pb-10 px-6" style="background-color:hsl(var(--eden-cream))">
     <div class="max-w-2xl mx-auto text-center">

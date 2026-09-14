@@ -14,6 +14,15 @@
 // renders a refusal, so the page is harmless if it is ever found. noindex keeps
 // it out of search regardless, matching /partner-sample.
 //
+// NO THIRD-PARTY TAGS HERE (noThirdPartyTags below). The ?t= token stays in the
+// address bar, so the emailed link, a copied link, a bookmark and "Open in
+// Safari" keep working on any device, as the copy below promises. That is only
+// safe because nothing on this page can read the URL and send it on: no Google
+// Analytics, no Google Tag Manager, no Pinterest tag, no Meta Pixel, and a
+// no-referrer policy for everything the page fetches or opens. Case variants
+// such as /Starter/Downloads would reach the SPA, which does load Google
+// Analytics, so vercel.json redirects them here first.
+//
 // Copy rule: no em dashes (feedback_no_em_dashes).
 import MarketingLayout from "../../layouts/MarketingLayout.astro";
 import StarterDownloads from "../../components/islands/StarterDownloads.tsx";
@@ -30,6 +39,7 @@ const meta = {
   description={meta.description}
   canonical={meta.canonical}
   noindex={true}
+  noThirdPartyTags={true}
 >
   <section class="pt-20 pb-10 px-6" style="background-color:hsl(var(--eden-cream))">
     <div class="max-w-2xl mx-auto text-center">
