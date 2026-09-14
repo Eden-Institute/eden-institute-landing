@@ -13,14 +13,27 @@
 //   /partner-sample?k=<key>  the original, still honoured for links already sent
 // The path form was added 2026-09-02 because hand-pasting the query form dropped
 // the `?k=` twice and partners got "This link is incomplete". Note the redirect
-// cannot be a rewrite: the `k` below is read from window.location.search on the
+// cannot be a rewrite: `k` is picked up from window.location.search on the
 // client, so the browser URL has to end up carrying the query.
+//
+// The key never stays in the address bar. The layout's first head script
+// (CHECKOUT_SESSION_STRIP_JS in src/lib/checkoutSession.ts) takes `k` off this
+// page's URL before GTM, gtag or the Pinterest tag run, because those send
+// location.href and document.referrer with every hit. It keeps the key in this
+// browser's localStorage (sessionStorage if that is blocked) and a window global,
+// so a partner who bookmarks the cleaned URL, or comes back to it later on the
+// same device, still gets her files. The script below reads it back.
 //
 // The `?k=` secret is validated by /api/partner-sample, which brokers a short
 // lived signed URL per click. This page holds no credentials: without a valid
 // k every button 403s, so the page itself is harmless if it is ever found.
 // noindex + robots.txt keep it out of search results regardless.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
+import { urlTokenStorageKey } from "@/lib/checkoutSession";
+
+// Where the head script left the key. Passed to the inline script below, so the
+// two can never disagree on the name.
+const keySlot = urlTokenStorageKey("k");
 
 const meta = {
   title: "Your Eden's Table sample · The Eden Institute",
@@ -101,11 +114,27 @@ const components = [
     </div>
   </section>
 
-  <script is:inline>
-    // The secret travels in the URL the founder pastes. It is never stored in
-    // this page, so a crawler or a stray visitor gets the "incomplete" panel.
+  <script is:inline define:vars={{ keySlot }}>
+    // The secret travels in the URL the founder pastes. By the time this runs
+    // the head script has moved it out of the address bar, so read it back in
+    // the same order as readUrlToken() in src/lib/checkoutSession.ts: the URL (in
+    // case the strip did not run), then this page load's window global, then
+    // localStorage, then sessionStorage. A crawler or a stray visitor with no key
+    // anywhere still gets the "incomplete" panel.
     (function () {
-      var k = new URLSearchParams(window.location.search).get("k");
+      var k = "";
+      try {
+        var fromUrl = new URLSearchParams(window.location.search).getAll("k");
+        for (var j = 0; j < fromUrl.length && !k; j++) k = fromUrl[j];
+      } catch (e) {}
+      if (!k) {
+        try {
+          var tokens = window.__edenUrlTokens;
+          if (tokens && typeof tokens[keySlot] === "string") k = tokens[keySlot];
+        } catch (e) {}
+      }
+      if (!k) { try { k = window.localStorage.getItem(keySlot) || ""; } catch (e) {} }
+      if (!k) { try { k = window.sessionStorage.getItem(keySlot) || ""; } catch (e) {} }
       var downloads = document.getElementById("ps-downloads");
       var locked = document.getElementById("ps-locked");
       if (!k) {

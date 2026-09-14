@@ -2,21 +2,29 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- Stripe session id out of the URL, the VERY FIRST script. The SPA's
-         post-checkout routes (/guide/:slug, /guide/success, /homeschool/welcome,
+    <!-- Credentials out of the URL, the VERY FIRST script. The SPA's post-checkout
+         routes (/guide/:slug, /guide/success, /homeschool/welcome,
          /apothecary/welcome) arrive as ?session_id=cs_..., a bearer credential.
-         This keeps it in sessionStorage and a window global and removes only
-         that param from the address bar before GTM and gtag read the URL. A
-         VERBATIM copy of CHECKOUT_SESSION_STRIP_JS in src/lib/checkoutSession.ts
+         The same rule table also takes ?t= off /starter/downloads and ?k= off
+         /partner-sample (Astro pages, listed here so the two copies match). It
+         keeps each value in storage and a window global and removes only those
+         params from the address bar before GTM and gtag read the URL. A VERBATIM
+         copy of CHECKOUT_SESSION_STRIP_JS in src/lib/checkoutSession.ts
          (src/test/checkoutSession.test.ts fails if they drift). -->
     <script>
       (function () {
         try {
           var search = window.location.search;
           if (!search || search.length < 2) return;
+          var path = window.location.pathname;
+          var page = path;
+          try { page = decodeURIComponent(path); } catch (e) {}
+          while (page.length > 1 && page.charAt(page.length - 1) === '/') page = page.slice(0, -1);
+          var rules = { session_id: '*', t: '/starter/downloads', k: '/partner-sample' };
+          var has = Object.prototype.hasOwnProperty;
           var parts = search.slice(1).split('&');
           var kept = [];
-          var id = '';
+          var values = {};
           var found = false;
           for (var i = 0; i < parts.length; i++) {
             var part = parts[i];
@@ -25,19 +33,30 @@
             var rawKey = eq === -1 ? part : part.slice(0, eq);
             var key = rawKey;
             try { key = decodeURIComponent(rawKey.replace(/\+/g, ' ')); } catch (e) {}
-            if (key !== 'session_id') { kept.push(part); continue; }
+            if (!has.call(rules, key) || (rules[key] !== '*' && rules[key] !== page)) { kept.push(part); continue; }
             found = true;
-            if (!id && eq !== -1) {
+            if (!values[key] && eq !== -1) {
               var rawVal = part.slice(eq + 1);
-              try { id = decodeURIComponent(rawVal.replace(/\+/g, ' ')); } catch (e) { id = rawVal; }
+              try { values[key] = decodeURIComponent(rawVal.replace(/\+/g, ' ')); } catch (e) { values[key] = rawVal; }
             }
           }
           if (!found) return;
-          var path = window.location.pathname;
-          if (id) {
-            var entry = { id: id, path: path };
+          if (values.session_id) {
+            var entry = { id: values.session_id, path: path };
             window.__edenCheckoutSession = entry;
             try { window.sessionStorage.setItem('eden_checkout_session_id', JSON.stringify(entry)); } catch (e) {}
+          }
+          for (var name in values) {
+            if (!has.call(values, name) || name === 'session_id' || !values[name]) continue;
+            var slot = 'eden_url_token:' + name + ':' + rules[name];
+            try { (window.__edenUrlTokens = window.__edenUrlTokens || {})[slot] = values[name]; } catch (e) {}
+            try {
+              window.localStorage.setItem(slot, values[name]);
+              try { window.sessionStorage.removeItem(slot); } catch (e) {}
+            } catch (e) {
+              try { window.localStorage.removeItem(slot); } catch (e2) {}
+              try { window.sessionStorage.setItem(slot, values[name]); } catch (e2) {}
+            }
           }
           window.history.replaceState(window.history.state, '', path + (kept.length ? '?' + kept.join('&') : '') + window.location.hash);
         } catch (e) {}

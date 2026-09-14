@@ -8,7 +8,11 @@
 //                          readCheckoutSessionId: the layout's first head script
 //                          has already moved ?session_id= out of the URL into
 //                          sessionStorage, so a reload in the same tab still works
-//   /starter/downloads  -> ?t= the durable re-request token from the email
+//   /starter/downloads  -> ?t= the durable re-request token from the email, read
+//                          with readUrlToken("t"): the same head script has
+//                          already moved it out of the URL into localStorage,
+//                          so a reload, or a return to the clean bookmarked
+//                          URL on the same device, still works
 //
 // POLLING, and why it is here. The webhook queues the delivery and a separate
 // function does the stamping, so for the first few seconds after payment the
@@ -21,7 +25,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { pinCheckoutOnce } from "@/lib/pinterestTag";
-import { readCheckoutSessionId } from "@/lib/checkoutSession";
+import { readCheckoutSessionId, readUrlToken } from "@/lib/checkoutSession";
 
 const FUNCTIONS_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/starter-download`;
 
@@ -94,7 +98,7 @@ export default function StarterDownloads({ mode, showCredit = false }: Props) {
     const credential =
       mode === "session"
         ? readCheckoutSessionId() ?? ""
-        : new URLSearchParams(window.location.search).get("t") ?? "";
+        : readUrlToken("t") ?? "";
 
     if (!credential) {
       setState({

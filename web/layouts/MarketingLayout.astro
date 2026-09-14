@@ -82,13 +82,16 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
   <head>
     <meta charset="UTF-8" />
     {/*
-      Stripe session id out of the URL, the VERY FIRST script, on every page.
-      /books/thank-you and /starter/thank-you arrive as ?session_id=cs_..., a
-      bearer credential. This moves it into sessionStorage (and a window global
-      for this page load) and removes only that param from the address bar
-      before GTM, gtag('config') or the Pinterest tag can read location.href or
-      pass it on as the next page's referrer. The pages read it back with
-      readCheckoutSessionId(). Source and reasoning: src/lib/checkoutSession.ts.
+      Credentials out of the URL, the VERY FIRST script, on every page.
+      /books/thank-you and /starter/thank-you arrive as ?session_id=cs_...,
+      /starter/downloads as ?t=<download token> and /partner-sample as
+      ?k=<partner key>, all bearer credentials. This moves each one into storage
+      (and a window global for this page load) and removes only those params
+      from the address bar before GTM, gtag('config') or the Pinterest tag can
+      read location.href or pass it on as the next page's referrer. t and k are
+      only touched on their own page. The pages read them back with
+      readCheckoutSessionId() and readUrlToken(). Source and reasoning:
+      src/lib/checkoutSession.ts.
     */}
     <script is:inline set:html={CHECKOUT_SESSION_STRIP_JS}></script>
     {/*
