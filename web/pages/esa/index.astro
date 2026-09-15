@@ -8,6 +8,7 @@ import {
   ESA_PENDING,
   ESA_COMMON_FAQ,
   ESA_UPDATED,
+  ESA_UPDATED_ISO,
   ESA_CONTACT_EMAIL,
   ESA_DISCLAIMER,
 } from "../../lib/esaStates";
@@ -33,6 +34,7 @@ const faq = [
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "FAQPage",
+  dateModified: ESA_UPDATED_ISO,
   mainEntity: faq.map((f) => ({
     "@type": "Question",
     name: f.q,
