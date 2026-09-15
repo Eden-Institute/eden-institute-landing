@@ -214,6 +214,29 @@ export interface ApplyResult {
 /** Marks the invoice paid exactly once, then fulfils it. Safe to call twice: the second call changes nothing. */
 export async function applyPayment(invoiceId: string, via: "founder_confirm" | "auto" | "manual", paymentId: string | null): Promise<ApplyResult> {
   const changed = await rpc<boolean>("esa_mark_invoice_paid", { p_invoice_id: invoiceId, p_via: via, p_payment_id: paymentId });
+  return fulfilAfterMark(invoiceId, changed);
+}
+
+export type ConfirmOutcome = "applied" | "used" | "expired" | "not_found" | "not_issued";
+
+/**
+ * The founder's Confirm paid button. esa_confirm_payment_token() marks the invoice paid AND uses the
+ * token in one database transaction, so an error before that point changes neither and the link
+ * still works; only after it succeeds does fulfilment run. A fulfilment failure is handled like
+ * applyPayment's (marked failed, founder alerted); the invoice stays paid.
+ */
+export async function confirmWithToken(token: string): Promise<{ outcome: ConfirmOutcome; result?: ApplyResult }> {
+  const rows = await rpc<{ outcome: ConfirmOutcome; invoice_id: string | null; payment_id: string | null }[]>(
+    "esa_confirm_payment_token",
+    { p_token: token },
+  );
+  const row = Array.isArray(rows) ? rows[0] : null;
+  if (!row) throw new Error("esa_confirm_payment_token returned nothing");
+  if (row.outcome !== "applied" || !row.invoice_id) return { outcome: row.outcome };
+  return { outcome: "applied", result: await fulfilAfterMark(row.invoice_id, true) };
+}
+
+async function fulfilAfterMark(invoiceId: string, changed: boolean): Promise<ApplyResult> {
   const inv = await getInvoice(invoiceId);
   if (!inv) return { changed: false, invoice: null, fulfilment: "none", note: "invoice not found" };
   if (!changed) return { changed: false, invoice: inv, fulfilment: inv.fulfilment_status, note: `already ${inv.status}` };
@@ -276,7 +299,9 @@ async function fulfil(inv: EsaInvoiceRow): Promise<string> {
         sms_consent: false,
         is_preorder: false,
         fulfillment: "lulu",
-        raw: { source: "esa", invoice_number: inv.invoice_number, state: inv.state, student_name: inv.student_name, paid_via: inv.paid_via, fee_cents: inv.fee_cents },
+        // No student name here (founder 2026-09-15: children's names are stored on esa_invoices only).
+        // The invoice number links back to it.
+        raw: { source: "esa", invoice_number: inv.invoice_number, state: inv.state, paid_via: inv.paid_via, fee_cents: inv.fee_cents },
       }),
     });
     await rest("order_items", {

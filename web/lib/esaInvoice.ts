@@ -63,8 +63,33 @@ export const ESA_STATE_OPTIONS: Record<EsaInvoiceState, { choices: EsaChoice[]; 
   },
 };
 
+/** The one sentence that explains the Arizona fee. Must match feeSentence() in
+ *  supabase/functions/_shared/esa-invoice.ts, which prints it on the invoice PDF. */
+export function esaFeeSentence(rate: number): string {
+  return `ClassWallet deducts 2%, so this invoice adds ${(rate * 100).toFixed(4)}% to cover it.`;
+}
+
 export function esaFeeCents(subtotalCents: number, rate: number): number {
   return rate ? Math.round(subtotalCents * rate + 1e-9) : 0;
+}
+
+/** The idempotency key for one fill of the invoice form. */
+export interface EsaFillKey {
+  key: string;
+  fingerprint: string;
+}
+
+/**
+ * A retry of the SAME fill (a dropped connection, a second press) reuses the key, so the esa-invoice
+ * function returns the invoices it already made instead of numbering and emailing new ones. Any
+ * change to what was typed is a new fill and gets a new key.
+ */
+export function esaIdempotencyKey(
+  prev: EsaFillKey | null,
+  fingerprint: string,
+  newKey: () => string = () => crypto.randomUUID(),
+): EsaFillKey {
+  return prev && prev.fingerprint === fingerprint ? prev : { key: newKey(), fingerprint };
 }
 
 export function esaMoney(cents: number): string {

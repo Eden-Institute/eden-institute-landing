@@ -1,17 +1,22 @@
 // esa-invoice: the public order form on /esa/<state> (Arizona, Arkansas, Alabama, New Hampshire).
 // Added 2026-09-14. A family fills in the form, and this function:
 //   1. validates the order against the per-state rules (_shared/esa-invoice.ts),
-//   2. issues one invoice number per student from the database counter,
-//   3. draws each invoice PDF (_shared/esa-invoice-pdf.ts) and stores it privately,
-//   4. records each invoice in public.esa_invoices (status "issued"),
-//   5. returns the PDFs so the page can offer an instant download,
-//   6. emails the family their invoice(s) with the ClassWallet next step, and copies hello@.
+//   2. claims the form fill's idempotency key (esa_claim_invoice_request): a retry of the same fill
+//      returns the invoices already issued, with no new number, upload or email,
+//   3. issues one invoice number per student from the database counter TOGETHER with its row
+//      (status "pending"), draws and stores each PDF, then marks the batch "issued"; a failure part
+//      way voids the batch with the reason recorded, removes stored PDFs and alerts the founder
+//      (_shared/esa-invoice-issue.ts),
+//   4. returns the PDFs so the page can offer an instant download,
+//   5. only after every row and PDF is in place, emails the family their invoice(s) with the
+//      ClassWallet next step, and copies hello@.
 //
 // Nothing ships and nothing costs money until ClassWallet pays, so an abandoned or bogus
 // invoice is harmless. Payment matching and fulfilment are later phases.
 //
 // verify_jwt is OFF (config.toml): anonymous families call it from a static page.
-// Spam: a hidden honeypot field plus the shared per-IP limiter (fails open, by design).
+// Spam: a hidden honeypot field, the shared per-IP limiter, and a site-wide hourly cap
+// (ESA_INVOICE_HOURLY_CAP). Both limiters fail open, by design. Retries of a known key skip them.
 //
 // Founder test orders: use hello+esatest@edeninstitute.health. They are rendered, stored and
 // emailed like a real order but marked is_test, numbered ET-TEST-..., and never touch the
@@ -30,6 +35,18 @@ import {
 } from "../_shared/esa-invoice.ts";
 import { renderInvoicePdf } from "../_shared/esa-invoice-pdf.ts";
 import { enforceCheckoutRateLimit } from "../_shared/checkout-rate-limit.ts";
+import { bumpRateBucket } from "../_shared/rate-bucket.ts";
+import { emailFounderAlert } from "../_shared/esa-fulfil.ts";
+import {
+  type ClaimOutcome,
+  hourlyCapKey,
+  issueInvoices,
+  overHourlyCap,
+  parseIdempotencyKey,
+  pdfPathForNumber,
+  RATE_LIMITED_MESSAGE,
+  submissionHash,
+} from "../_shared/esa-invoice-issue.ts";
 import { captureException } from "../_shared/sentry.ts";
 import { esc } from "../_shared/html-escape.ts";
 
@@ -70,10 +87,52 @@ const db = {
   },
 };
 
-async function nextNumber(state: string, year: number): Promise<string> {
-  const { data, error } = await db.rpc("esa_next_invoice_number", { p_state: state, p_year: year });
-  if (error || typeof data !== "string") throw new Error(`invoice number: ${error?.message ?? "no number"}`);
-  return data;
+const GENERIC_ERROR =
+  "Something went wrong making your invoice. Please try again, or email hello@edeninstitute.health and we will send it by hand.";
+
+async function rpcRows<T>(fn: string, args: Record<string, unknown>): Promise<T[]> {
+  const { data, error } = await db.rpc(fn, args);
+  if (error) throw new Error(`${fn}: ${error.message}`);
+  return Array.isArray(data) ? (data as T[]) : data == null ? [] : [data as T];
+}
+
+async function restGet<T>(path: string): Promise<T> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: svcHeaders() });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`GET ${path.split("?")[0]}: ${res.status} ${text.slice(0, 200)}`);
+  return JSON.parse(text) as T;
+}
+
+async function insertPending(row: Record<string, unknown>, testNumber: string | null) {
+  // Number and row in one transaction: a number can never exist without its row.
+  const [r] = await rpcRows<{ id: string; invoice_number: string }>("esa_insert_pending_invoice", { p_row: row, p_test_number: testNumber });
+  if (!r?.id || !r.invoice_number) throw new Error("esa_insert_pending_invoice returned no row");
+  return r;
+}
+
+async function setPdfPath(id: string, path: string): Promise<void> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/esa_invoices?id=eq.${id}`, {
+    method: "PATCH",
+    headers: svcHeaders({ "Content-Type": "application/json", Prefer: "return=minimal" }),
+    body: JSON.stringify({ pdf_path: path, updated_at: new Date().toISOString() }),
+  });
+  if (!res.ok) throw new Error(`esa_invoices pdf_path: ${res.status} ${await res.text().catch(() => "")}`);
+}
+
+async function removeObjects(paths: string[]): Promise<void> {
+  if (!paths.length) return;
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}`, {
+    method: "DELETE",
+    headers: svcHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ prefixes: paths }),
+  });
+  if (!res.ok) throw new Error(`storage delete: ${res.status} ${await res.text().catch(() => "")}`);
+}
+
+async function download(path: string): Promise<Uint8Array> {
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, { headers: svcHeaders() });
+  if (!res.ok) throw new Error(`storage download ${path}: ${res.status}`);
+  return new Uint8Array(await res.arrayBuffer());
 }
 
 async function upload(path: string, bytes: Uint8Array): Promise<void> {
@@ -83,15 +142,6 @@ async function upload(path: string, bytes: Uint8Array): Promise<void> {
     body: bytes,
   });
   if (!res.ok) throw new Error(`storage upload ${path}: ${res.status} ${await res.text().catch(() => "")}`);
-}
-
-async function insertRows(rows: Record<string, unknown>[]): Promise<void> {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/esa_invoices`, {
-    method: "POST",
-    headers: svcHeaders({ "Content-Type": "application/json", Prefer: "return=minimal" }),
-    body: JSON.stringify(rows),
-  });
-  if (!res.ok) throw new Error(`esa_invoices insert: ${res.status} ${await res.text().catch(() => "")}`);
 }
 
 async function markEmailed(numbers: string[]): Promise<void> {
@@ -194,6 +244,54 @@ async function sendEmail(args: {
   }
 }
 
+interface StoredInvoice {
+  invoice_number: string;
+  student_name: string;
+  total_cents: number;
+  pdf_path: string | null;
+  family_emailed_at: string | null;
+}
+
+/** A retry of a fill that already completed: the same invoices, re-read from storage. Nothing is
+ *  numbered, uploaded or emailed. */
+async function replay(submissionId: string, sub: { email: string; state: keyof typeof STATE_RULES }) {
+  const rows = await restGet<StoredInvoice[]>(
+    `esa_invoices?submission_id=eq.${submissionId}&status=not.in.(pending,void)&select=invoice_number,student_name,total_cents,pdf_path,family_emailed_at&order=created_at.asc,invoice_number.asc`,
+  );
+  if (!rows.length) throw new Error(`completed request ${submissionId} has no invoices`);
+  const invoices = [];
+  for (const r of rows) {
+    const path = r.pdf_path ?? pdfPathForNumber(r.invoice_number);
+    if (!path) throw new Error(`no PDF path for ${r.invoice_number}`);
+    invoices.push({
+      number: r.invoice_number,
+      student: r.student_name,
+      total: money(r.total_cents),
+      filename: `Eden's Table invoice ${r.invoice_number}.pdf`,
+      pdfBase64: b64(await download(path)),
+    });
+  }
+  return json(200, {
+    ok: true,
+    replayed: true,
+    emailed: rows.every((r) => !!r.family_emailed_at),
+    email: sub.email,
+    nextStep: STATE_RULES[sub.state].nextStep,
+    invoices,
+  });
+}
+
+async function finishRequest(key: string, submissionId: string, ok: boolean, error: string | null): Promise<string[]> {
+  const { data, error: rpcError } = await db.rpc("esa_finish_invoice_request", {
+    p_key: key,
+    p_submission_id: submissionId,
+    p_ok: ok,
+    p_error: error,
+  });
+  if (rpcError) throw new Error(`esa_finish_invoice_request: ${rpcError.message}`);
+  return Array.isArray(data) ? (data as string[]) : [];
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json(405, { error: "Method not allowed" });
@@ -208,54 +306,86 @@ Deno.serve(async (req) => {
   if (!parsed.ok) return json(400, { error: parsed.error });
   const sub = parsed.value;
   const isTest = sub.email === TEST_EMAIL;
+  // A page cached from before idempotency keys sends none: it gets a one-off key (no retry protection).
+  const key = parseIdempotencyKey((body as Record<string, unknown>).idempotencyKey) ?? crypto.randomUUID();
 
-  // Test orders are throttled too: the test address is not a secret, and each one still
-  // stores PDFs, inserts rows and sends two emails.
-  const rate = await enforceCheckoutRateLimit(db, req, SUBMISSIONS_PER_WINDOW);
-  if (!rate.allowed) {
-    return json(429, { error: "Too many invoices from this connection. Please wait a few minutes, or email hello@edeninstitute.health." });
+  // A retry of a fill we already know is not a new request: it skips both limiters.
+  let knownKey = false;
+  try {
+    knownKey = (await restGet<unknown[]>(`esa_invoice_requests?idempotency_key=eq.${key}&select=idempotency_key`)).length > 0;
+  } catch (e) {
+    console.warn("esa-invoice: request lookup failed, treating as new:", e instanceof Error ? e.message : String(e));
+  }
+
+  if (!knownKey) {
+    // Test orders are throttled too: the test address is not a secret, and each one still
+    // stores PDFs, inserts rows and sends two emails.
+    const rate = await enforceCheckoutRateLimit(db, req, SUBMISSIONS_PER_WINDOW);
+    if (!rate.allowed) {
+      return json(429, { error: "Too many invoices from this connection. Please wait a few minutes, or email hello@edeninstitute.health." });
+    }
+    const hourCount = await bumpRateBucket({ supabaseUrl: SUPABASE_URL, serviceKey: SERVICE_KEY, key: hourlyCapKey(), windowSeconds: 3600 });
+    if (overHourlyCap(hourCount)) {
+      console.warn(`esa-invoice: site-wide hourly cap reached (${hourCount})`);
+      return json(429, { error: RATE_LIMITED_MESSAGE, code: "RATE_LIMITED" });
+    }
   }
 
   try {
     const invoiceDate = centralDate();
-    const year = Number(invoiceDate.slice(0, 4));
-    const submissionId = crypto.randomUUID();
     const plans = planInvoices(sub);
     // Before any invoice number is issued, so a rejected Alabama submission burns no number.
     const famHits = plans.flatMap((pl) => forbiddenInFamilyText(pl.state, `${pl.parentName} ${pl.studentName} ${pl.shipTo}`));
     if (famHits.length) throw new Error(`submission failed wording checks: ${famHits.join("; ")}`);
-    const issued: Issued[] = [];
-    for (const [idx, plan] of plans.entries()) {
-      const number = isTest
-        ? `ET-TEST-${plan.state}-${Date.now().toString(36).toUpperCase()}${idx}`
-        : await nextNumber(plan.state, year);
-      const { bytes } = await renderInvoicePdf(plan, number, invoiceDate);
-      await upload(`${plan.state}/${number}.pdf`, bytes);
-      issued.push({ number, plan, pdf: bytes });
+
+    const submissionId = crypto.randomUUID();
+    const [claim] = await rpcRows<{ outcome: ClaimOutcome; submission_id: string | null; voided_numbers: string[] | null }>(
+      "esa_claim_invoice_request",
+      { p_key: key, p_hash: await submissionHash(sub), p_submission_id: submissionId },
+    );
+    if (!claim) throw new Error("esa_claim_invoice_request returned nothing");
+    if (claim.outcome === "completed" && claim.submission_id) return await replay(claim.submission_id, sub);
+    if (claim.outcome === "processing") {
+      return json(409, { error: "Your invoice is still being made. Please wait a minute, then press the button again.", code: "IN_PROGRESS" });
+    }
+    if (claim.outcome === "mismatch") {
+      return json(409, { error: "This form was already used for a different invoice. Please reload the page and fill it in again.", code: "KEY_REUSED" });
+    }
+    if (claim.outcome !== "claimed") return json(500, { error: GENERIC_ERROR });
+
+    const stale = claim.voided_numbers ?? [];
+    if (stale.length) {
+      // An earlier attempt of this same fill stopped part way (timed out). Its numbers are recorded void.
+      const paths = stale.map(pdfPathForNumber).filter((p): p is string => !!p);
+      await removeObjects(paths).catch((e) => console.error("esa-invoice: stale PDF cleanup failed:", e instanceof Error ? e.message : String(e)));
+      await emailFounderAlert(`${isTest ? "[TEST] " : ""}ESA invoice attempt stopped part way for ${sub.email}`, [
+        `An earlier attempt at this family's invoice stopped before finishing. The family pressed the button again, so a new attempt is running now.`,
+        `Invoice numbers from the stopped attempt, recorded as void in esa_invoices: ${esc(stale.join(", "))}.`,
+      ]).catch(() => false);
     }
 
-    await insertRows(
-      issued.map(({ number, plan }) => ({
-        invoice_number: number,
-        submission_id: submissionId,
-        is_test: isTest,
-        state: plan.state,
-        invoice_date: invoiceDate,
-        second_date: secondDate(plan, invoiceDate),
-        parent_name: plan.parentName,
-        student_name: plan.studentName,
-        family_email: plan.email,
-        ship_to: plan.shipTo,
-        ship_address: plan.printed ? sub.address : null,
-        phone: sub.phone || null,
-        items: plan.items.map((i) => ({ sku: i.sku, qty: i.qty, unit_cents: i.unitCents, amount_cents: i.amountCents })),
-        subtotal_cents: plan.subtotalCents,
-        fee_cents: plan.feeCents,
-        total_cents: plan.totalCents,
-        pdf_path: `${plan.state}/${number}.pdf`,
-      })),
+    const issued = await issueInvoices(
+      {
+        submissionId,
+        sub,
+        plans,
+        isTest,
+        invoiceDate,
+        secondDate,
+        testNumber: (plan, idx) => `ET-TEST-${plan.state}-${Date.now().toString(36).toUpperCase()}${idx}`,
+      },
+      {
+        insertPending,
+        render: async (plan, number, date) => (await renderInvoicePdf(plan, number, date)).bytes,
+        upload,
+        setPdfPath,
+        finish: (ok, error) => finishRequest(key, submissionId, ok, error),
+        removeObjects,
+        alertFounder: emailFounderAlert,
+      },
     );
 
+    // Every row and PDF is in place: only now does any email go out.
     const attachments = issued.map((i) => ({ filename: `Eden's Table invoice ${i.number}.pdf`, content: b64(i.pdf) }));
     const fam = familyEmail(issued, invoiceDate, isTest);
     const [sentFamily] = await Promise.all([
@@ -283,8 +413,6 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error("esa-invoice failed:", e instanceof Error ? e.message : String(e));
     await captureException(e, { function: "esa-invoice" });
-    return json(500, {
-      error: "Something went wrong making your invoice. Please try again, or email hello@edeninstitute.health and we will send it by hand.",
-    });
+    return json(500, { error: GENERIC_ERROR });
   }
 });
