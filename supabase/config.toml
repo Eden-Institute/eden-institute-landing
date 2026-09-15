@@ -42,6 +42,17 @@ verify_jwt = false
 [functions.esa-invoice]
 verify_jwt = false
 
+# ESA payments (added 2026-09-15). esa-payment is service-role only: payment intake from
+# scripts/esa_payment_intake.py, manual mark_paid, and the daily reminder pass from the Vercel
+# cron. It relies on isServiceRoleRequest, which is only safe at verify_jwt = true.
+[functions.esa-payment]
+verify_jwt = true
+
+# The founder's one-tap Confirm paid page, opened from an email link. The credential is a
+# single-use random token; the GET only shows the invoice, the POST button marks it paid.
+[functions.esa-payment-confirm]
+verify_jwt = false
+
 # partner-welcome sends the founding-partner welcome email (6-week sample
 # attached). Gated by FOUNDERS_ADMIN_TOKEN in x-partner-admin, so the gateway
 # JWT check must not block the admin caller. The sample PDF lives in the
