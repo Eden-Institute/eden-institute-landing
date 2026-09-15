@@ -258,8 +258,8 @@ Deno.serve(async (req) => {
         windowSeconds: FEEDBACK_WINDOW_SECONDS,
       });
       if (count !== null && count > FEEDBACK_PER_WINDOW) {
-        // WORDING: pending founder approval
-        return new Response(JSON.stringify({ error: "Too many submissions from this connection. Please wait a few minutes, or email hello@edeninstitute.health." }),
+        // Wording approved by the founder 2026-09-15 (same line on all three public forms).
+        return new Response(JSON.stringify({ error: "We have received several forms from you in the last few minutes. Please wait a few minutes and try again, or email us at hello@edeninstitute.health.", code: "RATE_LIMITED" }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
     }

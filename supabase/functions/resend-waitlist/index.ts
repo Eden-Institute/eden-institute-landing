@@ -411,8 +411,8 @@ Deno.serve(async (req) => {
         windowSeconds: 600,
       });
       if (n !== null && n > 20) {
-        // WORDING: pending founder approval (audit 2026-09-15)
-        return json(429, { error: 'Too many signups from this connection. Please wait a few minutes and try again.' });
+        // Wording approved by the founder 2026-09-15 (same line on all three public forms).
+        return json(429, { error: 'We have received several forms from you in the last few minutes. Please wait a few minutes and try again, or email us at hello@edeninstitute.health.', code: 'RATE_LIMITED' });
       }
     }
 
