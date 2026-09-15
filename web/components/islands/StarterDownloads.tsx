@@ -306,6 +306,7 @@ export default function StarterDownloads({ mode, showCredit = false }: Props) {
         )}
       </p>
 
+      {/* Switched off on purpose. Founder rule: no credit on anything until the kits are live. Rewrite this wording before it is ever enabled. */}
       {/* DORMANT since the print-first pivot (2026-09-12): no page passes showCredit={true}, so this never renders. The copy below predates the pivot and is stale (compare returns.astro). Founder must approve new wording before any page turns this on. */}
       {showCredit && data.credit_code && (
         <div

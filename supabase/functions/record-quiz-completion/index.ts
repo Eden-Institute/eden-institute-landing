@@ -154,6 +154,12 @@ Deno.serve(async (req) => {
       purchased_guide: false,
     };
 
+    // No account write happens here. The quiz_completions AFTER INSERT trigger
+    // (tg_quiz_completion_sync_constitution) only FILLS an empty Pattern on a
+    // matching account since migration 20260916130000 (founder decision
+    // 2026-09-15), so this anonymous endpoint cannot overwrite a member. A
+    // signed-in retake is applied by user id in resend-waitlist, which the quiz
+    // calls first.
     let insertRes = await postgrestInsert(insertPayload);
 
     // ── v14 — 409 = no-op success ──────────────────────────────────────

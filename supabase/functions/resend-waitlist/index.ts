@@ -10,6 +10,8 @@ import { escapeHtml } from '../_shared/html-escape.ts';
 import { bumpRateBucket, clientIp } from '../_shared/rate-bucket.ts';
 import { pgrstFetch } from '../_shared/pgrst-retry.ts';
 import { sendMetaCapiLead } from '../_shared/meta-capi.ts';
+import { getCallerUser } from '../_shared/caller-user.ts';
+import { applyMemberRetake, memberRetakeUserId } from '../_shared/quiz-member-retake.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,30 +29,26 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 // ── Entry funnel resolution ──
-// Canonical taxonomy matches the public.entry_funnel Postgres enum.
+// Values come from the public.entry_funnel Postgres enum. The enum also still
+// holds app_beta, course_tier2 and community (existing rows keep them); this
+// function stopped accepting those retired funnels on 2026-09-15, so a request
+// naming one now gets the same "could not resolve" 400 as any unknown funnel.
 type EntryFunnel =
-  | 'app_beta'
-  | 'course_tier2'
   | 'edens_table'
   | 'homeschool'
-  | 'community'
   | 'quiz_funnel';
 
 const VALID_FUNNELS = new Set<EntryFunnel>([
-  'app_beta',
-  'course_tier2',
   'edens_table',
   'homeschool',
-  'community',
   'quiz_funnel',
 ]);
 
 // Legacy frontend sends audienceId; map to the entry_funnel taxonomy.
 // Compatibility layer retained through Lane C Stage 3; drop once the
 // frontend sends entry_funnel directly.
+// The course_tier2 and app_beta audience ids were removed 2026-09-15 (retired funnels).
 const LEGACY_AUDIENCE_TO_FUNNEL: Record<string, EntryFunnel> = {
-  '4860c1c5-8e2b-4d02-838a-60ef09b789bf': 'course_tier2',
-  'cebd3478-b344-41b7-98c8-8bcf0e0108da': 'app_beta',
   'a48cb66e-b2a9-461d-98a6-bb1b12f72693': 'edens_table',
 };
 
@@ -138,51 +136,11 @@ function closingBlock(): string {
 
 // ── Email builders ──
 
-function buildFoundationsEmail(firstName: string): { subject: string; html: string } {
-  const body = `
-<p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 8px 0;">Welcome to the Eden Institute. You're officially on the Foundations Course waitlist, and you'll be among the first to know when enrollment opens.</p>
-${goldDivider()}
-${goldLabel('WHILE YOU WAIT')}
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">The Foundations Course is built on one conviction: that God did not design the body to be dependent on a system. He designed it to be stewarded. The course teaches you the constitutional framework, the energetic language of plants, and how to match the two, from a scriptural foundation outward.</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 24px 0;">Start here. Grab Book One and read the first three chapters. Everything the course teaches grows out of what that book establishes.</p>
-${ctaButton('→ PURCHASE BOOK ONE', 'https://www.amazon.com/dp/B0GPW5BZ32')}
-${goldDivider()}
-${closingBlock()}`;
-  return { subject: "You're on the list. Here's what's coming", html: emailWrapper(body) };
-}
-
-function buildAppBetaEmail(firstName: string): { subject: string; html: string } {
-  const body = `
-<p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 8px 0;">You're on the Eden Apothecary beta waitlist. That means first access when we launch on July 7, 2026, and founding pricing locked in for the life of your subscription.</p>
-${goldDivider()}
-${goldLabel('FOUNDING PRICING, LOCKED IN')}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-<tr><td style="background-color:#F5F0E8;padding:20px;text-align:center;border-bottom:1px solid #FFFFFF;">
-<p style="font-family:Georgia,serif;font-size:16px;font-weight:bold;color:#1C3A2E;margin:0 0 8px 0;">Seed</p>
-<p style="font-family:Georgia,serif;font-size:20px;font-weight:bold;color:#C9A84C;margin:0 0 4px 0;">$7.99 / month &nbsp;·&nbsp; $79.99 / year</p>
-<p style="font-family:Georgia,serif;font-size:13px;line-height:1.5;color:#1C3A2E;margin:0;">Full herb library, constitutional profile, 1–3 system assessments. Designed for your household.</p>
-</td></tr>
-<tr><td style="background-color:#F5F0E8;padding:20px;text-align:center;border-bottom:1px solid #FFFFFF;">
-<p style="font-family:Georgia,serif;font-size:16px;font-weight:bold;color:#1C3A2E;margin:0 0 8px 0;">Root</p>
-<p style="font-family:Georgia,serif;font-size:20px;font-weight:bold;color:#C9A84C;margin:0 0 4px 0;">$24.99 / month &nbsp;·&nbsp; $249.99 / year</p>
-<p style="font-family:Georgia,serif;font-size:13px;line-height:1.5;color:#1C3A2E;margin:0;">All 12 system assessments, full materia medica, pattern tracking, lifestyle protocols.</p>
-</td></tr>
-<tr><td style="background-color:#F5F0E8;padding:20px;text-align:center;">
-<p style="font-family:Georgia,serif;font-size:16px;font-weight:bold;color:#1C3A2E;margin:0 0 8px 0;">Practitioner</p>
-<p style="font-family:Georgia,serif;font-size:20px;font-weight:bold;color:#C9A84C;margin:0 0 4px 0;">$49.99 / month &nbsp;·&nbsp; $499 / year</p>
-<p style="font-family:Georgia,serif;font-size:13px;line-height:1.5;color:#1C3A2E;margin:0 0 8px 0;">Formula builder, multi-system analysis, session notes, exportable PDFs.</p>
-<p style="font-family:Georgia,serif;font-size:13px;line-height:1.5;color:#1C3A2E;margin:0;">Now open at the founding rate. <a href="https://edeninstitute.health/apothecary/pricing#tier-practitioner" style="color:#C9A84C;text-decoration:underline;">See the Practitioner tier.</a></p>
-</td></tr>
-</table>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">The Eden Apothecary is a terrain-based clinical decision-support tool built on the Eclectic, Physiomedical, and Vitalist traditions, grounded in Scripture. From home herbalist to working practitioner, every tier is designed to meet you where you are.</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 24px 0;">While you wait, get the foundation in place.</p>
-${ctaButton('→ START WITH BOOK ONE', 'https://www.amazon.com/dp/B0GPW5BZ32')}
-${goldDivider()}
-${closingBlock()}`;
-  return { subject: "You're in: Eden Apothecary beta access secured", html: emailWrapper(body) };
-}
+// buildFoundationsEmail (Foundations Course waitlist) and buildAppBetaEmail (Apothecary
+// beta, 'launch on July 7, 2026' with old prices) lived here until 2026-09-15, and
+// buildCommunityEmail lived after buildHomeschoolEmail. Their funnels (course_tier2, app_beta, community) had no
+// caller left on the site. Founder decision 2026-09-15: deleted, recoverable from git
+// history.
 
 function buildHomeschoolEmail(firstName: string): { subject: string; html: string } {
   const body = `
@@ -208,26 +166,6 @@ function buildHomeschoolEmail(firstName: string): { subject: string; html: strin
   return {
     subject: "You're on the Eden's Table Waitlist: Here's What's Coming",
     html: `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#FAF8F3;">${body}${footer}</body></html>`
-  };
-}
-
-function buildCommunityEmail(firstName: string): { subject: string; html: string } {
-  const body = `
-    <p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
-    <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 8px 0;">Welcome to the circle.</p>
-    <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 24px 0;">
-      The Eden Institute Community is being built for serious students of Biblical herbalism: people who want to go deeper, ask hard questions, and practice together. You'll hear from us as soon as the doors open.
-    </p>
-    <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 24px 0;">
-      In the meantime, take our free Constitutional Assessment. Knowing your body type is the foundation of everything we teach, and it will make community conversations far richer.
-    </p>
-    ${ctaButton("Take the Free Constitutional Assessment", "https://edeninstitute.health/assessment")}
-    ${goldDivider()}
-    ${closingBlock()}
-  `;
-  return {
-    subject: "You're on the Community Waitlist: We're Building Something Worth Waiting For",
-    html: `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#FAF8F3;">${body}</body></html>`
   };
 }
 
@@ -418,7 +356,7 @@ Deno.serve(async (req) => {
 
     // ── Resolve entry_funnel ──
     // Precedence: explicit entry_funnel → constitution_assessment source →
-    // legacy audienceId mapping → homeschool/community source keywords.
+    // legacy audienceId mapping → homeschool source keyword.
     let entry_funnel: EntryFunnel | null = null;
     if (providedFunnel && VALID_FUNNELS.has(providedFunnel as EntryFunnel)) {
       entry_funnel = providedFunnel as EntryFunnel;
@@ -428,8 +366,6 @@ Deno.serve(async (req) => {
       entry_funnel = LEGACY_AUDIENCE_TO_FUNNEL[audienceId];
     } else if (source === 'homeschool') {
       entry_funnel = 'homeschool';
-    } else if (source === 'community') {
-      entry_funnel = 'community';
     }
 
     if (!entry_funnel) {
@@ -711,6 +647,23 @@ Deno.serve(async (req) => {
         await enqueueNurture();
       }
 
+      // Signed-in retake (founder decision 2026-09-15). The quiz_completions
+      // trigger now only FILLS an empty Pattern on the matching account, so a
+      // signed-out submission cannot overwrite a member. When the request
+      // carries a valid user JWT for the same email, this is the member
+      // retaking the quiz, and their own saved Pattern is updated by user id.
+      // Never fatal to the signup.
+      const memberUserId = memberRetakeUserId(await getCallerUser(req), normalizedEmail);
+      if (memberUserId) {
+        const retake = await applyMemberRetake({
+          supabaseUrl: SUPABASE_URL,
+          serviceKey: SUPABASE_SERVICE_ROLE_KEY,
+          userId: memberUserId,
+          constitutionType: slug,
+        });
+        console.log('Signed-in quiz retake applied to own account', { ok: retake.ok });
+      }
+
       // Backfill resend_contact_id on the quiz_funnel waitlist_signups row
       // (which the trigger created/refreshed above).
       if (resendContactId) {
@@ -722,14 +675,8 @@ Deno.serve(async (req) => {
 
     // ── Step 5: Welcome email dispatch (non-quiz paths) ──
     let emailContent: { subject: string; html: string } | null = null;
-    if (entry_funnel === 'course_tier2') {
-      emailContent = buildFoundationsEmail(firstNameHtml);
-    } else if (entry_funnel === 'app_beta') {
-      emailContent = buildAppBetaEmail(firstNameHtml);
-    } else if (entry_funnel === 'homeschool') {
+    if (entry_funnel === 'homeschool') {
       emailContent = buildHomeschoolEmail(firstNameHtml);
-    } else if (entry_funnel === 'community') {
-      emailContent = buildCommunityEmail(firstNameHtml);
     } else if (entry_funnel === 'edens_table') {
       // Phase 3.1 Day-1: source-branched routing for /homeschool CTAs.
       //   'reserve'           → Founders Club welcome (no PDFs)
@@ -775,8 +722,7 @@ Deno.serve(async (req) => {
     if (emailContent && sendAllowed) {
       try {
         // All non-quiz welcome emails belong to the homeschool list (the live
-        // edens_table/homeschool funnels; retired funnels fall through here too
-        // but no longer receive signups).
+        // edens_table/homeschool funnels).
         await sendEmail(normalizedEmail, emailContent.subject, emailContent.html, 'homeschool');
         welcomeSent = true;
       } catch (emailErr) {

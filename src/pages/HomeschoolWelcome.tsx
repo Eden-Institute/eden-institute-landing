@@ -9,6 +9,11 @@ import { readCheckoutSessionId } from "@/lib/checkoutSession";
 import { checkoutRef } from "@/lib/pinterestTag";
 
 /**
+ * KEPT ON PURPOSE (founder decision 2026-09-15): kept for when the print kit
+ * returns. The Founders Edition checkout that redirected here, and the
+ * stripe-webhook bundle-buyer provisioning described below, were removed on
+ * 2026-09-15 (recoverable from git history).
+ *
  * /homeschool/welcome — generic order confirmation fallback (noindex).
  * 2026-09-12: the Founders Edition products are retired and the kit is off
  * sale, so every Founders Edition, 2027 and bundle string was removed.

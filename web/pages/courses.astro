@@ -12,8 +12,9 @@
 //   • The two JourneyAwareQuizCTA -> static /assessment links (no-Pattern copy).
 //   • journeyCta.hasPattern pivots -> the no-Pattern copy.
 //   • The Tier 2 waitlist MODAL -> static links to /tier-2-waitlist. The React
-//     TierTwoWaitlistModal was removed in the 2026-09 audit as unused; restore it
-//     from git history if the 1-click modal returns as an island.
+//     TierTwoWaitlistModal was removed in the 2026-09 audit as unused, and the
+//     tier-2-waitlist-signup edge function it called was removed 2026-09-15;
+//     restore both from git history if the 1-click modal returns as an island.
 //   • Tier 3 stays a disabled "TBD" control.
 // Navbar / Footer / analytics come from MarketingLayout.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
