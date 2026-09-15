@@ -14,7 +14,7 @@ Repo: `eden-institute-landing` (Vite + React + Astro + shadcn/ui). This is an **
 - `ui/sonner.tsx` denied (its `Toaster` export collides with `ui/toaster.tsx`).
 
 ## Scope (first sync, 2026-06-27)
-- 57 components: ~47 shadcn `ui/` primitives (themed) + curated Eden set (AxisSpectrum, BotanicalAccents ×4, WorldviewBand, PublicTierCard, TierComparison, PageSkeleton, HerbCard).
+- 57 components: ~47 shadcn `ui/` primitives (themed) + curated Eden set (AxisSpectrum, BotanicalAccents (GoldDivider only), WorldviewBand, PublicTierCard, TierComparison, PageSkeleton, HerbCard).
 - Plan: floor cards for stock shadcn; authored rich previews for the Eden-specific + most-used primitives.
 
 ## Brand aesthetic direction
@@ -27,11 +27,10 @@ Repo: `eden-institute-landing` (Vite + React + Astro + shadcn/ui). This is an **
 - **HerbCard floor-carded on purpose**: its `herb: HerbRow` prop is a large DB row with citations + match computation — too much to mock for marginal value (the Card "Chamomile monograph" preview covers the herb-card aesthetic).
 
 ## Known render warns (triaged legitimate — don't re-flag on re-sync)
-- Botanical SVGs (`BotanicalLeaf*`, `BotanicalSprig`) are faint line-art → may warn `[RENDER_THIN]`; intentional, framed on parchment in their previews.
 - Overlay previews may show a faint full-bleed `bg-black/80` scrim behind the card; content stays legible.
 
 ## Materia Medica herb plates (added 2026-06-27)
-- Founder rejected the old botanical leaf line-art. Replaced with **MateriaMedicaPlate** — antique apothecary plates from her own `Curriculum Artwork - Print Ready/` (16 herbs). The 3 leaf cards (`BotanicalLeaf*`, `BotanicalSprig`) were dropped from the sync via `PRINCIPAL_OVERRIDE` in gen-entry (file still bundles; only `GoldDivider` kept as a card).
+- Founder rejected the old botanical leaf line-art. Replaced with **MateriaMedicaPlate** — antique apothecary plates from her own `Curriculum Artwork - Print Ready/` (16 herbs). The 3 leaf cards (`BotanicalLeaf*`, `BotanicalSprig`) were dropped from the sync via `PRINCIPAL_OVERRIDE` in gen-entry, and on 2026-09-15 the three components were deleted from `BotanicalAccents.tsx`; only `GoldDivider` remains.
 - **Assets pipeline** (scratchpad scripts `optimize_plates.py` + `gen_plate_assets.py`): source 12-14MB print PNGs → 860px webp in `public/materia-medica/<slug>.webp` (live site) AND 400px base64 in `.design-sync/stubs/materiaMedicaPlateSources.data.ts` (design-sync bundle). To regenerate, re-run those scripts (they pin the chosen variant per herb; tulsi uses `tulsi1.png`, others use the base file).
 - **Dual-source swap**: `MateriaMedicaPlate` imports `PLATE_SRC` from `@/components/materiaMedicaPlateSources` (the `@/` alias matters). Live site (Vite) resolves it to the public-URL module; design-sync `tsconfig.sync.json` aliases it to the base64 data stub so plates render in the Claude Design canvas (no file server there). Same trick as the supabase stub.
 

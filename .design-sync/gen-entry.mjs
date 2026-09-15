@@ -23,8 +23,8 @@ const EDEN = [
 ];
 
 // Per-file principal-name override: list ONLY these names as components (cards).
-// BotanicalAccents exports 4 SVGs, but the founder dislikes the leaf line-art —
-// keep only GoldDivider as a card (the file still bundles for completeness).
+// BotanicalAccents now exports only GoldDivider (the rejected leaf line-art
+// components were deleted from the source 2026-09-15).
 const PRINCIPAL_OVERRIDE = {
   'landing/BotanicalAccents.tsx': ['GoldDivider'],
 };

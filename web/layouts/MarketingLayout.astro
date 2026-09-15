@@ -64,11 +64,16 @@ export interface Props {
   noThirdPartyTags?: boolean;
 }
 
+// Default share card: public/og-default-printset.jpg, 1200 x 630. Width and
+// height are emitted only for this default, since a page-supplied image may
+// have other dimensions.
+const DEFAULT_OG_IMAGE = "https://edeninstitute.health/og-default-printset.jpg";
+
 const {
   title,
   description,
   canonical,
-  ogImage = "https://edeninstitute.health/og-home-v1.4.png",
+  ogImage = DEFAULT_OG_IMAGE,
   ogType = "website",
   product,
   jsonLd,
@@ -199,6 +204,12 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImage} />
+    {ogImage === DEFAULT_OG_IMAGE && (
+      <>
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+      </>
+    )}
     {ogType === "product" && product && (
       <>
         <meta property="og:site_name" content="The Eden Institute" />
