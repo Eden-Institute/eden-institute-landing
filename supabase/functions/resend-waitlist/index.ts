@@ -3,7 +3,7 @@
 // _shared/nurture-email-templates.ts; that duplicate has been removed so
 // _shared is the single source of truth for these templates.
 import { buildNurtureEmail1 } from '../_shared/nurture-email-templates.ts';
-import { shopApothecaryCard } from '../_shared/shop-cta.ts';
+import { buildHomeschoolEmail, buildSeedlingsMagnetEmail, buildSproutsMagnetEmail } from '../_shared/welcome-email-templates.ts';
 import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
 import { setContactProperties, type ContactProperties } from '../_shared/resend-contacts.ts';
 import { escapeHtml } from '../_shared/html-escape.ts';
@@ -70,71 +70,11 @@ function getSlugInfo(constitutionType: string): { slug: string; name: string } |
   return CONSTITUTION_SLUG_MAP[constitutionType] ?? null;
 }
 
-// ── Shared HTML components ──
-
-function emailWrapper(bodyContent: string): string {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>The Eden Institute</title></head>
-<body style="margin:0;padding:0;background-color:#F5F0E8;font-family:Georgia,serif;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F5F0E8;">
-<tr><td align="center" style="padding:20px 10px;">
-<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#FFFFFF;">
-<!-- HEADER -->
-<tr><td style="background-color:#1C3A2E;padding:40px 20px;text-align:center;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="text-align:center;font-family:Georgia,serif;font-size:13px;font-weight:bold;letter-spacing:4px;color:#C9A84C;text-transform:uppercase;">THE EDEN INSTITUTE</td></tr>
-<tr><td align="center" style="padding:16px 0;">
-<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="width:60px;border-top:1px solid #C9A84C;font-size:0;line-height:0;">&nbsp;</td></tr></table>
-</td></tr>
-<tr><td style="text-align:center;font-family:Georgia,serif;font-size:14px;color:#F5F0E8;font-style:italic;">Back to Eden. Back to Truth.</td></tr>
-</table>
-</td></tr>
-<!-- BODY -->
-<tr><td style="background-color:#FFFFFF;padding:32px 40px;">
-${bodyContent}
-${shopApothecaryCard()}
-</td></tr>
-<!-- FOOTER -->
-<tr><td style="background-color:#F5F0E8;padding:30px 20px;text-align:center;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="font-family:Georgia,serif;font-size:13px;color:#1C3A2E;text-align:center;">The Eden Institute | edeninstitute.health</td></tr>
-<tr><td style="font-family:Georgia,serif;font-size:12px;color:#1C3A2E;text-align:center;padding-top:8px;">You're receiving this because you signed up at edeninstitute.health. No spam, ever.</td></tr>
-<tr><td style="font-family:Georgia,serif;font-size:11px;color:#1C3A2E;text-align:center;padding-top:8px;">Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Unit 3262, Clarksville, TN 37043</td></tr>
-<tr><td style="text-align:center;padding-top:8px;"><a href="{{UNSUB_URL}}" style="font-family:Georgia,serif;font-size:12px;color:#C9A84C;text-decoration:underline;">Unsubscribe</a></td></tr>
-</table>
-</td></tr>
-</table>
-</td></tr>
-</table>
-</body>
-</html>`;
-}
-
-function goldDivider(): string {
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:24px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top:1px solid #C9A84C;font-size:0;line-height:0;">&nbsp;</td></tr></table></td></tr></table>`;
-}
-
-function goldLabel(text: string): string {
-  return `<p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:3px;color:#C9A84C;text-transform:uppercase;margin:0 0 16px 0;">${text}</p>`;
-}
-
-function ctaButton(label: string, href: string, variant: 'primary' | 'secondary' = 'primary'): string {
-  const bg = variant === 'primary' ? '#1C3A2E' : '#F5F0E8';
-  const color = variant === 'primary' ? '#F5F0E8' : '#1C3A2E';
-  const border = variant === 'secondary' ? 'border:2px solid #1C3A2E;' : '';
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:8px 0;">
-<a href="${href}" target="_blank" style="display:inline-block;background-color:${bg};color:${color};${border}font-family:Georgia,serif;font-size:14px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;text-decoration:none;padding:16px 32px;">${label}</a>
-</td></tr></table>`;
-}
-
-function closingBlock(): string {
-  return `<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:24px 0 4px 0;">We'll be in touch soon.</p>
-<p style="font-family:Georgia,serif;font-size:16px;color:#1C3A2E;font-weight:bold;margin:0;">Camila Johnson</p>
-<p style="font-family:Georgia,serif;font-size:14px;color:#C9A84C;margin:4px 0 0 0;">The Eden Institute</p>`;
-}
-
 // ── Email builders ──
+
+// The welcome builders (homeschool waitlist, Sprouts and Seedlings free week) and their
+// chrome moved to _shared/welcome-email-templates.ts on 2026-09-15 so they share the
+// look of the other emails. Wording unchanged; see that file.
 
 // buildFoundationsEmail (Foundations Course waitlist) and buildAppBetaEmail (Apothecary
 // beta, 'launch on July 7, 2026' with old prices) lived here until 2026-09-15, and
@@ -142,72 +82,12 @@ function closingBlock(): string {
 // caller left on the site. Founder decision 2026-09-15: deleted, recoverable from git
 // history.
 
-function buildHomeschoolEmail(firstName: string): { subject: string; html: string } {
-  const body = `
-    <p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
-    <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 8px 0;">You're on the list.</p>
-    <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 24px 0;">
-      Eden's Table is a K–12 Biblical herbalism curriculum being built for families who believe the earth was created with purpose, and that stewarding it well begins at home. You'll be among the first to see it, price it, and shape it.
-    </p>
-    <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 24px 0;">
-      While we finish building, consider starting with our adult foundations course. Most of our homeschool families tell us it changed how they teach, because it changed how they understand.
-    </p>
-    ${ctaButton("Explore the Foundations Course", "https://learn.edeninstitute.health/course/back-to-eden1")}
-    ${goldDivider()}
-    ${closingBlock()}
-  `;
-  const footer = `
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;border-top:1px solid #E8E3DA;">
-    <tr><td style="text-align:center;padding-top:16px;">
-    <p style="font-family:Georgia,serif;font-size:11px;color:#6B6560;margin:0 0 6px 0;">You're receiving this because you signed up at edeninstitute.health.</p>
-    <p style="font-family:Georgia,serif;font-size:11px;color:#6B6560;margin:0 0 6px 0;">Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Unit 3262, Clarksville, TN 37043</p>
-    <a href="{{UNSUB_URL}}" style="font-family:Georgia,serif;font-size:11px;color:#6B6560;text-decoration:underline;">Unsubscribe</a>
-    </td></tr></table>`;
-  return {
-    subject: "You're on the Eden's Table Waitlist: Here's What's Coming",
-    html: `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#FAF8F3;">${body}${footer}</body></html>`
-  };
-}
-
-
 // ── Phase 3.1 Day-1: source-branched email builders for edens_table funnel ──
 // One welcome email per /homeschool CTA. Day-7 Week-2 send is Phase 3.1.2.
 
 // The Founders Club welcome ("Preorders are open now ... $249") and its
 // founding-window check lived here until 2026-09-12. Deleted with the
 // print-first pivot; recover from git history (f0d7399) for phase two.
-
-function buildSproutsMagnetEmail(firstName: string): { subject: string; html: string } {
-  const body = `
-<p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Thank you for stepping into this work with us. What follows is a real week of curriculum: Week 1 of Sprouts, the band built for kindergarten through second grade. Not a sample stripped of substance. Five days with Lavender, a story your child will remember, and the small daily rhythms that turn a kitchen counter into a place of formation.</p>
-${goldDivider()}
-${goldLabel('YOUR THREE DOWNLOADS: SPROUTS WEEK 1 (LAVENDER)')}
-${ctaButton('MEET THE FAMILY (READ-ALOUD)', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-ra-lavender.pdf')}
-${ctaButton("TEACHER'S GUIDE", 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-tg-lavender.pdf')}
-${ctaButton('STUDENT NOTEBOOK', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-nb-lavender.pdf')}
-${goldDivider()}
-${goldLabel('THIS IS A WHOLE WEEK')}
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Lavender is Week 1 of the curriculum exactly as it is taught. Five full days, the same pages families teach from all year, and it stands on its own. The printed card decks are not part of the free week; everything you need to teach these five days is in the guide and the notebook. Teach it whenever the week suits you. In about a week I will write again about the weeks that follow it, and there is nothing you need to do before then.</p>
-${closingBlock()}`;
-  return { subject: 'Your Sprouts Week 1 (Lavender) is ready', html: emailWrapper(body) };
-}
-
-function buildSeedlingsMagnetEmail(firstName: string): { subject: string; html: string } {
-  const body = `
-<p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Thank you for stepping into this work with us. What follows is a real week of curriculum from Seedlings, our band for third through fifth graders. Seedlings is built for the child who has begun to ask <em>why</em> and <em>how</em>, the one who has outgrown a worksheet and is ready to track a hypothesis across a week. Week 1 starts with Elderberry.</p>
-${goldDivider()}
-${goldLabel('YOUR TWO DOWNLOADS: SEEDLINGS WEEK 1 (ELDERBERRY)')}
-${ctaButton("TEACHER'S GUIDE", 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-tg-elderberry.pdf')}
-${ctaButton('STUDENT NOTEBOOK', 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-nb-elderberry.pdf')}
-${goldDivider()}
-${goldLabel('THIS IS A WHOLE WEEK')}
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Elderberry is Week 1 of the curriculum exactly as it is taught. Five full days, the same pages families teach from all year, and it stands on its own. The printed card decks are not part of the free week; everything you need to teach these five days is in the guide and the notebook. Teach it whenever the week suits you. In about a week I will write again with what comes next, and there is nothing you need to do before then.</p>
-${closingBlock()}`;
-  return { subject: 'Your Seedlings Week 1 (Elderberry) is ready', html: emailWrapper(body) };
-}
-
 
 // The retired at-signup assessment email (constitutionProfiles + buildAssessmentEmail:
 // per-Pattern intro/patterns/needs/herbs/Biblical anchor and the $4.99 guide CTA) lived

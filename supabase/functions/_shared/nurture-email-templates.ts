@@ -1,7 +1,8 @@
 import { shopApothecaryCard } from './shop-cta.ts';
 
 // ── Brand constants (Eden Institute) ──
-const BRAND = {
+// Exported so the at-signup welcome emails (welcome-email-templates.ts) share the palette.
+export const BRAND = {
   bgOuter: '#F5F0E8',
   bgBody: '#FFFFFF',
   forest: '#2C3E2D',
@@ -116,7 +117,14 @@ const PROVENANCE_LINE: Record<EmailProvenance, string> = {
   preorder_notice: 'You are receiving this because you placed a preorder at edeninstitute.health. This is a required notice about your order and is not marketing.',
 };
 
-export function emailWrapper(bodyContent: string, provenance: EmailProvenance = 'constitution'): string {
+/** The shared chrome every Eden Institute email wears: forest header with the gold
+ *  wordmark, gold rules around a white body, and a forest footer. The footer ROWS are
+ *  passed in so an email can keep its own footer wording (the at-signup welcome emails
+ *  do) while wearing the same look. `shopCard` appends the Shop Medicinal Herbs card to
+ *  the body. emailWrapper below is this shell with the standard footer; its output is
+ *  byte-identical to what it was before the shell was extracted. */
+export function emailShell(bodyContent: string, footerRows: string, opts: { shopCard?: boolean } = {}): string {
+  const bodyTail = opts.shopCard ? '\n' + shopApothecaryCard() : '';
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>The Eden Institute</title>
@@ -144,15 +152,25 @@ export function emailWrapper(bodyContent: string, provenance: EmailProvenance = 
 <tr><td style="background-color:${BRAND.bgBody};"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top:2px solid ${BRAND.gold};font-size:0;line-height:0;">&nbsp;</td></tr></table></td></tr>
 <!-- BODY -->
 <tr><td class="email-body-cell" style="background-color:${BRAND.bgBody};padding:32px 40px;">
-${bodyContent}
-${shopApothecaryCard()}
+${bodyContent}${bodyTail}
 </td></tr>
 <!-- GOLD RULE -->
 <tr><td style="background-color:${BRAND.bgBody};"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top:2px solid ${BRAND.gold};font-size:0;line-height:0;">&nbsp;</td></tr></table></td></tr>
 <!-- FOOTER -->
 <tr><td style="background-color:${BRAND.forest};padding:30px 20px;text-align:center;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="font-family:Georgia,serif;font-size:14px;font-weight:bold;color:#FFFFFF;text-align:center;">The Eden Institute</td></tr>
+${footerRows}
+</table>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
+export function emailWrapper(bodyContent: string, provenance: EmailProvenance = 'constitution'): string {
+  const footerRows = `<tr><td style="font-family:Georgia,serif;font-size:14px;font-weight:bold;color:#FFFFFF;text-align:center;">The Eden Institute</td></tr>
 <tr><td style="text-align:center;padding-top:6px;"><a href="https://edeninstitute.health" style="font-family:Georgia,serif;font-size:13px;color:#FFFFFF;text-decoration:underline;">edeninstitute.health</a></td></tr>
 <tr><td style="text-align:center;padding-top:14px;">
 <a href="https://www.facebook.com/EdensTableHomeschoolCurriculum" style="font-family:Georgia,serif;font-size:12px;color:#FFFFFF;text-decoration:underline;">Facebook</a>
@@ -164,14 +182,8 @@ ${shopApothecaryCard()}
 <tr><td style="text-align:center;padding-top:14px;font-family:Georgia,serif;font-size:13px;color:${BRAND.gold};font-style:italic;">Back to Eden. Back to Truth.</td></tr>
 <tr><td style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;padding-top:16px;">${PROVENANCE_LINE[provenance]}</td></tr>
 <tr><td style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;padding-top:6px;">Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Unit 3262, Clarksville, TN 37043</td></tr>
-<tr><td style="text-align:center;padding-top:8px;"><a href="{{UNSUB_URL}}" style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-decoration:underline;">Unsubscribe</a></td></tr>
-</table>
-</td></tr>
-</table>
-</td></tr>
-</table>
-</body>
-</html>`;
+<tr><td style="text-align:center;padding-top:8px;"><a href="{{UNSUB_URL}}" style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-decoration:underline;">Unsubscribe</a></td></tr>`;
+  return emailShell(bodyContent, footerRows, { shopCard: true });
 }
 
 /** Transactional variant: same chrome, the right provenance line, and the marketing
@@ -184,15 +196,15 @@ export function emailWrapperTransactional(bodyContent: string, provenance: Email
   return emailWrapper(bodyContent, provenance).split('{{UNSUB_URL}}').join('https://edeninstitute.health');
 }
 
-function goldDivider(): string {
+export function goldDivider(): string {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:24px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top:2px solid ${BRAND.gold};font-size:0;line-height:0;">&nbsp;</td></tr></table></td></tr></table>`;
 }
 
-function p(text: string, extra = ''): string {
+export function p(text: string, extra = ''): string {
   return `<p style="font-family:Georgia,serif;font-size:16px;line-height:1.6;color:${BRAND.text};margin:0 0 16px 0;${extra}">${text}</p>`;
 }
 
-function heading(text: string): string {
+export function heading(text: string): string {
   return `<h2 style="font-family:Georgia,serif;font-size:22px;line-height:1.3;color:${BRAND.forest};margin:0 0 16px 0;font-weight:bold;">${text}</h2>`;
 }
 
@@ -204,7 +216,7 @@ function bullet(text: string): string {
   return `<p style="font-family:Georgia,serif;font-size:16px;line-height:1.6;color:${BRAND.text};margin:0 0 8px 0;padding-left:16px;">· ${text}</p>`;
 }
 
-function brandButton(label: string, url: string): string {
+export function brandButton(label: string, url: string): string {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
 <tr><td align="center">
 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
