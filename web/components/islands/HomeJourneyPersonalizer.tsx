@@ -3,14 +3,15 @@
 // The static page renders the NO-PATTERN defaults: Steps 2 & 3 and the footer
 // "Deep Dive Guide" all link to /assessment (correct for anonymous/first-time/
 // crawler traffic). This island restores the returning-visitor personalization
-// the React Index.tsx did inline: it reads localStorage.edenConstitutionSlug and,
+// the retired React Index.tsx did inline: it reads localStorage.edenConstitutionSlug and,
 // when a Pattern is present, rewrites those CTAs to the visitor's personalized
 // guide + matched Amazon bundle.
 //
 // Mirrors the original logic exactly:
 //   const guideUrl  = `/guide/${slug}`
 //   const bundleUrl = getAmazonKitUrl(slug)
-//   Step 2  -> href guideUrl,  label "Unlock with Quiz"
+//   Step 2  -> href guideUrl,  label "Get your Deep-Dive Guide" (was "Unlock with Quiz"
+//              until 2026-09-15, which read as a quiz prompt on a link to the guide)
 //   Step 3  -> href bundleUrl (if any), label "Browse Bundles", opens new tab
 //   Footer  -> href guideUrl
 //
@@ -41,7 +42,7 @@ export default function HomeJourneyPersonalizer() {
       .querySelectorAll<HTMLAnchorElement>('[data-cta="home-step2-guide"]')
       .forEach((el) => {
         el.setAttribute("href", guideUrl);
-        el.textContent = "Unlock with Quiz";
+        el.textContent = "Get your Deep-Dive Guide";
       });
     document
       .querySelectorAll<HTMLAnchorElement>('[data-cta="home-footer-guide"]')

@@ -1,18 +1,17 @@
+import { Fragment } from "react";
 import { Link } from "react-router-dom";
-import { ASTRO_PAGES, ROUTES } from "@/lib/routes";
+import { FOOTER_LINKS } from "@/lib/navLinks";
+import { SOCIALS } from "@/lib/socials";
 
 const FOOTER_BG_IMG = "https://images.unsplash.com/photo-1726996155615-e986ed87c9d4?auto=format&fit=crop&w=1920&q=80";
 
-// Keep in lockstep with web/components/Footer.astro, which carries the same list
-// for the Astro marketing pages. See the long note there for why these exact URLs.
-// Short version: verified in-browser 2026-07-26; the old Instagram and Facebook
-// usernames now 404 because neither platform redirects; and the Pinterest account
-// is TheEdenInstituteBoards, not the near-empty "theedeninstitute" duplicate.
-const SOCIALS = [
-  { label: "Instagram", href: "https://www.instagram.com/edenstablehomeschoolcurriculum/" },
-  { label: "Facebook", href: "https://www.facebook.com/EdensTableHomeschoolCurriculum" },
-  { label: "Pinterest", href: "https://www.pinterest.com/TheEdenInstituteBoards/" },
-];
+// The policy links and the social profiles come from shared modules
+// (src/lib/navLinks.ts, src/lib/socials.ts) that web/components/Footer.astro
+// renders too, so the SPA and Astro footers carry the same list. Only links
+// marked spaRoute use a router <Link>; the rest are Astro pages and need a full
+// page load.
+const LINK_CLASS = "inline-flex items-center min-h-[44px] px-0.5 hover:opacity-70 transition-colors";
+const LINK_STYLE = { color: "hsl(var(--eden-parchment) / 0.5)" };
 
 const Footer = () => {
   return (
@@ -58,31 +57,20 @@ const Footer = () => {
             </div>
 
             <div className="mt-6 flex items-center justify-center gap-2 text-xs font-body flex-wrap" style={{ color: "hsl(var(--eden-parchment) / 0.3)" }}>
-              <a href={ASTRO_PAGES.WHY_EDEN} className="inline-flex items-center min-h-[44px] px-0.5 hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
-                Why Eden
-              </a>
-              <span>|</span>
-              <Link to={ROUTES.TERMS} className="inline-flex items-center min-h-[44px] px-0.5 hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
-                Terms &amp; Conditions
-              </Link>
-              <span>|</span>
-              <Link to={ROUTES.PRIVACY} className="inline-flex items-center min-h-[44px] px-0.5 hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
-                Privacy Policy
-              </Link>
-              <span>|</span>
-              <Link to={ROUTES.COOKIES} className="inline-flex items-center min-h-[44px] px-0.5 hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
-                Cookie Policy
-              </Link>
-              <span>|</span>
-              {/* /returns and /contact are static Astro pages, not SPA routes —
-                  plain <a> so the browser does a full navigation. */}
-              <a href="/returns" className="inline-flex items-center min-h-[44px] px-0.5 hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
-                Returns &amp; Refunds
-              </a>
-              <span>|</span>
-              <a href="/contact" className="inline-flex items-center min-h-[44px] px-0.5 hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
-                Contact
-              </a>
+              {FOOTER_LINKS.map((link, i) => (
+                <Fragment key={link.href}>
+                  {i > 0 && <span>|</span>}
+                  {link.spaRoute ? (
+                    <Link to={link.href} data-cta={link.cta} className={LINK_CLASS} style={LINK_STYLE}>
+                      {link.label}
+                    </Link>
+                  ) : (
+                    <a href={link.href} data-cta={link.cta} className={LINK_CLASS} style={LINK_STYLE}>
+                      {link.label}
+                    </a>
+                  )}
+                </Fragment>
+              ))}
             </div>
 
             <p className="mt-4 font-body text-xs" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
