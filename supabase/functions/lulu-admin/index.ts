@@ -4,7 +4,10 @@
 // The action endpoint behind the Lulu controls on the /founder Orders tab, and
 // the way the founder runs the one-time file validation before the first sale.
 // Auth: a Supabase user JWT for the founder email (the same boundary the
-// founder_* read RPCs enforce with is_founder()).
+// founder_* read RPCs enforce with is_founder()). The founder email comes from
+// public.app_settings via _shared/founder-identity.ts. cancel also needs the
+// founder's authenticator code once one is set up (aal2); before that it runs as
+// before and the reply carries "mfa_enrolled": false.
 //
 // Actions (POST JSON { action, ... }):
 //   resubmit          { order_id }   reset the job to pending and submit now
@@ -39,8 +42,7 @@ import {
 } from '../_shared/lulu.ts';
 import { luluBookByKey, luluProductBySku, luluShippingLevel } from '../_shared/lulu-config.ts';
 import { captureException } from '../_shared/sentry.ts';
-
-const FOUNDER_EMAIL = 'hello@edeninstitute.health';
+import { founderGate, withMfaNudge } from '../_shared/founder-identity.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -69,7 +71,8 @@ serve(async (req) => {
   );
   const { data: { user }, error: authError } = await userClient.auth.getUser();
   if (authError || !user) return json({ error: 'Invalid or expired session' }, 401);
-  if ((user.email ?? '').toLowerCase() !== FOUNDER_EMAIL) return json({ error: 'Founder access only' }, 403);
+  const founder = await founderGate(req, user, { requireMfa: false });
+  if (!founder.ok) return json({ error: 'Founder access only' }, 403);
 
   const adminClient = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -107,9 +110,12 @@ serve(async (req) => {
       case 'cancel': {
         const orderId = String(body.order_id ?? '');
         if (!orderId) return json({ error: 'Missing order_id' }, 400);
+        // Cancelling stops a paid print: authenticator code required once one is set up.
+        const gate = await founderGate(req, user, { requireMfa: true });
+        if (!gate.ok) return json(gate.body, gate.status);
         const result = await cancelLuluForOrder(adminClient, orderId, 'cancelled by founder');
         console.log(`cancel(${orderId}) by founder:`, JSON.stringify(result));
-        return json(result, result.outcome === 'error' ? 500 : 200);
+        return withMfaNudge(json(result, result.outcome === 'error' ? 500 : 200), gate.mfaEnrolled);
       }
 
       case 'refresh': {

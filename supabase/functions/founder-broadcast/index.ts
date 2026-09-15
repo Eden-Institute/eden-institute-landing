@@ -16,6 +16,10 @@
 //   pending  → list opt-in notices whose 30-day window has closed and who never replied
 //
 // Gate: founder email, same boundary as the founder_* read RPCs. verify_jwt stays true.
+// The founder email comes from public.app_settings via _shared/founder-identity.ts.
+// send and delay (the modes that mail the cohort) also need the founder's
+// authenticator code once one is set up (aal2, else 403 code MFA_REQUIRED). Before
+// that they run as before and every reply carries "mfa_enrolled": false.
 //
 // Why preview exists as a first-class mode: this sends to every buyer at once and there
 // is no unsend. A dry run that renders the real HTML against the real recipient count is
@@ -39,6 +43,7 @@ import {
   type SendLogRow,
   summarizeSend,
 } from "../_shared/broadcast-resume.ts";
+import { founderGate, withMfaNudge } from "../_shared/founder-identity.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -46,7 +51,8 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SITE = "https://edeninstitute.health";
 
-const FOUNDER_EMAIL = "hello@edeninstitute.health";
+// The mailbox replies go to. Not an identity check: see _shared/founder-identity.ts.
+const REPLY_TO_EMAIL = "hello@edeninstitute.health";
 const FROM = "Camila at The Eden Institute <hello@edeninstitute.health>";
 
 // Delay-notice subject lines are PRE-APPROVED: see DELAY_SUBJECT_* and resolveSubject
@@ -175,7 +181,7 @@ async function sendEmail(
         // does not send again, so a retry here cannot deliver the same email twice.
         "Idempotency-Key": idempotencyKey,
       },
-      body: JSON.stringify({ from: FROM, to, reply_to: FOUNDER_EMAIL, subject, html }),
+      body: JSON.stringify({ from: FROM, to, reply_to: REPLY_TO_EMAIL, subject, html }),
       signal: AbortSignal.timeout(15_000),
     });
     if (res.status === 429 && attempt < 2) {
@@ -360,6 +366,17 @@ function formatDate(iso: string): string {
 }
 
 Deno.serve(async (req) => {
+  const ctx: HandlerContext = { mfaEnrolled: null };
+  const res = await handle(req, ctx);
+  return withMfaNudge(res, ctx.mfaEnrolled);
+});
+
+interface HandlerContext {
+  /** false when a cohort send ran without two-factor because none is set up yet. */
+  mfaEnrolled: boolean | null;
+}
+
+async function handle(req: Request, ctx: HandlerContext): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
@@ -370,9 +387,8 @@ Deno.serve(async (req) => {
     });
     const { data: { user }, error: authError } = await userClient.auth.getUser();
     if (authError || !user) return json({ error: "unauthorized" }, 401);
-    if ((user.email ?? "").toLowerCase() !== FOUNDER_EMAIL) {
-      return json({ error: "founder_only" }, 403);
-    }
+    const founder = await founderGate(req, user, { requireMfa: false });
+    if (!founder.ok) return json({ error: "founder_only" }, 403);
 
     const body = await req.json().catch(() => ({}));
     const mode = String(body.mode ?? "preview");
@@ -426,6 +442,11 @@ Deno.serve(async (req) => {
     }
 
     if (mode !== "send" && mode !== "delay") return json({ error: "unknown_mode" }, 400);
+
+    // Mailing the whole cohort: authenticator code required once one is set up.
+    const gate = await founderGate(req, user, { requireMfa: true });
+    if (!gate.ok) return json(gate.body, gate.status);
+    ctx.mfaEnrolled = gate.mfaEnrolled;
     if (!list.length) return json({ error: "no_recipients" }, 409);
 
     // Required, not optional. An idempotency key the caller may omit protects nobody,
@@ -623,4 +644,4 @@ Deno.serve(async (req) => {
     await captureException(err, { function: "founder-broadcast" });
     return json({ error: "server_error" }, 500);
   }
-});
+}

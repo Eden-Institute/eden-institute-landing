@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SHIP_GUARANTEE_DATE } from "../../../supabase/functions/_shared/order-config";
+import { FounderActionError, MFA_NUDGE, readFunctionErrorBody, useStepUp } from "./StepUp";
 
 type Kind = "update" | "delay_notice";
 
@@ -38,15 +39,11 @@ function money(cents: number | null): string {
 async function callBroadcast<T>(body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke("founder-broadcast", { body });
   if (error) {
-    let message: string | null = null;
-    try {
-      const ctx = (error as { context?: Response }).context;
-      const payload = ctx && typeof ctx.json === "function" ? await ctx.json() : null;
-      message = payload?.error ?? null;
-    } catch {
-      // non-JSON body; fall through
-    }
-    throw new Error(message ?? error.message ?? "Request failed");
+    // The body's code survives, so an MFA_REQUIRED answer can open the code prompt.
+    const payload = await readFunctionErrorBody(error);
+    const message = typeof payload?.error === "string" ? payload.error : null;
+    const code = typeof payload?.code === "string" ? payload.code : undefined;
+    throw new FounderActionError(message ?? error.message ?? "Request failed", code, payload);
   }
   return data as T;
 }
@@ -63,6 +60,9 @@ export default function BroadcastTab() {
   const [busy, setBusy] = useState<"preview" | "send" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
+  // Sending needs the authenticator code once one is set up (StepUp.tsx).
+  const { withStepUp, stepUpDialog } = useStepUp();
+  const [mfaNudge, setMfaNudge] = useState(false);
   // null means "not known", not "empty". See loadPending.
   const [pending, setPending] = useState<PendingRow[] | null>(null);
   const [pendingError, setPendingError] = useState<string | null>(null);
@@ -143,8 +143,8 @@ export default function BroadcastTab() {
     setBusy("send");
     setError(null);
     try {
-      const r = await callBroadcast<{
-        sent: number; failed: number; total: number; duplicate?: boolean;
+      const r = await withStepUp(() => callBroadcast<{
+        sent: number; failed: number; total: number; duplicate?: boolean; mfa_enrolled?: boolean;
       }>({
         mode: isDelay ? "delay" : "send",
         subject,
@@ -152,8 +152,9 @@ export default function BroadcastTab() {
         revised_ship_date: isDelay && revisedDate ? revisedDate : null,
         current_ships_on: currentShipsOn || null,
         idempotency_key: idempotencyKey,
-      });
+      }));
       if (!live.current) return;
+      setMfaNudge(r.mfa_enrolled === false);
       setResult(
         r.duplicate
           ? `Already sent. This exact message reached ${r.sent} customers, and was not sent again.`
@@ -291,6 +292,8 @@ export default function BroadcastTab() {
 
       {error && <p className="font-body text-sm text-destructive">{error}</p>}
       {result && <p className="font-body text-sm" style={{ color: "hsl(var(--eden-forest))" }}>{result}</p>}
+      {mfaNudge && <p className="font-body text-sm text-muted-foreground">{MFA_NUDGE}</p>}
+      {stepUpDialog}
 
       <div className="flex gap-3 items-center">
         <button type="button" onClick={doPreview} disabled={!canPreview || busy !== null}

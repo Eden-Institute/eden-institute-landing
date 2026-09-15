@@ -7,12 +7,14 @@
 //   - Emails:  nurture open/click engagement (founder_email_engagement RPC)
 //   - Revenue: subscriptions + guide + LearnWorlds course (founder_revenue RPC)
 //   - CRM:     contact pipeline (CrmTab)
+//   - Security: authenticator-app two-factor setup (SecurityTab)
 //
 // Mounted in App.tsx wrapped in <RequireAuth>, so unauthenticated visitors are
 // bounced to sign-in. The REAL access boundary is server-side: the RPCs are
-// SECURITY DEFINER gated by is_founder() (JWT email check), so the other
-// authenticated accounts get "Not authorized" regardless of the UI. The email
-// check below is UX only.
+// SECURITY DEFINER gated by is_founder() (JWT email vs public.app_settings), so
+// the other authenticated accounts get "Not authorized" regardless of the UI.
+// The page asks the same is_founder() RPC whether to render, so the founder
+// address lives in ONE place (the database setting), not in this file. UX only.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,8 +30,7 @@ import FeedbackTriageTab from "@/components/founder/FeedbackTriageTab";
 import BroadcastTab from "@/components/founder/BroadcastTab";
 import PartnersTab from "@/components/founder/PartnersTab";
 import OutreachTab from "@/components/founder/OutreachTab";
-
-const FOUNDER_EMAIL = "hello@edeninstitute.health";
+import SecurityTab from "@/components/founder/SecurityTab";
 
 // One entry per tab, in strip order. selfLoading: the tab component fetches its
 // own data, so the page-level load(), Refresh button and "Updated" stamp do not
@@ -46,6 +47,7 @@ const TABS = [
   { id: "partners", label: "Partners", selfLoading: true, windowed: false },
   { id: "outreach", label: "Outreach", selfLoading: true, windowed: false },
   { id: "feedback", label: "Feedback", selfLoading: true, windowed: false },
+  { id: "security", label: "Security", selfLoading: true, windowed: false },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
 const TAB_META = Object.fromEntries(TABS.map((t) => [t.id, t])) as Record<Tab, (typeof TABS)[number]>;
@@ -157,7 +159,26 @@ export default function FounderLeads() {
   const [fetchedAt, setFetchedAt] = useState<Date | null>(null);
   const [drill, setDrill] = useState<Drill | null>(null);
 
-  const isFounder = !!user && user.email?.toLowerCase() === FOUNDER_EMAIL;
+  // Asked of the database (is_founder(), which reads public.app_settings), so this
+  // page and the server agree on who the founder is. null while checking.
+  // Keyed on the user id, not the user object: a token refresh (including the one
+  // after an authenticator code is confirmed) must not blank the dashboard.
+  const [founderCheck, setFounderCheck] = useState<boolean | null>(null);
+  const userId = user?.id ?? null;
+  useEffect(() => {
+    let live = true;
+    if (!userId) {
+      setFounderCheck(false);
+      return;
+    }
+    setFounderCheck(null);
+    supabase.rpc("is_founder").then(
+      ({ data, error: e }) => { if (live) setFounderCheck(!e && data === true); },
+      () => { if (live) setFounderCheck(false); },
+    );
+    return () => { live = false; };
+  }, [userId]);
+  const isFounder = founderCheck === true;
 
   const load = useCallback(async () => {
     // Cleared before the early return so a leads/traffic error does not follow
@@ -260,7 +281,7 @@ export default function FounderLeads() {
   }, [traffic]);
 
   // ── Auth gates ──
-  if (authLoading) {
+  if (authLoading || (!!user && founderCheck === null)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <p className="font-body text-muted-foreground">Loading…</p>
@@ -560,6 +581,8 @@ export default function FounderLeads() {
           <FeedbackTriageTab />
         ) : tab === "partners" ? (
           <PartnersTab />
+        ) : tab === "security" ? (
+          <SecurityTab />
         ) : tab === "outreach" ? (
           <OutreachTab />
         ) : (
