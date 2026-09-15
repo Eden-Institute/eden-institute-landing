@@ -8,6 +8,8 @@
 //      listeners on document, bubble phase). The link is otherwise untouched.
 //   3. vercel.json: the case-variant redirects match every variant but never
 //      the real lowercase path, so they cannot loop.
+//   4. vercel.json: a tokened /preorder-response link without ?state goes to the
+//      edge function (read-only on GET), and nothing rewrites the page to it.
 
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -235,6 +237,25 @@ describe("vercel.json redirects for the private pages", () => {
       notMatched: ["starter/downloads", "starter", "starter/thank-you", "Starter/Download", "partner-sample"],
     },
   ];
+
+  it("sends a tokened /preorder-response link without a state to the function, and never rewrites the page", () => {
+    type Cond = { type: string; key: string; value?: string };
+    type Rule = Redirect & { has?: Cond[]; missing?: Cond[] };
+    const rules = (JSON.parse(vercelJsonRaw) as { redirects: Rule[] }).redirects.filter(
+      (r) => r.source === "/preorder-response",
+    );
+    expect(rules).toHaveLength(1);
+    const [rule] = rules;
+    expect(rule.permanent).toBe(false);
+    expect(rule.destination).toBe(
+      "https://noeqztssupewjidpvhar.supabase.co/functions/v1/preorder-response?token=:token",
+    );
+    expect(rule.has).toEqual([{ type: "query", key: "token", value: "(?<token>.+)" }]);
+    // The function redirects back with ?state, so the page is never redirected twice.
+    expect(rule.missing).toEqual([{ type: "query", key: "state" }]);
+    const rewrites = (JSON.parse(vercelJsonRaw) as { rewrites: { source: string }[] }).rewrites;
+    expect(rewrites.map((r) => r.source)).not.toContain("/preorder-response");
+  });
 
   for (const c of cases) {
     it(`case variants of /${c.canonical} redirect to it and the real path never matches`, () => {

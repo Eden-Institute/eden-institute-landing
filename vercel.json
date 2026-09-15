@@ -21,6 +21,13 @@
       "permanent": false
     },
     {
+      "source": "/preorder-response",
+      "has": [{ "type": "query", "key": "token", "value": "(?<token>.+)" }],
+      "missing": [{ "type": "query", "key": "state" }],
+      "destination": "https://noeqztssupewjidpvhar.supabase.co/functions/v1/preorder-response?token=:token",
+      "permanent": false
+    },
+    {
       "source": "/partner-sample/:key",
       "destination": "/partner-sample?k=:key",
       "permanent": false
@@ -68,10 +75,6 @@
     }
   ],
   "rewrites": [
-    {
-      "source": "/preorder-response",
-      "destination": "https://noeqztssupewjidpvhar.supabase.co/functions/v1/preorder-response"
-    },
     {
       "source": "/go/course",
       "destination": "/api/go/course"

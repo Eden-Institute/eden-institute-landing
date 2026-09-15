@@ -1,0 +1,162 @@
+---
+// /preorder-response: the buyer's answer to an FTC delay notice (16 CFR 435.2(b)).
+//
+// 2026-09-15. The `preorder-response` edge function used to build these pages
+// itself, but Supabase serves a text/html function response as text/plain, so
+// buyers saw raw HTML source. It also recorded the answer on a plain GET, and each
+// notice carries BOTH answer links, so a link scanner fetching them could record
+// consent or a cancellation the buyer never gave. Now:
+//   1. The email link (https://edeninstitute.health/preorder-response?token=...)
+//      has no ?state, so vercel.json redirects it to the function. The function
+//      never writes on a GET: it checks the token, reads the notice and 303s here
+//      with ?state=confirm&choice=...&optin=...&token=... (or a finished state).
+//   2. On state=confirm this page shows one button. It POSTs token and choice as
+//      form fields back to the function, which records the answer (first answer
+//      wins) and 303s here with ?state=done-consented | done-cancelled (or
+//      answered-*, not-found, invalid, error).
+//
+// The URL carries only display values the page needs: the state, the choice the
+// token already encodes, and optin (picks the same button wording the email used).
+// No order number, name or date is ever put in the URL.
+//
+// NO THIRD-PARTY TAGS HERE (noThirdPartyTags below). The ?token= in the address bar
+// can record a legal answer for its owner, so nothing on this page may read the URL
+// and send it on, matching /partner-sample and /unsubscribe.
+//
+// COPY: every result state below is word for word what the function's pages said
+// before this move (FTC-relevant consent and refund wording). Do not edit it
+// without the founder. Copy rule: no em dashes.
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+
+const meta = {
+  title: "Your order · The Eden Institute",
+  description: "Your answer to a delay notice for your Eden Institute order.",
+  canonical: "https://edeninstitute.health/preorder-response",
+};
+
+// Same project URL vercel.json redirects /go/deep-dive and tokened /preorder-response links to.
+const PREORDER_RESPONSE_ENDPOINT = "https://noeqztssupewjidpvhar.supabase.co/functions/v1/preorder-response";
+
+const h1Class = "font-serif text-3xl font-bold leading-tight mb-4";
+const h1Style = "color:hsl(var(--eden-bark))";
+const pClass = "font-body text-base leading-relaxed mb-4";
+const pStyle = "color:#3D3832";
+const linkStyle = "color:hsl(var(--eden-forest))";
+---
+
+<MarketingLayout
+  title={meta.title}
+  description={meta.description}
+  canonical={meta.canonical}
+  noindex={true}
+  noThirdPartyTags={true}
+>
+  <section class="pt-20 pb-24 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-xl mx-auto">
+      <div class="rounded-lg p-8 bg-white border text-left" style="border-color:hsl(var(--eden-gold) / 0.4)">
+        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4 text-center" style="color:hsl(var(--eden-gold-ink))">
+          The Eden Institute
+        </p>
+
+        <div id="pr-confirm" class="hidden" data-title="Please confirm">
+          <h1 class={h1Class} style={h1Style}>Please confirm your answer</h1>
+          <p id="pr-confirm-consented" class={`${pClass} hidden`} style={pStyle}>Press the button below to keep your order. Nothing is recorded until you press it.</p>
+          <p id="pr-confirm-cancelled" class={`${pClass} hidden`} style={pStyle}>Press the button below to cancel your order and receive a full refund, including shipping. Nothing is recorded until you press it.</p>
+          <form id="pr-form" method="post" action={PREORDER_RESPONSE_ENDPOINT} class="pt-2 text-center">
+            <input type="hidden" name="token" id="pr-token" value="" />
+            <input type="hidden" name="choice" id="pr-choice" value="" />
+            <button
+              type="submit"
+              id="pr-button"
+              class="inline-block font-serif text-sm font-bold tracking-[0.15em] uppercase px-8 py-4 rounded"
+              style="background-color:hsl(var(--eden-forest));color:#F5F0E8"
+            ></button>
+          </form>
+        </div>
+
+        <div id="pr-done-consented" class="hidden" data-title="Thank you">
+          <h1 class={h1Class} style={h1Style}>Thank you for waiting</h1>
+          <p class={pClass} style={pStyle}>Your order is confirmed and stays in the queue. We will write to you again as soon as there is real news, and you can still cancel for a full refund at any point before it ships.</p>
+          <p class={pClass} style={pStyle}>Grace and health,<br /><strong>Camila</strong></p>
+        </div>
+
+        <div id="pr-done-cancelled" class="hidden" data-title="Cancellation received">
+          <h1 class={h1Class} style={h1Style}>Your order is cancelled</h1>
+          <p class={pClass} style={pStyle}>We are sorry we could not get it to you in the window we promised. Your full refund, including shipping, will be returned to your original payment method within 7 working days.</p>
+          <p class={pClass} style={pStyle}>You do not need to do anything else. If you do not see the refund after that, write to <a href="mailto:hello@edeninstitute.health" class="underline" style={linkStyle}>hello@edeninstitute.health</a> and we will chase it.</p>
+          <p class={pClass} style={pStyle}>Thank you for backing this at the founding. The door stays open whenever you would like to come back.</p>
+          <p class={pClass} style={pStyle}>Grace and health,<br /><strong>Camila</strong></p>
+        </div>
+
+        <div id="pr-answered-consented" class="hidden" data-title="Already recorded">
+          <h1 class={h1Class} style={h1Style}>We have your answer</h1>
+          <p class={pClass} style={pStyle}>You have already told us to keep your order. Nothing further is needed.</p>
+        </div>
+
+        <div id="pr-answered-cancelled" class="hidden" data-title="Already recorded">
+          <h1 class={h1Class} style={h1Style}>We have your answer</h1>
+          <p class={pClass} style={pStyle}>Your cancellation is recorded. We will refund the full amount, including shipping, to your original payment method within 7 working days.</p>
+        </div>
+
+        <div id="pr-not-found" class="hidden" data-title="Notice not found">
+          <h1 class={h1Class} style={h1Style}>We could not find that notice</h1>
+          <p class={pClass} style={pStyle}>Reply to the email you received and we will take care of it.</p>
+        </div>
+
+        <div id="pr-invalid" class="hidden" data-title="Link not recognised">
+          <h1 class={h1Class} style={h1Style}>That link did not work</h1>
+          <p class={pClass} style={pStyle}>It may have been altered, or it may be from an older notice that is no longer current.</p>
+          <p class={pClass} style={pStyle}>Reply to the email you received and Camila will sort it out personally, or write to <a href="mailto:hello@edeninstitute.health" class="underline" style={linkStyle}>hello@edeninstitute.health</a>.</p>
+        </div>
+
+        <div id="pr-error" class="hidden" data-title="Something went wrong">
+          <h1 class={h1Class} style={h1Style}>Something went wrong on our end</h1>
+          <p class={pClass} style={pStyle}>Your order has not been changed. Please reply to the email you received and Camila will handle it personally.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script is:inline define:vars={{ endpoint: PREORDER_RESPONSE_ENDPOINT }}>
+    // The token is only ever copied into the form's hidden field (a property, not
+    // markup), never written into the page as HTML. This script never submits the
+    // form: only the buyer's press of the button records an answer.
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var state = params.get("state");
+      var token = params.get("token");
+      var choice = params.get("choice");
+      var show = function (id) {
+        var el = document.getElementById(id);
+        el.classList.remove("hidden");
+        document.title = el.getAttribute("data-title") + " · The Eden Institute";
+      };
+
+      // An email link that reached the page without going through the function
+      // (vercel.json normally redirects it first). Hand it to the function, which
+      // only reads on a GET and sends the buyer back here with a state.
+      if (!state && token) {
+        window.location.replace(endpoint + "?token=" + encodeURIComponent(token));
+        return;
+      }
+
+      var finished = [
+        "done-consented", "done-cancelled", "answered-consented",
+        "answered-cancelled", "not-found", "error",
+      ];
+      if (finished.indexOf(state) !== -1) return show("pr-" + state);
+
+      if (state === "confirm" && token && (choice === "consented" || choice === "cancelled")) {
+        document.getElementById("pr-token").value = token;
+        document.getElementById("pr-choice").value = choice;
+        document.getElementById("pr-confirm-" + choice).classList.remove("hidden");
+        document.getElementById("pr-button").textContent = choice === "cancelled"
+          ? "Cancel and refund me in full"
+          : (params.get("optin") === "1" ? "Keep my order and wait" : "Yes, keep my order");
+        return show("pr-confirm");
+      }
+
+      show("pr-invalid");
+    })();
+  </script>
+</MarketingLayout>
