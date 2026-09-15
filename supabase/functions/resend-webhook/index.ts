@@ -93,7 +93,8 @@ async function verifySvix(
 
   const key = await crypto.subtle.importKey(
     "raw",
-    keyBytes,
+    // Copy into an ArrayBuffer-backed view: the DOM lib rejects Uint8Array<ArrayBufferLike>.
+    new Uint8Array(keyBytes),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
@@ -189,7 +190,7 @@ async function logEngagementEvent(event: ResendEvent): Promise<Response> {
   // 23505 = unique_violation → a duplicate redelivery; that's success for us.
   if (error && (error as { code?: string }).code !== "23505") {
     console.error("resend-webhook: email_events insert failed", error);
-    return json({ error: "engagement_log_failed", detail: error.message }, 500);
+    return json({ error: "engagement_log_failed" }, 500);
   }
 
   return json({
@@ -342,6 +343,6 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("resend-webhook: handler error", e);
-    return json({ error: "handler_error", detail: String(e) }, 500);
+    return json({ error: "handler_error" }, 500);
   }
 });

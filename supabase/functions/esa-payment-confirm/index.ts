@@ -10,8 +10,8 @@
 
 import { money, STATE_RULES } from "../_shared/esa-invoice.ts";
 import { applyPayment, getInvoice, rest } from "../_shared/esa-fulfil.ts";
+import { esc } from "../_shared/html-escape.ts";
 
-const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function page(title: string, body: string, status = 200): Response {

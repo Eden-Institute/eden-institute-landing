@@ -42,6 +42,7 @@
 import postgres from 'https://deno.land/x/postgresjs@v3.4.5/mod.js';
 import { shopApothecaryCard } from '../_shared/shop-cta.ts';
 import { twilioBasicAuth } from '../_shared/order-sms.ts';
+import { escapeHtml } from '../_shared/html-escape.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -243,7 +244,7 @@ function bigButton(label: string, href: string): string {
 // whether or not they consented to a text, so it must stand on its own.
 const CONFIRM_SUBJECT = 'Your $249 founding price is reserved';
 function confirmationHtml(firstName: string, unsub: string): string {
-  const name = firstName || 'friend';
+  const name = escapeHtml(firstName || 'friend');
   return `<!doctype html><html><body style="margin:0;background:#EFE9DA;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EFE9DA;padding:24px 0;"><tr><td align="center">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background:${B.cream};border-radius:10px;overflow:hidden;">
@@ -277,7 +278,7 @@ async function sendConfirmation(email: string, name: string): Promise<void> {
 }
 
 function announcementHtml(firstName: string, formLink: string, unsub: string): string {
-  const name = firstName || 'friend';
+  const name = escapeHtml(firstName || 'friend');
   return `<!doctype html><html><body style="margin:0;background:#EFE9DA;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EFE9DA;padding:24px 0;"><tr><td align="center">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background:${B.cream};border-radius:10px;overflow:hidden;">

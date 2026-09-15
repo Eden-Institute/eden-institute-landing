@@ -27,11 +27,10 @@ import {
   rest,
   rpc,
 } from "../_shared/esa-fulfil.ts";
+import { esc } from "../_shared/html-escape.ts";
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
-
-const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
 
 async function intake(b: Record<string, unknown>) {
   const msgId = String(b.gmail_msg_id ?? "").trim();

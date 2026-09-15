@@ -1,11 +1,12 @@
 // nurture-emails — Lock #48 queue drainer + legacy Email 5 fallback
 //
 // Caller: Vercel cron at /api/cron/drain-nurture-queue (every 15 min, per vercel.json)
-// Auth: Caller sends Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>; EF has verify_jwt=false
-// (verify_jwt=false because this is an internal cron worker; the protection is the
-//  Vercel-cron-only origin + service-role-key inbound + no public route discovery).
+// Auth: Caller sends Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>. verify_jwt = true is pinned
+// in supabase/config.toml, and the handler additionally rejects any non-service-role caller
+// (isServiceRoleRequest, _shared/require-service-role.ts). The anon key is a valid JWT and
+// passes the gateway alone, so the in-code role check is what limits this to the Vercel cron.
 //
-// Flows handled in order:
+// Flows handled (Deno.serve sets the run order):
 //
 //   1. drainNurtureQueue() — Lock #48 consumer side. Pulls public.nurture_email_queue
 //      rows where status='pending' AND scheduled_for <= now(). Quiz/constitution
@@ -20,8 +21,10 @@
 //        5 — Week 5 use the Around-the-Table cards (band-agnostic)
 //        6 — Week 6 seasonal herb (band-agnostic)
 //        7 — Week 7 devotional (band-agnostic)
-//      Positions 2 + 3 are enqueued up front by resend-waitlist; 4-7 are
-//      CHAINED (each send enqueues the next at +7 days). Band-agnostic
+//      Only position 2 is enqueued (resend-waitlist, since 2026-07-28).
+//      Position 3 and the 4-7 chain are DORMANT: nothing enqueues 3, so
+//      MAGNET_CHAIN_NEXT never fires. Kept so the tail can be re-enabled by
+//      enqueueing 3 again; see migration 20260728234500. Band-agnostic
 //      positions (3-7) are de-duplicated so a family in BOTH bands gets each
 //      of those once; Week 2 is NOT deduped (different real curriculum).
 //
@@ -56,7 +59,6 @@ import {
 import {
   buildLaunchEmail,
   variantForEmail,
-  CONVERSION_FIRST_POSITION,
   EMAIL_7_RESEND_POSITION,
 } from '../_shared/launch-sequence-templates.ts';
 import { foundersFormUrl } from '../_shared/founders-link.ts';
@@ -65,6 +67,7 @@ import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
 import { pgrstFetch } from '../_shared/pgrst-retry.ts';
 import { captureException } from '../_shared/sentry.ts';
+import { escapeLikePattern } from '../_shared/like-escape.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -79,6 +82,17 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 const MAX_RETRIES = 3;
 const QUEUE_BATCH = 50;
 const RATE_LIMIT_MS = 300;
+
+// All five drains share one invocation, and the edge worker is killed at about
+// 150 s (contact-properties-sync hit WORKER_RESOURCE_LIMIT there on 2026-09-03).
+// Past this budget no new row is picked up, so the run ends before the worker is
+// killed mid-row (between a Resend send and markSent, which would re-send it next
+// tick). Untouched rows stay pending for the next tick.
+const RUN_BUDGET_MS = 110_000;
+let runDeadline = 0;
+function budgetExhausted(): boolean {
+  return Date.now() > runDeadline;
+}
 
 type ResendTag = { name: string; value: string };
 
@@ -107,19 +121,27 @@ const MAGNET_KEY_BY_POS: Record<number, string> = {
 // family should receive each ONCE. Week 2 is band-specific and excluded.
 const MAGNET_BAND_AGNOSTIC = new Set<number>([3, 4, 5, 6, 7]);
 
-// Chained scheduling: when position N sends, enqueue N+1 at +7 days. Positions
-// 2 + 3 are enqueued up front by resend-waitlist; 4-7 chain from there so the
-// signup function never needs to know about them.
+// Chained scheduling: when position N sends, enqueue N+1 at +7 days. Only
+// position 2 is enqueued (resend-waitlist, since 2026-07-28). Position 3 and
+// the 4-7 chain are DORMANT: nothing enqueues 3, so this map never fires. Kept
+// so the tail can be re-enabled by enqueueing 3 again; see migration
+// 20260728234500.
 const MAGNET_CHAIN_NEXT: Record<number, number> = { 3: 4, 4: 5, 5: 6, 6: 7 };
 const MAGNET_CHAIN_DELAY_MS = 7 * 24 * 60 * 60 * 1000;
+
+// Positions whose builder actually reads `founding` (launch-sequence-templates.ts).
+// 8-12 and 19-21 ignore it, so the volatile founding_gate RPC is only worth
+// calling for these.
+const FOUNDING_AWARE_POSITIONS = new Set<number>([13, 14, 15, 16, 17]);
 
 // July 2026 Sprouts preorder launch sequence (launch_email_queue). All 7 rows
 // are enqueued up front (backfill script for the fixed-date cohort; the
 // enqueue_launch_sequence_on_signup DB trigger for post-July-9 signups), so
 // there is no chaining. Larger batch than the evergreen queues: launch day
 // puts ~1,500 rows due at the same instant, and at 50/run the tail would send
-// ~7 hours late. 200 rows x 300 ms ≈ 60 s of send time per invocation, well
-// inside the EF wall-clock limit even with the other drains in the same run.
+// ~7 hours late. 200 rows x 300 ms ≈ 60 s of sleep alone, before the per-row
+// lookups and the Resend call, so a full batch may not finish in one run: the
+// whole invocation is time-boxed by RUN_BUDGET_MS and the tail sends next tick.
 const LAUNCH_QUEUE_BATCH = 200;
 
 function engagementTags(campaign: string, emailKey: string): ResendTag[] {
@@ -298,6 +320,10 @@ async function drainNurtureQueue(): Promise<QueueResult> {
   console.log(`drainNurtureQueue: found ${rows.length} due rows`);
 
   for (const row of rows) {
+    if (budgetExhausted()) {
+      console.log('nurture-emails: run budget reached, remaining rows left pending for next tick');
+      break;
+    }
     result.processed++;
     try {
       // Enrich from quiz_completions (queue stores recipient_email +
@@ -363,13 +389,13 @@ async function drainNurtureQueue(): Promise<QueueResult> {
       let built: { subject: string; html: string };
       switch (row.sequence_position) {
         case 2:
-          built = buildNurtureEmail2(firstName, nickname, slug);
+          built = buildNurtureEmail2(nickname, slug);
           break;
         case 3:
-          built = buildNurtureEmail3(firstName, nickname, slug);
+          built = buildNurtureEmail3(nickname, slug);
           break;
         case 4:
-          built = buildNurtureEmail4(firstName, nickname, slug);
+          built = buildNurtureEmail4(nickname, slug);
           break;
         case 5:
           built = buildNurtureArc1(firstName, nickname, slug);
@@ -470,6 +496,10 @@ async function legacyEmail5(): Promise<LegacyResult> {
   const now = new Date();
 
   for (const row of rows) {
+    if (budgetExhausted()) {
+      console.log('nurture-emails: run budget reached, remaining rows left pending for next tick');
+      break;
+    }
     const completedAt = new Date(row.completed_at);
     const hoursSince =
       (now.getTime() - completedAt.getTime()) / (1000 * 60 * 60);
@@ -483,11 +513,7 @@ async function legacyEmail5(): Promise<LegacyResult> {
       row.constitution_nickname ||
       'Your Constitutional Type';
     const slug = row.constitution_type || toSlug(nickname);
-    const { subject, html } = buildNurtureEmail5(
-      row.first_name,
-      nickname,
-      slug,
-    );
+    const { subject, html } = buildNurtureEmail5(nickname, slug);
 
     const send = await sendEmail(
       row.email,
@@ -542,6 +568,10 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
   }
   console.log(`drainMagnetQueue: found ${rows.length} due rows`);
   for (const row of rows) {
+    if (budgetExhausted()) {
+      console.log('nurture-emails: run budget reached, remaining rows left pending for next tick');
+      break;
+    }
     result.processed++;
     try {
       const firstName = row.first_name || 'friend';
@@ -684,14 +714,14 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
 // ilike is used for case-insensitivity; _ and % are LIKE wildcards, so they
 // are escaped to make this literal equality (jane_doe must not match janeadoe).
 async function hasPreordered(email: string): Promise<boolean> {
-  const literal = email.replace(/([\\%_])/g, '\\$1');
+  const literal = escapeLikePattern(email);
   const rows = await supabaseQuery(
     `orders?customer_email=ilike.${encodeURIComponent(literal)}&status=not.in.(cancelled,refunded)&select=id&limit=1`,
   );
   return Array.isArray(rows) && rows.length > 0;
 }
 
-// ── Founding-window check (positions 8-17 copy variant) ──
+// ── Founding-window check (copy variant for the retired positions 13-17) ──
 // Reads the SAME latch-aware gate the checkout enforces (founding_gate RPC,
 // migration 20260717170000): net founding units SUM(quantity) vs
 // products.founding_qty_limit, plus the one-way founding_closed_at latch, so
@@ -742,22 +772,19 @@ async function drainLaunchQueue(): Promise<QueueResult> {
     return result;
   }
   if (rows.length > 0) console.log(`drainLaunchQueue: found ${rows.length} due rows`);
-  // One founding-gate check per run, only when conversion rows are due.
-  // Position 18 (the Email 7 make-good) is excluded even though 18 >= 8: its
-  // builder ignores `founding`, and founding_gate is a volatile RPC that stamps
-  // the one-way founding_closed_at latch, so it is not called for nothing.
+  // One founding-gate check per run, only when a row whose builder reads
+  // `founding` is due (the retired 13-17). founding_gate is a volatile RPC that
+  // stamps the one-way founding_closed_at latch, so it is not called for nothing.
   let founding = true;
-  if (
-    rows.some(
-      (r: any) =>
-        r.sequence_position >= CONVERSION_FIRST_POSITION &&
-        r.sequence_position !== EMAIL_7_RESEND_POSITION,
-    )
-  ) {
+  if (rows.some((r: any) => FOUNDING_AWARE_POSITIONS.has(r.sequence_position))) {
     founding = await foundingWindowOpen();
     if (!founding) console.log('drainLaunchQueue: founding window CLOSED, using retail copy');
   }
   for (const row of rows) {
+    if (budgetExhausted()) {
+      console.log('nurture-emails: run budget reached, remaining rows left pending for next tick');
+      break;
+    }
     result.processed++;
     try {
       const email = String(row.recipient_email);
@@ -911,6 +938,10 @@ async function drainBuyerQueue(): Promise<QueueResult> {
   if (rows.length > 0) console.log(`drainBuyerQueue: found ${rows.length} due rows`);
 
   for (const row of rows) {
+    if (budgetExhausted()) {
+      console.log('nurture-emails: run budget reached, remaining rows left pending for next tick');
+      break;
+    }
     result.processed++;
     try {
       const email = String(row.recipient_email);
@@ -1027,20 +1058,24 @@ Deno.serve(async (req) => {
       );
     }
 
+    runDeadline = Date.now() + RUN_BUDGET_MS;
+    // Small transactional buyer queue first; the 200-row launch batch runs last
+    // before the legacy fallback, so a full launch backlog cannot starve buyers.
+    const buyer = await drainBuyerQueue();
     const queue = await drainNurtureQueue();
     const magnet = await drainMagnetQueue();
     const launch = await drainLaunchQueue();
-    const buyer = await drainBuyerQueue();
     const legacy_email5 = await legacyEmail5();
+    const budget_exhausted = budgetExhausted();
 
     console.log(
       `nurture-emails run: queue=${JSON.stringify(
         queue,
-      )} magnet=${JSON.stringify(magnet)} launch=${JSON.stringify(launch)} buyer=${JSON.stringify(buyer)} legacy_email5=${JSON.stringify(legacy_email5)}`,
+      )} magnet=${JSON.stringify(magnet)} launch=${JSON.stringify(launch)} buyer=${JSON.stringify(buyer)} legacy_email5=${JSON.stringify(legacy_email5)} budget_exhausted=${budget_exhausted}`,
     );
 
     return new Response(
-      JSON.stringify({ success: true, queue, magnet, launch, buyer, legacy_email5 }),
+      JSON.stringify({ success: true, queue, magnet, launch, buyer, legacy_email5, budget_exhausted }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },

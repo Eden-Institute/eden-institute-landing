@@ -11,6 +11,7 @@
 import { PDFDocument, PDFFont, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1?target=denonext";
 import {
   deliveryLine,
+  forbiddenInFamilyText,
   forbiddenOnInvoice,
   type InvoicePlan,
   money,
@@ -202,7 +203,10 @@ export async function renderInvoicePdf(
   y -= 10;
   text(THANK_YOU, L, y, 10, reg, MUTED);
 
-  const hits = forbiddenOnInvoice(plan.state, staticText.join(" "));
+  const hits = [
+    ...forbiddenOnInvoice(plan.state, staticText.join(" ")),
+    ...forbiddenInFamilyText(plan.state, drawn.join(" ")),
+  ];
   if (hits.length) throw new Error(`invoice ${invoiceNumber} failed wording checks: ${hits.join("; ")}`);
 
   const bytes = await doc.save({ useObjectStreams: true });

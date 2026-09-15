@@ -3,7 +3,8 @@
 // Server-side Meta Conversions API sender.
 //
 // Why this exists: until now the ONLY Meta event the site ever fired was `Lead`
-// (browser Pixel + a server-side copy in resend-waitlist). No `Purchase` event
+// (browser Pixel + a server-side copy, sendMetaCapiLead below, which
+// resend-waitlist calls). No `Purchase` event
 // has ever reached the pixel, which means ad-driven revenue is invisible in Ads
 // Manager and no campaign can optimize for sales. This module is the shared
 // sender; stripe-webhook uses it to report completed checkouts.
@@ -30,6 +31,39 @@ async function sha256Hex(input: string): Promise<string> {
   const data = new TextEncoder().encode(input.trim().toLowerCase())
   const digest = await crypto.subtle.digest("SHA-256", data)
   return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("")
+}
+
+/**
+ * POST events to the pixel with a 2.5 s timeout. Returns true only when Meta
+ * accepted them. Never throws: failures are logged as `Meta CAPI <label> failed`
+ * (non-2xx) or `Meta CAPI <label> error` (network/abort).
+ */
+async function postMetaEvents(label: string, events: unknown[]): Promise<boolean> {
+  try {
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 2500)
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/v19.0/${META_PIXEL_ID}/events?access_token=${encodeURIComponent(META_CAPI_ACCESS_TOKEN)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: events }),
+          signal: ctrl.signal,
+        },
+      )
+      if (!res.ok) {
+        console.error(`Meta CAPI ${label} failed`, res.status, await res.text().catch(() => ""))
+        return false
+      }
+      return true
+    } finally {
+      clearTimeout(timer)
+    }
+  } catch (e) {
+    console.error(`Meta CAPI ${label} error`, String(e))
+    return false
+  }
 }
 
 /**
@@ -67,6 +101,8 @@ export async function sendMetaCapiPurchase(opts: {
   state?: string | null
   postalCode?: string | null
   country?: string | null
+  /** Page the purchase started from. Defaults to /homeschool when unknown. */
+  sourceUrl?: string | null
 }): Promise<boolean> {
   if (!META_CAPI_ACCESS_TOKEN) return false
   try {
@@ -111,48 +147,26 @@ export async function sendMetaCapiPurchase(opts: {
       return false
     }
 
-    const payload = {
-      data: [
-        {
-          event_name: "Purchase",
-          event_time: Math.floor(Date.now() / 1000),
-          event_id: opts.eventId,
-          action_source: "website",
-          event_source_url: "https://edeninstitute.health/homeschool",
-          user_data: userData,
-          custom_data: {
-            value: opts.amountTotalCents / 100,
-            currency: (opts.currency ?? "usd").toUpperCase(),
-            ...(opts.contentName ? { content_name: opts.contentName } : {}),
-          },
-        },
-      ],
+    const event = {
+      event_name: "Purchase",
+      event_time: Math.floor(Date.now() / 1000),
+      event_id: opts.eventId,
+      action_source: "website",
+      event_source_url: opts.sourceUrl || "https://edeninstitute.health/homeschool",
+      user_data: userData,
+      custom_data: {
+        value: opts.amountTotalCents / 100,
+        currency: (opts.currency ?? "usd").toUpperCase(),
+        ...(opts.contentName ? { content_name: opts.contentName } : {}),
+      },
     }
 
-    const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), 2500)
-    try {
-      const res = await fetch(
-        `https://graph.facebook.com/v19.0/${META_PIXEL_ID}/events?access_token=${encodeURIComponent(META_CAPI_ACCESS_TOKEN)}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-          signal: ctrl.signal,
-        },
-      )
-      if (!res.ok) {
-        console.error("Meta CAPI Purchase failed", res.status, await res.text().catch(() => ""))
-        return false
-      }
-      console.log(
-        `Meta CAPI Purchase sent: value=${opts.amountTotalCents / 100} ` +
-          `${(opts.currency ?? "usd").toUpperCase()} (session=${opts.eventId})`,
-      )
-      return true
-    } finally {
-      clearTimeout(timer)
-    }
+    if (!(await postMetaEvents("Purchase", [event]))) return false
+    console.log(
+      `Meta CAPI Purchase sent: value=${opts.amountTotalCents / 100} ` +
+        `${(opts.currency ?? "usd").toUpperCase()} (session=${opts.eventId})`,
+    )
+    return true
   } catch (e) {
     // Never throw — a completed payment must not depend on Meta being reachable.
     console.error("Meta CAPI Purchase error", String(e))
@@ -206,6 +220,8 @@ export async function sendMetaCapiInitiateCheckout(opts: {
   contentName?: string | null
   /** Total units in the cart. */
   numItems?: number | null
+  /** Page the checkout started from. Defaults to /preorder when unknown. */
+  sourceUrl?: string | null
 }): Promise<boolean> {
   if (!META_CAPI_ACCESS_TOKEN) return false
   try {
@@ -233,47 +249,60 @@ export async function sendMetaCapiInitiateCheckout(opts: {
     if (opts.contentName) customData.content_name = opts.contentName
     if (opts.numItems != null && opts.numItems > 0) customData.num_items = opts.numItems
 
-    const payload = {
-      data: [
-        {
-          event_name: "InitiateCheckout",
-          event_time: Math.floor(Date.now() / 1000),
-          event_id: opts.eventId,
-          action_source: "website",
-          event_source_url: "https://edeninstitute.health/preorder",
-          user_data: userData,
-          custom_data: customData,
-        },
-      ],
+    const event = {
+      event_name: "InitiateCheckout",
+      event_time: Math.floor(Date.now() / 1000),
+      event_id: opts.eventId,
+      action_source: "website",
+      event_source_url: opts.sourceUrl || "https://edeninstitute.health/preorder",
+      user_data: userData,
+      custom_data: customData,
     }
 
-    const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), 2500)
-    try {
-      const res = await fetch(
-        `https://graph.facebook.com/v19.0/${META_PIXEL_ID}/events?access_token=${encodeURIComponent(META_CAPI_ACCESS_TOKEN)}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-          signal: ctrl.signal,
-        },
-      )
-      if (!res.ok) {
-        console.error(
-          "Meta CAPI InitiateCheckout failed",
-          res.status,
-          await res.text().catch(() => ""),
-        )
-        return false
-      }
-      console.log(`Meta CAPI InitiateCheckout sent (session=${opts.eventId})`)
-      return true
-    } finally {
-      clearTimeout(timer)
-    }
+    if (!(await postMetaEvents("InitiateCheckout", [event]))) return false
+    console.log(`Meta CAPI InitiateCheckout sent (session=${opts.eventId})`)
+    return true
   } catch (e) {
     console.error("Meta CAPI InitiateCheckout error", String(e))
     return false
+  }
+}
+
+/**
+ * Report a signup ("Lead") to Meta, deduped with the client Pixel via eventId.
+ *
+ * No-op when the access token isn't set, so the integration is inert until
+ * configured. Email is SHA-256 hashed (Meta requirement); IP + UA are forwarded
+ * for match quality but never stored by us. Never throws: a signup must not
+ * depend on Meta being reachable.
+ */
+export async function sendMetaCapiLead(opts: {
+  email: string
+  eventId?: string
+  sourceUrl?: string | null
+  headers: Headers
+}): Promise<void> {
+  if (!META_CAPI_ACCESS_TOKEN) return
+  try {
+    const emHash = await sha256Hex(opts.email)
+    const ip = (opts.headers.get("x-forwarded-for") ?? "").split(",")[0].trim()
+    const ua = opts.headers.get("user-agent") ?? ""
+    await postMetaEvents("Lead", [
+      {
+        event_name: "Lead",
+        event_time: Math.floor(Date.now() / 1000),
+        event_id: opts.eventId || crypto.randomUUID(),
+        action_source: "website",
+        event_source_url:
+          opts.sourceUrl || opts.headers.get("referer") || "https://edeninstitute.health/",
+        user_data: {
+          em: [emHash],
+          ...(ip ? { client_ip_address: ip } : {}),
+          ...(ua ? { client_user_agent: ua } : {}),
+        },
+      },
+    ])
+  } catch (e) {
+    console.error("Meta CAPI Lead error", String(e))
   }
 }

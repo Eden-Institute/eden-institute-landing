@@ -61,6 +61,7 @@ import { STARTER_LOOKUP_KEY } from "../_shared/starter-config.ts"
 import { curriculumInvoiceCreation } from "../_shared/receipt.ts"
 import { evaluateRedemption, findCreditByCode } from "../_shared/starter-credit.ts"
 import { LULU_PRODUCTION_DELAY_MINUTES, LULU_PRODUCTS, PRINT_SHOP_URL, luluProductBySku } from "../_shared/lulu-config.ts"
+import { timingSafeEqual } from "../_shared/timing-safe-equal.ts"
 
 /** Hours a buyer has to cancel a print order, for Stripe's checkout copy. */
 const PRINT_CANCEL_HOURS = Math.round(LULU_PRODUCTION_DELAY_MINUTES / 60)
@@ -115,7 +116,9 @@ const ONE_OFF_LOOKUP_KEYS = new Set([
 // The Starter Unit is a funnel product priced to convert, not to discount, and
 // more importantly Stripe refuses to create a session carrying both `discounts`
 // and `allow_promotion_codes`. Keeping the field off here means the no-stacking
-// guarantee is structural rather than something we have to police.
+// guarantee is structural rather than something we have to police. The promo_code
+// pre-application block below honours this set too, so a hand-built request cannot
+// attach a discount to these keys.
 const NO_PROMO_LOOKUP_KEYS = new Set([
   STARTER_LOOKUP_KEY,
 ])
@@ -186,6 +189,18 @@ const PRICE_ID_OVERRIDES: Record<string, string> = {
 // the Stripe Dashboard and switching to shipping_rate (id reference) instead
 // of shipping_rate_data (inline) below.
 const STANDARD_SHIPPING_CENTS = 1200
+
+/** Stripe caps a metadata value at 500 chars; body-supplied values are attacker-influenced. */
+function clampMeta(v: unknown, max = 255): string | null {
+  return typeof v === "string" && v ? v.slice(0, max) : null
+}
+
+/** Dark-test bypass for the preorder and print-shop gates. */
+function isPreorderAdminRequest(req: Request): boolean {
+  const token = Deno.env.get("PREORDER_ADMIN_TOKEN")
+  const given = req.headers.get("x-preorder-admin")
+  return !!token && !!given && timingSafeEqual(given, token)
+}
 
 /**
  * Only accept caller-supplied success_url / cancel_url values on our production
@@ -337,7 +352,8 @@ serve(async (req) => {
         .maybeSingle()
 
       if (profileError) {
-        return jsonError(`Profile read failed: ${profileError.message}`, 500)
+        console.error("create-checkout: profile read failed:", profileError.message)
+        return jsonError(GENERIC_CHECKOUT_ERROR, 500)
       }
 
       if (!profile?.homeschool_bundle_buyer) {
@@ -369,7 +385,8 @@ serve(async (req) => {
         limit: 1,
       })
       if (prices.data.length === 0) {
-        return jsonError(`No active Stripe price found for lookup_key '${lookup_key}'`, 404)
+        console.error(`create-checkout: no active Stripe price for lookup_key '${lookup_key}'`)
+        return jsonError(GENERIC_CHECKOUT_ERROR, 500)
       }
       price = prices.data[0]
     }
@@ -380,6 +397,7 @@ serve(async (req) => {
     //    (best-effort linking). Bundle buyers always link to the user we
     //    require above; non-restricted one-offs can be anonymous.
     let stripeCustomerId: string | null = null
+    let customerJustCreated = false
     if (isSubscription && user) {
       const adminClient = createClient(
         Deno.env.get("SUPABASE_URL")!,
@@ -393,7 +411,8 @@ serve(async (req) => {
         .maybeSingle()
 
       if (profileError) {
-        return jsonError(`Profile lookup failed: ${profileError.message}`, 500)
+        console.error("create-checkout: profile lookup failed:", profileError.message)
+        return jsonError(GENERIC_CHECKOUT_ERROR, 500)
       }
 
       stripeCustomerId = profile?.stripe_customer_id ?? null
@@ -429,6 +448,7 @@ serve(async (req) => {
           },
         })
         stripeCustomerId = customer.id
+        customerJustCreated = true
 
         const { error: updateError } = await adminClient
           .from("profiles")
@@ -442,6 +462,27 @@ serve(async (req) => {
       }
     }
 
+    // 5a. One live subscription per Customer. stripe-webhook records only the newest
+    //     subscription id, so a second checkout would bill in parallel. A brand-new
+    //     Customer cannot have one. incomplete / canceled / incomplete_expired do not
+    //     block, so a failed SCA attempt never locks the buyer out.
+    if (isSubscription && stripeCustomerId && !customerJustCreated) {
+      const LIVE = new Set(["active", "trialing", "past_due", "unpaid", "paused"])
+      const subs = await stripe.subscriptions.list({ customer: stripeCustomerId, status: "all", limit: 20 })
+      const existing = subs.data.find((s: Stripe.Subscription) => LIVE.has(s.status))
+      if (existing) {
+        console.log(`create-checkout: refusing a second subscription for ${stripeCustomerId}; ${existing.id} is ${existing.status}`)
+        return new Response(
+          JSON.stringify({
+            // WORDING: pending founder approval (audit 2026-09-15)
+            error: "You already have an active Apothecary subscription. To change plans, use Manage subscription in your account.",
+            code: "SUBSCRIPTION_EXISTS",
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
+        )
+      }
+    }
+
     // 6. Build the metadata bag (mirrored to session.metadata for one-offs
     //    so verify-session + stripe-webhook can read constitution_type /
     //    email / lookup_key regardless of mode).
@@ -452,8 +493,8 @@ serve(async (req) => {
     if (typeof bodyEmail === "string" && bodyEmail) metadata.email = bodyEmail
     // Length-clamped: Stripe caps a metadata value at 500 chars, and these are
     // attacker-influencable (they arrive in the request body).
-    if (typeof bodyFbp === "string" && bodyFbp) metadata.fbp = bodyFbp.slice(0, 255)
-    if (typeof bodyFbc === "string" && bodyFbc) metadata.fbc = bodyFbc.slice(0, 255)
+    const fbp = clampMeta(bodyFbp); if (fbp) metadata.fbp = fbp
+    const fbc = clampMeta(bodyFbc); if (fbc) metadata.fbc = fbc
 
     // 7. Construct the Checkout Session.
     //    Defaults for success/cancel URLs depend on product class:
@@ -539,7 +580,11 @@ serve(async (req) => {
     // Stripe forbids combining `discounts` with `allow_promotion_codes`, so
     // a resolved code REPLACES the manual field; an unknown/inactive code
     // falls back to the manual field rather than failing the checkout.
-    if (typeof bodyPromoCode === "string" && bodyPromoCode.trim()) {
+    if (NO_PROMO_LOOKUP_KEYS.has(lookup_key)) {
+      if (typeof bodyPromoCode === "string" && bodyPromoCode.trim()) {
+        console.warn(`promo_code ignored: '${lookup_key}' does not accept promotion codes`)
+      }
+    } else if (typeof bodyPromoCode === "string" && bodyPromoCode.trim()) {
       try {
         const promoList = await stripe.promotionCodes.list({
           code: bodyPromoCode.trim(),
@@ -647,8 +692,7 @@ serve(async (req) => {
     )
   } catch (err) {
     console.error("create-checkout error:", err)
-    const message = err instanceof Error ? err.message : "Unknown error"
-    return jsonError(message, 500)
+    return jsonError(GENERIC_CHECKOUT_ERROR, 500)
   }
 })
 
@@ -675,8 +719,7 @@ serve(async (req) => {
 async function handlePreorderCheckout(req: Request, body: Record<string, any>): Promise<Response> {
   // Dark-launch gate.
   const live = Deno.env.get("PREORDERS_LIVE") === "true"
-  const adminToken = Deno.env.get("PREORDER_ADMIN_TOKEN")
-  const isAdminTest = !!adminToken && req.headers.get("x-preorder-admin") === adminToken
+  const isAdminTest = isPreorderAdminRequest(req)
   if (!live && !isAdminTest) {
     return new Response(
       JSON.stringify({ error: "Preorders are closed for now.", code: "PREORDERS_NOT_LIVE" }),
@@ -739,7 +782,8 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
     .select("id, sku, name, active, founding_qty_limit, stripe_founding_price_id, stripe_retail_price_id")
     .in("sku", cart.map((c) => c.sku))
   if (productError) {
-    return jsonError(`Product lookup failed: ${productError.message}`, 500)
+    console.error("create-checkout: preorder product lookup failed:", productError.message)
+    return jsonError(GENERIC_CHECKOUT_ERROR, 500)
   }
   const productBySkuMap = new Map<string, any>((products ?? []).map((p: any) => [p.sku, p]))
   for (const line of cart) {
@@ -891,7 +935,7 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
     const verdict = evaluateRedemption(credit, buyerEmail)
     if (!verdict.ok) {
       console.warn(
-        `starter credit refused: code=${rawCreditCode} email=${buyerEmail} reason=${verdict.code}`,
+        `starter credit refused: reason=${verdict.code} credit_id=${credit?.id ?? "none"}`,
       )
       return new Response(
         JSON.stringify({ error: verdict.message, code: verdict.code }),
@@ -1075,8 +1119,8 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
   if (!isAdminTest) {
     await sendMetaCapiInitiateCheckout({
       eventId: session.id,
-      fbp: typeof body.fbp === "string" ? body.fbp : null,
-      fbc: typeof body.fbc === "string" ? body.fbc : null,
+      fbp: clampMeta(body.fbp),
+      fbc: clampMeta(body.fbc),
       email: typeof body.email === "string" ? body.email : null,
       contentName: primarySku,
       numItems: cart.reduce((n, c) => n + c.qty, 0),
@@ -1105,8 +1149,7 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
 // deno-lint-ignore no-explicit-any
 async function handlePrintCheckout(req: Request, body: Record<string, any>): Promise<Response> {
   const live = Deno.env.get("PRINT_SHOP_LIVE") === "true"
-  const adminToken = Deno.env.get("PREORDER_ADMIN_TOKEN")
-  const isAdminTest = !!adminToken && req.headers.get("x-preorder-admin") === adminToken
+  const isAdminTest = isPreorderAdminRequest(req)
   if (!live && !isAdminTest) {
     return new Response(
       JSON.stringify({ error: "The printed books are not on sale yet.", code: "PRINT_SHOP_NOT_LIVE" }),
@@ -1138,7 +1181,10 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
     .from("products")
     .select("id, sku, name, active, fulfillment, stripe_retail_price_id, shipping_tier_cents")
     .in("sku", cart.map((c) => c.sku))
-  if (productError) return jsonError(`Product lookup failed: ${productError.message}`, 500)
+  if (productError) {
+    console.error("create-checkout: print shop product lookup failed:", productError.message)
+    return jsonError(GENERIC_CHECKOUT_ERROR, 500)
+  }
   const bySku = new Map<string, any>((products ?? []).map((p: any) => [p.sku, p]))
 
   for (const line of cart) {
@@ -1173,8 +1219,8 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
     fulfillment: "lulu",
     sms_consent: String(smsConsent),
   }
-  if (typeof body.fbp === "string" && body.fbp) metadata.fbp = body.fbp
-  if (typeof body.fbc === "string" && body.fbc) metadata.fbc = body.fbc
+  const fbp = clampMeta(body.fbp); if (fbp) metadata.fbp = fbp
+  const fbc = clampMeta(body.fbc); if (fbc) metadata.fbc = fbc
   if (isAdminTest) metadata.print_test = "true"
 
   // Success lands on a real confirmation page, never back on the shop page: the
@@ -1262,8 +1308,8 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
   if (!isAdminTest) {
     await sendMetaCapiInitiateCheckout({
       eventId: session.id,
-      fbp: typeof body.fbp === "string" ? body.fbp : null,
-      fbc: typeof body.fbc === "string" ? body.fbc : null,
+      fbp: fbp,
+      fbc: fbc,
       email: typeof body.email === "string" ? body.email : null,
       contentName: cart[0].sku,
       numItems: cart.reduce((n, c) => n + c.qty, 0),
@@ -1275,6 +1321,11 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
     { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
   )
 }
+
+// Internal failures (Stripe, PostgREST, missing prices) never echo their raw text to
+// anonymous callers; the detail goes to the function log instead. This is the same
+// line the Apothecary checkout buttons already show (friendlyEfError.ts).
+const GENERIC_CHECKOUT_ERROR = "Could not start checkout. Please try again or contact hello@edeninstitute.health."
 
 function jsonError(message: string, status: number): Response {
   return new Response(

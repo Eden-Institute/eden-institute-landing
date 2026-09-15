@@ -36,6 +36,7 @@ export type DiagnosticErrorCode =
   | "no_layer_present"             // 400 — empty completion not meaningful
   | "profile_not_found"            // 404 — person_profile_id doesn't exist
   | "profile_not_owned"            // 403 — owned by a different auth.uid()
+  | "practitioner_tier_required"   // 403 — overrides / practitioner administration need Practitioner tier
   | "profile_lookup_failed"        // 500 — ownership query DB error
   | "noncanonical_clinical_value"  // 422 — clinical_canonical FK trigger raised
   | "duplicate_completion"         // 409 — unique violation (defensive)
@@ -43,6 +44,7 @@ export type DiagnosticErrorCode =
   | "write_path_disallowed"        // 500 — service-role insert refused (shouldn't happen)
   | "profile_cap_exceeded"         // 422 — forward-compat for tier cap enforcement
   | "post_insert_read_failed"      // 200-with-warning — insert ok, re-read failed
+  | "nothing_to_recompute"         // 422 — completion has no stored raw responses
   | "internal_error";              // 500 — fallback
 
 export interface DiagnosticError {
@@ -88,6 +90,8 @@ const DEFAULT_MESSAGES: Record<DiagnosticErrorCode, string> = {
     "Person profile not found.",
   profile_not_owned:
     "You do not have access to that profile.",
+  practitioner_tier_required:
+    "Practitioner tier required.",
   profile_lookup_failed:
     "Profile lookup failed.",
   noncanonical_clinical_value:
@@ -102,6 +106,8 @@ const DEFAULT_MESSAGES: Record<DiagnosticErrorCode, string> = {
     "Profile limit reached for your tier.",
   post_insert_read_failed:
     "Completion recorded; profile re-read failed. Please refresh.",
+  nothing_to_recompute:
+    "This completion has no stored responses to recompute.",
   internal_error:
     "Failed to record diagnostic completion.",
 };
@@ -125,13 +131,15 @@ const HTTP_STATUS: Record<DiagnosticErrorCode, number> = {
   no_layer_present: 400,
   profile_not_found: 404,
   profile_not_owned: 403,
+  practitioner_tier_required: 403,
   profile_lookup_failed: 500,
   noncanonical_clinical_value: 422,
   duplicate_completion: 409,
   invalid_reference: 422,
   write_path_disallowed: 500,
   profile_cap_exceeded: 422,
-  post_insert_read_failed: 200, // warning-style, not a hard error
+  post_insert_read_failed: 200, // unused as an HTTP status: emitted as a 200 response warning
+  nothing_to_recompute: 422,
   internal_error: 500,
 };
 
@@ -164,9 +172,10 @@ export function mapPostgrestError(
   bodyText: string,
   context: string,
 ): { body: DiagnosticErrorResponse; status: number } {
-  let parsed: { code?: string; message?: string; details?: string; hint?: string } | null = null;
+  type PostgrestErrorBody = { code?: string; message?: string; details?: string; hint?: string };
+  let parsed: PostgrestErrorBody | null = null;
   try {
-    parsed = JSON.parse(bodyText) as typeof parsed;
+    parsed = JSON.parse(bodyText) as PostgrestErrorBody | null;
   } catch {
     parsed = null;
   }

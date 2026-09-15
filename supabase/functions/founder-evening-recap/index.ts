@@ -15,7 +15,7 @@
 // covers the completed previous day.
 //
 // Covers, in the order Camila reads them:
-//   1. Orders and revenue today, plus the founding-500 runway
+//   1. Orders and revenue today
 //   2. Email performance today: sends, open events, click events, per email
 //   3. New signups today, by funnel
 //   4. Queue health: what is still pending, what failed
@@ -32,6 +32,7 @@
 
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
 import { pgrstFetch } from '../_shared/pgrst-retry.ts';
+import { escapeHtml } from '../_shared/html-escape.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -46,8 +47,7 @@ const corsHeaders = {
 
 const PAGE = 1000;
 
-// pgrstFetch repeats a gateway 504 on the reads; the founding_gate RPC POST is
-// sent once because that function can write (it stamps the founding latch).
+// pgrstFetch repeats a gateway 504 on the reads.
 function sbFetch(path: string, init: RequestInit = {}): Promise<Response> {
   return pgrstFetch(`${SUPABASE_URL}${path}`, {
     ...init,
@@ -131,36 +131,6 @@ function money(cents: number): string {
   return `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-// ── Founding runway (same latch-aware gate the checkout enforces) ─────────
-async function foundingRunway(): Promise<{ claimed: number; limit: number; closed: boolean } | null> {
-  try {
-    const prodRes = await sbFetch(
-      '/rest/v1/products?select=founding_qty_limit&founding_qty_limit=not.is.null&limit=1',
-    );
-    if (!prodRes.ok) return null;
-    const prods = await prodRes.json();
-    if (!Array.isArray(prods) || prods.length === 0) return null;
-    const limit = Number(prods[0].founding_qty_limit ?? 0);
-
-    const gateRes = await sbFetch('/rest/v1/rpc/founding_gate', {
-      method: 'POST',
-      body: JSON.stringify({}),
-    });
-    if (!gateRes.ok) return null;
-    const rows = await gateRes.json();
-    const row = Array.isArray(rows) ? rows[0] : rows;
-    if (!row) return null;
-    return {
-      claimed: Number(row.claimed ?? row.founding_claimed ?? 0),
-      limit,
-      closed: Boolean(row.closed ?? row.founding_closed ?? false),
-    };
-  } catch (err) {
-    console.error('foundingRunway failed:', String(err));
-    return null;
-  }
-}
-
 interface OrderRow {
   customer_email: string;
   product_label: string | null;
@@ -240,8 +210,6 @@ Deno.serve(async (req) => {
       `/rest/v1/launch_email_queue?select=sequence_position,status&status=eq.pending&scheduled_for=lte.${encodeURIComponent(now.toISOString())}`,
     );
 
-    const founding = await foundingRunway();
-
     // ── Aggregate email performance per key ──
     const keys = new Map<string, { openEvents: number; openers: Set<string>; clickEvents: number; clickers: Set<string> }>();
     for (const e of events) {
@@ -275,8 +243,8 @@ Deno.serve(async (req) => {
       ? `<table style="width:100%;border-collapse:collapse;">
            <tr><th style="${th}">Order</th><th style="${th}">Product</th><th style="${th}">Qty</th><th style="${th}">Amount</th></tr>
            ${orders.map((o) => `<tr>
-             <td style="${td}">${o.order_number ?? o.customer_email}</td>
-             <td style="${td}">${o.product_label ?? o.status}</td>
+             <td style="${td}">${escapeHtml(o.order_number ?? o.customer_email)}</td>
+             <td style="${td}">${escapeHtml(o.product_label ?? o.status)}</td>
              <td style="${td}">${o.quantity ?? 1}</td>
              <td style="${td}">${money(o.amount_total_cents ?? 0)}</td>
            </tr>`).join('')}
@@ -287,7 +255,7 @@ Deno.serve(async (req) => {
       ? `<table style="width:100%;border-collapse:collapse;">
            <tr><th style="${th}">Email</th><th style="${th}">Openers</th><th style="${th}">Opens</th><th style="${th}">Clickers</th><th style="${th}">Clicks</th></tr>
            ${emailRows.map((r) => `<tr>
-             <td style="${td}">${r.key}</td><td style="${td}">${r.openers}</td><td style="${td}">${r.openEvents}</td>
+             <td style="${td}">${escapeHtml(r.key)}</td><td style="${td}">${r.openers}</td><td style="${td}">${r.openEvents}</td>
              <td style="${td}">${r.clickers}</td><td style="${td}">${r.clickEvents}</td>
            </tr>`).join('')}
          </table>`
@@ -303,14 +271,8 @@ Deno.serve(async (req) => {
     const signupBlock = signups.length > 0
       ? `<p style="font-size:14px;color:#2f2a24;margin:0;"><strong>${signups.length}</strong> new: ` +
         Array.from(signupsByFunnel.entries()).sort((a, b) => b[1] - a[1])
-          .map(([f, n]) => `${f} ${n}`).join(', ') + `</p>`
+          .map(([f, n]) => `${escapeHtml(f)} ${n}`).join(', ') + `</p>`
       : `<p style="font-size:14px;color:#6b6257;margin:0;">No new signups ${dayWord}.</p>`;
-
-    const foundingBlock = founding
-      ? (founding.closed
-          ? `<p style="font-size:14px;margin:0;">Founding 500 <strong>complete</strong>. Retail pricing is live.</p>`
-          : `<p style="font-size:14px;margin:0;">Founding kits: <strong>${founding.claimed} of ${founding.limit}</strong> claimed, ${Math.max(0, founding.limit - founding.claimed)} remaining at $249.</p>`)
-      : '';
 
     const healthBlock = (failed.length > 0 || pendingDue.length > 0)
       ? `<p style="font-size:14px;margin:0;color:${failed.length > 0 ? '#a33' : '#2f2a24'};">` +
@@ -325,7 +287,7 @@ Deno.serve(async (req) => {
       <div style="max-width:640px;margin:0 auto;background:#fffdf9;border:1px solid #e6e0d6;border-radius:6px;padding:28px;">
         <h1 style="font-size:20px;color:#2f2a24;margin:0 0 4px;">Evening recap</h1>
         <p style="font-size:13px;color:#8a7f70;margin:0 0 24px;">${past ? `${label}, the full day (re-sent because the original recap did not go out)` : `${label}, through ${now.toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' })} Central`}</p>
-        ${section(`Orders ${dayWord}`, `<p style="font-size:22px;color:#2f2a24;margin:0 0 10px;"><strong>${orders.length}</strong> order${orders.length === 1 ? '' : 's'} &middot; ${units} unit${units === 1 ? '' : 's'} &middot; <strong>${money(grossCents)}</strong></p>${ordersBlock}${foundingBlock ? `<div style="margin-top:10px;">${foundingBlock}</div>` : ''}`)}
+        ${section(`Orders ${dayWord}`, `<p style="font-size:22px;color:#2f2a24;margin:0 0 10px;"><strong>${orders.length}</strong> order${orders.length === 1 ? '' : 's'} &middot; ${units} unit${units === 1 ? '' : 's'} &middot; <strong>${money(grossCents)}</strong></p>${ordersBlock}`)}
         ${section(`Email ${dayWord}`, `<p style="font-size:16px;color:#2f2a24;margin:0 0 10px;"><strong>${totalOpeners}</strong> people opened &middot; <strong>${totalClickers}</strong> clicked</p>${emailBlock}<div style="margin-top:10px;">${sentBlock}</div>`)}
         ${section('New signups', signupBlock)}
         ${section('Queue health', healthBlock)}
@@ -337,7 +299,6 @@ Deno.serve(async (req) => {
       ``,
       `ORDERS: ${orders.length} (${units} units, ${money(grossCents)})`,
       ...orders.map((o) => `  ${o.order_number ?? o.customer_email} — ${o.product_label ?? o.status} x${o.quantity ?? 1} — ${money(o.amount_total_cents ?? 0)}`),
-      founding && !founding.closed ? `  Founding: ${founding.claimed}/${founding.limit} claimed` : '',
       ``,
       `EMAIL: ${totalOpeners} openers, ${totalClickers} clickers`,
       ...emailRows.map((r) => `  ${r.key}: ${r.openers} openers (${r.openEvents} opens), ${r.clickers} clickers`),

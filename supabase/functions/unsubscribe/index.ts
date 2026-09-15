@@ -74,7 +74,7 @@ async function recordUnsubscribe(email: string, list: EmailList): Promise<boolea
   });
   if (!res.ok) {
     const body = await res.text().catch(() => '<unreadable>');
-    console.error('unsubscribe: insert failed', { status: res.status, body, email, list });
+    console.error('unsubscribe: insert failed', { status: res.status, body, list });
   }
   return res.ok;
 }

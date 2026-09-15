@@ -1,51 +1,50 @@
 // replay-quiz-completion-failures v3 — cron-driven worker that drains the
 // quiz_completion_failures dead-letter queue.
 //
-// v3 (2026-05-02 PR #110): drop the strict service-role JWT comparison that v2
-// added. v2 returned 401 on every cron tick because the Vercel-side
-// process.env.SUPABASE_SERVICE_ROLE_KEY and the Supabase-runtime-injected
-// Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') diverged at some point (likely a
-// key rotation that didn't propagate to Vercel project env). Aligns with the
-// nurture-emails pattern, which uses verify_jwt=false and does NOT compare
-// the inbound Authorization against any specific value. Trust posture:
-//   - The EF URL lives on the supabase.co subdomain and is not publicly
-//     advertised; reaching it requires knowing the function slug.
-//   - The Vercel cron → Vercel Edge fn layer DOES enforce CRON_SECRET
-//     against process.env on every inbound request. Only Vercel cron (or
-//     anyone holding the CRON_SECRET) can reach the Vercel Edge fn that
-//     forwards to this EF.
-//   - The EF itself only drains rows from quiz_completion_failures and
-//     INSERTs into quiz_completions; both surfaces are RLS-locked and
-//     mediated through the EF's own service-role key. An unauthenticated
-//     caller hitting this URL would only trigger a drain (idempotent;
-//     no data destruction or exfiltration possible).
+// Auth (current): verify_jwt=true in supabase/config.toml, so the gateway
+// validates the JWT signature, and the handler additionally requires
+// role=service_role via _shared/require-service-role.ts (PR #234). The anon key
+// cannot trigger a drain. History: v3 (PR #110) had temporarily removed a strict
+// key comparison after a Vercel/Supabase key divergence; that posture is
+// superseded.
 //
 // Architecture (mirror of Lock #48 nurture-emails consumer):
 //   - Vercel cron POSTs every 30 min to /api/cron/replay-quiz-failures.
 //   - That Vercel Edge fn verifies CRON_SECRET, then forwards here with the
-//     service-role key in Authorization (kept for symmetry with nurture-
-//     emails / drain-nurture-queue, even though this EF no longer compares).
+//     service-role key in Authorization, which this EF checks.
 //
-// Drain semantics (unchanged from v2):
-//   - Pull oldest 10 unresolved rows.
-//   - For each, replay the original raw_payload through a PostgREST INSERT
-//     into quiz_completions.
+// Drain semantics:
+//   - Pull up to 10 unresolved rows whose retry_count is below
+//     MAX_REPLAY_ATTEMPTS: never-retried first, then least-recently-retried,
+//     then oldest. A stuck row therefore cannot block newer ones.
+//   - For each, check the raw_payload with the same email and
+//     constitution_type rules record-quiz-completion applies
+//     (_shared/quiz-completion-input.ts), then replay it through a PostgREST
+//     INSERT into quiz_completions.
 //   - On 2xx: mark resolved_at + resolved_quiz_completion_id (where
 //     derivable), bump retry counters.
 //   - On 409: row already exists (UNIQUE on lower(email) added in parallel
 //     work). Treat as resolved — the row was recorded by some earlier path,
 //     the dead-letter row is no longer actionable.
 //   - On non-2xx (other): increment retry_count, record last_retry_status
-//     + body. Row stays unresolved — next cron tick retries.
+//     + body. Row stays unresolved — next cron tick retries, until
+//     retry_count reaches MAX_REPLAY_ATTEMPTS.
+//   - A payload that fails the local checks can never succeed, so it is parked
+//     at once (retry_count set to MAX_REPLAY_ATTEMPTS). Parked rows are never
+//     deleted or marked resolved: they stay pending in
+//     quiz_completion_failure_stats for manual triage.
 
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
 // Repeats reads and PATCHes the gateway 504s; the INSERT replay is never repeated.
 import { pgrstFetch } from '../_shared/pgrst-retry.ts';
+import { isValidConstitution, normalizeEmail, normalizeOptionalString } from '../_shared/quiz-completion-input.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 const BATCH_SIZE = 10;
+// A row that has failed this many replays (~24h at the 30-min cron) is parked for manual triage: it stays unresolved and visible in quiz_completion_failure_stats, but no longer occupies a batch slot.
+const MAX_REPLAY_ATTEMPTS = 48;
 
 interface FailureRow {
   id: string;
@@ -65,7 +64,8 @@ async function fetchPendingBatch(): Promise<FailureRow[]> {
     `${SUPABASE_URL}/rest/v1/quiz_completion_failures` +
     `?select=id,raw_payload,retry_count` +
     `&resolved_at=is.null` +
-    `&order=received_at.asc` +
+    `&retry_count=lt.${MAX_REPLAY_ATTEMPTS}` +
+    `&order=last_retry_at.asc.nullsfirst,received_at.asc` +
     `&limit=${BATCH_SIZE}`;
   const res = await pgrstFetch(url, {
     headers: {
@@ -80,40 +80,26 @@ async function fetchPendingBatch(): Promise<FailureRow[]> {
   return await res.json();
 }
 
-function normalizeEmail(raw: unknown): string | null {
-  if (typeof raw !== 'string') return null;
-  const trimmed = raw.trim().toLowerCase();
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmed)) return null;
-  if (trimmed.length > 320) return null;
-  return trimmed;
-}
-
-function normalizeOptionalString(raw: unknown, maxLen: number): string | null {
-  if (typeof raw !== 'string') return null;
-  const trimmed = raw.trim();
-  if (trimmed.length === 0) return null;
-  return trimmed.slice(0, maxLen);
-}
-
 async function replayInsert(row: FailureRow): Promise<{
   ok: boolean;
   status: number;
   body: string;
   insertedId: string | null;
+  /** true when the payload itself is invalid, so replaying again cannot succeed. */
+  terminal: boolean;
 }> {
   const payload = row.raw_payload || {};
   const body = payload as Record<string, unknown>;
 
   const email = normalizeEmail(body.email);
   if (!email) {
-    return { ok: false, status: 400, body: 'invalid email in raw_payload', insertedId: null };
+    return { ok: false, status: 400, body: 'invalid email in raw_payload', insertedId: null, terminal: true };
   }
 
-  const constitution_type =
-    typeof body.constitution_type === 'string' ? body.constitution_type.trim() : null;
-  if (!constitution_type) {
-    return { ok: false, status: 400, body: 'missing constitution_type in raw_payload', insertedId: null };
+  if (!isValidConstitution(body.constitution_type)) {
+    return { ok: false, status: 400, body: 'invalid constitution_type in raw_payload', insertedId: null, terminal: true };
   }
+  const constitution_type = (body.constitution_type as string).trim();
 
   const insertPayload = {
     email,
@@ -121,6 +107,7 @@ async function replayInsert(row: FailureRow): Promise<{
     constitution_type,
     constitution_name: normalizeOptionalString(body.constitution_name, 200),
     constitution_nickname: normalizeOptionalString(body.constitution_nickname, 200),
+    // completed_at = replay time (not received_at) on purpose: nurture timing keys off it.
     completed_at: new Date().toISOString(),
     purchased_course: false,
     purchased_guide: false,
@@ -140,7 +127,7 @@ async function replayInsert(row: FailureRow): Promise<{
   // v3: 409 = row already exists from another path (UNIQUE on lower(email)
   // added in parallel work). Treat as resolved instead of looping forever.
   if (res.status === 409) {
-    return { ok: true, status: 200, body: 'already-recorded', insertedId: null };
+    return { ok: true, status: 200, body: 'already-recorded', insertedId: null, terminal: false };
   }
 
   const txt = await res.text().catch(() => '');
@@ -155,7 +142,7 @@ async function replayInsert(row: FailureRow): Promise<{
       // ignore
     }
   }
-  return { ok: res.ok, status: res.status, body: txt, insertedId };
+  return { ok: res.ok, status: res.status, body: txt, insertedId, terminal: false };
 }
 
 async function markResolved(
@@ -254,6 +241,11 @@ Deno.serve(async (req) => {
           await markResolved(row.id, replay.status, replay.insertedId, row.retry_count);
           result.resolved++;
           console.log(`replay-quiz-completion-failures: resolved row=${row.id} as quiz_completion=${replay.insertedId ?? 'already-recorded'}`);
+        } else if (replay.terminal) {
+          // retry_count lands at MAX_REPLAY_ATTEMPTS, so the row drops out of the batch filter.
+          await markStillFailing(row.id, replay.status, replay.body, MAX_REPLAY_ATTEMPTS - 1);
+          result.still_failing++;
+          console.warn(`replay-quiz-completion-failures: parked row=${row.id} status=${replay.status} (not replayable)`);
         } else {
           await markStillFailing(row.id, replay.status, replay.body, row.retry_count);
           result.still_failing++;

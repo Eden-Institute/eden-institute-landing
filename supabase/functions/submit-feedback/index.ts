@@ -8,6 +8,7 @@
 // Authorization bearer (best-effort) for correlation in the table.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { bumpRateBucket, clientIp } from "../_shared/rate-bucket.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,6 +22,13 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
 const FEEDBACK_TO = "hello@edeninstitute.health";
 const FEEDBACK_FROM = "Eden Apothecary Feedback <hello@edeninstitute.health>";
+
+// Each accepted POST emails hello@, so an unthrottled endpoint is an inbox flood.
+// Own bucket, not the checkout one.
+const FEEDBACK_PER_WINDOW = 5;
+const FEEDBACK_WINDOW_SECONDS = 600;
+/** Serialized size above which the client-supplied context is replaced by a stub. */
+const MAX_CONTEXT_CHARS = 8000;
 
 // Workstream B structured fields (Feature_Request_Intake_Spec.md). All are
 // optional so the legacy free-text payload keeps working; when present they
@@ -95,8 +103,12 @@ function validate(input: unknown):
   const safeContext = (context && typeof context === "object" && !Array.isArray(context))
     ? (context as Record<string, unknown>)
     : {};
+  const ctxJson = JSON.stringify(safeContext);
+  const cappedContext: Record<string, unknown> = ctxJson.length > MAX_CONTEXT_CHARS
+    ? { truncated: true, size: ctxJson.length }
+    : safeContext;
 
-  return { ok: true, message: trimmedMessage, email: trimmedEmail, pageUrl: trimmedPageUrl, userAgent: trimmedUserAgent, context: safeContext, structured };
+  return { ok: true, message: trimmedMessage, email: trimmedEmail, pageUrl: trimmedPageUrl, userAgent: trimmedUserAgent, context: cappedContext, structured };
 }
 
 // Tier auto-capture: resolved server-side from profiles so the submitter is
@@ -234,6 +246,22 @@ Deno.serve(async (req) => {
     if (!parsed.ok) {
       return new Response(JSON.stringify({ error: parsed.error }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Fails open: no IP or a limiter error (null) lets the feedback through.
+    const ip = clientIp(req);
+    if (ip) {
+      const count = await bumpRateBucket({
+        supabaseUrl: SUPABASE_URL,
+        serviceKey: SUPABASE_SERVICE_ROLE_KEY,
+        key: `feedback_ip:${ip}`,
+        windowSeconds: FEEDBACK_WINDOW_SECONDS,
+      });
+      if (count !== null && count > FEEDBACK_PER_WINDOW) {
+        // WORDING: pending founder approval
+        return new Response(JSON.stringify({ error: "Too many submissions from this connection. Please wait a few minutes, or email hello@edeninstitute.health." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
 
     const { userId, userEmail } = await resolveAuthUserId(req);

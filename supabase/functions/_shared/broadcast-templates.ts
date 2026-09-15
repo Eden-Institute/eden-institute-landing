@@ -12,7 +12,7 @@
 //
 // Voice rule: no em dashes (feedback_no_em_dashes).
 
-import { emailWrapper } from './nurture-email-templates.ts';
+import { emailWrapperTransactional } from './nurture-email-templates.ts';
 
 const BRAND = { forest: '#2C3E2D', text: '#3D3832', gold: '#C5A44E' };
 
@@ -140,16 +140,10 @@ export function buildDelayNoticeEmail(input: DelayNoticeInput): string {
 }
 
 /**
- * Neutralise the marketing chrome baked into emailWrapper. These are transactional
- * and legal messages: they must not carry an unsubscribe link (a buyer cannot opt out
- * of being told their order is late) and the quiz-funnel footer reason is wrong.
+ * Transactional chrome. These are transactional and legal messages: they must not
+ * carry an unsubscribe link (a buyer cannot opt out of being told their order is late)
+ * and the quiz-funnel footer reason is wrong for them.
  */
 function finish(body: string, kind: 'update' | 'delay'): string {
-  return emailWrapper(body)
-    .split('{{UNSUB_URL}}').join('https://edeninstitute.health')
-    .split("You're receiving this because you completed the Constitutional Assessment at edeninstitute.health.")
-    .join(kind === 'delay'
-      ? 'You are receiving this because you placed a preorder at edeninstitute.health. '
-        + 'This is a required notice about your order and is not marketing.'
-      : 'You are receiving this because you placed a preorder at edeninstitute.health.');
+  return emailWrapperTransactional(body, kind === 'delay' ? 'preorder_notice' : 'preorder_update');
 }

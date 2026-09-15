@@ -37,6 +37,18 @@ import { renderStarterDeliveryEmail, StarterEmailModel } from './starter-email.t
 import { Receipt, starterReceipt } from './receipt.ts';
 
 /**
+ * An in_progress delivery older than this belongs to a worker that died (OOM at
+ * the memory ceiling, wall-clock kill), because no catch block ran to mark it
+ * failed. An Edge Function run lasts minutes at most; same rule as
+ * digest-run-claim STALE_PENDING_MS, widened.
+ */
+export const STALE_IN_PROGRESS_MS = 15 * 60 * 1000;
+
+export function staleInProgressCutoff(now = Date.now()): string {
+  return new Date(now - STALE_IN_PROGRESS_MS).toISOString();
+}
+
+/**
  * Read a required env var at CALL time, not module-load time, and name it when
  * it is missing.
  *
@@ -211,6 +223,12 @@ export interface FulfilResult {
  * Claiming is a compare-and-set on status, so two concurrent drains (a cron tick
  * racing the webhook's own fire-and-forget kick) cannot both send. The loser sees
  * zero rows updated and returns 'skipped'.
+ *
+ * A row stuck in 'in_progress' past STALE_IN_PROGRESS_MS is also claimable: its
+ * worker died without reaching the catch block. The winning UPDATE sets
+ * updated_at to now, so a concurrent takeover re-evaluates the WHERE and matches
+ * nothing. Residual: a kill between the send and the sent_at writeback re-sends
+ * the delivery email once on takeover (a duplicate email, never a charge).
  */
 export async function fulfilStarterDelivery(
   db: Db,
@@ -228,7 +246,8 @@ export async function fulfilStarterDelivery(
   const claim = await db.from('starter_deliveries')
     .update({ status: 'in_progress', attempts: attempt, updated_at: new Date().toISOString() })
     .eq('id', delivery.id)
-    .in('status', ['pending', 'failed'])
+    // The timestamp is quoted: '.' and ':' are reserved in PostgREST or-syntax.
+    .or(`status.in.(pending,failed),and(status.eq.in_progress,updated_at.lt."${staleInProgressCutoff()}")`)
     .select('id');
   const claimed = Array.isArray(claim.data) ? claim.data.length > 0 : !!claim.data;
   if (!claimed) {

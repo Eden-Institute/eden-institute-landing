@@ -18,6 +18,7 @@
 // its family email goes out with [TEST] in the subject, and fulfilment_status becomes 'manual'.
 
 import { STATE_RULES, type EsaStateCode, money } from "./esa-invoice.ts";
+import { esc } from "./html-escape.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -94,8 +95,6 @@ async function patchInvoice(id: string, fields: Record<string, unknown>): Promis
 }
 
 // ----------------------------------------------------------------------------- email
-const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
-
 export function wrap(bodyHtml: string, footer: string): string {
   return `<!doctype html><html><body style="margin:0;background:#FAF6EE;font-family:Georgia,serif;color:#1E1E14">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#FAF6EE"><tr><td align="center" style="padding:24px 12px">
@@ -109,8 +108,6 @@ ${bodyHtml}
 }
 
 export const para = (s: string) => `<p style="margin:0 0 14px">${s}</p>`;
-export const button = (label: string, href: string) =>
-  `<p style="margin:18px 0"><a href="${href}" style="display:inline-block;background:#2B3A1E;color:#F5EDD6;font-weight:bold;padding:12px 26px;text-decoration:none">${esc(label)}</a></p>`;
 const signature = `<p style="margin:0">Warmly,<br>Camila<br><span style="color:#5C4A28;font-size:14px">Eden's Table · Rooted in Faith Ventures LLC · (931) 575-5895</span></p>`;
 
 export async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {

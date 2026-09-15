@@ -173,8 +173,11 @@ serve(async (req) => {
       }
 
       case 'subscribe_webhook': {
+        // Only this project's own lulu-webhook may be registered, so a stolen founder
+        // session cannot point Lulu's order events at an outside host.
         const url = String(body.url ?? '');
-        if (!/^https:\/\//.test(url)) return json({ error: 'url must be https' }, 400);
+        const expected = `${(Deno.env.get('SUPABASE_URL') ?? '').replace(/\/$/, '')}/functions/v1/lulu-webhook`;
+        if (url !== expected) return json({ error: `url must be ${expected}` }, 400);
         return json(await subscribeWebhook(url));
       }
 

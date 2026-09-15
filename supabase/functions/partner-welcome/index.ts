@@ -22,6 +22,8 @@
 // (founder decision 2026-07-22) — omit the field and no P.S. renders.
 
 import { applyUnsub } from '../_shared/email-unsubscribe.ts';
+import { escapeHtml } from '../_shared/html-escape.ts';
+import { timingSafeEqual } from '../_shared/timing-safe-equal.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
 const ADMIN_TOKEN = Deno.env.get('FOUNDERS_ADMIN_TOKEN') ?? '';
@@ -107,9 +109,10 @@ async function buildDownloadButtons(): Promise<string> {
 }
 
 function buildPartnerWelcomeHtml(firstName: string, downloadButtons: string, partnerLink?: string): string {
+  const safeLink = partnerLink ? escapeHtml(partnerLink) : '';
   const psBlock = partnerLink
     ? para(
-        `P.S. Your private at-cost kit link is ready when you are: <a href="${partnerLink}" style="color:#1C3A2E;">${partnerLink}</a>. It is yours alone and covers one kit plus actual shipping.`,
+        `P.S. Your private at-cost kit link is ready when you are: <a href="${safeLink}" style="color:#1C3A2E;">${safeLink}</a>. It is yours alone and covers one kit plus actual shipping.`,
       )
     : '';
 
@@ -130,7 +133,7 @@ function buildPartnerWelcomeHtml(firstName: string, downloadButtons: string, par
 </table>
 </td></tr>
 <tr><td style="background-color:#FFFFFF;padding:32px 40px;">
-<p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
+<p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${escapeHtml(firstName)},</p>
 ${para(`Thank you for saying yes. It means more than you know. Below is a six-week digital sample of Eden's Table, our Scripture-rooted herbalism curriculum for children, so you and your family can try it at your own pace and share your honest thoughts, good or bad.`)}
 ${rule()}
 ${sectionLabel('Your six-week sample')}
@@ -170,7 +173,7 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') {
     return json(405, { error: 'POST only' });
   }
-  if (!ADMIN_TOKEN || req.headers.get('x-partner-admin') !== ADMIN_TOKEN) {
+  if (!ADMIN_TOKEN || !timingSafeEqual(req.headers.get('x-partner-admin') ?? '', ADMIN_TOKEN)) {
     return json(401, { error: 'Unauthorized' });
   }
   if (!RESEND_API_KEY) {
@@ -199,7 +202,7 @@ Deno.serve(async (req) => {
       to = body.to.trim();
       firstName = body.first_name.trim();
     }
-    const partnerLink = typeof body.partner_link === 'string' && body.partner_link ? body.partner_link : undefined;
+    const partnerLink = typeof body.partner_link === 'string' && /^https:\/\//.test(body.partner_link) ? body.partner_link : undefined;
 
     const downloadButtons = await buildDownloadButtons();
     const html = buildPartnerWelcomeHtml(firstName, downloadButtons, partnerLink);

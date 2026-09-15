@@ -17,6 +17,7 @@
 // Voice rule: no em dashes.
 
 import type { Db, OrderRow } from './order-db.ts';
+import { escapeHtml } from './html-escape.ts';
 
 /**
  * The seller of record, printed on every receipt and every Stripe invoice.
@@ -205,7 +206,7 @@ export function renderReceiptHtml(r: Receipt): string {
 
   const itemRows = r.lines.map((l) => `
 <tr>
-  <td style="${cell}">${l.name}${l.quantity > 1 ? `<br><span style="font-size:13px;color:#6B665A;">${l.quantity} x ${usd(l.unitCents)}</span>` : ''}</td>
+  <td style="${cell}">${escapeHtml(l.name)}${l.quantity > 1 ? `<br><span style="font-size:13px;color:#6B665A;">${l.quantity} x ${usd(l.unitCents)}</span>` : ''}</td>
   <td style="${right}">${usd(l.unitCents * l.quantity)}</td>
 </tr>`).join('');
 
@@ -222,7 +223,7 @@ export function renderReceiptHtml(r: Receipt): string {
   <p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:3px;color:#8A6D1F;text-transform:uppercase;margin:0 0 10px 0;">Itemized receipt: homeschool curriculum</p>
   ${r.orderNumber ? `<p style="${muted}">Order <strong style="color:#3D3832;">${r.orderNumber}</strong></p>` : ''}
   ${date ? `<p style="${muted}">Purchased ${date}</p>` : ''}
-  ${r.billTo ? `<p style="${muted}">Bill to ${r.billTo}</p>` : ''}
+  ${r.billTo ? `<p style="${muted}">Bill to ${escapeHtml(r.billTo)}</p>` : ''}
   ${r.gradeLevel ? `<p style="${muted}">Grade level ${r.gradeLevel}</p>` : ''}
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;">
     <tr>

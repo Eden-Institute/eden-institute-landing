@@ -105,11 +105,15 @@ const AMAZON_URLS: Record<string, string> = {
  *  drains pass 'homeschool'); it was only the visible sentence that was wrong,
  *  which is worse than it sounds: a false provenance line is the first thing a
  *  recipient reads when deciding whether an email is legitimate. */
-export type EmailProvenance = 'constitution' | 'homeschool';
+export type EmailProvenance = 'constitution' | 'homeschool' | 'preorder' | 'preorder_update' | 'preorder_notice' | 'order';
 
 const PROVENANCE_LINE: Record<EmailProvenance, string> = {
   constitution: 'You&rsquo;re receiving this because you completed the Constitutional Assessment at edeninstitute.health.',
   homeschool: 'You&rsquo;re receiving this because you requested a free week of Eden&rsquo;s Table from The Eden Institute.',
+  preorder: 'You&rsquo;re receiving this because you placed a preorder at edeninstitute.health.',
+  order: 'You&rsquo;re receiving this because you placed an order at edeninstitute.health.',
+  preorder_update: 'You are receiving this because you placed a preorder at edeninstitute.health.',
+  preorder_notice: 'You are receiving this because you placed a preorder at edeninstitute.health. This is a required notice about your order and is not marketing.',
 };
 
 export function emailWrapper(bodyContent: string, provenance: EmailProvenance = 'constitution'): string {
@@ -170,6 +174,16 @@ ${shopApothecaryCard()}
 </html>`;
 }
 
+/** Transactional variant: same chrome, the right provenance line, and the marketing
+ *  unsubscribe placeholder pointed at the site (a buyer cannot opt out of order or
+ *  delay notices). Pick the footer by provenance rather than string-replacing the
+ *  rendered sentence: the wrapper writes the apostrophe as &rsquo;, so a replacement
+ *  keyed on a straight apostrophe silently never matches (it shipped the quiz footer
+ *  on every preorder confirmation before 2026-09-03). */
+export function emailWrapperTransactional(bodyContent: string, provenance: EmailProvenance): string {
+  return emailWrapper(bodyContent, provenance).split('{{UNSUB_URL}}').join('https://edeninstitute.health');
+}
+
 function goldDivider(): string {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:24px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top:2px solid ${BRAND.gold};font-size:0;line-height:0;">&nbsp;</td></tr></table></td></tr></table>`;
 }
@@ -221,7 +235,6 @@ function spacer(h = 8): string {
 // EMAIL 1 — Immediate
 // ══════════════════════════════════════════════════════════════
 export function buildNurtureEmail1(
-  firstName: string,
   constitutionName: string,
   constitutionSlug: string,
 ): { subject: string; html: string } {
@@ -267,7 +280,6 @@ ${signature()}`;
 // EMAIL 2 — Day 2
 // ══════════════════════════════════════════════════════════════
 export function buildNurtureEmail2(
-  firstName: string,
   constitutionName: string,
   constitutionSlug: string,
 ): { subject: string; html: string } {
@@ -306,7 +318,6 @@ ${signature()}`;
 // EMAIL 3 — Day 4
 // ══════════════════════════════════════════════════════════════
 export function buildNurtureEmail3(
-  firstName: string,
   constitutionName: string,
   constitutionSlug: string,
 ): { subject: string; html: string } {
@@ -336,7 +347,6 @@ ${signature()}`;
 // EMAIL 4 — Day 6
 // ══════════════════════════════════════════════════════════════
 export function buildNurtureEmail4(
-  firstName: string,
   constitutionName: string,
   constitutionSlug: string,
 ): { subject: string; html: string } {
@@ -403,7 +413,6 @@ ${signature()}`;
 // EMAIL 5 — Day 8 (conditional — only if NOT purchased course AND NOT purchased guide)
 // ══════════════════════════════════════════════════════════════
 export function buildNurtureEmail5(
-  firstName: string,
   constitutionName: string,
   constitutionSlug: string,
 ): { subject: string; html: string } {
@@ -537,6 +546,8 @@ export function buildNurtureArc3(firstName: string, _constitutionName: string, _
 }
 
 // Day 14: the "come along for the ride" Facebook pitch. Band-agnostic.
+// DORMANT since 2026-07-28 (see nurture-emails MAGNET_CHAIN_NEXT): nothing enqueues
+// magnet position 3 any more. Kept so the tail can be re-enabled.
 export function buildMagnetWeek3FacebookEmail(firstName: string): { subject: string; html: string } {
   const body = `${p(`Hi ${firstName},`)}${p(`By now you&rsquo;ve walked through your first week of Eden&rsquo;s Table around your own kitchen table. Before you go further, I wanted to step out from behind the curriculum for a moment and tell you the story underneath it.`)}${p(`For as long as I can remember, I&rsquo;ve wanted to build something of my own. But it wasn&rsquo;t until late last year that God finally made it clear <em>what</em> that something should be: this. A Christ-centered way to teach our children the bodies He designed and the plants He gave to tend them.`)}${p(`This is a true passion project for me, and watching it come to life has been humbling in the best way. The encouragement and the sheer number of families asking for this curriculum have been such a blessing, far more than I expected.`)}${goldDivider()}${heading('Come along for the ride.')}${p(`I&rsquo;d love for you to follow the journey as I build this in real time. I&rsquo;ll be posting often on our Facebook page: the progress, the roadblocks, the honest struggles, and the praise reports along the way. It&rsquo;s the behind-the-scenes of a dream being built, and it&rsquo;s so much sweeter with you walking it alongside me.`)}${facebookButton('Follow the Journey on Facebook', FACEBOOK_URL)}${goldDivider()}${heading('Know a family who&rsquo;d love this?')}${p(`If a friend comes to mind, maybe another homeschool mom, a family at church, or someone who wants to raise their children close to God&rsquo;s creation, would you forward this email to them, or share the page? Word of mouth from families like yours is how Eden&rsquo;s Table grows.`)}${p(`<strong>One thing worth saying plainly,</strong> because I think it has quietly cost families time: there is no waiting list to join and no date to watch for. The whole Sprouts year is finished and printed to order, three books, at your door in about two to three weeks. And if you would rather start small, the first nine weeks are ready to download today for $39.`)}${brandButton('See the first nine weeks', 'https://edeninstitute.health/starter')}${signature()}`;
   return { subject: 'Come along for the ride', html: emailWrapper(body, 'homeschool') };

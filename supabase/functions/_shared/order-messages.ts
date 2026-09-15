@@ -4,7 +4,8 @@
 // plus the guarded dispatcher that records each send to message_log so nothing double-sends.
 // Voice rule: no em dashes (feedback_no_em_dashes).
 
-import { emailWrapper } from './nurture-email-templates.ts';
+import { emailWrapperTransactional } from './nurture-email-templates.ts';
+import { escapeHtml, safeHttpsUrl } from './html-escape.ts';
 import { OrderStatus, isTerminal } from './order-state.ts';
 import { SHIP_GUARANTEE_TEXT, SHIP_TARGET } from './order-config.ts';
 import { LULU_PRODUCTION_DELAY_MINUTES } from './lulu-config.ts';
@@ -34,7 +35,8 @@ function money(cents: number | null): string {
 }
 function firstName(order: OrderRow): string {
   const n = (order.shipping_name ?? '').trim().split(/\s+/)[0];
-  return n || 'there';
+  // The payer types this name at Stripe checkout; it goes into email HTML.
+  return escapeHtml(n || 'there');
 }
 
 export function buildPreorderConfirmationEmail(order: OrderRow): { subject: string; html: string } {
@@ -73,38 +75,16 @@ export function buildPreorderConfirmationEmail(order: OrderRow): { subject: stri
       + `before your order ships, by replying to this email.`) +
     p(`We are so grateful to have you with us this early.`) +
     signature();
-  // Transactional email: neutralize the marketing unsubscribe placeholder baked into
-  // emailWrapper, and correct its quiz-funnel footer reason for purchase receipts.
-  // The wrapper writes the apostrophe as &rsquo;, so the replacement has to match
-  // that form. The straight-apostrophe version below it never matched, and every
-  // confirmation sent before 2026-09-03 carried the quiz footer reason.
-  const html = emailWrapper(body)
-    .split('{{UNSUB_URL}}').join('https://edeninstitute.health')
-    .split("You&rsquo;re receiving this because you completed the Constitutional Assessment at edeninstitute.health.")
-    .join("You&rsquo;re receiving this because you placed a preorder at edeninstitute.health.")
-    .split("You're receiving this because you completed the Constitutional Assessment at edeninstitute.health.")
-    .join("You're receiving this because you placed a preorder at edeninstitute.health.");
+  const html = emailWrapperTransactional(body, 'preorder');
   return { subject: 'Your preorder is confirmed', html };
 }
 
-// ── Transactional wrapper ────────────────────────────────────────────────────
-// emailWrapper bakes in the marketing unsubscribe placeholder and the quiz-funnel
-// footer reason; both are wrong on a purchase receipt. The wrapper writes the
-// apostrophe as &rsquo;, so that form is matched first (the straight form never
-// matched, and every confirmation before 2026-09-03 carried the quiz footer).
-function wrapTransactional(body: string, reason: string): string {
-  return emailWrapper(body)
-    .split('{{UNSUB_URL}}').join('https://edeninstitute.health')
-    .split("You&rsquo;re receiving this because you completed the Constitutional Assessment at edeninstitute.health.")
-    .join(`You&rsquo;re receiving this because you ${reason} at edeninstitute.health.`)
-    .split("You're receiving this because you completed the Constitutional Assessment at edeninstitute.health.")
-    .join(`You're receiving this because you ${reason} at edeninstitute.health.`);
-}
-
+// Returns RAW values (orderSmsText reuses them as plain text); escape at HTML use sites.
 function trackingBits(order: OrderRow): { carrier: string; code: string; link: string | null } {
   const carrier = order.shipping_carrier ?? 'the carrier';
   const code = order.tracking_number ?? '';
-  const link = order.tracking_url ?? null;
+  // Lulu supplies this URL; only an https link may become an href.
+  const link = safeHttpsUrl(order.tracking_url);
   return { carrier, code, link };
 }
 
@@ -144,7 +124,7 @@ export function buildOrderConfirmationEmail(order: OrderRow, receipt: Receipt | 
       + `tracking the day they ship. Plan on about two to three weeks from today to your door.`) +
     p(`I am so glad you are starting. Week 1 is waiting for you.`) +
     signature();
-  return { subject: `Your Sprouts books are ordered${order.order_number ? ` (${order.order_number})` : ''}`, html: wrapTransactional(body, 'placed an order') };
+  return { subject: `Your Sprouts books are ordered${order.order_number ? ` (${order.order_number})` : ''}`, html: emailWrapperTransactional(body, 'order') };
 }
 
 export function buildShippedEmail(order: OrderRow): { subject: string; html: string } {
@@ -152,32 +132,32 @@ export function buildShippedEmail(order: OrderRow): { subject: string; html: str
   const { carrier, code, link } = trackingBits(order);
   const body =
     p(`Hi ${firstName(order)},`) +
-    p(`They are on the way!! Your <strong>${item}</strong> shipped today${carrier !== 'the carrier' ? ` with ${carrier}` : ''}.`) +
+    p(`They are on the way!! Your <strong>${escapeHtml(item)}</strong> shipped today${carrier !== 'the carrier' ? ` with ${escapeHtml(carrier)}` : ''}.`) +
     heading('Tracking') +
-    (code ? p(`Tracking number: <strong>${code}</strong>`) : '') +
+    (code ? p(`Tracking number: <strong>${escapeHtml(code)}</strong>`) : '') +
     (link
-      ? p(`<a href="${link}" style="display:inline-block;background-color:${BRAND.forest};color:#F5F0E8;font-family:Georgia,serif;font-size:16px;font-weight:bold;padding:12px 28px;text-decoration:none;">Track your package</a>`)
+      ? p(`<a href="${escapeHtml(link)}" style="display:inline-block;background-color:${BRAND.forest};color:#F5F0E8;font-family:Georgia,serif;font-size:16px;font-weight:bold;padding:12px 28px;text-decoration:none;">Track your package</a>`)
       : '') +
     (!code && !link ? p(`The carrier has not posted a tracking number yet. If nothing has arrived in two weeks, reply to this email and I will chase it.`) : '') +
     p(`Mail usually takes a week or two. When the box lands, open the Teacher's Guide to Week 1 and read it `
       + `together at the table before you do anything else. That is the whole method.`) +
     (order.order_number ? p(`Order number: ${order.order_number}`) : '') +
     signature();
-  return { subject: 'Your Sprouts books shipped', html: wrapTransactional(body, 'placed an order') };
+  return { subject: 'Your Sprouts books shipped', html: emailWrapperTransactional(body, 'order') };
 }
 
 export function buildDeliveredEmail(order: OrderRow): { subject: string; html: string } {
   const item = order.product_label ? order.product_label : 'your Sprouts set';
   const body =
     p(`Hi ${firstName(order)},`) +
-    p(`Your <strong>${item}</strong> was delivered today!`) +
+    p(`Your <strong>${escapeHtml(item)}</strong> was delivered today!`) +
     p(`If it is not where you expected, check with everyone at home first, then the porch, the side door `
       + `and anywhere else the mail carrier likes to hide things. Still nothing? Reply to this email and we `
       + `will sort it out together.`) +
     p(`If a book arrived bent, misprinted or damaged, send me a photo and I will replace it, no charge.`) +
     p(`Now go find a plant. Week 1 starts whenever you are ready.`) +
     signature();
-  return { subject: 'Your Sprouts books are here', html: wrapTransactional(body, 'placed an order') };
+  return { subject: 'Your Sprouts books are here', html: emailWrapperTransactional(body, 'order') };
 }
 
 export function buildOrderEmail(templateKey: string, order: OrderRow, receipt: Receipt | null = null): { subject: string; html: string } {

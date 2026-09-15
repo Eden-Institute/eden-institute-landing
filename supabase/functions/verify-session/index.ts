@@ -16,19 +16,31 @@
 //   user as having bought the $14 Deep-Dive Guide.
 //
 //   The new behavior: only flip purchased_guide when session.mode ===
-//   "payment" (one-off product purchase). Subscription sessions (mode ===
+//   "payment" AND metadata.lookup_key === "deep_dive_guide", the same match
+//   stripe-webhook uses (preorder / print / Starter sessions are also
+//   mode=payment but carry no such lookup_key). Subscription sessions (mode ===
 //   "subscription") are still verified for the welcome-page paid signal
 //   but never touch quiz_completions.purchased_guide. This keeps the two
 //   product lines (subscription tiers vs one-off guides) cleanly
 //   separated at the data layer per Locked Decision §0.8 #2 + #15 spirit.
 //
-// Auth model: this EF runs with verify_jwt: true — callers (welcome page,
-// guide landing) pass a valid Supabase JWT. Database writes use the
+// Auth model: runs at verify_jwt=true (pinned in supabase/config.toml).
+// Anonymous guide callers (GuideLanding, GuideSuccess) send the anon key; the
+// signed-in Welcome page sends the user JWT. The session's supabase_user_id
+// (session.metadata for one-offs, subscription.metadata for subscriptions, both
+// stamped by create-checkout) must match that user when both are present, and a
+// subscription session requires a signed-in caller. Database writes use the
 // service role to bypass RLS on quiz_completions per the same pattern as
 // record-quiz-completion.
 
-import Stripe from "https://esm.sh/stripe@14?target=deno";
+import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext";
 import { getGuideByNickname, getGuideBySlug } from "../_shared/guide/registry.ts";
+import { getCallerUser } from "../_shared/caller-user.ts";
+import {
+  CHECKOUT_SESSION_ID_RE,
+  isCallerAllowed,
+  sessionBoundUserId,
+} from "../_shared/checkout-session-binding.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -54,7 +66,7 @@ Deno.serve(async (req) => {
     // catalog-wide once a single purchase existed for a constitution type.
 
     // --- Verify Stripe session_id ---
-    if (!session_id) {
+    if (typeof session_id !== "string" || !CHECKOUT_SESSION_ID_RE.test(session_id)) {
       return new Response(
         JSON.stringify({ error: "Missing session_id" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -62,15 +74,29 @@ Deno.serve(async (req) => {
     }
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
-      apiVersion: "2023-10-16",
+      apiVersion: "2024-12-18.acacia",
     });
 
-    const session = await stripe.checkout.sessions.retrieve(session_id);
+    const session = await stripe.checkout.sessions.retrieve(session_id, { expand: ["subscription"] });
 
     if (session.payment_status !== "paid") {
       return new Response(
         JSON.stringify({ paid: false, error: "Payment not completed" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
+    // Checked before any write or audience add, so a refused caller causes no side effects.
+    const caller = await getCallerUser(req);
+    if (!isCallerAllowed({
+      mode: session.mode ?? null,
+      boundUserId: sessionBoundUserId(session),
+      callerUserId: caller?.id ?? null,
+    })) {
+      console.warn(`verify-session: session ${session.id} refused for caller ${caller?.id ?? "anon"} (mode=${session.mode})`);
+      return new Response(
+        JSON.stringify({ error: "Session does not belong to this account" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -82,14 +108,19 @@ Deno.serve(async (req) => {
     // Product-aware filter (Phase 5 fix #4 / launch-blocker #58):
     // Subscription-mode sessions (mode === "subscription") are reconciled
     // by the stripe-webhook EF into the profiles table — they MUST NOT
-    // touch quiz_completions.purchased_guide. Only payment-mode sessions
-    // (one-off products like the $14 Deep-Dive Guide) flip the flag.
+    // touch quiz_completions.purchased_guide. Only a payment-mode session whose
+    // lookup_key is deep_dive_guide flips the flag.
     const isOneOffPurchase = session.mode === "payment";
+    const lookupKey = typeof session.metadata?.lookup_key === "string" ? session.metadata.lookup_key : "";
+    const isGuidePurchase = isOneOffPurchase && lookupKey === "deep_dive_guide";
 
-    // Update quiz_completions.purchased_guide ONLY for one-off purchases.
-    if (isOneOffPurchase && email && supabaseUrl && serviceRoleKey) {
+    // Update quiz_completions.purchased_guide ONLY for a Deep-Dive Guide purchase.
+    if (isGuidePurchase && email && supabaseUrl && serviceRoleKey) {
       try {
-        await fetch(`${supabaseUrl}/rest/v1/quiz_completions?email=eq.${encodeURIComponent(email)}`, {
+        // quiz_completions is unique on lower(email) and stores it lowercased.
+        // Not ilike: "_" in an address is an ilike wildcard.
+        const normEmail = email.trim().toLowerCase();
+        await fetch(`${supabaseUrl}/rest/v1/quiz_completions?email=eq.${encodeURIComponent(normEmail)}`, {
           method: "PATCH",
           headers: {
             apikey: serviceRoleKey,
@@ -99,13 +130,13 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({ purchased_guide: true }),
         });
-        console.log(`quiz_completions.purchased_guide=TRUE for email: ${email} (mode=payment)`);
+        console.log(`verify-session: purchased_guide=TRUE (session ${session.id})`);
       } catch (dbErr) {
         console.error("DB update failed (non-blocking):", dbErr);
       }
-    } else if (!isOneOffPurchase) {
+    } else if (!isGuidePurchase) {
       console.log(
-        `verify-session: skipping purchased_guide flip for subscription-mode session ${session.id} (email: ${email})`,
+        `verify-session: skipping purchased_guide flip for session ${session.id} (mode=${session.mode}, lookup_key=${lookupKey || "none"})`,
       );
     }
 

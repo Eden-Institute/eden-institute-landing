@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
       // Idempotency: the user re-submitting their already-recorded intent
       // is a success state from their perspective; we return 200 ok.
       if (insertRes.status === 409 || /duplicate key|23505/.test(errText)) {
-        console.log('practitioner_waitlist already-on-list (idempotent ok)', { email });
+        console.log('practitioner_waitlist already-on-list (idempotent ok)', { pattern_slug });
         return new Response(
           JSON.stringify({ ok: true, already_on_list: true }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
@@ -167,20 +167,14 @@ Deno.serve(async (req) => {
         status: insertRes.status,
         statusText: insertRes.statusText,
         body: errText,
-        email,
       });
       return new Response(
-        JSON.stringify({
-          error: 'Failed to record waitlist signup',
-          status: insertRes.status,
-          detail: errText,
-        }),
+        JSON.stringify({ error: 'Failed to record waitlist signup' }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
     console.log('practitioner_waitlist INSERT ok', {
-      email,
       pattern_slug,
       status: insertRes.status,
     });

@@ -11,6 +11,8 @@
 // follow-up item so they ride the daily digest until handled. Camila reviews
 // and sends the booking link manually — investors never receive an inline link.
 
+import { bumpRateBucket, clientIp } from "../_shared/rate-bucket.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -23,6 +25,11 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
 const INQUIRY_TO = "hello@edeninstitute.health";
 const INQUIRY_FROM = "Eden Institute Partnerships <hello@edeninstitute.health>";
+
+// Each accepted POST emails hello@ (and investor ones add a punch-list row), so an
+// unthrottled endpoint is an inbox and digest flood. Own bucket, not the checkout one.
+const INQUIRIES_PER_WINDOW = 5;
+const INQUIRY_WINDOW_SECONDS = 600;
 
 const TYPE_LABELS: Record<string, string> = {
   brand: "Aligned brand / business",
@@ -221,6 +228,22 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const v = parsed.value;
+
+    // Fails open: no IP or a limiter error (null) lets the inquiry through.
+    const ip = clientIp(req);
+    if (ip) {
+      const count = await bumpRateBucket({
+        supabaseUrl: SUPABASE_URL,
+        serviceKey: SUPABASE_SERVICE_ROLE_KEY,
+        key: `inquiry_ip:${ip}`,
+        windowSeconds: INQUIRY_WINDOW_SECONDS,
+      });
+      if (count !== null && count > INQUIRIES_PER_WINDOW) {
+        // WORDING: pending founder approval
+        return new Response(JSON.stringify({ error: "Too many submissions from this connection. Please wait a few minutes, or email hello@edeninstitute.health." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
 
     // STEP 1 — DURABLE WRITE (source of truth, must succeed)
     const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/partner_inquiries`, {

@@ -348,10 +348,21 @@ export function deliveryLine(plan: InvoicePlan): string {
   return "Delivery: printed to order once payment is received, then shipped. In hand in about 2 to 3 weeks.";
 }
 
+export const AL_FORBIDDEN_RE = /choose\s*act|classwallet/i;
+
 /** Words that must never reach an invoice. Checked on the final text before anything is saved. */
 export function forbiddenOnInvoice(state: EsaStateCode, text: string): string[] {
   const hits: string[] = [];
-  if (state === "AL" && /choose\s*act|classwallet/i.test(text)) hits.push("Alabama invoice names the CHOOSE Act or ClassWallet");
+  if (state === "AL" && AL_FORBIDDEN_RE.test(text)) hits.push("Alabama invoice names the CHOOSE Act or ClassWallet");
   if (/\b(credit|coupon)\b/i.test(text)) hits.push("credit or coupon wording (L-29)");
   return hits;
+}
+
+/** Alabama only. The ClassWallet / CHOOSE Act ban covers every word on the page, including
+ *  family-typed names and the ship-to block. Credit/coupon stays a static-text check so a real
+ *  surname is never rejected. */
+export function forbiddenInFamilyText(state: EsaStateCode, text: string): string[] {
+  return state === "AL" && AL_FORBIDDEN_RE.test(text)
+    ? ["Alabama invoice names the CHOOSE Act or ClassWallet in a family-supplied field"]
+    : [];
 }

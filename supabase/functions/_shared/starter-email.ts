@@ -18,6 +18,7 @@
 
 import { STARTER_LICENSE_LINE } from './starter-config.ts';
 import { Receipt, renderReceiptHtml, renderReceiptText } from './receipt.ts';
+import { escapeHtml } from './html-escape.ts';
 
 export interface StarterEmailModel {
   firstName: string | null;
@@ -56,10 +57,6 @@ function rule(): string {
 
 function sectionLabel(text: string): string {
   return `<p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:3px;color:#8A6D1F;text-transform:uppercase;margin:0 0 18px 0;">${text}</p>`;
-}
-
-function dollars(cents: number): string {
-  return cents % 100 === 0 ? `$${cents / 100}` : `$${(cents / 100).toFixed(2)}`;
 }
 
 export function renderStarterDeliveryEmail(m: StarterEmailModel): {
@@ -101,7 +98,7 @@ ${ctaButton('See the printed year', PRINT_SET_URL)}
 <span style="font-family:Georgia,serif;font-size:13px;font-weight:bold;letter-spacing:4px;color:#C9A84C;">THE EDEN INSTITUTE</span>
 </td></tr>
 <tr><td style="padding:34px 36px;">
-${para(greeting)}
+${para(escapeHtml(greeting))}
 ${para(`Here are your first nine weeks of Eden's Table, Sprouts. Everything you need to start teaching is in these three files.`)}
 
 ${sectionLabel('Your downloads')}

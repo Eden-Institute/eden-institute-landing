@@ -26,17 +26,24 @@ export const CHECKOUT_RATE_WINDOW_SECONDS = Number(
 );
 
 /**
- * Best-effort client IP. Supabase sits behind a proxy, so x-forwarded-for is the real
- * source; the left-most entry is the original client. Returns null when no header is
- * present, which callers treat as "cannot rate limit" and allow.
+ * Best-effort client IP. Returns null when no header is present, which callers treat
+ * as "cannot rate limit" and allow.
+ *
+ * cf-connecting-ip is set by Cloudflare and overwrites any client-supplied value, so
+ * when present it is the one header a caller cannot choose. x-forwarded-for is
+ * appended to by each hop, so its left-most entry is whatever the client sent; it
+ * stays as the fallback because the gateway may not pass cf-connecting-ip through.
+ * Never the RIGHT-most entry: that is a proxy address shared by every visitor.
  */
 export function clientIp(req: Request): string | null {
+  const cf = req.headers.get('cf-connecting-ip')?.trim();
+  if (cf) return cf;
   const fwd = req.headers.get('x-forwarded-for');
   if (fwd) {
     const first = fwd.split(',')[0]?.trim();
     if (first) return first;
   }
-  return req.headers.get('cf-connecting-ip') ?? req.headers.get('x-real-ip');
+  return req.headers.get('x-real-ip')?.trim() || null;
 }
 
 /**

@@ -119,6 +119,12 @@ function toIso(v: unknown): string | null {
   return null;
 }
 
+// Stable fallback id for payloads with no event id: the signed raw body is byte-identical on redelivery.
+async function bodyHash(raw: string): Promise<string> {
+  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
+  return "sha256:" + Array.from(new Uint8Array(d), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders() });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
@@ -152,7 +158,9 @@ Deno.serve(async (req) => {
   }
 
   // v2 "productBought" shape first, legacy/flat shapes as fallbacks.
-  const eventId = asString(pick(payload, ["data.payment.id", "id", "event_id", "data.id", "data.order.id", "order.id"]));
+  const eventId =
+    asString(pick(payload, ["data.payment.id", "id", "event_id", "data.id", "data.order.id", "order.id"])) ??
+    (await bodyHash(rawBody));
   const email = (asString(pick(payload, ["data.user.email", "user.email", "data.email", "email"])) ?? "")
     .toLowerCase().trim() || null;
   const productId = asString(pick(payload, ["data.payment.product.id", "data.product.id", "product.id", "data.course.id", "course.id", "data.product_id"]));
@@ -181,7 +189,7 @@ Deno.serve(async (req) => {
   // 23505 = unique_violation on lw_event_id → already recorded (redelivery).
   if (error && (error as { code?: string }).code !== "23505") {
     console.error("learnworlds-webhook: course_sales insert failed", error);
-    return json({ error: "insert_failed", detail: error.message }, 500);
+    return json({ error: "insert_failed" }, 500);
   }
 
   return json({ received: true, recorded: !error, event_id: eventId, email, amount_cents: amountCents });

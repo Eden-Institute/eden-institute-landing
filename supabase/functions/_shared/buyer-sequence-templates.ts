@@ -25,22 +25,19 @@
 //      referenced by name only, never enumerated, because their content is not
 //      in this repo.
 //
-// Ship dates are literals here so the module stays self-contained, exactly as
-// launch-sequence-templates.ts does. They MUST match SHIP_TARGET and
-// SHIP_GUARANTEE_TEXT in _shared/order-config.ts, which is the authoritative
-// source the checkout disclaimer and the confirmation email use.
+// Ship dates are imported from _shared/order-config.ts (SHIP_TARGET and
+// SHIP_GUARANTEE_TEXT), the single source the checkout disclaimer and the
+// confirmation email use, so they cannot drift from it.
 //
 // Voice rules, same as every other Eden template: no em dashes, Scripture is
 // NASB and woven into the argument rather than appended. Every verse quoted
 // here is copied verbatim from launch-sequence-templates.ts, where it was
 // already reviewed, rather than typed from memory.
 
+import { SHIP_TARGET, SHIP_GUARANTEE_TEXT as SHIP_GUARANTEE } from './order-config.ts';
+
 const WEBSITE_URL = 'https://edeninstitute.health';
 const HERB_SOURCING_URL = 'https://edeninstitute.health/homeschool/herbs';
-
-// Revised 2026-08-26. Mirrors _shared/order-config.ts; this file keeps its own copy.
-const SHIP_TARGET = 'July 31, 2027';
-const SHIP_GUARANTEE = 'September 30, 2027';
 
 const BRAND = {
   bgOuter: '#F5F0E8',

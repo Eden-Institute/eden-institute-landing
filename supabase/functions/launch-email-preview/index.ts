@@ -20,9 +20,12 @@
 // one-way founding_closed_at latch. A preview must have no side effects on
 // billing state, so the founding window is read passively from
 // products.founding_closed_at instead.
+//
+// Cron-only: requires role=service_role via _shared/require-service-role.ts; verify_jwt is pinned true in supabase/config.toml.
 
 import { buildLaunchEmail } from '../_shared/launch-sequence-templates.ts';
 import { foundersFormUrl } from '../_shared/founders-link.ts';
+import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -143,6 +146,7 @@ async function previewPosition(
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (!isServiceRoleRequest(req)) return serviceRoleRequired(corsHeaders);
 
   try {
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !RESEND_API_KEY) {

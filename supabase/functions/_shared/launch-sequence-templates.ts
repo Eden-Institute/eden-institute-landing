@@ -51,12 +51,13 @@
 // Voice rules: no em dashes (feedback_no_em_dashes); Scripture is NASB and
 // woven into the copy, never appended.
 
-// ── ACTIVATION CHECKLIST — fill these before the July 9 send ─────────────
-// [MOUNTAIN_ROSE_AFFILIATE_URL]: Camila's Mountain Rose Herbs affiliate link.
-//   Until it is filled in, the shop button safely falls back to the existing
-//   monetized herb-ordering page at /homeschool/herbs (PR #222), so an
-//   unfilled placeholder can never ship a dead link.
-const MOUNTAIN_ROSE_AFFILIATE_URL = '[MOUNTAIN_ROSE_AFFILIATE_URL]';
+import { SHIP_TARGET as EMAIL_SHIP_TARGET, SHIP_GUARANTEE_TEXT as EMAIL_SHIP_GUARANTEE } from './order-config.ts';
+
+// ── Link targets ─────────────────────────────────────────────────────────
+// Shop button target for emails 3/5/7: the monetized herb-ordering page (PR #222).
+// A Mountain Rose Herbs affiliate link was planned here for the July 2026 send
+// and never supplied; if Camila provides one, point SHOP_URL at it.
+const SHOP_URL = 'https://edeninstitute.health/homeschool/herbs';
 // [WEBSITE_URL]: canonical marketing site. Live value already correct.
 const WEBSITE_URL = 'https://edeninstitute.health';
 // Social links (same values the canonical emailWrapper chrome uses).
@@ -82,25 +83,13 @@ const PREORDER_URL = 'https://edeninstitute.health/preorder';
 // absent from the signup trigger) and kept verbatim for the phase-two kit launch.
 const PRINT_SET_URL = 'https://edeninstitute.health/books';
 const STARTER_URL = 'https://edeninstitute.health/starter';
-// Ship dates, kept as literals here so this module stays self-contained (it
-// imports nothing). These MUST match SHIP_TARGET / SHIP_GUARANTEE_TEXT in
-// _shared/order-config.ts, which is the authoritative source the checkout
-// disclaimer and confirmation email use. If the ship window ever moves, change
-// it there and mirror it here. Email 15 states both because that FAQ asks
-// "when do kits arrive?" by name, and under 16 CFR 435 the answer must carry
-// the guaranteed date, not just a promise of a shipping-confirmation email.
-// Revised 2026-08-26. Mirrors _shared/order-config.ts; this file keeps its own copy.
-const EMAIL_SHIP_TARGET = 'July 31, 2027';
-const EMAIL_SHIP_GUARANTEE = 'September 30, 2027';
+// Ship dates (EMAIL_SHIP_TARGET / EMAIL_SHIP_GUARANTEE) are imported from
+// _shared/order-config.ts, the single source the checkout disclaimer and
+// confirmation email use, so a moved ship window cannot drift here. Email 15
+// states both because that FAQ asks "when do kits arrive?" by name, and under
+// 16 CFR 435 the answer must carry the guaranteed date, not just a promise of a
+// shipping-confirmation email.
 // ──────────────────────────────────────────────────────────────────────────
-
-const SHOP_FALLBACK_URL = 'https://edeninstitute.health/homeschool/herbs';
-
-function shopUrl(): string {
-  return MOUNTAIN_ROSE_AFFILIATE_URL.startsWith('[')
-    ? SHOP_FALLBACK_URL
-    : MOUNTAIN_ROSE_AFFILIATE_URL;
-}
 
 const BRAND = {
   bgOuter: '#F5F0E8',
@@ -190,7 +179,7 @@ function shopHerbsBlock(framing: string): string {
 <tr><td align="center">
 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
 <tr><td align="center" style="background-color:${BRAND.bgBody};border:2px solid ${BRAND.forest};border-radius:8px;">
-<a href="${shopUrl()}" target="_blank" style="display:inline-block;color:${BRAND.forest};font-family:Georgia,serif;font-size:15px;font-weight:bold;text-decoration:none;text-align:center;padding:12px 36px;border-radius:8px;line-height:22px;mso-line-height-rule:exactly;">Shop Herbs for Your Apothecary</a>
+<a href="${SHOP_URL}" target="_blank" style="display:inline-block;color:${BRAND.forest};font-family:Georgia,serif;font-size:15px;font-weight:bold;text-decoration:none;text-align:center;padding:12px 36px;border-radius:8px;line-height:22px;mso-line-height-rule:exactly;">Shop Herbs for Your Apothecary</a>
 </td></tr>
 </table>
 <p style="font-family:Georgia,serif;font-size:12px;color:${BRAND.footerText};margin:8px 0 0 0;font-style:italic;">Affiliate link. Eden Institute earns a small commission at no extra cost to you.</p>
@@ -971,11 +960,10 @@ export const EMAIL_7_RESEND_POSITION = 18;
 // the literal to a STARTER_URL const beside PREORDER_URL. No PS, no second
 // link, no countdown, no scarcity.
 //
-// `founding` touches ONE sentence, the last line of the price paragraph. The
-// post-founding variant states $349 and says nothing about $249, the 500 or
-// founding standing, in body, subject or preheader. Note that the KIT price
-// does move, $249 to $349, so no "the price does not move" line may appear
-// anywhere near it; any such reassurance is scoped to the $39 explicitly.
+// `founding` is read only by the retired 13-17; 8-12 and 19-21 ignore it. Note
+// that the KIT price does move, $249 to $349, so no "the price does not move"
+// line may appear anywhere near it; any such reassurance is scoped to the $39
+// explicitly.
 //
 // WIRING. 🔴 Add `19: buildLaunchEmail19` to LAUNCH_BUILDERS. Exporting the
 // function is NOT enough: buildLaunchEmail() dispatches through that map and
@@ -984,6 +972,7 @@ export const EMAIL_7_RESEND_POSITION = 18;
 // (zero em dashes, en dash and middot only) and suppress the five refund-bound
 // preorder buyers.
 export function buildLaunchEmail19(firstName: string, founding = true): { subject: string; html: string } {
+  void founding;
   const body =
     `${preheader(`The question I am always ready for. Here is the whole answer.`)}` +
     `${p(`Hi ${firstName},`)}` +
@@ -1001,9 +990,7 @@ export function buildLaunchEmail19(firstName: string, founding = true): { subjec
     `${p(`Given. That one word does all the theological work, and it is why the week opens in Scripture rather than in a remedy.`)}` +
     `${p(`I have been recording these conversations all summer. When each one airs, the link comes to this list the same day.`)}` +
     `${goldDivider()}` +
-    `${p(founding
-      ? `Weeks 1 through 9 are $39, digital, instant download: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks. The whole year, all thirty-six weeks in three printed books, is $249 and is at your door in about two to three weeks.`
-      : `Weeks 1 through 9 are $39, digital, instant download: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks. The whole year, all thirty-six weeks in three printed books, is $249 and is at your door in about two to three weeks.`)}` +
+    `${p(`Weeks 1 through 9 are $39, digital, instant download: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks. The whole year, all thirty-six weeks in three printed books, is $249 and is at your door in about two to three weeks.`)}` +
     `${brandButton('Start with Weeks 1 through 9', 'https://edeninstitute.health/starter')}` +
     `${signature()}`;
   return { subject: `"You are not an herbalist"`, html: launchWrapper(body) };
@@ -1108,10 +1095,11 @@ export function buildLaunchEmail19(firstName: string, founding = true): { subjec
 // this revision it is NOT identical: email 19 states both kit prices in one
 // sentence and omits the ship dates, while this one splits them and carries
 // EMAIL_SHIP_TARGET / EMAIL_SHIP_GUARANTEE. Reconcile all three in one pass.
-// `founding` touches the printed-kit line only. Note that the KIT price DOES
-// move, $249 to $349, so no "the price does not move" reassurance may appear
-// near it; any such line is scoped to the $39 explicitly. Founding-500 PRICE
-// only, never the perk. No manufacturer, freight, customs or printer name, and
+// `founding` is read only by the retired 13-17; 8-12 and 19-21 ignore it.
+// Note that the KIT price DOES move, $249 to $349, so no "the price does not
+// move" reassurance may appear near it; any such line is scoped to the $39
+// explicitly. Founding-500 PRICE only, never the perk. No manufacturer,
+// freight, customs or printer name, and
 // no funding or investment talk. The CTA points at /starter, not PREORDER_URL,
 // so it calls brandButton directly rather than preorderButton().
 //
@@ -1122,6 +1110,7 @@ export function buildLaunchEmail19(firstName: string, founding = true): { subjec
 // (zero em dashes, en dash and middot only) and suppress the five refund-bound
 // preorder buyers.
 export function buildLaunchEmail20(firstName: string, founding = true): { subject: string; html: string } {
+  void founding;
   const body =
     `${preheader(`Sprouts and Seedlings share no plants. Starting here repeats nothing.`)}` +
     `${p(`Hi ${firstName},`)}` +
@@ -1139,9 +1128,7 @@ export function buildLaunchEmail20(firstName: string, founding = true): { subjec
     `${p(`Teaching a child to taste and see before she is taught to conclude is not a method I invented. It is older than I am, and the goodness is the Giver&rsquo;s.`)}` +
     `${goldDivider()}` +
     `${p(`The Sprouts Starter Unit is <strong>$39</strong>, digital, instant download: weeks 1 through 9, with the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook.`)}` +
-    `${p(founding
-      ? `The whole year in print, all thirty-six weeks in three books, is <strong>$249</strong> and is at your door in about two to three weeks.`
-      : `The whole year in print, all thirty-six weeks in three books, is <strong>$249</strong> and is at your door in about two to three weeks.`)}` +
+    `${p(`The whole year in print, all thirty-six weeks in three books, is <strong>$249</strong> and is at your door in about two to three weeks.`)}` +
     `${brandButton('Start with Weeks 1 through 9', 'https://edeninstitute.health/starter')}` +
     `${signature()}`;
   return { subject: `Aren't my kids too old for this?`, html: launchWrapper(body) };
@@ -1223,15 +1210,15 @@ export function buildLaunchEmail20(firstName: string, founding = true): { subjec
 // about the print run.
 //
 // The price paragraph is carried word for word from emails 19 and 20. If it
-// changes in one, it changes in all three. The founding branch obeys the
-// standing rule: post-founding copy names neither $249, the 500, nor founding
-// standing, in body, subject or preheader.
+// changes in one, it changes in all three. `founding` is read only by the
+// retired 13-17; 8-12 and 19-21 ignore it.
 //
 // STARTER_URL is declared locally because this module deliberately imports
 // nothing (see the file header). It mirrors STARTER_PAGE_URL in
 // _shared/starter-config.ts, which is the authoritative value. When emails 19
 // and 20 land in this file, lift it to a module const beside PREORDER_URL.
 export function buildLaunchEmail21(firstName: string, founding = true): { subject: string; html: string } {
+  void founding;
   const STARTER_URL = 'https://edeninstitute.health/starter';
   // 2026-09-12 stale sweep: the Deville recording is 2026-09-18. Signups keep
   // receiving this email weeks later, so the dated hook only renders before then.
@@ -1256,9 +1243,7 @@ export function buildLaunchEmail21(firstName: string, founding = true): { subjec
     `${verseCard(`Like a shepherd He will tend His flock, in His arm He will gather the lambs and carry them in His bosom; He will gently lead the nursing ewes.`, 'Isaiah 40:11')}` +
     `${p(`That is the pace I want for your year, and the one I am still learning for mine.`)}` +
     `${p(`The Sprouts Starter Unit is <strong>$39</strong>: weeks 1 through 9, digital, instant download, with the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks.`)}` +
-    `${p(founding
-      ? `The whole year in print, all thirty-six weeks in three books, is <strong>$249</strong> and is at your door in about two to three weeks.`
-      : `The whole year in print, all thirty-six weeks in three books, is <strong>$249</strong> and is at your door in about two to three weeks.`)}` +
+    `${p(`The whole year in print, all thirty-six weeks in three books, is <strong>$249</strong> and is at your door in about two to three weeks.`)}` +
     `${p(`This is the third and last of these notes. The <strong>$39</strong> Starter Unit is not going anywhere and there is no deadline on it. If this is not the year for it, I will still be here when it is.`)}` +
     `${brandButton(`Start with Weeks 1 through 9`, STARTER_URL)}` +
     `${signature()}`;
@@ -1293,7 +1278,7 @@ const LAUNCH_BUILDERS: Record<number, (firstName: string, founding?: boolean) =>
   21: buildLaunchEmail21,
 };
 
-// `founding` only affects positions 8-17 (the 1-7 builders ignore it).
+// `founding` is read only by the retired 13-17; 1-12 and 19-21 ignore it.
 // `foundersUrl` is REQUIRED for positions 7 and 18 and must come from
 // foundersFormUrl() in _shared/founders-link.ts; every other position ignores it.
 // `variant` only affects position 18 (the subject-line split test); pass it from

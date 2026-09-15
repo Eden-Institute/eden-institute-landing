@@ -59,6 +59,7 @@ const LEGACY_TYPE_TO_SLUG: Record<string, string> = {
 // artwork. Override for staging with GUIDE_PLATE_BASE.
 const PLATE_BASE = (Deno.env.get("GUIDE_PLATE_BASE") ?? "https://edeninstitute.health/guide-plates").replace(/\/$/, "");
 const PLATE_FETCH_TIMEOUT_MS = 8000;
+const MAX_PLATE_BYTES = 2 * 1024 * 1024; // ~6x the largest plate (pressure-cooker.jpg 341 KB); guards the 256 MB EF memory ceiling
 
 // ---------------------------------------------------------------------------
 // Palette: Eden brand SSOT (Deep Forest Green, Golden Amber, Warm Linen, Deep Cream,
@@ -98,7 +99,18 @@ async function fetchPlate(slug: string): Promise<Uint8Array | null> {
     if (!res.ok) { console.warn(`constitution-pdf: plate ${url} -> ${res.status}; rendering cover without it`); return null; }
     const ct = res.headers.get("content-type") ?? "";
     if (!ct.includes("jpeg") && !ct.includes("jpg")) { console.warn(`constitution-pdf: plate ${url} content-type ${ct}; skipping`); return null; }
-    return new Uint8Array(await res.arrayBuffer());
+    const declared = Number(res.headers.get("content-length") ?? "0");
+    if (declared > MAX_PLATE_BYTES) {
+      console.warn(`constitution-pdf: plate ${url} is ${declared} bytes (> ${MAX_PLATE_BYTES}); rendering cover without it`);
+      await res.body?.cancel();
+      return null;
+    }
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    if (bytes.byteLength > MAX_PLATE_BYTES) {
+      console.warn(`constitution-pdf: plate ${url} is ${bytes.byteLength} bytes (> ${MAX_PLATE_BYTES}); rendering cover without it`);
+      return null;
+    }
+    return bytes;
   } catch (err) {
     console.warn(`constitution-pdf: plate fetch failed (${err instanceof Error ? err.message : String(err)}); rendering cover without it`);
     return null;
@@ -188,7 +200,8 @@ async function renderFullGuide(content: FullGuideContent, plateBytes: Uint8Array
   // First paragraph of a chapter: gold drop cap, first three lines indented past it.
   function paraDrop(text: string) {
     const t = fix(text);
-    if (t.length < 2) return para(t);
+    // No drop cap when the paragraph opens with punctuation (quote, bracket).
+    if (t.length < 2 || !/^[\p{L}\p{N}]/u.test(t)) return para(t);
     const cap = t[0], rest = t.slice(1);
     const size = 11.5, lead = 16.5, capSize = 42, capW = PfB.widthOfTextAtSize(cap, capSize) + 7;
     ensure(lead * 3 + 4);
@@ -456,8 +469,6 @@ async function renderFullGuide(content: FullGuideContent, plateBytes: Uint8Array
 
   return await doc.save();
 }
-
-export { renderFullGuide };
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });

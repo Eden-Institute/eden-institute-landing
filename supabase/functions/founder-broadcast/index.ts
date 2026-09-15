@@ -22,7 +22,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { captureException } from "../_shared/sentry.ts";
 import { buildDelayNoticeEmail, buildUpdateEmail, renderBody } from "../_shared/broadcast-templates.ts";
 import { signDelayToken } from "../_shared/delay-consent-token.ts";
-import { requiresOptIn } from "../_shared/delay-notice-rules.ts";
+import { requiresOptIn, resolveSubject } from "../_shared/delay-notice-rules.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -33,29 +33,8 @@ const SITE = "https://edeninstitute.health";
 const FOUNDER_EMAIL = "hello@edeninstitute.health";
 const FROM = "Camila at The Eden Institute <hello@edeninstitute.health>";
 
-// Delay-notice subject lines are PRE-APPROVED, not typed at send time.
-//
-// Every other word of a delay notice is templated because the notice is a legal
-// instrument under 16 CFR 435.2(b). The subject was the one part still freehand, and
-// it would be written in the worst circumstances: late, under pressure, on the day a
-// shipment slips. It is also the first place the opt-in / opt-out distinction becomes
-// visible to the buyer, and those two carry opposite consequences.
-//
-// Opt-out: silence is consent, the order stands. "Update" is honest.
-// Opt-in:  silence is CANCELLATION and refund. The subject must say that action is
-//          required, or a buyer who skims loses their order by doing nothing.
-//
-// No response deadline in the opt-in subject on purpose. Nothing in this system
-// computes or enforces one, and a date in a subject line that no code honours is the
-// same defect as telling a buyer a refund is "on its way" when it is issued by hand.
-const DELAY_SUBJECT_OPT_OUT = "Update on your Eden's Table order: new ship date inside";
-const DELAY_SUBJECT_OPT_IN = "Action needed on your Eden's Table order, please reply to keep it";
-
-/** Delay notices use their approved subject; ordinary updates keep the founder's. */
-function resolveSubject(isDelay: boolean, optIn: boolean, founderSubject: string): string {
-  if (!isDelay) return founderSubject;
-  return optIn ? DELAY_SUBJECT_OPT_IN : DELAY_SUBJECT_OPT_OUT;
-}
+// Delay-notice subject lines are PRE-APPROVED: see DELAY_SUBJECT_* and resolveSubject
+// in _shared/delay-notice-rules.ts.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -163,16 +142,36 @@ function firstName(name: string | null): string {
   return n || "there";
 }
 
-async function sendEmail(to: string, subject: string, html: string): Promise<string | null> {
+async function sendEmail(
+  to: string,
+  subject: string,
+  html: string,
+  idempotencyKey: string,
+): Promise<string | null> {
   if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY missing");
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: FROM, to, reply_to: FOUNDER_EMAIL, subject, html }),
-  });
-  if (!res.ok) throw new Error(`resend ${res.status}: ${(await res.text()).slice(0, 200)}`);
-  const body = await res.json().catch(() => ({}));
-  return typeof body?.id === "string" ? body.id : null;
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+        // Resend answers a repeated key (kept 24h) with the original response and
+        // does not send again, so a retry here cannot deliver the same email twice.
+        "Idempotency-Key": idempotencyKey,
+      },
+      body: JSON.stringify({ from: FROM, to, reply_to: FOUNDER_EMAIL, subject, html }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (res.status === 429 && attempt < 2) {
+      await res.body?.cancel();
+      const waitMs = Math.min(Number(res.headers.get("retry-after")) * 1000 || 1000 * (attempt + 1), 5000);
+      await new Promise((r) => setTimeout(r, waitMs));
+      continue;
+    }
+    if (!res.ok) throw new Error(`resend ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const body = await res.json().catch(() => ({}));
+    return typeof body?.id === "string" ? body.id : null;
+  }
 }
 
 /** Human date for the copy, in the founder's timezone rather than UTC. */
@@ -211,12 +210,19 @@ Deno.serve(async (req) => {
     const bodyMarkdown = String(body.body_markdown ?? "").trim().slice(0, 20_000);
     if (!subject || !bodyMarkdown) return json({ error: "subject_and_body_required" }, 400);
 
+    // Dates reach the copy through formatDate(); a malformed one renders the literal
+    // string "Invalid Date" into a legal notice. Reject rather than mail (or preview) that.
+    const revisedRaw = body.revised_ship_date ? String(body.revised_ship_date) : null;
+    if (revisedRaw !== null && !/^\d{4}-\d{2}-\d{2}$/.test(revisedRaw)) {
+      return json({ error: "invalid_revised_ship_date" }, 400);
+    }
+
     const list = await recipients(db);
 
     if (mode === "preview") {
       const sample = list[0];
       const isDelay = body.kind === "delay_notice";
-      const revised = body.revised_ship_date ? String(body.revised_ship_date) : null;
+      const revised = revisedRaw;
       const optIn = requiresOptIn({
         revisedShipDate: revised,
         currentShipsOn: String(body.current_ships_on ?? "") || null,
@@ -256,14 +262,8 @@ Deno.serve(async (req) => {
     }
 
     const isDelay = mode === "delay";
-    const revised = body.revised_ship_date ? String(body.revised_ship_date) : null;
+    const revised = revisedRaw;
     const currentShipsOn = String(body.current_ships_on ?? "") || null;
-
-    // Dates reach the copy through formatDate(); a malformed one renders the literal
-    // string "Invalid Date" into a legal notice. Reject rather than mail that.
-    if (revised !== null && !/^\d{4}-\d{2}-\d{2}$/.test(revised)) {
-      return json({ error: "invalid_revised_ship_date" }, 400);
-    }
 
     const optIn = isDelay
       ? requiresOptIn({ revisedShipDate: revised, currentShipsOn, priorNoticeCount: 0 })
@@ -311,18 +311,24 @@ Deno.serve(async (req) => {
     for (const r of list) {
       try {
         let html: string;
+        let recipientSubject = sendSubject;
         if (isDelay) {
           // Per-order opt-in determination: an order that has already had a notice
           // always requires affirmative consent, regardless of this slip's size.
-          const { count } = await db
+          // A failed count must not read as zero prior notices (that could turn an
+          // opt-in notice into opt-out), so it throws and this order is not mailed.
+          const { count, error: countErr } = await db
             .from("order_delay_notices")
             .select("id", { count: "exact", head: true })
             .eq("order_id", r.order_id);
+          if (countErr) throw countErr;
           const optIn = requiresOptIn({
             revisedShipDate: revised,
             currentShipsOn,
             priorNoticeCount: count ?? 0,
           });
+          // The subject must follow the per-order opt-in, same as the body.
+          recipientSubject = resolveSubject(true, optIn, subject);
 
           const [consentTok, cancelTok] = await Promise.all([
             signDelayToken({ o: r.order_id, b: broadcastId, r: "consented" }),
@@ -339,13 +345,14 @@ Deno.serve(async (req) => {
           });
           // Evidence row FIRST: a sent notice we failed to record is worse than a
           // recorded notice we failed to send, because only the former is invisible.
-          await db.from("order_delay_notices").insert({
+          const { error: evErr } = await db.from("order_delay_notices").insert({
             order_id: r.order_id,
             broadcast_id: broadcastId,
             notice_number: (count ?? 0) + 1,
             revised_ship_date: revised,
             requires_opt_in: optIn,
           });
+          if (evErr) throw evErr;
         } else {
           html = buildUpdateEmail({
             firstName: firstName(r.shipping_name),
@@ -353,11 +360,11 @@ Deno.serve(async (req) => {
             orderNumberLine: r.order_number ? `Order ${r.order_number}` : undefined,
           });
         }
-        await sendEmail(r.customer_email, sendSubject, html);
+        await sendEmail(r.customer_email, recipientSubject, html, `${broadcastId}:${r.order_id}`);
         sent += 1;
       } catch (e) {
         failed += 1;
-        console.error(`broadcast to ${r.customer_email} failed:`, e instanceof Error ? e.message : String(e));
+        console.error(`broadcast to order ${r.order_id} failed:`, e instanceof Error ? e.message : String(e));
         await captureException(e, { function: "founder-broadcast", order_id: r.order_id });
       }
     }
