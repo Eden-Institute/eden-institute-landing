@@ -305,6 +305,24 @@ const cardStyle = "border-color:hsl(var(--eden-gold) / 0.3)";
     </section>
   )}
 
+  {/* Independent resources: always their own box, never inside "Official ... information". */}
+  {s.resources && s.resources.length > 0 && (
+    <section class="pb-12 px-6 bg-background">
+      <div class="max-w-2xl mx-auto">
+        <div class={card} style={cardStyle}>
+          <h2 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-forest))">More help for {s.short} families</h2>
+          <div class="space-y-2">
+            {s.resources.map((r) => (
+              <p class="font-body text-sm text-muted-foreground leading-relaxed">
+                <a href={r.href} class="underline" rel={r.sponsored ? "sponsored noopener" : "noopener"} target="_blank">{r.name}</a> {r.description}
+              </p>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
+
   <section class="py-12 px-6" style="background-color:hsl(var(--eden-cream))">
     <div class="max-w-2xl mx-auto">
       <h2 class="font-serif text-xl font-bold mb-4" style="color:hsl(var(--eden-bark))">Eden's Table in other states</h2>

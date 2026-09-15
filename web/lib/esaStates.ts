@@ -70,6 +70,12 @@ export interface EsaState {
   items: EsaItem[];
   /** Official or directory links verified in the research files. */
   links: { label: string; href: string }[];
+  /** Independent, non-government resources, shown in their own box below `links`
+      ("More help for <short> families"). Never put these in `links`: that box is
+      headed "Official ... information", and a private directory there would imply
+      state involvement. The page renders `<a>{name}</a> {description}`. Set
+      `sponsored` when the link was given in exchange for something (rel="sponsored"). */
+  resources?: { name: string; href: string; description: string; sponsored?: boolean }[];
   /** Extra state-specific questions for the FAQ block. */
   faq: { q: string; a: string }[];
 }
@@ -171,6 +177,21 @@ export const ESA_STATES: EsaState[] = [
     links: [
       { label: "Arizona Department of Education ESA program", href: "https://www.azed.gov/esa" },
       { label: "ESA Parent Handbook", href: "https://www.azed.gov/esa/parent-handbook" },
+    ],
+    // Marketing trade agreed 2026-09-14 with Education Vendors LLC (Gmail thread
+    // 1a0a11e0327f14e6): Eden's Table gets a placement in her directory; this link is
+    // Eden's side. Wording founder-approved 2026-09-14. rel="sponsored" (founder pick)
+    // because Google's spam policy asks for it on links given in exchange for services.
+    // Direct URL per her 19:19 email and signature. Do not claim Eden's Table is listed
+    // there until the placement is live.
+    resources: [
+      {
+        name: "Arizona Education Vendors",
+        href: "https://www.azedvendors.com",
+        description:
+          "is an independent directory of tutors, schools, enrichment and learning tools across Arizona. It is run by Education Vendors LLC, not by the state or the ESA program.",
+        sponsored: true,
+      },
     ],
     faq: [
       {
