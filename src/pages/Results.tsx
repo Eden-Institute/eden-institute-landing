@@ -70,9 +70,10 @@ const Results = () => {
     ? `https://edeninstitute.health/results/${constitutionSlug}`
     : "https://edeninstitute.health/assessment";
 
+  // Wording matches web/pages/results/[slug].astro (middot, not an em dash).
   const title = profile
-    ? `Your Body Pattern: ${profile.nickname} — The Eden Institute`
-    : "Body Pattern Not Found — The Eden Institute";
+    ? `Your Body Pattern: ${profile.nickname} · The Eden Institute`
+    : "Body Pattern Not Found · The Eden Institute";
   const description = profile && constitutionType
     ? `Your body pattern is ${profile.nickname} (${constitutionType}). ${profile.tagline} See the herbs that meet this pattern and how to begin.`
     : "We couldn't find that body pattern. Take the Pattern of Eden quiz to find yours.";
@@ -246,7 +247,7 @@ const Results = () => {
 
         <div className="mb-12">
           <h2 className="font-serif text-2xl font-bold mb-6" style={{ color: "#1C3A2E" }}>
-            Three herbs matched to your Pattern
+            Herbs that meet this pattern
           </h2>
           {/* Each card deep-links into the herb's public monograph
               (/apothecary/:slug, CRO Phase 1). The clinical-why teaser is
@@ -397,7 +398,7 @@ const Results = () => {
                 }
               }}
             >
-              {checkoutLoading ? "Redirecting…" : "Get the Guide, $4.99"}
+              {checkoutLoading ? "Redirecting…" : "Get the Deep-Dive Guide, $4.99"}
             </Button>
           </div>
 

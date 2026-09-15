@@ -36,7 +36,7 @@
  */
 export const ROUTES = {
   // ── Public SPA surfaces (see ASTRO_PAGES for Astro-served marketing pages) ──
-  // "/" is served by Astro in production; the SPA <Index> route is only the Vite-dev fallback. Reach it with a full navigation (<a href>), never <Link>.
+  // "/" is served by Astro (web/pages/index.astro). The SPA has no homepage; its "/" route only hands a stray client-side navigation to the real page (components/utils/HomeRedirect.tsx). Reach it with a full navigation (<a href>), never <Link>.
   HOME: "/",
   ASSESSMENT: "/assessment",
   CONSTITUTIONAL_HERBALISM: "/constitutional-herbalism",

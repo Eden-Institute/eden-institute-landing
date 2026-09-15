@@ -52,7 +52,11 @@ export function ApothecaryNav() {
   const logoTo = ROUTES.APOTHECARY;
 
   return (
-    <nav className="border-b border-border/40 bg-background sticky top-0 z-50">
+    // Not sticky on purpose (founder decision 2026-09-15). The marketing Navbar
+    // above this bar is sticky top-0 z-50; when this bar was sticky too, the two
+    // stacked on phones and this one slid over the marketing header on scroll.
+    // The marketing header stays pinned and this bar scrolls away with the page.
+    <nav className="border-b border-border/40 bg-background">
       {/* 375px budget: with the practitioner Clinic button, the ProfilePicker,
           and Sign out all in the right cluster, the full wordmark forces a
           two-line wrap and pushes Sign out off-screen (founder screenshot,

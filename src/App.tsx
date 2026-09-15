@@ -11,7 +11,7 @@ import ScrollToTop from "@/components/utils/ScrollToTop";
 import PageViewTracker from "@/components/utils/PageViewTracker";
 import CtaClickTracker from "@/components/utils/CtaClickTracker";
 import MetaPixelTracker from "@/components/utils/MetaPixelTracker";
-import Index from "./pages/Index";
+import HomeRedirect from "@/components/utils/HomeRedirect";
 import Assessment from "./pages/Assessment";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
@@ -116,7 +116,13 @@ const App = () => (
                   deleted because the two had drifted apart in copy and CTAs, and a
                   visitor saw a different page depending on how they arrived. Links
                   to these routes must be a real navigation, not a router <Link>. */}
-              <Route path={ROUTES.HOME} element={<Index />} />
+              {/* "/" is the static Astro homepage (web/pages/index.astro). The old
+                  React copy (pages/Index.tsx) was retired on 2026-09-15 because a
+                  visitor tapping a client-side home link saw a different, older
+                  homepage. Every in-app home link is now a full page load; this
+                  route only catches a stray client-side navigation to "/" and
+                  hands it to the real page. */}
+              <Route path={ROUTES.HOME} element={<HomeRedirect />} />
               <Route path={ROUTES.ASSESSMENT} element={<Assessment />} />
               {/* v4.1.1 hotfix — defensive alias for the public quiz route.
                   The Navbar's state-aware CTA briefly pointed at /quiz (PR #65)

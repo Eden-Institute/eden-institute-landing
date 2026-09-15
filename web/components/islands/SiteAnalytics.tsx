@@ -10,9 +10,9 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { applyTagConsent, getMarketingConsent, setMarketingConsent } from "@/lib/consent";
+import { getMarketingConsent } from "@/lib/consent";
 import { loadMetaPixel, metaPageView } from "@/lib/metaPixel";
-import { Button } from "@/components/ui/button";
+import { ConsentBannerView } from "@/components/ConsentBanner";
 import { captureFirstTouch } from "@/lib/attribution";
 
 const SKIP_PREFIXES = ["/founder", "/apothecary/auth", "/apothecary/account"];
@@ -122,49 +122,9 @@ export default function SiteAnalytics({ thirdPartyTags = true }: Props) {
 
   if (!visible || !thirdPartyTags) return null;
 
-  // Google Analytics and the Pinterest tag run by default (founder decision
-  // 2026-09-13). applyTagConsent turns them off on Decline and back on on
-  // Accept; the layout's inline script re-applies a stored Decline on every load.
-  const accept = () => {
-    setMarketingConsent("granted");
-    applyTagConsent("granted");
-    loadMetaPixel();
-    metaPageView();
-    setVisible(false);
-  };
-  const decline = () => {
-    setMarketingConsent("denied");
-    applyTagConsent("denied");
-    setVisible(false);
-  };
-
-  return (
-    <div role="region" aria-label="Cookie consent" className="fixed bottom-0 inset-x-0 z-[60] px-4 pb-4">
-      <div
-        className="max-w-3xl mx-auto rounded-lg shadow-lg p-5 sm:flex sm:items-center sm:gap-5"
-        style={{ backgroundColor: "hsl(var(--eden-bark))", color: "white" }}
-      >
-        <p className="font-body text-sm leading-relaxed mb-4 sm:mb-0 sm:flex-1">
-          We use a few cookies to understand traffic and measure our ads. You can accept or decline
-          marketing cookies. Essential, privacy-safe analytics stay on either way. See our{" "}
-          <a href="/cookies" className="underline" style={{ color: "hsl(var(--eden-gold))" }}>
-            Cookie Policy
-          </a>
-          .
-        </p>
-        <div className="flex gap-3 shrink-0">
-          <button
-            type="button"
-            onClick={decline}
-            className="font-accent text-xs tracking-wider uppercase px-4 py-2 rounded-sm border border-white/40 hover:bg-white/10 transition-colors"
-          >
-            Decline
-          </button>
-          <Button variant="eden-gold" size="sm" onClick={accept}>
-            Accept
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
+  // The shared banner (src/components/ConsentBanner.tsx) stores the choice,
+  // applies it to Google Analytics and the Pinterest tag (default on, Decline
+  // turns them off; the layout's inline script re-applies a stored Decline on
+  // every load) and loads the Meta Pixel on Accept.
+  return <ConsentBannerView onChoice={() => setVisible(false)} />;
 }
