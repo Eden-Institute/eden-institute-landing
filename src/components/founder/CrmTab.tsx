@@ -87,7 +87,7 @@ export default function CrmTab({ since }: { since: string }) {
 
   const stat = (label: string, value: number) => (
     <div className="rounded-lg border border-border p-4">
-      <p className="font-accent text-[10px] tracking-[0.15em] uppercase text-muted-foreground">{label}</p>
+      <p className="font-accent text-[11px] tracking-[0.15em] uppercase text-muted-foreground">{label}</p>
       <p className="font-serif text-2xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>
         {value.toLocaleString()}
       </p>
@@ -114,8 +114,8 @@ export default function CrmTab({ since }: { since: string }) {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-muted/40">
-                  <th className="px-3 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground">Pattern</th>
-                  <th className="px-3 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground text-right">People</th>
+                  <th className="px-3 py-2 font-accent text-[11px] tracking-wider uppercase text-muted-foreground">Pattern</th>
+                  <th className="px-3 py-2 font-accent text-[11px] tracking-wider uppercase text-muted-foreground text-right">People</th>
                 </tr>
               </thead>
               <tbody>
@@ -147,7 +147,7 @@ export default function CrmTab({ since }: { since: string }) {
                 {["Name", "Email", "Stage", "Quiz pattern", "Homeschool", "Source", "Joined (CT)"].map((h) => (
                   <th
                     key={h}
-                    className="px-3 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground whitespace-nowrap"
+                    className="px-3 py-2 font-accent text-[11px] tracking-wider uppercase text-muted-foreground whitespace-nowrap"
                   >
                     {h}
                   </th>
@@ -162,7 +162,7 @@ export default function CrmTab({ since }: { since: string }) {
                   </td>
                   <td className="px-3 py-2 font-body text-sm">
                     {r.email}
-                    {r.unsubscribed ? <span className="ml-1 text-[10px] uppercase text-destructive">unsub</span> : null}
+                    {r.unsubscribed ? <span className="ml-1 text-[11px] uppercase text-destructive">unsub</span> : null}
                   </td>
                   <td className="px-3 py-2 font-body text-sm">{r.stage}</td>
                   <td className="px-3 py-2 font-body text-sm">{r.quiz_pattern ?? "—"}</td>

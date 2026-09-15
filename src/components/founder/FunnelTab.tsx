@@ -244,7 +244,7 @@ export default function FunnelTab({ since }: { since: string }) {
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-border p-4 bg-card">
-      <p className="font-accent text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-1">{label}</p>
+      <p className="font-accent text-[11px] tracking-[0.2em] uppercase text-muted-foreground mb-1">{label}</p>
       <p className="font-serif font-bold text-2xl" style={{ color: "hsl(var(--eden-bark))" }}>{value}</p>
     </div>
   );
@@ -260,7 +260,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
   return (
-    <th className={`px-3 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground ${right ? "text-right" : ""}`}>
+    <th className={`px-3 py-2 font-accent text-[11px] tracking-wider uppercase text-muted-foreground ${right ? "text-right" : ""}`}>
       {children}
     </th>
   );

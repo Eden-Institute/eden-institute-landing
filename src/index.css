@@ -193,33 +193,35 @@
   section { break-inside: avoid; }
 }
 
+/* Founder dashboard: no text under 11px. The founder components now say text-[11px];
+   this catches any 9px/10px label still in one (RevenueTab, or anything added later). */
+.founder-dashboard .text-\[9px\],
+.founder-dashboard .text-\[10px\] {
+  font-size: 11px;
+}
+
 /* Global mobile responsiveness fixes */
 @media (max-width: 768px) {
-  * {
-    box-sizing: border-box;
-  }
-
-  section, .container, .wrapper, .eden-container {
+  section, .eden-container {
     padding-left: 16px;
     padding-right: 16px;
-    overflow-x: hidden;
   }
 
-  section button, section .btn, section a.btn, section a[role="button"], section [role="button"] {
-    display: block;
+  /* Primary calls to action stay full width on phones: the Button component's lg
+     (h-12 px-10) and xl (h-14 px-12) sizes. Every other button (icon buttons,
+     toggles, side-by-side pairs, text links) keeps its own size. :where() keeps
+     the specificity at a bare `section`, so a w-auto or sm:w-auto class on the
+     button still wins, exactly as it did under the old blanket rule. Link CTAs
+     (<a> with buttonVariants) set max-md:w-full themselves. */
+  section :where(button.h-12.px-10, button.h-14.px-12) {
     width: 100%;
     max-width: 100%;
-    white-space: normal;
-    text-align: center;
-    padding: 14px 20px;
-    word-break: normal;
-    overflow: visible;
   }
 
+  /* Long words wrap instead of overflowing, but nothing is auto-hyphenated. */
   h1, h2, h3, h4, h5, h6, p, span, li {
-    word-wrap: break-word;
     overflow-wrap: break-word;
-    hyphens: auto;
+    hyphens: manual;
   }
 
   .section-padding {

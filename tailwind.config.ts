@@ -14,6 +14,16 @@ export default {
       },
     },
     extend: {
+      // Brand type (founder, 2026-09-15). Keep in step with --font-serif / --font-body /
+      // --font-accent in src/index.css. Tailwind emits .font-serif after .font-body, so
+      // an element carrying both (Button base is font-body, the eden variants add
+      // font-serif) keeps the heading face, as it did before these were mapped.
+      fontFamily: {
+        body: ["EB Garamond", "Georgia", "serif"],
+        accent: ["Cormorant Garamond", "Georgia", "serif"],
+        serif: ["Playfair Display", "Georgia", "serif"],
+        display: ["Playfair Display", "Georgia", "serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

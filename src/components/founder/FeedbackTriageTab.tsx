@@ -140,7 +140,7 @@ export default function FeedbackTriageTab() {
           >
             <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
               <p className="font-body text-sm font-medium">{s.title || s.message.slice(0, 100)}</p>
-              <span className="font-accent text-[10px] uppercase tracking-widest rounded-full border px-2 py-0.5">{s.status}</span>
+              <span className="font-accent text-[11px] uppercase tracking-widest rounded-full border px-2 py-0.5">{s.status}</span>
             </div>
             <p className="font-body text-xs text-muted-foreground mb-2 whitespace-pre-wrap">{s.description || s.message}</p>
             <p className="font-body text-[11px] text-muted-foreground mb-3">
@@ -240,7 +240,7 @@ export default function FeedbackTriageTab() {
           {closed.map((s) => (
             <li key={s.id} className="font-body text-xs text-muted-foreground flex justify-between gap-2 rounded border px-3 py-1.5">
               <span className="line-clamp-1">{s.title || s.message}</span>
-              <span className="shrink-0 uppercase text-[10px] tracking-wide">{s.status}</span>
+              <span className="shrink-0 uppercase text-[11px] tracking-wide">{s.status}</span>
             </li>
           ))}
         </ul>
