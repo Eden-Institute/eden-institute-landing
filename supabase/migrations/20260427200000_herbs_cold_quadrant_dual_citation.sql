@@ -1,4 +1,17 @@
 -- =============================================================================
+-- NOTE (2026-09-15): the "Migration registration" block at the end of this file
+-- inserts this version into supabase_migrations.schema_migrations. It exists only
+-- because the file was hand-applied in the SQL Editor. Production already
+-- records the version, so it never runs again there. On a replay (db reset,
+-- branch, fresh project) the CLI writes that history row itself, so the block is
+-- redundant at best and can collide with the CLI's own insert (inferred from how
+-- the CLI records history, not reproduced). The SQL is left as committed because
+-- an applied migration never runs again. Do not copy the pattern: register a
+-- hand-applied migration with
+-- `supabase migration repair --status applied <version>`, never an INSERT here.
+-- =============================================================================
+
+-- =============================================================================
 -- Migration: 20260427200000_herbs_cold_quadrant_dual_citation
 -- Phase B sub-task 6, session 3 — Cold-quadrant non-archetypal herb subset
 -- =============================================================================

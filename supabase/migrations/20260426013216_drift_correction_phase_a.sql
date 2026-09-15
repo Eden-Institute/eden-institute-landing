@@ -1,4 +1,22 @@
 -- ============================================================================
+-- NOTE (2026-09-15): THIS FILE IS TRUNCATED AND CANNOT BE REPLAYED.
+-- The only committed copy (e5fb8b3) ends mid-statement inside the
+-- COMMENT ON FUNCTION string at the bottom: no closing quote, no CREATE VIEW for
+-- the diagnostic_profile_v that step 0 drops, and no COMMIT. `supabase db
+-- reset`, a branch, or a fresh project stops here with a syntax error.
+-- Production is unaffected. The complete version was hand-applied (its
+-- schema_migrations row records no statements), and on 2026-09-15 the live
+-- diagnostic_profile_v exists with security_invoker = true and a definition
+-- that matches 20260425224158_deep_diagnostic_schema.sql column for column.
+-- The SQL below is left exactly as committed: an applied migration never runs
+-- again, so editing it would change nothing in production. A replayable
+-- history needs the live view and function definitions dumped
+-- (pg_get_viewdef / pg_get_functiondef) into a new migration; do not
+-- reconstruct them by hand. The original wording of the function comment
+-- was not preserved anywhere and a later migration replaced it.
+-- ============================================================================
+
+-- ============================================================================
 -- Drift correction Phase A — Galenic canonical 9 + vital force balanced
 -- ============================================================================
 -- Reconciles the v3.9 schema with the TS contract in src/lib/diagnosticProfile.ts
