@@ -474,8 +474,9 @@ serve(async (req) => {
         console.log(`create-checkout: refusing a second subscription for ${stripeCustomerId}; ${existing.id} is ${existing.status}`)
         return new Response(
           JSON.stringify({
-            // WORDING: pending founder approval (audit 2026-09-15)
-            error: "You already have an active Apothecary subscription. To change plans, use Manage subscription in your account.",
+            // Wording approved by the founder 2026-09-15. Plan switching is on in the
+            // Stripe customer portal, which Manage subscription opens.
+            error: "You already have an Apothecary plan. To switch plans, go to your Account page and tap Manage subscription.",
             code: "SUBSCRIPTION_EXISTS",
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },

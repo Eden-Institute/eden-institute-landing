@@ -12,6 +12,7 @@ import { pinSetHashedEmail, pinTrack } from "@/lib/pinterestTag";
 import { getMarketingConsent } from "@/lib/consent";
 import { checkEmail } from "@/lib/emailTypos";
 import { getAttribution } from "@/lib/attribution";
+import { FORM_ERROR_FALLBACK, visitorFacingError } from "@/lib/edgeFunctionError";
 
 interface WaitlistModalProps {
   open: boolean;
@@ -141,8 +142,8 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
       setEmail("");
       setEmailSuggestion(null);
       setTypoAcknowledged(false);
-    } catch (err: any) {
-      setError(err.message || "Something went wrong. Please try again.");
+    } catch (err: unknown) {
+      setError(await visitorFacingError(err, FORM_ERROR_FALLBACK));
     } finally {
       setLoading(false);
     }

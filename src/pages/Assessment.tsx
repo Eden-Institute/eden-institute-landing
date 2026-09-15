@@ -23,6 +23,7 @@ import { metaTrack } from "@/lib/metaPixel";
 import { getMarketingConsent } from "@/lib/consent";
 import { checkEmail } from "@/lib/emailTypos";
 import { getAttribution } from "@/lib/attribution";
+import { FORM_ERROR_FALLBACK, visitorFacingError } from "@/lib/edgeFunctionError";
 import { patternNameToSlug } from "@/lib/constitution-utils";
 import Navbar from "@/components/landing/Navbar";
 
@@ -369,8 +370,7 @@ const Assessment = () => {
       metaTrack("Lead", { content_category: "constitution_quiz", content_name: submittedConstitution }, fbEventId);
       navigate(ROUTES.RESULTS(slugForRedirect), { replace: true });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
-      setError(message);
+      setError(await visitorFacingError(err, FORM_ERROR_FALLBACK));
       // Return to the surface that carries a form so the user can retry without
       // a blank screen: gate for resolved Patterns, inconclusive for balanced.
       setPhase(balanced ? "inconclusive" : "gate");

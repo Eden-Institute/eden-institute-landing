@@ -10,6 +10,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { metaTrack } from "@/lib/metaPixel";
+import { FORM_ERROR_FALLBACK, visitorFacingError } from "@/lib/edgeFunctionError";
 
 type Variant = "home" | "homeschool";
 
@@ -88,8 +89,8 @@ export default function PartnerInquiryForm({ variant, bookingUrl }: Props) {
         metaTrack("Lead", { content_name: role, content_category: "partner" }, crypto.randomUUID());
       } catch (_e) { /* analytics is best-effort */ }
       setDone(true);
-    } catch (err: any) {
-      setError(err?.message || "Something went wrong. Please try again.");
+    } catch (err: unknown) {
+      setError(await visitorFacingError(err, FORM_ERROR_FALLBACK));
     } finally {
       setLoading(false);
     }
