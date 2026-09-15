@@ -8,7 +8,7 @@
 // first pass failed or died mid-run. Added 2026-09-13 after gateway 504s left
 // the 2026-09-12 digest unsent until it was re-run by hand.
 
-import handler from './notify-founder-digest';
+import handler from './notify-founder-digest.js';
 
 export default handler;
 

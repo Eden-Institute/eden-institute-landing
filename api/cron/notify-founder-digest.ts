@@ -16,7 +16,7 @@
 //   SUPABASE_URL                e.g. https://noeqztssupewjidpvhar.supabase.co
 //   SUPABASE_SERVICE_ROLE_KEY   full service-role JWT
 
-import { cronHandler } from '../_lib/cron-forward';
+import { cronHandler } from '../_lib/cron-forward.js';
 
 export default cronHandler({ name: 'notify-founder-digest cron', efName: 'notify-founder-digest' });
 

@@ -19,7 +19,7 @@
 // line with the EF reply. Production logs at
 // vercel.com/eden-b55b0b13/eden-institute-landing/logs.
 
-import { safeEqual } from './safe-equal';
+import { safeEqual } from './safe-equal.js';
 
 export interface CronForwardOptions {
   /** Log prefix, e.g. 'drain-lulu-jobs'. */

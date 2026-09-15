@@ -15,7 +15,7 @@
 // Required env vars (already set for the other crons):
 //   CRON_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 
-import { cronHandler } from '../_lib/cron-forward';
+import { cronHandler } from '../_lib/cron-forward.js';
 
 export default cronHandler({ name: 'founder-evening-recap cron', efName: 'founder-evening-recap' });
 

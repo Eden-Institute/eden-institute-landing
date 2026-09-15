@@ -8,7 +8,7 @@
 // the first pass failed or died mid-run. Added 2026-09-16, mirroring
 // api/cron/notify-founder-digest-retry.ts: before this, one gateway 504 lost the week.
 
-import handler from './weekly-trends-digest';
+import handler from './weekly-trends-digest.js';
 
 export default handler;
 
