@@ -262,6 +262,9 @@ const meta = {
             <li><a href="mailto:hello@edeninstitute.health" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">hello@edeninstitute.health</a></li>
             <li><a href="/contact" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">Customer Service</a></li>
             <li><a href="/returns" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">Returns &amp; Refunds</a></li>
+            {/* Same /esa link as web/components/Footer.astro, repeated because this
+                page suppresses that footer via hideFooter. */}
+            <li><a href="/esa" data-cta="home-footer-esa" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">ESA &amp; Scholarship Programs</a></li>
           </ul>
 
           {/* Socials live in this column rather than a fifth one, because the grid
