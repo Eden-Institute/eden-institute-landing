@@ -1,5 +1,10 @@
 // web/components/islands/PreorderBuyBox.tsx
 //
+// KEPT ON PURPOSE (founder decision 2026-09-15): nothing imports this island
+// today. It is kept as the starting point for the spring 2027 preorder. Its
+// "Preorder opens July 29" copy (and any other dated or priced copy) must be
+// replaced before it is reused.
+//
 // Client island for /preorder. Owns the entire interactive buy flow:
 //   - the two product cards (Sprouts Complete Kit, Student Notebook)
 //   - the two-step preorder modal:

@@ -10,11 +10,11 @@
 //   2. One-off DIGITAL products (Deep-Dive Guide $4.99) —
 //      mode="payment", auth OPTIONAL, no shipping. Anonymous quiz takers
 //      can buy directly off /assessment.
-//   3. One-off PHYSICAL products (Eden's Table homeschool curriculum:
-//      sprouts_complete, seedlings_complete, two_band_bundle, nb_addon) —
-//      mode="payment", auth OPTIONAL for non-restricted, REQUIRED for
-//      bundle-restricted (nb_addon). Shipping address always collected;
-//      shipping rates vary by lookup_key.
+//   3. (Retired) One-off PHYSICAL Founders Edition products (sprouts_complete,
+//      seedlings_complete, two_band_bundle, nb_addon). Off sale since
+//      2026-09-12; still refused via DISABLED_LOOKUP_KEYS. Founders Edition
+//      rails removed 2026-09-15 (bundle-restricted gate, physical shipping
+//      options, /homeschool/welcome defaults); recoverable from git history.
 //   4. FOUNDING PREORDERS (preorder system Phase 1: sprouts_kit,
 //      sprouts_notebook) — mode="payment", anonymous, requested via
 //      `preorder_sku` (NOT lookup_key, so it can never collide with the
@@ -31,15 +31,8 @@
 //      configured (PRINT_SHOP_NOT_CONFIGURED), so a half-set-up product can
 //      never take money.
 //
-// Bundle-restricted gating: nb_addon ($39 Add-on Student Notebook) requires
-// the calling user to be a Two-Band Bundle buyer. Enforced by:
-//   - JWT auth required (so we know which user is asking)
-//   - profiles.homeschool_bundle_buyer must be true
-//   - Returns 403 with code BUNDLE_REQUIRED otherwise
-// The flag is set by the stripe-webhook EF on successful bundle purchase.
-//
 // Deploy with verify_jwt=false because the function does its own auth
-// dispatch — subscriptions + nb_addon check JWT inside, anonymous one-offs
+// dispatch: subscriptions check JWT inside, anonymous one-offs
 // don't. Setting verify_jwt=true at the platform level would block
 // anonymous one-off purchases (the original Phase 5 #4 silent-fail bug).
 //
@@ -97,13 +90,9 @@ const SUBSCRIPTION_LOOKUP_KEYS = new Set([
   "practitioner_solo_yearly",
 ])
 
-// One-off lookup_keys — mode="payment", auth optional unless bundle-restricted.
+// One-off lookup_keys: mode="payment", auth optional.
 const ONE_OFF_LOOKUP_KEYS = new Set([
   "deep_dive_guide",
-  "sprouts_complete",
-  "seedlings_complete",
-  "two_band_bundle",
-  "nb_addon",
   // Eden's Table Sprouts Starter Unit ($39 digital, weeks 1-6 of Sprouts).
   // Rides the ordinary one-off dispatch rather than getting its own branch: it is
   // a plain digital product, and the only thing special about it happens AFTER
@@ -133,35 +122,10 @@ const CUSTOMER_REQUIRED_LOOKUP_KEYS = new Set([
   STARTER_LOOKUP_KEY,
 ])
 
-// Bundle-restricted lookup_keys — require JWT auth AND
-// profiles.homeschool_bundle_buyer=true. Add-on Student Notebook is only
-// available to households that purchased the Two-Band Family Bundle.
-const BUNDLE_RESTRICTED_LOOKUP_KEYS = new Set([
-  "nb_addon",
-])
-
-// Physical product lookup_keys — Stripe Checkout must collect shipping
-// address and offer shipping_options. Free for bundle (already paid for
-// it), zero-fee for nb_addon (ships inside the bundle box).
-const PHYSICAL_LOOKUP_KEYS = new Set([
-  "sprouts_complete",
-  "seedlings_complete",
-  "two_band_bundle",
-  "nb_addon",
-])
-
-// Lookup_keys that ship at the customer's cost (paid shipping at checkout).
-const PAID_SHIPPING_LOOKUP_KEYS = new Set([
-  "sprouts_complete",
-  "seedlings_complete",
-])
-
-// Lookup_keys that ship free (the bundle includes shipping; the add-on
-// notebook ships inside the bundle box at zero incremental cost).
-const FREE_SHIPPING_LOOKUP_KEYS = new Set([
-  "two_band_bundle",
-  "nb_addon",
-])
+// Founders Edition rails removed 2026-09-15 (BUNDLE_RESTRICTED_LOOKUP_KEYS,
+// PHYSICAL_LOOKUP_KEYS, PAID_SHIPPING_LOOKUP_KEYS, FREE_SHIPPING_LOOKUP_KEYS and
+// STANDARD_SHIPPING_CENTS served only sprouts_complete, seedlings_complete,
+// two_band_bundle and nb_addon); recoverable from git history.
 
 // Lookup_keys explicitly blocked from purchase right now (Practitioner
 // ships Phase 3, end 2027 per Locked Decision §0.8 #3).
@@ -169,6 +133,8 @@ const DISABLED_LOOKUP_KEYS = new Set([
   "practitioner_monthly",
   "practitioner_yearly",
   // Founders Edition products, retired 2026-09-12 (kit off sale, no date).
+  // Kept here so they keep getting the 'not available' reply; their checkout
+  // branches were removed 2026-09-15.
   "sprouts_complete",
   "seedlings_complete",
   "two_band_bundle",
@@ -182,13 +148,6 @@ const DISABLED_LOOKUP_KEYS = new Set([
 const PRICE_ID_OVERRIDES: Record<string, string> = {
   deep_dive_guide: "price_1TiHqt2NWfYbCZT8ghDRlWiO",
 }
-
-// Standard US shipping rate for single-band homeschool boxes.
-// $12 covers USPS Priority Mail in the 2-3lb weight class for the curriculum
-// box dimensions. Override at scale by configuring real shipping rates in
-// the Stripe Dashboard and switching to shipping_rate (id reference) instead
-// of shipping_rate_data (inline) below.
-const STANDARD_SHIPPING_CENTS = 1200
 
 /** Stripe caps a metadata value at 500 chars; body-supplied values are attacker-influenced. */
 function clampMeta(v: unknown, max = 255): string | null {
@@ -289,8 +248,6 @@ serve(async (req) => {
 
     const isSubscription = SUBSCRIPTION_LOOKUP_KEYS.has(lookup_key)
     const isOneOff = ONE_OFF_LOOKUP_KEYS.has(lookup_key)
-    const isBundleRestricted = BUNDLE_RESTRICTED_LOOKUP_KEYS.has(lookup_key)
-    const isPhysical = PHYSICAL_LOOKUP_KEYS.has(lookup_key)
 
     if (!isSubscription && !isOneOff) {
       return jsonError(`Unknown lookup_key '${lookup_key}'`, 404)
@@ -298,12 +255,11 @@ serve(async (req) => {
 
     // 2. Auth dispatch
     //    - Subscriptions: JWT required
-    //    - Bundle-restricted one-offs (nb_addon): JWT required + flag check
-    //    - Other one-offs: JWT optional (best-effort identity capture)
+    //    - One-offs: JWT optional (best-effort identity capture)
     const authHeader = req.headers.get("Authorization")
     let user: { id: string; email: string | null } | null = null
 
-    if (isSubscription || isBundleRestricted) {
+    if (isSubscription) {
       if (!authHeader) {
         return jsonError("Missing Authorization header", 401)
       }
@@ -318,7 +274,7 @@ serve(async (req) => {
       }
       user = { id: authUser.id, email: authUser.email ?? null }
     } else if (authHeader) {
-      // Optional best-effort identity capture for digital + physical one-offs.
+      // Optional best-effort identity capture for one-offs.
       try {
         const userClient = createClient(
           Deno.env.get("SUPABASE_URL")!,
@@ -331,43 +287,6 @@ serve(async (req) => {
         }
       } catch (e) {
         console.warn("Optional auth on one-off failed (proceeding anonymously):", e)
-      }
-    }
-
-    // 3. Bundle-restricted gate: enforce homeschool_bundle_buyer flag for nb_addon.
-    if (isBundleRestricted) {
-      if (!user) {
-        // Should be unreachable — auth dispatch above would have 401'd already —
-        // but defensive.
-        return jsonError("Authentication required for bundle add-on", 401)
-      }
-      const adminClient = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      )
-      const { data: profile, error: profileError } = await adminClient
-        .from("profiles")
-        .select("homeschool_bundle_buyer")
-        .eq("user_id", user.id)
-        .maybeSingle()
-
-      if (profileError) {
-        console.error("create-checkout: profile read failed:", profileError.message)
-        return jsonError(GENERIC_CHECKOUT_ERROR, 500)
-      }
-
-      if (!profile?.homeschool_bundle_buyer) {
-        return new Response(
-          JSON.stringify({
-            error:
-              "This add-on is available only to Two-Band Family Bundle owners.",
-            code: "BUNDLE_REQUIRED",
-          }),
-          {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 403,
-          },
-        )
       }
     }
 
@@ -394,8 +313,7 @@ serve(async (req) => {
 
     // 5. For subscriptions: get-or-create the Stripe Customer for this user.
     //    For one-offs: skip Customer creation unless we have a Supabase user
-    //    (best-effort linking). Bundle buyers always link to the user we
-    //    require above; non-restricted one-offs can be anonymous.
+    //    (best-effort linking). One-offs can be anonymous.
     let stripeCustomerId: string | null = null
     let customerJustCreated = false
     if (isSubscription && user) {
@@ -502,11 +420,7 @@ serve(async (req) => {
     //    - Subscriptions → /apothecary/welcome
     //    - Deep-Dive Guide one-off → /assessment (caller usually overrides
     //      with /guide/[slug])
-    //    - Homeschool one-offs → /homeschool/welcome
-    const homeschoolDefaultSuccess =
-      "https://edeninstitute.health/homeschool/welcome?session_id={CHECKOUT_SESSION_ID}&lookup_key=" +
-      encodeURIComponent(lookup_key)
-    const homeschoolDefaultCancel = "https://edeninstitute.health/homeschool#pricing"
+    //    - Starter Unit → /starter/thank-you
 
     const isStarter = lookup_key === STARTER_LOOKUP_KEY
 
@@ -544,16 +458,12 @@ serve(async (req) => {
       ? "https://edeninstitute.health/apothecary/welcome?session_id={CHECKOUT_SESSION_ID}"
       : isStarter
         ? starterDefaultSuccess
-        : isPhysical
-          ? homeschoolDefaultSuccess
-          : "https://edeninstitute.health/assessment"
+        : "https://edeninstitute.health/assessment"
     const defaultCancelUrl = isSubscription
       ? "https://edeninstitute.health/apothecary/pricing"
       : isStarter
         ? "https://edeninstitute.health/starter"
-        : isPhysical
-          ? homeschoolDefaultCancel
-          : "https://edeninstitute.health/assessment"
+        : "https://edeninstitute.health/assessment"
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode,
@@ -619,49 +529,13 @@ serve(async (req) => {
       sessionParams.customer_email = bodyEmail
     }
 
-    // For homeschool physical products without an explicit Stripe Customer,
-    // ask Stripe to create one from the buyer's email. This gives us a
-    // persistent Stripe Customer the webhook can link to the auto-provisioned
-    // Supabase user, and means repeat purchases (e.g., adding the bundle
-    // add-on later) can reuse the same Customer.
+    // For lookup_keys that need a Stripe Customer (the Starter Unit credit is
+    // bound to one), ask Stripe to create one from the buyer's email.
     if (
       mode === "payment" && !stripeCustomerId &&
-      (isPhysical || CUSTOMER_REQUIRED_LOOKUP_KEYS.has(lookup_key))
+      CUSTOMER_REQUIRED_LOOKUP_KEYS.has(lookup_key)
     ) {
       sessionParams.customer_creation = "always"
-    }
-
-    // Shipping address collection + shipping rate for physical products.
-    if (isPhysical) {
-      sessionParams.shipping_address_collection = {
-        allowed_countries: ["US"],
-      }
-
-      const shippingRateData: Stripe.Checkout.SessionCreateParams.ShippingOption.ShippingRateData =
-        FREE_SHIPPING_LOOKUP_KEYS.has(lookup_key)
-          ? {
-              type: "fixed_amount",
-              fixed_amount: { amount: 0, currency: "usd" },
-              display_name:
-                lookup_key === "two_band_bundle"
-                  ? "Free shipping (included with bundle)"
-                  : "No additional shipping (ships with your bundle)",
-              delivery_estimate: {
-                minimum: { unit: "business_day", value: 5 },
-                maximum: { unit: "business_day", value: 10 },
-              },
-            }
-          : {
-              type: "fixed_amount",
-              fixed_amount: { amount: STANDARD_SHIPPING_CENTS, currency: "usd" },
-              display_name: "Standard shipping (5-7 business days)",
-              delivery_estimate: {
-                minimum: { unit: "business_day", value: 5 },
-                maximum: { unit: "business_day", value: 7 },
-              },
-            }
-
-      sessionParams.shipping_options = [{ shipping_rate_data: shippingRateData }]
     }
 
     if (mode === "subscription") {

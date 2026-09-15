@@ -304,52 +304,16 @@ function announcementHtml(firstName: string, formLink: string, unsub: string): s
 </table></td></tr></table></body></html>`;
 }
 
-// ── form + confirmation pages ──
-function shell(inner: string): string {
-  return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>The Eden Institute</title></head><body style="margin:0;background:#EFE9DA;font-family:Georgia,serif;">
-<table role="presentation" width="100%" style="padding:36px 16px;"><tr><td align="center">
-<table role="presentation" width="540" style="width:540px;max-width:540px;background:${B.cream};border-radius:12px;overflow:hidden;">
-<tr><td style="background:${B.forest};padding:24px;text-align:center;"><div style="color:${B.gold};font-size:20px;letter-spacing:2px;">THE EDEN INSTITUTE</div></td></tr>
-<tr><td style="padding:32px 30px;">${inner}</td></tr></table></td></tr></table></body></html>`;
-}
-// DEAD CODE since the GET handler began redirecting to the hosted page at
-// edeninstitute.health/sprouts-founders.html (the Supabase functions domain
-// forces text/plain + nosniff, so this could not be served as HTML anyway).
-// Kept for phase two. Do NOT wire it back up while CLOSED is true: it still says
-// "Reserve your $249 founder's price" and posts to an endpoint that returns 410.
-function formPage(email: string, name: string, token: string, err = ''): string {
-  return shell(`
-<h1 style="font-size:23px;color:${B.deep};margin:0 0 10px;">Reserve your $249 founder's price</h1>
-<p style="font-size:15px;line-height:1.7;color:${B.text};margin:0 0 18px;">Preorders are open now. Add your details to lock in your founding price of $249, and we will confirm everything by email.</p>
-${err ? `<p style="font-size:14px;color:#993C1D;margin:0 0 14px;">${err}</p>` : ''}
-<form method="POST" action="${SUPABASE_URL}/functions/v1/founders-lock">
-  <input type="hidden" name="t" value="${token}">
-  <label style="display:block;font-size:13px;color:${B.text};margin:0 0 4px;">Email</label>
-  <input type="email" value="${email}" disabled style="width:100%;box-sizing:border-box;padding:11px;border:1px solid #D9CFB8;border-radius:8px;background:#EEE7D6;color:#6b665a;font-size:15px;margin:0 0 14px;">
-  <label style="display:block;font-size:13px;color:${B.text};margin:0 0 4px;">Your name</label>
-  <input type="text" name="name" value="${name}" required placeholder="First name" style="width:100%;box-sizing:border-box;padding:11px;border:1px solid #D9CFB8;border-radius:8px;font-size:15px;margin:0 0 14px;">
-  <label style="display:block;font-size:13px;color:${B.text};margin:0 0 4px;">Mobile number</label>
-  <input type="tel" name="phone" required placeholder="(555) 123-4567" style="width:100%;box-sizing:border-box;padding:11px;border:1px solid #D9CFB8;border-radius:8px;font-size:15px;margin:0 0 14px;">
-  <p style="font-size:13px;color:${B.text};margin:0 0 18px;line-height:1.5;">In case we need to reach you about your kit. We will confirm everything by email.</p>
-  <button type="submit" style="width:100%;background:${B.gold};color:${B.forest};font-family:Georgia,serif;font-size:16px;font-weight:bold;border:none;padding:15px;border-radius:8px;cursor:pointer;">Lock in my $249 founder's price</button>
-</form>`);
-}
-function confirmationPage(name: string): string {
-  const n = name || 'friend';
-  return shell(`
-<div style="text-align:center;">
-<div style="font-size:40px;color:${B.gold};">&#9826;</div>
-<h1 style="font-size:24px;color:${B.deep};margin:8px 0 12px;">You&rsquo;re locked in, ${n}.</h1>
-<p style="font-size:16px;line-height:1.7;color:${B.text};margin:0 0 14px;">Your founding price of <strong>$249</strong> for the complete 36-week Sprouts kit is reserved, and you are on the founders list. Preorders are open now, and you can complete yours whenever you are ready. Check your inbox, a confirmation is on its way.</p>
-<a href="https://www.facebook.com/EdensTableHomeschoolCurriculum" style="display:inline-block;background:${B.gold};color:${B.forest};font-size:15px;font-weight:bold;text-decoration:none;padding:13px 28px;border-radius:8px;">Follow along on Facebook</a>
-<p style="font-size:15px;color:${B.text};margin:24px 0 0;">Grace and health,<br><strong>Camila</strong></p>
-</div>`);
-}
+// ── form + confirmation pages (removed) ──
+// shell(), formPage() and confirmationPage() were never servable (the GET handler
+// redirects to edeninstitute.health/sprouts-founders.html, and the Supabase
+// functions domain forces text/plain) and still said "Reserve your $249 founder's
+// price". Removed 2026-09-15 (founder decision); recoverable from git history.
+// The redirect, the closed reply and the campaign code stay for phase two.
 
 // ── helpers ──
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS' };
 const jsonRes = (s: number, o: unknown) => new Response(JSON.stringify(o), { status: s, headers: { ...CORS, 'Content-Type': 'application/json' } });
-const htmlRes = (s: number, b: string) => new Response(b, { status: s, headers: { ...CORS, 'Content-Type': 'text/html; charset=utf-8' } });
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });

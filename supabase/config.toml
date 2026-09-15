@@ -72,11 +72,9 @@ verify_jwt = true
 # source alone leaves the old bundles serving in production, still holding the LLM,
 # Gemini and Canva provider secrets.
 
-[functions.practitioner-waitlist-signup]
-verify_jwt = false
-
-[functions.tier-2-waitlist-signup]
-verify_jwt = false
+# practitioner-waitlist-signup and tier-2-waitlist-signup removed 2026-09-15
+# (retired signups, no caller). They must also be UNDEPLOYED from the project;
+# their existing waitlist rows are kept.
 
 # Per-list one-click unsubscribe (RFC 8058). Called from email clients and
 # browsers with no Supabase session; security is the signed token, not a JWT.

@@ -2,8 +2,7 @@
 // Eden Apothecary — Stripe webhook handler
 // Listens for subscription lifecycle events AND one-time payment completion,
 // reconciling the `profiles` table for subscriptions, the `quiz_completions`
-// table for guide/course one-off purchases, the homeschool bundle-buyer
-// flag for Two-Band Family Bundle purchases, AND the orders table for the
+// table for guide/course one-off purchases, AND the orders table for the
 // founding-preorder system (state machine + confirmation messaging).
 //
 // Auth model: webhooks are NOT user-authenticated. Stripe signs every request with
@@ -23,16 +22,20 @@
 //                                       print_sku    → retail order + ready_to_fulfill + Lulu job queued
 //                                       deep_dive_guide → quiz_completions.purchased_guide
 //                                       course_*        → quiz_completions.purchased_course
-//                                       sprouts/seedlings/nb_addon → record legacy order row
-//                                       two_band_bundle → record legacy order row +
-//                                                         provision user + bundle-buyer flag
+//                                       (Founders Edition rails for sprouts_complete,
+//                                       seedlings_complete, two_band_bundle and nb_addon
+//                                       removed 2026-09-15; recoverable from git history.
+//                                       create-checkout refuses those keys.)
 //   charge.refunded                → preorder order → refunded (suppresses messaging)
 //   charge.succeeded               → LearnWorlds course purchase → course_sales
 //                                     (Foundations Course sells on LearnWorlds through THIS
 //                                     Stripe account via Stripe Connect; those charges carry
 //                                     `application` and never come from our Checkout Sessions.
 //                                     LearnWorlds webhooks are a paid-plan feature, so this is
-//                                     the only sale signal we get. Added 2026-09-10.)
+//                                     the only sale signal we get. Added 2026-09-10.
+//                                     Since 2026-09-15 only Connect-application charges
+//                                     count; description-only matches email the founder
+//                                     for review. See _shared/learnworlds-charge.ts.)
 //
 // Errors are captured to Sentry (SENTRY_DSN secret; graceful no-op without it).
 
@@ -42,7 +45,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { claimStripeEvent, markEventProcessed, markEventError, getOrderByPaymentIntent } from "../_shared/order-db.ts"
 import { setContactProperties } from "../_shared/resend-contacts.ts"
 import { recordPreorderFromSession, recordRetailOrderFromSession, applyRefundByPaymentIntent, ResolvedLineItem } from "../_shared/order-flow.ts"
-import { cancelLuluForRefund, enqueueLuluJob } from "../_shared/lulu-fulfillment.ts"
+import { cancelLuluForRefund, enqueueLuluJob, notifyFounder } from "../_shared/lulu-fulfillment.ts"
 import { notifyFoundingMilestones } from "../_shared/founding-milestones.ts"
 import { productForPriceId } from "../_shared/order-config.ts"
 import { captureException } from "../_shared/sentry.ts"
@@ -52,6 +55,7 @@ import { STARTER_LOOKUP_KEY } from "../_shared/starter-config.ts"
 import { STARTER_ORDER_LABEL } from "../_shared/receipt.ts"
 import { creditIssuanceOpen, issueStarterCredit, markCreditRedeemed } from "../_shared/starter-credit.ts"
 import { escapeLikePattern } from "../_shared/like-escape.ts"
+import { classifyLearnWorldsCharge } from "../_shared/learnworlds-charge.ts"
 
 /**
  * Normalize a constitution identifier to a guide-registry slug.
@@ -80,20 +84,11 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 
 // Admin client — webhook has no user context, so we use the service role key
 // to write freely to `profiles`, `quiz_completions`, and `orders`
-// (bypasses RLS) and to call auth.admin.inviteUserByEmail for bundle-buyer
-// provisioning.
+// (bypasses RLS).
 const adminClient = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 )
-
-// Human-readable labels for homeschool kit lookup_keys, stored on the order row.
-const HOMESCHOOL_PRODUCT_LABELS: Record<string, string> = {
-  sprouts_complete: "Sprouts Complete (K-2)",
-  seedlings_complete: "Seedlings Complete (3-5)",
-  two_band_bundle: "Two-Band Family Bundle",
-  nb_addon: "Additional Student Notebook",
-}
 
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = ""
@@ -930,29 +925,12 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
   }
 
   // ---- Dispatch by product class ----
-  // Branch 1: homeschool bundle — record the order, then provision Supabase
-  // user + set the bundle-buyer flag (gates the nb_addon purchase).
-  if (lookupKey === "two_band_bundle") {
-    await recordHomeschoolOrder(session, lookupKey, email)
-    if (!email) {
-      console.warn(
-        `Bundle purchase without email — order recorded but cannot provision user. session=${session.id}`,
-      )
-      return
-    }
-    await handleHomeschoolBundlePurchase(session, email)
-    return
-  }
-
-  // Branch 2: homeschool single-band or add-on — record the order.
-  if (
-    lookupKey === "sprouts_complete" ||
-    lookupKey === "seedlings_complete" ||
-    lookupKey === "nb_addon"
-  ) {
-    await recordHomeschoolOrder(session, lookupKey, email)
-    return
-  }
+  // Founders Edition rails removed 2026-09-15; recoverable from git history.
+  // Branch 1 (two_band_bundle: order row + user provisioning + bundle-buyer flag)
+  // and Branch 2 (sprouts_complete / seedlings_complete / nb_addon: order row)
+  // lived here. Those products went off sale 2026-09-12 and create-checkout
+  // refuses their lookup_keys, so no new session can reach this point with one;
+  // a stray one now logs as an unhandled lookup_key below.
 
   // Branch 2b: Eden's Table Sprouts Starter Unit ($39 digital).
   if (lookupKey === STARTER_LOOKUP_KEY) {
@@ -1366,160 +1344,10 @@ async function kickStarterFulfill(sessionId: string): Promise<void> {
   }
 }
 
-// ---------- Homeschool order recording ----------
-
-/**
- * Record a homeschool kit purchase in the orders table — the source of truth
- * for fulfillment and the Founders 500-unit counter. Idempotent on
- * stripe_checkout_session_id (safe on Stripe webhook retries). Throws on a DB
- * error so Stripe retries; the ignore-duplicates upsert makes retries harmless.
- */
-async function recordHomeschoolOrder(
-  session: Stripe.Checkout.Session,
-  lookupKey: string,
-  email: string | null,
-) {
-  const stripeCustomerId =
-    typeof session.customer === "string"
-      ? session.customer
-      : session.customer?.id ?? null
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const shipping = (session as any).shipping_details ?? (session as any).collected_information?.shipping_details ?? null
-
-  const order = {
-    stripe_checkout_session_id: session.id,
-    stripe_payment_intent_id: typeof session.payment_intent === "string" ? session.payment_intent : null,
-    stripe_customer_id: stripeCustomerId,
-    customer_email: email,
-    lookup_key: lookupKey,
-    product_label: HOMESCHOOL_PRODUCT_LABELS[lookupKey] ?? lookupKey,
-    amount_total_cents: session.amount_total ?? null,
-    currency: session.currency ?? null,
-    quantity: 1,
-    payment_status: session.payment_status ?? null,
-    shipping_name: shipping?.name ?? session.customer_details?.name ?? null,
-    shipping_address: shipping?.address ?? null,
-    status: "preorder_hold",
-    is_preorder: true,
-  }
-
-  // NOTE: writes to the renamed `orders` table. This legacy path (old homeschool lookup_keys)
-  // records the order but does NOT create order_items / fire the new confirmation messages;
-  // the new founding-preorder products use Branch 0 above. Retire the old kit buttons in favor
-  // of the price-ID preorder flow.
-  const { error } = await adminClient
-    .from("orders")
-    .upsert(order, { onConflict: "stripe_checkout_session_id", ignoreDuplicates: true })
-
-  if (error) {
-    throw new Error(
-      `homeschool_orders upsert failed for session ${session.id}: ${error.message}`,
-    )
-  }
-
-  console.log(
-    `Recorded homeschool order: lookup_key=${lookupKey}, email=${email ?? "(none)"}, ` +
-      `session=${session.id}, amount_total=${session.amount_total ?? "n/a"}`,
-  )
-}
-
-// ---------- Homeschool bundle-buyer provisioning ----------
-
-/**
- * Bundle purchase webhook handler.
- *
- * Steps:
- *   1. Find existing Supabase user by email (case-insensitive).
- *   2. If not found, invite via auth.admin.inviteUserByEmail — Supabase
- *      creates the auth.users row + sends an invitation email with a
- *      magic-link the buyer can use to set their password and access the
- *      future Customer Portal at /homeschool/account (v1.1).
- *   3. Update profiles.homeschool_bundle_buyer = true (idempotent — safe
- *      to replay on Stripe webhook retries).
- *   4. If the session has a stripe_customer (from customer_creation: "always"
- *      in create-checkout), link it to profiles.stripe_customer_id so future
- *      add-on purchases reuse the same Stripe Customer.
- *
- * Idempotency: re-running this for the same email + session is a no-op
- * on the DB (the flag is already true; the timestamp updates harmlessly).
- */
-async function handleHomeschoolBundlePurchase(
-  session: Stripe.Checkout.Session,
-  email: string,
-) {
-  // 1. Try to find an existing profiles row by email
-  const { data: existing, error: lookupError } = await adminClient
-    .from("profiles")
-    .select("user_id, stripe_customer_id, homeschool_bundle_buyer")
-    .ilike("email", escapeLikePattern(email))
-    .maybeSingle()
-
-  if (lookupError) {
-    throw new Error(`profiles lookup failed for ${email}: ${lookupError.message}`)
-  }
-
-  let userId: string | null = existing?.user_id ?? null
-
-  // 2. Provision a new user via invitation if none exists
-  if (!userId) {
-    console.log(`Provisioning new Supabase user for bundle buyer email=${email}`)
-    const { data: invited, error: inviteError } =
-      await adminClient.auth.admin.inviteUserByEmail(email, {
-        // Redirect the magic-link to the Apothecary signup completion page —
-        // the existing auth flow knows how to handle a user without a password,
-        // and lands them at /apothecary on success.
-        redirectTo: "https://edeninstitute.health/apothecary/auth/update-password",
-      })
-
-    if (inviteError) {
-      throw new Error(
-        `auth.admin.inviteUserByEmail failed for ${email}: ${inviteError.message}`,
-      )
-    }
-    userId = invited.user?.id ?? null
-
-    if (!userId) {
-      throw new Error(
-        `Bundle buyer invitation returned no user.id for ${email} (session=${session.id})`,
-      )
-    }
-
-    // The handle_new_user trigger has now created a profiles row with
-    // subscription_tier='free' for this user_id. We update it next.
-  }
-
-  // 3. Extract Stripe Customer ID from session
-  const stripeCustomerId =
-    typeof session.customer === "string"
-      ? session.customer
-      : session.customer?.id ?? null
-
-  // 4. Update the flag + (optionally) link the Stripe Customer
-  const updates: Record<string, unknown> = {
-    homeschool_bundle_buyer: true,
-    homeschool_bundle_purchased_at: new Date().toISOString(),
-  }
-  if (stripeCustomerId && !existing?.stripe_customer_id) {
-    updates.stripe_customer_id = stripeCustomerId
-  }
-
-  const { error: updateError } = await adminClient
-    .from("profiles")
-    .update(updates)
-    .eq("user_id", userId)
-
-  if (updateError) {
-    throw new Error(
-      `Bundle flag write failed for user=${userId}: ${updateError.message}`,
-    )
-  }
-
-  console.log(
-    `Bundle purchase provisioned: user=${userId}, email=${email}, ` +
-      `session=${session.id}, stripe_customer=${stripeCustomerId ?? "none"}, ` +
-      `new_user=${existing ? "false" : "true"}`,
-  )
-}
+// ---------- Founders Edition order recording (removed) ----------
+// recordHomeschoolOrder and handleHomeschoolBundlePurchase (plus the
+// HOMESCHOOL_PRODUCT_LABELS map) served only the retired Founders Edition
+// checkout. Removed 2026-09-15; recoverable from git history.
 
 // ---------- Payments ledger + subscription event log ----------
 
@@ -1796,25 +1624,41 @@ function toIso(unixSeconds: number | null | undefined): string | null {
 // is connected to this same Stripe account through Stripe Connect (Payment
 // gateway → "Connected with: hello@edeninstitute.health"), so every course
 // purchase lands here as a charge created by the LearnWorlds platform
-// application. Those charges are distinguishable from our own:
-//   - `application` is set (a Connect platform created it); our Checkout Session
-//     charges have application = null;
-//   - there is no `invoice` (subscriptions always have one);
-//   - none of our metadata keys (lookup_key / preorder_sku) are present.
+// application. Classification lives in _shared/learnworlds-charge.ts:
+//   - course_sale: `application` is set (optionally pinned to
+//     LEARNWORLDS_STRIPE_APPLICATION_ID), no invoice, none of our metadata keys;
+//   - review: the description mentions the course but there is no Connect
+//     application (or a different application). Founder decision 2026-09-15:
+//     NOT counted as a sale; the founder is emailed with the charge details;
+//   - ignore: everything else (our own Checkout Sessions, invoices).
 // The course_sales row uses the charge id as lw_event_id, so Stripe retries
 // dedupe on the existing unique index. Never throws: a ledger miss must not
 // fail the webhook.
 async function recordLearnWorldsCourseSale(event: Stripe.Event, charge: Stripe.Charge) {
   try {
-    if (charge.status !== "succeeded") return
-    if (charge.invoice) return
-    const meta = charge.metadata ?? {}
-    if (meta.lookup_key || meta.preorder_sku) return
     const desc = charge.description ?? ""
-    const fromConnectApp = !!charge.application
-    const looksLikeCourse = /back to eden|foundations|learnworlds/i.test(desc)
-    if (!fromConnectApp && !looksLikeCourse) {
-      console.log(`charge.succeeded: not a LearnWorlds charge, ignored (charge=${charge.id}, desc="${desc}")`)
+    const decision = classifyLearnWorldsCharge(charge, Deno.env.get("LEARNWORLDS_STRIPE_APPLICATION_ID"))
+    if (decision.kind === "ignore") {
+      console.log(`charge.succeeded: not a LearnWorlds charge, ignored (charge=${charge.id}, ${decision.reason})`)
+      return
+    }
+    if (decision.kind === "review") {
+      console.warn(`charge.succeeded: possible course sale NOT counted, flagged for founder review (charge=${charge.id}, ${decision.reason})`)
+      await notifyFounder(
+        "Stripe charge to review: possible Foundations Course sale not counted",
+        [
+          "A Stripe charge looked like a Foundations Course sale but was NOT counted as one,",
+          "because only charges from the LearnWorlds Connect application are counted.",
+          "",
+          `Reason: ${decision.reason}`,
+          `Charge: ${charge.id}`,
+          `Amount: ${(charge.amount / 100).toFixed(2)} ${(charge.currency ?? "usd").toUpperCase()}`,
+          `Description: ${desc || "(none)"}`,
+          `Created: ${new Date((charge.created ?? event.created) * 1000).toISOString()}`,
+          "",
+          "Open the charge in the Stripe dashboard to decide whether it is a course sale.",
+        ].join("\n"),
+      )
       return
     }
 

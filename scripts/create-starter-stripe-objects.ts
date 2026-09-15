@@ -24,7 +24,7 @@
 //    UNRESTRICTED coupon. On 2026-08-26 that briefly looked like the Stripe CLI
 //    had silently dropped the restriction. It had not; the field was simply
 //    hidden. An unrestricted $39-off coupon would apply to any product in the
-//    account, including making the $19 notebook free, so the verification below
+//    account, such as the Student Notebook, so the verification below
 //    expands it and refuses to pass without it.
 //
 // 2. The tax code has to be set on the PRODUCT. Creating it without one makes
@@ -94,7 +94,7 @@ if (existingPrices.data?.length) {
   const product = await api('POST', '/v1/products', {
     name: "Eden's Table Sprouts Starter Unit",
     description:
-      "Weeks 1 to 6 of the Sprouts (K-2) Biblical herbalism curriculum: Teacher's Guide and Student Notebook, delivered as PDFs.",
+      "Weeks 1 to 9 of the Sprouts (K-2) curriculum: Teacher's Guide, Student Notebook and Read-Aloud Storybook, delivered as PDFs.",
     tax_code: TAX_CODE,
     'metadata[sku]': LOOKUP_KEY,
     'metadata[band]': 'sprouts',
