@@ -3,6 +3,7 @@ import { useEdenPattern } from "@/hooks/useEdenPattern";
 import { useCurrentTier } from "@/hooks/useCurrentTier";
 import { ROUTES } from "@/lib/routes";
 import { HERB_CATALOG_SIZE } from "@/lib/herbCatalog";
+import { readStoredGuideSession } from "@/lib/guideAccess";
 import { patternNameToSlug, getAmazonKitUrl } from "@/lib/amazonKitUrls";
 import type { EdenPatternName } from "@/lib/edenPattern";
 
@@ -218,11 +219,12 @@ export function useTierAwareCTA(): TierAwareCTAs {
   const { data: tier } = useCurrentTier();
 
   const slug = pattern ? patternNameToSlug(pattern) : null;
-  // A stored verified Stripe session id (set by the /guide page after purchase)
-  // marks this pattern's guide as owned, so we suppress the buy CTA.
+  // A stored verified Stripe session id (set by the /guide page after purchase,
+  // kept 90 days since 2026-09-15) marks this pattern's guide as owned, so we
+  // suppress the buy CTA.
   const guidePurchased =
     typeof window !== "undefined" && slug
-      ? !!window.localStorage.getItem(`guide_session_${slug}`)
+      ? readStoredGuideSession(slug) !== null
       : false;
   const amazonKitUrl = getAmazonKitUrl(pattern ?? null);
 

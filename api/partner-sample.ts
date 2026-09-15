@@ -24,6 +24,11 @@
 //   PARTNER_SAMPLE_KEY          shared secret embedded in the link the founder
 //                               pastes. Rotate to revoke every outstanding link.
 //
+// WRONG-KEY LIMIT, added 2026-09-15 (founder decision). The key stays one shared
+// value, but a connection that sends 10 wrong keys in 15 minutes gets 429 before its
+// key is checked (api/_lib/wrong-key-limit.ts). Correct keys never count. The limiter
+// fails open, and needs migration 20260915213000_rate_bucket_peek.sql to enforce.
+//
 // PASTE-SAFE PATH FORM, added 2026-09-02. The founder can paste either
 //   https://edeninstitute.health/partner-sample/<key>      (preferred)
 //   https://edeninstitute.health/partner-sample?k=<key>    (still works)
@@ -43,6 +48,7 @@
 // so do not go looking for one again.
 
 import { safeEqual } from './_lib/safe-equal';
+import { clientIp, isLockedOut, recordWrongKey, WRONG_KEY_WINDOW_SECONDS } from './_lib/wrong-key-limit';
 
 /** Button slug -> Storage object path. Order is the reading order of a week. */
 const COMPONENTS: Record<string, string> = {
@@ -60,10 +66,10 @@ const BUCKET = 'partner-assets';
 // had to carry a 1-year TTL because the link sat in an inbox.
 const SIGNED_URL_TTL_SECONDS = 300;
 
-function fail(status: number, message: string): Response {
+function fail(status: number, message: string, extraHeaders: Record<string, string> = {}): Response {
   return new Response(JSON.stringify({ error: message }), {
     status,
-    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...extraHeaders },
   });
 }
 
@@ -95,7 +101,21 @@ export default async function handler(req: Request): Promise<Response> {
     return fail(500, 'Server misconfigured');
   }
 
+  // Refuse a connection over the wrong-key limit BEFORE looking at its key, so a
+  // locked-out guesser cannot tell a right guess from a wrong one.
+  const limiter = { supabaseUrl, serviceKey: serviceRoleKey };
+  const ip = clientIp(req.headers);
+  if (ip && (await isLockedOut(limiter, ip))) {
+    console.warn('partner-sample: wrong-key limit reached, refusing without checking the key');
+    return fail(
+      429,
+      'Too many attempts with an invalid link. Please wait 15 minutes and try again, or email hello@edeninstitute.health.',
+      { 'Retry-After': String(WRONG_KEY_WINDOW_SECONDS) },
+    );
+  }
+
   if (!safeEqual(key, expectedKey)) {
+    if (ip) await recordWrongKey(limiter, ip);
     console.warn(`partner-sample: rejected key for slug=${slug || '(none)'}`);
     return fail(403, 'This link is not valid. Please check with hello@edeninstitute.health.');
   }

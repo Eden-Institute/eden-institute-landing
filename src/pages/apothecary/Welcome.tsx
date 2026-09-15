@@ -10,7 +10,19 @@ import { ROUTES } from "@/lib/routes";
 import { readCheckoutSessionId } from "@/lib/checkoutSession";
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
 
-type Status = "verifying" | "confirmed" | "not_paid" | "missing_session" | "error";
+type Status = "verifying" | "processing" | "confirmed" | "not_paid" | "missing_session" | "error";
+
+// Tier polling after Stripe's success redirect. The webhook usually lands within a
+// couple of seconds, so the first polls are quick. After FAST_POLLS without the
+// tier flipping the page stops pretending and shows "processing" (founder decision
+// 2026-09-15: it used to say "You're on the paid plan." while the tier was still
+// free), then keeps checking gently in the background for about two minutes.
+const FAST_POLLS = 6;
+const FAST_POLL_MS = 1500;
+const SLOW_POLL_MS = 5000;
+const SLOW_POLLS = 24;
+
+const isPaidTier = (t: Tier | undefined): boolean => !!t && t !== "anon" && t !== "free";
 
 const tierDisplayName: Record<Tier, string> = {
   anon: "",
@@ -28,8 +40,10 @@ const tierDisplayName: Record<Tier, string> = {
  * reconcile profiles.subscription_tier before rendering confirmation.
  *
  * Webhook reconciliation is usually near-instant but there is a natural race
- * on the success redirect. useCurrentTier polling handles that via short
- * refetchInterval while tier is still 'free'.
+ * on the success redirect. The page polls useCurrentTier: quickly at first, then,
+ * if the tier has still not flipped, it shows a "processing" state with a
+ * "Check again" button and keeps polling every few seconds for about two minutes,
+ * switching to the confirmed welcome by itself when the tier lands.
  *
  * Closes launch-blocker #51.
  *
@@ -41,7 +55,7 @@ export default function Welcome() {
   // (src/lib/checkoutSession.ts).
   const sessionId = readCheckoutSessionId();
   const { loading: authLoading } = useAuth();
-  const { data: currentTier, refetch: refetchTier } = useCurrentTier();
+  const { data: currentTier, refetch: refetchTier, isFetching: tierFetching } = useCurrentTier();
   const queryClient = useQueryClient();
 
   const [status, setStatus] = useState<Status>("verifying");
@@ -88,25 +102,27 @@ export default function Welcome() {
     };
   }, [sessionId, authLoading, queryClient, refetchTier]);
 
-  // Step 2: watch tier; if it flips to a paid tier, mark confirmed. Poll up to
-  // ~10 seconds if still on free (covers webhook race).
+  // Step 2: watch tier; if it flips to a paid tier, mark confirmed. Poll quickly
+  // for ~9 seconds, then show "processing" and keep polling every 5 seconds for
+  // about two more minutes. "Check again" refetches on demand at any point.
   useEffect(() => {
     if (status === "missing_session" || status === "not_paid" || status === "error") {
       return;
     }
-    if (currentTier && currentTier !== "anon" && currentTier !== "free") {
-      setStatus("confirmed");
+    if (isPaidTier(currentTier)) {
+      if (status !== "confirmed") setStatus("confirmed");
       return;
     }
-    if (polls >= 6) {
-      // Gave up polling — show confirmed but flag that tier may still be propagating
-      setStatus("confirmed");
+    if (status === "confirmed") return;
+    if (status === "verifying" && polls >= FAST_POLLS) {
+      setStatus("processing");
       return;
     }
+    if (polls >= FAST_POLLS + SLOW_POLLS) return; // background polling done
     const t = setTimeout(() => {
       refetchTier();
       setPolls((p) => p + 1);
-    }, 1500);
+    }, polls < FAST_POLLS ? FAST_POLL_MS : SLOW_POLL_MS);
     return () => clearTimeout(t);
   }, [currentTier, polls, status, refetchTier]);
 
@@ -134,6 +150,38 @@ export default function Welcome() {
           </>
         )}
 
+        {status === "processing" && (
+          <>
+            <CheckCircle2
+              className="w-12 h-12 mx-auto"
+              style={{ color: "hsl(var(--eden-gold))" }}
+            />
+            <h1
+              className="font-serif text-3xl md:text-4xl font-bold"
+              style={{ color: "hsl(var(--eden-bark))" }}
+            >
+              Payment received. Your upgrade is on its way.
+            </h1>
+            <p className="font-body text-muted-foreground">
+              Stripe has confirmed your payment and we are finishing the setup on
+              our side. This usually takes under a minute. If your plan still has
+              not updated in a few minutes, email hello@edeninstitute.health and
+              we will sort it out.
+            </p>
+            <div className="flex justify-center pt-2">
+              <Button
+                variant="eden"
+                size="lg"
+                onClick={() => refetchTier()}
+                disabled={tierFetching}
+              >
+                {tierFetching && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Check again
+              </Button>
+            </div>
+          </>
+        )}
+
         {status === "confirmed" && (
           <>
             <CheckCircle2
@@ -150,16 +198,10 @@ export default function Welcome() {
               className="font-serif text-3xl md:text-4xl font-bold"
               style={{ color: "hsl(var(--eden-bark))" }}
             >
-              You're on the{" "}
-              {currentTier && currentTier !== "anon" && currentTier !== "free"
-                ? tierDisplayName[currentTier]
-                : "paid"}{" "}
-              plan.
+              You're on the {tierDisplayName[currentTier]} plan.
             </h1>
             <p className="font-body text-muted-foreground">
-              {currentTier === "free" || currentTier === "anon"
-                ? "Your subscription is processing. The upgrade will appear in a moment, and you can already start exploring."
-                : "Thank you for stewarding this work. The full clinical library is now open to you."}
+              Thank you for stewarding this work. The full clinical library is now open to you.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
               {currentTier === "practitioner" ? (
