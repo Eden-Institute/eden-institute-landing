@@ -232,7 +232,7 @@ export default function OutreachTab() {
 function StatCard({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="rounded-lg border border-border p-4 bg-card">
-      <div className="font-accent text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
+      <div className="font-accent text-[11px] tracking-[0.2em] uppercase text-muted-foreground">
         {label}
       </div>
       <div className="font-serif font-bold text-2xl" style={{ color: "hsl(var(--eden-bark))" }}>
@@ -272,7 +272,7 @@ function Table({ head, children }: { head: string[]; children: ReactNode }) {
 
 function Th({ children }: { children: ReactNode }) {
   return (
-    <th className="text-left font-accent text-[10px] tracking-[0.15em] uppercase text-muted-foreground px-3 py-2">
+    <th className="text-left font-accent text-[11px] tracking-[0.15em] uppercase text-muted-foreground px-3 py-2">
       {children}
     </th>
   );

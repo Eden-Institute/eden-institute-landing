@@ -245,7 +245,7 @@ export default function OrdersTab({ since }: { since: string }) {
             <thead>
               <tr className="bg-muted/40">
                 {["Order / Customer", "Items", "Amount", "Status", "Fulfilment", "SMS", "Messages", "Date (CT)"].map((h) => (
-                  <th key={h} className="px-3 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground">
+                  <th key={h} className="px-3 py-2 font-accent text-[11px] tracking-wider uppercase text-muted-foreground">
                     {h}
                   </th>
                 ))}
@@ -261,7 +261,7 @@ export default function OrdersTab({ since }: { since: string }) {
                       {o.order_number ?? "—"}
                     </span>
                     {o.is_internal && (
-                      <span className="ml-2 rounded px-1.5 py-0.5 font-accent text-[10px] uppercase tracking-wider bg-muted text-muted-foreground">
+                      <span className="ml-2 rounded px-1.5 py-0.5 font-accent text-[11px] uppercase tracking-wider bg-muted text-muted-foreground">
                         internal
                       </span>
                     )}
@@ -290,7 +290,7 @@ export default function OrdersTab({ since }: { since: string }) {
                             {it.quantity} × {it.name}
                             {it.is_founding && (
                               <span
-                                className="ml-1 text-[10px] uppercase tracking-wide px-1 py-0.5 rounded"
+                                className="ml-1 text-[11px] uppercase tracking-wide px-1 py-0.5 rounded"
                                 style={{ backgroundColor: "hsl(var(--eden-gold) / 0.18)", color: "hsl(var(--eden-bark))" }}
                               >
                                 founding
@@ -308,7 +308,7 @@ export default function OrdersTab({ since }: { since: string }) {
                     )}
                   </td>
                   <td className="px-3 py-2">
-                    <span className="font-accent text-[10px] tracking-wider uppercase px-2 py-1 rounded whitespace-nowrap" style={statusStyle(o.status)}>
+                    <span className="font-accent text-[11px] tracking-wider uppercase px-2 py-1 rounded whitespace-nowrap" style={statusStyle(o.status)}>
                       {o.status.replace(/_/g, " ")}
                     </span>
                   </td>
@@ -404,7 +404,7 @@ export default function OrdersTab({ since }: { since: string }) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-border p-4 bg-card">
-      <p className="font-accent text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-1">{label}</p>
+      <p className="font-accent text-[11px] tracking-[0.2em] uppercase text-muted-foreground mb-1">{label}</p>
       <p className="font-serif font-bold text-2xl" style={{ color: "hsl(var(--eden-bark))" }}>{value}</p>
     </div>
   );

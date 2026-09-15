@@ -293,7 +293,7 @@ export default function FounderLeads() {
 
   // ── Dashboard ──
   return (
-    <div className="min-h-screen bg-background px-4 sm:px-6 py-8">
+    <div className="founder-dashboard min-h-screen bg-background px-4 sm:px-6 py-8">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="flex flex-wrap items-end justify-between gap-4 mb-4">
@@ -335,7 +335,7 @@ export default function FounderLeads() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-4 border-b border-border flex-wrap" role="tablist" aria-label="Dashboard sections">
+        <div className="flex gap-0.5 sm:gap-1 mb-4 flex-nowrap overflow-x-auto overflow-y-hidden shadow-[inset_0_-1px_0_hsl(var(--border))] sm:flex-wrap sm:overflow-visible sm:shadow-none sm:border-b sm:border-border" role="tablist" aria-label="Dashboard sections">
           {TABS.map(({ id: t, label }) => (
             <button
               key={t}
@@ -343,7 +343,7 @@ export default function FounderLeads() {
               role="tab"
               aria-selected={tab === t}
               onClick={() => setTab(t)}
-              className="font-accent text-xs tracking-[0.15em] uppercase px-4 py-2 -mb-px border-b-2 transition-colors"
+              className="shrink-0 whitespace-nowrap font-accent text-xs tracking-[0.1em] sm:tracking-[0.15em] uppercase px-2.5 sm:px-4 py-2 sm:-mb-px border-b-2 transition-colors"
               style={
                 tab === t
                   ? { borderColor: "hsl(var(--eden-gold))", color: "hsl(var(--eden-bark))" }
@@ -438,7 +438,7 @@ export default function FounderLeads() {
                     <tr key={`${r.email}-${r.entered_at}-${i}`} className="border-t border-border align-top">
                       <Td>
                         <span className={r.unsubscribed ? "line-through text-muted-foreground" : ""}>{r.email}</span>
-                        {r.unsubscribed && <span className="ml-2 text-[10px] uppercase tracking-wide text-destructive">unsub</span>}
+                        {r.unsubscribed && <span className="ml-2 text-[11px] uppercase tracking-wide text-destructive">unsub</span>}
                         <br />
                         <span className="text-xs text-muted-foreground">{r.first_name ?? "(no name)"}</span>
                       </Td>
@@ -590,7 +590,7 @@ function StatCard({ label, value, small, onClick }: { label: string; value: stri
       onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick!(); } } : undefined}
       title={clickable ? "Click to see who's included" : undefined}
     >
-      <p className="font-accent text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-1">{label}</p>
+      <p className="font-accent text-[11px] tracking-[0.2em] uppercase text-muted-foreground mb-1">{label}</p>
       <p
         className={`font-serif font-bold ${small ? "text-base" : "text-2xl"} ${clickable ? "underline decoration-dotted underline-offset-4" : ""}`}
         style={{ color: "hsl(var(--eden-bark))" }}
@@ -642,7 +642,7 @@ function DrillModal({ drill, onClose }: { drill: Drill; onClose: () => void }) {
       >
         <div className="flex items-center justify-between border-b border-border px-5 py-3">
           <div>
-            <p className="font-accent text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Drill-down</p>
+            <p className="font-accent text-[11px] tracking-[0.2em] uppercase text-muted-foreground">Drill-down</p>
             <h2 id="drill-title" className="font-serif text-lg font-bold" style={{ color: "hsl(var(--eden-bark))" }}>
               {drill.title} · {drill.exactCount}
             </h2>
@@ -663,9 +663,9 @@ function DrillModal({ drill, onClose }: { drill: Drill; onClose: () => void }) {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-muted/40 sticky top-0">
-                <th scope="col" className="px-4 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground">Subscriber</th>
-                <th scope="col" className="px-4 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground">Magnet</th>
-                <th scope="col" className="px-4 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground">Captured (CT)</th>
+                <th scope="col" className="px-4 py-2 font-accent text-[11px] tracking-wider uppercase text-muted-foreground">Subscriber</th>
+                <th scope="col" className="px-4 py-2 font-accent text-[11px] tracking-wider uppercase text-muted-foreground">Magnet</th>
+                <th scope="col" className="px-4 py-2 font-accent text-[11px] tracking-wider uppercase text-muted-foreground">Captured (CT)</th>
               </tr>
             </thead>
             <tbody>
@@ -673,7 +673,7 @@ function DrillModal({ drill, onClose }: { drill: Drill; onClose: () => void }) {
                 <tr key={`${r.email}-${r.entered_at}-${i}`} className="border-t border-border align-top">
                   <td className="px-4 py-2 font-body text-sm">
                     <span className={r.unsubscribed ? "line-through text-muted-foreground" : ""}>{r.email}</span>
-                    {r.unsubscribed && <span className="ml-2 text-[10px] uppercase tracking-wide text-destructive">unsub</span>}
+                    {r.unsubscribed && <span className="ml-2 text-[11px] uppercase tracking-wide text-destructive">unsub</span>}
                     <br />
                     <span className="text-xs text-muted-foreground">{r.first_name ?? "(no name)"}</span>
                   </td>
@@ -700,14 +700,14 @@ function BarStrip({ title, bars, max }: { title: string; bars: { key: string; co
       <SectionLabel>{title}</SectionLabel>
       <div className="flex items-end gap-1.5 h-28 mt-3">
         {bars.map((b) => (
-          <div key={b.key} className="flex-1 flex flex-col items-center justify-end h-full">
-            <span className="font-body text-[10px] text-muted-foreground mb-1">{b.count}</span>
+          <div key={b.key} className="flex-1 flex flex-col items-center justify-end h-full max-sm:[&:nth-child(odd)>span:last-child]:invisible">
+            <span className="font-body text-[11px] text-muted-foreground mb-1">{b.count}</span>
             <div
               className="w-full rounded-t"
               style={{ height: `${max ? Math.max(6, (b.count / max) * 88) : 6}px`, backgroundColor: "hsl(var(--eden-bark))" }}
               title={`${dayLabel(b.key)}: ${b.count}`}
             />
-            <span className="font-body text-[9px] text-muted-foreground mt-1 whitespace-nowrap">{dayLabel(b.key)}</span>
+            <span className="font-body text-[11px] text-muted-foreground mt-1 whitespace-nowrap">{dayLabel(b.key)}</span>
           </div>
         ))}
       </div>
@@ -741,7 +741,7 @@ function Table({
               <th
                 key={h}
                 scope="col"
-                className={`px-3 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground ${align[i] === "right" ? "text-right" : ""}`}
+                className={`px-3 py-2 font-accent text-[11px] tracking-wider uppercase text-muted-foreground ${align[i] === "right" ? "text-right" : ""}`}
               >
                 {h}
               </th>

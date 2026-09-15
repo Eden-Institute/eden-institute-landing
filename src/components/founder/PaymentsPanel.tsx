@@ -135,7 +135,7 @@ export default function PaymentsPanel({ since }: { since: string }) {
           <thead>
             <tr className="bg-muted/40">
               {["Date", "What", "Type", "Amount", "Customer"].map((h) => (
-                <th key={h} className="px-3 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground">
+                <th key={h} className="px-3 py-2 font-accent text-[11px] tracking-wider uppercase text-muted-foreground">
                   {h}
                 </th>
               ))}
@@ -152,7 +152,7 @@ export default function PaymentsPanel({ since }: { since: string }) {
                 <td className="px-3 py-2 font-body text-sm">
                   {p.description ?? p.lookup_key ?? "—"}
                   {p.is_internal && (
-                    <span className="ml-2 rounded px-1.5 py-0.5 font-accent text-[10px] uppercase tracking-wider bg-muted text-muted-foreground">
+                    <span className="ml-2 rounded px-1.5 py-0.5 font-accent text-[11px] uppercase tracking-wider bg-muted text-muted-foreground">
                       internal
                     </span>
                   )}
@@ -203,7 +203,7 @@ function Stat({ label, value, strong, muted }: {
 }) {
   return (
     <div className="rounded-lg border border-border p-3">
-      <p className="font-accent text-[10px] tracking-wider uppercase text-muted-foreground">{label}</p>
+      <p className="font-accent text-[11px] tracking-wider uppercase text-muted-foreground">{label}</p>
       <p
         className={`font-serif ${strong ? "text-2xl" : "text-xl"} font-bold`}
         style={{ color: muted ? "hsl(var(--muted-foreground))" : "hsl(var(--eden-bark))" }}
