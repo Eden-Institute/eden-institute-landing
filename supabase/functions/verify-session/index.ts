@@ -174,8 +174,23 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     console.error("Verify session error:", error);
-    const message = error instanceof Error ? error.message : String(error);
-    return new Response(JSON.stringify({ error: message }), {
+    // Stripe answers an unknown session id (or one from the other mode) with a
+    // 404 StripeInvalidRequestError, code resource_missing. That is a caller
+    // problem, not a server fault: say so with a fixed message. The old path
+    // returned 500 with Stripe's own error text (post-ship QA, 2026-09-15).
+    const stripeError = error as { type?: unknown; code?: unknown; statusCode?: unknown };
+    if (
+      stripeError?.type === "StripeInvalidRequestError" &&
+      (stripeError.code === "resource_missing" || stripeError.statusCode === 404)
+    ) {
+      return new Response(JSON.stringify({ paid: false, error: "Session not found" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 404,
+      });
+    }
+    // No caller reads this body (supabase-js surfaces a generic non-2xx error),
+    // so the details stay in the function log.
+    return new Response(JSON.stringify({ error: "Verification failed" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

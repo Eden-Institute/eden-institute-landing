@@ -1,5 +1,7 @@
 # Production audit, 2026-09-15
 
+> **Status, added after the audit shipped (2026-09-15).** All four PRs were squash-merged the same day at the founder's instruction: #503 `44a6582`, #504 `11c1077`, #505 `9c03022`, #506 `b0c92f1`. The migration was applied to production from the committed file at 12:26 UTC and recorded in the migration history; 32 edge functions were redeployed from `main` and content-verified; Vercel was serving #505 by 12:35 UTC. Sentences below that say "not applied" or "nothing was merged" describe the state when the report was written and stand as the record. Appendix E covers the post-ship QA sweep and the follow-up PR that carries it. The founder-owed items (the four `WORDING: pending founder approval` strings, the Stripe portal plan-switching check, Appendix B) are still open.
+
 Scope: the whole of `Eden-Institute/eden-institute-landing` at `origin/main` 9b2b717, plus the live Supabase project `noeqztssupewjidpvhar`. That covers every page, island, edge function, migration, Vercel function, cron and config file, not only the landing page.
 
 Four mandates were weighted equally: security hardening, code quality and maintainability, production readiness, and test coverage. UI polish was checked alongside them.
@@ -767,3 +769,49 @@ Verified problems that were not changed, because the fix touches copy, prices, p
 | `scripts/backfill-payments.ts:1` | ledger rebuild paired with migration 20260720020000; referenced only from two migration comments | scripts/backfill-payments.ts is not a spent one-off: it is the only documented path to recover subscription invoice history that exists only in Stripe (migration 20260720020000:134-138 says local data CANNOT rebuild it and names this script), it is read-only against Stripe, idempotent on stripe_inv… |
 | `supabase/config.toml:45` | Config comment is dated in the future | The date is not in the future. The audited commit is 2026-09-14 22:21 -0500, i.e. 2026-09-15 03:21 UTC, the matching migration is named 20260915000000_esa_payments.sql, and today is 2026-09-15. |
 | `.github/workflows/test.yml:48` | CI checkout pulls the full 159 MB pack for a 5-second test run | The claim misreads actions/checkout. Its default fetch-depth is 1, so it does not pull the full 159 MB history pack (that number is the local full clone's .git size-pack). It fetches only the tip tree, about 110 MB in public/. The proposal itself admits fetch-depth 1 is already the default. Sparse… |
+
+## Appendix E: post-ship QA sweep, 2026-09-15
+
+Run after all four PRs were live, at the founder's "QA and do a sweep to do one more check". Seven check lanes (edge-function health and logs, cron forwarding, migration effect, edge-function bundles against `main`, CI, a crawl of the public site, local build and tests), then six reviewers over the shipped diff with two adversarial verifiers per finding, then a completeness critic.
+
+### What was verified
+
+| Lane | Result |
+|---|---|
+| Edge functions | No 5xx from any function between the deploy (12:28 UTC) and the sweep. All 32 redeployed bundles carry the `main` content markers; `ef_stale_sweep.py` reports 0 of 39 stale. |
+| Crons | Every schedule that fired between the deploy and the sweep returned 200 through the new `api/_lib/cron-forward.ts` handler; all eleven return 401 without the secret (`esa-daily` returned 500 before #505). |
+| Migration | Every grant and policy in `20260915100000_audit_hardening.sql` is in effect: anon gets 42501 on `waitlist_apply_resend_event` and `weekly_trends_snapshot`, the client `profiles` UPDATE grant is `display_name` only, the beacon RPCs still accept anon. |
+| Frontend | Security headers on every response; the `/_spa` public copy gone; the `/courses` tier grid renders three cards; no nested `<a><button>` left. |
+| CI | The `test` workflow on `b0c92f1` is green: Typecheck, Vitest and the Deno `_shared` tests. |
+| Local | `npm run typecheck` clean, `vitest run` 164 passed, Astro and SPA builds OK. |
+
+### Findings
+
+Two confirmed, five refuted by both verifiers.
+
+| Severity | Where | Finding | Follow-up PR |
+|---|---|---|---|
+| medium | `src/pages/apothecary/Account.tsx:150` | `useEdenPattern` holds `isLoading` while the person-profile list is in an error state with nothing cached (an audit change, so a non-self profile never shows the account holder's Pattern). Account gated its whole page on that flag, so a persistent profiles-read failure showed a skeleton with no end. | Fixed: the hook exposes `isProfileError`; Account shows its existing error banner instead. |
+| low | `web/lib/sitemapStaticPaths.ts:11`, `web/pages/partner-sample.astro:22` | Comments still said `/partner-sample` is Disallow-ed in robots.txt; #505 removed that line on purpose so crawlers can read the page's noindex. | Fixed. |
+
+Pre-existing issues the sweep surfaced (none introduced by the audit):
+
+| Severity | Where | Issue | Follow-up PR |
+|---|---|---|---|
+| medium | `supabase/functions/guide-checkout/index.ts` | Every GET of `/go/deep-dive/:slug` mints a live Stripe Checkout Session. The sweep's own crawl followed the eight `/results/*` buy links and created eight unpaid $4.99 sessions at 12:59 UTC; they expire on their own and nothing was charged. Any crawler or link scanner does the same. | Fixed for crawlers: `Disallow: /go/` in robots.txt, `rel="nofollow"` on the results-page link, and a User-Agent gate in the function (`_shared/bot-user-agent.ts`, tested) that sends crawlers to the guide page instead of Stripe. Mail-client link scanners that carry a browser User-Agent are not caught; that needs a click-through step, a product decision. |
+| medium | `supabase/functions/verify-session/index.ts:175` | An unknown or wrong-mode session id came back as 500 with Stripe's own error text. | Fixed: 404 with a fixed message for `resource_missing`; other failures return a fixed 500 message and keep the detail in the function log. |
+| low | `src/pages/Results.tsx` | `/results/<anything>` renders the not-found shell at a 200 with `index, follow`, so a mistyped or fabricated slug is indexable. | Fixed: `useDocumentMeta` gained a `robots` option (tested); the not-found state sets `noindex, follow`. |
+| low | Vercel cron `contact-properties-sync` (08:30 UTC) | Its edge-log history before the audit is irregular; whether it fires reliably could not be settled from one day of logs. | Not changed. Check the 08:30 UTC run on 2026-09-16. |
+| info | PR #493 | Conflicted with `main` in `web/layouts/MarketingLayout.astro`: #505 added a `preconnect` prop where #493 adds `noThirdPartyTags`. Both props are wanted. | Rebased onto `main` on 2026-09-15 as one commit (`d52de6e`), keeping both props. Its two tests were updated for the new main (the cookie banner is now a region named "Cookie consent", and the ESA state page takes its props from getStaticPaths). Both vitest projects pass, 193 tests. |
+| info | PR #314 | Open since July against a `main` that has moved on; it does not merge cleanly. | Not changed. Close or rebuild. |
+
+### What the sweep could not verify
+
+- Signed-in journeys (profile picker, favorites, account page) were not driven with a real account.
+- No real write path was exercised: no Stripe checkout, no ESA invoice, no quiz completion, no email send.
+- The daily and weekly crons had not fired yet at the time of the sweep: `notify-founder-digest` 14:00 UTC, `esa-daily` and `launch-email-preview` 15:00 UTC, the 01:00 recap, the 08:30 sync. `esa-daily` is the one whose behaviour changed (it failed on every call before #505).
+
+### Side effects of the sweep itself
+
+- Eight unpaid Stripe Checkout Sessions for the $4.99 Deep-Dive Guide, created 12:59 UTC by the crawl. They are not customers.
+- One bot-flagged `page_views` row for `/__audit-probe-2026-09-15`.

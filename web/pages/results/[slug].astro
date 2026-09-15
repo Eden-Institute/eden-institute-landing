@@ -151,8 +151,10 @@ const jsonLd = [
           <a href="/assessment" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center")}>Take the free assessment</a>
           <!-- Plain link on purpose: /go/deep-dive/:slug is the vercel.json
                redirect into the guide-checkout function, so the buy path works
-               with no JavaScript on a static page. -->
-          <a href={`/go/deep-dive/${slug}`} data-product="constitution-guide" class={cn(buttonVariants({ variant: "outline", size: "xl" }), "text-center")}>Get the Deep-Dive Guide, $4.99</a>
+               with no JavaScript on a static page. rel="nofollow" because every
+               GET of that redirect mints a live Stripe Checkout Session, and
+               robots.txt Disallows /go/ for the same reason. -->
+          <a href={`/go/deep-dive/${slug}`} rel="nofollow" data-product="constitution-guide" class={cn(buttonVariants({ variant: "outline", size: "xl" }), "text-center")}>Get the Deep-Dive Guide, $4.99</a>
         </div>
         <p class="font-body text-sm text-muted-foreground mt-6">
           Want the full clinical study for every herb?

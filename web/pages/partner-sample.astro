@@ -19,7 +19,8 @@
 // The `?k=` secret is validated by /api/partner-sample, which brokers a short
 // lived signed URL per click. This page holds no credentials: without a valid
 // k every button 403s, so the page itself is harmless if it is ever found.
-// noindex + robots.txt keep it out of search results regardless.
+// noindex keeps it out of search results regardless (robots.txt deliberately
+// does not Disallow it, or crawlers could never read the noindex).
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 
 const meta = {

@@ -62,6 +62,13 @@ import {
 export function useEdenPattern(): {
   data: EdenPatternName | null;
   isLoading: boolean;
+  /**
+   * True while the person-profile list failed to load and nothing is cached.
+   * isLoading stays true in that state on purpose (see profileCtxLoading), so
+   * a caller that renders a skeleton while isLoading must check this first or
+   * the skeleton never ends. React Query keeps retrying; a refetch clears it.
+   */
+  isProfileError: boolean;
   isEmptyForActiveProfile: boolean;
   activeProfile: PersonProfile | null;
   /**
@@ -84,9 +91,11 @@ export function useEdenPattern(): {
   // Also hold while the provider is in an error state with no cached list:
   // firing the user-level read there would show the account holder's Pattern
   // for whatever non-self profile is still selected.
-  const profileCtxLoading =
-    (profileCtx?.isLoading ?? false) ||
-    ((profileCtx?.isError ?? false) && (profileCtx?.profiles.length ?? 0) === 0);
+  // Exposed as isProfileError so a page that shows a skeleton while this hook
+  // loads (Account) can show an error instead of a skeleton that never ends.
+  const profileCtxErrored =
+    (profileCtx?.isError ?? false) && (profileCtx?.profiles.length ?? 0) === 0;
+  const profileCtxLoading = (profileCtx?.isLoading ?? false) || profileCtxErrored;
 
   const query = useQuery({
     queryKey: [
@@ -161,6 +170,7 @@ export function useEdenPattern(): {
     // Surface either context-hydration loading OR query loading so
     // skeleton-rendering surfaces can render a single coherent loading state.
     isLoading: profileCtxLoading || query.isLoading,
+    isProfileError: profileCtxErrored,
     isEmptyForActiveProfile: query.data?.isEmptyForActiveProfile ?? false,
     activeProfile,
     patternSubject:
