@@ -5,12 +5,15 @@ import { useCurrentTier } from "@/hooks/useCurrentTier";
 import { isSubscriberTier } from "@/lib/tiers";
 
 /**
- * Row shape returned by `public.herbs_directory_v` — Stage 6.3.6 unified
- * directory view. Every herb row is always returned (300 as of the herb-DB
- * expansion); tier-conditional column population
- * (visible-but-gated). Anon/free see identity + body for free rows,
- * identity-only for seed rows (is_locked = true). Seed+ see full content
- * across all rows.
+ * Row shape returned by `public.herbs_directory_v`, the unified directory
+ * view. Every herb row is always returned, with tier-conditional column
+ * population (herb tier model, 2026-09-15,
+ * supabase/migrations/20260916100000_herb_tier_model.sql):
+ *   - everyone, anon included: identity, energetics, tradition, every safety
+ *     field, complaint_names, on every row. is_locked is always false.
+ *   - Seed+: actions, tissue states, systems, complaints, pattern matches,
+ *     preparation, dosage, notes, traditional observations.
+ *   - Root+: drug_interactions, refer_threshold, sources and citations.
  *
  * Per Locked Decision §0.8 #17, this view supersedes the Stage 6.3
  * dual-query (herbs_public + herbs_clinical_v) read pattern.
@@ -28,7 +31,9 @@ export { isSubscriberTier };
  * Single entry point for the herb-directory read surface.
  *
  * The view itself enforces tier gating server-side via
- * `current_user_at_least('seed')`, so the hook does not branch on tier.
+ * `current_user_at_least('seed' | 'root')`, so the hook does not branch on
+ * tier. Pages use the returned `tier` only to pick which upsell replaces a
+ * section the caller cannot read.
  * The TanStack Query `queryKey` does include the resolved tier, however,
  * so that re-rendering after sign-in / tier change refetches the view and
  * the caller sees clinical content unlock without a hard reload.

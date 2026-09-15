@@ -22,6 +22,19 @@ export function isSubscriberTier(tier: Tier | undefined): boolean {
   return tier !== undefined && SUBSCRIBER_TIERS.includes(tier);
 }
 
+const ROOT_TIERS: ReadonlyArray<Tier> = ["root", "practitioner"];
+
+/**
+ * Root or above. Root is where herb-drug interactions, refer-out thresholds
+ * and source citations open (herbs_directory_v gates those columns with
+ * current_user_at_least('root'); see
+ * supabase/migrations/20260916100000_herb_tier_model.sql). UI gating only;
+ * the view is the real gate.
+ */
+export function isRootOrAboveTier(tier: Tier | undefined): boolean {
+  return tier !== undefined && ROOT_TIERS.includes(tier);
+}
+
 /**
  * Per-tier person_profiles cap. UX gating ONLY (disabled 'Add profile',
  * 'X of Y profiles used' readouts, the picker's cap label). The backend

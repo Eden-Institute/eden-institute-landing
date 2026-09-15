@@ -7,6 +7,7 @@ import type { Tier } from "@/hooks/useCurrentTier";
 import { isSubscriberTier } from "@/lib/tiers";
 import { Link } from "react-router-dom";
 import { ROUTES } from "@/lib/routes";
+import { HERB_CATALOG_SIZE } from "@/lib/herbCatalog";
 import { type EdenPatternName } from "@/lib/edenPattern";
 import {
   resolveHerbVerdict,
@@ -21,7 +22,7 @@ import {
  *
  *   1. Symptom            — Free+
  *   2. Action             — Seed+
- *   3. Body system /      — Seed+ (system) → Root+ (tissue state)
+ *   3. Body system /      — Seed+ (system and tissue state)
  *      tissue state
  *   4. Clinical safety    — Free+ (population safety) → Root+ (drug interactions)
  *
@@ -30,8 +31,8 @@ import {
  *
  * Tier-progressive depth (§0.8 #26):
  *   Free          → Symptom + Population safety
- *   Seed          → + Action + Body system + Pattern of Eden overlay
- *   Root          → + Tissue state + (Drug interactions on the card)
+ *   Seed          → + Action + Body system + Tissue state + Pattern of Eden overlay
+ *   Root          → + (Drug interactions on the card)
  *   Practitioner  → + Organ drill-down + Refer thresholds (Stage 6.4)
  *
  * Vocabulary ladder (§0.8 #27):
@@ -56,10 +57,11 @@ import {
  *   • Action / Body system       ← Band 3 `actions_rel` / `systems_rel` (Seed+)
  *   • Tissue state               ← Band 3 `tissue_states_indicated_rel` (Seed+)
  *   • Population safety          ← Band 2 `pregnancy/breastfeeding/children_safety`
- * Locked rows (Free/anon callers viewing Seed-tier herbs) have NULL Band 2
- * and Band 3 fields. They still match symptom filters via `complaint_names`
- * and render as locked cards in the result grid, preserving visible-but-
- * gated.
+ * Herb tier model (2026-09-15, 20260916100000_herb_tier_model.sql): no row
+ * is locked. Every caller sees Band 1 and Band 2 (identity, energetics,
+ * safety) on all rows, so the symptom and safety filters judge every row;
+ * Band 3 facets (action, system, tissue state) are Seed+. Tissue states
+ * moved from Root to Seed with that model.
  */
 
 export interface HerbFilterState {
@@ -96,14 +98,6 @@ interface HerbDirectoryFiltersProps {
   onChange: (next: HerbFilterState) => void;
   visibleCount: number;
   totalCount: number;
-  /**
-   * CRO Phase 2: locked rows surviving the current narrowing (computed by
-   * the page next to `visible`). When the population-safety filter is
-   * active for a non-subscriber, this drives the honest conversion line
-   * "…guidance for N more herbs opens with Seed" — locked rows pass the
-   * safety filter unjudged because their safety fields are Seed-gated.
-   */
-  lockedVisibleCount?: number;
   tier: Tier | undefined;
   /** Active user's Eden Pattern, when known. Drives the Match/Avoid overlay UI. */
   activePattern: EdenPatternName | null;
@@ -113,9 +107,6 @@ const labelClass =
   "font-accent text-[11px] tracking-[0.25em] uppercase mb-1.5 block";
 const selectClass =
   "w-full rounded-md border bg-background px-3 py-1.5 text-sm font-body focus:outline-none focus:ring-1";
-
-const isRootOrAbove = (t: Tier | undefined) =>
-  t === "root" || t === "practitioner";
 
 // ---------------------------------------------------------------------------
 // Symptom-doorway action concept reveal — Free tier teaching surface.
@@ -231,12 +222,10 @@ export function HerbDirectoryFilters({
   onChange,
   visibleCount,
   totalCount,
-  lockedVisibleCount = 0,
   tier,
   activePattern,
 }: HerbDirectoryFiltersProps) {
   const subscriber = isSubscriberTier(tier);
-  const rootOrAbove = isRootOrAbove(tier);
   const [doorwayOpen, setDoorwayOpen] = useState(false);
 
   // Facet lists walk every herb row (300). Memoised so a search keystroke or
@@ -257,7 +246,7 @@ export function HerbDirectoryFilters({
     const bodySystems = subscriber
       ? distinct(herbs.flatMap((h) => namesFromRel(h.systems_rel, "system_name")))
       : [];
-    const tissueStates = rootOrAbove
+    const tissueStates = subscriber
       ? distinct(
           herbs.flatMap((h) =>
             namesFromRel(h.tissue_states_indicated_rel, "state_name")
@@ -265,7 +254,7 @@ export function HerbDirectoryFilters({
         )
       : [];
     return { symptoms, actions, bodySystems, tissueStates };
-  }, [herbs, subscriber, rootOrAbove]);
+  }, [herbs, subscriber]);
 
   const hasActiveFilters =
     filters.query.trim().length > 0 ||
@@ -381,15 +370,15 @@ export function HerbDirectoryFilters({
               style={{ color: "hsl(var(--eden-gold))" }}
               data-cta="filter-gate-action"
             >
-              Filter all 300 herbs by action. Opens with Seed →
+              {`Filter all ${HERB_CATALOG_SIZE} herbs by action. Opens with Seed →`}
             </Link>
           )}
         </div>
 
-        {/* Axis 3 — Body system (Seed+) and Tissue state (Root+) */}
+        {/* Axis 3 — Body system and Tissue state (Seed+) */}
         <div>
           <label className={labelClass} htmlFor="filter-body-system">
-            {rootOrAbove ? "Body system / tissue" : "Body system"}
+            {subscriber ? "Body system / tissue" : "Body system"}
           </label>
           {subscriber ? (
             <div className="space-y-2">
@@ -409,7 +398,7 @@ export function HerbDirectoryFilters({
                   </option>
                 ))}
               </select>
-              {rootOrAbove && (
+              {subscriber && (
                 <select
                   id="filter-tissue-state"
                   value={filters.tissueState ?? ""}
@@ -463,27 +452,6 @@ export function HerbDirectoryFilters({
             <option value="breastfeeding">Breastfeeding</option>
             <option value="children">Children</option>
           </select>
-          {/* CRO Phase 2 (plan §7): reaching for a safety filter is peak
-              intent. Locked rows stay visible but their safety guidance is
-              Seed-gated — say so, with the count, as a link. */}
-          {!subscriber &&
-            filters.populationSafety !== "all" &&
-            lockedVisibleCount > 0 && (
-              <Link
-                to={`${ROUTES.APOTHECARY_PRICING}#tier-seed`}
-                className="block font-body text-xs py-2 underline-offset-2 hover:underline"
-                style={{ color: "hsl(var(--eden-gold))" }}
-                data-cta="filter-gate-safety-count"
-              >
-                {filters.populationSafety === "pregnancy"
-                  ? "Pregnancy"
-                  : filters.populationSafety === "breastfeeding"
-                    ? "Breastfeeding"
-                    : "Children's"}{" "}
-                guidance for {lockedVisibleCount} more{" "}
-                {lockedVisibleCount === 1 ? "herb" : "herbs"} opens with Seed →
-              </Link>
-            )}
         </div>
       </div>
 
@@ -628,7 +596,7 @@ export function matchesFilters(
   const q = filters.query.trim().toLowerCase();
   if (q.length > 0) {
     // CRO Phase 3: complaint_names joined into the haystack (Band 1,
-    // populated for every caller including locked rows), so symptom-style
+    // populated for every caller), so symptom-style
     // searches ("anxiety") stop dead-ending on a botanical-only index.
     const complaintNames = Array.isArray(herb.complaint_names)
       ? herb.complaint_names
@@ -649,27 +617,18 @@ export function matchesFilters(
 
   if (filters.symptom && !herbHasComplaint(herb, filters.symptom)) return false;
 
-  if (filters.action) {
-    if (herb.is_locked) return false;
-    if (!herbHasAction(herb, filters.action)) return false;
-  }
+  // Action / system / tissue facets read Seed-gated *_rel columns. Below
+  // Seed those are NULL, so the helpers return false; ApothecaryHome strips
+  // these facets for non-subscribers so that never yields a silent empty grid.
+  if (filters.action && !herbHasAction(herb, filters.action)) return false;
 
-  if (filters.bodySystem) {
-    if (herb.is_locked) return false;
-    if (!herbHasBodySystem(herb, filters.bodySystem)) return false;
-  }
+  if (filters.bodySystem && !herbHasBodySystem(herb, filters.bodySystem)) return false;
 
-  if (filters.tissueState) {
-    if (herb.is_locked) return false;
-    if (!herbHasTissueState(herb, filters.tissueState)) return false;
-  }
+  if (filters.tissueState && !herbHasTissueState(herb, filters.tissueState)) return false;
 
-  // Locked rows carry NULL safety fields (gated), so applying the safety
-  // filter to them would silently delete every Seed herb from the grid.
-  // Instead let locked rows pass through — they render as locked cards that
-  // advertise the upgrade, so the catalog never silently shrinks. The filter
-  // only narrows the rows whose safety data the caller can actually see.
-  if (filters.populationSafety !== "all" && !herb.is_locked) {
+  // Safety fields are visible on every row at every tier, so the filter
+  // judges every row.
+  if (filters.populationSafety !== "all") {
     const safetyField =
       filters.populationSafety === "pregnancy"
         ? herb.pregnancy_safety
@@ -687,21 +646,12 @@ export function matchesFilters(
     }
   }
 
-  // CRO Phase 2 decision: pattern chips NEVER hide locked rows, even though
-  // the view now gives them match axes. Two reasons. (1) The chips' toggle
-  // UI renders only for subscribers, but ApothecaryHome auto-defaults
-  // patternHideAvoid=true for ANY pattern holder — so judging locked rows
-  // here would silently remove 3-17 locked cards from free users with no
-  // visible control to undo it. (2) Locked cards are advertisement
-  // surfaces, not recommendations; an Avoid badge ON the card is honest,
-  // hiding the card just shrinks the catalog ("never silently shrinks",
-  // same invariant as the safety filter above). Locked rows still get
-  // badges and pattern-aware SORT; they are simply exempt from hiding.
-  if (
-    activePattern &&
-    (filters.patternMatchOnly || filters.patternHideAvoid) &&
-    !herb.is_locked
-  ) {
+  // Every row is judged (no row is locked any more). ApothecaryHome
+  // auto-defaults patternHideAvoid=true for ANY pattern holder, including free
+  // users who have no toggle to undo it. That stays safe: only a CURATED
+  // verdict can say avoid, and herbs_eden_patterns is Seed-gated, so a free
+  // reader's curated map is empty and "Hide aggravators" hides nothing for them.
+  if (activePattern && (filters.patternMatchOnly || filters.patternHideAvoid)) {
     // Judged through resolveHerbVerdict — the SAME resolver that renders the
     // badge — never the raw equal-vote computation. Two consequences:
     //   - "Hide aggravators" hides only what the card would actually badge

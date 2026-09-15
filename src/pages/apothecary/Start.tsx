@@ -8,6 +8,8 @@ import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
 import { APOTHECARY_PRICES } from "@/lib/apothecaryPrices";
+import { TIER_DEPTH, TIER_TAGLINES } from "@/lib/apothecaryTiers";
+import { HERB_CATALOG_SIZE } from "@/lib/herbCatalog";
 // Hero botanical: sage (Salvia officinalis), Koehler 1887. Built at this
 // hero's aspect, 1600x640 for its ~1440x640 with the panel at desktop.
 import heroStart from "@/assets/hero-start.jpg";
@@ -33,7 +35,7 @@ export default function Start() {
   useDocumentMeta({
     title: "Plans & Getting Started | Eden Apothecary",
     description:
-      "Start with the free 2-minute Pattern of Eden quiz, then choose your depth: one hundred herbs anchored to body patterns, tissue states, and stewardship. Free for as long as you'd like.",
+      `Start with the free 2-minute Pattern of Eden quiz, then choose your depth: ${HERB_CATALOG_SIZE} herbs anchored to body patterns, tissue states, and stewardship. Free for as long as you'd like.`,
     canonical: "https://edeninstitute.health/apothecary/start",
   });
 
@@ -74,7 +76,7 @@ export default function Start() {
           <span className="italic">not a symptom index.</span>
         </h1>
         <p className="font-body text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-8">
-          One hundred herbs anchored to body patterns, tissue states, and
+          {HERB_CATALOG_SIZE} herbs anchored to body patterns, tissue states, and
           stewardship, taught the way the body actually organizes itself.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -182,9 +184,9 @@ export default function Start() {
                 Contraindications, never hidden.
               </h3>
               <p className="font-body text-sm text-muted-foreground">
-                High and absolute cautions are visible at every tier.
-                Pregnancy, lactation, drug interactions, and refer
-                thresholds surface where they belong: at the herb.
+                Cautions, contraindications, and pregnancy, nursing, and
+                children's safety are open at every tier. Drug interactions
+                and when to refer out open with Root, right at the herb.
               </p>
             </article>
           </div>
@@ -209,7 +211,7 @@ export default function Start() {
               className="font-serif text-3xl md:text-4xl font-bold leading-tight mb-3"
               style={{ color: "hsl(var(--eden-bark))" }}
             >
-              All hundred herbs at every tier. <br />
+              All {HERB_CATALOG_SIZE} herbs at every tier. <br />
               <span className="italic">Depth is what you unlock.</span>
             </h2>
             <p className="font-body text-sm text-muted-foreground max-w-2xl mx-auto">
@@ -222,27 +224,25 @@ export default function Start() {
               tier="free"
               displayName="Free"
               persona="The homeschool mama"
-              tagline="Identity, energetics, and population safety for every herb."
+              tagline={TIER_TAGLINES.free}
               monthlyPrice="$0"
               yearlyPrice="$0"
               features={[
-                "All 300 herb monographs (basic profile)",
+                ...TIER_DEPTH.free,
                 "The Pattern of Eden quiz + your result",
                 "The Five Tenets overview",
-                "Pregnancy, lactation, and absolute cautions",
               ]}
             />
             <PublicTierCard
               tier="seed"
               displayName="Seed"
               persona="The Institute student"
-              tagline="Clinical depth: actions, tissue states, Pattern matches."
+              tagline={TIER_TAGLINES.seed}
               monthlyPrice={APOTHECARY_PRICES.seed.monthly}
               yearlyPrice={APOTHECARY_PRICES.seed.yearly}
               features={[
-                "Unlock clinical body of every monograph",
-                "Tissue state indications and energetic actions",
-                "Western, Ayurvedic, and TCM lenses plus Pattern of Eden",
+                "Everything in Free",
+                ...TIER_DEPTH.seed,
                 "Save your Pattern result and revisit it",
               ]}
               highlighted
@@ -251,14 +251,12 @@ export default function Start() {
               tier="root"
               displayName="Root"
               persona="The seasoned lay herbalist"
-              tagline="Drug interactions, refer thresholds, sources."
+              tagline={TIER_TAGLINES.root}
               monthlyPrice={APOTHECARY_PRICES.root.monthly}
               yearlyPrice={APOTHECARY_PRICES.root.yearly}
               features={[
                 "Everything in Seed",
-                "Herb-drug interaction surfaces",
-                "Refer-out thresholds with mechanism rationale",
-                "Source citations and classical materia medica links",
+                ...TIER_DEPTH.root,
               ]}
             />
           </div>
@@ -345,7 +343,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "What's the difference between the tiers?",
-    a: "All hundred herbs are visible at every tier. Tiers govern monograph depth: Free shows identity and population safety; Seed unlocks the clinical body: actions, tissue states, Pattern matches; Root adds drug-interaction surfaces, refer thresholds, and source citations; Practitioner adds the clinical workspace: formulary builder, SOAP notes, case files, and safety screening for up to 500 patients.",
+    a: `All ${HERB_CATALOG_SIZE} herbs are visible at every tier. Tiers govern monograph depth: Free shows identity, energetics, and every safety field; Seed unlocks the clinical body: actions, tissue states, body systems, pattern matches, preparation, and dosage; Root adds drug interactions, when to refer out, and source citations; Practitioner adds the clinical workspace: formulary builder, SOAP notes, case files, and safety screening for up to 500 patients.`,
   },
   {
     q: "Can I cancel anytime?",

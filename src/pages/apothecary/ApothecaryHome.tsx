@@ -26,14 +26,16 @@ import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
 import heroHome from "@/assets/hero-apothecary-home.jpg";
 
 import { ROUTES } from "@/lib/routes";
+import { HERB_CATALOG_SIZE } from "@/lib/herbCatalog";
 
 /**
  * Eden Apothecary index (`/apothecary`).
  *
  * Stage 6.3.5 — Symptom-Doorway Filter Rebuild + Stage 6.3.6 visible-but-
- * gated unified directory. Reads `herbs_directory_v` for all 300 herbs;
- * tier-conditional column population (Band 1 always, Band 2 unlocked rows
- * for anon/free + all rows for Seed+, Band 3 Seed+ only across all rows).
+ * gated unified directory. Reads `herbs_directory_v` for every herb;
+ * tier-conditional column population (Bands 1 and 2 for every caller on
+ * every row, Band 3 Seed+, interactions/refer-out/sources Root+; see
+ * 20260916100000_herb_tier_model.sql). No row is locked.
  *
  * The four-axis filter primitives (Symptom · Action · Body system→tissue ·
  * Clinical safety) plus the Pattern of Eden constitutional overlay live in
@@ -313,12 +315,9 @@ export default function ApothecaryHome() {
       matchesFilters(h, { filters, activePattern, curatedVerdicts })
     );
     if (!activePattern) return filtered;
-    // Pattern-aware sort. CRO Phase 2: locked rows are no longer pinned at
-    // neutral — the view exposes temperature/moisture on every row, so a
-    // locked match sorts into the match band with the rest (tissue axis is
-    // still Seed-gated, so locked rows score from two axes — the documented
-    // degraded mode). Until the Phase 2 view migration runs, locked axes
-    // are NULL and score neutral (sortKey 1000), the old behavior.
+    // Pattern-aware sort. The view exposes temperature/moisture on every
+    // row; the tissue axis is Seed-gated, so free readers score from two
+    // axes (the documented degraded mode).
     // Sorted through resolveHerbVerdict — the SAME resolver the card renders
     // from. Scoring here with a different rule than the badge would order the
     // directory by one verdict while displaying another.
@@ -364,13 +363,6 @@ export default function ApothecaryHome() {
     io.observe(el);
     return () => io.disconnect();
   }, [visible.length]);
-
-  // CRO Phase 2: how many locked rows survive the current narrowing. Feeds
-  // the safety-filter conversion line ("guidance for N more herbs opens
-  // with Seed"). Cheap over ~300 rows; no memo needed.
-  const lockedVisibleCount = visible.filter(
-    (h) => h.is_locked === true
-  ).length;
 
   // CRO Phase 3 retention: exposure progress. Studied = viewed ∩ current
   // directory (stale ids from removed herbs never inflate the count).
@@ -434,7 +426,7 @@ export default function ApothecaryHome() {
 
   // PR #50 (v3.33 Pass 2 marketing): "partner" -> "app" per Lock #47.
   const subtitle = isSubscriber
-    ? "The full materia medica: 300 monographs with tissue-state indications, organ system affinity, Pattern matches, and safety overlays."
+    ? `The full materia medica: ${HERB_CATALOG_SIZE} monographs with tissue-state indications, organ system affinity, Pattern matches, and safety overlays.`
     : "A clinical reasoning app rather than a symptom index. Each monograph is anchored to body patterns, tissue states, and stewardship, never to disease names.";
 
   const tierBadge = isSubscriber
@@ -554,7 +546,6 @@ export default function ApothecaryHome() {
             onChange={handleFiltersChange}
             visibleCount={visible.length}
             totalCount={herbs.length}
-            lockedVisibleCount={lockedVisibleCount}
             tier={tier}
             activePattern={activePattern}
           />
@@ -605,9 +596,8 @@ export default function ApothecaryHome() {
               </div>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 {patternShort && (
-                  /* Label is tier-honest: for free users, locked cards stay
-                     listed under "matches only" (Phase 2's never-hide rule),
-                     so the button promises ordering, not exclusivity. */
+                  /* No row is locked any more, so "matches only" narrows the
+                     grid for every tier and one label fits everyone. */
                   <Button
                     variant="eden"
                     size="sm"
@@ -620,9 +610,7 @@ export default function ApothecaryHome() {
                       })
                     }
                   >
-                    {isSubscriber
-                      ? `See the herbs that match your ${patternShort}`
-                      : `Put your ${patternShort} matches first`}
+                    {`See the herbs that match your ${patternShort}`}
                   </Button>
                 )}
                 <Button
@@ -687,12 +675,12 @@ export default function ApothecaryHome() {
                   className="font-serif text-xl md:text-2xl font-semibold leading-tight mb-2"
                   style={{ color: "hsl(var(--eden-bark))" }}
                 >
-                  Seed opens the full study for all 300 herbs.
+                  Seed opens the full study for all {HERB_CATALOG_SIZE} herbs.
                 </h2>
                 <p className="font-body text-sm text-muted-foreground max-w-xl">
-                  How each herb acts in the body, who it suits, how to prepare
-                  it, and how to use it safely, including drug-herb
-                  interactions and special-population guidance.
+                  How each herb acts in the body, which body systems and
+                  patterns it suits, how to prepare it, and how much to use.
+                  Safety guidance stays open for every herb at every tier.
                 </p>
               </div>
               <div className="flex gap-3 shrink-0">

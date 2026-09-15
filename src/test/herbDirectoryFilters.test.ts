@@ -127,19 +127,30 @@ describe("pattern chips judge through the resolver, not the raw vote", () => {
     ).toBe(false);
   });
 
-  it("locked rows stay exempt from pattern hiding regardless of verdict", () => {
-    const locked = row({
-      herb_id: "H101",
-      is_locked: true,
-      ...COMPUTED_AVOID_AXES,
-    });
-    const curated = new Map([["H101", curatedRow("avoid")]]);
+  it("a free reader (no curated map) never loses a row to Hide aggravators", () => {
+    // Herb tier model: no row is locked, so every row is judged. A free
+    // reader's curated map is empty (herbs_eden_patterns is Seed-gated), and
+    // a computed avoid downgrades to neutral, so the auto-defaulted
+    // "Hide aggravators" must hide nothing for them.
+    const herb = row({ herb_id: "H101", ...COMPUTED_AVOID_AXES });
     expect(
-      matchesFilters(locked, {
+      matchesFilters(herb, {
+        filters: hideAvoid,
+        activePattern: "The Spent Candle",
+        curatedVerdicts: new Map(),
+      }),
+    ).toBe(true);
+  });
+
+  it("a curated avoid is hidden for every row now that nothing is locked", () => {
+    const herb = row({ herb_id: "H102", ...COMPUTED_AVOID_AXES });
+    const curated = new Map([["H102", curatedRow("avoid")]]);
+    expect(
+      matchesFilters(herb, {
         filters: hideAvoid,
         activePattern: "The Spent Candle",
         curatedVerdicts: curated,
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 });

@@ -3,6 +3,7 @@ import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 import { PUBLIC_TIERS, type PublicTierSpec } from "@/lib/apothecaryTiers";
+import { HERB_CATALOG_SIZE } from "@/lib/herbCatalog";
 // Botanical band, same treatment as the heroes in #433: a full-colour plate at
 // 95% multiply with the content on a 92% white panel, which is what keeps the
 // type legible over artwork. Used only by ApothecaryWelcome.
@@ -195,7 +196,7 @@ export function TierComparison({
           </h2>
           <p className="font-body text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
             {lead ??
-              "All hundred herbs at every tier. Depth is what you unlock. Free stays free. Practitioner, the full clinical workspace, is open now at a founding rate."}
+              `All ${HERB_CATALOG_SIZE} herbs at every tier. Depth is what you unlock. Free stays free. Practitioner, the full clinical workspace, is open now at a founding rate.`}
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
