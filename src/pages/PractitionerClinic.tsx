@@ -113,7 +113,7 @@ function printCaseFile(cf: Json, reference: Json | null) {
       </div>`).join("")}
     <h2>Formularies</h2>
     ${(cf.formularies ?? []).map((f: Json) => `
-      <div class="enc"><p><strong>${esc(f.name)}</strong>${f.notes ? " – " + esc(f.notes) : ""}</p>
+      <div class="enc"><p><strong>${esc(f.name)}</strong>${f.notes ? ": " + esc(f.notes) : ""}</p>
       <table><tr><th>Herb</th><th>Parts</th><th>Note</th></tr>
       ${(f.items ?? []).map((it: Json) => `<tr><td>${esc(it.common_name)}</td><td>${esc(it.parts)} ${esc(it.unit)}</td><td>${esc(it.note ?? "")}</td></tr>`).join("")}
       </table></div>`).join("")}
@@ -559,7 +559,7 @@ export default function PractitionerClinic() {
                 </p>
                 <ul className="font-body text-sm mb-3 list-disc pl-5">
                   {pocket.triggers?.map((t: Json) => (
-                    <li key={t.trigger_id}><strong>{t.description}</strong> – {t.action}</li>
+                    <li key={t.trigger_id}><strong>{t.description}</strong>: {t.action}</li>
                   ))}
                 </ul>
                 <div className="flex flex-wrap gap-2">
@@ -614,8 +614,8 @@ export default function PractitionerClinic() {
                         openCitation === `${h.herb_id}:${fw}` ? (
                           <div key={fw} className="rounded bg-muted/50 p-2 my-1 font-body text-[11px]">
                             {v.note && <p className="mb-1">{v.note}</p>}
-                            <p><strong>Primary:</strong> {v.primary_citation?.author} – {v.primary_citation?.title} ({v.primary_citation?.year})</p>
-                            <p><strong>Secondary:</strong> {v.secondary_citation?.author} – {v.secondary_citation?.title} ({v.secondary_citation?.year})</p>
+                            <p><strong>Primary:</strong> {v.primary_citation?.author}, {v.primary_citation?.title} ({v.primary_citation?.year})</p>
+                            <p><strong>Secondary:</strong> {v.secondary_citation?.author}, {v.secondary_citation?.title} ({v.secondary_citation?.year})</p>
                           </div>
                         ) : null,
                       )}
@@ -629,7 +629,7 @@ export default function PractitionerClinic() {
                       {h.caution_items && (
                         <ul className="font-body text-[11px] text-destructive/90 list-disc pl-4 my-1">
                           {h.caution_items.map((c: Json, i: number) => (
-                            <li key={i}>{c.kind}: {c.entity} – {c.guidance}</li>
+                            <li key={i}>{c.kind}: {c.entity}, {c.guidance}</li>
                           ))}
                         </ul>
                       )}
@@ -655,7 +655,7 @@ export default function PractitionerClinic() {
                             </span>
                           </p>
                           {(h.caution_items ?? []).map((c: Json, i: number) => (
-                            <p key={i} className="font-body text-[11px] text-muted-foreground">{c.kind}: {c.entity} – {c.guidance}</p>
+                            <p key={i} className="font-body text-[11px] text-muted-foreground">{c.kind}: {c.entity}, {c.guidance}</p>
                           ))}
                         </div>
                       ))}
@@ -704,7 +704,7 @@ export default function PractitionerClinic() {
                 <summary className="font-body text-sm cursor-pointer">Saved formularies ({client.formularies.length})</summary>
                 {client.formularies.map((f: Json) => (
                   <div key={f.id} className="rounded border p-2 mt-2 font-body text-xs">
-                    <strong>{f.name}</strong> – {(f.items ?? []).map((it: Json) => `${it.common_name} ${it.parts} ${it.unit}`).join(", ")}
+                    <strong>{f.name}</strong>: {(f.items ?? []).map((it: Json) => `${it.common_name} ${it.parts} ${it.unit}`).join(", ")}
                   </div>
                 ))}
               </details>

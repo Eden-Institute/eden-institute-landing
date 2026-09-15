@@ -61,7 +61,7 @@ function AxisRow({
             className="font-accent text-[10px] tracking-[0.2em] uppercase italic"
             style={{ color: "hsl(30, 10%, 40%)" }}
           >
-            Balanced — between patterns
+            Balanced, between patterns
           </span>
         )}
       </div>

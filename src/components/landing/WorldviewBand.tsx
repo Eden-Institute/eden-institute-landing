@@ -42,7 +42,7 @@ export function WorldviewBand({
     <section
       className="relative overflow-hidden px-6 py-16 md:py-24"
       style={{ backgroundColor: "hsl(var(--eden-cream))" }}
-      aria-label="Source of vital force — Eden Institute worldview thesis"
+      aria-label="Source of vital force, Eden Institute worldview thesis"
     >
       <img
         src={bandVitalForce}
@@ -81,7 +81,7 @@ export function WorldviewBand({
             style={{ color: "hsl(var(--eden-bark))" }}
           >
             The pulse, the tongue, the way a body runs hot or cold or damp
-            or dry — herbalists across every culture and every century have
+            or dry: herbalists across every culture and every century have
             observed the same human body and named what they saw. We honor
             every tradition&rsquo;s careful observation. What we don&rsquo;t
             carry forward is the spiritual story those traditions tell
@@ -91,8 +91,8 @@ export function WorldviewBand({
             the source of intelligence in your skin and your blood and
             your sleep and your strength. Karma didn&rsquo;t put it there.
             Planets didn&rsquo;t put it there. The Tao didn&rsquo;t put
-            it there. God did. Everything else we teach — the patterns,
-            the herbs, the diagnostics — sits on top of that one truth.
+            it there. God did. Everything else we teach (the patterns,
+            the herbs, the diagnostics) sits on top of that one truth.
           </p>
         </ScrollReveal>
       </div>

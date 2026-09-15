@@ -109,7 +109,7 @@ export default function PartnerInquiryForm({ variant, bookingUrl }: Props) {
     }
     return (
       <div className="max-w-md mx-auto text-center py-8">
-        <p className="font-serif text-2xl mb-3" style={{ color: "hsl(var(--eden-bark))" }}>Thank you — let's talk.</p>
+        <p className="font-serif text-2xl mb-3" style={{ color: "hsl(var(--eden-bark))" }}>Thank you. Let's talk.</p>
         <p className="font-body text-muted-foreground leading-relaxed mb-6">
           We've got your details. Grab a time that works and we'll meet you there.
         </p>

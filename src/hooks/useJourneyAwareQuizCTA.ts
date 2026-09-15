@@ -64,7 +64,7 @@ export function useJourneyAwareQuizCTA(
     const slug = patternNameToSlug(pattern);
     const patternShort = pattern.replace(/^The\s+/i, "");
     return {
-      label: `Get your ${patternShort} Deep-Dive Guide — $4.99 →`,
+      label: `Get your ${patternShort} Deep-Dive Guide, $4.99 →`,
       href: `/guide/${slug}`,
       kind: "guide",
       hasPattern: true,

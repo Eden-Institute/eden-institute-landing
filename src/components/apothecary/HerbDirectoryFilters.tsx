@@ -125,49 +125,49 @@ const SYMPTOM_DOORWAY: Record<
     plain: "Help the body break a fever",
     formal: "Diaphoretic / Febrifuge",
     teaches:
-      "Herbs that help the body release excess heat through the skin — moving the fever through rather than suppressing it.",
+      "Herbs that help the body release excess heat through the skin, moving the fever through rather than suppressing it.",
   },
   "Cough, dry/unproductive": {
     plain: "Soothe and moisten dry tissue",
     formal: "Demulcent",
     teaches:
-      "Herbs that coat and soothe inflamed, dry mucus membranes — the throat and lungs welcome them like a calm rain after drought.",
+      "Herbs that coat and soothe inflamed, dry mucus membranes. The throat and lungs welcome them like a calm rain after drought.",
   },
   "Cough, productive": {
     plain: "Loosen and move stuck mucus",
     formal: "Expectorant",
     teaches:
-      "Herbs that thin and move congested mucus so the body can clear it — turning a stuck cough into a productive one.",
+      "Herbs that thin and move congested mucus so the body can clear it, turning a stuck cough into a productive one.",
   },
   Anxiety: {
     plain: "Settle a wired nervous system",
     formal: "Anxiolytic / Nervine",
     teaches:
-      "Herbs that calm a stressed, over-firing nervous system — softening the edge without dulling the mind.",
+      "Herbs that calm a stressed, over-firing nervous system, softening the edge without dulling the mind.",
   },
   Insomnia: {
     plain: "Quiet the body for sleep",
     formal: "Hypnotic / Sedative",
     teaches:
-      "Herbs that lower the body's gear for rest — slowing thought, easing tension, letting sleep arrive on its own.",
+      "Herbs that lower the body's gear for rest, slowing thought, easing tension, letting sleep arrive on its own.",
   },
   Constipation: {
     plain: "Move the bowels",
     formal: "Laxative / Aperient",
     teaches:
-      "Herbs that gently restart sluggish elimination — supporting the body's own peristaltic rhythm rather than forcing it.",
+      "Herbs that gently restart sluggish elimination, supporting the body's own peristaltic rhythm rather than forcing it.",
   },
   "Bloating / flatulence": {
     plain: "Settle digestive gas",
     formal: "Carminative",
     teaches:
-      "Aromatic herbs that warm and move stuck digestion — the body's clue is the sigh of relief after a cup of fennel or ginger tea.",
+      "Aromatic herbs that warm and move stuck digestion. The body's clue is the sigh of relief after a cup of fennel or ginger tea.",
   },
   "Cold/flu onset": {
     plain: "Support the body at the first signs of a cold",
     formal: "Diaphoretic / Antiviral",
     teaches:
-      "Herbs that meet a virus at the door — warming the body, opening the pores, letting the immune system work without a fight.",
+      "Herbs that meet a virus at the door, warming the body, opening the pores, letting the immune system work without a fight.",
   },
 };
 

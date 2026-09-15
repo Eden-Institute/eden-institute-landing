@@ -40,7 +40,7 @@ export function MateriaMedicaPlate({
     >
       <img
         src={src}
-        alt={meta ? `${meta.name} (${meta.latin}) — Eden Materia Medica plate` : herb}
+        alt={meta ? `${meta.name} (${meta.latin}), Eden Materia Medica plate` : herb}
         loading="lazy"
         style={{
           width: "100%",

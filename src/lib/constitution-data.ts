@@ -40,8 +40,8 @@ export const constitutionProfiles: Record<string, ConstitutionProfile> = {
     nickname: "The Burning Bowstring",
     tagline: "You run hot, burn dry, and hold everything tight.",
     description: [
-      "You are wired for intensity. Your metabolism runs high, your mind moves quickly, and your body generates heat readily. But you also carry significant tension — muscular, nervous, and emotional. Your system is like a bowstring drawn too tight and set on fire: powerful, precise, but at constant risk of snapping. You tend to be driven, goal-oriented, and capable of extraordinary effort — but you rarely know when to stop.",
-      "Your body needs cooling, moistening, and relaxing support — not more stimulation. The herbs that serve you best are those that soften the edges, replenish lost fluids, and calm the fire without extinguishing your vitality.",
+      "You are wired for intensity. Your metabolism runs high, your mind moves quickly, and your body generates heat readily. But you also carry significant tension: muscular, nervous, and emotional. Your system is like a bowstring drawn too tight and set on fire: powerful, precise, but at constant risk of snapping. You tend to be driven, goal-oriented, and capable of extraordinary effort, but you rarely know when to stop.",
+      "Your body needs cooling, moistening, and relaxing support, not more stimulation. The herbs that serve you best are those that soften the edges, replenish lost fluids, and calm the fire without extinguishing your vitality.",
     ],
     herbs: [
       { name: "Chamomile", note: "Cools heat and calms digestive tension.", herbSlug: "chamomile" },
@@ -59,10 +59,10 @@ export const constitutionProfiles: Record<string, ConstitutionProfile> = {
   },
   "Hot / Dry / Relaxed": {
     nickname: "The Open Flame",
-    tagline: "You burn bright and open — warm, expressive, and unguarded.",
+    tagline: "You burn bright and open: warm, expressive, and unguarded.",
     description: [
-      "You are wired for warmth and openness. Your metabolism runs high, your body generates heat readily, and your tissues tend toward relaxation. You burn freely — an open flame without a hearth. This creates a pattern of heat dissipation and tissues that lack tone. You tend to be expressive, spontaneous, and emotionally available. But without structure, the fire spreads too thin.",
-      "Your healing journey is about containment without restriction — learning to direct your warmth purposefully rather than letting it radiate without boundary.",
+      "You are wired for warmth and openness. Your metabolism runs high, your body generates heat readily, and your tissues tend toward relaxation. You burn freely, an open flame without a hearth. This creates a pattern of heat dissipation and tissues that lack tone. You tend to be expressive, spontaneous, and emotionally available. But without structure, the fire spreads too thin.",
+      "Your healing journey is about containment without restriction, learning to direct your warmth purposefully rather than letting it radiate without boundary.",
     ],
     herbs: [
       { name: "Witch Hazel", note: "Tones lax blood vessels and reduces inflammation.", herbSlug: "witch-hazel" },
@@ -83,7 +83,7 @@ export const constitutionProfiles: Record<string, ConstitutionProfile> = {
     tagline: "You run hot, hold fluid, and clench tight. Pressure builds with no release valve.",
     description: [
       "You carry heat and moisture in your system, but you also carry significant tension. Your body generates warmth, retains fluid, and holds everything tight. Heat trapped under tension, inflammation that cannot resolve, and a system that builds pressure until it erupts. You tend to be intense, focused, and powerful.",
-      "Your work is to create outlets — not through force, but through gentle, consistent release. Movement, bitter herbs, and nervines that don't add more heat are your allies.",
+      "Your work is to create outlets, not through force, but through gentle, consistent release. Movement, bitter herbs, and nervines that don't add more heat are your allies.",
     ],
     herbs: [
       { name: "Dandelion", note: "Supports liver and kidney drainage to release pressure.", herbSlug: "dandelion" },
@@ -122,13 +122,13 @@ export const constitutionProfiles: Record<string, ConstitutionProfile> = {
   },
   "Cold / Dry / Tense": {
     nickname: "The Drawn Bowstring",
-    tagline: "You run cold, dry, and tight — depleted but unable to rest.",
+    tagline: "You run cold, dry, and tight, depleted but unable to rest.",
     description: [
       "You run cold, your tissues are dry, and yet you cannot relax. A system under tension with insufficient resources to sustain it. The string is taut, but the bow is brittle. You tend toward thoughtfulness and analytical ability, but the tension axis adds anxiety and hypervigilance that prevents the rest your depleted system needs.",
       "Your healing lies in warmth, moisture, and gentle release. You need herbs that kindle your internal fire, soften dried-out tissues, and slowly coax your nervous system out of its guarded posture.",
     ],
     herbs: [
-      { name: "Ashwagandha", note: "Deeply restorative — calms anxiety while building strength.", herbSlug: "ashwagandha" },
+      { name: "Ashwagandha", note: "Deeply restorative, calms anxiety while building strength.", herbSlug: "ashwagandha" },
       { name: "Valerian", note: "Releases the tension your body cannot let go of on its own.", herbSlug: "valerian" },
       { name: "Milky Oats", note: "Slowly rebuilds an exhausted nervous system.", herbSlug: "oat-straw" },
       { name: "Marshmallow Root", note: "Moistens dry, depleted tissue throughout the body.", herbSlug: "marshmallow" },
@@ -143,10 +143,10 @@ export const constitutionProfiles: Record<string, ConstitutionProfile> = {
   },
   "Cold / Dry / Relaxed": {
     nickname: "The Spent Candle",
-    tagline: "You have burned to the wick — cold, dry, and too exhausted to hold yourself together.",
+    tagline: "You have burned to the wick: cold, dry, and too exhausted to hold yourself together.",
     description: [
-      "Your system has run out of fuel. Unlike the Drawn Bowstring, you have passed beyond tension into collapse. Your tissues are cold, dry, and lax. Your energy is spent. Your reserves are gone. Under normal conditions, your gifts — thoughtfulness, sensitivity, creativity — are genuine strengths. But in the depleted state, they are buried under exhaustion.",
-      "Your path is the most gentle of all — slow, steady rebuilding. Warming, moistening, and toning herbs taken consistently over time will gradually restore what was lost.",
+      "Your system has run out of fuel. Unlike the Drawn Bowstring, you have passed beyond tension into collapse. Your tissues are cold, dry, and lax. Your energy is spent. Your reserves are gone. Under normal conditions, your gifts (thoughtfulness, sensitivity, creativity) are genuine strengths. But in the depleted state, they are buried under exhaustion.",
+      "Your path is the most gentle of all: slow, steady rebuilding. Warming, moistening, and toning herbs taken consistently over time will gradually restore what was lost.",
     ],
     herbs: [
       { name: "Ashwagandha", note: "Rebuilds depleted reserves without overstimulating.", herbSlug: "ashwagandha" },
@@ -185,10 +185,10 @@ export const constitutionProfiles: Record<string, ConstitutionProfile> = {
   },
   "Cold / Damp / Relaxed": {
     nickname: "The Still Water",
-    tagline: "You run deep and slow — calm, patient, and unmoved.",
+    tagline: "You run deep and slow: calm, patient, and unmoved.",
     description: [
       "Your metabolism conserves energy, your body retains moisture, and your tissues are relaxed. A body designed for steady, sustained function, not quick bursts. Under normal conditions, this is remarkable resilience: calm under pressure, reliable, and deeply rooted. But when the Still Water becomes too still, calm becomes stagnation.",
-      "Your path is activation — gentle, sustained activation, not aggressive stimulation. Warming, drying, and toning herbs will help you metabolize what's accumulated and build the internal fire needed to move stagnant energy.",
+      "Your path is activation: gentle, sustained activation, not aggressive stimulation. Warming, drying, and toning herbs will help you metabolize what's accumulated and build the internal fire needed to move stagnant energy.",
     ],
     herbs: [
       { name: "Ginger", note: "Warms and stimulates sluggish digestion and circulation.", herbSlug: "ginger" },
