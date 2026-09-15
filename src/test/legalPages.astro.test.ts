@@ -28,9 +28,9 @@ const CASES = [
   {
     file: "terms.astro",
     path: "/terms",
-    title: "Terms and Conditions — The Eden Institute",
+    title: "Terms and Conditions | The Eden Institute",
     h1: "Terms and Conditions",
-    dates: "Effective Date: June 9, 2026 · Last Updated: September 12, 2026",
+    dates: "Effective Date: June 9, 2026 · Last Updated: September 15, 2026",
     headings: [
       "1. Agreement to Terms",
       "2. Definitions",
@@ -61,9 +61,9 @@ const CASES = [
   {
     file: "privacy.astro",
     path: "/privacy",
-    title: "Privacy Policy — The Eden Institute",
+    title: "Privacy Policy | The Eden Institute",
     h1: "Privacy Policy",
-    dates: "Effective Date: June 9, 2026 · Last Updated: September 12, 2026",
+    dates: "Effective Date: June 9, 2026 · Last Updated: September 15, 2026",
     headings: [
       "1. Introduction",
       "2. Information We Collect",
@@ -83,9 +83,9 @@ const CASES = [
   {
     file: "cookies.astro",
     path: "/cookies",
-    title: "Cookie Policy — The Eden Institute",
+    title: "Cookie Policy | The Eden Institute",
     h1: "Cookie Policy",
-    dates: "Effective Date: June 9, 2026 · Last Updated: September 13, 2026",
+    dates: "Effective Date: June 9, 2026 · Last Updated: September 15, 2026",
     headings: [
       "1. What Are Cookies",
       "2. How We Use Cookies",
