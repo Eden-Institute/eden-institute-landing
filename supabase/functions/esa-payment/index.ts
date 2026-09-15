@@ -28,6 +28,7 @@ import {
   rpc,
 } from "../_shared/esa-fulfil.ts";
 import { esc } from "../_shared/html-escape.ts";
+import { intakeFailureRow, normaliseReceivedAt, shouldAlertIntakeFailure } from "../_shared/esa-payment-intake.ts";
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -47,12 +48,14 @@ async function intake(b: Record<string, unknown>) {
   const open = await rest<OpenInvoice[]>(`esa_invoices?status=eq.issued&${testFilter}&select=id,invoice_number,student_name,parent_name,total_cents,state`);
   const m = matchPayment(raw, open);
 
+  const receivedAt = normaliseReceivedAt(b.received_at);
   const [payment] = await rest<{ id: string }[]>("esa_payments", {
     method: "POST",
     headers: { Prefer: "return=representation" },
     body: JSON.stringify({
       gmail_msg_id: msgId,
-      received_at: b.received_at ?? null,
+      received_at: receivedAt.iso,
+      intake_note: receivedAt.note,
       from_addr: String(b.from ?? "").slice(0, 200),
       subject: String(b.subject ?? "").slice(0, 300),
       excerpt: text.slice(0, 2000),
@@ -101,6 +104,51 @@ async function intake(b: Record<string, unknown>) {
   return json(200, { match_status: m.status, applied: false });
 }
 
+/** Any error inside intake: keep the raw notice and tell the founder (once per message per day, since
+ *  the intake script re-sends a failed notice on every run). Never throws. */
+async function recordIntakeFailure(b: Record<string, unknown>, e: unknown): Promise<{ recorded: boolean; alerted: boolean }> {
+  const row = intakeFailureRow(b, e);
+  let earlier: number | null = null;
+  let recorded = false;
+  let alerted = false;
+  try {
+    if (row.gmail_msg_id) {
+      const since = new Date(Date.now() - 86400000).toISOString();
+      const prior = await rest<{ id: string }[]>(
+        `esa_payment_intake_failures?gmail_msg_id=eq.${encodeURIComponent(String(row.gmail_msg_id))}&created_at=gte.${encodeURIComponent(since)}&select=id`,
+      );
+      earlier = prior.length;
+    }
+  } catch (le) {
+    console.error("esa-payment: could not read earlier intake failures:", le instanceof Error ? le.message : String(le));
+  }
+  let failureId: string | null = null;
+  try {
+    const [saved] = await rest<{ id: string }[]>("esa_payment_intake_failures", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify(row),
+    });
+    failureId = saved?.id ?? null;
+    recorded = true;
+  } catch (re) {
+    console.error("esa-payment: could not record the intake failure:", re instanceof Error ? re.message : String(re));
+  }
+  if (shouldAlertIntakeFailure(earlier)) {
+    alerted = await emailFounderAlert("ESA payment notice could not be processed", [
+      `A ClassWallet or Odyssey email reached payment intake, but processing it failed, so nothing was matched or applied.`,
+      `Error: ${esc(String(row.error))}`,
+      `Subject: ${esc(String(row.subject ?? ""))}`,
+      `Gmail message: ${esc(String(row.gmail_msg_id ?? "(none)"))}. Received: ${esc(String(row.received_at_raw ?? "(none)"))}.`,
+      recorded ? `The raw notice is saved in esa_payment_intake_failures. The intake script will try it again on its next run.` : `The notice could NOT be saved to the database either. Ask Claude to look at it.`,
+    ]).catch(() => false);
+    if (alerted && failureId) {
+      await rest(`esa_payment_intake_failures?id=eq.${failureId}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ founder_alerted_at: new Date().toISOString() }) }).catch(() => null);
+    }
+  }
+  return { recorded, alerted };
+}
+
 async function markPaid(b: Record<string, unknown>) {
   const number = String(b.invoice_number ?? "").trim();
   const rows = await rest<{ id: string }[]>(`esa_invoices?invoice_number=eq.${encodeURIComponent(number)}&select=id`);
@@ -146,7 +194,14 @@ Deno.serve(async (req) => {
   const b = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   try {
     switch (b.action) {
-      case "intake": return await intake(b);
+      case "intake":
+        try {
+          return await intake(b);
+        } catch (e) {
+          console.error("esa-payment intake failed:", e instanceof Error ? e.message : String(e));
+          const r = await recordIntakeFailure(b, e);
+          return json(500, { error: e instanceof Error ? e.message : String(e), ...r });
+        }
       case "mark_paid": return await markPaid(b);
       case "daily": return await daily();
       default: return json(400, { error: "action must be intake, mark_paid or daily" });

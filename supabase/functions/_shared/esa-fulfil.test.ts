@@ -5,7 +5,7 @@ import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.t
 Deno.env.set("SUPABASE_URL", "https://example.supabase.co");
 Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", "service-test-key");
 Deno.env.set("RESEND_API_KEY", "re_test");
-const { applyPayment } = await import("./esa-fulfil.ts");
+const { applyPayment, confirmWithToken } = await import("./esa-fulfil.ts");
 
 type Call = { method: string; url: string; body: string };
 
@@ -21,7 +21,7 @@ function baseInvoice(over: Record<string, unknown> = {}) {
   };
 }
 
-function stub(invoice: Record<string, unknown>, markPaidReturns = true) {
+function stub(invoice: Record<string, unknown>, markPaidReturns = true, confirm: Response | (() => Response) | null = null) {
   const calls: Call[] = [];
   const original = globalThis.fetch;
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -30,6 +30,7 @@ function stub(invoice: Record<string, unknown>, markPaidReturns = true) {
     calls.push({ method, url, body: String(init?.body ?? "") });
     const ok = (b: unknown) => new Response(JSON.stringify(b), { status: 200 });
     if (url.includes("/rpc/esa_mark_invoice_paid")) return ok(markPaidReturns);
+    if (url.includes("/rpc/esa_confirm_payment_token") && confirm) return typeof confirm === "function" ? confirm() : confirm;
     if (url.includes("/esa_invoices?id=eq.") && method === "GET") return ok([invoice]);
     if (url.includes("/products?")) return ok([{ id: "p-set", sku: "sprouts_print_set", fulfillment: "lulu" }, { id: "p-nb", sku: "sprouts_nb_print", fulfillment: "lulu" }]);
     if (url.endsWith("/rest/v1/orders") && method === "POST") return ok([{ id: "ord-1", order_number: "ET-2001" }]);
@@ -88,4 +89,61 @@ Deno.test("already paid: a second apply changes nothing and fulfils nothing", as
     assertEquals(r.changed, false);
     assertEquals(posted(s.calls, "orders").length, 0);
   } finally { s.restore(); }
+});
+
+Deno.test("printed order: the student's name is not copied into orders.raw, order_items or the ledger", async () => {
+  const s = stub(baseInvoice());
+  try {
+    await applyPayment("inv-1", "manual", null);
+    for (const t of ["orders", "order_items", "lulu_jobs", "payments"]) {
+      for (const c of posted(s.calls, t)) assert(!c.body.includes("Sam Doe") && !c.body.includes("student_name"), `${t}: ${c.body}`);
+    }
+    const order = JSON.parse(posted(s.calls, "orders")[0].body);
+    assertEquals(order.shipping_name, "Jane Doe");
+    assertEquals(order.raw.invoice_number, "ET-AZ-2026-001");
+  } finally { s.restore(); }
+});
+
+Deno.test("Confirm paid: one atomic RPC, then fulfilment; the token is never PATCHed from the function", async () => {
+  const s = stub(baseInvoice(), true, new Response(JSON.stringify([{ outcome: "applied", invoice_id: "inv-1", payment_id: "pay-1" }]), { status: 200 }));
+  try {
+    const r = await confirmWithToken("11111111-1111-4111-8111-111111111111");
+    assertEquals(r.outcome, "applied");
+    assertEquals(r.result?.fulfilment, "print_queued");
+    assert(!s.calls.some((c) => c.url.includes("esa_payment_confirmations")), "token use happens inside the RPC");
+    assert(!s.calls.some((c) => c.url.includes("/rpc/esa_mark_invoice_paid")), "no second mark-paid call");
+  } finally { s.restore(); }
+});
+
+Deno.test("Confirm paid: if the atomic RPC fails, nothing is used, paid or fulfilled, so the link still works", async () => {
+  const s = stub(baseInvoice(), true, () => new Response("connection reset", { status: 503 }));
+  try {
+    let threw = false;
+    try {
+      await confirmWithToken("11111111-1111-4111-8111-111111111111");
+    } catch {
+      threw = true;
+    }
+    assert(threw);
+    assert(!s.calls.some((c) => c.method !== "GET" && !c.url.includes("/rpc/esa_confirm_payment_token")), s.calls.map((c) => `${c.method} ${c.url}`).join(" | "));
+    assertEquals(posted(s.calls, "orders").length, 0);
+  } finally { s.restore(); }
+});
+
+Deno.test("Confirm paid: used / expired / not issued change nothing", async () => {
+  for (const outcome of ["used", "expired", "not_found", "not_issued"]) {
+    const s = stub(baseInvoice(), true, new Response(JSON.stringify([{ outcome, invoice_id: "inv-1", payment_id: null }]), { status: 200 }));
+    try {
+      const r = await confirmWithToken("11111111-1111-4111-8111-111111111111");
+      assertEquals(r.outcome, outcome);
+      assertEquals(r.result, undefined);
+      assertEquals(s.calls.length, 1, outcome);
+    } finally { s.restore(); }
+  }
+});
+
+Deno.test("esa-payment-confirm no longer uses the token before applying", async () => {
+  const src = await Deno.readTextFile(new URL("../esa-payment-confirm/index.ts", import.meta.url));
+  assert(!src.includes("used_at: new Date()"), "the function must not PATCH used_at itself");
+  assert(src.includes("confirmWithToken("));
 });

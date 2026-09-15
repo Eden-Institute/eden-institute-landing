@@ -134,8 +134,9 @@ export const ESA_STATES: EsaState[] = [
     // allowable. The account holder decides. (Rules research 2026-09-14.)
     // Invoices open 2026-09-14: ClassWallet confirmed Arizona is attached to the vendor
     // account (ESA_Catalog_Spec "ClassWallet call DONE"). LOCKED founder decision the same
-    // day: ClassWallet's 2.0408% Arizona fee is passed to the family as its own invoice line
-    // (ADE handbook allows a vendor processing fee). Set $261 + $5.33 = $266.33; notebook
+    // day: ClassWallet's 2% Arizona deduction is passed to the family as its own invoice line,
+    // grossed up to 2.0408% (ADE handbook allows a vendor processing fee; wording confirmed
+    // 2026-09-15, same sentence as the invoice PDF and the form). Set $261 + $5.33 = $266.33; notebook
     // $39.99 + $0.82 = $40.81.
     statusLabel: "Registered vendor · order by invoice today",
     summary:
@@ -147,7 +148,7 @@ export const ESA_STATES: EsaState[] = [
       },
       {
         heading: "2. Submit it in ClassWallet",
-        body: "Submit the PDF invoice in ClassWallet as a payment to a vendor. ClassWallet charges vendors a 2.0408% processing fee in Arizona, so the invoice shows it as its own line: the printed set comes to $266.33 and an extra notebook to $40.81. Arizona reviews every request, so check the current ESA Parent Handbook before you order.",
+        body: "Submit the PDF invoice in ClassWallet as a payment to a vendor. ClassWallet deducts 2%, so this invoice adds 2.0408% to cover it. The invoice shows it as its own line: the printed set comes to $266.33 and an extra notebook to $40.81. Arizona reviews every request, so check the current ESA Parent Handbook before you order.",
       },
       {
         heading: "3. We print and ship",
@@ -200,7 +201,7 @@ export const ESA_STATES: EsaState[] = [
       },
       {
         q: "Why is there a processing fee on an Arizona invoice?",
-        a: "ClassWallet charges vendors 2.0408% on Arizona ESA payments. The Arizona ESA Parent Handbook lets a vendor charge account holders a processing fee to offset it, so it is shown as its own line on your invoice. Arkansas, Alabama and New Hampshire invoices have no fee.",
+        a: "ClassWallet deducts 2%, so this invoice adds 2.0408% to cover it. The Arizona ESA Parent Handbook lets a vendor charge account holders a processing fee to offset it, so it is shown as its own line on your invoice. Arkansas, Alabama and New Hampshire invoices have no fee.",
       },
     ],
   },
@@ -377,7 +378,7 @@ export const ESA_PENDING = [
 
 /** Last content review of the ESA pages. Bump it when what they say changes (see
     the rules at the top). */
-export const ESA_UPDATED_ISO = "2026-09-14";
+export const ESA_UPDATED_ISO = "2026-09-15";
 
 /** The same date as shown on the pages, e.g. "September 2026". */
 export const ESA_UPDATED = new Date(`${ESA_UPDATED_ISO}T12:00:00Z`).toLocaleDateString("en-US", {

@@ -10,7 +10,8 @@
 //
 // Rules that must not drift:
 //   - One invoice per student (NH EFAs are per pupil, CSF handbook p.18, p.29).
-//   - Arizona passes ClassWallet's 2.0408% fee to the family as its own line (founder 2026-09-14).
+//   - Arizona passes ClassWallet's 2% deduction to the family as its own line, grossed up to
+//     2.0408% so the vendor nets the item total (founder 2026-09-14, wording confirmed 2026-09-15).
 //   - The 9-Week Starter is offered on ALABAMA invoices only (founder 2026-09-14).
 //   - An Alabama invoice may NOT mention the CHOOSE Act or ClassWallet "in any form" (AL ESP
 //     guide p.7), so it has no Program or Payment line.
@@ -62,6 +63,13 @@ export const PRODUCTS: Record<Sku, Product> = {
 };
 
 export const AZ_FEE_RATE = 0.020408;
+
+/** The one sentence that explains the Arizona fee, on the invoice PDF and on the web form (web/lib/
+ *  esaInvoice.ts esaFeeSentence must say the same). 0.020408 is the gross-up of ClassWallet's 2%
+ *  deduction (founder confirmed 2026-09-15): $261 + 2.0408% = $266.33, and 2% of that is ~$5.33. */
+export function feeSentence(rate: number): string {
+  return `ClassWallet deducts 2%, so this invoice adds ${(rate * 100).toFixed(4)}% to cover it.`;
+}
 
 export interface StateRules {
   code: EsaStateCode;

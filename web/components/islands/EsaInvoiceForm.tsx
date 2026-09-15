@@ -8,17 +8,24 @@
 // PDFs for an instant download, and emails a copy. The live total here is a preview only; the
 // server builds the invoice from supabase/functions/_shared/esa-invoice.ts.
 //
+// Double submit (2026-09-16): each fill carries an idempotency key (esaIdempotencyKey), kept in memory
+// and reused when the same fill is sent again, so a dropped connection plus a second press returns the
+// same invoices instead of new numbers and a second email. A ref also blocks a double click.
+//
 // Plain fetch with the publishable key (no Supabase client), so nothing touches localStorage,
 // but it is still mounted client:only because the static page needs no server render of a form.
 // Copy rules (web/lib/esaStates.ts header): no em dashes, and none of the listed health words.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ESA_CHOICES,
   ESA_STATE_OPTIONS,
   esaFeeCents,
+  esaFeeSentence,
+  esaIdempotencyKey,
   esaMoney,
   type EsaChoice,
+  type EsaFillKey,
   type EsaInvoiceState,
 } from "../../lib/esaInvoice";
 
@@ -80,6 +87,8 @@ export default function EsaInvoiceForm({ state, stateName, short }: Props) {
   const [company, setCompany] = useState(""); // honeypot
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const fillKey = useRef<EsaFillKey | null>(null);
+  const inFlight = useRef(false);
   const [result, setResult] = useState<{ invoices: (Issued & { href: string })[]; emailed: boolean; email: string; nextStep: string } | null>(null);
   useEffect(() => () => { result?.invoices.forEach((inv) => URL.revokeObjectURL(inv.href)); }, [result]);
 
@@ -103,14 +112,24 @@ export default function EsaInvoiceForm({ state, stateName, short }: Props) {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // A state update does not disable the button before a fast second click lands; the ref does.
+    if (inFlight.current) return;
+    inFlight.current = true;
     setError("");
     setLoading(true);
     try {
-      const res = await fetch(ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-        body: JSON.stringify({ state, parentName, email, phone, students: students.map(({ first, last, choice }) => ({ first, last, choice })), address: needsAddress ? addr : null, company }),
-      });
+      const payload = { state, parentName, email, phone, students: students.map(({ first, last, choice }) => ({ first, last, choice })), address: needsAddress ? addr : null, company };
+      fillKey.current = esaIdempotencyKey(fillKey.current, JSON.stringify(payload));
+      let res: Response;
+      try {
+        res = await fetch(ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+          body: JSON.stringify({ ...payload, idempotencyKey: fillKey.current.key }),
+        });
+      } catch {
+        throw new Error("We could not reach our server. Please check your connection and press the button again.");
+      }
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data?.ok) throw new Error(data?.error || "Something went wrong. Please try again.");
       setResult({
@@ -122,6 +141,7 @@ export default function EsaInvoiceForm({ state, stateName, short }: Props) {
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
   };
@@ -266,7 +286,7 @@ export default function EsaInvoiceForm({ state, stateName, short }: Props) {
         )}
         {opts.feeRate > 0 && (
           <p className="font-body text-xs text-muted-foreground pt-1">
-            ClassWallet charges a {(opts.feeRate * 100).toFixed(4)}% processing fee on Arizona payments, shown as its own line on the invoice.
+            {esaFeeSentence(opts.feeRate)} It is shown as its own line on the invoice.
           </p>
         )}
       </div>

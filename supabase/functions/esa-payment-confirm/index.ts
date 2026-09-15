@@ -9,7 +9,7 @@
 // payments on its own (esa_auto_confirm_ready()).
 
 import { money, STATE_RULES } from "../_shared/esa-invoice.ts";
-import { applyPayment, getInvoice, rest } from "../_shared/esa-fulfil.ts";
+import { confirmWithToken, emailFounderAlert, getInvoice, rest } from "../_shared/esa-fulfil.ts";
 import { esc } from "../_shared/html-escape.ts";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -78,20 +78,30 @@ Items: ${esc(inv.items.map((i) => `${i.sku} x${i.qty}`).join(", "))}<br>Total: <
 <button type="submit" style="background:#2B3A1E;color:#F5EDD6;border:0;font:bold 16px Georgia,serif;padding:12px 26px;cursor:pointer">Confirm paid</button></form>`);
     }
 
-    // POST: use the token first (single use even under a double-click), then apply.
-    const used = await rest<{ token: string }[]>(`esa_payment_confirmations?token=eq.${tok.token}&used_at=is.null`, {
-      method: "PATCH",
-      headers: { Prefer: "return=representation" },
-      body: JSON.stringify({ used_at: new Date().toISOString() }),
-    });
-    if (!used.length) return page("Link used", `${summary}<p>This link was already used.</p>`);
-    const r = await applyPayment(inv.id, "founder_confirm", tok.payment_id);
+    // POST: esa_confirm_payment_token marks the invoice paid and uses the token in ONE transaction
+    // (row lock, so a double-click applies once). If it errors, neither happened and this link still
+    // works. Fulfilment runs only after it succeeded.
+    const c = await confirmWithToken(tok.token);
+    if (c.outcome === "used") return page("Link used", `${summary}<p>This link was already used.</p>`);
+    if (c.outcome === "expired") return page("Link expired", `${summary}<p>This link expired. Ask Claude to mark the invoice paid if the money arrived.</p>`, 410);
+    if (c.outcome === "not_found") return page("Link not valid", "<p>This confirmation link is not valid. Ask Claude to look up the payment.</p>", 404);
+    if (c.outcome === "not_issued" || !c.result) {
+      const now = await getInvoice(inv.id).catch(() => null);
+      return page("Already done", `${summary}<p>This invoice is already <b>${esc(now?.status ?? "paid")}</b>. Nothing more to do.</p>`);
+    }
+    const r = c.result;
     if (r.fulfilment === "failed") {
       return page("Paid, but fulfilment failed", `${summary}<p>Marked paid, but sending it on failed: ${esc(r.note ?? "")}. You have an email with the details.</p>`, 500);
     }
     return page("Confirmed", `${summary}<p><b>Confirmed.</b> ${r.changed ? `Fulfilment: ${esc(r.fulfilment)}.` : esc(r.note ?? "Nothing changed.")}</p>`);
   } catch (e) {
     console.error("esa-payment-confirm failed:", e instanceof Error ? e.message : String(e));
+    if (req.method === "POST") {
+      await emailFounderAlert("ESA Confirm paid button hit an error", [
+        `Pressing Confirm paid raised an error: ${esc((e instanceof Error ? e.message : String(e)).slice(0, 400))}`,
+        `If the invoice is still "issued", nothing was changed and the same link can be pressed again. Otherwise ask Claude to check the payment.`,
+      ]).catch(() => false);
+    }
     return page("Something went wrong", "<p>Something went wrong. Nothing was changed unless you see a confirmation. Ask Claude to check the payment.</p>", 500);
   }
 });

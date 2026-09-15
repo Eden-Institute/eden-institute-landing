@@ -5,6 +5,7 @@ import {
   addDays,
   centralDate,
   feeFor,
+  feeSentence,
   forbiddenInFamilyText,
   forbiddenOnInvoice,
   parseSubmission,
@@ -13,6 +14,7 @@ import {
   STATE_RULES,
 } from "./esa-invoice.ts";
 import { renderInvoicePdf } from "./esa-invoice-pdf.ts";
+import { ESA_STATE_OPTIONS, esaFeeCents, esaFeeSentence } from "../../../web/lib/esaInvoice.ts";
 
 const addr = { line1: "123 Main St", line2: "", city: "Mesa", region: "AZ", zip: "85201" };
 const base = (over: Record<string, unknown> = {}) => ({
@@ -125,7 +127,11 @@ for (const code of ["AZ", "AR", "AL", "NH"] as const) {
       assert(!/choose|classwallet/i.test(out.text), "Alabama invoice must not name the program or ClassWallet");
       assert(out.text.includes("Date(s) of service: 10/05/2026"));
     }
-    if (code === "AZ") assert(out.text.includes("$266.33") && out.text.includes("$5.33"));
+    if (code === "AZ") {
+      assert(out.text.includes("$266.33") && out.text.includes("$5.33"));
+      // The PDF wraps lines, so compare with whitespace collapsed.
+      assert(out.text.replace(/\s+/g, " ").includes("ClassWallet deducts 2%, so this invoice adds 2.0408% to cover it."), out.text);
+    }
     if (code === "AR") assert(out.text.includes("Expected ship date: 10/05/2026"));
     if (code === "NH") assert(out.text.includes("Amount due for this student (per pupil)"));
     // Set ESA_INVOICE_SAMPLES=<dir> (and --allow-env --allow-write) to save the PDFs for a visual check.
@@ -140,4 +146,14 @@ Deno.test("an unencodable name does not crash the render", async () => {
   assert(p.ok);
   const out = await renderInvoicePdf(planInvoices(p.value)[0], "ET-AZ-2026-002", "2026-09-14");
   assert(out.text.includes("Student: B"));
+});
+
+Deno.test("Arizona fee: one sentence and the same numbers on the invoice and the web form", () => {
+  const sentence = "ClassWallet deducts 2%, so this invoice adds 2.0408% to cover it.";
+  assertEquals(STATE_RULES.AZ.feeRate, 0.020408);
+  assertEquals(feeSentence(STATE_RULES.AZ.feeRate), sentence);
+  assertEquals(esaFeeSentence(ESA_STATE_OPTIONS.AZ.feeRate), sentence);
+  assertEquals(ESA_STATE_OPTIONS.AZ.feeRate, STATE_RULES.AZ.feeRate);
+  assertEquals(26100 + esaFeeCents(26100, ESA_STATE_OPTIONS.AZ.feeRate), 26633);
+  assertEquals(3999 + esaFeeCents(3999, ESA_STATE_OPTIONS.AZ.feeRate), 4081);
 });

@@ -11,6 +11,7 @@
 import { PDFDocument, PDFFont, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1?target=denonext";
 import {
   deliveryLine,
+  feeSentence,
   forbiddenInFamilyText,
   forbiddenOnInvoice,
   type InvoicePlan,
@@ -171,7 +172,7 @@ export async function renderInvoicePdf(
     right(pct, cols.unit, y, 9.5);
     right(money(plan.feeCents), cols.amount, y, 9.5, bold);
     y -= 12;
-    for (const l of wrap(`${pct} of the items above, to cover the 2% processing fee on this payment.`, itemW, 8.5)) {
+    for (const l of wrap(feeSentence(rules.feeRate), itemW, 8.5)) {
       text(l, cols.item, y, 8.5, reg, MUTED);
       y -= 11;
     }
