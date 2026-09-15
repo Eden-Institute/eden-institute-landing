@@ -52,7 +52,7 @@ is a property of state.
 ## Founding pricing (single cohort) + shipping
 - **Kit:** $249 founding ($100 below the $349 retail) — the \"$100 off\" claim is KIT-ONLY copy.
 - **Notebook:** $19.00 founding, $24.99 retail (rides the same cohort; no $100 claim).
-- The cohort ends when **500 founding kits** have sold (`FOUNDING_GATE_SKU`/`FOUNDING_GATE_LIMIT`
+- The cohort ends when **500 founding kits** have sold (`FOUNDING_GATE_SKU`
   in `_shared/order-config.ts`; per-product `founding_qty_limit` in `products`). Checkout then
   automatically bills the retail Stripe Price. Count-based selection can overshoot ~500 by a
   few under simultaneous checkouts — accepted for a founding cohort.

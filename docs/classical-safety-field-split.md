@@ -5,7 +5,7 @@ for it turned out to be **bundled**, mixing four different things that a Chinese
 carefully apart.
 
 Two runs: `wf_fd30e75e-53c` (flawed, see "my two errors" below) and `wf_829d13b1-b84` (corrected).
-Data: `safety_field_decomposition_v2.json`.
+Data: `docs/data/classical-safety-decomposition-2026-07-22.json`.
 
 ---
 

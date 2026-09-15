@@ -174,7 +174,7 @@ supabase functions deploy lulu-webhook --no-verify-jwt
 supabase functions deploy lulu-admin
 supabase functions deploy stripe-webhook --no-verify-jwt
 supabase functions deploy create-checkout --no-verify-jwt
-python scripts/ef_stale_sweep.py --repo <path>
+python <eden-ops checkout>/scripts/ef_stale_sweep.py --repo <path to this repo>   # lives in the private eden-ops repo, not here
 ```
 
 `_shared/order-state.ts`, `order-db.ts`, `order-messages.ts` and `order-flow.ts`
