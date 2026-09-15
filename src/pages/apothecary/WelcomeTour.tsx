@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 import { safeInternalPath } from "@/lib/safeInternalPath";
+import { HERB_CATALOG_SIZE } from "@/lib/herbCatalog";
 
 /**
  * Three-step onboarding tour for first-time signed-in users.
@@ -135,9 +136,9 @@ const STEPS = [
   },
   {
     kicker: "How tiers work",
-    title: "All hundred herbs. Tiers unlock depth.",
+    title: `All ${HERB_CATALOG_SIZE} herbs. Tiers unlock depth.`,
     body: [
-      "Free shows the identity and population safety of every herb. Seed unlocks the clinical body: actions, tissue states, Pattern matches. Root adds drug interactions, refer thresholds, and source citations. Practitioner adds the clinical workspace: one-screen matching, case files, and safety screening for up to 500 patients.",
+      "Free shows the identity, energetics, and safety of every herb. Seed unlocks the clinical body: actions, tissue states, body systems, pattern matches, preparation, and dosage. Root adds drug interactions, when to refer out, and source citations. Practitioner adds the clinical workspace: one-screen matching, case files, and safety screening for up to 500 patients.",
       "You'll never be told a herb doesn't exist. You'll see exactly what depth your tier can read.",
     ],
   },

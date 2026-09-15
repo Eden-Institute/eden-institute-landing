@@ -5,12 +5,12 @@ import {
   ChevronUp,
   AlertTriangle,
   Pill,
-  Lock,
   Sparkles,
   ShieldAlert,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { type HerbDirectoryRow as HerbRow } from "@/hooks/useHerbsDirectory";
+import { useCurrentTier } from "@/hooks/useCurrentTier";
+import { isRootOrAboveTier, isSubscriberTier } from "@/lib/tiers";
 import { type EdenPatternName } from "@/lib/edenPattern";
 import {
   resolveHerbVerdict,
@@ -33,11 +33,9 @@ interface HerbCardProps {
    * Match (green) or Avoid (amber) badge computed from
    * `temperature × moisture × tissue_states_indicated`.
    *
-   * CRO Phase 2 (plan §6): locked rows carry the badge too — the view now
-   * exposes temperature/moisture on every row, so locked cards lead with
-   * the match, not the lock. tissue_states stays Seed-gated, so locked
-   * (and free-caller) badges compute from two axes, the documented
-   * degraded mode in edenPattern.ts.
+   * temperature/moisture are visible on every row at every tier.
+   * tissue_states stays Seed-gated, so free-caller badges compute from two
+   * axes, the documented degraded mode in edenPattern.ts.
    *
    * §8.1.2 (Manual v4.0): the same compute also drives a stewardship-
    * language "matches because…" reason list rendered under the chip row,
@@ -201,35 +199,25 @@ const TRADITION_LABELS: Record<TraditionalObservation["tradition"], string> = {
 };
 
 /**
- * Stage 6.3.6 visible-but-gated card.
+ * Herb card. No herb is ever locked (herb tier model, founder decision
+ * 2026-09-15; supabase/migrations/20260916100000_herb_tier_model.sql). Every
+ * caller sees identity, energetics, stewardship, tradition and every safety
+ * field for all herbs; depth is decided by the caller's tier, read from
+ * useCurrentTier (the same cached query useHerbsDirectory keys on):
  *
- * Three render states, derived entirely from the row shape (no out-of-band
- * tier check):
+ * - Free / anon: body + safety. The quick view ends in the Seed teaser.
+ * - Seed: + tissue states, systems, complaints, pattern matches,
+ *   preparation and dosage, notes. The quick view ends in the Root teaser,
+ *   where interactions, refer-out and sources would be.
+ * - Root / Practitioner: + drug interactions, refer threshold, sources.
  *
- * 1. LOCKED (`herb.is_locked === true`) — anon/free caller on a Seed-tier row.
- *    Renders identity (name, latin, pronunciation) + a clear lock affordance
- *    + an "Unlock with Seed" CTA. No body chips, no clinical sections, no
- *    expand toggle. Per Locked Decision §0.8 #17.
+ * The view is the real gate (it returns NULL for anything above the
+ * caller's tier); the tier check here only decides which upsell to show in
+ * place of a section, so a stale tier can never reveal data.
  *
- * 2. BODY-ONLY (`!is_locked` AND clinical fields NULL) — anon/free caller on
- *    a free-tier row. Existing herbs_public-style render: identity, body
- *    chips (temperature, moisture, part used, plant family, taste), energetics
- *    summary, and on expand: stewardship, biblical reference, cautions,
- *    special populations. The footer "Clinical overlay unlocks with Seed"
- *    teaser remains for this state.
- *
- * 3. CLINICAL (`!is_locked` AND clinical populated) — Seed+ caller, any row.
- *    Full monograph: tissue states, organ system affinity, chief complaints,
- *    constitutional matches, drug interactions, preparation & dosage, refer
- *    threshold, plus identity + body. Footer teaser suppressed.
- *
- * Save-favorites (PR #103/#104, 2026-04-30): unlocked states render a
- * <HerbFavoriteHeart /> button at top-right of the card. Locked state
- * does NOT render the heart. (The original reason, "Free users have
- * person_profiles cap=0 and cannot favorite", no longer holds: since
- * PR #245 (2026-07-01) Free users keep a 3-herb device-local list, see
- * useHerbFavorites.ts FREE_FAVORITES_CAP. Whether locked cards should
- * carry the heart too is an open product question, not decided here.)
+ * Save-favorites (PR #103/#104, 2026-04-30): every card renders a
+ * <HerbFavoriteHeart /> at top-right. Free users keep a 3-herb device-local
+ * list (useHerbFavorites.ts FREE_FAVORITES_CAP).
  */
 export function HerbCard({
   herb,
@@ -239,21 +227,16 @@ export function HerbCard({
 }: HerbCardProps) {
   const [expanded, setExpanded] = useState(false);
 
-  const isLocked = herb.is_locked === true;
-  // The clinical band is present whenever any Seed+ column is non-null.
-  // tissue_states_indicated is the canonical discriminator (matches the
-  // Stage 6.3 isClinicalRow logic).
-  const hasClinical =
-    !isLocked && herb.tissue_states_indicated !== null;
-  const hasSafetyFlag =
-    !isLocked &&
-    Boolean(herb.cautions || herb.contraindications_general);
+  const { data: tier } = useCurrentTier();
+  // Seed opens the clinical band; Root opens interactions, refer-out and
+  // sources. The view NULLs those columns below the tier, so these flags
+  // only choose between a section and its upsell.
+  const hasClinical = isSubscriberTier(tier);
+  const hasRoot = isRootOrAboveTier(tier);
+  const hasSafetyFlag = Boolean(herb.cautions || herb.contraindications_general);
 
-  // Pattern of Eden relationship — computed for EVERY row when an active
-  // pattern is set (CRO Phase 2: locked rows lead with the match, not the
-  // lock; the view exposes temperature/moisture on all rows). Until the
-  // Phase 2 view migration runs, locked rows still carry NULL axes and
-  // classify neutral, so this degrades to the old badge-less locked card.
+  // Pattern of Eden relationship, computed for EVERY row when an active
+  // pattern is set (the view exposes temperature/moisture on all rows).
   // Neutral relationships suppress the badge to avoid noise.
   // §8.1.2: the full detail (including stewardship-language reasons) is
   // captured here so the card can render WHY a herb matches/avoids beneath
@@ -287,222 +270,7 @@ export function HerbCard({
     : null;
   const monographPath = ROUTES.APOTHECARY_HERB(herbParam(herb));
 
-  // -------------------------------------------------------------------------
-  // STATE 1: LOCKED — CRO Phase 2 (plan §6): lead with the MATCH, not the
-  // lock. The badge/teaser render from the always-visible axes; the lock is
-  // the second beat, and the CTA names the clinical why when there is one.
-  // -------------------------------------------------------------------------
-  if (isLocked) {
-    return (
-      <article
-        className="rounded-lg border p-5 bg-background flex flex-col h-full"
-        style={{
-          borderColor: "hsl(var(--eden-gold) / 0.4)",
-          backgroundColor: "hsl(var(--eden-cream) / 0.4)",
-        }}
-        aria-label={`${herb.common_name ?? "Herb"} — locked, requires Seed`}
-      >
-        <header>
-          <div className="flex items-start justify-between gap-2">
-            <h3
-              className="font-serif text-xl font-semibold leading-tight"
-              style={{ color: "hsl(var(--eden-bark))" }}
-            >
-              {herb.common_name ?? "Unnamed herb"}
-            </h3>
-            <Lock
-              className="w-4 h-4 mt-1 shrink-0"
-              style={{ color: "hsl(var(--eden-gold))" }}
-              aria-hidden="true"
-            />
-          </div>
-          {herb.latin_name && (
-            <p className="font-body italic text-sm text-muted-foreground mt-0.5">
-              {herb.latin_name}
-            </p>
-          )}
-          {herb.pronunciation && (
-            <p className="font-accent text-[11px] tracking-[0.2em] uppercase text-muted-foreground mt-1">
-              {herb.pronunciation}
-            </p>
-          )}
-        </header>
-
-        {/* Match badge leads the chip row (same idiom as unlocked cards),
-            then energetic axes, then identity chips. */}
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {matchRelationship === "match" && (
-            <span
-              className={`${chipClass} flex items-center gap-1`}
-              style={{
-                backgroundColor: "hsl(var(--eden-gold) / 0.15)",
-                color: "hsl(var(--eden-gold))",
-                borderColor: "hsl(var(--eden-gold))",
-              }}
-              title={`Rebalances ${patternSubject} Pattern`}
-            >
-              <Sparkles className="w-3 h-3" aria-hidden="true" />
-              Match
-            </span>
-          )}
-          {matchRelationship === "avoid" && (
-            <span
-              className={`${chipClass} flex items-center gap-1 bg-destructive/10 text-destructive`}
-              title={`May aggravate ${patternSubject} Pattern`}
-            >
-              <ShieldAlert className="w-3 h-3" aria-hidden="true" />
-              Avoid
-            </span>
-          )}
-          {herb.temperature && (
-            <span
-              className={chipClass}
-              style={{
-                backgroundColor: "hsl(var(--eden-cream))",
-                color: "hsl(var(--eden-bark))",
-              }}
-            >
-              {herb.temperature}
-            </span>
-          )}
-          {herb.moisture && (
-            <span
-              className={chipClass}
-              style={{
-                backgroundColor: "hsl(var(--eden-cream))",
-                color: "hsl(var(--eden-bark))",
-              }}
-            >
-              {herb.moisture}
-            </span>
-          )}
-          {herb.part_used && (
-            <span
-              className={chipClass}
-              style={{
-                backgroundColor: "hsl(var(--eden-cream))",
-                color: "hsl(var(--eden-bark))",
-              }}
-            >
-              {herb.part_used}
-            </span>
-          )}
-          {herb.plant_family && (
-            <span
-              className={chipClass}
-              style={{
-                backgroundColor: "hsl(var(--eden-cream) / 0.6)",
-                color: "hsl(var(--eden-bark))",
-              }}
-            >
-              {herb.plant_family}
-            </span>
-          )}
-        </div>
-
-        {/* Stewardship-language reasons under the badge, mirroring the
-            unlocked card (match reasons only — a locked card is not the
-            place to argue an avoid). */}
-        {/* The "why". For a curated row this is the founder's own guide prose
-            (benefit_note), ported from guide-content-*.ts -- answering the half
-            of the original complaint that was "the Apothecary recommends these
-            but never says how they help". Conditional rows show it too: a
-            reader told "Match, with care" needs the reasoning most. */}
-        {(matchRelationship === "match" ||
-          matchRelationship === "conditional") &&
-          matchReasons.length > 0 && (
-            <ul
-              className="mt-3 space-y-0.5"
-              aria-label={`Why this herb suits ${patternSubject} Pattern`}
-            >
-              {matchReasons.map((reason) => (
-                <li
-                  key={reason}
-                  className="font-body text-xs italic"
-                  style={{ color: "hsl(var(--eden-gold))" }}
-                >
-                  {reason}
-                </li>
-              ))}
-            </ul>
-          )}
-
-        {/* The condition itself -- dose, form, or the corrective to pair with.
-            This is the operative half of a conditional verdict: without it the
-            reader is told to take care but not how. */}
-        {matchRelationship === "conditional" && conditionNote && (
-          <p
-            className="mt-2 font-body text-xs"
-            style={{ color: "hsl(var(--eden-bark))" }}
-          >
-            <span className="font-accent uppercase tracking-[0.15em] text-[10px] mr-1.5">
-              Take care
-            </span>
-            {conditionNote}
-          </p>
-        )}
-
-        {/* True teaser line: the first clause of the energetics summary
-            (energetics_teaser, always visible). The full summary and the
-            clinical study stay behind Seed. */}
-        {herb.energetics_teaser && (
-          <p className="mt-3 font-body text-sm italic text-muted-foreground">
-            {herb.energetics_teaser}.
-          </p>
-        )}
-
-        <div
-          className="mt-5 flex-1 flex flex-col items-start justify-end gap-3 pt-4 border-t"
-          style={{ borderColor: "hsl(var(--eden-gold) / 0.25)" }}
-        >
-          <p
-            className="font-accent text-[11px] tracking-[0.25em] uppercase"
-            style={{ color: "hsl(var(--eden-gold))" }}
-          >
-            {matchRelationship === "match" && patternShort
-              ? `Matches ${patternSubject} ${patternShort}`
-              : "There's more to know about this herb"}
-          </p>
-          <p className="font-body text-sm leading-relaxed text-muted-foreground">
-            {matchRelationship === "match" && patternShort
-              ? `The clinical reason this herb rebalances ${patternSubject} ${patternShort} is written and waiting. Seed opens the full study for all 300 herbs.`
-              : "Seed opens the full study — how it acts in the body, who it suits, how to prepare it, and how to use it safely. All 300 herbs, one subscription."}
-          </p>
-          {/* whitespace-normal + h-auto: the match-state label is long and
-              the shadcn base class is nowrap — without this the button's
-              min-content width overflows narrow cards (320px viewports and
-              the 3-column grid near 1024px). */}
-          <Button
-            variant="eden"
-            size="sm"
-            className="whitespace-normal h-auto py-2 text-left"
-            asChild
-          >
-            <Link
-              to={`${ROUTES.APOTHECARY_PRICING}#tier-seed`}
-              data-cta="card-locked-unlock-seed"
-            >
-              {matchRelationship === "match"
-                ? "Unlock the clinical reason with Seed"
-                : "Unlock with Seed"}
-            </Link>
-          </Button>
-          <Link
-            to={monographPath}
-            data-cta="card-locked-monograph"
-            className="inline-flex items-center min-h-[44px] -my-2 font-body text-xs underline-offset-2 hover:underline"
-            style={{ color: "hsl(var(--eden-gold))" }}
-          >
-            See this herb's page →
-          </Link>
-        </div>
-      </article>
-    );
-  }
-
-  // -------------------------------------------------------------------------
-  // STATE 2 & 3: UNLOCKED — body always; clinical sections only when populated
-  // -------------------------------------------------------------------------
+  // Body and safety always; clinical sections by tier.
   return (
     <article
       className="relative rounded-lg border p-5 bg-background flex flex-col h-full"
@@ -735,10 +503,7 @@ export function HerbCard({
 
       {/* The condition itself — dose, form, or the corrective to pair with.
           This is the operative half of a conditional verdict: without it the
-          reader is told to take care but never how. Mirrors the locked-card
-          treatment; before this block the unlocked card (the one every
-          Seed+ reader actually sees) rendered the chip and dropped the
-          condition entirely. */}
+          reader is told to take care but never how. */}
       {matchRelationship === "conditional" && conditionNote && (
         <p
           className="mt-2 font-body text-xs leading-relaxed"
@@ -981,7 +746,7 @@ export function HerbCard({
                 </section>
               )}
 
-              {herb.drug_interactions && (
+              {hasRoot && herb.drug_interactions && (
                 <section>
                   <h4
                     className={`${sectionLabel} flex items-center gap-1.5`}
@@ -1020,7 +785,7 @@ export function HerbCard({
                 </section>
               )}
 
-              {herb.refer_threshold && (
+              {hasRoot && herb.refer_threshold && (
                 <section>
                   <h4
                     className={sectionLabel}
@@ -1144,13 +909,24 @@ export function HerbCard({
               // and follow-on data migrations, per Locks #38 + #43. Fall back to the
               // legacy free-text prose render when the structured fields are NULL
               // (rows not yet through the audit).
-              const primary = asPrimaryTextCitation(herb.primary_text_citation);
-              const secondary = asSecondaryCitation(herb.secondary_citation);
+              //
+              // Herb tier model: traditional observations are Seed, the named
+              // sources (primary/secondary citations, each observation's
+              // citation line) are Root. Below Root the section keeps the
+              // observations and drops every citation; the Root teaser at the
+              // foot of the quick view says what opens.
+              const primary = hasRoot
+                ? asPrimaryTextCitation(herb.primary_text_citation)
+                : null;
+              const secondary = hasRoot
+                ? asSecondaryCitation(herb.secondary_citation)
+                : null;
               const traditional = asTraditionalObservations(
                 herb.traditional_observations,
               );
               const hasStructured = primary || secondary || traditional;
-              const hasLegacy = herb.primary_sources || herb.secondary_sources;
+              const hasLegacy =
+                hasRoot && (herb.primary_sources || herb.secondary_sources);
               if (!hasStructured && !hasLegacy) return null;
 
               return (
@@ -1159,7 +935,7 @@ export function HerbCard({
                     className={sectionLabel}
                     style={{ color: "hsl(var(--eden-gold))" }}
                   >
-                    Sources
+                    {hasRoot ? "Sources" : "Traditional observations"}
                   </h4>
 
                   {primary ? (
@@ -1177,7 +953,7 @@ export function HerbCard({
                       )}
                     </div>
                   ) : (
-                    herb.primary_sources && (
+                    hasRoot && herb.primary_sources && (
                       <p className="font-body text-xs leading-relaxed text-muted-foreground">
                         <span className="font-medium">Primary: </span>
                         {herb.primary_sources}
@@ -1205,7 +981,7 @@ export function HerbCard({
                       </span>
                     </div>
                   ) : (
-                    herb.secondary_sources && (
+                    hasRoot && herb.secondary_sources && (
                       <p className="font-body text-xs leading-relaxed text-muted-foreground mt-1">
                         <span className="font-medium">Secondary: </span>
                         {herb.secondary_sources}
@@ -1214,7 +990,7 @@ export function HerbCard({
                   )}
 
                   {traditional && (
-                    <div className="mt-3 space-y-2">
+                    <div className={hasRoot ? "mt-3 space-y-2" : "space-y-2"}>
                       {traditional.map((obs, i) => (
                         <div
                           key={`${obs.tradition}-${i}`}
@@ -1240,14 +1016,16 @@ export function HerbCard({
                           <p className="font-body text-xs leading-relaxed text-muted-foreground">
                             {obs.observation}
                           </p>
-                          <CitationAnchor
-                            url={obs.citation.url}
-                            className="font-body text-[10px] tracking-wide uppercase underline decoration-dotted underline-offset-2 text-muted-foreground hover:opacity-80 mt-1 inline-block"
-                          >
-                            {obs.citation.author}, {obs.citation.title} ({
-                              obs.citation.year
-                            })
-                          </CitationAnchor>
+                          {hasRoot && (
+                            <CitationAnchor
+                              url={obs.citation.url}
+                              className="font-body text-[10px] tracking-wide uppercase underline decoration-dotted underline-offset-2 text-muted-foreground hover:opacity-80 mt-1 inline-block"
+                            >
+                              {obs.citation.author}, {obs.citation.title} ({
+                                obs.citation.year
+                              })
+                            </CitationAnchor>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1256,10 +1034,11 @@ export function HerbCard({
               );
             })()}
 
-          {/* CRO Phase 2: the body-only footer names the gated sections and
-              carries the CTA — a preview that advertises, not a dead end.
-              (Free-tier row, anon/free caller.) */}
-          {!hasClinical && (
+          {/* The quick view ends by naming the next tier's sections and
+              carries its CTA: a preview that advertises, not a dead end.
+              Free/anon get Seed (inside the Seed promise only); Seed gets
+              Root, which is where interactions, refer-out and sources live. */}
+          {!hasClinical ? (
             <div className="pt-1">
               <p className="font-body text-xs text-muted-foreground italic">
                 Seed opens the clinical study of this herb: actions, tissue
@@ -1274,6 +1053,23 @@ export function HerbCard({
                 Unlock with Seed →
               </Link>
             </div>
+          ) : (
+            !hasRoot && (
+              <div className="pt-1">
+                <p className="font-body text-xs text-muted-foreground italic">
+                  Root adds drug interactions, when to refer out, and the
+                  sources behind this herb.
+                </p>
+                <Link
+                  to={`${ROUTES.APOTHECARY_PRICING}#tier-root`}
+                  data-cta="card-clinical-teaser-root"
+                  className="inline-flex items-center min-h-[44px] -my-2 font-body text-xs underline-offset-2 hover:underline"
+                  style={{ color: "hsl(var(--eden-gold))" }}
+                >
+                  Unlock with Root →
+                </Link>
+              </div>
+            )
           )}
         </div>
       )}

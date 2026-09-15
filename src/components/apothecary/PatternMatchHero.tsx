@@ -5,6 +5,7 @@ import { useDiagnosticProfile } from "@/hooks/useDiagnosticProfile";
 import { useCurrentTier } from "@/hooks/useCurrentTier";
 import { PATTERN_PROFILES } from "@/lib/edenPattern";
 import { ROUTES } from "@/lib/routes";
+import { HERB_CATALOG_SIZE } from "@/lib/herbCatalog";
 import { type DiagnosticProfile, hasFullDiagnosticDepth } from "@/lib/diagnosticProfile";
 import { useActiveProfileOptional } from "@/contexts/ActiveProfileContext";
 
@@ -111,8 +112,8 @@ export function PatternMatchHero() {
       : "→ Take the Body Pattern Quiz";
 
     const heading = isNonSelfEmpty
-      ? `Discover ${targetName}'s Pattern to unlock match badges across all 300 herbs.`
-      : "Discover your Pattern to unlock match badges across all 300 herbs.";
+      ? `Discover ${targetName}'s Pattern to unlock match badges across all ${HERB_CATALOG_SIZE} herbs.`
+      : `Discover your Pattern to unlock match badges across all ${HERB_CATALOG_SIZE} herbs.`;
 
     const subhead = isNonSelfEmpty
       ? `Two minutes. Twelve questions across three classical axes (Temperature, Moisture, Tone). The result reveals which of the eight Eden Patterns governs ${targetName}'s terrain. From there, every herb in the directory shows whether it rebalances or aggravates ${targetName}'s specific Pattern.`

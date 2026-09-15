@@ -2,6 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEdenPattern } from "@/hooks/useEdenPattern";
 import { useCurrentTier } from "@/hooks/useCurrentTier";
 import { ROUTES } from "@/lib/routes";
+import { HERB_CATALOG_SIZE } from "@/lib/herbCatalog";
 import { patternNameToSlug, getAmazonKitUrl } from "@/lib/amazonKitUrls";
 import type { EdenPatternName } from "@/lib/edenPattern";
 
@@ -109,8 +110,7 @@ function computeTierAwareCTAs(
   } else {
     // free / anon (resolved)
     upgrade = {
-      label:
-        "Unlock the full clinical picture: actions, tissue states, and safety for all 300 herbs",
+      label: `Unlock the full clinical picture: actions, tissue states, and preparation for all ${HERB_CATALOG_SIZE} herbs`,
       shortLabel: "Unlock more",
       href: "/apothecary/pricing#tier-seed",
     };
@@ -187,7 +187,7 @@ function computeTierAwareCTAs(
   } else {
     // free / anon (resolved): steer toward the entry subscription.
     next = {
-      label: "Unlock the full clinical picture: actions, tissue states, and safety for all 300 herbs",
+      label: `Unlock the full clinical picture: actions, tissue states, and preparation for all ${HERB_CATALOG_SIZE} herbs`,
       href: "/apothecary/pricing#tier-seed",
       kind: "upgrade-seed",
     };

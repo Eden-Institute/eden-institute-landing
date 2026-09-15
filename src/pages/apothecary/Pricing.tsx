@@ -10,6 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrentTier } from "@/hooks/useCurrentTier";
 import { APOTHECARY_PRICES } from "@/lib/apothecaryPrices";
+import { TIER_DEPTH } from "@/lib/apothecaryTiers";
+import { HERB_CATALOG_SIZE } from "@/lib/herbCatalog";
 import { isSubscriberTier } from "@/lib/tiers";
 import { trackCta } from "@/lib/trackCta";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
@@ -214,10 +216,9 @@ export default function Pricing() {
                 monthlyPrice="$0"
                 yearlyPrice="$0"
                 features={[
-                  "All 300 herb monographs (basic profile)",
+                  ...TIER_DEPTH.free,
                   "Pattern quiz + result",
                   "The Five Tenets overview",
-                  "Read-only contraindications (high + absolute)",
                 ]}
                 billingCycle={cycle}
                 highlighted={highlightedTier === "free"}
@@ -234,9 +235,8 @@ export default function Pricing() {
                 monthlyLookupKey={APOTHECARY_PRICES.seed.monthlyLookupKey}
                 yearlyLookupKey={APOTHECARY_PRICES.seed.yearlyLookupKey}
                 features={[
-                  "The full clinical study for all 300 herbs",
-                  "Actions, tissue states, energetics",
-                  "Full contraindication library",
+                  `The full clinical study for all ${HERB_CATALOG_SIZE} herbs`,
+                  ...TIER_DEPTH.seed,
                   "Profiles for up to 5 family members",
                   "Save and revisit your Pattern result",
                 ]}
@@ -249,16 +249,15 @@ export default function Pricing() {
               <PricingTier
                 tier="root"
                 displayName="Root"
-                tagline="Deeper practice: full junctions, dimensions, and citations."
+                tagline="Deeper practice: interactions, referral guidance, and citations."
                 monthlyPrice={APOTHECARY_PRICES.root.monthly}
                 yearlyPrice={APOTHECARY_PRICES.root.yearly}
                 monthlyLookupKey={APOTHECARY_PRICES.root.monthlyLookupKey}
                 yearlyLookupKey={APOTHECARY_PRICES.root.yearlyLookupKey}
                 features={[
                   "Everything in Seed",
+                  ...TIER_DEPTH.root,
                   "Profiles for up to 10 family members",
-                  "All 12 herb-to-dimension junction tables",
-                  "Source citations and classical materia medica links",
                   "Priority access to new herbs and clinical overlays",
                 ]}
                 billingCycle={cycle}

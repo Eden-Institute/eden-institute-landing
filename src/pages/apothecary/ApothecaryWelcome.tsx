@@ -8,6 +8,7 @@ import MateriaMedicaPlate from "@/components/MateriaMedicaPlate";
 import { HERB_SLUGS } from "@/components/materiaMedicaHerbs";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { ROUTES } from "@/lib/routes";
+import { HERB_CATALOG_SIZE } from "@/lib/herbCatalog";
 // Hero botanical: public domain elderberry plate from Koehler's Medizinal-Pflanzen
 // (1887), built at this hero's own aspect and mirrored either side of the content
 // panel. Same treatment as the Astro heroes in #433: 95% multiply behind a 92%
@@ -159,7 +160,7 @@ export default function ApothecaryWelcome() {
               Herb Library
             </h3>
             <p className="font-body text-sm text-muted-foreground leading-relaxed">
-              300 herb monographs with terrain intelligence: energetics,
+              {HERB_CATALOG_SIZE} herb monographs with terrain intelligence: energetics,
               tissue affinities, body pattern matches, and safety notes.
             </p>
           </div>
@@ -261,7 +262,7 @@ export default function ApothecaryWelcome() {
             <span className="italic">of stewardship.</span>
           </>
         }
-        lead="See exactly what's inside each tier before you sign up. All hundred herbs at every tier. Depth is what you unlock."
+        lead={`See exactly what's inside each tier before you sign up. All ${HERB_CATALOG_SIZE} herbs at every tier. Depth is what you unlock.`}
         background="cream"
       />
 

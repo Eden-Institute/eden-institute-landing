@@ -39,6 +39,40 @@
  */
 
 import { APOTHECARY_PRICES } from "@/lib/apothecaryPrices";
+import { HERB_CATALOG_SIZE } from "@/lib/herbCatalog";
+
+/**
+ * What each tier can READ in a herb monograph. Mirrors the column gates in
+ * public.herbs_directory_v (supabase/migrations/20260916100000_herb_tier_model.sql,
+ * founder decision 2026-09-15). The public tier cards below, Start.tsx and
+ * Pricing.tsx all build their depth bullets from these lists, so the tier
+ * ladder cannot promise a field at one tier on one page and another tier on
+ * the next. Change the view and these lists together.
+ */
+export const TIER_DEPTH = {
+  free: [
+    `All ${HERB_CATALOG_SIZE} herbs: identity, taste, temperature, moisture, and energetics`,
+    "Cautions, contraindications, and pregnancy, nursing, and children's safety",
+    "Biblical and traditional context with stewardship notes",
+  ],
+  seed: [
+    "Actions and tissue states, indicated and contraindicated",
+    "Body systems, chief complaints, and pattern matches: Western, Ayurvedic, TCM, and Pattern of Eden",
+    "Preparation methods and dosage notes",
+  ],
+  root: [
+    "Herb-drug interactions",
+    "When to refer out, with the threshold for each herb",
+    "Source citations: primary texts and secondary references",
+  ],
+} as const;
+
+/** One-line tier taglines shared by the public tier cards and Start.tsx. */
+export const TIER_TAGLINES = {
+  free: "Identity, energetics, and safety for every herb.",
+  seed: "Clinical depth: actions, tissue states, pattern matches, preparation, and dosage.",
+  root: "Drug interactions, when to refer out, and sources.",
+} as const;
 
 export type PublicTier = "free" | "seed" | "root" | "practitioner";
 
@@ -83,28 +117,25 @@ export const PUBLIC_TIERS: readonly PublicTierSpec[] = [
     id: "free",
     displayName: "Free",
     persona: "The home herbalist",
-    tagline: "Identity, energetics, and population safety for every herb.",
+    tagline: TIER_TAGLINES.free,
     monthlyPrice: "$0",
     availability: "Available now · free for as long as you'd like",
     features: [
-      "All 300 herb monographs (basic profile)",
+      ...TIER_DEPTH.free,
       "The Pattern of Eden quiz + your result",
       "The Five Tenets overview",
-      "Pregnancy, lactation, and absolute cautions",
     ],
   },
   {
     id: "seed",
     displayName: "Seed",
     persona: "The serious student",
-    tagline:
-      "Clinical depth: actions, tissue states, Pattern matches.",
+    tagline: TIER_TAGLINES.seed,
     monthlyPrice: APOTHECARY_PRICES.seed.monthly,
     availability: "Available now · per month",
     features: [
-      "Unlock the clinical body of every monograph",
-      "Tissue state indications and energetic actions",
-      "Western, Ayurvedic, and TCM lenses plus Pattern of Eden",
+      "Everything in Free",
+      ...TIER_DEPTH.seed,
       "Save your Pattern result and revisit it",
       "Create up to 5 person-profiles for yourself and family members. Each profile holds its own pattern; switching profiles surfaces matched herbs for that profile's pattern.",
     ],
@@ -113,14 +144,12 @@ export const PUBLIC_TIERS: readonly PublicTierSpec[] = [
     id: "root",
     displayName: "Root",
     persona: "The seasoned lay herbalist",
-    tagline: "Drug interactions, refer thresholds, sources.",
+    tagline: TIER_TAGLINES.root,
     monthlyPrice: APOTHECARY_PRICES.root.monthly,
     availability: "Available now · per month",
     features: [
       "Everything in Seed",
-      "Herb-drug interaction surfaces",
-      "Refer-out thresholds with mechanism rationale",
-      "Source citations and classical materia medica links",
+      ...TIER_DEPTH.root,
       "Create up to 10 person-profiles for family plus a few friends or clients you want to help. Each profile holds its own pattern; switching profiles surfaces matched herbs for that profile's pattern. Built for the practicing herbalist supporting a circle wider than just family.",
     ],
   },
