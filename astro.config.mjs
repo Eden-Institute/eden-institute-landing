@@ -10,7 +10,8 @@ const fromRoot = (p) => fileURLToPath(new URL(p, import.meta.url));
 // existing src/pages/*.tsx. Shared React components/CSS are reached via the
 // same "@/" alias the SPA uses. publicDir stays ./public (shared favicons,
 // robots.txt, sitemap.xml, /showcases images). The SPA is built separately
-// into dist/app and served by Vercel rewrites for app/auth routes.
+// into dist/_spa (base /_spa/, see package.json "build") and served by the
+// vercel.json rewrite to /_spa/index.html for app/auth routes.
 export default defineConfig({
   site: "https://edeninstitute.health",
   srcDir: "./web",

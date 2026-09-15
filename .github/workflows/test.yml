@@ -8,23 +8,17 @@
 # bug reached production once (it is what prompted this work), and a test
 # nobody runs would not have caught it a second time.
 #
-# Package manager: npm. The repo carries package-lock.json, bun.lock,
-# bun.lockb AND deno.lock, but README.md documents npm ("The only requirement
-# is having Node.js & npm installed") and package-lock.json is committed
-# alongside it. deno.lock belongs to the Supabase Edge Functions, which deploy
-# via the Supabase CLI and are not built here.
+# Package manager: npm. `npm ci` installs from package-lock.json, and
+# README.md's Commands section uses npm. bun.lock and bun.lockb are not used
+# by CI. deno.lock belongs to the Supabase Edge Functions, which deploy via
+# the Supabase CLI and are not built here.
 #
-# NO TYPECHECK STEP — deliberately, for now. `tsc -p tsconfig.app.json
-# --noEmit` currently exits 2 on origin/main with 4 pre-existing errors in
-# src/studio/StudioEntry.tsx, src/studio/StudioWorkroom.tsx and
-# src/test/studioBanks.test.ts (a FlowAnswers index-signature mismatch and a
-# stale `audiencePrimaries` property). They predate this branch and are
-# unrelated to it. Adding a blocking typecheck now would paint CI red on day
-# one and train everyone to ignore it. Those four belong in their own focused
-# clean-up PR; once they are fixed, add:
+# Typecheck runs before tests via `npm run typecheck` (tsconfig.app.json).
+# Do not use bare `tsc --noEmit` at the root: tsconfig.json is `files: []`
+# plus references and exits 0 having checked nothing.
 #
-#     - name: Typecheck
-#       run: npx tsc -p tsconfig.app.json --noEmit
+# The Edge Functions' shared unit tests (supabase/functions/_shared/*.test.ts)
+# run under Deno after the Vitest suite. --no-lock keeps deno.lock untouched.
 #
 name: test
 
@@ -33,6 +27,10 @@ on:
     branches: [main]
   push:
     branches: [main]
+
+# The job only checks out, installs and runs checks; it never writes to the repo.
+permissions:
+  contents: read
 
 # A second push to the same PR cancels the first run still in flight.
 concurrency:
@@ -57,5 +55,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Test
         run: npm test
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Edge Function shared tests (Deno)
+        run: deno test --no-lock --allow-env --allow-net --allow-read supabase/functions/_shared/

@@ -6,9 +6,10 @@
 //
 // Uses the REAL stored totals of three production orders (read 2026-09-12), so the
 // arithmetic under test is what Stripe actually recorded, not invented numbers:
-//   ET-1026  printed set   subtotal 24900, shipping 1200, tax 2480, total 28580
-//   ET-1017  Starter Unit  subtotal  3900, tax 371, total 4271
-//   ET-1023  Starter Unit  subtotal  3900, tax 0,   total 3900
+//   EDN-TEST-0001  printed set   subtotal 24900, shipping 1200, tax 2480, total 28580
+//   EDN-TEST-0002  Starter Unit  subtotal  3900, tax 371, total 4271
+//   EDN-TEST-0003  Starter Unit  subtotal  3900, tax 0,   total 3900
+// Amounts and tax are real; order numbers, names and timestamps are synthetic.
 // Exit 1 on any failure.
 import {
   RECEIPT_NAMES,
@@ -47,34 +48,34 @@ for (const [sku, v] of Object.entries(RECEIPT_NAMES)) {
 }
 check(/curriculum/i.test(STARTER_ORDER_LABEL), "Starter order label contains curriculum", STARTER_ORDER_LABEL);
 
-// ── 2. The printed set, ET-1026's real numbers, through the real loader ──
-const et1026 = {
-  id: "00000000-0000-0000-0000-000000001026",
-  order_number: "ET-1026",
+// ── 2. The printed set, EDN-TEST-0001's real totals, through the real loader ──
+const printOrder = {
+  id: "00000000-0000-0000-0000-000000000001",
+  order_number: "EDN-TEST-0001",
   customer_email: "buyer@example.com",
   customer_phone: null,
-  shipping_name: "Camila Johnson",
+  shipping_name: "Test Buyer",
   product_label: "Sprouts Printed Curriculum Set",
   amount_total_cents: 28580,
   tax_cents: 2480,
   currency: "usd",
   sms_consent: false,
   status: "ready_to_fulfill",
-  created_at: "2026-09-11T19:53:01.050Z",
+  created_at: "2026-01-01T12:00:00.000Z",
   raw: { total_details: { amount_tax: 2480, amount_discount: 0, amount_shipping: 1200 }, amount_subtotal: 24900 },
 };
 // deno-lint-ignore no-explicit-any
 const printReceipt = await loadOrderReceipt(fakeDb([
   { quantity: 1, unit_price_cents: 24900, products: { sku: "sprouts_print_set", name: "Sprouts Printed Curriculum Set" } },
-]) as any, et1026 as any);
-check(printReceipt !== null, "ET-1026 receipt loads from order_items");
+]) as any, printOrder as any);
+check(printReceipt !== null, "EDN-TEST-0001 receipt loads from order_items");
 if (printReceipt) {
-  check(receiptBalances(printReceipt), "ET-1026 lines + shipping + tax = total charged",
+  check(receiptBalances(printReceipt), "EDN-TEST-0001 lines + shipping + tax = total charged",
     JSON.stringify({ lines: printReceipt.lines, s: printReceipt.shippingCents, t: printReceipt.taxCents, total: printReceipt.totalCents }));
-  check(printReceipt.shippingCents === 1200 && printReceipt.taxCents === 2480, "ET-1026 shipping and tax read from Stripe totals");
+  check(printReceipt.shippingCents === 1200 && printReceipt.taxCents === 2480, "EDN-TEST-0001 shipping and tax read from Stripe totals");
   // deno-lint-ignore no-explicit-any
-  const email = buildOrderConfirmationEmail(et1026 as any, printReceipt);
-  for (const needle of ["Itemized receipt", "Printed Curriculum Set", "$249.00", "Shipping", "$12.00", "Sales tax", "$24.80", "Total paid", "$285.80", "Rooted in Faith Ventures LLC", "303 Holly Cir, Unit 3262, Clarksville, TN 37043", "ET-1026"]) {
+  const email = buildOrderConfirmationEmail(printOrder as any, printReceipt);
+  for (const needle of ["Itemized receipt", "Printed Curriculum Set", "$249.00", "Shipping", "$12.00", "Sales tax", "$24.80", "Total paid", "$285.80", "Rooted in Faith Ventures LLC", "303 Holly Cir, Unit 3262, Clarksville, TN 37043", "EDN-TEST-0001"]) {
     check(email.html.includes(needle), `print confirmation shows "${needle}"`);
   }
   check(!/—/.test(renderReceiptHtml(printReceipt)), "print receipt has no em dash");
@@ -85,7 +86,7 @@ const withNotebooks = await loadOrderReceipt(fakeDb([
   { quantity: 2, unit_price_cents: 3999, products: { sku: "sprouts_nb_print", name: "Extra Student Notebook, printed" } },
   { quantity: 1, unit_price_cents: 24900, products: { sku: "sprouts_print_set", name: "Sprouts Printed Curriculum Set" } },
 // deno-lint-ignore no-explicit-any
-]) as any, { ...et1026, amount_total_cents: 24900 + 7998 + 1200 + 3100, tax_cents: 3100,
+]) as any, { ...printOrder, amount_total_cents: 24900 + 7998 + 1200 + 3100, tax_cents: 3100,
   raw: { total_details: { amount_tax: 3100, amount_discount: 0, amount_shipping: 1200 } } } as any);
 if (withNotebooks) {
   check(withNotebooks.lines[0].unitCents === 24900, "the set is listed before the add-on notebooks");
@@ -99,7 +100,7 @@ if (withNotebooks) {
 const discounted = await loadOrderReceipt(fakeDb([
   { quantity: 1, unit_price_cents: 24900, products: { sku: "sprouts_print_set", name: "x" } },
 // deno-lint-ignore no-explicit-any
-]) as any, { ...et1026, amount_total_cents: 24900 - 2500 + 1200 + 2200, tax_cents: 2200,
+]) as any, { ...printOrder, amount_total_cents: 24900 - 2500 + 1200 + 2200, tax_cents: 2200,
   raw: { total_details: { amount_tax: 2200, amount_discount: 2500, amount_shipping: 1200 } } } as any);
 if (discounted) {
   check(receiptBalances(discounted), "affiliate discount receipt balances");
@@ -108,14 +109,14 @@ if (discounted) {
 
 // ── 5. No items: the loader returns null so the caller falls back, never an empty receipt ──
 // deno-lint-ignore no-explicit-any
-check(await loadOrderReceipt(fakeDb([]) as any, et1026 as any) === null, "no order_items -> null, not an empty receipt");
+check(await loadOrderReceipt(fakeDb([]) as any, printOrder as any) === null, "no order_items -> null, not an empty receipt");
 
-// ── 6. Starter Unit, ET-1017 (taxed) and ET-1023 (untaxed), real numbers ──
+// ── 6. Starter Unit, EDN-TEST-0002 (taxed) and EDN-TEST-0003 (untaxed), real totals ──
 for (const o of [
-  { order_number: "ET-1017", amount_total_cents: 4271, tax_cents: 371, created_at: "2026-09-01T23:19:05Z",
-    raw: { amount_subtotal: 3900, total_details: { amount_tax: 371, amount_discount: 0, amount_shipping: 0 }, customer_details: { name: "Camila Johnson" } } },
-  { order_number: "ET-1023", amount_total_cents: 3900, tax_cents: 0, created_at: "2026-09-06T12:27:25Z",
-    raw: { amount_subtotal: 3900, total_details: { amount_tax: 0, amount_discount: 0, amount_shipping: 0 }, customer_details: { name: "Melody L Schmoyer" } } },
+  { order_number: "EDN-TEST-0002", amount_total_cents: 4271, tax_cents: 371, created_at: "2026-01-02T12:00:00Z",
+    raw: { amount_subtotal: 3900, total_details: { amount_tax: 371, amount_discount: 0, amount_shipping: 0 }, customer_details: { name: "Test Buyer" } } },
+  { order_number: "EDN-TEST-0003", amount_total_cents: 3900, tax_cents: 0, created_at: "2026-01-03T12:00:00Z",
+    raw: { amount_subtotal: 3900, total_details: { amount_tax: 0, amount_discount: 0, amount_shipping: 0 }, customer_details: { name: "Test Buyer" } } },
 ]) {
   const r = starterReceipt(o);
   check(receiptBalances(r), `${o.order_number} Starter receipt balances`);
@@ -151,7 +152,7 @@ if (printReceipt) {
 const withCard = await loadOrderReceipt(fakeDb([
   { quantity: 1, unit_price_cents: 24900, products: { sku: "sprouts_print_set", name: "x" } },
 // deno-lint-ignore no-explicit-any
-]) as any, { ...et1026, raw: { ...et1026.raw, eden_payment_card: { brand: "visa", last4: "4242" } } } as any);
+]) as any, { ...printOrder, raw: { ...printOrder.raw, eden_payment_card: { brand: "visa", last4: "4242" } } } as any);
 if (withCard && printReceipt) {
   check(renderReceiptHtml(withCard).includes("Paid by Visa ending 4242"), "print HTML receipt shows the card brand and last 4");
   check(renderReceiptText(withCard).includes("Paid by Visa ending 4242"), "print text receipt shows the card brand and last 4");
@@ -162,7 +163,7 @@ if (withCard && printReceipt) {
     check(!/—/.test(out), `${label} receipt with card has no em dash`);
   }
 }
-const starterCard = starterReceipt({ order_number: "ET-1017", amount_total_cents: 4271, tax_cents: 371,
+const starterCard = starterReceipt({ order_number: "EDN-TEST-0002", amount_total_cents: 4271, tax_cents: 371,
   raw: { amount_subtotal: 3900, total_details: { amount_tax: 371 }, eden_payment_card: { brand: "amex", last4: "0005" } } });
 check(starterCard.paidWith === "American Express ending 0005", "Starter receipt reads the card from raw", String(starterCard.paidWith));
 for (const [card, want] of [

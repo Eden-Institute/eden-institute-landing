@@ -1,7 +1,7 @@
 # The 97 temperature sources, verified
 
 Run `wf_ec8fdcfa-e31`, 2026-07-22. Fourteen independent verifiers, isolated directories.
-Data: `temperature_source_verification.json`, `temperature_agreement.json`.
+Data: `docs/data/temperature-source-verification-2026-07-22.json` (tally and adjudication). The run's separate `temperature_agreement.json` was never committed to this repo.
 
 ## 89 of 97 confirmed, the best rate any pass in this project has produced
 

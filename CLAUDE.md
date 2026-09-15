@@ -24,8 +24,8 @@ Working memory for Claude Code. Auto-loaded every session. Keep it high-signal.
 
 Run this before doing task work:
 
-1. **Read the newest `Session_Log_*.md`** in `…/Products/App/Eden Apothecary/` (they're dated + versioned; newest = where we left off). It is the authoritative continuity record.
-2. **Skim the Manual** `…/Products/App/Eden Apothecary/Eden_Apothecary_Manual_v*.docx` (latest version) — §0 (Locks, founding decisions) and §9 (Session Log). Use the `docx` skill to read/edit it.
+1. **Read the newest `Session_Log_*.md`** in `Biblical Herbalism/_Ops (Claude working files)/Session Logs/` (they're dated + versioned; newest = where we left off). It is the authoritative continuity record.
+2. **Skim the Manual** `…/Products/App/Eden Apothecary/Eden_Apothecary_Manual_v*.docx` (latest version) — §0 (Locks, founding decisions) and §9 (Session Log). Use the `docx` skill to read/edit it. (pre-2026-09-08 path; check scripts/reorg_2026-09-07 in Biblical Herbalism for the current location)
 3. **Verify the Supabase MCP token:** call `mcp__supabase__list_tables`. If `Unauthorized`, the token lapsed — see "Supabase MCP token" below.
 4. **Verify repo state:** `git -C <repo> log --oneline -5` and `mcp__github__list_pull_requests` (open PRs).
 5. **Then ask Camila what to work on** — surface anything in "Current open items" first.
@@ -38,7 +38,7 @@ I do **not** have memory between sessions. Continuity = these artifacts. **Updat
 
 - **Founder:** Camila Johnson (`hello@edeninstitute.health`). Architect-founder, not a developer; runs Windows PowerShell. She decides; I build.
 - **Eden Apothecary is an APP** (not a course/service/product line) — every consumer surface must frame it that way.
-- **Repo:** `Eden-Institute/eden-institute-landing` · default branch `main` · local clone at `C:\Users\gramm\OneDrive\Documents\Biblical Herbalism\Products\App\eden-institute-landing-repo` (her PowerShell auto-cds here).
+- **Repo:** `Eden-Institute/eden-institute-landing` · default branch `main` · local clone at `D:\dev\eden-institute-landing-repo` (see CURRENT STATE above; the old OneDrive Products/App path is retired).
 - **Supabase:** project ref `noeqztssupewjidpvhar`; custom tables in `public`.
 - **Vercel:** project `eden-institute-landing`, prod `https://edeninstitute.health`; crons in `vercel.json`.
 - **Stack:** Vite + React SPA (TS), Supabase (Postgres + Edge Functions + Auth), Resend, Stripe, Vercel.
@@ -76,7 +76,7 @@ I do **not** have memory between sessions. Continuity = these artifacts. **Updat
 - **Chrome / browser:** Camila drives browser steps via screenshots; be explicit when I can't drive something. Stripe dashboard is blocked to automation — she pastes/screenshots.
 - `_memory/` (`…/Eden Apothecary/_memory/`) holds the prior Cowork memory system (~50 `feedback_*.md` + `MEMORY.md`) — load-bearing context distilled here, but read it if deeper detail is needed.
 
-## Current open items (as of 2026-06-05, v4.12 — update at each wrap)
+## Open items as of 2026-06-05 (HISTORY, superseded by CURRENT STATE at the top; do not act on these without re-verifying)
 
 - **SEO: SPA→Astro migration IN PROGRESS** (v4.12, PR #181). `/community` + `/homeschool` now **pre-rendered to static HTML and live** — crawlers finally read real content + `Course` JSON-LD (were empty SPA shells with the homepage title). Architecture: Astro in `./web` (own srcDir) → `dist/`; SPA → `dist/_spa` (base `/_spa/`); `vercel.json` rewrite routes non-marketing paths to the SPA shell; crons preserved. **Islands that import the Supabase client must be `client:only`** (localStorage at module load crashes SSR). **Homepage deliberately NOT migrated — leave it.** Remaining: `/constitutional-herbalism`, `/why-eden`, `/courses`, legal×3, `/results/:slug`×8, apothecary marketing×3. Founder chose to **preserve `JourneyAwareQuizCTA` personalization exactly** → build a reusable `client:only` enhancer island (needs a logged-in preview test). Founder action: request indexing for `/homeschool` in GSC. See newest Session Log §2/§5.
 - **Meta CAPI is ACTIVE** (consent-gated, PR #171; `META_CAPI_ACCESS_TOKEN` set; resend-waitlist v34). Browser Pixel Lead confirmed; server dedup % surfaces on Meta's clock. **`edeninstitute.health` domain verified** in Meta Business (PR #172).

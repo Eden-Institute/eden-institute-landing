@@ -24,3 +24,4 @@ npm run build
 Vercel builds `main` to production. `main` is protected, so changes land through pull requests.
 Edge Functions deploy separately with the Supabase CLI; after any change to
 `supabase/functions/_shared/`, redeploy every function that imports it.
+Resolve that set with `scripts/ef_stale_sweep.py` from the private eden-ops repo (not vendored here).
