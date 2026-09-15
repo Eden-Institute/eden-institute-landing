@@ -163,7 +163,7 @@ export default function GetInvolvedSection() {
             ) : (
               <div className="text-center" style={{ padding: "16px 0" }}>
                 <p style={{ fontFamily: SERIF, fontSize: "26px", color: "hsl(var(--green-deep))", marginBottom: "10px" }}>
-                  Thank you — let's talk.
+                  Thank you. Let's talk.
                 </p>
                 <p style={{ fontFamily: BODY, fontSize: "16px", color: "hsl(var(--ink-soft))", lineHeight: 1.6, marginBottom: "24px" }}>
                   We've got your details. Grab a time that works and we'll meet you there.
@@ -216,7 +216,7 @@ export default function GetInvolvedSection() {
               {isParent && (
                 <div style={{ marginTop: "16px" }}>
                   <p style={{ fontFamily: BODY, fontSize: "16px", color: "hsl(var(--ink-soft))", lineHeight: 1.6, marginBottom: "16px" }}>
-                    Wonderful — that's the heart of Eden. Start with the free pattern quiz, or explore the homeschool
+                    Wonderful. That's the heart of Eden. Start with the free pattern quiz, or explore the homeschool
                     curriculum.
                   </p>
                   <div className="flex flex-wrap gap-3">

@@ -120,7 +120,7 @@ const Results = () => {
             name: profile.nickname,
             alternateName: constitutionType,
           },
-          articleSection: "Pattern of Eden — Constitutional Patterns",
+          articleSection: "Pattern of Eden · Constitutional Patterns",
           inLanguage: "en-US",
         }
       : null,

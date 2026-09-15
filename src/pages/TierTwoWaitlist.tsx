@@ -4,9 +4,9 @@ import Footer from "@/components/landing/Footer";
 import Navbar from "@/components/landing/Navbar";
 import { TierTwoWaitlistForm } from "@/components/landing/TierTwoWaitlistForm";
 
-const PAGE_TITLE = "Tier 2: Body Systems & Clinical Literacy — Coming Soon | The Eden Institute";
+const PAGE_TITLE = "Tier 2: Body Systems & Clinical Literacy · Coming Soon | The Eden Institute";
 const PAGE_DESCRIPTION =
-  "Tier 2 — Body Systems & Clinical Literacy — is coming. Start with Tier 1, the Foundations of Constitutional Herbalism, to build the groundwork and be first to hear when Tier 2 opens.";
+  "Tier 2, Body Systems & Clinical Literacy, is coming. Start with Tier 1, the Foundations of Constitutional Herbalism, to build the groundwork and be first to hear when Tier 2 opens.";
 
 const TierTwoWaitlist = () => {
   useDocumentMeta({
@@ -44,7 +44,7 @@ const TierTwoWaitlist = () => {
             style={{ backgroundColor: "hsl(var(--eden-gold))" }}
           />
           <p className="font-body text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Tier 2 — <em>Body Systems &amp; Clinical Literacy</em> — is coming. The fastest way to be first
+            Tier 2, <em>Body Systems &amp; Clinical Literacy</em>, is coming. The fastest way to be first
             through the door is to start with Tier 1, the foundation it&rsquo;s built on.
           </p>
           <div className="mt-10">
@@ -71,9 +71,9 @@ const TierTwoWaitlist = () => {
             style={{ backgroundColor: "hsl(var(--eden-gold))" }}
           />
           <p className="font-body text-lg leading-relaxed text-muted-foreground">
-            Where Tier 1 taught you to read terrain, Tier 2 teaches you to read the body itself. Every major body system —
+            Where Tier 1 taught you to read terrain, Tier 2 teaches you to read the body itself. Every major body system (
             digestive, hepatobiliary, cardiovascular, respiratory, nervous, endocrine, immune, urinary, musculoskeletal,
-            integumentary, reproductive — studied through a terrain lens with Scripture as the anchor. This is where students
+            integumentary, reproductive) studied through a terrain lens with Scripture as the anchor. This is where students
             stop dabbling and start practicing.
           </p>
         </div>
@@ -94,7 +94,7 @@ const TierTwoWaitlist = () => {
               Tier 2 Is Coming
             </h2>
             <p className="font-body text-base text-muted-foreground">
-              Build the foundation now — and be first in line when it opens.
+              Build the foundation now, and be first in line when it opens.
             </p>
           </div>
           <TierTwoWaitlistForm variant="card" />

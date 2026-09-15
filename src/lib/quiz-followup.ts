@@ -33,13 +33,13 @@ export const followupQuestions: FollowupQuestion[] = [
     id: 13,
     axis: "temperature",
     question:
-      "Place your hand on your wrist or ankle right now — what does the skin feel like?",
+      "Place your hand on your wrist or ankle right now. What does the skin feel like?",
     options: [
       { label: "A", text: "Warm to the touch", score: "Hot" },
       { label: "B", text: "Cool to the touch", score: "Cold" },
       {
         label: "C",
-        text: "Genuinely in the middle — not noticeably warm or cool",
+        text: "Genuinely in the middle, not noticeably warm or cool",
         score: "neutral",
       },
     ],
@@ -51,12 +51,12 @@ export const followupQuestions: FollowupQuestion[] = [
     options: [
       {
         label: "A",
-        text: "Short — the heat becomes uncomfortable quickly",
+        text: "Short. The heat becomes uncomfortable quickly",
         score: "Hot",
       },
       {
         label: "B",
-        text: "Long — I love standing under the heat as long as I can",
+        text: "Long. I love standing under the heat as long as I can",
         score: "Cold",
       },
       { label: "C", text: "Truly varies by mood", score: "neutral" },
@@ -68,8 +68,8 @@ export const followupQuestions: FollowupQuestion[] = [
     question:
       "If you had to choose right now: a cold drink or a hot drink?",
     options: [
-      { label: "A", text: "Cold — that's what sounds good", score: "Hot" },
-      { label: "B", text: "Hot — that's what sounds good", score: "Cold" },
+      { label: "A", text: "Cold. That's what sounds good", score: "Hot" },
+      { label: "B", text: "Hot. That's what sounds good", score: "Cold" },
       { label: "C", text: "Either is fine", score: "neutral" },
     ],
   },
@@ -129,11 +129,11 @@ export const followupQuestions: FollowupQuestion[] = [
   {
     id: 19,
     axis: "tone",
-    question: "Right now, this moment — where is your jaw?",
+    question: "Right now, this moment, where is your jaw?",
     options: [
       {
         label: "A",
-        text: "Clenched or holding tight — I notice when I check",
+        text: "Clenched or holding tight. I notice when I check",
         score: "Tense",
       },
       { label: "B", text: "Soft, dropped, easy", score: "Relaxed" },
@@ -152,7 +152,7 @@ export const followupQuestions: FollowupQuestion[] = [
       },
       {
         label: "B",
-        text: "I drop into stillness easily — sometimes too easily, I drift off",
+        text: "I drop into stillness easily. Sometimes too easily, I drift off",
         score: "Relaxed",
       },
       { label: "C", text: "Depends on the day", score: "neutral" },
@@ -162,7 +162,7 @@ export const followupQuestions: FollowupQuestion[] = [
     id: 21,
     axis: "tone",
     question:
-      "Place your hand on your belly — as you breathe, does it...",
+      "Place your hand on your belly. As you breathe, does it...",
     options: [
       {
         label: "A",

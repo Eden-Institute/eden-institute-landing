@@ -37,9 +37,9 @@ interface Question {
 
 const questions: Question[] = [
   { id: 1, axis: "temperature", question: "How would you describe your body temperature in everyday life?", options: [
-    { label: "A", text: "I run warm — I often feel too hot, prefer cool rooms, and kick off blankets at night", score: "Hot" },
-    { label: "B", text: "I run cool — I'm often the coldest person in the room and love warming up", score: "Cold" },
-    { label: "C", text: "It varies a lot — sometimes hot, sometimes cold, hard to pin down", score: "neutral" },
+    { label: "A", text: "I run warm. I often feel too hot, prefer cool rooms, and kick off blankets at night", score: "Hot" },
+    { label: "B", text: "I run cool. I'm often the coldest person in the room and love warming up", score: "Cold" },
+    { label: "C", text: "It varies a lot, sometimes hot, sometimes cold, hard to pin down", score: "neutral" },
     { label: "D", text: "I don't notice much either way", score: "neutral" },
   ]},
   { id: 2, axis: "temperature", question: "When you're under stress or overwhelmed, what happens to your body?", options: [
@@ -50,7 +50,7 @@ const questions: Question[] = [
   ]},
   { id: 3, axis: "temperature", question: "How do you feel after eating a large, rich, or heavy meal?", options: [
     { label: "A", text: "Uncomfortable, overly warm, or nauseous", score: "Hot" },
-    { label: "B", text: "Better — a warm meal genuinely helps me", score: "Cold" },
+    { label: "B", text: "Better. A warm meal genuinely helps me", score: "Cold" },
     { label: "C", text: "Sluggish and sleepy regardless", score: "neutral" },
     { label: "D", text: "Depends on the food", score: "neutral" },
   ]},
@@ -68,14 +68,14 @@ const questions: Question[] = [
   ]},
   { id: 6, axis: "fluid", question: "How does your body handle respiratory illness?", options: [
     { label: "A", text: "Lots of mucus, congestion, runny nose, phlegm", score: "Damp" },
-    { label: "B", text: "Dry, tight, unproductive symptoms — dry cough", score: "Dry" },
+    { label: "B", text: "Dry, tight, unproductive symptoms: dry cough", score: "Dry" },
     { label: "C", text: "Varies by illness", score: "neutral" },
     { label: "D", text: "Don't get sick often enough to notice", score: "neutral" },
   ]},
   { id: 7, axis: "fluid", question: "Which best describes your digestion?", options: [
-    { label: "A", text: "Loose, sluggish, prone to bloating — I retain water easily", score: "Damp" },
+    { label: "A", text: "Loose, sluggish, prone to bloating. I retain water easily", score: "Damp" },
     { label: "B", text: "Dry, constipated, prone to hard stools", score: "Dry" },
-    { label: "C", text: "Irregular — alternates", score: "neutral" },
+    { label: "C", text: "Irregular, alternates", score: "neutral" },
     { label: "D", text: "Generally normal", score: "neutral" },
   ]},
   { id: 8, axis: "fluid", question: "How would you describe your body's build?", options: [
@@ -85,26 +85,26 @@ const questions: Question[] = [
     { label: "D", text: "Don't strongly identify with either", score: "neutral" },
   ]},
   { id: 9, axis: "tone", question: "How does your nervous system respond to stress?", options: [
-    { label: "A", text: "I tighten up — shoulders, jaw, gut clench and it's hard to let go", score: "Tense" },
-    { label: "B", text: "I go soft or spacey — scattered, loose, lose focus", score: "Relaxed" },
+    { label: "A", text: "I tighten up. Shoulders, jaw, gut clench and it's hard to let go", score: "Tense" },
+    { label: "B", text: "I go soft or spacey: scattered, loose, lose focus", score: "Relaxed" },
     { label: "C", text: "I swing between the two", score: "neutral" },
     { label: "D", text: "I stay pretty even", score: "neutral" },
   ]},
   { id: 10, axis: "tone", question: "Where do you feel tension most often?", options: [
     { label: "A", text: "Tight muscles, clenched jaw, tension headaches, cramping", score: "Tense" },
     { label: "B", text: "Weakness, sagging feeling, poor muscle tone, heaviness", score: "Relaxed" },
-    { label: "C", text: "Pain that moves — sometimes tight, sometimes loose", score: "neutral" },
+    { label: "C", text: "Pain that moves, sometimes tight, sometimes loose", score: "neutral" },
     { label: "D", text: "No consistent pattern", score: "neutral" },
   ]},
   { id: 11, axis: "tone", question: "How would you describe your sleep?", options: [
-    { label: "A", text: "Hard to fall asleep — mind won't stop, body feels wound up", score: "Tense" },
-    { label: "B", text: "Fall asleep easily but sleep too deeply — hard to feel rested", score: "Relaxed" },
+    { label: "A", text: "Hard to fall asleep. Mind won't stop, body feels wound up", score: "Tense" },
+    { label: "B", text: "Fall asleep easily but sleep too deeply. Hard to feel rested", score: "Relaxed" },
     { label: "C", text: "Inconsistent", score: "neutral" },
     { label: "D", text: "Sleep normally", score: "neutral" },
   ]},
   { id: 12, axis: "tone", question: "How do your emotions express in your body?", options: [
-    { label: "A", text: "Intense — I feel things strongly, shows up as tension, heat, or pain", score: "Tense" },
-    { label: "B", text: "Porous — I absorb others' energy and feel drained or loose", score: "Relaxed" },
+    { label: "A", text: "Intense. I feel things strongly, shows up as tension, heat, or pain", score: "Tense" },
+    { label: "B", text: "Porous. I absorb others' energy and feel drained or loose", score: "Relaxed" },
     { label: "C", text: "I bottle things up until I crash", score: "neutral" },
     { label: "D", text: "I process emotions smoothly", score: "neutral" },
   ]},
@@ -144,7 +144,7 @@ function AxisSpectrum({ axisLabel, leftLabel, rightLabel, position, isInconclusi
       <div className="flex items-baseline justify-between mb-1.5">
         <span className="font-accent text-xs tracking-[0.15em] uppercase" style={{ color: "#1C3A2E" }}>{leftLabel}</span>
         <span className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: isInconclusive ? "hsl(var(--eden-gold-ink))" : "hsl(30, 10%, 40%)" }}>
-          {axisLabel}{isInconclusive ? " – balanced" : ""}
+          {axisLabel}{isInconclusive ? ", balanced" : ""}
         </span>
         <span className="font-accent text-xs tracking-[0.15em] uppercase" style={{ color: "#1C3A2E" }}>{rightLabel}</span>
       </div>
@@ -519,7 +519,7 @@ const Assessment = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (blockInvalidEmail("That email address looks misspelled — please check it.")) return;
+    if (blockInvalidEmail("That email address looks misspelled. Please check it.")) return;
     setLoading(true);
     try {
       await submitMarketingQuiz(email, firstName, constitutionType);
@@ -651,7 +651,7 @@ const Assessment = () => {
       {phase === "auto-submitting" && (
         <div className="max-w-xl mx-auto px-6 py-16 text-center">
           <p className="font-accent text-sm tracking-[0.3em] uppercase mb-3" style={{ color: "hsl(var(--eden-gold-ink))" }}>Recording your Pattern</p>
-          <p className="font-body text-base" style={{ color: "#1C3A2E" }}>One moment — saving your results to your account…</p>
+          <p className="font-body text-base" style={{ color: "#1C3A2E" }}>One moment. Saving your results to your account…</p>
         </div>
       )}
 

@@ -93,7 +93,7 @@ export function ReadingSizeCard() {
         style={{ borderColor: "hsl(var(--border))" }}
       >
         Marshmallow coats, soothes, and moistens dry tissues throughout the
-        body — a sample line at your current reading size.
+        body. A sample line at your current reading size.
       </p>
     </section>
   );

@@ -88,7 +88,7 @@ export const PATTERN_PROFILES: Record<EdenPatternName, EdenPatternProfile> = {
     moisture: "Dry",
     tone: "Tense",
     summary:
-      "Heat held under tension — drawn taut, parched, running hot. The body is over-strung and over-fired at once.",
+      "Heat held under tension: drawn taut, parched, running hot. The body is over-strung and over-fired at once.",
     anchorVerse: "Hebrews 8:5",
   },
   "The Open Flame": {
@@ -97,7 +97,7 @@ export const PATTERN_PROFILES: Record<EdenPatternName, EdenPatternProfile> = {
     moisture: "Dry",
     tone: "Relaxed",
     summary:
-      "Heat without holding — fire spreading through dry tissue with little structural restraint to bound it.",
+      "Heat without holding: fire spreading through dry tissue with little structural restraint to bound it.",
     anchorVerse: "Hebrews 8:5",
   },
   "The Pressure Cooker": {
@@ -106,7 +106,7 @@ export const PATTERN_PROFILES: Record<EdenPatternName, EdenPatternProfile> = {
     moisture: "Damp",
     tone: "Tense",
     summary:
-      "Heat trapped under pressure — fluids stagnant, tissues congested and contracted, steam with no release valve.",
+      "Heat trapped under pressure: fluids stagnant, tissues congested and contracted, steam with no release valve.",
     anchorVerse: "Hebrews 8:5",
   },
   "The Overflowing Cup": {
@@ -115,7 +115,7 @@ export const PATTERN_PROFILES: Record<EdenPatternName, EdenPatternProfile> = {
     moisture: "Damp",
     tone: "Relaxed",
     summary:
-      "Heat in fluid excess — tissues warm, soft, and brimming over their proper bounds.",
+      "Heat in fluid excess: tissues warm, soft, and brimming over their proper bounds.",
     anchorVerse: "Hebrews 8:5",
   },
   "The Drawn Bowstring": {
@@ -124,7 +124,7 @@ export const PATTERN_PROFILES: Record<EdenPatternName, EdenPatternProfile> = {
     moisture: "Dry",
     tone: "Tense",
     summary:
-      "Cold under tension — the body braced and constricted, fluids withheld, energy reserved rather than circulating.",
+      "Cold under tension: the body braced and constricted, fluids withheld, energy reserved rather than circulating.",
     anchorVerse: "Hebrews 8:5",
   },
   "The Spent Candle": {
@@ -133,7 +133,7 @@ export const PATTERN_PROFILES: Record<EdenPatternName, EdenPatternProfile> = {
     moisture: "Dry",
     tone: "Relaxed",
     summary:
-      "Cold without holding — the wick burning low, tissues thin and spent, vital warmth and fluid both wanting.",
+      "Cold without holding: the wick burning low, tissues thin and spent, vital warmth and fluid both wanting.",
     anchorVerse: "Hebrews 8:5",
   },
   "The Frozen Knot": {
@@ -142,7 +142,7 @@ export const PATTERN_PROFILES: Record<EdenPatternName, EdenPatternProfile> = {
     moisture: "Damp",
     tone: "Tense",
     summary:
-      "Cold and damp held tight — the body chilled, congested, and braced; circulation slowed by both stagnation and contraction.",
+      "Cold and damp held tight: the body chilled, congested, and braced; circulation slowed by both stagnation and contraction.",
     anchorVerse: "Hebrews 8:5",
   },
   "The Still Water": {
@@ -151,7 +151,7 @@ export const PATTERN_PROFILES: Record<EdenPatternName, EdenPatternProfile> = {
     moisture: "Damp",
     tone: "Relaxed",
     summary:
-      "Cold and damp without movement — the body settled and pooled, fluids ample but unmoving, warmth and tone alike subdued.",
+      "Cold and damp without movement: the body settled and pooled, fluids ample but unmoving, warmth and tone alike subdued.",
     anchorVerse: "Hebrews 8:5",
   },
 };
