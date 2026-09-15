@@ -1,0 +1,93 @@
+---
+// /cookies: Cookie Policy. Static Astro page (founder decision 2026-09-15, "Make them
+// static"). Moved from the client-rendered src/pages/Cookies.tsx so the policy
+// text is in the HTML with no JavaScript. The wording, dates, headings, lists
+// and links were copied word for word; change the legal text only on the
+// founder's instruction. Title, description and canonical are the ones the React
+// page set with useDocumentMeta.
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+
+const meta = {
+  title: "Cookie Policy — The Eden Institute",
+  description:
+    "Cookie policy for The Eden Institute. Understand what cookies we use and how they enhance your experience.",
+  canonical: "https://edeninstitute.health/cookies",
+};
+---
+
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical}>
+  <main class="bg-background text-foreground">
+    <section class="pt-20 pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
+      <div class="max-w-2xl mx-auto text-center">
+        <h1 class="font-serif text-4xl md:text-5xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">Cookie Policy</h1>
+        <div class="w-16 h-px mx-auto my-6" style="background-color:hsl(var(--eden-gold))"></div>
+        <p class="font-body text-lg text-muted-foreground leading-relaxed">The Eden Institute — edeninstitute.health</p>
+        <p class="font-body text-sm text-muted-foreground mt-2">Effective Date: June 9, 2026 · Last Updated: September 13, 2026</p>
+      </div>
+    </section>
+
+    <article class="max-w-3xl mx-auto px-6 py-12 font-body text-foreground/90 leading-relaxed space-y-8">
+      <section>
+        <h2 class="font-serif text-xl font-semibold text-primary mb-3">1. What Are Cookies</h2>
+        <p>Cookies are small text files stored on your device when you visit a website. They help the website remember your preferences, understand how you interact with the site, and improve your experience.</p>
+      </section>
+
+      <section>
+        <h2 class="font-serif text-xl font-semibold text-primary mb-3">2. How We Use Cookies</h2>
+
+        <h3 class="font-serif text-lg font-medium text-foreground/80 mb-2">Essential Cookies:</h3>
+        <p class="mb-4">These are necessary for the website to function properly. They enable core features such as account login, course access, shopping cart functionality, and security. You cannot opt out of essential cookies as the site will not function without them.</p>
+
+        <h3 class="font-serif text-lg font-medium text-foreground/80 mb-2">Analytics Cookies:</h3>
+        <p class="mb-4">These help us understand how visitors use our website, such as which pages are visited, how long people stay on a page, and how they move around the site. We use Google Analytics for this. Google Analytics runs by default when you visit. If you click Decline on the cookie banner, we turn Google Analytics off for that browser.</p>
+
+        <h3 class="font-serif text-lg font-medium text-foreground/80 mb-2">Marketing Cookies:</h3>
+        <p class="mb-4">These help us measure our advertising. We use the Pinterest tag to measure visits, sign-ups and purchases on our website, including those that come from our Pinterest ads. The Pinterest tag runs by default when you visit. If you click Decline on the cookie banner, we tell Pinterest to stop, so the tag stops sending events from that browser and deletes the cookies it set on our website.</p>
+        <p class="mb-4">The Meta (Facebook) pixel works differently. It only loads after you click Accept.</p>
+        <p>When you give us your email address to get a freebie or join a waitlist, or when you buy printed books on our website, and only if you have clicked Accept, we also send Pinterest a hashed version of that email address. Hashing turns the address into a scrambled code in your browser before it is sent. Pinterest uses it to match the sign-up or purchase to a Pinterest account. If you have not clicked Accept, the email hash is not sent.</p>
+      </section>
+
+      <section>
+        <h2 class="font-serif text-xl font-semibold text-primary mb-3">3. Your Cookie Choices</h2>
+        <p>When you first visit our website, you will see a cookie banner with two buttons:</p>
+        <ul class="list-disc pl-6 space-y-1 mt-2">
+          <li><strong>Decline</strong> turns Google Analytics and the Pinterest tag off for that browser. The Meta pixel stays off.</li>
+          <li><strong>Accept</strong> keeps Google Analytics and the Pinterest tag on, loads the Meta pixel, and allows the email hash described above to be sent to Pinterest.</li>
+        </ul>
+        <p class="mt-2">Until you choose, Google Analytics and the Pinterest tag run as normal. Your choice is saved in your browser, so it only applies to that browser on that device. To change it later, clear the cookies and site data for our website in your browser settings, and the banner will ask again.</p>
+        <p class="mt-2">Additionally, you can control cookies through your browser settings. Most browsers allow you to block or delete cookies. However, blocking essential cookies may impair your ability to use certain features of the website.</p>
+      </section>
+
+      <section>
+        <h2 class="font-serif text-xl font-semibold text-primary mb-3">4. Third-Party Cookies</h2>
+        <p>Some cookies on our site are set by third-party services we use, including:</p>
+        <ul class="list-disc pl-6 space-y-1 mt-2">
+          <li><strong>LearnWorlds</strong> (course platform).</li>
+          <li><strong>Stripe</strong> (payment processing).</li>
+          <li><strong>Google Analytics</strong> (website analytics). Runs by default; clicking Decline turns it off.</li>
+          <li><strong>Pinterest</strong> (advertising measurement). Runs by default; clicking Decline turns it off.</li>
+          <li><strong>Meta (Facebook)</strong> (advertising measurement). Only loads after you click Accept.</li>
+        </ul>
+        <p class="mt-2">These third parties have their own cookie and privacy policies, which we encourage you to review.</p>
+      </section>
+
+      <section>
+        <h2 class="font-serif text-xl font-semibold text-primary mb-3">5. Changes to This Policy</h2>
+        <p>We may update this Cookie Policy from time to time. Changes will be posted on this page with an updated effective date.</p>
+      </section>
+
+      <section>
+        <h2 class="font-serif text-xl font-semibold text-primary mb-3">6. Contact</h2>
+        <p>If you have questions about our use of cookies, please contact us at:</p>
+        <address class="mt-3 not-italic text-foreground/70">
+          <p class="font-semibold">The Eden Institute</p>
+          <p>Operated by Rooted in Faith Ventures</p>
+          <p>303 Holly Cir, Unit 3262</p>
+          <p>Clarksville, TN 37043, United States</p>
+          <p>Website: edeninstitute.health</p>
+          <p>Email: <a href="mailto:hello@edeninstitute.health" class="underline" style="color:hsl(var(--eden-gold-ink))">hello@edeninstitute.health</a></p>
+        </address>
+      </section>
+    </article>
+  </main>
+</MarketingLayout>

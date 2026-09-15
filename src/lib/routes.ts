@@ -55,11 +55,6 @@ export const ROUTES = {
   // (founder allowlisted for support/verification).
   PRACTITIONER_CLINIC: "/practitioner",
 
-  // ── Legal ──
-  TERMS: "/terms",
-  PRIVACY: "/privacy",
-  COOKIES: "/cookies",
-
   // ── Guide / results funnel ──
   GUIDE_SUCCESS: "/guide/success",
   GUIDE: (slug: string) => `/guide/${slug}` as const,
@@ -111,6 +106,11 @@ export const ASTRO_PAGES = {
   COURSES: "/courses",
   HOMESCHOOL: "/homeschool",
   COMMUNITY: "/community",
+  // Legal pages, static since 2026-09-15 (web/pages/terms.astro, privacy.astro,
+  // cookies.astro). They were SPA routes until then.
+  TERMS: "/terms",
+  PRIVACY: "/privacy",
+  COOKIES: "/cookies",
 } as const;
 
 /**

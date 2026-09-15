@@ -3,7 +3,7 @@
 // Two headers and two footers render from this file: web/components/Navbar.astro
 // and web/components/Footer.astro on the Astro marketing pages, and
 // src/components/landing/Navbar.tsx and src/components/landing/Footer.tsx on the
-// SPA routes (/assessment, /results/*, /apothecary/*, the legal pages). They
+// SPA routes (/assessment, /results/*, /apothecary/*). They
 // used to carry their own hand-typed copies, and the SPA copies drifted: no
 // Freebies link, one header button instead of two, and a footer missing Herb
 // Profiles and the ESA link. A visitor crossing from a marketing page into the
@@ -64,9 +64,9 @@ export const FOOTER_LINKS: readonly SiteLink[] = [
   // Site-wide entry to the public monograph set, so /herbs (and through it every
   // profile) is reachable from anywhere a crawler lands.
   { label: "Herb Profiles", href: "/herbs" },
-  { label: "Terms & Conditions", href: "/terms", spaRoute: true },
-  { label: "Privacy Policy", href: "/privacy", spaRoute: true },
-  { label: "Cookie Policy", href: "/cookies", spaRoute: true },
+  { label: "Terms & Conditions", href: "/terms" },
+  { label: "Privacy Policy", href: "/privacy" },
+  { label: "Cookie Policy", href: "/cookies" },
   { label: "Returns & Refunds", href: "/returns" },
   { label: "Contact", href: "/contact" },
   // Site-wide entry to /esa. The ESA hub and state pages hide the shared nav and

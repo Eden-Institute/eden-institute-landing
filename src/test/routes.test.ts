@@ -51,6 +51,12 @@ describe("ASTRO_PAGES", () => {
       expect(spaPaths).not.toContain(path);
     }
   });
+
+  it("lists the legal pages, static since 2026-09-15", () => {
+    expect(ASTRO_PAGES.TERMS).toBe("/terms");
+    expect(ASTRO_PAGES.PRIVACY).toBe("/privacy");
+    expect(ASTRO_PAGES.COOKIES).toBe("/cookies");
+  });
 });
 
 describe("App.tsx route registrations", () => {

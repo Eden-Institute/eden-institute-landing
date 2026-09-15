@@ -13,9 +13,6 @@ import CtaClickTracker from "@/components/utils/CtaClickTracker";
 import MetaPixelTracker from "@/components/utils/MetaPixelTracker";
 import HomeRedirect from "@/components/utils/HomeRedirect";
 import Assessment from "./pages/Assessment";
-import Terms from "./pages/Terms";
-import Privacy from "./pages/Privacy";
-import Cookies from "./pages/Cookies";
 import NotFound from "./pages/NotFound";
 import GuideSuccess from "./pages/GuideSuccess";
 import Results from "./pages/Results";
@@ -135,9 +132,6 @@ const App = () => (
                   non-fatal. Replaces a missing-route 404 with a route the
                   router knows exists. */}
               <Route path={ROUTES.QUIZ_ALIAS} element={<Navigate to={ROUTES.ASSESSMENT} replace />} />
-              <Route path={ROUTES.TERMS} element={<Terms />} />
-              <Route path={ROUTES.PRIVACY} element={<Privacy />} />
-              <Route path={ROUTES.COOKIES} element={<Cookies />} />
               <Route path={ROUTES.GUIDE_SUCCESS} element={<GuideSuccess />} />
               <Route path={ROUTES.GUIDE(":constitutionSlug")} element={<GuideLanding />} />
               <Route path={ROUTES.RESULTS(":constitutionSlug")} element={<Results />} />

@@ -17,7 +17,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { applyTagConsent, getMarketingConsent, setMarketingConsent } from "@/lib/consent";
 import { loadMetaPixel, metaPageView } from "@/lib/metaPixel";
-import { ROUTES } from "@/lib/routes";
+import { ASTRO_PAGES } from "@/lib/routes";
 
 /**
  * The banner itself. Stores the choice, applies it to the default-on tags,
@@ -47,7 +47,7 @@ export function ConsentBannerView({ onChoice }: { onChoice: () => void }) {
           We use a few cookies to understand traffic and measure our ads. Google Analytics and
           Pinterest are on unless you tap Decline. Our Meta ad pixel only turns on if you tap
           Accept. Our own cookie-free page counts stay on either way. See our{" "}
-          <a href={ROUTES.COOKIES} className="underline" style={{ color: "hsl(var(--eden-gold))" }}>
+          <a href={ASTRO_PAGES.COOKIES} className="underline" style={{ color: "hsl(var(--eden-gold))" }}>
             Cookie Policy
           </a>
           .
