@@ -23,6 +23,12 @@
  *   described as pending.
  * - Prices: the printed set is "$261 total ($249 plus $12 shipping)", which
  *   matches both the marketplace listings ($261) and /books ($249 + $12).
+ * - Every item carries its price twice: `price` for people and `priceValue` for
+ *   the Product JSON-LD. The state page refuses to build if the two disagree, or
+ *   if an invoice state's price disagrees with web/lib/esaInvoice.ts.
+ *   public/llms.txt quotes these prices too and is NOT checked; change it by hand.
+ * - Bump ESA_UPDATED_ISO whenever what these pages say changes. It drives the
+ *   "Updated" line, the sitemap <lastmod> for /esa and /esa/*, and dateModified.
  */
 
 export type EsaStatus =
@@ -38,7 +44,11 @@ export type EsaStatus =
 export interface EsaItem {
   name: string;
   price: string;
+  /** The amount `price` shows, as a number, for the Product JSON-LD. */
+  priceValue: number;
   note: string;
+  /** Product photo for the JSON-LD: the same photo /curriculum shows for this item. */
+  image: string;
 }
 
 export interface EsaState {
@@ -64,20 +74,28 @@ export interface EsaState {
   faq: { q: string; a: string }[];
 }
 
+const PHOTO = "https://edeninstitute.health/showcases";
+
 const SET: EsaItem = {
   name: "Printed Curriculum Set",
   price: "$261 total",
+  priceValue: 261,
   note: "$249 plus $12 shipping. Teacher's Guide, Student Notebook and Read-Aloud Storybook, all 36 weeks.",
+  image: `${PHOTO}/ET_PrintSet.webp`,
 };
 const NOTEBOOK: EsaItem = {
   name: "Extra Student Notebook",
   price: "$39.99",
+  priceValue: 39.99,
   note: "Shipping included. A second write-in notebook for another child using the set.",
+  image: `${PHOTO}/ET_NB_Cover.webp`,
 };
 const STARTER: EsaItem = {
   name: "9-Week Starter Unit",
   price: "$39",
+  priceValue: 39,
   note: "Weeks 1 to 9 of the 36-week year, as a download. Not the full year.",
+  image: `${PHOTO}/ET_StarterUnit.webp`,
 };
 
 const PENDING_ODYSSEY_STEPS = (short: string) => [
@@ -138,12 +156,16 @@ export const ESA_STATES: EsaState[] = [
       {
         name: "Printed Curriculum Set",
         price: "$266.33 by invoice",
+        priceValue: 266.33,
         note: "$261 ($249 plus $12 shipping) plus the $5.33 Arizona processing fee. Teacher's Guide, Student Notebook and Read-Aloud Storybook, all 36 weeks.",
+        image: `${PHOTO}/ET_PrintSet.webp`,
       },
       {
         name: "Extra Student Notebook",
         price: "$40.81 by invoice",
+        priceValue: 40.81,
         note: "$39.99 with shipping, plus the $0.82 Arizona processing fee. A second write-in notebook for another child using the set.",
+        image: `${PHOTO}/ET_NB_Cover.webp`,
       },
     ],
     links: [
@@ -332,7 +354,16 @@ export const ESA_PENDING = [
   { state: "West Virginia", program: "Hope Scholarship", note: "Provider application submitted September 2026, waiting on review." },
 ];
 
-export const ESA_UPDATED = "September 2026";
+/** Last content review of the ESA pages. Bump it when what they say changes (see
+    the rules at the top). */
+export const ESA_UPDATED_ISO = "2026-09-14";
+
+/** The same date as shown on the pages, e.g. "September 2026". */
+export const ESA_UPDATED = new Date(`${ESA_UPDATED_ISO}T12:00:00Z`).toLocaleDateString("en-US", {
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
 
 /** Shown on every ESA page. Programs approve or register vendors; they do not
     endorse products, and implying they do is barred (16 CFR 461.2(b)) and is a
@@ -342,11 +373,16 @@ export const ESA_DISCLAIMER =
 
 export const ESA_CONTACT_EMAIL = "hello@edeninstitute.health";
 
+/** What Eden's Table is, in the locked framing. The first FAQ answer on every ESA
+    page, and the curriculum description in the state pages' JSON-LD. */
+export const ESA_CURRICULUM_DESCRIPTION =
+  "A 36-week Bible-based science and nature study curriculum for kindergarten through second grade. Each week centers on one plant, and reading, writing, math, history, geography and art are woven into the study of it. It is published by Rooted in Faith Ventures LLC.";
+
 /** Questions every state page answers. Written the way parents ask them. */
 export const ESA_COMMON_FAQ = [
   {
     q: "What is Eden's Table?",
-    a: "A 36-week Bible-based science and nature study curriculum for kindergarten through second grade. Each week centers on one plant, and reading, writing, math, history, geography and art are woven into the study of it. It is published by Rooted in Faith Ventures LLC.",
+    a: ESA_CURRICULUM_DESCRIPTION,
   },
   {
     q: "What grades is it for?",

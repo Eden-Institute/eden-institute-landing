@@ -13,12 +13,19 @@
 // scholarship programs cannot place under an approved subject.
 import MarketingLayout from "../../layouts/MarketingLayout.astro";
 import EsaInvoiceForm from "../../components/islands/EsaInvoiceForm.tsx";
-import { ESA_INVOICE_STATE_BY_SLUG } from "../../lib/esaInvoice";
+import {
+  ESA_INVOICE_STATE_BY_SLUG,
+  ESA_CHOICES,
+  ESA_STATE_OPTIONS,
+  esaFeeCents,
+} from "../../lib/esaInvoice";
 import {
   ESA_STATES,
   ESA_PENDING,
   ESA_COMMON_FAQ,
+  ESA_CURRICULUM_DESCRIPTION,
   ESA_UPDATED,
+  ESA_UPDATED_ISO,
   ESA_CONTACT_EMAIL,
   ESA_DISCLAIMER,
   type EsaState,
@@ -29,6 +36,29 @@ export function getStaticPaths() {
 }
 
 const { s } = Astro.props as { s: EsaState };
+
+// The Product JSON-LD below hands priceValue to search engines and AI assistants.
+// Refuse to build if it disagrees with the price the page shows or, where families
+// pay by invoice, with the total the invoice form computes, so a price change
+// cannot ship half made.
+const invoiceKey = ESA_INVOICE_STATE_BY_SLUG[s.slug];
+for (const i of s.items) {
+  const shown = Number(i.price.match(/\$(\d+(?:\.\d\d)?)/)?.[1]);
+  const choice = Object.values(ESA_CHOICES).find((c) => c.label === i.name);
+  if (invoiceKey && !choice) {
+    throw new Error(`/esa/${s.slug}: no invoice choice in web/lib/esaInvoice.ts is labelled "${i.name}".`);
+  }
+  const invoiced =
+    invoiceKey && choice
+      ? (choice.cents + esaFeeCents(choice.cents, ESA_STATE_OPTIONS[invoiceKey].feeRate)) / 100
+      : i.priceValue;
+  if (shown !== i.priceValue || invoiced !== i.priceValue) {
+    throw new Error(
+      `/esa/${s.slug}: "${i.name}" shows "${i.price}", priceValue is ${i.priceValue}, invoice total is ${invoiced}. ` +
+        "Make them agree (web/lib/esaStates.ts, web/lib/esaInvoice.ts).",
+    );
+  }
+}
 
 const canonical = `https://edeninstitute.health/esa/${s.slug}`;
 const title = `Use ${s.short} Funds for Eden's Table K-2 Curriculum`;
@@ -57,10 +87,53 @@ const faq = [
   ...ESA_COMMON_FAQ,
 ];
 
+// What the product is, for anyone deciding whether it counts as curriculum. Uses
+// the locked wording from esaStates.ts; never borrow the /homeschool Course markup,
+// which carries brand-site wording these pages must not.
+const curriculumJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Course",
+  name: "Eden's Table Sprouts, Grades K-2",
+  description: ESA_CURRICULUM_DESCRIPTION,
+  provider: { "@type": "Organization", name: "Rooted in Faith Ventures LLC" },
+  educationalLevel: "Kindergarten to Grade 2",
+  audience: { "@type": "EducationalAudience", educationalRole: "student" },
+  timeRequired: "P36W",
+  inLanguage: "en",
+  dateModified: ESA_UPDATED_ISO,
+};
+
+// Product + Offer for each item, so price and availability are machine readable.
+// Only where a family can buy today. On a pending listing every schema.org
+// availability value would be false: InStock and PreOrder say a family can order
+// now, and OutOfStock says the books are unavailable. No Offer is the honest markup.
+// The student audience sits on the Course above: Google's merchant listings read
+// Product.audience as a PeopleAudience and flag an EducationalAudience as invalid.
+const productJsonLd =
+  s.status === "listing_pending"
+    ? []
+    : s.items.map((i) => ({
+        "@context": "https://schema.org",
+        "@type": "Product",
+        name: `Eden's Table: Sprouts ${i.name}`,
+        description: i.note,
+        image: i.image,
+        brand: { "@type": "Brand", name: "Eden's Table" },
+        offers: {
+          "@type": "Offer",
+          price: i.priceValue.toFixed(2),
+          priceCurrency: "USD",
+          availability: "https://schema.org/InStock",
+          url: canonical,
+          seller: { "@type": "Organization", name: "Rooted in Faith Ventures LLC" },
+        },
+      }));
+
 const jsonLd = [
   {
     "@context": "https://schema.org",
     "@type": "FAQPage",
+    dateModified: ESA_UPDATED_ISO,
     mainEntity: faq.map((f) => ({
       "@type": "Question",
       name: f.q,
@@ -75,6 +148,8 @@ const jsonLd = [
       { "@type": "ListItem", position: 2, name: s.state, item: canonical },
     ],
   },
+  curriculumJsonLd,
+  ...productJsonLd,
 ];
 
 const orgDescription =
