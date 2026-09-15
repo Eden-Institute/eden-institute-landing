@@ -129,7 +129,7 @@ export function buildDelayNoticeEmail(input: DelayNoticeInput): string {
     + consequence
     + button(input.consentUrl, input.requiresOptIn ? 'Keep my order and wait' : 'Yes, keep my order')
     + button(input.cancelUrl, 'Cancel and refund me in full')
-    + p('Either button is one click and takes effect immediately. If you would rather '
+    + p('Either button opens a page where one tap confirms your answer, and it takes effect right away. If you would rather '
       + 'write to a person, reply to this email and it reaches Camila directly.',
       'font-size:14px;color:#6B6560;')
     + (input.orderNumber

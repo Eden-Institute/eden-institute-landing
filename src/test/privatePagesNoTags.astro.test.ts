@@ -1,7 +1,8 @@
 // No ad or analytics tags on the pages whose URL carries a credential.
 //
 // /starter/downloads?t=<durable Starter download token>,
-// /partner-sample?k=<partner key> and /unsubscribe?token=<unsubscribe token>
+// /partner-sample?k=<partner key>, /unsubscribe?token=<unsubscribe token> and
+// /preorder-response?token=<delay-notice answer token>
 // keep the credential in the address bar, so
 // every emailed, copied or bookmarked link keeps working. That is only safe if
 // nothing on those pages can read location.href and send it on. This renders
@@ -28,7 +29,12 @@ const pageSources = import.meta.glob<string>("../../web/pages/**/*.astro", {
 });
 
 /** The pages that must render without third-party tags, and nothing else. */
-const PRIVATE_PAGES = ["starter/downloads.astro", "partner-sample.astro", "unsubscribe.astro"];
+const PRIVATE_PAGES = [
+  "starter/downloads.astro",
+  "partner-sample.astro",
+  "unsubscribe.astro",
+  "preorder-response.astro",
+];
 
 /** These read the live herb database while they render (web/lib/herbsPublic.ts)
  *  or take their props from getStaticPaths (esa/[state].astro), so a unit test
