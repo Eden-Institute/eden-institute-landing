@@ -22,6 +22,8 @@
 // delivery date: shipping in July puts kits in hand before August, which is the goal.
 export const SHIP_TARGET = 'July 31, 2027';
 export const SHIP_GUARANTEE_TEXT = 'September 30, 2027';
+// Imported by the founder dashboard (src/components/founder/BroadcastTab.tsx) as the delay-notice
+// default, so the promised date lives in one place. Not referenced by any edge function.
 export const SHIP_GUARANTEE_DATE = '2027-09-30';
 
 // What the buyer accepts in the disclaimer checkbox, stamped into session metadata and
@@ -35,10 +37,10 @@ export const SHIP_WINDOW =
 // changes. Stripe Tax taxes it via the shipping tax_code set in create-checkout.
 export const PREORDER_FLAT_SHIPPING_CENTS = 1200;
 
-// The founding period (founding price for BOTH the kit and the notebook) ends once this many
-// founding units of the gate SKU have sold. Founder rule: "Notebook retail after 500 kits".
+// The founding period (founding price for BOTH the kit and the notebook) ends once the gate SKU's
+// founding units reach products.founding_qty_limit, read through the founding_gate RPC
+// (order-db.getFoundingGate). Founder rule: "Notebook retail after 500 kits"; the number lives in the DB.
 export const FOUNDING_GATE_SKU = 'sprouts_kit';
-export const FOUNDING_GATE_LIMIT = 500;
 
 export interface PreorderProduct {
   sku: string;
@@ -76,12 +78,6 @@ export const PREORDER_PRODUCTS: PreorderProduct[] = [
     maxQtyPerOrder: 5,
   },
 ];
-
-// Cart shape create-checkout accepts. Distinct SKUs only; quantity per line.
-export interface PreorderCartItem {
-  sku: string;
-  qty: number;
-}
 
 // Future products (recorded, NOT wired into Phase 1):
 //   Seedlings Kit: founding price_1Tc7UU2NWfYbCZT8qS41OjNA / retail price_1To6LG2NWfYbCZT8O7XvFE9B

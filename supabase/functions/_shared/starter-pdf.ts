@@ -55,6 +55,32 @@ export function footerText(opts: StampOptions): string {
   return `Licensed to ${who}. ${opts.licenseLine}`;
 }
 
+/** Letters NFKD does not decompose to an unaccented base. */
+const FALLBACK: Record<string, string> = {
+  'Ł': 'L', 'ł': 'l', 'Đ': 'D', 'đ': 'd', 'Ħ': 'H', 'ħ': 'h', 'ı': 'i', 'Ø': 'O', 'ø': 'o',
+};
+
+/**
+ * Map text onto what the embedded standard font can encode. Unencodable letters
+ * fall back to their unaccented base (Ł -> L via the explicit map, ż -> z via
+ * NFKD); anything else becomes '?'. The identifying email stays readable because
+ * emails are ASCII in practice.
+ */
+export function toEncodable(text: string, supported: Set<number>): string {
+  let out = '';
+  for (const ch of text.normalize('NFC')) {
+    const cp = ch.codePointAt(0)!;
+    if (supported.has(cp)) {
+      out += ch;
+      continue;
+    }
+    const mapped = FALLBACK[ch] ?? ch.normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
+    const encodable = mapped.length > 0 && [...mapped].every((c) => supported.has(c.codePointAt(0)!));
+    out += encodable ? mapped : '?';
+  }
+  return out;
+}
+
 /**
  * Stamp one line at the foot of every page.
  *
@@ -75,7 +101,9 @@ export async function stampFooter(
     updateMetadata: false,
   });
   const font = await doc.embedFont(StandardFonts.Helvetica);
-  const raw = footerText(opts);
+  // Helvetica here is WinAnsi-only; measuring or drawing a code point outside that
+  // set throws, which would fail every attempt for buyers with such names.
+  const raw = toEncodable(footerText(opts), new Set(font.getCharacterSet()));
   const pages = doc.getPages();
 
   for (const page of pages) {

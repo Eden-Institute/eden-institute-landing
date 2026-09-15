@@ -1,4 +1,4 @@
-// deno test --allow-net --allow-env supabase/functions/_shared/esa-fulfil.test.ts
+// deno test --allow-env supabase/functions/_shared/esa-fulfil.test.ts
 // Stubs fetch, so nothing reaches Supabase, Resend or Lulu.
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 

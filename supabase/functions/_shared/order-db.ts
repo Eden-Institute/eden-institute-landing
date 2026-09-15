@@ -153,19 +153,6 @@ export async function logMessage(db: Db, row: {
   if (error && errCode(error) !== '23505') throw error; // 23505 = slot already claimed in a race; fine
 }
 
-// ── Founding-allocation counter ────────────────────────────────────────────────
-/**
- * Founding UNITS sold for a product (SUM of line quantities, not a row count), excluding
- * cancelled/refunded orders. A cart line can carry quantity > 1, so a row count would
- * undercount and overshoot the 500-unit founding gate. Lives in SQL
- * (founding_units_sold RPC, migration 20260714120000) because PostgREST cannot SUM here.
- */
-export async function countFoundingSold(db: Db, productId: string): Promise<number> {
-  const { data, error } = await db.rpc('founding_units_sold', { p_product_id: productId });
-  if (error) throw error;
-  return typeof data === 'number' ? data : 0;
-}
-
 export interface FoundingGate {
   sold: number;
   cap: number | null;
@@ -177,7 +164,9 @@ export interface FoundingGate {
  * net founding units sold, the cap, and whether the founding window is CLOSED. The RPC
  * stamps products.founding_closed_at the first time sold reaches the cap, so a later
  * refund can never reopen founding pricing: the scarcity claim is a one-way promise.
- * This, not countFoundingSold alone, is what price selection must consult.
+ * This is what price selection must consult. sold is SUM(quantity) of founding lines net
+ * of cancelled/refunded orders (founding_units_sold, migration 20260714120000, called
+ * inside founding_gate), never a row count, because a cart line can carry quantity > 1.
  */
 export async function getFoundingGate(db: Db, productId: string): Promise<FoundingGate> {
   const { data, error } = await db.rpc('founding_gate', { p_product_id: productId });

@@ -15,10 +15,11 @@
 //
 // Founder test orders: use hello+esatest@edeninstitute.health. They are rendered, stored and
 // emailed like a real order but marked is_test, numbered ET-TEST-..., and never touch the
-// state counters, so no real invoice number is burned.
+// state counters, so no real invoice number is burned. They share the per-IP limiter.
 
 import {
   centralDate,
+  forbiddenInFamilyText,
   money,
   parseSubmission,
   planInvoices,
@@ -30,6 +31,7 @@ import {
 import { renderInvoicePdf } from "../_shared/esa-invoice-pdf.ts";
 import { enforceCheckoutRateLimit } from "../_shared/checkout-rate-limit.ts";
 import { captureException } from "../_shared/sentry.ts";
+import { esc } from "../_shared/html-escape.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -106,8 +108,6 @@ function b64(bytes: Uint8Array): string {
   for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   return btoa(s);
 }
-
-const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
 
 interface Issued {
   number: string;
@@ -209,11 +209,11 @@ Deno.serve(async (req) => {
   const sub = parsed.value;
   const isTest = sub.email === TEST_EMAIL;
 
-  if (!isTest) {
-    const rate = await enforceCheckoutRateLimit(db, req, SUBMISSIONS_PER_WINDOW);
-    if (!rate.allowed) {
-      return json(429, { error: "Too many invoices from this connection. Please wait a few minutes, or email hello@edeninstitute.health." });
-    }
+  // Test orders are throttled too: the test address is not a secret, and each one still
+  // stores PDFs, inserts rows and sends two emails.
+  const rate = await enforceCheckoutRateLimit(db, req, SUBMISSIONS_PER_WINDOW);
+  if (!rate.allowed) {
+    return json(429, { error: "Too many invoices from this connection. Please wait a few minutes, or email hello@edeninstitute.health." });
   }
 
   try {
@@ -221,6 +221,9 @@ Deno.serve(async (req) => {
     const year = Number(invoiceDate.slice(0, 4));
     const submissionId = crypto.randomUUID();
     const plans = planInvoices(sub);
+    // Before any invoice number is issued, so a rejected Alabama submission burns no number.
+    const famHits = plans.flatMap((pl) => forbiddenInFamilyText(pl.state, `${pl.parentName} ${pl.studentName} ${pl.shipTo}`));
+    if (famHits.length) throw new Error(`submission failed wording checks: ${famHits.join("; ")}`);
     const issued: Issued[] = [];
     for (const [idx, plan] of plans.entries()) {
       const number = isTest

@@ -22,6 +22,8 @@
 // v14 is the surgical fix that unblocks today's launch verification without changing the
 // dual-write architecture; once the cleanup ships, the 409 path will simply never fire.
 
+import { isValidConstitution, normalizeEmail, normalizeOptionalString } from '../_shared/quiz-completion-input.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
@@ -30,69 +32,6 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-const EDEN_PATTERN_NAMES = [
-  'The Burning Bowstring',
-  'The Open Flame',
-  'The Pressure Cooker',
-  'The Overflowing Cup',
-  'The Drawn Bowstring',
-  'The Spent Candle',
-  'The Frozen Knot',
-  'The Still Water',
-];
-
-const AXIS_LABELS = [
-  'Hot / Dry / Tense',
-  'Hot / Dry / Relaxed',
-  'Hot / Damp / Tense',
-  'Hot / Damp / Relaxed',
-  'Cold / Dry / Tense',
-  'Cold / Dry / Relaxed',
-  'Cold / Damp / Tense',
-  'Cold / Damp / Relaxed',
-];
-
-// v13: kebab-case slugs that resend-waitlist + production data already use.
-const KEBAB_SLUGS = [
-  'burning-bowstring',
-  'open-flame',
-  'pressure-cooker',
-  'overflowing-cup',
-  'drawn-bowstring',
-  'spent-candle',
-  'frozen-knot',
-  'still-water',
-];
-
-function normalizeForCompare(s: string): string {
-  return s.replace(/\s+/g, ' ').trim().toLowerCase();
-}
-
-const VALID_CONSTITUTIONS = new Set(
-  [...EDEN_PATTERN_NAMES, ...AXIS_LABELS, ...KEBAB_SLUGS].map(normalizeForCompare),
-);
-
-function isValidConstitution(raw: unknown): raw is string {
-  if (typeof raw !== 'string') return false;
-  if (raw.length === 0 || raw.length > 200) return false;
-  return VALID_CONSTITUTIONS.has(normalizeForCompare(raw));
-}
-
-function normalizeEmail(raw: unknown): string | null {
-  if (typeof raw !== 'string') return null;
-  const trimmed = raw.trim().toLowerCase();
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmed)) return null;
-  if (trimmed.length > 320) return null;
-  return trimmed;
-}
-
-function normalizeOptionalString(raw: unknown, maxLen: number): string | null {
-  if (typeof raw !== 'string') return null;
-  const trimmed = raw.trim();
-  if (trimmed.length === 0) return null;
-  return trimmed.slice(0, maxLen);
-}
 
 async function writeDeadLetter(
   rawBody: unknown,
@@ -225,7 +164,7 @@ Deno.serve(async (req) => {
     // it cares. No retry, no dead-letter, no 502 — those are reserved for
     // genuine failures (5xx and unexpected statuses).
     if (insertRes.status === 409) {
-      console.log('quiz_completions row already exists (dual-write conflict — no-op success)', { email, constitution_type });
+      console.log('quiz_completions row already exists (dual-write conflict — no-op success)', { constitution_type });
       return new Response(JSON.stringify({ ok: true, note: 'already-recorded' }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -241,7 +180,7 @@ Deno.serve(async (req) => {
       // Retry might surface a 409 too (e.g. race with a concurrent writer).
       // Same no-op semantics apply on retry.
       if (insertRes.status === 409) {
-        console.log('quiz_completions row exists on retry (no-op success)', { email, constitution_type });
+        console.log('quiz_completions row exists on retry (no-op success)', { constitution_type });
         return new Response(JSON.stringify({ ok: true, note: 'already-recorded' }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -252,17 +191,17 @@ Deno.serve(async (req) => {
     // ── Genuine failure — capture to dead-letter and 502 ──────────────
     if (!insertRes.ok) {
       const errText = await insertRes.text().catch(() => '<unreadable response body>');
+      // The PostgREST body can echo the submitted email; it is kept in
+      // quiz_completion_failures.postgrest_body instead of the function log.
       console.error('quiz_completions INSERT failed (after retry)', {
         status: insertRes.status,
         statusText: insertRes.statusText,
-        body: errText,
-        email,
       });
       const { deadLetterId, deadLetterError } = await writeDeadLetter(rawBody, insertRes.status, errText, null);
       if (deadLetterId) {
-        console.log(`quiz_completion_failures captured row=${deadLetterId} for email=${email}`);
+        console.log(`quiz_completion_failures captured row=${deadLetterId}`);
       } else {
-        console.error('CRITICAL: dead-letter ALSO failed', { email, deadLetterError });
+        console.error('CRITICAL: dead-letter ALSO failed', { deadLetterError });
       }
       return new Response(
         JSON.stringify({
@@ -274,7 +213,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('quiz_completions INSERT ok', { email, constitution_type, status: insertRes.status });
+    console.log('quiz_completions INSERT ok', { constitution_type, status: insertRes.status });
 
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,

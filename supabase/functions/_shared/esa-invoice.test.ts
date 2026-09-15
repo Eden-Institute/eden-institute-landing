@@ -1,10 +1,11 @@
-// deno test --allow-net supabase/functions/_shared/esa-invoice.test.ts
-// (--allow-net only because the PDF module imports pdf-lib from esm.sh)
+// deno test supabase/functions/_shared/esa-invoice.test.ts
+// No permissions needed: pdf-lib is a pinned remote module (deno.lock), and module fetching is not gated by --allow-net.
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   addDays,
   centralDate,
   feeFor,
+  forbiddenInFamilyText,
   forbiddenOnInvoice,
   parseSubmission,
   planInvoices,
@@ -89,6 +90,25 @@ Deno.test("wording guard", () => {
   assertEquals(forbiddenOnInvoice("AL", "Payment: ClassWallet").length, 1);
   assertEquals(forbiddenOnInvoice("AZ", "Payment: ClassWallet, Pay Vendor").length, 0);
   assertEquals(forbiddenOnInvoice("AR", "store credit").length, 1);
+});
+
+Deno.test("Alabama wording ban covers family-typed fields, and only in Alabama", async () => {
+  assertEquals(forbiddenInFamilyText("AL", "Jane Classwallet").length, 1);
+  assertEquals(forbiddenInFamilyText("AL", "Sam Choose  Act").length, 1);
+  assertEquals(forbiddenInFamilyText("AZ", "Jane Classwallet").length, 0);
+  // A real surname is never rejected by the static-only credit/coupon rule.
+  assertEquals(forbiddenInFamilyText("AL", "Sam Credit").length, 0);
+
+  const p = parseSubmission(base({ state: "AL", address: { ...addr, region: "AL" }, students: [{ first: "Sam", last: "ClassWallet", choice: "set" }] }));
+  assert(p.ok);
+  const [plan] = planInvoices(p.value);
+  let threw = false;
+  try {
+    await renderInvoicePdf(plan, "ET-AL-2026-003", "2026-09-14");
+  } catch (e) {
+    threw = e instanceof Error && e.message.includes("family-supplied field");
+  }
+  assert(threw, "an Alabama invoice naming ClassWallet in a family field must not render");
 });
 
 for (const code of ["AZ", "AR", "AL", "NH"] as const) {

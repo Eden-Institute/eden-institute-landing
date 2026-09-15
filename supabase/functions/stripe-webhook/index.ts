@@ -51,6 +51,7 @@ import { getGuideByNickname, getGuideBySlug } from "../_shared/guide/registry.ts
 import { STARTER_LOOKUP_KEY } from "../_shared/starter-config.ts"
 import { STARTER_ORDER_LABEL } from "../_shared/receipt.ts"
 import { creditIssuanceOpen, issueStarterCredit, markCreditRedeemed } from "../_shared/starter-credit.ts"
+import { escapeLikePattern } from "../_shared/like-escape.ts"
 
 /**
  * Normalize a constitution identifier to a guide-registry slug.
@@ -572,11 +573,31 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     throw new Error(`profiles read failed: ${readError.message}`)
   }
 
+  // A user can write their own profiles.stripe_subscription_id, so a mismatch alone
+  // is not proof they moved to another plan. Only skip the downgrade when Stripe
+  // confirms the other id is a live subscription of this same customer.
   if (profile?.stripe_subscription_id && profile.stripe_subscription_id !== subscription.id) {
-    console.log(
-      `Ignoring delete for ${subscription.id}; user ${userId} is now on a different subscription (${profile.stripe_subscription_id})`,
+    const customerId = (c: string | { id: string } | null): string | null =>
+      c == null ? null : typeof c === "string" ? c : c.id
+    let otherIsLive = false
+    try {
+      const other = await stripe.subscriptions.retrieve(profile.stripe_subscription_id)
+      const sameCustomer = customerId(other.customer) !== null &&
+        customerId(other.customer) === customerId(subscription.customer)
+      otherIsLive = sameCustomer &&
+        ["active", "trialing", "past_due", "unpaid", "paused", "incomplete"].includes(other.status)
+    } catch (_err) {
+      otherIsLive = false // unknown or foreign id: treat as not live
+    }
+    if (otherIsLive) {
+      console.log(
+        `Ignoring delete for ${subscription.id}; user ${userId} is now on a different subscription (${profile.stripe_subscription_id})`,
+      )
+      return
+    }
+    console.warn(
+      `Profile for user ${userId} pointed at ${profile.stripe_subscription_id}, which is not a live subscription of this customer; downgrading for ended ${subscription.id}`,
     )
-    return
   }
 
   const { error } = await adminClient
@@ -770,7 +791,7 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
       await captureException(err, { function: "stripe-webhook", stage: "enqueueLuluJob", session_id: session.id })
       return
     }
-    void kickLuluSubmit(orderRow.id)
+    runInBackground(kickLuluSubmit(orderRow.id))
     return
   }
 
@@ -969,6 +990,14 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
     return
   }
 
+  // Async payment methods fire checkout.session.completed before money moves
+  // (payment_status "unpaid"). Refuse only that case: "no_payment_required"
+  // (a 100%-off promo) is a legitimate free delivery. Cards-only today; guards drift.
+  if (session.payment_status === "unpaid") {
+    console.warn(`digital session ${session.id} completed with payment_status=unpaid; order NOT recorded, product NOT delivered`)
+    return
+  }
+
   // 1. The sale itself. Idempotent on the session id, so a Stripe retry is a no-op.
   await recordDigitalOrder(session, lookupKey, email)
   await syncPurchaseProperties(email, session.id)
@@ -979,7 +1008,7 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
     const { data: updated, error } = await adminClient
       .from("quiz_completions")
       .update({ [column]: true })
-      .ilike("email", email)
+      .ilike("email", escapeLikePattern(email))
       .select("id")
 
     if (error) {
@@ -1128,6 +1157,13 @@ async function resolvePrintLineItems(
   return [{ sku: printSku, isFounding: false, quantity: 1 }]
 }
 
+/** Keep a best-effort background promise alive past the Response on Supabase Edge Runtime; plain fire-and-forget elsewhere. */
+function runInBackground(p: Promise<unknown>): void {
+  const rt = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime
+  if (rt && typeof rt.waitUntil === "function") rt.waitUntil(p)
+  else void p
+}
+
 /** Fire-and-forget nudge to lulu-submit. Never throws; the cron drain is the backstop. */
 async function kickLuluSubmit(orderId: string): Promise<void> {
   try {
@@ -1256,10 +1292,12 @@ async function handleStarterUnitPurchase(
   }
 
   // Kick the fulfiller so delivery is near-immediate rather than waiting for the
-  // next cron tick. Deliberately NOT awaited into the webhook's response path and
-  // deliberately unable to throw: the work item is durable, so the worst case of
-  // this call failing is a delivery that arrives on the next drain instead of now.
-  void kickStarterFulfill(sid)
+  // next cron tick. Deliberately NOT awaited into the webhook's response path (the
+  // fulfiller stamps PDFs, and waiting risks a webhook timeout and a Stripe retry)
+  // and deliberately unable to throw. runInBackground keeps it alive past the
+  // response with EdgeRuntime.waitUntil; the work item is durable and the cron
+  // drain is still the backstop if the kick never lands.
+  runInBackground(kickStarterFulfill(sid))
 }
 
 /**
@@ -1413,7 +1451,7 @@ async function handleHomeschoolBundlePurchase(
   const { data: existing, error: lookupError } = await adminClient
     .from("profiles")
     .select("user_id, stripe_customer_id, homeschool_bundle_buyer")
-    .ilike("email", email)
+    .ilike("email", escapeLikePattern(email))
     .maybeSingle()
 
   if (lookupError) {
@@ -1498,6 +1536,9 @@ async function recordOneOffPayment(event: Stripe.Event, session: Stripe.Checkout
   try {
     const amount = session.amount_total ?? 0
     if (!amount) return
+    // Async methods complete the session before money moves; the ledger must not
+    // claim revenue that has not been collected. (Cards-only today; guards drift.)
+    if (session.payment_status === "unpaid") return
 
     const lookupKey = (session.metadata?.lookup_key as string | undefined)
       ?? (session.metadata?.preorder_sku as string | undefined)

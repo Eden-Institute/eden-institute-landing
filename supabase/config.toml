@@ -16,7 +16,7 @@ project_id = "noeqztssupewjidpvhar"
 #      These functions perform their own input validation.
 #
 #   2. WEBHOOK ENDPOINTS — authenticate via provider-specific signatures
-#      (Stripe HMAC, Resend svix, LearnWorlds HMAC), not Supabase JWT.
+#      (Stripe HMAC, Resend svix, LearnWorlds pre-shared signature), not Supabase JWT.
 
 # --- Category 1: Public-frontend functions ---
 
@@ -125,8 +125,9 @@ verify_jwt = false
 [functions.stripe-webhook]
 verify_jwt = false
 
-# LearnWorlds course-purchase webhook. Authenticity = Learnworlds-Webhook-Signature
-# (HMAC over the raw body), not a Supabase JWT.
+# LearnWorlds course-purchase webhook. Authenticity = Learnworlds-Webhook-Signature,
+# a STATIC pre-shared value compared in constant time (not an HMAC of the body;
+# see learnworlds-webhook/index.ts header), not a Supabase JWT.
 [functions.learnworlds-webhook]
 verify_jwt = false
 
@@ -160,6 +161,13 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.replay-quiz-completion-failures]
+verify_jwt = true
+
+# launch-email-preview mails the founder a copy of each launch email a day early.
+# Invoked only by the Vercel cron with the service-role key; it additionally
+# requires role=service_role via _shared/require-service-role.ts, so verify_jwt
+# MUST stay true or that claim check could be forged.
+[functions.launch-email-preview]
 verify_jwt = true
 
 # starter-fulfill stamps and delivers the paid Starter Unit PDFs. It bundles the
@@ -206,3 +214,31 @@ verify_jwt = true
 # the function validates it and rate-limits per token.
 [functions.starter-download]
 verify_jwt = false
+
+# --- Category 4: Signed-in user and founder functions (explicit pins) ---
+#
+# These had no entry and relied on the CLI default of verify_jwt=true. Pinned
+# explicitly so a stray --no-verify-jwt cannot flip them. Each validates the
+# caller's JWT in code, which is only safe when the gateway has already
+# verified the signature. (launch-email-preview, the fifth unpinned function,
+# is pinned under Category 3.)
+
+# founder-broadcast mails every preorder buyer (no unsend). Founder-email gate via
+# auth.getUser() in code; the gateway validates the signature first.
+[functions.founder-broadcast]
+verify_jwt = true
+
+# customer-portal: signed-in subscriber opens the Stripe billing portal (auth.getUser in code).
+[functions.customer-portal]
+verify_jwt = true
+
+# practitioner-clinical: signed-in user, subscription_tier=practitioner checked in code.
+[functions.practitioner-clinical]
+verify_jwt = true
+
+# verify-session proves a paid Checkout session. Anonymous guide callers send the
+# anon key, which is a valid JWT; signed-in callers send the user JWT, which the
+# function binds to the session's supabase_user_id. Pinned so a redeploy cannot
+# silently flip it.
+[functions.verify-session]
+verify_jwt = true

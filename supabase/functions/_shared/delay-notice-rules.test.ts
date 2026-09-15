@@ -6,7 +6,12 @@
 // that should have been cancelled and refunded. Hence the boundary cases below.
 
 import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { requiresOptIn } from './delay-notice-rules.ts';
+import {
+  DELAY_SUBJECT_OPT_IN,
+  DELAY_SUBJECT_OPT_OUT,
+  requiresOptIn,
+  resolveSubject,
+} from './delay-notice-rules.ts';
 
 const CURRENT = '2026-12-31';
 
@@ -90,4 +95,19 @@ Deno.test('crossing a month boundary is counted in days, not months', () => {
     requiresOptIn({ revisedShipDate: '2026-12-31', currentShipsOn: '2026-11-30', priorNoticeCount: 0 }),
     true,
   );
+});
+
+Deno.test('an ordinary update keeps the subject the founder typed', () => {
+  assertEquals(resolveSubject(false, true, 'Hello families'), 'Hello families');
+});
+
+Deno.test('a delay notice mails the approved subject that matches its opt-in', () => {
+  assertEquals(resolveSubject(true, false, 'typed'), DELAY_SUBJECT_OPT_OUT);
+  assertEquals(resolveSubject(true, true, 'typed'), DELAY_SUBJECT_OPT_IN);
+});
+
+Deno.test('a second notice inside a short slip gets the opt-in subject, matching its opt-in body', () => {
+  const optIn = requiresOptIn({ revisedShipDate: '2027-01-07', currentShipsOn: CURRENT, priorNoticeCount: 1 });
+  assertEquals(optIn, true);
+  assertEquals(resolveSubject(true, optIn, 'typed'), DELAY_SUBJECT_OPT_IN);
 });

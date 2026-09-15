@@ -138,10 +138,17 @@ export const CREDIT_CODE_PREFIX = 'EDEN-S-';
 export const CREDIT_CODE_BODY_LENGTH = 6;
 
 export function generateCreditCode(): string {
-  const bytes = new Uint8Array(CREDIT_CODE_BODY_LENGTH);
-  crypto.getRandomValues(bytes);
+  // Rejection sampling: bytes >= 248 (the largest multiple of 31 <= 256) are
+  // discarded so every symbol is equally likely.
+  const limit = 256 - (256 % CODE_ALPHABET.length);
   let body = '';
-  for (const b of bytes) body += CODE_ALPHABET[b % CODE_ALPHABET.length];
+  const buf = new Uint8Array(16);
+  while (body.length < CREDIT_CODE_BODY_LENGTH) {
+    crypto.getRandomValues(buf);
+    for (const b of buf) {
+      if (b < limit && body.length < CREDIT_CODE_BODY_LENGTH) body += CODE_ALPHABET[b % CODE_ALPHABET.length];
+    }
+  }
   return CREDIT_CODE_PREFIX + body;
 }
 

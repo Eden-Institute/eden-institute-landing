@@ -2,6 +2,8 @@
 //
 // Homeschool nurture follow-up emails (Weeks 4-7), drained from
 // magnet_email_queue by the nurture-emails EF at sequence_position 4/5/6/7.
+// DORMANT since 2026-07-28 (see nurture-emails MAGNET_CHAIN_NEXT): nothing
+// enqueues position 3 any more, so this chain never starts. Kept for re-enabling.
 //
 //   Week 4 (~day 21) — older-kids stopgap → Foundations course ($97 founding
 //                      through Jan 1, 2027). The one email here with a CTA.

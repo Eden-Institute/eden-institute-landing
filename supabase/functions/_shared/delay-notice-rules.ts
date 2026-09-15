@@ -52,3 +52,27 @@ export function requiresOptIn(input: OptInInput): boolean {
   if (slipDays < 0) return true;
   return slipDays > 30;
 }
+
+// Delay-notice subject lines are PRE-APPROVED, not typed at send time.
+//
+// Every other word of a delay notice is templated because the notice is a legal
+// instrument under 16 CFR 435.2(b). The subject was the one part still freehand, and
+// it would be written in the worst circumstances: late, under pressure, on the day a
+// shipment slips. It is also the first place the opt-in / opt-out distinction becomes
+// visible to the buyer, and those two carry opposite consequences.
+//
+// Opt-out: silence is consent, the order stands. "Update" is honest.
+// Opt-in:  silence is CANCELLATION and refund. The subject must say that action is
+//          required, or a buyer who skims loses their order by doing nothing.
+//
+// No response deadline in the opt-in subject on purpose. Nothing in this system
+// computes or enforces one, and a date in a subject line that no code honours is the
+// same defect as telling a buyer a refund is "on its way" when it is issued by hand.
+export const DELAY_SUBJECT_OPT_OUT = "Update on your Eden's Table order: new ship date inside";
+export const DELAY_SUBJECT_OPT_IN = "Action needed on your Eden's Table order, please reply to keep it";
+
+/** Delay notices use their approved subject; ordinary updates keep the founder's. */
+export function resolveSubject(isDelay: boolean, optIn: boolean, founderSubject: string): string {
+  if (!isDelay) return founderSubject;
+  return optIn ? DELAY_SUBJECT_OPT_IN : DELAY_SUBJECT_OPT_OUT;
+}

@@ -61,6 +61,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
+  bankShapeError,
   computeMultiFramework,
   deriveGalenicTemperament,
   deriveVitalForce,
@@ -72,39 +73,18 @@ import {
   mapPostgrestError,
   type DiagnosticError,
 } from "./errorMap.ts";
+import { allowlistCorsHeaders } from "../_shared/cors-allowlist.ts";
+import { pgrstFetch } from "../_shared/pgrst-retry.ts";
 
 // ── env ──
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-// ── CORS allowlist (Lock #41 / audit Minor #9) ──
-// Only echo Access-Control-Allow-Origin when the request Origin matches.
-// Unknown origins: omit the header — browser blocks the response.
-//
-//   • https://edeninstitute.health           — production
-//   • https://eden-institute-landing.vercel.app — canonical Vercel project URL
-//   • https://eden-institute-landing-*.vercel.app — PR/preview deploys
-//
-// Capacitor wrap (post-launch per project_mobile_wrapping_roadmap.md) will
-// add capacitor://localhost when the mobile shell ships — extend the regex
-// at that time.
-const CORS_ORIGIN_RE =
-  /^https:\/\/(edeninstitute\.health|eden-institute-landing(-[a-z0-9-]+)?\.vercel\.app)$/i;
+// Same literal as practitioner-clinical's founder allowlist.
+const FOUNDER_EMAIL = "hello@edeninstitute.health";
 
-function corsHeaders(req: Request): HeadersInit {
-  const origin = req.headers.get("Origin");
-  const headers: Record<string, string> = {
-    "Access-Control-Allow-Headers":
-      "authorization, x-client-info, apikey, content-type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    Vary: "Origin",
-  };
-  if (origin && CORS_ORIGIN_RE.test(origin)) {
-    headers["Access-Control-Allow-Origin"] = origin;
-  }
-  return headers;
-}
+// CORS: the origin allowlist lives in _shared/cors-allowlist.ts (Lock #41).
 
 // ── Layer 1 (Eden Pattern) canonical accept set ──
 // person_profiles.eden_constitution and profiles.constitution_type both
@@ -193,7 +173,7 @@ function serviceHeaders(extra: Record<string, string> = {}): Record<string, stri
 }
 
 async function fetchQuizBank(version: string): Promise<Record<string, unknown> | null> {
-  const res = await fetch(
+  const res = await pgrstFetch(
     `${SUPABASE_URL}/rest/v1/quiz_banks?version=eq.${encodeURIComponent(version)}&select=bank`,
     { headers: serviceHeaders() },
   );
@@ -203,7 +183,7 @@ async function fetchQuizBank(version: string): Promise<Record<string, unknown> |
 }
 
 async function fetchEdenSlugMap(): Promise<Record<string, string>> {
-  const res = await fetch(
+  const res = await pgrstFetch(
     `${SUPABASE_URL}/rest/v1/eden_patterns?select=pattern_id,slug`,
     { headers: serviceHeaders() },
   );
@@ -252,25 +232,54 @@ function validateOverrides(raw: unknown): OverrideInput[] | null {
   return out;
 }
 
+// Mirrors tg_ppc_validate_pattern so a bad id is rejected before any write.
+const PATTERN_LOOKUP: Record<string, { path: string; col: string }> = {
+  eden:     { path: "eden_patterns", col: "pattern_id" },
+  western:  { path: "constitutions?system=eq.Western&deprecated=eq.false", col: "constitution_id" },
+  ayurveda: { path: "doshas", col: "dosha_id" },
+  tcm:      { path: "tcm_patterns", col: "pattern_id" },
+};
+
+// true = every override pattern_id exists; false = at least one does not;
+// null = the lookup itself failed.
+async function overridesReferenceValid(overrides: OverrideInput[]): Promise<boolean | null> {
+  for (const [fw, { path, col }] of Object.entries(PATTERN_LOOKUP)) {
+    const ids = [...new Set(overrides.filter((o) => o.framework === fw).map((o) => o.pattern_id))];
+    if (ids.length === 0) continue;
+    // A quote or backslash would break out of the PostgREST in.() quoting; no
+    // real pattern id contains either, so treat it as an unknown reference.
+    if (ids.some((i) => /["\\]/.test(i))) return false;
+    const sep = path.includes("?") ? "&" : "?";
+    const inList = ids.map((i) => `"${i}"`).join(",");
+    const res = await pgrstFetch(
+      `${SUPABASE_URL}/rest/v1/${path}${sep}${col}=in.(${encodeURIComponent(inList)})&select=${col}`,
+      { headers: serviceHeaders() },
+    );
+    if (!res.ok) return null;
+    const rows = (await res.json().catch(() => [])) as Array<Record<string, unknown>>;
+    const found = new Set(rows.map((r) => r[col]));
+    if (!ids.every((i) => found.has(i))) return false;
+  }
+  return true;
+}
+
 // Fan the computed readings into person_profile_constitutions (TL-2).
-// Computed rows are replaced wholesale per completion; adjusted rows (PD-8
-// practitioner overrides) are NEVER touched by a recompute.
+// Upsert first, then prune the (framework, role) pairs this reading no longer
+// has, so a failed write leaves the previous computed readings in place instead
+// of none. Adjusted rows (PD-8 practitioner overrides) are NEVER touched.
 async function fanOutComputedReadings(
   personProfileId: string,
   completionId: string | null,
   result: EngineResult,
 ): Promise<string | null> {
-  const del = await fetch(
-    `${SUPABASE_URL}/rest/v1/person_profile_constitutions?person_profile_id=eq.${personProfileId}&reading_kind=eq.computed`,
-    { method: "DELETE", headers: serviceHeaders() },
-  );
-  if (!del.ok) return `delete failed: ${del.status}`;
-
+  const now = new Date().toISOString();
   const rows: Record<string, unknown>[] = [];
+  const kept = new Set<string>();
   for (const [framework, reading] of Object.entries(result.frameworks)) {
     for (const role of ["primary", "secondary"] as const) {
       const p = reading[role];
       if (!p) continue;
+      kept.add(`${framework}|${role}`);
       rows.push({
         person_profile_id: personProfileId,
         framework,
@@ -280,16 +289,38 @@ async function fanOutComputedReadings(
         score: p.score,
         confidence: p.confidence,
         completion_id: completionId,
+        recorded_at: now,
       });
     }
   }
-  if (rows.length === 0) return null;
-  const ins = await fetch(`${SUPABASE_URL}/rest/v1/person_profile_constitutions`, {
-    method: "POST",
-    headers: serviceHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(rows),
-  });
-  if (!ins.ok) return `insert failed: ${ins.status} ${await ins.text().catch(() => "")}`;
+  if (rows.length > 0) {
+    const ins = await pgrstFetch(
+      `${SUPABASE_URL}/rest/v1/person_profile_constitutions?on_conflict=person_profile_id,framework,role,reading_kind`,
+      {
+        method: "POST",
+        headers: serviceHeaders({
+          "Content-Type": "application/json",
+          Prefer: "resolution=merge-duplicates",
+        }),
+        body: JSON.stringify(rows),
+      },
+    );
+    if (!ins.ok) return `upsert failed: ${ins.status} ${await ins.text().catch(() => "")}`;
+  }
+
+  const stale: string[] = [];
+  for (const fw of FRAMEWORKS) {
+    for (const role of ["primary", "secondary"]) {
+      if (!kept.has(`${fw}|${role}`)) stale.push(`and(framework.eq.${fw},role.eq.${role})`);
+    }
+  }
+  if (stale.length > 0) {
+    const del = await pgrstFetch(
+      `${SUPABASE_URL}/rest/v1/person_profile_constitutions?person_profile_id=eq.${personProfileId}&reading_kind=eq.computed&or=(${stale.join(",")})`,
+      { method: "DELETE", headers: serviceHeaders() },
+    );
+    if (!del.ok) return `prune failed: ${del.status}`;
+  }
   return null;
 }
 
@@ -301,7 +332,7 @@ async function upsertAdjustedReadings(
   adjustedBy: string,
 ): Promise<string | null> {
   for (const o of overrides) {
-    const res = await fetch(
+    const res = await pgrstFetch(
       `${SUPABASE_URL}/rest/v1/person_profile_constitutions?on_conflict=person_profile_id,framework,role,reading_kind`,
       {
         method: "POST",
@@ -336,7 +367,7 @@ function jsonResponse(
 ): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders(req), "Content-Type": "application/json" },
+    headers: { ...allowlistCorsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
@@ -353,7 +384,7 @@ const UUID_RE =
 // ── Main handler ──
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders(req) });
+    return new Response(null, { headers: allowlistCorsHeaders(req) });
   }
   if (req.method !== "POST") {
     return errorResponse(diagnosticError("method_not_allowed"), req);
@@ -395,7 +426,7 @@ Deno.serve(async (req) => {
       if (!UUID_RE.test(completionId)) {
         return errorResponse(diagnosticError("invalid_json_body"), req);
       }
-      const compRes = await fetch(
+      const compRes = await pgrstFetch(
         `${SUPABASE_URL}/rest/v1/diagnostic_completions?id=eq.${completionId}&select=id,user_id,person_profile_id,quiz_version,raw_responses`,
         { headers: serviceHeaders() },
       );
@@ -405,13 +436,21 @@ Deno.serve(async (req) => {
       if (comp.user_id !== user.id) return errorResponse(diagnosticError("profile_not_owned"), req);
       const stored = comp.raw_responses ?? {};
       const responses = validateRawResponses(stored.responses);
-      if (!responses) return errorResponse(diagnosticError("invalid_json_body"), req);
+      if (!responses) return errorResponse(diagnosticError("nothing_to_recompute"), req);
       const targetVersion = typeof b.targetQuizVersion === "string"
           && ALLOWED_QUIZ_VERSIONS.has(b.targetQuizVersion)
         ? b.targetQuizVersion
         : comp.quiz_version;
       const bank = await fetchQuizBank(targetVersion);
       if (!bank) return errorResponse(diagnosticError("internal_error"), req);
+      const recomputeShapeErr = bankShapeError(bank);
+      if (recomputeShapeErr) {
+        console.error("[record-diagnostic-completion] quiz bank invalid", {
+          quizVersion: targetVersion,
+          shapeErr: recomputeShapeErr,
+        });
+        return errorResponse(diagnosticError("internal_error"), req);
+      }
       const population = (POPULATIONS.has(stored.population) ? stored.population : "adult") as Population;
       const result = computeMultiFramework(bank, responses, population);
       const slugMap = await fetchEdenSlugMap();
@@ -427,7 +466,7 @@ Deno.serve(async (req) => {
         galenic_temperament: deriveGalenicTemperament(result.axes),
         vital_force_reading: deriveVitalForce(result.dimensions),
       };
-      const patchRes = await fetch(
+      const patchRes = await pgrstFetch(
         `${SUPABASE_URL}/rest/v1/diagnostic_completions?id=eq.${completionId}`,
         {
           method: "PATCH",
@@ -527,7 +566,7 @@ Deno.serve(async (req) => {
     // 3. Verify caller owns the supplied personProfileId.
     //    Service-role read so we get a precise 403/404 distinction; RLS would
     //    occlude as empty result.
-    const ownerCheckRes = await fetch(
+    const ownerCheckRes = await pgrstFetch(
       `${SUPABASE_URL}/rest/v1/person_profiles?id=eq.${personProfileId}&select=id,user_id,name`,
       {
         method: "GET",
@@ -557,6 +596,27 @@ Deno.serve(async (req) => {
       return errorResponse(diagnosticError("profile_not_owned"), req);
     }
 
+    // PD-8 scope-of-practice gate: mirrors practitioner-clinical (tier or founder).
+    if (overrides.length > 0 || administeredBy === "practitioner") {
+      const tierRes = await pgrstFetch(
+        `${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${user.id}&select=subscription_tier`,
+        { headers: serviceHeaders() },
+      );
+      if (!tierRes.ok) return errorResponse(diagnosticError("profile_lookup_failed"), req);
+      const tierRows = (await tierRes.json().catch(() => [])) as Array<{ subscription_tier?: string }>;
+      const tier = tierRows?.[0]?.subscription_tier ?? "free";
+      const isFounder = (user.email ?? "").toLowerCase() === FOUNDER_EMAIL;
+      if (tier !== "practitioner" && !isFounder) {
+        return errorResponse(diagnosticError("practitioner_tier_required"), req);
+      }
+    }
+
+    if (overrides.length > 0) {
+      const refOk = await overridesReferenceValid(overrides);
+      if (refOk === null) return errorResponse(diagnosticError("internal_error"), req);
+      if (!refOk) return errorResponse(diagnosticError("invalid_reference"), req);
+    }
+
     // 3b. Phase 2 compute: bank-driven engine turns raw responses into all
     //     four framework readings (PD-5). Computed values populate the same
     //     completion row; Lock #39 posture — a balanced axis yields NULL
@@ -566,6 +626,11 @@ Deno.serve(async (req) => {
       const bank = await fetchQuizBank(quizVersion);
       if (!bank) {
         console.error("[record-diagnostic-completion] quiz bank missing", { quizVersion });
+        return errorResponse(diagnosticError("internal_error"), req);
+      }
+      const shapeErr = bankShapeError(bank);
+      if (shapeErr) {
+        console.error("[record-diagnostic-completion] quiz bank invalid", { quizVersion, shapeErr });
         return errorResponse(diagnosticError("internal_error"), req);
       }
       mfResult = computeMultiFramework(bank, mfResponses, mfPopulation);
@@ -692,7 +757,7 @@ Deno.serve(async (req) => {
     //    the COALESCE'd state without a second round-trip. Junction rows
     //    (Layer 3) live in person_profile_tissue_states; consumers that need
     //    Layer 3 read diagnostic_profile_v separately.
-    const profileRes = await fetch(
+    const profileRes = await pgrstFetch(
       `${SUPABASE_URL}/rest/v1/person_profiles?id=eq.${personProfileId}&select=*`,
       {
         method: "GET",
@@ -717,7 +782,7 @@ Deno.serve(async (req) => {
           person_profile: null,
           source: SOURCE_BY_QUIZ_VERSION[quizVersion] ?? "in_app_diagnostic_12q",
           quiz_version: quizVersion,
-          warning: { code: "post_insert_read_failed", message: "Completion recorded; profile re-read failed. Please refresh." },
+          warning: diagnosticError("post_insert_read_failed").body.error,
         },
         200,
         req,

@@ -109,10 +109,6 @@ export function luluBookByKey(key: string): LuluBook | undefined {
   return LULU_BOOKS.find((b) => b.key === key);
 }
 
-export function isLuluSku(sku: string): boolean {
-  return LULU_PRODUCTS.some((p) => p.sku === sku);
-}
-
 /** Where the storefront lives. Checkout returns buyers here. */
 export const PRINT_SHOP_URL = 'https://edeninstitute.health/books';
 

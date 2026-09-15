@@ -2,10 +2,14 @@
 // resend-waitlist previously inlined a verbatim, collision-renamed copy of
 // _shared/nurture-email-templates.ts; that duplicate has been removed so
 // _shared is the single source of truth for these templates.
-import { buildNurtureEmail1, toSlug } from '../_shared/nurture-email-templates.ts';
+import { buildNurtureEmail1 } from '../_shared/nurture-email-templates.ts';
 import { shopApothecaryCard } from '../_shared/shop-cta.ts';
 import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
 import { setContactProperties, type ContactProperties } from '../_shared/resend-contacts.ts';
+import { escapeHtml } from '../_shared/html-escape.ts';
+import { bumpRateBucket, clientIp } from '../_shared/rate-bucket.ts';
+import { pgrstFetch } from '../_shared/pgrst-retry.ts';
+import { sendMetaCapiLead } from '../_shared/meta-capi.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -61,16 +65,11 @@ const CONSTITUTION_SLUG_MAP: Record<string, { slug: string; name: string }> = {
   "Cold / Damp / Relaxed": { slug: "still-water", name: "The Still Water" },
 };
 
-function getSlugInfo(
-  constitutionType?: string,
-  constitutionSlug?: string,
-  constitutionName?: string,
-  constitutionNickname?: string,
-): { slug: string; name: string } {
-  const mapMatch = constitutionType ? CONSTITUTION_SLUG_MAP[constitutionType] : undefined;
-  const resolvedName = constitutionName || constitutionNickname || mapMatch?.name || 'Unknown';
-  const resolvedSlug = constitutionSlug || mapMatch?.slug || (resolvedName !== 'Unknown' ? toSlug(resolvedName) : 'unknown');
-  return { slug: resolvedSlug, name: resolvedName };
+// Name and slug come ONLY from the server-side map. The caller's own
+// constitutionName/Nickname/Slug used to win here, which let any POST put
+// arbitrary text into the Email 1 subject and body and into the stored queue rows.
+function getSlugInfo(constitutionType: string): { slug: string; name: string } | null {
+  return CONSTITUTION_SLUG_MAP[constitutionType] ?? null;
 }
 
 // ── Shared HTML components ──
@@ -272,131 +271,11 @@ ${closingBlock()}`;
 }
 
 
-// ── Constitutional profiles ──
-
-const constitutionProfiles: Record<string, { nickname: string; intro: string; patterns: string; needs: string; herbs: string; anchor: string }> = {
-  "Hot / Dry / Tense": {
-    nickname: "The Burning Bowstring",
-    intro: "You are intense, driven, and finely tuned, and your body runs hot. You were designed with a metabolism that generates heat and a nervous system that doesn't easily let go. This is a gift: your energy, passion, and focus are expressions of that fire. But when that fire isn't tended, it consumes.",
-    patterns: "You likely run warm, sleep lightly, and find it difficult to fully relax. Tension lives in your muscles: your jaw, your neck, your shoulders. You may be prone to headaches, skin inflammation, or digestive heat. Emotionally, you feel things sharply and deeply.",
-    needs: "Cooling, moistening, and releasing. Herbs that calm the heat without extinguishing your fire.",
-    herbs: "Chamomile, Feverfew, California Poppy, Lavender, American Ginseng.",
-    anchor: "'A hot-tempered person stirs up conflict, but the one who is patient calms a quarrel.' (Proverbs 15:18) Your constitution understands this tension personally. The work is not to suppress your fire. It is to steward it.",
-  },
-  "Hot / Dry / Relaxed": {
-    nickname: "The Open Flame",
-    intro: "You carry genuine warmth. People feel it when they're around you. Your metabolism runs on the warmer side, but your tissue has a softness and laxity to it. You are warm-hearted, open, and generous, but that openness can sometimes mean poor boundaries, physically and emotionally.",
-    patterns: "Heat symptoms with poor tissue tone. You may experience varicose veins, hemorrhoids, or a tendency toward prolapse. Loose stools with heat. You absorb warmth from your environment and from people.",
-    needs: "Cooling and toning. Herbs that reduce heat while firming and toning lax tissue.",
-    herbs: "Yarrow, Witch Hazel, Raspberry Leaf, Goldenrod, Bayberry.",
-    anchor: "'Like a city whose walls are broken through is a person who lacks self-control.' (Proverbs 25:28) The work of your constitution is to tend your warmth while building strong walls.",
-  },
-  "Hot / Damp / Tense": {
-    nickname: "The Pressure Cooker",
-    intro: "You hold heat and dampness simultaneously, a combination that produces pressure. There is real fire here, but it has nowhere to go.",
-    patterns: "Damp-heat patterns throughout. Acne, eczema with oozing, urinary tract infections, liver heat, congested lymphatics. Tension in the body that compounds the congestion.",
-    needs: "Cooling, drying, and moving. Herbs that drain heat and dampness while encouraging lymphatic circulation.",
-    herbs: "Dandelion, Burdock, Calendula, Cleavers, Chickweed.",
-    anchor: "'He who tends a fig tree will eat its fruit.' (Proverbs 27:18) The congestion in your constitution is often the result of neglected tending. Regular, consistent care transforms the pattern.",
-  },
-  "Hot / Damp / Relaxed": {
-    nickname: "The Overflowing Cup",
-    intro: "Your constitution generates heat and holds moisture: a full, generous pattern. You are likely warm and welcoming by nature. But when out of balance, that fullness tips into excess.",
-    patterns: "Congested lymphatics, sluggish liver, skin eruptions with heat. Prone to weight gain with warmth. Social and generous, but boundaries can be unclear.",
-    needs: "Cooling, drying, and moving stagnation. Herbs that clear damp heat and encourage drainage.",
-    herbs: "Elder, Cleavers, Red Clover, Calendula, Dandelion.",
-    anchor: "'My cup overflows.' (Psalm 23:5) Overflow is a blessing, but only when the cup is regularly poured out. Your work is circulation, generosity, and release.",
-  },
-  "Cold / Dry / Tense": {
-    nickname: "The Drawn Bowstring",
-    intro: "You are wound tightly and running on empty. Cold from depletion, dry from exhaustion, tense from the nervous system trying to hold everything together with insufficient resources. You may identify as anxious, hypersensitive, or prone to overthinking.",
-    patterns: "Poor circulation, cold extremities, dry skin, constipation, tension headaches, insomnia, anxiety, and chronic pain that is tight and cramping.",
-    needs: "Warming, moistening, and nourishing. Herbs that feed the depleted reserves while gently releasing the tension.",
-    herbs: "Ashwagandha, Ginger, Cinnamon, Asian Ginseng, Valerian, Hawthorn.",
-    anchor: "'He gives strength to the weary and increases the power of the weak.' (Isaiah 40:29) Your constitution is not a character flaw. It is a call to receive.",
-  },
-  "Cold / Dry / Relaxed": {
-    nickname: "The Spent Candle",
-    intro: "Your reserves have been drawn down. Cold, dry, and without the tone to pull things back up. This constitution speaks of genuine depletion. You may have given much, rested little, and now find that your body simply doesn't have the same resilience it once did.",
-    patterns: "Deep fatigue, poor immunity, tendency toward atrophy or prolapse, thin tissue, dry mucous membranes, poor wound healing.",
-    needs: "Deep, slow nourishment. Warming, moistening, tonic herbs that rebuild rather than stimulate.",
-    herbs: "Astragalus, Asian Ginseng, Eleuthero, Marshmallow Root, Ashwagandha, Ginger.",
-    anchor: "'He restores my soul.' (Psalm 23:3) Restoration is not earned. It is received. Your work is to stop, be still, and let the restoration come.",
-  },
-  "Cold / Damp / Tense": {
-    nickname: "The Frozen Knot",
-    intro: "Cold and damp with nowhere to move. The pressure builds inside while the exterior is stiff and bound. The tension here is not wired or anxious. It is cold, heavy, and immovable.",
-    patterns: "Chronic mucus, phlegm, stiff and cold joints, slow digestion, bloating, cold hands and feet with tension headaches. Tends toward melancholy or feeling unmotivated.",
-    needs: "Warming and moving. Herbs that ignite the cold and get things circulating again.",
-    herbs: "Cayenne, Ginger, Fennel, Garlic, Thyme, Horseradish.",
-    anchor: "'There is a time for everything, and a season for every activity under the heavens.' (Ecclesiastes 3:1) The frozen knot needs one thing: the return of warmth. Your season of movement is coming.",
-  },
-  "Cold / Damp / Relaxed": {
-    nickname: "The Still Water",
-    intro: "Slow, cool, and full. This is the most common constitution in the modern Western world. The pattern of metabolic slowdown, fluid retention, easy weight gain, chronic fatigue, and a sluggish immune system is epidemic. It is not a moral failure or a lack of willpower. It is a constitutional pattern, and it responds beautifully to constitutional care.",
-    patterns: "Sluggish metabolism, weight gain, fluid retention, brain fog, chronic fatigue, frequent illness, low thyroid signs. Often presents as 'I just can't get going.'",
-    needs: "Warming, drying, and stimulating. Herbs that ignite the metabolism, move the lymphatics, and restore the body's thermostat.",
-    herbs: "Cayenne, Ginger, Cinnamon, Garlic, Eleuthero, Astragalus, Fennel.",
-    anchor: "'Wake up, sleeper, rise from the dead, and Christ will shine on you.' (Ephesians 5:14) This is not a judgment. It is an invitation. Still water can move. The body was designed to wake up.",
-  },
-};
-
-function buildAssessmentEmail(firstName: string, constitutionType: string, slugInfo: { slug: string; name: string }): { subject: string; html: string } {
-  const profile = constitutionProfiles[constitutionType];
-  if (!profile) {
-    const fallback = `<p style="font-family:Georgia,serif;font-size:16px;color:#1C3A2E;">Hi ${firstName},</p><p style="font-family:Georgia,serif;font-size:16px;color:#1C3A2E;">Your constitutional assessment is complete. Your type is: ${constitutionType}.</p>`;
-    return { subject: `Your constitutional type: ${constitutionType}`, html: emailWrapper(fallback) };
-  }
-
-  const body = `
-<p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${firstName},</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 8px 0;">Your constitutional assessment is complete. Here is your profile snapshot.</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 8px 0;">Want the full deep-dive? Your complete guide (all 10 herbs, preparation methods, lifestyle protocols, and Biblical framework) is available for just $4.99.</p>
-${goldDivider()}
-<!-- Constitutional Type Display Block -->
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #C9A84C;background-color:#F5F0E8;margin-bottom:24px;">
-<tr><td style="padding:30px;text-align:center;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:3px;color:#C9A84C;text-transform:uppercase;text-align:center;padding-bottom:12px;">YOUR CONSTITUTIONAL TYPE</td></tr>
-<tr><td style="font-family:Georgia,serif;font-size:28px;font-weight:bold;color:#1C3A2E;text-align:center;padding-bottom:8px;">${constitutionType}</td></tr>
-<tr><td style="font-family:Georgia,serif;font-size:18px;font-style:italic;color:#C9A84C;text-align:center;">${profile.nickname}</td></tr>
-</table>
-</td></tr>
-</table>
-${ctaButton('→ GET YOUR FULL DEEP-DIVE GUIDE: $4.99', `https://edeninstitute.health/guide/${slugInfo.slug}`)}
-${goldDivider()}
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 20px 0;">${profile.intro}</p>
-<p style="font-family:Georgia,serif;font-size:16px;font-weight:bold;color:#1C3A2E;margin:0 0 8px 0;">Your body's patterns:</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 20px 0;">${profile.patterns}</p>
-<p style="font-family:Georgia,serif;font-size:16px;font-weight:bold;color:#1C3A2E;margin:0 0 8px 0;">What your body needs:</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 20px 0;">${profile.needs}</p>
-<p style="font-family:Georgia,serif;font-size:16px;font-weight:bold;color:#1C3A2E;margin:0 0 8px 0;">Your primary herbs:</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 20px 0;">${profile.herbs}</p>
-<!-- Biblical Anchor Block -->
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:8px;">
-<tr>
-<td style="width:4px;background-color:#C9A84C;"></td>
-<td style="background-color:#F5F0E8;padding:20px;">
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;font-style:italic;margin:0;"><strong>Biblical anchor:</strong> ${profile.anchor}</p>
-</td>
-</tr>
-</table>
-${goldDivider()}
-${goldLabel('WHAT THIS MEANS FOR YOU')}
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:0 0 16px 0;">Understanding your constitution is the beginning, not the end. The Foundations Course teaches you how to read your constitution in real time, how to track it as it shifts with seasons and stress, and how to match it precisely to God's provision in the plant world.</p>
-<p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;font-weight:bold;margin:0 0 24px 0;">You were not designed to guess. You were designed to know.</p>
-${ctaButton('→ JOIN THE FOUNDATIONS COURSE WAITLIST', 'https://edeninstitute.health/#foundation')}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="height:12px;font-size:0;line-height:0;">&nbsp;</td></tr></table>
-${ctaButton('→ PURCHASE BOOK ONE', 'https://www.amazon.com/dp/B0GPW5BZ32', 'secondary')}
-${goldDivider()}
-<p style="font-family:Georgia,serif;font-size:16px;color:#1C3A2E;font-weight:bold;margin:0;">Camila Johnson</p>
-<p style="font-family:Georgia,serif;font-size:14px;color:#C9A84C;margin:4px 0 0 0;">The Eden Institute</p>`;
-
-  return {
-    subject: `Your constitutional type: ${constitutionType}, ${profile.nickname}`,
-    html: emailWrapper(body),
-  };
-}
+// The retired at-signup assessment email (constitutionProfiles + buildAssessmentEmail:
+// per-Pattern intro/patterns/needs/herbs/Biblical anchor and the $4.99 guide CTA) lived
+// here until 2026-09-15. It had no caller since Email 1 moved to _shared
+// buildNurtureEmail1. Its copy differs from src/lib/constitution-data.ts; recover it
+// from git history (last commit before this removal) if it is ever wanted.
 
 // ── Send email helper ──
 
@@ -457,25 +336,40 @@ Deno.serve(async (req) => {
       firstName,
       email,
       audienceId,
-      source,
+      source: sourceRaw,
       constitutionType,
-      constitutionSlug,
-      constitutionName,
-      constitutionNickname,
       entry_funnel: providedFunnel,
-      consents,
-      source_url,
-      referrer,
-      utm_source,
-      utm_medium,
-      utm_campaign,
-      utm_term,
-      utm_content,
+      consents: consentsRaw,
+      source_url: sourceUrlRaw,
+      referrer: referrerRaw,
+      utm_source: utmSourceRaw,
+      utm_medium: utmMediumRaw,
+      utm_campaign: utmCampaignRaw,
+      utm_term: utmTermRaw,
+      utm_content: utmContentRaw,
       fbEventId,
       marketingConsent,
     } = body;
 
-    if (!email) {
+    // Attribution fields go straight into waitlist_signups (plain text / jsonb
+    // columns, no length checks), so they are bounded here. Oversized or
+    // non-string values are truncated or dropped, never rejected, so a real
+    // signup is not blocked by a long tracking URL.
+    const source = str(sourceRaw, 100);
+    const source_url = str(sourceUrlRaw, 2048);
+    const referrer = str(referrerRaw, 2048);
+    const utm_source = str(utmSourceRaw, 256);
+    const utm_medium = str(utmMediumRaw, 256);
+    const utm_campaign = str(utmCampaignRaw, 256);
+    const utm_term = str(utmTermRaw, 256);
+    const utm_content = str(utmContentRaw, 256);
+    const consents: Record<string, unknown> =
+      consentsRaw && typeof consentsRaw === 'object' && !Array.isArray(consentsRaw) &&
+        JSON.stringify(consentsRaw).length <= 2000
+        ? consentsRaw as Record<string, unknown>
+        : {};
+
+    if (!email || typeof email !== 'string' || email.length > 254) {
       return json(400, { error: 'Email is required' });
     }
 
@@ -484,8 +378,12 @@ Deno.serve(async (req) => {
     // null and profiles.display_name may not yet be populated. Default to a
     // personable fallback rather than 400-ing the request — nurture email
     // greetings render "Hi Friend," in this edge case, which is acceptable.
-    const firstNameRaw = typeof firstName === 'string' ? firstName.trim() : '';
+    // Markup characters are stripped at intake because the stored name is
+    // re-rendered later by other templates (magnet day 7, list-announce, launch
+    // sequence). Real names never contain them; apostrophes and ampersands stay.
+    const firstNameRaw = typeof firstName === 'string' ? firstName.replace(/[<>"`]/g, '').trim().slice(0, 100) : '';
     const firstNameSafe = firstNameRaw || 'Friend';
+    const firstNameHtml = escapeHtml(firstNameSafe);
 
     const normalizedEmail = String(email).trim().toLowerCase();
 
@@ -499,6 +397,23 @@ Deno.serve(async (req) => {
     const emailTypoSuggestion = detectEmailTypo(normalizedEmail);
     if (emailTypoSuggestion) {
       return json(400, { error: `That email address looks misspelled. Did you mean ${emailTypoSuggestion}?`, suggestion: emailTypoSuggestion });
+    }
+
+    // Per-connection throttle. This endpoint is public (verify_jwt=false) and
+    // sends email, so unthrottled it is an email bomb and a Resend quota drain.
+    // Fails open (null) so a limiter outage never blocks lead capture.
+    const ip = clientIp(req);
+    if (ip) {
+      const n = await bumpRateBucket({
+        supabaseUrl: SUPABASE_URL,
+        serviceKey: SUPABASE_SERVICE_ROLE_KEY,
+        key: `waitlist_ip:${ip}`,
+        windowSeconds: 600,
+      });
+      if (n !== null && n > 20) {
+        // WORDING: pending founder approval (audit 2026-09-15)
+        return json(429, { error: 'Too many signups from this connection. Please wait a few minutes and try again.' });
+      }
     }
 
     // ── Resolve entry_funnel ──
@@ -583,7 +498,7 @@ Deno.serve(async (req) => {
           // the signup came through a path where we don't yet know the prior
           // resend_contact_id. A follow-up GET can retrieve it; for now we
           // leave resend_contact_id null and let reconciliation fill it in.
-          console.log('Resend contact already exists for', normalizedEmail);
+          console.log('Resend contact already exists (409)');
         } else {
           const errText = await contactRes.text().catch(() => '');
           console.warn('Resend contact create failed:', contactRes.status, errText);
@@ -605,17 +520,18 @@ Deno.serve(async (req) => {
     // ── Step 4: Quiz completion path (behavior preserved) ──
     // quiz_completions INSERT/UPDATE triggers (migrations 20260423232500 and
     // 20260423235500) maintain the waitlist_signups row for entry_funnel='quiz_funnel'.
-    if (source === 'constitution_assessment' && constitutionType) {
-      const slugInfo = getSlugInfo(
-        constitutionType,
-        constitutionSlug,
-        constitutionName,
-        constitutionNickname,
-      );
+    const slugInfo = source === 'constitution_assessment' && typeof constitutionType === 'string'
+      ? getSlugInfo(constitutionType)
+      : null;
+    if (source === 'constitution_assessment' && constitutionType && !slugInfo) {
+      // Same outcome as the balanced path, which sends no constitutionType.
+      console.warn('constitution_assessment with unrecognised constitutionType; skipping drip');
+    }
+    if (slugInfo) {
       const name = slugInfo.name;
       const slug = slugInfo.slug;
 
-      const checkRes = await fetch(
+      const checkRes = await pgrstFetch(
         `${SUPABASE_URL}/rest/v1/quiz_completions?email=eq.${encodeURIComponent(normalizedEmail)}&select=id,email_1_sent_at&limit=1`,
         {
           headers: {
@@ -625,6 +541,12 @@ Deno.serve(async (req) => {
           },
         }
       );
+      // A failed lookup must not fall into the first-time branch: that re-sends
+      // Email 1 to a retaker and re-arms their already-sent drip rows.
+      if (!checkRes.ok) {
+        console.error('quiz_completions lookup failed', checkRes.status);
+        return json(503, { error: 'Something went wrong. Please try again.' });
+      }
       const existing = await checkRes.json();
       const alreadyNurtured =
         Array.isArray(existing) && existing.length > 0 && existing[0].email_1_sent_at;
@@ -632,8 +554,8 @@ Deno.serve(async (req) => {
       if (alreadyNurtured) {
         // Retake. Update constitution fields; the AFTER UPDATE trigger refreshes
         // waitlist_signups.metadata to the latest result while preserving entered_at.
-        console.log(`Existing nurture sequence for ${normalizedEmail} — updating constitution info only`);
-        await fetch(
+        console.log('Existing nurture sequence — updating constitution info only');
+        await pgrstFetch(
           `${SUPABASE_URL}/rest/v1/quiz_completions?email=eq.${encodeURIComponent(normalizedEmail)}`,
           {
             method: 'PATCH',
@@ -657,7 +579,7 @@ Deno.serve(async (req) => {
         const nowIso = now.toISOString();
 
         if (Array.isArray(existing) && existing.length > 0) {
-          await fetch(
+          await pgrstFetch(
             `${SUPABASE_URL}/rest/v1/quiz_completions?email=eq.${encodeURIComponent(normalizedEmail)}`,
             {
               method: 'PATCH',
@@ -679,7 +601,7 @@ Deno.serve(async (req) => {
             }
           );
         } else {
-          await fetch(`${SUPABASE_URL}/rest/v1/quiz_completions`, {
+          const insRes = await fetch(`${SUPABASE_URL}/rest/v1/quiz_completions`, {
             method: 'POST',
             headers: {
               'apikey': SUPABASE_SERVICE_ROLE_KEY,
@@ -699,6 +621,7 @@ Deno.serve(async (req) => {
               email_4_sent_at: nowIso,
             }),
           });
+          if (!insRes.ok && insRes.status !== 409) console.error('quiz_completions insert failed', insRes.status);
         }
         console.log('Quiz completion recorded, scheduling nurture emails');
 
@@ -722,9 +645,9 @@ Deno.serve(async (req) => {
             // engagement view attributes opens/clicks to this first touch,
             // matching the campaign/email_key tags the nurture-emails EF sets
             // on Emails 2-7 (see public.email_events + resend-webhook).
-            const e1 = buildNurtureEmail1(firstNameSafe, name, slug);
+            const e1 = buildNurtureEmail1(name, slug);
             const e1u = await applyUnsub(e1.html, normalizedEmail, 'constitution');
-            await fetch('https://api.resend.com/emails', {
+            const e1Res = await fetch('https://api.resend.com/emails', {
               method: 'POST',
               headers: sendHeaders,
               body: JSON.stringify({
@@ -740,7 +663,8 @@ Deno.serve(async (req) => {
                 ],
               }),
             });
-            console.log('Nurture Email 1 sent to', normalizedEmail);
+            if (!e1Res.ok) console.error('Nurture Email 1 send failed', e1Res.status);
+            else console.log('Nurture Email 1 sent');
 
             // Emails 2/3/4: UPSERT into nurture_email_queue
             const day2 = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString();
@@ -772,18 +696,19 @@ Deno.serve(async (req) => {
             });
             if (!queueRes.ok) {
               const errText = await queueRes.text().catch(() => '<unreadable>');
-              console.error('nurture_email_queue UPSERT failed', { status: queueRes.status, body: errText, email: normalizedEmail });
+              console.error('nurture_email_queue UPSERT failed', { status: queueRes.status, body: errText });
             } else {
-              console.log('Nurture Emails 2-4 enqueued for', normalizedEmail, '(days 2/4/6)');
+              console.log('Nurture Emails 2-4 enqueued (days 2/4/6)');
             }
           } catch (nurtureErr) {
             console.error('Nurture enqueue error:', String(nurtureErr));
           }
         };
 
-        enqueueNurture().catch((err) =>
-          console.error('Nurture enqueueing failed:', String(err))
-        );
+        // Awaited: the isolate can be torn down once the response is returned,
+        // and quiz_completions is already stamped email_1..4_sent_at, so a lost
+        // send or enqueue would never be retried. enqueueNurture never throws.
+        await enqueueNurture();
       }
 
       // Backfill resend_contact_id on the quiz_funnel waitlist_signups row
@@ -798,13 +723,13 @@ Deno.serve(async (req) => {
     // ── Step 5: Welcome email dispatch (non-quiz paths) ──
     let emailContent: { subject: string; html: string } | null = null;
     if (entry_funnel === 'course_tier2') {
-      emailContent = buildFoundationsEmail(firstNameSafe);
+      emailContent = buildFoundationsEmail(firstNameHtml);
     } else if (entry_funnel === 'app_beta') {
-      emailContent = buildAppBetaEmail(firstNameSafe);
+      emailContent = buildAppBetaEmail(firstNameHtml);
     } else if (entry_funnel === 'homeschool') {
-      emailContent = buildHomeschoolEmail(firstNameSafe);
+      emailContent = buildHomeschoolEmail(firstNameHtml);
     } else if (entry_funnel === 'community') {
-      emailContent = buildCommunityEmail(firstNameSafe);
+      emailContent = buildCommunityEmail(firstNameHtml);
     } else if (entry_funnel === 'edens_table') {
       // Phase 3.1 Day-1: source-branched routing for /homeschool CTAs.
       //   'reserve'           → Founders Club welcome (no PDFs)
@@ -815,9 +740,9 @@ Deno.serve(async (req) => {
       // recipient to chase if this enqueue fails. Position 2 now carries the paid
       // Starter Unit offer (founder decision 2026-08-27, one free week per band).
       if (source === 'sprouts_magnet') {
-        emailContent = buildSproutsMagnetEmail(firstNameSafe);
+        emailContent = buildSproutsMagnetEmail(firstNameHtml);
       } else if (source === 'seedlings_magnet') {
-        emailContent = buildSeedlingsMagnetEmail(firstNameSafe);
+        emailContent = buildSeedlingsMagnetEmail(firstNameHtml);
       } else {
         // 'reserve' used to route to the Founders Club welcome ("Preorders are
         // open now, the first 500 kits sell at $249"). Preorders closed on
@@ -826,13 +751,28 @@ Deno.serve(async (req) => {
         // Unknown source on edens_table funnel → legacy Homeschool welcome email
         // (the "Early Access" copy currently deployed; safest fallback for any
         // signups that hit this EF without a source we recognize).
-        emailContent = buildHomeschoolEmail(firstNameSafe);
+        emailContent = buildHomeschoolEmail(firstNameHtml);
       }
     }
     // quiz_funnel is handled by the nurture sequence above.
 
-    let welcomeSent = false;
+    // Per-recipient cap on the welcome send: a repeat POST for the same address
+    // re-sends it, so without a cap anyone can flood one inbox. Signup itself
+    // (row, Resend contact, 200) is unaffected. Fails open on a limiter error.
+    let sendAllowed = true;
     if (emailContent) {
+      const sendCount = await bumpRateBucket({
+        supabaseUrl: SUPABASE_URL,
+        serviceKey: SUPABASE_SERVICE_ROLE_KEY,
+        key: `waitlist_send:${normalizedEmail}`,
+        windowSeconds: 86400,
+      });
+      sendAllowed = sendCount === null || sendCount <= 3;
+      if (!sendAllowed) console.warn('welcome send throttled (per-recipient cap)');
+    }
+
+    let welcomeSent = false;
+    if (emailContent && sendAllowed) {
       try {
         // All non-quiz welcome emails belong to the homeschool list (the live
         // edens_table/homeschool funnels; retired funnels fall through here too
@@ -862,21 +802,24 @@ Deno.serve(async (req) => {
         const magnetRows = [
           { recipient_email: normalizedEmail, first_name: firstNameSafe, band, sequence_position: 2, scheduled_for: day7, status: 'pending' },
         ];
-        const mqRes = await fetch(`${SUPABASE_URL}/rest/v1/magnet_email_queue?on_conflict=recipient_email,band,sequence_position`, {
+        // ignore-duplicates, not merge: merging would flip an already 'sent'
+        // row back to pending with a new date and re-send the day-7 offer to a
+        // repeat signup. The first schedule stands.
+        const mqRes = await pgrstFetch(`${SUPABASE_URL}/rest/v1/magnet_email_queue?on_conflict=recipient_email,band,sequence_position`, {
           method: 'POST',
           headers: {
             apikey: SUPABASE_SERVICE_ROLE_KEY!,
             Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
             'Content-Type': 'application/json',
-            Prefer: 'return=minimal,resolution=merge-duplicates',
+            Prefer: 'return=minimal,resolution=ignore-duplicates',
           },
           body: JSON.stringify(magnetRows),
         });
         if (!mqRes.ok) {
           const t = await mqRes.text().catch(() => '<unreadable>');
-          console.error('magnet_email_queue UPSERT failed', { status: mqRes.status, body: t, email: normalizedEmail });
+          console.error('magnet_email_queue UPSERT failed', { status: mqRes.status, body: t });
         } else {
-          console.log('Magnet day-7 Starter offer enqueued for', normalizedEmail, `(${band})`);
+          console.log(`Magnet day-7 Starter offer enqueued (${band})`);
         }
       } catch (mqErr) {
         console.error('Magnet enqueue error:', String(mqErr));
@@ -951,7 +894,8 @@ Deno.serve(async (req) => {
     const unhandledMessage = err instanceof Error ? err.message : String(err);
     const unhandledStack = err instanceof Error ? err.stack : undefined;
     console.error('Unhandled error:', unhandledMessage, unhandledStack);
-    return json(500, { error: unhandledMessage });
+    // The raw message stays in the log; anonymous callers get the generic line.
+    return json(500, { error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -1005,69 +949,17 @@ function detectEmailTypo(email: string): string | null {
   return null;
 }
 
+function str(v: unknown, max: number): string | null {
+  if (typeof v !== 'string') return null;
+  const t = v.trim();
+  return t ? t.slice(0, max) : null;
+}
+
 function json(status: number, payload: unknown): Response {
   return new Response(JSON.stringify(payload), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
-}
-
-// ── Meta Conversions API (server-side, deduped with the client Pixel) ──
-const META_PIXEL_ID = '1535058498232762';
-const META_CAPI_ACCESS_TOKEN = Deno.env.get('META_CAPI_ACCESS_TOKEN') ?? '';
-
-async function sha256Hex(input: string): Promise<string> {
-  const data = new TextEncoder().encode(input.trim().toLowerCase());
-  const digest = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
-}
-
-// Sends a server-side "Lead" to Meta. No-op when the access token isn't set, so
-// the integration is inert until configured. Email is SHA-256 hashed (Meta
-// requirement); IP + UA are forwarded for match quality but never stored by us.
-async function sendMetaCapiLead(opts: {
-  email: string;
-  eventId?: string;
-  sourceUrl?: string | null;
-  headers: Headers;
-}): Promise<void> {
-  if (!META_CAPI_ACCESS_TOKEN) return;
-  try {
-    const emHash = await sha256Hex(opts.email);
-    const ip = (opts.headers.get('x-forwarded-for') ?? '').split(',')[0].trim();
-    const ua = opts.headers.get('user-agent') ?? '';
-    const payload = {
-      data: [
-        {
-          event_name: 'Lead',
-          event_time: Math.floor(Date.now() / 1000),
-          event_id: opts.eventId || crypto.randomUUID(),
-          action_source: 'website',
-          event_source_url:
-            opts.sourceUrl || opts.headers.get('referer') || 'https://edeninstitute.health/',
-          user_data: {
-            em: [emHash],
-            ...(ip ? { client_ip_address: ip } : {}),
-            ...(ua ? { client_user_agent: ua } : {}),
-          },
-        },
-      ],
-    };
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 2500);
-    try {
-      const res = await fetch(
-        `https://graph.facebook.com/v19.0/${META_PIXEL_ID}/events?access_token=${encodeURIComponent(META_CAPI_ACCESS_TOKEN)}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: ctrl.signal },
-      );
-      if (!res.ok) console.error('Meta CAPI Lead failed', res.status, await res.text().catch(() => ''));
-    } finally {
-      clearTimeout(timer);
-    }
-  } catch (e) {
-    // Never throw — a signup must not depend on Meta being reachable.
-    console.error('Meta CAPI Lead error', String(e));
-  }
 }
 
 // Insert a waitlist_signups row; on (email, entry_funnel) conflict return

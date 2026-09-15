@@ -22,7 +22,7 @@
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { DeliveryRow, fulfilStarterDelivery } from '../_shared/starter-fulfillment.ts';
+import { DeliveryRow, fulfilStarterDelivery, staleInProgressCutoff } from '../_shared/starter-fulfillment.ts';
 import { captureException } from '../_shared/sentry.ts';
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
 import { pgrstFetch } from '../_shared/pgrst-retry.ts';
@@ -85,6 +85,9 @@ serve(async (req) => {
 
   const body = await req.json().catch(() => ({} as Record<string, unknown>));
   const sessionId = typeof body.session_id === 'string' ? body.session_id : null;
+  // A row left in_progress this long ago was claimed by a worker that died; the
+  // drain retries it and the stuck count includes it. Quoted for PostgREST or-syntax.
+  const staleBefore = staleInProgressCutoff();
 
   try {
     let rows: DeliveryRow[] = [];
@@ -100,7 +103,7 @@ serve(async (req) => {
       // Oldest first, so a backlog drains in the order people paid.
       const { data, error } = await adminClient
         .from('starter_deliveries').select(DELIVERY_COLUMNS)
-        .in('status', ['pending', 'failed'])
+        .or(`status.in.(pending,failed),and(status.eq.in_progress,updated_at.lt."${staleBefore}")`)
         .lt('attempts', MAX_ATTEMPTS)
         .order('created_at', { ascending: true })
         .limit(DRAIN_BATCH);
@@ -123,7 +126,7 @@ serve(async (req) => {
     const { count: stuck } = await adminClient
       .from('starter_deliveries')
       .select('id', { count: 'exact', head: true })
-      .eq('status', 'failed')
+      .or(`status.eq.failed,and(status.eq.in_progress,updated_at.lt."${staleBefore}")`)
       .gte('attempts', MAX_ATTEMPTS);
     if (stuck && stuck > 0) {
       console.error(

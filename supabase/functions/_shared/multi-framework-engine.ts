@@ -60,6 +60,9 @@ export interface EngineResult {
   applicable: number;
 }
 
+// The shape guarantee behind this `any` is bankShapeError() below: callers
+// run it before computeMultiFramework, so the unguarded dereferences of
+// dimensions, axes and linear-framework patterns cannot throw.
 // deno-lint-ignore no-explicit-any
 type Bank = any;
 
@@ -72,6 +75,63 @@ function populationWeight(question: Bank, population: Population): number {
   if (population === "pregnancy") return question.pregnancy_weight ?? 1;
   if (population === "elderly") return question.elderly_weight ?? 1;
   return 1;
+}
+
+/**
+ * First reason a quiz bank cannot be run through computeMultiFramework, or
+ * null when its shape is safe. Checks only what the engine dereferences
+ * without a guard; it does not judge the bank's clinical content.
+ */
+export function bankShapeError(bank: unknown): string | null {
+  if (!bank || typeof bank !== "object" || Array.isArray(bank)) return "bank is not an object";
+  const b = bank as Record<string, unknown>;
+
+  const dims = b.dimensions;
+  if (!Array.isArray(dims) || dims.length === 0 || !dims.every((d) => typeof d === "string")) {
+    return "dimensions must be a non-empty string array";
+  }
+  const dimSet = new Set<string>(dims as string[]);
+
+  if (!Array.isArray(b.questions)) return "questions must be an array";
+  for (const [i, q] of (b.questions as unknown[]).entries()) {
+    if (!q || typeof q !== "object") return `questions[${i}] is not an object`;
+    const question = q as Record<string, unknown>;
+    if (typeof question.id !== "string") return `questions[${i}].id must be a string`;
+    if (!Array.isArray(question.options)) return `questions[${i}].options must be an array`;
+  }
+
+  const axisDims = b.axis_dimensions;
+  if (!Array.isArray(axisDims)) return "axis_dimensions must be an array";
+  for (const a of axisDims) {
+    if (typeof a !== "string" || !dimSet.has(a)) {
+      return `axis_dimensions entry ${String(a)} is not in dimensions`;
+    }
+  }
+  for (const axis of ["temperature", "moisture", "tone"]) {
+    if (!axisDims.includes(axis)) return `axis_dimensions must include ${axis}`;
+  }
+
+  const fws = b.frameworks;
+  if (!fws || typeof fws !== "object" || Array.isArray(fws)) return "frameworks must be an object";
+  for (const [fw, spec] of Object.entries(fws as Record<string, unknown>)) {
+    if (!spec || typeof spec !== "object") return `frameworks.${fw} is not an object`;
+    const s = spec as Record<string, unknown>;
+    if (s.type !== "linear") continue;
+    const patterns = s.patterns;
+    if (!patterns || typeof patterns !== "object" || Array.isArray(patterns)
+        || Object.keys(patterns).length === 0) {
+      return `frameworks.${fw}.patterns must be a non-empty object`;
+    }
+    for (const [pid, coeffs] of Object.entries(patterns as Record<string, unknown>)) {
+      if (!coeffs || typeof coeffs !== "object" || Array.isArray(coeffs)) {
+        return `frameworks.${fw}.patterns.${pid} is not an object`;
+      }
+      for (const d of Object.keys(coeffs)) {
+        if (!dimSet.has(d)) return `frameworks.${fw}.patterns.${pid} names unknown dimension ${d}`;
+      }
+    }
+  }
+  return null;
 }
 
 export function computeMultiFramework(

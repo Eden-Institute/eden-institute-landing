@@ -193,10 +193,6 @@ export function getPrintJob(id: number | string): Promise<LuluPrintJob> {
   return lulu(`/print-jobs/${id}/`);
 }
 
-export function getPrintJobStatus(id: number | string): Promise<LuluStatus> {
-  return lulu(`/print-jobs/${id}/status/`);
-}
-
 /**
  * Cancel a job. Lulu accepts this only while the job has not entered
  * production (the production_delay window); afterwards it returns an error and
