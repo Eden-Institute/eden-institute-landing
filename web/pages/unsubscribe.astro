@@ -1,0 +1,116 @@
+---
+// /unsubscribe: confirm and result page for the email footer unsubscribe link.
+//
+// Founder decision 2026-09-15. The footer link used to unsubscribe on a plain GET,
+// and corporate link scanners (which fetch every link in an email) were
+// unsubscribing people who never clicked. Now:
+//   1. The footer link hits the `unsubscribe` edge function, which never writes on
+//      a GET. It checks the token and 303s here with ?token=... (valid) or
+//      ?status=invalid.
+//   2. This page shows one button. It POSTs the token as a form field back to the
+//      function, which records the unsubscribe and 303s here with ?status=done
+//      (or invalid / error).
+//   RFC 8058 one-click (Gmail / Apple Mail "Unsubscribe" button) never comes here:
+//   it POSTs straight to the function and is done in one step.
+//
+// Why the page is here and not in the function: Supabase serves a text/html
+// function response as text/plain, so a page built in the function shows as raw
+// HTML source (verified 2026-09-15).
+//
+// NO THIRD-PARTY TAGS HERE (noThirdPartyTags below). The ?token= in the address bar
+// can unsubscribe its owner, so nothing on this page may read the URL and send it
+// on, matching /partner-sample and /starter/downloads.
+//
+// Copy rule: no em dashes.
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+
+const meta = {
+  title: "Unsubscribe · The Eden Institute",
+  description: "Unsubscribe from Eden Institute emails.",
+  canonical: "https://edeninstitute.health/unsubscribe",
+};
+
+// Same project URL vercel.json already routes /go/deep-dive and /preorder-response to.
+const UNSUBSCRIBE_ENDPOINT = "https://noeqztssupewjidpvhar.supabase.co/functions/v1/unsubscribe";
+---
+
+<MarketingLayout
+  title={meta.title}
+  description={meta.description}
+  canonical={meta.canonical}
+  noindex={true}
+  noThirdPartyTags={true}
+>
+  <section class="pt-20 pb-24 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-xl mx-auto">
+      <div class="rounded-lg p-8 bg-white border text-center" style="border-color:hsl(var(--eden-gold) / 0.4)">
+        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">
+          The Eden Institute
+        </p>
+
+        <div id="un-confirm" class="hidden">
+          <h1 class="font-serif text-3xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
+            Unsubscribe from Eden Institute emails?
+          </h1>
+          <form id="un-form" method="post" action={UNSUBSCRIBE_ENDPOINT}>
+            <input type="hidden" name="token" id="un-token" value="" />
+            <button
+              type="submit"
+              class="inline-block font-serif text-sm font-bold tracking-[0.15em] uppercase px-8 py-4 rounded"
+              style="background-color:hsl(var(--eden-forest));color:#F5F0E8"
+            >Unsubscribe</button>
+          </form>
+        </div>
+
+        <div id="un-done" class="hidden">
+          <h1 class="font-serif text-3xl font-bold leading-tight mb-4" style="color:hsl(var(--eden-bark))">
+            You are unsubscribed.
+          </h1>
+          <p class="font-body text-base text-muted-foreground leading-relaxed">
+            You will not get any more of these emails.
+          </p>
+        </div>
+
+        <div id="un-invalid" class="hidden">
+          <h1 class="font-serif text-3xl font-bold leading-tight mb-4" style="color:hsl(var(--eden-bark))">
+            Link no longer active
+          </h1>
+          <p class="font-body text-base text-muted-foreground leading-relaxed">
+            This link is no longer active. You can unsubscribe from any newer email from us, or email hello@edeninstitute.health and we will take care of it.
+          </p>
+        </div>
+
+        <div id="un-error" class="hidden">
+          <h1 class="font-serif text-3xl font-bold leading-tight mb-4" style="color:hsl(var(--eden-bark))">
+            Something went wrong
+          </h1>
+          <p class="font-body text-base text-muted-foreground leading-relaxed">
+            We could not process your request right now. Please try again later, or email hello@edeninstitute.health.
+          </p>
+        </div>
+
+        <p class="pt-8">
+          <a href="https://edeninstitute.health" class="font-body text-sm underline" style="color:hsl(var(--eden-forest))">Return to edeninstitute.health</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <script is:inline>
+    // The token is only ever copied into the form's hidden field (a property, not
+    // markup), never written into the page as HTML.
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var status = params.get("status");
+      var token = params.get("token");
+      var show = function (id) { document.getElementById(id).classList.remove("hidden"); };
+      if (status === "done") return show("un-done");
+      if (status === "error") return show("un-error");
+      if (token && status !== "invalid") {
+        document.getElementById("un-token").value = token;
+        return show("un-confirm");
+      }
+      show("un-invalid");
+    })();
+  </script>
+</MarketingLayout>

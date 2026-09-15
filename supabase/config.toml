@@ -117,6 +117,12 @@ verify_jwt = false
 [functions.guide-checkout]
 verify_jwt = false
 
+# Emailed Deep-Dive Guide access links (2026-09-15). Anonymous visitors on
+# /guide/<slug> request a link and open it with no Supabase session; security is
+# the signed, expiring HMAC token plus the per-IP / per-email rate buckets.
+[functions.guide-access-link]
+verify_jwt = false
+
 # --- Category 2: Webhook endpoints ---
 
 [functions.resend-webhook]

@@ -10,6 +10,15 @@ import Navbar from "@/components/landing/Navbar";
 import { ROUTES } from "@/lib/routes";
 import { trackCta } from "@/lib/trackCta";
 import { readCheckoutSessionId } from "@/lib/checkoutSession";
+import {
+  clearGuideAccessToken,
+  forgetGuideSession,
+  readGuideAccessToken,
+  readStoredGuideSession,
+  saveGuideSession,
+  stripGuideAccessFromUrl,
+} from "@/lib/guideAccess";
+import { FORM_ERROR_FALLBACK, visitorFacingError } from "@/lib/edgeFunctionError";
 
 import { getFbAttribution } from "@/lib/fbAttribution";
 
@@ -28,61 +37,94 @@ const GuideLanding = () => {
   const constitutionType = constitutionSlug ? getTypeFromSlug(constitutionSlug) ?? null : null;
   const profile = constitutionType ? constitutionProfiles[constitutionType] : null;
 
-  // On mount: check for session_id (post-payment redirect). index.html's first
-  // script has already moved it out of the URL, so read it back from there
-  // (src/lib/checkoutSession.ts).
-  useEffect(() => {
-    const sessionId = readCheckoutSessionId();
-    if (!sessionId) return;
+  // "Already bought your guide?" form, shown only to visitors not seeing the guide.
+  const [linkEmail, setLinkEmail] = useState("");
+  const [linkSending, setLinkSending] = useState(false);
+  const [linkSent, setLinkSent] = useState(false);
+  const [linkError, setLinkError] = useState("");
 
-    setVerifying(true);
-    const verify = async () => {
-      try {
-        const { data, error: fnError } = await supabase.functions.invoke("verify-session", {
-          body: { session_id: sessionId },
-        });
-        if (fnError) throw fnError;
-        if (data?.paid) {
-          setPaid(true);
-          if (data.guide) setGuide(data.guide as FullGuideContent);
-          // Persist the verified session id (not a spoofable boolean) so return
-          // visits can re-verify against Stripe and re-fetch the guide.
-          localStorage.setItem(`guide_session_${constitutionSlug}`, sessionId);
-        }
-      } catch (err) {
-        console.error("Payment verification failed:", err);
-      } finally {
-        setVerifying(false);
+  // On mount, three ways in, most specific first:
+  //   1. ?session_id (post-payment redirect). index.html's first script has already
+  //      moved it out of the URL (src/lib/checkoutSession.ts).
+  //   2. ?access=<token> from the emailed guide link. index.html's second script has
+  //      already moved it out of the URL before any tag ran (src/lib/guideAccess.ts).
+  //   3. A checkout session id remembered on this device, for up to 90 days.
+  useEffect(() => {
+    if (!constitutionSlug) return;
+    let cancelled = false;
+
+    const verifySession = async (sessionId: string, remember: boolean) => {
+      const { data, error: fnError } = await supabase.functions.invoke("verify-session", {
+        body: { session_id: sessionId },
+      });
+      if (fnError) throw fnError;
+      if (cancelled) return false;
+      if (data?.paid && data.guide) {
+        setPaid(true);
+        setGuide(data.guide as FullGuideContent);
+        // Persist the verified session id (not a spoofable boolean) for 90 days so
+        // return visits can re-verify against Stripe and re-fetch the guide.
+        if (remember) saveGuideSession(constitutionSlug, sessionId);
+        return true;
       }
+      return false;
     };
-    verify();
-  }, [constitutionSlug, searchParams]);
 
-  // Check for prior purchase if no session_id
-  useEffect(() => {
-    const sessionId = readCheckoutSessionId();
-    if (sessionId) return;
+    const run = async () => {
+      const sessionId = readCheckoutSessionId();
+      if (sessionId) {
+        setVerifying(true);
+        try {
+          await verifySession(sessionId, true);
+        } catch (err) {
+          console.error("Payment verification failed:", err);
+        } finally {
+          if (!cancelled) setVerifying(false);
+        }
+        return;
+      }
 
-    const checkPriorPurchase = async () => {
-      const storedSession = localStorage.getItem(`guide_session_${constitutionSlug}`);
+      const accessToken = readGuideAccessToken();
+      if (accessToken) {
+        setVerifying(true);
+        try {
+          const { data, error: fnError } = await supabase.functions.invoke("guide-access-link", {
+            body: { token: accessToken },
+          });
+          if (fnError) throw fnError;
+          if (cancelled) return;
+          if (data?.ok && data.guide && data.slug === constitutionSlug) {
+            setPaid(true);
+            setGuide(data.guide as FullGuideContent);
+            // Normally index.html's head script has already done this.
+            stripGuideAccessFromUrl();
+            return;
+          }
+          clearGuideAccessToken();
+        } catch (err) {
+          console.error("Guide access link check failed:", err);
+        } finally {
+          if (!cancelled) setVerifying(false);
+        }
+        // A bad or expired link falls through to a remembered session, if any.
+      }
+
+      const storedSession = readStoredGuideSession(constitutionSlug);
       if (!storedSession) return;
       setVerifying(true);
       try {
-        const { data, error: fnError } = await supabase.functions.invoke("verify-session", {
-          body: { session_id: storedSession },
-        });
-        if (fnError) throw fnError;
-        if (data?.paid) {
-          setPaid(true);
-          if (data.guide) setGuide(data.guide as FullGuideContent);
-        }
+        const ok = await verifySession(storedSession, false);
+        if (!ok && !cancelled) forgetGuideSession(constitutionSlug);
       } catch (err) {
-        console.error('Prior purchase check failed:', err);
+        console.error("Prior purchase check failed:", err);
       } finally {
-        setVerifying(false);
+        if (!cancelled) setVerifying(false);
       }
     };
-    checkPriorPurchase();
+    run();
+    return () => {
+      cancelled = true;
+    };
   }, [constitutionSlug, searchParams]);
 
   useEffect(() => {
@@ -155,6 +197,23 @@ const GuideLanding = () => {
       setError(err instanceof Error && err.message ? err.message : "Something went wrong. Please try again.");
     } finally {
       setCheckoutLoading(false);
+    }
+  };
+
+  const handleSendLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLinkError("");
+    setLinkSending(true);
+    try {
+      const { error: fnError } = await supabase.functions.invoke("guide-access-link", {
+        body: { email: linkEmail.trim(), slug: constitutionSlug },
+      });
+      if (fnError) throw fnError;
+      setLinkSent(true);
+    } catch (err) {
+      setLinkError(await visitorFacingError(err, FORM_ERROR_FALLBACK));
+    } finally {
+      setLinkSending(false);
     }
   };
 
@@ -251,6 +310,47 @@ const GuideLanding = () => {
 
             {error && (
               <p className="text-sm mt-3" style={{ color: "#E57373" }}>{error}</p>
+            )}
+          </div>
+
+          {/* Emailed access link for buyers on a new device or browser */}
+          <div
+            className="rounded-lg p-6 mb-8 text-center"
+            style={{ backgroundColor: "#FFFFFF", border: "1px solid hsl(40, 20%, 85%)" }}
+          >
+            {linkSent ? (
+              <p className="font-body text-base" style={{ color: "#3D3832" }} role="status">
+                If that email bought this guide, a link is on its way. Check your inbox in a minute or two.
+              </p>
+            ) : (
+              <form onSubmit={handleSendLink}>
+                <label htmlFor="guide-link-email" className="block font-serif text-base mb-3" style={{ color: "#2C3E2D" }}>
+                  Already bought your guide? Enter your email and we will send you a link.
+                </label>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <input
+                    id="guide-link-email"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    value={linkEmail}
+                    onChange={(e) => setLinkEmail(e.target.value)}
+                    className="flex-1 min-w-0 rounded border px-4 py-3 font-body text-base"
+                    style={{ borderColor: "hsl(40, 20%, 75%)", color: "#2C3E2D" }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={linkSending}
+                    className="font-serif text-sm font-bold tracking-[0.1em] uppercase px-6 py-3 rounded transition-opacity disabled:opacity-60"
+                    style={{ backgroundColor: "#2C3E2D", color: "#F5F0E8" }}
+                  >
+                    Send me my guide link
+                  </button>
+                </div>
+                {linkError && (
+                  <p className="text-sm mt-3" style={{ color: "#B3261E" }} role="alert">{linkError}</p>
+                )}
+              </form>
             )}
           </div>
 

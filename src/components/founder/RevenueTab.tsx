@@ -40,7 +40,11 @@ interface Revenue {
     active_total: number;
     canceled: number;
   };
-  guide: { purchased_total: number };
+  // All three come from founder_revenue (20260720070000_founder_revenue_net_refunds.sql),
+  // read from public.payments: purchased_total counts distinct buyers, sales_total
+  // counts transactions (repeat buyers included) and revenue_cents is net of
+  // refunds. All-time, not windowed by p_since.
+  guide: { purchased_total: number; sales_total: number; revenue_cents: number };
   course: { orders: number; revenue_cents: number; currency: string };
 }
 
@@ -115,6 +119,14 @@ export default function RevenueTab({ since }: { since: string }) {
         <StatCard
           label="Guide buyers (all-time)"
           value={n(data?.guide?.purchased_total)}
+        />
+        <StatCard
+          label="Deep-Dive Guide sales (all time)"
+          value={n(data?.guide?.sales_total)}
+        />
+        <StatCard
+          label="Deep-Dive Guide revenue (net, all time)"
+          value={data?.guide && !unknown ? money(data.guide.revenue_cents ?? 0, "usd") : "—"}
         />
         <StatCard label="Course orders (window)" value={n(course?.orders)} />
         <StatCard label="Course revenue (window)" value={course && !unknown ? money(course.revenue_cents, course.currency) : "—"} />

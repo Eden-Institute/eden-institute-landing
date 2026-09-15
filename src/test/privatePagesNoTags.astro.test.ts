@@ -1,7 +1,8 @@
-// No ad or analytics tags on the two pages whose URL carries a credential.
+// No ad or analytics tags on the pages whose URL carries a credential.
 //
-// /starter/downloads?t=<durable Starter download token> and
-// /partner-sample?k=<partner key> keep the credential in the address bar, so
+// /starter/downloads?t=<durable Starter download token>,
+// /partner-sample?k=<partner key> and /unsubscribe?token=<unsubscribe token>
+// keep the credential in the address bar, so
 // every emailed, copied or bookmarked link keeps working. That is only safe if
 // nothing on those pages can read location.href and send it on. This renders
 // every Astro page through the real layout (Astro's container API, compiled by
@@ -27,7 +28,7 @@ const pageSources = import.meta.glob<string>("../../web/pages/**/*.astro", {
 });
 
 /** The pages that must render without third-party tags, and nothing else. */
-const PRIVATE_PAGES = ["starter/downloads.astro", "partner-sample.astro"];
+const PRIVATE_PAGES = ["starter/downloads.astro", "partner-sample.astro", "unsubscribe.astro"];
 
 /** These read the live herb database while they render (web/lib/herbsPublic.ts)
  *  or take their props from getStaticPaths (esa/[state].astro), so a unit test
@@ -185,7 +186,7 @@ describe("every other page keeps its tags", () => {
     }
   });
 
-  it("no page other than the two private pages mentions the prop", () => {
+  it("no page other than the private pages mentions the prop", () => {
     const using = Object.entries(pageSources)
       .filter(([, src]) => src.includes("noThirdPartyTags"))
       .map(([key]) => rel(key))
