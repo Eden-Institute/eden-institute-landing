@@ -31,12 +31,23 @@ SET status = 'Approved',
 WHERE status = 'active';
 
 -- Schema_migrations register-INSERT (per Lock #15 + migration tracking memory).
-INSERT INTO public.schema_migrations (version, statements, name)
-VALUES (
-  '20260502160000',
-  ARRAY['-- canonicalize herbs.status: active → Approved'],
-  'v4_3_3_canonicalize_herb_status'
-)
-ON CONFLICT (version) DO NOTHING;
+-- GUARDED 2026-09-15 (migration-history repair, docs/ops/2026-09-15-migration-history-repair.md).
+-- public.schema_migrations is not the CLI history table and does not exist in
+-- production on 2026-09-15; no migration creates it. This file never runs again in
+-- production, so the guard changes nothing there; on a replay it skips the insert
+-- instead of failing on a missing relation.
+DO $guard$
+BEGIN
+  IF to_regclass('public.schema_migrations') IS NOT NULL THEN
+    INSERT INTO public.schema_migrations (version, statements, name)
+    VALUES (
+      '20260502160000',
+      ARRAY['-- canonicalize herbs.status: active → Approved'],
+      'v4_3_3_canonicalize_herb_status'
+    )
+    ON CONFLICT (version) DO NOTHING;
+  END IF;
+END
+$guard$;
 
 COMMIT;

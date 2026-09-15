@@ -5,8 +5,10 @@
 -- records the version, so it never runs again there. On a replay (db reset,
 -- branch, fresh project) the CLI writes that history row itself, so the block is
 -- redundant at best and can collide with the CLI's own insert (inferred from how
--- the CLI records history, not reproduced). The SQL is left as committed because
--- an applied migration never runs again. Do not copy the pattern: register a
+-- the CLI records history, not reproduced). Update 2026-09-15: the INSERT is now
+-- commented out (see the block at the end) so a replay does not collide; this is a
+-- no-op in production, where an applied migration never runs again. Do not copy the
+-- pattern: register a
 -- hand-applied migration with
 -- `supabase migration repair --status applied <version>`, never an INSERT here.
 -- =============================================================================
@@ -601,6 +603,11 @@ WHERE herb_id = 'H097';  -- Gravel Root
 -- Migration registration (per reference_supabase_migration_tracking.md
 -- operational rule — required when applied via SQL Editor, not via CLI)
 -- =============================================================================
-INSERT INTO supabase_migrations.schema_migrations (version, statements, name)
-VALUES ('20260427200000', ARRAY[]::text[], 'herbs_cold_quadrant_dual_citation')
-ON CONFLICT (version) DO NOTHING;
+-- NEUTRALISED 2026-09-15 (migration-history repair, docs/ops/2026-09-15-migration-history-repair.md).
+-- Production recorded this version when the file was hand-applied, and an applied
+-- migration never runs again, so commenting this out changes nothing there. On a
+-- replay the CLI inserts the history row itself after running the file, and a row
+-- already written here would make that insert fail on the primary key.
+-- INSERT INTO supabase_migrations.schema_migrations (version, statements, name)
+-- VALUES ('20260427200000', ARRAY[]::text[], 'herbs_cold_quadrant_dual_citation')
+-- ON CONFLICT (version) DO NOTHING;

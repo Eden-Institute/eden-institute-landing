@@ -82,12 +82,23 @@ WHERE eden_constitution IN (
 
 -- Schema_migrations register-INSERT (per Lock #15 — Supabase as source of truth +
 -- migration tracking memory). Bypassed RLS already by replica role.
-INSERT INTO public.schema_migrations (version, statements, name)
-VALUES (
-  '20260502151500',
-  ARRAY['-- canonicalize legacy constitution slugs to the_* snake_case form'],
-  'v4_3_2_canonicalize_constitution_slugs'
-)
-ON CONFLICT (version) DO NOTHING;
+-- GUARDED 2026-09-15 (migration-history repair, docs/ops/2026-09-15-migration-history-repair.md).
+-- public.schema_migrations is not the CLI history table and does not exist in
+-- production on 2026-09-15; no migration creates it. This file never runs again in
+-- production, so the guard changes nothing there; on a replay it skips the insert
+-- instead of failing on a missing relation.
+DO $guard$
+BEGIN
+  IF to_regclass('public.schema_migrations') IS NOT NULL THEN
+    INSERT INTO public.schema_migrations (version, statements, name)
+    VALUES (
+      '20260502151500',
+      ARRAY['-- canonicalize legacy constitution slugs to the_* snake_case form'],
+      'v4_3_2_canonicalize_constitution_slugs'
+    )
+    ON CONFLICT (version) DO NOTHING;
+  END IF;
+END
+$guard$;
 
 COMMIT;
