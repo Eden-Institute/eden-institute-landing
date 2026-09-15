@@ -26,6 +26,7 @@ import { getAttribution } from "@/lib/attribution";
 import { FORM_ERROR_FALLBACK, visitorFacingError } from "@/lib/edgeFunctionError";
 import { patternNameToSlug } from "@/lib/constitution-utils";
 import Navbar from "@/components/landing/Navbar";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 
 interface Question {
   id: number;
@@ -159,6 +160,11 @@ function AxisSpectrum({ axisLabel, leftLabel, rightLabel, position, isInconclusi
 }
 
 const Assessment = () => {
+  useDocumentMeta({
+    title: "Pattern of Eden Quiz | The Eden Institute",
+    description: "Take the free 2-minute Pattern of Eden quiz to find your body pattern and the herbs that meet it.",
+    canonical: "https://edeninstitute.health/assessment",
+  });
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -495,6 +501,8 @@ const Assessment = () => {
     setFollowupIdx(0);
     setPhase("quiz");
     setError("");
+    setEmailSuggestion(null);
+    window.scrollTo(0, 0);
     // A restart is a new attempt — its first answer fires quiz-start again.
     hasTrackedQuizStart.current = false;
   }, []);
@@ -741,7 +749,9 @@ const Assessment = () => {
               </form>
             </div>
           )}
-          <p className="font-body text-xs italic mt-4 text-center" style={{ color: "hsl(30, 10%, 40%, 0.7)" }}>If you'd like to retake the quiz from scratch, refresh the page or navigate back to the home page.</p>
+          <div className="mt-4 text-center">
+            <Button type="button" variant="eden-outline" size="lg" onClick={restartQuiz}>Retake the quiz</Button>
+          </div>
         </div>
       )}
 
