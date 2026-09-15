@@ -36,6 +36,7 @@
 import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext";
 import { getGuideByNickname, getGuideBySlug } from "../_shared/guide/registry.ts";
 import { getCallerUser } from "../_shared/caller-user.ts";
+import { isStripeResourceMissing } from "../_shared/stripe-errors.ts";
 import {
   CHECKOUT_SESSION_ID_RE,
   isCallerAllowed,
@@ -174,15 +175,11 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     console.error("Verify session error:", error);
-    // Stripe answers an unknown session id (or one from the other mode) with a
-    // 404 StripeInvalidRequestError, code resource_missing. That is a caller
-    // problem, not a server fault: say so with a fixed message. The old path
-    // returned 500 with Stripe's own error text (post-ship QA, 2026-09-15).
-    const stripeError = error as { type?: unknown; code?: unknown; statusCode?: unknown };
-    if (
-      stripeError?.type === "StripeInvalidRequestError" &&
-      (stripeError.code === "resource_missing" || stripeError.statusCode === 404)
-    ) {
+    // Stripe answers an unknown session id (or one from the other mode) with
+    // code resource_missing. That is a caller problem, not a server fault: say
+    // so with a fixed message. Matched on the code, not the error class name,
+    // which the esm.sh bundle minifies (see _shared/stripe-errors.ts).
+    if (isStripeResourceMissing(error)) {
       return new Response(JSON.stringify({ paid: false, error: "Session not found" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 404,
