@@ -1,8 +1,16 @@
 // supabase/functions/_shared/digest-run-claim.ts
 //
-// Claiming a founder-digest day in digest_runs (UNIQUE digest_date) so exactly
-// one run sends it, while a day that FAILED, or was left PENDING by a run that
-// died, can be taken over by a later run instead of blocking it for good.
+// Claiming a founder report day in its run table (one row per day, UNIQUE on the
+// date column) so exactly one run sends it, while a day that FAILED, or was left
+// PENDING by a run that died, can be taken over by a later run instead of
+// blocking it for good.
+//
+// Used by three reports, each with its own table and a retry cron 37 minutes
+// after the main one:
+//   notify-founder-digest   digest_runs         (digest_date)  14:00 / 14:37 UTC daily
+//   weekly-trends-digest    weekly_trends_runs  (run_date)     14:00 / 14:37 UTC Friday
+//   founder-evening-recap   recap_runs          (recap_date)   01:00 / 01:37 UTC daily
+// claimRun is the table-agnostic core; claimDigestRun keeps the digest's shape.
 //
 // Why: until 2026-09-13 a 409 on the INSERT always meant "already ran". A
 // gateway 504 on the lead RPC, then on the PATCH that should have marked the run
@@ -35,8 +43,41 @@ interface RunRow {
   triggered_at: string;
 }
 
-async function readRow(sbFetch: SbFetch, digestDate: string): Promise<RunRow | null> {
-  const res = await sbFetch(`/rest/v1/digest_runs?digest_date=eq.${digestDate}&select=id,status,triggered_at`);
+/** Where a report keeps its runs, and what a takeover must clear. */
+export interface RunTable {
+  /** Table under /rest/v1/, e.g. 'weekly_trends_runs'. */
+  table: string;
+  /** The UNIQUE date column, e.g. 'run_date'. */
+  dateColumn: string;
+  /** Statuses that mean the day is finished and must not be sent again. */
+  doneStatuses: readonly string[];
+  /** Result columns a takeover resets to null (completed_at and error_message are always reset). */
+  resetColumns?: readonly string[];
+}
+
+export const DIGEST_RUNS: RunTable = {
+  table: 'digest_runs',
+  dateColumn: 'digest_date',
+  doneStatuses: ['sent', 'skipped_zero'],
+  resetColumns: ['captures_count'],
+};
+
+export const WEEKLY_TRENDS_RUNS: RunTable = {
+  table: 'weekly_trends_runs',
+  dateColumn: 'run_date',
+  doneStatuses: ['sent'],
+  resetColumns: ['leads_this_week'],
+};
+
+export const RECAP_RUNS: RunTable = {
+  table: 'recap_runs',
+  dateColumn: 'recap_date',
+  doneStatuses: ['sent'],
+  resetColumns: ['resend_id'],
+};
+
+async function readRow(sbFetch: SbFetch, t: RunTable, date: string): Promise<RunRow | null> {
+  const res = await sbFetch(`/rest/v1/${t.table}?${t.dateColumn}=eq.${date}&select=id,status,triggered_at`);
   if (!res.ok) {
     await res.body?.cancel();
     return null;
@@ -47,20 +88,31 @@ async function readRow(sbFetch: SbFetch, digestDate: string): Promise<RunRow | n
 
 const sameInstant = (a: string, b: string) => Date.parse(a) === Date.parse(b);
 
-export async function claimDigestRun(
+export function claimDigestRun(
   sbFetch: SbFetch,
   opts: { digestDate: string; windowStart: string; windowEnd: string; now?: Date },
+): Promise<ClaimResult> {
+  return claimRun(sbFetch, DIGEST_RUNS, {
+    date: opts.digestDate,
+    insertFields: { window_start: opts.windowStart, window_end: opts.windowEnd },
+    now: opts.now,
+  });
+}
+
+export async function claimRun(
+  sbFetch: SbFetch,
+  t: RunTable,
+  opts: { date: string; insertFields?: Record<string, unknown>; now?: Date },
 ): Promise<ClaimResult> {
   const now = opts.now ?? new Date();
   const claimAt = now.toISOString();
 
-  const ins = await sbFetch('/rest/v1/digest_runs', {
+  const ins = await sbFetch(`/rest/v1/${t.table}`, {
     method: 'POST',
     headers: { Prefer: 'return=representation' },
     body: JSON.stringify({
-      digest_date: opts.digestDate,
-      window_start: opts.windowStart,
-      window_end: opts.windowEnd,
+      ...(opts.insertFields ?? {}),
+      [t.dateColumn]: opts.date,
       status: 'pending',
       triggered_at: claimAt,
     }),
@@ -74,14 +126,14 @@ export async function claimDigestRun(
   }
 
   // 409, or any response we cannot trust: look at what is actually stored.
-  const row = await readRow(sbFetch, opts.digestDate);
-  if (!row) return { kind: 'error', detail: `digest_runs insert returned ${ins.status} and no row could be read` };
+  const row = await readRow(sbFetch, t, opts.date);
+  if (!row) return { kind: 'error', detail: `${t.table} insert returned ${ins.status} and no row could be read` };
 
   // Our own INSERT committed even though its response was lost.
   if (row.status === 'pending' && sameInstant(row.triggered_at, claimAt)) {
     return { kind: 'owned', id: row.id, takeover: null };
   }
-  if (row.status === 'sent' || row.status === 'skipped_zero') {
+  if (t.doneStatuses.includes(row.status)) {
     return { kind: 'skip', reason: 'already_ran', status: row.status };
   }
 
@@ -95,7 +147,7 @@ export async function claimDigestRun(
   }
 
   const patch = await sbFetch(
-    `/rest/v1/digest_runs?id=eq.${row.id}&status=eq.${row.status}` +
+    `/rest/v1/${t.table}?id=eq.${row.id}&status=eq.${row.status}` +
       `&triggered_at=eq.${encodeURIComponent(row.triggered_at)}`,
     {
       method: 'PATCH',
@@ -104,8 +156,8 @@ export async function claimDigestRun(
         status: 'pending',
         triggered_at: claimAt,
         completed_at: null,
-        captures_count: null,
         error_message: null,
+        ...Object.fromEntries((t.resetColumns ?? []).map((c) => [c, null])),
       }),
     },
   );
@@ -117,7 +169,7 @@ export async function claimDigestRun(
   }
 
   // Matched nothing, or the response was lost: ours only if it carries our claim time.
-  const after = await readRow(sbFetch, opts.digestDate);
+  const after = await readRow(sbFetch, t, opts.date);
   if (after && after.status === 'pending' && sameInstant(after.triggered_at, claimAt)) {
     return { kind: 'owned', id: after.id, takeover };
   }

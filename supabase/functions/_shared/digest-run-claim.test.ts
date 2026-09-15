@@ -9,9 +9,13 @@ import {
   addDays,
   centralToday,
   claimDigestRun,
+  claimRun,
+  DIGEST_RUNS,
   digestWindow,
   isRealYmd,
+  RECAP_RUNS,
   STALE_PENDING_MS,
+  WEEKLY_TRENDS_RUNS,
 } from './digest-run-claim.ts';
 
 interface Row { id: string; digest_date: string; status: string; triggered_at: string }
@@ -149,4 +153,118 @@ Deno.test('dates: Central today, day arithmetic, validation, window', () => {
   // Identical to the window the scheduled run stored for 2026-09-12 (06:00Z to 06:00Z).
   assertEquals(Date.parse(W.windowStart), Date.parse('2026-09-12T06:00:00Z'));
   assertEquals(Date.parse(W.windowEnd), Date.parse('2026-09-13T06:00:00Z'));
+});
+
+
+// ── claimRun on the other report tables ──
+
+interface GenRow { id: string; date: string; status: string; triggered_at: string; extra: Record<string, unknown> }
+
+/** Same stand-in, parameterised on table and date column, recording every request path. */
+function fakeTable(table: string, dateColumn: string, seed: GenRow[] = []) {
+  const rows = new Map<string, GenRow>(seed.map((r) => [r.date, { ...r }]));
+  const paths: string[] = [];
+  const bodies: Record<string, unknown>[] = [];
+  let n = 0;
+  const sbFetch = (path: string, init: RequestInit = {}) => {
+    paths.push(`${init.method ?? 'GET'} ${path}`);
+    const url = new URL(`https://x${path}`);
+    const method = init.method ?? 'GET';
+    const json = (status: number, body: unknown) => Promise.resolve(new Response(JSON.stringify(body), { status }));
+    if (!url.pathname.startsWith(`/rest/v1/${table}`)) return json(404, { message: 'wrong table' });
+    if (method === 'POST') {
+      const b = JSON.parse(String(init.body));
+      bodies.push(b);
+      if (rows.has(b[dateColumn])) return json(409, { code: '23505' });
+      const row = { id: `r-${++n}`, date: b[dateColumn], status: b.status, triggered_at: b.triggered_at, extra: b };
+      rows.set(row.date, row);
+      return json(201, [row]);
+    }
+    if (method === 'GET') {
+      const d = url.searchParams.get(dateColumn)!.replace('eq.', '');
+      const r = rows.get(d);
+      return json(200, r ? [{ id: r.id, status: r.status, triggered_at: r.triggered_at }] : []);
+    }
+    if (method === 'PATCH') {
+      const id = url.searchParams.get('id')!.replace('eq.', '');
+      const status = url.searchParams.get('status')!.replace('eq.', '');
+      const b = JSON.parse(String(init.body));
+      bodies.push(b);
+      const r = [...rows.values()].find((x) => x.id === id && x.status === status);
+      if (r) Object.assign(r, { status: b.status, triggered_at: b.triggered_at });
+      return json(200, r ? [r] : []);
+    }
+    return json(405, {});
+  };
+  return { rows, paths, bodies, sbFetch };
+}
+
+const FRIDAY = '2026-09-18';
+const FRIDAY_RETRY = new Date('2026-09-18T14:37:00.000Z');
+
+Deno.test('weekly: first Friday run inserts on run_date into weekly_trends_runs', async () => {
+  const f = fakeTable('weekly_trends_runs', 'run_date');
+  const r = await claimRun(f.sbFetch, WEEKLY_TRENDS_RUNS, { date: FRIDAY, now: FRIDAY_RETRY });
+  assertEquals(r, { kind: 'owned', id: 'r-1', takeover: null });
+  assertEquals(f.bodies[0], { run_date: FRIDAY, status: 'pending', triggered_at: FRIDAY_RETRY.toISOString() });
+});
+
+Deno.test('weekly: the 14:37 retry skips a Friday the 14:00 run sent', async () => {
+  const f = fakeTable('weekly_trends_runs', 'run_date', [
+    { id: 'w', date: FRIDAY, status: 'sent', triggered_at: '2026-09-18T14:00:02Z', extra: {} },
+  ]);
+  const r = await claimRun(f.sbFetch, WEEKLY_TRENDS_RUNS, { date: FRIDAY, now: FRIDAY_RETRY });
+  assertEquals(r, { kind: 'skip', reason: 'already_ran', status: 'sent' });
+  assertEquals(f.paths.some((p) => p.startsWith('PATCH')), false);
+});
+
+Deno.test('weekly: the 14:37 retry takes over a failed Friday and clears its result columns', async () => {
+  const f = fakeTable('weekly_trends_runs', 'run_date', [
+    { id: 'w', date: FRIDAY, status: 'failed', triggered_at: '2026-09-18T14:00:02Z', extra: {} },
+  ]);
+  const r = await claimRun(f.sbFetch, WEEKLY_TRENDS_RUNS, { date: FRIDAY, now: FRIDAY_RETRY });
+  assertEquals(r, { kind: 'owned', id: 'w', takeover: 'failed' });
+  assertEquals(f.bodies.at(-1), {
+    status: 'pending',
+    triggered_at: FRIDAY_RETRY.toISOString(),
+    completed_at: null,
+    error_message: null,
+    leads_this_week: null,
+  });
+});
+
+Deno.test('weekly: a pending row left by a run that died at 14:00 is taken over at 14:37', async () => {
+  const f = fakeTable('weekly_trends_runs', 'run_date', [
+    { id: 'w', date: FRIDAY, status: 'pending', triggered_at: '2026-09-18T14:00:02Z', extra: {} },
+  ]);
+  const r = await claimRun(f.sbFetch, WEEKLY_TRENDS_RUNS, { date: FRIDAY, now: FRIDAY_RETRY });
+  assertEquals(r, { kind: 'owned', id: 'w', takeover: 'stale_pending' });
+});
+
+Deno.test('recap: claims recap_date in recap_runs; a sent evening is skipped at 01:37', async () => {
+  const f = fakeTable('recap_runs', 'recap_date');
+  const main = new Date('2026-09-17T01:00:00.000Z');
+  const retry = new Date('2026-09-17T01:37:00.000Z');
+  // Both passes resolve to the same Central day (20:00 and 20:37 CDT on 9/16).
+  assertEquals(centralToday(main), '2026-09-16');
+  assertEquals(centralToday(retry), '2026-09-16');
+  assertEquals((await claimRun(f.sbFetch, RECAP_RUNS, { date: '2026-09-16', now: main })).kind, 'owned');
+  f.rows.get('2026-09-16')!.status = 'sent';
+  const r = await claimRun(f.sbFetch, RECAP_RUNS, { date: '2026-09-16', now: retry });
+  assertEquals(r, { kind: 'skip', reason: 'already_ran', status: 'sent' });
+});
+
+Deno.test('recap: a takeover resets resend_id, not the digest columns', async () => {
+  const f = fakeTable('recap_runs', 'recap_date', [
+    { id: 'e', date: '2026-09-16', status: 'failed', triggered_at: '2026-09-17T01:00:05Z', extra: {} },
+  ]);
+  await claimRun(f.sbFetch, RECAP_RUNS, { date: '2026-09-16', now: new Date('2026-09-17T01:37:00Z') });
+  const patchBody = f.bodies.at(-1)!;
+  assertEquals('resend_id' in patchBody, true);
+  assertEquals('captures_count' in patchBody, false);
+});
+
+Deno.test('recap: skipped_zero is not a done status there, so it is not silently treated as sent', () => {
+  assertEquals(RECAP_RUNS.doneStatuses.includes('skipped_zero'), false);
+  assertEquals(DIGEST_RUNS.doneStatuses.includes('skipped_zero'), true);
 });
