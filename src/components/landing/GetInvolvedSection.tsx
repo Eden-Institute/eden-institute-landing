@@ -181,14 +181,15 @@ export default function GetInvolvedSection() {
             )
           ) : (
             <>
-              <label style={labelStyle}>Which best describes you?</label>
-              <div className="mb-2">
+              <p id="gi-role-label" style={labelStyle}>Which best describes you?</p>
+              <div className="mb-2" role="group" aria-labelledby="gi-role-label">
                 {ROLES.map((r) => {
                   const selected = role === r.value;
                   return (
                     <button
                       type="button"
                       key={r.value}
+                      aria-pressed={selected}
                       onClick={() => {
                         setRole(r.value);
                         setDone(false);
@@ -246,31 +247,31 @@ export default function GetInvolvedSection() {
               {role && !isParent && (
                 <form onSubmit={handleSubmit} style={{ marginTop: "16px" }}>
                   <div style={{ marginBottom: "16px" }}>
-                    <label style={labelStyle}>Your name</label>
-                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} required style={inputStyle} placeholder="Your name" />
+                    <label htmlFor="gi-name" style={labelStyle}>Your name</label>
+                    <input id="gi-name" autoComplete="name" type="text" value={name} onChange={(e) => setName(e.target.value)} required style={inputStyle} placeholder="Your name" />
                   </div>
                   <div style={{ marginBottom: "16px" }}>
-                    <label style={labelStyle}>Email</label>
-                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={inputStyle} placeholder="your@email.com" />
+                    <label htmlFor="gi-email" style={labelStyle}>Email</label>
+                    <input id="gi-email" autoComplete="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={inputStyle} placeholder="your@email.com" />
                   </div>
                   <div style={{ marginBottom: "16px" }}>
-                    <label style={labelStyle}>Business or show name</label>
-                    <input type="text" value={orgName} onChange={(e) => setOrgName(e.target.value)} style={inputStyle} placeholder="Your brand, show, or company" />
+                    <label htmlFor="gi-org" style={labelStyle}>Business or show name</label>
+                    <input id="gi-org" autoComplete="organization" type="text" value={orgName} onChange={(e) => setOrgName(e.target.value)} style={inputStyle} placeholder="Your brand, show, or company" />
                   </div>
                   <div style={{ marginBottom: "16px" }}>
-                    <label style={labelStyle}>Website or social</label>
-                    <input type="text" value={website} onChange={(e) => setWebsite(e.target.value)} style={inputStyle} placeholder="https://" />
+                    <label htmlFor="gi-website" style={labelStyle}>Website or social</label>
+                    <input id="gi-website" autoComplete="url" type="text" value={website} onChange={(e) => setWebsite(e.target.value)} style={inputStyle} placeholder="https://" />
                   </div>
                   <div style={{ marginBottom: "16px" }}>
-                    <label style={labelStyle}>Audience size (if relevant)</label>
-                    <input type="text" value={audienceSize} onChange={(e) => setAudienceSize(e.target.value)} style={inputStyle} placeholder="e.g. 12k newsletter, 30k downloads/mo" />
+                    <label htmlFor="gi-audience" style={labelStyle}>Audience size (if relevant)</label>
+                    <input id="gi-audience" type="text" value={audienceSize} onChange={(e) => setAudienceSize(e.target.value)} style={inputStyle} placeholder="e.g. 12k newsletter, 30k downloads/mo" />
                   </div>
                   <div style={{ marginBottom: "16px" }}>
-                    <label style={labelStyle}>What do you have in mind?</label>
-                    <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3} style={inputStyle} placeholder="A sentence or two is plenty." />
+                    <label htmlFor="gi-message" style={labelStyle}>What do you have in mind?</label>
+                    <textarea id="gi-message" value={message} onChange={(e) => setMessage(e.target.value)} rows={3} style={inputStyle} placeholder="A sentence or two is plenty." />
                   </div>
                   {error && (
-                    <p style={{ fontFamily: BODY, fontSize: "14px", color: "hsl(var(--rust))", marginBottom: "12px" }}>{error}</p>
+                    <p role="alert" style={{ fontFamily: BODY, fontSize: "14px", color: "hsl(var(--rust))", marginBottom: "12px" }}>{error}</p>
                   )}
                   <button
                     type="submit"

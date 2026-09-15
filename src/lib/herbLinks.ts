@@ -2,11 +2,11 @@
  * herbLinks — slug helpers for the public herb monograph route
  * (/apothecary/:herbId, CRO Phase 1).
  *
- * herb_id in the DB is an H-code (H001..H108), not a slug. Monograph URLs
+ * herb_id in the DB is an H-code (H001..H300), not a slug. Monograph URLs
  * use a slug derived from common_name ("Marshmallow" → "marshmallow",
  * "Bacopa (Brahmi)" → "bacopa-brahmi") because those are the URLs people
- * share and read. Derived slugs are verified unique across all 108 rows
- * (live audit 2026-07-01) and contain no dot+extension sequences, so the
+ * share and read. Derived slugs are verified unique across all 300 rows
+ * (live audits 2026-07-01 at 108 rows and 2026-09-14 at 300 rows) and contain no dot+extension sequences, so the
  * vercel.json SPA rewrite always serves them.
  *
  * The route accepts BOTH forms: findHerbByParam matches the H-code first
@@ -36,12 +36,27 @@ function herbSlug(commonName: string): string {
 export interface HerbLinkable {
   herb_id: string | null;
   common_name: string | null;
+  tier_visibility?: string | null;
 }
 
 /** Canonical monograph path segment for a directory row (slug preferred). */
 export function herbParam(herb: HerbLinkable): string {
   if (herb.common_name) return herbSlug(herb.common_name);
   return herb.herb_id ?? "";
+}
+
+/** Absolute canonical URL for an herb. Free-tier rows have a pre-rendered
+ *  /herbs/:slug page (PR #454), which is the SEO surface; gated rows exist
+ *  only in the app, so they canonicalize to /apothecary/:param. Keyed on
+ *  tier_visibility (the herbs_public predicate), never is_locked, which the
+ *  view sets false for every row when the caller is Seed+. */
+export function herbCanonicalUrl(herb: HerbLinkable): string {
+  const hasStaticPage =
+    !!herb.common_name &&
+    (herb.tier_visibility === "free" || herb.tier_visibility == null);
+  return hasStaticPage
+    ? `https://edeninstitute.health/herbs/${herbParam(herb)}`
+    : `https://edeninstitute.health/apothecary/${herbParam(herb)}`;
 }
 
 /**

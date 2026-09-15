@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/landing/Footer";
 import Navbar from "@/components/landing/Navbar";
@@ -9,24 +9,11 @@ const PAGE_DESCRIPTION =
   "Tier 2 — Body Systems & Clinical Literacy — is coming. Start with Tier 1, the Foundations of Constitutional Herbalism, to build the groundwork and be first to hear when Tier 2 opens.";
 
 const TierTwoWaitlist = () => {
-  // SEO meta
-  useEffect(() => {
-    document.title = PAGE_TITLE;
-
-    const ensureMeta = (selector: string, attrs: Record<string, string>) => {
-      let el = document.head.querySelector(selector) as HTMLMetaElement | HTMLLinkElement | null;
-      if (!el) {
-        el = document.createElement(selector.startsWith("link") ? "link" : "meta") as any;
-        document.head.appendChild(el);
-      }
-      Object.entries(attrs).forEach(([k, v]) => el!.setAttribute(k, v));
-    };
-
-    ensureMeta('meta[name="description"]', { name: "description", content: PAGE_DESCRIPTION });
-    ensureMeta('meta[property="og:title"]', { property: "og:title", content: PAGE_TITLE });
-    ensureMeta('meta[property="og:description"]', { property: "og:description", content: PAGE_DESCRIPTION });
-    ensureMeta('link[rel="canonical"]', { rel: "canonical", href: "https://edeninstitute.health/tier-2-waitlist" });
-  }, []);
+  useDocumentMeta({
+    title: PAGE_TITLE,
+    description: PAGE_DESCRIPTION,
+    canonical: "https://edeninstitute.health/tier-2-waitlist",
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -92,10 +79,10 @@ const TierTwoWaitlist = () => {
         </div>
       </section>
 
-      {/* START WITH TIER 1 — the panel (shared with the homepage modal). */}
+      {/* START WITH TIER 1 — the panel. */}
       <section
         id="start-tier-1"
-        className="py-20 md:py-24 px-6"
+        className="scroll-mt-20 py-20 md:py-24 px-6"
         style={{ backgroundColor: "hsl(var(--eden-cream))" }}
       >
         <div className="max-w-xl mx-auto">
@@ -110,7 +97,7 @@ const TierTwoWaitlist = () => {
               Build the foundation now — and be first in line when it opens.
             </p>
           </div>
-          <TierTwoWaitlistForm surface="tier_two_waitlist_page" variant="card" />
+          <TierTwoWaitlistForm variant="card" />
         </div>
       </section>
 

@@ -12,7 +12,7 @@
 // but it is still mounted client:only because the static page needs no server render of a form.
 // Copy rules (web/lib/esaStates.ts header): no em dashes, and none of the listed health words.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ESA_CHOICES,
   ESA_STATE_OPTIONS,
@@ -34,6 +34,7 @@ interface Props {
 }
 
 interface Student {
+  id: string;
   first: string;
   last: string;
   choice: EsaChoice;
@@ -53,6 +54,9 @@ const inputStyle = { borderColor: "hsl(var(--eden-gold) / 0.45)" };
 const label = "block font-body text-sm font-semibold mb-1";
 const labelStyle = { color: "hsl(var(--eden-bark))" };
 
+let nextStudentId = 0;
+const newStudentId = () => `s${++nextStudentId}`;
+
 function downloadHref(b64: string): string {
   const bin = atob(b64);
   const bytes = new Uint8Array(bin.length);
@@ -65,7 +69,7 @@ export default function EsaInvoiceForm({ state, stateName, short }: Props) {
   const [parentName, setParentName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [students, setStudents] = useState<Student[]>([{ first: "", last: "", choice: "set" }]);
+  const [students, setStudents] = useState<Student[]>([{ id: newStudentId(), first: "", last: "", choice: "set" }]);
   const [addr, setAddr] = useState<{ line1: string; line2: string; city: string; region: string; zip: string }>({
     line1: "",
     line2: "",
@@ -77,6 +81,7 @@ export default function EsaInvoiceForm({ state, stateName, short }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<{ invoices: (Issued & { href: string })[]; emailed: boolean; email: string; nextStep: string } | null>(null);
+  useEffect(() => () => { result?.invoices.forEach((inv) => URL.revokeObjectURL(inv.href)); }, [result]);
 
   const needsAddress = students.some((s) => ESA_CHOICES[s.choice].printed);
   const lines = useMemo(
@@ -93,7 +98,7 @@ export default function EsaInvoiceForm({ state, stateName, short }: Props) {
   const setStudent = (i: number, patch: Partial<Student>) =>
     setStudents((prev) => prev.map((s, j) => (j === i ? { ...s, ...patch } : s)));
   const addStudent = () =>
-    setStudents((prev) => (prev.length >= 6 ? prev : [...prev, { first: "", last: prev[0]?.last ?? "", choice: "notebook" }]));
+    setStudents((prev) => (prev.length >= 6 ? prev : [...prev, { id: newStudentId(), first: "", last: prev[0]?.last ?? "", choice: "notebook" }]));
   const removeStudent = (i: number) => setStudents((prev) => prev.filter((_, j) => j !== i));
 
   const submit = async (e: React.FormEvent) => {
@@ -104,7 +109,7 @@ export default function EsaInvoiceForm({ state, stateName, short }: Props) {
       const res = await fetch(ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-        body: JSON.stringify({ state, parentName, email, phone, students, address: needsAddress ? addr : null, company }),
+        body: JSON.stringify({ state, parentName, email, phone, students: students.map(({ first, last, choice }) => ({ first, last, choice })), address: needsAddress ? addr : null, company }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data?.ok) throw new Error(data?.error || "Something went wrong. Please try again.");
@@ -163,7 +168,7 @@ export default function EsaInvoiceForm({ state, stateName, short }: Props) {
   }
 
   return (
-    <form onSubmit={submit} className="rounded-lg p-6 bg-white border space-y-5" style={inputStyle} noValidate>
+    <form onSubmit={submit} className="rounded-lg p-6 bg-white border space-y-5" style={inputStyle}>
       <div>
         <h3 className="font-serif text-xl font-bold" style={{ color: "hsl(var(--eden-forest))" }}>Get your {short} invoice now</h3>
         <p className="font-body text-sm text-muted-foreground mt-1">
@@ -185,23 +190,25 @@ export default function EsaInvoiceForm({ state, stateName, short }: Props) {
       <div className="space-y-4">
         <p className={label} style={labelStyle}>Students</p>
         {students.map((s, i) => (
-          <fieldset key={i} className="rounded-md border p-4 space-y-3" style={inputStyle}>
-            <div className="flex items-center justify-between">
-              <legend className="font-body text-sm font-semibold" style={labelStyle}>Student {i + 1}</legend>
+          <fieldset key={s.id} className="rounded-md border p-4 space-y-3" style={inputStyle}>
+            <legend className="sr-only">Student {i + 1}</legend>
+            {/* !mt-0: the sr-only legend is now the first child, so space-y-3 would otherwise push this row down. */}
+            <div className="flex items-center justify-between !mt-0">
+              <span aria-hidden="true" className="font-body text-sm font-semibold" style={labelStyle}>Student {i + 1}</span>
               {students.length > 1 && (
-                <button type="button" onClick={() => removeStudent(i)} className="font-body text-xs underline text-muted-foreground">
+                <button type="button" onClick={() => removeStudent(i)} aria-label={`Remove student ${i + 1}`} className="font-body text-xs underline text-muted-foreground">
                   Remove
                 </button>
               )}
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <input className={input} style={inputStyle} placeholder="First name" aria-label={`Student ${i + 1} first name`} value={s.first} onChange={(e) => setStudent(i, { first: e.target.value })} />
-              <input className={input} style={inputStyle} placeholder="Last name" aria-label={`Student ${i + 1} last name`} value={s.last} onChange={(e) => setStudent(i, { last: e.target.value })} />
+              <input className={input} style={inputStyle} placeholder="First name" aria-label={`Student ${i + 1} first name`} value={s.first} onChange={(e) => setStudent(i, { first: e.target.value })} required />
+              <input className={input} style={inputStyle} placeholder="Last name" aria-label={`Student ${i + 1} last name`} value={s.last} onChange={(e) => setStudent(i, { last: e.target.value })} required />
             </div>
             <div className="space-y-2">
               {opts.choices.map((c) => (
                 <label key={c} className="flex items-start gap-3 cursor-pointer font-body text-sm">
-                  <input type="radio" name={`choice-${i}`} className="mt-1" checked={s.choice === c} onChange={() => setStudent(i, { choice: c })} />
+                  <input type="radio" name={`choice-${s.id}`} className="mt-1" checked={s.choice === c} onChange={() => setStudent(i, { choice: c })} />
                   <span>
                     <span className="font-semibold" style={labelStyle}>{ESA_CHOICES[c].label}</span>
                     <span className="text-muted-foreground"> · {esaMoney(ESA_CHOICES[c].cents)}</span>
@@ -226,14 +233,14 @@ export default function EsaInvoiceForm({ state, stateName, short }: Props) {
         <div className="space-y-3">
           <p className={label} style={labelStyle}>Shipping address</p>
           <p className="font-body text-xs text-muted-foreground -mt-2">{opts.shipNote}</p>
-          <input className={input} style={inputStyle} placeholder="Street address" aria-label="Street address" autoComplete="address-line1" value={addr.line1} onChange={(e) => setAddr({ ...addr, line1: e.target.value })} />
+          <input className={input} style={inputStyle} placeholder="Street address" aria-label="Street address" autoComplete="address-line1" value={addr.line1} onChange={(e) => setAddr({ ...addr, line1: e.target.value })} required />
           <input className={input} style={inputStyle} placeholder="Apartment, unit (optional)" aria-label="Apartment or unit" autoComplete="address-line2" value={addr.line2} onChange={(e) => setAddr({ ...addr, line2: e.target.value })} />
           <div className="grid gap-3 grid-cols-[1fr_5.5rem_7rem]">
-            <input className={input} style={inputStyle} placeholder="City" aria-label="City" autoComplete="address-level2" value={addr.city} onChange={(e) => setAddr({ ...addr, city: e.target.value })} />
+            <input className={input} style={inputStyle} placeholder="City" aria-label="City" autoComplete="address-level2" value={addr.city} onChange={(e) => setAddr({ ...addr, city: e.target.value })} required />
             <select className={input} style={inputStyle} aria-label="State" autoComplete="address-level1" value={addr.region} onChange={(e) => setAddr({ ...addr, region: e.target.value })}>
               {US_STATES.map((st) => <option key={st} value={st}>{st}</option>)}
             </select>
-            <input className={input} style={inputStyle} placeholder="ZIP" aria-label="ZIP code" inputMode="numeric" autoComplete="postal-code" value={addr.zip} onChange={(e) => setAddr({ ...addr, zip: e.target.value })} />
+            <input className={input} style={inputStyle} placeholder="ZIP" aria-label="ZIP code" inputMode="numeric" autoComplete="postal-code" pattern="\d{5}(-\d{4})?" value={addr.zip} onChange={(e) => setAddr({ ...addr, zip: e.target.value })} required />
           </div>
           <input className={input} style={inputStyle} type="tel" placeholder="Phone for the delivery carrier (optional)" aria-label="Phone for the delivery carrier (optional)" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
         </div>
@@ -259,7 +266,7 @@ export default function EsaInvoiceForm({ state, stateName, short }: Props) {
         )}
         {opts.feeRate > 0 && (
           <p className="font-body text-xs text-muted-foreground pt-1">
-            ClassWallet charges a 2.0408% processing fee on Arizona payments, shown as its own line on the invoice.
+            ClassWallet charges a {(opts.feeRate * 100).toFixed(4)}% processing fee on Arizona payments, shown as its own line on the invoice.
           </p>
         )}
       </div>

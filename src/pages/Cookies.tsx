@@ -1,14 +1,16 @@
-import { useEffect } from "react";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 
 const HEADER_IMG = "https://images.unsplash.com/photo-1580116270858-8a0d62b15426?auto=format&fit=crop&w=1920&q=80";
 
 const Cookies = () => {
-  useEffect(() => {
-    document.title = "Cookie Policy — The Eden Institute";
-    document.querySelector('meta[name="description"]')?.setAttribute("content", "Cookie policy for The Eden Institute. Understand what cookies we use and how they enhance your experience.");
-  }, []);
+  useDocumentMeta({
+    title: "Cookie Policy — The Eden Institute",
+    description:
+      "Cookie policy for The Eden Institute. Understand what cookies we use and how they enhance your experience.",
+    canonical: "https://edeninstitute.health/cookies",
+  });
 
 
   return (

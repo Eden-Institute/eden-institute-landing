@@ -11,20 +11,26 @@
 //     as a client:only island.
 //   • The two JourneyAwareQuizCTA -> static /assessment links (no-Pattern copy).
 //   • journeyCta.hasPattern pivots -> the no-Pattern copy.
-//   • The Tier 2 waitlist MODAL (TierTwoWaitlistModal, opened by onClick) -> static
-//     links to /tier-2-waitlist, the existing waitlist signup page. The funnel is
-//     intact (signup still reachable); the 1-click modal can return as an island.
+//   • The Tier 2 waitlist MODAL -> static links to /tier-2-waitlist. The React
+//     TierTwoWaitlistModal was removed in the 2026-09 audit as unused; restore it
+//     from git history if the 1-click modal returns as an island.
 //   • Tier 3 stays a disabled "TBD" control.
 // Navbar / Footer / analytics come from MarketingLayout.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 // Hero watermark: public domain botanical plate from Koehler's Medizinal-Pflanzen
 // (1887), desaturated to a sage wash and feathered at the edges, matching the
-// watermark treatment in the Sprouts Student Notebook. Rendered at 24% with
+// watermark treatment in the Sprouts Student Notebook. Rendered at 95% opacity
+// behind a white content panel (PR #433, full-colour botanicals) with
 // mix-blend-mode:multiply, so the white ground vanishes and only the plant tints
 // the section. The image is 1920x1080 to match the hero aspect; do not swap in a
 // portrait plate, it will crop to a band across the middle of the plant.
 import heroCourses from "@/assets/hero-courses.jpg";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+// CTA links carry buttonVariants classes rather than wrapping a <Button>: a
+// <button> inside an <a> is invalid HTML and a second tab stop. text-center
+// stands in for a <button>'s own centring. Where the inner button used h-full to
+// fill its stretched wrapper, the link now takes h-auto so it stretches itself.
 import { BookOpen, CheckCircle, Clock, GraduationCap, Users } from "lucide-react";
 
 // Goes through api/go/course.ts so the click is counted (course sells
@@ -117,20 +123,14 @@ const courseJsonLd = {
         </footer>
       </blockquote>
       <div class="flex flex-col items-stretch justify-center gap-4 sm:flex-row sm:flex-wrap">
-        <a href={T1} target="_blank" rel="noopener noreferrer" class="inline-flex w-full sm:w-auto">
-          <Button variant="eden" size="xl" className="w-full h-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6">
-            Enroll in Tier 1 · $97
-          </Button>
+        <a href={T1} target="_blank" rel="noopener noreferrer" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center w-full sm:w-auto h-auto whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6")}>
+          Enroll in Tier 1 · $97
         </a>
-        <a href="/assessment" data-cta="journey-aware-quiz" class="inline-flex w-full sm:w-auto">
-          <Button variant="eden-outline" size="xl" className="w-full h-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6">
-            Take the Free Quiz First
-          </Button>
+        <a href="/assessment" data-cta="journey-aware-quiz" class={cn(buttonVariants({ variant: "eden-outline", size: "xl" }), "text-center w-full sm:w-auto h-auto whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6")}>
+          Take the Free Quiz First
         </a>
-        <a href={amazonKitUrl} target="_blank" rel="noopener noreferrer sponsored" aria-label={amazonKitAriaLabel} data-cta="courses-hero-amazon-kit" class="inline-flex w-full sm:w-auto">
-          <Button variant="eden-outline" size="xl" className="w-full h-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6">
-            {amazonKitLabel} →
-          </Button>
+        <a href={amazonKitUrl} target="_blank" rel="noopener noreferrer sponsored" aria-label={amazonKitAriaLabel} data-cta="courses-hero-amazon-kit" class={cn(buttonVariants({ variant: "eden-outline", size: "xl" }), "text-center w-full sm:w-auto h-auto whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6")}>
+          {amazonKitLabel} →
         </a>
       </div>
       <p class="mt-4 font-body text-[11px] italic text-muted-foreground">
@@ -174,21 +174,19 @@ const courseJsonLd = {
           <p class="mb-4 text-center font-body text-xs leading-snug" style="color:hsl(var(--eden-bark) / 0.65)">
             One payment · self-paced · lifetime access
           </p>
-          <a href={T1} target="_blank" rel="noopener noreferrer" class="block">
-            <Button variant="eden" className="w-full">Enroll Now</Button>
-          </a>
-        </div>
+          <a href={T1} target="_blank" rel="noopener noreferrer" class={cn(buttonVariants({ variant: "eden" }), "text-center w-full")}>Enroll Now</a>
 
-        {/* Companion textbook · Tier 1 */}
-        <div class="mt-8 rounded-sm border p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4" style="background-color:hsl(var(--eden-parchment));border-color:hsl(var(--eden-gold) / 0.4)">
-          <div>
-            <p class="font-accent text-xs tracking-widest uppercase mb-1" style="color:hsl(var(--eden-gold-ink))">Companion Textbook · Tier 1</p>
-            <h3 class="font-serif text-xl font-bold mb-1" style="color:hsl(var(--eden-forest))">Back to Eden: Foundations of Biblical Herbalism</h3>
-            <p class="font-body text-sm" style="color:hsl(var(--eden-bark) / 0.75)">The print companion to the Tier 1 course. Read it alongside the lessons or give it as a gift to someone beginning their herbal journey.</p>
+          {/* Companion textbook · Tier 1 */}
+          <div class="mt-6 rounded-sm border p-6 flex flex-col gap-4" style="background-color:hsl(var(--eden-parchment));border-color:hsl(var(--eden-gold) / 0.4)">
+            <div>
+              <p class="font-accent text-xs tracking-widest uppercase mb-1" style="color:hsl(var(--eden-gold-ink))">Companion Textbook · Tier 1</p>
+              <h3 class="font-serif text-xl font-bold mb-1" style="color:hsl(var(--eden-forest))">Back to Eden: Foundations of Biblical Herbalism</h3>
+              <p class="font-body text-sm" style="color:hsl(var(--eden-bark) / 0.75)">The print companion to the Tier 1 course. Read it alongside the lessons or give it as a gift to someone beginning their herbal journey.</p>
+            </div>
+            <a href={BOOK_URL} target="_blank" rel="noopener noreferrer sponsored" aria-label="Browse the Eden Institute book series on Amazon (opens in a new tab)" class="shrink-0 font-body text-xs tracking-widest uppercase font-semibold px-4 py-2 rounded-sm text-center transition-opacity hover:opacity-90" style="background-color:hsl(var(--eden-gold));color:hsl(var(--eden-bark))">
+              Buy the Book
+            </a>
           </div>
-          <a href={BOOK_URL} target="_blank" rel="noopener noreferrer sponsored" aria-label="Browse the Eden Institute book series on Amazon (opens in a new tab)" class="shrink-0 font-body text-xs tracking-widest uppercase font-semibold px-4 py-2 rounded-sm text-center transition-opacity hover:opacity-90" style="background-color:hsl(var(--eden-gold));color:hsl(var(--eden-bark))">
-            Buy the Book
-          </a>
         </div>
 
         {/* Tier 2 — Coming 2027 */}
@@ -209,10 +207,8 @@ const courseJsonLd = {
             Public price. Waitlist members get a founding coupon that drops it by $1,000.
           </p>
           <div class="flex flex-col gap-2 w-full">
-            <a href="/tier-2-waitlist" data-cta="tier-two-waitlist-courses" class="block">
-              <Button variant="eden" className="w-full whitespace-normal h-auto leading-snug py-2.5">
-                Join the Tier 2 Waitlist
-              </Button>
+            <a href="/tier-2-waitlist" data-cta="tier-two-waitlist-courses" class={cn(buttonVariants({ variant: "eden" }), "text-center w-full whitespace-normal h-auto leading-snug py-2.5")}>
+              Join the Tier 2 Waitlist
             </a>
           </div>
 
@@ -222,9 +218,7 @@ const courseJsonLd = {
             <h3 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-forest))">Back to Eden: Body Systems &amp; Clinical Literacy</h3>
             <p class="font-body text-sm mb-4" style="color:hsl(var(--eden-bark) / 0.75)">A comprehensive 14-module clinical reference covering every major body system. Terrain-based, Scripture-anchored, practitioner-grade. Join the Tier 2 waitlist to be notified when both the course and textbook are available.</p>
             <div class="flex flex-col sm:flex-row gap-2">
-              <a href="/tier-2-waitlist" data-cta="tier-two-waitlist-courses-textbook">
-                <Button variant="eden" size="sm">Join the Tier 2 Waitlist</Button>
-              </a>
+              <a href="/tier-2-waitlist" data-cta="tier-two-waitlist-courses-textbook" class={cn(buttonVariants({ variant: "eden", size: "sm" }), "text-center")}>Join the Tier 2 Waitlist</a>
             </div>
           </div>
         </div>
@@ -275,20 +269,14 @@ const courseJsonLd = {
         Take the 2-minute Body Pattern Quiz. Discover your body pattern first.
       </p>
       <div class="flex flex-col items-stretch justify-center gap-4 sm:flex-row sm:flex-wrap">
-        <a href="/assessment" data-cta="journey-aware-quiz" class="inline-flex w-full sm:w-auto">
-          <Button variant="eden" size="xl" className="w-full h-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6">
-            Take the Free Quiz
-          </Button>
+        <a href="/assessment" data-cta="journey-aware-quiz" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center w-full sm:w-auto h-auto whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6")}>
+          Take the Free Quiz
         </a>
-        <a href={T1} target="_blank" rel="noopener noreferrer" class="inline-flex w-full sm:w-auto">
-          <Button variant="eden-outline" size="xl" className="w-full h-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6">
-            Enroll in Tier 1 · $97
-          </Button>
+        <a href={T1} target="_blank" rel="noopener noreferrer" class={cn(buttonVariants({ variant: "eden-outline", size: "xl" }), "text-center w-full sm:w-auto h-auto whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6")}>
+          Enroll in Tier 1 · $97
         </a>
-        <a href={amazonKitUrl} target="_blank" rel="noopener noreferrer sponsored" aria-label={amazonKitAriaLabel} data-cta="courses-bottom-amazon-kit" class="inline-flex w-full sm:w-auto">
-          <Button variant="eden-outline" size="xl" className="w-full h-full whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6">
-            {amazonKitLabel} →
-          </Button>
+        <a href={amazonKitUrl} target="_blank" rel="noopener noreferrer sponsored" aria-label={amazonKitAriaLabel} data-cta="courses-bottom-amazon-kit" class={cn(buttonVariants({ variant: "eden-outline", size: "xl" }), "text-center w-full sm:w-auto h-auto whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6")}>
+          {amazonKitLabel} →
         </a>
       </div>
       <p class="mt-4 font-body text-[11px] italic text-muted-foreground">

@@ -5,11 +5,10 @@ import { Button } from "@/components/ui/button";
 const TIER_1_URL = "/go/course?src=tier2";
 
 interface TierTwoWaitlistFormProps {
-  /** Retained for call-site compatibility; no longer used (no signup here). */
-  surface?: string;
   /**
    * "card" renders on the standalone /tier-2-waitlist page (own border),
-   * "modal" renders inside a Dialog (no border/heading). Default: "card".
+   * "modal" is the borderless layout for use inside a Dialog (no current
+   * caller). Default: "card".
    */
   variant?: "card" | "modal";
 }
@@ -18,8 +17,7 @@ interface TierTwoWaitlistFormProps {
  * Tier 2 is deprioritized and is NOT collecting waitlist signups. This panel
  * replaces the former waitlist form: it tells visitors Tier 2 is coming and
  * routes the interested to Tier 1 (Foundations) — the surest way to be first
- * when Tier 2 opens. Single source of truth, so the /tier-2-waitlist page and
- * the homepage modal render the same thing. No Edge Function call.
+ * when Tier 2 opens. Rendered by the /tier-2-waitlist page. No Edge Function call.
  *
  * Tier 1 is $97, full stop (founder decision 2026-09-10: no price increase is
  * advertised anywhere). The price is set on the LearnWorlds enrollment page — never a coupon

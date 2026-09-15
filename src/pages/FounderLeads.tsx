@@ -14,8 +14,7 @@
 // authenticated accounts get "Not authorized" regardless of the UI. The email
 // check below is UX only.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -32,7 +31,24 @@ import OutreachTab from "@/components/founder/OutreachTab";
 
 const FOUNDER_EMAIL = "hello@edeninstitute.health";
 
-type Tab = "leads" | "traffic" | "orders" | "broadcast" | "funnel" | "crm" | "emails" | "revenue" | "feedback" | "partners" | "outreach";
+// One entry per tab, in strip order. selfLoading: the tab component fetches its
+// own data, so the page-level load(), Refresh button and "Updated" stamp do not
+// apply to it. windowed: the tab reads the window selector's `since`.
+const TABS = [
+  { id: "leads", label: "Lead magnets", selfLoading: false, windowed: true },
+  { id: "traffic", label: "Website traffic", selfLoading: false, windowed: true },
+  { id: "orders", label: "Orders", selfLoading: true, windowed: true },
+  { id: "broadcast", label: "Broadcast", selfLoading: true, windowed: false },
+  { id: "funnel", label: "Funnel", selfLoading: true, windowed: true },
+  { id: "emails", label: "Emails", selfLoading: true, windowed: true },
+  { id: "revenue", label: "Revenue", selfLoading: true, windowed: true },
+  { id: "crm", label: "CRM", selfLoading: true, windowed: true },
+  { id: "partners", label: "Partners", selfLoading: true, windowed: false },
+  { id: "outreach", label: "Outreach", selfLoading: true, windowed: false },
+  { id: "feedback", label: "Feedback", selfLoading: true, windowed: false },
+] as const;
+type Tab = (typeof TABS)[number]["id"];
+const TAB_META = Object.fromEntries(TABS.map((t) => [t.id, t])) as Record<Tab, (typeof TABS)[number]>;
 
 interface LeadRow {
   email: string;
@@ -144,30 +160,28 @@ export default function FounderLeads() {
   const isFounder = !!user && user.email?.toLowerCase() === FOUNDER_EMAIL;
 
   const load = useCallback(async () => {
-    // CRM, Emails, Revenue, Orders, Funnel, Feedback, and Partners tabs fetch their own data inside their components.
-    if (tab === "crm" || tab === "emails" || tab === "revenue" || tab === "orders" || tab === "broadcast" || tab === "funnel" || tab === "feedback" || tab === "partners" || tab === "outreach") return;
+    // Cleared before the early return so a leads/traffic error does not follow
+    // the founder onto a tab that loads (and reports errors for) itself.
+    setError(null);
+    if (TAB_META[tab].selfLoading) return;
     const since = sinceISO(WINDOWS[windowIdx].days);
     setLoading(true);
-    setError(null);
     try {
       if (tab === "leads") {
         // Two calls: summary = exact server-side aggregates (headline numbers,
         // by-magnet, daily strip); feed = the raw capped row list for the table.
         const [summaryRes, feedRes] = await Promise.all([
-          supabase.rpc("founder_lead_summary" as never, { p_since: since } as never),
-          supabase.rpc("founder_lead_feed" as never, { p_since: since } as never),
+          supabase.rpc("founder_lead_summary", { p_since: since }),
+          supabase.rpc("founder_lead_feed", { p_since: since }),
         ]);
         if (summaryRes.error) throw summaryRes.error;
         if (feedRes.error) throw feedRes.error;
-        setLeadSummary((summaryRes.data as LeadSummary | null) ?? null);
+        setLeadSummary((summaryRes.data as unknown as LeadSummary | null) ?? null);
         setLeads((feedRes.data as LeadRow[] | null) ?? []);
       } else {
-        const { data, error: e } = await supabase.rpc(
-          "founder_traffic" as never,
-          { p_since: since } as never,
-        );
+        const { data, error: e } = await supabase.rpc("founder_traffic", { p_since: since });
         if (e) throw e;
-        setTraffic((data as Traffic | null) ?? null);
+        setTraffic((data as unknown as Traffic | null) ?? null);
       }
       setFetchedAt(new Date());
     } catch (err) {
@@ -270,7 +284,7 @@ export default function FounderLeads() {
           </p>
           <div className="flex gap-3 justify-center">
             <Button variant="outline" onClick={() => signOut()}>Sign out</Button>
-            <Button asChild variant="eden"><Link to={ROUTES.HOME}>Home</Link></Button>
+            <Button asChild variant="eden"><a href={ROUTES.HOME}>Home</a></Button>
           </div>
         </div>
       </div>
@@ -292,22 +306,28 @@ export default function FounderLeads() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            {fetchedAt && (
-              <span className="font-body text-[11px] text-muted-foreground whitespace-nowrap">
-                Updated{" "}
-                {fetchedAt.toLocaleTimeString("en-US", {
-                  timeZone: "America/Chicago",
-                  hour: "numeric",
-                  minute: "2-digit",
-                  second: "2-digit",
-                  hour12: true,
-                })}{" "}
-                CT
-              </span>
+            {/* Only leads and traffic are loaded by this page; the other tabs
+                fetch (and where useful refresh) their own data. */}
+            {!TAB_META[tab].selfLoading && (
+              <>
+                {fetchedAt && (
+                  <span className="font-body text-[11px] text-muted-foreground whitespace-nowrap">
+                    Updated{" "}
+                    {fetchedAt.toLocaleTimeString("en-US", {
+                      timeZone: "America/Chicago",
+                      hour: "numeric",
+                      minute: "2-digit",
+                      second: "2-digit",
+                      hour12: true,
+                    })}{" "}
+                    CT
+                  </span>
+                )}
+                <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+                  {loading ? "Refreshing…" : "Refresh"}
+                </Button>
+              </>
             )}
-            <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-              {loading ? "Refreshing…" : "Refresh"}
-            </Button>
             <Button variant="outline" size="sm" onClick={() => signOut()} disabled={loading}>
               Sign out
             </Button>
@@ -315,10 +335,13 @@ export default function FounderLeads() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-4 border-b border-border flex-wrap">
-          {(["leads", "traffic", "orders", "broadcast", "funnel", "emails", "revenue", "crm", "partners", "outreach", "feedback"] as Tab[]).map((t) => (
+        <div className="flex gap-1 mb-4 border-b border-border flex-wrap" role="tablist" aria-label="Dashboard sections">
+          {TABS.map(({ id: t, label }) => (
             <button
               key={t}
+              type="button"
+              role="tab"
+              aria-selected={tab === t}
               onClick={() => setTab(t)}
               className="font-accent text-xs tracking-[0.15em] uppercase px-4 py-2 -mb-px border-b-2 transition-colors"
               style={
@@ -327,30 +350,33 @@ export default function FounderLeads() {
                   : { borderColor: "transparent", color: "hsl(var(--muted-foreground))" }
               }
             >
-              {t === "leads" ? "Lead magnets" : t === "traffic" ? "Website traffic" : t === "orders" ? "Orders" : t === "broadcast" ? "Broadcast" : t === "funnel" ? "Funnel" : t === "emails" ? "Emails" : t === "revenue" ? "Revenue" : t === "crm" ? "CRM" : t === "partners" ? "Partners" : t === "outreach" ? "Outreach" : "Feedback"}
+              {label}
             </button>
           ))}
         </div>
 
-        {/* Window selector */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          {WINDOWS.map((w, i) => (
-            <button
-              key={w.label}
-              onClick={() => setWindowIdx(i)}
-              className="font-body text-sm px-3 py-1 rounded-full border transition-colors"
-              style={
-                i === windowIdx
-                  ? { backgroundColor: "hsl(var(--eden-bark))", color: "white", borderColor: "hsl(var(--eden-bark))" }
-                  : { backgroundColor: "transparent", color: "hsl(var(--eden-bark))", borderColor: "hsl(var(--eden-bark) / 0.3)" }
-              }
-            >
-              {w.label}
-            </button>
-          ))}
-        </div>
+        {/* Window selector, only on tabs that read it. windowIdx is kept, so
+            coming back to a windowed tab keeps the previous choice. */}
+        {TAB_META[tab].windowed && (
+          <div className="flex flex-wrap gap-2 mb-6">
+            {WINDOWS.map((w, i) => (
+              <button
+                key={w.label}
+                onClick={() => setWindowIdx(i)}
+                className="font-body text-sm px-3 py-1 rounded-full border transition-colors"
+                style={
+                  i === windowIdx
+                    ? { backgroundColor: "hsl(var(--eden-bark))", color: "white", borderColor: "hsl(var(--eden-bark))" }
+                    : { backgroundColor: "transparent", color: "hsl(var(--eden-bark))", borderColor: "hsl(var(--eden-bark) / 0.3)" }
+                }
+              >
+                {w.label}
+              </button>
+            ))}
+          </div>
+        )}
 
-        {error && (
+        {error && !TAB_META[tab].selfLoading && (
           <div className="mb-6 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
             <p className="font-body text-sm text-destructive">{error}</p>
           </div>
@@ -375,8 +401,16 @@ export default function FounderLeads() {
                 {byMagnet.map((m) => (
                   <tr
                     key={m.label}
-                    className="border-t border-border cursor-pointer hover:bg-muted/40 transition-colors"
+                    className="border-t border-border cursor-pointer hover:bg-muted/40 focus-visible:bg-muted/40 outline-none transition-colors"
                     onClick={() => openMagnetDrill(m.label, m.count)}
+                    tabIndex={0}
+                    role="button"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openMagnetDrill(m.label, m.count);
+                      }
+                    }}
                     title="Click to see who's in this magnet"
                   >
                     <Td>{m.label}</Td>
@@ -533,7 +567,7 @@ export default function FounderLeads() {
         )}
 
         <p className="font-body text-xs text-muted-foreground">
-          {fetchedAt
+          {fetchedAt && !TAB_META[tab].selfLoading
             ? `Updated ${fetchedAt.toLocaleString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit", hour12: true, month: "short", day: "numeric" })} CT · `
             : ""}
           Live data — reloads each visit. Visit tracking is cookieless and stores no personal data.
@@ -573,12 +607,34 @@ function StatCard({ label, value, small, onClick }: { label: string; value: stri
 // makes that explicit rather than implying the list is complete.
 function DrillModal({ drill, onClose }: { drill: Drill; onClose: () => void }) {
   const capped = drill.exactCount > drill.rows.length;
+  const closeRef = useRef<HTMLButtonElement>(null);
+  // The parent passes a fresh onClose each render; read it through a ref so the
+  // focus effect below runs once per open rather than on every parent render.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+  // Escape closes, focus moves into the dialog on open and returns to whatever
+  // opened it on close. No full focus trap: founder-only page.
+  useEffect(() => {
+    const prev = document.activeElement as HTMLElement | null;
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCloseRef.current();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      prev?.focus?.();
+    };
+  }, []);
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 px-4 py-10 overflow-y-auto"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
+      aria-labelledby="drill-title"
     >
       <div
         className="w-full max-w-2xl rounded-lg border border-border bg-card shadow-xl"
@@ -587,11 +643,11 @@ function DrillModal({ drill, onClose }: { drill: Drill; onClose: () => void }) {
         <div className="flex items-center justify-between border-b border-border px-5 py-3">
           <div>
             <p className="font-accent text-[10px] tracking-[0.2em] uppercase text-muted-foreground">Drill-down</p>
-            <h2 className="font-serif text-lg font-bold" style={{ color: "hsl(var(--eden-bark))" }}>
+            <h2 id="drill-title" className="font-serif text-lg font-bold" style={{ color: "hsl(var(--eden-bark))" }}>
               {drill.title} · {drill.exactCount}
             </h2>
           </div>
-          <Button variant="outline" size="sm" onClick={onClose}>Close</Button>
+          <Button ref={closeRef} variant="outline" size="sm" onClick={onClose}>Close</Button>
         </div>
 
         {capped && (
@@ -607,9 +663,9 @@ function DrillModal({ drill, onClose }: { drill: Drill; onClose: () => void }) {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-muted/40 sticky top-0">
-                <th className="px-4 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground">Subscriber</th>
-                <th className="px-4 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground">Magnet</th>
-                <th className="px-4 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground">Captured (CT)</th>
+                <th scope="col" className="px-4 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground">Subscriber</th>
+                <th scope="col" className="px-4 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground">Magnet</th>
+                <th scope="col" className="px-4 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground">Captured (CT)</th>
               </tr>
             </thead>
             <tbody>
@@ -684,6 +740,7 @@ function Table({
             {head.map((h, i) => (
               <th
                 key={h}
+                scope="col"
                 className={`px-3 py-2 font-accent text-[10px] tracking-wider uppercase text-muted-foreground ${align[i] === "right" ? "text-right" : ""}`}
               >
                 {h}

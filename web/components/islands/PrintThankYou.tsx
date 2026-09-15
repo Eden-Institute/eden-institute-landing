@@ -92,6 +92,19 @@ function reportPinterestCheckout(sessionId: string, s: Status): void {
   }
 }
 
+const BARK = { color: "hsl(var(--eden-bark))" } as const;
+
+function Hero({ eyebrow, title, sub }: { eyebrow: string; title: string; sub: string }) {
+  return (
+    <div className="text-center mb-8">
+      <p className="font-accent text-sm tracking-[0.3em] uppercase mb-4" style={{ color: "hsl(var(--eden-gold-ink))" }}>{eyebrow}</p>
+      <h1 className="font-serif text-4xl md:text-5xl font-bold leading-tight mb-5" style={BARK}>{title}</h1>
+      <div className="w-16 h-px mx-auto my-5" style={{ backgroundColor: "hsl(var(--eden-gold))" }}></div>
+      <p className="font-body text-lg text-muted-foreground leading-relaxed">{sub}</p>
+    </div>
+  );
+}
+
 export default function PrintThankYou() {
   const [status, setStatus] = useState<Status | null>(null);
   const [tries, setTries] = useState(0);
@@ -133,16 +146,7 @@ export default function PrintThankYou() {
   const card = "rounded-lg p-5 md:p-6 bg-white border shadow-sm";
   const cardStyle = { borderColor: "hsl(var(--eden-gold) / 0.35)" };
   const forest = { color: "hsl(var(--eden-forest))" };
-  const bark = { color: "hsl(var(--eden-bark))" };
-
-  const Hero = ({ eyebrow, title, sub }: { eyebrow: string; title: string; sub: string }) => (
-    <div className="text-center mb-8">
-      <p className="font-accent text-sm tracking-[0.3em] uppercase mb-4" style={{ color: "hsl(var(--eden-gold-ink))" }}>{eyebrow}</p>
-      <h1 className="font-serif text-4xl md:text-5xl font-bold leading-tight mb-5" style={bark}>{title}</h1>
-      <div className="w-16 h-px mx-auto my-5" style={{ backgroundColor: "hsl(var(--eden-gold))" }}></div>
-      <p className="font-body text-lg text-muted-foreground leading-relaxed">{sub}</p>
-    </div>
-  );
+  const bark = BARK;
 
   if (noSession) {
     return (

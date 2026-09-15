@@ -10,33 +10,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useCurrentTier, type Tier } from "@/hooks/useCurrentTier";
+import { useCurrentTier } from "@/hooks/useCurrentTier";
 import { useActiveProfile } from "@/contexts/ActiveProfileContext";
 import { resolveEdenPattern, PATTERN_PROFILES } from "@/lib/edenPattern";
 import { ROUTES } from "@/lib/routes";
+import { personProfileCap } from "@/lib/tiers";
 import { ProfileFormDialog } from "./ProfileFormDialog";
-
-/**
- * Tier caps — v2 schedule (2026-04-30) per tier-cap restructure migration
- * (supabase/migrations/20260430140000_tier_cap_restructure_v2.sql).
- * Mirror of the SQL function public.person_profile_cap_for_tier; single
- * source of truth for the BACKEND remains the SQL function (BEFORE INSERT
- * trigger enforces). This constant is for UX gating only — the dropdown
- * "Cap reached (X)" label and the count readout in the menu header.
- *
- *   Free=0, Seed=5, Root=10, Practitioner=500.
- *
- * Free still excluded by the tier gate below (cap=0, nothing to switch
- * between). Practitioner is deferred to Phase 3 (end of 2027) but the
- * tier-gate handles it for forward-compat.
- */
-const TIER_CAP: Record<Tier, number> = {
-  anon: 0,
-  free: 0,
-  seed: 5,
-  root: 10,
-  practitioner: 500,
-};
 
 /**
  * Persistent profile picker pill — top-right nav, Seed tier and above.
@@ -67,7 +46,8 @@ const TIER_CAP: Record<Tier, number> = {
  */
 export function ProfilePicker() {
   const { data: tier } = useCurrentTier();
-  const { profiles, activeProfile, setActiveProfileId } = useActiveProfile();
+  const { profiles, activeProfile, setActiveProfileId, isError } =
+    useActiveProfile();
   const [showAddForm, setShowAddForm] = useState(false);
 
   // Tier gate: Seed, Root, Practitioner see the picker (cap ≥ 1 by v2
@@ -80,7 +60,7 @@ export function ProfilePicker() {
     return null;
   }
 
-  const cap = TIER_CAP[tier] ?? 0;
+  const cap = personProfileCap(tier);
   const canAddMore = profiles.length < cap;
 
   const renderPatternBadge = (rawValue: string | null) => {
@@ -119,7 +99,11 @@ export function ProfilePicker() {
             {profiles.length} of {cap}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {profiles.length === 0 ? (
+          {profiles.length === 0 && isError ? (
+            <div className="px-2 py-3 text-sm text-muted-foreground font-body">
+              Something went wrong. Please try again.
+            </div>
+          ) : profiles.length === 0 ? (
             <div className="px-2 py-3 text-sm text-muted-foreground font-body">
               {tier === "practitioner"
                 ? "No profiles yet. Add yourself or your first patient to start."

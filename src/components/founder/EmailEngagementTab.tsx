@@ -72,12 +72,9 @@ export default function EmailEngagementTab({ since }: { since: string }) {
     setLoading(true);
     setError(null);
     try {
-      const { data: res, error: e } = await supabase.rpc(
-        "founder_email_engagement" as never,
-        { p_since: since } as never,
-      );
+      const { data: res, error: e } = await supabase.rpc("founder_email_engagement", { p_since: since });
       if (e) throw e;
-      setData((res as Engagement | null) ?? { by_email: [], by_cta: [] });
+      setData((res as unknown as Engagement | null) ?? { by_email: [], by_cta: [] });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load engagement data.");
     } finally {
@@ -165,7 +162,7 @@ export default function EmailEngagementTab({ since }: { since: string }) {
                 </thead>
                 <tbody>
                   {byEmail.map((e) => (
-                    <tr key={e.email_key} className="border-t border-border">
+                    <tr key={`${e.email_key}::${e.campaign ?? ""}`} className="border-t border-border">
                       <Td>{emailLabel(e.email_key)}</Td>
                       <Td right>{e.opens}</Td>
                       <Td right className="text-muted-foreground">{e.unique_opens}</Td>

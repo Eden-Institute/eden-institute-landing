@@ -22,7 +22,11 @@
 // noindex, because there is nothing here to rank and the page exists only so old
 // links land somewhere true.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+// CTA links carry buttonVariants classes rather than wrapping a <Button>: a
+// <button> inside an <a> is invalid HTML and a second tab stop. text-center
+// stands in for a <button>'s own centring.
 
 const meta = {
   title: "Preorders are closed | Eden's Table",
@@ -57,12 +61,8 @@ const meta = {
         </p>
       </div>
       <div class="flex flex-col sm:flex-row gap-3 justify-center items-center mt-8">
-        <a href="/books" data-cta="preorder-closed-books">
-          <Button variant="eden" size="xl">See the printed year · $249</Button>
-        </a>
-        <a href="/starter" data-cta="preorder-closed-starter">
-          <Button variant="eden-outline" size="xl">Try nine weeks · $39</Button>
-        </a>
+        <a href="/books" data-cta="preorder-closed-books" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center")}>See the printed year · $249</a>
+        <a href="/starter" data-cta="preorder-closed-starter" class={cn(buttonVariants({ variant: "eden-outline", size: "xl" }), "text-center")}>Try nine weeks · $39</a>
       </div>
       <p class="font-body text-sm text-muted-foreground mt-6">
         Questions about an existing order? Email <a href="mailto:hello@edeninstitute.health" class="underline">hello@edeninstitute.health</a> and I answer them myself.

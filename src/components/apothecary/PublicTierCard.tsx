@@ -22,10 +22,10 @@ interface Props {
  *
  * Free → /auth/signup (default flow lands on /welcome-tour).
  *
- * Seed/Root → /apothecary/pricing?tier={tier}. Per v3.33 PR #51 (Lock #21
- * retired for the pricing surface), the pricing page is now public so
- * paid-tier intent links straight to it without a signup detour. The
- * `?tier=` param lets Pricing.tsx pre-highlight the chosen plan.
+ * Seed/Root → /apothecary/pricing#tier-{tier}. Per v3.33 PR #51 (Lock #21
+ * retired for the pricing surface), the pricing page is public so paid-tier
+ * intent links straight to it without a signup detour. Pricing.tsx reads the
+ * #tier- hash (useLocation().hash) to pre-highlight the chosen plan.
  */
 export function PublicTierCard({
   tier,

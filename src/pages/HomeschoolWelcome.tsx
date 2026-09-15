@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/landing/Footer";
 import Navbar from "@/components/landing/Navbar";
@@ -155,26 +155,23 @@ const HomeschoolWelcome = () => {
 
           <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
             {/* A plain anchor, NOT a router Link, and that is load-bearing.
-                /homeschool is an Astro page (web/pages/homeschool.astro) and the
-                React route of the same name still renders src/pages/Homeschool.tsx,
-                which is a stale ancestor: it advertises free sample weeks and
-                "Reserve Founders pricing", neither of which exists any more.
-                A client-side Link would render THAT to someone who has just paid.
-                A full page load serves the real Astro page. This was the only
-                router link into the stale twin (checked 2026-08-26). */}
+                /homeschool is served only by the Astro build (web/pages/homeschool.astro);
+                the SPA has no /homeschool route any more (the stale src/pages/Homeschool.tsx
+                twin was deleted), so a client-side Link would render NotFound. A full page
+                load serves the real Astro page. */}
             <a href="/homeschool">
               <Button variant="eden" size="xl">
                 Back to Eden's Table
               </Button>
             </a>
-            <Link to={ROUTES.HOME}>
+            <a href={ROUTES.HOME}>
               <span
                 className="font-accent text-sm tracking-wider uppercase underline-offset-4 hover:underline cursor-pointer"
                 style={{ color: "hsl(var(--eden-gold-ink))" }}
               >
                 Explore the rest of Eden Institute →
               </span>
-            </Link>
+            </a>
           </div>
         </div>
       </section>

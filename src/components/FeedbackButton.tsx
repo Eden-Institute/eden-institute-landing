@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { CONSENT_CHANGE_EVENT, getMarketingConsent } from "@/lib/consent";
 import { toast } from "sonner";
 
 const SUPABASE_FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-feedback`;
@@ -83,6 +84,15 @@ export function FeedbackButton() {
   const [submitting, setSubmitting] = useState(false);
   const [mine, setMine] = useState<MySubmission[] | null>(null);
   const [showMine, setShowMine] = useState(false);
+  // The consent banner pins to the same corner and sits above this button, so
+  // the button stays hidden until a choice is stored.
+  const [consentPending, setConsentPending] = useState(() => getMarketingConsent() === null);
+
+  useEffect(() => {
+    const h = () => setConsentPending(false);
+    window.addEventListener(CONSENT_CHANGE_EVENT, h);
+    return () => window.removeEventListener(CONSENT_CHANGE_EVENT, h);
+  }, []);
 
   // Pre-fill email when modal opens for a signed-in user.
   useEffect(() => {
@@ -185,7 +195,9 @@ export function FeedbackButton() {
         <button
           type="button"
           aria-label="Send feedback to Eden Apothecary"
-          className="fixed bottom-4 right-4 z-50 inline-flex items-center gap-2 rounded-full bg-[#2C3E2D] px-4 py-3 text-sm font-medium text-white shadow-lg transition-colors hover:bg-[#1f2c20] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C5A44E] focus-visible:ring-offset-2 sm:bottom-6 sm:right-6"
+          hidden={consentPending}
+          // The hidden attribute alone loses to the inline-flex utility, so swap the display class too.
+          className={`fixed bottom-4 right-4 z-50 ${consentPending ? "hidden" : "inline-flex"} items-center gap-2 rounded-full bg-[#2C3E2D] px-4 py-3 text-sm font-medium text-white shadow-lg transition-colors hover:bg-[#1f2c20] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C5A44E] focus-visible:ring-offset-2 sm:bottom-6 sm:right-6`}
           style={{ minHeight: 44 }}
         >
           <MessageSquare className="h-4 w-4" aria-hidden="true" />

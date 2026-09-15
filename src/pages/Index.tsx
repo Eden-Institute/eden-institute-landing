@@ -2,13 +2,12 @@ import { useEffect, useState } from "react";
 import Navbar from "@/components/landing/Navbar";
 import GetInvolvedSection from "@/components/landing/GetInvolvedSection";
 import { getAmazonKitUrl } from "@/lib/amazonKitUrls";
-import { supabase } from "@/integrations/supabase/client";
 import heroBotanical from "@/assets/hero-botanical.jpg";
 
 function Arrow() {
   return (
     <div
-      className="three-steps-arrow hidden items-center justify-center"
+      className="three-steps-arrow hidden min-[880px]:flex items-center justify-center"
       aria-hidden="true"
       style={{
         fontFamily: "'Cormorant Garamond', Georgia, serif",
@@ -128,10 +127,6 @@ const Index = () => {
   const [patternSlug, setPatternSlug] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.rpc("current_user_tier" as never).then(
-      () => {},
-      () => {}
-    );
     try {
       const stored =
         typeof window !== "undefined"
@@ -497,8 +492,7 @@ const Index = () => {
               <h2 className="mb-6" style={{fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 400, fontSize: "clamp(28px, 4vw, 48px)", lineHeight: 1.2, color: "hsl(var(--green-deep))"}}>Three steps. Free to start.</h2>
               <p className="mx-auto" style={{fontFamily: "'EB Garamond', Georgia, serif", fontSize: "18px", color: "hsl(var(--ink-soft))", maxWidth: "720px", lineHeight: 1.6}}>Find your body's constitutional pattern. Get an herb guide written for you specifically. Source the plants your body is asking for.</p>
             </div>
-            <style>{`@media (min-width: 880px) {.three-steps-grid {grid-template-columns: 1fr 0.15fr 1fr 0.15fr 1fr !important; gap: 0 !important;} .three-steps-arrow {display: flex !important;}}`}</style>
-            <div className="three-steps-grid grid items-stretch gap-6">
+            <div className="three-steps-grid grid grid-cols-1 items-stretch gap-6 min-[880px]:grid-cols-[1fr_0.15fr_1fr_0.15fr_1fr] min-[880px]:gap-0">
               <StepCard num="1" title="The Pattern Quiz" price="Free · 2 minutes" body="Discover the constitutional pattern God designed you with. No email required to start." ctaLabel="Take the Quiz" ctaHref="/assessment" ctaVariant="honey" />
               <Arrow />
               <StepCard num="2" title="The Deep Dive Guide" price="$4.99" body="Your personalized guide — 10 herbs matched to your pattern, plus nutrition, lifestyle, and Scripture written for you." ctaLabel={hasPattern ? "Unlock with Quiz" : "Take the quiz to unlock →"} ctaHref={hasPattern ? guideUrl : "/assessment"} ctaVariant="outline" />

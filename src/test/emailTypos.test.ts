@@ -12,34 +12,34 @@
 // skipped every check. The heuristics were built for gmail.con and gmail.co;
 // nobody had considered plain gmail.
 //
-// The six real addresses are pinned below as regression cases. If any of them
+// The six failed addresses are reproduced below with synthetic local parts (same domains, same defects) as regression cases. If any of them
 // ever passes again, the hole is back.
 
 import { describe, expect, it } from "vitest";
 import { checkEmail, hasDeliverableShape } from "@/lib/emailTypos";
 
-// Verbatim from launch_email_queue, status = 'failed'.
+// Same shapes as the six launch_email_queue rows with status = 'failed'; local parts are synthetic so no subscriber PII lives in source control.
 const REAL_UNDELIVERABLE = [
-  "cassandraburke400@gmail",    // no dot in the domain
-  "jen_enserink@hotmail",       // no dot in the domain
-  "whollyedenlife@gmail",       // no dot in the domain
-  "ckp1968@hotmailcom",         // TLD run together with the domain
-  "kalahhester@gmailc",         // mangled TLD, no dot
-  "laurenhinken.@outlook.com",  // local part ends in a dot
+  "edenfixture400@gmail",          // no dot in the domain
+  "eden_fixture@hotmail",       // no dot in the domain
+  "edenfixturelife@gmail",        // no dot in the domain
+  "edenfixture1968@hotmailcom",       // TLD run together with the domain
+  "edenfixturename@gmailc",        // mangled TLD, no dot
+  "edenfixturedot.@outlook.com",   // local part ends in a dot
 ];
 
 describe("hasDeliverableShape", () => {
-  it.each(REAL_UNDELIVERABLE)("rejects the real failed address %s", (email) => {
+  it.each(REAL_UNDELIVERABLE)("rejects the failed-address shape %s", (email) => {
     expect(hasDeliverableShape(email)).toBe(false);
   });
 
   it.each([
     "hello@edeninstitute.health",
-    "jen_enserink@hotmail.com",
+    "eden_fixture@hotmail.com",
     "a@b.co",
     "first.last@sub.domain.co.uk",
     "camila+tag@gmail.com",
-    "ckp1968@hotmail.com",
+    "edenfixture1968@hotmail.com",
   ])("accepts the valid address %s", (email) => {
     expect(hasDeliverableShape(email)).toBe(true);
   });
@@ -68,7 +68,7 @@ describe("checkEmail", () => {
     // The regression that mattered: WaitlistModal used to require BOTH invalid
     // AND a suggestion, so an invalid address with no suggestion went through.
     // `invalid` must stand on its own.
-    const check = checkEmail("kalahhester@gmailc");
+    const check = checkEmail("edenfixturename@gmailc");
     expect(check.invalid).toBe(true);
   });
 

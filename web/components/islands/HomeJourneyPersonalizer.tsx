@@ -19,16 +19,20 @@
 
 import { useEffect } from "react";
 import { getAmazonKitUrl } from "@/lib/amazonKitUrls";
+import { CONSTITUTION_MAP } from "@/lib/constitution-utils";
+
+const VALID_SLUGS = new Set(Object.values(CONSTITUTION_MAP).map((v) => v.slug));
 
 export default function HomeJourneyPersonalizer() {
   useEffect(() => {
     let slug: string | null = null;
     try {
+      // No current writer of this key exists (verified 2026-09-15); personalization only fires for legacy values.
       slug = window.localStorage.getItem("edenConstitutionSlug");
     } catch {
       slug = null;
     }
-    if (!slug) return;
+    if (!slug || !VALID_SLUGS.has(slug)) return;
 
     const guideUrl = `/guide/${slug}`;
 

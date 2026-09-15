@@ -57,6 +57,12 @@ export function useDiagnosticProfile(): {
   const { user } = useAuth();
   const profileCtx = useActiveProfileOptional();
   const activeProfile = profileCtx?.activeProfile ?? null;
+  // Same gate as useEdenPattern: while the provider is still loading, or has
+  // failed with no cached list, Case A below would read the account holder's
+  // own constitution for whatever profile is actually selected.
+  const profileCtxBlocked =
+    (profileCtx?.isLoading ?? false) ||
+    ((profileCtx?.isError ?? false) && (profileCtx?.profiles.length ?? 0) === 0);
 
   const query = useQuery({
     queryKey: [
@@ -107,14 +113,14 @@ export function useDiagnosticProfile(): {
       // Case D: non-self + canonical NULL → empty state.
       return { profile: null, isEmptyForActiveProfile: true };
     },
-    enabled: true,
+    enabled: !profileCtxBlocked,
     staleTime: 30 * 60 * 1000,
     gcTime: 4 * 60 * 60 * 1000,
   });
 
   return {
     data: query.data?.profile ?? null,
-    isLoading: query.isLoading,
+    isLoading: profileCtxBlocked || query.isLoading,
     isEmptyForActiveProfile: query.data?.isEmptyForActiveProfile ?? false,
   };
 }

@@ -80,7 +80,8 @@ interface Props {
   /** "session" on the confirmation page, "token" on the re-request page. */
   mode: "session" | "token";
   /** Show the credit code block. Off on the re-request page, where the buyer
-   *  already has the code in the email they clicked from. */
+   *  already has the code in the email they clicked from.
+   *  Currently turned on by no page; see the note at the credit block. */
   showCredit?: boolean;
 }
 
@@ -204,7 +205,7 @@ export default function StarterDownloads({ mode, showCredit = false }: Props) {
   }
 
   const { data } = state;
-  const expires = new Date(data.expires_at).toLocaleDateString("en-GB", {
+  const expires = new Date(data.expires_at).toLocaleDateString("en-US", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -275,6 +276,7 @@ export default function StarterDownloads({ mode, showCredit = false }: Props) {
         )}
       </p>
 
+      {/* DORMANT since the print-first pivot (2026-09-12): no page passes showCredit={true}, so this never renders. The copy below predates the pivot and is stale (compare returns.astro). Founder must approve new wording before any page turns this on. */}
       {showCredit && data.credit_code && (
         <div
           className="mt-8 rounded-lg p-6 text-center"

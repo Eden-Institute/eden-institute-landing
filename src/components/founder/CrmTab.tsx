@@ -55,12 +55,12 @@ export default function CrmTab({ since }: { since: string }) {
     setError(null);
     try {
       const [sumRes, feedRes] = await Promise.all([
-        supabase.rpc("founder_crm_summary" as never, { p_since: since } as never),
-        supabase.rpc("founder_crm_feed" as never, { p_since: since } as never),
+        supabase.rpc("founder_crm_summary", { p_since: since }),
+        supabase.rpc("founder_crm_feed", { p_since: since }),
       ]);
       if (sumRes.error) throw sumRes.error;
       if (feedRes.error) throw feedRes.error;
-      setSummary((sumRes.data as CrmSummary | null) ?? null);
+      setSummary((sumRes.data as unknown as CrmSummary | null) ?? null);
       setRows((feedRes.data as CrmRow[] | null) ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load the CRM.");

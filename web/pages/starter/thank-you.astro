@@ -3,13 +3,14 @@
 //
 // Reached from Stripe's success_url with ?session_id={CHECKOUT_SESSION_ID}.
 //
-// Does THREE jobs, in this order of importance:
+// Does TWO jobs, in this order of importance:
 //   1. Reassure. The buyer has just paid for something with no physical trace, so
 //      the page must show the actual files, not just say an email is coming.
-//   2. Repeat the credit code (spec section 3). A buyer who deletes the email
-//      still has it, and it is the whole point of the product.
-//   3. Point at the kit. This is the conversion moment: they have just decided
-//      they trust us enough to pay, which is the warmest they will ever be.
+//   2. Point at the printed year (/books). The kit came off the site on 2026-09-12
+//      with the print-first pivot, so the upgrade route is the printed set now.
+//
+// The credit block in StarterDownloads is deliberately off (showCredit={false}).
+// Do not turn it back on while the kit is off sale; its copy predates the pivot.
 //
 // noindex: a confirmation page has nothing to offer search, and the session id in
 // the URL should not end up in an index.

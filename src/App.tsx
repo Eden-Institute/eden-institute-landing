@@ -1,4 +1,4 @@
-import { Toaster } from "@/components/ui/toaster";
+import { lazy, Suspense } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ActiveProfileProvider } from "@/contexts/ActiveProfileContext";
 import { FontScaleProvider } from "@/contexts/FontScaleContext";
-import { ROUTES } from "@/lib/routes";
+import { childPath, ROUTES } from "@/lib/routes";
 import ScrollToTop from "@/components/utils/ScrollToTop";
 import PageViewTracker from "@/components/utils/PageViewTracker";
 import CtaClickTracker from "@/components/utils/CtaClickTracker";
@@ -16,40 +16,44 @@ import Assessment from "./pages/Assessment";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Cookies from "./pages/Cookies";
-import ConstitutionalHerbalism from "./pages/ConstitutionalHerbalism";
 import NotFound from "./pages/NotFound";
 import GuideSuccess from "./pages/GuideSuccess";
 import Results from "./pages/Results";
 import GuideLanding from "./pages/GuideLanding";
 import HomeschoolWelcome from "./pages/HomeschoolWelcome";
 import TierTwoWaitlist from "./pages/TierTwoWaitlist";
-import FounderLeads from "./pages/FounderLeads";
-import PractitionerClinic from "./pages/PractitionerClinic";
 import { ApothecaryLayout } from "@/components/apothecary/ApothecaryLayout";
+import { ApothecaryErrorBoundary } from "@/components/apothecary/ApothecaryErrorBoundary";
+import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
 import { RequireAuth } from "@/components/apothecary/RequireAuth";
 import { RequireTier } from "@/components/apothecary/RequireTier";
-import ApothecaryIndex from "./pages/apothecary/ApothecaryIndex";
-import HerbMonograph from "./pages/apothecary/HerbMonograph";
-import Start from "./pages/apothecary/Start";
-import WelcomeTour from "./pages/apothecary/WelcomeTour";
-import SignUp from "./pages/apothecary/auth/SignUp";
-import SignIn from "./pages/apothecary/auth/SignIn";
-import Reset from "./pages/apothecary/auth/Reset";
-import UpdatePassword from "./pages/apothecary/auth/UpdatePassword";
-import Pricing from "./pages/apothecary/Pricing";
-import Welcome from "./pages/apothecary/Welcome";
-import Account from "./pages/apothecary/Account";
-import ProfilesPage from "./pages/apothecary/ProfilesPage";
-import Favorites from "./pages/apothecary/Favorites";
 import { FeedbackButton } from "@/components/FeedbackButton";
 import ConsentBanner from "@/components/ConsentBanner";
+
+// Code-split the auth-walled and heavy surfaces (founder dashboard, practitioner
+// clinic, the Apothecary). The ad-driven funnel pages above stay eager so the
+// quiz -> results transition never shows a skeleton.
+const FounderLeads = lazy(() => import("./pages/FounderLeads"));
+const PractitionerClinic = lazy(() => import("./pages/PractitionerClinic"));
+const ApothecaryIndex = lazy(() => import("./pages/apothecary/ApothecaryIndex"));
+const HerbMonograph = lazy(() => import("./pages/apothecary/HerbMonograph"));
+const Start = lazy(() => import("./pages/apothecary/Start"));
+const WelcomeTour = lazy(() => import("./pages/apothecary/WelcomeTour"));
+const SignUp = lazy(() => import("./pages/apothecary/auth/SignUp"));
+const SignIn = lazy(() => import("./pages/apothecary/auth/SignIn"));
+const Reset = lazy(() => import("./pages/apothecary/auth/Reset"));
+const UpdatePassword = lazy(() => import("./pages/apothecary/auth/UpdatePassword"));
+const Pricing = lazy(() => import("./pages/apothecary/Pricing"));
+const Welcome = lazy(() => import("./pages/apothecary/Welcome"));
+const Account = lazy(() => import("./pages/apothecary/Account"));
+const ProfilesPage = lazy(() => import("./pages/apothecary/ProfilesPage"));
+const Favorites = lazy(() => import("./pages/apothecary/Favorites"));
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
@@ -100,6 +104,12 @@ const App = () => (
             {/* Meta Pixel PageView on navigation — consent-gated (fires only
                 after the visitor accepts marketing cookies). */}
             <MetaPixelTracker />
+            {/* App-wide render-error fallback; the Apothecary layout keeps its own inner boundary so its Navbar/Footer survive an Apothecary error. */}
+            <ApothecaryErrorBoundary>
+            {/* Fallback for lazy top-level route chunks (/founder, /practitioner).
+                /apothecary children suspend inside ApothecaryLayout's own Suspense,
+                so its Navbar and ApothecaryNav stay visible while they load. */}
+            <Suspense fallback={<PageSkeleton />}>
             <Routes>
               {/* /why-eden, /courses, /homeschool and /community are served by the
                   ASTRO build and are canonical there. Their React duplicates were
@@ -122,13 +132,9 @@ const App = () => (
               <Route path={ROUTES.TERMS} element={<Terms />} />
               <Route path={ROUTES.PRIVACY} element={<Privacy />} />
               <Route path={ROUTES.COOKIES} element={<Cookies />} />
-              <Route
-                path={ROUTES.CONSTITUTIONAL_HERBALISM}
-                element={<ConstitutionalHerbalism />}
-              />
               <Route path={ROUTES.GUIDE_SUCCESS} element={<GuideSuccess />} />
-              <Route path="/guide/:constitutionSlug" element={<GuideLanding />} />
-              <Route path="/results/:constitutionSlug" element={<Results />} />
+              <Route path={ROUTES.GUIDE(":constitutionSlug")} element={<GuideLanding />} />
+              <Route path={ROUTES.RESULTS(":constitutionSlug")} element={<Results />} />
               {/* /homeschool/welcome — Stripe Checkout success_url redirect
                   target for homeschool product purchases (sprouts_complete,
                   seedlings_complete, two_band_bundle). Receives session_id
@@ -177,20 +183,20 @@ const App = () => (
                   directory, account, profiles, favorites, and welcome surfaces. */}
               <Route path={ROUTES.APOTHECARY} element={<ApothecaryLayout />}>
                 {/* Public surfaces */}
-                <Route path="start" element={<Start />} />
-                <Route path="auth/signup" element={<SignUp />} />
-                <Route path="auth/signin" element={<SignIn />} />
-                <Route path="auth/reset" element={<Reset />} />
-                <Route path="auth/update-password" element={<UpdatePassword />} />
+                <Route path={childPath(ROUTES.APOTHECARY_START)} element={<Start />} />
+                <Route path={childPath(ROUTES.APOTHECARY_SIGNUP)} element={<SignUp />} />
+                <Route path={childPath(ROUTES.APOTHECARY_SIGNIN)} element={<SignIn />} />
+                <Route path={childPath(ROUTES.APOTHECARY_RESET)} element={<Reset />} />
+                <Route path={childPath(ROUTES.APOTHECARY_UPDATE_PASSWORD)} element={<UpdatePassword />} />
                 {/* PR #51 v3.33: pricing made PUBLIC — retires Lock #21 for this surface. */}
-                <Route path="pricing" element={<Pricing />} />
+                <Route path={childPath(ROUTES.APOTHECARY_PRICING)} element={<Pricing />} />
                 {/* Index branches on auth: signed-in → ApothecaryHome
                     (directory, unchanged), anon → ApothecaryWelcome
                     (quiz-led value page). Must stay ONE index element —
                     see ApothecaryIndex docblock for why. */}
                 <Route index element={<ApothecaryIndex />} />
                 <Route
-                  path="welcome-tour"
+                  path={childPath(ROUTES.APOTHECARY_WELCOME_TOUR)}
                   element={
                     <RequireAuth>
                       <WelcomeTour />
@@ -198,7 +204,7 @@ const App = () => (
                   }
                 />
                 <Route
-                  path="welcome"
+                  path={childPath(ROUTES.APOTHECARY_WELCOME)}
                   element={
                     <RequireAuth>
                       <Welcome />
@@ -206,7 +212,7 @@ const App = () => (
                   }
                 />
                 <Route
-                  path="account"
+                  path={childPath(ROUTES.APOTHECARY_ACCOUNT)}
                   element={
                     <RequireAuth>
                       <Account />
@@ -217,21 +223,21 @@ const App = () => (
                     Auth + tier gating is enforced by the page itself
                     (RequireAuth + RequireTier allow={["seed","root","practitioner"]}
                     per tier-cap restructure v2). */}
-                <Route path="profiles" element={<ProfilesPage />} />
+                <Route path={childPath(ROUTES.APOTHECARY_PROFILES)} element={<ProfilesPage />} />
                 {/* Stage 7.X save-favorites listing page. Auth enforced by
                     the page itself (RequireAuth); CRO Phase 3 retired the
                     RequireTier(seed+) wrapper so free users can see their
                     device-local 3-herb list (Phase 0). Schema in
                     herb_favorites table; hook + heart icon on HerbCard
                     shipped in PR #103 + #104. */}
-                <Route path="favorites" element={<Favorites />} />
+                <Route path={childPath(ROUTES.APOTHECARY_FAVORITES)} element={<Favorites />} />
                 {/* Stage 6.3.5 Phase B sub-task 4 Layer 1+2: in-app Pattern of
                     Eden quiz, mounted under ApothecaryLayout so the picker
                     pill is visible during the quiz. Root+ only — the Pattern
                     of Eden write path is a Root-tier clinical action per
                     Lock #40 (id-keyed Edge Functions to diagnostic_completions). */}
                 <Route
-                  path="quiz"
+                  path={childPath(ROUTES.APOTHECARY_QUIZ)}
                   element={
                     <RequireAuth>
                       <RequireTier allow={["root", "practitioner"]}>
@@ -248,11 +254,13 @@ const App = () => (
                     typo'd single-segment path lands here, so HerbMonograph
                     renders a not-found state for unknown params. Depth is
                     tier-gated server-side by herbs_directory_v. */}
-                <Route path=":herbId" element={<HerbMonograph />} />
+                <Route path={childPath(ROUTES.APOTHECARY_HERB(":herbId"))} element={<HerbMonograph />} />
               </Route>
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
+            </ApothecaryErrorBoundary>
             {/* v3.34 — global feedback affordance, mounted inside AuthProvider so the
                 widget can include the signed-in user's email + bearer token when present. */}
             <FeedbackButton />

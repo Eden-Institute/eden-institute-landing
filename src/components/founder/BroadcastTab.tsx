@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { SHIP_GUARANTEE_DATE } from "../../../supabase/functions/_shared/order-config";
 
 type Kind = "update" | "delay_notice";
 
@@ -55,7 +56,8 @@ export default function BroadcastTab() {
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [revisedDate, setRevisedDate] = useState("");
-  const [currentShipsOn, setCurrentShipsOn] = useState("2027-09-30");
+  // Default comes from the same constant the edge functions use, so a ship-date pivot updates one place.
+  const [currentShipsOn, setCurrentShipsOn] = useState<string>(SHIP_GUARANTEE_DATE);
 
   const [preview, setPreview] = useState<PreviewResult | null>(null);
   const [busy, setBusy] = useState<"preview" | "send" | null>(null);

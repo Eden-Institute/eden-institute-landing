@@ -12,6 +12,9 @@
 
 const KEY = "eden-marketing-consent";
 
+/** Fired on window after a consent choice is stored, so UI hidden behind the banner can reappear. */
+export const CONSENT_CHANGE_EVENT = "eden:consent-change";
+
 /** GA4 measurement id. Same id as the gtag snippet in MarketingLayout.astro and index.html. */
 export const GA_MEASUREMENT_ID = "G-5DVHEZPKL0";
 
@@ -31,6 +34,11 @@ export function setMarketingConsent(choice: ConsentChoice): void {
     localStorage.setItem(KEY, choice);
   } catch {
     /* localStorage unavailable (private mode) — treat as no persisted consent */
+  }
+  try {
+    window.dispatchEvent(new Event(CONSENT_CHANGE_EVENT));
+  } catch {
+    /* non-browser */
   }
 }
 

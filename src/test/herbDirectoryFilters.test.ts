@@ -3,7 +3,7 @@ import {
   matchesFilters,
   EMPTY_FILTERS,
 } from "@/components/apothecary/HerbDirectoryFilters";
-import type { HerbRow } from "@/hooks/useApothecaryHerbs";
+import type { HerbDirectoryRow as HerbRow } from "@/hooks/useHerbsDirectory";
 import type { CuratedHerbPatternRow } from "@/lib/herbVerdict";
 
 /**

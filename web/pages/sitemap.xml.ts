@@ -41,33 +41,9 @@ import { CONSTITUTION_MAP } from "@/lib/constitution-utils";
 import { constitutionProfiles } from "@/lib/constitution-data";
 import { getPublicHerbs } from "../lib/herbsPublic";
 import { ESA_STATES, ESA_UPDATED_ISO } from "../lib/esaStates";
+import { STATIC_PATHS } from "../lib/sitemapStaticPaths";
 
 const ORIGIN = "https://edeninstitute.health";
-
-/**
- * Pre-rendered marketing pages, kept in step with web/pages/*.astro by hand.
- *
- * Excluded on purpose:
- *   /partner-sample       - link-only, noindex, and Disallow-ed in robots.txt
- *   /starter/downloads    - post-purchase delivery surface
- *   /starter/thank-you    - post-purchase confirmation
- */
-const STATIC_PATHS = [
-  "/",
-  "/why-eden",
-  "/constitutional-herbalism",
-  "/courses",
-  "/homeschool",
-  "/homeschool/herbs",
-  "/community",
-  "/freebies",
-  "/books",
-  "/starter",
-  "/contact",
-  "/returns",
-  "/herbs",
-  "/esa",
-];
 
 export const GET: APIRoute = async () => {
   const herbs = await getPublicHerbs();

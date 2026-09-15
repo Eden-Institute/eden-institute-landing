@@ -20,8 +20,9 @@
  *   <Link to={ROUTES.QIUZ}>…</Link>                 // ❌ TS error: typo
  *   navigate(ROUTES.RESULTS("pressure-cooker"))     // ✅ parameterized
  *
- * App.tsx <Route path={...}> reads from the same module — so any rename
- * touches one file and the compiler points at every consumer.
+ * App.tsx <Route path={...}> reads from this module (nested Apothecary
+ * children via childPath()), so any rename touches one file; routes.test.ts
+ * fails if a registered path drifts.
  *
  * Add a route?  Add it here AND add the matching <Route> in App.tsx.
  * Rename a route? Rename in here; the compiler tells you what else to fix.
@@ -34,15 +35,12 @@
  * Function values: parameterized helpers; pass the slug/id to get the path.
  */
 export const ROUTES = {
-  // ── Public marketing surfaces ──
+  // ── Public SPA surfaces (see ASTRO_PAGES for Astro-served marketing pages) ──
+  // "/" is served by Astro in production; the SPA <Index> route is only the Vite-dev fallback. Reach it with a full navigation (<a href>), never <Link>.
   HOME: "/",
-  WHY_EDEN: "/why-eden",
   ASSESSMENT: "/assessment",
   CONSTITUTIONAL_HERBALISM: "/constitutional-herbalism",
-  COURSES: "/courses",
-  HOMESCHOOL: "/homeschool",
   HOMESCHOOL_WELCOME: "/homeschool/welcome",
-  COMMUNITY: "/community",
   TIER_TWO_WAITLIST: "/tier-2-waitlist",
 
   // ── Founder / admin (auth-walled; server-gated by is_founder()) ──
@@ -90,7 +88,7 @@ export const ROUTES = {
   APOTHECARY_WELCOME: "/apothecary/welcome",
   APOTHECARY_ACCOUNT: "/apothecary/account",
   APOTHECARY_PROFILES: "/apothecary/profiles",
-  APOTHECARY_FAVORITES: "/apothecary/favorites",  // Stage 7.X save-favorites (Seed+)
+  APOTHECARY_FAVORITES: "/apothecary/favorites",  // Stage 7.X save-favorites (auth required; Seed gate retired in CRO Phase 3, see App.tsx)
   APOTHECARY_QUIZ: "/apothecary/quiz",  // Root + Practitioner only
 
   // ── Aliases & redirects (declared here, redirected in App.tsx) ──
@@ -101,3 +99,29 @@ export const ROUTES = {
    */
   QUIZ_ALIAS: "/quiz",
 } as const;
+
+/**
+ * Pages built and served by ASTRO (web/pages/*.astro). They are NOT React
+ * Router routes. Use only in a plain <a href> or window.location, never in
+ * <Link to> or navigate(); the router has no <Route> for them and renders
+ * NotFound.
+ */
+export const ASTRO_PAGES = {
+  WHY_EDEN: "/why-eden",
+  COURSES: "/courses",
+  HOMESCHOOL: "/homeschool",
+  COMMUNITY: "/community",
+} as const;
+
+/**
+ * Relative child segment for a nested <Route> under `parent` (default
+ * /apothecary). Throws if `full` is not under `parent`, so a rename that
+ * breaks nesting fails in tests instead of 404ing in production.
+ */
+export function childPath(full: string, parent: string = ROUTES.APOTHECARY): string {
+  const prefix = `${parent}/`;
+  if (!full.startsWith(prefix)) {
+    throw new Error(`route ${full} is not nested under ${parent}`);
+  }
+  return full.slice(prefix.length);
+}

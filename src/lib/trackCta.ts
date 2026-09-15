@@ -32,11 +32,12 @@ export function trackCta(
     opts?.path ??
     (typeof window !== "undefined" ? window.location.pathname : "/");
   void supabase
-    .rpc("record_cta_click" as never, {
+    .rpc("record_cta_click", {
       p_cta: cta,
       p_path: path,
-      p_lookup_key: opts?.lookupKey ?? null,
-    } as never)
+      // p_lookup_key is optional (SQL default null), so omit it rather than send null.
+      ...(opts?.lookupKey ? { p_lookup_key: opts.lookupKey } : {}),
+    })
     .then(
       () => {},
       () => {},

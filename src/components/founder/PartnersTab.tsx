@@ -60,9 +60,9 @@ export default function PartnersTab() {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: e } = await supabase.rpc("founder_partner_engagement" as never);
+      const { data, error: e } = await supabase.rpc("founder_partner_engagement");
       if (e) throw e;
-      setRows((data as PartnerRow[] | null) ?? []);
+      setRows((data as unknown as PartnerRow[] | null) ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load partner engagement.");
     } finally {

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Heart } from "lucide-react";
-import { useApothecaryHerbs } from "@/hooks/useApothecaryHerbs";
+import { useHerbsDirectory } from "@/hooks/useHerbsDirectory";
 import { useHerbFavorites } from "@/hooks/useHerbFavorites";
 import { useEdenPattern } from "@/hooks/useEdenPattern";
 import { useCuratedHerbVerdicts } from "@/hooks/useCuratedHerbVerdicts";
@@ -35,11 +35,11 @@ import heroFavorites from "@/assets/hero-favorites.jpg";
  *       page, tapping the heart removes from favorites and the row
  *       disappears — same hook, same optimistic UI.
  *
- * Design choice: reuse useApothecaryHerbs (which fetches all 300 herbs
+ * Design choice: reuse useHerbsDirectory (which fetches all 300 herbs
  * via the tier-aware herbs_directory_v view) and filter in-memory.
  * Cheap; reuses existing tier gating + Pattern-aware sort + match-badge
  * logic without copy-paste. The favorites set is small (typical user
- * has < 30 saved); the herb dataset is bounded at 100.
+ * has < 30 saved); the herb dataset is bounded at 300 (herbs_directory_v).
  *
  * Sort: by row insertion order from herb_favorites (most-recent-first)
  * — the favorites Set comes from a SELECT without explicit ORDER BY,
@@ -63,9 +63,9 @@ function FavoritesContent() {
     isLoading: herbsLoading,
     isError,
     error,
-  } = useApothecaryHerbs();
+  } = useHerbsDirectory();
   const { favorites, isLoading: favoritesLoading } = useHerbFavorites();
-  const { data: activePattern } = useEdenPattern();
+  const { data: activePattern, patternSubject } = useEdenPattern();
   // Same curated source as the directory, so a favorited herb never shows a
   // different verdict than the same herb on the home grid.
   const { byHerbId: curatedVerdicts } = useCuratedHerbVerdicts(activePattern);
@@ -152,6 +152,7 @@ function FavoritesContent() {
               </p>
               <div
                 className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+                role="region"
                 aria-label="Saved herbs"
               >
                 {favoritedHerbs.map((herb) => (
@@ -159,6 +160,7 @@ function FavoritesContent() {
                     key={herb.herb_id}
                     herb={herb}
                     activePattern={activePattern}
+                    patternSubject={patternSubject}
                     curatedVerdict={
                       (herb.herb_id ? curatedVerdicts.get(herb.herb_id) : null) ??
                       null

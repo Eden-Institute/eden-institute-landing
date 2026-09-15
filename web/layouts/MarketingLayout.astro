@@ -7,6 +7,7 @@ import Navbar from "../components/Navbar.astro";
 import Footer from "../components/Footer.astro";
 import SiteAnalytics from "../components/islands/SiteAnalytics.tsx";
 import { CHECKOUT_SESSION_STRIP_JS } from "@/lib/checkoutSession";
+import { SOCIALS } from "@/lib/socials";
 
 export interface Props {
   title: string;
@@ -41,6 +42,10 @@ export interface Props {
   /** Overrides the sitewide Organization JSON-LD description for one page.
       Defaults to the institute description, so every existing page is unchanged. */
   orgDescription?: string;
+  /** Extra origins to preconnect for this page only (e.g. a third-party image
+      host its hero loads from). Emitted without crossorigin, which suits plain
+      <img> and CSS background requests. Defaults to none. */
+  preconnect?: string[];
 }
 
 const {
@@ -55,6 +60,7 @@ const {
   noindex = false,
   hideNav = false,
   orgDescription = "A structured, worldview-anchored, terrain-based clinical herbalism institute.",
+  preconnect = [],
 } = Astro.props;
 
 // Sitewide identity — present on every marketing page.
@@ -63,10 +69,10 @@ const orgJsonLd = {
   "@type": "Organization",
   name: "The Eden Institute",
   url: "https://edeninstitute.health",
-  logo: "https://edeninstitute.health/favicon.ico",
+  logo: "https://edeninstitute.health/favicon-512.png",
   description: orgDescription,
   parentOrganization: { "@type": "Organization", name: "Rooted in Faith Ventures" },
-  sameAs: ["https://twitter.com/edeninstitute"],
+  sameAs: [...SOCIALS.map((s) => s.href), "https://twitter.com/edeninstitute"],
 };
 const websiteJsonLd = {
   "@context": "https://schema.org",
@@ -127,8 +133,6 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-5DVHEZPKL0"></script>
     <script is:inline>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
       gtag('config', 'G-5DVHEZPKL0');
     </script>
@@ -137,6 +141,11 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    {preconnect.map((origin) => (
+      <link rel="preconnect" href={origin} />
+    ))}
     <meta name="robots" content={noindex ? "noindex, nofollow" : "index, follow"} />
     <meta name="author" content="The Eden Institute" />
     <meta name="theme-color" content="#1C3A2E" />

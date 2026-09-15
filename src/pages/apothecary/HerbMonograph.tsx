@@ -10,8 +10,8 @@ import { useEdenPattern } from "@/hooks/useEdenPattern";
 import { useCuratedHerbVerdicts } from "@/hooks/useCuratedHerbVerdicts";
 import { resolveHerbVerdict } from "@/lib/herbVerdict";
 import { useViewedHerbs } from "@/hooks/useViewedHerbs";
-import { computeMatchRelationship } from "@/lib/edenPattern";
-import { findHerbByParam, herbParam, HERB_ALIASES } from "@/lib/herbLinks";
+import { findHerbByParam, herbCanonicalUrl, herbParam, HERB_ALIASES } from "@/lib/herbLinks";
+import { APOTHECARY_PRICES } from "@/lib/apothecaryPrices";
 import { ROUTES } from "@/lib/routes";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
@@ -46,7 +46,7 @@ import heroMonograph from "@/assets/hero-monograph.jpg";
 export default function HerbMonograph() {
   const { herbId: param } = useParams<{ herbId: string }>();
   const { data: herbs, isLoading, isError, isSubscriber } = useHerbsDirectory();
-  const { data: activePattern, activeProfile } = useEdenPattern();
+  const { data: activePattern, activeProfile, patternSubject } = useEdenPattern();
   // Curated verdict for this pattern; the monograph must agree with the card.
   const { byHerbId: curatedVerdicts } = useCuratedHerbVerdicts(activePattern);
   const { viewedOrder, recordView } = useViewedHerbs();
@@ -85,12 +85,6 @@ export default function HerbMonograph() {
   const patternShort = activePattern
     ? activePattern.replace(/^The\s+/i, "")
     : null;
-  // useEdenPattern resolves the ACTIVE PROFILE's Pattern. When a practitioner
-  // points the picker at a patient (non-self profile) the terrain belongs to
-  // that patient, not the account holder — attribute it by name and keep
-  // "your" only for the self profile so the badges/reasons aren't misassigned.
-  const patternSubject =
-    activeProfile && !activeProfile.is_self ? `${activeProfile.name}'s` : "your";
 
   // Routed through resolveHerbVerdict, the same resolver HerbCard uses: a
   // curated cited row wins, and a COMPUTED "avoid" is downgraded to neutral
@@ -111,7 +105,9 @@ export default function HerbMonograph() {
 
   // Unresolved params (typos the :herbId segment swallows) canonicalize to
   // the directory URL, never echo the junk param back as a self-referential
-  // canonical/og:url on an HTTP-200 soft-404.
+  // canonical/og:url on an HTTP-200 soft-404. Free-tier herbs canonicalize to
+  // their pre-rendered /herbs/:slug page (the SEO surface per PR #454); gated
+  // herbs keep the app URL.
   useDocumentMeta({
     title: herb
       ? `${name} Monograph | Eden Apothecary`
@@ -122,7 +118,7 @@ export default function HerbMonograph() {
         : `${name} in the Eden Apothecary: identity, energetics, safety, and the clinical study, organized by body pattern.`
       : "Herb monographs organized by body pattern in the Eden Apothecary.",
     canonical: herb
-      ? `https://edeninstitute.health/apothecary/${herbParam(herb)}`
+      ? herbCanonicalUrl(herb)
       : "https://edeninstitute.health/apothecary",
   });
 
@@ -189,9 +185,9 @@ export default function HerbMonograph() {
         <div className="relative">
           {/* Heart sits absolute top-right of this relative container.
               Locked rows get no heart — the lock owns that slot, matching
-              HerbCard. */}
-          {!isLocked && (
-            <HerbFavoriteHeart herbId={herb.herb_id ?? ""} herbName={name} />
+              HerbCard. No herb_id, no heart, same as HerbCard. */}
+          {!isLocked && herb.herb_id && (
+            <HerbFavoriteHeart herbId={herb.herb_id} herbName={name} />
           )}
           {/* min-h + negative margin keeps the 44px tap target without
               shifting the visual layout (project mobile spec). */}
@@ -398,7 +394,7 @@ export default function HerbMonograph() {
               data-cta="monograph-unlock-seed"
             >
               <Link to={`${ROUTES.APOTHECARY_PRICING}#tier-seed`}>
-                Unlock with Seed, $7.99/mo
+                {`Unlock with Seed, ${APOTHECARY_PRICES.seed.monthly}/mo`}
               </Link>
             </Button>
           </section>
@@ -630,7 +626,7 @@ export default function HerbMonograph() {
                   data-cta="monograph-clinical-seed"
                 >
                   <Link to={`${ROUTES.APOTHECARY_PRICING}#tier-seed`}>
-                    Unlock the full study with Seed, $7.99/mo
+                    {`Unlock the full study with Seed, ${APOTHECARY_PRICES.seed.monthly}/mo`}
                   </Link>
                 </Button>
               </section>

@@ -29,15 +29,11 @@
 import type { DiagnosticSource } from "./diagnosticProfile";
 
 /**
- * Extended source vocabulary. The wire-stable type DiagnosticSource (in
- * diagnosticProfile.ts) currently lists `"marketing_quiz_12q" |
- * "deep_diagnostic_40q"`. The v3.16 hardening pass introduces:
- *   - "in_app_diagnostic_12q"       — written by the EF with quizVersion=v1-diagnostic
- *   - "marketing_quiz_12q_legacy_bridge" — legacy bridge fallback with no
- *      diagnostic_completions row backing the value
- *
- * These two are present in this module's mapper; the DiagnosticSource type
- * itself is widened in diagnosticProfile.ts to include them.
+ * Source vocabulary. DiagnosticSource (diagnosticProfile.ts) is the wire-stable union of all four values this mapper emits:
+ *   - "marketing_quiz_12q"               : anonymous marketing funnel (quiz_completions)
+ *   - "in_app_diagnostic_12q"            : EF write with quizVersion=v1-diagnostic
+ *   - "deep_diagnostic_40q"              : Root 40-question deep diagnostic
+ *   - "marketing_quiz_12q_legacy_bridge" : legacy bridge fallback with no diagnostic_completions row
  */
 
 export interface ProvenanceLabel {

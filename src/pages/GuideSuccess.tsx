@@ -23,6 +23,8 @@ const GuideSuccess = () => {
       return;
     }
 
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let cancelled = false;
     const verify = async () => {
       try {
         const { data, error: fnError } = await supabase.functions.invoke("verify-session", {
@@ -34,15 +36,20 @@ const GuideSuccess = () => {
 
         setNickname(data.constitution_nickname);
         if (data.guide) setGuide(data.guide as FullGuideContent);
-      } catch (err: any) {
-        setError(err.message || "Payment verification failed");
-        setTimeout(() => navigate(ROUTES.ASSESSMENT), 3000);
+      } catch (err) {
+        setError(err instanceof Error && err.message ? err.message : "Payment verification failed");
+        // The invoke can settle after unmount, so do not schedule a redirect then.
+        if (!cancelled) timer = setTimeout(() => navigate(ROUTES.ASSESSMENT), 3000);
       } finally {
         setLoading(false);
       }
     };
 
     verify();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, [searchParams, navigate]);
 
   if (loading) {

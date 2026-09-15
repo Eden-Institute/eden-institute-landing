@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import { Link } from "react-router-dom";
@@ -7,10 +7,12 @@ import { ROUTES } from "@/lib/routes";
 const HEADER_IMG = "https://images.unsplash.com/photo-1771128264855-1c032332cbc8?auto=format&fit=crop&w=1920&q=80";
 
 const Privacy = () => {
-  useEffect(() => {
-    document.title = "Privacy Policy — The Eden Institute";
-    document.querySelector('meta[name="description"]')?.setAttribute("content", "Privacy policy for The Eden Institute. Learn how we collect, use, and protect your personal information.");
-  }, []);
+  useDocumentMeta({
+    title: "Privacy Policy — The Eden Institute",
+    description:
+      "Privacy policy for The Eden Institute. Learn how we collect, use, and protect your personal information.",
+    canonical: "https://edeninstitute.health/privacy",
+  });
 
 
   return (

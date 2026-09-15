@@ -81,6 +81,18 @@ describe("pinterestTag", () => {
     await expect(pinCheckoutOnce("cs_test_absent", { value: 1 })).resolves.toBeUndefined();
   });
 
+  it("does not use up the dedupe key while the tag is absent", () => {
+    delete w().pintrk;
+    pinTrackOnce("key_late", "checkout", { value: 1 });
+    expect(localStorage.getItem("pintrk_checkout_key_late")).toBeNull();
+    w().pintrk = (...args: unknown[]) => {
+      calls.push(args);
+    };
+    pinTrackOnce("key_late", "checkout", { value: 1 });
+    expect(calls).toEqual([["track", "checkout", { value: 1 }]]);
+    expect(localStorage.getItem("pintrk_checkout_key_late")).toBe("1");
+  });
+
   it("fires checkout once per key, so a reload does not double-count", () => {
     pinTrackOnce("key_abc", "checkout", { value: 261, event_id: "key_abc" });
     pinTrackOnce("key_abc", "checkout", { value: 261, event_id: "key_abc" });

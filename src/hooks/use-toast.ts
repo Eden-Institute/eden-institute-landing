@@ -1,3 +1,7 @@
+// NOT mounted in App.tsx: the app toasts through sonner. Kept because
+// ui/toast.tsx + ui/toaster.tsx are synced to the founder's Claude Design
+// system (.design-sync/config.json). If a design-synced component ever calls
+// toast() from this store, re-mount <Toaster /> in App.tsx.
 import * as React from "react";
 
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";

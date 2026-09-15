@@ -23,6 +23,8 @@ import HomeJourneyPersonalizer from "../components/islands/HomeJourneyPersonaliz
 import GetInvolvedSection from "@/components/landing/GetInvolvedSection";
 import heroBotanical from "@/assets/hero-botanical.jpg";
 
+const year = new Date().getFullYear();
+
 const doors = [
   { badge: "PRINTED CURRICULUM · SHIPS NOW", eyebrow: "FOR THE FAMILY", title: "Eden's Table", subtitle: "K-12 Homeschool Curriculum", body: "The family doorway. Children learn how God designed their bodies and the plants He gave, alongside the parent who teaches them.", cta: "See the printed year, or start free →", href: "/homeschool#early-access", external: false },
   { badge: "FOUNDATIONS LIVE · $97", eyebrow: "FOR THE ADULT", title: "Eden Institute Courses", subtitle: "Adult Courses · Foundations + Body Systems", body: "The parent track. From foundational worldview to terrain-based clinical literacy. Reach genuine clinical competence over time.", cta: "See the Courses →", href: "/courses", external: false },
@@ -282,7 +284,7 @@ const meta = {
       </div>
       <div class="mt-12 pt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center" style="border-top:1px solid hsl(var(--sage-pale) / 0.25);font-family:'EB Garamond', Georgia, serif;font-size:12px;color:hsl(var(--sage-pale))">
         <span class="w-full">Eden's Table is published by Rooted in Faith Ventures LLC.</span>
-        <span>© 2026 The Eden Institute · Rooted in Faith Ventures · Clarksville, Tennessee</span>
+        <span>© {year} The Eden Institute · Rooted in Faith Ventures · Clarksville, Tennessee</span>
         <span class="hidden sm:inline">|</span>
         <a href="/terms" style="color:hsl(var(--sage-pale))">Terms</a>
         <span>·</span>

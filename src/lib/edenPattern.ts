@@ -49,10 +49,8 @@
  * the herb relaxes tense tissue, laxity/atrophy/deficiency states indicate
  * the herb tonifies relaxed tissue.
  *
- * The 8 archetypes also live in resend-waitlist's constitutionProfiles
- * (intro/anchor/herbs by Pattern name); future work may unify the two
- * sources behind a shared content module, but the relationship-computing
- * logic lives here.
+ * The 8 archetypes' display copy lives in src/lib/constitution-data.ts;
+ * the relationship-computing logic lives here.
  */
 
 export const EDEN_PATTERNS = [

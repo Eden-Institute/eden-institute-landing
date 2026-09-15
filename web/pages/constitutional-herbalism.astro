@@ -1,5 +1,5 @@
 ---
-// /constitutional-herbalism — Astro port of src/pages/ConstitutionalHerbalism.tsx.
+// /constitutional-herbalism — Astro port of the former React page src/pages/ConstitutionalHerbalism.tsx (removed 2026-09 audit; this file is now the only source).
 // Pre-rendered to static HTML for SEO (the keyword-wedge page; sitemap priority
 // 1.0). Content + Tailwind classes mirror the React page exactly. Differences,
 // all SEO-safe and intentional:
@@ -16,7 +16,12 @@
 //     Letters) — secondary to the quiz, captures organic readers.
 // Navbar / Footer / analytics come from MarketingLayout.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+// CTA links carry buttonVariants classes rather than wrapping a <Button>: a
+// <button> inside an <a> is invalid HTML and a second tab stop. text-center
+// stands in for a <button>'s own centring, and max-md:w-full max-md:max-w-full
+// keep the full-width phone layout src/index.css gives `section button`.
 
 const HERO_IMG = "https://images.unsplash.com/photo-1771128264855-1c032332cbc8?auto=format&fit=crop&w=1920&q=80";
 const HERBS_IMG = "https://images.unsplash.com/photo-1580116270858-8a0d62b15426?auto=format&fit=crop&w=1200&q=80";
@@ -106,12 +111,13 @@ const faqJsonLd = {
   title={meta.title}
   description={meta.description}
   canonical={meta.canonical}
+  preconnect={["https://images.unsplash.com"]}
   ogType="article"
   jsonLd={faqJsonLd}
 >
   {/* HERO */}
   <section class="relative min-h-[55vh] flex items-center overflow-hidden">
-    <img src={HERO_IMG} alt="Rustic apothecary with dried herbs" class="absolute inset-0 w-full h-full object-cover" />
+    <img src={HERO_IMG} alt="Rustic apothecary with dried herbs" fetchpriority="high" decoding="async" class="absolute inset-0 w-full h-full object-cover" />
     <div class="absolute inset-0" style="background:linear-gradient(180deg, hsla(40, 33%, 93%, 0.88) 0%, hsla(40, 33%, 93%, 0.82) 60%, hsla(40, 33%, 93%, 0.92) 100%)"></div>
     <div class="relative z-10 eden-container text-center max-w-4xl mx-auto px-6 pt-20 pb-20 md:pt-24 md:pb-24">
       <h1 class="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
@@ -275,9 +281,7 @@ const faqJsonLd = {
         <p>The Eden Institute offers a free Body Pattern Quiz that assesses your unique pattern across the six tissue states. In just a few minutes, you'll discover whether you tend toward hot or cold, damp or dry, tense or relaxed, and you'll begin to understand why certain herbs have worked for you in the past while others haven't.</p>
         <p>This is the starting point. Once you know your body pattern, everything changes, from the herbs you choose to the foods you eat to the way you approach your family's health.</p>
       </div>
-      <a href="/assessment" data-cta="journey-aware-quiz">
-        <Button variant="eden-gold" size="xl" className="text-sm md:text-base">Discover Your Body Pattern · Take the Free Quiz</Button>
-      </a>
+      <a href="/assessment" data-cta="journey-aware-quiz" class={cn(buttonVariants({ variant: "eden-gold", size: "xl" }), "text-center max-md:w-full max-md:max-w-full text-sm md:text-base")}>Discover Your Body Pattern · Take the Free Quiz</a>
     </div>
   </section>
 
@@ -337,18 +341,14 @@ const faqJsonLd = {
       <p class="text-base md:text-lg leading-relaxed mb-8" style="color:hsl(var(--eden-bark) / 0.75);font-family:'EB Garamond', 'Crimson Text', Georgia, serif">
         Terrain-based herbalism, body stewardship, and the recovery of a Christian framework for health, delivered to your inbox. No spam, no woo-woo. Just rooted, practical teaching.
       </p>
-      <a href="https://edeninstituteletters.substack.com/subscribe" target="_blank" rel="noopener">
-        <Button variant="eden-outline" size="xl">Subscribe to the Newsletter</Button>
-      </a>
+      <a href="https://edeninstituteletters.substack.com/subscribe" target="_blank" rel="noopener" class={cn(buttonVariants({ variant: "eden-outline", size: "xl" }), "text-center max-md:w-full max-md:max-w-full")}>Subscribe to the Newsletter</a>
     </div>
   </section>
 
   {/* FINAL CTA */}
   <section class="section-padding parchment-texture text-center">
     <div class="eden-container max-w-2xl mx-auto px-6">
-      <a href="/assessment" data-cta="journey-aware-quiz">
-        <Button variant="eden-gold" size="xl" className="text-sm md:text-base">Discover Your Body Pattern · Take the Free Quiz</Button>
-      </a>
+      <a href="/assessment" data-cta="journey-aware-quiz" class={cn(buttonVariants({ variant: "eden-gold", size: "xl" }), "text-center max-md:w-full max-md:max-w-full text-sm md:text-base")}>Discover Your Body Pattern · Take the Free Quiz</a>
     </div>
   </section>
 </MarketingLayout>

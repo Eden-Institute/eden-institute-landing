@@ -8,7 +8,12 @@ import MarketingLayout from "../../layouts/MarketingLayout.astro";
 import { ApothecaryDisclaimer } from "@/components/apothecary/ApothecaryDisclaimer";
 import { herbParam } from "@/lib/herbLinks";
 import { getPublicHerbs } from "../../lib/herbsPublic";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+// CTA links carry buttonVariants classes rather than wrapping a <Button>: a
+// <button> inside an <a> is invalid HTML and a second tab stop. text-center
+// stands in for a <button>'s own centring, and max-md:w-full max-md:max-w-full
+// keep the full-width phone layout src/index.css gives `section button`.
 import heroHerbs from "@/assets/hero-herbs.jpg";
 
 const herbs = await getPublicHerbs();
@@ -65,7 +70,7 @@ const jsonLd = {
         {herbs.length} plants, each with its energetics, its safety in pregnancy, in nursing and for children,
         and what the traditional record says about it. Free to read, no account needed.
       </p>
-      <a href="/assessment"><Button variant="eden" size="xl">Find your pattern first</Button></a>
+      <a href="/assessment" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center max-md:w-full max-md:max-w-full")}>Find your pattern first</a>
     </div>
   </section>
 

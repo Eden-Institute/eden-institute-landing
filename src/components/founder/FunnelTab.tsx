@@ -43,12 +43,9 @@ export default function FunnelTab({ since }: { since: string }) {
     setLoading(true);
     setError(null);
     try {
-      const { data: res, error: e } = await supabase.rpc(
-        "founder_funnel" as never,
-        { p_since: since } as never,
-      );
+      const { data: res, error: e } = await supabase.rpc("founder_funnel", { p_since: since });
       if (e) throw e;
-      setData((res as Funnel | null) ?? null);
+      setData((res as unknown as Funnel | null) ?? null);
     } catch (err) {
       setError(
         err instanceof Error

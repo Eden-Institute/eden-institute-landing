@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import { Link } from "react-router-dom";
@@ -7,10 +7,12 @@ import { ROUTES } from "@/lib/routes";
 const HEADER_IMG = "https://images.unsplash.com/photo-1726996155615-e986ed87c9d4?auto=format&fit=crop&w=1920&q=80";
 
 const Terms = () => {
-  useEffect(() => {
-    document.title = "Terms and Conditions — The Eden Institute";
-    document.querySelector('meta[name="description"]')?.setAttribute("content", "Terms and conditions for The Eden Institute's Biblical clinical herbalism education platform and services.");
-  }, []);
+  useDocumentMeta({
+    title: "Terms and Conditions — The Eden Institute",
+    description:
+      "Terms and conditions for The Eden Institute's Biblical clinical herbalism education platform and services.",
+    canonical: "https://edeninstitute.health/terms",
+  });
 
 
   return (

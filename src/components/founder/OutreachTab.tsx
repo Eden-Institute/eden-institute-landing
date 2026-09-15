@@ -1,4 +1,4 @@
-// TARGET PATH IN REPO: src/components/founder/OutreachTab.tsx
+// src/components/founder/OutreachTab.tsx
 //
 // Influencer + podcast outreach pipeline for /founder.
 // Reads the Supabase mirror of the outreach tracker sheet. Both RPCs are SECURITY DEFINER
@@ -10,6 +10,8 @@
 // which table backs it.
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { todayLocalISO } from "@/lib/localDate";
+import { safeHttpHref } from "@/lib/safeHref";
 
 type Influencer = {
   handle: string;
@@ -101,8 +103,9 @@ export default function OutreachTab() {
   // ---- podcast rollups
   const contacted = pods.filter((p) => p.touches > 0);
   const booked = pods.filter((p) => /^(BOOKED|RECORDED|RESPONDED - YES|PAID)/i.test(p.status ?? ""));
+  const todayIso = todayLocalISO();
   const dueNow = pods.filter(
-    (p) => p.next_action_due && p.next_action_due <= new Date().toISOString().slice(0, 10)
+    (p) => p.next_action_due && p.next_action_due <= todayIso
   );
 
   const byStatus = (rows: { status: string | null }[]) => {
@@ -146,13 +149,16 @@ export default function OutreachTab() {
         {active.map((r) => (
           <tr key={r.handle} className="border-t border-border">
             <Td>
-              {r.profile_url ? (
-                <a href={r.profile_url} target="_blank" rel="noreferrer" className="underline">
-                  @{r.handle}
-                </a>
-              ) : (
-                <>@{r.handle}</>
-              )}
+              {(() => {
+                const href = safeHttpHref(r.profile_url);
+                return href ? (
+                  <a href={href} target="_blank" rel="noopener noreferrer" className="underline">
+                    @{r.handle}
+                  </a>
+                ) : (
+                  <>@{r.handle}</>
+                );
+              })()}
               {r.display_name ? (
                 <span className="text-muted-foreground"> · {r.display_name}</span>
               ) : null}

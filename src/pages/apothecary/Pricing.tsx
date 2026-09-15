@@ -8,6 +8,9 @@ import {
 } from "@/components/apothecary/friendlyEfError";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCurrentTier } from "@/hooks/useCurrentTier";
+import { APOTHECARY_PRICES } from "@/lib/apothecaryPrices";
+import { isSubscriberTier } from "@/lib/tiers";
 import { trackCta } from "@/lib/trackCta";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
@@ -48,7 +51,8 @@ export default function Pricing() {
   // once they're authed and land back here, kick off create-checkout for that
   // plan so their paid intent survives the signup / email-confirmation detour.
   const { user, session } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { data: currentTier, isPending: tierPending } = useCurrentTier();
   const [resuming, setResuming] = useState(false);
   // The auto-resume effect re-runs whenever the session object identity
   // changes (token refresh emits a fresh session), so guard the one-shot
@@ -59,6 +63,17 @@ export default function Pricing() {
   useEffect(() => {
     const checkout = searchParams.get("checkout");
     if (!checkout || !user || !session) return;
+    if (tierPending) return;
+    if (isSubscriberTier(currentTier)) {
+      // Already subscribed: never auto-start a second subscription checkout
+      // (it would bill in parallel). Drop the param; the cards show the
+      // current-plan / manage states instead.
+      resumedCheckout.current = checkout;
+      const next = new URLSearchParams(searchParams);
+      next.delete("checkout");
+      setSearchParams(next, { replace: true });
+      return;
+    }
     if (resumedCheckout.current === checkout) return;
     resumedCheckout.current = checkout;
     let cancelled = false;
@@ -93,7 +108,7 @@ export default function Pricing() {
     return () => {
       cancelled = true;
     };
-  }, [searchParams, user, session]);
+  }, [searchParams, user, session, currentTier, tierPending, setSearchParams]);
 
   return (
     <div>
@@ -191,7 +206,7 @@ export default function Pricing() {
               would resolve to the React root container (scrollY=0)
               rather than the Root pricing card. */}
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div id="tier-free">
+            <div id="tier-free" className="scroll-mt-20">
               <PricingTier
                 tier="free"
                 displayName="Free"
@@ -209,15 +224,15 @@ export default function Pricing() {
               />
             </div>
 
-            <div id="tier-seed">
+            <div id="tier-seed" className="scroll-mt-20">
               <PricingTier
                 tier="seed"
                 displayName="Seed"
                 tagline="Clinical depth for students and self-directed learners."
-                monthlyPrice="$7.99"
-                yearlyPrice="$79.99"
-                monthlyLookupKey="seed_monthly"
-                yearlyLookupKey="seed_yearly"
+                monthlyPrice={APOTHECARY_PRICES.seed.monthly}
+                yearlyPrice={APOTHECARY_PRICES.seed.yearly}
+                monthlyLookupKey={APOTHECARY_PRICES.seed.monthlyLookupKey}
+                yearlyLookupKey={APOTHECARY_PRICES.seed.yearlyLookupKey}
                 features={[
                   "The full clinical study for all 300 herbs",
                   "Actions, tissue states, energetics",
@@ -230,15 +245,15 @@ export default function Pricing() {
               />
             </div>
 
-            <div id="tier-root">
+            <div id="tier-root" className="scroll-mt-20">
               <PricingTier
                 tier="root"
                 displayName="Root"
                 tagline="Deeper practice: full junctions, dimensions, and citations."
-                monthlyPrice="$24.99"
-                yearlyPrice="$249.99"
-                monthlyLookupKey="root_monthly"
-                yearlyLookupKey="root_yearly"
+                monthlyPrice={APOTHECARY_PRICES.root.monthly}
+                yearlyPrice={APOTHECARY_PRICES.root.yearly}
+                monthlyLookupKey={APOTHECARY_PRICES.root.monthlyLookupKey}
+                yearlyLookupKey={APOTHECARY_PRICES.root.yearlyLookupKey}
                 features={[
                   "Everything in Seed",
                   "Profiles for up to 10 family members",
@@ -251,18 +266,18 @@ export default function Pricing() {
               />
             </div>
 
-            <div id="tier-practitioner">
+            <div id="tier-practitioner" className="scroll-mt-20">
               <PricingTier
                 tier="practitioner"
                 displayName="Practitioner"
                 tagline="Your whole clinical workflow, from reading to remedy, in one screen."
-                monthlyPrice="$49.99"
-                yearlyPrice="$499"
-                standardMonthlyPrice="$59.99"
-                standardYearlyPrice="$599"
+                monthlyPrice={APOTHECARY_PRICES.practitioner.monthly}
+                yearlyPrice={APOTHECARY_PRICES.practitioner.yearly}
+                standardMonthlyPrice={APOTHECARY_PRICES.practitioner.standardMonthly}
+                standardYearlyPrice={APOTHECARY_PRICES.practitioner.standardYearly}
                 foundingBadge="Founding rate · locked for life"
-                monthlyLookupKey="practitioner_solo_monthly"
-                yearlyLookupKey="practitioner_solo_yearly"
+                monthlyLookupKey={APOTHECARY_PRICES.practitioner.monthlyLookupKey}
+                yearlyLookupKey={APOTHECARY_PRICES.practitioner.yearlyLookupKey}
                 ctaLabel="Claim your founding rate"
                 features={[
                   "Everything in Root",

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ROUTES } from "@/lib/routes";
+import { ASTRO_PAGES, ROUTES } from "@/lib/routes";
 
 const FOOTER_BG_IMG = "https://images.unsplash.com/photo-1726996155615-e986ed87c9d4?auto=format&fit=crop&w=1920&q=80";
 
@@ -58,7 +58,7 @@ const Footer = () => {
             </div>
 
             <div className="mt-6 flex items-center justify-center gap-2 text-xs font-body flex-wrap" style={{ color: "hsl(var(--eden-parchment) / 0.3)" }}>
-              <a href={ROUTES.WHY_EDEN} className="inline-flex items-center min-h-[44px] px-0.5 hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
+              <a href={ASTRO_PAGES.WHY_EDEN} className="inline-flex items-center min-h-[44px] px-0.5 hover:opacity-70 transition-colors" style={{ color: "hsl(var(--eden-parchment) / 0.5)" }}>
                 Why Eden
               </a>
               <span>|</span>

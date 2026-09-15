@@ -123,7 +123,7 @@ export default function SiteAnalytics() {
   };
 
   return (
-    <div role="dialog" aria-label="Cookie consent" className="fixed bottom-0 inset-x-0 z-[60] px-4 pb-4">
+    <div role="region" aria-label="Cookie consent" className="fixed bottom-0 inset-x-0 z-[60] px-4 pb-4">
       <div
         className="max-w-3xl mx-auto rounded-lg shadow-lg p-5 sm:flex sm:items-center sm:gap-5"
         style={{ backgroundColor: "hsl(var(--eden-bark))", color: "white" }}
@@ -138,6 +138,7 @@ export default function SiteAnalytics() {
         </p>
         <div className="flex gap-3 shrink-0">
           <button
+            type="button"
             onClick={decline}
             className="font-accent text-xs tracking-wider uppercase px-4 py-2 rounded-sm border border-white/40 hover:bg-white/10 transition-colors"
           >

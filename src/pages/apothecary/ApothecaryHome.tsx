@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { useApothecaryHerbs } from "@/hooks/useApothecaryHerbs";
+import { useHerbsDirectory } from "@/hooks/useHerbsDirectory";
 import { useEdenPattern } from "@/hooks/useEdenPattern";
 import { useCuratedHerbVerdicts } from "@/hooks/useCuratedHerbVerdicts";
 import { resolveHerbVerdict } from "@/lib/herbVerdict";
@@ -167,8 +167,8 @@ export default function ApothecaryHome() {
     isLoading,
     isError,
     error,
-  } = useApothecaryHerbs();
-  const { data: activePattern } = useEdenPattern();
+  } = useHerbsDirectory();
+  const { data: activePattern, patternSubject } = useEdenPattern();
   // Curated, cited verdicts for this pattern. Empty for readers below the
   // bridge's RLS tier, or for patterns with no curation yet — both degrade to
   // the computed path, which can never render a red "avoid".
@@ -367,7 +367,7 @@ export default function ApothecaryHome() {
 
   // CRO Phase 2: how many locked rows survive the current narrowing. Feeds
   // the safety-filter conversion line ("guidance for N more herbs opens
-  // with Seed"). Cheap over ~108 rows; no memo needed.
+  // with Seed"). Cheap over ~300 rows; no memo needed.
   const lockedVisibleCount = visible.filter(
     (h) => h.is_locked === true
   ).length;
@@ -638,6 +638,7 @@ export default function ApothecaryHome() {
             <>
               <div
                 className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+                role="region"
                 aria-label="Herb directory"
               >
                 {visible.slice(0, renderCount).map((herb, i) => (
@@ -647,6 +648,7 @@ export default function ApothecaryHome() {
                     key={herb.herb_id ?? herb.common_name ?? `herb-${i}`}
                     herb={herb}
                     activePattern={activePattern}
+                    patternSubject={patternSubject}
                     curatedVerdict={
                       (herb.herb_id ? curatedVerdicts.get(herb.herb_id) : null) ??
                       null
@@ -658,7 +660,7 @@ export default function ApothecaryHome() {
                 <div
                   ref={sentinelRef}
                   className="py-6 text-center font-body text-sm text-muted-foreground"
-                  aria-hidden="true"
+                  role="status"
                 >
                   Showing {renderCount} of {visible.length} herbs…
                 </div>

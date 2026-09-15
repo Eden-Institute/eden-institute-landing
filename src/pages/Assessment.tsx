@@ -22,6 +22,8 @@ import { trackCta } from "@/lib/trackCta";
 import { metaTrack } from "@/lib/metaPixel";
 import { getMarketingConsent } from "@/lib/consent";
 import { checkEmail } from "@/lib/emailTypos";
+import { getAttribution } from "@/lib/attribution";
+import { patternNameToSlug } from "@/lib/constitution-utils";
 import Navbar from "@/components/landing/Navbar";
 
 interface Question {
@@ -165,14 +167,26 @@ const Assessment = () => {
   const profileIdParam = searchParams.get("profileId");
   // CRO Phase 4: once-per-attempt guard for the quiz-start funnel event.
   const hasTrackedQuizStart = useRef(false);
+  // Pending 400ms advance; non-null while an answer is transitioning, so a
+  // double-tap cannot schedule a second advance (skipped question or a
+  // duplicate lead submit on the last question).
+  const advanceTimer = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (advanceTimer.current !== null) clearTimeout(advanceTimer.current);
+  }, []);
   const targetProfile = useMemo(() => {
     if (!profileIdParam) return null;
     if (!profileCtx) return null;
     return profileCtx.profiles.find((p) => p.id === profileIdParam) ?? null;
   }, [profileIdParam, profileCtx]);
   const diagnosticMode = profileIdParam !== null && targetProfile !== null;
+  // A failed profile read with no cached list is 'unknown', not 'not found':
+  // keep the pending shell (React Query retries and refetches on focus/reconnect)
+  // rather than telling the user the profile does not belong to them.
   const profileLookupPending =
-    profileIdParam !== null && (profileCtx?.isLoading ?? false);
+    profileIdParam !== null &&
+    ((profileCtx?.isLoading ?? false) ||
+      ((profileCtx?.isError ?? false) && (profileCtx?.profiles.length ?? 0) === 0));
 
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
@@ -303,6 +317,7 @@ const Assessment = () => {
             source: "constitution_assessment",
             fbEventId,
             marketingConsent,
+            ...getAttribution(),
           },
         });
         if (fnError) throw fnError;
@@ -324,6 +339,7 @@ const Assessment = () => {
           source: "constitution_assessment",
           fbEventId,
           marketingConsent,
+          ...getAttribution(),
         },
       });
 
@@ -349,10 +365,7 @@ const Assessment = () => {
         console.error("record-quiz-completion threw", recordErr);
       }
 
-      const slugForRedirect = (profileForSubmit?.nickname ?? "")
-        .replace(/^The\s+/i, "")
-        .toLowerCase()
-        .replace(/\s+/g, "-");
+      const slugForRedirect = patternNameToSlug(profileForSubmit?.nickname ?? "");
       metaTrack("Lead", { content_category: "constitution_quiz", content_name: submittedConstitution }, fbEventId);
       navigate(ROUTES.RESULTS(slugForRedirect), { replace: true });
     } catch (err: unknown) {
@@ -418,6 +431,8 @@ const Assessment = () => {
   );
 
   const handleAnswer = useCallback((questionId: number, score: string) => {
+    // Ignore extra clicks mid-transition (checked first so a suppressed click fires nothing).
+    if (advanceTimer.current !== null) return;
     // Funnel moment (CRO Phase 4, plan §14): quiz-start fires on the FIRST
     // answer of an attempt (a page load is already a page view; engagement
     // starts here). Marketing quiz only — the Root-tier diagnostic at
@@ -427,49 +442,53 @@ const Assessment = () => {
       hasTrackedQuizStart.current = true;
       trackCta("quiz-start");
     }
-    setAnswers((prev) => {
-      const next = { ...prev, [questionId]: score };
-      setTransitioning(true);
-      setTimeout(() => {
-        if (currentQ < questions.length - 1) {
-          setCurrentQ((p) => Math.min(p + 1, questions.length - 1));
+    const next = { ...answers, [questionId]: score };
+    setAnswers(next);
+    setTransitioning(true);
+    advanceTimer.current = window.setTimeout(() => {
+      advanceTimer.current = null;
+      if (currentQ < questions.length - 1) {
+        setCurrentQ((p) => Math.min(p + 1, questions.length - 1));
+      } else {
+        const result = computeResult(next);
+        if (isInconclusiveResult(result)) {
+          const tiedAxes = inconclusiveAxes(result);
+          const queue = getFollowupQuestionsForAxes(tiedAxes);
+          setFollowupQueue(queue);
+          setFollowupIdx(0);
+          setPhase("followup");
         } else {
-          const result = computeResult(next);
-          if (isInconclusiveResult(result)) {
-            const tiedAxes = inconclusiveAxes(result);
-            const queue = getFollowupQuestionsForAxes(tiedAxes);
-            setFollowupQueue(queue);
-            setFollowupIdx(0);
-            setPhase("followup");
-          } else {
-            routePostResolution(next, false);
-          }
+          routePostResolution(next, false);
         }
-        setTransitioning(false);
-      }, 400);
-      return next;
-    });
-  }, [currentQ, routePostResolution, profileIdParam]);
+      }
+      setTransitioning(false);
+    }, 400);
+  }, [answers, currentQ, routePostResolution, profileIdParam]);
 
   const handleFollowupAnswer = useCallback((questionId: number, score: string) => {
-    setAnswers((prev) => {
-      const next = { ...prev, [questionId]: score };
-      setTransitioning(true);
-      setTimeout(() => {
-        const queueLen = followupQueue.length;
-        const nextIdx = followupIdx + 1;
-        if (nextIdx < queueLen) {
-          setFollowupIdx(nextIdx);
-        } else {
-          routePostResolution(next, true);
-        }
-        setTransitioning(false);
-      }, 400);
-      return next;
-    });
-  }, [followupQueue, followupIdx, routePostResolution]);
+    if (advanceTimer.current !== null) return; // ignore extra clicks mid-transition
+    const next = { ...answers, [questionId]: score };
+    setAnswers(next);
+    setTransitioning(true);
+    advanceTimer.current = window.setTimeout(() => {
+      advanceTimer.current = null;
+      const queueLen = followupQueue.length;
+      const nextIdx = followupIdx + 1;
+      if (nextIdx < queueLen) {
+        setFollowupIdx(nextIdx);
+      } else {
+        routePostResolution(next, true);
+      }
+      setTransitioning(false);
+    }, 400);
+  }, [answers, followupQueue, followupIdx, routePostResolution]);
 
   const restartQuiz = useCallback(() => {
+    if (advanceTimer.current !== null) {
+      clearTimeout(advanceTimer.current);
+      advanceTimer.current = null;
+    }
+    setTransitioning(false);
     setAnswers({});
     setCurrentQ(0);
     setFollowupQueue([]);
@@ -480,14 +499,19 @@ const Assessment = () => {
     hasTrackedQuizStart.current = false;
   }, []);
 
+  // Mirrors WaitlistModal's stage-1 guard: an invalid address is ALWAYS blocked,
+  // with or without a confident correction.
+  const blockInvalidEmail = (message: string): boolean => {
+    const typo = checkEmail(email);
+    if (!typo.invalid) return false;
+    if (typo.suggestion) setEmailSuggestion(typo.suggestion);
+    setError(message);
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const typo = checkEmail(email);
-    if (typo.invalid && typo.suggestion) {
-      setEmailSuggestion(typo.suggestion);
-      setError("That email address looks misspelled — please check it.");
-      return;
-    }
+    if (blockInvalidEmail("That email address looks misspelled — please check it.")) return;
     setLoading(true);
     try {
       await submitMarketingQuiz(email, firstName, constitutionType);
@@ -498,12 +522,7 @@ const Assessment = () => {
 
   const handleBalancedSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const typo = checkEmail(email);
-    if (typo.invalid && typo.suggestion) {
-      setEmailSuggestion(typo.suggestion);
-      setError("That email address looks misspelled, please check it.");
-      return;
-    }
+    if (blockInvalidEmail("That email address looks misspelled, please check it.")) return;
     setLoading(true);
     try {
       await submitMarketingQuiz(email, firstName, constitutionType, true);
@@ -570,15 +589,15 @@ const Assessment = () => {
               <span className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: "hsl(var(--eden-gold-ink))" }}>{axisLabel}</span>
               <span className="font-body text-sm" style={{ color: "#1C3A2E" }}>Question {currentQ + 1} of {questions.length}</span>
             </div>
-            <div className="w-full h-2 rounded-full" style={{ backgroundColor: "hsl(40, 20%, 80%)" }}>
+            <div className="w-full h-2 rounded-full" style={{ backgroundColor: "hsl(40, 20%, 80%)" }} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)} aria-valuetext={`Question ${currentQ + 1} of ${questions.length}`}>
               <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress}%`, backgroundColor: "#C9A84C" }} />
             </div>
           </div>
           <div className={`transition-all duration-400 ${transitioning ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"}`}>
-            <h2 className="font-serif text-2xl md:text-3xl font-bold mb-8" style={{ color: "#1C3A2E" }}>{q.question}</h2>
-            <div className="space-y-4">
+            <h2 id="quiz-question" className="font-serif text-2xl md:text-3xl font-bold mb-8" style={{ color: "#1C3A2E" }}>{q.question}</h2>
+            <div className="space-y-4" role="group" aria-labelledby="quiz-question">
               {q.options.map((opt) => (
-                <button key={opt.label} onClick={() => handleAnswer(q.id, opt.score)} className="w-full text-left p-5 border-2 rounded transition-all duration-200 hover:border-[#C9A84C] hover:shadow-md group min-h-[44px]" style={{ borderColor: answers[q.id] === opt.score ? "#C9A84C" : "hsl(40, 20%, 80%)", backgroundColor: answers[q.id] === opt.score ? "hsl(40, 55%, 50%, 0.08)" : "white" }}>
+                <button key={opt.label} type="button" aria-pressed={answers[q.id] === opt.score} onClick={() => handleAnswer(q.id, opt.score)} className="w-full text-left p-5 border-2 rounded transition-all duration-200 hover:border-[#C9A84C] hover:shadow-md group min-h-[44px]" style={{ borderColor: answers[q.id] === opt.score ? "#C9A84C" : "hsl(40, 20%, 80%)", backgroundColor: answers[q.id] === opt.score ? "hsl(40, 55%, 50%, 0.08)" : "white" }}>
                   <div className="flex items-start gap-4">
                     <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full font-serif font-bold text-sm border-2 group-hover:border-[#C9A84C] group-hover:text-[#C9A84C] transition-colors" style={{ borderColor: answers[q.id] === opt.score ? "#C9A84C" : "#1C3A2E", color: answers[q.id] === opt.score ? "#C9A84C" : "#1C3A2E" }}>{opt.label}</span>
                     <span className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>{opt.text}</span>
@@ -601,15 +620,15 @@ const Assessment = () => {
               <span className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: "hsl(var(--eden-gold-ink))" }}>{axisDisplayLabel(currentFollowup.axis)} Axis</span>
               <span className="font-body text-sm" style={{ color: "#1C3A2E" }}>Follow-up {followupIdx + 1} of {followupQueue.length}</span>
             </div>
-            <div className="w-full h-2 rounded-full" style={{ backgroundColor: "hsl(40, 20%, 80%)" }}>
+            <div className="w-full h-2 rounded-full" style={{ backgroundColor: "hsl(40, 20%, 80%)" }} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(followupProgress)} aria-valuetext={`Follow-up ${followupIdx + 1} of ${followupQueue.length}`}>
               <div className="h-full rounded-full transition-all duration-500" style={{ width: `${followupProgress}%`, backgroundColor: "#C9A84C" }} />
             </div>
           </div>
           <div className={`transition-all duration-400 ${transitioning ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"}`}>
-            <h2 className="font-serif text-2xl md:text-3xl font-bold mb-8" style={{ color: "#1C3A2E" }}>{currentFollowup.question}</h2>
-            <div className="space-y-4">
+            <h2 id="followup-question" className="font-serif text-2xl md:text-3xl font-bold mb-8" style={{ color: "#1C3A2E" }}>{currentFollowup.question}</h2>
+            <div className="space-y-4" role="group" aria-labelledby="followup-question">
               {currentFollowup.options.map((opt) => (
-                <button key={opt.label} onClick={() => handleFollowupAnswer(currentFollowup.id, opt.score)} className="w-full text-left p-5 border-2 rounded transition-all duration-200 hover:border-[#C9A84C] hover:shadow-md group min-h-[44px]" style={{ borderColor: answers[currentFollowup.id] === opt.score ? "#C9A84C" : "hsl(40, 20%, 80%)", backgroundColor: answers[currentFollowup.id] === opt.score ? "hsl(40, 55%, 50%, 0.08)" : "white" }}>
+                <button key={opt.label} type="button" aria-pressed={answers[currentFollowup.id] === opt.score} onClick={() => handleFollowupAnswer(currentFollowup.id, opt.score)} className="w-full text-left p-5 border-2 rounded transition-all duration-200 hover:border-[#C9A84C] hover:shadow-md group min-h-[44px]" style={{ borderColor: answers[currentFollowup.id] === opt.score ? "#C9A84C" : "hsl(40, 20%, 80%)", backgroundColor: answers[currentFollowup.id] === opt.score ? "hsl(40, 55%, 50%, 0.08)" : "white" }}>
                   <div className="flex items-start gap-4">
                     <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full font-serif font-bold text-sm border-2 group-hover:border-[#C9A84C] group-hover:text-[#C9A84C] transition-colors" style={{ borderColor: answers[currentFollowup.id] === opt.score ? "#C9A84C" : "#1C3A2E", color: answers[currentFollowup.id] === opt.score ? "#C9A84C" : "#1C3A2E" }}>{opt.label}</span>
                     <span className="font-body text-base leading-relaxed" style={{ color: "#1C3A2E" }}>{opt.text}</span>
@@ -666,18 +685,18 @@ const Assessment = () => {
             <p className="font-body text-sm mb-6" style={{ color: "hsl(30, 10%, 40%)" }}>Enter your name and email to receive your full body pattern profile and personalized herb recommendations.</p>
             <form onSubmit={handleSubmit} className="space-y-4 text-left">
               <div>
-                <label className="block font-accent text-xs tracking-[0.2em] uppercase mb-2" style={{ color: "hsl(30, 10%, 40%)" }}>First Name</label>
-                <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required placeholder="Your first name" className="w-full px-4 py-3 border font-body focus:outline-none transition-colors" style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }} />
+                <label htmlFor="gate-first-name" className="block font-accent text-xs tracking-[0.2em] uppercase mb-2" style={{ color: "hsl(30, 10%, 40%)" }}>First Name</label>
+                <input id="gate-first-name" autoComplete="given-name" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required placeholder="Your first name" className="w-full px-4 py-3 border font-body focus:outline-none transition-colors" style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }} />
               </div>
               <div>
-                <label className="block font-accent text-xs tracking-[0.2em] uppercase mb-2" style={{ color: "hsl(30, 10%, 40%)" }}>Email Address</label>
+                <label htmlFor="gate-email" className="block font-accent text-xs tracking-[0.2em] uppercase mb-2" style={{ color: "hsl(30, 10%, 40%)" }}>Email Address</label>
                 {/* PR κ: strip ALL whitespace (incl. internal spaces some
                     mobile autocomplete engines insert between '@' and the
                     domain) and lowercase before HTML5 type=email validation. */}
-                <input type="email" value={email} onChange={(e) => { setEmail(e.target.value.replace(/\s+/g, "").toLowerCase().trim()); setEmailSuggestion(null); }} onBlur={() => setEmailSuggestion(checkEmail(email).suggestion)} required placeholder="your@email.com" className="w-full px-4 py-3 border font-body focus:outline-none transition-colors" style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }} />
+                <input id="gate-email" autoComplete="email" type="email" value={email} onChange={(e) => { setEmail(e.target.value.replace(/\s+/g, "").toLowerCase().trim()); setEmailSuggestion(null); }} onBlur={() => setEmailSuggestion(checkEmail(email).suggestion)} required placeholder="your@email.com" className="w-full px-4 py-3 border font-body focus:outline-none transition-colors" style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }} />
                 {emailSuggestion && (<p className="font-body text-sm mt-2" style={{ color: "hsl(var(--eden-gold-ink))" }}>Did you mean <button type="button" onClick={() => { setEmail(emailSuggestion); setEmailSuggestion(null); setError(""); }} className="underline font-semibold">{emailSuggestion}</button>?</p>)}
               </div>
-              {error && <p className="font-body text-sm text-destructive">{error}</p>}
+              {error && <p role="alert" className="font-body text-sm text-destructive">{error}</p>}
               <Button type="submit" variant="eden" size="xl" className="w-full" disabled={loading}>{loading ? "Submitting…" : "→ Send Me My Results"}</Button>
             </form>
           </div>
@@ -709,15 +728,15 @@ const Assessment = () => {
               <p className="font-body text-sm mb-6 text-center" style={{ color: "hsl(30, 10%, 40%)" }}>Enter your name and email. We'll save your balanced reading and let you know when the deeper Practitioner-tier diagnostic opens.</p>
               <form onSubmit={handleBalancedSubmit} className="space-y-4 text-left">
                 <div>
-                  <label className="block font-accent text-xs tracking-[0.2em] uppercase mb-2" style={{ color: "hsl(30, 10%, 40%)" }}>First Name</label>
-                  <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required placeholder="Your first name" className="w-full px-4 py-3 border font-body focus:outline-none transition-colors" style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }} />
+                  <label htmlFor="balanced-first-name" className="block font-accent text-xs tracking-[0.2em] uppercase mb-2" style={{ color: "hsl(30, 10%, 40%)" }}>First Name</label>
+                  <input id="balanced-first-name" autoComplete="given-name" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required placeholder="Your first name" className="w-full px-4 py-3 border font-body focus:outline-none transition-colors" style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }} />
                 </div>
                 <div>
-                  <label className="block font-accent text-xs tracking-[0.2em] uppercase mb-2" style={{ color: "hsl(30, 10%, 40%)" }}>Email Address</label>
-                  <input type="email" value={email} onChange={(e) => { setEmail(e.target.value.replace(/\s+/g, "").toLowerCase().trim()); setEmailSuggestion(null); }} onBlur={() => setEmailSuggestion(checkEmail(email).suggestion)} required placeholder="your@email.com" className="w-full px-4 py-3 border font-body focus:outline-none transition-colors" style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }} />
+                  <label htmlFor="balanced-email" className="block font-accent text-xs tracking-[0.2em] uppercase mb-2" style={{ color: "hsl(30, 10%, 40%)" }}>Email Address</label>
+                  <input id="balanced-email" autoComplete="email" type="email" value={email} onChange={(e) => { setEmail(e.target.value.replace(/\s+/g, "").toLowerCase().trim()); setEmailSuggestion(null); }} onBlur={() => setEmailSuggestion(checkEmail(email).suggestion)} required placeholder="your@email.com" className="w-full px-4 py-3 border font-body focus:outline-none transition-colors" style={{ borderColor: "hsl(40, 20%, 80%)", color: "#1C3A2E", backgroundColor: "#F5F0E8" }} />
                 {emailSuggestion && (<p className="font-body text-sm mt-2" style={{ color: "hsl(var(--eden-gold-ink))" }}>Did you mean <button type="button" onClick={() => { setEmail(emailSuggestion); setEmailSuggestion(null); setError(""); }} className="underline font-semibold">{emailSuggestion}</button>?</p>)}
                 </div>
-                {error && <p className="font-body text-sm text-destructive">{error}</p>}
+                {error && <p role="alert" className="font-body text-sm text-destructive">{error}</p>}
                 <Button type="submit" variant="eden" size="xl" className="w-full" disabled={loading}>{loading ? "Saving…" : "→ Save My Reading"}</Button>
               </form>
             </div>
@@ -731,7 +750,7 @@ const Assessment = () => {
           <span className="font-accent text-sm tracking-[0.3em] uppercase" style={{ color: "hsl(var(--eden-gold-ink))" }}>Reading Saved</span>
           <h2 className="font-serif text-3xl md:text-4xl font-bold mt-4 mb-6" style={{ color: "#1C3A2E" }}>Thanks, your reading is captured.</h2>
           <p className="font-body text-base leading-relaxed mb-8" style={{ color: "#1C3A2E" }}>Your terrain is genuinely balanced, which is its own clinical category. We've saved your email, and the deeper diagnostic, built to resolve balanced cases like yours, is part of the Practitioner tier. We'll let you know when it opens.</p>
-          <Button variant="eden" size="lg" onClick={() => navigate(ROUTES.HOME)}>Back to home</Button>
+          <Button variant="eden" size="lg" onClick={() => window.location.assign(ROUTES.HOME)}>Back to home</Button>
         </div>
       )}
     </div>

@@ -68,13 +68,10 @@
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-5DVHEZPKL0"></script>
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
       gtag('config', 'G-5DVHEZPKL0');
     </script>
     <title>The Eden Institute — A Framework Our Culture Forgot</title>
-    <link rel="canonical" href="https://edeninstitute.health/" />
     <meta name="theme-color" content="#1C3A2E" />
 
     <!-- Favicons (Eden's Table seedling mark) -->
@@ -85,6 +82,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <meta name="robots" content="index, follow" />
     <meta name="description" content="The Eden Institute teaches Scripture-anchored, terrain-based clinical herbalism. Four doors, one mission: stewardship of the bodies God designed." />
     <meta name="author" content="The Eden Institute" />
@@ -92,7 +91,6 @@
     <meta name="facebook-domain-verification" content="qfhisezad6uhdic7dugiew03fzzinf" />
 
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://edeninstitute.health/" />
     <meta property="og:title" content="The Eden Institute — A Framework Our Culture Forgot" />
     <meta property="og:description" content="Scripture-anchored, terrain-based clinical herbalism. Four doors, one mission: stewardship of the bodies God designed." />
     <meta property="og:image" content="https://edeninstitute.health/og-home-v1.4.png" />
@@ -101,19 +99,23 @@
     <meta name="twitter:site" content="@edeninstitute" />
     <meta name="twitter:image" content="https://edeninstitute.health/og-home-v1.4.png" />
 
+    <!-- sameAs social URLs are a static copy of SOCIALS in src/lib/socials.ts; change both together. -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "Organization",
         "name": "The Eden Institute",
         "url": "https://edeninstitute.health",
-        "logo": "https://edeninstitute.health/favicon.ico",
+        "logo": "https://edeninstitute.health/favicon-512.png",
         "description": "A structured, worldview-anchored, terrain-based clinical herbalism institute.",
         "parentOrganization": {
           "@type": "Organization",
           "name": "Rooted in Faith Ventures"
         },
         "sameAs": [
+          "https://www.instagram.com/edenstablehomeschoolcurriculum/",
+          "https://www.facebook.com/EdensTableHomeschoolCurriculum",
+          "https://www.pinterest.com/TheEdenInstituteBoards/",
           "https://twitter.com/edeninstitute"
         ]
       }

@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { safeHttpHref } from "@/lib/safeHref";
 
 interface OrderItem {
   sku: string;
@@ -53,6 +54,9 @@ interface OrderRow {
   is_preorder: boolean;
   product_label: string | null;
   created_at: string;
+  /** Our own test purchases and staff accounts (is_internal_email). The summary
+      tiles exclude these; the table lists them greyed out. */
+  is_internal: boolean;
   /** 'stock' | 'lulu' | 'digital' | null on legacy rows. */
   fulfillment: string | null;
   lulu_print_job_id: number | null;
@@ -84,6 +88,8 @@ interface OrdersPayload {
     sms_consent: number;
     gross_cents: number;
     tax_cents: number;
+    internal_cents: number;
+    internal_count: number;
   };
   orders: OrderRow[];
 }
@@ -102,6 +108,18 @@ function fmtDateTimeCT(iso: string): string {
     minute: "2-digit",
     hour12: true,
   });
+}
+
+// lulu-admin returns the raw SubmitResult {status, detail?, print_job_id?},
+// CancelResult {outcome, detail?} or ApplyResult {lulu_status, applied}
+// (supabase/functions/_shared/lulu-fulfillment.ts). One readable line from any.
+function luluResultText(d: unknown): string {
+  const r = (d ?? {}) as Record<string, unknown>;
+  const head = r.status ?? r.outcome ?? r.lulu_status ?? "done";
+  const tail = [r.applied, r.print_job_id != null ? `job #${r.print_job_id}` : null, r.detail]
+    .filter(Boolean)
+    .join(" · ");
+  return tail ? `${head} (${tail})` : String(head);
 }
 
 // Status pill colors — terminal states muted red, held/active states brand tones.
@@ -126,9 +144,9 @@ export default function OrdersTab({ since }: { since: string }) {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: e } = await supabase.rpc("founder_orders" as never, { p_since: since } as never);
+      const { data, error: e } = await supabase.rpc("founder_orders", { p_since: since });
       if (e) throw e;
-      const p = data as OrdersPayload | null;
+      const p = data as unknown as OrdersPayload | null;
       if (p?.error) throw new Error(p.error);
       setPayload(p);
     } catch (err) {
@@ -154,11 +172,13 @@ export default function OrdersTab({ since }: { since: string }) {
       if (e) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const ctx = (e as any)?.context;
-        let detail: { error?: string } | null = null;
+        // A failed resubmit/cancel comes back 502/500 with a result body and no
+        // `error` key, so fall through to Lulu's own detail and status.
+        let detail: { error?: string; detail?: string; status?: string; outcome?: string } | null = null;
         try { detail = ctx && typeof ctx.json === "function" ? await ctx.json() : null; } catch { detail = null; }
-        throw new Error(detail?.error ?? e.message);
+        throw new Error(detail?.error ?? detail?.detail ?? (detail?.status || detail?.outcome) ?? e.message);
       }
-      setActionNote(`${ref}: ${action} → ${JSON.stringify(data)}`);
+      setActionNote(`${ref}: ${action} → ${luluResultText(data)}`);
     } catch (err) {
       setActionNote(`${ref}: ${action} failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -198,6 +218,13 @@ export default function OrdersTab({ since }: { since: string }) {
         <Stat label="Shipped / delivered" value={unknown ? "—" : `${s?.shipped ?? 0} / ${s?.delivered ?? 0}`} />
         <Stat label="Print cost (Lulu)" value={unknown ? "—" : money(s?.lulu_cost_cents ?? 0)} />
       </div>
+      {!!s?.internal_count && (
+        <p className="font-body text-sm mb-4 text-muted-foreground">
+          Excludes {s.internal_count} internal order{s.internal_count === 1 ? "" : "s"}
+          {" "}totalling {money(s.internal_cents)} (our own test purchases and staff
+          accounts). They are listed below, greyed out.
+        </p>
+      )}
       {actionNote && (
         <p className="font-body text-xs mb-4 rounded-md px-3 py-2 break-all" style={{ backgroundColor: "hsl(var(--eden-cream))", color: "hsl(var(--eden-bark))" }}>
           {actionNote}
@@ -226,13 +253,18 @@ export default function OrdersTab({ since }: { since: string }) {
             </thead>
             <tbody>
               {orders.map((o) => (
-                <tr key={o.id} className="border-t border-border align-top">
+                <tr key={o.id} className="border-t border-border align-top" style={o.is_internal ? { opacity: 0.55 } : undefined}>
                   <td className="px-3 py-2 font-body text-sm">
                     {/* The order number leads: it is the handle customers quote, and
                         /returns instructs them to. */}
                     <span className="font-mono text-xs font-semibold" style={{ color: "hsl(var(--eden-bark))" }}>
                       {o.order_number ?? "—"}
                     </span>
+                    {o.is_internal && (
+                      <span className="ml-2 rounded px-1.5 py-0.5 font-accent text-[10px] uppercase tracking-wider bg-muted text-muted-foreground">
+                        internal
+                      </span>
+                    )}
                     <br />
                     {o.customer_email ?? "(no email)"}
                     <br />
@@ -288,13 +320,16 @@ export default function OrdersTab({ since }: { since: string }) {
                           {o.lulu_print_job_id ? <span className="font-mono">#{o.lulu_print_job_id}</span> : <span className="text-muted-foreground">(not submitted)</span>}
                           {o.lulu_status && <span className="ml-1 text-muted-foreground">{o.lulu_status}</span>}
                         </div>
-                        {o.tracking_number && (
-                          <div>
-                            {o.tracking_url
-                              ? <a href={o.tracking_url} target="_blank" rel="noreferrer" className="underline" style={{ color: "hsl(var(--eden-forest))" }}>{o.shipping_carrier ?? "Track"} {o.tracking_number}</a>
-                              : <span>{o.shipping_carrier ?? ""} {o.tracking_number}</span>}
-                          </div>
-                        )}
+                        {o.tracking_number && (() => {
+                          const track = safeHttpHref(o.tracking_url);
+                          return (
+                            <div>
+                              {track
+                                ? <a href={track} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: "hsl(var(--eden-forest))" }}>{o.shipping_carrier ?? "Track"} {o.tracking_number}</a>
+                                : <span>{o.shipping_carrier ?? ""} {o.tracking_number}</span>}
+                            </div>
+                          );
+                        })()}
                         {o.lulu_cost_cents != null && <div className="text-muted-foreground">cost {money(o.lulu_cost_cents)}</div>}
                         {o.lulu_job && o.lulu_job.status !== "submitted" && (
                           <div style={{ color: o.lulu_job.status === "failed" ? "hsl(var(--destructive))" : undefined }}>

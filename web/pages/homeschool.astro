@@ -1,20 +1,27 @@
 ---
 // /homeschool — Astro port of src/pages/Homeschool.tsx. Pre-rendered to static
-// HTML for SEO (the page's whole reason for existing). Content/classes mirror
-// the React page exactly. The signup CTAs are static buttons with
-// 2026-07-25: the page became a single-offer preorder page and lost its
-// lead-magnet capture. 2026-09-11: it became the hub again (founder direction),
-// with every band and every way in on one page. Islands: PreorderBuyBox for
-// the kit and WaitlistController for the free-week and "tell me when" modals.
+// HTML for SEO (the page's whole reason for existing). 2026-07-25: the page
+// became a single-offer preorder page and lost its lead-magnet capture.
+// 2026-09-11: it became the hub again (founder direction), with every band and
+// every way in on one page. 2026-09-12: the preorder buy box came off with the
+// print-first pivot (see the §10 comment). Island: WaitlistController for the
+// free-week and "tell me when" modals.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 // Hero watermark: public domain botanical plate from Koehler's Medizinal-Pflanzen
 // (1887), desaturated to a sage wash and feathered at the edges, matching the
-// watermark treatment in the Sprouts Student Notebook. Rendered at 24% with
+// watermark treatment in the Sprouts Student Notebook. Rendered at 95% opacity
+// behind a white content panel (PR #433, full-colour botanicals) with
 // mix-blend-mode:multiply, so the white ground vanishes and only the plant tints
 // the section. The image is 1920x1080 to match the hero aspect; do not swap in a
 // portrait plate, it will crop to a band across the middle of the plant.
 import heroHomeschool from "@/assets/hero-homeschool.jpg";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+// CTA links carry buttonVariants classes rather than wrapping a <Button>: a
+// <button> inside an <a> is invalid HTML and a second tab stop. text-center
+// stands in for a <button>'s own centring; max-md:w-full max-md:max-w-full keep
+// the full-width phone layout src/index.css gives `section button`; and where the
+// inner button used h-full to fill its stretched wrapper, the link takes h-auto.
 import WaitlistController from "../components/islands/WaitlistController.tsx";
 import ComponentShowcases from "../components/ComponentShowcases.astro";
 
@@ -41,19 +48,12 @@ const courseJsonLd = {
   audience: { "@type": "EducationalAudience", educationalRole: "homeschooling family" },
 };
 
-// Lead magnets SUNSET on this page (founder decision 2026-07-25). The free
-// two-week sample is no longer offered here: one page, one offer, and that
-// offer is the preorder. The magnet PDFs, the resend-waitlist EF, and the
-// nurture sequences all still exist and still work; only the website capture
-// is gone. Reintroduce via a paid trial later, not here.
-// Rebrand 2026-07-26. The old handle TheEdenInstituteBiblicalHerbalism is DEAD
-// (Facebook: "This content isn't available right now"), verified in-browser
-// 2026-07-28. PR #368 fixed the shared footers and missed this page constant.
-const FACEBOOK_URL = "https://www.facebook.com/EdensTableHomeschoolCurriculum";
+// 2026-07-25 the lead-magnet capture was removed; 2026-09-11 the hub restored a
+// free Week 1 path via /freebies and WaitlistController.
 
 // Component showcases live in web/components/ComponentShowcases.astro since
-// 2026-09-11, so /preorder, /books and /starter show the same six-component
-// story with the same polished photos. Do not add a copy here.
+// 2026-09-11, so /books and /starter show the same component story with the
+// same polished photos. Do not add a copy here.
 
 // THE HUB DATA. One entry per band, rebuilt 2026-09-11 (founder direction:
 // everything lands on /homeschool, a band strip up top, four options per band).
@@ -235,19 +235,15 @@ const PRINT_SET = {
             the outlined try-it door. The kit button, its copy and its buy box are
             in git history on b8751c1 for phase two. */}
         <div class="grid gap-3 sm:grid-cols-2 sm:gap-4 w-full max-w-xl">
-          <a href="/books" data-cta="homeschool-hero-books" class="inline-flex w-full">
-            <Button variant="eden" size="xl" className="w-full h-full flex-col whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-4">
-              <span class="block">Get the printed year now</span>
-              <span class="block mt-1 whitespace-nowrap">$249</span>
-              <span class="block mt-1 text-[11px] sm:text-xs font-normal normal-case tracking-normal opacity-85">All 36 weeks. At your door in about 2 to 3 weeks.</span>
-            </Button>
+          <a href="/books" data-cta="homeschool-hero-books" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center w-full h-auto flex-col whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-4")}>
+            <span class="block">Get the printed year now</span>
+            <span class="block mt-1 whitespace-nowrap">$249</span>
+            <span class="block mt-1 text-[11px] sm:text-xs font-normal normal-case tracking-normal opacity-85">All 36 weeks. At your door in about 2 to 3 weeks.</span>
           </a>
-          <a href="/starter" data-cta="homeschool-hero-starter" class="inline-flex w-full">
-            <Button variant="eden-outline" size="xl" className="w-full h-full flex-col whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-4">
-              <span class="block">Try 9 weeks digital</span>
-              <span class="block mt-1 whitespace-nowrap">$39</span>
-              <span class="block mt-1 text-[11px] sm:text-xs font-normal normal-case tracking-normal opacity-85">Instant download. Teach it tonight.</span>
-            </Button>
+          <a href="/starter" data-cta="homeschool-hero-starter" class={cn(buttonVariants({ variant: "eden-outline", size: "xl" }), "text-center w-full h-auto flex-col whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-4")}>
+            <span class="block">Try 9 weeks digital</span>
+            <span class="block mt-1 whitespace-nowrap">$39</span>
+            <span class="block mt-1 text-[11px] sm:text-xs font-normal normal-case tracking-normal opacity-85">Instant download. Teach it tonight.</span>
           </a>
         </div>
 
@@ -309,9 +305,7 @@ const PRINT_SET = {
       </div>
 
       <div class="text-center mt-10">
-        <a href="/books" data-cta="homeschool-why-books">
-          <Button variant="eden" size="xl">Order the printed year · $249</Button>
-        </a>
+        <a href="/books" data-cta="homeschool-why-books" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center max-md:w-full max-md:max-w-full")}>Order the printed year · $249</a>
         <p class="font-body text-xs text-muted-foreground mt-3">All 36 weeks in three books. Flat $12 shipping.</p>
       </div>
     </div>
@@ -385,9 +379,7 @@ const PRINT_SET = {
                         data-waitlist-cta-label="See the full year"
                       >{r.button}</Button>
                     ) : (
-                      <a href={r.href} data-cta={r.cta} class="inline-flex w-full">
-                        <Button variant={r.primary ? "eden" : "eden-outline"} size="lg" className="w-full whitespace-normal h-auto min-h-[48px] py-3 px-4 leading-snug">{r.button}</Button>
-                      </a>
+                      <a href={r.href} data-cta={r.cta} class={cn(buttonVariants({ variant: r.primary ? "eden" : "eden-outline", size: "lg" }), "text-center w-full whitespace-normal h-auto min-h-[48px] py-3 px-4 leading-snug")}>{r.button}</a>
                     )}
                   </div>
                 ))}
@@ -507,9 +499,7 @@ const PRINT_SET = {
         <p class="font-body text-sm mb-8" style="color:rgba(255,255,255,0.7)">
           The herbs themselves are not included. Each week uses a small amount of a common dried herb from your pantry, your garden, or the <a href="/homeschool/herbs" class="underline" style="color:hsl(var(--eden-gold-light))">herb list we keep for you</a>.
         </p>
-        <a href="/books" data-cta="homeschool-print-set-books">
-          <Button variant="eden" size="xl">Order the printed year · $249</Button>
-        </a>
+        <a href="/books" data-cta="homeschool-print-set-books" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center max-md:w-full max-md:max-w-full")}>Order the printed year · $249</a>
         <p class="font-body text-sm mt-6" style="color:rgba(255,255,255,0.7)">
           Using an education savings account or scholarship? <a href="/esa" data-cta="homeschool-esa" class="underline" style="color:hsl(var(--eden-gold-light))">See how to buy in your state</a>.
         </p>
@@ -517,7 +507,8 @@ const PRINT_SET = {
     </div>
   </section>
 
-  {/* §9.45 Mockup disclaimer — nothing is printed yet; these are design mockups */}
+  {/* §9.45 Image note. Originally a mockup disclaimer; since the print-first
+      pivot the photos show the real printed products. */}
   <section class="py-10 px-6 bg-background">
     <div class="max-w-3xl mx-auto text-center rounded-lg p-6 border" style="border-color:hsl(var(--eden-gold) / 0.3);background-color:hsl(var(--eden-cream) / 0.4)">
       <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2" style="color:hsl(var(--eden-gold-ink))">About these images</p>
@@ -535,9 +526,7 @@ const PRINT_SET = {
       <p class="font-body text-muted-foreground max-w-xl mx-auto mb-6 leading-relaxed">
         Every herb your family studies, with a trusted source for each one. We have gathered the full Sprouts herb list in one place so you can stock your shelf for the year.
       </p>
-      <a href="/homeschool/herbs">
-        <Button variant="eden" size="xl">Purchase Herbs Here</Button>
-      </a>
+      <a href="/homeschool/herbs" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center max-md:w-full max-md:max-w-full")}>Purchase Herbs Here</a>
     </div>
   </section>
 
@@ -664,9 +653,7 @@ const PRINT_SET = {
 
       <div class="max-w-3xl mx-auto text-center mt-10">
         <p class="font-serif text-xl italic mb-6" style="color:hsl(var(--eden-bark))">Printed for your family, one set at a time, and built to last the whole year at your table.</p>
-        <a href="/books" data-cta="homeschool-objections-books">
-          <Button variant="eden" size="xl">Order the printed year · $249</Button>
-        </a>
+        <a href="/books" data-cta="homeschool-objections-books" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center max-md:w-full max-md:max-w-full")}>Order the printed year · $249</a>
         <p class="font-body text-xs text-muted-foreground mt-3">All 36 weeks in three books, printed to order. At your door in about two to three weeks.</p>
       </div>
     </div>
@@ -686,12 +673,8 @@ const PRINT_SET = {
         All thirty-six weeks of Sprouts in three printed books: the Teacher's Guide, the Student Notebook and the Read-Aloud Storybook. $249 plus flat $12 shipping. Printed to order, so nothing sits in a warehouse and nothing is back-ordered.
       </p>
       <div class="flex flex-col sm:flex-row gap-3 justify-center items-center">
-        <a href="/books" data-cta="homeschool-pricing-books">
-          <Button variant="eden" size="xl">Order the printed year · $249</Button>
-        </a>
-        <a href="/starter" data-cta="homeschool-pricing-starter">
-          <Button variant="eden-outline" size="xl">Try nine weeks first · $39</Button>
-        </a>
+        <a href="/books" data-cta="homeschool-pricing-books" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center")}>Order the printed year · $249</a>
+        <a href="/starter" data-cta="homeschool-pricing-starter" class={cn(buttonVariants({ variant: "eden-outline", size: "xl" }), "text-center")}>Try nine weeks first · $39</a>
       </div>
       <p class="font-body text-sm text-muted-foreground mt-6">
         Not ready to spend anything? <a href="/freebies" class="underline" style="color:hsl(var(--eden-forest))" data-cta="homeschool-pricing-free">Week 1 is free</a>.

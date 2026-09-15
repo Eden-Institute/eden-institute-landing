@@ -29,10 +29,10 @@ interface HerbFavoriteHeartProps {
  * HerbFavoriteHeart — the heart icon button rendered on every
  * unlocked HerbCard.
  *
- * Per Camila's Decision 4 (2026-04-30): Seed+ tier toggles favoriting;
- * Free user click navigates to /apothecary/pricing#tier-seed (the
- * seed upgrade anchor from PR #97). Authed Seed+ click toggles
- * optimistically via useHerbFavorites.
+ * Decision 4 (2026-04-30) sent Free clicks to /apothecary/pricing#tier-seed;
+ * PR #245 (2026-07-01) replaced that with a capped device-local Free list
+ * (useHerbFavorites FREE_FAVORITES_CAP) and shows the Seed prompt only at
+ * the cap. Seed+ toggles per active profile.
  *
  * Visual:
  *   • Filled gold when favorited.
