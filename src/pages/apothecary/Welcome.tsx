@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,13 +32,15 @@ const tierDisplayName: Record<Tier, string> = {
  * refetchInterval while tier is still 'free'.
  *
  * Closes launch-blocker #51.
+ *
+ * Rendered only inside RequireAuth (App.tsx), so a signed-out visitor never
+ * reaches this component.
  */
 export default function Welcome() {
-  const navigate = useNavigate();
   // index.html's first script has already moved session_id out of the URL
   // (src/lib/checkoutSession.ts).
   const sessionId = readCheckoutSessionId();
-  const { user, loading: authLoading } = useAuth();
+  const { loading: authLoading } = useAuth();
   const { data: currentTier, refetch: refetchTier } = useCurrentTier();
   const queryClient = useQueryClient();
 
@@ -109,12 +111,6 @@ export default function Welcome() {
   }, [currentTier, polls, status, refetchTier]);
 
   if (authLoading) return <PageSkeleton />;
-
-  if (!user) {
-    // A rare edge case: not signed in but hit /welcome. Redirect to signin.
-    navigate(ROUTES.APOTHECARY_SIGNIN, { replace: true });
-    return null;
-  }
 
   return (
     <section className="min-h-[70vh] flex items-center justify-center py-16 px-6">

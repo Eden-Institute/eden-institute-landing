@@ -33,6 +33,7 @@ export default function ScrollToTop() {
       const id = hash.startsWith("#") ? hash.slice(1) : hash;
       const el = document.getElementById(id);
       if (el) {
+        // Targets clear the sticky navbar via scroll-mt-* on the target element.
         el.scrollIntoView();
         return;
       }

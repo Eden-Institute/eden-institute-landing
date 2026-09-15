@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
+import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
+import { APOTHECARY_PRICES } from "@/lib/apothecaryPrices";
 // Hero botanical: sage (Salvia officinalis), Koehler 1887. Built at this
 // hero's aspect, 1600x640 for its ~1440x640 with the panel at desktop.
 import heroStart from "@/assets/hero-start.jpg";
@@ -43,6 +45,12 @@ export default function Start() {
       navigate(ROUTES.APOTHECARY, { replace: true });
     }
   }, [user, loading, navigate]);
+
+  // Signed-in visitors never see the tier-select, not even for the frame
+  // before the redirect effect runs. Deliberately NOT gated on `loading`:
+  // this is a public, indexed page whose main audience is anonymous, and a
+  // skeleton during the auth bootstrap would hide it from them.
+  if (user) return <PageSkeleton />;
 
   return (
     <div>
@@ -229,8 +237,8 @@ export default function Start() {
               displayName="Seed"
               persona="The Institute student"
               tagline="Clinical depth: actions, tissue states, Pattern matches."
-              monthlyPrice="$7.99"
-              yearlyPrice="$79.99"
+              monthlyPrice={APOTHECARY_PRICES.seed.monthly}
+              yearlyPrice={APOTHECARY_PRICES.seed.yearly}
               features={[
                 "Unlock clinical body of every monograph",
                 "Tissue state indications and energetic actions",
@@ -244,8 +252,8 @@ export default function Start() {
               displayName="Root"
               persona="The seasoned lay herbalist"
               tagline="Drug interactions, refer thresholds, sources."
-              monthlyPrice="$24.99"
-              yearlyPrice="$249.99"
+              monthlyPrice={APOTHECARY_PRICES.root.monthly}
+              yearlyPrice={APOTHECARY_PRICES.root.yearly}
               features={[
                 "Everything in Seed",
                 "Herb-drug interaction surfaces",

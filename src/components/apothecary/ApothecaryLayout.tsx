@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { Suspense } from "react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
@@ -10,6 +10,7 @@ import { PageSkeleton } from "./PageSkeleton";
  * Global layout shell for every /apothecary/* route. Wraps the outlet in:
  * - ApothecaryErrorBoundary (single generic fallback per §23.7)
  * - Suspense (with PageSkeleton for lazy-loaded surfaces)
+ * Keyed on location.pathname so a caught render error is discarded on the next client-side navigation instead of locking every /apothecary route until a hard reload.
  *
  * Active-profile context is NOT mounted here. Per PR β (2026-05-02), the
  * ActiveProfileProvider was hoisted to App.tsx so the active-profile
@@ -32,12 +33,13 @@ import { PageSkeleton } from "./PageSkeleton";
  * needs further design polish.
  */
 export function ApothecaryLayout() {
+  const { pathname } = useLocation();
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
       <ApothecaryNav />
       <main className="flex-1">
-        <ApothecaryErrorBoundary>
+        <ApothecaryErrorBoundary key={pathname}>
           <Suspense fallback={<PageSkeleton />}>
             <Outlet />
           </Suspense>

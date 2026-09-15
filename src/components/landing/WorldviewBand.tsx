@@ -7,14 +7,11 @@
  * theological attribution OUT). The text below is the founder-approved
  * Draft A — same thesis on every surface so the brand voice cannot drift.
  *
- * Placement (single source of truth, imported by Index.tsx, WhyEden.tsx,
- * ApothecaryWelcome.tsx):
- *   • Index.tsx — homepage worldview band, after the hero, before the
- *     framework breakdown.
- *   • WhyEden.tsx — anchor paragraph at the head of the page; the entire
- *     page builds out from this thesis.
- *   • ApothecaryWelcome.tsx — positioning band near the top of the anon
- *     /apothecary value page, before the feature and tier breakdowns.
+ * Placement: imported only by src/pages/apothecary/ApothecaryWelcome.tsx
+ * (positioning band near the top of the anon /apothecary value page).
+ * web/pages/why-eden.astro inlines the same thesis as static HTML, so a
+ * text change here must be mirrored there. Also synced to the design
+ * system via .design-sync/config.json.
  *
  * Mobile-aware per project_mobile_wrapping_roadmap.md: no hover-only
  * interactions, generous line-height, responsive Tailwind utilities.

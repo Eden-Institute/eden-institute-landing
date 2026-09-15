@@ -22,8 +22,13 @@ import MarketingLayout from "../../layouts/MarketingLayout.astro";
 import { constitutionProfiles } from "@/lib/constitution-data";
 import { CONSTITUTION_MAP } from "@/lib/constitution-utils";
 import { herbParam } from "@/lib/herbLinks";
+import { APOTHECARY_PRICES } from "@/lib/apothecaryPrices";
 import { getPublicHerbs, getHerbRoster } from "../../lib/herbsPublic";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+// CTA links carry buttonVariants classes rather than wrapping a <Button>: a
+// <button> inside an <a> is invalid HTML and a second tab stop. text-center
+// stands in for a <button>'s own centring.
 import heroMonograph from "@/assets/hero-monograph.jpg";
 
 export function getStaticPaths() {
@@ -143,17 +148,15 @@ const jsonLd = [
           moisture and tone, then matches herbs to the result.
         </p>
         <div class="flex flex-wrap gap-3 justify-center">
-          <a href="/assessment"><Button variant="eden" size="xl">Take the free assessment</Button></a>
+          <a href="/assessment" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center")}>Take the free assessment</a>
           <!-- Plain link on purpose: /go/deep-dive/:slug is the vercel.json
                redirect into the guide-checkout function, so the buy path works
                with no JavaScript on a static page. -->
-          <a href={`/go/deep-dive/${slug}`} data-product="constitution-guide">
-            <Button variant="outline" size="xl">Get the Deep-Dive Guide, $4.99</Button>
-          </a>
+          <a href={`/go/deep-dive/${slug}`} data-product="constitution-guide" class={cn(buttonVariants({ variant: "outline", size: "xl" }), "text-center")}>Get the Deep-Dive Guide, $4.99</a>
         </div>
         <p class="font-body text-sm text-muted-foreground mt-6">
           Want the full clinical study for every herb?
-          <a href="/apothecary/pricing#tier-seed" class="underline">Seed is $7.99/mo</a>.
+          <a href="/apothecary/pricing#tier-seed" class="underline">Seed is {APOTHECARY_PRICES.seed.monthly}/mo</a>.
         </p>
       </div>
     </div>

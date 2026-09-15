@@ -16,9 +16,12 @@ import { useEffect } from "react";
  * Two pages (Results.tsx, WhyEden.tsx) already implemented this ad-hoc
  * via useEffect + manual DOM mutation. This hook consolidates that
  * pattern, adds canonical handling that was missing from both, and
- * tracks the cleanup so navigating away restores the static homepage
- * defaults from index.html (no stale meta on the next route's first
- * paint).
+ * tracks the cleanup so navigating away restores the defaults index.html
+ * ships (read from the DOM once at startup; see DEFAULTS below) and removes
+ * any tag index.html does not ship, such as the canonical and og:url (no
+ * stale meta on the next route's first paint). index.html ships no
+ * canonical or og:url, so a route without this hook gets none
+ * (self-canonical by default) rather than pointing at the homepage.
  *
  * SSR is not in scope (Vite + React SPA; Google renders our JS). If a
  * future Next.js migration happens, swap this for next/head with no
@@ -38,11 +41,32 @@ export interface DocumentMeta {
   ogType?: "website" | "article";
 }
 
-const HOMEPAGE_TITLE =
-  "The Eden Institute & Eden Apothecary – Biblical Clinical Herbalism";
-const HOMEPAGE_DESCRIPTION =
-  "Eden Apothecary is a clinical reasoning app for terrain-based herbalism: 300 monographs anchored to body patterns, tissue states, and stewardship. Built by The Eden Institute. Take the free Pattern of Eden quiz to find your Pattern.";
-const HOMEPAGE_CANONICAL = "https://edeninstitute.health/";
+const readMetaName = (n: string) =>
+  document.querySelector(`meta[name="${n}"]`)?.getAttribute("content") ?? "";
+const readMetaProp = (p: string) =>
+  document.querySelector(`meta[property="${p}"]`)?.getAttribute("content") ?? "";
+
+/**
+ * The static index.html head, snapshotted when this module is first
+ * evaluated. src/main.tsx imports this module before rendering so the
+ * snapshot is taken before any route mutates <head>. An empty string means
+ * index.html does not ship that tag, and cleanup removes it.
+ */
+const DEFAULTS =
+  typeof document === "undefined"
+    ? null
+    : {
+        title: document.title,
+        description: readMetaName("description"),
+        canonical: document.querySelector('link[rel="canonical"]')?.getAttribute("href") ?? "",
+        ogTitle: readMetaProp("og:title"),
+        ogDescription: readMetaProp("og:description"),
+        ogUrl: readMetaProp("og:url"),
+        ogImage: readMetaProp("og:image"),
+        twitterTitle: readMetaName("twitter:title"),
+        twitterDescription: readMetaName("twitter:description"),
+        twitterImage: readMetaName("twitter:image"),
+      };
 
 /**
  * Set the per-route document meta. Call once at the top of any public
@@ -79,14 +103,24 @@ export function useDocumentMeta(meta: DocumentMeta): void {
     setMetaName("twitter:card", "summary_large_image");
 
     return () => {
-      // Restore homepage defaults so the next route's first paint isn't
+      // Restore the index.html defaults so the next route's first paint isn't
       // stuck with stale per-route meta until its own useDocumentMeta
       // effect runs.
-      document.title = HOMEPAGE_TITLE;
-      setMetaName("description", HOMEPAGE_DESCRIPTION);
-      setLink("canonical", HOMEPAGE_CANONICAL);
-      setMetaProperty("og:url", HOMEPAGE_CANONICAL);
+      if (!DEFAULTS) return;
+      document.title = DEFAULTS.title;
+      restoreMetaName("description", DEFAULTS.description);
+      if (DEFAULTS.canonical) setLink("canonical", DEFAULTS.canonical);
+      else removeLink("canonical");
+      restoreMetaProperty("og:title", DEFAULTS.ogTitle);
+      restoreMetaProperty("og:description", DEFAULTS.ogDescription);
+      restoreMetaProperty("og:url", DEFAULTS.ogUrl);
       setMetaProperty("og:type", "website");
+      restoreMetaName("twitter:title", DEFAULTS.twitterTitle);
+      restoreMetaName("twitter:description", DEFAULTS.twitterDescription);
+      // Images are only ever overridden when a caller passes ogImage; put the
+      // shipped image back, and never remove it.
+      if (DEFAULTS.ogImage) setMetaProperty("og:image", DEFAULTS.ogImage);
+      if (DEFAULTS.twitterImage) setMetaName("twitter:image", DEFAULTS.twitterImage);
     };
   }, [title, description, canonical, ogImage, ogType]);
 }
@@ -115,6 +149,29 @@ function setMetaProperty(property: string, content: string): void {
     document.head.appendChild(el);
   }
   el.setAttribute("content", content);
+}
+
+function removeMetaProperty(property: string): void {
+  document.querySelector(`meta[property="${property}"]`)?.remove();
+}
+
+function removeMetaName(name: string): void {
+  document.querySelector(`meta[name="${name}"]`)?.remove();
+}
+
+/** Set the tag back to its index.html value, or remove it if index.html has none. */
+function restoreMetaName(name: string, content: string): void {
+  if (content) setMetaName(name, content);
+  else removeMetaName(name);
+}
+
+function restoreMetaProperty(property: string, content: string): void {
+  if (content) setMetaProperty(property, content);
+  else removeMetaProperty(property);
+}
+
+function removeLink(rel: string): void {
+  document.querySelector(`link[rel="${rel}"]`)?.remove();
 }
 
 function setLink(rel: string, href: string): void {

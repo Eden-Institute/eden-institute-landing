@@ -5,7 +5,7 @@
 User-agent: *
 Allow: /
 Disallow: /api/
-Disallow: /partner-sample
+# /partner-sample is intentionally NOT disallowed: it carries <meta name=robots content=noindex>, which crawlers can only honour if they may fetch the page.
 Disallow: /apothecary/auth/
 Disallow: /apothecary/account
 Disallow: /apothecary/profiles

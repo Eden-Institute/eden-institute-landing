@@ -38,6 +38,8 @@
  * canonical surface.
  */
 
+import { APOTHECARY_PRICES } from "@/lib/apothecaryPrices";
+
 export type PublicTier = "free" | "seed" | "root" | "practitioner";
 
 export interface PublicTierSpec {
@@ -97,7 +99,7 @@ export const PUBLIC_TIERS: readonly PublicTierSpec[] = [
     persona: "The serious student",
     tagline:
       "Clinical depth: actions, tissue states, Pattern matches.",
-    monthlyPrice: "$7.99",
+    monthlyPrice: APOTHECARY_PRICES.seed.monthly,
     availability: "Available now · per month",
     features: [
       "Unlock the clinical body of every monograph",
@@ -112,7 +114,7 @@ export const PUBLIC_TIERS: readonly PublicTierSpec[] = [
     displayName: "Root",
     persona: "The seasoned lay herbalist",
     tagline: "Drug interactions, refer thresholds, sources.",
-    monthlyPrice: "$24.99",
+    monthlyPrice: APOTHECARY_PRICES.root.monthly,
     availability: "Available now · per month",
     features: [
       "Everything in Seed",
@@ -127,8 +129,8 @@ export const PUBLIC_TIERS: readonly PublicTierSpec[] = [
     displayName: "Practitioner",
     persona: "The clinical herbalist",
     tagline: "See a patient, read their pattern, and hand them a safe, cited plan before they leave the room.",
-    monthlyPrice: "$49.99",
-    availability: "Open now · founding rate $49.99/mo (reg. $59.99), locked for life",
+    monthlyPrice: APOTHECARY_PRICES.practitioner.monthly,
+    availability: `Open now · founding rate ${APOTHECARY_PRICES.practitioner.monthly}/mo (reg. ${APOTHECARY_PRICES.practitioner.standardMonthly}), locked for life`,
     features: [
       "Everything in Root",
       "One-screen clinical matching: the patient's pattern to a safety-screened herb list in seconds",

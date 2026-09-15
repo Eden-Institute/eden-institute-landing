@@ -7,12 +7,18 @@
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 // Hero watermark: public domain botanical plate from Koehler's Medizinal-Pflanzen
 // (1887), desaturated to a sage wash and feathered at the edges, matching the
-// watermark treatment in the Sprouts Student Notebook. Rendered at 24% with
+// watermark treatment in the Sprouts Student Notebook. Rendered at 95% opacity
+// behind a white content panel (PR #433, full-colour botanicals) with
 // mix-blend-mode:multiply, so the white ground vanishes and only the plant tints
 // the section. The image is 1920x1080 to match the hero aspect; do not swap in a
 // portrait plate, it will crop to a band across the middle of the plant.
 import heroCommunity from "@/assets/hero-community.jpg";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+// CTA links carry buttonVariants classes rather than wrapping a <Button>: a
+// <button> inside an <a> is invalid HTML and a second tab stop. text-center
+// stands in for a <button>'s own centring, and max-md:w-full max-md:max-w-full
+// keep the full-width phone layout src/index.css gives `section button`.
 import { MapPin, Sprout, Users, BookOpen } from "lucide-react";
 
 const meta = {
@@ -48,9 +54,7 @@ const meta = {
           – Isaiah 65:21 (NASB)
         </footer>
       </blockquote>
-      <a href="mailto:hello@edeninstitute.health">
-        <Button variant="eden" size="xl">Connect With Us</Button>
-      </a>
+      <a href="mailto:hello@edeninstitute.health" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center max-md:w-full max-md:max-w-full")}>Connect With Us</a>
     </div>
   </section>
 
@@ -114,9 +118,7 @@ const meta = {
       <p class="font-body text-muted-foreground mb-8">
         We are currently seeking aligned partners, investors, and collaborators to help build this stage of Eden Institute. If you share our vision for faith-grounded, terrain-based health education, we would love to connect.
       </p>
-      <a href="mailto:hello@edeninstitute.health">
-        <Button variant="eden" size="xl">Connect With Us</Button>
-      </a>
+      <a href="mailto:hello@edeninstitute.health" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center max-md:w-full max-md:max-w-full")}>Connect With Us</a>
     </div>
   </section>
 </MarketingLayout>

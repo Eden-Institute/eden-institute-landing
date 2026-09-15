@@ -70,12 +70,16 @@ export default function FeedbackTriageTab() {
 
   useEffect(() => { void load(); }, [load]);
 
-  async function rpc(name: string, args: Record<string, unknown>, id: string) {
+  async function rpc(
+    name: "feedback_triage" | "feedback_merge" | "feedback_promote",
+    args: Record<string, unknown>,
+    id: string,
+  ) {
     setBusy(id);
     // Clear first. Without this a stale message from a previous failure persists and
     // can blank the tab on the next render.
     setError(null);
-    const { error: e } = await supabase.rpc(name as never, args as never);
+    const { error: e } = await supabase.rpc(name, args as never);
     if (e) setError(e.message);
     else await load();
     setBusy(null);
@@ -153,18 +157,22 @@ export default function FeedbackTriageTab() {
                   <select
                     value={s[f] ?? ""}
                     disabled={busy === s.id}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      // "" would be Number("") = 0 and trip the 1..5 CHECK. The
+                      // blank option is disabled; null here is belt and braces
+                      // (feedback_triage COALESCEs it, so the score is kept).
+                      const v = e.target.value === "" ? null : Number(e.target.value);
                       rpc("feedback_triage", {
                         p_id: s.id,
                         p_status: s.status === "new" ? "triaged" : s.status,
-                        p_reach: f === "reach" ? Number(e.target.value) : s.reach,
-                        p_impact_score: f === "impact_score" ? Number(e.target.value) : s.impact_score,
-                        p_effort: f === "effort" ? Number(e.target.value) : s.effort,
-                      }, s.id)
-                    }
+                        p_reach: f === "reach" ? v : s.reach,
+                        p_impact_score: f === "impact_score" ? v : s.impact_score,
+                        p_effort: f === "effort" ? v : s.effort,
+                      }, s.id);
+                    }}
                     className="rounded border bg-background px-1 py-0.5 text-xs"
                   >
-                    <option value="">–</option>
+                    <option value="" disabled>–</option>
                     {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
                   </select>
                 </label>

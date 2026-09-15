@@ -64,6 +64,13 @@ export function useEdenPattern(): {
   isLoading: boolean;
   isEmptyForActiveProfile: boolean;
   activeProfile: PersonProfile | null;
+  /**
+   * Possessive for Pattern attribution: "your" for the self profile or no
+   * profile, the profile's name possessive ("Olivia's") otherwise. When the
+   * picker points at a family member or patient the terrain is theirs, so
+   * badges and reasons must not say "your".
+   */
+  patternSubject: string;
 } {
   const { user } = useAuth();
   const profileCtx = useActiveProfileOptional();
@@ -74,7 +81,12 @@ export function useEdenPattern(): {
   // window risks rendering the WRONG Pattern for the visible UI. When
   // there's no provider at all (profileCtx === null) we default to
   // "ready" so Case 2 (user-level marketing read) continues to fire.
-  const profileCtxLoading = profileCtx?.isLoading ?? false;
+  // Also hold while the provider is in an error state with no cached list:
+  // firing the user-level read there would show the account holder's Pattern
+  // for whatever non-self profile is still selected.
+  const profileCtxLoading =
+    (profileCtx?.isLoading ?? false) ||
+    ((profileCtx?.isError ?? false) && (profileCtx?.profiles.length ?? 0) === 0);
 
   const query = useQuery({
     queryKey: [
@@ -151,6 +163,8 @@ export function useEdenPattern(): {
     isLoading: profileCtxLoading || query.isLoading,
     isEmptyForActiveProfile: query.data?.isEmptyForActiveProfile ?? false,
     activeProfile,
+    patternSubject:
+      activeProfile && !activeProfile.is_self ? `${activeProfile.name}'s` : "your",
   };
 }
 

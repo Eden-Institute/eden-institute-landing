@@ -43,6 +43,16 @@ const SRC_RE = /^[a-z0-9_-]{1,40}$/;
 // the click feel broken.
 const LOG_TIMEOUT_MS = 1500;
 
+// Upper bounds on what an anonymous request may write into outbound_clicks.
+// Referer, UA and query are attacker-controlled; without a cap a bot can grow
+// the table for free with multi-kilobyte headers. Generous enough to keep
+// every real value intact.
+const MAX_REFERER = 512;
+const MAX_USER_AGENT = 256;
+const MAX_PATH = 256;
+const clip = (v: string | null, max: number): string | null =>
+  v && v.length > max ? v.slice(0, max) : v;
+
 /** Vercel Edge passes this as the second handler argument. Typed locally so
  *  the file has no dependency on @vercel/edge (not installed in this repo). */
 interface EdgeContext {
@@ -74,9 +84,9 @@ async function logClick(req: Request, url: URL, source: string): Promise<void> {
       body: JSON.stringify({
         target: 'course',
         source,
-        referer: req.headers.get('referer'),
-        path: `${url.pathname}${url.search}`,
-        user_agent: req.headers.get('user-agent'),
+        referer: clip(req.headers.get('referer'), MAX_REFERER),
+        path: clip(`${url.pathname}${url.search}`, MAX_PATH),
+        user_agent: clip(req.headers.get('user-agent'), MAX_USER_AGENT),
       }),
       signal: AbortSignal.timeout(LOG_TIMEOUT_MS),
     });

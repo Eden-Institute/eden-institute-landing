@@ -218,9 +218,9 @@ export const constitutionProfiles: Record<string, ConstitutionProfile> = {
  * Initial pass (1–12): asked of every visitor.
  * Follow-up pass (13–21): asked ONLY for axes that came back tied after
  * the initial pass. The mapping is mirrored in src/lib/quiz-followup.ts;
- * if you change one, change the other.
+ * if you change one, change the other (enforced by src/test/patternRoster.test.ts).
  */
-const AXIS_CONFIG: Record<
+export const AXIS_CONFIG: Record<
   Axis,
   {
     first: string;

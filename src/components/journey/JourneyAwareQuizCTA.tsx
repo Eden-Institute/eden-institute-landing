@@ -1,3 +1,4 @@
+// Kept on purpose for the planned client:only enhancer island on Astro pages; no current importer.
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {

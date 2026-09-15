@@ -2,37 +2,37 @@ import { useState } from "react";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { RequireAuth } from "@/components/apothecary/RequireAuth";
 import { RequireTier } from "@/components/apothecary/RequireTier";
 import {
   useActiveProfile,
   type PersonProfile,
 } from "@/contexts/ActiveProfileContext";
-import { useCurrentTier, type Tier } from "@/hooks/useCurrentTier";
+import { useCurrentTier } from "@/hooks/useCurrentTier";
 import { ProfileFormDialog } from "@/components/apothecary/ProfileFormDialog";
 import { resolveEdenPattern, PATTERN_PROFILES } from "@/lib/edenPattern";
+import { getUserFacingErrorMessage } from "@/lib/errorMessage";
+import { parseISODateLocal } from "@/lib/localDate";
+import { personProfileCap } from "@/lib/tiers";
+import { cn } from "@/lib/utils";
 import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
 // Hero botanical: linden (Tilia), Koehler 1887. Built at this hero's aspect,
 // 1600x300 for its ~1440x280 with the panel at desktop.
 import heroProfiles from "@/assets/hero-profiles.jpg";
 
-// Tier-cap restructure v2 (2026-04-30) — mirror of
-// public.person_profile_cap_for_tier(tier text) in the corresponding
-// migration file. Single source of truth for the BACKEND is the SQL
-// function (BEFORE INSERT trigger enforces). This constant is for
-// UX gating only — "Add profile" disabled-state, header count
-// readout. Keep in lockstep with the SQL function.
-const TIER_CAP: Record<Tier, number> = {
-  anon: 0,
-  free: 0,
-  seed: 5,
-  root: 10,
-  practitioner: 500,
-};
-
 function ageFromDob(dob: string): number {
-  const birth = new Date(dob);
+  const birth = parseISODateLocal(dob) ?? new Date(dob);
   const now = new Date();
   let age = now.getFullYear() - birth.getFullYear();
   const m = now.getMonth() - birth.getMonth();
@@ -151,7 +151,7 @@ function ProfilesPageContent() {
     null,
   );
 
-  const cap = tier ? (TIER_CAP[tier] ?? 0) : 0;
+  const cap = personProfileCap(tier);
   const canAddMore = profiles.length < cap;
 
   const deleteMutation = useMutation({
@@ -229,7 +229,10 @@ function ProfilesPageContent() {
                 key={p.id}
                 profile={p}
                 onEdit={() => setEditingProfile(p)}
-                onDelete={() => setDeletingProfile(p)}
+                onDelete={() => {
+                  deleteMutation.reset();
+                  setDeletingProfile(p);
+                }}
               />
             ))}
           </div>
@@ -251,42 +254,62 @@ function ProfilesPageContent() {
 
         {/* Delete confirmation */}
         {deletingProfile && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
-            onClick={() => !deleteMutation.isPending && setDeletingProfile(null)}
+          <AlertDialog
+            open
+            onOpenChange={(open) => {
+              // Escape / Cancel cannot unmount mid-request.
+              if (!open && !deleteMutation.isPending) {
+                setDeletingProfile(null);
+                deleteMutation.reset();
+              }
+            }}
           >
-            <div
-              className="bg-card rounded-lg border border-border p-6 max-w-md w-full mx-4"
-              onClick={(e) => e.stopPropagation()}
+            <AlertDialogContent
+              className="bg-card max-w-md"
+              onEscapeKeyDown={(e) => {
+                if (deleteMutation.isPending) e.preventDefault();
+              }}
             >
-              <h3 className="font-serif text-lg font-semibold">
-                Delete profile?
-              </h3>
-              <p className="font-body text-sm text-muted-foreground mt-2">
-                This permanently removes <strong>{deletingProfile.name}</strong>{" "}
-                and any diagnostic data attached to this profile. Cannot be
-                undone.
-              </p>
-              <div className="mt-5 flex items-center justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setDeletingProfile(null)}
+              <AlertDialogHeader>
+                <AlertDialogTitle className="font-serif text-lg font-semibold">
+                  Delete profile?
+                </AlertDialogTitle>
+                <AlertDialogDescription className="font-body text-sm text-muted-foreground">
+                  This permanently removes <strong>{deletingProfile.name}</strong>{" "}
+                  and any diagnostic data attached to this profile. Cannot be
+                  undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              {deleteMutation.isError && (
+                <p role="alert" className="font-body text-sm text-destructive mt-3">
+                  {getUserFacingErrorMessage(deleteMutation.error)}
+                </p>
+              )}
+              <AlertDialogFooter className="gap-2 sm:gap-2">
+                <AlertDialogCancel
                   disabled={deleteMutation.isPending}
                   className="min-h-[44px]"
                 >
                   Cancel
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => deleteMutation.mutate(deletingProfile.id)}
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  className={cn(
+                    buttonVariants({ variant: "destructive" }),
+                    "min-h-[44px]",
+                  )}
                   disabled={deleteMutation.isPending}
-                  className="min-h-[44px]"
+                  onClick={(e) => {
+                    // Radix closes on Action click; keep the dialog open while
+                    // the request runs and if it fails (onSuccess closes it).
+                    e.preventDefault();
+                    deleteMutation.mutate(deletingProfile.id);
+                  }}
                 >
                   {deleteMutation.isPending ? "Deleting…" : "Delete profile"}
-                </Button>
-              </div>
-            </div>
-          </div>
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
       </div>
     </div>

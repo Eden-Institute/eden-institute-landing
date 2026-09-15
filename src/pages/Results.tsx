@@ -7,7 +7,9 @@ import { useEdenPattern } from "@/hooks/useEdenPattern";
 import { useCurrentTier } from "@/hooks/useCurrentTier";
 import { isSubscriberTier } from "@/hooks/useHerbsDirectory";
 import { patternNameToSlug } from "@/lib/amazonKitUrls";
+import { APOTHECARY_PRICES } from "@/lib/apothecaryPrices";
 import { constitutionProfiles } from "@/lib/constitution-data";
+import { getTypeFromSlug } from "@/lib/constitution-utils";
 import { ROUTES } from "@/lib/routes";
 import { trackCta } from "@/lib/trackCta";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
@@ -15,16 +17,6 @@ import { useStructuredData } from "@/lib/useStructuredData";
 import Navbar from "@/components/landing/Navbar";
 
 import { getFbAttribution } from "@/lib/fbAttribution";
-const slugToType: Record<string, string> = {
-  "burning-bowstring": "Hot / Dry / Tense",
-  "open-flame": "Hot / Dry / Relaxed",
-  "pressure-cooker": "Hot / Damp / Tense",
-  "overflowing-cup": "Hot / Damp / Relaxed",
-  "drawn-bowstring": "Cold / Dry / Tense",
-  "spent-candle": "Cold / Dry / Relaxed",
-  "frozen-knot": "Cold / Damp / Tense",
-  "still-water": "Cold / Damp / Relaxed",
-};
 
 const Results = () => {
   const { constitutionSlug } = useParams<{ constitutionSlug: string }>();
@@ -71,7 +63,7 @@ const Results = () => {
     }
   }, [user, patternLoading, activePattern, activeProfile, constitutionSlug, navigate]);
 
-  const constitutionType = constitutionSlug ? slugToType[constitutionSlug] : undefined;
+  const constitutionType = constitutionSlug ? getTypeFromSlug(constitutionSlug) : undefined;
   const profile = constitutionType ? constitutionProfiles[constitutionType] : undefined;
 
   const canonical = constitutionSlug
@@ -115,7 +107,7 @@ const Results = () => {
             url: "https://edeninstitute.health",
             logo: {
               "@type": "ImageObject",
-              url: "https://edeninstitute.health/favicon.ico",
+              url: "https://edeninstitute.health/favicon-512.png",
             },
           },
           about: {
@@ -307,7 +299,7 @@ const Results = () => {
               data-cta="results-upgrade-seed"
             >
               <Link to={`${ROUTES.APOTHECARY_PRICING}#tier-seed`}>
-                Unlock the full study with Seed, $7.99/mo
+                {`Unlock the full study with Seed, ${APOTHECARY_PRICES.seed.monthly}/mo`}
               </Link>
             </Button>
           </div>

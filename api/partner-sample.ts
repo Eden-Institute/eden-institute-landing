@@ -42,6 +42,8 @@
 // three came back wrapped in the draft's stored HTML. No HTML shape escapes it,
 // so do not go looking for one again.
 
+import { safeEqual } from './_lib/safe-equal';
+
 /** Button slug -> Storage object path. Order is the reading order of a week. */
 const COMPONENTS: Record<string, string> = {
   'read-aloud': 'sample/edens-table-6wk-read-aloud.pdf',
@@ -63,14 +65,6 @@ function fail(status: number, message: string): Response {
     status,
     headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   });
-}
-
-/** Constant-time string compare, so a wrong key cannot be found by timing. */
-function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
 }
 
 export default async function handler(req: Request): Promise<Response> {

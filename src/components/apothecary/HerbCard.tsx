@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
   ChevronDown,
@@ -10,7 +10,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { type HerbRow } from "@/hooks/useApothecaryHerbs";
+import { type HerbDirectoryRow as HerbRow } from "@/hooks/useHerbsDirectory";
 import { type EdenPatternName } from "@/lib/edenPattern";
 import {
   resolveHerbVerdict,
@@ -21,8 +21,9 @@ import {
   type SecondaryCitation,
   type TraditionalObservation,
 } from "@/lib/contentEntry";
-import { ROUTES } from "@/lib/routes";
+import { ASTRO_PAGES, ROUTES } from "@/lib/routes";
 import { herbParam } from "@/lib/herbLinks";
+import { isHttpUrl } from "@/lib/safeUrl";
 import { HerbFavoriteHeart } from "./HerbFavoriteHeart";
 
 interface HerbCardProps {
@@ -55,6 +56,8 @@ interface HerbCardProps {
    * "avoid" — so a missing row degrades to silence, never to a wrong warning.
    */
   curatedVerdict?: CuratedHerbPatternRow | null;
+  /** Possessive used when attributing the Pattern: "your" (self profile) or "Olivia's" (non-self profile). Mirrors HerbMonograph. */
+  patternSubject?: string;
 }
 
 const chipClass =
@@ -142,6 +145,30 @@ function asTraditionalObservations(
   return observations.length > 0 ? observations : null;
 }
 
+/** Renders the citation as a link only when the stored URL is http(s); otherwise the same text, unlinked (without the link styling). */
+function CitationAnchor({
+  url,
+  className,
+  children,
+}: {
+  url: string;
+  className: string;
+  children: ReactNode;
+}) {
+  if (!isHttpUrl(url)) {
+    const plainClassName = className
+      .split(/\s+/)
+      .filter((c) => !/^(underline|decoration-|hover:)/.test(c))
+      .join(" ");
+    return <span className={plainClassName}>{children}</span>;
+  }
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" className={className}>
+      {children}
+    </a>
+  );
+}
+
 /**
  * Human-readable label for the SecondaryCitation.kind enum. Used in the
  * citation drawer to surface provenance (WHO / ESCOP / PubMed / etc.).
@@ -198,13 +225,17 @@ const TRADITION_LABELS: Record<TraditionalObservation["tradition"], string> = {
  *
  * Save-favorites (PR #103/#104, 2026-04-30): unlocked states render a
  * <HerbFavoriteHeart /> button at top-right of the card. Locked state
- * does NOT render the heart — Free users have person_profiles cap=0 and
- * can't favorite anything, so the heart would be dead UI.
+ * does NOT render the heart. (The original reason, "Free users have
+ * person_profiles cap=0 and cannot favorite", no longer holds: since
+ * PR #245 (2026-07-01) Free users keep a 3-herb device-local list, see
+ * useHerbFavorites.ts FREE_FAVORITES_CAP. Whether locked cards should
+ * carry the heart too is an open product question, not decided here.)
  */
 export function HerbCard({
   herb,
   activePattern = null,
   curatedVerdict = null,
+  patternSubject = "your",
 }: HerbCardProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -245,6 +276,7 @@ export function HerbCard({
         },
         activePattern,
         curatedVerdict ?? null,
+        patternSubject,
       )
     : null;
   const matchRelationship = verdict?.relationship ?? null;
@@ -307,7 +339,7 @@ export function HerbCard({
                 color: "hsl(var(--eden-gold))",
                 borderColor: "hsl(var(--eden-gold))",
               }}
-              title="Rebalances your Pattern"
+              title={`Rebalances ${patternSubject} Pattern`}
             >
               <Sparkles className="w-3 h-3" aria-hidden="true" />
               Match
@@ -316,7 +348,7 @@ export function HerbCard({
           {matchRelationship === "avoid" && (
             <span
               className={`${chipClass} flex items-center gap-1 bg-destructive/10 text-destructive`}
-              title="May aggravate your Pattern"
+              title={`May aggravate ${patternSubject} Pattern`}
             >
               <ShieldAlert className="w-3 h-3" aria-hidden="true" />
               Avoid
@@ -381,7 +413,7 @@ export function HerbCard({
           matchReasons.length > 0 && (
             <ul
               className="mt-3 space-y-0.5"
-              aria-label="Why this herb suits your Pattern"
+              aria-label={`Why this herb suits ${patternSubject} Pattern`}
             >
               {matchReasons.map((reason) => (
                 <li
@@ -428,12 +460,12 @@ export function HerbCard({
             style={{ color: "hsl(var(--eden-gold))" }}
           >
             {matchRelationship === "match" && patternShort
-              ? `Matches your ${patternShort}`
+              ? `Matches ${patternSubject} ${patternShort}`
               : "There's more to know about this herb"}
           </p>
           <p className="font-body text-sm leading-relaxed text-muted-foreground">
             {matchRelationship === "match" && patternShort
-              ? `The clinical reason this herb rebalances your ${patternShort} is written and waiting. Seed opens the full study for all 300 herbs.`
+              ? `The clinical reason this herb rebalances ${patternSubject} ${patternShort} is written and waiting. Seed opens the full study for all 300 herbs.`
               : "Seed opens the full study — how it acts in the body, who it suits, how to prepare it, and how to use it safely. All 300 herbs, one subscription."}
           </p>
           {/* whitespace-normal + h-auto: the match-state label is long and
@@ -479,12 +511,18 @@ export function HerbCard({
       {/*
         Save-favorites heart (PR #103/#104, 2026-04-30). Absolute-positioned
         top-right via the article's `relative`. Self-contained: handles its
-        own tier check (Free → upgrade prompt; Seed+ → toggle) and stops
-        event propagation so it doesn't trigger the expand/collapse handler.
+        own tier check (Free → 3-herb device-local list, Seed upsell at the
+        cap; Seed+ → per-profile DB toggle) and stops event propagation so
+        it doesn't trigger the expand/collapse handler.
       */}
       {/* herb_id is nullable on the view row; a heart with no id would write
           null into the favorites list. No id, no heart. */}
-      {herb.herb_id && <HerbFavoriteHeart herbId={herb.herb_id} />}
+      {herb.herb_id && (
+        <HerbFavoriteHeart
+          herbId={herb.herb_id}
+          herbName={herb.common_name ?? undefined}
+        />
+      )}
 
       {/*
         §8.1.3 (Manual v4.0) — Pattern-specific aggravation banner.
@@ -500,7 +538,7 @@ export function HerbCard({
         matchReasons.length > 0 && (
           <aside
             role="note"
-            aria-label={`May aggravate your ${activePattern} pattern`}
+            aria-label={`May aggravate ${patternSubject} ${activePattern} pattern`}
             className="-mx-5 -mt-5 mb-4 px-5 py-3 rounded-t-lg flex items-start gap-2.5 border-b"
             style={{
               backgroundColor: "hsl(var(--destructive) / 0.08)",
@@ -517,7 +555,7 @@ export function HerbCard({
                 className="font-accent text-[10px] tracking-[0.25em] uppercase mb-1"
                 style={{ color: "hsl(var(--destructive))" }}
               >
-                May aggravate your {activePattern}
+                May aggravate {patternSubject} {activePattern}
               </p>
               <ul className="font-body text-xs leading-relaxed space-y-0.5">
                 {matchReasons.map((reason) => (
@@ -562,7 +600,7 @@ export function HerbCard({
               color: "hsl(var(--eden-gold))",
               borderColor: "hsl(var(--eden-gold))",
             }}
-            title="Rebalances your Pattern"
+            title={`Rebalances ${patternSubject} Pattern`}
           >
             <Sparkles className="w-3 h-3" />
             Match
@@ -584,7 +622,7 @@ export function HerbCard({
               color: "hsl(var(--eden-bark))",
               border: "1px solid hsl(var(--eden-gold))",
             }}
-            title="Suits your Pattern, with a condition"
+            title={`Suits ${patternSubject} Pattern, with a condition`}
           >
             <Sparkles className="w-3 h-3" />
             Match, with care
@@ -597,7 +635,7 @@ export function HerbCard({
               backgroundColor: "hsl(var(--destructive) / 0.1)",
               color: "hsl(var(--destructive))",
             }}
-            title="May aggravate your Pattern"
+            title={`May aggravate ${patternSubject} Pattern`}
           >
             <ShieldAlert className="w-3 h-3" />
             Avoid
@@ -678,7 +716,7 @@ export function HerbCard({
           matchRelationship === "conditional") && (
           <ul
             className="mt-3 space-y-0.5"
-            aria-label="Why this herb suits your Pattern"
+            aria-label={`Why this herb suits ${patternSubject} Pattern`}
           >
             {matchReasons.map((reason) => (
               <li
@@ -931,12 +969,12 @@ export function HerbCard({
                   >
                     Pattern-observation only. The source of vital force is
                     named on the{" "}
-                    <Link
-                      to={ROUTES.WHY_EDEN}
+                    <a
+                      href={ASTRO_PAGES.WHY_EDEN}
                       className="underline underline-offset-2 hover:opacity-80"
                     >
                       Why Eden
-                    </Link>{" "}
+                    </a>{" "}
                     page. These labels describe what the body is doing, not
                     where life comes from.
                   </p>
@@ -1127,15 +1165,13 @@ export function HerbCard({
                   {primary ? (
                     <div className="font-body text-xs leading-relaxed text-muted-foreground">
                       <span className="font-medium">Primary: </span>
-                      <a
-                        href={primary.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <CitationAnchor
+                        url={primary.url}
                         className="underline decoration-dotted underline-offset-2 hover:opacity-80"
                       >
                         {primary.author}, <em>{primary.title}</em>{" "}
                         ({primary.year})
-                      </a>
+                      </CitationAnchor>
                       {primary.locator && (
                         <span className="opacity-80"> · {primary.locator}</span>
                       )}
@@ -1152,10 +1188,8 @@ export function HerbCard({
                   {secondary ? (
                     <div className="font-body text-xs leading-relaxed text-muted-foreground mt-1">
                       <span className="font-medium">Secondary: </span>
-                      <a
-                        href={secondary.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <CitationAnchor
+                        url={secondary.url}
                         className="underline decoration-dotted underline-offset-2 hover:opacity-80"
                       >
                         {secondary.author
@@ -1163,7 +1197,7 @@ export function HerbCard({
                           : ""}
                         <em>{secondary.title}</em>
                         {secondary.year ? ` (${secondary.year})` : ""}
-                      </a>
+                      </CitationAnchor>
                       <span className="opacity-80">
                         {" "}
                         · {SECONDARY_KIND_LABELS[secondary.kind] ?? secondary.kind}
@@ -1206,16 +1240,14 @@ export function HerbCard({
                           <p className="font-body text-xs leading-relaxed text-muted-foreground">
                             {obs.observation}
                           </p>
-                          <a
-                            href={obs.citation.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <CitationAnchor
+                            url={obs.citation.url}
                             className="font-body text-[10px] tracking-wide uppercase underline decoration-dotted underline-offset-2 text-muted-foreground hover:opacity-80 mt-1 inline-block"
                           >
                             {obs.citation.author}, {obs.citation.title} ({
                               obs.citation.year
                             })
-                          </a>
+                          </CitationAnchor>
                         </div>
                       ))}
                     </div>

@@ -79,9 +79,9 @@ interface ParsedEmail {
  * Why: parseEmail() bails out when the domain has no dot, and checkEmail()
  * historically read that null as "looks fine". That hole let six undeliverable
  * addresses into the July 2026 launch sequence, each failing on all six sends:
- *   cassandraburke400@gmail   jen_enserink@hotmail   whollyedenlife@gmail
- *   ckp1968@hotmailcom        kalahhester@gmailc     (no dot in the domain)
- *   laurenhinken.@outlook.com (local part ends in a dot)
+ *   edenfixture400@gmail   eden_fixture@hotmail   edenfixturelife@gmail
+ *   edenfixture1968@hotmailcom  edenfixturename@gmailc  (no dot in the domain)
+ *   edenfixturedot.@outlook.com (local part ends in a dot)
  * A domain with no dot at all is not a "maybe"; it cannot receive mail.
  */
 export function hasDeliverableShape(raw: string): boolean {

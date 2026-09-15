@@ -148,10 +148,11 @@ const firedThisPage = new Set<string>();
  * reopening a confirmation page, even days later in a new tab, never reports a
  * second sale. The key lives in localStorage; where that is blocked, an
  * in-memory set still limits it to once per page load. A visitor who declined
- * fires nothing and nothing is stored.
+ * fires nothing and nothing is stored. Nothing is recorded when the Pinterest
+ * tag is not loaded, so a page without the tag never uses up the key.
  */
 export function pinTrackOnce(dedupeKey: string, event: PinEvent, data: PinEventData): void {
-  if (declined()) return;
+  if (declined() || !getPintrk()) return;
   const key = `pintrk_${event}_${dedupeKey}`;
   if (firedThisPage.has(key)) return;
   firedThisPage.add(key);

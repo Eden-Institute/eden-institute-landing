@@ -63,12 +63,9 @@ export default function RevenueTab({ since }: { since: string }) {
     setError(null);
     setFunnelError(null);
     try {
-      const { data: res, error: e } = await supabase.rpc(
-        "founder_revenue" as never,
-        { p_since: since } as never,
-      );
+      const { data: res, error: e } = await supabase.rpc("founder_revenue", { p_since: since });
       if (e) throw e;
-      setData((res as Revenue | null) ?? null);
+      setData((res as unknown as Revenue | null) ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load revenue data.");
     } finally {
@@ -77,12 +74,9 @@ export default function RevenueTab({ since }: { since: string }) {
     // Separate try so a funnel failure (e.g. migration not applied yet) never
     // blanks the revenue numbers above it.
     try {
-      const { data: res, error: e } = await supabase.rpc(
-        "founder_course_funnel" as never,
-        { p_since: since } as never,
-      );
+      const { data: res, error: e } = await supabase.rpc("founder_course_funnel", { p_since: since });
       if (e) throw e;
-      setFunnel((res as CourseFunnel | null) ?? null);
+      setFunnel((res as unknown as CourseFunnel | null) ?? null);
     } catch (err) {
       setFunnel(null);
       setFunnelError(err instanceof Error ? err.message : "Could not load the course funnel.");

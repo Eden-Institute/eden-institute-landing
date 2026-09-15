@@ -1,6 +1,7 @@
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { constitutionProfiles } from "@/lib/constitution-data";
+import { getTypeFromSlug } from "@/lib/constitution-utils";
 import type { FullGuideContent } from "@/lib/guide-types";
 import GuideTemplate from "@/components/guide/GuideTemplate";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,15 +12,6 @@ import { trackCta } from "@/lib/trackCta";
 import { readCheckoutSessionId } from "@/lib/checkoutSession";
 
 import { getFbAttribution } from "@/lib/fbAttribution";
-// Map slug → constitution type key
-const slugToType: Record<string, string> = {};
-for (const [type, profile] of Object.entries(constitutionProfiles)) {
-  const slug = profile.nickname
-    .replace(/^The\s+/i, "")
-    .toLowerCase()
-    .replace(/\s+/g, "-");
-  slugToType[slug] = type;
-}
 
 const GuideLanding = () => {
   const { constitutionSlug } = useParams<{ constitutionSlug: string }>();
@@ -33,7 +25,7 @@ const GuideLanding = () => {
   // it is no longer bundled into the client, so it cannot be read for free.
   const [guide, setGuide] = useState<FullGuideContent | null>(null);
 
-  const constitutionType = constitutionSlug ? slugToType[constitutionSlug] : null;
+  const constitutionType = constitutionSlug ? getTypeFromSlug(constitutionSlug) ?? null : null;
   const profile = constitutionType ? constitutionProfiles[constitutionType] : null;
 
   // On mount: check for session_id (post-payment redirect). index.html's first
@@ -64,7 +56,7 @@ const GuideLanding = () => {
       }
     };
     verify();
-  }, [searchParams]);
+  }, [constitutionSlug, searchParams]);
 
   // Check for prior purchase if no session_id
   useEffect(() => {
@@ -158,9 +150,9 @@ const GuideLanding = () => {
       if (data?.url) {
         window.location.href = data.url;
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Checkout error:", err);
-      setError(err?.message || "Something went wrong. Please try again.");
+      setError(err instanceof Error && err.message ? err.message : "Something went wrong. Please try again.");
     } finally {
       setCheckoutLoading(false);
     }

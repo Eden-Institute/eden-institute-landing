@@ -17,6 +17,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { friendlyEfError } from "@/components/apothecary/friendlyEfError";
 import { getFbAttribution } from "@/lib/fbAttribution";
 import { pinTrack } from "@/lib/pinterestTag";
 
@@ -70,7 +71,9 @@ export default function StarterBuyBox({ cta, wide = false }: Props) {
           lookup_key: STARTER_LOOKUP_KEY,
         },
       });
-      if (fnError) throw new Error(fnError.message);
+      // A coded EF failure (RATE_LIMITED, STARTER_NOT_CONFIGURED) carries a
+      // message written for buyers; anything else keeps supabase-js's text.
+      if (fnError) throw new Error((await friendlyEfError(fnError, "")) || fnError.message);
       if (!data?.url) throw new Error("Checkout did not return a link.");
       window.location.href = data.url as string;
     } catch (err) {

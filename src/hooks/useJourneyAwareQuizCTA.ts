@@ -7,7 +7,7 @@ import { ROUTES } from "@/lib/routes";
  * "Take the Quiz" / "Continue with your Pattern" CTA tuple for marketing
  * surfaces.
  *
- * Used by WhyEden, Courses, and ConstitutionalHerbalism (PR ζ sweep) to
+ * Used by WhyEden and Courses (PR ζ sweep) to
  * replace 5 inline `Take the Free Body Pattern Quiz` CTAs that didn't
  * pivot when the active person-profile already had a resolved Pattern.
  * The pattern is the same one used by Index.tsx's value-ladder
@@ -23,7 +23,8 @@ import { ROUTES } from "@/lib/routes";
  * Result shape:
  *   - hasPattern=false → label = caller-supplied (or default), href = /assessment.
  *     `kind: "quiz"` for analytics filtering.
- *   - hasPattern=true  → label = `Get your <Pattern> Deep-Dive Guide — $14 →`,
+ *   - hasPattern=true  → label = `Get your <Pattern> Deep-Dive Guide — <price> →`
+ *     (price literal lives in the return below and must match useTierAwareCTA),
  *     href = `/guide/<slug>` (matches useTierAwareCTA.journey.next.href
  *     for the guide step exactly). `kind: "guide"`.
  *

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrentTier, Tier } from "@/hooks/useCurrentTier";
+import { useEdenPattern } from "@/hooks/useEdenPattern";
 import { useTierAwareCTA } from "@/hooks/useTierAwareCTA";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
@@ -18,9 +19,6 @@ import heroAccount from "@/assets/hero-account.jpg";
 /**
  * Columns we read from public.profiles for the Account page. Source: PR #7
  * Stage 3 schema. RLS grants authenticated users SELECT on their own row.
- *
- * v3.33.2: added constitution_type, populated by tg_quiz_completion_sync
- * trigger from quiz_completions on email match.
  */
 type ProfileRow = {
   user_id: string;
@@ -31,7 +29,6 @@ type ProfileRow = {
   current_period_end: string | null;
   cancel_at_period_end: boolean | null;
   is_founding_member: boolean | null;
-  constitution_type: string | null;
 };
 
 const tierDisplayName: Record<Tier, string> = {
@@ -53,31 +50,11 @@ const statusDisplayLabel: Record<string, string> = {
   paused: "Paused",
 };
 
-/**
- * Map raw constitution_type values to friendly Pattern names.
- * Accepts both shapes the EF allows:
- *   - slug shape: "frozen-knot"
- *   - name shape: "The Frozen Knot"
- *   - axis shape: "Cold / Damp / Tense"
- */
-const CONSTITUTION_NICKNAMES: Record<string, string> = {
-  "burning-bowstring": "The Burning Bowstring",
-  "open-flame": "The Open Flame",
-  "pressure-cooker": "The Pressure Cooker",
-  "overflowing-cup": "The Overflowing Cup",
-  "drawn-bowstring": "The Drawn Bowstring",
-  "spent-candle": "The Spent Candle",
-  "frozen-knot": "The Frozen Knot",
-  "still-water": "The Still Water",
-};
-
-function prettyConstitution(raw: string | null): string | null {
-  if (!raw) return null;
-  const slug = raw.trim().toLowerCase();
-  if (CONSTITUTION_NICKNAMES[slug]) return CONSTITUTION_NICKNAMES[slug];
-  // If it already starts with "The ", treat as canonical name; else return verbatim.
-  return raw.trim();
-}
+// Stripe keeps a delinquent subscription alive (past_due, unpaid, paused,
+// incomplete) but current_user_tier() resolves it to 'free', so the status
+// block must be keyed on the raw profile status too or the past-due notice
+// is unreachable.
+const DELINQUENT_STATUSES = new Set(["past_due", "unpaid", "paused", "incomplete"]);
 
 function formatDate(iso: string | null): string {
   if (!iso) return "–";
@@ -94,7 +71,7 @@ function formatDate(iso: string | null): string {
  * Composition (PR γ — 2026-05-02 update):
  *   - Header: display_name + email
  *   - **NEW (PR γ): JourneyCTA** — surfaces the dominant next step in
- *     the customer-journey state machine (Pattern quiz → $14 Deep-Dive
+ *     the customer-journey state machine (Pattern quiz → Deep-Dive
  *     Guide → Foundations Course → Seed → Root → Practitioner waitlist),
  *     mirroring the homepage placement shipped in PR β (commit 56cdddb).
  *     Same component, no prop wiring — JourneyCTA reads useTierAwareCTA
@@ -102,9 +79,10 @@ function formatDate(iso: string | null): string {
  *     the App-scoped ActiveProfileContext. The user sees the same
  *     one-step-at-a-time guidance whether they enter via / or directly
  *     into /apothecary/account.
- *   - Body Pattern card — surfaces the user's constitution result from
- *     the quiz, with a CTA to the directory and a state-aware guide
- *     CTA derived from useTierAwareCTA(). PR γ removes the no-Pattern
+ *   - Body Pattern card — surfaces the ACTIVE person-profile's Pattern via
+ *     useEdenPattern() (the same resolver the guide CTA uses), with a CTA
+ *     to the directory and a state-aware guide CTA derived from
+ *     useTierAwareCTA(). PR γ removes the no-Pattern
  *     branch's "Take the Pattern of Eden quiz" Button (a clean
  *     duplicate of JourneyCTA's quiz step); the no-Pattern branch is
  *     now purely descriptive and the dominant quiz action lives in
@@ -118,6 +96,8 @@ function formatDate(iso: string | null): string {
  *     founding-member badge, and one of:
  *       · ManageSubscriptionButton (any user with a Stripe customer record)
  *       · "Choose a plan" CTA (users on the free tier with no prior subscription)
+ *     The status/renewal block renders for any paid tier OR any delinquent
+ *     Stripe status, not only when current_user_tier() resolves paid.
  *   - Sign-out row
  *
  * Gated by <RequireAuth> at the route level (App.tsx).
@@ -136,6 +116,14 @@ export default function Account() {
   // restructure). The dominant journey progression lives in
   // <JourneyCTA /> at the top of the page (PR γ).
   const { guide: guideCta } = useTierAwareCTA();
+  // Same resolver the guide CTA uses (active person profile, self falls back to
+  // profiles.constitution_type), so the heading and the button below it always
+  // describe the same person (Lock #18).
+  const {
+    data: pattern,
+    activeProfile,
+    isLoading: patternLoading,
+  } = useEdenPattern();
 
   const {
     data: profile,
@@ -148,7 +136,7 @@ export default function Account() {
       const { data, error } = await supabase
         .from("profiles")
         .select(
-          "user_id, email, display_name, stripe_customer_id, subscription_status, current_period_end, cancel_at_period_end, is_founding_member, constitution_type",
+          "user_id, email, display_name, stripe_customer_id, subscription_status, current_period_end, cancel_at_period_end, is_founding_member",
         )
         .eq("user_id", user.id)
         .maybeSingle();
@@ -159,7 +147,7 @@ export default function Account() {
     staleTime: 60 * 1000,
   });
 
-  if (isLoading) return <PageSkeleton />;
+  if (isLoading || patternLoading) return <PageSkeleton />;
 
   // A failed query or a missing profiles row must not read as an endless
   // skeleton: the error banner below used to sit behind `!profile`, which
@@ -193,6 +181,10 @@ export default function Account() {
   const hasStripeCustomer = !!profile.stripe_customer_id;
   const hasPaidTier =
     tier === "seed" || tier === "root" || tier === "practitioner";
+  const subscriptionNeedsAttention =
+    !!profile.subscription_status &&
+    DELINQUENT_STATUSES.has(profile.subscription_status);
+  const showSubscriptionDetails = hasPaidTier || subscriptionNeedsAttention;
   const displayName =
     profile.display_name ||
     user?.email?.split("@")[0] ||
@@ -201,7 +193,11 @@ export default function Account() {
     ? statusDisplayLabel[profile.subscription_status] ??
       profile.subscription_status
     : null;
-  const constitutionPretty = prettyConstitution(profile.constitution_type);
+  const constitutionPretty = pattern;
+  const patternSubjectLabel =
+    activeProfile && !activeProfile.is_self
+      ? `${activeProfile.name}'s Body Pattern`
+      : "Your Body Pattern";
   // Top tier is pitched no consumer add-ons: suppress the $4.99 guide buy CTA
   // for practitioners. A purchased guide ("View your … guide", no price) still
   // links out.
@@ -246,9 +242,13 @@ export default function Account() {
             <JourneyCTA />
           </section>
 
-          {/* Body Pattern card. Surfaces the user's quiz result so their
-              account page reflects the work they've already done. Fixes
-              Phase 5 #5 ("quiz responses didn't seem to register").
+          {/* Body Pattern card. Surfaces the quiz result so the account
+              page reflects the work already done. Fixes Phase 5 #5 ("quiz
+              responses didn't seem to register"). Driven by useEdenPattern
+              (the ACTIVE person profile, self falling back to
+              profiles.constitution_type), the same source as the guide CTA
+              inside it, so the heading never names one person while the
+              button targets another.
 
               2026-04-30 (tier-aware CTA propagation): the secondary CTA in
               the with-Pattern branch is the state-aware guide CTA from
@@ -272,7 +272,7 @@ export default function Account() {
                 className="font-accent text-xs tracking-[0.2em] uppercase mb-1"
                 style={{ color: "hsl(var(--eden-gold))" }}
               >
-                Your Body Pattern
+                {patternSubjectLabel}
               </p>
               {constitutionPretty ? (
                 <>
@@ -382,7 +382,7 @@ export default function Account() {
               )}
             </div>
 
-            {hasPaidTier && (
+            {showSubscriptionDetails && (
               <div
                 className="space-y-3 pt-4 border-t"
                 style={{ borderColor: "hsl(var(--border))" }}

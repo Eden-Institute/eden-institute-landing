@@ -1,13 +1,25 @@
-import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import Navbar from "@/components/landing/Navbar";
 
 const NotFound = () => {
-  const location = useLocation();
-
+  // Unknown paths are served the SPA shell with HTTP 200 (vercel.json catch-all),
+  // and index.html says index, follow. Mark this page noindex so crawlers treat
+  // it as a 404, and restore the shell's value on unmount so the next route
+  // stays indexable.
   useEffect(() => {
-    console.error("404 Error: User attempted to access non-existent route:", location.pathname);
-  }, [location.pathname]);
+    const existing = document.querySelector<HTMLMetaElement>('meta[name="robots"]');
+    const previous = existing?.getAttribute("content") ?? null;
+    const tag = existing ?? document.createElement("meta");
+    if (!existing) {
+      tag.setAttribute("name", "robots");
+      document.head.appendChild(tag);
+    }
+    tag.setAttribute("content", "noindex");
+    return () => {
+      if (existing && previous !== null) existing.setAttribute("content", previous);
+      else tag.remove();
+    };
+  }, []);
 
   return (
     <>

@@ -67,10 +67,7 @@ export default function PaymentsPanel({ since }: { since: string }) {
     setLoading(true);
     setError(null);
     try {
-      const { data: res, error: rpcError } = await supabase.rpc(
-        "founder_payments" as never,
-        { p_since: since } as never,
-      );
+      const { data: res, error: rpcError } = await supabase.rpc("founder_payments", { p_since: since });
       if (rpcError) throw rpcError;
       const payload = res as unknown as Payload;
       if (payload?.error) throw new Error(payload.error);

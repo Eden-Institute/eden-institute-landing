@@ -7,6 +7,8 @@ import {
   type PersonProfile,
 } from "@/contexts/ActiveProfileContext";
 import { useCurrentTier } from "@/hooks/useCurrentTier";
+import { getErrorMessage } from "@/lib/errorMessage";
+import { todayLocalISO } from "@/lib/localDate";
 import {
   Dialog,
   DialogContent,
@@ -153,10 +155,12 @@ export function ProfileFormDialog({
       onClose();
     },
     onError: (err: unknown) => {
-      const message =
-        typeof err === "object" && err !== null && "message" in err
-          ? String((err as { message: unknown }).message)
-          : String(err);
+      const message = getErrorMessage(err);
+      // PostgREST / Postgres errors carry a `code`; the form's own validation
+      // throws plain Errors without one and their text is meant for the user.
+      // Raw database text (constraint, column and policy names) is not.
+      const isDbError =
+        typeof err === "object" && err !== null && "code" in err;
       if (message.includes("profile_cap_exceeded")) {
         setError(
           tier === "practitioner"
@@ -167,6 +171,9 @@ export function ProfileFormDialog({
         setError(
           "You already have a self profile. Only one profile per account can be marked as self.",
         );
+      } else if (isDbError) {
+        console.error("person_profiles save failed:", err);
+        setError("Something went wrong. Please try again.");
       } else {
         setError(message);
       }
@@ -179,7 +186,7 @@ export function ProfileFormDialog({
     mutation.mutate();
   };
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocalISO();
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>

@@ -26,6 +26,17 @@
       "permanent": false
     }
   ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/preorder-response",
@@ -36,7 +47,7 @@
       "destination": "/api/go/course"
     },
     {
-      "source": "/((?!_astro/|_spa/|api/|favicon|robots\\.txt|sitemap\\.xml|.*\\.(?:png|svg|jpg|jpeg|webp|gif|ico|txt|xml|json|js|css|map|woff2?)).*)",
+      "source": "/((?!_astro/|_spa/|api/|favicon|robots\\.txt|sitemap\\.xml|.*\\.(?:png|svg|jpg|jpeg|webp|gif|ico|txt|xml|json|js|css|map|woff2?|pdf|html|mp4|webm|mp3|csv|zip|ttf|otf)).*)",
       "destination": "/_spa/index.html"
     }
   ],

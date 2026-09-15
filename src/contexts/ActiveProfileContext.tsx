@@ -50,6 +50,7 @@ interface ActiveProfileContextValue {
   activeProfile: PersonProfile | null;
   setActiveProfileId: (id: string | null) => void;
   isLoading: boolean;
+  isError: boolean;
   refetchProfiles: () => Promise<void>;
 }
 
@@ -116,7 +117,7 @@ function storeId(id: string | null): void {
  * the active-profile resolution deterministic across all timing paths.
  */
 export function ActiveProfileProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const queryClient = useQueryClient();
 
   const profilesQuery = useQuery({
@@ -129,10 +130,10 @@ export function ActiveProfileProvider({ children }: { children: ReactNode }) {
         .eq("user_id", user.id)
         .order("is_self", { ascending: false })
         .order("created_at", { ascending: true });
-      if (error) {
-        // Soft-failure surface: empty list, picker shows "Add profile".
-        return [];
-      }
+      // Surface the failure to React Query (default 3 retries + refetch on
+      // focus/reconnect) instead of masquerading as an empty roster; the
+      // last successful list is retained on `data` while a refetch fails.
+      if (error) throw error;
       return (data ?? []) as PersonProfile[];
     },
     enabled: !!user,
@@ -152,6 +153,16 @@ export function ActiveProfileProvider({ children }: { children: ReactNode }) {
     () => loadStoredId(),
   );
 
+  // Sign-out (or a stale key on a signed-out device): drop the selection and
+  // the stored id. Gated on `loading` so the synchronous localStorage hydration
+  // above is not wiped during the auth bootstrap window before the session
+  // resolves (PR δ).
+  useEffect(() => {
+    if (loading || user) return;
+    setActiveProfileIdState(null);
+    storeId(null);
+  }, [user, loading]);
+
   // Defensive validation pass: once profiles arrive, confirm the
   // synchronously-hydrated stored ID is still valid against the loaded
   // list (the profile may have been deleted, RLS may have rejected it,
@@ -159,7 +170,9 @@ export function ActiveProfileProvider({ children }: { children: ReactNode }) {
   // signed-in account). If the stored ID isn't in the list, fall back to
   // is_self — or the first profile if no self exists.
   useEffect(() => {
-    if (profilesQuery.isLoading) return;
+    // A failed read is not an empty roster: never reset the selection on it.
+    // A deleted or foreign id is still corrected once a successful list lands.
+    if (profilesQuery.isLoading || profilesQuery.isError) return;
     if (profiles.length === 0) {
       if (activeProfileId !== null) setActiveProfileIdState(null);
       return;
@@ -178,7 +191,7 @@ export function ActiveProfileProvider({ children }: { children: ReactNode }) {
     // consumer calls setActiveProfileId() that's the source of the change,
     // not this effect's purpose to react to.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profiles, profilesQuery.isLoading]);
+  }, [profiles, profilesQuery.isLoading, profilesQuery.isError]);
 
   const setActiveProfileId = (id: string | null) => {
     setActiveProfileIdState(id);
@@ -196,11 +209,18 @@ export function ActiveProfileProvider({ children }: { children: ReactNode }) {
       activeProfile,
       setActiveProfileId,
       isLoading: profilesQuery.isLoading,
+      isError: profilesQuery.isError,
       refetchProfiles: async () => {
         await queryClient.invalidateQueries({ queryKey: ["person_profiles"] });
       },
     }),
-    [profiles, activeProfile, profilesQuery.isLoading, queryClient],
+    [
+      profiles,
+      activeProfile,
+      profilesQuery.isLoading,
+      profilesQuery.isError,
+      queryClient,
+    ],
   );
 
   return (

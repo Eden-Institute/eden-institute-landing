@@ -17,9 +17,9 @@ interface TierCardProps {
  *
  * CTA wiring (per surface decisions):
  *   - Free          → /apothecary/auth/signup (matches PublicTierCard).
- *   - Seed / Root   → /apothecary/pricing?tier={id} (preselects on the
- *                     auth-aware subscribe flow; matches PR #51 v3.33
- *                     wiring used by PublicTierCard).
+ *   - Seed / Root   → /apothecary/pricing#tier-{id} (pre-highlights the
+ *                     card via the hash; matches PR #51 v3.33 wiring used
+ *                     by PublicTierCard).
  *   - Practitioner  → /apothecary/pricing#tier-practitioner, the
  *                     founding-rate checkout (tier launched 2026-07-09).
  *

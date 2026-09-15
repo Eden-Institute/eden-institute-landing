@@ -46,6 +46,7 @@ const EF_ERROR_COPY: Record<string, string> = {
   invalid_body: "Something in that request didn't look right. Please try again.",
   internal_error: "Something went wrong on our side. Please try again.",
 };
+const GENERIC_ERROR = "Something went wrong. Please try again.";
 
 function fmtDate(iso?: string | null): string {
   return iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "–";
@@ -163,34 +164,49 @@ export default function PractitionerClinic() {
   const [overridePattern, setOverridePattern] = useState("");
   const [overrideNote, setOverrideNote] = useState("");
 
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  // Never rejects: a network failure must not leave `busy` stuck true in the
+  // callers below, which clear it after awaiting this.
   const call = useCallback(async (payload: Json): Promise<Json | null> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return null;
-    const res = await fetch(EF_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (res.status === 403) { setForbidden(true); return null; }
-    if (!res.ok) {
-      const slug = typeof data?.error === "string" ? data.error : "";
-      console.error("practitioner-clinical error:", slug || `HTTP ${res.status}`);
-      setError(EF_ERROR_COPY[slug] ?? "Something went wrong. Please try again.");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setError(GENERIC_ERROR); return null; }
+      const res = await fetch(EF_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 403) { setForbidden(true); return null; }
+      if (!res.ok) {
+        const slug = typeof data?.error === "string" ? data.error : "";
+        console.error("practitioner-clinical error:", slug || `HTTP ${res.status}`);
+        setError(EF_ERROR_COPY[slug] ?? GENERIC_ERROR);
+        return null;
+      }
+      return data;
+    } catch (e) {
+      console.error("practitioner-clinical network error:", e instanceof Error ? e.message : e);
+      setError(GENERIC_ERROR);
       return null;
     }
-    return data;
   }, []);
 
   useEffect(() => {
     if (authLoading || !user) return;
     (async () => {
-      const [ref, ros] = await Promise.all([call({ action: "reference" }), call({ action: "roster" })]);
-      if (ref) setReference(ref);
-      if (ros) setRoster(ros);
+      setInitialLoading(true);
+      try {
+        const [ref, ros] = await Promise.all([call({ action: "reference" }), call({ action: "roster" })]);
+        if (ref) setReference(ref);
+        if (ros) setRoster(ros);
+      } finally {
+        setInitialLoading(false);
+      }
     })();
   }, [authLoading, user, call]);
 
@@ -246,24 +262,30 @@ export default function PractitionerClinic() {
   async function applyOverride() {
     if (!overrideFramework || !overridePattern) return;
     setBusy(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/record-diagnostic-completion`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
-      body: JSON.stringify({
-        personProfileId: clientId,
-        quizVersion: "mf-v1",
-        administeredBy: "practitioner",
-        overrides: [{ framework: overrideFramework, pattern_id: overridePattern, role: "primary", note: overrideNote || null }],
-      }),
-    });
-    setBusy(false);
-    if (res.ok) {
-      setOverrideFramework(""); setOverridePattern(""); setOverrideNote("");
-      await loadClient(clientId);
-    } else {
-      const data = await res.json().catch(() => ({}));
-      setError(data?.error?.message ?? data?.error ?? "Override failed");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setError(GENERIC_ERROR); return; }
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/record-diagnostic-completion`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({
+          personProfileId: clientId,
+          quizVersion: "mf-v1",
+          administeredBy: "practitioner",
+          overrides: [{ framework: overrideFramework, pattern_id: overridePattern, role: "primary", note: overrideNote || null }],
+        }),
+      });
+      if (res.ok) {
+        setOverrideFramework(""); setOverridePattern(""); setOverrideNote("");
+        await loadClient(clientId);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setError(data?.error?.message ?? data?.error ?? "Override failed");
+      }
+    } catch {
+      setError(GENERIC_ERROR);
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -348,8 +370,9 @@ export default function PractitionerClinic() {
 
         {/* Client picker */}
         <div className="flex flex-wrap items-center gap-3 mb-6 print:hidden">
-          <label className="font-body text-sm">Active patient</label>
-          <select value={clientId} onChange={(e) => loadClient(e.target.value)}
+          <label htmlFor="active-patient" className="font-body text-sm">Active patient</label>
+          <select id="active-patient" value={clientId} onChange={(e) => loadClient(e.target.value)}
+                  disabled={initialLoading} aria-busy={initialLoading}
                   className="rounded-md border bg-background px-3 py-2 text-sm min-w-[220px]">
             <option value="">Choose a patient…</option>
             {(roster?.clients ?? []).map((c: Json) => (

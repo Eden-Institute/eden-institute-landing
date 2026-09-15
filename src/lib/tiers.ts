@@ -21,3 +21,27 @@ const SUBSCRIBER_TIERS: ReadonlyArray<Tier> = ["seed", "root", "practitioner"];
 export function isSubscriberTier(tier: Tier | undefined): boolean {
   return tier !== undefined && SUBSCRIBER_TIERS.includes(tier);
 }
+
+/**
+ * Per-tier person_profiles cap. UX gating ONLY (disabled 'Add profile',
+ * 'X of Y profiles used' readouts, the picker's cap label). The backend
+ * source of truth is public.person_profile_cap_for_tier(text), enforced by
+ * the BEFORE INSERT trigger tg_person_profiles_enforce_cap; see
+ * supabase/migrations/20260430140000_tier_cap_restructure_v2.sql. When that
+ * function changes, change this table in the same PR (src/test/tiers.test.ts
+ * fails if they drift).
+ *
+ * Free is 0, so Free users never see the profile picker (nothing to switch
+ * between). Practitioner is included for forward-compat with its tier gate.
+ */
+export const PERSON_PROFILE_CAP_BY_TIER: Readonly<Record<Tier, number>> = {
+  anon: 0,
+  free: 0,
+  seed: 5,
+  root: 10,
+  practitioner: 500,
+};
+
+export function personProfileCap(tier: Tier | undefined): number {
+  return tier ? PERSON_PROFILE_CAP_BY_TIER[tier] ?? 0 : 0;
+}

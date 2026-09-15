@@ -11,9 +11,15 @@ import MarketingLayout from "../../layouts/MarketingLayout.astro";
 // (1887), desaturated to a sage wash, feathered, and cleared through the middle
 // where the text sits. See #428 for the full treatment and the contrast maths:
 // muted-foreground on eden-cream is only 5.3:1 before any image, so the clearing
-// is load-bearing, not decorative. Rendered at 24% with mix-blend-mode:multiply.
+// is load-bearing, not decorative. Rendered at 95% opacity behind a white content
+// panel (PR #433, full-colour botanicals) with mix-blend-mode:multiply.
 import heroHerbs from "@/assets/hero-herbs.jpg";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+// CTA links carry buttonVariants classes rather than wrapping a <Button>: a
+// <button> inside an <a> is invalid HTML and a second tab stop. text-center
+// stands in for a <button>'s own centring, and max-md:w-full max-md:max-w-full
+// keep the full-width phone layout src/index.css gives `section button`.
 import { Leaf, ShoppingCart } from "lucide-react";
 
 const meta = {
@@ -147,10 +153,8 @@ const herbGroups = [
         you straight to a trusted source so you can prepare for the lessons ahead. We recommend Mountain Rose
         Herbs for organic bulk herbs, with a few sourced from Amazon.
       </p>
-      <a href={BULK_HREF} target="_blank" rel="noopener noreferrer">
-        <Button variant="eden" size="xl">
-          <ShoppingCart className="w-5 h-5 mr-2" /> Shop All Bulk Herbs
-        </Button>
+      <a href={BULK_HREF} target="_blank" rel="sponsored noopener noreferrer" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center max-md:w-full max-md:max-w-full")}>
+        <ShoppingCart className="w-5 h-5 mr-2" /> Shop All Bulk Herbs
       </a>
       <p class="font-body text-sm text-muted-foreground mt-6">
         Showing the <strong>Sprouts</strong> (Grades K-2) and <strong>Seedlings</strong> (Grades 3-5) herb lists, 72 herbs in all.
@@ -176,9 +180,9 @@ const herbGroups = [
                 <div class="flex items-start gap-3 mb-4">
                   <Leaf className="w-6 h-6 shrink-0 mt-0.5" color="hsl(var(--eden-gold))" />
                   <div>
-                    <h2 class="font-serif text-lg font-semibold leading-snug" style="color:hsl(var(--eden-bark))">
+                    <h3 class="font-serif text-lg font-semibold leading-snug" style="color:hsl(var(--eden-bark))">
                       {herb.name}
-                    </h2>
+                    </h3>
                     <p class="font-body text-xs text-muted-foreground mt-1">via {sourceLabel[herb.source]}</p>
                   </div>
                 </div>
@@ -193,12 +197,10 @@ const herbGroups = [
                 <a
                   href={herb.href}
                   target="_blank"
-                  rel="noopener noreferrer"
-                  class="mt-auto block"
+                  rel="sponsored noopener noreferrer"
+                  class={cn(buttonVariants({ variant: "eden" }), "text-center mt-auto w-full")}
                   aria-label={`Order ${herb.name} from ${sourceLabel[herb.source]}`}
-                >
-                  <Button variant="eden" className="w-full">Order Now</Button>
-                </a>
+                >Order Now</a>
               </div>
             ))}
           </div>

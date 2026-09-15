@@ -835,6 +835,265 @@ export type Database = {
         }
         Relationships: []
       }
+      esa_invoice_counters: {
+        Row: {
+          last_no: number
+          state: string
+          year: number
+        }
+        Insert: {
+          last_no?: number
+          state: string
+          year: number
+        }
+        Update: {
+          last_no?: number
+          state?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      esa_invoices: {
+        Row: {
+          created_at: string
+          family_email: string
+          family_emailed_at: string | null
+          fee_cents: number
+          founder_alerted_at: string | null
+          fulfilled_at: string | null
+          fulfilment_note: string | null
+          fulfilment_status: string
+          id: string
+          invoice_date: string
+          invoice_number: string
+          is_test: boolean
+          items: Json
+          notes: string | null
+          order_id: string | null
+          paid_at: string | null
+          paid_via: string | null
+          parent_name: string
+          payment_email_msg_id: string | null
+          payment_id: string | null
+          pdf_path: string | null
+          phone: string | null
+          reminder_sent_at: string | null
+          second_date: string | null
+          sheet_synced_at: string | null
+          ship_address: Json | null
+          ship_to: string | null
+          starter_delivery_id: string | null
+          state: string
+          status: string
+          student_name: string
+          submission_id: string
+          subtotal_cents: number
+          total_cents: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          family_email: string
+          family_emailed_at?: string | null
+          fee_cents?: number
+          founder_alerted_at?: string | null
+          fulfilled_at?: string | null
+          fulfilment_note?: string | null
+          fulfilment_status?: string
+          id?: string
+          invoice_date: string
+          invoice_number: string
+          is_test?: boolean
+          items: Json
+          notes?: string | null
+          order_id?: string | null
+          paid_at?: string | null
+          paid_via?: string | null
+          parent_name: string
+          payment_email_msg_id?: string | null
+          payment_id?: string | null
+          pdf_path?: string | null
+          phone?: string | null
+          reminder_sent_at?: string | null
+          second_date?: string | null
+          sheet_synced_at?: string | null
+          ship_address?: Json | null
+          ship_to?: string | null
+          starter_delivery_id?: string | null
+          state: string
+          status?: string
+          student_name: string
+          submission_id: string
+          subtotal_cents: number
+          total_cents: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          family_email?: string
+          family_emailed_at?: string | null
+          fee_cents?: number
+          founder_alerted_at?: string | null
+          fulfilled_at?: string | null
+          fulfilment_note?: string | null
+          fulfilment_status?: string
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          is_test?: boolean
+          items?: Json
+          notes?: string | null
+          order_id?: string | null
+          paid_at?: string | null
+          paid_via?: string | null
+          parent_name?: string
+          payment_email_msg_id?: string | null
+          payment_id?: string | null
+          pdf_path?: string | null
+          phone?: string | null
+          reminder_sent_at?: string | null
+          second_date?: string | null
+          sheet_synced_at?: string | null
+          ship_address?: Json | null
+          ship_to?: string | null
+          starter_delivery_id?: string | null
+          state?: string
+          status?: string
+          student_name?: string
+          submission_id?: string
+          subtotal_cents?: number
+          total_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "esa_invoices_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "esa_invoices_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "preorder_broadcast_list"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "esa_invoices_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "esa_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "esa_invoices_starter_delivery_id_fkey"
+            columns: ["starter_delivery_id"]
+            isOneToOne: false
+            referencedRelation: "starter_deliveries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      esa_payment_confirmations: {
+        Row: {
+          created_at: string
+          expires_at: string
+          invoice_id: string
+          payment_id: string | null
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          invoice_id: string
+          payment_id?: string | null
+          token?: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          invoice_id?: string
+          payment_id?: string | null
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "esa_payment_confirmations_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "esa_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "esa_payment_confirmations_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "esa_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      esa_payments: {
+        Row: {
+          amounts_cents: number[]
+          applied: boolean
+          created_at: string
+          excerpt: string | null
+          founder_notified_at: string | null
+          from_addr: string | null
+          gmail_msg_id: string
+          id: string
+          invoice_id: string | null
+          match_reason: string | null
+          match_status: string
+          received_at: string | null
+          subject: string | null
+        }
+        Insert: {
+          amounts_cents?: number[]
+          applied?: boolean
+          created_at?: string
+          excerpt?: string | null
+          founder_notified_at?: string | null
+          from_addr?: string | null
+          gmail_msg_id: string
+          id?: string
+          invoice_id?: string | null
+          match_reason?: string | null
+          match_status: string
+          received_at?: string | null
+          subject?: string | null
+        }
+        Update: {
+          amounts_cents?: number[]
+          applied?: boolean
+          created_at?: string
+          excerpt?: string | null
+          founder_notified_at?: string | null
+          from_addr?: string | null
+          gmail_msg_id?: string
+          id?: string
+          invoice_id?: string | null
+          match_reason?: string | null
+          match_status?: string
+          received_at?: string | null
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "esa_payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "esa_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feedback_areas: {
         Row: {
           active: boolean
@@ -1090,6 +1349,7 @@ export type Database = {
           id: string
           last_touch_at: string | null
           name: string
+          next_followup_due: string | null
           notes: string | null
           status: string
           updated_at: string
@@ -1103,6 +1363,7 @@ export type Database = {
           id?: string
           last_touch_at?: string | null
           name: string
+          next_followup_due?: string | null
           notes?: string | null
           status?: string
           updated_at?: string
@@ -1116,6 +1377,7 @@ export type Database = {
           id?: string
           last_touch_at?: string | null
           name?: string
+          next_followup_due?: string | null
           notes?: string | null
           status?: string
           updated_at?: string
@@ -2354,6 +2616,123 @@ export type Database = {
         }
         Relationships: []
       }
+      lulu_events: {
+        Row: {
+          error: string | null
+          event_key: string
+          payload: Json | null
+          print_job_id: number | null
+          processed_at: string | null
+          received_at: string
+          status: string
+          status_name: string | null
+        }
+        Insert: {
+          error?: string | null
+          event_key: string
+          payload?: Json | null
+          print_job_id?: number | null
+          processed_at?: string | null
+          received_at?: string
+          status?: string
+          status_name?: string | null
+        }
+        Update: {
+          error?: string | null
+          event_key?: string
+          payload?: Json | null
+          print_job_id?: number | null
+          processed_at?: string | null
+          received_at?: string
+          status?: string
+          status_name?: string | null
+        }
+        Relationships: []
+      }
+      lulu_jobs: {
+        Row: {
+          attempts: number
+          created_at: string
+          id: string
+          last_error: string | null
+          order_id: string
+          print_job_id: number | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          order_id: string
+          print_job_id?: number | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          order_id?: string
+          print_job_id?: number | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lulu_jobs_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lulu_jobs_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "preorder_broadcast_list"
+            referencedColumns: ["order_id"]
+          },
+        ]
+      }
+      lulu_printables: {
+        Row: {
+          book_key: string
+          cover_url: string | null
+          interior_url: string | null
+          page_count: number | null
+          pod_package_id: string
+          printable_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          book_key: string
+          cover_url?: string | null
+          interior_url?: string | null
+          page_count?: number | null
+          pod_package_id: string
+          printable_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          book_key?: string
+          cover_url?: string | null
+          interior_url?: string | null
+          page_count?: number | null
+          pod_package_id?: string
+          printable_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       magnet_email_queue: {
         Row: {
           band: string
@@ -2612,16 +2991,25 @@ export type Database = {
           currency: string | null
           customer_email: string | null
           customer_phone: string | null
+          delivered_at: string | null
           disclaimer_accepted_at: string | null
+          fulfillment: string | null
           id: string
           is_preorder: boolean
           lookup_key: string
+          lulu_cost_cents: number | null
+          lulu_print_job_id: number | null
+          lulu_status: string | null
+          lulu_status_message: string | null
+          lulu_submitted_at: string | null
           order_number: string
           payment_status: string | null
           product_label: string | null
           quantity: number
           raw: Json | null
+          shipped_at: string | null
           shipping_address: Json | null
+          shipping_carrier: string | null
           shipping_name: string | null
           sms_consent: boolean
           status: Database["public"]["Enums"]["order_status"]
@@ -2629,6 +3017,8 @@ export type Database = {
           stripe_customer_id: string | null
           stripe_payment_intent_id: string | null
           tax_cents: number | null
+          tracking_number: string | null
+          tracking_url: string | null
           updated_at: string
         }
         Insert: {
@@ -2640,16 +3030,25 @@ export type Database = {
           currency?: string | null
           customer_email?: string | null
           customer_phone?: string | null
+          delivered_at?: string | null
           disclaimer_accepted_at?: string | null
+          fulfillment?: string | null
           id?: string
           is_preorder?: boolean
           lookup_key: string
+          lulu_cost_cents?: number | null
+          lulu_print_job_id?: number | null
+          lulu_status?: string | null
+          lulu_status_message?: string | null
+          lulu_submitted_at?: string | null
           order_number?: string
           payment_status?: string | null
           product_label?: string | null
           quantity?: number
           raw?: Json | null
+          shipped_at?: string | null
           shipping_address?: Json | null
+          shipping_carrier?: string | null
           shipping_name?: string | null
           sms_consent?: boolean
           status?: Database["public"]["Enums"]["order_status"]
@@ -2657,6 +3056,8 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_payment_intent_id?: string | null
           tax_cents?: number | null
+          tracking_number?: string | null
+          tracking_url?: string | null
           updated_at?: string
         }
         Update: {
@@ -2668,16 +3069,25 @@ export type Database = {
           currency?: string | null
           customer_email?: string | null
           customer_phone?: string | null
+          delivered_at?: string | null
           disclaimer_accepted_at?: string | null
+          fulfillment?: string | null
           id?: string
           is_preorder?: boolean
           lookup_key?: string
+          lulu_cost_cents?: number | null
+          lulu_print_job_id?: number | null
+          lulu_status?: string | null
+          lulu_status_message?: string | null
+          lulu_submitted_at?: string | null
           order_number?: string
           payment_status?: string | null
           product_label?: string | null
           quantity?: number
           raw?: Json | null
+          shipped_at?: string | null
           shipping_address?: Json | null
+          shipping_carrier?: string | null
           shipping_name?: string | null
           sms_consent?: boolean
           status?: Database["public"]["Enums"]["order_status"]
@@ -2685,7 +3095,39 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_payment_intent_id?: string | null
           tax_cents?: number | null
+          tracking_number?: string | null
+          tracking_url?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      outbound_clicks: {
+        Row: {
+          id: number
+          occurred_at: string
+          path: string | null
+          referer: string | null
+          source: string | null
+          target: string
+          user_agent: string | null
+        }
+        Insert: {
+          id?: never
+          occurred_at?: string
+          path?: string | null
+          referer?: string | null
+          source?: string | null
+          target: string
+          user_agent?: string | null
+        }
+        Update: {
+          id?: never
+          occurred_at?: string
+          path?: string | null
+          referer?: string | null
+          source?: string | null
+          target?: string
+          user_agent?: string | null
         }
         Relationships: []
       }
@@ -3249,11 +3691,13 @@ export type Database = {
           founding_price_cents: number
           founding_qty_limit: number | null
           founding_until: string | null
+          fulfillment: string
           id: string
           is_preorder: boolean
           name: string
           product_type: string
           retail_price_cents: number
+          shipping_tier_cents: number | null
           ships_on: string | null
           sku: string
           stock_qty: number | null
@@ -3268,11 +3712,13 @@ export type Database = {
           founding_price_cents: number
           founding_qty_limit?: number | null
           founding_until?: string | null
+          fulfillment?: string
           id?: string
           is_preorder?: boolean
           name: string
           product_type: string
           retail_price_cents: number
+          shipping_tier_cents?: number | null
           ships_on?: string | null
           sku: string
           stock_qty?: number | null
@@ -3287,11 +3733,13 @@ export type Database = {
           founding_price_cents?: number
           founding_qty_limit?: number | null
           founding_until?: string | null
+          fulfillment?: string
           id?: string
           is_preorder?: boolean
           name?: string
           product_type?: string
           retail_price_cents?: number
+          shipping_tier_cents?: number | null
           ships_on?: string | null
           sku?: string
           stock_qty?: number | null
@@ -4699,6 +5147,27 @@ export type Database = {
         }
         Relationships: []
       }
+      print_products_public: {
+        Row: {
+          name: string | null
+          retail_price_cents: number | null
+          shipping_tier_cents: number | null
+          sku: string | null
+        }
+        Insert: {
+          name?: string | null
+          retail_price_cents?: number | null
+          shipping_tier_cents?: number | null
+          sku?: string | null
+        }
+        Update: {
+          name?: string | null
+          retail_price_cents?: number | null
+          shipping_tier_cents?: number | null
+          sku?: string | null
+        }
+        Relationships: []
+      }
       quiz_completion_failure_stats: {
         Row: {
           last_24h_count: number | null
@@ -4882,6 +5351,15 @@ export type Database = {
       eden_classify_tone: { Args: { value: string }; Returns: string }
       eden_leading_clause: { Args: { value: string }; Returns: string }
       eden_pattern_canonical_slug: { Args: { raw: string }; Returns: string }
+      esa_auto_confirm_ready: { Args: never; Returns: boolean }
+      esa_mark_invoice_paid: {
+        Args: { p_invoice_id: string; p_payment_id: string; p_via: string }
+        Returns: boolean
+      }
+      esa_next_invoice_number: {
+        Args: { p_state: string; p_year: number }
+        Returns: string
+      }
       feedback_merge: {
         Args: { p_canonical: string; p_duplicate: string }
         Returns: undefined
@@ -4897,6 +5375,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      founder_course_funnel: { Args: { p_since: string }; Returns: Json }
       founder_crm_feed: {
         Args: { p_since?: string }
         Returns: {
@@ -5148,6 +5627,7 @@ export type Database = {
         | "preorder_hold"
         | "ready_to_fulfill"
         | "label_created"
+        | "in_production"
         | "shipped"
         | "delivered"
         | "cancelled"
@@ -5321,6 +5801,7 @@ export const Constants = {
         "preorder_hold",
         "ready_to_fulfill",
         "label_created",
+        "in_production",
         "shipped",
         "delivered",
         "cancelled",

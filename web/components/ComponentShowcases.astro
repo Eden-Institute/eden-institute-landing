@@ -1,8 +1,9 @@
 ---
 // The six Eden's Table components, each with the founder-approved marketing
 // copy and the polished product photos. ONE source, rendered on every page
-// that sells any of them: /homeschool (all six), /preorder (all six),
-// /books (the three books) and /starter (the three books, nine weeks).
+// that sells any of them: /homeschool (the three books), /books (the three
+// books) and /starter (the three books, nine weeks). All six stay defined here
+// for phase two.
 //
 // Moved out of homeschool.astro on 2026-09-11 at the founder's direction so
 // the "what is included" story is visible on every applicable track, not
@@ -18,7 +19,13 @@
 //   cta    - { href, label } for the button under each component. Omit for none.
 //   note   - one sentence shown under the eyebrow on every component, e.g. the
 //            Starter Unit's "weeks 1 to 9 of this".
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+// The CTA is a link carrying buttonVariants classes rather than wrapping a
+// <Button>: a <button> inside an <a> is invalid HTML and a second tab stop.
+// text-center stands in for a <button>'s own centring, and max-md:w-full
+// max-md:max-w-full keep the full-width phone layout src/index.css gives
+// `section button`.
 
 export interface Showcase {
   id: "story" | "tg" | "nb" | "fc" | "rc" | "att";
@@ -144,9 +151,7 @@ const items = only ? only.map((id) => SHOWCASES.find((s) => s.id === id)!).filte
       <blockquote class="font-serif text-xl italic text-center mb-10 max-w-2xl mx-auto" style="color:hsl(var(--eden-bark))">“{s.quote}”</blockquote>
       {cta && (
         <div class="text-center">
-          <a href={cta.href} data-cta={cta.dataCta}>
-            <Button variant="eden" size="xl">{cta.label}</Button>
-          </a>
+          <a href={cta.href} data-cta={cta.dataCta} class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center max-md:w-full max-md:max-w-full")}>{cta.label}</a>
         </div>
       )}
     </div>

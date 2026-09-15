@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { X, Search, Info } from "lucide-react";
-import type { HerbRow } from "@/hooks/useApothecaryHerbs";
+import type { HerbDirectoryRow as HerbRow } from "@/hooks/useHerbsDirectory";
 import type { Tier } from "@/hooks/useCurrentTier";
 // From @/lib/tiers, not @/hooks/useHerbsDirectory: the hook module builds a
 // Supabase client at import time, which broke this file's unit tests on CI.
@@ -239,27 +239,33 @@ export function HerbDirectoryFilters({
   const rootOrAbove = isRootOrAbove(tier);
   const [doorwayOpen, setDoorwayOpen] = useState(false);
 
-  // Symptom names — Band 1 (always available across tiers).
-  const symptoms = distinct(
-    herbs.flatMap((h) => {
-      const names = (h as unknown as { complaint_names?: unknown }).complaint_names;
-      return Array.isArray(names) ? (names as string[]) : [];
-    })
-  );
-  // Action / system / tissue-state — Band 3 (Seed+ only).
-  const actions = subscriber
-    ? distinct(herbs.flatMap((h) => namesFromRel(h.actions_rel, "action_name")))
-    : [];
-  const bodySystems = subscriber
-    ? distinct(herbs.flatMap((h) => namesFromRel(h.systems_rel, "system_name")))
-    : [];
-  const tissueStates = rootOrAbove
-    ? distinct(
-        herbs.flatMap((h) =>
-          namesFromRel(h.tissue_states_indicated_rel, "state_name")
+  // Facet lists walk every herb row (300). Memoised so a search keystroke or
+  // chip toggle does not re-walk them; deps are exactly the inputs the
+  // expressions read.
+  const { symptoms, actions, bodySystems, tissueStates } = useMemo(() => {
+    // Symptom names — Band 1 (always available across tiers).
+    const symptoms = distinct(
+      herbs.flatMap((h) => {
+        const names = (h as unknown as { complaint_names?: unknown }).complaint_names;
+        return Array.isArray(names) ? (names as string[]) : [];
+      })
+    );
+    // Action / system / tissue-state — Band 3 (Seed+ only).
+    const actions = subscriber
+      ? distinct(herbs.flatMap((h) => namesFromRel(h.actions_rel, "action_name")))
+      : [];
+    const bodySystems = subscriber
+      ? distinct(herbs.flatMap((h) => namesFromRel(h.systems_rel, "system_name")))
+      : [];
+    const tissueStates = rootOrAbove
+      ? distinct(
+          herbs.flatMap((h) =>
+            namesFromRel(h.tissue_states_indicated_rel, "state_name")
+          )
         )
-      )
-    : [];
+      : [];
+    return { symptoms, actions, bodySystems, tissueStates };
+  }, [herbs, subscriber, rootOrAbove]);
 
   const hasActiveFilters =
     filters.query.trim().length > 0 ||

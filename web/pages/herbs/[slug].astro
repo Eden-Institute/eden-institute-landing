@@ -12,7 +12,11 @@ import MarketingLayout from "../../layouts/MarketingLayout.astro";
 import { ApothecaryDisclaimer } from "@/components/apothecary/ApothecaryDisclaimer";
 import { herbParam } from "@/lib/herbLinks";
 import { getPublicHerbs, type PublicHerb } from "../../lib/herbsPublic";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+// CTA links carry buttonVariants classes rather than wrapping a <Button>: a
+// <button> inside an <a> is invalid HTML and a second tab stop. text-center
+// stands in for a <button>'s own centring.
 import heroMonograph from "@/assets/hero-monograph.jpg";
 
 export async function getStaticPaths() {
@@ -234,10 +238,8 @@ const jsonLd = [
           temperature, moisture and tone, then matches herbs to it.
         </p>
         <div class="flex flex-wrap gap-3 justify-center">
-          <a href="/assessment"><Button variant="eden" size="xl">Take the free assessment</Button></a>
-          <a href={`/apothecary/${slug}`}>
-            <Button variant="outline" size="xl">Open {herb.common_name} in the Apothecary</Button>
-          </a>
+          <a href="/assessment" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center")}>Take the free assessment</a>
+          <a href={`/apothecary/${slug}`} class={cn(buttonVariants({ variant: "outline", size: "xl" }), "text-center")}>Open {herb.common_name} in the Apothecary</a>
         </div>
         <p class="font-body text-sm text-muted-foreground mt-6">
           Teaching children at home? <a href="/homeschool" class="underline">Eden's Table</a> builds a full
