@@ -24,6 +24,36 @@
       "source": "/partner-sample/:key",
       "destination": "/partner-sample?k=:key",
       "permanent": false
+    },
+    {
+      "source": "/partner-sample/:key/(.*)",
+      "destination": "/partner-sample?k=:key",
+      "permanent": false
+    },
+    {
+      "source": "/:page((?!partner-sample)[Pp][Aa][Rr][Tt][Nn][Ee][Rr]-[Ss][Aa][Mm][Pp][Ll][Ee])",
+      "destination": "/partner-sample",
+      "permanent": false
+    },
+    {
+      "source": "/:page((?!partner-sample)[Pp][Aa][Rr][Tt][Nn][Ee][Rr]-[Ss][Aa][Mm][Pp][Ll][Ee])/:rest(.*)",
+      "destination": "/partner-sample/:rest",
+      "permanent": false
+    },
+    {
+      "source": "/starter/downloads/(.+)",
+      "destination": "/starter/downloads",
+      "permanent": false
+    },
+    {
+      "source": "/:page((?!starter/downloads)[Ss][Tt][Aa][Rr][Tt][Ee][Rr]/[Dd][Oo][Ww][Nn][Ll][Oo][Aa][Dd][Ss])",
+      "destination": "/starter/downloads",
+      "permanent": false
+    },
+    {
+      "source": "/:page((?!starter/downloads)[Ss][Tt][Aa][Rr][Tt][Ee][Rr]/[Dd][Oo][Ww][Nn][Ll][Oo][Aa][Dd][Ss])/(.*)",
+      "destination": "/starter/downloads",
+      "permanent": false
     }
   ],
   "headers": [

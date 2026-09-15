@@ -45,7 +45,18 @@ function beaconCtaClick(cta: string, path: string): void {
   }
 }
 
-export default function SiteAnalytics() {
+interface Props {
+  /** False on a private page (MarketingLayout noThirdPartyTags: /starter/downloads,
+   *  /partner-sample). The page then loads no Meta Pixel, even for a visitor who
+   *  clicked Accept elsewhere, and shows no cookie banner, because the layout has
+   *  already left out Google Analytics, GTM and the Pinterest tag and nothing
+   *  left needs consent. The cookieless first-party page view (the path, the
+   *  referrer and the utm_* values, never the t or k credential) and the CTA
+   *  click beacon still run. Defaults to true. */
+  thirdPartyTags?: boolean;
+}
+
+export default function SiteAnalytics({ thirdPartyTags = true }: Props) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -92,6 +103,11 @@ export default function SiteAnalytics() {
     };
     document.addEventListener("click", clickHandler, true);
 
+    const cleanup = () => document.removeEventListener("click", clickHandler, true);
+
+    // A private page stops here: no Meta Pixel and no banner (see Props).
+    if (!thirdPartyTags) return cleanup;
+
     // 2. Consent-gated Meta Pixel PageView (returning consented visitors).
     if (getMarketingConsent() === "granted") {
       loadMetaPixel();
@@ -101,10 +117,10 @@ export default function SiteAnalytics() {
     // 3. Show the consent banner only if the visitor hasn't chosen yet.
     if (getMarketingConsent() === null) setVisible(true);
 
-    return () => document.removeEventListener("click", clickHandler, true);
-  }, []);
+    return cleanup;
+  }, [thirdPartyTags]);
 
-  if (!visible) return null;
+  if (!visible || !thirdPartyTags) return null;
 
   // Google Analytics and the Pinterest tag run by default (founder decision
   // 2026-09-13). applyTagConsent turns them off on Decline and back on on

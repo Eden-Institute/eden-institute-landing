@@ -19,7 +19,7 @@
 //
 // Copy rule: no em dashes (feedback_no_em_dashes).
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { pinCheckoutOnce } from "@/lib/pinterestTag";
 import { readCheckoutSessionId } from "@/lib/checkoutSession";
 
@@ -46,6 +46,30 @@ function reportPinterestCheckout(sessionId: string): void {
     order_quantity: 1,
     line_items: [{ product_id: "sprouts_starter_unit", product_name: "Sprouts Starter Unit", product_price: STARTER_PRICE_VALUE, product_quantity: 1 }],
   });
+}
+
+/**
+ * Keeps a click on a link that carries a credential away from page-level
+ * listeners, above all Google Analytics enhanced measurement.
+ *
+ * WHY. On /starter/thank-you Google Analytics runs, and its enhanced
+ * measurement turns a click on a link to another site into a "click" event and
+ * a click on a .pdf link into a "file_download" event, each carrying the full
+ * link_url. The file links here are seven-day signed Storage URLs with their
+ * token in the query string, so a buyer clicking one sent that URL to Google.
+ * Seen with the real gtag.js for G-5DVHEZPKL0 on 2026-09-13.
+ *
+ * HOW. gtag.js listens for click and auxclick on document in the bubble phase
+ * (read in the live library on 2026-09-13). React handles events at the
+ * island's root element, so stopPropagation here ends the event's trip before
+ * it reaches document. The link itself is untouched: it is still a real <a
+ * href>, so a tap opens the file exactly as before, and press and hold still
+ * offers Open in Safari, which the copy below tells buyers to use. The [data-cta]
+ * beacon in SiteAnalytics listens in the capture phase, so it still counts the
+ * click. Nothing is prevented, so ctrl or middle click still opens a new tab.
+ */
+function keepClickFromPageTags(e: MouseEvent<HTMLAnchorElement>): void {
+  e.stopPropagation();
 }
 
 /** ~45 seconds of patience. Stamping two PDFs measured about 300ms, so anything
@@ -218,6 +242,8 @@ export default function StarterDownloads({ mode, showCredit = false }: Props) {
           <div key={f.slug}>
             <a
               href={f.url}
+              onClick={keepClickFromPageTags}
+              onAuxClick={keepClickFromPageTags}
               data-cta={`starter-download-${f.slug}`}
               className="flex items-center justify-center w-full font-accent text-sm tracking-[0.2em] uppercase font-bold px-6 py-4 rounded-md border-2"
               style={{ borderColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-forest))" }}
@@ -228,6 +254,8 @@ export default function StarterDownloads({ mode, showCredit = false }: Props) {
               <p className="text-center mt-1.5">
                 <a
                   href={f.save_url}
+                  onClick={keepClickFromPageTags}
+                  onAuxClick={keepClickFromPageTags}
                   data-cta={`starter-save-${f.slug}`}
                   className="font-body text-xs underline"
                   style={{ color: "hsl(var(--eden-forest))" }}
@@ -266,6 +294,8 @@ export default function StarterDownloads({ mode, showCredit = false }: Props) {
             If they lapse,{" "}
             <a
               href={`/starter/downloads?t=${encodeURIComponent(data.download_token)}`}
+              onClick={keepClickFromPageTags}
+              onAuxClick={keepClickFromPageTags}
               className="underline"
               style={{ color: "hsl(var(--eden-forest))" }}
             >
