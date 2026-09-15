@@ -38,7 +38,9 @@ function latestCapFunctionBody(): { file: string; body: string } {
   return latest;
 }
 
-describe("PERSON_PROFILE_CAP_BY_TIER", () => {
+// Reads every migration file (150+ and growing), which can pass the default 5 s
+// timeout when the machine is busy running other suites in parallel.
+describe("PERSON_PROFILE_CAP_BY_TIER", { timeout: 30_000 }, () => {
   it("matches the latest SQL definition of person_profile_cap_for_tier", () => {
     const { file, body } = latestCapFunctionBody();
     const sqlCaps = Object.fromEntries(
