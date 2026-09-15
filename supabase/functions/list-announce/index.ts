@@ -10,6 +10,18 @@
 //   test    → send one copy to a single explicit address (`to`). Not logged, so it can
 //             be repeated while proofing.
 //   send    → send to the next `batch` recipients and report what remains.
+//             REQUIRES `confirm_campaign`: the exact `campaign` value preview returned.
+//             Without it, or with any other value, the function answers 400 and sends
+//             nothing (type-to-confirm, founder decision 2026-09-15).
+//
+// Calling it (service-role key; there is no dashboard button for this function):
+//   1. preview:  {"mode":"preview"}
+//                -> read `campaign`, `subject`, `remaining`, and proof the `html`.
+//   2. test:     {"mode":"test","to":"hello@edeninstitute.health"}
+//   3. send:     {"mode":"send","batch":200,"confirm_campaign":"<campaign from preview>"}
+//                Repeat until `remaining` is 0. Every batch needs confirm_campaign.
+// A saved curl or script from an earlier campaign stops working on purpose: its
+// confirm_campaign no longer matches, so it cannot mail the new copy by accident.
 //
 // WHY NOT RESEND BROADCASTS, which is the product literally built for this: the public
 // `unsubscribe` function writes ONLY to public.email_list_unsubscribes. It never removes
@@ -39,6 +51,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { launchWrapper } from "../_shared/launch-sequence-templates.ts";
 import { applyUnsub } from "../_shared/email-unsubscribe.ts";
 import { isServiceRoleRequest } from "../_shared/require-service-role.ts";
+import { checkCampaignConfirm } from "../_shared/send-confirm.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -348,7 +361,7 @@ Deno.serve(async (req: Request) => {
   if (!isServiceRoleRequest(req)) return json({ error: "forbidden" }, 403);
   if (!RESEND_API_KEY) return json({ error: "RESEND_API_KEY missing" }, 503);
 
-  let payload: { mode?: string; to?: string; batch?: number };
+  let payload: { mode?: string; to?: string; batch?: number; confirm_campaign?: unknown };
   try {
     payload = await req.json();
   } catch {
@@ -381,6 +394,11 @@ Deno.serve(async (req: Request) => {
     }
 
     if (mode === "send") {
+      // Type-to-confirm, checked before any recipient is read or claimed.
+      const confirm = checkCampaignConfirm(payload.confirm_campaign, CAMPAIGN);
+      if (!confirm.ok) {
+        return json({ mode, campaign: CAMPAIGN, sent: 0, error: confirm.error }, 400);
+      }
       const batch = Math.min(Math.max(payload.batch ?? 200, 1), 400);
       const list = await recipients(db);
       const slice = list.slice(0, batch);

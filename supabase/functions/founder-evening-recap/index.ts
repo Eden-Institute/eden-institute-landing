@@ -28,11 +28,21 @@
 // to send the recap for that completed Central-time day, midnight to midnight.
 // Added after the 2026-09-11 and 2026-09-12 recaps failed on gateway 504s. The
 // "pending and due" backlog count cannot be rebuilt for a past day, so a
-// re-send shows it as of the moment it runs and says so.
+// re-send shows it as of the moment it runs and says so. A re-send does not
+// claim or touch recap_runs, so it works whatever that day's row says.
+//
+// Run claim and retry (added 2026-09-16): the scheduled recap claims its
+// Central-time day in recap_runs (UNIQUE recap_date) via
+// _shared/digest-run-claim.ts, exactly like the morning digest. A day already
+// sent is skipped; a day left failed, or pending by a run that died, is taken
+// over. The retry pass (api/cron/founder-evening-recap-retry.ts, 01:37 UTC)
+// relies on this to finish an evening the 01:00 run could not. At 01:37 UTC it
+// is still the same Central day, so both passes claim the same row.
 
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
 import { pgrstFetch } from '../_shared/pgrst-retry.ts';
 import { escapeHtml } from '../_shared/html-escape.ts';
+import { claimRun, RECAP_RUNS } from '../_shared/digest-run-claim.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -145,6 +155,22 @@ interface EventRow { event_type: string; recipient: string; email_key: string | 
 interface QueueRow { sequence_position: number; status: string }
 interface SignupRow { entry_funnel: string | null }
 
+// Best effort: a lost PATCH leaves the row pending, which the retry pass takes
+// over once it is stale. Never throws.
+async function finishRun(runId: string | null, fields: Record<string, unknown>): Promise<void> {
+  if (!runId) return;
+  try {
+    const res = await sbFetch(`/rest/v1/recap_runs?id=eq.${runId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ ...fields, completed_at: new Date().toISOString() }),
+    });
+    if (!res.ok) console.error(`founder-evening-recap: could not mark recap_runs ${runId} (${res.status})`);
+    await res.body?.cancel();
+  } catch (err) {
+    console.error('founder-evening-recap: marking recap_runs threw', err instanceof Error ? err.message : String(err));
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -152,6 +178,7 @@ Deno.serve(async (req) => {
   // re-send) may invoke. The anon key in the site bundle is also a valid JWT.
   if (!isServiceRoleRequest(req)) return serviceRoleRequired(corsHeaders);
 
+  let runId: string | null = null;
   try {
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !RESEND_API_KEY) {
       return new Response(
@@ -175,6 +202,27 @@ Deno.serve(async (req) => {
         );
       }
     }
+    // ── Claim the day (scheduled recap only) ──
+    if (!past) {
+      const claim = await claimRun((p, i) => sbFetch(p, i), RECAP_RUNS, { date: today.ymd, now });
+      if (claim.kind === 'skip') {
+        console.log(`founder-evening-recap: ${today.ymd} ${claim.reason} (row status ${claim.status}), skipping`);
+        return new Response(
+          JSON.stringify({ sent: false, skipped: claim.reason, status: claim.status, recap_date: today.ymd }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+      if (claim.kind === 'error') {
+        console.error('founder-evening-recap: could not claim recap_runs row', claim.detail);
+        return new Response(
+          JSON.stringify({ sent: false, error: 'Failed to claim recap_runs row', detail: claim.detail }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+      if (claim.takeover) console.log(`founder-evening-recap: took over ${today.ymd} (previous run ${claim.takeover})`);
+      runId = claim.id;
+    }
+
     const startIso = past ? past.startIso : today.startIso;
     const label = past ? past.label : today.label;
     const enc = encodeURIComponent(startIso);
@@ -321,9 +369,12 @@ Deno.serve(async (req) => {
     const sendBody = await sendRes.json().catch(() => ({}));
     if (!sendRes.ok) {
       console.error('founder-evening-recap: Resend rejected the send', JSON.stringify(sendBody));
+      await finishRun(runId, { status: 'failed', error_message: `Resend ${sendRes.status}: ${JSON.stringify(sendBody).slice(0, 500)}` });
       return new Response(JSON.stringify({ sent: false, error: 'resend_failed', detail: sendBody }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
+
+    await finishRun(runId, { status: 'sent', resend_id: sendBody?.id ?? null });
 
     return new Response(
       JSON.stringify({
@@ -337,6 +388,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('founder-evening-recap failed:', message);
+    await finishRun(runId, { status: 'failed', error_message: message.slice(0, 500) });
     return new Response(JSON.stringify({ sent: false, error: message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }

@@ -9,8 +9,11 @@
 //   1. Triggered by Vercel cron Friday 14:00 UTC (08:00 America/Chicago CST).
 //      Cron route at api/cron/weekly-trends-digest.ts calls this EF with
 //      SUPABASE_SERVICE_ROLE_KEY in the Authorization header.
-//   2. INSERTs a pending weekly_trends_runs row keyed on run_date (CT). On
-//      UNIQUE conflict, exits skipped="already_ran" (cron-retry idempotency).
+//   2. Claims the day in weekly_trends_runs (UNIQUE run_date, CT) via
+//      _shared/digest-run-claim.ts. A sent week exits skipped="already_ran"; a
+//      week left failed, or pending by a run that died, is taken over. The retry
+//      pass (api/cron/weekly-trends-digest-retry.ts, Friday 14:37 UTC) relies on
+//      this to finish a Friday the 14:00 run could not.
 //   3. Calls weekly_trends_snapshot() RPC — this-week vs last-week aggregates
 //      (leads by funnel/source, traffic, quiz), testers/bots/unsubs excluded.
 //   4. Computes deltas + a plain-language narrative and emails it via Resend.
@@ -28,6 +31,8 @@
 // deno-lint-ignore-file no-explicit-any
 
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
+import { claimRun, WEEKLY_TRENDS_RUNS } from '../_shared/digest-run-claim.ts';
+import { pgrstFetch } from '../_shared/pgrst-retry.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -309,6 +314,8 @@ function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 }
 
+// pgrstFetch repeats a gateway 504 on reads and PATCHes; the claim INSERT is
+// sent once (a 504 there is resolved by re-reading the row, see the claim).
 async function sbFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const headers = {
     'apikey': SUPABASE_SERVICE_ROLE_KEY,
@@ -316,7 +323,7 @@ async function sbFetch(path: string, init: RequestInit = {}): Promise<Response> 
     'Content-Type': 'application/json',
     ...(init.headers ?? {}),
   };
-  return fetch(`${SUPABASE_URL}${path}`, { ...init, headers });
+  return pgrstFetch(`${SUPABASE_URL}${path}`, { ...init, headers });
 }
 
 Deno.serve(async (req) => {
@@ -325,6 +332,7 @@ Deno.serve(async (req) => {
   // Internal cron worker: only the service role (via the Vercel cron) may invoke.
   if (!isServiceRoleRequest(req)) return serviceRoleRequired(corsHeaders);
 
+  let runId: string | null = null;
   try {
     if (!RESEND_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       console.error('weekly-trends-digest: missing env vars', {
@@ -333,25 +341,25 @@ Deno.serve(async (req) => {
       return json(500, { error: 'Server configuration error' });
     }
 
-    const runDate = ctDateString(new Date());
+    const nowUtc = new Date();
+    const runDate = ctDateString(nowUtc);
 
-    // ── Idempotency INSERT ──
-    const insertRes = await sbFetch('/rest/v1/weekly_trends_runs', {
-      method: 'POST',
-      headers: { 'Prefer': 'return=representation' },
-      body: JSON.stringify({ run_date: runDate, status: 'pending' }),
-    });
-    if (insertRes.status === 409) {
-      console.log(`weekly-trends-digest: already ran for ${runDate} — skipping`);
-      return json(200, { skipped: 'already_ran', run_date: runDate });
+    // ── Claim the week ──
+    // One run sends each Friday. A week left failed, or pending by a run that
+    // died, is taken over (see _shared/digest-run-claim.ts).
+    const claim = await claimRun((p, i) => sbFetch(p, i), WEEKLY_TRENDS_RUNS, { date: runDate, now: nowUtc });
+    if (claim.kind === 'skip') {
+      console.log(`weekly-trends-digest: ${runDate} ${claim.reason} (row status ${claim.status}), skipping`);
+      return json(200, { skipped: claim.reason, status: claim.status, run_date: runDate });
     }
-    if (!insertRes.ok) {
-      const errText = await insertRes.text().catch(() => '');
-      console.error('weekly-trends-digest: runs INSERT failed', insertRes.status, errText);
-      return json(500, { error: 'Failed to create weekly_trends_runs row', detail: errText });
+    if (claim.kind === 'error') {
+      console.error('weekly-trends-digest: could not claim weekly_trends_runs row', claim.detail);
+      return json(500, { error: 'Failed to claim weekly_trends_runs row', detail: claim.detail });
     }
-    const inserted = await insertRes.json();
-    const runId = Array.isArray(inserted) ? inserted[0]?.id : inserted?.id;
+    if (claim.takeover) {
+      console.log(`weekly-trends-digest: took over ${runDate} (previous run ${claim.takeover})`);
+    }
+    runId = claim.id;
 
     // ── Snapshot RPC ──
     const rpcRes = await sbFetch('/rest/v1/rpc/weekly_trends_snapshot', {
@@ -400,6 +408,14 @@ Deno.serve(async (req) => {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('weekly-trends-digest: unhandled error', msg, err);
+    // Mark the claimed run failed so the retry pass takes it over at once rather
+    // than waiting for the pending row to go stale.
+    if (runId) {
+      await sbFetch(`/rest/v1/weekly_trends_runs?id=eq.${runId}&status=eq.pending`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'failed', error_message: `Unhandled: ${msg.slice(0, 500)}`, completed_at: new Date().toISOString() }),
+      }).then((r) => r.body?.cancel(), () => {});
+    }
     return json(500, { error: 'Unhandled exception', detail: msg });
   }
 });

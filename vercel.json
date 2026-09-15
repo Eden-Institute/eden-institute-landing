@@ -103,8 +103,16 @@
       "schedule": "0 14 * * 5"
     },
     {
+      "path": "/api/cron/weekly-trends-digest-retry",
+      "schedule": "37 14 * * 5"
+    },
+    {
       "path": "/api/cron/founder-evening-recap",
       "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/founder-evening-recap-retry",
+      "schedule": "37 1 * * *"
     },
     {
       "path": "/api/cron/launch-email-preview",

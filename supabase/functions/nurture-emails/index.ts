@@ -34,6 +34,17 @@
 // echoes them on open/click webhooks (-> public.email_events) for the founder
 // dashboard. Tag values are [A-Za-z0-9_-] per Resend's rules.
 //
+// Failed sends (2026-09-16, _shared/send-backoff.ts): a transient Resend error
+// (429, daily quota, 5xx, network) leaves the row pending with next_attempt_at
+// pushed out on an exponential backoff, for up to 24 hours from first_failed_at.
+// Every drain query skips rows still waiting out a backoff (dueFilter), so they
+// never take a batch slot from rows that are due. After 24 hours the row is
+// marked failed with gave_up_at set, and alertFounderOfGiveUps() emails the
+// founder one summary (founder_alerted_at: once per row, at most one email an
+// hour). A permanent error (400 validation, invalid address) fails at once, as
+// before. Nothing about WHEN a row counts as sent changed: status and markSent
+// are exactly as they were, so a sent row is never picked up again.
+//
 // Behavioral suppression (Phase 1): drainNurtureQueue cancels a queued email
 // that would re-pitch an offer the recipient already bought. Phase 2 (branch to
 // a DIFFERENT next email) is deferred until the full K-12 curriculum exists.
@@ -68,6 +79,8 @@ import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-se
 import { pgrstFetch } from '../_shared/pgrst-retry.ts';
 import { captureException } from '../_shared/sentry.ts';
 import { escapeLikePattern } from '../_shared/like-escape.ts';
+import { dueFilter, planSendFailure, type SendFailure } from '../_shared/send-backoff.ts';
+import { alertFounder } from '../_shared/founder-alert.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -79,7 +92,6 @@ const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-const MAX_RETRIES = 3;
 const QUEUE_BATCH = 50;
 const RATE_LIMIT_MS = 300;
 
@@ -255,7 +267,7 @@ async function sendEmail(
   html: string,
   list: EmailList,
   tags?: ResendTag[],
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string; status?: number; name?: string }> {
   const { html: finalHtml, headers: unsubHeaders } = await applyUnsub(html, to, list);
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -273,12 +285,53 @@ async function sendEmail(
       ...(tags && tags.length ? { tags } : {}),
     }),
   });
-  const data = await res.json();
+  // A gateway 502/503 can answer with an HTML page; reading it as JSON must not
+  // throw, or a transient outage would be recorded without its status.
+  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     console.error('Email send failed:', res.status, JSON.stringify(data));
-    return { ok: false, error: data?.message || `HTTP ${res.status}` };
+    return {
+      ok: false,
+      error: data?.message || `HTTP ${res.status}`,
+      status: res.status,
+      name: typeof data?.name === 'string' ? data.name : undefined,
+    };
   }
   return { ok: true };
+}
+
+// A failed send: transient errors back off for up to 24 hours, permanent ones
+// fail now (_shared/send-backoff.ts). Only a row that is marked failed counts in
+// result.failed; a row that will be retried counts in result.retrying.
+async function recordSendFailure(
+  table: string,
+  row: any,
+  failure: SendFailure,
+  result: QueueResult,
+): Promise<void> {
+  const now = new Date();
+  const plan = planSendFailure(row, failure, now);
+  try {
+    const res = await supabaseQuery(`${table}?id=eq.${row.id}&status=eq.pending`, {
+      method: 'PATCH',
+      body: JSON.stringify({ ...plan.patch, updated_at: now.toISOString() }),
+    });
+    if (!res.ok) {
+      // Left pending with its old next_attempt_at: it is simply tried again next tick.
+      console.error(`nurture-emails: could not record failure on ${table} ${row.id} (${res.status})`);
+    }
+  } catch (err) {
+    // Never let a lost PATCH end the whole drain run; same outcome as a non-ok PATCH.
+    console.error(`nurture-emails: recording failure on ${table} ${row.id} threw:`, err instanceof Error ? err.message : String(err));
+  }
+  if (plan.action === 'retry') {
+    result.retrying++;
+  } else {
+    result.failed++;
+    if (plan.reason === 'window_expired') {
+      console.error(`nurture-emails: ${table} ${row.id} gave up after 24h of retries: ${plan.patch.error_message}`);
+    }
+  }
 }
 
 // Voluntary per-list opt-out check (vs. the global unsubscribe handled by
@@ -296,17 +349,18 @@ interface QueueResult {
   processed: number;
   sent: number;
   failed: number;
+  retrying: number;
 }
 
 async function drainNurtureQueue(): Promise<QueueResult> {
-  const result: QueueResult = { processed: 0, sent: 0, failed: 0 };
+  const result: QueueResult = { processed: 0, sent: 0, failed: 0, retrying: 0 };
   const nowIso = new Date().toISOString();
 
   // Pull pending rows that are due. Order by scheduled_for ASC = oldest first.
   const rows = await supabaseQuery(
     `nurture_email_queue?status=eq.pending&scheduled_for=lte.${encodeURIComponent(
       nowIso,
-    )}&order=scheduled_for.asc&limit=${QUEUE_BATCH}`,
+    )}&${dueFilter(nowIso)}&order=scheduled_for.asc&limit=${QUEUE_BATCH}`,
   );
 
   if (!Array.isArray(rows)) {
@@ -440,36 +494,16 @@ async function drainNurtureQueue(): Promise<QueueResult> {
         });
         result.sent++;
       } else {
-        const newRetry = (row.retry_count ?? 0) + 1;
-        const terminal = newRetry >= MAX_RETRIES;
-        await supabaseQuery(`nurture_email_queue?id=eq.${row.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({
-            status: terminal ? 'failed' : 'pending',
-            retry_count: newRetry,
-            error_message: send.error,
-            updated_at: new Date().toISOString(),
-          }),
-        });
-        if (terminal) result.failed++;
+        await recordSendFailure('nurture_email_queue', row, { status: send.status, name: send.name, message: send.error }, result);
       }
 
       await new Promise((r) => setTimeout(r, RATE_LIMIT_MS));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`drainNurtureQueue: row ${row.id} threw:`, message);
-      const newRetry = (row.retry_count ?? 0) + 1;
-      const terminal = newRetry >= MAX_RETRIES;
-      await supabaseQuery(`nurture_email_queue?id=eq.${row.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          status: terminal ? 'failed' : 'pending',
-          retry_count: newRetry,
-          error_message: message,
-          updated_at: new Date().toISOString(),
-        }),
-      });
-      if (terminal) result.failed++;
+      // Thrown before or during the send (network, a gateway error on a lookup):
+      // no response from Resend, so it is treated as transient.
+      await recordSendFailure('nurture_email_queue', row, { status: null, message }, result);
     }
   }
 
@@ -532,11 +566,7 @@ async function legacyEmail5(): Promise<LegacyResult> {
   return { sent, candidates };
 }
 
-interface MagnetResult {
-  processed: number;
-  sent: number;
-  failed: number;
-}
+type MagnetResult = QueueResult;
 
 // Story-move cutoff: the read-aloud story now ships with Week 2 (Email 2), not
 // Week 1 (Email 1). Magnet queue rows created at/after this timestamp were
@@ -554,13 +584,13 @@ const STORY_CUTOFF_MS = Date.parse('2026-06-06T22:38:00Z');
 // from the queue row. Band-agnostic positions are deduped per recipient; Weeks
 // 4-7 are chained (each send enqueues the next).
 async function drainMagnetQueue(): Promise<MagnetResult> {
-  const result: MagnetResult = { processed: 0, sent: 0, failed: 0 };
+  const result: MagnetResult = { processed: 0, sent: 0, failed: 0, retrying: 0 };
   const nowIso = new Date().toISOString();
   // Tracks (email|position) for band-agnostic emails already handled in THIS
   // run, so two band rows due in the same batch don't both send.
   const sentAgnostic = new Set<string>();
   const rows = await supabaseQuery(
-    `magnet_email_queue?status=eq.pending&scheduled_for=lte.${encodeURIComponent(nowIso)}&order=scheduled_for.asc&limit=${QUEUE_BATCH}`,
+    `magnet_email_queue?status=eq.pending&scheduled_for=lte.${encodeURIComponent(nowIso)}&${dueFilter(nowIso)}&order=scheduled_for.asc&limit=${QUEUE_BATCH}`,
   );
   if (!Array.isArray(rows)) {
     console.error('drainMagnetQueue: unexpected query result', JSON.stringify(rows));
@@ -573,6 +603,9 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
       break;
     }
     result.processed++;
+    // Set once Resend has accepted this row's email. A throw after that point
+    // (chaining the next week) must not put the row back up for a resend.
+    let accepted = false;
     try {
       const firstName = row.first_name || 'friend';
       const band: 'sprouts' | 'seedlings' = row.band === 'seedlings' ? 'seedlings' : 'sprouts';
@@ -657,6 +690,7 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
         engagementTags('homeschool', emailKey),
       );
       if (send.ok) {
+        accepted = true;
         await markSent('magnet_email_queue', row.id, {
           status: 'sent',
           sent_at: new Date().toISOString(),
@@ -668,25 +702,17 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
         const nextPos = MAGNET_CHAIN_NEXT[pos];
         if (nextPos) await enqueueNextMagnet(row, nextPos);
       } else {
-        const newRetry = (row.retry_count ?? 0) + 1;
-        const terminal = newRetry >= MAX_RETRIES;
-        await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ status: terminal ? 'failed' : 'pending', retry_count: newRetry, error_message: send.error, updated_at: new Date().toISOString() }),
-        });
-        if (terminal) result.failed++;
+        await recordSendFailure('magnet_email_queue', row, { status: send.status, name: send.name, message: send.error }, result);
       }
       await new Promise((r) => setTimeout(r, RATE_LIMIT_MS));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`drainMagnetQueue: row ${row.id} threw:`, message);
-      const newRetry = (row.retry_count ?? 0) + 1;
-      const terminal = newRetry >= MAX_RETRIES;
-      await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status: terminal ? 'failed' : 'pending', retry_count: newRetry, error_message: message, updated_at: new Date().toISOString() }),
-      });
-      if (terminal) result.failed++;
+      if (accepted) {
+        await captureException(err, { function: 'nurture-emails', table: 'magnet_email_queue', id: row.id, stage: 'after-send' });
+        continue;
+      }
+      await recordSendFailure('magnet_email_queue', row, { status: null, message }, result);
     }
   }
   return result;
@@ -762,10 +788,10 @@ async function foundingWindowOpen(): Promise<boolean> {
 }
 
 async function drainLaunchQueue(): Promise<QueueResult> {
-  const result: QueueResult = { processed: 0, sent: 0, failed: 0 };
+  const result: QueueResult = { processed: 0, sent: 0, failed: 0, retrying: 0 };
   const nowIso = new Date().toISOString();
   const rows = await supabaseQuery(
-    `launch_email_queue?status=eq.pending&scheduled_for=lte.${encodeURIComponent(nowIso)}&order=scheduled_for.asc&limit=${LAUNCH_QUEUE_BATCH}`,
+    `launch_email_queue?status=eq.pending&scheduled_for=lte.${encodeURIComponent(nowIso)}&${dueFilter(nowIso)}&order=scheduled_for.asc&limit=${LAUNCH_QUEUE_BATCH}`,
   );
   if (!Array.isArray(rows)) {
     console.error('drainLaunchQueue: unexpected query result', JSON.stringify(rows));
@@ -871,35 +897,15 @@ async function drainLaunchQueue(): Promise<QueueResult> {
         });
         result.sent++;
       } else {
-        const newRetry = (row.retry_count ?? 0) + 1;
-        const terminal = newRetry >= MAX_RETRIES;
-        await supabaseQuery(`launch_email_queue?id=eq.${row.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({
-            status: terminal ? 'failed' : 'pending',
-            retry_count: newRetry,
-            error_message: send.error,
-            updated_at: new Date().toISOString(),
-          }),
-        });
-        if (terminal) result.failed++;
+        await recordSendFailure('launch_email_queue', row, { status: send.status, name: send.name, message: send.error }, result);
       }
       await new Promise((r) => setTimeout(r, RATE_LIMIT_MS));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`drainLaunchQueue: row ${row.id} threw:`, message);
-      const newRetry = (row.retry_count ?? 0) + 1;
-      const terminal = newRetry >= MAX_RETRIES;
-      await supabaseQuery(`launch_email_queue?id=eq.${row.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          status: terminal ? 'failed' : 'pending',
-          retry_count: newRetry,
-          error_message: message,
-          updated_at: new Date().toISOString(),
-        }),
-      });
-      if (terminal) result.failed++;
+      // Thrown before or during the send (network, a gateway error on a lookup):
+      // no response from Resend, so it is treated as transient.
+      await recordSendFailure('launch_email_queue', row, { status: null, message }, result);
     }
   }
   return result;
@@ -924,11 +930,11 @@ async function drainLaunchQueue(): Promise<QueueResult> {
 const BUYER_QUEUE_BATCH = 100;
 
 async function drainBuyerQueue(): Promise<QueueResult> {
-  const result: QueueResult = { processed: 0, sent: 0, failed: 0 };
+  const result: QueueResult = { processed: 0, sent: 0, failed: 0, retrying: 0 };
   const nowIso = new Date().toISOString();
   const rows = await supabaseQuery(
-    `buyer_email_queue?select=id,order_id,recipient_email,first_name,sequence_position,retry_count,orders(status)` +
-      `&status=eq.pending&scheduled_for=lte.${encodeURIComponent(nowIso)}` +
+    `buyer_email_queue?select=id,order_id,recipient_email,first_name,sequence_position,retry_count,first_failed_at,orders(status)` +
+      `&status=eq.pending&scheduled_for=lte.${encodeURIComponent(nowIso)}&${dueFilter(nowIso)}` +
       `&order=scheduled_for.asc&limit=${BUYER_QUEUE_BATCH}`,
   );
   if (!Array.isArray(rows)) {
@@ -1004,38 +1010,97 @@ async function drainBuyerQueue(): Promise<QueueResult> {
         });
         result.sent++;
       } else {
-        const newRetry = (row.retry_count ?? 0) + 1;
-        const terminal = newRetry >= MAX_RETRIES;
-        await supabaseQuery(`buyer_email_queue?id=eq.${row.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({
-            status: terminal ? 'failed' : 'pending',
-            retry_count: newRetry,
-            error_message: send.error,
-            updated_at: new Date().toISOString(),
-          }),
-        });
-        if (terminal) result.failed++;
+        await recordSendFailure('buyer_email_queue', row, { status: send.status, name: send.name, message: send.error }, result);
       }
       await new Promise((r) => setTimeout(r, RATE_LIMIT_MS));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`drainBuyerQueue: row ${row.id} threw:`, message);
-      const newRetry = (row.retry_count ?? 0) + 1;
-      const terminal = newRetry >= MAX_RETRIES;
-      await supabaseQuery(`buyer_email_queue?id=eq.${row.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          status: terminal ? 'failed' : 'pending',
-          retry_count: newRetry,
-          error_message: message,
-          updated_at: new Date().toISOString(),
-        }),
-      });
-      if (terminal) result.failed++;
+      // Thrown before or during the send (network, a gateway error on a lookup):
+      // no response from Resend, so it is treated as transient.
+      await recordSendFailure('buyer_email_queue', row, { status: null, message }, result);
     }
   }
   return result;
+}
+
+// ── Founder alert for emails that gave up after 24 hours of retries ─────────
+const BACKOFF_QUEUES = ['buyer_email_queue', 'nurture_email_queue', 'magnet_email_queue', 'launch_email_queue'] as const;
+const GIVE_UP_ALERT_EVERY_MS = 60 * 60 * 1000;
+const GIVE_UP_LIST_PER_QUEUE = 10;
+
+function totalFromContentRange(header: string | null): number | null {
+  const m = header?.match(/\/(\d+)$/);
+  return m ? Number(m[1]) : null;
+}
+
+// One summary email for every row that gave up and has not been reported.
+// Rows are stamped founder_alerted_at only after Resend accepted the alert, so
+// a failed alert is retried next run; and at most one alert goes out an hour,
+// so a long outage produces one email an hour rather than one per row.
+async function alertFounderOfGiveUps(): Promise<{ alerted: number; held?: string }> {
+  const snapshot = new Date();
+  const snapIso = encodeURIComponent(snapshot.toISOString());
+  const recentIso = encodeURIComponent(new Date(snapshot.getTime() - GIVE_UP_ALERT_EVERY_MS).toISOString());
+  const unreported = `status=eq.failed&gave_up_at=not.is.null&gave_up_at=lte.${snapIso}&founder_alerted_at=is.null`;
+
+  const sections: string[] = [];
+  let total = 0;
+  for (const table of BACKOFF_QUEUES) {
+    const res = await pgrstFetch(
+      `${SUPABASE_URL}/rest/v1/${table}?${unreported}&select=id,recipient_email,sequence_position,error_message,gave_up_at` +
+        `&order=gave_up_at.asc&limit=${GIVE_UP_LIST_PER_QUEUE}`,
+      {
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY!,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          Prefer: 'count=exact',
+        },
+      },
+    );
+    if (!res.ok) {
+      await res.body?.cancel();
+      return { alerted: 0, held: `${table} read failed (${res.status})` };
+    }
+    const rows = await res.json().catch(() => []) as Array<{ recipient_email: string; sequence_position: number; error_message: string | null }>;
+    if (!Array.isArray(rows) || rows.length === 0) continue;
+    const count = totalFromContentRange(res.headers.get('content-range')) ?? rows.length;
+    total += count;
+    sections.push(
+      `${table}: ${count}\n` +
+        rows.map((r) => `  - ${r.recipient_email}, position ${r.sequence_position}: ${(r.error_message ?? '').slice(0, 160)}`).join('\n') +
+        (count > rows.length ? `\n  (and ${count - rows.length} more)` : ''),
+    );
+  }
+  if (total === 0) return { alerted: 0 };
+
+  for (const table of BACKOFF_QUEUES) {
+    const recent = await supabaseQuery(`${table}?founder_alerted_at=gte.${recentIso}&select=id&limit=1`);
+    if (Array.isArray(recent) && recent.length > 0) return { alerted: 0, held: 'an alert already went out this hour' };
+  }
+
+  const subject = `${total} queued email${total === 1 ? '' : 's'} gave up after 24 hours of retries`;
+  const text =
+    `${total} queued email${total === 1 ? ' was' : 's were'} retried for 24 hours and never went through, so ` +
+    `${total === 1 ? 'it is' : 'they are'} now marked failed and will not send on ${total === 1 ? 'its' : 'their'} own.\n\n` +
+    `The usual cause is Resend refusing sends for the whole day (rate limit or daily quota). ` +
+    `Check the Resend dashboard first.\n\n` +
+    sections.join('\n\n') +
+    `\n\nTo send them after all, set status back to pending and clear first_failed_at, next_attempt_at, ` +
+    `gave_up_at and founder_alerted_at on those rows. Claude can do that for you.\n\n` +
+    `You get this email once for each email that gave up.`;
+
+  const sent = await alertFounder(subject, text, 'nurture-emails');
+  if (!sent) return { alerted: 0, held: 'alert email failed; will retry next run' };
+
+  for (const table of BACKOFF_QUEUES) {
+    const res = await supabaseQuery(`${table}?${unreported}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ founder_alerted_at: snapshot.toISOString() }),
+    });
+    if (!res.ok) console.error(`nurture-emails: alert sent but could not stamp founder_alerted_at on ${table} (${res.status})`);
+  }
+  return { alerted: total };
 }
 
 Deno.serve(async (req) => {
@@ -1067,15 +1132,20 @@ Deno.serve(async (req) => {
     const launch = await drainLaunchQueue();
     const legacy_email5 = await legacyEmail5();
     const budget_exhausted = budgetExhausted();
+    // Never lets an alert problem fail the drain run.
+    const gave_up_alert = await alertFounderOfGiveUps().catch((err) => {
+      console.error('nurture-emails: give-up alert pass threw', err instanceof Error ? err.message : String(err));
+      return { alerted: 0, held: 'threw' };
+    });
 
     console.log(
       `nurture-emails run: queue=${JSON.stringify(
         queue,
-      )} magnet=${JSON.stringify(magnet)} launch=${JSON.stringify(launch)} buyer=${JSON.stringify(buyer)} legacy_email5=${JSON.stringify(legacy_email5)} budget_exhausted=${budget_exhausted}`,
+      )} magnet=${JSON.stringify(magnet)} launch=${JSON.stringify(launch)} buyer=${JSON.stringify(buyer)} legacy_email5=${JSON.stringify(legacy_email5)} budget_exhausted=${budget_exhausted} gave_up_alert=${JSON.stringify(gave_up_alert)}`,
     );
 
     return new Response(
-      JSON.stringify({ success: true, queue, magnet, launch, buyer, legacy_email5, budget_exhausted }),
+      JSON.stringify({ success: true, queue, magnet, launch, buyer, legacy_email5, budget_exhausted, gave_up_alert }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
