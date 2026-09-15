@@ -8,11 +8,13 @@
 // (Resubmit / Cancel at Lulu / Refresh), which call the founder-gated lulu-admin
 // edge function; every state change still flows through the shared transition
 // engine, so the buttons cannot do anything a webhook could not.
+// Cancel needs the founder's authenticator code once one is set up (StepUp.tsx).
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { safeHttpHref } from "@/lib/safeHref";
+import { FounderActionError, MFA_NUDGE, readFunctionErrorBody, useStepUp } from "./StepUp";
 
 interface OrderItem {
   sku: string;
@@ -139,6 +141,8 @@ export default function OrdersTab({ since }: { since: string }) {
   const [error, setError] = useState<string | null>(null);
   const [acting, setActing] = useState<string | null>(null);
   const [actionNote, setActionNote] = useState<string | null>(null);
+  const [mfaNudge, setMfaNudge] = useState(false);
+  const { withStepUp, stepUpDialog } = useStepUp();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -167,17 +171,24 @@ export default function OrdersTab({ since }: { since: string }) {
     if (action === "cancel" && !window.confirm(`Cancel the Lulu print for ${ref}? This only works before printing starts. It does NOT refund the buyer; do that in Stripe.`)) return;
     setActing(`${action}:${o.id}`);
     setActionNote(null);
-    try {
+    const invoke = async () => {
       const { data, error: e } = await supabase.functions.invoke("lulu-admin", { body: { action, order_id: o.id } });
       if (e) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const ctx = (e as any)?.context;
         // A failed resubmit/cancel comes back 502/500 with a result body and no
         // `error` key, so fall through to Lulu's own detail and status.
-        let detail: { error?: string; detail?: string; status?: string; outcome?: string } | null = null;
-        try { detail = ctx && typeof ctx.json === "function" ? await ctx.json() : null; } catch { detail = null; }
-        throw new Error(detail?.error ?? detail?.detail ?? (detail?.status || detail?.outcome) ?? e.message);
+        const detail = (await readFunctionErrorBody(e)) as
+          { error?: string; detail?: string; status?: string; outcome?: string; code?: string } | null;
+        throw new FounderActionError(
+          detail?.error ?? detail?.detail ?? (detail?.status || detail?.outcome) ?? e.message,
+          detail?.code,
+          detail,
+        );
       }
+      return data;
+    };
+    try {
+      const data = action === "cancel" ? await withStepUp(invoke) : await invoke();
+      if (action === "cancel") setMfaNudge((data as { mfa_enrolled?: boolean } | null)?.mfa_enrolled === false);
       setActionNote(`${ref}: ${action} → ${luluResultText(data)}`);
     } catch (err) {
       setActionNote(`${ref}: ${action} failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -185,7 +196,7 @@ export default function OrdersTab({ since }: { since: string }) {
       setActing(null);
       load();
     }
-  }, [load]);
+  }, [load, withStepUp]);
 
   const s = payload?.summary;
   const orders = payload?.orders ?? [];
@@ -230,6 +241,8 @@ export default function OrdersTab({ since }: { since: string }) {
           {actionNote}
         </p>
       )}
+      {mfaNudge && <p className="font-body text-xs mb-4 text-muted-foreground">{MFA_NUDGE}</p>}
+      {stepUpDialog}
 
       <section className="mb-4">
         <div className="flex items-center justify-between">

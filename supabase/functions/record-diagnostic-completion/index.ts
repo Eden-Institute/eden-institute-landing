@@ -75,14 +75,12 @@ import {
 } from "./errorMap.ts";
 import { allowlistCorsHeaders } from "../_shared/cors-allowlist.ts";
 import { pgrstFetch } from "../_shared/pgrst-retry.ts";
+import { isFounderEmail } from "../_shared/founder-identity.ts";
 
 // ── env ──
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-// Same literal as practitioner-clinical's founder allowlist.
-const FOUNDER_EMAIL = "hello@edeninstitute.health";
 
 // CORS: the origin allowlist lives in _shared/cors-allowlist.ts (Lock #41).
 
@@ -605,8 +603,9 @@ Deno.serve(async (req) => {
       if (!tierRes.ok) return errorResponse(diagnosticError("profile_lookup_failed"), req);
       const tierRows = (await tierRes.json().catch(() => [])) as Array<{ subscription_tier?: string }>;
       const tier = tierRows?.[0]?.subscription_tier ?? "free";
-      const isFounder = (user.email ?? "").toLowerCase() === FOUNDER_EMAIL;
-      if (tier !== "practitioner" && !isFounder) {
+      // Founder email from public.app_settings (_shared/founder-identity.ts), the
+      // same source as practitioner-clinical's founder allowance.
+      if (tier !== "practitioner" && !(await isFounderEmail(user.email))) {
         return errorResponse(diagnosticError("practitioner_tier_required"), req);
       }
     }

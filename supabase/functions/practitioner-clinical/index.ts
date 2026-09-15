@@ -16,12 +16,11 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { allowlistCorsHeaders } from "../_shared/cors-allowlist.ts";
+import { isFounderEmail } from "../_shared/founder-identity.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-const FOUNDER_EMAIL = "hello@edeninstitute.health";
 
 function json(req: Request, body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -110,8 +109,9 @@ Deno.serve(async (req) => {
       `profiles?user_id=eq.${user.id}&select=subscription_tier,email`,
     )) as Array<{ subscription_tier: string; email: string }>;
     const tier = profRows?.[0]?.subscription_tier ?? "free";
-    const isFounder = (user.email ?? "").toLowerCase() === FOUNDER_EMAIL;
-    if (tier !== "practitioner" && !isFounder) {
+    // Founder email from public.app_settings (_shared/founder-identity.ts); only
+    // looked up when the tier alone does not already allow the call.
+    if (tier !== "practitioner" && !(await isFounderEmail(user.email))) {
       return json(req, { error: "practitioner_tier_required" }, 403);
     }
 
