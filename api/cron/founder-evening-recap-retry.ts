@@ -10,7 +10,7 @@
 // lost the 2026-09-11 and 2026-09-12 recaps; the manual {"date"} re-send stays
 // available for anything older.
 
-import handler from './founder-evening-recap';
+import handler from './founder-evening-recap.js';
 
 export default handler;
 

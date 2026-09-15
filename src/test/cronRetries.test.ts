@@ -55,7 +55,7 @@ describe("report retry passes", () => {
     });
 
     it(`${retry} re-exports the ${main} handler`, () => {
-      expect(source(retry)).toContain(`import handler from './${main}';`);
+      expect(source(retry)).toContain(`import handler from './${main}.js';`);
       expect(source(retry)).toContain("export default handler;");
     });
   }

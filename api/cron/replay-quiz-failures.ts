@@ -31,7 +31,7 @@
 // Observability: returns the EF response JSON to Vercel function logs.
 // Production logs visible at vercel.com/eden-b55b0b13/eden-institute-landing/logs.
 
-import { cronHandler } from '../_lib/cron-forward';
+import { cronHandler } from '../_lib/cron-forward.js';
 
 export default cronHandler({ name: 'replay-quiz-failures', efName: 'replay-quiz-completion-failures' });
 

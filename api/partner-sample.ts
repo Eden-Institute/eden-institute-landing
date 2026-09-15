@@ -47,8 +47,8 @@
 // three came back wrapped in the draft's stored HTML. No HTML shape escapes it,
 // so do not go looking for one again.
 
-import { safeEqual } from './_lib/safe-equal';
-import { clientIp, isLockedOut, recordWrongKey, WRONG_KEY_WINDOW_SECONDS } from './_lib/wrong-key-limit';
+import { safeEqual } from './_lib/safe-equal.js';
+import { clientIp, isLockedOut, recordWrongKey, WRONG_KEY_WINDOW_SECONDS } from './_lib/wrong-key-limit.js';
 
 /** Button slug -> Storage object path. Order is the reading order of a week. */
 const COMPONENTS: Record<string, string> = {
