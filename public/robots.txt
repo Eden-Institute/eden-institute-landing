@@ -5,6 +5,9 @@
 User-agent: *
 Allow: /
 Disallow: /api/
+# /go/* are redirect-only endpoints. /go/deep-dive/:slug mints a live Stripe
+# Checkout Session on every GET, so crawlers must not follow it.
+Disallow: /go/
 # /partner-sample is intentionally NOT disallowed: it carries <meta name=robots content=noindex>, which crawlers can only honour if they may fetch the page.
 Disallow: /apothecary/auth/
 Disallow: /apothecary/account

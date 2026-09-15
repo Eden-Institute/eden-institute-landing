@@ -39,6 +39,12 @@ export interface DocumentMeta {
   ogImage?: string;
   /** OG type. Defaults to "website". Use "article" for /results, /guide pages. */
   ogType?: "website" | "article";
+  /**
+   * <meta name="robots">, e.g. "noindex, follow" for a route that renders a
+   * not-found state at a 200 (the SPA cannot send a real 404). Omitted: the
+   * index.html default ("index, follow") stays in place.
+   */
+  robots?: string;
 }
 
 const readMetaName = (n: string) =>
@@ -59,6 +65,7 @@ const DEFAULTS =
         title: document.title,
         description: readMetaName("description"),
         canonical: document.querySelector('link[rel="canonical"]')?.getAttribute("href") ?? "",
+        robots: readMetaName("robots"),
         ogTitle: readMetaProp("og:title"),
         ogDescription: readMetaProp("og:description"),
         ogUrl: readMetaProp("og:url"),
@@ -82,7 +89,7 @@ const DEFAULTS =
  * so it's safe to inline the object literal at the call site.
  */
 export function useDocumentMeta(meta: DocumentMeta): void {
-  const { title, description, canonical, ogImage, ogType = "website" } = meta;
+  const { title, description, canonical, ogImage, ogType = "website", robots } = meta;
 
   useEffect(() => {
     document.title = title;
@@ -101,6 +108,7 @@ export function useDocumentMeta(meta: DocumentMeta): void {
     setMetaName("twitter:title", title);
     setMetaName("twitter:description", description);
     setMetaName("twitter:card", "summary_large_image");
+    if (robots) setMetaName("robots", robots);
 
     return () => {
       // Restore the index.html defaults so the next route's first paint isn't
@@ -117,12 +125,13 @@ export function useDocumentMeta(meta: DocumentMeta): void {
       setMetaProperty("og:type", "website");
       restoreMetaName("twitter:title", DEFAULTS.twitterTitle);
       restoreMetaName("twitter:description", DEFAULTS.twitterDescription);
+      restoreMetaName("robots", DEFAULTS.robots);
       // Images are only ever overridden when a caller passes ogImage; put the
       // shipped image back, and never remove it.
       if (DEFAULTS.ogImage) setMetaProperty("og:image", DEFAULTS.ogImage);
       if (DEFAULTS.twitterImage) setMetaName("twitter:image", DEFAULTS.twitterImage);
     };
-  }, [title, description, canonical, ogImage, ogType]);
+  }, [title, description, canonical, ogImage, ogType, robots]);
 }
 
 // ─── DOM helpers ───────────────────────────────────────────────────

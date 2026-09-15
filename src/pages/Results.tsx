@@ -82,6 +82,9 @@ const Results = () => {
     description,
     canonical,
     ogType: "article",
+    // The eight real Patterns are static Astro pages; anything else lands here
+    // as a 200 "not found" shell, which must not be indexed as a page.
+    robots: profile ? undefined : "noindex, follow",
   });
 
   useStructuredData(

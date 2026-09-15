@@ -26,6 +26,8 @@ const SLUG_TO_NAME: Record<string, string> = {
   'still-water': 'The Still Water',
 };
 
+import { isBotUserAgent } from '../_shared/bot-user-agent.ts';
+
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 
 Deno.serve(async (req) => {
@@ -38,6 +40,18 @@ Deno.serve(async (req) => {
   if (!name) return Response.redirect('https://edeninstitute.health/assessment', 302);
 
   const guidePage = `https://edeninstitute.health/guide/${slug}`;
+
+  // Every successful GET here mints a live Stripe Checkout Session, so crawlers,
+  // link-preview fetchers and scripted clients must not reach the fetch below
+  // (a QA crawl on 2026-09-15 left 8 abandoned $4.99 sessions in Stripe in one
+  // minute). robots.txt (Disallow: /go/) and rel="nofollow" keep well-behaved
+  // bots away; this catches the rest by User-Agent. Real mail clients and
+  // in-app browsers carry a normal browser UA and never match, and a false
+  // positive lands on the guide page, which has its own Buy button.
+  if (isBotUserAgent(req.headers.get('user-agent'))) {
+    return new Response(null, { status: 302, headers: { Location: guidePage, 'Cache-Control': 'no-store' } });
+  }
+
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/create-checkout`, {
       method: 'POST',

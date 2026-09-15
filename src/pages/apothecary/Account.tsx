@@ -123,6 +123,7 @@ export default function Account() {
     data: pattern,
     activeProfile,
     isLoading: patternLoading,
+    isProfileError,
   } = useEdenPattern();
 
   const {
@@ -147,12 +148,16 @@ export default function Account() {
     staleTime: 60 * 1000,
   });
 
-  if (isLoading || patternLoading) return <PageSkeleton />;
+  // useEdenPattern reports isLoading for as long as the person-profile list is
+  // in an error state with nothing cached, so that gate alone left this page
+  // on a skeleton that never ended (post-ship QA, 2026-09-15). isProfileError
+  // names that state; it lands on the same banner as a failed profiles read.
+  if (isLoading || (patternLoading && !isProfileError)) return <PageSkeleton />;
 
   // A failed query or a missing profiles row must not read as an endless
   // skeleton: the error banner below used to sit behind `!profile`, which
   // made it unreachable — exactly the states it was written for.
-  if (isError || !profile) {
+  if (isError || isProfileError || !profile) {
     return (
       <section className="py-12 md:py-16 px-6">
         <div className="max-w-3xl mx-auto space-y-4">

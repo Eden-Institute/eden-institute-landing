@@ -8,7 +8,8 @@
  * here; the sitemap endpoint generates those from data.
  *
  * Excluded on purpose (all noindex):
- *   /partner-sample       - link-only, noindex, and Disallow-ed in robots.txt
+ *   /partner-sample       - link-only, noindex (on purpose NOT Disallow-ed in
+ *                           robots.txt, or crawlers could never read the noindex)
  *   /curriculum           - link-only, noindex
  *   /preorder             - noindex
  *   /books/thank-you      - post-purchase confirmation
