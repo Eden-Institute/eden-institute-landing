@@ -29,6 +29,9 @@ export const STATIC_PATHS: readonly string[] = [
   "/starter",
   "/contact",
   "/returns",
+  "/terms",
+  "/privacy",
+  "/cookies",
   "/herbs",
   "/esa",
 ];
