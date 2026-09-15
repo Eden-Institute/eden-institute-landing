@@ -1,3 +1,17 @@
+-- ============================================================
+-- NOTE (2026-09-15): STEP 4 at the bottom of this file is a one-off production
+-- data repair for a single founder test account, with hard-coded row ids and
+-- personal data. It is already applied in production and never runs again
+-- there. It is not safe to replay: under session_replication_role = replica
+-- the INSERT skips foreign-key enforcement, so a fresh database (db reset,
+-- branch) would get an orphan person_profiles row for a user that does not
+-- exist. A manual re-run on production deletes nothing (that row id is already
+-- gone) and its INSERT fails on uniq_person_profiles_self_per_user while the
+-- account still has a self profile. The SQL is left as committed because an applied
+-- migration never runs again. Do not re-run this file by hand, and do not put
+-- per-account data repairs in migrations.
+-- ============================================================
+
 -- v4.3.1 Architectural cleanup — path 1 (NOT NULL relaxation + auto-create stub).
 -- Closes the two defects flagged in v4.3 §9.4 "Architectural Defects Surfaced":
 --   #1 Paid-tier users should auto-receive an is_self=TRUE person_profile

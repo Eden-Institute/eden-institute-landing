@@ -35,14 +35,21 @@
 --        tcm_contraindicated_rel, doshas_match_rel, doshas_aggravates_rel,
 --        preparations_rel
 --
--- The view is SECURITY INVOKER (default in PG15+); the gate function
--- current_user_at_least() is itself SECURITY DEFINER and resolves auth.uid()
--- correctly. Junction subqueries are wrapped in CASE so anon/free callers
--- never trigger the joins.
+-- The view runs with owner privileges (security_invoker = false, the Postgres
+-- default for views), which is why it can read public.herbs despite that
+-- table's using(false) policy. Every Band-3 column MUST stay wrapped in a CASE
+-- on the gate function current_user_at_least(), which is itself SECURITY
+-- DEFINER and resolves auth.uid() correctly. Junction subqueries are wrapped in
+-- CASE so anon/free callers never trigger the joins.
+-- (Corrected 2026-09-15: this paragraph originally said SECURITY INVOKER, which
+-- production never was; see 20260702093000_herbs_directory_match_axes_teaser.sql.)
 --
 -- This migration leaves herbs_public and herbs_clinical_v in place for
 -- back-compat during rollout. They will be dropped in a follow-up migration
 -- after the frontend is fully cut over to herbs_directory_v.
+-- (As of 2026-09-15 neither was dropped. herbs_public is still read by
+-- web/lib/herbsPublic.ts; herbs_clinical_v has no consumer and
+-- 20260915100000_audit_hardening.sql revokes it from anon and authenticated.)
 -- =============================================================================
 
 CREATE OR REPLACE VIEW public.herbs_directory_v AS
