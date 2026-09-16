@@ -4711,6 +4711,7 @@ export type Database = {
           counted_readings: Json | null
           disagreement_text: string | null
           herb_id: string | null
+          no_counted_source_line: string | null
           no_pre1900_source_found: boolean | null
           rule: string | null
           rule_general: string | null

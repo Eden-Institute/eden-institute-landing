@@ -45,6 +45,7 @@ function evidence(over: Partial<Evidence> = {}): Evidence {
     herb_id: "H111",
     batch: 1,
     no_pre1900_source_found: false,
+    no_counted_source_line: null,
     sources_agree: false,
     agreement_state: "disagree",
     disagreement_text: CORIANDER_DISAGREEMENT,
@@ -174,6 +175,56 @@ describe("the no-source line", () => {
     const { container } = renderEvidence({ evidence: null, hasRoot: true });
     expect(container).toBeEmptyDOMElement();
     expect(freeEvidenceLine(null)).toBeNull();
+  });
+});
+
+describe("sources found, but none of them counted", () => {
+  // Founder decision 2026-09-15. Cape Aloes is the real case: Gerard, the Bencao
+  // Gangmu and the Bhavaprakasha all describe aloes, but none of them describe
+  // Aloe ferox. Before this, such a herb rendered nothing, which reads to a
+  // visitor exactly like a herb nobody has researched.
+  const CAPE_ALOES_LINE =
+    "No pre-1900 source found for this exact plant. The old books describe" +
+    " aloes from other species, not the South African plant this entry is about.";
+  const noneCounted = evidence({
+    herb_id: "H299",
+    agreement_state: "none",
+    disagreement_text: null,
+    no_pre1900_source_found: false,
+    no_counted_source_line: CAPE_ALOES_LINE,
+    source_count: 3,
+  });
+
+  it("gives a FREE reader the herb's own reason, not silence", () => {
+    renderEvidence({ evidence: noneCounted, hasRoot: false });
+    expect(screen.getByText(CAPE_ALOES_LINE)).toBeInTheDocument();
+    expect(freeEvidenceLine(noneCounted)).toBe(CAPE_ALOES_LINE);
+  });
+
+  it("does not claim the flat no-source line, because sources WERE found", () => {
+    renderEvidence({ evidence: noneCounted, hasRoot: false });
+    expect(screen.queryByText(NO_PRE1900_SOURCE_LINE)).toBeNull();
+  });
+
+  it("still prefers the disagreement sentence when there is one", () => {
+    const both = evidence({
+      disagreement_text: "The old sources disagree about this.",
+      no_counted_source_line: CAPE_ALOES_LINE,
+    });
+    expect(freeEvidenceLine(both)).toBe("The old sources disagree about this.");
+  });
+
+  it("stays silent when the herb counted a source, so the line is absent", () => {
+    expect(
+      freeEvidenceLine(
+        evidence({
+          agreement_state: "agree",
+          disagreement_text: null,
+          no_pre1900_source_found: false,
+          no_counted_source_line: null,
+        }),
+      ),
+    ).toBeNull();
   });
 });
 
