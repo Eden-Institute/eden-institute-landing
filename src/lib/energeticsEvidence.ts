@@ -66,6 +66,13 @@ export interface HerbEnergeticsEvidence {
   batch: number | null;
   /** True when the search ran and turned up no qualifying pre-1900 source. */
   no_pre1900_source_found: boolean | null;
+  /**
+   * Set when old readings WERE found but none of them counted, because they
+   * describe a different species, a different plant part, or the writer was
+   * quoting someone else. Its own sentence per herb, stored with the herb.
+   * Distinct from no_pre1900_source_found, which means nothing was found at all.
+   */
+  no_counted_source_line: string | null;
   /** The stored boolean. Never computed here. */
   sources_agree: boolean | null;
   /** "agree" | "disagree" | "none". */
@@ -153,10 +160,15 @@ export function sourceReadingLabel(source: EnergeticsSource): string | null {
 /**
  * The one line a FREE reader sees under the energetics, or null for silence.
  *
- * Three states, and only three:
- *   - the sources disagree  -> the founder's own sentence, stored with the herb;
- *   - the search found none -> the no-source line;
- *   - anything else         -> nothing. Agreement is never announced, because
+ * Four states, and only four:
+ *   - the sources disagree   -> the founder's own sentence, stored with the herb;
+ *   - the search found none  -> the no-source line;
+ *   - sources found, none of
+ *     them counted           -> that herb's own sentence saying why, stored with
+ *     it (wrong species, wrong plant part, or the writer was quoting someone
+ *     else). Before 2026-09-15 these rendered nothing, which read as though
+ *     nobody had looked;
+ *   - anything else          -> nothing. Agreement is never announced, because
  *     "the sources agree" on a single counted reading would overclaim.
  */
 export const NO_PRE1900_SOURCE_LINE =
@@ -168,5 +180,6 @@ export function freeEvidenceLine(
   if (!evidence) return null;
   if (evidence.disagreement_text) return evidence.disagreement_text;
   if (evidence.no_pre1900_source_found) return NO_PRE1900_SOURCE_LINE;
+  if (evidence.no_counted_source_line) return evidence.no_counted_source_line;
   return null;
 }
