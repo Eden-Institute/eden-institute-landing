@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { HerbFavoriteHeart } from "@/components/apothecary/HerbFavoriteHeart";
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
 import { ApothecaryDisclaimer } from "@/components/apothecary/ApothecaryDisclaimer";
+import { HerbEnergeticsEvidence } from "@/components/apothecary/HerbEnergeticsEvidence";
 import { useHerbsDirectory } from "@/hooks/useHerbsDirectory";
+import { useHerbEnergeticsEvidence } from "@/hooks/useHerbEnergeticsEvidence";
 import { useEdenPattern } from "@/hooks/useEdenPattern";
 import { useCuratedHerbVerdicts } from "@/hooks/useCuratedHerbVerdicts";
 import { resolveHerbVerdict } from "@/lib/herbVerdict";
@@ -53,6 +55,10 @@ export default function HerbMonograph() {
   const { data: activePattern, activeProfile, patternSubject } = useEdenPattern();
   // Curated verdict for this pattern; the monograph must agree with the card.
   const { byHerbId: curatedVerdicts } = useCuratedHerbVerdicts(activePattern);
+  // The pre-1900 sources behind this herb's temperature and moisture. Only the
+  // researched herbs have a row; the rest render nothing (founder decision
+  // 2026-09-15, p_herb_evidence_honesty_2026_09_15).
+  const { byHerbId: energeticsEvidence } = useHerbEnergeticsEvidence();
   const { viewedOrder, recordView } = useViewedHerbs();
 
   const herb = findHerbByParam(herbs, param);
@@ -179,6 +185,12 @@ export default function HerbMonograph() {
   }
 
   const complaintNames = (herb.complaint_names ?? []).filter(Boolean);
+  // Undefined for the 250 herbs that have not been through the source
+  // research. That renders nothing at all, which is the honest state: it is
+  // not the same claim as "searched and found nothing", which has its own flag.
+  const evidence = herb.herb_id
+    ? energeticsEvidence.get(herb.herb_id) ?? null
+    : null;
 
   return (
     <div>
@@ -332,7 +344,11 @@ export default function HerbMonograph() {
         )}
 
         {/* ── At a glance (Band 2) ── */}
-        {(herb.taste || herb.temperature || herb.moisture || herb.energetics_summary) && (
+        {(herb.taste ||
+          herb.temperature ||
+          herb.moisture ||
+          herb.energetics_summary ||
+          evidence) && (
           <section aria-label="Energetics at a glance">
             <SectionHeading>At a glance</SectionHeading>
             <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
@@ -348,6 +364,10 @@ export default function HerbMonograph() {
                 {herb.energetics_summary}
               </p>
             )}
+            {/* What the pre-1900 record actually says about those two values.
+                Free readers get the disagreement sentence or the no-source
+                line; Root gets every source. Never an agreement claim. */}
+            <HerbEnergeticsEvidence evidence={evidence} hasRoot={hasRoot} />
           </section>
         )}
 

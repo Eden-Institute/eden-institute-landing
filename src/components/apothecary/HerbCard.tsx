@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import { type HerbDirectoryRow as HerbRow } from "@/hooks/useHerbsDirectory";
 import { useCurrentTier } from "@/hooks/useCurrentTier";
+import { useHerbEnergeticsEvidence } from "@/hooks/useHerbEnergeticsEvidence";
+import { HerbEnergeticsEvidence } from "./HerbEnergeticsEvidence";
 import { isRootOrAboveTier, isSubscriberTier } from "@/lib/tiers";
 import { type EdenPatternName } from "@/lib/edenPattern";
 import {
@@ -234,6 +236,15 @@ export function HerbCard({
   const hasClinical = isSubscriberTier(tier);
   const hasRoot = isRootOrAboveTier(tier);
   const hasSafetyFlag = Boolean(herb.cautions || herb.contraindications_general);
+
+  // The pre-1900 record behind this herb's temperature and moisture (founder
+  // decision 2026-09-15, p_herb_evidence_honesty_2026_09_15). One shared query
+  // for the whole directory: every card subscribes to the same key. Undefined
+  // for a herb that has not been researched, which renders nothing.
+  const { byHerbId: energeticsEvidence } = useHerbEnergeticsEvidence();
+  const evidence = herb.herb_id
+    ? energeticsEvidence.get(herb.herb_id) ?? null
+    : null;
 
   // Pattern of Eden relationship, computed for EVERY row when an active
   // pattern is set (the view exposes temperature/moisture on all rows).
@@ -538,11 +549,33 @@ export function HerbCard({
         </p>
       )}
 
+      {/* The honest half, on the row itself and at every tier: where the old
+          sources disagree about this herb's temperature or moisture, the card
+          says so, and where the search found no pre-1900 source it says that.
+          The sources themselves wait for the quick view below. */}
+      <HerbEnergeticsEvidence
+        evidence={evidence}
+        hasRoot={hasRoot}
+        variant="card"
+        part="line"
+      />
+
       {expanded && (
         <div
           className="mt-4 space-y-5 border-t pt-4"
           style={{ borderColor: "hsl(var(--border))" }}
         >
+          {/* The pre-1900 sources behind the temperature and moisture chips.
+              Root and above read them here; below Root this is the same Root
+              teaser the interactions and refer-out sections use. The
+              disagreement line itself has already been shown on the row. */}
+          <HerbEnergeticsEvidence
+            evidence={evidence}
+            hasRoot={hasRoot}
+            variant="card"
+            part="sources"
+          />
+
           {/* ---------- Clinical-tier sections (Seed+ only) ---------- */}
           {hasClinical && (
             <>

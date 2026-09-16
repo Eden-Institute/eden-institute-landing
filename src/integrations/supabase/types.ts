@@ -4703,6 +4703,23 @@ export type Database = {
         }
         Relationships: []
       }
+      herb_energetics_evidence_v: {
+        Row: {
+          agreement_state: string | null
+          batch: number | null
+          checked_no_reading: Json | null
+          counted_readings: Json | null
+          disagreement_text: string | null
+          herb_id: string | null
+          no_pre1900_source_found: boolean | null
+          rule: string | null
+          rule_general: string | null
+          source_count: number | null
+          sources: Json | null
+          sources_agree: boolean | null
+        }
+        Relationships: []
+      }
       herbs_clinical_v: {
         Row: {
           actions: Json | null
