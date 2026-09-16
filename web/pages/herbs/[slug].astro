@@ -182,6 +182,22 @@ const jsonLd = [
               </div>
             ))}
           </dl>
+          {/*
+            What the pre-1900 sources actually say about the Temperature and
+            Moisture printed right above. Shown only when there is something
+            honest to say: the old books disagree with the value, or the search
+            found nothing, or it found readings that describe a different plant
+            or part. The sentence is the SAME stored text the app page shows,
+            so the two surfaces can never drift apart.
+          */}
+          {herb.evidence_line && (
+            <p
+              class="font-body text-sm leading-relaxed mt-5 pl-4 border-l-2"
+              style="border-color:hsl(var(--eden-gold-ink));color:hsl(var(--muted-foreground))"
+            >
+              {herb.evidence_line}
+            </p>
+          )}
         </div>
       )}
 
