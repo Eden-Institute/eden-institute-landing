@@ -48,6 +48,19 @@ export interface PublicHerb {
   children_safety: string | null;
   biblical_traditional_reference: string | null;
   status: string | null;
+  /**
+   * The one honest line about the pre-1900 evidence behind Temperature and
+   * Moisture, or null when there is nothing to say. Resolved at build time from
+   * herb_energetics_evidence_v and attached by getPublicHerbs().
+   *
+   * WHY IT MATTERS HERE. The app page and this page show the SAME temperature
+   * and moisture. Since 2026-09-15 the app page also says when the old sources
+   * disagree with that value. Until this was added, the public page showed the
+   * value alone, so the two surfaces disagreed about how settled the reading is
+   * on 44 herbs. The founder's rule is that a disagreement is never hidden, and
+   * the front door is exactly where hiding it would matter most.
+   */
+  evidence_line: string | null;
 }
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -95,8 +108,41 @@ export async function getPublicHerbs(): Promise<PublicHerb[]> {
     throw new Error("herbsPublic: herbs_public returned zero rows. Refusing to build an empty herb index.");
   }
 
-  return (data as PublicHerb[]).filter((h) => !!h.common_name);
+  // The evidence line, read as anon exactly as a visitor would. The view NULLs
+  // the source list below Root, so nothing paid can reach a static file; the
+  // three fields selected here are the free ones by design.
+  const { data: evidence, error: evidenceError } = await supabase
+    .from("herb_energetics_evidence_v")
+    .select("herb_id, disagreement_text, no_pre1900_source_found, no_counted_source_line")
+    .range(0, 999);
+
+  // A failed lookup must not silently strip the line from every page, which
+  // would look exactly like "no herb has a disagreement".
+  if (evidenceError) {
+    throw new Error(
+      "herbsPublic: herb_energetics_evidence_v query failed - " + evidenceError.message,
+    );
+  }
+
+  const lineFor = new Map<string, string>();
+  for (const row of evidence ?? []) {
+    // Same precedence as the app's freeEvidenceLine(), deliberately: the two
+    // surfaces must never say different things about the same herb.
+    const line =
+      row.disagreement_text ||
+      (row.no_pre1900_source_found ? NO_PRE1900_SOURCE_LINE : null) ||
+      row.no_counted_source_line ||
+      null;
+    if (row.herb_id && line) lineFor.set(row.herb_id, line);
+  }
+
+  return (data as PublicHerb[])
+    .filter((h) => !!h.common_name)
+    .map((h) => ({ ...h, evidence_line: lineFor.get(h.herb_id) ?? null }));
 }
+
+/** Kept in step with NO_PRE1900_SOURCE_LINE in src/lib/energeticsEvidence.ts. */
+export const NO_PRE1900_SOURCE_LINE = "No pre-1900 source found for this reading.";
 
 /** One row of the full roster: every herb, free and gated alike. */
 export interface RosterHerb {
