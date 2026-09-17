@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { friendlyEfError } from "@/components/apothecary/friendlyEfError";
 import { getFbAttribution } from "@/lib/fbAttribution";
 import { pinTrack } from "@/lib/pinterestTag";
+import PayOverTime from "./PayOverTime";
 
 const STARTER_LOOKUP_KEY = "sprouts_starter_unit";
 
@@ -120,6 +121,8 @@ export default function StarterBuyBox({ cta, wide = false }: Props) {
           {error}
         </p>
       )}
+
+      <PayOverTime amountCents={PRICE_VALUE * 100} align="center" className="mt-3" />
 
       {/* Founder 2026-09-12: sits under every buy button so nobody pays thinking
           this is the whole year. "9-week starter", never "partial" or "quarter". */}

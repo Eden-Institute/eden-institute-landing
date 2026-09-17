@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 // the full-width phone layout src/index.css gives `section button`; and where the
 // inner button used h-full to fill its stretched wrapper, the link takes h-auto.
 import WaitlistController from "../components/islands/WaitlistController.tsx";
+import PayOverTime from "../components/islands/PayOverTime.tsx";
 import ComponentShowcases from "../components/ComponentShowcases.astro";
 
 const meta = {
@@ -258,6 +259,9 @@ const PRINT_SET = {
         <p class="font-body text-sm text-muted-foreground max-w-md mx-auto">
           Flat $12 shipping per printed order. Extra Student Notebooks for siblings, $39.99 each.
         </p>
+
+        {/* Stripe's pay-over-time line for the printed set. 24900 mirrors the $249 above. */}
+        <PayOverTime client:only="react" amountCents={24900} align="center" className="max-w-md mx-auto w-full" />
 
         <a href="#bands" data-cta="homeschool-hero-bands" class="font-body text-sm underline underline-offset-4 mt-3" style="color:hsl(var(--eden-forest))">
           See every option for every grade band, K through 12
@@ -665,6 +669,7 @@ const PRINT_SET = {
         <a href="/books" data-cta="homeschool-pricing-books" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center")}>Order the printed year · $249</a>
         <a href="/starter" data-cta="homeschool-pricing-starter" class={cn(buttonVariants({ variant: "eden-outline", size: "xl" }), "text-center")}>Try nine weeks first · $39</a>
       </div>
+      <PayOverTime client:only="react" amountCents={24900} align="center" className="max-w-md mx-auto mt-4" />
       <p class="font-body text-sm text-muted-foreground mt-6">
         Not ready to spend anything? <a href="/freebies" class="underline" style="color:hsl(var(--eden-forest))" data-cta="homeschool-pricing-free">Week 1 is free</a>.
       </p>

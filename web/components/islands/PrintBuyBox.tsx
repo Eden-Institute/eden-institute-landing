@@ -22,6 +22,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getFbAttribution } from "@/lib/fbAttribution";
 import { centsToValue, pinTrack } from "@/lib/pinterestTag";
+import PayOverTime from "./PayOverTime";
 
 interface PrintProduct {
   sku: string;
@@ -211,6 +212,8 @@ export default function PrintBuyBox({ cta }: Props) {
             <div className="flex justify-between font-bold mt-1"><span>Total before tax</span><span>{money(subtotal + shipping)}</span></div>
           </div>
 
+          <PayOverTime amountCents={subtotal + shipping} className="mt-3" />
+
           <label className="mt-4 flex items-start gap-2 font-body text-sm text-muted-foreground">
             <input type="checkbox" checked={smsConsent} onChange={(e) => setSmsConsent(e.target.checked)} className="mt-1" />
             <span>
@@ -236,7 +239,7 @@ export default function PrintBuyBox({ cta }: Props) {
           )}
 
           <ul className="font-body text-xs mt-4 space-y-1 text-muted-foreground">
-            <li>Secure checkout by Stripe. Card, Apple Pay or Google Pay.</li>
+            <li>Secure checkout by Stripe. Card, Apple Pay, or pay over time.</li>
             <li>Printed to order for you and shipped tracked within the United States, usually at your door in about two to three weeks.</li>
             <li>Change your mind or fix your address within 48 hours for a full refund, before printing begins.</li>
           </ul>
