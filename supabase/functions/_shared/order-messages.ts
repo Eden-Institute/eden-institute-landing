@@ -6,7 +6,7 @@
 
 import { emailWrapperTransactional } from './nurture-email-templates.ts';
 import { escapeHtml, safeHttpsUrl } from './html-escape.ts';
-import { OrderStatus, isTerminal } from './order-state.ts';
+import { OrderStatus } from './order-state.ts';
 import { SHIP_GUARANTEE_TEXT, SHIP_TARGET } from './order-config.ts';
 import { LULU_PRODUCTION_DELAY_MINUTES } from './lulu-config.ts';
 import { Db, OrderRow, hasSentMessage, logMessage } from './order-db.ts';
@@ -160,12 +160,44 @@ export function buildDeliveredEmail(order: OrderRow): { subject: string; html: s
   return { subject: 'Your Sprouts books are here', html: emailWrapperTransactional(body, 'order') };
 }
 
+/**
+ * Refund confirmation (founder request 2026-09-17). Fires on the transition INTO
+ * refunded, which only a FULL Stripe refund causes (charge.refunded with
+ * charge.refunded === true; partial refunds leave the order alone). Stripe's own
+ * refund receipts are switched OFF in the Dashboard, so this is the only notice
+ * the buyer gets. Product-neutral on purpose: printed sets, preorders and digital
+ * orders all reach this state.
+ */
+export function buildRefundEmail(order: OrderRow): { subject: string; html: string } {
+  const amount = money(order.amount_total_cents);
+  // Digital orders collect no shipping name; fall back to the billing name.
+  const billingFirst = String(order.raw?.customer_details?.name ?? '').trim().split(/\s+/)[0];
+  const name = order.shipping_name ? firstName(order) : escapeHtml(billingFirst || 'there');
+  const label = order.product_label ? escapeHtml(order.product_label) : '';
+  const which = order.order_number
+    ? `order <strong>${order.order_number}</strong>${label ? ` (${label})` : ''}`
+    : (label ? `your ${label}` : 'your order');
+  const body =
+    p(`Hi ${name},`) +
+    p(`Your refund is done! ${amount ? `<strong>${amount}</strong> is` : 'Your money is'} on its way back to you for ${which}.`) +
+    p(`It usually shows up in 5 to 10 business days, depending on your bank. If you paid with Klarna, `
+      + `Afterpay or Affirm, they cancel any payments you have left and send back what you already paid.`) +
+    p(`Didn't ask for this refund, or something looks off? Just reply to this email and I will sort it out.`) +
+    p(`Thank you so much for giving us a try. You are always welcome back.`) +
+    signature();
+  return {
+    subject: `Your refund is on its way${order.order_number ? ` (${order.order_number})` : ''}`,
+    html: emailWrapperTransactional(body, order.is_preorder ? 'preorder' : 'order'),
+  };
+}
+
 export function buildOrderEmail(templateKey: string, order: OrderRow, receipt: Receipt | null = null): { subject: string; html: string } {
   switch (templateKey) {
     case 'preorder_confirmation': return buildPreorderConfirmationEmail(order);
     case 'order_confirmation': return buildOrderConfirmationEmail(order, receipt);
     case 'shipped': return buildShippedEmail(order);
     case 'delivered': return buildDeliveredEmail(order);
+    case 'refund_confirmation': return buildRefundEmail(order);
     default: throw new Error(`No email builder for template '${templateKey}'`);
   }
 }
@@ -236,6 +268,11 @@ const REGISTRY: Partial<Record<OrderStatus, MessageDef[]>> = {
     { channel: 'email', templateKey: 'delivered' },
     { channel: 'sms', templateKey: 'delivered_sms' },
   ],
+  // Email only: the one terminal state that tells the buyer something. cancelled
+  // stays silent (it has no entry here).
+  refunded: [
+    { channel: 'email', templateKey: 'refund_confirmation' },
+  ],
 };
 
 /**
@@ -251,7 +288,8 @@ function inferFromStatus(order: OrderRow, toStatus: OrderStatus): OrderStatus | 
 /**
  * Fire the messages bound to the transition INTO `toStatus` (filtered by the edge when
  * a definition names one), each guarded by message_log so a webhook replay never
- * double-sends. Terminal states (cancelled/refunded) fire nothing.
+ * double-sends. Terminal states fire only what the registry lists for them:
+ * refunded sends the refund confirmation, cancelled sends nothing.
  */
 export async function dispatchTransitionMessages(
   db: Db,
@@ -259,7 +297,6 @@ export async function dispatchTransitionMessages(
   toStatus: OrderStatus,
   fromStatus: OrderStatus | null = null,
 ): Promise<void> {
-  if (isTerminal(toStatus)) return;
   const from = fromStatus ?? inferFromStatus(order, toStatus);
   const defs = (REGISTRY[toStatus] ?? []).filter((d) => !d.from || d.from === from);
   for (const def of defs) {

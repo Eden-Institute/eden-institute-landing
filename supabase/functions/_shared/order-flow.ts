@@ -229,8 +229,9 @@ export async function applyRefundByPaymentIntent(db: Db, paymentIntentId: string
 
 /**
  * Validated transition: moves status only along an allowed edge, then fires the messages
- * bound to the destination state. Suppression is a property of state (terminal states fire
- * nothing; a disallowed edge is ignored, not forced).
+ * bound to the destination state. Suppression is a property of state (the registry decides
+ * what each state sends; cancelled sends nothing, refunded sends the refund confirmation;
+ * a disallowed edge is ignored, not forced).
  */
 export async function transition(db: Db, orderId: string, to: OrderStatus): Promise<void> {
   const order = await getOrderById(db, orderId);
@@ -239,7 +240,7 @@ export async function transition(db: Db, orderId: string, to: OrderStatus): Prom
     // Already at the destination: a webhook retry after a crash BETWEEN the status
     // write and message dispatch lands here, so dispatch must still run or the
     // confirmation email/SMS is permanently lost. message_log dedupes real sends,
-    // and terminal states dispatch nothing, so this is replay-safe. The source
+    // and the refund email is deduped the same way, so this is replay-safe. The source
     // state is unknown here; the dispatcher infers it where a message depends on it.
     await dispatchTransitionMessages(db, order, to, null);
     return;
