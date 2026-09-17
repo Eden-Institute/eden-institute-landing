@@ -39,6 +39,22 @@ const MAX_QTY: Record<string, number> = {
 const SET_SKU = "sprouts_print_set";
 const NB_SKU = "sprouts_nb_print";
 
+/**
+ * E2E test switch (2026-09-17). When this browser holds the E2E token in
+ * localStorage, checkout goes to create-checkout-e2e: Stripe TEST mode, bought as
+ * hello@, no Lulu print. Set it from the console on a test browser only:
+ *   localStorage.setItem("eden_e2e_token", "<E2E_TEST_TOKEN>")
+ * Without the key (every real shopper) nothing here changes.
+ */
+const E2E_STORAGE_KEY = "eden_e2e_token";
+function readE2eToken(): string | null {
+  try {
+    return window.localStorage.getItem(E2E_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
 function money(cents: number): string {
   return (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
 }
@@ -58,8 +74,10 @@ export default function PrintBuyBox({ cta }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [e2eToken, setE2eToken] = useState<string | null>(null);
 
   useEffect(() => {
+    setE2eToken(readE2eToken());
     const params = new URLSearchParams(window.location.search);
     const state = params.get("checkout");
     if (state === "cancelled") setNotice("No payment was taken. The set is still here whenever you are ready.");
@@ -111,7 +129,8 @@ export default function PrintBuyBox({ cta }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: fnError } = await supabase.functions.invoke("create-checkout", {
+      const { data, error: fnError } = await supabase.functions.invoke(e2eToken ? "create-checkout-e2e" : "create-checkout", {
+        ...(e2eToken ? { headers: { "x-eden-e2e": e2eToken } } : {}),
         body: {
           ...getFbAttribution(),
           print_shop: true,
@@ -153,6 +172,11 @@ export default function PrintBuyBox({ cta }: Props) {
 
   return (
     <div className="w-full rounded-lg p-5 md:p-6 bg-white border" style={{ borderColor: "hsl(var(--eden-gold) / 0.35)" }}>
+      {e2eToken && (
+        <p className="font-body text-sm mb-4 rounded-md px-4 py-3 font-bold" style={{ backgroundColor: "#fde68a", color: "#78350f" }} role="status">
+          E2E TEST MODE: Stripe test checkout, fake cards only, nothing is printed.
+        </p>
+      )}
       {notice && (
         <p className="font-body text-sm mb-4 rounded-md px-4 py-3" style={{ backgroundColor: "hsl(var(--eden-cream))", color: "hsl(var(--eden-bark))" }}>
           {notice}

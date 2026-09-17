@@ -55,18 +55,20 @@ import { curriculumInvoiceCreation } from "../_shared/receipt.ts"
 import { evaluateRedemption, findCreditByCode } from "../_shared/starter-credit.ts"
 import { LULU_PRODUCTION_DELAY_MINUTES, LULU_PRODUCTS, PRINT_SHOP_URL, luluProductBySku } from "../_shared/lulu-config.ts"
 import { timingSafeEqual } from "../_shared/timing-safe-equal.ts"
+import { E2E_BUYER_EMAIL, E2E_HEADER, E2E_METADATA_KEY, E2E_MODE, e2eRequestAllowed, stripeSecretKey } from "../_shared/e2e-mode.ts"
 
 /** Hours a buyer has to cancel a print order, for Stripe's checkout copy. */
 const PRINT_CANCEL_HOURS = Math.round(LULU_PRODUCTION_DELAY_MINUTES / 60)
 
-const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
+// stripeSecretKey() is STRIPE_SECRET_KEY here and the TEST key only inside create-checkout-e2e.
+const stripe = new Stripe(stripeSecretKey(), {
   apiVersion: "2024-12-18.acacia",
   httpClient: Stripe.createFetchHttpClient(),
 })
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-preorder-admin",
+  "Access-Control-Allow-Headers": `authorization, x-client-info, apikey, content-type, x-preorder-admin, ${E2E_HEADER}`,
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 }
 
@@ -190,6 +192,11 @@ serve(async (req) => {
     return jsonError("Method not allowed", 405)
   }
 
+  // E2E twin (create-checkout-e2e): nothing without the token. See _shared/e2e-mode.ts.
+  if (E2E_MODE && !e2eRequestAllowed(req)) {
+    return jsonError("Not found", 404)
+  }
+
   try {
     // 0. Rate limit before anything else. Every path below mints a real Stripe
     //    Checkout Session, so this is the card-testing guard. Fails open: see
@@ -226,6 +233,9 @@ serve(async (req) => {
     //     BEFORE the preorder cart branch, which also keys on `items`.
     if (body.print_shop === true || body.print_shop === "true") {
       return await handlePrintCheckout(req, body)
+    }
+    if (E2E_MODE) {
+      return jsonError("The E2E checkout serves the print shop only", 400)
     }
 
     // 1b. Founding-preorder branch (preorder system Phase 1). Distinct request
@@ -1031,7 +1041,8 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
 // deno-lint-ignore no-explicit-any
 async function handlePrintCheckout(req: Request, body: Record<string, any>): Promise<Response> {
   const live = Deno.env.get("PRINT_SHOP_LIVE") === "true"
-  const isAdminTest = isPreorderAdminRequest(req)
+  // In E2E mode the token was already checked at the top of the handler.
+  const isAdminTest = isPreorderAdminRequest(req) || E2E_MODE
   if (!live && !isAdminTest) {
     return new Response(
       JSON.stringify({ error: "The printed books are not on sale yet.", code: "PRINT_SHOP_NOT_LIVE" }),
@@ -1061,7 +1072,7 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
   const adminClient = admin()
   const { data: products, error: productError } = await adminClient
     .from("products")
-    .select("id, sku, name, active, fulfillment, stripe_retail_price_id, shipping_tier_cents")
+    .select("id, sku, name, active, fulfillment, stripe_retail_price_id, shipping_tier_cents, retail_price_cents")
     .in("sku", cart.map((c) => c.sku))
   if (productError) {
     console.error("create-checkout: print shop product lookup failed:", productError.message)
@@ -1089,7 +1100,20 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
     }
   }
 
-  const lineItems = cart.map((line) => ({ price: bySku.get(line.sku).stripe_retail_price_id as string, quantity: line.qty }))
+  // The stored Price ids are LIVE-mode objects, which the E2E test key cannot use, so
+  // the E2E twin charges the same amount as an inline test price. The webhook then
+  // resolves the SKUs from print_cart metadata (its documented fallback).
+  const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = E2E_MODE
+    ? cart.map((line) => ({
+      price_data: {
+        currency: "usd",
+        unit_amount: bySku.get(line.sku).retail_price_cents as number,
+        tax_behavior: "exclusive" as const,
+        product_data: { name: `E2E TEST: ${bySku.get(line.sku).name as string}` },
+      },
+      quantity: line.qty,
+    }))
+    : cart.map((line) => ({ price: bySku.get(line.sku).stripe_retail_price_id as string, quantity: line.qty }))
   const shippingCents = cart.reduce((n, line) => Math.max(n, bySku.get(line.sku).shipping_tier_cents as number), 0)
   const smsConsent = body.sms_consent === true || body.sms_consent === "true"
 
@@ -1104,6 +1128,7 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
   const fbp = clampMeta(body.fbp); if (fbp) metadata.fbp = fbp
   const fbc = clampMeta(body.fbc); if (fbc) metadata.fbc = fbc
   if (isAdminTest) metadata.print_test = "true"
+  if (E2E_MODE) metadata[E2E_METADATA_KEY] = "true"
 
   // Success lands on a real confirmation page, never back on the shop page: the
   // first live order (2026-09-11) returned to /books with a small notice inside
@@ -1180,6 +1205,8 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
   if (!promoApplied) sessionParams.allow_promotion_codes = true
 
   if (typeof body.email === "string" && body.email) sessionParams.customer_email = body.email
+  // E2E orders are always bought as hello@, which the dashboards file as internal.
+  if (E2E_MODE) sessionParams.customer_email = E2E_BUYER_EMAIL
 
   const session = await stripe.checkout.sessions.create(sessionParams)
   console.log(

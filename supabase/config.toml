@@ -129,6 +129,14 @@ verify_jwt = false
 [functions.stripe-webhook]
 verify_jwt = false
 
+# TEST-ONLY twins of create-checkout / stripe-webhook (Stripe test key, token-gated,
+# never queue a Lulu print). See supabase/functions/_shared/e2e-mode.ts.
+[functions.create-checkout-e2e]
+verify_jwt = false
+
+[functions.stripe-webhook-e2e]
+verify_jwt = false
+
 # LearnWorlds course-purchase webhook. Authenticity = Learnworlds-Webhook-Signature,
 # a STATIC pre-shared value compared in constant time (not an HMAC of the body;
 # see learnworlds-webhook/index.ts header), not a Supabase JWT.
