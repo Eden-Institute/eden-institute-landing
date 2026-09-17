@@ -1,0 +1,145 @@
+---
+// Self-contained shell for talesandtabletalk.com. Deliberately does NOT reuse
+// Eden's MarketingLayout: that one emits the Eden navbar, footer, GTM container
+// and an Organization JSON-LD for The Eden Institute, none of which belong on
+// the podcast domain.
+//
+// Colours and type follow TTT_Brand_Guide_v1_2026-09-13. Contrast rules from
+// that guide are load-bearing, not decorative: small text on a light background
+// is always Espresso, because Deep Gold on Linen is only 3.4:1, and Soft Gold
+// never appears on Linen at all (1.2:1, effectively invisible).
+export interface Props {
+  title: string;
+  description: string;
+  canonical: string;
+}
+const { title, description, canonical } = Astro.props;
+const ogImage = new URL("/ttt-cover-1200.jpg", Astro.site).href;
+
+const podcastJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "PodcastSeries",
+  name: "Tales & Table Talk",
+  alternateName: "Tales and Table Talk",
+  description:
+    "A weekly read-aloud podcast for moms and their littles. Every episode is a story, and every episode ends at the table.",
+  url: "https://talesandtabletalk.com/",
+  image: ogImage,
+  inLanguage: "en",
+  author: { "@type": "Person", name: "Camila Johnson" },
+  publisher: { "@type": "Organization", name: "Rooted in Faith Ventures" },
+};
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta name="robots" content="index, follow" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="icon" type="image/png" href="/ttt-logo-t-dark.png" />
+    <link rel="apple-touch-icon" href="/ttt-logo-t-dark.png" />
+    <meta name="theme-color" content="#2A231E" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Special+Elite&display=swap"
+    />
+
+    <script type="application/ld+json" set:html={JSON.stringify(podcastJsonLd)} />
+
+    <style is:global>
+      :root {
+        --espresso: #2a231e;
+        --linen: #f5edd6;
+        --soft-gold: #e8d5a3;
+        --deep-gold: #9c7a3c;
+        --parchment: #faf6ee;
+        --oat: #ede2c8;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+
+      body {
+        margin: 0;
+        background: var(--linen);
+        color: var(--espresso);
+        font-family: "Special Elite", "Courier New", Courier, monospace;
+        font-weight: 400;
+        line-height: 1.65;
+        font-size: 1.0625rem;
+      }
+
+      /* The brand font ships in one weight. Emphasis comes from size and colour,
+         never from synthetic bold, which smears the typewriter texture. */
+      strong,
+      b,
+      h1,
+      h2,
+      h3 {
+        font-weight: 400;
+      }
+
+      img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .wrap {
+        width: 100%;
+        max-width: 60rem;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+      }
+
+      :focus-visible {
+        outline: 3px solid var(--deep-gold);
+        outline-offset: 3px;
+      }
+
+      .skip {
+        position: absolute;
+        left: -9999px;
+      }
+      .skip:focus {
+        left: 1rem;
+        top: 1rem;
+        z-index: 10;
+        background: var(--espresso);
+        color: var(--linen);
+        padding: 0.75rem 1rem;
+      }
+    </style>
+  </head>
+
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <slot />
+  </body>
+</html>
