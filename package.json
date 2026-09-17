@@ -8,6 +8,7 @@
     "dev:astro": "astro dev",
     "build": "astro build && vite build --outDir dist/_spa --base /_spa/",
     "build:astro": "astro build",
+    "build:podcast": "astro build --config astro.podcast.config.mjs",
     "build:spa": "vite build --outDir dist/_spa --base /_spa/",
     "build:spa-only": "vite build",
     "build:dev": "vite build --mode development",
