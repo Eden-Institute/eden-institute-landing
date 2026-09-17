@@ -56,6 +56,7 @@ import { STARTER_ORDER_LABEL } from "../_shared/receipt.ts"
 import { creditIssuanceOpen, issueStarterCredit, markCreditRedeemed } from "../_shared/starter-credit.ts"
 import { escapeLikePattern } from "../_shared/like-escape.ts"
 import { classifyLearnWorldsCharge } from "../_shared/learnworlds-charge.ts"
+import { E2E_MODE, isE2eMetadata, stripeSecretKey, stripeWebhookSecret } from "../_shared/e2e-mode.ts"
 
 /**
  * Normalize a constitution identifier to a guide-registry slug.
@@ -71,12 +72,13 @@ function normalizeGuideSlug(raw: string): string {
   return raw.toLowerCase().trim().replace(/^the[_-]/, "").replace(/_/g, "-")
 }
 
-const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
+// Live key and secret here; the TEST key and secret only inside stripe-webhook-e2e.
+const stripe = new Stripe(stripeSecretKey(), {
   apiVersion: "2024-12-18.acacia",
   httpClient: Stripe.createFetchHttpClient(),
 })
 
-const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET")!
+const webhookSecret = stripeWebhookSecret()
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
@@ -226,6 +228,28 @@ serve(async (req) => {
 
   console.log(`Received event: ${event.type} (id: ${event.id})`)
 
+  // E2E twin: test-mode events only, and only the two a print purchase produces.
+  if (E2E_MODE) {
+    if (event.livemode) {
+      console.error(`E2E webhook refused a LIVE event ${event.id}`)
+      return new Response("Live events are not accepted here", { status: 400 })
+    }
+    if (event.type !== "checkout.session.completed" && event.type !== "charge.refunded") {
+      return new Response(JSON.stringify({ received: true, e2e_ignored: event.type }), {
+        headers: { "Content-Type": "application/json" },
+        status: 200,
+      })
+    }
+    if (event.type === "checkout.session.completed" &&
+      !isE2eMetadata((event.data.object as Stripe.Checkout.Session).metadata)) {
+      console.log(`E2E webhook ignored ${event.id}: session is not stamped e2e_test`)
+      return new Response(JSON.stringify({ received: true, e2e_ignored: "not an e2e session" }), {
+        headers: { "Content-Type": "application/json" },
+        status: 200,
+      })
+    }
+  }
+
   // ---------- 2. Idempotency gate: skip events already fully processed ----------
   try {
     const { proceed } = await claimStripeEvent(adminClient, { id: event.id, type: event.type, payload: event })
@@ -309,6 +333,8 @@ serve(async (req) => {
         // meant ad-driven sales frequently failed to attribute to the click that
         // produced them. fbp/fbc ride in from the browser via checkout metadata;
         // the address fields are Stripe's own collection, previously discarded.
+        // Never report an E2E test purchase to Meta.
+        if (E2E_MODE) break
         const billingAddr = session.customer_details?.address ?? null
         await sendMetaCapiPurchase({
           eventId: session.id,
@@ -695,6 +721,8 @@ async function resolvePreorderLineItems(
  * is skipped; they are a customer, not a marketing contact.
  */
 async function syncPurchaseProperties(email: string | null | undefined, context: string): Promise<void> {
+  // E2E test purchases must not change anyone's Resend contact.
+  if (E2E_MODE) return
   const normalized = (email ?? "").trim().toLowerCase()
   if (!normalized) return
   try {
@@ -773,6 +801,12 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
       .from("orders").select("id").eq("stripe_checkout_session_id", session.id).maybeSingle()
     if (orderErr || !orderRow?.id) {
       console.error(`[${session.id}] print order recorded but could not be re-read to queue its Lulu job: ${orderErr?.message ?? "no row"}`)
+      return
+    }
+    // E2E: the order and its confirmation are real rows, but NOTHING goes to Lulu.
+    // No lulu_jobs row means lulu-submit has nothing to claim, so no print is bought.
+    if (E2E_MODE) {
+      console.log(`[${session.id}] E2E order ${orderNumber ?? orderRow.id} recorded; Lulu job deliberately NOT queued`)
       return
     }
     try {
