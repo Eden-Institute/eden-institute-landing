@@ -183,14 +183,27 @@ export const ESA_STATES: EsaState[] = [
     // 1a0a11e0327f14e6): Eden's Table gets a placement in her directory; this link is
     // Eden's side. Wording founder-approved 2026-09-14. rel="sponsored" (founder pick)
     // because Google's spam policy asks for it on links given in exchange for services.
-    // Direct URL per her 19:19 email and signature. Do not claim Eden's Table is listed
-    // there until the placement is live.
+    // Direct URL per her 19:19 email and signature.
+    // 2026-09-17: her side went live (Melissa's 18:28 UTC email, verified in the page
+    // HTML the same day) - a Featured Learning Tool card on /learning-tools/ and the top
+    // Featured Learning Tools slot on /browse-vendors/?_category=tutor. That is what
+    // unlocks the second line below; before it went live, saying Eden's Table is listed
+    // there would have been false. Note Eden has NO standalone directory listing: she
+    // does not take curriculum as standard listings, so /listing/edens-table-...
+    // redirects to /browse-vendors/. Never point families at a listing URL.
     resources: [
       {
         name: "Arizona Education Vendors",
         href: "https://www.azedvendors.com",
         description:
           "is an independent directory of tutors, schools, enrichment and learning tools across Arizona. It is run by Education Vendors LLC, not by the state or the ESA program.",
+        sponsored: true,
+      },
+      {
+        name: "Their Learning Tools page",
+        href: "https://azedvendors.com/learning-tools/",
+        description:
+          "lists curriculum and learning resources for Arizona ESA families, and Eden's Table is one of them.",
         sponsored: true,
       },
     ],
@@ -202,6 +215,10 @@ export const ESA_STATES: EsaState[] = [
       {
         q: "Why is there a processing fee on an Arizona invoice?",
         a: "ClassWallet deducts 2%, so this invoice adds 2.0408% to cover it. The Arizona ESA Parent Handbook lets a vendor charge account holders a processing fee to offset it, so it is shown as its own line on your invoice. Arkansas, Alabama and New Hampshire invoices have no fee.",
+      },
+      {
+        q: "Where else can I look for Arizona ESA vendors?",
+        a: "Arizona Education Vendors is an independent directory of tutors, schools, enrichment programs and learning tools across Arizona that accept ESA funds, run by Education Vendors LLC. It is not run by the state or the ESA program, and a listing there is not an approval by the Arizona Department of Education. Your ESA Parent Handbook is still the final word on what your account will pay for.",
       },
     ],
   },
@@ -378,7 +395,7 @@ export const ESA_PENDING = [
 
 /** Last content review of the ESA pages. Bump it when what they say changes (see
     the rules at the top). */
-export const ESA_UPDATED_ISO = "2026-09-15";
+export const ESA_UPDATED_ISO = "2026-09-17";
 
 /** The same date as shown on the pages, e.g. "September 2026". */
 export const ESA_UPDATED = new Date(`${ESA_UPDATED_ISO}T12:00:00Z`).toLocaleDateString("en-US", {
