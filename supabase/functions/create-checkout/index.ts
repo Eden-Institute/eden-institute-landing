@@ -874,6 +874,13 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
     metadata,
     payment_intent_data: { metadata },
   }
+  // Afterpay's and Affirm's terms both PROHIBIT pre-orders (Stripe docs, checked
+  // 2026-09-17), and both are enabled on the account's Default payment method
+  // configuration for the print shop. A kit pre-order ships months out, so keep
+  // them off this session only. Klarna does not list pre-orders as prohibited.
+  // Not in the stripe@14.21 types; accepted by the API on 2024-12-18.acacia
+  // (verified in test mode 2026-09-17).
+  ;(sessionParams as Record<string, unknown>).excluded_payment_method_types = ["affirm", "afterpay_clearpay"]
 
   if (appliedCredit) {
     // Bind the session to the Customer the credit belongs to. This is both the

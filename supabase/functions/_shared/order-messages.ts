@@ -177,7 +177,7 @@ export function orderSmsText(templateKey: string, order: OrderRow): string {
     case 'preorder_received_sms':
       return preorderSmsText(order);
     case 'order_received_sms':
-      return `Thank you for your Sprouts order from The Eden Institute!${ref} Your card was charged today. Your books print in ${PRINT_CANCEL_HOURS} hours; reply to your confirmation email before then to change anything. I will text you when they ship. Reply STOP to opt out.`;
+      return `Thank you for your Sprouts order from The Eden Institute!${ref} Your payment went through today. Your books print in ${PRINT_CANCEL_HOURS} hours; reply to your confirmation email before then to change anything. I will text you when they ship. Reply STOP to opt out.`;
     case 'shipped_sms':
       return `Your Sprouts books shipped today${carrier !== 'the carrier' ? ` with ${carrier}` : ''}!${link ? ` Track them: ${link}` : ''}${code ? ` (tracking ${code})` : ''} Reply STOP to opt out.`;
     case 'delivered_sms':

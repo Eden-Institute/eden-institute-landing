@@ -800,7 +800,8 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
   if (preorderSku) {
     // Async payment methods fire checkout.session.completed before money moves.
     // Only payment_status "paid" may record an order and tell the family their
-    // card was charged. (Cards are the only enabled method; this guards drift.)
+    // card was charged. (Klarna and Affirm are enabled too since 2026-09-17; both
+    //  confirm immediately, so a completed session is still "paid". This guards drift.)
     if (session.payment_status !== "paid") {
       console.warn(
         `preorder session ${session.id} completed with payment_status=` +
