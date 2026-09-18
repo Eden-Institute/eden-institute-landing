@@ -32,7 +32,8 @@
 // SUPPRESSION IS TWO LAYERS AND BOTH ARE LOAD BEARING:
 //   1. waitlist_signups.unsubscribed_at — GLOBAL. Resend-level unsubscribes, hard bounces
 //      and spam complaints, written by resend-webhook.
-//   2. email_list_unsubscribes           — PER LIST. Voluntary one-click opt-out.
+//   2. email_list_unsubscribes           — PER LIST. Voluntary one-click opt-out. Only
+//      list = 'homeschool' rows apply here (the list these emails carry).
 // Skipping either one mails somebody who told us to stop.
 //
 // IDEMPOTENCY: the founders_send_log row is claimed BEFORE the send, not after. Its
@@ -226,12 +227,13 @@ async function pagedColumn(
   table: string,
   column: string,
   order: string,
+  eq?: [string, string],
 ): Promise<string[]> {
   const out: string[] = [];
   for (let from = 0; ; from += PAGE) {
-    const { data, error } = await db
-      .from(table)
-      .select(column)
+    let q = db.from(table).select(column);
+    if (eq) q = q.eq(eq[0], eq[1]);
+    const { data, error } = await q
       .order(order, { ascending: true })
       .range(from, from + PAGE - 1);
     if (error) throw new Error(`${table}.${column}: ${error.message}`);
@@ -295,7 +297,15 @@ async function recipients(db: ReturnType<typeof admin>): Promise<Recipient[]> {
     if (rows.length < PAGE) break;
   }
 
-  const optedOut = new Set(await pagedColumn(db, "email_list_unsubscribes", "email", "email"));
+  // Only opt-outs from the list this function sends on ('homeschool', see sendOne).
+  // Until 2026-09-17 this read EVERY list, so leaving the quiz, buyer or podcast emails
+  // also silently dropped someone from Eden broadcasts. nurture-emails and founders-lock
+  // already filtered by list; founder decision 2026-09-17: "honor only the list they
+  // left". Global unsubscribes, bounces and complaints are unaffected: they live in
+  // waitlist_signups.unsubscribed_at, filtered above.
+  const optedOut = new Set(
+    await pagedColumn(db, "email_list_unsubscribes", "email", "email", ["list", "homeschool"]),
+  );
   const buyers = new Set(
     await pagedColumn(db, "preorder_broadcast_list", "customer_email", "customer_email"),
   );
