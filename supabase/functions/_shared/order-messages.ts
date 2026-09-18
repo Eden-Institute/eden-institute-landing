@@ -211,9 +211,11 @@ export function orderSmsText(templateKey: string, order: OrderRow): string {
     case 'order_received_sms':
       return `Thank you for your Sprouts order from The Eden Institute!${ref} Your payment went through today. Your books print in ${PRINT_CANCEL_HOURS} hours; reply to your confirmation email before then to change anything. I will text you when they ship. Reply STOP to opt out.`;
     case 'shipped_sms':
-      return `Your Sprouts books shipped today${carrier !== 'the carrier' ? ` with ${carrier}` : ''}!${link ? ` Track them: ${link}` : ''}${code ? ` (tracking ${code})` : ''} Reply STOP to opt out.`;
+      // "from The Eden Institute": A2P 10DLC requires the brand name in every
+      // message, and a reviewer reads these against the campaign samples.
+      return `Your Sprouts books from The Eden Institute shipped today${carrier !== 'the carrier' ? ` with ${carrier}` : ''}!${link ? ` Track them: ${link}` : ''}${code ? ` (tracking ${code})` : ''} Reply STOP to opt out.`;
     case 'delivered_sms':
-      return `Your Sprouts books were delivered today! Anything wrong with them, reply to your confirmation email and I will make it right. Reply STOP to opt out.`;
+      return `Your Sprouts books from The Eden Institute were delivered today! Anything wrong with them, reply to your confirmation email and I will make it right. Reply STOP to opt out.`;
     default:
       throw new Error(`No SMS builder for template '${templateKey}'`);
   }

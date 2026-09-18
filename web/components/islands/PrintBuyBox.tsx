@@ -14,7 +14,10 @@
 // Deliberately smaller than PreorderBuyBox: no founding counter, no ship-window
 // disclaimer (these ship in days, not months), no credit codes. It keeps the
 // SMS consent checkbox (default UNCHECKED, TCPA) because the shipped and
-// delivered texts are worth having.
+// delivered texts are worth having. Its label must name every text the order
+// flow sends to a consenting buyer (order_received_sms, shipped_sms,
+// delivered_sms in _shared/order-messages.ts): the A2P campaign's opt-in
+// description quotes it, and a reviewer reads it against the samples.
 //
 // Copy rule: no em dashes.
 
@@ -241,7 +244,8 @@ export default function PrintBuyBox({ cta }: Props) {
           <label className="mt-4 flex items-start gap-2 font-body text-sm text-muted-foreground">
             <input type="checkbox" checked={smsConsent} onChange={(e) => setSmsConsent(e.target.checked)} className="mt-1" />
             <span>
-              Text me when it ships and when it is delivered. Message and data rates may apply; reply STOP to opt out.
+              Text me order updates from The Eden Institute: an order confirmation, when it ships and when it is delivered (up to 3 messages per order). Message and data rates may apply. Reply STOP to opt out, HELP for help. See our{" "}
+              <a href="/terms" className="underline">Terms</a> and <a href="/privacy" className="underline">Privacy Policy</a>.
             </span>
           </label>
 
