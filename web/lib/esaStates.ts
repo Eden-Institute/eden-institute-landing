@@ -216,9 +216,15 @@ export const ESA_STATES: EsaState[] = [
         q: "Why is there a processing fee on an Arizona invoice?",
         a: "ClassWallet deducts 2%, so this invoice adds 2.0408% to cover it. The Arizona ESA Parent Handbook lets a vendor charge account holders a processing fee to offset it, so it is shown as its own line on your invoice. Arkansas, Alabama and New Hampshire invoices have no fee.",
       },
+      // 2026-09-18: reworded at Melissa's request (her 17:42 UTC email, same thread).
+      // The old answer said the directory lists providers "that accept ESA funds"; it
+      // covers all educational services, and a provider is shown as taking ESA funds
+      // only once it has verified that. Her first sentence, lightly smoothed, and her
+      // optional parent-portal line, both founder-approved 2026-09-18. The portal is
+      // real: https://azedvendors.com/parent-portal/ (checked the same day).
       {
         q: "Where else can I look for Arizona ESA vendors?",
-        a: "Arizona Education Vendors is an independent directory of tutors, schools, enrichment programs and learning tools across Arizona that accept ESA funds, run by Education Vendors LLC. It is not run by the state or the ESA program, and a listing there is not an approval by the Arizona Department of Education. Your ESA Parent Handbook is still the final word on what your account will pay for.",
+        a: "Arizona Education Vendors Directory is an independent directory of tutors, schools, enrichment programs and learning tools across Arizona and virtually, where families can search for educational options. It is run by Education Vendors LLC, not by the state or the ESA program. It covers every kind of educational service, not only ESA vendors, so not every provider listed accepts ESA funds. Many do, and the directory lists a provider as accepting them only once that provider has verified it. The directory also offers a free, optional parent portal where you can save, compare and write notes on providers to help find the right fit for your child. A listing there is not an approval by the Arizona Department of Education, and your ESA Parent Handbook is still the final word on what your account will pay for.",
       },
     ],
   },
@@ -395,7 +401,7 @@ export const ESA_PENDING = [
 
 /** Last content review of the ESA pages. Bump it when what they say changes (see
     the rules at the top). */
-export const ESA_UPDATED_ISO = "2026-09-17";
+export const ESA_UPDATED_ISO = "2026-09-18";
 
 /** The same date as shown on the pages, e.g. "September 2026". */
 export const ESA_UPDATED = new Date(`${ESA_UPDATED_ISO}T12:00:00Z`).toLocaleDateString("en-US", {
