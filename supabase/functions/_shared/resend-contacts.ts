@@ -55,7 +55,7 @@ export type ContactProperties = Partial<Record<ContactPropertyKey, string>>;
 export const CONTACT_PROPERTY_VALUES: Record<ContactPropertyKey, readonly string[]> = {
   // waitlist_signups.entry_funnel, one value per contact. A contact on more than
   // one funnel resolves edens_table > quiz_funnel > whatever else.
-  funnel: ['edens_table', 'quiz_funnel', 'course_tier2', 'practitioner_waitlist', 'community', 'app_beta'],
+  funnel: ['edens_table', 'quiz_funnel', 'podcast', 'course_tier2', 'practitioner_waitlist', 'community', 'app_beta'],
   // From magnet_email_queue.band (a both-band family has rows for both), with
   // waitlist_signups.source as the fallback. 'none' = not a homeschool lead.
   band: ['sprouts', 'seedlings', 'both', 'none'],

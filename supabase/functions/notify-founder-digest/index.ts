@@ -280,6 +280,12 @@ function magnetLabel(funnel: string, source: string, foundingClosed = false): {
       welcomeSubject: "Eden's Table Waitlist",
     };
   }
+  if (funnel === 'podcast') {
+    return {
+      magnet: 'Tales & Table Talk · Podcast Waitlist',
+      welcomeSubject: "You're on the list for Tales & Table Talk",
+    };
+  }
   if (funnel === 'course_tier2') {
     return {
       magnet: 'Tier 2 (Root) · Waitlist',

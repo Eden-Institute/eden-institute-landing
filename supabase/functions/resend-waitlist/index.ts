@@ -4,6 +4,7 @@
 // _shared is the single source of truth for these templates.
 import { buildNurtureEmail1 } from '../_shared/nurture-email-templates.ts';
 import { buildHomeschoolEmail, buildSeedlingsMagnetEmail, buildSproutsMagnetEmail } from '../_shared/welcome-email-templates.ts';
+import { buildPodcastWelcomeEmail } from '../_shared/podcast-email-templates.ts';
 import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
 import { setContactProperties, type ContactProperties } from '../_shared/resend-contacts.ts';
 import { escapeHtml } from '../_shared/html-escape.ts';
@@ -36,11 +37,13 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 type EntryFunnel =
   | 'edens_table'
   | 'homeschool'
+  | 'podcast'
   | 'quiz_funnel';
 
 const VALID_FUNNELS = new Set<EntryFunnel>([
   'edens_table',
   'homeschool',
+  'podcast',
   'quiz_funnel',
 ]);
 
@@ -100,7 +103,10 @@ function getSlugInfo(constitutionType: string): { slug: string; name: string } |
 async function sendEmail(to: string, subject: string, html: string, list: EmailList): Promise<void> {
   const { html: finalHtml, headers: unsubHeaders } = await applyUnsub(html, to, list);
   const payload = {
-    from: 'The Eden Institute <hello@edeninstitute.health>',
+    // The podcast list is its own brand; everything else stays The Eden Institute.
+    from: list === 'podcast'
+      ? 'Tales & Table Talk <hello@edeninstitute.health>'
+      : 'The Eden Institute <hello@edeninstitute.health>',
     reply_to: 'hello@edeninstitute.health',
     to: [to],
     subject,
@@ -580,6 +586,10 @@ Deno.serve(async (req) => {
         // signups that hit this EF without a source we recognize).
         emailContent = buildHomeschoolEmail(firstNameHtml);
       }
+    } else if (entry_funnel === 'podcast') {
+      // Tales & Table Talk (talesandtabletalk.com). Its own list, so it never
+      // picks up the edens_table launch trigger or list-announce broadcasts.
+      emailContent = buildPodcastWelcomeEmail(firstNameHtml);
     }
     // quiz_funnel is handled by the nurture sequence above.
 
@@ -601,9 +611,11 @@ Deno.serve(async (req) => {
     let welcomeSent = false;
     if (emailContent && sendAllowed) {
       try {
-        // All non-quiz welcome emails belong to the homeschool list (the live
-        // edens_table/homeschool funnels).
-        await sendEmail(normalizedEmail, emailContent.subject, emailContent.html, 'homeschool');
+        // Non-quiz welcomes belong to the homeschool list (edens_table/homeschool
+        // funnels), except the podcast welcome, which has its own list so a podcast
+        // unsubscribe never touches Eden's Table mail and vice versa.
+        const welcomeList: EmailList = entry_funnel === 'podcast' ? 'podcast' : 'homeschool';
+        await sendEmail(normalizedEmail, emailContent.subject, emailContent.html, welcomeList);
         welcomeSent = true;
       } catch (emailErr) {
         console.error('Welcome email send error:', String(emailErr));
