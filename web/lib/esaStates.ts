@@ -310,6 +310,19 @@ export const ESA_STATES: EsaState[] = [
         href: "https://dese.ade.arkansas.gov/offices/office-of-school-choice-and-parent-empowerment/education-freedom-accounts",
       },
     ],
+    // 2026-09-18: The Reform Alliance agreed to be listed (Britain, Gmail thread
+    // 1a0a11e3f4e35df2, 17:25 UTC), on the condition that we say they only work in
+    // Arkansas. Founder approved adding them the same day. Description is drawn from
+    // their own home page (thereformalliance.org, checked 2026-09-18). A free listing,
+    // nothing given in exchange, so not sponsored.
+    resources: [
+      {
+        name: "The Reform Alliance",
+        href: "https://thereformalliance.org",
+        description:
+          "is a nonprofit that helps Arkansas families sort through their school options and connect with funding like the Education Freedom Account. They serve Arkansas families only, and they are not part of the state or the EFA program.",
+      },
+    ],
     faq: [
       {
         q: "Is Eden's Table listed in the School Choice Arkansas Provider Finder?",
