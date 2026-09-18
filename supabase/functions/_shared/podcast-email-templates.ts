@@ -14,6 +14,7 @@
 // podcast-email-templates.test.ts pins the wording and the legal footer.
 
 import { SELLER_ADDRESS } from './receipt.ts';
+import { escapeHtml } from './html-escape.ts';
 
 const ESPRESSO = '#2A231E';
 const LINEN = '#F5EDD6';
@@ -24,10 +25,14 @@ function para(text: string): string {
   return `<p style="font-family:Georgia,serif;font-size:16px;line-height:1.65;color:${ESPRESSO};margin:0 0 18px 0;">${text}</p>`;
 }
 
-function podcastShell(body: string): string {
+export function podcastShell(body: string, preheaderText = ''): string {
+  const pre = preheaderText
+    ? `<div style="display:none;font-size:1px;color:${LINEN};line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">${escapeHtml(preheaderText)}</div>`
+    : '';
   return `<!doctype html>
 <html lang="en">
 <body style="margin:0;padding:0;background:${LINEN};">
+${pre}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${LINEN};">
 <tr><td align="center" style="padding:24px 12px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
@@ -67,3 +72,81 @@ export function buildPodcastWelcomeEmail(firstName: string): { subject: string; 
     html: podcastShell(body),
   };
 }
+
+// ── Broadcasts to the podcast list (sent by the podcast-announce function) ──
+//
+// A campaign is plain text, not HTML: every paragraph is escaped at render, so copy
+// pasted from a doc cannot inject markup. The greeting ("Hi {name},") and the sign-off
+// are added here, so the campaign holds only the body. validatePodcastCampaign runs
+// before anything renders or sends; podcast-announce refuses a campaign that fails it.
+
+export interface PodcastCampaign {
+  /** Idempotency key: every address is claimed once per key in founders_send_log. */
+  key: string;
+  subject: string;
+  /** Inbox preview line shown after the subject. */
+  preheader: string;
+  /** Body paragraphs, plain text, in order. No greeting, no sign-off. */
+  paragraphs: string[];
+  button?: { label: string; url: string };
+  /** Who approved this exact copy and when, e.g. "Camila 2027-01-05". Required. */
+  approvedBy: string;
+}
+
+const EM_DASH = '\u2014';
+
+export function validatePodcastCampaign(c: PodcastCampaign): string[] {
+  const errors: string[] = [];
+  if (!/^podcast_[a-z0-9_]{3,80}$/.test(c.key)) {
+    errors.push('key must look like podcast_<lowercase_words>, e.g. podcast_episode1_launch_2027_01');
+  }
+  if (!c.subject.trim()) errors.push('subject is empty');
+  if (!c.preheader.trim()) errors.push('preheader is empty');
+  if (c.paragraphs.length === 0 || c.paragraphs.some((x) => !x.trim())) {
+    errors.push('paragraphs must be non-empty');
+  }
+  if (!c.approvedBy.trim()) errors.push('approvedBy is empty: no send without a named approval');
+  const allText = [c.subject, c.preheader, ...c.paragraphs, c.button?.label ?? ''].join(' ');
+  if (allText.includes(EM_DASH)) errors.push('copy contains an em dash (voice rule)');
+  if (c.button) {
+    if (!c.button.label.trim()) errors.push('button label is empty');
+    let ok = false;
+    try {
+      ok = new URL(c.button.url).protocol === 'https:';
+    } catch {
+      ok = false;
+    }
+    if (!ok) errors.push('button url must be an absolute https URL');
+  }
+  return errors;
+}
+
+function broadcastButton(label: string, url: string): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 24px 0;">
+<tr><td align="center">
+<a href="${escapeHtml(url)}" target="_blank" style="display:inline-block;background:${ESPRESSO};color:${SOFT_GOLD};font-family:Georgia,serif;font-size:16px;text-decoration:none;padding:14px 36px;border-radius:2px;">${escapeHtml(label)}</a>
+</td></tr>
+</table>`;
+}
+
+/**
+ * Render one broadcast for one recipient. firstName is RAW text here (it is escaped
+ * below), unlike buildPodcastWelcomeEmail, whose caller passes pre-escaped HTML.
+ * Throws if the campaign fails validation, so an invalid campaign cannot render.
+ */
+export function buildPodcastBroadcastEmail(
+  firstName: string,
+  c: PodcastCampaign,
+): { subject: string; html: string } {
+  const errors = validatePodcastCampaign(c);
+  if (errors.length) throw new Error(`invalid podcast campaign: ${errors.join('; ')}`);
+  const name = firstName.trim() || 'there';
+  const body = [
+    para(`Hi ${escapeHtml(name)},`),
+    ...c.paragraphs.map((x) => para(escapeHtml(x))),
+    c.button ? broadcastButton(c.button.label, c.button.url) : '',
+    `<p style="font-family:Georgia,serif;font-size:16px;color:${ESPRESSO};margin:8px 0 16px 0;">Camila</p>`,
+  ].filter(Boolean).join('\n');
+  return { subject: c.subject, html: podcastShell(body, c.preheader) };
+}
+
