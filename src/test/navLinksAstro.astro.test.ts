@@ -3,7 +3,7 @@
 
 import { experimental_AstroContainer as AstroContainer } from "astro/container";
 import { beforeAll, describe, expect, it } from "vitest";
-import { FOOTER_LINKS, NAV_BUTTONS, NAV_LINKS, type SiteLink } from "@/lib/navLinks";
+import { FOOTER_LINKS, NAV_BUTTONS, NAV_LINKS, NAV_PODCAST, type SiteLink } from "@/lib/navLinks";
 
 type RenderableComponent = Parameters<AstroContainer["renderToString"]>[0];
 // Imported through a glob, as privatePagesNoTags.astro.test.ts does, because the
@@ -38,13 +38,16 @@ describe("Astro header and footer render the shared list", () => {
     container = await AstroContainer.create();
   });
 
-  it("Navbar.astro renders every link and both buttons, desktop and mobile", async () => {
+  it("Navbar.astro renders every link, both buttons and the podcast link, desktop and mobile", async () => {
     const html = await container.renderToString(Navbar);
     const [desktop, mobile] = html.split('id="eden-nav-mobile"');
     expect(mobile).toBeTruthy();
-    expectInOrder(desktop, [...NAV_LINKS, ...NAV_BUTTONS]);
-    expectInOrder(mobile, [...NAV_LINKS, ...NAV_BUTTONS]);
+    // Wide screens: row one carries the buttons, row two the links then the podcast.
+    expectInOrder(desktop, [...NAV_BUTTONS, ...NAV_LINKS, NAV_PODCAST]);
+    // Mobile menu: the links, the podcast, then the buttons.
+    expectInOrder(mobile, [...NAV_LINKS, NAV_PODCAST, ...NAV_BUTTONS]);
     expect(html).toContain('data-cta="nav-take-quiz"');
+    expect(html).toContain('data-cta="nav-podcast"');
   });
 
   it("Footer.astro renders every footer link", async () => {

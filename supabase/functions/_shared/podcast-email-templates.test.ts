@@ -20,6 +20,10 @@ Deno.test('podcast welcome keeps its subject, approved copy and legal footer', (
     assertStringIncludes(html, needle);
   }
   assertStringIncludes(html, 'Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Unit 3262, Clarksville, TN 37043');
+  // Founder 2026-09-18: the signup form moved to the Eden site, so the reason line
+  // names the list rather than a domain.
+  assertStringIncludes(html, "You're receiving this because you joined the Tales &amp; Table Talk list.");
+  assert(!html.includes('talesandtabletalk.com'), 'footer no longer names the old signup domain');
   assertStringIncludes(html, '<a href="{{UNSUB_URL}}"');
   assertEquals(html.split('{{UNSUB_URL}}').length - 1, 1, 'exactly one unsubscribe placeholder');
   assert(!html.includes('—'), 'no em dashes');

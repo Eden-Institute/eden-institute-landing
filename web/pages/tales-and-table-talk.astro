@@ -1,0 +1,544 @@
+---
+// /tales-and-table-talk: Camila's own page for the podcast, with the waitlist.
+//
+// WHY IT LIVES HERE. Founder decision 2026-09-18, in the "Contract details" thread
+// with Felice Gerwitz (UHPN): talesandtabletalk.com will point to the show page on
+// the network (ultimateradioshow.com/tales-and-table-talk, set up by Gina), and
+// Camila's own page, handouts and email capture move to the Eden site, at the URL
+// Felice named. The network show page links back here, which is the SEO point Felice
+// made. Until Gina switches the domain, talesandtabletalk.com still serves the old
+// copy of this page with its canonical pointing here (web-podcast/pages/index.astro).
+//
+// All prose is the founder-approved copy from the talesandtabletalk.com show page
+// (TTT_UHPN_Promo_Pack_v1_2026-09-15 and the 2026-09-15 vision email to Felice and
+// Gina). It is not rewritten or embellished. Keep the two in step until that build is
+// retired.
+//
+// 2026-09-17, founder edit: "from the public domain" and "from the King James
+// Version" were removed, because the sources may change (Felice raised the World
+// English Bible). Do not add them back without asking.
+//
+// NOT LINKED YET: the network show page. ultimateradioshow.com/tales-and-table-talk
+// returned 404 on 2026-09-18 and Felice wrote "Gina may have a different idea", so
+// linking it would ship a dead link. Add a "Listen on the network" link once the page
+// is live and its URL is confirmed.
+//
+// Styling follows TTT_Brand_Guide_v1_2026-09-13 inside the Eden header and footer.
+// The contrast rules are load-bearing: small text on a light ground is always
+// Espresso, and Soft Gold only ever sits on Espresso (on Linen it is 1.2:1).
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+
+const canonical = "https://edeninstitute.health/tales-and-table-talk";
+const description =
+  "A weekly read-aloud podcast for moms and their littles. Every episode is a story, and every episode ends at the table. Launching January on the Ultimate Homeschool Podcast Network.";
+
+const podcastJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "PodcastSeries",
+  name: "Tales & Table Talk",
+  alternateName: "Tales and Table Talk",
+  description:
+    "A weekly read-aloud podcast for moms and their littles. Every episode is a story, and every episode ends at the table.",
+  url: canonical,
+  image: "https://edeninstitute.health/podcast/ttt-cover-1200.jpg",
+  inLanguage: "en",
+  author: { "@type": "Person", name: "Camila Johnson" },
+  publisher: { "@type": "Organization", name: "Rooted in Faith Ventures" },
+};
+
+const rhythm = [
+  {
+    label: "The Eden Family",
+    cadence: "Every other week",
+    body: "A brand new story written just for the podcast, each one ending on a question your child can guess at before the next one comes.",
+  },
+  {
+    label: "Classic literature",
+    cadence: "Every fourth week",
+    body: "Stories and poems chosen because they are worth hearing out loud.",
+  },
+  {
+    label: "A short Bible study",
+    cadence: "Every fourth week",
+    body: "A mini devotional.",
+  },
+  {
+    label: "Table Talk",
+    cadence: "Every single episode",
+    body: "Camila and her daughters talk about what they just heard, unscripted, the way it actually happens in a kitchen.",
+  },
+];
+---
+
+<MarketingLayout
+  title="Tales & Table Talk | A Read-Aloud Podcast for Moms and Their Littles"
+  description={description}
+  canonical={canonical}
+  ogImage="https://edeninstitute.health/podcast/ttt-cover-1200.jpg"
+  jsonLd={podcastJsonLd}
+>
+  {/* The brand font. A stylesheet link is valid in <body>; the layout already
+      preconnects to both Google Fonts origins. */}
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Special+Elite&display=swap"
+  />
+
+  <div class="ttt">
+    <header class="hero">
+      <div class="wrap hero-inner">
+        <img
+          class="mark"
+          src="/podcast/ttt-logo-t-dark.png"
+          alt=""
+          width="512"
+          height="512"
+          fetchpriority="high"
+        />
+        <h1>Tales &amp; Table Talk</h1>
+        <p class="tagline">Read-alouds for moms and their littles</p>
+        <p class="launch">Launching January on the Ultimate Homeschool Podcast Network</p>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="photo-band">
+        <picture>
+          <source srcset="/podcast/ttt-hero.webp" type="image/webp" />
+          <img
+            src="/podcast/ttt-hero.jpg"
+            alt="Camila reading aloud to her two daughters at a lamplit table"
+            width="1546"
+            height="1017"
+          />
+        </picture>
+      </section>
+
+      <section class="wrap prose">
+        <p class="lede">
+          Tales and Table Talk is a weekly read-aloud podcast for moms and their littles.
+        </p>
+        <p>
+          Every episode is a story, and every episode ends at the table. Camila Johnson reads, and
+          then she and her daughters talk about what they just heard, unscripted, the way it actually
+          happens in a kitchen.
+        </p>
+        <p>
+          The reading changes with the week. Every other week is a brand new Eden Family story,
+          written for the podcast, and each one ends on a question your child can guess at before the
+          next one comes. The weeks in between take turns: classic literature, stories and poems
+          worth hearing out loud, and a short Bible study.
+        </p>
+      </section>
+
+      <section class="signup" id="join" aria-labelledby="join-heading">
+        <div class="wrap signup-inner">
+          <h2 id="join-heading">Be the first to hear</h2>
+          <p class="signup-lede">
+            We launch in January. Join the list and you'll hear the day the first episode goes live,
+            along with the printable questions that go with it.
+          </p>
+          <form id="ttt-signup" class="signup-form" novalidate>
+            <label class="field">
+              <span>First name <em>(optional)</em></span>
+              <input type="text" name="firstName" autocomplete="given-name" maxlength="100" />
+            </label>
+            <label class="field">
+              <span>Email</span>
+              <input type="email" name="email" autocomplete="email" required maxlength="254" />
+            </label>
+            <button type="submit">Join the list</button>
+          </form>
+          <p id="ttt-signup-status" class="signup-status" role="status" aria-live="polite"></p>
+          <p class="signup-fine">No spam, ever. Unsubscribe anytime.</p>
+        </div>
+      </section>
+
+      <section class="wrap">
+        <h2>The rhythm of the show</h2>
+        <ul class="rhythm">
+          {
+            rhythm.map((item) => (
+              <li>
+                <p class="cadence">{item.cadence}</p>
+                <h3>{item.label}</h3>
+                <p>{item.body}</p>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+
+      <section class="band">
+        <div class="wrap">
+          <h2>Printable questions, every episode</h2>
+          <p>
+            Every episode comes with printable questions in the show notes at two levels, Sprouts for
+            kindergarten through second grade and Seedlings for third through fifth, so the
+            conversation keeps going after the audio stops.
+          </p>
+        </div>
+      </section>
+
+      <section class="wrap closing">
+        <p class="promise">
+          Every week, I'll bring the story. You bring your people. And when it's over, we'll talk
+          about it.
+        </p>
+        <p class="production">
+          A production of Rooted in Faith Ventures LLC, Clarksville, Tennessee.
+        </p>
+      </section>
+    </main>
+  </div>
+</MarketingLayout>
+
+<script>
+  // Posts to the same resend-waitlist edge function every Eden form uses, on the
+  // 'podcast' funnel (separate list, separate unsubscribe, no Eden's Table sequences).
+  // source 'ttt_eden_page' tells these signups apart from 'ttt_site', the form on
+  // talesandtabletalk.com. The key is Supabase's public publishable key, already
+  // shipped in the Eden site.
+  const ENDPOINT = "https://noeqztssupewjidpvhar.supabase.co/functions/v1/resend-waitlist";
+  const PUBLISHABLE_KEY = "sb_publishable_svo3MUI6VhdrYnbBqCAFVA_Xik2_yU9";
+
+  const form = document.getElementById("ttt-signup") as HTMLFormElement | null;
+  const status = document.getElementById("ttt-signup-status");
+
+  function say(text: string, kind: "ok" | "err" | "") {
+    if (!status) return;
+    status.textContent = text;
+    status.dataset.kind = kind;
+  }
+
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const data = new FormData(form);
+    const email = String(data.get("email") || "").trim();
+    const firstName = String(data.get("firstName") || "").trim();
+    if (!email || !email.includes("@")) {
+      say("Please enter your email address.", "err");
+      return;
+    }
+    const button = form.querySelector("button");
+    if (button) button.disabled = true;
+    say("Adding you to the list...", "");
+
+    const params = new URLSearchParams(location.search);
+    try {
+      const res = await fetch(ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: PUBLISHABLE_KEY },
+        body: JSON.stringify({
+          email,
+          firstName,
+          entry_funnel: "podcast",
+          source: "ttt_eden_page",
+          source_url: location.href,
+          referrer: document.referrer || undefined,
+          utm_source: params.get("utm_source") || undefined,
+          utm_medium: params.get("utm_medium") || undefined,
+          utm_campaign: params.get("utm_campaign") || undefined,
+          utm_term: params.get("utm_term") || undefined,
+          utm_content: params.get("utm_content") || undefined,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        say(body.error || "Something went wrong. Please try again in a moment.", "err");
+        if (button) button.disabled = false;
+        return;
+      }
+      form.reset();
+      form.hidden = true;
+      say("You're on the list. Check your inbox for a note from me.", "ok");
+    } catch {
+      say("Something went wrong. Please try again in a moment.", "err");
+      if (button) button.disabled = false;
+    }
+  });
+</script>
+
+<style>
+  /* Tokens and type from TTT_Brand_Guide_v1_2026-09-13, scoped to this page so the
+     Eden header and footer around it keep their own. */
+  .ttt {
+    --espresso: #2a231e;
+    --linen: #f5edd6;
+    --soft-gold: #e8d5a3;
+    --deep-gold: #9c7a3c;
+    --parchment: #faf6ee;
+    --oat: #ede2c8;
+    background: var(--linen);
+    color: var(--espresso);
+    font-family: "Special Elite", "Courier New", Courier, monospace;
+    font-weight: 400;
+    line-height: 1.65;
+    font-size: 1.0625rem;
+  }
+
+  /* The brand font ships in one weight. Emphasis comes from size and colour,
+     never from synthetic bold, which smears the typewriter texture. */
+  .ttt h1,
+  .ttt h2,
+  .ttt h3 {
+    font-family: inherit;
+    font-weight: 400;
+  }
+
+  .ttt img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .wrap {
+    width: 100%;
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .ttt :focus-visible {
+    outline: 3px solid var(--deep-gold);
+    outline-offset: 3px;
+  }
+
+  .hero {
+    background: var(--espresso);
+    color: var(--linen);
+    padding: 4rem 0 3.5rem;
+    text-align: center;
+  }
+
+  .hero-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* Logo clear space is a brand rule: at least a quarter of the mark's width. */
+  .mark {
+    width: 6.5rem;
+    height: 6.5rem;
+    margin-bottom: 1.625rem;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(2.125rem, 7vw, 3.5rem);
+    line-height: 1.15;
+    letter-spacing: 0.01em;
+  }
+
+  /* Soft Gold is used here only because the ground is Espresso (10.7:1). */
+  .tagline {
+    margin: 0.875rem 0 0;
+    color: var(--soft-gold);
+    font-size: clamp(1.0625rem, 3vw, 1.375rem);
+  }
+
+  .launch {
+    margin: 1.75rem 0 0;
+    font-size: 0.9375rem;
+    color: var(--linen);
+    opacity: 0.82;
+    max-width: 30rem;
+  }
+
+  .photo-band img {
+    width: 100%;
+    max-height: 30rem;
+    object-fit: cover;
+  }
+
+  .prose {
+    padding-top: 3.25rem;
+  }
+
+  .prose p {
+    margin: 0 0 1.25rem;
+  }
+
+  .lede {
+    font-size: clamp(1.25rem, 3.5vw, 1.625rem);
+    line-height: 1.45;
+    margin: 0 0 1.5rem;
+  }
+
+  section.wrap {
+    padding-bottom: 1rem;
+  }
+
+  h2 {
+    font-size: clamp(1.375rem, 4vw, 1.875rem);
+    line-height: 1.3;
+    margin: 2.75rem 0 1.25rem;
+    /* Deep Gold is legible at this size; small text stays Espresso. */
+    color: var(--deep-gold);
+  }
+
+  .rhythm {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  }
+
+  .rhythm li {
+    background: var(--parchment);
+    border: 1px solid var(--oat);
+    border-top: 3px solid var(--deep-gold);
+    padding: 1.375rem 1.25rem;
+  }
+
+  .rhythm h3 {
+    margin: 0.25rem 0 0.5rem;
+    font-size: 1.1875rem;
+  }
+
+  .rhythm p {
+    margin: 0;
+  }
+
+  .cadence {
+    font-size: 0.8125rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--espresso);
+    opacity: 0.72;
+  }
+
+  .band {
+    background: var(--oat);
+    margin-top: 3rem;
+    padding: 2.75rem 0;
+  }
+
+  .band h2 {
+    margin-top: 0;
+  }
+
+  .band p {
+    margin-bottom: 0;
+    max-width: 44rem;
+  }
+
+  .closing {
+    padding-top: 3rem;
+    padding-bottom: 3.5rem;
+  }
+
+  .promise {
+    font-size: clamp(1.125rem, 3vw, 1.4375rem);
+    line-height: 1.5;
+    margin: 0;
+    max-width: 42rem;
+  }
+
+  .production {
+    margin: 2rem 0 0;
+    font-size: 0.875rem;
+  }
+
+  .signup {
+    background: var(--espresso);
+    color: var(--linen);
+    margin-top: 3rem;
+    padding: 3rem 0;
+  }
+
+  /* Soft Gold only ever sits on Espresso here (10.7:1); never on Linen. */
+  .signup h2 {
+    color: var(--soft-gold);
+    margin-top: 0;
+  }
+
+  .signup-lede {
+    max-width: 38rem;
+    margin: 0 0 1.5rem;
+  }
+
+  .signup-form {
+    display: grid;
+    gap: 1rem;
+    max-width: 38rem;
+  }
+
+  .field {
+    display: grid;
+    gap: 0.375rem;
+    font-size: 0.9375rem;
+  }
+
+  .field em {
+    font-style: normal;
+    opacity: 0.75;
+  }
+
+  .field input {
+    font: inherit;
+    font-size: 1.0625rem;
+    padding: 0.75rem 0.875rem;
+    border: 1px solid var(--oat);
+    background: var(--parchment);
+    color: var(--espresso);
+    border-radius: 2px;
+    width: 100%;
+  }
+
+  .signup-form button {
+    font: inherit;
+    font-size: 1.125rem;
+    justify-self: start;
+    padding: 0.8rem 1.75rem;
+    background: var(--soft-gold);
+    color: var(--espresso);
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    min-height: 44px;
+  }
+
+  .signup-form button:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  .signup-status {
+    min-height: 1.5em;
+    margin: 1rem 0 0;
+    font-size: 1.0625rem;
+  }
+
+  .signup-status[data-kind="ok"] {
+    color: var(--soft-gold);
+  }
+
+  .signup-status[data-kind="err"] {
+    color: var(--linen);
+    text-decoration: underline;
+    text-decoration-color: var(--soft-gold);
+  }
+
+  .signup-fine {
+    margin: 0.5rem 0 0;
+    font-size: 0.8125rem;
+    opacity: 0.75;
+  }
+
+  @media (min-width: 48rem) {
+    .hero {
+      padding: 5.5rem 0 4.5rem;
+    }
+    .signup-form {
+      grid-template-columns: 1fr 1fr auto;
+      align-items: end;
+    }
+    .signup-form button {
+      justify-self: stretch;
+    }
+  }
+</style>

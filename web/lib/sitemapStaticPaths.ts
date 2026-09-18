@@ -34,4 +34,5 @@ export const STATIC_PATHS: readonly string[] = [
   "/cookies",
   "/herbs",
   "/esa",
+  "/tales-and-table-talk",
 ];

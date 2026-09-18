@@ -60,7 +60,7 @@ function PractitionerInfoCard() {
   return (
     <div
       id="practitioner-tier"
-      className="rounded-lg border p-6 md:p-8 flex flex-col min-w-0 scroll-mt-20"
+      className="rounded-lg border p-6 md:p-8 flex flex-col min-w-0 scroll-mt-20 min-[1024px]:scroll-mt-32"
       style={{
         borderColor: "hsl(var(--eden-gold) / 0.4)",
         backgroundColor: "hsl(var(--eden-cream) / 0.5)",
