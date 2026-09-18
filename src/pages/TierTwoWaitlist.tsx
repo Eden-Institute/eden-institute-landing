@@ -82,7 +82,7 @@ const TierTwoWaitlist = () => {
       {/* START WITH TIER 1 — the panel. */}
       <section
         id="start-tier-1"
-        className="scroll-mt-20 py-20 md:py-24 px-6"
+        className="scroll-mt-20 min-[1024px]:scroll-mt-32 py-20 md:py-24 px-6"
         style={{ backgroundColor: "hsl(var(--eden-cream))" }}
       >
         <div className="max-w-xl mx-auto">

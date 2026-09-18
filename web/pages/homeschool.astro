@@ -230,7 +230,7 @@ const PRINT_SET = {
       {/* id="early-access" is load-bearing: the homepage links to
           /homeschool#early-access (index.astro). Keep it even though the
           lead-magnet capture that originally lived here is gone. */}
-      <div id="early-access" class="flex flex-col items-center gap-4 scroll-mt-28">
+      <div id="early-access" class="flex flex-col items-center gap-4 scroll-mt-28 min-[1024px]:scroll-mt-40">
         {/* TWO doors, founder direction 2026-09-12. The kit came off the site
             with the print-first pivot, so the printed year leads and the $39 is
             the outlined try-it door. The kit button, its copy and its buy box are
@@ -323,7 +323,7 @@ const PRINT_SET = {
       The deep pages (/freebies, /starter, /books) stay where they are and the
       cards link to them; sent emails still point at them.
       Later bands show what is planned and when, with one "tell me when" button. */}
-  <section id="bands" class="py-14 md:py-20 px-6 bg-background scroll-mt-24">
+  <section id="bands" class="py-14 md:py-20 px-6 bg-background scroll-mt-24 min-[1024px]:scroll-mt-36">
     <div class="max-w-6xl mx-auto">
       <div class="text-center mb-8">
         <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">Four grade bands</p>
@@ -345,7 +345,7 @@ const PRINT_SET = {
       {/* One ladder per band. */}
       <div class="space-y-14">
         {BANDS.map((b) => (
-          <div id={b.id} class="scroll-mt-24">
+          <div id={b.id} class="scroll-mt-24 min-[1024px]:scroll-mt-36">
             <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
               <div>
                 <p class="font-accent text-xs tracking-[0.25em] uppercase mb-1" style="color:hsl(var(--eden-gold-ink))">{b.grades}</p>

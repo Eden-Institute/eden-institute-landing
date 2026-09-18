@@ -7,10 +7,14 @@
 // Version" removed from the page, because the sources may change (Felice raised the
 // World English Bible). Do not add them back without asking.
 //
-// NOT LINKED YET: talesandtabletalkpodcast.com (the network show page). That
-// domain is unregistered as of 2026-09-17 and the show-page URL on the network
-// is still unanswered, so linking it would ship a dead link. The "Listen" block
-// below is built to take that link the moment the URL is confirmed.
+// 2026-09-18, founder decision (Felice's "Contract details" thread): this domain
+// will point to the network show page (ultimateradioshow.com/tales-and-table-talk,
+// set up by Gina), and this page moved to the Eden site at
+// edeninstitute.health/tales-and-table-talk. Until Gina switches the domain, this
+// build stays live with its signup form working, but its canonical names the Eden
+// page, so search engines credit that one and the two do not compete. When the
+// switch happens this build and its Vercel project are retired.
+// talesandtabletalkpodcast.com was never bought and will not be.
 import PodcastLayout from "../layouts/PodcastLayout.astro";
 
 const rhythm = [
@@ -40,7 +44,7 @@ const rhythm = [
 <PodcastLayout
   title="Tales & Table Talk"
   description="A weekly read-aloud podcast for moms and their littles. Every episode is a story, and every episode ends at the table. Launching January on the Ultimate Homeschool Podcast Network."
-  canonical="https://talesandtabletalk.com/"
+  canonical="https://edeninstitute.health/tales-and-table-talk"
 >
   <header class="hero">
     <div class="wrap hero-inner">

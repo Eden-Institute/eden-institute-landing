@@ -3,41 +3,63 @@
 // zero JS for the header. Mobile toggle is a tiny vanilla script. The links and
 // buttons come from src/lib/navLinks.ts, which src/components/landing/Navbar.tsx
 // (the SPA header) renders too, so the two headers cannot drift apart again.
-import { NAV_BUTTONS, NAV_LINKS } from "@/lib/navLinks";
+import { NAV_BUTTONS, NAV_LINKS, NAV_PODCAST } from "@/lib/navLinks";
 ---
 
 <header class="w-full bg-[#FAF8F3] border-b border-[#D6CDB8] sticky top-0 z-50">
-  <div class="max-w-[1340px] mx-auto px-6 py-4 flex items-center justify-between">
+  {/*
+    TWO ROWS from 1024px up (founder, 2026-09-18, chosen from mockups): the logo
+    and the two buttons on the first row, every text link plus the podcast button
+    on the second. Below 1024 the hamburger carries everything, as before.
+
+    Why two rows. The founder asked for "Listen to the Podcast" at the top of the
+    site. The old single row could not take it: capped at 1292px of inner width,
+    logo 214 + six links 648 + buttons 394 left 36px spare, and the podcast
+    button needs ~170. Two rows also let the full menu show from 1024px instead
+    of 1340px, so a 1280 or 1366 laptop no longer gets a hamburger.
+
+    Widths at the 1024 breakpoint (976px inner): row one is logo 214 + buttons
+    394 = 608; row two is six links + the podcast button at gap-6, ~880. Keep
+    whitespace-nowrap so no label can break mid-phrase.
+
+    The header is ~36px taller at 1024+, so sticky elements and scroll-mt
+    anchors on the marketing pages carry a min-[1024px] step to clear it
+    (books #buy, freebies #get-free, homeschool #early-access/#bands, starter
+    #early-access/#older-kids).
+
+    History: on 2026-09-02 renamed labels overflowed the old 1152px cap (the
+    logo wrapped to three lines, "Contact" collided with the buttons), fixed
+    then by the 1340 cap, gap-4, and dropping the "Home" link.
+  */}
+  <div class="max-w-[1340px] mx-auto px-6 py-4 min-[1024px]:pb-2 flex items-center justify-between">
     <a href="/" class="flex flex-col leading-tight">
       <span class="font-serif text-xl text-[#3B4A3F] tracking-wide">The Eden Institute</span>
       <span class="text-xs text-[#5A6B5E] tracking-widest uppercase font-sans">Biblical Herbalism Education</span>
     </a>
-    {/*
-      Breakpoint and container cap are both 1340px, and the arithmetic is why.
-      The row is capped at max-w-[1340px] minus px-6 either side, so it never
-      gets more than 1292px however wide the window is. The three groups need:
-        logo 214 + nav 648 (6 links at gap-4) + buttons 394 = 1256px
-      leaving 36px of headroom, and whitespace-nowrap guarantees a label can
-      never break mid-phrase. Below 1340 the hamburger takes over, which
-      already carries every link and both buttons.
-
-      Why it moved off 1152/1140. That cap was sized on 2026-07-28 for the old
-      labels: nav 553 + buttons 306 + logo 214 = 1073 against 1104px of inner
-      width, i.e. 31px spare. On 2026-09-02 the labels were renamed for clarity
-      ("Eden's Table" -> "Homeschool Curriculum", "Apothecary" -> "Herb
-      Reference App", "Take the Quiz" -> "Discover your Body Pattern", and so
-      on), which took the requirement to 1359px. Because max-w-6xl caps the row
-      at 1152px, the inner width stays 1104px at EVERY screen size, so no
-      monitor could have absorbed it. Measured on production: the logo wrapped
-      to three lines, "Contact" collided with the buttons, and both CTAs broke
-      across three lines. Fixed by raising the cap to 1340, tightening the nav
-      from gap-6 to gap-4, and dropping the "Home" link because the logo
-      already returns home. Body content maxes at 1120px, so the header now
-      sits ~110px wider either side than the content beneath it, by design.
-      Earlier still, at gap-8 with an 880px breakpoint, "Eden's Table" and "The
-      Book" wrapped and the buttons sat flush against "Contact".
-    */}
-    <nav class="hidden min-[1340px]:flex items-center gap-4">
+    <div class="hidden min-[1024px]:flex items-center gap-3">
+      {NAV_BUTTONS.map((b) => (
+        <a
+          href={b.href}
+          data-cta={b.cta}
+          class="text-sm font-sans px-5 py-2 rounded-sm tracking-wide transition-colors duration-200 min-h-[44px] inline-flex items-center whitespace-nowrap"
+          style={`background-color:${b.background};color:${b.color}`}
+        >{b.label}</a>
+      ))}
+    </div>
+    <button
+      id="eden-nav-toggle"
+      type="button"
+      class="min-[1024px]:hidden text-[#3B4A3F] min-h-[44px] min-w-[44px] flex items-center justify-center"
+      aria-label="Toggle menu"
+      aria-expanded="false"
+      aria-controls="eden-nav-mobile"
+    >
+      <svg id="eden-nav-open-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+      <svg id="eden-nav-close-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </button>
+  </div>
+  <nav class="hidden min-[1024px]:flex max-w-[1340px] mx-auto px-6">
+    <div class="w-full flex items-center gap-6 border-t border-[#EAE3D2] pt-2 pb-3">
       {NAV_LINKS.map((link) => (
         <a
           href={link.href}
@@ -47,30 +69,15 @@ import { NAV_BUTTONS, NAV_LINKS } from "@/lib/navLinks";
           class="text-sm font-sans text-[#4A5C4E] hover:text-[#2E3D32] tracking-wide transition-colors duration-200 whitespace-nowrap"
         >{link.label}</a>
       ))}
-    </nav>
-    <div class="hidden min-[1340px]:flex items-center gap-3">
-      {NAV_BUTTONS.map((b) => (
-        <a
-          href={b.href}
-          data-cta={b.cta}
-          class="text-sm font-sans px-5 py-2 rounded-sm tracking-wide transition-colors duration-200 min-h-[44px] inline-flex items-center"
-          style={`background-color:${b.background};color:${b.color}`}
-        >{b.label}</a>
-      ))}
+      <a
+        href={NAV_PODCAST.href}
+        data-cta={NAV_PODCAST.cta}
+        class="text-sm font-sans px-3 py-1 rounded-sm tracking-wide whitespace-nowrap transition-opacity duration-200 hover:opacity-80"
+        style={`background-color:${NAV_PODCAST.background};color:${NAV_PODCAST.color}`}
+      >{NAV_PODCAST.label}</a>
     </div>
-    <button
-      id="eden-nav-toggle"
-      type="button"
-      class="min-[1340px]:hidden text-[#3B4A3F] min-h-[44px] min-w-[44px] flex items-center justify-center"
-      aria-label="Toggle menu"
-      aria-expanded="false"
-      aria-controls="eden-nav-mobile"
-    >
-      <svg id="eden-nav-open-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
-      <svg id="eden-nav-close-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-    </button>
-  </div>
-  <div id="eden-nav-mobile" class="hidden min-[1340px]:hidden bg-[#FAF8F3] border-t border-[#D6CDB8] px-6 pb-6 pt-4 flex-col gap-5">
+  </nav>
+  <div id="eden-nav-mobile" class="hidden min-[1024px]:hidden bg-[#FAF8F3] border-t border-[#D6CDB8] px-6 pb-6 pt-4 flex-col gap-5">
     {NAV_LINKS.map((link) => (
       <a
         href={link.href}
@@ -80,6 +87,11 @@ import { NAV_BUTTONS, NAV_LINKS } from "@/lib/navLinks";
         class="text-sm font-sans text-[#4A5C4E] hover:text-[#2E3D32] tracking-wide transition-colors duration-200 min-h-[44px] inline-flex items-center"
       >{link.label}</a>
     ))}
+    <a
+      href={NAV_PODCAST.href}
+      data-cta={NAV_PODCAST.cta}
+      class="text-sm font-sans text-[#4A5C4E] hover:text-[#2E3D32] tracking-wide transition-colors duration-200 min-h-[44px] inline-flex items-center"
+    >{NAV_PODCAST.label}</a>
     {NAV_BUTTONS.map((b) => (
       <a
         href={b.href}

@@ -1,5 +1,7 @@
 // Emails for the Tales & Table Talk podcast list (entry_funnel 'podcast', signups
-// from talesandtabletalk.com).
+// from edeninstitute.health/tales-and-table-talk, and from talesandtabletalk.com until
+// that domain is pointed at the network show page, founder decision 2026-09-18). The
+// footer names the list, not a site, so it stays true wherever the signup came from.
 //
 // Deliberately NOT built on nurture-email-templates' emailShell: that shell carries
 // the Eden Institute header and shop card, and the podcast is its own brand. Colours
@@ -45,7 +47,7 @@ ${body}
 </td></tr>
 <tr><td style="background:${ESPRESSO};padding:20px 24px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="font-family:Georgia,serif;font-size:11px;color:${LINEN};text-align:center;">You're receiving this because you signed up at talesandtabletalk.com.</td></tr>
+<tr><td style="font-family:Georgia,serif;font-size:11px;color:${LINEN};text-align:center;">You're receiving this because you joined the Tales &amp; Table Talk list.</td></tr>
 <tr><td style="font-family:Georgia,serif;font-size:11px;color:${LINEN};text-align:center;padding-top:6px;">Rooted in Faith Ventures LLC &middot; ${SELLER_ADDRESS}</td></tr>
 <tr><td style="text-align:center;padding-top:8px;"><a href="{{UNSUB_URL}}" style="font-family:Georgia,serif;font-size:11px;color:${LINEN};text-decoration:underline;">Unsubscribe</a></td></tr>
 </table>

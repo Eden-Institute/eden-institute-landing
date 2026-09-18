@@ -587,7 +587,8 @@ Deno.serve(async (req) => {
         emailContent = buildHomeschoolEmail(firstNameHtml);
       }
     } else if (entry_funnel === 'podcast') {
-      // Tales & Table Talk (talesandtabletalk.com). Its own list, so it never
+      // Tales & Table Talk (edeninstitute.health/tales-and-table-talk, and
+      // talesandtabletalk.com until its switch to the network). Its own list, so it never
       // picks up the edens_table launch trigger or list-announce broadcasts.
       emailContent = buildPodcastWelcomeEmail(firstNameHtml);
     }

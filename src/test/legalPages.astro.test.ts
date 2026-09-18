@@ -30,7 +30,7 @@ const CASES = [
     path: "/terms",
     title: "Terms and Conditions | The Eden Institute",
     h1: "Terms and Conditions",
-    dates: "Effective Date: June 9, 2026 · Last Updated: September 15, 2026",
+    dates: "Effective Date: June 9, 2026 · Last Updated: September 18, 2026",
     headings: [
       "1. Agreement to Terms",
       "2. Definitions",
@@ -63,7 +63,7 @@ const CASES = [
     path: "/privacy",
     title: "Privacy Policy | The Eden Institute",
     h1: "Privacy Policy",
-    dates: "Effective Date: June 9, 2026 · Last Updated: September 15, 2026",
+    dates: "Effective Date: June 9, 2026 · Last Updated: September 18, 2026",
     headings: [
       "1. Introduction",
       "2. Information We Collect",

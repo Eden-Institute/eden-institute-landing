@@ -208,7 +208,7 @@ export default function Pricing() {
               would resolve to the React root container (scrollY=0)
               rather than the Root pricing card. */}
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div id="tier-free" className="scroll-mt-20">
+            <div id="tier-free" className="scroll-mt-20 min-[1024px]:scroll-mt-32">
               <PricingTier
                 tier="free"
                 displayName="Free"
@@ -225,7 +225,7 @@ export default function Pricing() {
               />
             </div>
 
-            <div id="tier-seed" className="scroll-mt-20">
+            <div id="tier-seed" className="scroll-mt-20 min-[1024px]:scroll-mt-32">
               <PricingTier
                 tier="seed"
                 displayName="Seed"
@@ -245,7 +245,7 @@ export default function Pricing() {
               />
             </div>
 
-            <div id="tier-root" className="scroll-mt-20">
+            <div id="tier-root" className="scroll-mt-20 min-[1024px]:scroll-mt-32">
               <PricingTier
                 tier="root"
                 displayName="Root"
@@ -265,7 +265,7 @@ export default function Pricing() {
               />
             </div>
 
-            <div id="tier-practitioner" className="scroll-mt-20">
+            <div id="tier-practitioner" className="scroll-mt-20 min-[1024px]:scroll-mt-32">
               <PricingTier
                 tier="practitioner"
                 displayName="Practitioner"

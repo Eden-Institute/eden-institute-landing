@@ -58,6 +58,20 @@ export const NAV_BUTTONS: readonly SiteButton[] = [
   },
 ];
 
+/** The podcast link (founder, 2026-09-18: "Listen to the Podcast", at the top of the
+    site). On wide screens it ends the second header row as a small button in the
+    Tales & Table Talk colours (Espresso ground, Linen text, per
+    TTT_Brand_Guide_v1_2026-09-13); in the mobile menu it follows the text links,
+    before the two buttons. It goes to Camila's own page on this site, not the
+    network show page, which talesandtabletalk.com will point to. */
+export const NAV_PODCAST: SiteButton = {
+  label: "Listen to the Podcast",
+  href: "/tales-and-table-talk",
+  cta: "nav-podcast",
+  background: "#2A231E",
+  color: "#F5EDD6",
+};
+
 /** Footer policy/utility links, in display order, separated by "|". */
 export const FOOTER_LINKS: readonly SiteLink[] = [
   { label: "Why Eden", href: "/why-eden" },

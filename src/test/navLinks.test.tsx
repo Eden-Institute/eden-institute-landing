@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
-import { FOOTER_LINKS, NAV_BUTTONS, NAV_LINKS, type SiteLink } from "@/lib/navLinks";
+import { FOOTER_LINKS, NAV_BUTTONS, NAV_LINKS, NAV_PODCAST, type SiteLink } from "@/lib/navLinks";
 import { ROUTES } from "@/lib/routes";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
@@ -39,6 +39,14 @@ describe("src/lib/navLinks.ts", () => {
     ]);
   });
 
+  it("holds the podcast link (founder, 2026-09-18)", () => {
+    expect([NAV_PODCAST.label, NAV_PODCAST.href, NAV_PODCAST.cta]).toEqual([
+      "Listen to the Podcast",
+      "/tales-and-table-talk",
+      "nav-podcast",
+    ]);
+  });
+
   it("holds the footer links", () => {
     expect(FOOTER_LINKS.map((l) => l.href)).toEqual([
       "/why-eden",
@@ -54,7 +62,7 @@ describe("src/lib/navLinks.ts", () => {
 
   it("marks only real SPA routes as router links", () => {
     const spaRoutes = new Set<unknown>(Object.values(ROUTES).filter((v) => typeof v === "string"));
-    const all = [...NAV_LINKS, ...NAV_BUTTONS, ...FOOTER_LINKS];
+    const all = [...NAV_LINKS, ...NAV_BUTTONS, NAV_PODCAST, ...FOOTER_LINKS];
     const marked = all.filter((l) => l.spaRoute);
     expect(marked.length).toBeGreaterThan(0);
     for (const link of all) {
@@ -97,19 +105,23 @@ describe("SPA Navbar renders the shared list", () => {
       </MemoryRouter>,
     );
 
-  it("renders every header link and both buttons on desktop", () => {
+  it("renders every header link, both buttons and the podcast link on desktop", () => {
     const { container } = renderNav();
     expectLinks(container, NAV_LINKS);
     expectLinks(container, NAV_BUTTONS);
+    expectLinks(container, [NAV_PODCAST]);
+    expect(
+      within(container).getByRole("link", { name: "Listen to the Podcast" }).getAttribute("data-cta"),
+    ).toBe("nav-podcast");
   });
 
-  it("renders every header link and both buttons in the mobile menu", () => {
+  it("renders every header link, the podcast link and both buttons in the mobile menu", () => {
     const { container } = renderNav();
     const before = container.querySelectorAll("a").length;
     fireEvent.click(screen.getByRole("button", { name: "Toggle menu" }));
     const added = [...container.querySelectorAll("a")].slice(before);
     expect(added.map((a) => a.getAttribute("href"))).toEqual(
-      [...NAV_LINKS, ...NAV_BUTTONS].map((l) => l.href),
+      [...NAV_LINKS, NAV_PODCAST, ...NAV_BUTTONS].map((l) => l.href),
     );
   });
 
