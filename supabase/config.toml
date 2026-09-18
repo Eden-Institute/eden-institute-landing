@@ -211,6 +211,12 @@ verify_jwt = true
 [functions.list-announce]
 verify_jwt = true
 
+# podcast-announce mails the whole Tales & Table Talk list (punch #307). Same rule as
+# list-announce: service-role only via _shared/require-service-role.ts, and verify_jwt
+# MUST stay true.
+[functions.podcast-announce]
+verify_jwt = true
+
 # contact-properties-sync projects funnel / band / purchase / quiz / engagement
 # state from Postgres onto Resend contacts. Invoked only by the Vercel cron and
 # by hand with the service-role key; it additionally requires role=service_role
