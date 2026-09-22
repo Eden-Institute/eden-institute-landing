@@ -1,0 +1,155 @@
+---
+// /homeschool/updates - corrections and updates for the printed Eden's Table books.
+// Static, pre-rendered marketing page with one client:only island (the report form).
+//
+// This page is a PROMISE ALREADY IN PRINT, twice. The Teacher's Guide matter says
+// "We keep a single page current with any corrections to this guide and with
+// refreshed sourcing links, in case a QR code or web address changes. Visit
+// edeninstitute.health/homeschool/updates", and the affiliate page says "If a QR
+// code or link no longer works, visit our updates page for current sourcing
+// links". Until this page existed, both pointed at a 404. So the page has to do
+// exactly those two jobs: sourcing links, and corrections.
+//
+// The corrections list is DATA, below. It ships empty on purpose: nothing has ever
+// been issued as a correction, and nothing goes on this list that the founder has
+// not confirmed. Adding one is a one-entry edit to CORRECTIONS.
+// Conventions mirror herbs.astro.
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import CorrectionReportForm from "../../components/islands/CorrectionReportForm.tsx";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+// CTA links carry buttonVariants classes rather than wrapping a <Button>: a
+// <button> inside an <a> is invalid HTML and a second tab stop.
+import { BookOpen, Mail, ShoppingCart } from "lucide-react";
+
+const meta = {
+  title: "Corrections and Updates | Eden's Table",
+  description:
+    "Current sourcing links and any corrections to the Eden's Table homeschool curriculum. One page, kept up to date, for families using the printed books.",
+  canonical: "https://edeninstitute.health/homeschool/updates",
+};
+
+interface Correction {
+  /** ISO date the correction was issued. */
+  date: string;
+  book: string;
+  page: string;
+  says: string;
+  shouldSay: string;
+}
+
+// Empty until a correction is confirmed by the founder. Never auto-populated.
+const CORRECTIONS: Correction[] = [];
+
+const dateFormat = new Intl.DateTimeFormat("en-US", { year: "numeric", month: "long", day: "numeric" });
+---
+
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical}>
+  <!-- Hero -->
+  <section class="py-20 md:py-28 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-3xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-6" style="color:hsl(var(--eden-gold-ink))">
+        Eden's Table · Corrections and Updates
+      </p>
+      <h1 class="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
+        Corrections and <span class="italic">Updates</span>
+      </h1>
+      <div class="w-16 h-px mx-auto my-8" style="background-color:hsl(var(--eden-gold-ink))"></div>
+      <p class="font-body text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed" style="color:hsl(var(--eden-bark))">
+        This is the page your books point to. If a sourcing link stopped working, or if we found an error
+        after the books were printed, it shows up here. One page, kept current, so you always know what changed.
+      </p>
+      <a href="/homeschool/herbs" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center max-md:w-full max-md:max-w-full")}>
+        <ShoppingCart className="w-5 h-5 mr-2" /> Current Herb Links
+      </a>
+    </div>
+  </section>
+
+  <!-- Sourcing links -->
+  <section class="py-16 px-6 bg-background">
+    <div class="max-w-3xl mx-auto text-center">
+      <h2 class="font-serif text-3xl font-bold mb-6" style="color:hsl(var(--eden-bark))">Sourcing links</h2>
+      <p class="font-body text-lg text-muted-foreground leading-relaxed mb-8">
+        Links change over time. If a QR code or web address in your book no longer works, the current link for
+        every herb in the curriculum is on one page, kept up to date.
+      </p>
+      <a href="/homeschool/herbs" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center max-md:w-full max-md:max-w-full")}>
+        Order Your Curriculum Herbs
+      </a>
+      <p class="font-body text-sm text-muted-foreground mt-6">
+        72 herbs across <strong>Sprouts</strong> (Grades K-2) and <strong>Seedlings</strong> (Grades 3-5), each with the supplier we use.
+      </p>
+    </div>
+  </section>
+
+  <!-- Corrections -->
+  <section class="py-16 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-3xl mx-auto">
+      <h2 class="font-serif text-3xl font-bold mb-8 text-center" style="color:hsl(var(--eden-bark))">Corrections</h2>
+      {CORRECTIONS.length === 0 ? (
+        <p class="font-body text-lg text-muted-foreground leading-relaxed text-center">
+          No corrections have been issued yet. When one is, it will be listed here with the date, the book,
+          the page, and exactly what changed.
+        </p>
+      ) : (
+        <div class="space-y-6">
+          {CORRECTIONS.map((c) => (
+            <div class="rounded-lg p-6 border bg-background" style="border-color:hsl(var(--border))">
+              <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-4">
+                <h3 class="font-serif text-lg font-semibold" style="color:hsl(var(--eden-bark))">{c.book}</h3>
+                <span class="font-body text-sm text-muted-foreground">{c.page}</span>
+                <span class="font-body text-xs text-muted-foreground ml-auto">
+                  Issued {dateFormat.format(new Date(c.date))}
+                </span>
+              </div>
+              <p class="font-body text-sm text-muted-foreground mb-2"><strong>It says:</strong> {c.says}</p>
+              <p class="font-body text-sm" style="color:hsl(var(--eden-bark))"><strong>It should say:</strong> {c.shouldSay}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  </section>
+
+  <!-- Which copy do you have -->
+  <section class="py-16 px-6 bg-background">
+    <div class="max-w-3xl mx-auto text-center">
+      <BookOpen className="w-8 h-8 mx-auto mb-6" color="hsl(var(--eden-gold))" />
+      <h2 class="font-serif text-3xl font-bold mb-6" style="color:hsl(var(--eden-bark))">Which copy do you have?</h2>
+      <p class="font-body text-lg text-muted-foreground leading-relaxed">
+        The Student Notebook and the Read-Aloud Storybook carry a copyright page at the very back, with the year
+        on it. The Teacher's Guide does not, so for that one just tell us the week and the day. That is enough
+        for us to find the page you are looking at.
+      </p>
+    </div>
+  </section>
+
+  <!-- Report an error -->
+  <section class="py-16 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-3xl mx-auto">
+      <div class="text-center mb-10">
+        <h2 class="font-serif text-3xl font-bold mb-6" style="color:hsl(var(--eden-bark))">Found something that looks wrong?</h2>
+        <p class="font-body text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
+          Tell me. A typo, a link that goes nowhere, an amount that does not look right, a QR code that will not
+          scan. Point me at the week and the page and I will go and look. If it is our error it gets fixed here first.
+        </p>
+      </div>
+      <div class="rounded-lg p-6 md:p-10 border bg-background" style="border-color:hsl(var(--border))">
+        <CorrectionReportForm client:only="react" />
+      </div>
+    </div>
+  </section>
+
+  <!-- Email fallback -->
+  <section class="py-12 px-6 bg-background">
+    <div class="max-w-3xl mx-auto text-center">
+      <div class="w-16 h-px mx-auto mb-6" style="background-color:hsl(var(--eden-gold))"></div>
+      <p class="font-body text-sm text-muted-foreground leading-relaxed mb-6">
+        Would rather just write to us? That works too.
+      </p>
+      <a href="mailto:hello@edeninstitute.health" class={cn(buttonVariants({ variant: "outline", size: "lg" }), "text-center")}>
+        <Mail className="w-4 h-4 mr-2" /> hello@edeninstitute.health
+      </a>
+    </div>
+  </section>
+</MarketingLayout>

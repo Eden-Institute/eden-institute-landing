@@ -37,6 +37,11 @@ verify_jwt = false
 [functions.submit-partner-inquiry]
 verify_jwt = false
 
+# Corrections reported by families from /homeschool/updates, the page the printed books
+# point at. Anonymous callers; the EF validates and rate-limits. Added 2026-09-22.
+[functions.submit-curriculum-correction]
+verify_jwt = false
+
 # ESA invoice form on /esa/<state> (Arizona, Arkansas, Alabama, New Hampshire). Anonymous
 # families; the EF validates, rate-limits and issues the invoice itself. Added 2026-09-14.
 [functions.esa-invoice]
