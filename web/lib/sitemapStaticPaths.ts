@@ -23,6 +23,7 @@ export const STATIC_PATHS: readonly string[] = [
   "/courses",
   "/homeschool",
   "/homeschool/herbs",
+  "/homeschool/updates",
   "/community",
   "/freebies",
   "/books",
