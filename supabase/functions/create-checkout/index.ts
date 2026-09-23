@@ -157,9 +157,12 @@ const ONE_OFF_LOOKUP_KEYS = new Set([
 // guarantee is structural rather than something we have to police. The promo_code
 // pre-application block below honours this set too, so a hand-built request cannot
 // attach a discount to these keys.
-const NO_PROMO_LOOKUP_KEYS = new Set([
-  ...STARTER_LOOKUP_KEYS,
-])
+// FOUNDER DECISION 2026-09-23: the Starter now SHOWS Stripe's "Add promotion code" box
+// like every other product, so a buyer (and the founder testing) can type a code the
+// ordinary way. She was told that any active coupon not restricted to specific products
+// then also works on the Starter, and chose this anyway. The set stays so a product can
+// be opted back out later without re-plumbing.
+const NO_PROMO_LOOKUP_KEYS = new Set<string>([])
 
 // Lookup_keys that need a real Stripe Customer created at checkout.
 //
