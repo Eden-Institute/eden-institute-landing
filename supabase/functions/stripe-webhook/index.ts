@@ -51,9 +51,9 @@ import { productForPriceId } from "../_shared/order-config.ts"
 import { captureException } from "../_shared/sentry.ts"
 import { sendMetaCapiPurchase } from "../_shared/meta-capi.ts"
 import { getGuideByNickname, getGuideBySlug } from "../_shared/guide/registry.ts"
-import { STARTER_BANDS, StarterBand, starterBandForLookupKey } from "../_shared/starter-config.ts"
+import { STARTER_BANDS, StarterBand, starterBandForLookupKey, starterBandHasCredit } from "../_shared/starter-config.ts"
 import { starterOrderLabel } from "../_shared/receipt.ts"
-import { creditIssuanceOpen, issueStarterCredit, markCreditRedeemed } from "../_shared/starter-credit.ts"
+import { creditIssuanceOpen, issueStarterCreditForBand, markCreditRedeemed } from "../_shared/starter-credit.ts"
 import { escapeLikePattern } from "../_shared/like-escape.ts"
 import { classifyLearnWorldsCharge } from "../_shared/learnworlds-charge.ts"
 import { E2E_MODE, isE2eMetadata, stripeSecretKey, stripeWebhookSecret } from "../_shared/e2e-mode.ts"
@@ -1252,9 +1252,11 @@ async function handleStarterUnitPurchase(
     typeof session.customer === "string" ? session.customer : session.customer?.id ?? null
   const purchaserName = session.customer_details?.name ?? null
 
-  // 2. The credit.
+  // 2. The credit. Sprouts only: a band with no credit (Seedlings, founder
+  // decision 2026-09-23) skips this whole step, so its purchase never creates a
+  // promotion code or coupon and never writes a starter_credits row.
   let creditCode: string | null = null
-  try {
+  if (starterBandHasCredit(band)) try {
     if (!stripeCustomerId) {
       // Without a Customer the code cannot be bound, and an UNBOUND code is a
       // transferable $39 that anyone can use. Refuse to issue rather than issue a
@@ -1265,16 +1267,14 @@ async function handleStarterUnitPurchase(
     if (!(await creditIssuanceOpen(adminClient))) {
       console.log(`[${sid}] credit issuance is closed under the current policy; no code issued`)
     } else {
-      const issued = await issueStarterCredit(adminClient, stripe, {
+      const issued = await issueStarterCreditForBand(adminClient, stripe, band, {
         sessionId: sid,
         orderId,
         email,
         purchaserName,
         stripeCustomerId,
-        // Omitted for Sprouts so its call is exactly what it was.
-        ...(isSprouts ? {} : { band }),
       })
-      creditCode = issued.code
+      creditCode = issued?.code ?? null
     }
   } catch (err) {
     console.error(
@@ -1341,7 +1341,9 @@ async function cancelCreditForRefundedStarter(paymentIntentId: string): Promise<
   const { data: order } = await adminClient
     .from("orders").select("stripe_checkout_session_id, lookup_key")
     .eq("stripe_payment_intent_id", paymentIntentId).maybeSingle()
-  if (!order || !starterBandForLookupKey(order.lookup_key)) return
+  const refundedBand = order ? starterBandForLookupKey(order.lookup_key) : null
+  // A band with no credit (Seedlings) has nothing to cancel; do not query for one.
+  if (!order || !refundedBand || !starterBandHasCredit(refundedBand)) return
 
   const { data: credit } = await adminClient
     .from("starter_credits").select("id, code, stripe_promotion_code_id, redeemed_at, deactivated_at")

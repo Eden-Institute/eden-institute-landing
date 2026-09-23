@@ -52,15 +52,17 @@ import { enforceCheckoutRateLimit } from "../_shared/checkout-rate-limit.ts"
 import { sendMetaCapiInitiateCheckout } from "../_shared/meta-capi.ts"
 import {
   STARTER_BANDS,
+  STARTER_LOOKUP_KEY,
   STARTER_LOOKUP_KEYS,
   STARTER_SOURCE_BUCKET,
   StarterBand,
   missingStarterEnv,
   missingStarterMasters,
   starterBandForLookupKey,
+  starterPrepaymentProblems,
 } from "../_shared/starter-config.ts"
 import { curriculumInvoiceCreation } from "../_shared/receipt.ts"
-import { evaluateRedemption, findCreditByCode, starterPrepaymentProblems } from "../_shared/starter-credit.ts"
+import { evaluateRedemption, findCreditByCode } from "../_shared/starter-credit.ts"
 import { LULU_PRODUCTION_DELAY_MINUTES, LULU_PRODUCTS, PRINT_SHOP_URL, luluProductBySku } from "../_shared/lulu-config.ts"
 import { timingSafeEqual } from "../_shared/timing-safe-equal.ts"
 import { E2E_BUYER_EMAIL, E2E_HEADER, E2E_METADATA_KEY, E2E_MODE, e2eRequestAllowed, stripeSecretKey } from "../_shared/e2e-mode.ts"
@@ -162,8 +164,10 @@ const NO_PROMO_LOOKUP_KEYS = new Set([
 // makes it non-transferable (Stripe rejects any other customer with
 // promotion_code_customer_mismatch). No Customer at purchase time means no
 // binding, so this is load-bearing, not a nicety.
+// Sprouts only: the Seedlings Starter Unit carries no credit (founder decision
+// 2026-09-23), so it has nothing to bind to a Customer.
 const CUSTOMER_REQUIRED_LOOKUP_KEYS = new Set([
-  ...STARTER_LOOKUP_KEYS,
+  STARTER_LOOKUP_KEY,
 ])
 
 // Founders Edition rails removed 2026-09-15 (BUNDLE_RESTRICTED_LOOKUP_KEYS,
@@ -494,9 +498,9 @@ serve(async (req) => {
     // of at the first refund request.
     //
     // Per band since 2026-09-23. Sprouts checks only STRIPE_STARTER_CREDIT_COUPON_ID,
-    // as before. Seedlings also needs its own coupon, the print-set product id its
-    // credit targets, and all three master PDFs actually in the bucket: without the
-    // masters the buyer would pay and then receive a failed delivery.
+    // as before. Seedlings has no credit (founder decision 2026-09-23), so it needs
+    // no coupon; it needs the band migration applied and all three master PDFs in
+    // the bucket, or the buyer would pay and then receive a failed delivery.
     const starterNotConfigured = () => new Response(
       JSON.stringify({
         error: "The Starter Unit is not available right now. Please try again shortly, or email hello@edeninstitute.health.",
@@ -514,10 +518,9 @@ serve(async (req) => {
         return starterNotConfigured()
       }
       if (starterBand !== "sprouts") {
-        // Migration applied, and the band's coupon scoped to its print-set product
-        // for exactly its credit. Checked HERE, before any Stripe session exists,
-        // so a misconfiguration refuses the sale instead of failing after payment.
-        const problems = await starterPrepaymentProblems(admin(), stripe, starterBand)
+        // Band migration applied. Checked HERE, before any Stripe session exists,
+        // so a missing migration refuses the sale instead of failing after payment.
+        const problems = await starterPrepaymentProblems(admin(), starterBand)
         if (problems.length) {
           console.error(
             `create-checkout: refusing to sell the ${starterBand} Starter Unit: ${problems.join("; ")}`,
@@ -892,10 +895,7 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
     }
 
     const credit = await findCreditByCode(adminClient, rawCreditCode)
-    // This path sells the Sprouts kit, so only a Sprouts Starter credit applies.
-    // Stripe's coupon scope would refuse a Seedlings credit anyway; this makes the
-    // refusal a sentence the buyer can act on.
-    const verdict = evaluateRedemption(credit, buyerEmail, "sprouts")
+    const verdict = evaluateRedemption(credit, buyerEmail)
     if (!verdict.ok) {
       console.warn(
         `starter credit refused: reason=${verdict.code} credit_id=${credit?.id ?? "none"}`,

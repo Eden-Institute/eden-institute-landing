@@ -2,7 +2,8 @@
 //
 // Single source of truth for the Eden's Table Starter Units: $39 digital products
 // carrying weeks 1-9 of a band (Teacher's Guide, Student Notebook and the
-// Read-Aloud storybook), plus a $39 credit toward that band's printed year.
+// Read-Aloud storybook). Sprouts buyers also earn a $39 credit toward the kit;
+// Seedlings buyers do not (founder decision 2026-09-23, see STARTER_BANDS).
 //
 // TWO BANDS since 2026-09-23 (founder decision): Sprouts (K-2) and Seedlings
 // (grades 3-5). The Sprouts constants below are UNCHANGED and are still exported
@@ -175,16 +176,22 @@ export function normalizeEmail(raw: string): string {
 //
 // One entry per band that has a Starter Unit. Everything that differs between the
 // Sprouts and the Seedlings Starter Unit lives here, and nowhere else: the lookup
-// key, the master files, the delivered filenames, the page, the copy nouns, the
-// credit coupon and the product the credit applies to.
+// key, the master files, the delivered filenames, the page, the copy nouns, and
+// whether the band carries a credit at all.
 //
 // HOW A PURCHASE FINDS ITS BAND. The Stripe lookup_key is the only input. The
 // webhook maps it through starterBandForLookupKey, records the band on the
-// delivery and credit rows (public.starter_deliveries.band and
-// public.starter_credits.band, migration 20260923120000), and every later step
-// reads the band back from the row. A row with NO band (every row written before
-// that migration) is Sprouts, because Sprouts was the only Starter Unit that
-// existed: normalizeStarterBand(null) === 'sprouts'.
+// delivery row (public.starter_deliveries.band, migration 20260923120000), and
+// every later step reads the band back from the row. A row with NO band (every
+// row written before that migration) is Sprouts, because Sprouts was the only
+// Starter Unit that existed: normalizeStarterBand(null) === 'sprouts'.
+//
+// THE CREDIT IS PER BAND, and only Sprouts has one. FOUNDER DECISION 2026-09-23:
+// "this was for the kit only and we are not doing it for seedlings". So the
+// Seedlings entry has `credit: null`, and every credit step (minting a promotion
+// code, writing starter_credits, looking a code up for the email or the
+// downloads page, cancelling one on refund) is skipped for it via
+// starterBandHasCredit. The Sprouts credit machinery is untouched.
 
 export type StarterBand = 'sprouts' | 'seedlings';
 
@@ -194,10 +201,14 @@ export interface StarterFileSet {
   readAloud: string;
 }
 
-/** Where the credit's target product id comes from. */
-export type CreditTarget =
-  | { kind: 'product_id'; productId: string }
-  | { kind: 'env'; envVar: string };
+/** A band's Starter Unit credit. Only Sprouts has one. */
+export interface StarterCreditConfig {
+  cents: number;
+  /** Env var holding the coupon id. Read at call time, never defaulted. */
+  couponEnv: string;
+  /** The Stripe product the coupon is scoped to (verified value). */
+  targetProductId: string;
+}
 
 export interface StarterBandConfig {
   band: StarterBand;
@@ -207,10 +218,9 @@ export interface StarterBandConfig {
   bandName: string;
   /** "K-2" / "3-5". */
   grades: string;
-  /** Product name for analytics line items and receipts' short form. */
+  /** Product name for analytics line items. */
   productName: string;
   priceCents: number;
-  creditCents: number;
   /** Master PDFs in STARTER_SOURCE_BUCKET. Read-only. */
   masters: StarterFileSet;
   /** Customer-facing filenames on the delivered PDFs. */
@@ -225,10 +235,11 @@ export interface StarterBandConfig {
    * rather than linking to another band's books.
    */
   printSetUrl: string | null;
-  /** Env var holding the credit coupon id. Read at call time, never defaulted. */
-  creditCouponEnv: string;
-  /** The Stripe product the credit coupon must be scoped to. */
-  creditTarget: CreditTarget;
+  /**
+   * The credit a purchase earns, or null for none. Null means NO promotion code,
+   * NO coupon and NO starter_credits row, ever, for this band.
+   */
+  credit: StarterCreditConfig | null;
 }
 
 export const STARTER_BANDS: Record<StarterBand, StarterBandConfig> = {
@@ -239,16 +250,18 @@ export const STARTER_BANDS: Record<StarterBand, StarterBandConfig> = {
     grades: 'K-2',
     productName: 'Sprouts Starter Unit',
     priceCents: STARTER_PRICE_CENTS,
-    creditCents: STARTER_CREDIT_CENTS,
     masters: STARTER_MASTERS,
     filenames: STARTER_FILENAMES,
     pageUrl: STARTER_PAGE_URL,
     successUrl: 'https://edeninstitute.health/starter/thank-you?session_id={CHECKOUT_SESSION_ID}',
     printSetUrl: 'https://edeninstitute.health/books',
-    creditCouponEnv: 'STRIPE_STARTER_CREDIT_COUPON_ID',
-    // The verified kit product (see the header of this file). The Sprouts coupon
-    // already exists and is already scoped to it; nothing here changes that.
-    creditTarget: { kind: 'product_id', productId: 'prod_UbK7PJQPkKhcnE' },
+    // Unchanged: the same coupon env var and the verified kit product (see the
+    // header of this file) the Sprouts credit has used since 2026-08-26.
+    credit: {
+      cents: STARTER_CREDIT_CENTS,
+      couponEnv: 'STRIPE_STARTER_CREDIT_COUPON_ID',
+      targetProductId: 'prod_UbK7PJQPkKhcnE',
+    },
   },
   seedlings: {
     band: 'seedlings',
@@ -257,8 +270,6 @@ export const STARTER_BANDS: Record<StarterBand, StarterBandConfig> = {
     grades: '3-5',
     productName: 'Seedlings Starter Unit',
     priceCents: 3900,
-    // Same $39 credit rule as Sprouts (founder decision 2026-09-23).
-    creditCents: 3900,
     // Same private bucket as Sprouts. THESE OBJECTS DID NOT EXIST when this was
     // written (2026-09-23); they are uploaded separately. create-checkout refuses
     // to sell the Seedlings Starter Unit while any of the three is missing
@@ -280,16 +291,11 @@ export const STARTER_BANDS: Record<StarterBand, StarterBandConfig> = {
     },
     pageUrl: 'https://edeninstitute.health/starter/seedlings',
     successUrl: 'https://edeninstitute.health/starter/seedlings/thank-you?session_id={CHECKOUT_SESSION_ID}',
-    // TODO(seedlings print set): the Seedlings printed set (Teacher's Guide,
-    // Student Notebook, Read-Aloud Storybook, $249, Lulu print on demand) is being
-    // built in parallel and has no page yet. Set its URL here when it goes on sale.
+    // TODO(seedlings print set): the Seedlings printed set has no page yet. Set
+    // its URL here when it goes on sale.
     printSetUrl: null,
-    creditCouponEnv: 'STRIPE_SEEDLINGS_STARTER_CREDIT_COUPON_ID',
-    // TODO(seedlings print set): the Stripe product id of the Seedlings printed set
-    // is UNKNOWN because that product does not exist in Stripe yet. It is read from
-    // this env var and nothing guesses it. Until it is set, the Seedlings Starter
-    // Unit is not sold (create-checkout answers STARTER_NOT_CONFIGURED).
-    creditTarget: { kind: 'env', envVar: 'STRIPE_SEEDLINGS_PRINT_SET_PRODUCT_ID' },
+    // FOUNDER DECISION 2026-09-23: no credit, no coupon of any kind.
+    credit: null,
   },
 };
 
@@ -324,46 +330,20 @@ export function starterConfig(band: StarterBand): StarterBandConfig {
   return STARTER_BANDS[band];
 }
 
-/** The credit coupon id for a band. Throws, naming the env var, when unset. */
-export function starterCreditCouponId(band: StarterBand): string {
-  const envVar = STARTER_BANDS[band].creditCouponEnv;
-  const v = Deno.env.get(envVar);
-  if (!v) throw new Error(`${envVar} is not set; cannot issue a ${band} starter credit`);
-  return v;
-}
-
-/** The product a band's credit must apply to. Throws, naming the env var, when unknown. */
-export function starterCreditTargetProductId(band: StarterBand): string {
-  const t = STARTER_BANDS[band].creditTarget;
-  if (t.kind === 'product_id') return t.productId;
-  const v = Deno.env.get(t.envVar);
-  if (!v) throw new Error(`${t.envVar} is not set; the ${band} starter credit has no product to apply to`);
-  return v;
+/** Whether a purchase of this band earns a credit. False means never touch credits. */
+export function starterBandHasCredit(band: StarterBand): boolean {
+  return STARTER_BANDS[band].credit !== null;
 }
 
 /**
  * Env vars that must be set before a band's Starter Unit may be sold. Empty means
- * sellable. Sprouts needs only its coupon, exactly as before; Seedlings also needs
- * the print-set product id, because a credit with no target is a promise we
- * cannot keep.
+ * sellable. Sprouts needs its coupon, exactly as before. A band with no credit
+ * (Seedlings) needs none.
  */
 export function missingStarterEnv(band: StarterBand): string[] {
-  const cfg = STARTER_BANDS[band];
-  const missing: string[] = [];
-  if (!Deno.env.get(cfg.creditCouponEnv)) missing.push(cfg.creditCouponEnv);
-  if (cfg.creditTarget.kind === 'env' && !Deno.env.get(cfg.creditTarget.envVar)) {
-    missing.push(cfg.creditTarget.envVar);
-  }
-  // Two bands sharing one coupon would let a Seedlings credit discount the
-  // Sprouts kit (or the reverse). Refuse rather than sell into that.
-  if (band !== 'sprouts') {
-    const mine = Deno.env.get(cfg.creditCouponEnv);
-    const sprouts = Deno.env.get(STARTER_BANDS.sprouts.creditCouponEnv);
-    if (mine && sprouts && mine === sprouts) {
-      missing.push(`${cfg.creditCouponEnv} (must differ from ${STARTER_BANDS.sprouts.creditCouponEnv})`);
-    }
-  }
-  return missing;
+  const credit = STARTER_BANDS[band].credit;
+  if (!credit) return [];
+  return Deno.env.get(credit.couponEnv) ? [] : [credit.couponEnv];
 }
 
 /**
@@ -374,4 +354,30 @@ export function missingStarterEnv(band: StarterBand): string[] {
 export function missingStarterMasters(band: StarterBand, presentPaths: readonly string[]): string[] {
   const present = new Set(presentPaths);
   return Object.values(STARTER_BANDS[band].masters).filter((p) => !present.has(p));
+}
+
+/**
+ * What must be true BEFORE a non-Sprouts Starter Unit is sold, checked by
+ * create-checkout ahead of creating any Stripe session. Returns problems; empty
+ * means sellable. Never throws. Masters are checked separately (needs Storage).
+ *
+ *   1. The band's env vars (none for Seedlings, which has no credit).
+ *   2. The band migration (20260923120000) is applied: starter_deliveries.band
+ *      is readable. Without it the webhook's Seedlings delivery insert fails
+ *      AFTER payment. Only starter_deliveries is probed: a band with no credit
+ *      never reads or writes starter_credits.
+ *
+ * Not called for Sprouts, whose guard is unchanged (its coupon env only).
+ */
+// deno-lint-ignore no-explicit-any
+export async function starterPrepaymentProblems(db: { from(table: string): any }, band: StarterBand): Promise<string[]> {
+  const missing = missingStarterEnv(band);
+  if (missing.length) return missing.map((m) => `env ${m} not set`);
+  try {
+    const { error } = await db.from('starter_deliveries').select('band').limit(0);
+    if (error) return [`migration not applied: starter_deliveries.band unreadable (${error.message ?? String(error)})`];
+  } catch (err) {
+    return [`migration probe on starter_deliveries threw: ${err instanceof Error ? err.message : String(err)}`];
+  }
+  return [];
 }

@@ -29,7 +29,7 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { mintDownloadLinks } from '../_shared/starter-fulfillment.ts';
-import { DOWNLOAD_URL_TTL_SECONDS, STARTER_BANDS, normalizeStarterBand } from '../_shared/starter-config.ts';
+import { DOWNLOAD_URL_TTL_SECONDS, STARTER_BANDS, normalizeStarterBand, starterBandHasCredit } from '../_shared/starter-config.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -217,9 +217,12 @@ serve(async (req) => {
     // The credit code rides along so the confirmation page can repeat it (spec:
     // "Deliver the code in the same email as the download link, and repeat it on
     // the order confirmation page"). A buyer who closes the email still has it.
-    const { data: credit } = await adminClient
-      .from('starter_credits').select('code, redeemed_at')
-      .eq('stripe_checkout_session_id', sid).maybeSingle();
+    // A band with no credit (Seedlings) never has one; do not query for it.
+    const { data: credit } = starterBandHasCredit(band as 'sprouts' | 'seedlings')
+      ? await adminClient
+        .from('starter_credits').select('code, redeemed_at')
+        .eq('stripe_checkout_session_id', sid).maybeSingle()
+      : { data: null };
 
     console.log(`[${sid}] re-issued download links, valid until ${expiresAt.toISOString()}`);
     return json(200, {

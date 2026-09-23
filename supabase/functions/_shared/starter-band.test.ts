@@ -20,8 +20,8 @@ import {
   missingStarterMasters,
   normalizeStarterBand,
   starterBandForLookupKey,
-  starterCreditCouponId,
-  starterCreditTargetProductId,
+  starterBandHasCredit,
+  starterPrepaymentProblems,
 } from './starter-config.ts';
 import { renderStarterDeliveryEmail } from './starter-email.ts';
 import {
@@ -71,8 +71,12 @@ Deno.test('Sprouts registry entry IS the original constants, unchanged', () => {
     studentNotebook: 'Edens-Table-Sprouts-Starter-Student-Notebook.pdf',
     readAloud: 'Edens-Table-Sprouts-Starter-Read-Aloud.pdf',
   });
-  assertEquals(s.creditCouponEnv, 'STRIPE_STARTER_CREDIT_COUPON_ID');
-  assertEquals(s.creditTarget, { kind: 'product_id', productId: 'prod_UbK7PJQPkKhcnE' });
+  assertEquals(s.credit, {
+    cents: 3900,
+    couponEnv: 'STRIPE_STARTER_CREDIT_COUPON_ID',
+    targetProductId: 'prod_UbK7PJQPkKhcnE',
+  });
+  assert(starterBandHasCredit('sprouts'));
   assertEquals(s.successUrl, 'https://edeninstitute.health/starter/thank-you?session_id={CHECKOUT_SESSION_ID}');
 });
 
@@ -80,7 +84,6 @@ Deno.test('Seedlings registry entry carries the 2026-09-23 values', () => {
   const s = STARTER_BANDS.seedlings;
   assertEquals(s.lookupKey, 'seedlings_starter_unit');
   assertEquals(s.priceCents, 3900);
-  assertEquals(s.creditCents, 3900);
   assertEquals(s.masters, {
     teachersGuide: 'sample/edens-table-seedlings-9wk-teachers-guide.pdf',
     studentNotebook: 'sample/edens-table-seedlings-9wk-student-notebook.pdf',
@@ -91,8 +94,15 @@ Deno.test('Seedlings registry entry carries the 2026-09-23 values', () => {
     studentNotebook: 'Edens-Table-Seedlings-Starter-Student-Notebook.pdf',
     readAloud: 'Edens-Table-Seedlings-Starter-Read-Aloud.pdf',
   });
-  assertEquals(s.creditCouponEnv, 'STRIPE_SEEDLINGS_STARTER_CREDIT_COUPON_ID');
-  assertEquals(s.creditTarget, { kind: 'env', envVar: 'STRIPE_SEEDLINGS_PRINT_SET_PRODUCT_ID' });
+});
+
+Deno.test('FOUNDER DECISION 2026-09-23: the Seedlings Starter Unit carries no credit and no coupon', () => {
+  assertEquals(STARTER_BANDS.seedlings.credit, null);
+  assertEquals(starterBandHasCredit('seedlings'), false);
+  // Apart from that null, no coupon, credit or Stripe env var anywhere in its config.
+  const { credit: _none, ...rest } = STARTER_BANDS.seedlings;
+  const json = JSON.stringify(rest);
+  assert(!/coupon|credit|STRIPE_/i.test(json), json);
 });
 
 Deno.test('no Seedlings file name, path or URL mentions Sprouts, and the reverse', () => {
@@ -145,53 +155,83 @@ function withEnv(vars: Record<string, string | null>, fn: () => void) {
   }
 }
 
-Deno.test('Seedlings is not sellable until its coupon AND print-set product are set', () => {
+Deno.test('Seedlings needs no env var at all, whatever is or is not set', () => {
   withEnv({
-    STRIPE_STARTER_CREDIT_COUPON_ID: 'coupon_sprouts',
+    STRIPE_STARTER_CREDIT_COUPON_ID: null,
     STRIPE_SEEDLINGS_STARTER_CREDIT_COUPON_ID: null,
     STRIPE_SEEDLINGS_PRINT_SET_PRODUCT_ID: null,
   }, () => {
-    assertEquals(missingStarterEnv('sprouts'), []);
-    assertEquals(missingStarterEnv('seedlings'), [
-      'STRIPE_SEEDLINGS_STARTER_CREDIT_COUPON_ID',
-      'STRIPE_SEEDLINGS_PRINT_SET_PRODUCT_ID',
-    ]);
-    assertThrows(() => starterCreditCouponId('seedlings'), Error, 'STRIPE_SEEDLINGS_STARTER_CREDIT_COUPON_ID');
-    assertThrows(() => starterCreditTargetProductId('seedlings'), Error, 'STRIPE_SEEDLINGS_PRINT_SET_PRODUCT_ID');
-    // The Sprouts target is the verified constant, never env.
-    assertEquals(starterCreditTargetProductId('sprouts'), 'prod_UbK7PJQPkKhcnE');
-  });
-  withEnv({
-    STRIPE_STARTER_CREDIT_COUPON_ID: 'coupon_sprouts',
-    STRIPE_SEEDLINGS_STARTER_CREDIT_COUPON_ID: 'coupon_seedlings',
-    STRIPE_SEEDLINGS_PRINT_SET_PRODUCT_ID: 'prod_test_seedlings',
-  }, () => {
     assertEquals(missingStarterEnv('seedlings'), []);
-    assertEquals(starterCreditCouponId('seedlings'), 'coupon_seedlings');
-    assertEquals(starterCreditTargetProductId('seedlings'), 'prod_test_seedlings');
-  });
-});
-
-Deno.test('Seedlings refuses to share the Sprouts coupon', () => {
-  withEnv({
-    STRIPE_STARTER_CREDIT_COUPON_ID: 'coupon_same',
-    STRIPE_SEEDLINGS_STARTER_CREDIT_COUPON_ID: 'coupon_same',
-    STRIPE_SEEDLINGS_PRINT_SET_PRODUCT_ID: 'prod_test_seedlings',
-  }, () => {
-    const missing = missingStarterEnv('seedlings');
-    assertEquals(missing.length, 1);
-    assert(missing[0].includes('must differ'));
   });
 });
 
 Deno.test('Sprouts sellability still depends only on its own coupon', () => {
-  withEnv({
-    STRIPE_STARTER_CREDIT_COUPON_ID: null,
-    STRIPE_SEEDLINGS_STARTER_CREDIT_COUPON_ID: 'coupon_seedlings',
-    STRIPE_SEEDLINGS_PRINT_SET_PRODUCT_ID: 'prod_test_seedlings',
-  }, () => {
+  withEnv({ STRIPE_STARTER_CREDIT_COUPON_ID: null }, () => {
     assertEquals(missingStarterEnv('sprouts'), ['STRIPE_STARTER_CREDIT_COUPON_ID']);
   });
+  withEnv({ STRIPE_STARTER_CREDIT_COUPON_ID: 'coupon_sprouts' }, () => {
+    assertEquals(missingStarterEnv('sprouts'), []);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Pre-payment guard (create-checkout, before any Stripe session): for Seedlings
+// it is the migration probe and nothing else. It must never read or write
+// starter_credits, and it has no Stripe client to touch at all.
+// ---------------------------------------------------------------------------
+
+/** A db that records every table asked for, and fails the band probe if told to. */
+function probeDb(bandColumnExists: boolean) {
+  const tables: string[] = [];
+  return {
+    tables,
+    from(table: string) {
+      tables.push(table);
+      const q = {
+        select(_c: string) { return q; },
+        limit(_n: number) {
+          return Promise.resolve({
+            data: [],
+            error: bandColumnExists ? null : { message: `column ${table}.band does not exist`, code: '42703' },
+          });
+        },
+      };
+      return q;
+    },
+  };
+}
+
+Deno.test('pre-payment: Seedlings is sellable once the migration is applied, touching only starter_deliveries', async () => {
+  const db = probeDb(true);
+  assertEquals(await starterPrepaymentProblems(db, 'seedlings'), []);
+  assertEquals(db.tables, ['starter_deliveries']);
+});
+
+Deno.test('pre-payment: an unapplied migration refuses the Seedlings sale', async () => {
+  const db = probeDb(false);
+  const problems = await starterPrepaymentProblems(db, 'seedlings');
+  assertEquals(problems.length, 1);
+  assert(problems[0].includes('starter_deliveries.band'), problems[0]);
+  assert(!db.tables.includes('starter_credits'));
+});
+
+Deno.test('pre-payment: a throwing probe refuses the sale instead of throwing', async () => {
+  const db = { from() { throw new Error('network down'); } };
+  const problems = await starterPrepaymentProblems(db, 'seedlings');
+  assertEquals(problems.length, 1);
+  assert(problems[0].includes('network down'));
+});
+
+Deno.test('pre-payment: Seedlings does not require any Seedlings coupon or product env var', async () => {
+  const saved = [Deno.env.get('STRIPE_SEEDLINGS_STARTER_CREDIT_COUPON_ID'), Deno.env.get('STRIPE_SEEDLINGS_PRINT_SET_PRODUCT_ID')];
+  Deno.env.delete('STRIPE_SEEDLINGS_STARTER_CREDIT_COUPON_ID');
+  Deno.env.delete('STRIPE_SEEDLINGS_PRINT_SET_PRODUCT_ID');
+  try {
+    assertEquals(await starterPrepaymentProblems(probeDb(true), 'seedlings'), []);
+  } finally {
+    if (saved[0]) Deno.env.set('STRIPE_SEEDLINGS_STARTER_CREDIT_COUPON_ID', saved[0]);
+    if (saved[1]) Deno.env.set('STRIPE_SEEDLINGS_PRINT_SET_PRODUCT_ID', saved[1]);
+  }
 });
 
 Deno.test('a missing master is reported by path', () => {
@@ -290,4 +330,37 @@ Deno.test('the Seedlings lead offer sells the Seedlings Starter Unit, not Sprout
   assertEquals(sp.subject, 'What comes after Lavender');
   assert(sp.html.includes("'https://edeninstitute.health/starter'") || sp.html.includes('href="https://edeninstitute.health/starter"'));
   assert(!SEEDLINGS.test(sp.subject + sp.html));
+});
+
+// ---------------------------------------------------------------------------
+// FOUNDER DECISION 2026-09-23: no credit, code or "$39 toward" anywhere a
+// Seedlings buyer or lead reads.
+// ---------------------------------------------------------------------------
+
+const CREDIT_WORDING = /credit|coupon|promo(tion)? code|\btoward\b|EDEN-S-/i;
+
+Deno.test('ACCEPTANCE: no credit wording in any Seedlings output', () => {
+  // The fulfiller passes creditCode null for Seedlings; even if a code leaked in,
+  // the email must not print it.
+  const withLeakedCode = renderStarterDeliveryEmail({
+    firstName: 'Pat',
+    email: 'pat@example.com',
+    creditCode: 'EDEN-S-ABC234',
+    downloadToken: 'a'.repeat(64),
+    receipt: starterReceipt(ORDER, 'seedlings_starter_unit'),
+    band: 'seedlings',
+  });
+  const outputs: Record<string, string> = {
+    'delivery email subject': withLeakedCode.subject,
+    'delivery email html': withLeakedCode.html,
+    'delivery email text': withLeakedCode.text,
+    'receipt html': renderReceiptHtml(starterReceipt(ORDER, 'seedlings_starter_unit')),
+    'receipt text': renderReceiptText(starterReceipt(ORDER, 'seedlings_starter_unit')),
+    'stripe invoice': JSON.stringify(curriculumInvoiceCreation('starter', 'seedlings')),
+    'nurture offer': (() => { const m = buildStarterOfferEmail('Sarah', 'seedlings'); return m.subject + m.html; })(),
+  };
+  for (const [label, text] of Object.entries(outputs)) {
+    const hit = text.match(CREDIT_WORDING);
+    assert(!hit, `Seedlings ${label} carries credit wording: "${hit?.[0]}"`);
+  }
 });
