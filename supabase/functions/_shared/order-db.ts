@@ -18,6 +18,8 @@ export interface OrderRow {
   customer_phone: string | null;
   shipping_name: string | null;
   product_label: string | null;
+  /** First cart SKU (order-flow). For a print order it names the band's product. */
+  lookup_key?: string | null;
   amount_total_cents: number | null;
   /** Sales tax in cents, from Stripe total_details. Read by the itemized receipt. */
   tax_cents?: number | null;

@@ -8,7 +8,7 @@ import { emailWrapperTransactional } from './nurture-email-templates.ts';
 import { escapeHtml, safeHttpsUrl } from './html-escape.ts';
 import { OrderStatus } from './order-state.ts';
 import { SHIP_GUARANTEE_TEXT, SHIP_TARGET } from './order-config.ts';
-import { LULU_PRODUCTION_DELAY_MINUTES } from './lulu-config.ts';
+import { LULU_BAND_INFO, LULU_PRODUCTION_DELAY_MINUTES, printBandForOrder } from './lulu-config.ts';
 import { Db, OrderRow, hasSentMessage, logMessage } from './order-db.ts';
 import { sendSms } from './order-sms.ts';
 import { captureException } from './sentry.ts';
@@ -90,6 +90,16 @@ function trackingBits(order: OrderRow): { carrier: string; code: string; link: s
 
 const PRINT_CANCEL_HOURS = Math.round(LULU_PRODUCTION_DELAY_MINUTES / 60);
 
+/**
+ * The band name a print order's messages use: 'Sprouts' or 'Seedlings', from
+ * orders.lookup_key (2026-09-23). Every order that is not a Seedlings print
+ * order, including all orders placed before bands existed, reads 'Sprouts', so
+ * the Sprouts wording is exactly what it always was.
+ */
+function printBandName(order: OrderRow): string {
+  return LULU_BAND_INFO[printBandForOrder(order)].bandName;
+}
+
 // ── Print-on-demand order emails ─────────────────────────────────────────────
 // Written 2026-09-11 in the founder's voice, from her own pages and mail. Facts
 // only from the code: the cancellation window equals Lulu's production delay;
@@ -101,7 +111,8 @@ const PRINT_CANCEL_HOURS = Math.round(LULU_PRODUCTION_DELAY_MINUTES / 60);
 // a DB hiccup) the old single line is the fallback, so the buyer still hears from
 // us. The fallback is logged, because it is not scholarship-ready.
 export function buildOrderConfirmationEmail(order: OrderRow, receipt: Receipt | null = null): { subject: string; html: string } {
-  const item = order.product_label ? order.product_label : 'your Sprouts set';
+  const band = printBandName(order);
+  const item = order.product_label ? order.product_label : `your ${band} set`;
   const amount = money(order.amount_total_cents);
   const body =
     p(`Hi ${firstName(order)},`) +
@@ -124,11 +135,12 @@ export function buildOrderConfirmationEmail(order: OrderRow, receipt: Receipt | 
       + `tracking the day they ship. Plan on about two to three weeks from today to your door.`) +
     p(`I am so glad you are starting. Week 1 is waiting for you.`) +
     signature();
-  return { subject: `Your Sprouts books are ordered${order.order_number ? ` (${order.order_number})` : ''}`, html: emailWrapperTransactional(body, 'order') };
+  return { subject: `Your ${band} books are ordered${order.order_number ? ` (${order.order_number})` : ''}`, html: emailWrapperTransactional(body, 'order') };
 }
 
 export function buildShippedEmail(order: OrderRow): { subject: string; html: string } {
-  const item = order.product_label ? order.product_label : 'your Sprouts set';
+  const band = printBandName(order);
+  const item = order.product_label ? order.product_label : `your ${band} set`;
   const { carrier, code, link } = trackingBits(order);
   const body =
     p(`Hi ${firstName(order)},`) +
@@ -143,11 +155,12 @@ export function buildShippedEmail(order: OrderRow): { subject: string; html: str
       + `together at the table before you do anything else. That is the whole method.`) +
     (order.order_number ? p(`Order number: ${order.order_number}`) : '') +
     signature();
-  return { subject: 'Your Sprouts books shipped', html: emailWrapperTransactional(body, 'order') };
+  return { subject: `Your ${band} books shipped`, html: emailWrapperTransactional(body, 'order') };
 }
 
 export function buildDeliveredEmail(order: OrderRow): { subject: string; html: string } {
-  const item = order.product_label ? order.product_label : 'your Sprouts set';
+  const band = printBandName(order);
+  const item = order.product_label ? order.product_label : `your ${band} set`;
   const body =
     p(`Hi ${firstName(order)},`) +
     p(`Your <strong>${escapeHtml(item)}</strong> was delivered today!`) +
@@ -157,7 +170,7 @@ export function buildDeliveredEmail(order: OrderRow): { subject: string; html: s
     p(`If a book arrived bent, misprinted or damaged, send me a photo and I will replace it, no charge.`) +
     p(`Now go find a plant. Week 1 starts whenever you are ready.`) +
     signature();
-  return { subject: 'Your Sprouts books are here', html: emailWrapperTransactional(body, 'order') };
+  return { subject: `Your ${band} books are here`, html: emailWrapperTransactional(body, 'order') };
 }
 
 /**
@@ -205,17 +218,18 @@ export function buildOrderEmail(templateKey: string, order: OrderRow, receipt: R
 export function orderSmsText(templateKey: string, order: OrderRow): string {
   const ref = order.order_number ? ` Order ${order.order_number}.` : '';
   const { carrier, code, link } = trackingBits(order);
+  const band = printBandName(order);
   switch (templateKey) {
     case 'preorder_received_sms':
       return preorderSmsText(order);
     case 'order_received_sms':
-      return `Thank you for your Sprouts order from The Eden Institute!${ref} Your payment went through today. Your books print in ${PRINT_CANCEL_HOURS} hours; reply to your confirmation email before then to change anything. I will text you when they ship. Reply STOP to opt out.`;
+      return `Thank you for your ${band} order from The Eden Institute!${ref} Your payment went through today. Your books print in ${PRINT_CANCEL_HOURS} hours; reply to your confirmation email before then to change anything. I will text you when they ship. Reply STOP to opt out.`;
     case 'shipped_sms':
       // "from The Eden Institute": A2P 10DLC requires the brand name in every
       // message, and a reviewer reads these against the campaign samples.
-      return `Your Sprouts books from The Eden Institute shipped today${carrier !== 'the carrier' ? ` with ${carrier}` : ''}!${link ? ` Track them: ${link}` : ''}${code ? ` (tracking ${code})` : ''} Reply STOP to opt out.`;
+      return `Your ${band} books from The Eden Institute shipped today${carrier !== 'the carrier' ? ` with ${carrier}` : ''}!${link ? ` Track them: ${link}` : ''}${code ? ` (tracking ${code})` : ''} Reply STOP to opt out.`;
     case 'delivered_sms':
-      return `Your Sprouts books from The Eden Institute were delivered today! Anything wrong with them, reply to your confirmation email and I will make it right. Reply STOP to opt out.`;
+      return `Your ${band} books from The Eden Institute were delivered today! Anything wrong with them, reply to your confirmation email and I will make it right. Reply STOP to opt out.`;
     default:
       throw new Error(`No SMS builder for template '${templateKey}'`);
   }

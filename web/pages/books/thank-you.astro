@@ -1,5 +1,6 @@
 ---
-// /books/thank-you: order confirmation for the printed Sprouts set.
+// /books/thank-you: order confirmation for a printed set (Sprouts or, since
+// 2026-09-23, Seedlings; the island reads the band from print-order-status).
 //
 // Reached from Stripe's success_url with ?session_id={CHECKOUT_SESSION_ID}.
 // Built 2026-09-11 after the first real order landed the buyer back on /books
@@ -74,13 +75,18 @@ const meta = {
       const key = `print_set_conv_${ref ?? "noref"}`;
       if (sessionId && !sessionStorage.getItem(key)) {
         sessionStorage.setItem(key, "1");
+        // Seedlings checkouts return with ?band=seedlings (2026-09-23); Sprouts
+        // returns carry no band param and report exactly as before.
+        const seedlings = new URLSearchParams(window.location.search).get("band") === "seedlings";
+        const itemId = seedlings ? "seedlings_print_set" : "sprouts_print_set";
+        const itemName = seedlings ? "Seedlings Printed Curriculum Set" : "Sprouts Printed Curriculum Set";
         (window as any).gtag?.("event", "print_set_purchase", {
           event_category: "conversion",
-          event_label: "sprouts_print_set",
+          event_label: itemId,
           value: 249.0,
           currency: "USD",
           ...(ref ? { transaction_id: ref } : {}),
-          items: [{ item_id: "sprouts_print_set", item_name: "Sprouts Printed Curriculum Set", price: 249.0, quantity: 1 }],
+          items: [{ item_id: itemId, item_name: itemName, price: 249.0, quantity: 1 }],
         });
       }
     } catch {

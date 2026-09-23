@@ -25,6 +25,8 @@ interface Status {
   pending: boolean;
   order_number?: string;
   stage?: "received" | "printing" | "shipped" | "delivered" | "cancelled";
+  /** Which band's set (2026-09-23). Absent from an older print-order-status: Sprouts. */
+  band?: "sprouts" | "seedlings";
   product_label?: string;
   items?: { name: string; quantity: number }[];
   amount_total_cents?: number | null;
@@ -289,7 +291,7 @@ export default function PrintThankYou() {
       <div className={card} style={cardStyle}>
         <h2 className="font-serif text-xl font-bold mb-3" style={forest}>Your order</h2>
         <ul className="font-body text-sm space-y-1" style={bark}>
-          {(status.items && status.items.length ? status.items : [{ name: status.product_label ?? "Sprouts Printed Curriculum Set", quantity: 1 }]).map((it, i) => (
+          {(status.items && status.items.length ? status.items : [{ name: status.product_label ?? (status.band === "seedlings" ? "Seedlings Printed Curriculum Set" : "Sprouts Printed Curriculum Set"), quantity: 1 }]).map((it, i) => (
             <li key={i} className="flex justify-between gap-4">
               <span>{it.quantity > 1 ? `${it.quantity} × ` : ""}{it.name}</span>
             </li>
@@ -305,7 +307,9 @@ export default function PrintThankYou() {
         </div>
       </div>
 
-      {status.stage === "received" && (
+      {/* The Starter Unit card is the Sprouts one (/starter); a Seedlings buyer is
+          not sent to it. */}
+      {status.stage === "received" && status.band !== "seedlings" && (
         <div className={card} style={cardStyle}>
           <h2 className="font-serif text-xl font-bold mb-2" style={forest}>While you wait</h2>
           <p className="font-body text-sm text-muted-foreground leading-relaxed mb-4">

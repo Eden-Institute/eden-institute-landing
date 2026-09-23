@@ -13,7 +13,7 @@
 //   resubmit          { order_id }   reset the job to pending and submit now
 //   cancel            { order_id }   cancel at Lulu (only works inside the production delay)
 //   refresh           { order_id }   pull the job from Lulu and apply its status
-//   validate_files    { book }       start Lulu's interior + cover validation for one
+//   validate_files    { book, band? } start Lulu's interior + cover validation for one
 //                                    printable ('tg' | 'nb' | 'ra')
 //   validation_status { interior_id?, cover_id? }   poll those validations
 //   cost_preview      { sku, qty, address, shipping_level? }  what Lulu would charge
@@ -40,7 +40,7 @@ import {
   validateCover,
   validateInterior,
 } from '../_shared/lulu.ts';
-import { luluBookByKey, luluProductBySku, luluShippingLevel } from '../_shared/lulu-config.ts';
+import { luluBookByKey, luluProductBySku, luluShippingLevel, normalizeLuluBand, printableMapKey } from '../_shared/lulu-config.ts';
 import { captureException } from '../_shared/sentry.ts';
 import { founderGate, withMfaNudge } from '../_shared/founder-identity.ts';
 
@@ -127,11 +127,13 @@ serve(async (req) => {
 
       case 'validate_files': {
         const key = String(body.book ?? '');
-        const book = luluBookByKey(key);
+        // band defaults to Sprouts, so the pre-band call { book: 'tg' } is unchanged.
+        const band = normalizeLuluBand(body.band);
+        const book = luluBookByKey(key, band);
         if (!book) return json({ error: `'${key}' is not a Lulu book key (tg, nb, ra)` }, 400);
         const printables = await loadPrintables(adminClient);
-        const row = printables.get(key);
-        if (!row) return json({ error: `lulu_printables has no row for '${key}' (apply migration 20260911000100)` }, 404);
+        const row = printables.get(printableMapKey(band, key));
+        if (!row) return json({ error: `lulu_printables has no row for '${band}/${key}' (apply migrations 20260911000100 and 20260923200000)` }, 404);
         const pkg = row.pod_package_id ?? book.podPackageId;
         const pages = row.page_count ?? book.pageCount;
         if (!row.interior_url || !row.cover_url) {
@@ -140,7 +142,7 @@ serve(async (req) => {
         if (!pages) return json({ error: `'${key}' has no page count; set lulu_printables.page_count` }, 400);
         const interior = await validateInterior(row.interior_url, pkg);
         const cover = await validateCover(row.cover_url, pkg, pages);
-        return json({ book: key, pod_package_id: pkg, page_count: pages, interior, cover });
+        return json({ band, book: key, pod_package_id: pkg, page_count: pages, interior, cover });
       }
 
       case 'validation_status': {
@@ -162,8 +164,8 @@ serve(async (req) => {
         const printables = await loadPrintables(adminClient);
         const lineItems: { pod_package_id: string; page_count: number; quantity: number }[] = [];
         for (const key of product.books) {
-          const book = luluBookByKey(key)!;
-          const row = printables.get(key);
+          const book = luluBookByKey(key, product.band)!;
+          const row = printables.get(printableMapKey(product.band, key));
           const pkg = row?.pod_package_id ?? book.podPackageId;
           const pages = row?.page_count ?? book.pageCount;
           if (!pages) return json({ error: `'${key}' has no page count yet` }, 400);
