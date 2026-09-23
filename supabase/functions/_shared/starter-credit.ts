@@ -40,10 +40,14 @@ import { Db } from './order-db.ts';
 import {
   CREDIT_EXPIRY_POLICY,
   CreditExpiryPolicy,
-  STARTER_CREDIT_CENTS,
+  STARTER_BANDS,
+  StarterBand,
   generateCreditCode,
   normalizeCreditCode,
   normalizeEmail,
+  normalizeStarterBand,
+  starterCreditCouponId,
+  starterCreditTargetProductId,
 } from './starter-config.ts';
 
 // deno-lint-ignore no-explicit-any
@@ -60,13 +64,19 @@ export interface StarterCreditRow {
   redeemed_at: string | null;
   deactivated_at: string | null;
   deactivated_reason: string | null;
+  /**
+   * Which band's Starter Unit minted this credit (2026-09-23). Absent or null on
+   * every row written before the band column existed, which means Sprouts.
+   */
+  band?: string | null;
 }
 
 export type RedemptionRefusal =
   | 'CREDIT_NOT_FOUND'
   | 'CREDIT_ALREADY_REDEEMED'
   | 'CREDIT_EMAIL_MISMATCH'
-  | 'CREDIT_DEACTIVATED';
+  | 'CREDIT_DEACTIVATED'
+  | 'CREDIT_WRONG_BAND';
 
 export type RedemptionVerdict =
   | { ok: true; credit: StarterCreditRow }
@@ -88,6 +98,13 @@ export type RedemptionVerdict =
 export function evaluateRedemption(
   credit: StarterCreditRow | null,
   presentedEmail: string,
+  /**
+   * The band of the product being bought (2026-09-23). When given, a credit from
+   * the other band's Starter Unit is refused with a readable message. Checked
+   * LAST, after the email lock, so a stranger still learns nothing. Omitted, the
+   * verdict is exactly what it was before bands existed.
+   */
+  expectedBand?: StarterBand,
 ): RedemptionVerdict {
   if (!credit) {
     return {
@@ -125,6 +142,18 @@ export function evaluateRedemption(
     };
   }
 
+  if (expectedBand) {
+    const creditBand = normalizeStarterBand(credit.band);
+    if (creditBand !== expectedBand) {
+      const name = STARTER_BANDS[creditBand].bandName;
+      return {
+        ok: false,
+        code: 'CREDIT_WRONG_BAND',
+        message: `That credit came with the ${name} Starter Unit, so it applies to the ${name} printed year.`,
+      };
+    }
+  }
+
   return { ok: true, credit };
 }
 
@@ -132,8 +161,11 @@ export function evaluateRedemption(
 export async function findCreditByCode(db: Db, rawCode: string): Promise<StarterCreditRow | null> {
   const code = normalizeCreditCode(rawCode);
   if (!code) return null;
+  // '*' rather than a column list so `band` comes back once the 2026-09-23
+  // migration has run, and nothing breaks before it has (band is then absent,
+  // which normalizeStarterBand reads as Sprouts).
   const { data, error } = await db.from('starter_credits')
-    .select('id, code, email, stripe_customer_id, stripe_promotion_code_id, amount_cents, issued_at, redeemed_at, deactivated_at, deactivated_reason')
+    .select('*')
     .eq('code', code)
     .maybeSingle();
   if (error) throw new Error(`starter credit lookup failed: ${error.message}`);
@@ -195,6 +227,8 @@ export interface IssueCreditInput {
   email: string;
   purchaserName: string | null;
   stripeCustomerId: string;
+  /** Which band was bought. Omitted means Sprouts, i.e. the pre-2026-09-23 call. */
+  band?: StarterBand;
 }
 
 export interface IssuedCredit {
@@ -229,10 +263,21 @@ export async function issueStarterCredit(
   stripe: StripeLike,
   input: IssueCreditInput,
 ): Promise<IssuedCredit> {
-  const couponId = Deno.env.get('STRIPE_STARTER_CREDIT_COUPON_ID');
-  if (!couponId) {
-    // No guessed fallback. A wrong coupon id silently discounts the wrong thing.
-    throw new Error('STRIPE_STARTER_CREDIT_COUPON_ID is not set; cannot issue a starter credit');
+  const band: StarterBand = input.band ?? 'sprouts';
+  const isSprouts = band === 'sprouts';
+  const creditCents = STARTER_BANDS[band].creditCents;
+
+  let couponId: string;
+  if (isSprouts) {
+    // The original Sprouts path, error message and all.
+    const v = Deno.env.get('STRIPE_STARTER_CREDIT_COUPON_ID');
+    if (!v) {
+      // No guessed fallback. A wrong coupon id silently discounts the wrong thing.
+      throw new Error('STRIPE_STARTER_CREDIT_COUPON_ID is not set; cannot issue a starter credit');
+    }
+    couponId = v;
+  } else {
+    couponId = starterCreditCouponId(band);
   }
 
   const existing = await db.from('starter_credits')
@@ -247,6 +292,16 @@ export async function issueStarterCredit(
       amountCents: existing.data.amount_cents,
       created: false,
     };
+  }
+
+  if (!isSprouts) {
+    // A new band's coupon is proven against its target product before any code
+    // is minted on it. Sprouts skips this on purpose: its coupon was verified by
+    // hand on 2026-08-26, and adding a Stripe call to its purchase path would
+    // change a path that must stay exactly as it was. The Seedlings coupon is new
+    // and made by hand in the Dashboard, and one scoped to the wrong product
+    // quietly discounts the wrong thing, so it is checked here or nothing mints.
+    await assertCouponScopedTo(stripe, couponId, starterCreditTargetProductId(band), band);
   }
 
   const email = normalizeEmail(input.email);
@@ -265,9 +320,15 @@ export async function issueStarterCredit(
       purpose: 'starter_unit_credit',
       starter_session_id: input.sessionId,
       starter_email: email,
+      // Sprouts metadata stays exactly as it always was.
+      ...(isSprouts ? {} : { starter_band: band }),
     },
   });
 
+  // Sprouts omits `band` and lets the column default ('sprouts') fill it, so a
+  // Sprouts purchase keeps working even before the band migration is applied.
+  // Seedlings writes it, and so REQUIRES the migration: without the column the
+  // insert fails loudly instead of recording a Seedlings credit as Sprouts.
   const insert = await db.from('starter_credits').insert({
     stripe_checkout_session_id: input.sessionId,
     order_id: input.orderId,
@@ -276,7 +337,8 @@ export async function issueStarterCredit(
     stripe_customer_id: input.stripeCustomerId,
     stripe_promotion_code_id: promo.id,
     code,
-    amount_cents: STARTER_CREDIT_CENTS,
+    amount_cents: creditCents,
+    ...(isSprouts ? {} : { band }),
   }).select('code, stripe_promotion_code_id, amount_cents').maybeSingle();
 
   if (insert.error) {
@@ -290,7 +352,7 @@ export async function issueStarterCredit(
       } catch (err) {
         console.error(
           `starter credit race on session ${input.sessionId}: FAILED to deactivate duplicate ` +
-            `promotion code ${promo.id} (${code}). It is live and worth $${STARTER_CREDIT_CENTS / 100}; ` +
+            `promotion code ${promo.id} (${code}). It is live and worth $${creditCents / 100}; ` +
             `deactivate it by hand. ${err instanceof Error ? err.message : String(err)}`,
         );
       }
@@ -316,9 +378,37 @@ export async function issueStarterCredit(
   return {
     code,
     promotionCodeId: promo.id,
-    amountCents: STARTER_CREDIT_CENTS,
+    amountCents: creditCents,
     created: true,
   };
+}
+
+/**
+ * Prove a coupon is scoped to the product a band's credit is meant for, and takes
+ * off the band's credit amount. Throws, naming the coupon and product, otherwise.
+ * Stripe only returns applies_to with expand[]=applies_to.
+ */
+async function assertCouponScopedTo(
+  stripe: StripeLike,
+  couponId: string,
+  productId: string,
+  band: StarterBand,
+): Promise<void> {
+  const coupon = await promoClient(stripe).coupons.retrieve(couponId, { expand: ['applies_to'] });
+  const products: string[] = coupon?.applies_to?.products ?? [];
+  if (!products.includes(productId)) {
+    throw new Error(
+      `${band} starter credit coupon ${couponId} is not scoped to ${productId} ` +
+        `(applies_to.products=${JSON.stringify(products)}); refusing to mint a credit on it`,
+    );
+  }
+  const expected = STARTER_BANDS[band].creditCents;
+  if (coupon?.amount_off !== expected) {
+    throw new Error(
+      `${band} starter credit coupon ${couponId} takes off ${coupon?.amount_off} cents, expected ` +
+        `${expected}; refusing to mint a credit on it`,
+    );
+  }
 }
 
 /**

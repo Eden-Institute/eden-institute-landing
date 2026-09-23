@@ -50,7 +50,15 @@ import { FOUNDING_GATE_SKU, PREORDER_FLAT_SHIPPING_CENTS, PREORDER_PRODUCTS, SHI
 import { getFoundingGate, getStockGate } from "../_shared/order-db.ts"
 import { enforceCheckoutRateLimit } from "../_shared/checkout-rate-limit.ts"
 import { sendMetaCapiInitiateCheckout } from "../_shared/meta-capi.ts"
-import { STARTER_LOOKUP_KEY } from "../_shared/starter-config.ts"
+import {
+  STARTER_BANDS,
+  STARTER_LOOKUP_KEYS,
+  STARTER_SOURCE_BUCKET,
+  StarterBand,
+  missingStarterEnv,
+  missingStarterMasters,
+  starterBandForLookupKey,
+} from "../_shared/starter-config.ts"
 import { curriculumInvoiceCreation } from "../_shared/receipt.ts"
 import { evaluateRedemption, findCreditByCode } from "../_shared/starter-credit.ts"
 import { LULU_PRODUCTION_DELAY_MINUTES, LULU_PRODUCTS, PRINT_SHOP_URL, luluProductBySku } from "../_shared/lulu-config.ts"
@@ -79,6 +87,38 @@ const admin = () => createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 )
 
+/**
+ * Which of a band's Starter Unit master PDFs are NOT in the private source bucket.
+ * Fails CLOSED: if the listing itself errors, every master is reported missing and
+ * the sale is refused, because taking $39 for files that may not exist is the
+ * worse outcome. Used for bands other than Sprouts (2026-09-23); the Sprouts
+ * masters have been live since August and its path is left exactly as it was.
+ */
+async function starterMastersMissing(band: StarterBand): Promise<string[]> {
+  const all = Object.values(STARTER_BANDS[band].masters)
+  try {
+    const folders = [...new Set(all.map((p) => p.slice(0, p.lastIndexOf("/"))))]
+    const present: string[] = []
+    for (const folder of folders) {
+      const names = all.filter((p) => p.startsWith(folder + "/")).map((p) => p.slice(folder.length + 1))
+      // Longest common prefix of the basenames, to keep the listing small.
+      let search = names[0] ?? ""
+      for (const n of names) while (search && !n.startsWith(search)) search = search.slice(0, -1)
+      const { data, error } = await admin().storage.from(STARTER_SOURCE_BUCKET)
+        .list(folder, { limit: 1000, search })
+      if (error) throw new Error(error.message)
+      for (const o of data ?? []) present.push(`${folder}/${o.name}`)
+    }
+    return missingStarterMasters(band, present)
+  } catch (err) {
+    console.error(
+      `create-checkout: could not list ${band} starter masters; treating all as missing: ` +
+        (err instanceof Error ? err.message : String(err)),
+    )
+    return all
+  }
+}
+
 // Subscription lookup_keys — mode="subscription", auth required.
 const SUBSCRIPTION_LOOKUP_KEYS = new Set([
   "seed_monthly",
@@ -99,7 +139,9 @@ const ONE_OFF_LOOKUP_KEYS = new Set([
   // Rides the ordinary one-off dispatch rather than getting its own branch: it is
   // a plain digital product, and the only thing special about it happens AFTER
   // payment (the kit credit), which is stripe-webhook's business, not this file's.
-  STARTER_LOOKUP_KEY,
+  // 2026-09-23: every band's Starter Unit (sprouts_starter_unit and
+  // seedlings_starter_unit), from the registry in starter-config.ts.
+  ...STARTER_LOOKUP_KEYS,
 ])
 
 // Lookup_keys that must NOT show Stripe's "add promotion code" field.
@@ -111,7 +153,7 @@ const ONE_OFF_LOOKUP_KEYS = new Set([
 // pre-application block below honours this set too, so a hand-built request cannot
 // attach a discount to these keys.
 const NO_PROMO_LOOKUP_KEYS = new Set([
-  STARTER_LOOKUP_KEY,
+  ...STARTER_LOOKUP_KEYS,
 ])
 
 // Lookup_keys that need a real Stripe Customer created at checkout.
@@ -121,7 +163,7 @@ const NO_PROMO_LOOKUP_KEYS = new Set([
 // promotion_code_customer_mismatch). No Customer at purchase time means no
 // binding, so this is load-bearing, not a nicety.
 const CUSTOMER_REQUIRED_LOOKUP_KEYS = new Set([
-  STARTER_LOOKUP_KEY,
+  ...STARTER_LOOKUP_KEYS,
 ])
 
 // Founders Edition rails removed 2026-09-15 (BUNDLE_RESTRICTED_LOOKUP_KEYS,
@@ -432,7 +474,10 @@ serve(async (req) => {
     //      with /guide/[slug])
     //    - Starter Unit → /starter/thank-you
 
-    const isStarter = lookup_key === STARTER_LOOKUP_KEY
+    // Which band's Starter Unit, or null. Sprouts takes exactly the path it
+    // always took; STARTER_LOOKUP_KEY in starter-config.ts is still the Sprouts key.
+    const starterBand = starterBandForLookupKey(lookup_key)
+    const isStarter = starterBand !== null
 
     // REFUSE TO SELL THE STARTER UNIT IF THE CREDIT CANNOT BE ISSUED.
     //
@@ -447,22 +492,42 @@ serve(async (req) => {
     // Failing closed here costs a sale we could not honour anyway. It also makes
     // the misconfiguration obvious the moment anyone presses the button, instead
     // of at the first refund request.
-    if (isStarter && !Deno.env.get("STRIPE_STARTER_CREDIT_COUPON_ID")) {
-      console.error(
-        "create-checkout: STRIPE_STARTER_CREDIT_COUPON_ID is not set; refusing to sell the " +
-          "Starter Unit rather than take money for a credit we cannot issue",
-      )
-      return new Response(
-        JSON.stringify({
-          error: "The Starter Unit is not available right now. Please try again shortly, or email hello@edeninstitute.health.",
-          code: "STARTER_NOT_CONFIGURED",
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 },
-      )
+    //
+    // Per band since 2026-09-23. Sprouts checks only STRIPE_STARTER_CREDIT_COUPON_ID,
+    // as before. Seedlings also needs its own coupon, the print-set product id its
+    // credit targets, and all three master PDFs actually in the bucket: without the
+    // masters the buyer would pay and then receive a failed delivery.
+    const starterNotConfigured = () => new Response(
+      JSON.stringify({
+        error: "The Starter Unit is not available right now. Please try again shortly, or email hello@edeninstitute.health.",
+        code: "STARTER_NOT_CONFIGURED",
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 },
+    )
+    if (starterBand) {
+      const missingEnv = missingStarterEnv(starterBand)
+      if (missingEnv.length) {
+        console.error(
+          `create-checkout: ${missingEnv.join(", ")} not set; refusing to sell the ` +
+            `${starterBand} Starter Unit rather than take money for a credit we cannot issue`,
+        )
+        return starterNotConfigured()
+      }
+      if (starterBand !== "sprouts") {
+        const missingMasters = await starterMastersMissing(starterBand)
+        if (missingMasters.length) {
+          console.error(
+            `create-checkout: ${starterBand} Starter Unit master(s) not in ${STARTER_SOURCE_BUCKET}: ` +
+              `${missingMasters.join(", ")}; refusing to sell files we cannot deliver`,
+          )
+          return starterNotConfigured()
+        }
+      }
     }
 
-    const starterDefaultSuccess =
-      "https://edeninstitute.health/starter/thank-you?session_id={CHECKOUT_SESSION_ID}"
+    const starterDefaultSuccess = starterBand
+      ? STARTER_BANDS[starterBand].successUrl
+      : "https://edeninstitute.health/starter/thank-you?session_id={CHECKOUT_SESSION_ID}"
 
     const defaultSuccessUrl = isSubscription
       ? "https://edeninstitute.health/apothecary/welcome?session_id={CHECKOUT_SESSION_ID}"
@@ -471,8 +536,8 @@ serve(async (req) => {
         : "https://edeninstitute.health/assessment"
     const defaultCancelUrl = isSubscription
       ? "https://edeninstitute.health/apothecary/pricing"
-      : isStarter
-        ? "https://edeninstitute.health/starter"
+      : starterBand
+        ? STARTER_BANDS[starterBand].pageUrl
         : "https://edeninstitute.health/assessment"
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
@@ -562,8 +627,8 @@ serve(async (req) => {
     // curriculum" on it, emailed by Stripe and downloadable as a PDF. Payment
     // mode only; Stripe refuses invoice_creation on a subscription session.
     // Validated in TEST mode against this exact session shape.
-    if (isStarter && mode === "payment") {
-      sessionParams.invoice_creation = curriculumInvoiceCreation("starter")
+    if (starterBand && mode === "payment") {
+      sessionParams.invoice_creation = curriculumInvoiceCreation("starter", starterBand)
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams)
@@ -817,7 +882,10 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
     }
 
     const credit = await findCreditByCode(adminClient, rawCreditCode)
-    const verdict = evaluateRedemption(credit, buyerEmail)
+    // This path sells the Sprouts kit, so only a Sprouts Starter credit applies.
+    // Stripe's coupon scope would refuse a Seedlings credit anyway; this makes the
+    // refusal a sentence the buyer can act on.
+    const verdict = evaluateRedemption(credit, buyerEmail, "sprouts")
     if (!verdict.ok) {
       console.warn(
         `starter credit refused: reason=${verdict.code} credit_id=${credit?.id ?? "none"}`,

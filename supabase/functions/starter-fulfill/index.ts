@@ -46,8 +46,12 @@ const DRAIN_BATCH = 5;
 /** Give up automatic retries after this many, so a poison row cannot loop forever. */
 const MAX_ATTEMPTS = 5;
 
-const DELIVERY_COLUMNS =
-  'id, stripe_checkout_session_id, order_id, email, purchaser_name, status, attempts, sent_at, tg_object_path, nb_object_path, ra_object_path, download_token';
+// '*' (was an explicit column list until 2026-09-23) so the row's `band` comes back
+// once the band migration has run, WITHOUT this select failing before it has. A
+// missing band reads as Sprouts (normalizeStarterBand), which is what every row
+// written before that migration is. An explicit list naming `band` would take
+// every Sprouts delivery down if this function were deployed ahead of the SQL.
+const DELIVERY_COLUMNS = '*';
 
 function json(status: number, body: Record<string, unknown>): Response {
   return new Response(JSON.stringify(body), {

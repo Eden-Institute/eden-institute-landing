@@ -488,28 +488,30 @@ function facebookButton(label: string, url: string): string {
 // 2026-08-27 was to keep the free week generous and state the difference plainly, which
 // is what the "what is and is not in it" paragraph below does. Do not soften it.
 //
-// BAND AWARENESS. There is no Seedlings Starter Unit. Rather than sell a Sprouts
-// product to a Seedlings parent with no framing, the Seedlings variant leads with the
-// argument /starter already makes at #older-kids: the two bands share no plants, so
-// starting at Sprouts with an older child repeats nothing and ends in 72 species.
+// BAND AWARENESS. Until 2026-09-23 there was no Seedlings Starter Unit, and the
+// Seedlings variant sold the Sprouts one with the #older-kids argument. The Seedlings
+// Starter Unit now exists (founder decision 2026-09-23, /starter/seedlings), so each
+// band is offered its OWN nine weeks, with the same words and the band swapped. The
+// Seedlings printed year is still being finished, so its "whole year" block says so
+// instead of linking to the Sprouts books.
 export function buildStarterOfferEmail(firstName: string, band: 'sprouts' | 'seedlings'): { subject: string; html: string } {
   const isSprouts = band === 'sprouts';
   const week1Herb = isSprouts ? 'Lavender' : 'Elderberry';
+  const bandName = isSprouts ? 'Sprouts' : 'Seedlings';
+  const starterUrl = isSprouts
+    ? 'https://edeninstitute.health/starter'
+    : 'https://edeninstitute.health/starter/seedlings';
 
-  const opening = isSprouts
-    ? p(`You have had your ${week1Herb} week for about a week now. If you taught it, I hope it was a good one. If it is still sitting in the printer queue, that is all right too.`) +
-      p(`The question I get next, almost every time, is the same one: what comes after it?`)
-    : p(`You have had your ${week1Herb} week for about a week now. If you taught it, I hope it was a good one. If it is still sitting in the printer queue, that is all right too.`) +
-      p(`I want to be straight with you about what comes next, because the honest answer has a wrinkle in it.`) +
-      p(`A <strong>Seedlings</strong> starter unit is not ready to sell yet. What is ready is the first nine weeks of <strong>Sprouts</strong>, and before you skip past that as being for younger children, it is worth thirty seconds of your time.`) +
-      p(`The two bands share no plants. Each covers a different thirty-six, so a family that does both ends with seventy-two named species, and an older child who starts at Sprouts repeats nothing when she moves up. Sprouts does not teach a list of plants. It teaches how to look at one, and a nine year old who can name a plant but cannot tell you its smell or the edge of its leaf has not outgrown that. She skipped it.`);
+  const opening =
+    p(`You have had your ${week1Herb} week for about a week now. If you taught it, I hope it was a good one. If it is still sitting in the printer queue, that is all right too.`) +
+    p(`The question I get next, almost every time, is the same one: what comes after it?`);
 
   const offer =
     heading('The first nine weeks, ready now') +
-    p(`The <strong>Sprouts Starter Unit</strong> is weeks 1 through 9, as an instant download for <strong>$39</strong>. It reaches your inbox in about a minute and it is yours to keep.`) +
+    p(`The <strong>${bandName} Starter Unit</strong> is weeks 1 through 9, as an instant download for <strong>$39</strong>. It reaches your inbox in about a minute and it is yours to keep.`) +
     p(`<strong>What is in it, plainly.</strong> Nine weeks of the Teacher&rsquo;s Guide, nine weeks of the Student Notebook, and the Read-Aloud storybook that carries those weeks. Three things, complete, for all nine weeks.`) +
     p(`<strong>It is the same shape as the week you already have.</strong> The Teacher&rsquo;s Guide and the Notebook carry everything: the story, the lesson, the kitchen lab and the dinner-table questions are all on the page. Nothing extra to buy, print or hunt for.`) +
-    brandButton('Start with weeks 1 through 9 · $39', 'https://edeninstitute.health/starter');
+    brandButton('Start with weeks 1 through 9 · $39', starterUrl);
 
   // 2026-09-12, the print-first pivot: this block used to point at the kit
   // preorder and the $39 credit against it. The kit is off sale and the credit
@@ -517,13 +519,15 @@ export function buildStarterOfferEmail(firstName: string, band: 'sprouts' | 'see
   // now exists in print, so that is the second door.
   const wholeYear =
     goldDivider() +
-    p(`If you already know you want the whole Sprouts year, it is finished and on paper: all thirty-six weeks in three printed books, $249, printed for you when you order and at your door in about two to three weeks. <a href="https://edeninstitute.health/books" style="color:#1C3A2E;">Here it is</a>.`) +
+    (isSprouts
+      ? p(`If you already know you want the whole Sprouts year, it is finished and on paper: all thirty-six weeks in three printed books, $249, printed for you when you order and at your door in about two to three weeks. <a href="https://edeninstitute.health/books" style="color:#1C3A2E;">Here it is</a>.`)
+      : p(`If you already know you want the whole Seedlings year, the printed books are being finished now: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook, all thirty-six weeks. The nine weeks above are the way to start while they are.`)) +
     p(`And if this is simply not the month for it, keep teaching ${week1Herb}. It is a whole week and it stands on its own.`);
 
   const body = p(`Hi ${firstName},`) + opening + goldDivider() + offer + wholeYear + signature();
 
   return {
-    subject: isSprouts ? `What comes after ${week1Herb}` : `What comes after ${week1Herb}, honestly`,
+    subject: `What comes after ${week1Herb}`,
     html: emailWrapper(body, 'homeschool'),
   };
 }

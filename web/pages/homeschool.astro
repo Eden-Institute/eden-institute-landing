@@ -145,7 +145,7 @@ const BANDS: Band[] = [
     id: "seedlings",
     name: "Seedlings",
     grades: "Grades 3-5",
-    status: "Free week now, the rest coming very soon",
+    status: "Free week and 9-week starter now, printed year coming very soon",
     live: true,
     blurb: "Body systems, herb profiles, a hypothesis tracked across a week, and dinner-table questions with real reasoning in them. A different 36 plants from Sprouts, so a family who does both finishes with 72.",
     rungs: [
@@ -163,7 +163,17 @@ const BANDS: Band[] = [
           subtitle: "Check your inbox. Your free Seedlings Week 1 (Elderberry) downloads are on their way right now. Five real lessons, the Teacher's Guide and the Notebook, to print and teach today.",
         },
       },
-      { step: "Step 2 · Start now", title: "Starter Unit, weeks 1 to 9", price: "", points: ["The 9-week starter: weeks 1 to 9 of 36", "Instant download"], when: "Being finished now.", soon: true },
+      // Buyable since 2026-09-23 (founder decision): same shape as the Sprouts rung.
+      {
+        step: "Step 2 · Start now",
+        title: "Starter Unit, weeks 1 to 9",
+        price: "$39",
+        points: ["The 9-week starter: weeks 1 to 9 of 36", "Teacher's Guide, Notebook and storybook", "Instant download"],
+        when: "Tonight. It downloads to your inbox in about a minute.",
+        button: "Get the Starter Unit",
+        href: "/starter/seedlings",
+        cta: "homeschool-seedlings-starter",
+      },
       { step: "Step 3 · The whole year, in print", title: "Printed Curriculum Set", price: "", points: ["All 36 weeks, printed books", "Printed to order, mailed to you"], when: "Being finished now.", soon: true },
     ],
   },

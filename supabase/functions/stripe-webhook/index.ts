@@ -51,8 +51,8 @@ import { productForPriceId } from "../_shared/order-config.ts"
 import { captureException } from "../_shared/sentry.ts"
 import { sendMetaCapiPurchase } from "../_shared/meta-capi.ts"
 import { getGuideByNickname, getGuideBySlug } from "../_shared/guide/registry.ts"
-import { STARTER_LOOKUP_KEY } from "../_shared/starter-config.ts"
-import { STARTER_ORDER_LABEL } from "../_shared/receipt.ts"
+import { STARTER_BANDS, StarterBand, starterBandForLookupKey } from "../_shared/starter-config.ts"
+import { starterOrderLabel } from "../_shared/receipt.ts"
 import { creditIssuanceOpen, issueStarterCredit, markCreditRedeemed } from "../_shared/starter-credit.ts"
 import { escapeLikePattern } from "../_shared/like-escape.ts"
 import { classifyLearnWorldsCharge } from "../_shared/learnworlds-charge.ts"
@@ -967,9 +967,11 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
   // refuses their lookup_keys, so no new session can reach this point with one;
   // a stray one now logs as an unhandled lookup_key below.
 
-  // Branch 2b: Eden's Table Sprouts Starter Unit ($39 digital).
-  if (lookupKey === STARTER_LOOKUP_KEY) {
-    await handleStarterUnitPurchase(session, email)
+  // Branch 2b: Eden's Table Starter Unit ($39 digital), any band. The band comes
+  // from the purchased lookup_key and nothing else (2026-09-23).
+  const starterBand = starterBandForLookupKey(lookupKey)
+  if (starterBand) {
+    await handleStarterUnitPurchase(session, email, starterBand)
     return
   }
 
@@ -1077,8 +1079,8 @@ async function recordDigitalOrder(
   // "sprouts_starter_unit", which is what buyers and scholarship reviewers saw.
   const label = lookupKey === "deep_dive_guide"
     ? `Deep-Dive Guide${nickname ? `: ${nickname}` : ""}`
-    : lookupKey === STARTER_LOOKUP_KEY
-      ? STARTER_ORDER_LABEL
+    : starterBandForLookupKey(lookupKey)
+      ? starterOrderLabel(lookupKey)
       : lookupKey
 
   const { error } = await adminClient.from("orders").upsert({
@@ -1222,8 +1224,10 @@ async function kickLuluSubmit(orderId: string): Promise<void> {
 async function handleStarterUnitPurchase(
   session: Stripe.Checkout.Session,
   email: string | null,
+  band: StarterBand,
 ): Promise<void> {
   const sid = session.id
+  const isSprouts = band === "sprouts"
 
   // Async payment methods fire checkout.session.completed before money moves.
   if (session.payment_status !== "paid") {
@@ -1236,7 +1240,7 @@ async function handleStarterUnitPurchase(
   }
 
   // 1. The sale.
-  await recordDigitalOrder(await withPaymentCard(session), STARTER_LOOKUP_KEY, email)
+  await recordDigitalOrder(await withPaymentCard(session), STARTER_BANDS[band].lookupKey, email)
   await syncPurchaseProperties(email, sid)
   const { data: orderRow } = await adminClient
     .from("orders").select("id").eq("stripe_checkout_session_id", sid).maybeSingle()
@@ -1267,6 +1271,8 @@ async function handleStarterUnitPurchase(
         email,
         purchaserName,
         stripeCustomerId,
+        // Omitted for Sprouts so its call is exactly what it was.
+        ...(isSprouts ? {} : { band }),
       })
       creditCode = issued.code
     }
@@ -1288,6 +1294,11 @@ async function handleStarterUnitPurchase(
       // 32 hex chars of CSPRNG. This is the durable re-request key, so it has to
       // be unguessable in the same way the /partner-sample ?k= secret is.
       download_token: crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, ""),
+      // Sprouts leaves `band` to the column default ('sprouts'), so it works even
+      // before the band migration. Any other band writes it and so needs that
+      // migration: without it this insert fails loudly (logged below, sale kept)
+      // rather than queueing a Seedlings buyer for Sprouts files.
+      ...(isSprouts ? {} : { band }),
     })
     // deno-lint-ignore no-explicit-any
     if (error && (error as any).code !== "23505") throw error
@@ -1330,7 +1341,7 @@ async function cancelCreditForRefundedStarter(paymentIntentId: string): Promise<
   const { data: order } = await adminClient
     .from("orders").select("stripe_checkout_session_id, lookup_key")
     .eq("stripe_payment_intent_id", paymentIntentId).maybeSingle()
-  if (!order || order.lookup_key !== STARTER_LOOKUP_KEY) return
+  if (!order || !starterBandForLookupKey(order.lookup_key)) return
 
   const { data: credit } = await adminClient
     .from("starter_credits").select("id, code, stripe_promotion_code_id, redeemed_at, deactivated_at")

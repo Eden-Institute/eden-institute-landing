@@ -54,10 +54,26 @@ export const RECEIPT_NAMES: Record<string, { name: string; grade: string }> = {
     name: 'Sprouts Starter Unit, Digital Curriculum, Weeks 1 to 9',
     grade: 'K-2',
   },
+  // 2026-09-23. Key = STARTER_BANDS.seedlings.lookupKey in starter-config.ts.
+  seedlings_starter_unit: {
+    name: 'Seedlings Starter Unit, Digital Curriculum, Weeks 1 to 9',
+    grade: '3-5',
+  },
 };
 
 /** The label stored on orders.product_label for a Starter Unit purchase. */
 export const STARTER_ORDER_LABEL = RECEIPT_NAMES.sprouts_starter_unit.name;
+
+/**
+ * The orders.product_label for a Starter Unit of either band. Sprouts returns
+ * STARTER_ORDER_LABEL exactly. Throws on a key with no receipt name rather than
+ * printing a raw SKU on a scholarship receipt.
+ */
+export function starterOrderLabel(lookupKey: string): string {
+  const entry = RECEIPT_NAMES[lookupKey];
+  if (!entry) throw new Error(`no receipt name for starter lookup key '${lookupKey}'`);
+  return entry.name;
+}
 
 export interface ReceiptLine {
   name: string;
@@ -170,9 +186,14 @@ export async function loadOrderReceipt(db: Db, order: OrderRow): Promise<Receipt
  * Build the receipt for a Starter Unit purchase. One line at the pre-discount
  * price (Stripe's amount_subtotal), with any discount and tax shown separately,
  * so the lines always add up to what the card was charged.
+ *
+ * `lookupKey` picks the band's name and grade; it defaults to the Sprouts key so
+ * a caller that predates Seedlings gets exactly the receipt it always got.
  */
 // deno-lint-ignore no-explicit-any
-export function starterReceipt(order: any): Receipt {
+export function starterReceipt(order: any, lookupKey = 'sprouts_starter_unit'): Receipt {
+  const entry = RECEIPT_NAMES[lookupKey];
+  if (!entry) throw new Error(`no receipt name for starter lookup key '${lookupKey}'`);
   const raw = order?.raw ?? {};
   const totals = raw.total_details ?? {};
   const total = num(order?.amount_total_cents);
@@ -183,12 +204,12 @@ export function starterReceipt(order: any): Receipt {
     orderNumber: order?.order_number ?? null,
     purchasedAt: order?.created_at ?? null,
     billTo: raw.customer_details?.name ?? null,
-    lines: [{ name: STARTER_ORDER_LABEL, quantity: 1, unitCents: subtotal }],
+    lines: [{ name: entry.name, quantity: 1, unitCents: subtotal }],
     discountCents: discount,
     shippingCents: 0,
     taxCents: tax,
     totalCents: total,
-    gradeLevel: RECEIPT_NAMES.sprouts_starter_unit.grade,
+    gradeLevel: entry.grade,
     paidWith: paidWithFromRaw(raw),
   };
 }
@@ -288,14 +309,19 @@ export function receiptBalances(r: Receipt): boolean {
  * lives INSIDE invoice_creation; a top-level invoice_data is refused.
  * Custom field values are capped at 140 characters, names at 40, four fields max.
  */
-export function curriculumInvoiceCreation(kind: 'print' | 'starter') {
-  const grade = 'K-2 (Sprouts)';
+//
+// `band` (2026-09-23) defaults to Sprouts, and the Sprouts output is unchanged
+// character for character. Seedlings swaps the band name and grades only.
+export function curriculumInvoiceCreation(kind: 'print' | 'starter', band: 'sprouts' | 'seedlings' = 'sprouts') {
+  const name = band === 'seedlings' ? 'Seedlings' : 'Sprouts';
+  const grades = band === 'seedlings' ? '3-5' : 'K-2';
+  const grade = `${grades} (${name})`;
   return {
     enabled: true,
     invoice_data: {
       description: kind === 'print'
-        ? "Homeschool curriculum purchase: Eden's Table Sprouts printed curriculum, a K-2 Christian homeschool curriculum."
-        : "Homeschool curriculum purchase: Eden's Table Sprouts Starter Unit, digital curriculum, weeks 1 to 9.",
+        ? `Homeschool curriculum purchase: Eden's Table ${name} printed curriculum, a ${grades} Christian homeschool curriculum.`
+        : `Homeschool curriculum purchase: Eden's Table ${name} Starter Unit, digital curriculum, weeks 1 to 9.`,
       custom_fields: [
         { name: 'Item type', value: 'Homeschool curriculum' },
         { name: 'Grade level', value: grade },

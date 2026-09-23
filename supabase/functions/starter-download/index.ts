@@ -29,7 +29,7 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { mintDownloadLinks } from '../_shared/starter-fulfillment.ts';
-import { STARTER_FILENAMES, DOWNLOAD_URL_TTL_SECONDS } from '../_shared/starter-config.ts';
+import { DOWNLOAD_URL_TTL_SECONDS, STARTER_BANDS, normalizeStarterBand } from '../_shared/starter-config.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -53,11 +53,14 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
 };
 
-/** Slug -> which stamped object, and what to call it on the buyer's disk. */
+/**
+ * Slug -> which stamped object and its label. The on-disk filename is per band
+ * and is applied by mintDownloadLinks from the delivery's band (2026-09-23).
+ */
 const FILES = {
-  'teachers-guide': { key: 'tg_object_path', filename: STARTER_FILENAMES.teachersGuide, label: "Teacher's Guide" },
-  'student-notebook': { key: 'nb_object_path', filename: STARTER_FILENAMES.studentNotebook, label: 'Student Notebook' },
-  'read-aloud': { key: 'ra_object_path', filename: STARTER_FILENAMES.readAloud, label: 'Read-Aloud Storybook' },
+  'teachers-guide': { key: 'tg_object_path', label: "Teacher's Guide" },
+  'student-notebook': { key: 'nb_object_path', label: 'Student Notebook' },
+  'read-aloud': { key: 'ra_object_path', label: 'Read-Aloud Storybook' },
 } as const;
 
 type FileSlug = keyof typeof FILES;
@@ -134,9 +137,11 @@ serve(async (req) => {
     });
   }
 
+  // '*' so `band` comes back once the 2026-09-23 migration has run, without this
+  // lookup failing before it has (a missing band reads as Sprouts).
   const lookup = adminClient
     .from('starter_deliveries')
-    .select('id, stripe_checkout_session_id, email, status, tg_object_path, nb_object_path, ra_object_path, download_token');
+    .select('*');
   const { data, error } = await (token
     ? lookup.eq('download_token', token)
     : lookup.eq('stripe_checkout_session_id', sessionId)
@@ -149,6 +154,16 @@ serve(async (req) => {
   if (!data) return json(404, NOT_FOUND);
 
   const sid = data.stripe_checkout_session_id;
+  // Returned so the confirmation and downloads pages can name the right band and
+  // report the right product. Never 'Sprouts' for a Seedlings buyer.
+  let band: string;
+  try {
+    band = normalizeStarterBand(data.band);
+  } catch (err) {
+    console.error(`[${sid}] ${err instanceof Error ? err.message : String(err)}`);
+    return json(500, { error: 'Something went wrong on our end. Please try again in a moment.' });
+  }
+  const bandName = STARTER_BANDS[band as 'sprouts' | 'seedlings'].bandName;
 
   // A delivery that has not been stamped yet has nothing to hand over. This is a
   // real state: a buyer can click the re-request link from a confirmation page
@@ -158,6 +173,8 @@ serve(async (req) => {
     return json(409, {
       error: 'Your files are still being prepared. This usually takes under a minute. Please refresh shortly.',
       code: 'NOT_READY',
+      band,
+      band_name: bandName,
     });
   }
 
@@ -210,6 +227,8 @@ serve(async (req) => {
       // Returned so the confirmation page can hand the buyer a durable re-request
       // link before their delivery email has even arrived.
       download_token: data.download_token,
+      band,
+      band_name: bandName,
       credit_code: credit?.code ?? null,
       credit_redeemed: !!credit?.redeemed_at,
       // Two URLs per file, deliberately. `url` opens inline, which is the one

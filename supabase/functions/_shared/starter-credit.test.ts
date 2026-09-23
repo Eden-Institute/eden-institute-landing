@@ -593,3 +593,145 @@ Deno.test('a non-Stripe client is never swapped out, even with the key set', asy
     Deno.env.delete('STRIPE_STARTER_PROMO_KEY');
   }
 });
+
+// ---------------------------------------------------------------------------
+// Bands (2026-09-23): the Seedlings Starter Unit mints its own credit
+// ---------------------------------------------------------------------------
+
+/** fakeStripe plus coupons.retrieve, which only the non-Sprouts path calls. */
+function fakeStripeWithCoupon(coupon: { applies_to?: { products: string[] }; amount_off?: number }) {
+  const s = fakeStripe();
+  const retrieved: Array<{ id: string; params: Row }> = [];
+  return Object.assign(s, {
+    retrieved,
+    coupons: {
+      // deno-lint-ignore no-explicit-any
+      retrieve(id: string, params: any) {
+        retrieved.push({ id, params });
+        return Promise.resolve({ id, ...coupon });
+      },
+    },
+  });
+}
+
+const seedlingsInput = { ...issueInput, sessionId: 'cs_test_seedlings', band: 'seedlings' as const };
+
+function withSeedlingsEnv(coupon: string | null, product: string | null) {
+  if (coupon === null) Deno.env.delete('STRIPE_SEEDLINGS_STARTER_CREDIT_COUPON_ID');
+  else Deno.env.set('STRIPE_SEEDLINGS_STARTER_CREDIT_COUPON_ID', coupon);
+  if (product === null) Deno.env.delete('STRIPE_SEEDLINGS_PRINT_SET_PRODUCT_ID');
+  else Deno.env.set('STRIPE_SEEDLINGS_PRINT_SET_PRODUCT_ID', product);
+}
+
+Deno.test('Sprouts issuance is unchanged: no band column, no band metadata, no coupon lookup', async () => {
+  const db = new FakeDb();
+  const stripe = fakeStripeWithCoupon({});
+  await issueStarterCredit(db as never, stripe, issueInput);
+  const row = db.tables.get('starter_credits')!.rows[0];
+  assert(!('band' in row), 'Sprouts must leave band to the column default');
+  assertEquals(row.amount_cents, 3900);
+  assertEquals(Object.keys(stripe.created[0].metadata as Row).sort(), ['purpose', 'starter_email', 'starter_session_id']);
+  assertEquals(stripe.retrieved.length, 0, 'Sprouts must not add a Stripe call');
+});
+
+Deno.test('Seedlings issuance uses its own coupon and records the band', async () => {
+  withSeedlingsEnv('coupon_seedlings', 'prod_seedlings_set');
+  try {
+    const db = new FakeDb();
+    const stripe = fakeStripeWithCoupon({ applies_to: { products: ['prod_seedlings_set'] }, amount_off: 3900 });
+    const out = await issueStarterCredit(db as never, stripe, seedlingsInput);
+    assertEquals(out.amountCents, 3900);
+    assertEquals(stripe.created[0].coupon, 'coupon_seedlings');
+    assertEquals((stripe.created[0].metadata as Row).starter_band, 'seedlings');
+    assertEquals(stripe.retrieved[0].id, 'coupon_seedlings');
+    assertEquals(stripe.retrieved[0].params, { expand: ['applies_to'] });
+    const row = db.tables.get('starter_credits')!.rows[0];
+    assertEquals(row.band, 'seedlings');
+    assertEquals(row.amount_cents, 3900);
+  } finally {
+    withSeedlingsEnv(null, null);
+  }
+});
+
+Deno.test('Seedlings issuance fails loudly without its coupon env, and mints nothing', async () => {
+  withSeedlingsEnv(null, 'prod_seedlings_set');
+  const stripe = fakeStripeWithCoupon({ applies_to: { products: ['prod_seedlings_set'] }, amount_off: 3900 });
+  let msg = '';
+  try {
+    await issueStarterCredit(new FakeDb() as never, stripe, seedlingsInput);
+  } catch (e) {
+    msg = (e as Error).message;
+  } finally {
+    withSeedlingsEnv(null, null);
+  }
+  assert(msg.includes('STRIPE_SEEDLINGS_STARTER_CREDIT_COUPON_ID'), msg);
+  assertEquals(stripe.created.length, 0);
+});
+
+Deno.test('Seedlings issuance fails loudly without the print-set product id', async () => {
+  withSeedlingsEnv('coupon_seedlings', null);
+  const stripe = fakeStripeWithCoupon({ applies_to: { products: ['prod_seedlings_set'] }, amount_off: 3900 });
+  let msg = '';
+  try {
+    await issueStarterCredit(new FakeDb() as never, stripe, seedlingsInput);
+  } catch (e) {
+    msg = (e as Error).message;
+  } finally {
+    withSeedlingsEnv(null, null);
+  }
+  assert(msg.includes('STRIPE_SEEDLINGS_PRINT_SET_PRODUCT_ID'), msg);
+  assertEquals(stripe.created.length, 0);
+});
+
+Deno.test('a Seedlings coupon scoped to the wrong product (e.g. the Sprouts kit) mints nothing', async () => {
+  withSeedlingsEnv('coupon_seedlings', 'prod_seedlings_set');
+  const stripe = fakeStripeWithCoupon({ applies_to: { products: ['prod_UbK7PJQPkKhcnE'] }, amount_off: 3900 });
+  let msg = '';
+  try {
+    await issueStarterCredit(new FakeDb() as never, stripe, seedlingsInput);
+  } catch (e) {
+    msg = (e as Error).message;
+  } finally {
+    withSeedlingsEnv(null, null);
+  }
+  assert(msg.includes('not scoped to prod_seedlings_set'), msg);
+  assertEquals(stripe.created.length, 0);
+});
+
+Deno.test('a Seedlings coupon worth the wrong amount mints nothing', async () => {
+  withSeedlingsEnv('coupon_seedlings', 'prod_seedlings_set');
+  const stripe = fakeStripeWithCoupon({ applies_to: { products: ['prod_seedlings_set'] }, amount_off: 21000 });
+  let msg = '';
+  try {
+    await issueStarterCredit(new FakeDb() as never, stripe, seedlingsInput);
+  } catch (e) {
+    msg = (e as Error).message;
+  } finally {
+    withSeedlingsEnv(null, null);
+  }
+  assert(msg.includes('expected 3900'), msg);
+  assertEquals(stripe.created.length, 0);
+});
+
+Deno.test('the Sprouts kit refuses a Seedlings credit with a readable reason', () => {
+  const v = evaluateRedemption(credit({ band: 'seedlings' }), 'parent@example.com', 'sprouts');
+  assert(!v.ok);
+  assertEquals(v.code, 'CREDIT_WRONG_BAND');
+  assert(v.message.includes('Seedlings'));
+});
+
+Deno.test('a pre-band credit row (no band) is a Sprouts credit', () => {
+  assert(evaluateRedemption(credit(), 'parent@example.com', 'sprouts').ok);
+  assert(evaluateRedemption(credit({ band: null }), 'parent@example.com', 'sprouts').ok);
+  assert(!evaluateRedemption(credit(), 'parent@example.com', 'seedlings').ok);
+});
+
+Deno.test('the band check runs after the email lock, so a stranger learns nothing', () => {
+  const v = evaluateRedemption(credit({ band: 'seedlings' }), 'someone.else@example.com', 'sprouts');
+  assert(!v.ok);
+  assertEquals(v.code, 'CREDIT_EMAIL_MISMATCH');
+});
+
+Deno.test('without an expected band the verdict is exactly the pre-band one', () => {
+  assert(evaluateRedemption(credit({ band: 'seedlings' }), 'parent@example.com').ok);
+});

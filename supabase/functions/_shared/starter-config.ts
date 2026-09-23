@@ -1,8 +1,15 @@
 // supabase/functions/_shared/starter-config.ts
 //
-// Single source of truth for the Eden's Table Sprouts Starter Unit: a $39 digital
-// product carrying weeks 1-9 of the Sprouts (K-2) band (Teacher's Guide, Student
-// Notebook and the Read-Aloud storybook), plus the $39 credit toward the $249 kit.
+// Single source of truth for the Eden's Table Starter Units: $39 digital products
+// carrying weeks 1-9 of a band (Teacher's Guide, Student Notebook and the
+// Read-Aloud storybook), plus a $39 credit toward that band's printed year.
+//
+// TWO BANDS since 2026-09-23 (founder decision): Sprouts (K-2) and Seedlings
+// (grades 3-5). The Sprouts constants below are UNCHANGED and are still exported
+// under their original names, so every existing importer and every existing
+// Sprouts buyer sees exactly what they saw before. The per-band registry,
+// STARTER_BANDS, sits at the bottom of this file and is built FROM those constants
+// for Sprouts, so the two can never drift apart.
 //
 // The three printed CARD SETS stay print-exclusive. That is a product decision, not
 // an oversight: they are made to be carried outside and passed around a table.
@@ -160,4 +167,211 @@ export function normalizeCreditCode(raw: string): string {
 /** Normalise an email for the lock check. Lowercase + trim, nothing cleverer. */
 export function normalizeEmail(raw: string): string {
   return raw.trim().toLowerCase();
+}
+
+// ---------------------------------------------------------------------------
+// THE BAND REGISTRY (2026-09-23)
+// ---------------------------------------------------------------------------
+//
+// One entry per band that has a Starter Unit. Everything that differs between the
+// Sprouts and the Seedlings Starter Unit lives here, and nowhere else: the lookup
+// key, the master files, the delivered filenames, the page, the copy nouns, the
+// credit coupon and the product the credit applies to.
+//
+// HOW A PURCHASE FINDS ITS BAND. The Stripe lookup_key is the only input. The
+// webhook maps it through starterBandForLookupKey, records the band on the
+// delivery and credit rows (public.starter_deliveries.band and
+// public.starter_credits.band, migration 20260923120000), and every later step
+// reads the band back from the row. A row with NO band (every row written before
+// that migration) is Sprouts, because Sprouts was the only Starter Unit that
+// existed: normalizeStarterBand(null) === 'sprouts'.
+
+export type StarterBand = 'sprouts' | 'seedlings';
+
+export interface StarterFileSet {
+  teachersGuide: string;
+  studentNotebook: string;
+  readAloud: string;
+}
+
+/** Where the credit's target product id comes from. */
+export type CreditTarget =
+  | { kind: 'product_id'; productId: string }
+  | { kind: 'env'; envVar: string };
+
+export interface StarterBandConfig {
+  band: StarterBand;
+  /** Stripe lookup_key AND our internal SKU. Same string on purpose. */
+  lookupKey: string;
+  /** "Sprouts" / "Seedlings". The only band noun copy should use. */
+  bandName: string;
+  /** "K-2" / "3-5". */
+  grades: string;
+  /** Product name for analytics line items and receipts' short form. */
+  productName: string;
+  priceCents: number;
+  creditCents: number;
+  /** Master PDFs in STARTER_SOURCE_BUCKET. Read-only. */
+  masters: StarterFileSet;
+  /** Customer-facing filenames on the delivered PDFs. */
+  filenames: StarterFileSet;
+  /** Public product page. */
+  pageUrl: string;
+  /** Default Stripe success_url. {CHECKOUT_SESSION_ID} is filled in by Stripe. */
+  successUrl: string;
+  /**
+   * The printed year this band's Starter Unit leads to, for the delivery email.
+   * Null when that product is not on sale yet, and the email then says so plainly
+   * rather than linking to another band's books.
+   */
+  printSetUrl: string | null;
+  /** Env var holding the credit coupon id. Read at call time, never defaulted. */
+  creditCouponEnv: string;
+  /** The Stripe product the credit coupon must be scoped to. */
+  creditTarget: CreditTarget;
+}
+
+export const STARTER_BANDS: Record<StarterBand, StarterBandConfig> = {
+  sprouts: {
+    band: 'sprouts',
+    lookupKey: STARTER_LOOKUP_KEY,
+    bandName: 'Sprouts',
+    grades: 'K-2',
+    productName: 'Sprouts Starter Unit',
+    priceCents: STARTER_PRICE_CENTS,
+    creditCents: STARTER_CREDIT_CENTS,
+    masters: STARTER_MASTERS,
+    filenames: STARTER_FILENAMES,
+    pageUrl: STARTER_PAGE_URL,
+    successUrl: 'https://edeninstitute.health/starter/thank-you?session_id={CHECKOUT_SESSION_ID}',
+    printSetUrl: 'https://edeninstitute.health/books',
+    creditCouponEnv: 'STRIPE_STARTER_CREDIT_COUPON_ID',
+    // The verified kit product (see the header of this file). The Sprouts coupon
+    // already exists and is already scoped to it; nothing here changes that.
+    creditTarget: { kind: 'product_id', productId: 'prod_UbK7PJQPkKhcnE' },
+  },
+  seedlings: {
+    band: 'seedlings',
+    lookupKey: 'seedlings_starter_unit',
+    bandName: 'Seedlings',
+    grades: '3-5',
+    productName: 'Seedlings Starter Unit',
+    priceCents: 3900,
+    // Same $39 credit rule as Sprouts (founder decision 2026-09-23).
+    creditCents: 3900,
+    // Same private bucket as Sprouts. THESE OBJECTS DID NOT EXIST when this was
+    // written (2026-09-23); they are uploaded separately. create-checkout refuses
+    // to sell the Seedlings Starter Unit while any of the three is missing
+    // (missingStarterMasters), and the fulfiller fails the delivery loudly, naming
+    // the missing path, rather than sending an email with nothing behind it.
+    //
+    // The Seedlings Read-Aloud cut carries TWO readings: Story Seven (Week 2) and
+    // Story Eight (Week 8). Per the founder brief of 2026-09-23, not inferred from
+    // the file.
+    masters: {
+      teachersGuide: 'sample/edens-table-seedlings-9wk-teachers-guide.pdf',
+      studentNotebook: 'sample/edens-table-seedlings-9wk-student-notebook.pdf',
+      readAloud: 'sample/edens-table-seedlings-9wk-read-aloud.pdf',
+    },
+    filenames: {
+      teachersGuide: 'Edens-Table-Seedlings-Starter-Teachers-Guide.pdf',
+      studentNotebook: 'Edens-Table-Seedlings-Starter-Student-Notebook.pdf',
+      readAloud: 'Edens-Table-Seedlings-Starter-Read-Aloud.pdf',
+    },
+    pageUrl: 'https://edeninstitute.health/starter/seedlings',
+    successUrl: 'https://edeninstitute.health/starter/seedlings/thank-you?session_id={CHECKOUT_SESSION_ID}',
+    // TODO(seedlings print set): the Seedlings printed set (Teacher's Guide,
+    // Student Notebook, Read-Aloud Storybook, $249, Lulu print on demand) is being
+    // built in parallel and has no page yet. Set its URL here when it goes on sale.
+    printSetUrl: null,
+    creditCouponEnv: 'STRIPE_SEEDLINGS_STARTER_CREDIT_COUPON_ID',
+    // TODO(seedlings print set): the Stripe product id of the Seedlings printed set
+    // is UNKNOWN because that product does not exist in Stripe yet. It is read from
+    // this env var and nothing guesses it. Until it is set, the Seedlings Starter
+    // Unit is not sold (create-checkout answers STARTER_NOT_CONFIGURED).
+    creditTarget: { kind: 'env', envVar: 'STRIPE_SEEDLINGS_PRINT_SET_PRODUCT_ID' },
+  },
+};
+
+export const STARTER_BAND_LIST: readonly StarterBand[] = ['sprouts', 'seedlings'];
+
+/** Every Starter Unit lookup key, for create-checkout's allow-lists. */
+export const STARTER_LOOKUP_KEYS: readonly string[] = STARTER_BAND_LIST.map((b) => STARTER_BANDS[b].lookupKey);
+
+/** The band a lookup key sells, or null when it is not a Starter Unit. */
+export function starterBandForLookupKey(lookupKey: string | null | undefined): StarterBand | null {
+  if (!lookupKey) return null;
+  for (const b of STARTER_BAND_LIST) {
+    if (STARTER_BANDS[b].lookupKey === lookupKey) return b;
+  }
+  return null;
+}
+
+/**
+ * The band stored on a delivery or credit row.
+ *
+ * null/undefined means a row written before the band column existed, which can
+ * only be Sprouts. Anything else unrecognised THROWS: guessing a band would stamp
+ * the wrong curriculum with a buyer's name and email it to them.
+ */
+export function normalizeStarterBand(raw: unknown): StarterBand {
+  if (raw === null || raw === undefined || raw === '') return 'sprouts';
+  if (raw === 'sprouts' || raw === 'seedlings') return raw;
+  throw new Error(`unknown starter band '${String(raw)}'; refusing to guess`);
+}
+
+export function starterConfig(band: StarterBand): StarterBandConfig {
+  return STARTER_BANDS[band];
+}
+
+/** The credit coupon id for a band. Throws, naming the env var, when unset. */
+export function starterCreditCouponId(band: StarterBand): string {
+  const envVar = STARTER_BANDS[band].creditCouponEnv;
+  const v = Deno.env.get(envVar);
+  if (!v) throw new Error(`${envVar} is not set; cannot issue a ${band} starter credit`);
+  return v;
+}
+
+/** The product a band's credit must apply to. Throws, naming the env var, when unknown. */
+export function starterCreditTargetProductId(band: StarterBand): string {
+  const t = STARTER_BANDS[band].creditTarget;
+  if (t.kind === 'product_id') return t.productId;
+  const v = Deno.env.get(t.envVar);
+  if (!v) throw new Error(`${t.envVar} is not set; the ${band} starter credit has no product to apply to`);
+  return v;
+}
+
+/**
+ * Env vars that must be set before a band's Starter Unit may be sold. Empty means
+ * sellable. Sprouts needs only its coupon, exactly as before; Seedlings also needs
+ * the print-set product id, because a credit with no target is a promise we
+ * cannot keep.
+ */
+export function missingStarterEnv(band: StarterBand): string[] {
+  const cfg = STARTER_BANDS[band];
+  const missing: string[] = [];
+  if (!Deno.env.get(cfg.creditCouponEnv)) missing.push(cfg.creditCouponEnv);
+  if (cfg.creditTarget.kind === 'env' && !Deno.env.get(cfg.creditTarget.envVar)) {
+    missing.push(cfg.creditTarget.envVar);
+  }
+  // Two bands sharing one coupon would let a Seedlings credit discount the
+  // Sprouts kit (or the reverse). Refuse rather than sell into that.
+  if (band !== 'sprouts') {
+    const mine = Deno.env.get(cfg.creditCouponEnv);
+    const sprouts = Deno.env.get(STARTER_BANDS.sprouts.creditCouponEnv);
+    if (mine && sprouts && mine === sprouts) {
+      missing.push(`${cfg.creditCouponEnv} (must differ from ${STARTER_BANDS.sprouts.creditCouponEnv})`);
+    }
+  }
+  return missing;
+}
+
+/**
+ * Which of a band's master paths are absent, given the object names listed in the
+ * master folder. PURE, so the check itself is unit-tested; create-checkout does
+ * the listing.
+ */
+export function missingStarterMasters(band: StarterBand, presentPaths: readonly string[]): string[] {
+  const present = new Set(presentPaths);
+  return Object.values(STARTER_BANDS[band].masters).filter((p) => !present.has(p));
 }
