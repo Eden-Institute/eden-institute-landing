@@ -62,17 +62,19 @@ Deno.test('Sprouts week 1 welcome keeps its subject, copy, three downloads and f
   assertLegalFooter(html);
 });
 
-Deno.test('Seedlings week 1 welcome keeps its subject, copy, two downloads and footer', () => {
+Deno.test('Seedlings week 1 welcome keeps its subject, copy, three downloads and footer', () => {
   const { subject, html } = buildSeedlingsMagnetEmail('Sarah');
   assertEquals(subject, 'Your Seedlings Week 1 (Elderberry) is ready');
   assertAll(html, [
     'Hi Sarah,',
     'What follows is a real week of curriculum from Seedlings, our band for third through fifth graders.',
     'Seedlings is built for the child who has begun to ask <em>why</em> and <em>how</em>, the one who has outgrown a worksheet and is ready to track a hypothesis across a week. Week 1 starts with Elderberry.',
-    'YOUR TWO DOWNLOADS: SEEDLINGS WEEK 1 (ELDERBERRY)',
-    "TEACHER'S GUIDE", 'STUDENT NOTEBOOK',
+    'YOUR THREE DOWNLOADS: SEEDLINGS WEEK 1 (ELDERBERRY)',
+    "TEACHER'S GUIDE", 'STUDENT NOTEBOOK', 'STORY SEVEN: BE STILL (READ-ALOUD)',
     'href="https://edeninstitute.health/lead-magnets/hs-seedlings-w1-tg-elderberry.pdf"',
     'href="https://edeninstitute.health/lead-magnets/hs-seedlings-w1-nb-elderberry.pdf"',
+    'href="https://edeninstitute.health/lead-magnets/hs-seedlings-w2-ra-be-still.pdf"',
+    'The read-aloud is a bonus: Story Seven, Be Still, the first story of the Seedlings year, which families read together in Week 2.',
     'THIS IS A WHOLE WEEK',
     'Elderberry is Week 1 of the curriculum exactly as it is taught.',
     'In about a week I will write again with what comes next, and there is nothing you need to do before then.',
@@ -82,7 +84,7 @@ Deno.test('Seedlings week 1 welcome keeps its subject, copy, two downloads and f
     ...CLOSING,
   ]);
   assertLegalFooter(html);
-  assert(!html.includes('hs-seedlings-w1-ra-'), 'Seedlings has no read-aloud download');
+  assert(!html.includes('hs-seedlings-w1-ra-'), 'Seedlings has no Week 1 story; its bonus read-aloud is Story Seven (Week 2)');
 });
 
 Deno.test('welcome emails wear the shared chrome (forest header, gold rules, forest footer)', () => {

@@ -89,14 +89,15 @@ export function buildSeedlingsMagnetEmail(firstName: string): { subject: string;
 ${p(`Hi ${firstName},`)}
 ${p('Thank you for stepping into this work with us. What follows is a real week of curriculum from Seedlings, our band for third through fifth graders. Seedlings is built for the child who has begun to ask <em>why</em> and <em>how</em>, the one who has outgrown a worksheet and is ready to track a hypothesis across a week. Week 1 starts with Elderberry.')}
 ${goldDivider()}
-${heading('YOUR TWO DOWNLOADS: SEEDLINGS WEEK 1 (ELDERBERRY)')}
+${heading('YOUR THREE DOWNLOADS: SEEDLINGS WEEK 1 (ELDERBERRY)')}
 ${buttonStack([
     ["TEACHER'S GUIDE", 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-tg-elderberry.pdf'],
     ['STUDENT NOTEBOOK', 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-nb-elderberry.pdf'],
+    ['STORY SEVEN: BE STILL (READ-ALOUD)', 'https://edeninstitute.health/lead-magnets/hs-seedlings-w2-ra-be-still.pdf'],
   ])}
 ${goldDivider()}
 ${heading('THIS IS A WHOLE WEEK')}
-${p('Elderberry is Week 1 of the curriculum exactly as it is taught. Five full days, the same pages families teach from all year, and it stands on its own. The printed card decks are not part of the free week; everything you need to teach these five days is in the guide and the notebook. Teach it whenever the week suits you. In about a week I will write again with what comes next, and there is nothing you need to do before then.')}
+${p('Elderberry is Week 1 of the curriculum exactly as it is taught. Five full days, the same pages families teach from all year, and it stands on its own. The printed card decks are not part of the free week; everything you need to teach these five days is in the guide and the notebook. The read-aloud is a bonus: Story Seven, Be Still, the first story of the Seedlings year, which families read together in Week 2. Teach it whenever the week suits you. In about a week I will write again with what comes next, and there is nothing you need to do before then.')}
 ${closingBlock()}`;
   return { subject: 'Your Seedlings Week 1 (Elderberry) is ready', html: magnetWrapper(body) };
 }
