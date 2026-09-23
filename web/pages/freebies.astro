@@ -66,13 +66,14 @@ const offerJsonLd = {
 // What actually arrives in a free week. MUST match the PDFs the welcome email
 // links in resend-waitlist, and nothing else.
 // 2026-09-12, founder instruction: the three card decks were retired from the
-// free week for both bands. Sprouts sends three files, Seedlings sends two;
-// the Read-Aloud entry below says so rather than implying both bands get it.
+// free week for both bands. Sprouts sends three files (its Week 1 story).
+// 2026-09-23, founder: Seedlings also sends three, with Story Seven (its first
+// story, read in Week 2) as a bonus read-aloud, since Seedlings has no Week 1 story.
 // The card PDFs are still on disk so links in already-sent email keep working.
 const components = [
   { icon: BookOpen, name: "Teacher Guide", note: "Every word you need, laid out day by day." },
   { icon: NotebookPen, name: "Student Notebook", note: "Five day pages your child works through." },
-  { icon: Leaf, name: "Read-Aloud Story", note: "Meet the Eden family. Sprouts Week 1 only." },
+  { icon: Leaf, name: "Read-Aloud Story", note: "Meet the Eden family. Seedlings gets Story Seven as a bonus." },
 ];
 
 const steps = [
