@@ -583,7 +583,26 @@ serve(async (req) => {
     // a resolved code REPLACES the manual field; an unknown/inactive code
     // falls back to the manual field rather than failing the checkout.
     if (NO_PROMO_LOOKUP_KEYS.has(lookup_key)) {
-      if (typeof bodyPromoCode === "string" && bodyPromoCode.trim()) {
+      // FOUNDER TEST CODES (2026-09-23, founder request): the Starter still never shows
+      // Stripe's promo field and never takes a public code, but a code named in the
+      // STARTER_TEST_PROMO_CODES secret (comma separated, case-insensitive) may be
+      // pre-applied through promo_code, so the founder can buy a real Starter for $1
+      // and watch the whole stamp-and-deliver run. The allowlist lives in a secret,
+      // not in this file, so nobody can find a working code by reading the repo.
+      const testCodes = (Deno.env.get("STARTER_TEST_PROMO_CODES") ?? "")
+        .split(",").map((c) => c.trim().toUpperCase()).filter(Boolean)
+      const wanted = typeof bodyPromoCode === "string" ? bodyPromoCode.trim().toUpperCase() : ""
+      if (wanted && testCodes.includes(wanted)) {
+        const promoList = await stripe.promotionCodes.list({ code: wanted, active: true, limit: 1 })
+        const promo = promoList.data[0]
+        if (!promo) {
+          return new Response(JSON.stringify({ error: "That test code is not active.", code: "PROMO_NOT_ACTIVE" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          })
+        }
+        sessionParams.discounts = [{ promotion_code: promo.id }]
+        delete sessionParams.allow_promotion_codes
+      } else if (wanted) {
         console.warn(`promo_code ignored: '${lookup_key}' does not accept promotion codes`)
       }
     } else if (typeof bodyPromoCode === "string" && bodyPromoCode.trim()) {
