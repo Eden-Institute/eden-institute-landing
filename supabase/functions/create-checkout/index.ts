@@ -56,6 +56,9 @@ import { evaluateRedemption, findCreditByCode } from "../_shared/starter-credit.
 import { LULU_PRODUCTION_DELAY_MINUTES, LULU_PRODUCTS, PRINT_SHOP_URL, luluProductBySku } from "../_shared/lulu-config.ts"
 import { timingSafeEqual } from "../_shared/timing-safe-equal.ts"
 import { E2E_BUYER_EMAIL, E2E_HEADER, E2E_METADATA_KEY, E2E_MODE, e2eRequestAllowed, stripeSecretKey } from "../_shared/e2e-mode.ts"
+// Print bands (Sprouts, Seedlings), 2026-09-23. A separate line from the
+// lulu-config import above on purpose, to keep this change's hunks apart.
+import { LuluBand, printableProblems } from "../_shared/lulu-config.ts"
 
 /** Hours a buyer has to cancel a print order, for Stripe's checkout copy. */
 const PRINT_CANCEL_HOURS = Math.round(LULU_PRODUCTION_DELAY_MINUTES / 60)
@@ -1031,7 +1034,8 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
 //            promo_code?, success_url?, cancel_url?, fbp?, fbc? }
 //
 // The printed Sprouts set (Teacher's Guide + Student Notebook + Read-Aloud, sold
-// together only). Everything that decides money comes from the products table
+// together only), and since 2026-09-23 the printed Seedlings set on the same
+// rail, one band per order. Everything that decides money comes from the products table
 // (Stripe Price id, shipping tier) and this branch REFUSES with
 // PRINT_SHOP_NOT_CONFIGURED when any of it is missing, naming the SKU. That is
 // deliberate: a guessed default here would be a real charge to a real card.
@@ -1069,6 +1073,18 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
     cart.push({ sku, qty })
   }
 
+  // ONE BAND PER ORDER (2026-09-23). The confirmation, shipped and delivered
+  // messages name the band, and one Lulu job prints one band's files. A family
+  // buying both years places two orders.
+  const bands = new Set<LuluBand>(cart.map((c) => luluProductBySku(c.sku)!.band))
+  if (bands.size > 1) {
+    return new Response(
+      JSON.stringify({ error: "The Sprouts and Seedlings sets check out separately. Please order one set, then the other.", code: "PRINT_MIXED_BANDS" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
+    )
+  }
+  const band: LuluBand = [...bands][0]
+
   const adminClient = admin()
   const { data: products, error: productError } = await adminClient
     .from("products")
@@ -1095,6 +1111,30 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
       console.error(`print shop: '${line.sku}' is not configured (missing ${missing.join(", ")}); refusing checkout`)
       return new Response(
         JSON.stringify({ error: "The printed set is not quite ready to order. Please check back soon.", code: "PRINT_SHOP_NOT_CONFIGURED", sku: line.sku }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 },
+      )
+    }
+  }
+
+  // A band other than Sprouts must have every book it prints ready at Lulu (files
+  // and page counts in lulu_printables) BEFORE the buyer is charged. Without this
+  // the sale would go through and the print job would fail afterwards, or worse.
+  // Fails closed: a lookup error refuses the sale too. Sprouts skips it on
+  // purpose: its rows have been live since 2026-09-11 and its checkout path stays
+  // exactly as it was.
+  if (band !== "sprouts") {
+    let problems: string[]
+    try {
+      const { data: rows, error } = await adminClient.from("lulu_printables").select("*").eq("band", band)
+      if (error) throw new Error(error.message)
+      problems = printableProblems(band, rows ?? [])
+    } catch (err) {
+      problems = [`lulu_printables lookup failed: ${err instanceof Error ? err.message : String(err)}`]
+    }
+    if (problems.length) {
+      console.error(`print shop: ${band} printables not ready (${problems.join("; ")}); refusing checkout`)
+      return new Response(
+        JSON.stringify({ error: "The printed set is not quite ready to order. Please check back soon.", code: "PRINT_SHOP_NOT_CONFIGURED", sku: cart[0].sku }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 },
       )
     }
@@ -1129,13 +1169,17 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
   const fbc = clampMeta(body.fbc); if (fbc) metadata.fbc = fbc
   if (isAdminTest) metadata.print_test = "true"
   if (E2E_MODE) metadata[E2E_METADATA_KEY] = "true"
+  // Sprouts metadata stays exactly as it was; other bands are stamped for the record.
+  if (band !== "sprouts") metadata.print_band = band
 
   // Success lands on a real confirmation page, never back on the shop page: the
   // first live order (2026-09-11) returned to /books with a small notice inside
   // the buy box and the buyer could not tell whether it had worked.
   const successUrl = isSafeReturnUrl(body.success_url)
     ? body.success_url
-    : `${PRINT_SHOP_URL}/thank-you?session_id={CHECKOUT_SESSION_ID}`
+    : band === "sprouts"
+      ? `${PRINT_SHOP_URL}/thank-you?session_id={CHECKOUT_SESSION_ID}`
+      : `${PRINT_SHOP_URL}/thank-you?band=${band}&session_id={CHECKOUT_SESSION_ID}`
   const cancelUrl = isSafeReturnUrl(body.cancel_url)
     ? body.cancel_url
     : `${PRINT_SHOP_URL}?checkout=cancelled`
@@ -1181,7 +1225,7 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
     // numbered, itemized invoice with "Homeschool curriculum" on it. Validated in
     // TEST mode with shipping, automatic tax, phone collection, customer creation,
     // custom text and promotion codes all present. See _shared/receipt.ts.
-    invoice_creation: curriculumInvoiceCreation("print"),
+    invoice_creation: curriculumInvoiceCreation("print", band),
   }
 
   // Affiliate codes, same two ways in as the kit: ?promo=CODE pre-applied, else

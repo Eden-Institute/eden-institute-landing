@@ -50,6 +50,11 @@ export const RECEIPT_NAMES: Record<string, { name: string; grade: string }> = {
     name: 'Sprouts Curriculum Student Notebook, additional printed copy',
     grade: 'K-2',
   },
+  // 2026-09-23. Key = the seedlings_print_set SKU in lulu-config.ts.
+  seedlings_print_set: {
+    name: "Seedlings Printed Curriculum Set: Teacher's Guide, Student Notebook and Read-Aloud Storybook (36 weeks)",
+    grade: '3-5',
+  },
   sprouts_starter_unit: {
     name: 'Sprouts Starter Unit, Digital Curriculum, Weeks 1 to 9',
     grade: 'K-2',
@@ -288,14 +293,19 @@ export function receiptBalances(r: Receipt): boolean {
  * lives INSIDE invoice_creation; a top-level invoice_data is refused.
  * Custom field values are capped at 140 characters, names at 40, four fields max.
  */
-export function curriculumInvoiceCreation(kind: 'print' | 'starter') {
-  const grade = 'K-2 (Sprouts)';
+//
+// `band` (2026-09-23) defaults to Sprouts, and the Sprouts output is unchanged
+// character for character. Seedlings swaps the band name and grades only.
+export function curriculumInvoiceCreation(kind: 'print' | 'starter', band: 'sprouts' | 'seedlings' = 'sprouts') {
+  const name = band === 'seedlings' ? 'Seedlings' : 'Sprouts';
+  const grades = band === 'seedlings' ? '3-5' : 'K-2';
+  const grade = `${grades} (${name})`;
   return {
     enabled: true,
     invoice_data: {
       description: kind === 'print'
-        ? "Homeschool curriculum purchase: Eden's Table Sprouts printed curriculum, a K-2 Christian homeschool curriculum."
-        : "Homeschool curriculum purchase: Eden's Table Sprouts Starter Unit, digital curriculum, weeks 1 to 9.",
+        ? `Homeschool curriculum purchase: Eden's Table ${name} printed curriculum, a ${grades} Christian homeschool curriculum.`
+        : `Homeschool curriculum purchase: Eden's Table ${name} Starter Unit, digital curriculum, weeks 1 to 9.`,
       custom_fields: [
         { name: 'Item type', value: 'Homeschool curriculum' },
         { name: 'Grade level', value: grade },

@@ -15,11 +15,34 @@
 // Price and shipping live in the products table (seeded by migration
 // 20260911000100 from that decision); this file never carries a price.
 //
+// BANDS (2026-09-23). The rail sells more than one band's printed year: Sprouts
+// (K-2, the original) and Seedlings (grades 3-5). Every printable and every
+// product belongs to exactly one band, and lulu_printables is keyed by
+// (band, book_key) since migration 20260923200000. Sprouts is the default
+// everywhere a band is not given, so every pre-band caller behaves exactly as
+// it did. One order prints ONE band: create-checkout refuses a mixed cart.
+//
 // Voice rule: no em dashes.
 
 export type LuluBookKey = 'tg' | 'nb' | 'ra';
 
+export type LuluBand = 'sprouts' | 'seedlings';
+export const LULU_BANDS: readonly LuluBand[] = ['sprouts', 'seedlings'];
+export const DEFAULT_LULU_BAND: LuluBand = 'sprouts';
+
+/** Customer-facing band facts, used by emails, receipts and the storefront. */
+export const LULU_BAND_INFO: Record<LuluBand, { bandName: string; grades: string }> = {
+  sprouts: { bandName: 'Sprouts', grades: 'K-2' },
+  seedlings: { bandName: 'Seedlings', grades: '3-5' },
+};
+
+/** Read a stored or requested band. Anything unknown, null or absent is Sprouts. */
+export function normalizeLuluBand(raw: unknown): LuluBand {
+  return raw === 'seedlings' ? 'seedlings' : 'sprouts';
+}
+
 export interface LuluBook {
+  band: LuluBand;
   key: LuluBookKey;
   /** Title Lulu prints on the job ticket. Should match the cover. */
   title: string;
@@ -50,30 +73,74 @@ export interface LuluBook {
 //   0583X0827.FC.STD.PB.080CW444.GXX   $1.99 + $0.0505/page, 32 to 800 pages
 // At 240 pages the Teacher's Guide comes to $22.19, which matches the price the
 // founder read off Lulu's calculator on 2026-09-09.
+const PACKAGE_LETTER_COIL = '0850X1100.FC.STD.CO.080CW444.GXX';
+const PACKAGE_A5_PERFECT_BOUND = '0583X0827.FC.STD.PB.080CW444.GXX';
+
+// ─── SEEDLINGS PAGE COUNTS: the ONE place to change them ─────────────────────
+// Founder decision 2026-09-23: the Seedlings set prints on the SAME packages as
+// Sprouts (Teacher's Guide and Student Notebook letter coil bound, Read-Aloud A5
+// perfect bound). These counts were read from the assembled Seedlings files on
+// 2026-09-23 and are PENDING CONFIRMATION by the main session. They are only the
+// default: a lulu_printables row with its own page_count wins, and that row is
+// what Lulu is actually sent. Lulu limits: coil 2 to 470 pages, perfect bound
+// 32 to 800 (spec sheet, 2026-09-10).
+export const SEEDLINGS_PAGE_COUNTS: Record<LuluBookKey, number> = {
+  tg: 245,
+  nb: 185,
+  ra: 160,
+};
+// ──────────────────────────────────────────────────────────────────────────────
+
 export const LULU_BOOKS: LuluBook[] = [
   {
+    band: 'sprouts',
     key: 'tg',
     title: "Eden's Table Sprouts: Teacher's Guide",
-    podPackageId: '0850X1100.FC.STD.CO.080CW444.GXX',
+    podPackageId: PACKAGE_LETTER_COIL,
     pageCount: 240,
   },
   {
+    band: 'sprouts',
     key: 'nb',
     title: "Eden's Table Sprouts: Student Notebook",
-    podPackageId: '0850X1100.FC.STD.CO.080CW444.GXX',
+    podPackageId: PACKAGE_LETTER_COIL,
     pageCount: 224,
   },
   {
+    band: 'sprouts',
     key: 'ra',
     title: "Eden's Table Sprouts: Read-Aloud Storybook",
-    podPackageId: '0583X0827.FC.STD.PB.080CW444.GXX',
+    podPackageId: PACKAGE_A5_PERFECT_BOUND,
     pageCount: 112,
+  },
+  {
+    band: 'seedlings',
+    key: 'tg',
+    title: "Eden's Table Seedlings: Teacher's Guide",
+    podPackageId: PACKAGE_LETTER_COIL,
+    pageCount: SEEDLINGS_PAGE_COUNTS.tg,
+  },
+  {
+    band: 'seedlings',
+    key: 'nb',
+    title: "Eden's Table Seedlings: Student Notebook",
+    podPackageId: PACKAGE_LETTER_COIL,
+    pageCount: SEEDLINGS_PAGE_COUNTS.nb,
+  },
+  {
+    band: 'seedlings',
+    key: 'ra',
+    title: "Eden's Table Seedlings: Read-Aloud Storybook",
+    podPackageId: PACKAGE_A5_PERFECT_BOUND,
+    pageCount: SEEDLINGS_PAGE_COUNTS.ra,
   },
 ];
 
 export interface LuluProduct {
   /** products.sku and the Stripe metadata key. */
   sku: string;
+  /** Which band's printables this product draws on. */
+  band: LuluBand;
   /** Display name for emails and the dashboard. */
   name: string;
   /** Which printables one unit of this product produces. */
@@ -89,15 +156,29 @@ export interface LuluProduct {
 export const LULU_PRODUCTS: LuluProduct[] = [
   {
     sku: 'sprouts_print_set',
+    band: 'sprouts',
     name: 'Sprouts Printed Curriculum Set',
     books: ['tg', 'nb', 'ra'],
     maxQtyPerOrder: 2,
   },
   {
     sku: 'sprouts_nb_print',
+    band: 'sprouts',
     name: 'Extra Student Notebook, printed',
     books: ['nb'],
     maxQtyPerOrder: 5,
+  },
+  // Founder decision 2026-09-23: the Seedlings (grades 3-5) printed year, the
+  // same three books, $249 like Sprouts. The price lives in the products row,
+  // whose stripe_retail_price_id stays NULL until the founder creates the
+  // Stripe Price; until then the storefront shows "coming soon" and checkout
+  // refuses. No extra-notebook add-on for Seedlings (not decided).
+  {
+    sku: 'seedlings_print_set',
+    band: 'seedlings',
+    name: 'Seedlings Printed Curriculum Set',
+    books: ['tg', 'nb', 'ra'],
+    maxQtyPerOrder: 2,
   },
 ];
 
@@ -105,8 +186,90 @@ export function luluProductBySku(sku: string): LuluProduct | undefined {
   return LULU_PRODUCTS.find((p) => p.sku === sku);
 }
 
-export function luluBookByKey(key: string): LuluBook | undefined {
-  return LULU_BOOKS.find((b) => b.key === key);
+/** A band's book by key. `band` defaults to Sprouts, the pre-band behaviour. */
+export function luluBookByKey(key: string, band: LuluBand = DEFAULT_LULU_BAND): LuluBook | undefined {
+  return LULU_BOOKS.find((b) => b.key === key && b.band === band);
+}
+
+/** The band a SKU prints, or null for a SKU that is not on the Lulu rail. */
+export function luluBandForSku(sku: string | null | undefined): LuluBand | null {
+  if (!sku) return null;
+  return luluProductBySku(sku)?.band ?? null;
+}
+
+/**
+ * The band of a recorded order, from orders.lookup_key (the first cart SKU,
+ * written by order-flow). Anything that is not a Lulu SKU, including every
+ * order recorded before bands existed, reads as Sprouts.
+ */
+export function printBandForOrder(order: { lookup_key?: string | null } | null | undefined): LuluBand {
+  return luluBandForSku(order?.lookup_key ?? null) ?? DEFAULT_LULU_BAND;
+}
+
+/**
+ * The external_id put on a Lulu line item, which comes back on the job and is
+ * how a returned printable id is cached against the right row. Sprouts keeps the
+ * bare book key it has always used ('tg'), so its jobs look exactly as before;
+ * other bands are prefixed ('seedlings-tg').
+ */
+export function luluLineExternalId(band: LuluBand, key: LuluBookKey): string {
+  return band === 'sprouts' ? key : `${band}-${key}`;
+}
+
+/** Inverse of luluLineExternalId. Null for anything it did not produce. */
+export function parseLuluLineExternalId(externalId: string): { band: LuluBand; key: LuluBookKey } | null {
+  const isKey = (k: string): k is LuluBookKey => k === 'tg' || k === 'nb' || k === 'ra';
+  if (isKey(externalId)) return { band: 'sprouts', key: externalId };
+  const m = /^([a-z]+)-(tg|nb|ra)$/.exec(externalId);
+  if (!m || m[1] === 'sprouts' || !(LULU_BANDS as readonly string[]).includes(m[1])) return null;
+  return { band: m[1] as LuluBand, key: m[2] as LuluBookKey };
+}
+
+/** Map key for a lulu_printables row. */
+export function printableMapKey(band: LuluBand, key: string): string {
+  return `${band}:${key}`;
+}
+
+/** The lulu_printables columns the readiness check reads. */
+export interface PrintableReadinessRow {
+  band?: string | null;
+  book_key: string;
+  pod_package_id: string | null;
+  page_count: number | null;
+  interior_url: string | null;
+  cover_url: string | null;
+  printable_id: string | null;
+}
+
+/**
+ * Why a band's books cannot be printed right now, one line per problem; empty
+ * means every book the band's products use can go to Lulu. The same rule
+ * buildLuluLineItems enforces at submit time (a cached printable_id, or a
+ * package id, page count and both file URLs), run BEFORE the buyer is charged so
+ * a band with missing files is refused at checkout instead of failing after
+ * payment. Rows with no band column (before migration 20260923200000) count as
+ * Sprouts.
+ */
+export function printableProblems(band: LuluBand, rows: PrintableReadinessRow[]): string[] {
+  const keys = new Set<LuluBookKey>();
+  for (const p of LULU_PRODUCTS) if (p.band === band) for (const k of p.books) keys.add(k);
+  const problems: string[] = [];
+  for (const key of keys) {
+    const row = rows.find((r) => normalizeLuluBand(r.band) === band && r.book_key === key);
+    if (!row) {
+      problems.push(`${band}/${key}: no lulu_printables row`);
+      continue;
+    }
+    if (row.printable_id) continue;
+    const book = luluBookByKey(key, band);
+    const missing: string[] = [];
+    if (!(row.pod_package_id ?? book?.podPackageId)) missing.push('pod_package_id');
+    if (!(row.page_count ?? book?.pageCount)) missing.push('page_count');
+    if (!row.interior_url) missing.push('interior_url');
+    if (!row.cover_url) missing.push('cover_url');
+    if (missing.length) problems.push(`${band}/${key}: missing ${missing.join(', ')}`);
+  }
+  return problems;
 }
 
 /** Where the storefront lives. Checkout returns buyers here. */

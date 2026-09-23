@@ -12,6 +12,16 @@
 // so every comparison to it is gone and the page now argues for itself. The
 // old positioning copy and the kit FAQs are on b8751c1 for phase two.
 //
+// 2026-09-23: the Seedlings (grades 3-5) printed set sits on this page too, in
+// its own section (#seedlings) with its own buy box (PrintBuyBox band=
+// "seedlings"). Until its Stripe Price, shipping tier and Lulu files are all in,
+// that box says "coming soon". The Seedlings copy states only what is verified:
+// grades 3-5, 36 weeks, the three books, their formats, $249 (founder decision
+// 2026-09-23). No page counts here on purpose: they live in ONE place,
+// SEEDLINGS_PAGE_COUNTS in supabase/functions/_shared/lulu-config.ts, and are
+// still being confirmed. No shipping price either: not decided for Seedlings.
+// The meta tags and Product JSON-LD stay Sprouts-only until Seedlings is on sale.
+//
 // Copy rule: no em dashes.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 import PrintBuyBox from "../components/islands/PrintBuyBox.tsx";
@@ -194,6 +204,38 @@ const faqJsonLd = {
 
   {/* The three books in full, same copy and photos as the hub. */}
   <ComponentShowcases only={["story", "tg", "nb"]} note="All 36 weeks of this, printed and coil bound, in the set." cta={{ href: "#buy", label: "Order the printed set · $249", dataCta: "books-showcase-buy" }} />
+
+  {/* SEEDLINGS, grades 3-5 (2026-09-23). Same three books, older children. */}
+  <section id="seedlings" class="py-12 px-6 bg-background scroll-mt-24 min-[1024px]:scroll-mt-36">
+    <div class="max-w-5xl mx-auto grid gap-8 md:grid-cols-[1fr_380px] items-start">
+      <div class="grid gap-4">
+        <p class="font-accent text-xs tracking-[0.25em] uppercase" style="color:hsl(var(--eden-gold-ink))">
+          Eden's Table · Seedlings, grades 3-5
+        </p>
+        <h2 class="font-serif text-2xl font-bold" style="color:hsl(var(--eden-forest))">The Seedlings year, printed</h2>
+        <p class="font-body text-base leading-relaxed" style="color:hsl(var(--eden-bark))">
+          The same three books for your older children: the Teacher's Guide, the Student Notebook and the
+          Read-Aloud storybook for all 36 weeks of Seedlings, printed to order and mailed to your door. $249.
+        </p>
+        <p class="font-body text-base leading-relaxed" style="color:hsl(var(--eden-bark))">
+          Body systems, herb profiles, a hypothesis tracked across a week, and dinner-table questions with
+          real reasoning in them. A different 36 plants from Sprouts, so a family who does both finishes with 72.
+        </p>
+        <ul class="font-body text-base space-y-2 mb-2" style="color:hsl(var(--eden-bark))">
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Teacher's Guide,</strong> letter size, coil bound. All 36 weeks.</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Student Notebook,</strong> letter size, coil bound. All 36 weeks.</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Read-Aloud Storybook,</strong> small paperback.</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Printed to order, mailed to you,</strong> tracked, within the United States.</span></li>
+        </ul>
+        <p class="font-body text-sm text-muted-foreground leading-relaxed">
+          Ordering both years? The Sprouts set and the Seedlings set check out separately, one order each.
+        </p>
+      </div>
+      <div id="buy-seedlings" class="md:sticky md:top-24 min-[1024px]:top-36">
+        <PrintBuyBox client:only="react" cta="books-buy-seedlings" band="seedlings" />
+      </div>
+    </div>
+  </section>
 
   <section class="py-12 px-6 bg-background">
     <div class="max-w-2xl mx-auto">

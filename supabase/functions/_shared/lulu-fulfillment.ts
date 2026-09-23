@@ -16,7 +16,9 @@
 // ONE ORDER LINE, THREE PRINTABLES. The shop sells the three books as one set
 // (founder decision 2026-09-10), so a single order_items row for
 // sprouts_print_set becomes three Lulu line items, one per book in
-// LULU_PRODUCTS[].books, each with the quantity of the set.
+// LULU_PRODUCTS[].books, each with the quantity of the set. The printables are
+// those of the product's BAND (Sprouts or Seedlings, 2026-09-23), looked up by
+// (band, book_key); a Seedlings order can never be sent a Sprouts file.
 //
 // THE RECOVERY PATH. Anything that throws inside submitLuluJob puts the job back
 // to 'failed' with last_error set and the drain retries it, up to
@@ -44,10 +46,15 @@ import {
 } from './lulu.ts';
 import {
   LULU_PRODUCTION_DELAY_MINUTES,
+  LuluBand,
   luluBookByKey,
   luluContactEmail,
+  luluLineExternalId,
   luluProductBySku,
   luluShippingLevel,
+  normalizeLuluBand,
+  parseLuluLineExternalId,
+  printableMapKey,
 } from './lulu-config.ts';
 
 /** Give up automatic retries after this many, so a poison row cannot loop forever. */
@@ -68,6 +75,8 @@ export const LULU_JOB_COLUMNS = 'id, order_id, status, attempts, last_error, pri
 
 /** A lulu_printables row. */
 export interface LuluPrintableRow {
+  /** 'sprouts' | 'seedlings'. Absent before migration 20260923200000, meaning Sprouts. */
+  band?: string | null;
   book_key: string;
   title: string | null;
   pod_package_id: string | null;
@@ -110,11 +119,17 @@ async function loadItems(db: Db, orderId: string): Promise<OrderItemWithProduct[
   return (data ?? []) as OrderItemWithProduct[];
 }
 
+/**
+ * Every lulu_printables row, keyed by printableMapKey(band, book_key). '*' rather
+ * than a column list so the `band` column is read once migration 20260923200000
+ * has run and nothing breaks before it has (a row with no band is Sprouts).
+ */
 export async function loadPrintables(db: Db): Promise<Map<string, LuluPrintableRow>> {
-  const { data, error } = await db.from('lulu_printables')
-    .select('book_key, title, pod_package_id, page_count, interior_url, cover_url, printable_id');
+  const { data, error } = await db.from('lulu_printables').select('*');
   if (error) throw new Error(`lulu_printables lookup failed: ${error.message}`);
-  return new Map<string, LuluPrintableRow>(((data ?? []) as LuluPrintableRow[]).map((r) => [r.book_key, r]));
+  return new Map<string, LuluPrintableRow>(
+    ((data ?? []) as LuluPrintableRow[]).map((r) => [printableMapKey(normalizeLuluBand(r.band), r.book_key), r]),
+  );
 }
 
 /**
@@ -131,6 +146,9 @@ export function buildLuluLineItems(
 ): LuluLineItemInput[] {
   if (items.length === 0) throw new Error('order has no line items');
   const out: LuluLineItemInput[] = [];
+  // One order prints one band (create-checkout refuses a mixed cart). A mixed
+  // order reaching here is refused rather than printed half right.
+  let orderBand: LuluBand | null = null;
   for (const it of items) {
     const p = it.product;
     if (!p) throw new Error('order line has no product row');
@@ -138,13 +156,20 @@ export function buildLuluLineItems(
     if (!product || p.fulfillment !== 'lulu') {
       throw new Error(`'${p.sku}' is not a Lulu-fulfilled product`);
     }
+    const band = product.band;
+    if (orderBand && orderBand !== band) {
+      throw new Error(`order mixes ${orderBand} and ${band} print products; refusing to build a print job`);
+    }
+    orderBand = band;
     const qty = Number.isInteger(it.quantity) && it.quantity > 0 ? it.quantity : 1;
     for (const key of product.books) {
-      const book = luluBookByKey(key);
-      const row = printables.get(key);
-      if (!book) throw new Error(`product '${p.sku}' names unknown book '${key}'`);
-      if (!row) throw new Error(`lulu_printables has no row for '${key}'`);
-      const line: LuluLineItemInput = { title: row.title ?? book.title, quantity: qty, external_id: key };
+      const book = luluBookByKey(key, band);
+      const row = printables.get(printableMapKey(band, key));
+      // Sprouts error text is unchanged; other bands name the band.
+      const label = band === 'sprouts' ? key : `${band}/${key}`;
+      if (!book) throw new Error(`product '${p.sku}' names unknown book '${label}'`);
+      if (!row) throw new Error(`lulu_printables has no row for '${label}'`);
+      const line: LuluLineItemInput = { title: row.title ?? book.title, quantity: qty, external_id: luluLineExternalId(band, key) };
       if (row.printable_id) {
         line.printable_id = row.printable_id;
       } else {
@@ -156,7 +181,7 @@ export function buildLuluLineItems(
         if (!row.interior_url) missing.push('interior_url');
         if (!row.cover_url) missing.push('cover_url');
         if (missing.length) {
-          throw new Error(`book '${key}' has no printable_id and is missing ${missing.join(', ')} in lulu_printables`);
+          throw new Error(`book '${label}' has no printable_id and is missing ${missing.join(', ')} in lulu_printables`);
         }
         line.pod_package_id = pkg!;
         line.interior = { source_url: row.interior_url! };
@@ -184,19 +209,27 @@ async function setOrder(db: Db, orderId: string, patch: Record<string, unknown>)
 
 /**
  * Cache the printable ids Lulu returned so later orders skip the file transfer.
- * Matched by the line's external_id (= book key). Only fills an EMPTY cache; a
- * row that already has one is left alone.
+ * Matched by the line's external_id (luluLineExternalId: the bare book key for
+ * Sprouts, 'seedlings-tg' for Seedlings). Only fills an EMPTY cache; a row that
+ * already has one is left alone.
+ *
+ * ALWAYS filtered by band. Without it, a Sprouts 'tg' id would also land on the
+ * Seedlings 'tg' row (both empty), and every later Seedlings order would print
+ * the Sprouts Teacher's Guide. Before migration 20260923200000 the band column
+ * does not exist, the write fails, and the failure is only a warning: the cache
+ * is an optimisation, and the next job sends the files again.
  */
 async function cachePrintableIds(db: Db, job: LuluPrintJob): Promise<void> {
   for (const li of job.line_items ?? []) {
-    const key = typeof li?.external_id === 'string' ? li.external_id : null;
+    const ext = typeof li?.external_id === 'string' ? parseLuluLineExternalId(li.external_id) : null;
     const pid = typeof li?.printable_id === 'string' ? li.printable_id : null;
-    if (!key || !pid) continue;
+    if (!ext || !pid) continue;
     const { error } = await db.from('lulu_printables')
       .update({ printable_id: pid, updated_at: new Date().toISOString() })
-      .eq('book_key', key)
+      .eq('band', ext.band)
+      .eq('book_key', ext.key)
       .is('printable_id', null);
-    if (error) console.warn(`printable id cache write failed for ${key}: ${error.message}`);
+    if (error) console.warn(`printable id cache write failed for ${ext.band}/${ext.key}: ${error.message}`);
   }
 }
 

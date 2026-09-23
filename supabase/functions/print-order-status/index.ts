@@ -19,7 +19,7 @@
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { LULU_PRODUCTION_DELAY_MINUTES } from '../_shared/lulu-config.ts';
+import { LULU_PRODUCTION_DELAY_MINUTES, printBandForOrder } from '../_shared/lulu-config.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -57,7 +57,7 @@ serve(async (req) => {
     const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
     const { data: o, error } = await db
       .from('orders')
-      .select('id, order_number, status, fulfillment, product_label, amount_total_cents, tax_cents, currency, customer_email, shipping_name, shipping_address, created_at, lulu_status, shipping_carrier, tracking_number, tracking_url, shipped_at, delivered_at')
+      .select('id, order_number, status, fulfillment, lookup_key, product_label, amount_total_cents, tax_cents, currency, customer_email, shipping_name, shipping_address, created_at, lulu_status, shipping_carrier, tracking_number, tracking_url, shipped_at, delivered_at')
       .eq('stripe_checkout_session_id', sessionId)
       .maybeSingle();
     if (error) throw new Error(`orders lookup failed: ${error.message}`);
@@ -76,6 +76,8 @@ serve(async (req) => {
       pending: false,
       order_number: o.order_number,
       stage: stageFor(o.status, o.lulu_status),
+      // 'sprouts' | 'seedlings' (2026-09-23), so the page never names the wrong year.
+      band: printBandForOrder(o),
       product_label: o.product_label,
       // deno-lint-ignore no-explicit-any
       items: (items ?? []).map((i: any) => ({ name: i.product?.name ?? o.product_label, quantity: i.quantity })),

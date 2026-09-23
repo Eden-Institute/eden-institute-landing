@@ -11,6 +11,13 @@
 // configured it is simply not offered, rather than shown at a price the
 // checkout would then refuse.
 //
+// BANDS (2026-09-23). One box per band: `band="sprouts"` (the default, and
+// exactly the box it always was) or `band="seedlings"`, which sells the
+// Seedlings set and has no extra-notebook option. A band whose set is not in
+// print_products_public yet (no Stripe Price, no shipping tier, or its Lulu
+// files not in) shows "coming soon" instead of a button. Mirror of
+// LULU_PRODUCTS in supabase/functions/_shared/lulu-config.ts.
+//
 // Deliberately smaller than PreorderBuyBox: no founding counter, no ship-window
 // disclaimer (these ship in days, not months), no credit codes. It keeps the
 // SMS consent checkbox (default UNCHECKED, TCPA) because the shipped and
@@ -38,9 +45,16 @@ interface PrintProduct {
 const MAX_QTY: Record<string, number> = {
   sprouts_print_set: 2,
   sprouts_nb_print: 5,
+  seedlings_print_set: 2,
 };
-const SET_SKU = "sprouts_print_set";
-const NB_SKU = "sprouts_nb_print";
+
+export type PrintBand = "sprouts" | "seedlings";
+
+/** Per band: the set SKU, the extra-notebook SKU (or none), and display names. */
+const BAND_CONFIG: Record<PrintBand, { setSku: string; nbSku: string | null; bandName: string }> = {
+  sprouts: { setSku: "sprouts_print_set", nbSku: "sprouts_nb_print", bandName: "Sprouts" },
+  seedlings: { setSku: "seedlings_print_set", nbSku: null, bandName: "Seedlings" },
+};
 
 /**
  * E2E test switch (2026-09-17). When this browser holds the E2E token in
@@ -64,9 +78,13 @@ function money(cents: number): string {
 
 interface Props {
   cta: string;
+  /** Which band's set this box sells. Defaults to Sprouts. */
+  band?: PrintBand;
 }
 
-export default function PrintBuyBox({ cta }: Props) {
+export default function PrintBuyBox({ cta, band = "sprouts" }: Props) {
+  const { setSku: SET_SKU, nbSku: NB_SKU, bandName } = BAND_CONFIG[band];
+  const isSprouts = band === "sprouts";
   const [product, setProduct] = useState<PrintProduct | null | undefined>(undefined);
   /** The extra-notebook product, when its row is complete; null hides the option. */
   const [notebook, setNotebook] = useState<PrintProduct | null>(null);
@@ -82,7 +100,10 @@ export default function PrintBuyBox({ cta }: Props) {
   useEffect(() => {
     setE2eToken(readE2eToken());
     const params = new URLSearchParams(window.location.search);
-    const state = params.get("checkout");
+    // A return notice belongs to the box whose checkout it came from. Sprouts
+    // returns carry no band param (as before); other bands add ?band=.
+    const returnedBand = params.get("band") ?? "sprouts";
+    const state = returnedBand === band ? params.get("checkout") : null;
     if (state === "cancelled") setNotice("No payment was taken. The set is still here whenever you are ready.");
     // ?checkout=success is the OLD return address (before /books/thank-you). Kept
     // so a stale tab or bookmark still reads as a success, not a blank page.
@@ -94,7 +115,7 @@ export default function PrintBuyBox({ cta }: Props) {
       const { data, error: e } = await (supabase as any)
         .from("print_products_public")
         .select("sku, name, retail_price_cents, shipping_tier_cents")
-        .in("sku", [SET_SKU, NB_SKU]);
+        .in("sku", NB_SKU ? [SET_SKU, NB_SKU] : [SET_SKU]);
       if (e) {
         setLoadError("We could not load the set right now. Please refresh, or email hello@edeninstitute.health.");
         setProduct(null);
@@ -102,9 +123,9 @@ export default function PrintBuyBox({ cta }: Props) {
       }
       const rows = (data ?? []) as PrintProduct[];
       setProduct(rows.find((r) => r.sku === SET_SKU) ?? null);
-      setNotebook(rows.find((r) => r.sku === NB_SKU) ?? null);
+      setNotebook(NB_SKU ? rows.find((r) => r.sku === NB_SKU) ?? null : null);
     })();
-  }, []);
+  }, [band, SET_SKU, NB_SKU]);
 
   const max = product ? MAX_QTY[product.sku] ?? 2 : 2;
   const nbMax = notebook ? MAX_QTY[notebook.sku] ?? 5 : 0;
@@ -142,8 +163,12 @@ export default function PrintBuyBox({ cta }: Props) {
             ...(notebook && nbQty > 0 ? [{ sku: notebook.sku, qty: nbQty }] : []),
           ],
           sms_consent: smsConsent,
-          success_url: "https://edeninstitute.health/books/thank-you?session_id={CHECKOUT_SESSION_ID}",
-          cancel_url: "https://edeninstitute.health/books?checkout=cancelled",
+          success_url: isSprouts
+            ? "https://edeninstitute.health/books/thank-you?session_id={CHECKOUT_SESSION_ID}"
+            : `https://edeninstitute.health/books/thank-you?band=${band}&session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: isSprouts
+            ? "https://edeninstitute.health/books?checkout=cancelled"
+            : `https://edeninstitute.health/books?checkout=cancelled&band=${band}#${band}`,
         },
       });
       if (fnError) {
@@ -158,6 +183,12 @@ export default function PrintBuyBox({ cta }: Props) {
         }
         if (detail?.code === "PRINT_SHOP_NOT_LIVE") {
           throw new Error("Checkout for the printed set is paused for a moment. Please email hello@edeninstitute.health and I will get your order in.");
+        }
+        if (!isSprouts && detail?.code === "PRINT_SHOP_NOT_CONFIGURED") {
+          // The page listed the set but a file or setting went missing since.
+          setProduct(null);
+          setLoading(false);
+          return;
         }
         throw new Error(detail?.error ?? fnError.message);
       }
@@ -188,8 +219,25 @@ export default function PrintBuyBox({ cta }: Props) {
 
       {product === undefined && <p className="font-body text-sm text-muted-foreground">Loading...</p>}
       {loadError && <p className="font-body text-sm" style={{ color: "hsl(var(--destructive))" }} role="alert">{loadError}</p>}
-      {product === null && !loadError && (
+      {product === null && !loadError && isSprouts && (
         <p className="font-body text-sm text-muted-foreground">The printed set is not on sale yet.</p>
+      )}
+      {product === null && !loadError && !isSprouts && (
+        <>
+          <p className="font-serif text-lg font-bold" style={{ color: "hsl(var(--eden-forest))" }}>{bandName} Printed Curriculum Set</p>
+          <p className="font-body text-sm text-muted-foreground mt-1">
+            Coming soon. The printed {bandName} year is being set up with our print partner now.
+          </p>
+          <button
+            type="button"
+            disabled
+            data-cta={cta}
+            className="mt-5 inline-flex w-full items-center justify-center font-accent text-sm tracking-[0.2em] uppercase font-bold px-8 py-4 rounded-md opacity-60 cursor-not-allowed"
+            style={{ backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-cream))" }}
+          >
+            Coming soon
+          </button>
+        </>
       )}
 
       {product && (
