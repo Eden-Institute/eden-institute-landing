@@ -45,6 +45,7 @@ import {
   generateCreditCode,
   normalizeCreditCode,
   normalizeEmail,
+  missingStarterEnv,
   normalizeStarterBand,
   starterCreditCouponId,
   starterCreditTargetProductId,
@@ -304,6 +305,10 @@ export async function issueStarterCredit(
     await assertCouponScopedTo(stripe, couponId, starterCreditTargetProductId(band), band);
   }
 
+  // (Also checked before payment, by starterPrepaymentProblems in create-checkout.
+  // Kept here as well: the coupon or the env can change between checkout and the
+  // webhook, and a code minted on the wrong coupon is the expensive failure.)
+
   const email = normalizeEmail(input.email);
   const code = generateCreditCode();
 
@@ -388,7 +393,7 @@ export async function issueStarterCredit(
  * off the band's credit amount. Throws, naming the coupon and product, otherwise.
  * Stripe only returns applies_to with expand[]=applies_to.
  */
-async function assertCouponScopedTo(
+export async function assertCouponScopedTo(
   stripe: StripeLike,
   couponId: string,
   productId: string,
@@ -409,6 +414,49 @@ async function assertCouponScopedTo(
         `${expected}; refusing to mint a credit on it`,
     );
   }
+}
+
+/**
+ * Everything that must be true BEFORE a non-Sprouts Starter Unit is sold, checked
+ * in create-checkout ahead of creating any Stripe session (review fix, 2026-09-23).
+ * Returns a list of problems; empty means sellable. Never throws.
+ *
+ *   1. The band's env vars are set (missingStarterEnv).
+ *   2. The band migration (20260923120000) is applied: `band` exists on both
+ *      starter_credits and starter_deliveries. Without it the webhook's
+ *      Seedlings inserts fail AFTER payment.
+ *   3. The band's coupon is scoped to its print-set product and is worth exactly
+ *      the band's credit (assertCouponScopedTo), so a misconfigured coupon refuses
+ *      the sale instead of failing to mint after the buyer has paid.
+ *
+ * NOT called for Sprouts: its pre-payment guard is unchanged (coupon env only).
+ * The master-file check stays in create-checkout because it needs Storage.
+ */
+export async function starterPrepaymentProblems(
+  db: Db,
+  stripe: StripeLike,
+  band: StarterBand,
+): Promise<string[]> {
+  const missing = missingStarterEnv(band);
+  if (missing.length) return missing.map((m) => `env ${m} not set`);
+
+  const problems: string[] = [];
+  for (const table of ['starter_deliveries', 'starter_credits']) {
+    try {
+      const { error } = await db.from(table).select('band').limit(0);
+      if (error) problems.push(`migration not applied: ${table}.band unreadable (${error.message ?? String(error)})`);
+    } catch (err) {
+      problems.push(`migration probe on ${table} threw: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  if (problems.length) return problems;
+
+  try {
+    await assertCouponScopedTo(stripe, starterCreditCouponId(band), starterCreditTargetProductId(band), band);
+  } catch (err) {
+    problems.push(err instanceof Error ? err.message : String(err));
+  }
+  return problems;
 }
 
 /**

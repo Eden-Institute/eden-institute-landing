@@ -29,6 +29,7 @@ import {
   issueStarterCredit,
   markCreditRedeemed,
   StarterCreditRow,
+  starterPrepaymentProblems,
 } from './starter-credit.ts';
 import { generateCreditCode, normalizeCreditCode, STARTER_CREDIT_CENTS } from './starter-config.ts';
 
@@ -70,6 +71,7 @@ class Query {
   eq(col: string, val: unknown) { this.filters.push((r) => r[col] === val); return this; }
   is(col: string, val: unknown) { this.filters.push((r) => (r[col] ?? null) === val); return this; }
   maybeSingle() { this.wantSingle = true; return this; }
+  limit(_n: number) { return this; }
 
   private matching(): Row[] {
     return this.table.rows.filter((r) => this.filters.every((f) => f(r)));
@@ -734,4 +736,121 @@ Deno.test('the band check runs after the email lock, so a stranger learns nothin
 
 Deno.test('without an expected band the verdict is exactly the pre-band one', () => {
   assert(evaluateRedemption(credit({ band: 'seedlings' }), 'parent@example.com').ok);
+});
+
+// ---------------------------------------------------------------------------
+// Pre-payment guard for non-Sprouts bands (review fix 2026-09-23)
+// create-checkout refuses the sale when this returns anything, before any Stripe
+// session exists.
+// ---------------------------------------------------------------------------
+
+/** A db whose `band` probe fails, as it would before the migration is applied. */
+function dbWithoutBandColumn(missingOn: string[]) {
+  return {
+    from(table: string) {
+      const q = {
+        select(_c: string) { return q; },
+        limit(_n: number) {
+          const error = missingOn.includes(table)
+            ? { message: `column ${table}.band does not exist`, code: '42703' }
+            : null;
+          return Promise.resolve({ data: [], error });
+        },
+      };
+      return q;
+    },
+    rpc() { throw new Error('unused'); },
+  };
+}
+
+const GOOD_COUPON = { applies_to: { products: ['prod_seedlings_set'] }, amount_off: 3900 };
+
+Deno.test('pre-payment: Seedlings with env, migration and a correct coupon is sellable', async () => {
+  withSeedlingsEnv('coupon_seedlings', 'prod_seedlings_set');
+  try {
+    const stripe = fakeStripeWithCoupon(GOOD_COUPON);
+    const problems = await starterPrepaymentProblems(new FakeDb() as never, stripe, 'seedlings');
+    assertEquals(problems, []);
+    assertEquals(stripe.retrieved[0].id, 'coupon_seedlings');
+    assertEquals(stripe.created.length, 0, 'the guard must never mint');
+  } finally {
+    withSeedlingsEnv(null, null);
+  }
+});
+
+Deno.test('pre-payment: unapplied migration refuses the sale, before Stripe is asked anything', async () => {
+  withSeedlingsEnv('coupon_seedlings', 'prod_seedlings_set');
+  try {
+    for (const missingOn of [['starter_deliveries'], ['starter_credits'], ['starter_deliveries', 'starter_credits']]) {
+      const stripe = fakeStripeWithCoupon(GOOD_COUPON);
+      const problems = await starterPrepaymentProblems(dbWithoutBandColumn(missingOn) as never, stripe, 'seedlings');
+      assertEquals(problems.length, missingOn.length);
+      for (const t of missingOn) assert(problems.some((p) => p.includes(`${t}.band`)), problems.join('; '));
+      assertEquals(stripe.retrieved.length, 0);
+    }
+  } finally {
+    withSeedlingsEnv(null, null);
+  }
+});
+
+Deno.test('pre-payment: a coupon scoped to the wrong product refuses the sale', async () => {
+  withSeedlingsEnv('coupon_seedlings', 'prod_seedlings_set');
+  try {
+    const stripe = fakeStripeWithCoupon({ applies_to: { products: ['prod_UbK7PJQPkKhcnE'] }, amount_off: 3900 });
+    const problems = await starterPrepaymentProblems(new FakeDb() as never, stripe, 'seedlings');
+    assertEquals(problems.length, 1);
+    assert(problems[0].includes('not scoped to prod_seedlings_set'), problems[0]);
+  } finally {
+    withSeedlingsEnv(null, null);
+  }
+});
+
+Deno.test('pre-payment: an unscoped coupon refuses the sale', async () => {
+  withSeedlingsEnv('coupon_seedlings', 'prod_seedlings_set');
+  try {
+    const stripe = fakeStripeWithCoupon({ amount_off: 3900 });
+    const problems = await starterPrepaymentProblems(new FakeDb() as never, stripe, 'seedlings');
+    assertEquals(problems.length, 1);
+    assert(problems[0].includes('not scoped'), problems[0]);
+  } finally {
+    withSeedlingsEnv(null, null);
+  }
+});
+
+Deno.test('pre-payment: a coupon worth anything but $39 refuses the sale', async () => {
+  withSeedlingsEnv('coupon_seedlings', 'prod_seedlings_set');
+  try {
+    for (const amount_off of [3800, 21000, undefined]) {
+      const stripe = fakeStripeWithCoupon({ applies_to: { products: ['prod_seedlings_set'] }, amount_off });
+      const problems = await starterPrepaymentProblems(new FakeDb() as never, stripe, 'seedlings');
+      assertEquals(problems.length, 1);
+      assert(problems[0].includes('expected 3900'), problems[0]);
+    }
+  } finally {
+    withSeedlingsEnv(null, null);
+  }
+});
+
+Deno.test('pre-payment: a Stripe error looking up the coupon refuses the sale, never throws', async () => {
+  withSeedlingsEnv('coupon_seedlings', 'prod_seedlings_set');
+  try {
+    const stripe = Object.assign(fakeStripe(), {
+      coupons: { retrieve() { return Promise.reject(new Error('No such coupon')); } },
+    });
+    const problems = await starterPrepaymentProblems(new FakeDb() as never, stripe, 'seedlings');
+    assertEquals(problems, ['No such coupon']);
+  } finally {
+    withSeedlingsEnv(null, null);
+  }
+});
+
+Deno.test('pre-payment: missing env is reported first, with no DB or Stripe call', async () => {
+  withSeedlingsEnv(null, null);
+  const stripe = fakeStripeWithCoupon(GOOD_COUPON);
+  const problems = await starterPrepaymentProblems(dbWithoutBandColumn(['starter_deliveries']) as never, stripe, 'seedlings');
+  assertEquals(problems, [
+    'env STRIPE_SEEDLINGS_STARTER_CREDIT_COUPON_ID not set',
+    'env STRIPE_SEEDLINGS_PRINT_SET_PRODUCT_ID not set',
+  ]);
+  assertEquals(stripe.retrieved.length, 0);
 });

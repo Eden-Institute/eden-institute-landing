@@ -60,7 +60,7 @@ import {
   starterBandForLookupKey,
 } from "../_shared/starter-config.ts"
 import { curriculumInvoiceCreation } from "../_shared/receipt.ts"
-import { evaluateRedemption, findCreditByCode } from "../_shared/starter-credit.ts"
+import { evaluateRedemption, findCreditByCode, starterPrepaymentProblems } from "../_shared/starter-credit.ts"
 import { LULU_PRODUCTION_DELAY_MINUTES, LULU_PRODUCTS, PRINT_SHOP_URL, luluProductBySku } from "../_shared/lulu-config.ts"
 import { timingSafeEqual } from "../_shared/timing-safe-equal.ts"
 import { E2E_BUYER_EMAIL, E2E_HEADER, E2E_METADATA_KEY, E2E_MODE, e2eRequestAllowed, stripeSecretKey } from "../_shared/e2e-mode.ts"
@@ -514,6 +514,16 @@ serve(async (req) => {
         return starterNotConfigured()
       }
       if (starterBand !== "sprouts") {
+        // Migration applied, and the band's coupon scoped to its print-set product
+        // for exactly its credit. Checked HERE, before any Stripe session exists,
+        // so a misconfiguration refuses the sale instead of failing after payment.
+        const problems = await starterPrepaymentProblems(admin(), stripe, starterBand)
+        if (problems.length) {
+          console.error(
+            `create-checkout: refusing to sell the ${starterBand} Starter Unit: ${problems.join("; ")}`,
+          )
+          return starterNotConfigured()
+        }
         const missingMasters = await starterMastersMissing(starterBand)
         if (missingMasters.length) {
           console.error(
