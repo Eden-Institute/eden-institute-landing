@@ -1,0 +1,241 @@
+---
+// /starter/seedlings — Eden's Table Seedlings Starter Unit ($39 digital, weeks 1-9).
+//
+// Founder decision 2026-09-23: a Seedlings (grades 3-5) Starter Unit, the same
+// shape as the Sprouts one at /starter. Same price, same nine weeks, same three
+// files. This page mirrors /starter with the band swapped.
+//
+// WHAT THIS PAGE DELIBERATELY DOES NOT CLAIM, because it was not verified when it
+// was written: Seedlings unit titles, which herb falls in which week, story
+// titles beyond their numbers, page sizes, and a price for the printed year. The
+// Sprouts page carries all of those because each was checked against the Sprouts
+// files. Add them here only after checking them against the Seedlings files.
+//
+// The two storybook readings (Story Seven in Week 2, Story Eight in Week 8) are
+// from the founder brief of 2026-09-23. The band blurb is the one /homeschool
+// already publishes for Seedlings.
+//
+// Same copy rules as /starter: it is a 9-week STARTER, never "sample", "preview",
+// "lite" or "partial", and never the whole year. Unlike Sprouts there is NO credit
+// or coupon of any kind (founder decision 2026-09-23), so none is mentioned here.
+//
+// Prices here are display copy. The only billing truth is the Stripe Price that
+// create-checkout resolves from lookup_key "seedlings_starter_unit". Keep in sync
+// with STARTER_BANDS.seedlings in supabase/functions/_shared/starter-config.ts.
+//
+// Copy rule: no em dashes (feedback_no_em_dashes).
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import heroStarter from "@/assets/hero-starter.jpg";
+import StarterBuyBox from "../../components/islands/StarterBuyBox.tsx";
+
+const PRICE = "$39";
+
+const meta = {
+  title: "Seedlings Starter Unit · Eden's Table | The Eden Institute",
+  description:
+    "The 9-week starter for Eden's Table Seedlings (grades 3-5): weeks 1 to 9 of the 36-week year. Teacher's Guide, " +
+    "Student Notebook and Read-Aloud storybook for those weeks, as an instant " + PRICE + " download.",
+  canonical: "https://edeninstitute.health/starter/seedlings",
+};
+
+const included = [
+  {
+    title: "9 weeks of the 36-week year",
+    body: "Weeks 1 to 9 of the 36-week Seedlings year, in order, with every daily lesson for those weeks. Weeks 10 to 36 are in the full year, the printed curriculum.",
+  },
+  {
+    title: "The Teacher's Guide",
+    body: "Every daily lesson plan for those nine weeks, ready to open and teach.",
+  },
+  {
+    title: "The Student Notebook",
+    body: "Your child's write-in pages for all nine weeks, meant to be printed and written in.",
+  },
+  {
+    title: "The Read-Aloud Storybook",
+    body: "The storybook's readings are spread across the whole 36-week year, not one a week. Two of them fall inside these nine: Story Seven in Week 2 and Story Eight in Week 8. A story reads aloud just as well from a screen, so it comes with your download.",
+  },
+  {
+    title: "Seedlings, grades three through five",
+    body: "Body systems, herb profiles, a hypothesis tracked across a week, and dinner-table questions with real reasoning in them.",
+  },
+];
+
+const faqs = [
+  {
+    q: "What happens right after I buy?",
+    a: "You will get an email within about a minute with a link to your downloads page, where your Teacher's Guide, Student Notebook and Read-Aloud storybook are waiting. That link does not expire, so you can come back to it any time, on any device. Save the files to your own device and they are yours to keep.",
+  },
+  {
+    q: "Can I print it?",
+    a: "Yes. Print as much of it as you like for your own household, as often as you like. The Student Notebook in particular is meant to be printed, because children write in it.",
+  },
+  {
+    q: "What is in the download, exactly?",
+    a: "The Teacher's Guide, the Student Notebook and the Read-Aloud storybook for weeks 1 through 9, as PDFs you print at home. That is everything you need to teach those nine weeks, with no upgrade to buy to make them work. It is the 9-week starter. Weeks 10 through 36 are in the printed curriculum.",
+  },
+  {
+    q: "Where is the rest of the year?",
+    a: "The printed Seedlings year, with the Teacher's Guide, the Student Notebook and the Read-Aloud storybook for all 36 weeks, is being finished now. The nine weeks here are the way to start while it is.",
+  },
+  {
+    q: "Is it refundable?",
+    a: "Because it is a digital download, it is not refundable once the files have been downloaded. That is stated here rather than after you buy, so you can decide with it in front of you. If something is wrong with the files, email hello@edeninstitute.health and we will fix it.",
+  },
+];
+
+const productJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Product",
+  name: "Eden's Table: Seedlings Starter Unit",
+  sku: "seedlings_starter_unit",
+  description:
+    "The 9-week starter: weeks 1 to 9 of the 36-week Eden's Table Seedlings (grades 3-5) Biblical herbalism curriculum, delivered as PDF. " +
+    "Includes the Teacher's Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks.",
+  brand: { "@type": "Brand", name: "Eden's Table" },
+  offers: {
+    "@type": "Offer",
+    price: "39.00",
+    priceCurrency: "USD",
+    availability: "https://schema.org/InStock",
+    url: "https://edeninstitute.health/starter/seedlings",
+  },
+};
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+
+<MarketingLayout
+  title={meta.title}
+  description={meta.description}
+  canonical={meta.canonical}
+  jsonLd={[productJsonLd, faqJsonLd]}
+  ogType="product"
+  product={{
+    priceAmount: productJsonLd.offers.price,
+    priceCurrency: productJsonLd.offers.priceCurrency,
+    availability: "instock",
+    brand: productJsonLd.brand.name,
+  }}
+>
+  <!-- HERO. Same measured layout as /starter; re-measure on a 375x812 phone if edited. -->
+  <section class="relative overflow-hidden pt-12 md:pt-20 pb-10 md:pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <img src={heroStarter.src} alt="" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" style="opacity:0.95;mix-blend-mode:multiply" />
+    <div class="relative z-10 max-w-3xl mx-auto text-center rounded-lg" style="background-color:hsl(0 0% 100% / 0.92);border:1px solid hsl(var(--eden-gold) / 0.35);padding:clamp(26px, 3.5vw, 52px);box-shadow:0 2px 18px -10px rgba(30,62,46,0.28)">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3 md:mb-4" style="color:hsl(var(--eden-gold-ink))">
+        Eden's Table · Seedlings, grades 3-5
+      </p>
+      <h1 class="font-serif text-4xl md:text-5xl font-bold leading-tight mb-4 md:mb-6" style="color:hsl(var(--eden-bark))">
+        Start teaching this week.
+      </h1>
+      <div class="w-16 h-px mx-auto my-4 md:my-6" style="background-color:hsl(var(--eden-gold-ink))"></div>
+      <p class="font-body text-base md:text-xl text-muted-foreground leading-relaxed mb-5 md:mb-8" style="color:hsl(var(--eden-bark))">
+        The first 9 weeks of the 36-week Eden's Table Seedlings year. The
+        Teacher's Guide, the Student Notebook and the Read-Aloud storybook for those weeks, as
+        an instant download for {PRICE}.
+        Sit down with it tonight
+        and know whether this is the way your family wants to learn plants.
+      </p>
+
+      <div
+        class="rounded-lg p-4 md:p-6 mb-5 md:mb-8 text-left md:text-center"
+        style="background-color:hsl(var(--background));border:2px dashed hsl(var(--eden-gold))"
+      >
+        <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2 md:mb-3" style="color:hsl(var(--eden-gold-ink))">
+          The 9-week starter
+        </p>
+        <p class="font-body text-sm md:text-lg leading-relaxed" style="color:hsl(var(--eden-bark))">
+          Weeks 1 to 9 of 36, with everything you need to teach them: the daily lessons, the
+          write-in Notebook pages and two storybook readings. Teach it tonight and decide
+          about the rest of the year later.
+        </p>
+      </div>
+
+      <div id="early-access" class="flex justify-center scroll-mt-28 min-[1024px]:scroll-mt-40">
+        <StarterBuyBox client:only="react" band="seedlings" cta="starter-seedlings-hero-buy" wide={true} />
+      </div>
+      {/* No "education savings account" link here, unlike /starter: ESA
+          fulfilment (_shared/esa-fulfil.ts) only knows the Sprouts starter SKU
+          (review fix 2026-09-23). Add it back once a Seedlings ESA SKU exists. */}
+    </div>
+  </section>
+
+  <!-- WHAT IS INCLUDED -->
+  <section class="py-16 px-6 bg-background">
+    <div class="max-w-4xl mx-auto">
+      <h2 class="font-serif text-3xl font-bold mb-8 text-center" style="color:hsl(var(--eden-forest))">
+        What you get
+      </h2>
+      <ul class="font-body text-base space-y-3 max-w-2xl mx-auto mb-10" style="color:hsl(var(--eden-bark))">
+        <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Teacher's Guide, weeks 1 to 9.</strong> Every daily lesson plan for those weeks.</span></li>
+        <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Student Notebook, weeks 1 to 9.</strong> Your child's write-in pages.</span></li>
+        <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Read-Aloud Storybook.</strong> The two readings that fall in these nine weeks.</span></li>
+        <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>PDF, instant download.</strong> Print at home.</span></li>
+        <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Yours to keep and reprint.</strong> Print it again for the next child, as often as you like.</span></li>
+      </ul>
+      <div class="grid gap-4 md:grid-cols-2">
+        {included.map((item) => (
+          <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.3)">
+            <h3 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-forest))">{item.title}</h3>
+            <p class="font-body text-sm text-muted-foreground leading-relaxed">{item.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto text-center">
+      <p class="font-accent text-xs tracking-[0.25em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">
+        Nine weeks, finished
+      </p>
+      <h2 class="font-serif text-3xl font-bold mb-6" style="color:hsl(var(--eden-bark))">
+        This is not a preview of the curriculum. It is nine real weeks of it.
+      </h2>
+      <p class="font-body text-lg text-muted-foreground leading-relaxed">
+        Every daily lesson, written out the same way every other week of the year is written
+        out. Nothing is thinned down because it is the start. If you teach these nine weeks and
+        stop, you have still had nine weeks of school you did not have to plan.
+      </p>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="py-16 px-6 bg-background">
+    <div class="max-w-2xl mx-auto">
+      <h2 class="font-serif text-3xl font-bold mb-8 text-center" style="color:hsl(var(--eden-forest))">
+        Questions
+      </h2>
+      <div class="space-y-4">
+        {faqs.map((f) => (
+          <details class="rounded-lg bg-white border p-5" style="border-color:hsl(var(--eden-gold) / 0.3)">
+            <summary class="font-serif text-base font-bold cursor-pointer" style="color:hsl(var(--eden-forest))">
+              {f.q}
+            </summary>
+            <p class="font-body text-sm text-muted-foreground leading-relaxed mt-3">{f.a}</p>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- CLOSING BUY -->
+  <section class="py-16 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto text-center">
+      <h2 class="font-serif text-3xl font-bold mb-6" style="color:hsl(var(--eden-bark))">
+        Nine weeks, {PRICE}, in your inbox in a minute.
+      </h2>
+      <div class="flex justify-center">
+        <StarterBuyBox client:only="react" band="seedlings" cta="starter-seedlings-bottom-buy" wide={true} />
+      </div>
+    </div>
+  </section>
+</MarketingLayout>

@@ -22,7 +22,17 @@ import { getFbAttribution } from "@/lib/fbAttribution";
 import { pinTrack } from "@/lib/pinterestTag";
 import PayOverTime from "./PayOverTime";
 
-const STARTER_LOOKUP_KEY = "sprouts_starter_unit";
+/**
+ * One Starter Unit per band (2026-09-23). The lookup keys mirror STARTER_BANDS in
+ * supabase/functions/_shared/starter-config.ts, which is the source of truth;
+ * create-checkout accepts exactly these two.
+ */
+const STARTER_PRODUCTS = {
+  sprouts: { lookupKey: "sprouts_starter_unit", productName: "Sprouts Starter Unit" },
+  seedlings: { lookupKey: "seedlings_starter_unit", productName: "Seedlings Starter Unit" },
+} as const;
+
+export type StarterBand = keyof typeof STARTER_PRODUCTS;
 
 /** Display copy only. The Stripe Price is the billing truth. */
 const PRICE_LABEL = "$39";
@@ -37,9 +47,13 @@ interface Props {
   cta: string;
   /** Full-width on mobile regardless; this widens it on desktop too. */
   wide?: boolean;
+  /** Which band's Starter Unit this button sells. Defaults to Sprouts, so every
+   *  existing /starter button is unchanged. */
+  band?: StarterBand;
 }
 
-export default function StarterBuyBox({ cta, wide = false }: Props) {
+export default function StarterBuyBox({ cta, wide = false, band = "sprouts" }: Props) {
+  const product = STARTER_PRODUCTS[band];
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cancelled, setCancelled] = useState(false);
@@ -60,7 +74,7 @@ export default function StarterBuyBox({ cta, wide = false }: Props) {
       value: PRICE_VALUE,
       currency: "USD",
       order_quantity: 1,
-      line_items: [{ product_id: STARTER_LOOKUP_KEY, product_name: "Sprouts Starter Unit", product_price: PRICE_VALUE, product_quantity: 1 }],
+      line_items: [{ product_id: product.lookupKey, product_name: product.productName, product_price: PRICE_VALUE, product_quantity: 1 }],
     });
     setLoading(true);
     setError(null);
@@ -69,7 +83,7 @@ export default function StarterBuyBox({ cta, wide = false }: Props) {
       const { data, error: fnError } = await supabase.functions.invoke("create-checkout", {
         body: {
           ...getFbAttribution(),
-          lookup_key: STARTER_LOOKUP_KEY,
+          lookup_key: product.lookupKey,
         },
       });
       // A coded EF failure (RATE_LIMITED, STARTER_NOT_CONFIGURED) carries a

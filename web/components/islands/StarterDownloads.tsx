@@ -39,12 +39,17 @@ const STARTER_PRICE_VALUE = 39;
  * one-way reference derived from the session id (pinCheckoutOnce), never the
  * session id itself, since there is no order number on this page.
  */
-function reportPinterestCheckout(sessionId: string): void {
+function reportPinterestCheckout(sessionId: string, band: string | undefined): void {
+  // starter-download names the band (2026-09-23). A response without one comes
+  // from a function deployed before bands existed, and that was always Sprouts.
+  const product = band === "seedlings"
+    ? { product_id: "seedlings_starter_unit", product_name: "Seedlings Starter Unit" }
+    : { product_id: "sprouts_starter_unit", product_name: "Sprouts Starter Unit" };
   void pinCheckoutOnce(sessionId, {
     value: STARTER_PRICE_VALUE,
     currency: "USD",
     order_quantity: 1,
-    line_items: [{ product_id: "sprouts_starter_unit", product_name: "Sprouts Starter Unit", product_price: STARTER_PRICE_VALUE, product_quantity: 1 }],
+    line_items: [{ ...product, product_price: STARTER_PRICE_VALUE, product_quantity: 1 }],
   });
 }
 
@@ -91,6 +96,8 @@ interface Payload {
   download_token?: string;
   credit_code?: string | null;
   credit_redeemed?: boolean;
+  /** "sprouts" | "seedlings". Absent from an older deploy, which means Sprouts. */
+  band?: string;
   files: FileLink[];
 }
 
@@ -143,9 +150,12 @@ export default function StarterDownloads({ mode, showCredit = false }: Props) {
           headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string },
         });
 
+        // Read once here so the Pinterest report and the page both know the band.
+        const body = await res.json().catch(() => ({}));
+
         if (mode === "session" && (res.status === 409 || res.ok) && !checkoutReported.current) {
           checkoutReported.current = true;
-          reportPinterestCheckout(credential);
+          reportPinterestCheckout(credential, (body as { band?: string }).band);
         }
 
         if (res.status === 409) {
@@ -163,7 +173,6 @@ export default function StarterDownloads({ mode, showCredit = false }: Props) {
           return;
         }
 
-        const body = await res.json().catch(() => ({}));
         if (!res.ok) {
           setState({
             kind: "error",
@@ -308,7 +317,9 @@ export default function StarterDownloads({ mode, showCredit = false }: Props) {
 
       {/* Switched off on purpose. Founder rule: no credit on anything until the kits are live. Rewrite this wording before it is ever enabled. */}
       {/* DORMANT since the print-first pivot (2026-09-12): no page passes showCredit={true}, so this never renders. The copy below predates the pivot and is stale (compare returns.astro). Founder must approve new wording before any page turns this on. */}
-      {showCredit && data.credit_code && (
+      {/* Sprouts only: the wording below names the Sprouts kit, and a Seedlings
+          buyer must never read it (2026-09-23). */}
+      {showCredit && data.credit_code && (data.band ?? "sprouts") === "sprouts" && (
         <div
           className="mt-8 rounded-lg p-6 text-center"
           style={{ border: "2px dashed hsl(var(--eden-gold))", backgroundColor: "hsl(var(--background))" }}

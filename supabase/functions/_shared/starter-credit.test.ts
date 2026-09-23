@@ -27,6 +27,7 @@ import {
   creditIssuanceOpen,
   evaluateRedemption,
   issueStarterCredit,
+  issueStarterCreditForBand,
   markCreditRedeemed,
   StarterCreditRow,
 } from './starter-credit.ts';
@@ -592,4 +593,41 @@ Deno.test('a non-Stripe client is never swapped out, even with the key set', asy
   } finally {
     Deno.env.delete('STRIPE_STARTER_PROMO_KEY');
   }
+});
+
+// ---------------------------------------------------------------------------
+// Bands (2026-09-23). FOUNDER DECISION: the Seedlings Starter Unit carries NO
+// credit and NO coupon of any kind. The webhook goes through
+// issueStarterCreditForBand, which must not touch the database or Stripe at all
+// for Seedlings, and must behave exactly like issueStarterCredit for Sprouts.
+// ---------------------------------------------------------------------------
+
+/** Any property read throws, so ANY use of the object fails the test. */
+function untouchable(name: string) {
+  return new Proxy({}, {
+    get(_t, prop) { throw new Error(`${name}.${String(prop)} was touched`); },
+  });
+}
+
+Deno.test('ACCEPTANCE: a Seedlings purchase mints nothing and never touches starter_credits or Stripe', async () => {
+  const out = await issueStarterCreditForBand(
+    untouchable('db') as never,
+    untouchable('stripe'),
+    'seedlings',
+    { ...issueInput, sessionId: 'cs_test_seedlings' },
+  );
+  assertEquals(out, null);
+});
+
+Deno.test('a Sprouts purchase through the band gate is exactly issueStarterCredit', async () => {
+  const db = new FakeDb();
+  const stripe = fakeStripe();
+  const out = await issueStarterCreditForBand(db as never, stripe, 'sprouts', issueInput);
+  assert(out && out.created);
+  assertEquals(stripe.created.length, 1);
+  assertEquals(stripe.created[0].coupon, 'coupon_test');
+  assertEquals(Object.keys(stripe.created[0].metadata as Row).sort(), ['purpose', 'starter_email', 'starter_session_id']);
+  const row = db.tables.get('starter_credits')!.rows[0];
+  assert(!('band' in row), 'no band column is written on a credit row');
+  assertEquals(row.amount_cents, 3900);
 });

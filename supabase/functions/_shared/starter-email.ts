@@ -16,7 +16,7 @@
 // are sent rather than drafted so it would survive either way, but keeping one
 // button style across every Eden email is worth more than the fill.
 
-import { STARTER_LICENSE_LINE } from './starter-config.ts';
+import { STARTER_BANDS, STARTER_LICENSE_LINE, StarterBand } from './starter-config.ts';
 import { Receipt, renderReceiptHtml, renderReceiptText } from './receipt.ts';
 import { escapeHtml } from './html-escape.ts';
 
@@ -30,6 +30,12 @@ export interface StarterEmailModel {
    * order row can never block a buyer's files; the fulfiller logs when it is null.
    */
   receipt?: Receipt | null;
+  /**
+   * Which band was bought (2026-09-23). Omitted means Sprouts, and the Sprouts
+   * email is unchanged character for character. The only band words in this
+   * email come from STARTER_BANDS, so a Seedlings buyer never reads "Sprouts".
+   */
+  band?: StarterBand;
 }
 
 // 2026-09-12, the print-first pivot. This delivery email used to hand the buyer
@@ -38,7 +44,8 @@ export interface StarterEmailModel {
 // simply not mentioned. Founder plan: when the boxed edition launches, Starter
 // buyers are the first list she mails and the credit is what opens that email.
 // Do not restore the credit block here while the kit is off sale.
-const PRINT_SET_URL = 'https://edeninstitute.health/books';
+// The printed-year link is per band now (STARTER_BANDS[band].printSetUrl). For
+// Sprouts it is still https://edeninstitute.health/books.
 const RETURNS_URL = 'https://edeninstitute.health/returns';
 
 function para(text: string): string {
@@ -65,6 +72,8 @@ export function renderStarterDeliveryEmail(m: StarterEmailModel): {
   text: string;
 } {
   const greeting = m.firstName ? `${m.firstName},` : 'Hello,';
+  const cfg = STARTER_BANDS[m.band ?? 'sprouts'];
+  const printSetUrl = cfg.printSetUrl;
 
   // ONE link, to a page, and it never expires.
   //
@@ -80,11 +89,19 @@ export function renderStarterDeliveryEmail(m: StarterEmailModel): {
   // A page can explain itself. A PDF cannot.
   const downloadsUrl = `https://edeninstitute.health/starter/downloads?t=${encodeURIComponent(m.downloadToken)}`;
 
-  const creditBlock = `
+  // A band whose printed year is not on sale yet (Seedlings, 2026-09-23) gets an
+  // honest sentence and no button, rather than a link to another band's books.
+  const creditBlock = printSetUrl
+    ? `
 ${rule()}
 ${sectionLabel('When you want the rest of the year')}
 ${para(`These are the first nine weeks of the 36-week year. The other twenty-seven are finished too, and the whole year is printed to order: the Teacher's Guide, the Student Notebook and the whole Read-Aloud storybook, at your door in about two to three weeks. There is no hurry at all, and nothing here stops working if you never buy it.`)}
-${ctaButton('See the printed year', PRINT_SET_URL)}
+${ctaButton('See the printed year', printSetUrl)}
+`
+    : `
+${rule()}
+${sectionLabel('When you want the rest of the year')}
+${para(`These are the first nine weeks of the 36-week year. The printed ${cfg.bandName} year, with the Teacher's Guide, the Student Notebook and the whole Read-Aloud storybook, is being finished now. There is no hurry at all, and nothing here stops working if you never buy it.`)}
 `;
 
   const html = `<!DOCTYPE html>
@@ -99,7 +116,7 @@ ${ctaButton('See the printed year', PRINT_SET_URL)}
 </td></tr>
 <tr><td style="padding:34px 36px;">
 ${para(escapeHtml(greeting))}
-${para(`Here are your first nine weeks of Eden's Table, Sprouts. Everything you need to start teaching is in these three files.`)}
+${para(`Here are your first nine weeks of Eden's Table, ${cfg.bandName}. Everything you need to start teaching is in these three files.`)}
 
 ${sectionLabel('Your downloads')}
 ${para(`Your Teacher's Guide, Student Notebook and Read-Aloud Storybook are waiting on one page:`)}
@@ -126,7 +143,7 @@ ${para(`<strong>Camila</strong><br><span style="font-size:14px;">The Eden Instit
   const text = [
     greeting,
     '',
-    "Here are your first nine weeks of Eden's Table, Sprouts.",
+    `Here are your first nine weeks of Eden's Table, ${cfg.bandName}.`,
     '',
     "Your Teacher's Guide, Student Notebook and Read-Aloud Storybook are on one page:",
     downloadsUrl,
@@ -135,8 +152,14 @@ ${para(`<strong>Camila</strong><br><span style="font-size:14px;">The Eden Instit
     '',
     'If a file opens as a blank white screen, you are not doing anything wrong. Some email apps open links in a small built in browser that cannot display a PDF. Press and hold the link instead of tapping it, choose Open in Safari or Open in Chrome, and it will open properly. Opening this email on a computer works too.',
     '',
-    'When you want the rest of the year: the other twenty-seven weeks are finished and the whole year is printed to order, at your door in about two to three weeks.',
-    `See the printed year: ${PRINT_SET_URL}`,
+    ...(printSetUrl
+      ? [
+        'When you want the rest of the year: the other twenty-seven weeks are finished and the whole year is printed to order, at your door in about two to three weeks.',
+        `See the printed year: ${printSetUrl}`,
+      ]
+      : [
+        `When you want the rest of the year: the printed ${cfg.bandName} year is being finished now. There is no hurry at all.`,
+      ]),
     '',
     ...(m.receipt ? [renderReceiptText(m.receipt), ''] : []),
     STARTER_LICENSE_LINE,

@@ -27,11 +27,11 @@ import { Db } from './order-db.ts';
 import { stampFooter } from './starter-pdf.ts';
 import {
   DOWNLOAD_URL_TTL_SECONDS,
+  STARTER_BANDS,
   STARTER_BUCKET,
-  STARTER_FILENAMES,
   STARTER_LICENSE_LINE,
-  STARTER_MASTERS,
   STARTER_SOURCE_BUCKET,
+  normalizeStarterBand,
 } from './starter-config.ts';
 import { renderStarterDeliveryEmail, StarterEmailModel } from './starter-email.ts';
 import { Receipt, starterReceipt } from './receipt.ts';
@@ -85,6 +85,12 @@ export interface DeliveryRow {
   nb_object_path: string | null;
   ra_object_path: string | null;
   download_token: string;
+  /**
+   * 'sprouts' | 'seedlings' (2026-09-23). Null or absent on rows written before
+   * the band column existed, which are all Sprouts (normalizeStarterBand). Every
+   * band-specific thing below, masters, filenames, email and receipt, keys off it.
+   */
+  band?: string | null;
 }
 
 type Stage = 'claim' | 'fetch_master' | 'stamp' | 'upload' | 'sign' | 'email' | 'complete';
@@ -198,17 +204,22 @@ export async function signedUrl(
   return { view, save: `${view}&download=${encodeURIComponent(filename)}` };
 }
 
-/** Fresh links for an already-stamped delivery. Backs the re-request flow. */
+/**
+ * Fresh links for an already-stamped delivery. Backs the re-request flow.
+ * The saved filenames follow the delivery's band, so a Seedlings buyer's files
+ * never land on disk named "Sprouts".
+ */
 export async function mintDownloadLinks(
-  delivery: Pick<DeliveryRow, 'tg_object_path' | 'nb_object_path' | 'ra_object_path'>,
+  delivery: Pick<DeliveryRow, 'tg_object_path' | 'nb_object_path' | 'ra_object_path' | 'band'>,
 ): Promise<{ teachersGuide: DownloadPair; studentNotebook: DownloadPair; readAloud: DownloadPair }> {
   if (!delivery.tg_object_path || !delivery.nb_object_path || !delivery.ra_object_path) {
     throw new Error('delivery has no stamped objects yet');
   }
+  const names = STARTER_BANDS[normalizeStarterBand(delivery.band)].filenames;
   return {
-    teachersGuide: await signedUrl(delivery.tg_object_path, STARTER_FILENAMES.teachersGuide),
-    studentNotebook: await signedUrl(delivery.nb_object_path, STARTER_FILENAMES.studentNotebook),
-    readAloud: await signedUrl(delivery.ra_object_path, STARTER_FILENAMES.readAloud),
+    teachersGuide: await signedUrl(delivery.tg_object_path, names.teachersGuide),
+    studentNotebook: await signedUrl(delivery.nb_object_path, names.studentNotebook),
+    readAloud: await signedUrl(delivery.ra_object_path, names.readAloud),
   };
 }
 
@@ -257,6 +268,12 @@ export async function fulfilStarterDelivery(
   await logStage(db, delivery, attempt, 'claim', true);
 
   try {
+    // Throws on an unrecognised band, which lands in the catch below and marks
+    // the delivery failed. Stamping a guessed band would email the wrong
+    // curriculum with this buyer's name on every page.
+    const band = normalizeStarterBand(delivery.band);
+    const cfg = STARTER_BANDS[band];
+
     // Each file is stamped INDEPENDENTLY when its path is missing, rather than
     // all-or-nothing. Two reasons:
     //   1. A delivery that was fulfilled before the Read-Aloud was added has two
@@ -270,9 +287,9 @@ export async function fulfilStarterDelivery(
     };
 
     const plan = [
-      { key: 'tg_object_path', master: STARTER_MASTERS.teachersGuide, out: 'teachers-guide.pdf', have: delivery.tg_object_path },
-      { key: 'nb_object_path', master: STARTER_MASTERS.studentNotebook, out: 'student-notebook.pdf', have: delivery.nb_object_path },
-      { key: 'ra_object_path', master: STARTER_MASTERS.readAloud, out: 'read-aloud.pdf', have: delivery.ra_object_path },
+      { key: 'tg_object_path', master: cfg.masters.teachersGuide, out: 'teachers-guide.pdf', have: delivery.tg_object_path },
+      { key: 'nb_object_path', master: cfg.masters.studentNotebook, out: 'student-notebook.pdf', have: delivery.nb_object_path },
+      { key: 'ra_object_path', master: cfg.masters.readAloud, out: 'read-aloud.pdf', have: delivery.ra_object_path },
     ] as const;
 
     const paths: Record<string, string> = {};
@@ -288,7 +305,19 @@ export async function fulfilStarterDelivery(
       const t0 = performance.now();
       const loaded: Array<{ key: string; out: string; data: Uint8Array }> = [];
       for (const f of missing) {
-        const data = await storageDownload(STARTER_SOURCE_BUCKET, f.master);
+        let data: Uint8Array;
+        try {
+          data = await storageDownload(STARTER_SOURCE_BUCKET, f.master);
+        } catch (err) {
+          // Named loudly: a missing master is an upload that has not happened
+          // (the Seedlings masters were not in the bucket when this shipped), and
+          // "storage download failed: 400" alone sends the diagnosis elsewhere.
+          const why = err instanceof Error ? err.message : String(err);
+          await logStage(db, delivery, attempt, 'fetch_master', false, `${band} master ${f.master}: ${why}`);
+          throw new Error(
+            `STARTER MASTER MISSING OR UNREADABLE (${band}): ${STARTER_SOURCE_BUCKET}/${f.master}. ${why}`,
+          );
+        }
         bytes += data.length;
         loaded.push({ key: f.key, out: f.out, data });
       }
@@ -332,6 +361,7 @@ export async function fulfilStarterDelivery(
       tg_object_path: paths.tg_object_path,
       nb_object_path: paths.nb_object_path,
       ra_object_path: paths.ra_object_path,
+      band,
     });
     const expiresAt = new Date(Date.now() + DOWNLOAD_URL_TTL_SECONDS * 1000);
     await logStage(db, delivery, attempt, 'sign', true, `expires ${expiresAt.toISOString()}`,
@@ -354,7 +384,7 @@ export async function fulfilStarterDelivery(
           .select('order_number, created_at, amount_total_cents, tax_cents, raw')
           .eq('id', delivery.order_id)
           .maybeSingle();
-        if (orderRow) receipt = starterReceipt(orderRow);
+        if (orderRow) receipt = starterReceipt(orderRow, cfg.lookupKey);
       } catch (e) {
         console.error(`[${sid}] receipt load threw; sending without it:`, String(e));
       }
@@ -367,6 +397,7 @@ export async function fulfilStarterDelivery(
       creditCode,
       downloadToken: delivery.download_token,
       receipt,
+      band,
     };
 
     const t4 = performance.now();

@@ -44,6 +44,8 @@ import {
   generateCreditCode,
   normalizeCreditCode,
   normalizeEmail,
+  StarterBand,
+  starterBandHasCredit,
 } from './starter-config.ts';
 
 // deno-lint-ignore no-explicit-any
@@ -319,6 +321,24 @@ export async function issueStarterCredit(
     amountCents: STARTER_CREDIT_CENTS,
     created: true,
   };
+}
+
+/**
+ * The webhook's entry point for a Starter Unit credit, per band (2026-09-23).
+ *
+ * A band with no credit (Seedlings, founder decision 2026-09-23: no credit, no
+ * coupon of any kind) returns null WITHOUT touching the database or Stripe: no
+ * promotion code, no coupon, no starter_credits row. Sprouts goes straight to
+ * issueStarterCredit, unchanged.
+ */
+export async function issueStarterCreditForBand(
+  db: Db,
+  stripe: StripeLike,
+  band: StarterBand,
+  input: IssueCreditInput,
+): Promise<IssuedCredit | null> {
+  if (!starterBandHasCredit(band)) return null;
+  return await issueStarterCredit(db, stripe, input);
 }
 
 /**

@@ -23,6 +23,7 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { DeliveryRow, fulfilStarterDelivery, staleInProgressCutoff } from '../_shared/starter-fulfillment.ts';
+import { normalizeStarterBand, starterBandHasCredit } from '../_shared/starter-config.ts';
 import { captureException } from '../_shared/sentry.ts';
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
 import { pgrstFetch } from '../_shared/pgrst-retry.ts';
@@ -46,8 +47,12 @@ const DRAIN_BATCH = 5;
 /** Give up automatic retries after this many, so a poison row cannot loop forever. */
 const MAX_ATTEMPTS = 5;
 
-const DELIVERY_COLUMNS =
-  'id, stripe_checkout_session_id, order_id, email, purchaser_name, status, attempts, sent_at, tg_object_path, nb_object_path, ra_object_path, download_token';
+// '*' (was an explicit column list until 2026-09-23) so the row's `band` comes back
+// once the band migration has run, WITHOUT this select failing before it has. A
+// missing band reads as Sprouts (normalizeStarterBand), which is what every row
+// written before that migration is. An explicit list naming `band` would take
+// every Sprouts delivery down if this function were deployed ahead of the SQL.
+const DELIVERY_COLUMNS = '*';
 
 function json(status: number, body: Record<string, unknown>): Response {
   return new Response(JSON.stringify(body), {
@@ -113,7 +118,11 @@ serve(async (req) => {
 
     const results: Array<{ session_id: string; status: string; detail?: string }> = [];
     for (const row of rows) {
-      const code = await creditCodeFor(row.stripe_checkout_session_id);
+      // A band with no credit (Seedlings) never has a code; do not look one up.
+      // An unrecognised band is left to fulfilStarterDelivery, which fails it loudly.
+      let hasCredit = true;
+      try { hasCredit = starterBandHasCredit(normalizeStarterBand(row.band)); } catch { /* handled below */ }
+      const code = hasCredit ? await creditCodeFor(row.stripe_checkout_session_id) : null;
       const out = await fulfilStarterDelivery(adminClient, row, code);
       results.push({ session_id: row.stripe_checkout_session_id, ...out });
     }
