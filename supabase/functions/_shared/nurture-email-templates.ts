@@ -492,8 +492,8 @@ function facebookButton(label: string, url: string): string {
 // Seedlings variant sold the Sprouts one with the #older-kids argument. The Seedlings
 // Starter Unit now exists (founder decision 2026-09-23, /starter/seedlings), so each
 // band is offered its OWN nine weeks, with the same words and the band swapped. The
-// Seedlings printed year is still being finished, so its "whole year" block says so
-// instead of linking to the Sprouts books.
+// Seedlings printed year went on sale 2026-09-24, so its "whole year" block links to
+// its own buy box on /books (#seedlings), never to the Sprouts books.
 export function buildStarterOfferEmail(firstName: string, band: 'sprouts' | 'seedlings'): { subject: string; html: string } {
   const isSprouts = band === 'sprouts';
   const week1Herb = isSprouts ? 'Lavender' : 'Elderberry';
@@ -521,7 +521,7 @@ export function buildStarterOfferEmail(firstName: string, band: 'sprouts' | 'see
     goldDivider() +
     (isSprouts
       ? p(`If you already know you want the whole Sprouts year, it is finished and on paper: all thirty-six weeks in three printed books, $249, printed for you when you order and at your door in about two to three weeks. <a href="https://edeninstitute.health/books" style="color:#1C3A2E;">Here it is</a>.`)
-      : p(`If you already know you want the whole Seedlings year, the printed books are being finished now: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook, all thirty-six weeks. The nine weeks above are the way to start while they are.`)) +
+      : p(`If you already know you want the whole Seedlings year, it is finished and on paper: all thirty-six weeks in three printed books, $249, printed for you when you order and at your door in about two to three weeks. <a href="https://edeninstitute.health/books#seedlings" style="color:#1C3A2E;">Here it is</a>.`)) +
     p(`And if this is simply not the month for it, keep teaching ${week1Herb}. It is a whole week and it stands on its own.`);
 
   const body = p(`Hi ${firstName},`) + opening + goldDivider() + offer + wholeYear + signature();

@@ -145,7 +145,7 @@ const BANDS: Band[] = [
     id: "seedlings",
     name: "Seedlings",
     grades: "Grades 3-5",
-    status: "Free week and 9-week starter now, printed year coming very soon",
+    status: "Available now",
     live: true,
     blurb: "Body systems, herb profiles, a hypothesis tracked across a week, and dinner-table questions with real reasoning in them. A different 36 plants from Sprouts, so a family who does both finishes with 72.",
     rungs: [
@@ -174,7 +174,18 @@ const BANDS: Band[] = [
         href: "/starter/seedlings",
         cta: "homeschool-seedlings-starter",
       },
-      { step: "Step 3 · The whole year, in print", title: "Printed Curriculum Set", price: "", points: ["All 36 weeks, printed books", "Printed to order, mailed to you"], when: "Being finished now.", soon: true },
+      // On sale since 2026-09-24 (founder: "turn on the print set"), the /books #seedlings buy box.
+      {
+        step: "Step 3 · The whole year, in print",
+        title: "Printed Curriculum Set",
+        price: "$249",
+        points: ["All 36 weeks, three printed books", "Teacher's Guide, Notebook, storybook", "Printed to order, mailed to you"],
+        when: "At your door in about 2 to 3 weeks.",
+        button: "Order the printed set",
+        href: "/books#seedlings",
+        cta: "homeschool-seedlings-books",
+        primary: true,
+      },
     ],
   },
   {
