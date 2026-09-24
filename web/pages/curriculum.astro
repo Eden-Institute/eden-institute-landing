@@ -34,15 +34,15 @@
 // - No em dashes in visible copy.
 // - Seedlings (grades 3-5) added 2026-09-24: its printed set (ET-SDL-35-004) and
 //   9-week starter (ET-SDL-35-003). No Seedlings page counts (not locked) and no
-//   Seedlings photo yet, so its cards carry no image. There is no Seedlings extra
-//   notebook. The Sprouts cards are unchanged. Seedlings is not on any marketplace
+//   Seedlings photo yet, so its cards carry no image. Its extra Student Notebook
+//   (ET-SDL-35-005) was added the same day. The Sprouts cards are unchanged. Seedlings is not on any marketplace
 //   listing yet (ESA invoices only), so its cards say "Named on scholarship invoices".
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 
 const meta = {
   title: "Eden's Table · Bible-Based Science and Nature Study Curriculum, Grades K-5",
   description:
-    "Eden's Table is a 36-week Bible-based science and nature study curriculum in two levels, Sprouts for kindergarten through second grade and Seedlings for grades 3 to 5, published by Rooted in Faith Ventures LLC. Printed three-book sets, nine-week digital starter units, and extra Sprouts student notebooks.",
+    "Eden's Table is a 36-week Bible-based science and nature study curriculum in two levels, Sprouts for kindergarten through second grade and Seedlings for grades 3 to 5, published by Rooted in Faith Ventures LLC. Printed three-book sets, nine-week digital starter units, and extra student notebooks.",
   canonical: "https://edeninstitute.health/curriculum",
 };
 
@@ -156,6 +156,19 @@ const products: Product[] = [
       "Weeks 1 through 9 of the 36-week Seedlings year, for grades 3 to 5.",
       "Teacher's Guide, Student Notebook and Read-Aloud Storybook sections for those nine weeks, printed at home.",
       "Delivered by download link immediately after purchase. Nothing ships.",
+    ],
+  },
+  {
+    band: "seedlings",
+    name: "Seedlings Extra Student Notebook",
+    esaName: "Seedlings 3-5 36-Week Science and Nature Study Extra Student Notebook, Bible-Based",
+    sku: "ET-SDL-35-005",
+    price: "$39.99",
+    priceNote: "Shipping included",
+    points: [
+      "A second write-in notebook for another child in a family already using Seedlings.",
+      "8.5 x 11 inches, coil bound, covering all 36 weeks.",
+      "A companion to the Seedlings Printed Curriculum Set. It is not a standalone course and needs the Teacher's Guide to use.",
     ],
   },
 ];

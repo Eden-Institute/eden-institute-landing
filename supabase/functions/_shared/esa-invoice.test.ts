@@ -194,8 +194,24 @@ Deno.test("Seedlings Starter: Alabama only, $39, no address needed", () => {
   assert(plan.shipTo.startsWith("Digital download"));
 });
 
-Deno.test("Seedlings: no extra notebook, and a mixed Sprouts + Seedlings family gets one invoice per student", () => {
-  assert(!Object.values(CHOICE_SKU).some((s) => s.startsWith("ET-SDL-35-005")));
+Deno.test("Seedlings extra notebook: same states as the Sprouts notebook, $39.99, AZ grossed up to $40.81", () => {
+  const expected = { AZ: 4081, AR: 3999, AL: 3999, NH: 3999 } as const;
+  for (const code of ["AZ", "AR", "AL", "NH"] as const) {
+    assertEquals(STATE_RULES[code].choices.includes("sdl_nb"), STATE_RULES[code].choices.includes("notebook"), code);
+    const p = parseSubmission(base({ state: code, address: stateAddr(code), students: [{ first: "Ava", last: "Doe", choice: "sdl_nb" }] }));
+    assert(p.ok, code);
+    const [plan] = planInvoices(p.value);
+    assertEquals(plan.items[0].sku, "ET-SDL-35-005");
+    assertEquals(plan.items[0].title, "Seedlings 3-5 36-Week Science and Nature Study Extra Student Notebook, Bible-Based");
+    assertEquals(plan.subtotalCents, 3999);
+    assertEquals(plan.totalCents, expected[code], code);
+    assert(plan.printed);
+    assert(!plan.shipTo.startsWith("Digital download"));
+  }
+});
+
+Deno.test("Seedlings: a mixed Sprouts + Seedlings family gets one invoice per student", () => {
+  assertEquals(CHOICE_SKU.sdl_nb, "ET-SDL-35-005");
   const p = parseSubmission(base({ students: [{ first: "Sam", last: "Doe", choice: "set" }, { first: "Ava", last: "Doe", choice: "sdl_set" }] }));
   assert(p.ok);
   const plans = planInvoices(p.value);

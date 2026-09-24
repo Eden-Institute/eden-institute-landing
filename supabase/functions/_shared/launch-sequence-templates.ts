@@ -658,9 +658,9 @@ export function buildLaunchEmail8(firstName: string, founding = true, band: Laun
   // year exists on paper and ships in about two weeks. Facts: $249 + flat $12
   // shipping, printed to order, 48-hour cancel window before printing starts,
   // extra Student Notebooks $39.99 each (up to five). All from /books.
-  // 2026-09-24: Seedlings variant. Extra notebooks are Sprouts only, so the
-  // sibling line is Sprouts only; the Seedlings "what it is" line is the
-  // /homeschool band blurb.
+  // 2026-09-24: Seedlings variant. The Seedlings "what it is" line is the
+  // /homeschool band blurb. Each band has its own extra Student Notebook at
+  // $39.99 (Seedlings added 2026-09-24), so both variants carry the sibling line.
   void founding;
   if (band === 'seedlings') {
     const body =
@@ -670,7 +670,7 @@ export function buildLaunchEmail8(firstName: string, founding = true, band: Laun
       `${p(`The full Seedlings year, for grades 3 through 5, is finished and it is on paper. Three printed books, all thirty-six weeks, printed for you when you order and mailed straight to your door in about two to three weeks.`)}` +
       `${p(`No waiting on a print run. You order it, it prints, it ships.`)}` +
       `${goldDivider()}` +
-      `${p(`<strong>What arrives:</strong> the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud Storybook, for every week of the year. A different thirty-six plants from Sprouts, so a family who does both finishes with seventy-two.`)}` +
+      `${p(`<strong>What arrives:</strong> the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud Storybook, for every week of the year. A different thirty-six plants from Sprouts, so a family who does both finishes with seventy-two. Teaching more than one? Add an extra Student Notebook for each sibling at checkout, $39.99 each, and they ship in the same parcel.`)}` +
       `${p(`<strong>$249</strong>, plus flat $12 shipping. That is under $7 a week for a full year of body systems, herb profiles, a hypothesis tracked across a week, and dinner-table questions with real reasoning in them.`)}` +
       `${goldDivider()}` +
       `${p(`Nothing is on back order and nothing is held back. If you would rather try it first, ${link(`week 1 is still free`, FREEBIES_URL)} and ${link(`the first nine weeks are $39 as a download`, SEEDLINGS_STARTER_URL)}. If you already know, this is the page.`)}` +

@@ -6,7 +6,7 @@
  */
 
 export type EsaInvoiceState = "AZ" | "AR" | "AL" | "NH";
-export type EsaChoice = "set" | "notebook" | "starter" | "sdl_set" | "sdl_start";
+export type EsaChoice = "set" | "notebook" | "starter" | "sdl_set" | "sdl_nb" | "sdl_start";
 export type EsaBand = "sprouts" | "seedlings";
 
 /** Band headings for the form's grouped radio list, in display order (Sprouts first). */
@@ -53,6 +53,13 @@ export const ESA_CHOICES: Record<EsaChoice, { label: string; detail: string; cen
     printed: true,
     band: "seedlings",
   },
+  sdl_nb: {
+    label: "Seedlings (grades 3-5) Extra Student Notebook",
+    detail: "For a child who shares a brother's or sister's Seedlings set. Shipping included.",
+    cents: 3999,
+    printed: true,
+    band: "seedlings",
+  },
   sdl_start: {
     label: "Seedlings (grades 3-5) 9-Week Starter Unit",
     detail: "Weeks 1 to 9 for grades 3-5 as a download, not the full year.",
@@ -64,25 +71,25 @@ export const ESA_CHOICES: Record<EsaChoice, { label: string; detail: string; cen
 
 export const ESA_STATE_OPTIONS: Record<EsaInvoiceState, { choices: EsaChoice[]; feeRate: number; holderLabel: string; shipNote: string }> = {
   AZ: {
-    choices: ["set", "notebook", "sdl_set"],
+    choices: ["set", "notebook", "sdl_set", "sdl_nb"],
     feeRate: 0.020408,
     holderLabel: "Account holder's name, as it shows in ClassWallet",
     shipNote: "Use the shipping address you have on file with the Arizona ESA program.",
   },
   AR: {
-    choices: ["set", "notebook", "sdl_set"],
+    choices: ["set", "notebook", "sdl_set", "sdl_nb"],
     feeRate: 0,
     holderLabel: "Account holder's name, as it shows in ClassWallet",
     shipNote: "Use the shipping address you have on file with the program.",
   },
   AL: {
-    choices: ["set", "notebook", "starter", "sdl_set", "sdl_start"],
+    choices: ["set", "notebook", "starter", "sdl_set", "sdl_nb", "sdl_start"],
     feeRate: 0,
     holderLabel: "Parent's first and last name",
     shipNote: "Where we should ship the printed books.",
   },
   NH: {
-    choices: ["set", "notebook", "sdl_set"],
+    choices: ["set", "notebook", "sdl_set", "sdl_nb"],
     feeRate: 0,
     holderLabel: "Account holder's name, as it shows in ClassWallet",
     shipNote: "New Hampshire EFA orders ship only to the New Hampshire address on file with your program.",

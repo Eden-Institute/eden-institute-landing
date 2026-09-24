@@ -54,7 +54,8 @@ Deno.test('Seedlings variants sell Seedlings, never the Sprouts starter or K-2 l
       `${pos}: new-to-herbs line does not link Sprouts`,
     );
     assert(!/Plantago|240 pages|224 pages|Week 6 is plantain|sized for K-2/i.test(html), `${pos}: Sprouts-only fact in Seedlings copy`);
-    assert(!/\$39\.99/.test(html), `${pos}: extra notebooks are Sprouts only`);
+    // Each band has its own extra Student Notebook at $39.99 (Seedlings added 2026-09-24).
+    if (pos === 8) assert(/extra Student Notebook for each sibling at checkout, \$39\.99 each/.test(html), `${pos}: no Seedlings sibling-notebook line`);
     assert(!subject.includes('—') && !html.includes('—'), `${pos}: em dash`);
   }
 });

@@ -15,22 +15,24 @@
 //   - Both 9-Week Starters (Sprouts and Seedlings) are offered on ALABAMA invoices only
 //     (founder 2026-09-14 for Sprouts, 2026-09-24 for Seedlings).
 //   - Seedlings (grades 3-5) joined the rail 2026-09-24: the printed set on every state's invoice,
-//     the Starter on Alabama's only. There is no Seedlings extra notebook.
+//     the Starter on Alabama's only, and its extra Student Notebook (ET-SDL-35-005) in the same
+//     states as the Sprouts notebook (founder 2026-09-24).
 //   - An Alabama invoice may NOT mention the CHOOSE Act or ClassWallet "in any form" (AL ESP
 //     guide p.7), so it has no Program or Payment line.
 //   - New Hampshire ships only to the New Hampshire address on file (CSF handbook p.18).
 //   - No credit, coupon or kit wording anywhere (Laws L-29).
 
 export type EsaStateCode = "AZ" | "AR" | "AL" | "NH";
-export type Sku = "ET-SPR-K2-004" | "ET-SPR-K2-005" | "ET-SPR-K2-003" | "ET-SDL-35-004" | "ET-SDL-35-003";
+export type Sku = "ET-SPR-K2-004" | "ET-SPR-K2-005" | "ET-SPR-K2-003" | "ET-SDL-35-004" | "ET-SDL-35-005" | "ET-SDL-35-003";
 /** Choice keys travel in the form body and are read with str(o.choice, 10): keep them 10 characters or fewer. */
-export type Choice = "set" | "notebook" | "starter" | "sdl_set" | "sdl_start";
+export type Choice = "set" | "notebook" | "starter" | "sdl_set" | "sdl_nb" | "sdl_start";
 
 export const CHOICE_SKU: Record<Choice, Sku> = {
   set: "ET-SPR-K2-004",
   notebook: "ET-SPR-K2-005",
   starter: "ET-SPR-K2-003",
   sdl_set: "ET-SDL-35-004",
+  sdl_nb: "ET-SDL-35-005",
   sdl_start: "ET-SDL-35-003",
 };
 
@@ -73,6 +75,13 @@ export const PRODUCTS: Record<Sku, Product> = {
     description:
       "Three printed books: Teacher's Guide, Student Notebook and Read-Aloud Storybook, all 36 weeks for grades 3-5. Shipping included.",
     unitCents: 26100,
+    printed: true,
+  },
+  "ET-SDL-35-005": {
+    sku: "ET-SDL-35-005",
+    title: "Seedlings 3-5 36-Week Science and Nature Study Extra Student Notebook, Bible-Based",
+    description: "One extra printed Student Notebook for grades 3-5 (coil bound). Shipping included.",
+    unitCents: 3999,
     printed: true,
   },
   "ET-SDL-35-003": {
@@ -124,7 +133,7 @@ export const STATE_RULES: Record<EsaStateCode, StateRules> = {
     holderLabel: "Account holder",
     itemHeader: "Item and description",
     totalLabel: "Total amount of charges",
-    choices: ["set", "notebook", "sdl_set"],
+    choices: ["set", "notebook", "sdl_set", "sdl_nb"],
     feeRate: AZ_FEE_RATE,
     shipState: null,
     secondDateLabel: null,
@@ -140,7 +149,7 @@ export const STATE_RULES: Record<EsaStateCode, StateRules> = {
     holderLabel: "Account holder",
     itemHeader: "Item and description",
     totalLabel: "Total due",
-    choices: ["set", "notebook", "sdl_set"],
+    choices: ["set", "notebook", "sdl_set", "sdl_nb"],
     feeRate: 0,
     shipState: null,
     secondDateLabel: "Expected ship date",
@@ -156,7 +165,7 @@ export const STATE_RULES: Record<EsaStateCode, StateRules> = {
     holderLabel: "Parent",
     itemHeader: "Item and description",
     totalLabel: "Total amount due",
-    choices: ["set", "notebook", "starter", "sdl_set", "sdl_start"],
+    choices: ["set", "notebook", "starter", "sdl_set", "sdl_nb", "sdl_start"],
     feeRate: 0,
     shipState: null,
     secondDateLabel: "Date(s) of service",
@@ -172,7 +181,7 @@ export const STATE_RULES: Record<EsaStateCode, StateRules> = {
     holderLabel: "Account holder",
     itemHeader: "Description of item purchased",
     totalLabel: "Amount due for this student (per pupil)",
-    choices: ["set", "notebook", "sdl_set"],
+    choices: ["set", "notebook", "sdl_set", "sdl_nb"],
     feeRate: 0,
     shipState: "NH",
     secondDateLabel: null,

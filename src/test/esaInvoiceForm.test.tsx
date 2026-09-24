@@ -5,7 +5,8 @@
 //   3. The form shows the function's own refusal message (the hourly cap's 429).
 //   4. The Arizona fee sentence matches the invoice PDF's.
 //   5. Seedlings (2026-09-24): choices are grouped by band, Sprouts first, and the Seedlings Starter
-//      shows only on Alabama.
+//      shows only on Alabama. Each band has its own Extra Student Notebook, and an added student
+//      defaults to student 1's band's notebook.
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -103,7 +104,7 @@ describe("Seedlings choices", () => {
   const radioLabels = (group: HTMLElement) =>
     Array.from(group.querySelectorAll("label")).map((l) => l.querySelector("span span")?.textContent ?? "");
 
-  it("Alabama groups Sprouts first, then Seedlings with its set and Starter", () => {
+  it("Alabama groups Sprouts first, then Seedlings with its set, notebook and Starter", () => {
     render(<EsaInvoiceForm state="AL" stateName="Alabama" short="Alabama CHOOSE Act" />);
     const groups = screen.getAllByRole("group").filter((g) => g.getAttribute("aria-label")?.startsWith("Student 1:"));
     expect(groups.map((g) => g.getAttribute("aria-label"))).toEqual(["Student 1: Sprouts, grades K-2", "Student 1: Seedlings, grades 3-5"]);
@@ -112,7 +113,31 @@ describe("Seedlings choices", () => {
       "Sprouts (grades K-2) Extra Student Notebook",
       "Sprouts (grades K-2) 9-Week Starter Unit",
     ]);
-    expect(radioLabels(groups[1])).toEqual(["Seedlings (grades 3-5) Printed Curriculum Set", "Seedlings (grades 3-5) 9-Week Starter Unit"]);
+    expect(radioLabels(groups[1])).toEqual([
+      "Seedlings (grades 3-5) Printed Curriculum Set",
+      "Seedlings (grades 3-5) Extra Student Notebook",
+      "Seedlings (grades 3-5) 9-Week Starter Unit",
+    ]);
+  });
+
+  it("offers the Seedlings notebook wherever the Sprouts notebook is offered", () => {
+    for (const code of ["AZ", "AR", "AL", "NH"] as const) {
+      const c = ESA_STATE_OPTIONS[code].choices;
+      expect(c.includes("sdl_nb"), code).toBe(c.includes("notebook"));
+    }
+  });
+
+  it("an added student starts on student 1's band's Extra Student Notebook", () => {
+    const { container } = render(<EsaInvoiceForm state="AZ" stateName="Arizona" short="Arizona ESA" />);
+    expect(container.textContent).not.toMatch(/no Seedlings Extra Student Notebook/i);
+    fireEvent.click(screen.getByText("Seedlings (grades 3-5) Printed Curriculum Set"));
+    fireEvent.click(screen.getByText("+ Add another student"));
+    const checked = (n: number) =>
+      Array.from(container.querySelectorAll<HTMLInputElement>(`input[type=radio]`))
+        .filter((r) => r.checked)
+        .map((r) => r.closest("label")?.querySelector("span span")?.textContent)[n];
+    expect(checked(1)).toBe("Seedlings (grades 3-5) Extra Student Notebook");
+    expect(container.textContent).toContain("$40.81");
   });
 
   it("Arizona offers the Seedlings set but not the Seedlings Starter, and sends the sdl_set key", async () => {

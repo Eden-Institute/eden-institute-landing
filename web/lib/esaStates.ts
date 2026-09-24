@@ -30,7 +30,8 @@
  * - Seedlings (grades 3-5) joined 2026-09-24. Item names match the invoice form's
  *   labels in web/lib/esaInvoice.ts exactly and always name the band, so a family
  *   with children in both bands can tell the items apart. No Seedlings page counts
- *   anywhere: they are not locked. There is no Seedlings extra notebook.
+ *   anywhere: they are not locked. Each band has its own Extra Student Notebook
+ *   (Seedlings added 2026-09-24), listed wherever the other band's is.
  * - Bump ESA_UPDATED_ISO whenever what these pages say changes. It drives the
  *   "Updated" line, the sitemap <lastmod> for /esa and /esa/*, and dateModified.
  */
@@ -121,11 +122,17 @@ const SDL_STARTER: EsaItem = {
   priceValue: 39,
   note: "Weeks 1 to 9 of the 36-week Seedlings year, as a download. Not the full year.",
 };
+const SDL_NOTEBOOK: EsaItem = {
+  name: "Seedlings (grades 3-5) Extra Student Notebook",
+  price: "$39.99",
+  priceValue: 39.99,
+  note: "Shipping included. A second write-in notebook for another child using the Seedlings set.",
+};
 
 const PENDING_ODYSSEY_STEPS = (short: string) => [
   {
     heading: "Where it stands",
-    body: `Eden's Table is an approved ${short} vendor. Our three Sprouts (grades K-2) listings have been submitted in the ${short} marketplace and are waiting for the marketplace to approve them, so they cannot be ordered there yet. The Seedlings (grades 3-5) books are not listed there yet.`,
+    body: `Eden's Table is an approved ${short} vendor. Our Sprouts (grades K-2) and Seedlings (grades 3-5) listings have been submitted in the ${short} marketplace and are waiting for the marketplace to approve them, so they cannot be ordered there yet.`,
   },
   {
     heading: "When it opens",
@@ -166,7 +173,7 @@ export const ESA_STATES: EsaState[] = [
       },
       {
         heading: "2. Submit it in ClassWallet",
-        body: "Submit the PDF invoice in ClassWallet as a payment to a vendor. ClassWallet deducts 2%, so this invoice adds 2.0408% to cover it. The invoice shows it as its own line: a printed set (Sprouts or Seedlings) comes to $266.33 and a Sprouts extra notebook to $40.81. Arizona reviews every request, so check the current ESA Parent Handbook before you order.",
+        body: "Submit the PDF invoice in ClassWallet as a payment to a vendor. ClassWallet deducts 2%, so this invoice adds 2.0408% to cover it. The invoice shows it as its own line: a printed set (Sprouts or Seedlings) comes to $266.33 and an extra notebook (Sprouts or Seedlings) to $40.81. Arizona reviews every request, so check the current ESA Parent Handbook before you order.",
       },
       {
         heading: "3. We print and ship",
@@ -197,6 +204,12 @@ export const ESA_STATES: EsaState[] = [
         price: "$266.33 by invoice",
         priceValue: 266.33,
         note: "$261 ($249 plus $12 shipping) plus the $5.33 Arizona processing fee. Teacher's Guide, Student Notebook and Read-Aloud Storybook, all 36 weeks for grades 3-5.",
+      },
+      {
+        name: "Seedlings (grades 3-5) Extra Student Notebook",
+        price: "$40.81 by invoice",
+        priceValue: 40.81,
+        note: "$39.99 with shipping, plus the $0.82 Arizona processing fee. A second write-in notebook for another child using the Seedlings set.",
       },
     ],
     links: [
@@ -264,7 +277,7 @@ export const ESA_STATES: EsaState[] = [
     summary:
       "Yes. Eden's Table is an approved Utah Fits All vendor. Our marketplace listings are waiting on approval, so they cannot be ordered there quite yet.",
     howToBuy: PENDING_ODYSSEY_STEPS("Utah Fits All"),
-    items: [SET, STARTER, NOTEBOOK, SDL_SET, SDL_STARTER],
+    items: [SET, STARTER, NOTEBOOK, SDL_SET, SDL_STARTER, SDL_NOTEBOOK],
     links: [{ label: "Utah Fits All FAQs", href: "https://www.utaheducationfitsall.org/faqs/" }],
     faq: [],
   },
@@ -280,7 +293,7 @@ export const ESA_STATES: EsaState[] = [
     summary:
       "Yes. Eden's Table is an approved service provider for the LA GATOR Scholarship marketplace. Our listings are waiting on marketplace approval, so they cannot be ordered there quite yet.",
     howToBuy: PENDING_ODYSSEY_STEPS("LA GATOR"),
-    items: [SET, STARTER, NOTEBOOK, SDL_SET, SDL_STARTER],
+    items: [SET, STARTER, NOTEBOOK, SDL_SET, SDL_STARTER, SDL_NOTEBOOK],
     links: [],
     faq: [],
   },
@@ -296,7 +309,7 @@ export const ESA_STATES: EsaState[] = [
     summary:
       "Yes. Eden's Table is an approved Wyoming ESA vendor. Our marketplace listings are waiting on approval, so they cannot be ordered there quite yet.",
     howToBuy: PENDING_ODYSSEY_STEPS("Wyoming ESA"),
-    items: [SET, STARTER, NOTEBOOK, SDL_SET, SDL_STARTER],
+    items: [SET, STARTER, NOTEBOOK, SDL_SET, SDL_STARTER, SDL_NOTEBOOK],
     links: [
       { label: "Wyoming ESA Family Handbook", href: "https://edu.wyoming.gov/wp-content/uploads/2025/04/ESA-Family-Handbook.pdf" },
     ],
@@ -327,7 +340,7 @@ export const ESA_STATES: EsaState[] = [
         body: "As soon as payment arrives we order your books. They are printed to order, so plan on about two to three weeks from there.",
       },
     ],
-    items: [SET, NOTEBOOK, SDL_SET],
+    items: [SET, NOTEBOOK, SDL_SET, SDL_NOTEBOOK],
     links: [
       {
         label: "Arkansas Education Freedom Accounts",
@@ -384,7 +397,7 @@ export const ESA_STATES: EsaState[] = [
         body: "As soon as payment arrives, we email the 9-week starter files, or order your printed books, which are printed to order and arrive in about two to three weeks.",
       },
     ],
-    items: [SET, STARTER, NOTEBOOK, SDL_SET, SDL_STARTER],
+    items: [SET, STARTER, NOTEBOOK, SDL_SET, SDL_STARTER, SDL_NOTEBOOK],
     links: [
       { label: "Alabama Department of Revenue, CHOOSE Act", href: "https://www.revenue.alabama.gov/tax-policy/the-choose-act/" },
     ],
@@ -422,7 +435,7 @@ export const ESA_STATES: EsaState[] = [
         body: "You can also order on our store ($249 plus $12 shipping) and request reimbursement in ClassWallet with your itemized receipt. Every request is reviewed, so check the CSF New Hampshire Parent Handbook first.",
       },
     ],
-    items: [SET, NOTEBOOK, SDL_SET],
+    items: [SET, NOTEBOOK, SDL_SET, SDL_NOTEBOOK],
     links: [
       { label: "Eden's Table in the CSF New Hampshire directory", href: "https://app.nh.scholarshipfund.org/esa/esa_parent/esa_vendors/19171" },
       { label: "New Hampshire Education Freedom Accounts", href: "https://www.education.nh.gov/pathways-education/education-freedom-accounts" },

@@ -13,7 +13,10 @@
 //
 // BANDS (2026-09-23). One box per band: `band="sprouts"` (the default, and
 // exactly the box it always was) or `band="seedlings"`, which sells the
-// Seedlings set and has no extra-notebook option. A band whose set is not in
+// Seedlings set and, since 2026-09-24, its own extra-notebook option
+// (seedlings_nb_print). An extra notebook whose row is not in
+// print_products_public yet (no Stripe Price) is simply not offered; the set
+// still sells. A band whose set is not in
 // print_products_public yet (no Stripe Price, no shipping tier, or its Lulu
 // files not in) shows "coming soon" instead of a button. Mirror of
 // LULU_PRODUCTS in supabase/functions/_shared/lulu-config.ts.
@@ -46,14 +49,15 @@ const MAX_QTY: Record<string, number> = {
   sprouts_print_set: 2,
   sprouts_nb_print: 5,
   seedlings_print_set: 2,
+  seedlings_nb_print: 5,
 };
 
 export type PrintBand = "sprouts" | "seedlings";
 
-/** Per band: the set SKU, the extra-notebook SKU (or none), and display names. */
+/** Per band: the set SKU, the extra-notebook SKU, and display names. */
 const BAND_CONFIG: Record<PrintBand, { setSku: string; nbSku: string | null; bandName: string }> = {
   sprouts: { setSku: "sprouts_print_set", nbSku: "sprouts_nb_print", bandName: "Sprouts" },
-  seedlings: { setSku: "seedlings_print_set", nbSku: null, bandName: "Seedlings" },
+  seedlings: { setSku: "seedlings_print_set", nbSku: "seedlings_nb_print", bandName: "Seedlings" },
 };
 
 /**
@@ -175,7 +179,7 @@ export default function PrintBuyBox({ cta, band = "sprouts" }: Props) {
         // supabase-js wraps non-2xx in FunctionsHttpError with the body on context.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const ctx = (fnError as any)?.context;
-        let detail: { error?: string; code?: string } | null = null;
+        let detail: { error?: string; code?: string; sku?: string } | null = null;
         try {
           detail = ctx && typeof ctx.json === "function" ? await ctx.json() : null;
         } catch {
@@ -183,6 +187,12 @@ export default function PrintBuyBox({ cta, band = "sprouts" }: Props) {
         }
         if (detail?.code === "PRINT_SHOP_NOT_LIVE") {
           throw new Error("Checkout for the printed set is paused for a moment. Please email hello@edeninstitute.health and I will get your order in.");
+        }
+        if (!isSprouts && detail?.code === "PRINT_SHOP_NOT_CONFIGURED" && NB_SKU && detail.sku === NB_SKU) {
+          // Only the extra notebook is not ready: drop the option, keep the set on sale.
+          setNotebook(null);
+          setNbQty(0);
+          throw new Error("Extra notebooks are not available just yet. Your set can still be ordered on its own.");
         }
         if (!isSprouts && detail?.code === "PRINT_SHOP_NOT_CONFIGURED") {
           // The page listed the set but a file or setting went missing since.

@@ -110,13 +110,14 @@ export default function EsaInvoiceForm({ state, stateName, short }: Props) {
 
   const setStudent = (i: number, patch: Partial<Student>) =>
     setStudents((prev) => prev.map((s, j) => (j === i ? { ...s, ...patch } : s)));
-  // A sibling of a Sprouts set usually needs the Sprouts Extra Student Notebook. Seedlings has no extra
-  // notebook, so a sibling of a Seedlings student starts on the same choice as student 1.
+  // A sibling usually shares student 1's set and needs that band's Extra Student Notebook (Sprouts
+  // "notebook", Seedlings "sdl_nb", 2026-09-24). If the state does not offer it, start on student 1's choice.
   const addStudent = () =>
     setStudents((prev) => {
       if (prev.length >= 6) return prev;
       const firstChoice = prev[0]?.choice ?? "set";
-      const choice: EsaChoice = ESA_CHOICES[firstChoice].band === "seedlings" ? firstChoice : "notebook";
+      const bandNotebook: EsaChoice = ESA_CHOICES[firstChoice].band === "seedlings" ? "sdl_nb" : "notebook";
+      const choice: EsaChoice = opts.choices.includes(bandNotebook) ? bandNotebook : firstChoice;
       return [...prev, { id: newStudentId(), first: "", last: prev[0]?.last ?? "", choice }];
     });
   const removeStudent = (i: number) => setStudents((prev) => prev.filter((_, j) => j !== i));
@@ -265,7 +266,7 @@ export default function EsaInvoiceForm({ state, stateName, short }: Props) {
           </button>
         )}
         <p className="font-body text-xs text-muted-foreground">
-          Each student gets their own invoice, because {stateName} accounts are per student. A brother or sister sharing a Sprouts set usually just needs a Sprouts Extra Student Notebook. There is no Seedlings Extra Student Notebook.
+          Each student gets their own invoice, because {stateName} accounts are per student. A brother or sister sharing a set usually just needs an Extra Student Notebook for that band: Sprouts or Seedlings.
         </p>
       </div>
 
