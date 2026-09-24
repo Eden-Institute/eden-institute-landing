@@ -25,11 +25,12 @@ import { cn } from "@/lib/utils";
 import WaitlistController from "../components/islands/WaitlistController.tsx";
 import PayOverTime from "../components/islands/PayOverTime.tsx";
 import ComponentShowcases from "../components/ComponentShowcases.astro";
+import BandChooser from "../components/BandChooser.astro";
 
 const meta = {
   title: "Christian Homeschool Herbalism Curriculum (K-12) | Eden's Table",
   description:
-    "A Christ-centered homeschool herbalism curriculum for K-12, one plant a week. Sprouts (K-2) is available now: a free week, a $39 Starter Unit, or the full 36-week printed set. Seedlings (3-5) is next, then Cultivators and Practitioners.",
+    "A Christ-centered homeschool herbalism curriculum, one plant a week. Sprouts (K-2) and Seedlings (3-5) are both available now: a free week, a $39 Starter Unit, or the full 36-week printed set. Cultivators and Practitioners are next.",
   canonical: "https://edeninstitute.health/homeschool",
 };
 
@@ -67,8 +68,8 @@ const courseJsonLd = {
 // Launch timing for the later bands is the founder's stated plan, 2026-09-11:
 // Cultivators late 2027, Practitioners 2028. Neither has a product; both get a
 // "tell me when" capture whose source tag is stored so the list can be
-// segmented later. Seedlings has its free week live; everything after it is
-// "coming very soon" by founder decision the same day.
+// segmented later. Seedlings went fully on sale 2026-09-24 (free week, $39
+// Starter, $249 printed set), the same three rungs as Sprouts.
 interface Rung {
   step: string;
   title: string;
@@ -246,7 +247,7 @@ const PRINT_SET = {
         A K-12 Biblical herbalism curriculum for homeschool families. Open-and-go lesson plans, memory songs, kitchen labs, garden activities, and a recurring family story, all rooted in Scripture and creation stewardship.
       </p>
       <p class="font-accent text-sm tracking-wider uppercase mb-5 md:mb-8" style="color:hsl(var(--eden-sage-ink))">
-        Sprouts (K-2) · The complete 36-week year, in print or 9 weeks at a time
+        Sprouts (K-2) and Seedlings (3-5) · Two complete 36-week years, in print or 9 weeks at a time
       </p>
       {/* id="early-access" is load-bearing: the homepage links to
           /homeschool#early-access (index.astro). Keep it even though the
@@ -262,7 +263,7 @@ const PRINT_SET = {
             <span class="block mt-1 whitespace-nowrap">$249</span>
             <span class="block mt-1 text-[11px] sm:text-xs font-normal normal-case tracking-normal opacity-85">All 36 weeks. At your door in about 2 to 3 weeks.</span>
           </a>
-          <a href="/starter" data-cta="homeschool-hero-starter" class={cn(buttonVariants({ variant: "eden-outline", size: "xl" }), "text-center w-full h-auto flex-col whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-4")}>
+          <a href="#choose-band" data-cta="homeschool-hero-starter" class={cn(buttonVariants({ variant: "eden-outline", size: "xl" }), "text-center w-full h-auto flex-col whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-4")}>
             <span class="block">Try 9 weeks digital</span>
             <span class="block mt-1 whitespace-nowrap">$39</span>
             <span class="block mt-1 text-[11px] sm:text-xs font-normal normal-case tracking-normal opacity-85">Instant download. Teach it tonight.</span>
@@ -278,18 +279,22 @@ const PRINT_SET = {
         </p>
 
         <p class="font-body text-sm text-muted-foreground max-w-md mx-auto">
-          Flat $12 shipping per printed order. Extra Student Notebooks for siblings, $39.99 each.
+          Flat $12 shipping per printed order. Extra Sprouts Student Notebooks for siblings, $39.99 each.
         </p>
 
         {/* Stripe's pay-over-time line for the printed set. 24900 mirrors the $249 above. */}
         <PayOverTime client:only="react" amountCents={24900} align="center" className="max-w-md mx-auto w-full" />
 
-        <a href="#bands" data-cta="homeschool-hero-bands" class="font-body text-sm underline underline-offset-4 mt-3" style="color:hsl(var(--eden-forest))">
-          See every option for every grade band, K through 12
+        <a href="#choose-band" data-cta="homeschool-hero-bands" class="font-body text-sm underline underline-offset-4 mt-3" style="color:hsl(var(--eden-forest))">
+          Not sure which band? Find your family in 10 seconds
         </a>
       </div>
     </div>
   </section>
+
+  {/* CRO 2026-09-24: both elementary bands and the "where do we start" answer,
+      directly under the hero, where the grade question forms. */}
+  <BandChooser ctaPrefix="homeschool" />
 
   {/* §1.5 Why buy an herbalism curriculum (copy doc Section 1) */}
   <section class="py-16 md:py-20 px-6 bg-background">
@@ -325,7 +330,7 @@ const PRINT_SET = {
         </div>
         <div class="rounded-lg p-6" style="background-color:hsl(var(--eden-cream))">
           <h3 class="font-serif text-lg font-bold mb-3" style="color:hsl(var(--eden-bark))">The year your children are in is the one you have.</h3>
-          <p class="font-body text-sm leading-relaxed text-muted-foreground">Sprouts is K-2, and it is the first band we are printing. Seedlings, Cultivators, and Practitioners follow it. A child who starts this year grows through the whole sequence with us. A child who waits starts it a year older, in a year we cannot give back.</p>
+          <p class="font-body text-sm leading-relaxed text-muted-foreground">Sprouts (K-2) and Seedlings (3-5) are both in print now. Cultivators and Practitioners follow them. A child who starts this year grows through the whole sequence with us. A child who waits starts it a year older, in a year we cannot give back.</p>
         </div>
       </div>
 
@@ -684,12 +689,15 @@ const PRINT_SET = {
       <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">Start this month</p>
       <h2 class="font-serif text-3xl md:text-4xl font-bold mb-4" style="color:hsl(var(--eden-bark))">The whole year, on paper, in about two to three weeks.</h2>
       <p class="font-body text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-8">
-        All thirty-six weeks of Sprouts in three printed books: the Teacher's Guide, the Student Notebook and the Read-Aloud Storybook. $249 plus flat $12 shipping. Printed to order, so nothing sits in a warehouse and nothing is back-ordered.
+        All thirty-six weeks of Sprouts (K-2) or Seedlings (3-5) in three printed books: the Teacher's Guide, the Student Notebook and the Read-Aloud Storybook. $249 plus flat $12 shipping. Printed to order, so nothing sits in a warehouse and nothing is back-ordered.
       </p>
       <div class="flex flex-col sm:flex-row gap-3 justify-center items-center">
-        <a href="/books" data-cta="homeschool-pricing-books" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center")}>Order the printed year · $249</a>
-        <a href="/starter" data-cta="homeschool-pricing-starter" class={cn(buttonVariants({ variant: "eden-outline", size: "xl" }), "text-center")}>Try nine weeks first · $39</a>
+        <a href="/books#buy" data-cta="homeschool-pricing-books" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center")}>Sprouts, K-2 · $249</a>
+        <a href="/books#seedlings" data-cta="homeschool-pricing-seedlings-books" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center")}>Seedlings, 3-5 · $249</a>
       </div>
+      <p class="font-body text-sm mt-4">
+        <a href="#choose-band" data-cta="homeschool-pricing-starter" class="underline" style="color:hsl(var(--eden-forest))">Or try nine weeks first, as a download · $39</a>
+      </p>
       <PayOverTime client:only="react" amountCents={24900} align="center" className="max-w-md mx-auto mt-4" />
       <p class="font-body text-sm text-muted-foreground mt-6">
         Not ready to spend anything? <a href="/freebies" class="underline" style="color:hsl(var(--eden-forest))" data-cta="homeschool-pricing-free">Week 1 is free</a>.

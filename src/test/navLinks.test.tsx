@@ -24,6 +24,7 @@ describe("src/lib/navLinks.ts", () => {
   it("holds the header links the Astro header carried on 2026-09-15", () => {
     expect(NAV_LINKS.map((l) => [l.label, l.href])).toEqual([
       ["Homeschool Curriculum", "/homeschool"],
+      ["Printed Curriculum", "/books"],
       ["Freebies", "/freebies"],
       ["Adult Courses", "/courses"],
       ["Herb Reference App", "/apothecary"],
