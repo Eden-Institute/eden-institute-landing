@@ -3,7 +3,8 @@
 // _shared/nurture-email-templates.ts; that duplicate has been removed so
 // _shared is the single source of truth for these templates.
 import { buildNurtureEmail1 } from '../_shared/nurture-email-templates.ts';
-import { buildHomeschoolEmail, buildSeedlingsMagnetEmail, buildSproutsMagnetEmail } from '../_shared/welcome-email-templates.ts';
+import { buildBandWaitlistEmail, buildHomeschoolEmail, buildSeedlingsMagnetEmail, buildSproutsMagnetEmail } from '../_shared/welcome-email-templates.ts';
+import { bandFromSource, buildBandWaitlistRow } from '../_shared/band-waitlist.ts';
 import { buildPodcastWelcomeEmail } from '../_shared/podcast-email-templates.ts';
 import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
 import { setContactProperties, type ContactProperties } from '../_shared/resend-contacts.ts';
@@ -173,6 +174,8 @@ Deno.serve(async (req) => {
       utm_content: utmContentRaw,
       fbEventId,
       marketingConsent,
+      phone: phoneRaw,
+      smsConsent,
     } = body;
 
     // Attribution fields go straight into waitlist_signups (plain text / jsonb
@@ -221,6 +224,25 @@ Deno.serve(async (req) => {
     const emailTypoSuggestion = detectEmailTypo(normalizedEmail);
     if (emailTypoSuggestion) {
       return json(400, { error: `That email address looks misspelled. Did you mean ${emailTypoSuggestion}?`, suggestion: emailTypoSuggestion });
+    }
+
+    // ── Band waitlists (Cultivators, Practitioners), 2026-09-24 ──
+    // Validated up front so a mistyped phone is a clean 400 before anything is
+    // written or sent. The row itself is written after the waitlist_signups step.
+    const waitlistBand = bandFromSource(source);
+    let bandRow: Record<string, unknown> | null = null;
+    if (waitlistBand) {
+      const built = buildBandWaitlistRow({
+        email: normalizedEmail,
+        band: waitlistBand,
+        firstName: firstNameRaw || null,
+        phoneRaw,
+        smsConsent,
+        sourceUrl: source_url,
+        now: new Date(),
+      });
+      if (!built.ok) return json(400, { error: built.error });
+      bandRow = built.row;
     }
 
     // Per-connection throttle. This endpoint is public (verify_jwt=false) and
@@ -284,6 +306,31 @@ Deno.serve(async (req) => {
       if (upsertResult) {
         waitlistId = upsertResult.id;
         existingResendContactId = upsertResult.resend_contact_id;
+      }
+    }
+
+    // ── Step 1b: band waitlist row ──
+    // One row per (email, band), written on EVERY band-waitlist signup, including
+    // people already in waitlist_signups (whose insert above is a no-op on
+    // conflict, which is how this interest used to be lost). Non-fatal: the email
+    // is already captured above, so a failure here is logged, not surfaced.
+    if (bandRow) {
+      try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/band_waitlist?on_conflict=email,band`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_SERVICE_ROLE_KEY!,
+            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY!}`,
+            'Content-Type': 'application/json',
+            // merge-duplicates updates only the columns sent, so a later signup
+            // without a phone never erases an earlier phone or consent.
+            'Prefer': 'resolution=merge-duplicates,return=minimal',
+          },
+          body: JSON.stringify(bandRow),
+        });
+        if (!r.ok) console.error('band_waitlist upsert failed', r.status, (await r.text()).slice(0, 300));
+      } catch (e) {
+        console.error('band_waitlist upsert error', String(e));
       }
     }
 
@@ -576,6 +623,10 @@ Deno.serve(async (req) => {
         emailContent = buildSproutsMagnetEmail(firstNameHtml);
       } else if (source === 'seedlings_magnet') {
         emailContent = buildSeedlingsMagnetEmail(firstNameHtml);
+      } else if (waitlistBand) {
+        // 'cultivators_waitlist' / 'practitioners_waitlist' (2026-09-24). These used
+        // to fall through to the generic homeschool welcome below.
+        emailContent = buildBandWaitlistEmail(firstNameHtml, waitlistBand);
       } else {
         // 'reserve' used to route to the Founders Club welcome ("Preorders are
         // open now, the first 500 kits sell at $249"). Preorders closed on

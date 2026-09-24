@@ -101,3 +101,38 @@ ${p('Elderberry is Week 1 of the curriculum exactly as it is taught. Five full d
 ${closingBlock()}`;
   return { subject: 'Your Seedlings Week 1 (Elderberry) is ready', html: magnetWrapper(body) };
 }
+
+// Cultivators (6-8) and Practitioners (9-12) waitlist welcome, 2026-09-24. Until
+// then a band-waitlist signup got buildHomeschoolEmail, which calls the whole
+// curriculum unbuilt and points at the adult course. The band descriptions are the
+// /homeschool blurbs; the "start with Sprouts" turn is the founder's 2026-09-24
+// direction. It promises only what is true: an email when the band has a date.
+// Nothing about texts, because none are sent until the texting registration
+// covers launch alerts.
+const BAND_WAITLIST_COPY: Record<'cultivators' | 'practitioners', { name: string; grades: string; blurb: string }> = {
+  cultivators: {
+    name: 'Cultivators',
+    grades: 'grades 6 to 8',
+    blurb: 'Cultivators is the second pass at the 72 plants your child learns in Sprouts and Seedlings, this time through body patterns and terrain: why the same plant helps one person and not another, and how a garden becomes a remedy. It is planned for late 2027.',
+  },
+  practitioners: {
+    name: 'Practitioners',
+    grades: 'grades 9 to 12',
+    blurb: 'Practitioners is the third pass at the 72 plants, at clinical depth. A high schooler who has grown up with these plants learns to reason about them the way a practitioner does. It is planned for 2028.',
+  },
+};
+
+export function buildBandWaitlistEmail(firstName: string, band: 'cultivators' | 'practitioners'): { subject: string; html: string } {
+  const c = BAND_WAITLIST_COPY[band];
+  const body = `
+${p(`Hi ${firstName},`)}
+${p(`You are on the list for ${c.name}, our band for ${c.grades}. I will email you the moment it has a date.`)}
+${p(c.blurb)}
+${goldDivider()}
+${heading('THE BEST WAY TO GET READY')}
+${p(`Here is the part most families do not expect. ${c.name} goes back to the 72 plants your child meets in Sprouts and Seedlings, and goes deeper. So the best way to get ready is to start with those plants now. If herbs are new to your family, start with Sprouts, even with an older child. If your children already know the basics, Seedlings is the place.`)}
+${brandButton('See where to start', 'https://edeninstitute.health/homeschool#choose-band')}
+${p('Week 1 of both is free, if you would like to try before anything else.')}
+${closingBlock()}`;
+  return { subject: `You are on the ${c.name} list`, html: magnetWrapper(body) };
+}
