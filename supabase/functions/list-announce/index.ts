@@ -71,12 +71,13 @@ const SITE = "https://edeninstitute.health";
 // 2026-09-14: the ESA approval announcement. The previous campaign
 // ("print_first_pivot_letter_2026_09_12", subject "The kit is coming off the website.
 // Here is why.") already sent; its copy is on f6bfb83.
-const CAMPAIGN = "esa_approval_announcement_2026_09_14";
+// 2026-09-24: Seedlings is live. The previous campaign
+// ("esa_approval_announcement_2026_09_14", subject "Check if you qualify to get this
+// paid for by your ESA") already sent; its copy is on ebfd814.
+const CAMPAIGN = "seedlings_live_2026_09_24";
 
-// Founder's pick, 2026-09-14, option 5 of five. Her first idea was "Check if you
-// qualify to get this ALL FOR FREE?"; "free" was dropped because an ESA purchase draws
-// down the family's own account (16 CFR 251.1(b)(1): "free" means paying nothing).
-const SUBJECT = "Check if you qualify to get this paid for by your ESA";
+// Founder's pick, 2026-09-24, option 2 of two.
+const SUBJECT = "Seedlings is live (and you’re the first to know)";
 
 // Ship dates mirror _shared/order-config.ts and _shared/launch-sequence-templates.ts.
 // They are duplicated here deliberately, exactly as launch-sequence-templates duplicates
@@ -176,40 +177,30 @@ function signature(signoff = "Grace and health,"): string {
 }
 
 /**
- * The ESA approval announcement to the homeschool list, 2026-09-14.
+ * Seedlings is live, to the homeschool list, 2026-09-24.
  *
- * Copy approved in session from ESA_Approval_Announcement_Email_DRAFT_2026-09-14.docx
- * (OneDrive, Eden's Table/Projects/ESA and Marketplace Vendor). Every state claim
- * matches web/lib/esaStates.ts on f6bfb83, which the /esa pages render:
- *   - "set up as a vendor", never "approved": Arizona REGISTERS vendors and says it has
- *     no involvement in their marketing (ADE Parent Handbook 2025-26 p.64).
- *   - Utah, Louisiana and Wyoming listings are Pending Approval at Odyssey, so the email
- *     says they are still getting set up and offers to tell the family the day it opens.
- *   - Florida and West Virginia are applied for, NOT approved.
- * The ask ("tell me which state you live in") is the point of the email: replies land in
- * hello@ and tell Camila where to apply next.
- * No "free", no implied state endorsement, no em dashes.
+ * Copy approved in session; Word copy at Eden's Table (Homeschool Curriculum)/Projects/
+ * Email Journeys and Nurture/List_Email_Seedlings_Live_2026-09-24.docx. Every claim
+ * was read off the live site that day: /books (Seedlings set $249 + $12 shipping, three
+ * books, all 36 weeks, extra notebooks $39.99), /starter/seedlings ($39, 9 weeks),
+ * /freebies (week 1, five lessons on elderberry) and the band chooser (new to herbs,
+ * even grades 3-5, start with Sprouts). Social URLs match src/lib/socials.ts.
+ * No preorder language, no credit, no em dashes.
  */
 function buildAnnouncement(firstName: string): string {
-  const ESA = `${SITE}/esa`;
-  const states: Array<[string, string]> = [
-    ["Arizona ESA", "arizona"],
-    ["Utah Fits All", "utah"],
-    ["Louisiana GATOR", "louisiana"],
-    ["Wyoming ESA", "wyoming"],
-    ["Arkansas EFA", "arkansas"],
-    ["Alabama CHOOSE Act", "alabama"],
-    ["New Hampshire EFA", "new-hampshire"],
-  ];
+  const IG = "https://www.instagram.com/edenstablehomeschoolcurriculum";
+  const FB = "https://www.facebook.com/EdensTableHomeschoolCurriculum";
   const body =
-    preheader(`Arizona, Utah, Louisiana, Wyoming, Arkansas, Alabama and New Hampshire. Not there? Tell me your state.`) +
+    preheader(`Grades 3-5, 36 brand new plants, ready to order today.`) +
     p(`Hi ${firstName},`) +
-    p(`Big news!! Eden&rsquo;s Table is now set up as a vendor in seven state ESA and scholarship programs:`) +
-    states.map(([name, slug]) => bullet(textLink(name, `${ESA}/${slug}`))).join("") +
-    p(`If your family has one of these, your program may be able to pay for the printed Sprouts year instead of you paying out of pocket.`, "margin-top:16px;") +
-    p(`Every state does it a little differently, so I made a page for each one that shows exactly how buying works there right now. A couple are still getting set up on their end (Utah, Louisiana and Wyoming are waiting on marketplace approval), and if yours is one of those, just reply and I&rsquo;ll tell you the day it opens.`) +
-    brandButton(`Find your state`, ESA) +
-    p(`<strong>Not in one of those states?</strong> Hit reply and tell me which state you live in. I&rsquo;m deciding where to apply next based on where you all are, and Florida and West Virginia are already in the works.`) +
+    p(`Seedlings is live!! Our grades 3-5 curriculum is finished, printed and ready to order today. ${textLink("Take a look at Seedlings here.", `${SITE}/books#seedlings`)}`) +
+    p(`And you&rsquo;re hearing it first. I haven&rsquo;t posted one word about it on Instagram or Facebook yet. You&rsquo;ve been with me from the very beginning, so you get the news before anyone else does.`) +
+    p(`Seedlings covers 36 new plants. None of them repeat Sprouts, so a family that does both ends up knowing 72. Your kids learn body systems and herb profiles, track a hypothesis across a whole week, and get dinner-table questions that make them actually think. It comes as three printed books: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud Storybook. That&rsquo;s all 36 weeks for $249 plus $12 shipping. Extra notebooks for siblings are $39.99 each.`) +
+    brandButton(`See Seedlings`, `${SITE}/books#seedlings`) +
+    p(`Want to try it first? The ${textLink(`9-week Seedlings Starter Unit is ${STARTER_PRICE}`, `${SITE}/starter/seedlings`)} and downloads instantly. Or ${textLink("grab week 1 free", `${SITE}/freebies`)}, which is five full lessons on elderberry.`) +
+    p(`One quick note before you order. If your kids are new to herbs, even if they&rsquo;re in 3rd to 5th grade, ${textLink("start with Sprouts", `${SITE}/books#sprouts-card`)}. Seedlings builds right on top of those 36 plants. If your older kids already know the basics, go straight to Seedlings. Got little ones and big ones? Do Sprouts together first.`) +
+    p(`Now can I ask you a favor? Please follow us on ${textLink("Instagram", IG)} and ${textLink("Facebook", FB)}. When the Seedlings post goes up, like it and share it! We&rsquo;re a small family business, and every share really does help us get this launched. And if you know a family with 3rd to 5th graders, forward them this email.`) +
+    p(`Thank you so much for being here from the start!!`) +
     signature("In Him,");
   return launchWrapper(body);
 }
@@ -254,13 +245,16 @@ async function pagedColumn(
  * Filtered by lookup_key rather than by a hardcoded address list so this stays correct
  * as more people buy between the preview and the last batch.
  */
-async function starterBuyers(db: ReturnType<typeof admin>): Promise<Set<string>> {
+async function starterBuyers(
+  db: ReturnType<typeof admin>,
+  lookupKeys: string[] = ["sprouts_starter_unit"],
+): Promise<Set<string>> {
   const out = new Set<string>();
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await db
       .from("orders")
       .select("customer_email")
-      .eq("lookup_key", "sprouts_starter_unit")
+      .in("lookup_key", lookupKeys)
       .eq("payment_status", "paid")
       .order("customer_email", { ascending: true })
       .range(from, from + PAGE - 1);
@@ -309,6 +303,8 @@ async function recipients(db: ReturnType<typeof admin>): Promise<Recipient[]> {
   const buyers = new Set(
     await pagedColumn(db, "preorder_broadcast_list", "customer_email", "customer_email"),
   );
+  // Anyone who already bought Seedlings (Starter or printed set) does not need the news.
+  const seedlingsBuyers = await starterBuyers(db, ["seedlings_starter_unit", "seedlings_print_set"]);
 
   // Already sent this campaign. Filtered here as well as claimed at send time: this
   // keeps the reported "remaining" honest across batches.
@@ -332,9 +328,10 @@ async function recipients(db: ReturnType<typeof admin>): Promise<Recipient[]> {
     const email = (r.email ?? "").trim().toLowerCase();
     if (!email || !email.includes("@")) continue;
     if (seen.has(email)) continue; // the list can hold the same address twice
-    // Starter Unit buyers are NOT excluded: the ESA news applies to them too. Kit buyers
-    // (preorder_broadcast_list) stay excluded, as for every list-announce campaign.
-    if (optedOut.has(email) || buyers.has(email) || sent.has(email)) continue;
+    // Sprouts Starter buyers are NOT excluded: Seedlings is their next step. Seedlings
+    // buyers are. Kit buyers (preorder_broadcast_list) stay excluded, as for every
+    // list-announce campaign.
+    if (optedOut.has(email) || buyers.has(email) || seedlingsBuyers.has(email) || sent.has(email)) continue;
     seen.add(email);
     const name = (r.first_name ?? "").trim();
     // Never render "Hi ," at somebody. A neutral greeting is better than a blank.
