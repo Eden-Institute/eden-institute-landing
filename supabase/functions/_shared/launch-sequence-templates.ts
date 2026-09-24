@@ -370,12 +370,12 @@ export function buildLaunchEmail4(firstName: string): { subject: string; html: s
     `${p(`I will be honest: the slower road is a discipline. Every week of care is a week you wait, and I feel that. But there is a verse taped over this whole project: &ldquo;Whatever you do, do your work heartily, as for the Lord rather than for men&rdquo; (Colossians 3:23, NASB). This curriculum will sit at your family&rsquo;s table, next to your Bible, in front of your children. It gets built <em>heartily</em>, or it does not ship. Stewardship over speed, every time.`)}` +
     `${goldDivider()}` +
     `${heading(`AND HERE IS WHAT I HAVEN&rsquo;T TOLD YOU`)}` +
-    `${p(`While Sprouts is being finished, the next band is already coming together beautifully. <strong>Seedlings</strong>, for grades 3 through 5, takes the same herb-centered rhythm and grows it up: deeper science, richer history, real discovery-day experiments, the same Scripture-rooted spine. Watching it take shape alongside Sprouts has been one of the joys of this year.`)}` +
+    `${p(`Sprouts was the first band finished, and the next one is here too. <strong>Seedlings</strong>, for grades 3 through 5, takes the same herb-centered rhythm and grows it up: deeper science, richer history, real discovery-day experiments, the same Scripture-rooted spine. It is on sale now, the whole year in print or the first nine weeks as a download. Watching it take shape alongside Sprouts has been one of the joys of this year.`)}` +
     `${p(`I tell you that because I want you to see what you are actually joining. This is not one product. It is a full journey being built one careful band at a time, so that the curriculum grows up exactly as your children do.`)}` +
     `${p(`In the next email I will take you further up that path than I ever have publicly, into middle school, where the story turns serious.`)}` +
     `${signature()}`;
   return {
-    subject: `Sprouts is almost ready. Seedlings is close behind.`,
+    subject: `Behind the table: Seedlings is here`,
     html: launchWrapper(body),
   };
 }
@@ -757,13 +757,13 @@ export function buildLaunchEmail12(firstName: string, founding = true): { subjec
 // ── EMAIL 13 — Day 13 — ages objection ──
 export function buildLaunchEmail13(firstName: string, founding = true): { subject: string; html: string } {
   const body =
-    `${preheader(`K-2 hearts first. The ladder is coming for the rest.`)}` +
+    `${preheader(`K-2 hearts first. Seedlings is here for grades 3-5.`)}` +
     `${p(`Hi ${firstName},`)}` +
     `${p(`&ldquo;My kids are 4 and 9. Is Sprouts even right for us?&rdquo; I get this one a lot, so let me answer it plainly.`)}` +
     `${p(`Sprouts is written for kindergarten through 2nd grade hearts. That said, families are already telling me their preschoolers sit for the stories and their older kids drift to the table for the kitchen days, because nobody walks past something simmering on the stove. The read-alouds, the recipes, and the dinner cards are genuinely whole-family; the notebook pages are where the K-2 targeting lives.`)}` +
     `${p(founding
-      ? `And for your older ones, the ladder is coming. Seedlings (grades 3-5) is deep in production now, with Cultivators and Practitioners behind it. A family that starts at Sprouts grows up the path together, and founding standing follows you the whole way.`
-      : `And for your older ones, the ladder is coming. Seedlings (grades 3-5) is deep in production now, with Cultivators and Practitioners behind it. A family that starts at Sprouts grows up the path together.`)}` +
+      ? `And for your older ones, the ladder is already here. Seedlings (grades 3-5) is on sale now, with Cultivators and Practitioners behind it. A family that starts at Sprouts grows up the path together, and founding standing follows you the whole way.`
+      : `And for your older ones, the ladder is already here. Seedlings (grades 3-5) is on sale now, with Cultivators and Practitioners behind it. A family that starts at Sprouts grows up the path together.`)}` +
     `${p(`If you are wondering whether this way of learning holds up for the older ones too: a study of more than 2,300 third graders across 46 schools found the ones learning science through hands-on projects scored about <strong>8 points higher</strong> on their science test than classmates taught the usual way. The federal office that reviews education research gave that study its highest rating. Once again, not our curriculum. The method our curriculum is built on.`)}` +
     `${p(founding
       ? `&ldquo;There is an appointed time for everything,&rdquo; the Preacher wrote, &ldquo;and there is a time for every event under heaven&rdquo; (Ecclesiastes 3:1, NASB). A planting season only comes around once a year. For this curriculum, and this founding price, it is now.`
