@@ -12,8 +12,10 @@
 //   7  Jul 22  The doors are about to open                   (Esther 4:14)   + shop
 //
 // Sprouts stays the hero throughout; the other bands are the horizon, never
-// the offer. Rows live in public.launch_email_queue and are drained by the
-// nurture-emails EF (Vercel cron, every 15 min): the FIXED-DATE cohort is
+// the offer. (That is 1-7. Since 2026-09-24, when Seedlings went fully on sale,
+// the live series 8-12 and 19-21 take a `band` and render a Seedlings variant
+// for Seedlings free-week signups; see LaunchBand below.) Rows live in
+// public.launch_email_queue and are drained by the nurture-emails EF (Vercel cron, every 15 min): the FIXED-DATE cohort is
 // backfilled by scripts/launch-sequence-backfill.sql, and post-July-9 signups
 // get the same arc on a 2-day drip via the enqueue_launch_sequence_on_signup
 // trigger (migration 20260702190000).
@@ -83,6 +85,14 @@ const PREORDER_URL = 'https://edeninstitute.health/preorder';
 // absent from the signup trigger) and kept verbatim for the phase-two kit launch.
 const PRINT_SET_URL = 'https://edeninstitute.health/books';
 const STARTER_URL = 'https://edeninstitute.health/starter';
+// 2026-09-24, both elementary bands on sale. Seedlings signups (waitlist source
+// 'seedlings_magnet') get the Seedlings variant of 8-12 and 19-21, which links to
+// the Seedlings Starter Unit and the Seedlings buy box on /books. The Sprouts
+// buy box on /books is #buy; the Seedlings one is #seedlings.
+const SEEDLINGS_STARTER_URL = 'https://edeninstitute.health/starter/seedlings';
+const SEEDLINGS_PRINT_SET_URL = 'https://edeninstitute.health/books#seedlings';
+const SPROUTS_PRINT_SET_URL = 'https://edeninstitute.health/books#buy';
+const FREEBIES_URL = 'https://edeninstitute.health/freebies';
 // Ship dates (EMAIL_SHIP_TARGET / EMAIL_SHIP_GUARANTEE) are imported from
 // _shared/order-config.ts, the single source the checkout disclaimer and
 // confirmation email use, so a moved ship window cannot drift here. Email 15
@@ -343,7 +353,7 @@ export function buildLaunchEmail3(firstName: string): { subject: string; html: s
     `${heading(`2. TERRAIN, NOT SYMPTOM-CHASING`)}` +
     `${p(`A wise gardener does not paint brown leaves green. She tends the soil. Eden&rsquo;s Table teaches children to think about the whole body the same way: not &ldquo;what silences this symptom,&rdquo; but &ldquo;what does this body need to flourish?&rdquo; Whole-person thinking, planted early enough to become instinct.`)}` +
     `${heading(`3. THE FIVE TENETS`)}` +
-    `${p(`Underneath every lesson sits our framework for health: <strong>Nutrition, Elimination, Rest, Hydration, and Spiritual Alignment</strong>. Simple enough for a six-year-old to recite. Sturdy enough to carry them for life.`)}` +
+    `${p(`Underneath every lesson sits our framework for health: <strong>Hydration, Movement, Nutrition, Rest, and Connection</strong>. Simple enough for a six-year-old to recite. Sturdy enough to carry them for life.`)}` +
     `${goldDivider()}` +
     `${p(`All of it flows from one verse we want written on our children&rsquo;s hearts before the world offers them a cheaper story: &ldquo;I will give thanks to You, for I am fearfully and wonderfully made; wonderful are Your works, and my soul knows it very well&rdquo; (Psalm 139:14, NASB).`)}` +
     `${p(`A child raised on that verse learns their body as something designed, not an accident to be medicated. That is the difference, and it changes everything downstream: how they eat, how they rest, how they treat the bodies of the people they love.`)}` +
@@ -588,8 +598,33 @@ function preorderButton(label = 'Preorder Your Kit'): string {
 }
 
 // The printed-set CTA used by 8-12 since the print-first pivot (2026-09-12).
-function printSetButton(label = 'Order the printed year'): string {
-  return brandButton(label, PRINT_SET_URL);
+// The Sprouts target is unchanged (/books); Seedlings goes to its own buy box.
+function printSetButton(label = 'Order the printed year', band: LaunchBand = 'sprouts'): string {
+  return brandButton(label, band === 'seedlings' ? SEEDLINGS_PRINT_SET_URL : PRINT_SET_URL);
+}
+
+// ── Band (2026-09-24) ──
+// launch_email_queue.band (migration 20260924210000) is 'sprouts' or
+// 'seedlings'. Anything else, including a missing column or NULL from a row
+// written before that migration, is Sprouts, which is what every row was before.
+export type LaunchBand = 'sprouts' | 'seedlings';
+export function normalizeLaunchBand(value: unknown): LaunchBand {
+  return value === 'seedlings' ? 'seedlings' : 'sprouts';
+}
+
+function link(text: string, url: string): string {
+  return `<a href="${url}" style="color:${BRAND.sage};text-decoration:underline;">${text}</a>`;
+}
+
+// The founder's start rule (2026-09-24, web/components/BandChooser.astro): K-2
+// to Sprouts; grades 3-5 new to herbs to Sprouts; grades 3-5 who know the basics
+// straight to Seedlings; children in both, Sprouts together first. One short
+// line each way, never the main offer of the email it sits in.
+function newToHerbsLine(sproutsUrl: string): string {
+  return p(`New to herbs? Even with a child in grades 3 to 5, most families start with ${link('Sprouts', sproutsUrl)}, because its thirty-six plants are the ones Seedlings builds on.`);
+}
+function olderKidsLine(seedlingsUrl: string): string {
+  return p(`If you have children in grades 3 to 5 who already know the basics of herbs, they can go straight to ${link('Seedlings', seedlingsUrl)}, the next thirty-six plants.`);
 }
 
 // ── 2026-09-12, THE PRINT-FIRST PIVOT ──
@@ -617,13 +652,33 @@ function printSetButton(label = 'Order the printed year'): string {
 // preheader (enforced by the render QA script).
 
 // ── EMAIL 8 — Day 0 — launch blast (founder-approved copy, $249) ──
-export function buildLaunchEmail8(firstName: string, founding = true): { subject: string; html: string } {
+export function buildLaunchEmail8(firstName: string, founding = true, band: LaunchBand = 'sprouts'): { subject: string; html: string } {
   // Day 0 of the conversion series. Until 2026-09-12 this was the launch blast
   // ("Preorders are open!!"). It is now the plain announcement that the whole
   // year exists on paper and ships in about two weeks. Facts: $249 + flat $12
   // shipping, printed to order, 48-hour cancel window before printing starts,
   // extra Student Notebooks $39.99 each (up to five). All from /books.
+  // 2026-09-24: Seedlings variant. Extra notebooks are Sprouts only, so the
+  // sibling line is Sprouts only; the Seedlings "what it is" line is the
+  // /homeschool band blurb.
   void founding;
+  if (band === 'seedlings') {
+    const body =
+      `${preheader(`All 36 weeks of Seedlings, printed, at your door in about two to three weeks.`)}` +
+      `${heading(`The whole year is ready`)}` +
+      `${p(`Hi ${firstName},`)}` +
+      `${p(`The full Seedlings year, for grades 3 through 5, is finished and it is on paper. Three printed books, all thirty-six weeks, printed for you when you order and mailed straight to your door in about two to three weeks.`)}` +
+      `${p(`No waiting on a print run. You order it, it prints, it ships.`)}` +
+      `${goldDivider()}` +
+      `${p(`<strong>What arrives:</strong> the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud Storybook, for every week of the year. A different thirty-six plants from Sprouts, so a family who does both finishes with seventy-two.`)}` +
+      `${p(`<strong>$249</strong>, plus flat $12 shipping. That is under $7 a week for a full year of body systems, herb profiles, a hypothesis tracked across a week, and dinner-table questions with real reasoning in them.`)}` +
+      `${goldDivider()}` +
+      `${p(`Nothing is on back order and nothing is held back. If you would rather try it first, ${link(`week 1 is still free`, FREEBIES_URL)} and ${link(`the first nine weeks are $39 as a download`, SEEDLINGS_STARTER_URL)}. If you already know, this is the page.`)}` +
+      `${printSetButton(`See the printed year`, band)}` +
+      `${newToHerbsLine(SPROUTS_PRINT_SET_URL)}` +
+      `${signature()}`;
+    return { subject: `The whole year is ready`, html: launchWrapper(body) };
+  }
   const body =
     `${preheader(`All 36 weeks of Sprouts, printed, at your door in about two to three weeks.`)}` +
     `${heading(`The whole year is ready`)}` +
@@ -634,8 +689,9 @@ export function buildLaunchEmail8(firstName: string, founding = true): { subject
     `${p(`<strong>What arrives:</strong> the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud Storybook, for every week of the year. One set is one child&rsquo;s year. Teaching more than one? Add an extra Student Notebook for each sibling at checkout, $39.99 each, and they ship in the same parcel.`)}` +
     `${p(`<strong>$249</strong>, plus flat $12 shipping. That is under $7 a week for a full year of Bible, science, language arts, math, art, history, geography, Latin, health and character, already woven together.`)}` +
     `${goldDivider()}` +
-    `${p(`Nothing is on back order and nothing is held back. If you would rather try it first, week 1 is still free and the first nine weeks are $39 as a download. If you already know, this is the page.`)}` +
+    `${p(`Nothing is on back order and nothing is held back. If you would rather try it first, ${link(`week 1 is still free`, FREEBIES_URL)} and ${link(`the first nine weeks are $39 as a download`, STARTER_URL)}. If you already know, this is the page.`)}` +
     `${printSetButton(`See the printed year`)}` +
+    `${olderKidsLine(SEEDLINGS_PRINT_SET_URL)}` +
     `${signature()}`;
   return {
     subject: `The whole year is ready`,
@@ -653,21 +709,31 @@ export function buildLaunchEmail8(firstName: string, founding = true): { subject
 //   3. the fact that both families taught it before anything was printed, which
 //      is the honest answer to "why would I pay months ahead"
 // No research or statistics: none exist on the site, and none will be invented.
-export function buildLaunchEmail9(firstName: string, founding = true): { subject: string; html: string } {
+export function buildLaunchEmail9(firstName: string, founding = true, band: LaunchBand = 'sprouts'): { subject: string; html: string } {
   // Day 2. Was "Open the box with me", an unboxing of the six-component kit.
   // The walkthrough stays because knowing what arrives is what makes the price
   // legible; it now opens the three printed books. The one-purchase-instead-of-
   // six argument and the two testimonials are unchanged: both families taught
   // from the free weeks, so nothing about them depended on the box. Page counts
   // are the measured ones (240 / 224 / 112, verified 2026-09-11).
+  // 2026-09-24: Seedlings variant. The Seedlings page counts are not confirmed
+  // (books.astro states none), its stories are spread across the year rather
+  // than weekly (starter/seedlings.astro), and it has no Friday-chant or K-2
+  // notebook claim, so those Sprouts specifics are left out rather than copied.
   void founding;
+  const s = band === 'seedlings';
+  const bullets = s
+    ? `${bullet(`<strong>The Teacher&rsquo;s Guide</strong>, coil bound so it lies flat: your entire Seedlings year, laid out day by day.`)}` +
+      `${bullet(`<strong>The Student Notebook</strong>, coil bound: your child&rsquo;s write-in pages for every week. By May it is a full year of her own work, in order.`)}` +
+      `${bullet(`<strong>The Read-Aloud Storybook</strong>, a small paperback: its stories are spread across the year and read together at the table.`)}`
+    : `${bullet(`<strong>The Teacher&rsquo;s Guide</strong>, 240 pages, coil bound so it lies flat: your entire year, laid out day by day. Monday you meet the herb in a story. By Friday your crew is chanting a rhyme they will keep for life.`)}` +
+      `${bullet(`<strong>The Student Notebook</strong>, 224 pages, coil bound: five gentle pages a week, sized for K-2 hands. By May it is a full year of her own work, dated and in order.`)}` +
+      `${bullet(`<strong>The Read-Aloud Storybook</strong>, a small paperback sized for a lap: the Eden family, week after week, carrying it all.`)}`;
   const body =
     `${preheader(`Three books, 180 lessons, and what they replace.`)}` +
     `${p(`Hi ${firstName},`)}` +
     `${p(`Before you decide anything, I want you to see exactly what arrives at your door. So open the parcel with me.`)}` +
-    `${bullet(`<strong>The Teacher&rsquo;s Guide</strong>, 240 pages, coil bound so it lies flat: your entire year, laid out day by day. Monday you meet the herb in a story. By Friday your crew is chanting a rhyme they will keep for life.`)}` +
-    `${bullet(`<strong>The Student Notebook</strong>, 224 pages, coil bound: five gentle pages a week, sized for K-2 hands. By May it is a full year of her own work, dated and in order.`)}` +
-    `${bullet(`<strong>The Read-Aloud Storybook</strong>, a small paperback sized for a lap: the Eden family, week after week, carrying it all.`)}` +
+    bullets +
     `${spacer(8)}` +
     `${p(`Thirty-six weeks. 180 daily lessons. Three books built together, week by week, as one year rather than three things you have to make agree with each other.`)}` +
     `${goldDivider()}` +
@@ -678,55 +744,75 @@ export function buildLaunchEmail9(firstName: string, founding = true): { subject
     `${p(`What you are not also buying: a separate science curriculum. A separate nature study. A separate Bible curriculum. A separate art plan. A separate read-aloud list. A second evening of your week spent making all of them agree with each other.`)}` +
     `${goldDivider()}` +
     `${heading(`They taught it before anyone printed a thing`)}` +
-    `${p(`Here are two families who sat down and taught this at their own tables, using the free weeks, before a single page was printed. Nobody below is reviewing a parcel. They are telling you what happened in their kitchen.`)}` +
+    `${p(s
+      ? `Here are two families who sat down and taught Eden&rsquo;s Table at their own tables, using the free weeks, before a single page was printed. Nobody below is reviewing a parcel. They are telling you what happened in their kitchen.`
+      : `Here are two families who sat down and taught this at their own tables, using the free weeks, before a single page was printed. Nobody below is reviewing a parcel. They are telling you what happened in their kitchen.`)}` +
     `${quoteCard(`This curriculum is truly amazing! I have numerous herbal books from all sorts of authors, and this curriculum truly puts it into bite-size chunks of information while still incorporating incredible vocabulary, concepts, and quality stories. The fact that you are incorporating all these other topics beyond just herbal information is truly incredible as well.`, `Kendria Scriver, curriculum writer`)}` +
     `${quoteCard(`Ahhhhhh I just spent the last few hours poring over the free sample you sent us. This curriculum is absolutely fantastic. I cannot wait to buy this in the fall. This will be our kids favourite curriculum to explore.`, `Coralee, who read the free sample cover to cover`)}` +
     `${p(`Solomon wrote, &ldquo;Train up a child in the way he should go, even when he is old he will not depart from it&rdquo; (Proverbs 22:6, NASB). That is what a year of this rhythm builds: a way, not just a workbook.`)}` +
-    `${p(`The whole year, in three books, comes home for $249 plus $12 shipping, and it is printed the moment you order it.`)}` +
-    `${printSetButton()}` +
+    `${p(s
+      ? `The whole Seedlings year, in three books, comes home for $249 plus $12 shipping, and it is printed the moment you order it.`
+      : `The whole year, in three books, comes home for $249 plus $12 shipping, and it is printed the moment you order it.`)}` +
+    `${printSetButton(undefined, band)}` +
+    `${s ? newToHerbsLine(SPROUTS_PRINT_SET_URL) : ''}` +
     `${signature()}`;
   return { subject: `Open the parcel with me`, html: launchWrapper(body) };
 }
 
 // ── EMAIL 10 — Day 4 — "I'm not an herbalist" objection ──
-export function buildLaunchEmail10(firstName: string, founding = true): { subject: string; html: string } {
+export function buildLaunchEmail10(firstName: string, founding = true, band: LaunchBand = 'sprouts'): { subject: string; html: string } {
   // Day 4, the "I'm not an herbalist" objection. Body unchanged since 2026-07-28
   // except the closing price line and the button, which pointed at the kit.
+  // 2026-09-24: Seedlings variant. The second-grader study is swapped for the
+  // third-grader study already carried by Email 13, since grade 3 is where
+  // Seedlings starts. The half-hour day and "almost nothing" prep are Sprouts
+  // facts and are left out of the Seedlings copy.
   void founding;
+  const s = band === 'seedlings';
   const body =
     `${preheader(`The Teacher's Guide does the heavy lifting. You just open it.`)}` +
     `${p(`Hi ${firstName},`)}` +
     `${p(`The most common question I hear, by far: &ldquo;I love this, but I don&rsquo;t know anything about herbs. Can I really teach it?&rdquo;`)}` +
     `${p(`Sweet friend, yes. Eden&rsquo;s Table was written for the mama who has never dried a flower in her life.`)}` +
-    `${p(`Every week of the Teacher&rsquo;s Guide is laid out day by day: what to read, what to ask, what to prepare (almost nothing), and exactly what to say when little voices ask why. You are not the expert at the table. You are the guide reading the map, and the map is very good. Most days take about half an hour.`)}` +
+    `${p(s
+      ? `Every week of the Teacher&rsquo;s Guide is laid out day by day: what to read, what to ask, what to prepare, and exactly what to say when your child asks why. You are not the expert at the table. You are the guide reading the map, and the map is very good.`
+      : `Every week of the Teacher&rsquo;s Guide is laid out day by day: what to read, what to ask, what to prepare (almost nothing), and exactly what to say when little voices ask why. You are not the expert at the table. You are the guide reading the map, and the map is very good. Most days take about half an hour.`)}` +
     `${p(`And here is the quiet gift nobody tells you about: you will learn it alongside them. By the end of the year you will know 36 herbs, their stories, and their uses, not because you studied, but because you sat at the table with your kids.`)}` +
-    `${p(`Teaching this way is also not a hunch. Researchers tried it with second graders, the very ages Sprouts is written for. They split the classrooms by chance so nobody could stack the deck, taught one group through hands-on projects and the other the usual way, and then measured what the children actually knew a year later. The project children came out about <strong>five to six months ahead in social studies and two months ahead in reading</strong>.`)}` +
+    `${p(s
+      ? `Teaching this way is also not a hunch. A study of more than 2,300 third graders across 46 schools, the very first year Seedlings is written for, found the ones learning science through hands-on projects scored about <strong>8 points higher</strong> on their science test than classmates taught the usual way. The federal office that reviews education research gave that study its highest rating.`
+      : `Teaching this way is also not a hunch. Researchers tried it with second graders, the very ages Sprouts is written for. They split the classrooms by chance so nobody could stack the deck, taught one group through hands-on projects and the other the usual way, and then measured what the children actually knew a year later. The project children came out about <strong>five to six months ahead in social studies and two months ahead in reading</strong>.`)}` +
     `${p(`Eden&rsquo;s Table was not one of the curricula in that study, and I will not pretend otherwise. What they were testing is the way it teaches: one real thing in the middle of the week, and every subject gathered around it.`)}` +
     `${p(`James wrote that if any of us lacks wisdom, we should &ldquo;ask of God, who gives to all generously and without reproach&rdquo; (James 1:5, NASB). He did not say ask the credentialed. Generously, to the asking mama, is how this knowledge has always been given.`)}` +
-    `${p(`The printed year is $249, and it teaches you both.`)}` +
-    `${printSetButton()}` +
+    `${p(s ? `The printed Seedlings year is $249, and it teaches you both.` : `The printed year is $249, and it teaches you both.`)}` +
+    `${printSetButton(undefined, band)}` +
+    `${s ? newToHerbsLine(SPROUTS_PRINT_SET_URL) : ''}` +
     `${signature()}`;
   return { subject: `You don't have to be an herbalist`, html: launchWrapper(body) };
 }
 
 // ── EMAIL 11 — Day 7 — what you're really buying (founding-centric email,
 // so the post-founding variant re-frames around joining the build itself) ──
-export function buildLaunchEmail11(firstName: string, founding = true): { subject: string; html: string } {
+export function buildLaunchEmail11(firstName: string, founding = true, band: LaunchBand = 'sprouts'): { subject: string; html: string } {
   // Day 7. Was "What founding families are really buying", built on founding
   // standing and the $100 off. The Nehemiah frame survives because it was
   // always about joining a build in progress, and that is more true now, not
   // less: the printed year is what funds the bands after it. No founding
   // standing, no $349, no "first 500" anywhere in this email.
+  // 2026-09-24: Seedlings is on sale, so the bands still being shaped are
+  // Cultivators and Practitioners, and the grades still to build are 6 to 12
+  // (seven), not eleven.
   void founding;
+  const s = band === 'seedlings';
   const body =
-    `${preheader(`One set is year one of a K-12 journey your family helps shape.`)}` +
+    `${preheader(s ? `One set is a year of a K-12 journey your family helps shape.` : `One set is year one of a K-12 journey your family helps shape.`)}` +
     `${p(`Hi ${firstName},`)}` +
-    `${p(`I want to be honest about what a $249 set of Sprouts is actually buying, because it is more than three books.`)}` +
-    `${p(`Eden&rsquo;s Table is a K-12 journey being built band by band, and the families teaching from it now are not customers at the end of something. They are builders at the beginning of it. Your children&rsquo;s questions, your kitchen&rsquo;s discoveries, your feedback after week 9, all of it shapes Seedlings, Cultivators, and Practitioners before they reach anyone else&rsquo;s table.`)}` +
+    `${p(`I want to be honest about what a $249 set of ${s ? 'Seedlings' : 'Sprouts'} is actually buying, because it is more than three books.`)}` +
+    `${p(`Eden&rsquo;s Table is a K-12 journey being built band by band, and the families teaching from it now are not customers at the end of something. They are builders at the beginning of it. Your children&rsquo;s questions, your kitchen&rsquo;s discoveries, your feedback after week 9, all of it shapes Cultivators and Practitioners before they reach anyone else&rsquo;s table.`)}` +
     `${p(`It is also, plainly, what pays for them. I am building this without borrowing a dime, so every printed year that goes out the door is what funds the next band. There is no investor behind this. There is a kitchen table and the families around it.`)}` +
-    `${p(`When Nehemiah stood before a wall in ruins, the people did not wait for it to be finished before they joined. &ldquo;Let us arise and build&rdquo; (Nehemiah 2:18, NASB), they said. The families who join while the wall is rising get to leave their fingerprints on it, and this wall has eleven more grades to go.`)}` +
+    `${p(`When Nehemiah stood before a wall in ruins, the people did not wait for it to be finished before they joined. &ldquo;Let us arise and build&rdquo; (Nehemiah 2:18, NASB), they said. The families who join while the wall is rising get to leave their fingerprints on it, and this wall still has seven grades to go, sixth through twelfth.`)}` +
     `${p(`If you have been waiting for a sign that it is your moment to join, this is the week the wall is going up.`)}` +
-    `${printSetButton(`Order the printed year`)}` +
+    `${printSetButton(`Order the printed year`, band)}` +
+    `${s ? newToHerbsLine(SPROUTS_PRINT_SET_URL) : ''}` +
     `${signature()}`;
   return {
     subject: `What one set is really buying`,
@@ -735,21 +821,28 @@ export function buildLaunchEmail11(firstName: string, founding = true): { subjec
 }
 
 // ── EMAIL 12 — Day 10 — founder story ──
-export function buildLaunchEmail12(firstName: string, founding = true): { subject: string; html: string } {
+export function buildLaunchEmail12(firstName: string, founding = true, band: LaunchBand = 'sprouts'): { subject: string; html: string } {
   // Day 10, the founder story. The story is unchanged. The close used to say
   // "every kit that reaches a founding family's table"; it now says the honest
   // thing about why the year comes in three books and prints to order.
+  // 2026-09-24: Seedlings variant. The Eden family named here are the Sprouts
+  // storybook characters; the Seedlings copy says so rather than implying they
+  // carry the Seedlings stories, which is not verified.
   void founding;
+  const s = band === 'seedlings';
   const body =
     `${preheader(`Why a mama built a curriculum around a kitchen table.`)}` +
     `${p(`Hi ${firstName},`)}` +
     `${p(`Can I tell you where this actually came from?`)}` +
-    `${p(`Not a publishing house. A kitchen table, with real children around it, in a home that wanted health and faith to live in the same conversation. The Eden family in the storybooks, Vov&oacute; and PopPop, Levi and Ruthie, Manny, Evie, and Gracie, they are woven from our real family: real scraped knees, real garden rows, real prayers over little fevers in the night.`)}` +
+    `${p(`Not a publishing house. A kitchen table, with real children around it, in a home that wanted health and faith to live in the same conversation. The Eden family in the ${s ? 'Sprouts ' : ''}storybooks, Vov&oacute; and PopPop, Levi and Ruthie, Manny, Evie, and Gracie, they are woven from our real family: real scraped knees, real garden rows, real prayers over little fevers in the night.`)}` +
     `${p(`I built Eden&rsquo;s Table because I could not find it. I wanted my children to know that the God who made their bodies also planted their healing in the ground, and I wanted them to learn it the way faith is actually passed down: &ldquo;telling to the generation to come the praises of the LORD, and His strength and His wondrous works&rdquo; (Psalm 78:4, NASB). Not a unit study. An inheritance.`)}` +
     `${p(`It comes to you as three printed books, printed one set at a time when you order, because I am building this the way we teach families to live: inside what we actually have, without borrowing. That costs a couple of weeks at your end. It means your year is never waiting on mine.`)}` +
     `${p(`Every set that reaches a family&rsquo;s table carries that intention with it. It would be an honor for it to reach yours.`)}` +
-    `${p(`The printed year is $249 plus $12 shipping, at your door in about two to three weeks.`)}` +
-    `${printSetButton()}` +
+    `${p(s
+      ? `The printed Seedlings year is $249 plus $12 shipping, at your door in about two to three weeks.`
+      : `The printed year is $249 plus $12 shipping, at your door in about two to three weeks.`)}` +
+    `${printSetButton(undefined, band)}` +
+    `${s ? newToHerbsLine(SPROUTS_PRINT_SET_URL) : ''}` +
     `${signature()}`;
   return { subject: `The story under the table`, html: launchWrapper(body) };
 }
@@ -971,8 +1064,38 @@ export const EMAIL_7_RESEND_POSITION = 18;
 // builder fails silently at send time. PRE-SEND: run the render QA script
 // (zero em dashes, en dash and middot only) and suppress the five refund-bound
 // preorder buyers.
-export function buildLaunchEmail19(firstName: string, founding = true): { subject: string; html: string } {
+// 2026-09-24, BAND. Seedlings signups get a Seedlings variant. The "one plant
+// known five ways", the ten same-day preparations, the Week 6 plantain exhibit
+// and the "week opens in Scripture" line are all read off the Sprouts files and
+// are NOT verified for Seedlings, so the Seedlings copy does not carry them. Its
+// safety turn points a family new to herbs to Sprouts (the founder's start rule),
+// where those boundaries are verified. The Seedlings description is the
+// /homeschool band blurb. The podcast sentence is untouched in both variants.
+export function buildLaunchEmail19(firstName: string, founding = true, band: LaunchBand = 'sprouts'): { subject: string; html: string } {
   void founding;
+  if (band === 'seedlings') {
+    const body =
+      `${preheader(`The question I am always ready for. Here is the whole answer.`)}` +
+      `${p(`Hi ${firstName},`)}` +
+      `${p(`On August 20 I recorded with Felice Gerwitz of Media Angels. There is one question I am always ready for, and no interview is ever long enough to answer it properly.`)}` +
+      `${p(`It is the question I expect from every careful mother who finds us, and I would rather answer it here, in full, than hope nobody asks it: what business does a woman who is not a practicing herbalist have handing plants to a child, and is it safe?`)}` +
+      `${p(`Here is the whole answer. Eden&rsquo;s Table is not a remedy guide. There are no protocols in it, and there is no best-herb-for-anxiety list, because those already exist in abundance and I think they are part of the problem.`)}` +
+      `${p(`And no, I am not an herbalist. I am a teacher. I hold an M.Ed., I know how to build a scope and sequence, and I came to the plants backwards: this was a curriculum problem before it was ever a plant problem.`)}` +
+      `${p(`When I enrolled in formal herbalism training, the spirituality was either absent or it resolved into Far Eastern metaphysics. I did not want to throw out the plants along with the framework, because the observations were sound and the attribution was not. So the rule for all thirty-six weeks became: keep every observation, discard the spiritual attribution. No cosmic energy, no meridian metaphysics, no borrowed mysticism.`)}` +
+      `${p(`Most herb material written for families is a table: symptom on the left, plant on the right. A child who memorizes that has learned a list, not a plant. Seedlings teaches one plant a week, through body systems, herb profiles, a hypothesis your child writes and then tests, and dinner-table questions with real reasoning in them.`)}` +
+      `${p(`If your family is new to plants, even with a child in grades 3 to 5, start with ${link(`Sprouts`, STARTER_URL)}. Its thirty-six plants are the ones Seedlings builds on, and it is where I show you, week by week, where the line is.`)}` +
+      `${p(`So the honest description of the work is botany, plant identification, nature study, kitchen work and stewardship. A mother teaching her child to name a plant, draw it and cook with it is not practicing medicine. She is doing what mothers did for most of history.`)}` +
+      `${p(`The Seedlings year is finished, thirty-six weeks, one plant a week.`)}` +
+      `${p(`Week 1 is elderberry, and ${link(`it is free`, FREEBIES_URL)}, so you can see the whole shape of a Seedlings week before you spend anything.`)}` +
+      `${verseCard(`Behold, I have given you every plant yielding seed that is on the surface of all the earth`, `Genesis 1:29`)}` +
+      `${p(`Given. That one word does all the theological work.`)}` +
+      `${p(`I have been recording these conversations all summer, and I share each one with this list as it airs.`)}` +
+      `${goldDivider()}` +
+      `${p(`Weeks 1 through 9 are $39, digital, instant download: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks. The whole Seedlings year, all thirty-six weeks in three printed books, is $249 and is at your door in about two to three weeks.`)}` +
+      `${brandButton('Start with Weeks 1 through 9', SEEDLINGS_STARTER_URL)}` +
+      `${signature()}`;
+    return { subject: `"You are not an herbalist"`, html: launchWrapper(body) };
+  }
   const body =
     `${preheader(`The question I am always ready for. Here is the whole answer.`)}` +
     `${p(`Hi ${firstName},`)}` +
@@ -988,7 +1111,7 @@ export function buildLaunchEmail19(firstName: string, founding = true): { subjec
     `${p(`Week 6 is plantain, <em>Plantago major</em>. It is likely growing in your yard right now, in the patch you have been pulling it out of for years without knowing its name. Your child finds it, names it, and draws it labeled.`)}` +
     `${verseCard(`Behold, I have given you every plant yielding seed that is on the surface of all the earth`, `Genesis 1:29`)}` +
     `${p(`Given. That one word does all the theological work, and it is why the week opens in Scripture rather than in a remedy.`)}` +
-    `${p(`I have been recording these conversations all summer. When each one airs, the link comes to this list the same day.`)}` +
+    `${p(`I have been recording these conversations all summer, and I share each one with this list as it airs.`)}` +
     `${goldDivider()}` +
     `${p(`Weeks 1 through 9 are $39, digital, instant download: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks. The whole year, all thirty-six weeks in three printed books, is $249 and is at your door in about two to three weeks.`)}` +
     `${brandButton('Start with Weeks 1 through 9', 'https://edeninstitute.health/starter')}` +
@@ -1109,21 +1232,59 @@ export function buildLaunchEmail19(firstName: string, founding = true): { subjec
 // builder fails silently at send time. PRE-SEND: run the render QA script
 // (zero em dashes, en dash and middot only) and suppress the five refund-bound
 // preorder buyers.
-export function buildLaunchEmail20(firstName: string, founding = true): { subject: string; html: string } {
+// 2026-09-24, BOTH BANDS ON SALE. The old answer to the subject line ("has not
+// outgrown week one. She skipped it, and there is no higher") is gone: Seedlings
+// is the higher. The email now answers with the founder's start rule (K-2 to
+// Sprouts; 3-5 new to herbs to Sprouts; 3-5 who know the basics to Seedlings;
+// children in both, Sprouts together first) and keeps its case for Sprouts for
+// families new to herbs. The Seedlings variant carries the same rule and the same
+// argument, but not the Sprouts-only facts (the younger-sprouts and stretch
+// rails, the Mon-Fri week shape, the storybook claim), which are not verified
+// for Seedlings. Kati's quote stays verbatim and is labelled as Sprouts week 1.
+export function buildLaunchEmail20(firstName: string, founding = true, band: LaunchBand = 'sprouts'): { subject: string; html: string } {
   void founding;
+  const s = band === 'seedlings';
+  const startRule = (sproutsUrl: string, seedlingsLink: boolean) =>
+    p(`So here is my rule. Kindergarten through second grade, start with ${sproutsUrl ? link('Sprouts', sproutsUrl) : 'Sprouts'}. Grades 3 to 5 and new to herbs, start with Sprouts too. Grades 3 to 5 who already know the basics can go straight to ${seedlingsLink ? link('Seedlings', SEEDLINGS_STARTER_URL) : 'Seedlings'}, the next thirty-six plants. And if you have children in both, teach Sprouts to everyone together first.`);
+  if (s) {
+    const body =
+      `${preheader(`Sprouts and Seedlings share no plants. Here is where each child starts.`)}` +
+      `${p(`Hi ${firstName},`)}` +
+      `${p(`The question that reaches my inbox most weeks is this one: what does a week look like when you have a four year old and a nine year old at the same table?`)}` +
+      `${p(`The honest answer starts with the plants.`)}` +
+      `${p(`Sprouts and Seedlings do not share a single plant. Each band covers a different thirty-six, so a family that does both ends with seventy-two named species, and a child who starts at Sprouts repeats nothing when she moves up.`)}` +
+      `${p(`Sprouts does not teach a list of plants. It teaches how to look at one: form first, then touch, then smell, then taste, with the science coming out of what she just sensed rather than announced to her first. That is why, if herbs are new to your family, I tell you to start there even with a nine year old.`)}` +
+      `${startRule(STARTER_URL, false)}` +
+      `${p(`Seedlings is built for the child who already has those first plants in her hands: body systems, herb profiles, a hypothesis she writes and then tests, and dinner-table questions with real reasoning in them.`)}` +
+      `${p(`Here is my test for any week of Eden&rsquo;s Table. If you removed the plant, the whole week would collapse. Integrated, not decorated.`)}` +
+      `${p(`Sprouts week 1 is lavender. Kati wrote to me in June, while her children were in the middle of it:`)}` +
+      `${quoteCard(`I just wanted you to see how in to it they are! No complaining and actually asking to do their &lsquo;learning&rsquo;!! Yahoo`, `Kati, whose children did week 1 in June`)}` +
+      `${p(`It is digital, so an older child can move at her own speed.`)}` +
+      `${p(`Stephany had me on Home(school) with Steph in August, and Brianne on the Hearty Homemaker a few days later. Both are homeschooling mothers with mixed-age tables of their own.`)}` +
+      `${p(`I share each conversation with this list as it airs.`)}` +
+      `${verseCard(`O taste and see that the LORD is good; How blessed is the man who takes refuge in Him!`, `Psalm 34:8`)}` +
+      `${p(`Teaching a child to taste and see before she is taught to conclude is not a method I invented. It is older than I am, and the goodness is the Giver&rsquo;s.`)}` +
+      `${goldDivider()}` +
+      `${p(`The Seedlings Starter Unit is <strong>$39</strong>, digital, instant download: weeks 1 through 9, with the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook.`)}` +
+      `${p(`The whole Seedlings year in print, all thirty-six weeks in three books, is <strong>$249</strong> and is at your door in about two to three weeks.`)}` +
+      `${brandButton('Start with Weeks 1 through 9', SEEDLINGS_STARTER_URL)}` +
+      `${signature()}`;
+    return { subject: `Sprouts or Seedlings: where do my kids start?`, html: launchWrapper(body) };
+  }
   const body =
     `${preheader(`Sprouts and Seedlings share no plants. Starting here repeats nothing.`)}` +
     `${p(`Hi ${firstName},`)}` +
     `${p(`The question that reaches my inbox most weeks is this one: what does a week look like when you have a four year old and a nine year old at the same table?`)}` +
     `${p(`One plant. One week. One kitchen table, at three depths. A younger sprouts section curates the week down so a four year old can take part, and stretch notes take it up for an older child. Nobody is sent off to do something separate.`)}` +
     `${p(`Sprouts and Seedlings do not share a single plant. Each band covers a different thirty-six, so a family that does both ends with seventy-two named species, and a child who starts here repeats nothing when she moves up.`)}` +
-    `${p(`Sprouts does not teach a list of plants. It teaches how to look at one: form first, then touch, then smell, then taste, with the science coming out of what she just sensed rather than announced to her first. A nine year old who can name a plant but cannot tell you its smell, the edge of its leaf, or the ground it chooses has not outgrown week one. She skipped it, and there is no higher.`)}` +
+    `${p(`Sprouts does not teach a list of plants. It teaches how to look at one: form first, then touch, then smell, then taste, with the science coming out of what she just sensed rather than announced to her first. That is why, if herbs are new to your family, I tell you to start here even with a nine year old.`)}` +
+    `${startRule('', true)}` +
     `${p(`Here is my test. If you removed the plant, the whole week would collapse: the read-aloud and its vocabulary, the kitchen lab, how families used this plant before there were pharmacies, a drawing she labels herself, Friday in the garden, and the patience a growing thing requires. Integrated, not decorated.`)}` +
     `${p(`Week 1 is lavender. Kati wrote to me in June, while her children were in the middle of it:`)}` +
     `${quoteCard(`I just wanted you to see how in to it they are! No complaining and actually asking to do their &lsquo;learning&rsquo;!! Yahoo`, `Kati, whose children did week 1 in June`)}` +
     `${p(`It is digital, so an older child can move at her own speed, and the Read-Aloud storybook keeps a nine year old and a five year old at the same table without one bored and the other lost.`)}` +
     `${p(`Stephany had me on Home(school) with Steph in August, and Brianne on the Hearty Homemaker a few days later. Both are homeschooling mothers with mixed-age tables of their own.`)}` +
-    `${p(`When each conversation airs, the link comes to this list the same day.`)}` +
+    `${p(`I share each conversation with this list as it airs.`)}` +
     `${verseCard(`O taste and see that the LORD is good; How blessed is the man who takes refuge in Him!`, `Psalm 34:8`)}` +
     `${p(`Teaching a child to taste and see before she is taught to conclude is not a method I invented. It is older than I am, and the goodness is the Giver&rsquo;s.`)}` +
     `${goldDivider()}` +
@@ -1217,12 +1378,49 @@ export function buildLaunchEmail20(firstName: string, founding = true): { subjec
 // nothing (see the file header). It mirrors STARTER_PAGE_URL in
 // _shared/starter-config.ts, which is the authoritative value. When emails 19
 // and 20 land in this file, lift it to a module const beside PREORDER_URL.
-export function buildLaunchEmail21(firstName: string, founding = true): { subject: string; html: string } {
+// 2026-09-24, BAND. The Seedlings variant cannot reuse the safety paragraph as
+// Seedlings content: the ten same-day preparations are read off the SPROUTS
+// content manual, and Seedlings seals jars and opens them later (books.astro,
+// "a hypothesis your child writes when each jar is sealed and checks when it
+// opens"). So the Seedlings copy states those boundaries explicitly as Sprouts,
+// the year the founder's start rule sends every family new to herbs to, then
+// says what Seedlings adds using only published copy. The garden paragraph
+// (Sprouts Unit 1) is left out; the Vovo story stays, labelled as Sprouts week 4.
+// The podcast sentences are untouched in both variants.
+export function buildLaunchEmail21(firstName: string, founding = true, band: LaunchBand = 'sprouts'): { subject: string; html: string } {
   void founding;
   const STARTER_URL = 'https://edeninstitute.health/starter';
   // 2026-09-12 stale sweep: the Deville recording is 2026-09-18. Signups keep
   // receiving this email weeks later, so the dated hook only renders before then.
   const beforeDeville = Date.now() < Date.UTC(2026, 8, 18, 12);
+  if (band === 'seedlings') {
+    const body =
+      `${preheader(beforeDeville ? `I sit down with Dr Lauren Deville on the 18th. Here is my answer, in writing, first.` : `The question every careful mother asks. Here is my answer, in writing.`)}` +
+      `${p(`Hi ${firstName},`)}` +
+      `${p(beforeDeville ? `On September 18 I sit down with Dr Lauren Deville of Nature Cure Family Health. The question I am bracing for is whether any of this belongs in the hands of a child. It is the right question, and I am glad someone is finally going to ask it out loud.` : `The question I hear most is whether any of this belongs in the hands of a child. It is the right question.`)}` +
+      `${p(beforeDeville ? `I would rather answer it here first, in writing, for the people who already gave me their patience, than have you hear it secondhand on somebody else&rsquo;s show.` : `I would rather answer it here, in writing, for the families on this list, than have you hear it secondhand on somebody else&rsquo;s show.`)}` +
+      `${goldDivider()}` +
+      `${p(`Let me show you where the line sits in ${link(`Sprouts`, STARTER_URL)}, because that is where I ask every family new to herbs to begin, even with a child in grades 3 to 5. Its thirty-six plants are the ones Seedlings builds on.`)}` +
+      `${p(`Safety is not a warning box at the back of the book. It is written into the Teacher&rsquo;s Guide, inside the lesson itself, where a mother actually reads it. Every week names the plant, the part we use, and how we use it.`)}` +
+      `${p(`Everything a child makes in Sprouts comes from ten same-day kitchen preparations: tea, decoction, cold infusion, spit-poultice, compress, steam-juicer syrup, honegar, same-day honey infusion, culinary and fresh leaf. No salves, no balms, no washes, no tinctures, no infused oils, no dropper bottles, nothing that needs a shelf to cure on. No dosing formula for children is printed anywhere in it.`)}` +
+      `${p(`Seedlings is for the child who already knows those basics. It is a different thirty-six plants, with body systems, herb profiles, and a hypothesis your child writes when each jar is sealed and checks when it opens. Its Teacher&rsquo;s Guide has every daily lesson written out, ready to open and teach.`)}` +
+      `${p(`You do not need to know any of it before you teach it. That is not a consolation prize for nervous mothers, it is the pedagogy: a child learns more watching her mother learn than watching her perform an expertise she does not have.`)}` +
+      `${p(`In Sprouts, week 4 is peppermint, and week 4 is where the read-aloud is <em>Vov&oacute;&rsquo;s Lineage</em>, about what a grandmother hands down. I am Brazilian. That one is my own grandmother.`)}` +
+      `${goldDivider()}` +
+      `${p(`Since July I have recorded with Southern Appalachian Herbs, Media Angels, Home(school) with Steph, Hearty Homemaker and Planted on Purpose with Aurie Riley. ${beforeDeville ? `Still ahead of me: Dr Lauren Deville on the eighteenth, and Cheryl at The Homeschool How To in January.` : ``}`)}` +
+      `${p(`I share each one with this list as it airs.`)}` +
+      `${p(`None of it puts one thing in your child&rsquo;s hands this autumn. Weeks 1 through 9 do.`)}` +
+      `${goldDivider()}` +
+      `${p(`Isaiah watched God come in strength, then said how He moves through a field:`)}` +
+      `${verseCard(`Like a shepherd He will tend His flock, in His arm He will gather the lambs and carry them in His bosom; He will gently lead the nursing ewes.`, 'Isaiah 40:11')}` +
+      `${p(`That is the pace I want for your year, and the one I am still learning for mine.`)}` +
+      `${p(`The Seedlings Starter Unit is <strong>$39</strong>: weeks 1 through 9, digital, instant download, with the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks.`)}` +
+      `${p(`The whole Seedlings year in print, all thirty-six weeks in three books, is <strong>$249</strong> and is at your door in about two to three weeks.`)}` +
+      `${p(`This is the third and last of these notes. The <strong>$39</strong> Starter Unit is not going anywhere and there is no deadline on it. If this is not the year for it, I will still be here when it is.`)}` +
+      `${brandButton(`Start with Weeks 1 through 9`, SEEDLINGS_STARTER_URL)}` +
+      `${signature()}`;
+    return { subject: `Would you hand this to a child?`, html: launchWrapper(body) };
+  }
   const body =
     `${preheader(beforeDeville ? `I sit down with Dr Lauren Deville on the 18th. Here is my answer, in writing, first.` : `The question every careful mother asks. Here is my answer, in writing.`)}` +
     `${p(`Hi ${firstName},`)}` +
@@ -1236,7 +1434,7 @@ export function buildLaunchEmail21(firstName: string, founding = true): { subjec
     `${p(`Week 4 is peppermint, and week 4 is where the read-aloud is <em>Vov&oacute;&rsquo;s Lineage</em>, about what a grandmother hands down. I am Brazilian. That one is my own grandmother.`)}` +
     `${goldDivider()}` +
     `${p(`Since July I have recorded with Southern Appalachian Herbs, Media Angels, Home(school) with Steph, Hearty Homemaker and Planted on Purpose with Aurie Riley. ${beforeDeville ? `Still ahead of me: Dr Lauren Deville on the eighteenth, and Cheryl at The Homeschool How To in January.` : ``}`)}` +
-    `${p(`When each one airs, the link comes to this list the same day. That is the only promise I am making about any of it.`)}` +
+    `${p(`I share each one with this list as it airs.`)}` +
     `${p(`None of it puts one thing in your child&rsquo;s hands this autumn. Weeks 1 through 9 do.`)}` +
     `${goldDivider()}` +
     `${p(`Isaiah watched God come in strength, then said how He moves through a field:`)}` +
@@ -1246,11 +1444,12 @@ export function buildLaunchEmail21(firstName: string, founding = true): { subjec
     `${p(`The whole year in print, all thirty-six weeks in three books, is <strong>$249</strong> and is at your door in about two to three weeks.`)}` +
     `${p(`This is the third and last of these notes. The <strong>$39</strong> Starter Unit is not going anywhere and there is no deadline on it. If this is not the year for it, I will still be here when it is.`)}` +
     `${brandButton(`Start with Weeks 1 through 9`, STARTER_URL)}` +
+    `${olderKidsLine(SEEDLINGS_STARTER_URL)}` +
     `${signature()}`;
   return { subject: `Would you hand this to a six year old?`, html: launchWrapper(body) };
 }
 
-const LAUNCH_BUILDERS: Record<number, (firstName: string, founding?: boolean) => { subject: string; html: string }> = {
+const LAUNCH_BUILDERS: Record<number, (firstName: string, founding?: boolean, band?: LaunchBand) => { subject: string; html: string }> = {
   1: buildLaunchEmail1,
   2: buildLaunchEmail2,
   3: buildLaunchEmail3,
@@ -1283,17 +1482,20 @@ const LAUNCH_BUILDERS: Record<number, (firstName: string, founding?: boolean) =>
 // foundersFormUrl() in _shared/founders-link.ts; every other position ignores it.
 // `variant` only affects position 18 (the subject-line split test); pass it from
 // variantForEmail(recipientEmail) so the arm is stable across retries.
+// `band` (2026-09-24) is read by 8-12 and 19-21 only; pass the row's
+// launch_email_queue.band. Anything but 'seedlings' (NULL, missing) is Sprouts.
 export function buildLaunchEmail(
   position: number,
   firstName: string,
   founding = true,
   foundersUrl?: string,
   variant: ResendSubjectVariant = 'a',
+  band: unknown = 'sprouts',
 ): { subject: string; html: string } | null {
   if (position === 7) return buildLaunchEmail7(firstName, foundersUrl ?? '');
   if (position === EMAIL_7_RESEND_POSITION) {
     return buildLaunchEmail7Resend(firstName, foundersUrl ?? '', variant);
   }
   const builder = LAUNCH_BUILDERS[position];
-  return builder ? builder(firstName, founding) : null;
+  return builder ? builder(firstName, founding, normalizeLaunchBand(band)) : null;
 }

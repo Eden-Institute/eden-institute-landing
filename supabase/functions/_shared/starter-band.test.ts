@@ -320,18 +320,27 @@ Deno.test('the Stripe invoice names the band that was bought', () => {
   }
 });
 
+// 2026-09-24, both bands on sale: each offer carries ONE start-rule line naming
+// the other band (founder's rule). Outside that line, neither mentions the other.
+const SEEDLINGS_NEW_TO_HERBS_LINE = /<p[^>]*>New to herbs\? Even with a child in grades 3 to 5, most families start with <a href="https:\/\/edeninstitute\.health\/starter" [^>]*>Sprouts<\/a>, because its thirty-six plants are the ones Seedlings builds on\.<\/p>/;
+const SPROUTS_OLDER_KIDS_LINE = /<p[^>]*>If you have children in grades 3 to 5 who already know the basics of herbs, they can go straight to <a href="https:\/\/edeninstitute\.health\/starter\/seedlings" [^>]*>Seedlings<\/a>, the next thirty-six plants\.<\/p>/;
+
 Deno.test('the Seedlings lead offer sells the Seedlings Starter Unit, not Sprouts', () => {
   const sd = buildStarterOfferEmail('Sarah', 'seedlings');
   assert(!/not ready to sell/i.test(sd.html));
   assert(sd.html.includes('https://edeninstitute.health/starter/seedlings'));
   assert(sd.html.includes('Seedlings Starter Unit'));
-  assert(!SPROUTS.test(sd.subject + sd.html), 'Seedlings lead offer mentions Sprouts');
+  assert(SEEDLINGS_NEW_TO_HERBS_LINE.test(sd.html), 'Seedlings offer carries the new-to-herbs line');
+  assert(!SPROUTS.test(sd.subject + sd.html.replace(SEEDLINGS_NEW_TO_HERBS_LINE, '')), 'Seedlings lead offer mentions Sprouts outside the start-rule line');
   assert(!sd.html.includes('—'));
 
   const sp = buildStarterOfferEmail('Sarah', 'sprouts');
   assertEquals(sp.subject, 'What comes after Lavender');
   assert(sp.html.includes("'https://edeninstitute.health/starter'") || sp.html.includes('href="https://edeninstitute.health/starter"'));
-  assert(!SEEDLINGS.test(sp.subject + sp.html));
+  assert(sp.html.includes('href="https://edeninstitute.health/books#buy"'), 'Sprouts whole-year link goes to the Sprouts buy box');
+  assert(SPROUTS_OLDER_KIDS_LINE.test(sp.html), 'Sprouts offer carries the older-kids line');
+  assert(!SEEDLINGS.test(sp.subject + sp.html.replace(SPROUTS_OLDER_KIDS_LINE, '')), 'Sprouts lead offer mentions Seedlings outside the start-rule line');
+  assert(!sp.html.includes('—'));
 });
 
 // ---------------------------------------------------------------------------

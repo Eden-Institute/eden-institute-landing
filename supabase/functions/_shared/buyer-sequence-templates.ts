@@ -88,6 +88,8 @@ function signature(): string {
 
 // Buyer chrome. Note the footer line: it says why THEY are getting this, which
 // for a buyer is their order, not a mailing list they joined.
+// 2026-09-24: the postal line added, the same one every other wrapper carries
+// (launchWrapper, welcome-email-templates POSTAL_ROW).
 function buyerWrapper(bodyContent: string): string {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background-color:${BRAND.bgOuter};">
@@ -104,7 +106,8 @@ function buyerWrapper(bodyContent: string): string {
 <tr><td style="padding:32px 28px;">${bodyContent}</td></tr>
 <tr><td style="background-color:${BRAND.bgOuter};padding:20px 28px;">
 <p style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;margin:0 0 8px 0;">You are receiving this because you preordered Eden&rsquo;s Table. You may cancel for a full refund any time before your kit ships.</p>
-<p style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;margin:0;">Prefer not to get these updates? <a href="{{UNSUB_URL}}" style="color:${BRAND.footerText};text-decoration:underline;">Unsubscribe</a>. Order and shipping notices are separate and will still reach you.</p>
+<p style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;margin:0 0 8px 0;">Prefer not to get these updates? <a href="{{UNSUB_URL}}" style="color:${BRAND.footerText};text-decoration:underline;">Unsubscribe</a>. Order and shipping notices are separate and will still reach you.</p>
+<p style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;margin:0;">Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Unit 3262, Clarksville, TN 37043</p>
 </td></tr>
 </table>
 </td></tr></table>
@@ -177,7 +180,7 @@ export function buildBuyerEmail3(firstName: string): { subject: string; html: st
     p(`The curriculum uses a real herb each week. The kit brings you the year: the guide, the notebook, the cards, the stories. The herbs themselves you gather, because a plant that has sat in a warehouse since spring is not what you want your child smelling on a Tuesday morning.`) +
     p(`We keep a sourcing guide with trusted, affordable options, so you are not guessing at quality or paying for a name.`) +
     linkButton(`See the sourcing guide`, HERB_SOURCING_URL) +
-    p(`You do not need all 36 at once. The first handful will carry you through the opening weeks, and buying a few at a time is easier on a grocery budget than one large order in October.`) +
+    p(`You do not need all 36 at once. The first handful will carry you through the opening weeks, and buying a few at a time is easier on a grocery budget than one large order in the weeks before your kit ships.`) +
     shipFooterNote() +
     signature();
   return { subject: `Start gathering your herbs`, html: buyerWrapper(body) };

@@ -1,5 +1,6 @@
 // At-signup welcome emails sent by resend-waitlist: the Sprouts and Seedlings free
-// week (edens_table funnel) and the homeschool waitlist welcome.
+// week (edens_table funnel), the Eden's Table fallback welcome, and the
+// Cultivators / Practitioners band waitlist welcome.
 //
 // Moved out of resend-waitlist/index.ts on 2026-09-15 (founder decision: "Match, test
 // copies first") so they wear the same chrome as the day-7 Starter offer and the quiz
@@ -9,6 +10,9 @@
 // they pass their own footer rows to emailShell instead of taking emailWrapper's
 // standard footer (that one has different provenance wording and social links).
 // welcome-email-templates.test.ts pins the wording. Voice rule: no em dashes.
+// 2026-09-24, both elementary bands on sale: the homeschool welcome was rewritten
+// (see buildHomeschoolEmail), each free-week email gained one start-rule line
+// pointing to the other band, and the retired card-deck sentence came out.
 
 import { BRAND, brandButton, emailShell, goldDivider, heading, p } from './nurture-email-templates.ts';
 
@@ -51,17 +55,31 @@ function magnetWrapper(body: string): string {
   );
 }
 
+// The Eden's Table fallback welcome: any edens_table signup that is not a free
+// week or a band waitlist. Rewritten 2026-09-24. It used to say the curriculum was
+// still being built, carried a waitlist subject, and sent families to the adult
+// course. Both elementary years are on sale now, so it welcomes them to Eden's
+// Table, gives the founder's start rule (web/components/BandChooser.astro) and
+// links the free week, the band chooser and the printed years. Same chrome,
+// closing and footer as before.
+const LINK_STYLE = `color:${BRAND.forest};text-decoration:underline;`;
+function link(text: string, url: string): string {
+  return `<a href="${url}" style="${LINK_STYLE}">${text}</a>`;
+}
+const FREEBIES_URL = 'https://edeninstitute.health/freebies';
+
 export function buildHomeschoolEmail(firstName: string): { subject: string; html: string } {
   const body = `
 ${p(`Hi ${firstName},`)}
-${p("You're on the list.")}
-${p("Eden's Table is a K–12 Biblical herbalism curriculum being built for families who believe the earth was created with purpose, and that stewarding it well begins at home. You'll be among the first to see it, price it, and shape it.")}
-${p('While we finish building, consider starting with our adult foundations course. Most of our homeschool families tell us it changed how they teach, because it changed how they understand.')}
-${brandButton('Explore the Foundations Course', 'https://learn.edeninstitute.health/course/back-to-eden1')}
+${p("Welcome to Eden's Table. I am so glad you are here.")}
+${p("Eden's Table is a Christ-centered homeschool herbalism curriculum, one plant a week, woven through Scripture, science and the rhythms of your own kitchen table. Two years are finished and ready now: <strong>Sprouts</strong> for kindergarten through second grade, and <strong>Seedlings</strong> for grades 3 to 5. They teach different plants, thirty-six each, so nothing repeats.")}
+${p('Not sure where to start? Here is what I tell every family. Children in kindergarten through second grade start with Sprouts. Children in grades 3 to 5 who are new to herbs start with Sprouts too, because its plants are the ones Seedlings builds on. If they already know the basics, they can go straight to Seedlings. And if you have children in both, teach Sprouts to everyone together first.')}
+${brandButton('See where to start', 'https://edeninstitute.health/homeschool#choose-band')}
+${p(`${link('Week 1 of both years is free', FREEBIES_URL)}, if you would like to try before anything else. When you are ready for the whole year, it comes in three printed books, the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud Storybook, all thirty-six weeks, for $249 plus flat $12 shipping: ${link('Sprouts', 'https://edeninstitute.health/books#buy')} or ${link('Seedlings', 'https://edeninstitute.health/books#seedlings')}.`)}
 ${goldDivider()}
 ${closingBlock()}`;
   return {
-    subject: "You're on the Eden's Table Waitlist: Here's What's Coming",
+    subject: "Welcome to Eden's Table",
     html: emailShell(body, footerRows("You're receiving this because you signed up at edeninstitute.health.", null)),
   };
 }
@@ -79,7 +97,8 @@ ${buttonStack([
   ])}
 ${goldDivider()}
 ${heading('THIS IS A WHOLE WEEK')}
-${p('Lavender is Week 1 of the curriculum exactly as it is taught. Five full days, the same pages families teach from all year, and it stands on its own. The printed card decks are not part of the free week; everything you need to teach these five days is in the guide and the notebook. Teach it whenever the week suits you. In about a week I will write again about the weeks that follow it, and there is nothing you need to do before then.')}
+${p('Lavender is Week 1 of the curriculum exactly as it is taught. Five full days, the same pages families teach from all year, and it stands on its own. Everything you need to teach these five days is in the guide and the notebook. Teach it whenever the week suits you. In about a week I will write again about the weeks that follow it, and there is nothing you need to do before then.')}
+${p(`If you have children in grades 3 to 5 who already know the basics of herbs, they can start with Seedlings, the next thirty-six plants. ${link('Its Week 1 is free too', FREEBIES_URL)}.`)}
 ${closingBlock()}`;
   return { subject: 'Your Sprouts Week 1 (Lavender) is ready', html: magnetWrapper(body) };
 }
@@ -97,7 +116,8 @@ ${buttonStack([
   ])}
 ${goldDivider()}
 ${heading('THIS IS A WHOLE WEEK')}
-${p('Elderberry is Week 1 of the curriculum exactly as it is taught. Five full days, the same pages families teach from all year, and it stands on its own. The printed card decks are not part of the free week; everything you need to teach these five days is in the guide and the notebook. The read-aloud is a bonus: Story Seven, Be Still, the first story of the Seedlings year, which families read together in Week 2. Teach it whenever the week suits you. In about a week I will write again with what comes next, and there is nothing you need to do before then.')}
+${p('Elderberry is Week 1 of the curriculum exactly as it is taught. Five full days, the same pages families teach from all year, and it stands on its own. Everything you need to teach these five days is in the guide and the notebook. The read-aloud is a bonus: Story Seven, Be Still, the first story of the Seedlings year, which families read together in Week 2. Teach it whenever the week suits you. In about a week I will write again with what comes next, and there is nothing you need to do before then.')}
+${p(`New to herbs? Even with a child in grades 3 to 5, most families start with Sprouts, because its thirty-six plants are the ones Seedlings builds on. ${link('Sprouts Week 1 is free too', FREEBIES_URL)}.`)}
 ${closingBlock()}`;
   return { subject: 'Your Seedlings Week 1 (Elderberry) is ready', html: magnetWrapper(body) };
 }
@@ -132,7 +152,7 @@ ${goldDivider()}
 ${heading('THE BEST WAY TO GET READY')}
 ${p(`Here is the part most families do not expect. ${c.name} goes back to the 72 plants your child meets in Sprouts and Seedlings, and goes deeper. So the best way to get ready is to start with those plants now. If herbs are new to your family, start with Sprouts, even with an older child. If your children already know the basics, Seedlings is the place.`)}
 ${brandButton('See where to start', 'https://edeninstitute.health/homeschool#choose-band')}
-${p('Week 1 of both is free, if you would like to try before anything else.')}
+${p(`${link('Week 1 of both is free', FREEBIES_URL)}, if you would like to try before anything else.`)}
 ${closingBlock()}`;
   return { subject: `You are on the ${c.name} list`, html: magnetWrapper(body) };
 }

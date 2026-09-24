@@ -55,9 +55,12 @@ function audit(label: string, built: { subject: string; html: string } | null) {
   }
 }
 
+// 2026-09-24: both bands, since Seedlings signups get their own variant of these.
 for (const pos of [8, 9, 10, 11, 12, 19, 20, 21]) {
-  for (const founding of [true, false]) {
-    audit(`launch ${pos} founding=${founding}`, buildLaunchEmail(pos, "Sarah", founding));
+  for (const band of ["sprouts", "seedlings"] as const) {
+    for (const founding of [true, false]) {
+      audit(`launch ${pos} ${band} founding=${founding}`, buildLaunchEmail(pos, "Sarah", founding, undefined, "a", band));
+    }
   }
 }
 for (const band of ["sprouts", "seedlings"] as const) {
