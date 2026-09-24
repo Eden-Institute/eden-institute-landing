@@ -13,6 +13,9 @@ import { getMarketingConsent } from "@/lib/consent";
 import { checkEmail } from "@/lib/emailTypos";
 import { getAttribution } from "@/lib/attribution";
 import { FORM_ERROR_FALLBACK, visitorFacingError } from "@/lib/edgeFunctionError";
+// The consent wording lives in ONE file shared with the edge function, so the words
+// beside the box are exactly the words stored as the consent record.
+import { bandFromSource, smsConsentText } from "../../../supabase/functions/_shared/band-waitlist";
 
 interface WaitlistModalProps {
   open: boolean;
@@ -65,6 +68,11 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
   // current address, so a deliberate re-submit is allowed through. Re-armed
   // whenever the email field changes.
   const [typoAcknowledged, setTypoAcknowledged] = useState(false);
+  // Cultivators / Practitioners waitlists only (2026-09-24): optional mobile number
+  // and an UNTICKED launch-alert consent box. Every other use of this modal is unchanged.
+  const phoneBand = bandFromSource(source);
+  const [phone, setPhone] = useState("");
+  const [smsConsent, setSmsConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
@@ -122,6 +130,7 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
           source,
           fbEventId,
           marketingConsent,
+          ...(phoneBand ? { phone, smsConsent } : {}),
           ...attribution,
           ...(funnel ? { entry_funnel: funnel } : {}),
           ...(metadata ? { metadata } : {}),
@@ -140,6 +149,8 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
       setSuccess(true);
       setFirstName("");
       setEmail("");
+      setPhone("");
+      setSmsConsent(false);
       setEmailSuggestion(null);
       setTypoAcknowledged(false);
     } catch (err: unknown) {
@@ -209,6 +220,32 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
                 </p>
               )}
             </div>
+            {phoneBand && (
+              <div>
+                <label className="block font-accent text-xs tracking-[0.2em] uppercase text-muted-foreground mb-2">Mobile number (optional)</label>
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="(555) 555-5555"
+                  className="w-full px-4 py-3 bg-background border border-border font-body text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-eden-gold transition-colors"
+                />
+                <label className="flex items-start gap-3 mt-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={smsConsent}
+                    onChange={(e) => setSmsConsent(e.target.checked)}
+                    className="mt-1 h-4 w-4 shrink-0"
+                  />
+                  <span className="font-body text-xs text-muted-foreground leading-relaxed">
+                    {smsConsentText(phoneBand).split("See our Terms and Privacy Policy.")[0]}
+                    See our <a href="/terms" target="_blank" rel="noopener" className="underline">Terms</a> and <a href="/privacy" target="_blank" rel="noopener" className="underline">Privacy Policy</a>.
+                  </span>
+                </label>
+              </div>
+            )}
             {error && (<p className="font-body text-sm text-destructive">{error}</p>)}
             <Button variant="eden" size="xl" className="w-full" disabled={loading}>{loading ? "Submitting…" : "Connect With Us"}</Button>
             <p className="text-center font-body text-xs text-muted-foreground/60">No spam. Unsubscribe anytime.</p>
