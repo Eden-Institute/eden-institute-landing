@@ -270,9 +270,11 @@ Deno.test('ACCEPTANCE: the Seedlings delivery email never says Sprouts', () => {
   assert(m.text.includes("Eden's Table, Seedlings"));
   assert(m.html.includes('Seedlings Starter Unit, Digital Curriculum, Weeks 1 to 9'));
   assert(m.html.includes('Grade level 3-5'));
-  // No printed Seedlings year to link to yet, so no link to the Sprouts books.
-  assert(!m.html.includes('edeninstitute.health/books'));
-  assert(!m.text.includes('edeninstitute.health/books'));
+  // The printed Seedlings year is on sale (2026-09-24): the email links to ITS buy box on
+  // /books (#seedlings), never to the bare /books page where the Sprouts set sits first.
+  assert(m.html.includes('https://edeninstitute.health/books#seedlings'));
+  assert(m.text.includes('https://edeninstitute.health/books#seedlings'));
+  assert(!/edeninstitute\.health\/books(?!#seedlings)/.test(m.html + m.text), 'Seedlings email links to the Sprouts books');
   assert(!m.html.includes('—') && !m.text.includes('—'), 'em dash in Seedlings email');
 });
 

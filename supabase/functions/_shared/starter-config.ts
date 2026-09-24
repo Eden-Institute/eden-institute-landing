@@ -291,9 +291,8 @@ export const STARTER_BANDS: Record<StarterBand, StarterBandConfig> = {
     },
     pageUrl: 'https://edeninstitute.health/starter/seedlings',
     successUrl: 'https://edeninstitute.health/starter/seedlings/thank-you?session_id={CHECKOUT_SESSION_ID}',
-    // TODO(seedlings print set): the Seedlings printed set has no page yet. Set
-    // its URL here when it goes on sale.
-    printSetUrl: null,
+    // On sale since 2026-09-24: the #seedlings buy box on /books.
+    printSetUrl: 'https://edeninstitute.health/books#seedlings',
     // FOUNDER DECISION 2026-09-23: no credit, no coupon of any kind.
     credit: null,
   },
