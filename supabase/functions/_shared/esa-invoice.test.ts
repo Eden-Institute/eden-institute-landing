@@ -3,6 +3,8 @@
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   addDays,
+  CHOICE_SKU,
+  PRODUCTS,
   centralDate,
   feeFor,
   feeSentence,
@@ -14,7 +16,7 @@ import {
   STATE_RULES,
 } from "./esa-invoice.ts";
 import { renderInvoicePdf } from "./esa-invoice-pdf.ts";
-import { ESA_STATE_OPTIONS, esaFeeCents, esaFeeSentence } from "../../../web/lib/esaInvoice.ts";
+import { ESA_CHOICES, ESA_STATE_OPTIONS, esaFeeCents, esaFeeSentence } from "../../../web/lib/esaInvoice.ts";
 
 const addr = { line1: "123 Main St", line2: "", city: "Mesa", region: "AZ", zip: "85201" };
 const base = (over: Record<string, unknown> = {}) => ({
@@ -156,4 +158,70 @@ Deno.test("Arizona fee: one sentence and the same numbers on the invoice and the
   assertEquals(ESA_STATE_OPTIONS.AZ.feeRate, STATE_RULES.AZ.feeRate);
   assertEquals(26100 + esaFeeCents(26100, ESA_STATE_OPTIONS.AZ.feeRate), 26633);
   assertEquals(3999 + esaFeeCents(3999, ESA_STATE_OPTIONS.AZ.feeRate), 4081);
+});
+
+// Seedlings (grades 3-5), founder decisions 2026-09-24.
+const stateAddr = (code: "AZ" | "AR" | "AL" | "NH") =>
+  code === "NH" ? { ...addr, city: "Concord", region: "NH", zip: "03301" } : { ...addr, region: code };
+
+Deno.test("Seedlings set: allowed in all four states, $261, AZ grossed up to $266.33", () => {
+  const expected = { AZ: 26633, AR: 26100, AL: 26100, NH: 26100 } as const;
+  for (const code of ["AZ", "AR", "AL", "NH"] as const) {
+    const p = parseSubmission(base({ state: code, address: stateAddr(code), students: [{ first: "Ava", last: "Doe", choice: "sdl_set" }] }));
+    assert(p.ok, code);
+    const [plan] = planInvoices(p.value);
+    assertEquals(plan.items[0].sku, "ET-SDL-35-004");
+    assertEquals(plan.items[0].title, "Seedlings 3-5 36-Week Science and Nature Study Printed Curriculum Set, Bible-Based");
+    assertEquals(plan.subtotalCents, 26100);
+    assertEquals(plan.totalCents, expected[code], code);
+    assert(plan.printed);
+    assert(!plan.shipTo.startsWith("Digital download"));
+  }
+});
+
+Deno.test("Seedlings Starter: Alabama only, $39, no address needed", () => {
+  for (const code of ["AZ", "AR", "NH"] as const) {
+    assertEquals(parseSubmission(base({ state: code, address: stateAddr(code), students: [{ first: "Ava", last: "Doe", choice: "sdl_start" }] })).ok, false, code);
+  }
+  const al = parseSubmission(base({ state: "AL", address: null, students: [{ first: "Ava", last: "Doe", choice: "sdl_start" }] }));
+  assert(al.ok);
+  assertEquals(al.value.address, null);
+  const [plan] = planInvoices(al.value);
+  assertEquals(plan.items[0].sku, "ET-SDL-35-003");
+  assertEquals(plan.totalCents, 3900);
+  assertEquals(plan.feeCents, 0);
+  assert(!plan.printed);
+  assert(plan.shipTo.startsWith("Digital download"));
+});
+
+Deno.test("Seedlings: no extra notebook, and a mixed Sprouts + Seedlings family gets one invoice per student", () => {
+  assert(!Object.values(CHOICE_SKU).some((s) => s.startsWith("ET-SDL-35-005")));
+  const p = parseSubmission(base({ students: [{ first: "Sam", last: "Doe", choice: "set" }, { first: "Ava", last: "Doe", choice: "sdl_set" }] }));
+  assert(p.ok);
+  const plans = planInvoices(p.value);
+  assertEquals(plans.map((x) => x.items[0].sku), ["ET-SPR-K2-004", "ET-SDL-35-004"]);
+  assertEquals(plans.map((x) => x.totalCents), [26633, 26633]);
+});
+
+Deno.test("choice keys fit str(o.choice, 10), and the web form matches the server exactly", () => {
+  for (const c of Object.keys(CHOICE_SKU)) assert(c.length <= 10, c);
+  assertEquals(Object.keys(ESA_CHOICES).sort(), Object.keys(CHOICE_SKU).sort());
+  for (const [c, sku] of Object.entries(CHOICE_SKU)) {
+    const web = ESA_CHOICES[c as keyof typeof ESA_CHOICES];
+    assertEquals(web.cents, PRODUCTS[sku].unitCents, c);
+    assertEquals(web.printed, PRODUCTS[sku].printed, c);
+  }
+  for (const code of ["AZ", "AR", "AL", "NH"] as const) {
+    assertEquals(ESA_STATE_OPTIONS[code].choices, STATE_RULES[code].choices, code);
+    assertEquals(ESA_STATE_OPTIONS[code].feeRate, STATE_RULES[code].feeRate, code);
+  }
+});
+
+Deno.test("no em dashes and no 'herbalism' in any ESA product title or description", () => {
+  for (const p of Object.values(PRODUCTS)) {
+    for (const t of [p.title, p.description]) {
+      assert(!t.includes("—"), t);
+      assert(!/herbalism/i.test(t), t);
+    }
+  }
 });

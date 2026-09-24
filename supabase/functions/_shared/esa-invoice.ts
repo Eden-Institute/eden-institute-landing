@@ -12,20 +12,26 @@
 //   - One invoice per student (NH EFAs are per pupil, CSF handbook p.18, p.29).
 //   - Arizona passes ClassWallet's 2% deduction to the family as its own line, grossed up to
 //     2.0408% so the vendor nets the item total (founder 2026-09-14, wording confirmed 2026-09-15).
-//   - The 9-Week Starter is offered on ALABAMA invoices only (founder 2026-09-14).
+//   - Both 9-Week Starters (Sprouts and Seedlings) are offered on ALABAMA invoices only
+//     (founder 2026-09-14 for Sprouts, 2026-09-24 for Seedlings).
+//   - Seedlings (grades 3-5) joined the rail 2026-09-24: the printed set on every state's invoice,
+//     the Starter on Alabama's only. There is no Seedlings extra notebook.
 //   - An Alabama invoice may NOT mention the CHOOSE Act or ClassWallet "in any form" (AL ESP
 //     guide p.7), so it has no Program or Payment line.
 //   - New Hampshire ships only to the New Hampshire address on file (CSF handbook p.18).
 //   - No credit, coupon or kit wording anywhere (Laws L-29).
 
 export type EsaStateCode = "AZ" | "AR" | "AL" | "NH";
-export type Sku = "ET-SPR-K2-004" | "ET-SPR-K2-005" | "ET-SPR-K2-003";
-export type Choice = "set" | "notebook" | "starter";
+export type Sku = "ET-SPR-K2-004" | "ET-SPR-K2-005" | "ET-SPR-K2-003" | "ET-SDL-35-004" | "ET-SDL-35-003";
+/** Choice keys travel in the form body and are read with str(o.choice, 10): keep them 10 characters or fewer. */
+export type Choice = "set" | "notebook" | "starter" | "sdl_set" | "sdl_start";
 
 export const CHOICE_SKU: Record<Choice, Sku> = {
   set: "ET-SPR-K2-004",
   notebook: "ET-SPR-K2-005",
   starter: "ET-SPR-K2-003",
+  sdl_set: "ET-SDL-35-004",
+  sdl_start: "ET-SDL-35-003",
 };
 
 export interface Product {
@@ -57,6 +63,23 @@ export const PRODUCTS: Record<Sku, Product> = {
     title: "Sprouts K-2 9-Week Starter Unit, Science and Nature Study, Bible-Based",
     description:
       "Weeks 1 to 9 of the 36-week year, not the full year: Teacher's Guide, Student Notebook and Read-Aloud Storybook sections, delivered as a digital download.",
+    unitCents: 3900,
+    printed: false,
+  },
+  // Seedlings (grades 3-5), founder decisions 2026-09-24. No page counts: they are not locked yet.
+  "ET-SDL-35-004": {
+    sku: "ET-SDL-35-004",
+    title: "Seedlings 3-5 36-Week Science and Nature Study Printed Curriculum Set, Bible-Based",
+    description:
+      "Three printed books: Teacher's Guide, Student Notebook and Read-Aloud Storybook, all 36 weeks for grades 3-5. Shipping included.",
+    unitCents: 26100,
+    printed: true,
+  },
+  "ET-SDL-35-003": {
+    sku: "ET-SDL-35-003",
+    title: "Seedlings 3-5 9-Week Starter Unit, Science and Nature Study, Bible-Based",
+    description:
+      "Weeks 1 to 9 of the 36-week year for grades 3-5, not the full year: Teacher's Guide, Student Notebook and Read-Aloud Storybook sections, delivered as a digital download.",
     unitCents: 3900,
     printed: false,
   },
@@ -101,7 +124,7 @@ export const STATE_RULES: Record<EsaStateCode, StateRules> = {
     holderLabel: "Account holder",
     itemHeader: "Item and description",
     totalLabel: "Total amount of charges",
-    choices: ["set", "notebook"],
+    choices: ["set", "notebook", "sdl_set"],
     feeRate: AZ_FEE_RATE,
     shipState: null,
     secondDateLabel: null,
@@ -117,7 +140,7 @@ export const STATE_RULES: Record<EsaStateCode, StateRules> = {
     holderLabel: "Account holder",
     itemHeader: "Item and description",
     totalLabel: "Total due",
-    choices: ["set", "notebook"],
+    choices: ["set", "notebook", "sdl_set"],
     feeRate: 0,
     shipState: null,
     secondDateLabel: "Expected ship date",
@@ -133,7 +156,7 @@ export const STATE_RULES: Record<EsaStateCode, StateRules> = {
     holderLabel: "Parent",
     itemHeader: "Item and description",
     totalLabel: "Total amount due",
-    choices: ["set", "notebook", "starter"],
+    choices: ["set", "notebook", "starter", "sdl_set", "sdl_start"],
     feeRate: 0,
     shipState: null,
     secondDateLabel: "Date(s) of service",
@@ -149,7 +172,7 @@ export const STATE_RULES: Record<EsaStateCode, StateRules> = {
     holderLabel: "Account holder",
     itemHeader: "Description of item purchased",
     totalLabel: "Amount due for this student (per pupil)",
-    choices: ["set", "notebook"],
+    choices: ["set", "notebook", "sdl_set"],
     feeRate: 0,
     shipState: "NH",
     secondDateLabel: null,

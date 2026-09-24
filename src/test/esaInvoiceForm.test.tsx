@@ -4,6 +4,8 @@
 //      click sends one request.
 //   3. The form shows the function's own refusal message (the hourly cap's 429).
 //   4. The Arizona fee sentence matches the invoice PDF's.
+//   5. Seedlings (2026-09-24): choices are grouped by band, Sprouts first, and the Seedlings Starter
+//      shows only on Alabama.
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -94,5 +96,41 @@ describe("EsaInvoiceForm", () => {
 describe("Arizona fee sentence", () => {
   it("is the founder-approved sentence", () => {
     expect(esaFeeSentence(ESA_STATE_OPTIONS.AZ.feeRate)).toBe("ClassWallet deducts 2%, so this invoice adds 2.0408% to cover it.");
+  });
+});
+
+describe("Seedlings choices", () => {
+  const radioLabels = (group: HTMLElement) =>
+    Array.from(group.querySelectorAll("label")).map((l) => l.querySelector("span span")?.textContent ?? "");
+
+  it("Alabama groups Sprouts first, then Seedlings with its set and Starter", () => {
+    render(<EsaInvoiceForm state="AL" stateName="Alabama" short="Alabama CHOOSE Act" />);
+    const groups = screen.getAllByRole("group").filter((g) => g.getAttribute("aria-label")?.startsWith("Student 1:"));
+    expect(groups.map((g) => g.getAttribute("aria-label"))).toEqual(["Student 1: Sprouts, grades K-2", "Student 1: Seedlings, grades 3-5"]);
+    expect(radioLabels(groups[0])).toEqual([
+      "Sprouts (grades K-2) Printed Curriculum Set",
+      "Sprouts (grades K-2) Extra Student Notebook",
+      "Sprouts (grades K-2) 9-Week Starter Unit",
+    ]);
+    expect(radioLabels(groups[1])).toEqual(["Seedlings (grades 3-5) Printed Curriculum Set", "Seedlings (grades 3-5) 9-Week Starter Unit"]);
+  });
+
+  it("Arizona offers the Seedlings set but not the Seedlings Starter, and sends the sdl_set key", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError("Failed to fetch"));
+    vi.stubGlobal("fetch", fetchMock);
+    const { container } = render(<EsaInvoiceForm state="AZ" stateName="Arizona" short="Arizona ESA" />);
+    expect(screen.queryByText("Seedlings (grades 3-5) 9-Week Starter Unit")).toBeNull();
+    fireEvent.click(screen.getByText("Seedlings (grades 3-5) Printed Curriculum Set"));
+    expect(container.textContent).toContain("$266.33");
+    fireEvent.change(screen.getByLabelText(/Account holder's name/i), { target: { value: "Jane Doe" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "jane@example.com" } });
+    fireEvent.change(screen.getByLabelText("Student 1 first name"), { target: { value: "Ava" } });
+    fireEvent.change(screen.getByLabelText("Student 1 last name"), { target: { value: "Doe" } });
+    fireEvent.change(screen.getByLabelText("Street address"), { target: { value: "1 Main St" } });
+    fireEvent.change(screen.getByLabelText("City"), { target: { value: "Mesa" } });
+    fireEvent.change(screen.getByLabelText("ZIP code"), { target: { value: "85201" } });
+    fireEvent.submit(container.querySelector("form")!);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(bodyOf(fetchMock.mock.calls[0]).students[0].choice).toBe("sdl_set");
   });
 });

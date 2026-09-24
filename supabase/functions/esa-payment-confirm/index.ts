@@ -9,7 +9,7 @@
 // payments on its own (esa_auto_confirm_ready()).
 
 import { money, STATE_RULES } from "../_shared/esa-invoice.ts";
-import { confirmWithToken, emailFounderAlert, getInvoice, rest } from "../_shared/esa-fulfil.ts";
+import { confirmWithToken, emailFounderAlert, ESA_STARTER_SKUS, getInvoice, rest } from "../_shared/esa-fulfil.ts";
 import { esc } from "../_shared/html-escape.ts";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -71,7 +71,7 @@ Items: ${esc(inv.items.map((i) => `${i.sku} x${i.qty}`).join(", "))}<br>Total: <
         const p = await rest<{ subject: string; excerpt: string; match_reason: string }[]>(`esa_payments?id=eq.${tok.payment_id}&select=subject,excerpt,match_reason`);
         if (p[0]) noticeLine = `<p style="font-size:14px;color:#5C4A28">Why this invoice: ${esc(p[0].match_reason ?? "")}<br>Notice: ${esc((p[0].subject ?? "").slice(0, 160))}<br>${esc((p[0].excerpt ?? "").slice(0, 500))}</p>`;
       }
-      const action = inv.items.some((i) => i.sku === "ET-SPR-K2-003") ? "the Starter Unit files are emailed to the family" : "the order is sent to Lulu to print (Lulu waits 48 hours before printing)";
+      const action = inv.items.some((i) => ESA_STARTER_SKUS.includes(i.sku)) ? "the Starter Unit files are emailed to the family" : "the order is sent to Lulu to print (Lulu waits 48 hours before printing)";
       return page("Confirm payment", `${summary}${noticeLine}
 <p>Press the button only if this payment really arrived for this invoice. Then ${action}, automatically.</p>
 <form method="POST"><input type="hidden" name="t" value="${esc(tok.token)}">

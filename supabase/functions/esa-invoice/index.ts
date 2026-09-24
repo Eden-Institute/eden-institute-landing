@@ -174,7 +174,7 @@ function familyEmail(issued: Issued[], invoiceDate: string, isTest: boolean) {
   const rows = issued
     .map(
       (i) =>
-        `<tr><td style="padding:6px 12px 6px 0">${esc(i.number)}</td><td style="padding:6px 12px 6px 0">${esc(i.plan.studentName)}</td><td style="padding:6px 12px 6px 0">${esc(i.plan.items.map((it) => it.title.replace(/^Sprouts K-2 (36-Week |9-Week )?/, "")).join(", "))}</td><td style="padding:6px 0;text-align:right;font-weight:bold">${money(i.plan.totalCents)}</td></tr>`,
+        `<tr><td style="padding:6px 12px 6px 0">${esc(i.number)}</td><td style="padding:6px 12px 6px 0">${esc(i.plan.studentName)}</td><td style="padding:6px 12px 6px 0">${esc(i.plan.items.map((it) => it.title.replace(/^(?:Sprouts K-2|Seedlings 3-5) (36-Week |9-Week )?/, "")).join(", "))}</td><td style="padding:6px 0;text-align:right;font-weight:bold">${money(i.plan.totalCents)}</td></tr>`,
     )
     .join("");
   const printed = issued.some((i) => i.plan.printed);
