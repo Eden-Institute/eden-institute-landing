@@ -12,6 +12,10 @@
 //   9-week Starter (Alabama)      -> starter_deliveries(pending) with an unguessable key and NO order_id,
 //                                   so the Starter email carries no Stripe receipt block; kick starter-fulfill.
 //                                   No credit is minted (Laws L-29): issueStarterCredit lives only in stripe-webhook.
+//                                   Sprouts (ET-SPR-K2-003) or Seedlings (ET-SDL-35-003, 2026-09-24): a
+//                                   Seedlings row writes band 'seedlings', exactly as stripe-webhook does.
+//   Seedlings printed set         -> the same order path with products sku seedlings_print_set. Its Lulu band
+//                                   comes from orders.lookup_key (printBandForOrder in lulu-config.ts).
 //   every paid invoice            -> one payments ledger row (stripe_event_id 'esa:<invoice number>', idempotent).
 //
 // SAFETY: a TEST invoice (is_test) never creates an order, a Lulu job or a delivery. It is marked paid,
@@ -19,6 +23,7 @@
 
 import { STATE_RULES, type EsaStateCode, money } from "./esa-invoice.ts";
 import { esc } from "./html-escape.ts";
+import type { StarterBand } from "./starter-config.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -29,11 +34,18 @@ export const FOUNDER = "hello@edeninstitute.health";
 export const FALLBACK_PHONE = "(931) 575-5895";
 const CONFIRM_URL = `${SUPABASE_URL}/functions/v1/esa-payment-confirm`;
 
+// One invoice carries one product (one student, one choice), so a printed order never mixes bands.
 const SKU_TO_PRODUCT: Record<string, { sku: string; label: string }> = {
   "ET-SPR-K2-004": { sku: "sprouts_print_set", label: "Sprouts Printed Curriculum Set" },
   "ET-SPR-K2-005": { sku: "sprouts_nb_print", label: "Sprouts Extra Student Notebook" },
+  "ET-SDL-35-004": { sku: "seedlings_print_set", label: "Seedlings Printed Curriculum Set" },
 };
-const STARTER_SKU = "ET-SPR-K2-003";
+/** ESA Starter SKU -> the starter_deliveries band it delivers. */
+const STARTER_SKU_BAND: Record<string, StarterBand> = {
+  "ET-SPR-K2-003": "sprouts",
+  "ET-SDL-35-003": "seedlings",
+};
+export const ESA_STARTER_SKUS: readonly string[] = Object.keys(STARTER_SKU_BAND);
 
 export interface EsaInvoiceRow {
   id: string;
@@ -257,7 +269,7 @@ async function fulfilAfterMark(invoiceId: string, changed: boolean): Promise<App
 
 async function fulfil(inv: EsaInvoiceRow): Promise<string> {
   const printed = inv.items.filter((i) => SKU_TO_PRODUCT[i.sku]);
-  const starter = inv.items.some((i) => i.sku === STARTER_SKU);
+  const starterBand = inv.items.map((i) => STARTER_SKU_BAND[i.sku]).find(Boolean) ?? null;
 
   if (inv.is_test) {
     await patchInvoice(inv.id, { fulfilment_status: "manual", fulfilment_note: "test invoice: no order, Lulu job or delivery created", status: "fulfilled", fulfilled_at: new Date().toISOString() });
@@ -316,8 +328,9 @@ async function fulfil(inv: EsaInvoiceRow): Promise<string> {
     return "print_queued";
   }
 
-  if (starter) {
+  if (starterBand) {
     if (inv.starter_delivery_id) return inv.fulfilment_status;
+    const isSprouts = starterBand === "sprouts";
     const sessionKey = `esa_${randomHex(32)}`; // starter-download accepts this as a credential: must be unguessable
     const [delivery] = await rest<{ id: string }[]>("starter_deliveries", {
       method: "POST",
@@ -329,9 +342,15 @@ async function fulfil(inv: EsaInvoiceRow): Promise<string> {
         purchaser_name: inv.parent_name,
         status: "pending",
         download_token: randomHex(32),
+        // Sprouts leaves `band` to the column default ('sprouts'), as stripe-webhook does; any other
+        // band writes it, so a Seedlings family is never queued for Sprouts files.
+        ...(isSprouts ? {} : { band: starterBand }),
       }),
     });
-    await patchInvoice(inv.id, { starter_delivery_id: delivery.id, fulfilment_status: "queued", status: "fulfilled", fulfilled_at: new Date().toISOString(), fulfilment_note: "starter delivery queued; kit relaunch list (L-29)" });
+    // The kit relaunch list (L-29) is the Sprouts Starter's stand-in for its kit credit. Seedlings has
+    // no credit of any kind (founder 2026-09-23), so it goes on no list.
+    const note = isSprouts ? "starter delivery queued; kit relaunch list (L-29)" : `starter delivery queued (${starterBand}; no credit, no kit list)`;
+    await patchInvoice(inv.id, { starter_delivery_id: delivery.id, fulfilment_status: "queued", status: "fulfilled", fulfilled_at: new Date().toISOString(), fulfilment_note: note });
     await kick("starter-fulfill", { session_id: sessionKey });
     return "queued";
   }

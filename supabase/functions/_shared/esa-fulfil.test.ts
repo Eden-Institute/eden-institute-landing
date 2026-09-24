@@ -5,7 +5,7 @@ import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.t
 Deno.env.set("SUPABASE_URL", "https://example.supabase.co");
 Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", "service-test-key");
 Deno.env.set("RESEND_API_KEY", "re_test");
-const { applyPayment, confirmWithToken } = await import("./esa-fulfil.ts");
+const { applyPayment, confirmWithToken, ESA_STARTER_SKUS } = await import("./esa-fulfil.ts");
 
 type Call = { method: string; url: string; body: string };
 
@@ -32,7 +32,7 @@ function stub(invoice: Record<string, unknown>, markPaidReturns = true, confirm:
     if (url.includes("/rpc/esa_mark_invoice_paid")) return ok(markPaidReturns);
     if (url.includes("/rpc/esa_confirm_payment_token") && confirm) return typeof confirm === "function" ? confirm() : confirm;
     if (url.includes("/esa_invoices?id=eq.") && method === "GET") return ok([invoice]);
-    if (url.includes("/products?")) return ok([{ id: "p-set", sku: "sprouts_print_set", fulfillment: "lulu" }, { id: "p-nb", sku: "sprouts_nb_print", fulfillment: "lulu" }]);
+    if (url.includes("/products?")) return ok([{ id: "p-set", sku: "sprouts_print_set", fulfillment: "lulu" }, { id: "p-nb", sku: "sprouts_nb_print", fulfillment: "lulu" }, { id: "p-sdl", sku: "seedlings_print_set", fulfillment: "lulu" }]);
     if (url.endsWith("/rest/v1/orders") && method === "POST") return ok([{ id: "ord-1", order_number: "ET-2001" }]);
     if (url.endsWith("/rest/v1/starter_deliveries") && method === "POST") return ok([{ id: "del-1" }]);
     return new Response("", { status: 200 });
@@ -146,4 +146,61 @@ Deno.test("esa-payment-confirm no longer uses the token before applying", async 
   const src = await Deno.readTextFile(new URL("../esa-payment-confirm/index.ts", import.meta.url));
   assert(!src.includes("used_at: new Date()"), "the function must not PATCH used_at itself");
   assert(src.includes("confirmWithToken("));
+});
+
+// Seedlings (grades 3-5), 2026-09-24.
+const patched = (calls: Call[]) => calls.filter((c) => c.method === "PATCH" && c.url.includes("/rest/v1/esa_invoices")).map((c) => JSON.parse(c.body));
+
+Deno.test("Seedlings Starter invoice: delivery carries band 'seedlings', no kit-list note", async () => {
+  const s = stub(baseInvoice({ state: "AL", invoice_number: "ET-AL-2026-002", ship_address: null, items: [{ sku: "ET-SDL-35-003", qty: 1, unit_cents: 3900, amount_cents: 3900 }], total_cents: 3900, fee_cents: 0 }));
+  try {
+    const r = await applyPayment("inv-1", "manual", null);
+    assertEquals(r.fulfilment, "queued");
+    const d = JSON.parse(posted(s.calls, "starter_deliveries")[0].body);
+    assertEquals(d.band, "seedlings");
+    assertEquals(d.order_id, null);
+    assertEquals(posted(s.calls, "orders").length, 0);
+    assertEquals(posted(s.calls, "lulu_jobs").length, 0);
+    assert(s.calls.some((c) => c.url.includes("/functions/v1/starter-fulfill")));
+    const note = patched(s.calls).find((p) => p.fulfilment_note)?.fulfilment_note ?? "";
+    assert(note.includes("seedlings") && !note.includes("kit relaunch"), note);
+  } finally { s.restore(); }
+});
+
+Deno.test("Sprouts Starter invoice: band left to the column default, kit-list note unchanged", async () => {
+  const s = stub(baseInvoice({ state: "AL", invoice_number: "ET-AL-2026-003", ship_address: null, items: [{ sku: "ET-SPR-K2-003", qty: 1, unit_cents: 3900, amount_cents: 3900 }], total_cents: 3900, fee_cents: 0 }));
+  try {
+    await applyPayment("inv-1", "manual", null);
+    const d = JSON.parse(posted(s.calls, "starter_deliveries")[0].body);
+    assert(!("band" in d), JSON.stringify(d));
+    const note = patched(s.calls).find((p) => p.fulfilment_note)?.fulfilment_note ?? "";
+    assertEquals(note, "starter delivery queued; kit relaunch list (L-29)");
+  } finally { s.restore(); }
+});
+
+Deno.test("Seedlings set invoice: order for seedlings_print_set, lookup_key drives the Lulu band", async () => {
+  const s = stub(baseInvoice({ items: [{ sku: "ET-SDL-35-004", qty: 1, unit_cents: 26100, amount_cents: 26100 }] }));
+  try {
+    const r = await applyPayment("inv-1", "manual", null);
+    assertEquals(r.fulfilment, "print_queued");
+    assert(s.calls.some((c) => c.method === "GET" && c.url.includes("/products?sku=in.(seedlings_print_set)")));
+    const order = JSON.parse(posted(s.calls, "orders")[0].body);
+    assertEquals(order.lookup_key, "seedlings_print_set");
+    assertEquals(order.product_label, "Seedlings Printed Curriculum Set");
+    assertEquals([order.status, order.is_preorder, order.fulfillment], ["ready_to_fulfill", false, "lulu"]);
+    const items = JSON.parse(posted(s.calls, "order_items")[0].body);
+    assertEquals(items, [{ order_id: "ord-1", product_id: "p-sdl", quantity: 1, unit_price_cents: 26100 }]);
+    assertEquals(JSON.parse(posted(s.calls, "lulu_jobs")[0].body).status, "pending");
+    assertEquals(posted(s.calls, "starter_deliveries").length, 0);
+    assert(s.calls.some((c) => c.url.includes("/functions/v1/lulu-submit")));
+    const { printBandForOrder } = await import("./lulu-config.ts");
+    assertEquals(printBandForOrder(order), "seedlings");
+  } finally { s.restore(); }
+});
+
+Deno.test("esa-payment-confirm treats both Starter SKUs as Starters", async () => {
+  assertEquals([...ESA_STARTER_SKUS].sort(), ["ET-SDL-35-003", "ET-SPR-K2-003"]);
+  const src = await Deno.readTextFile(new URL("../esa-payment-confirm/index.ts", import.meta.url));
+  assert(src.includes("ESA_STARTER_SKUS.includes(i.sku)"));
+  assert(!src.includes('i.sku === "ET-SPR-K2-003"'));
 });

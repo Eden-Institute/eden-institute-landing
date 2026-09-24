@@ -32,12 +32,17 @@
 // - Prices are the ESA prices, identical to every marketplace listing. The set is
 //   $261 with shipping included; on the store that is the same $249 plus $12.
 // - No em dashes in visible copy.
+// - Seedlings (grades 3-5) added 2026-09-24: its printed set (ET-SDL-35-004) and
+//   9-week starter (ET-SDL-35-003). No Seedlings page counts (not locked) and no
+//   Seedlings photo yet, so its cards carry no image. There is no Seedlings extra
+//   notebook. The Sprouts cards are unchanged. Seedlings is not on any marketplace
+//   listing yet (ESA invoices only), so its cards say "Named on scholarship invoices".
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 
 const meta = {
-  title: "Eden's Table · Bible-Based Science and Nature Study Curriculum, Grades K-2",
+  title: "Eden's Table · Bible-Based Science and Nature Study Curriculum, Grades K-5",
   description:
-    "Eden's Table is a 36-week Bible-based science and nature study curriculum for kindergarten through second grade, published by Rooted in Faith Ventures LLC. A printed three-book set, a nine-week digital starter unit, and extra student notebooks.",
+    "Eden's Table is a 36-week Bible-based science and nature study curriculum in two levels, Sprouts for kindergarten through second grade and Seedlings for grades 3 to 5, published by Rooted in Faith Ventures LLC. Printed three-book sets, nine-week digital starter units, and extra Sprouts student notebooks.",
   canonical: "https://edeninstitute.health/curriculum",
 };
 
@@ -52,8 +57,27 @@ const week = [
   { day: "Friday", body: "The garden, and a review of everything the week covered." },
 ];
 
-const products = [
+type Product = {
+  band: "sprouts" | "seedlings";
+  name: string;
+  esaName: string;
+  sku: string;
+  price: string;
+  priceNote: string;
+  notice?: string;
+  img?: string;
+  imgAlt?: string;
+  points: string[];
+};
+
+const bands = [
+  { band: "sprouts", heading: "Sprouts, grades K-2" },
+  { band: "seedlings", heading: "Seedlings, grades 3-5" },
+] as const;
+
+const products: Product[] = [
   {
+    band: "sprouts",
     name: "Printed Curriculum Set",
     esaName: "Sprouts K-2 36-Week Science and Nature Study Printed Curriculum Set, Bible-Based",
     sku: "ET-SPR-K2-004",
@@ -74,6 +98,7 @@ const products = [
     // The 9-week scope is stated in the name, the price note, a highlighted notice
     // and the first bullet, and matches the marketplace listing name below. Founder
     // wording: "9-week starter", never "partial" or "quarter".
+    band: "sprouts",
     name: "9-Week Starter Unit",
     esaName: "Sprouts K-2 9-Week Starter Unit, Science and Nature Study, Bible-Based",
     sku: "ET-SPR-K2-003",
@@ -89,6 +114,7 @@ const products = [
     ],
   },
   {
+    band: "sprouts",
     name: "Extra Student Notebook",
     esaName: "Sprouts K-2 36-Week Science and Nature Study Extra Student Notebook, Bible-Based",
     sku: "ET-SPR-K2-005",
@@ -100,6 +126,36 @@ const products = [
       "A second write-in notebook for another child in a family already using the curriculum.",
       "224 pages, 8.5 x 11 inches, coil bound, covering all 36 weeks.",
       "A companion to the Printed Curriculum Set. It is not a standalone course and needs the Teacher's Guide to use.",
+    ],
+  },
+  {
+    band: "seedlings",
+    name: "Seedlings Printed Curriculum Set",
+    esaName: "Seedlings 3-5 36-Week Science and Nature Study Printed Curriculum Set, Bible-Based",
+    sku: "ET-SDL-35-004",
+    price: "$261",
+    priceNote: "Shipping included",
+    points: [
+      "Teacher's Guide, 8.5 x 11 inches, coil bound. The full year for grades 3 to 5.",
+      "Student Notebook, 8.5 x 11 inches, coil bound. The write-in book the child fills in across all 36 weeks.",
+      "Read-Aloud Storybook, 5.83 x 8.27 inches, paperback.",
+      "A different 36 plants from Sprouts, one each week.",
+      "Printed to order and mailed in about two to three weeks.",
+    ],
+  },
+  {
+    // Same founder rule as the Sprouts starter: impossible to mistake for the full year.
+    band: "seedlings",
+    name: "Seedlings 9-Week Starter Unit",
+    esaName: "Seedlings 3-5 9-Week Starter Unit, Science and Nature Study, Bible-Based",
+    sku: "ET-SDL-35-003",
+    price: "$39",
+    priceNote: "9 weeks · instant download",
+    notice: "The 9-week starter: weeks 1 to 9 of the 36-week Seedlings year. The full year is the Seedlings Printed Curriculum Set.",
+    points: [
+      "Weeks 1 through 9 of the 36-week Seedlings year, for grades 3 to 5.",
+      "Teacher's Guide, Student Notebook and Read-Aloud Storybook sections for those nine weeks, printed at home.",
+      "Delivered by download link immediately after purchase. Nothing ships.",
     ],
   },
 ];
@@ -124,16 +180,17 @@ const products = [
   <section class="pt-16 pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
     <div class="max-w-2xl mx-auto text-center">
       <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">
-        Grades K-2 · Ages 5 to 7
+        Sprouts K-2 · Seedlings 3-5
       </p>
       <h1 class="font-serif text-4xl md:text-5xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
         A Bible-based science and nature study curriculum
       </h1>
       <div class="w-16 h-px mx-auto my-6" style="background-color:hsl(var(--eden-gold))"></div>
       <p class="font-body text-lg text-muted-foreground leading-relaxed">
-        Eden's Table is a full 36-week year of botany, plant identification and careful observation for
-        kindergarten through second grade. Each week centers on one plant, and reading, writing, math,
-        history, geography and art are woven into the study of it.
+        Eden's Table is a full 36-week year of botany, plant identification and careful observation, in two
+        levels: Sprouts for kindergarten through second grade, and Seedlings for grades 3 to 5. Each week
+        centers on one plant, and reading, writing, math, history, geography and art are woven into the
+        study of it.
       </p>
     </div>
   </section>
@@ -175,10 +232,13 @@ const products = [
   <section class="py-12 px-6" style="background-color:hsl(var(--eden-cream))">
     <div class="max-w-4xl mx-auto">
       <h2 class="font-serif text-3xl font-bold text-center mb-8" style="color:hsl(var(--eden-bark))">What you can buy</h2>
+      {bands.map((b) => (
+      <div class="mt-10 first:mt-0">
+      <h3 class="font-serif text-xl font-bold mb-4" style="color:hsl(var(--eden-forest))">{b.heading}</h3>
       <div class="grid gap-6 md:grid-cols-3">
-        {products.map((p) => (
+        {products.filter((p) => p.band === b.band).map((p) => (
           <div class="rounded-lg bg-white border overflow-hidden flex flex-col" style="border-color:hsl(var(--eden-gold) / 0.3)">
-            <img src={p.img} alt={p.imgAlt} class="w-full aspect-square object-cover" loading="lazy" />
+            {p.img && <img src={p.img} alt={p.imgAlt} class="w-full aspect-square object-cover" loading="lazy" />}
             <div class="p-5 flex flex-col flex-1">
               <h3 class="font-serif text-lg font-bold" style="color:hsl(var(--eden-forest))">{p.name}</h3>
               <p class="font-serif text-2xl font-bold mt-1" style="color:hsl(var(--eden-bark))">{p.price}</p>
@@ -195,12 +255,14 @@ const products = [
                 ))}
               </ul>
               <p class="font-body text-xs text-muted-foreground mt-auto pt-3 border-t" style="border-color:hsl(var(--eden-gold) / 0.2)">
-                Listed on scholarship marketplaces as <em>{p.esaName}</em>, SKU {p.sku}.
+                {p.band === "seedlings" ? "Named on scholarship invoices as" : "Listed on scholarship marketplaces as"} <em>{p.esaName}</em>, SKU {p.sku}.
               </p>
             </div>
           </div>
         ))}
       </div>
+      </div>
+      ))}
     </div>
   </section>
 

@@ -15,9 +15,13 @@
 // Plain fetch with the publishable key (no Supabase client), so nothing touches localStorage,
 // but it is still mounted client:only because the static page needs no server render of a form.
 // Copy rules (web/lib/esaStates.ts header): no em dashes, and none of the listed health words.
+//
+// Seedlings (2026-09-24): each student's choices are grouped by band, Sprouts first, under a small
+// band heading. Every label also names its band, because the same label shows in the running total.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ESA_BANDS,
   ESA_CHOICES,
   ESA_STATE_OPTIONS,
   esaFeeCents,
@@ -106,8 +110,15 @@ export default function EsaInvoiceForm({ state, stateName, short }: Props) {
 
   const setStudent = (i: number, patch: Partial<Student>) =>
     setStudents((prev) => prev.map((s, j) => (j === i ? { ...s, ...patch } : s)));
+  // A sibling of a Sprouts set usually needs the Sprouts Extra Student Notebook. Seedlings has no extra
+  // notebook, so a sibling of a Seedlings student starts on the same choice as student 1.
   const addStudent = () =>
-    setStudents((prev) => (prev.length >= 6 ? prev : [...prev, { id: newStudentId(), first: "", last: prev[0]?.last ?? "", choice: "notebook" }]));
+    setStudents((prev) => {
+      if (prev.length >= 6) return prev;
+      const firstChoice = prev[0]?.choice ?? "set";
+      const choice: EsaChoice = ESA_CHOICES[firstChoice].band === "seedlings" ? firstChoice : "notebook";
+      return [...prev, { id: newStudentId(), first: "", last: prev[0]?.last ?? "", choice }];
+    });
   const removeStudent = (i: number) => setStudents((prev) => prev.filter((_, j) => j !== i));
 
   const submit = async (e: React.FormEvent) => {
@@ -225,17 +236,26 @@ export default function EsaInvoiceForm({ state, stateName, short }: Props) {
               <input className={input} style={inputStyle} placeholder="First name" aria-label={`Student ${i + 1} first name`} value={s.first} onChange={(e) => setStudent(i, { first: e.target.value })} required />
               <input className={input} style={inputStyle} placeholder="Last name" aria-label={`Student ${i + 1} last name`} value={s.last} onChange={(e) => setStudent(i, { last: e.target.value })} required />
             </div>
-            <div className="space-y-2">
-              {opts.choices.map((c) => (
-                <label key={c} className="flex items-start gap-3 cursor-pointer font-body text-sm">
-                  <input type="radio" name={`choice-${s.id}`} className="mt-1" checked={s.choice === c} onChange={() => setStudent(i, { choice: c })} />
-                  <span>
-                    <span className="font-semibold" style={labelStyle}>{ESA_CHOICES[c].label}</span>
-                    <span className="text-muted-foreground"> · {esaMoney(ESA_CHOICES[c].cents)}</span>
-                    <span className="block text-xs text-muted-foreground">{ESA_CHOICES[c].detail}</span>
-                  </span>
-                </label>
-              ))}
+            <div className="space-y-3">
+              {ESA_BANDS.map(({ band, heading }) => {
+                const bandChoices = opts.choices.filter((c) => ESA_CHOICES[c].band === band);
+                if (!bandChoices.length) return null;
+                return (
+                  <div key={band} role="group" aria-label={`Student ${i + 1}: ${heading}`} className="space-y-2">
+                    <p aria-hidden="true" className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: "hsl(var(--eden-gold-ink))" }}>{heading}</p>
+                    {bandChoices.map((c) => (
+                      <label key={c} className="flex items-start gap-3 cursor-pointer font-body text-sm">
+                        <input type="radio" name={`choice-${s.id}`} className="mt-1" checked={s.choice === c} onChange={() => setStudent(i, { choice: c })} />
+                        <span>
+                          <span className="font-semibold" style={labelStyle}>{ESA_CHOICES[c].label}</span>
+                          <span className="text-muted-foreground"> · {esaMoney(ESA_CHOICES[c].cents)}</span>
+                          <span className="block text-xs text-muted-foreground">{ESA_CHOICES[c].detail}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           </fieldset>
         ))}
@@ -245,7 +265,7 @@ export default function EsaInvoiceForm({ state, stateName, short }: Props) {
           </button>
         )}
         <p className="font-body text-xs text-muted-foreground">
-          Each student gets their own invoice, because {stateName} accounts are per student. A brother or sister sharing a set usually just needs an Extra Student Notebook.
+          Each student gets their own invoice, because {stateName} accounts are per student. A brother or sister sharing a Sprouts set usually just needs a Sprouts Extra Student Notebook. There is no Seedlings Extra Student Notebook.
         </p>
       </div>
 

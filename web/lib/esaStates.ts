@@ -27,6 +27,10 @@
  *   the Product JSON-LD. The state page refuses to build if the two disagree, or
  *   if an invoice state's price disagrees with web/lib/esaInvoice.ts.
  *   public/llms.txt quotes these prices too and is NOT checked; change it by hand.
+ * - Seedlings (grades 3-5) joined 2026-09-24. Item names match the invoice form's
+ *   labels in web/lib/esaInvoice.ts exactly and always name the band, so a family
+ *   with children in both bands can tell the items apart. No Seedlings page counts
+ *   anywhere: they are not locked. There is no Seedlings extra notebook.
  * - Bump ESA_UPDATED_ISO whenever what these pages say changes. It drives the
  *   "Updated" line, the sitemap <lastmod> for /esa and /esa/*, and dateModified.
  */
@@ -47,8 +51,9 @@ export interface EsaItem {
   /** The amount `price` shows, as a number, for the Product JSON-LD. */
   priceValue: number;
   note: string;
-  /** Product photo for the JSON-LD: the same photo /curriculum shows for this item. */
-  image: string;
+  /** Product photo for the JSON-LD: the same photo /curriculum shows for this item. Omitted where
+      no photo of that product exists yet (Seedlings), rather than borrowing another band's. */
+  image?: string;
 }
 
 export interface EsaState {
@@ -83,35 +88,48 @@ export interface EsaState {
 const PHOTO = "https://edeninstitute.health/showcases";
 
 const SET: EsaItem = {
-  name: "Printed Curriculum Set",
+  name: "Sprouts (grades K-2) Printed Curriculum Set",
   price: "$261 total",
   priceValue: 261,
   note: "$249 plus $12 shipping. Teacher's Guide, Student Notebook and Read-Aloud Storybook, all 36 weeks.",
   image: `${PHOTO}/ET_PrintSet.webp`,
 };
 const NOTEBOOK: EsaItem = {
-  name: "Extra Student Notebook",
+  name: "Sprouts (grades K-2) Extra Student Notebook",
   price: "$39.99",
   priceValue: 39.99,
   note: "Shipping included. A second write-in notebook for another child using the set.",
   image: `${PHOTO}/ET_NB_Cover.webp`,
 };
 const STARTER: EsaItem = {
-  name: "9-Week Starter Unit",
+  name: "Sprouts (grades K-2) 9-Week Starter Unit",
   price: "$39",
   priceValue: 39,
   note: "Weeks 1 to 9 of the 36-week year, as a download. Not the full year.",
   image: `${PHOTO}/ET_StarterUnit.webp`,
 };
+// Seedlings (grades 3-5), founder decisions 2026-09-24. No photo yet, so no image.
+const SDL_SET: EsaItem = {
+  name: "Seedlings (grades 3-5) Printed Curriculum Set",
+  price: "$261 total",
+  priceValue: 261,
+  note: "$249 plus $12 shipping. Teacher's Guide, Student Notebook and Read-Aloud Storybook, all 36 weeks for grades 3-5.",
+};
+const SDL_STARTER: EsaItem = {
+  name: "Seedlings (grades 3-5) 9-Week Starter Unit",
+  price: "$39",
+  priceValue: 39,
+  note: "Weeks 1 to 9 of the 36-week Seedlings year, as a download. Not the full year.",
+};
 
 const PENDING_ODYSSEY_STEPS = (short: string) => [
   {
     heading: "Where it stands",
-    body: `Eden's Table is an approved ${short} vendor. Our three listings have been submitted in the ${short} marketplace and are waiting for the marketplace to approve them, so they cannot be ordered there yet.`,
+    body: `Eden's Table is an approved ${short} vendor. Our three Sprouts (grades K-2) listings have been submitted in the ${short} marketplace and are waiting for the marketplace to approve them, so they cannot be ordered there yet. The Seedlings (grades 3-5) books are not listed there yet.`,
   },
   {
     heading: "When it opens",
-    body: `Once the listings are approved, sign in to your ${short} marketplace and search for Eden's Table. The printed set is listed as "Sprouts K-2 36-Week Science and Nature Study Printed Curriculum Set, Bible-Based".`,
+    body: `Once the listings are approved, sign in to your ${short} marketplace and search for Eden's Table. The Sprouts printed set is listed as "Sprouts K-2 36-Week Science and Nature Study Printed Curriculum Set, Bible-Based".`,
   },
   {
     heading: "Want to know the day it opens?",
@@ -148,7 +166,7 @@ export const ESA_STATES: EsaState[] = [
       },
       {
         heading: "2. Submit it in ClassWallet",
-        body: "Submit the PDF invoice in ClassWallet as a payment to a vendor. ClassWallet deducts 2%, so this invoice adds 2.0408% to cover it. The invoice shows it as its own line: the printed set comes to $266.33 and an extra notebook to $40.81. Arizona reviews every request, so check the current ESA Parent Handbook before you order.",
+        body: "Submit the PDF invoice in ClassWallet as a payment to a vendor. ClassWallet deducts 2%, so this invoice adds 2.0408% to cover it. The invoice shows it as its own line: a printed set (Sprouts or Seedlings) comes to $266.33 and a Sprouts extra notebook to $40.81. Arizona reviews every request, so check the current ESA Parent Handbook before you order.",
       },
       {
         heading: "3. We print and ship",
@@ -161,18 +179,24 @@ export const ESA_STATES: EsaState[] = [
     ],
     items: [
       {
-        name: "Printed Curriculum Set",
+        name: "Sprouts (grades K-2) Printed Curriculum Set",
         price: "$266.33 by invoice",
         priceValue: 266.33,
         note: "$261 ($249 plus $12 shipping) plus the $5.33 Arizona processing fee. Teacher's Guide, Student Notebook and Read-Aloud Storybook, all 36 weeks.",
         image: `${PHOTO}/ET_PrintSet.webp`,
       },
       {
-        name: "Extra Student Notebook",
+        name: "Sprouts (grades K-2) Extra Student Notebook",
         price: "$40.81 by invoice",
         priceValue: 40.81,
         note: "$39.99 with shipping, plus the $0.82 Arizona processing fee. A second write-in notebook for another child using the set.",
         image: `${PHOTO}/ET_NB_Cover.webp`,
+      },
+      {
+        name: "Seedlings (grades 3-5) Printed Curriculum Set",
+        price: "$266.33 by invoice",
+        priceValue: 266.33,
+        note: "$261 ($249 plus $12 shipping) plus the $5.33 Arizona processing fee. Teacher's Guide, Student Notebook and Read-Aloud Storybook, all 36 weeks for grades 3-5.",
       },
     ],
     links: [
@@ -240,7 +264,7 @@ export const ESA_STATES: EsaState[] = [
     summary:
       "Yes. Eden's Table is an approved Utah Fits All vendor. Our marketplace listings are waiting on approval, so they cannot be ordered there quite yet.",
     howToBuy: PENDING_ODYSSEY_STEPS("Utah Fits All"),
-    items: [SET, STARTER, NOTEBOOK],
+    items: [SET, STARTER, NOTEBOOK, SDL_SET, SDL_STARTER],
     links: [{ label: "Utah Fits All FAQs", href: "https://www.utaheducationfitsall.org/faqs/" }],
     faq: [],
   },
@@ -256,7 +280,7 @@ export const ESA_STATES: EsaState[] = [
     summary:
       "Yes. Eden's Table is an approved service provider for the LA GATOR Scholarship marketplace. Our listings are waiting on marketplace approval, so they cannot be ordered there quite yet.",
     howToBuy: PENDING_ODYSSEY_STEPS("LA GATOR"),
-    items: [SET, STARTER, NOTEBOOK],
+    items: [SET, STARTER, NOTEBOOK, SDL_SET, SDL_STARTER],
     links: [],
     faq: [],
   },
@@ -272,7 +296,7 @@ export const ESA_STATES: EsaState[] = [
     summary:
       "Yes. Eden's Table is an approved Wyoming ESA vendor. Our marketplace listings are waiting on approval, so they cannot be ordered there quite yet.",
     howToBuy: PENDING_ODYSSEY_STEPS("Wyoming ESA"),
-    items: [SET, STARTER, NOTEBOOK],
+    items: [SET, STARTER, NOTEBOOK, SDL_SET, SDL_STARTER],
     links: [
       { label: "Wyoming ESA Family Handbook", href: "https://edu.wyoming.gov/wp-content/uploads/2025/04/ESA-Family-Handbook.pdf" },
     ],
@@ -303,7 +327,7 @@ export const ESA_STATES: EsaState[] = [
         body: "As soon as payment arrives we order your books. They are printed to order, so plan on about two to three weeks from there.",
       },
     ],
-    items: [SET, NOTEBOOK],
+    items: [SET, NOTEBOOK, SDL_SET],
     links: [
       {
         label: "Arkansas Education Freedom Accounts",
@@ -341,7 +365,8 @@ export const ESA_STATES: EsaState[] = [
     // Invoices open 2026-09-14: ClassWallet confirmed Alabama is attached ("you are now
     // visible for the users in Alabama"); families submit our invoice through Direct Pay;
     // no fee; a download is fine, date of service = the day the files are sent. Alabama
-    // has NO reimbursement. The Starter is offered on Alabama invoices only (founder).
+    // has NO reimbursement. The Starter is offered on Alabama invoices only (founder); since
+    // 2026-09-24 that is both Starters, Sprouts and Seedlings.
     statusLabel: "Approved · order by invoice today",
     summary:
       "Yes. Eden's Table is an approved Alabama CHOOSE Act Education Service Provider, and you can order today with an invoice you submit in ClassWallet.",
@@ -359,7 +384,7 @@ export const ESA_STATES: EsaState[] = [
         body: "As soon as payment arrives, we email the 9-week starter files, or order your printed books, which are printed to order and arrive in about two to three weeks.",
       },
     ],
-    items: [SET, STARTER, NOTEBOOK],
+    items: [SET, STARTER, NOTEBOOK, SDL_SET, SDL_STARTER],
     links: [
       { label: "Alabama Department of Revenue, CHOOSE Act", href: "https://www.revenue.alabama.gov/tax-policy/the-choose-act/" },
     ],
@@ -397,7 +422,7 @@ export const ESA_STATES: EsaState[] = [
         body: "You can also order on our store ($249 plus $12 shipping) and request reimbursement in ClassWallet with your itemized receipt. Every request is reviewed, so check the CSF New Hampshire Parent Handbook first.",
       },
     ],
-    items: [SET, NOTEBOOK],
+    items: [SET, NOTEBOOK, SDL_SET],
     links: [
       { label: "Eden's Table in the CSF New Hampshire directory", href: "https://app.nh.scholarshipfund.org/esa/esa_parent/esa_vendors/19171" },
       { label: "New Hampshire Education Freedom Accounts", href: "https://www.education.nh.gov/pathways-education/education-freedom-accounts" },
@@ -414,7 +439,7 @@ export const ESA_PENDING = [
 
 /** Last content review of the ESA pages. Bump it when what they say changes (see
     the rules at the top). */
-export const ESA_UPDATED_ISO = "2026-09-18";
+export const ESA_UPDATED_ISO = "2026-09-24";
 
 /** The same date as shown on the pages, e.g. "September 2026". */
 export const ESA_UPDATED = new Date(`${ESA_UPDATED_ISO}T12:00:00Z`).toLocaleDateString("en-US", {
@@ -434,7 +459,7 @@ export const ESA_CONTACT_EMAIL = "hello@edeninstitute.health";
 /** What Eden's Table is, in the locked framing. The first FAQ answer on every ESA
     page, and the curriculum description in the state pages' JSON-LD. */
 export const ESA_CURRICULUM_DESCRIPTION =
-  "A 36-week Bible-based science and nature study curriculum for kindergarten through second grade. Each week centers on one plant, and reading, writing, math, history, geography and art are woven into the study of it. It is published by Rooted in Faith Ventures LLC.";
+  "A 36-week Bible-based science and nature study curriculum in two levels: Sprouts for kindergarten through second grade, and Seedlings for grades 3 to 5. Each week centers on one plant. In Sprouts, reading, writing, math, history, geography and art are woven into the study of it, and Seedlings studies a different 36 plants for older children. It is published by Rooted in Faith Ventures LLC.";
 
 /** Questions every state page answers. Written the way parents ask them. */
 export const ESA_COMMON_FAQ = [
@@ -444,11 +469,11 @@ export const ESA_COMMON_FAQ = [
   },
   {
     q: "What grades is it for?",
-    a: "Kindergarten through second grade, ages five to seven. Every lesson is written at two depths, so a younger and an older child can work the same week together.",
+    a: "Sprouts is for kindergarten through second grade, ages five to seven. Every Sprouts lesson is written at two depths, so a younger and an older child can work the same week together. Seedlings is for grades 3 to 5.",
   },
   {
     q: "What comes in the printed set?",
-    a: "A Teacher's Guide (240 pages, coil bound), a Student Notebook (224 pages, coil bound) and a Read-Aloud Storybook (112 pages, paperback). It covers the full 36-week year and is printed to order.",
+    a: "The Sprouts set is a Teacher's Guide (240 pages, coil bound), a Student Notebook (224 pages, coil bound) and a Read-Aloud Storybook (112 pages, paperback). The Seedlings set has the same three books for grades 3 to 5: a Teacher's Guide and a Student Notebook, both coil bound, and a paperback Read-Aloud Storybook. Each set covers the full 36-week year and is printed to order.",
   },
   {
     q: "Is it a Christian curriculum?",
