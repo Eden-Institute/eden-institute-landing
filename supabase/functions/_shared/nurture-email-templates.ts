@@ -520,11 +520,17 @@ export function buildStarterOfferEmail(firstName: string, band: 'sprouts' | 'see
   const wholeYear =
     goldDivider() +
     (isSprouts
-      ? p(`If you already know you want the whole Sprouts year, it is finished and on paper: all thirty-six weeks in three printed books, $249, printed for you when you order and at your door in about two to three weeks. <a href="https://edeninstitute.health/books" style="color:#1C3A2E;">Here it is</a>.`)
+      ? p(`If you already know you want the whole Sprouts year, it is finished and on paper: all thirty-six weeks in three printed books, $249, printed for you when you order and at your door in about two to three weeks. <a href="https://edeninstitute.health/books#buy" style="color:#1C3A2E;">Here it is</a>.`)
       : p(`If you already know you want the whole Seedlings year, it is finished and on paper: all thirty-six weeks in three printed books, $249, printed for you when you order and at your door in about two to three weeks. <a href="https://edeninstitute.health/books#seedlings" style="color:#1C3A2E;">Here it is</a>.`)) +
     p(`And if this is simply not the month for it, keep teaching ${week1Herb}. It is a whole week and it stands on its own.`);
 
-  const body = p(`Hi ${firstName},`) + opening + goldDivider() + offer + wholeYear + signature();
+  // 2026-09-24, the founder's start rule, one line each way: older children who
+  // know the basics can go to Seedlings; a family new to herbs starts at Sprouts.
+  const startRule = isSprouts
+    ? p(`If you have children in grades 3 to 5 who already know the basics of herbs, they can go straight to <a href="https://edeninstitute.health/starter/seedlings" style="color:#1C3A2E;">Seedlings</a>, the next thirty-six plants.`)
+    : p(`New to herbs? Even with a child in grades 3 to 5, most families start with <a href="https://edeninstitute.health/starter" style="color:#1C3A2E;">Sprouts</a>, because its thirty-six plants are the ones Seedlings builds on.`);
+
+  const body = p(`Hi ${firstName},`) + opening + goldDivider() + offer + wholeYear + startRule + signature();
 
   return {
     subject: `What comes after ${week1Herb}`,
@@ -539,7 +545,10 @@ export function buildStarterOfferEmail(firstName: string, band: 'sprouts' | 'see
 const ARC_COURSE_URL = 'https://learn.edeninstitute.health/course/back-to-eden1';
 const ARC_BOOK_ONE_URL = 'https://www.amazon.com/dp/B0GPW5BZ32';
 const ARC_APP_URL = 'https://edeninstitute.health/apothecary/start';
-const ARC_HOMESCHOOL_URL = 'https://edeninstitute.health/homeschool';
+// 2026-09-24: arc 3 names the two bands on sale and sends families to the band
+// chooser and the free weeks, instead of a "K-12" line that read as all built.
+const ARC_CHOOSE_BAND_URL = 'https://edeninstitute.health/homeschool#choose-band';
+const ARC_FREEBIES_URL = 'https://edeninstitute.health/freebies';
 
 // Day 11: Deep-Dive Guide + the Foundations class.
 export function buildNurtureArc1(firstName: string, constitutionName: string, constitutionSlug: string): { subject: string; html: string } {
@@ -557,7 +566,7 @@ export function buildNurtureArc2(firstName: string, constitutionName: string, _c
 
 // Day 17: homeschool curriculum + Facebook.
 export function buildNurtureArc3(firstName: string, _constitutionName: string, _constitutionSlug: string): { subject: string; html: string } {
-  const body = `${p(`Hi ${firstName},`)}${p(`One last door, and this one&rsquo;s for your family.`)}${goldDivider()}${heading('Eden&rsquo;s Table, for your children')}${p(`Our K&ndash;12 Biblical-herbalism curriculum teaches children the bodies God designed and the plants He gave to tend them, woven through Scripture, science, and the rhythms of your own kitchen table.`)}${brandButton('Explore Eden&rsquo;s Table', ARC_HOMESCHOOL_URL)}${goldDivider()}${heading('Come along for the ride')}${p(`I&rsquo;m building all of this in real time. Follow along on Facebook for the progress, the roadblocks, and the launch news. It&rsquo;s sweeter with you walking it alongside me.`)}${facebookButton('Follow the Journey on Facebook', FACEBOOK_URL)}${signature()}`;
+  const body = `${p(`Hi ${firstName},`)}${p(`One last door, and this one&rsquo;s for your family.`)}${goldDivider()}${heading('Eden&rsquo;s Table, for your children')}${p(`Our Biblical-herbalism curriculum teaches children the bodies God designed and the plants He gave to tend them, woven through Scripture, science, and the rhythms of your own kitchen table. Two years are ready now: <strong>Sprouts</strong> for kindergarten through 2nd grade and <strong>Seedlings</strong> for grades 3-5, and <a href="${ARC_FREEBIES_URL}" style="color:#1C3A2E;">Week 1 of each is free</a>.`)}${brandButton('Find where your children start', ARC_CHOOSE_BAND_URL)}${goldDivider()}${heading('Come along for the ride')}${p(`I&rsquo;m building all of this in real time. Follow along on Facebook for the progress, the roadblocks, and the news as each new year opens. It&rsquo;s sweeter with you walking it alongside me.`)}${facebookButton('Follow the Journey on Facebook', FACEBOOK_URL)}${signature()}`;
   return { subject: 'For your table and your family', html: emailWrapper(body) };
 }
 

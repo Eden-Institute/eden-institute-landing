@@ -859,7 +859,11 @@ async function drainLaunchQueue(): Promise<QueueResult> {
       // failure cannot move someone between arms and skew the read.
       const variant = variantForEmail(email);
 
-      const built = buildLaunchEmail(pos, firstName, founding, foundersUrl, variant);
+      // Band (migration 20260924210000): Seedlings free-week signups get the
+      // Seedlings variant of 8-12 and 19-21. The drain query selects every column,
+      // so row.band arrives once the migration is applied; before that it is
+      // undefined and buildLaunchEmail treats it as Sprouts, exactly as today.
+      const built = buildLaunchEmail(pos, firstName, founding, foundersUrl, variant, row.band);
       if (!built) {
         await supabaseQuery(`launch_email_queue?id=eq.${row.id}`, {
           method: 'PATCH',

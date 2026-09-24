@@ -7,6 +7,11 @@
 //   scheduled  (no body, or {})      find positions due in ~24h and preview them
 //   manual     {"position": 8}       preview one position immediately
 //
+// Optional {"band": "seedlings"} (2026-09-24) renders the Seedlings variant of
+// 8-12 and 19-21 instead of the Sprouts one. Anything else previews Sprouts.
+// The previews table is keyed by position only, so a second band of an
+// already-previewed position needs {"force": true}.
+//
 // Idempotent by design. public.launch_email_previews has sequence_position as
 // its primary key, so each email is previewed once, before it first goes out.
 // Recipients deferred to a later anchor must NOT trigger a second preview of
@@ -23,7 +28,7 @@
 //
 // Cron-only: requires role=service_role via _shared/require-service-role.ts; verify_jwt is pinned true in supabase/config.toml.
 
-import { buildLaunchEmail } from '../_shared/launch-sequence-templates.ts';
+import { buildLaunchEmail, normalizeLaunchBand, type LaunchBand } from '../_shared/launch-sequence-templates.ts';
 import { foundersFormUrl } from '../_shared/founders-link.ts';
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
 
@@ -96,6 +101,7 @@ async function previewPosition(
   sendsAt: string,
   recipients: number,
   founding: boolean,
+  band: LaunchBand = 'sprouts',
 ): Promise<{ position: number; sent: boolean; subject?: string; resend_id?: string | null; error?: string }> {
   // Positions 7 and 18 carry a per-recipient signed founders URL. For a preview
   // we sign one for the founder's own address so the button is clickable and
@@ -109,7 +115,7 @@ async function previewPosition(
     }
   }
 
-  const built = buildLaunchEmail(position, PREVIEW_NAME, founding, foundersUrl);
+  const built = buildLaunchEmail(position, PREVIEW_NAME, founding, foundersUrl, 'a', band);
   if (!built) return { position, sent: false, error: `no builder for position ${position}` };
 
   const res = await fetch('https://api.resend.com/emails', {
@@ -118,7 +124,7 @@ async function previewPosition(
     body: JSON.stringify({
       from: FROM_EMAIL,
       to: [FOUNDER_EMAIL],
-      subject: `[PREVIEW ${fmtCentral(sendsAt)}] ${built.subject}`,
+      subject: `[PREVIEW ${fmtCentral(sendsAt)}${band === 'seedlings' ? ' SEEDLINGS' : ''}] ${built.subject}`,
       html: banner(position, sendsAt, recipients, founding) + built.html,
     }),
   });
@@ -157,6 +163,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const explicit = typeof body?.position === 'number' ? body.position : null;
     const force = body?.force === true;
+    const band = normalizeLaunchBand(body?.band);
     const founding = await foundingOpen();
 
     // Already previewed, unless forced.
@@ -200,7 +207,7 @@ Deno.serve(async (req) => {
         results.push({ position, sent: false, error: 'already previewed' });
         continue;
       }
-      results.push(await previewPosition(position, info.sendsAt, info.count, founding));
+      results.push(await previewPosition(position, info.sendsAt, info.count, founding, band));
     }
 
     return new Response(
