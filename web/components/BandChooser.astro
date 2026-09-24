@@ -1,0 +1,112 @@
+---
+// BandChooser: both elementary bands side by side, plus the "where do we start?"
+// answer, for the homepage, /homeschool and /books (CRO pass 2026-09-24).
+//
+// FOUNDER DECISION 2026-09-24 on where a family starts:
+//   K-2 -> Sprouts. Grades 3-5 and NEW to herbs -> Sprouts first. Grades 3-5 who
+//   already know the basics -> straight to Seedlings. Children in both bands ->
+//   Sprouts together (one year taught once, the /starter#older-kids reason 4).
+// The full case for Sprouts lives on /starter#older-kids; this links to it.
+//
+// Prices are display copy: $249 set (products table), $39 Starter
+// (starter-config.ts), $12 flat shipping. Change those first, then here.
+// Copy rule: no em dashes.
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+interface Props {
+  /** Prefix for data-cta beacons, e.g. "home", "homeschool", "books". */
+  ctaPrefix: string;
+  /** Section id, for in-page links. */
+  id?: string;
+  /** On /books the buy boxes are on the same page, so link to them in place. */
+  onBooksPage?: boolean;
+  heading?: string;
+}
+const { ctaPrefix, id = "choose-band", onBooksPage = false, heading = "Two years are ready. Here is where to start." } = Astro.props;
+
+const bands = [
+  {
+    key: "sprouts",
+    name: "Sprouts",
+    grades: "Grades K-2",
+    line: "36 plants learned by sight, smell and touch. Kitchen labs, memory songs and a family story every week.",
+    setHref: onBooksPage ? "#buy" : "/books#buy",
+    starterHref: "/starter",
+    freeHref: "/freebies",
+    tag: "Where most families start",
+  },
+  {
+    key: "seedlings",
+    name: "Seedlings",
+    grades: "Grades 3-5",
+    line: "A different 36 plants. Body systems, herb profiles, and a hypothesis your child writes and then tests.",
+    setHref: onBooksPage ? "#seedlings" : "/books#seedlings",
+    starterHref: "/starter/seedlings",
+    freeHref: "/freebies",
+    tag: "The next 36 plants",
+  },
+];
+
+const paths = [
+  { who: "Children in K-2", go: "Start with Sprouts.", href: "#sprouts-card" },
+  { who: "Children in grades 3-5, new to herbs", go: "Start with Sprouts too. It is the plants they will build on.", href: "#sprouts-card" },
+  { who: "Children in grades 3-5 who already know the basics", go: "Go straight to Seedlings.", href: "#seedlings-card" },
+  { who: "Children in both", go: "Teach Sprouts to everyone together, then Seedlings the next year.", href: "#sprouts-card" },
+];
+---
+
+<section id={id} class="py-16 md:py-20 px-6 scroll-mt-24 min-[1024px]:scroll-mt-36" style="background-color:hsl(var(--eden-cream))">
+  <div class="max-w-5xl mx-auto">
+    <div class="text-center mb-10">
+      <p class="font-accent text-xs tracking-[0.25em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">Eden's Table · Grades K-5 · Both years on sale now</p>
+      <h2 class="font-serif text-3xl md:text-4xl font-bold leading-tight" style="color:hsl(var(--eden-bark))">{heading}</h2>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-5 mb-10">
+      {bands.map((b) => (
+        <div id={`${b.key}-card`} class="rounded-lg p-6 md:p-7 bg-white border-2 flex flex-col scroll-mt-24 min-[1024px]:scroll-mt-36" style={`border-color:hsl(var(--eden-gold) / ${b.key === "sprouts" ? "0.9" : "0.5"})`}>
+          <div class="flex items-center justify-between gap-3 mb-1">
+            <p class="font-accent text-xs tracking-[0.2em] uppercase" style="color:hsl(var(--eden-gold-ink))">{b.grades}</p>
+            <span class="text-[11px] font-body px-2 py-1 rounded" style="background-color:hsl(var(--eden-gold) / 0.15);color:hsl(var(--eden-gold-ink))">{b.tag}</span>
+          </div>
+          <h3 class="font-serif text-2xl font-bold mb-2" style="color:hsl(var(--eden-bark))">{b.name}</h3>
+          <p class="font-body text-sm md:text-base text-muted-foreground leading-relaxed mb-5">{b.line}</p>
+          <a href={b.setHref} data-cta={`${ctaPrefix}-chooser-${b.key}-set`} class={cn(buttonVariants({ variant: "eden", size: "lg" }), "text-center w-full h-auto whitespace-normal min-h-[48px] py-3 px-4 leading-snug")}>
+            The whole year, printed · $249
+          </a>
+          <p class="font-body text-xs text-muted-foreground text-center mt-2 mb-4">All 36 weeks in three books. Flat $12 shipping. At your door in about 2 to 3 weeks.</p>
+          <div class="grid grid-cols-2 gap-3 mt-auto">
+            <a href={b.starterHref} data-cta={`${ctaPrefix}-chooser-${b.key}-starter`} class={cn(buttonVariants({ variant: "eden-outline", size: "default" }), "text-center w-full h-auto whitespace-normal min-h-[44px] py-2 px-3 leading-snug text-xs sm:text-sm")}>
+              9 weeks, digital · $39
+            </a>
+            <a href={b.freeHref} data-cta={`${ctaPrefix}-chooser-${b.key}-free`} class={cn(buttonVariants({ variant: "eden-outline", size: "default" }), "text-center w-full h-auto whitespace-normal min-h-[44px] py-2 px-3 leading-snug text-xs sm:text-sm")}>
+              Week 1 · Free
+            </a>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <div class="rounded-lg p-6 md:p-8 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.35)">
+      <h3 class="font-serif text-xl md:text-2xl font-bold mb-5 text-center" style="color:hsl(var(--eden-bark))">Not sure which one? Find your family here.</h3>
+      <div class="grid gap-3">
+        {paths.map((p) => (
+          <a href={p.href} class="grid sm:grid-cols-[1fr_1.4fr] gap-1 sm:gap-6 rounded-md px-4 py-3 transition-colors hover:bg-[hsl(var(--eden-cream))]" style="border:1px solid hsl(var(--border))">
+            <span class="font-body text-sm md:text-base font-bold" style="color:hsl(var(--eden-bark))">{p.who}</span>
+            <span class="font-body text-sm md:text-base" style="color:hsl(var(--eden-forest))">{p.go}</span>
+          </a>
+        ))}
+      </div>
+      <div class="mt-6 rounded-md p-5" style="background-color:hsl(var(--eden-cream))">
+        <p class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-bark))">Why we steer new families to Sprouts, even with older children</p>
+        <ul class="font-body text-sm md:text-base text-muted-foreground leading-relaxed space-y-2">
+          <li><strong>Different plants, not a harder version.</strong> Sprouts teaches 36 plants and Seedlings teaches another 36. Skip Sprouts and those first 36 are missing from your child's 72.</li>
+          <li><strong>The senses are the skill.</strong> Crushing the leaf, smelling it, feeling the underside. That is how a child learns to really know a plant, at any age.</li>
+          <li><strong>One year, taught once, to everyone.</strong> The youngest can join in, and an older child simply goes further and moves faster.</li>
+        </ul>
+        <a href="/starter#older-kids" data-cta={`${ctaPrefix}-chooser-why-sprouts`} class="inline-block font-body text-sm font-bold underline underline-offset-4 mt-3" style="color:hsl(var(--eden-forest))">Read the whole reasoning</a>
+      </div>
+    </div>
+  </div>
+</section>
