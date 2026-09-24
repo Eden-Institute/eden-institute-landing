@@ -80,13 +80,14 @@ const PACKAGE_A5_PERFECT_BOUND = '0583X0827.FC.STD.PB.080CW444.GXX';
 // Founder decision 2026-09-23: the Seedlings set prints on the SAME packages as
 // Sprouts (Teacher's Guide and Student Notebook letter coil bound, Read-Aloud A5
 // perfect bound). These counts were read from the assembled Seedlings files on
-// 2026-09-23 and are PENDING CONFIRMATION by the main session. They are only the
+// 2026-09-23; the Student Notebook is 227 pages (founder 2026-09-24, matching the
+// lulu_printables seedlings/nb row). They are only the
 // default: a lulu_printables row with its own page_count wins, and that row is
 // what Lulu is actually sent. Lulu limits: coil 2 to 470 pages, perfect bound
 // 32 to 800 (spec sheet, 2026-09-10).
 export const SEEDLINGS_PAGE_COUNTS: Record<LuluBookKey, number> = {
   tg: 245,
-  nb: 185,
+  nb: 227,
   ra: 160,
 };
 // ──────────────────────────────────────────────────────────────────────────────
@@ -172,13 +173,25 @@ export const LULU_PRODUCTS: LuluProduct[] = [
   // same three books, $249 like Sprouts. The price lives in the products row,
   // whose stripe_retail_price_id stays NULL until the founder creates the
   // Stripe Price; until then the storefront shows "coming soon" and checkout
-  // refuses. No extra-notebook add-on for Seedlings (not decided).
+  // refuses.
   {
     sku: 'seedlings_print_set',
     band: 'seedlings',
     name: 'Seedlings Printed Curriculum Set',
     books: ['tg', 'nb', 'ra'],
     maxQtyPerOrder: 2,
+  },
+  // Founder decision 2026-09-24: an extra Seedlings Student Notebook for
+  // siblings, $39.99, sold exactly like sprouts_nb_print (same cap, NB-only
+  // Lulu line, same parcel). Its products row starts with a NULL
+  // stripe_retail_price_id, so the /books box hides the option and checkout
+  // refuses it until the founder creates the Stripe Price.
+  {
+    sku: 'seedlings_nb_print',
+    band: 'seedlings',
+    name: 'Seedlings Extra Student Notebook, printed',
+    books: ['nb'],
+    maxQtyPerOrder: 5,
   },
 ];
 

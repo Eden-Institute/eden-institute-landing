@@ -14,8 +14,9 @@
 //                                   No credit is minted (Laws L-29): issueStarterCredit lives only in stripe-webhook.
 //                                   Sprouts (ET-SPR-K2-003) or Seedlings (ET-SDL-35-003, 2026-09-24): a
 //                                   Seedlings row writes band 'seedlings', exactly as stripe-webhook does.
-//   Seedlings printed set         -> the same order path with products sku seedlings_print_set. Its Lulu band
-//                                   comes from orders.lookup_key (printBandForOrder in lulu-config.ts).
+//   Seedlings printed set         -> the same order path with products sku seedlings_print_set (and, from
+//   / extra notebook                 2026-09-24, seedlings_nb_print). Its Lulu band comes from
+//                                   orders.lookup_key (printBandForOrder in lulu-config.ts).
 //   every paid invoice            -> one payments ledger row (stripe_event_id 'esa:<invoice number>', idempotent).
 //
 // SAFETY: a TEST invoice (is_test) never creates an order, a Lulu job or a delivery. It is marked paid,
@@ -39,6 +40,7 @@ const SKU_TO_PRODUCT: Record<string, { sku: string; label: string }> = {
   "ET-SPR-K2-004": { sku: "sprouts_print_set", label: "Sprouts Printed Curriculum Set" },
   "ET-SPR-K2-005": { sku: "sprouts_nb_print", label: "Sprouts Extra Student Notebook" },
   "ET-SDL-35-004": { sku: "seedlings_print_set", label: "Seedlings Printed Curriculum Set" },
+  "ET-SDL-35-005": { sku: "seedlings_nb_print", label: "Seedlings Extra Student Notebook" },
 };
 /** ESA Starter SKU -> the starter_deliveries band it delivers. */
 const STARTER_SKU_BAND: Record<string, StarterBand> = {

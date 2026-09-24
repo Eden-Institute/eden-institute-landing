@@ -78,9 +78,12 @@ Deno.test('Seedlings uses the Sprouts packages and the one page-count table', ()
     assertEquals(s.pageCount, SEEDLINGS_PAGE_COUNTS[key]);
     assert(!s.title.includes('Sprouts'), s.title);
   }
-  assertEquals(SEEDLINGS_PAGE_COUNTS, { tg: 245, nb: 185, ra: 160 });
+  assertEquals(SEEDLINGS_PAGE_COUNTS, { tg: 245, nb: 227, ra: 160 });
   assertEquals(luluProductBySku('seedlings_print_set')?.band, 'seedlings');
   assertEquals(luluProductBySku('seedlings_print_set')?.books, ['tg', 'nb', 'ra']);
+  assertEquals(luluProductBySku('seedlings_nb_print')?.books, ['nb']);
+  assertEquals(luluProductBySku('seedlings_nb_print')?.maxQtyPerOrder, luluProductBySku('sprouts_nb_print')?.maxQtyPerOrder);
+  assertEquals(luluBandForSku('seedlings_nb_print'), 'seedlings');
   assertEquals(LULU_BOOKS.length, 6);
 });
 
@@ -103,6 +106,7 @@ Deno.test('external ids: Sprouts keeps the bare key, Seedlings is prefixed, both
 
 Deno.test('printBandForOrder reads lookup_key; everything else is Sprouts', () => {
   assertEquals(printBandForOrder({ lookup_key: 'seedlings_print_set' }), 'seedlings');
+  assertEquals(printBandForOrder({ lookup_key: 'seedlings_nb_print' }), 'seedlings');
   assertEquals(printBandForOrder({ lookup_key: 'sprouts_print_set' }), 'sprouts');
   assertEquals(printBandForOrder({ lookup_key: 'sprouts_kit' }), 'sprouts');
   assertEquals(printBandForOrder({}), 'sprouts');
@@ -123,6 +127,17 @@ Deno.test('Sprouts set + extra notebooks still one job, notebook from Sprouts', 
   const out = buildLuluLineItems([item('sprouts_print_set'), item('sprouts_nb_print', 2)], printables);
   assertEquals(out.length, 4);
   assertEquals(out[3], { ...SPROUTS_SET_PAYLOAD[1], quantity: 2 });
+});
+
+Deno.test('Seedlings set + extra notebooks: one job, notebook from Seedlings', async () => {
+  const printables = await loadPrintables(fakeDb([...sproutsRows, ...seedlingsRows]));
+  const out = buildLuluLineItems([item('seedlings_print_set'), item('seedlings_nb_print', 2)], printables);
+  assertEquals(out.map((l) => l.external_id), ['seedlings-tg', 'seedlings-nb', 'seedlings-ra', 'seedlings-nb']);
+  assertEquals(out[3].interior?.source_url, 'https://x.test/g-nb.pdf');
+  assertEquals(out[3].quantity, 2);
+  const nbOnly = buildLuluLineItems([item('seedlings_nb_print')], printables);
+  assertEquals(nbOnly.map((l) => l.external_id), ['seedlings-nb']);
+  assertThrows(() => buildLuluLineItems([item('sprouts_print_set'), item('seedlings_nb_print')], printables), Error, 'mixes sprouts and seedlings');
 });
 
 Deno.test('Seedlings set routes to Seedlings rows only, with no Sprouts text', async () => {
@@ -225,6 +240,12 @@ Deno.test('print invoice: Sprouts exact, Seedlings swaps band and grades', () =>
   const g = curriculumInvoiceCreation('print', 'seedlings');
   assertEquals(g.invoice_data.description, "Homeschool curriculum purchase: Eden's Table Seedlings printed curriculum, a 3-5 Christian homeschool curriculum.");
   assert(!JSON.stringify(g).includes('Sprouts'));
+});
+
+Deno.test('receipt name for the Seedlings extra notebook says curriculum and not Sprouts', () => {
+  const r = RECEIPT_NAMES.seedlings_nb_print;
+  assertEquals(r.grade, '3-5');
+  assert(r.name.includes('Curriculum') && !r.name.includes('Sprouts'), r.name);
 });
 
 Deno.test('receipt name for the Seedlings set says curriculum and not Sprouts', () => {

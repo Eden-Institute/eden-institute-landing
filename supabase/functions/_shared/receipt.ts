@@ -55,6 +55,11 @@ export const RECEIPT_NAMES: Record<string, { name: string; grade: string }> = {
     name: "Seedlings Printed Curriculum Set: Teacher's Guide, Student Notebook and Read-Aloud Storybook (36 weeks)",
     grade: '3-5',
   },
+  // 2026-09-24. Key = the seedlings_nb_print SKU in lulu-config.ts.
+  seedlings_nb_print: {
+    name: 'Seedlings Curriculum Student Notebook, additional printed copy',
+    grade: '3-5',
+  },
   sprouts_starter_unit: {
     name: 'Sprouts Starter Unit, Digital Curriculum, Weeks 1 to 9',
     grade: 'K-2',

@@ -32,7 +32,7 @@ function stub(invoice: Record<string, unknown>, markPaidReturns = true, confirm:
     if (url.includes("/rpc/esa_mark_invoice_paid")) return ok(markPaidReturns);
     if (url.includes("/rpc/esa_confirm_payment_token") && confirm) return typeof confirm === "function" ? confirm() : confirm;
     if (url.includes("/esa_invoices?id=eq.") && method === "GET") return ok([invoice]);
-    if (url.includes("/products?")) return ok([{ id: "p-set", sku: "sprouts_print_set", fulfillment: "lulu" }, { id: "p-nb", sku: "sprouts_nb_print", fulfillment: "lulu" }, { id: "p-sdl", sku: "seedlings_print_set", fulfillment: "lulu" }]);
+    if (url.includes("/products?")) return ok([{ id: "p-set", sku: "sprouts_print_set", fulfillment: "lulu" }, { id: "p-nb", sku: "sprouts_nb_print", fulfillment: "lulu" }, { id: "p-sdl", sku: "seedlings_print_set", fulfillment: "lulu" }, { id: "p-sdl-nb", sku: "seedlings_nb_print", fulfillment: "lulu" }]);
     if (url.endsWith("/rest/v1/orders") && method === "POST") return ok([{ id: "ord-1", order_number: "ET-2001" }]);
     if (url.endsWith("/rest/v1/starter_deliveries") && method === "POST") return ok([{ id: "del-1" }]);
     return new Response("", { status: 200 });
@@ -195,6 +195,24 @@ Deno.test("Seedlings set invoice: order for seedlings_print_set, lookup_key driv
     assert(s.calls.some((c) => c.url.includes("/functions/v1/lulu-submit")));
     const { printBandForOrder } = await import("./lulu-config.ts");
     assertEquals(printBandForOrder(order), "seedlings");
+  } finally { s.restore(); }
+});
+
+Deno.test("Seedlings extra notebook invoice: order for seedlings_nb_print, NB-only Lulu job in the Seedlings band", async () => {
+  const s = stub(baseInvoice({ items: [{ sku: "ET-SDL-35-005", qty: 1, unit_cents: 3999, amount_cents: 3999 }], total_cents: 4081, fee_cents: 82 }));
+  try {
+    const r = await applyPayment("inv-1", "manual", null);
+    assertEquals(r.fulfilment, "print_queued");
+    assert(s.calls.some((c) => c.method === "GET" && c.url.includes("/products?sku=in.(seedlings_nb_print)")));
+    const order = JSON.parse(posted(s.calls, "orders")[0].body);
+    assertEquals(order.lookup_key, "seedlings_nb_print");
+    assertEquals(order.product_label, "Seedlings Extra Student Notebook");
+    const items = JSON.parse(posted(s.calls, "order_items")[0].body);
+    assertEquals(items, [{ order_id: "ord-1", product_id: "p-sdl-nb", quantity: 1, unit_price_cents: 3999 }]);
+    assertEquals(posted(s.calls, "starter_deliveries").length, 0);
+    const { printBandForOrder, luluProductBySku } = await import("./lulu-config.ts");
+    assertEquals(printBandForOrder(order), "seedlings");
+    assertEquals(luluProductBySku("seedlings_nb_print")?.books, ["nb"]);
   } finally { s.restore(); }
 });
 

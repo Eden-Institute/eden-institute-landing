@@ -109,6 +109,12 @@ Notebook, printed", $39.99, shipping tier $12 (the cart charges the MAX tier,
 so it rides in the set's parcel for no extra shipping), printable `nb` only.
 Live Stripe product `prod_VF6XcSOc0qCfid`, price `price_1UEcJx2NWfYbCZT8ClSdmBjd`, seeded by the migration.
 
+`products` row `seedlings_nb_print` (migration 20260924230000): the same add-on
+for the Seedlings set, $39.99, shipping tier $12, printable `seedlings/nb` only.
+Seeded with `stripe_retail_price_id` NULL (the /books Seedlings box hides the
+option until it is set); the live price is `price_1UJK0n2NWfYbCZT8de1VEZ49` on
+product `prod_VJxw2dagT54hOY`.
+
 `lulu_printables` rows `tg`, `nb`, `ra` with the verified package ids and page
 counts (240, 224, and NULL for the Read-Aloud until its final count is known).
 **Left NULL:** `interior_url`, `cover_url` on all three, and `page_count` on
