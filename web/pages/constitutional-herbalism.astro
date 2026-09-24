@@ -36,12 +36,16 @@ const tissueStates = [
   { name: "Relaxed", desc: "You tend toward laxity, poor muscle tone, prolapse, varicose veins, and sluggish circulation. Your body doesn't hold structure well enough." },
 ];
 
+// The Five Tenets are the Eden's Table curriculum manual's list (v1.4 §2), founder
+// decision 2026-09-11, reaffirmed 2026-09-22 and 2026-09-24: Hydration, Movement,
+// Nutrition, Rest, Connection. "Elimination" and "Spiritual Alignment" are retired;
+// the spiritual content lives in Connection (with God first, then each other).
 const tenets = [
-  { name: "Nutrition", desc: "Your body requires proper fuel. Not just calories, but living, mineral-rich, alkaline foods that nourish at the cellular level. When nutrition is deficient, no herb can compensate." },
-  { name: "Elimination", desc: "Your body must be able to remove waste efficiently. The bowels, kidneys, lungs, skin, and lymphatic system all serve as channels of elimination. When these channels are congested, toxins accumulate and symptoms multiply." },
-  { name: "Rest", desc: "Healing happens during rest. Deep, restorative sleep is not optional: it is essential to every repair process in the body. A body that cannot rest cannot heal." },
   { name: "Hydration", desc: "Water is the medium through which every cellular process occurs. Proper hydration means more than drinking water: it means the body's ability to absorb and utilize water at the tissue level." },
-  { name: "Spiritual Alignment", desc: "Health is not merely physical. Scripture teaches that the body, mind, and spirit are interconnected. Anxiety, unforgiveness, bitterness, and spiritual disconnection manifest in the body just as surely as poor nutrition does. Healing begins when we align ourselves with the One who designed us." },
+  { name: "Movement", desc: "The body was made to move. Walking, work, and daily care of the body keep circulation flowing, so nourishment reaches every tissue. A body that stays still grows stagnant." },
+  { name: "Nutrition", desc: "Your body requires proper fuel. Not just calories, but living, mineral-rich, alkaline foods that nourish at the cellular level. When nutrition is deficient, no herb can compensate." },
+  { name: "Rest", desc: "Healing happens during rest. Deep, restorative sleep is not optional: it is essential to every repair process in the body. A body that cannot rest cannot heal." },
+  { name: "Connection", desc: "Health is not merely physical. Connection begins with God, through prayer and Scripture, and reaches out to family and the people around us. Anxiety, unforgiveness, bitterness, and isolation show up in the body just as surely as poor nutrition does. Healing begins when we are rightly connected to the One who designed us, and to each other." },
 ];
 
 const biblicalDifferences = [
@@ -100,7 +104,7 @@ const faqJsonLd = {
       name: "What are the Five Tenets of Health?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "The Eden Institute teaches five foundational conditions the body needs to heal as God designed it: Nutrition, Elimination, Rest, Hydration, and Spiritual Alignment. When all five are in balance, the body heals itself and herbs serve as allies in that process rather than replacements for it.",
+        text: "The Eden Institute teaches five foundational conditions the body needs to heal as God designed it: Hydration, Movement, Nutrition, Rest, and Connection. When all five are in balance, the body heals itself and herbs serve as allies in that process rather than replacements for it.",
       },
     },
   ],
