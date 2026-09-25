@@ -53,6 +53,9 @@ import { sendMetaCapiPurchase } from "../_shared/meta-capi.ts"
 import { getGuideByNickname, getGuideBySlug } from "../_shared/guide/registry.ts"
 import { STARTER_BANDS, StarterBand, starterBandForLookupKey, starterBandHasCredit } from "../_shared/starter-config.ts"
 import { starterOrderLabel } from "../_shared/receipt.ts"
+// Back to Eden PDFs, 2026-09-25.
+import { BOOK_RECEIPT_NAMES, bookDigitalReceipt } from "../_shared/receipt.ts"
+import { bookDigitalBySku, newDownloadToken, sendBookDeliveryEmail } from "../_shared/book-shop.ts"
 import { creditIssuanceOpen, issueStarterCreditForBand, markCreditRedeemed } from "../_shared/starter-credit.ts"
 import { escapeLikePattern } from "../_shared/like-escape.ts"
 import { classifyLearnWorldsCharge } from "../_shared/learnworlds-charge.ts"
@@ -772,6 +775,14 @@ async function withPaymentCard(session: Stripe.Checkout.Session): Promise<Stripe
 }
 
 async function handleOneOffPayment(session: Stripe.Checkout.Session) {
+  // ---- Branch 0a: Back to Eden PDF (2026-09-25) ----
+  // Detected by book_digital_sku, stamped only by create-checkout's book branch.
+  const bookSku = (session.metadata?.book_digital_sku as string | undefined) ?? null
+  if (bookSku) {
+    await handleBookDigitalPurchase(session, bookSku)
+    return
+  }
+
   // ---- Branch 0b: print shop (Lulu print-on-demand books) ----
   // Detected by the print_sku metadata stamped by create-checkout's print branch.
   // Record the order (is_preorder=false, fulfillment='lulu'), paid -> ready_to_fulfill
@@ -1081,7 +1092,7 @@ async function recordDigitalOrder(
     ? `Deep-Dive Guide${nickname ? `: ${nickname}` : ""}`
     : starterBandForLookupKey(lookupKey)
       ? starterOrderLabel(lookupKey)
-      : lookupKey
+      : BOOK_RECEIPT_NAMES[lookupKey] ?? lookupKey
 
   const { error } = await adminClient.from("orders").upsert({
     stripe_checkout_session_id: session.id,
@@ -1104,6 +1115,95 @@ async function recordDigitalOrder(
     throw new Error(`digital order upsert failed for session ${session.id}: ${error.message}`)
   }
   console.log(`Recorded digital sale: ${label} ${session.amount_total ?? "?"} ${session.currency ?? ""} session=${session.id}`)
+}
+
+// ---------- Back to Eden PDF (2026-09-25) ----------
+//
+// 1. Record the sale (orders, status delivered, idempotent on the session).
+// 2. Write the book_downloads row with a fresh token (idempotent on the session;
+//    a redelivered event keeps the first token, so the link the buyer already has
+//    keeps working).
+// 3. Email the link unless it has already gone. A send failure is recorded on the
+//    row and thrown, so Stripe redelivers and the send is tried again. The buyer
+//    is never stuck meanwhile: the thank-you page serves the same download by
+//    session id.
+async function handleBookDigitalPurchase(session: Stripe.Checkout.Session, sku: string) {
+  const book = bookDigitalBySku(sku)
+  if (!book) {
+    console.error(`[${session.id}] book_digital_sku '${sku}' is not a Back to Eden PDF; nothing delivered`)
+    return
+  }
+  if (session.payment_status !== "paid") {
+    console.warn(`[${session.id}] book PDF session completed with payment_status=${session.payment_status}; NOT delivered yet`)
+    return
+  }
+  const email = (session.customer_details?.email ?? session.customer_email ?? "").toLowerCase().trim() || null
+  const name = (session.customer_details?.name ?? "").trim() || null
+
+  await recordDigitalOrder(await withPaymentCard(session), book.sku, email)
+  await syncPurchaseProperties(email, session.id)
+
+  const { data: order } = await adminClient
+    .from("orders")
+    .select("id, order_number, created_at, amount_total_cents, tax_cents, raw")
+    .eq("stripe_checkout_session_id", session.id)
+    .maybeSingle()
+
+  const { error: insErr } = await adminClient.from("book_downloads").upsert({
+    stripe_checkout_session_id: session.id,
+    order_id: order?.id ?? null,
+    sku: book.sku,
+    email,
+    purchaser_name: name,
+    download_token: newDownloadToken(),
+  }, { onConflict: "stripe_checkout_session_id", ignoreDuplicates: true })
+  if (insErr) throw new Error(`book_downloads insert failed for ${session.id}: ${insErr.message}`)
+
+  const { data: dl, error: dlErr } = await adminClient
+    .from("book_downloads")
+    .select("id, download_token, email_sent_at, email_attempts")
+    .eq("stripe_checkout_session_id", session.id)
+    .single()
+  if (dlErr || !dl) throw new Error(`book_downloads re-read failed for ${session.id}: ${dlErr?.message ?? "no row"}`)
+  if (dl.email_sent_at) {
+    console.log(`[${session.id}] book download email already sent; nothing to do`)
+    return
+  }
+  if (!email) {
+    console.error(`[${session.id}] book PDF bought with no email on the session; download is on the thank-you page only`)
+    return
+  }
+
+  let receipt = null
+  try {
+    receipt = order ? bookDigitalReceipt(order, book.sku) : null
+  } catch (err) {
+    console.warn(`[${session.id}] book receipt not built: ${err instanceof Error ? err.message : String(err)}`)
+  }
+  try {
+    const id = await sendBookDeliveryEmail({
+      firstName: name ? name.split(/\s+/)[0] : null,
+      email,
+      book,
+      downloadToken: dl.download_token,
+      receipt,
+    })
+    await adminClient.from("book_downloads").update({
+      email_sent_at: new Date().toISOString(),
+      email_attempts: (dl.email_attempts ?? 0) + 1,
+      last_error: null,
+      updated_at: new Date().toISOString(),
+    }).eq("id", dl.id)
+    console.log(`[${session.id}] ${book.sku} delivered; download email queued with Resend id=${id ?? "(none)"}`)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    await adminClient.from("book_downloads").update({
+      email_attempts: (dl.email_attempts ?? 0) + 1,
+      last_error: message.slice(0, 500),
+      updated_at: new Date().toISOString(),
+    }).eq("id", dl.id)
+    throw new Error(`book download email failed for ${session.id}: ${message}`)
+  }
 }
 
 // ---------- Starter Unit ----------

@@ -28,7 +28,7 @@ describe("src/lib/navLinks.ts", () => {
       ["Freebies", "/freebies"],
       ["Adult Courses", "/courses"],
       ["Herb Reference App", "/apothecary"],
-      ["Buy the Book", "https://www.amazon.com/dp/B0GPW5BZ32?tag=theedeninstit-20"],
+      ["Buy the Book", "/back-to-eden"],
       ["Contact", "/contact"],
     ]);
   });
@@ -129,7 +129,7 @@ describe("SPA Navbar renders the shared list", () => {
   it("sends the logo to the static homepage and keeps the link attributes", () => {
     const { container } = renderNav();
     expect(within(container).getByRole("link", { name: /The Eden Institute/ }).getAttribute("href")).toBe("/");
-    expect(within(container).getByRole("link", { name: "Buy the Book" }).getAttribute("target")).toBe("_blank");
+    expect(within(container).getByRole("link", { name: "Buy the Book" }).getAttribute("target")).toBeNull();
     expect(
       within(container).getByRole("link", { name: "Discover your Body Pattern" }).getAttribute("data-cta"),
     ).toBe("nav-take-quiz");

@@ -3,7 +3,7 @@
 // _shared/nurture-email-templates.ts; that duplicate has been removed so
 // _shared is the single source of truth for these templates.
 import { buildNurtureEmail1 } from '../_shared/nurture-email-templates.ts';
-import { buildBandWaitlistEmail, buildHomeschoolEmail, buildSeedlingsMagnetEmail, buildSproutsMagnetEmail } from '../_shared/welcome-email-templates.ts';
+import { buildBackToEdenChapter1Email, buildBandWaitlistEmail, buildHomeschoolEmail, buildSeedlingsMagnetEmail, buildSproutsMagnetEmail } from '../_shared/welcome-email-templates.ts';
 import { bandFromSource, buildBandWaitlistRow } from '../_shared/band-waitlist.ts';
 import { buildPodcastWelcomeEmail } from '../_shared/podcast-email-templates.ts';
 import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
@@ -623,6 +623,10 @@ Deno.serve(async (req) => {
         emailContent = buildSproutsMagnetEmail(firstNameHtml);
       } else if (source === 'seedlings_magnet') {
         emailContent = buildSeedlingsMagnetEmail(firstNameHtml);
+      } else if (source === 'back_to_eden_ch1') {
+        // 2026-09-25: free Chapter 1 of Back to Eden from /back-to-eden. Its source is
+        // excluded from the Eden's Table launch sequence (migration 20260925100000).
+        emailContent = buildBackToEdenChapter1Email(firstNameHtml);
       } else if (waitlistBand) {
         // 'cultivators_waitlist' / 'practitioners_waitlist' (2026-09-24). These used
         // to fall through to the generic homeschool welcome below.

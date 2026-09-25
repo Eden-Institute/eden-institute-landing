@@ -1,0 +1,670 @@
+---
+// /back-to-eden — the book page for Back to Eden: A Biblical Foundation for Herbal Healing.
+// Built 2026-09-25 (founder: the "Buy the Book" link should land on a page that makes the case
+// that this book shaped everything, then pitches the course; Amazon is being cut out).
+//
+// Order of the page follows standard long-form book sales pages: promise + cover + two CTAs above
+// the fold, the reader's problem in the author's own words, why this book (the framework behind
+// every Eden product), what you will discover, what is inside, the three editions with prices,
+// a free-chapter capture, the Tier 1 course, the author, everything else, FAQ, final CTA, and a
+// sticky mobile buy bar. No reviews yet (founder: none to quote; add real ones after the proofs).
+//
+// Copy sources: the Amazon description and About the Author are Camila's own; chapter blurbs are the
+// manuscript's table of contents; Tier 1 facts come from /courses; shipping time and refund terms
+// from /books and /returns. Prices are the founder's 2026-09-25 "mid ladder".
+//
+// SELLING IS NOT LIVE YET. BUY_LIVE stays false until the book products exist in Stripe and the
+// print/digital checkout lands (separate PR). Until then each edition shows "Coming soon" and the
+// free Chapter 1 is the call to action. The Chapter 1 buttons open the shared waitlist modal
+// (WaitlistController) with source back_to_eden_ch1; resend-waitlist sends the chapter.
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+import WaitlistController from "../components/islands/WaitlistController.tsx";
+import BookCheckoutController from "../components/islands/BookCheckoutController.tsx";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { BookOpen, CheckCircle, Download, Headphones, Leaf, Printer, Search, Smartphone, Sprout } from "lucide-react";
+
+const BUY_LIVE = false;
+const COURSE = "/go/course?src=back-to-eden";
+
+const btn = (variant: "eden" | "eden-outline", extra = "") =>
+  cn(buttonVariants({ variant, size: "xl" }),
+     "text-center w-full sm:w-auto h-auto whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6", extra);
+
+const ch1 = {
+  "data-waitlist-source": "back_to_eden_ch1",
+  "data-waitlist-title": "Read Chapter 1 free",
+  "data-waitlist-subtitle":
+    "Check your inbox. Chapter 1 of Back to Eden, The Life Force Has a Name, is on its way now, with the Reflect & Apply questions at the end.",
+  "data-waitlist-cta-href": "https://edeninstitute.health/back-to-eden#editions",
+  "data-waitlist-cta-label": "See the three editions",
+  "data-waitlist-cta-blurb": "While you wait: the whole book comes as a paperback, a spiral Study & Journal Edition, or a Study Guide, in print or as a download.",
+};
+
+// Counts measured from the built books (2026-09-25): 10 study guides with 107 key terms, 50 Reflect &
+// Apply prompts (5 per chapter), 9 Tier 1 worksheets + the 13-page capstone, 9 concept graphics, 10 photo
+// chapter openers, 10 wrap-up pages, 3 herb monograph templates. The worksheets are the Tier 1 course
+// downloads (Eden Institute/Tier 1/Course Downloads), so "the same worksheets as the $97 course" is literal.
+const editions = [
+  {
+    id: "study-journal",
+    name: "Study & Journal Edition",
+    badge: "Best for studying",
+    img: "/books/back-to-eden-study-journal.webp",
+    size: "8.5 × 11 in · spiral bound · full color · 386 pages",
+    blurb: "The whole book and the whole workbook in one. It lies flat on the table, so your hands are free to write.",
+    bestFor: "Anyone who wants to study this, not just read it.",
+    value: "Includes the same worksheets students use in the $97 Tier 1 course.",
+    includes: [
+      "The complete book, all 10 chapters, in large 12 pt type",
+      "10 chapter study guides with 107 key terms",
+      "A notes column beside every page of text",
+      "50 Reflect & Apply prompts with room to write",
+      "9 Tier 1 course worksheets plus the capstone project",
+      "9 full-color concept graphics",
+    ],
+    details: [
+      ["The complete book", "All ten chapters of Back to Eden, set in 12 pt type, with a lined notes column running beside every page of text. Underline, argue, ask questions in the margin. It is yours."],
+      ["A study guide before every chapter", "The Scripture anchor, the one key idea, what you will be able to do when you finish, and the key terms, 107 across the book. Read it first and you will know what to look for."],
+      ["Reflect & Apply journal pages", "Every chapter ends with five questions, and here each one has room for a real answer. Fifty prompts that turn what you read into what you understand about your own body and family."],
+      ["The Tier 1 course worksheets", "Nine worksheets from The Eden Institute's Tier 1 course, placed right after the chapter they belong to: the Forgotten Lineage timeline, Spot the Reductionism, the Symptom Reinterpretation exercise, the Five Tenets personal audit, the Terrain timeline, the Family Constitution observation sheet, Herb and Person matching, the Sensory Exploration guide, and the Three Herb deep-study journal. Plus the 13-page capstone project that pulls it all together."],
+      ["Nine full-color concept graphics", "Two Models of Health, Symptoms Are Signals, the Five Tenets, how acute illness becomes chronic, Constitutional Polarities, the Holistic Plant, Taste as Pharmacology, the Forgotten Lineage timeline, and How to Begin. The big ideas, on one page each."],
+      ["Room to make it yours", "A photo opening page for every chapter, a wrap-up page after each one, notes pages throughout, and three herb monograph templates for the first three plants you choose to learn deeply."],
+    ],
+    print: 64, ship: 10, digital: 29,
+  },
+  {
+    id: "paperback",
+    name: "Paperback",
+    badge: "Pairs with the Study Guide",
+    img: "/books/back-to-eden-paperback.webp",
+    size: "6 × 9 in · paperback · 186 pages",
+    blurb: "The book itself, in large, easy-to-read type. Easy to carry, easy to give.",
+    bestFor: "Reading, carrying with you, and giving as a gift.",
+    value: "Add the Study Guide any time for the full workbook.",
+    includes: [
+      "The complete book, all 10 chapters",
+      "Large 12 pt type that is easy on the eyes",
+      "Every chapter's Reflect & Apply questions",
+      "A resource page linking to the quiz, the app, the courses and more",
+    ],
+    details: [
+      ["The complete book", "All ten chapters of Back to Eden in three parts: The Foundation, The Body Was Designed to Heal, and Reading the Person."],
+      ["Made to be read", "Set in 12 pt type on a comfortable 6 × 9 page, so it reads easily at the kitchen table or in the car line."],
+      ["Questions at the end of every chapter", "Each chapter closes with its Reflect & Apply questions. If you want room to answer them, the Study Guide is built to sit right beside this book."],
+    ],
+    print: 24.99, ship: 6, digital: 14.99,
+  },
+  {
+    id: "study-guide",
+    name: "Study Guide",
+    badge: "Pairs with the paperback",
+    img: "/books/back-to-eden-study-guide.webp",
+    size: "8.5 × 11 in · spiral bound · full color · 266 pages",
+    blurb: "Everything in the Study & Journal Edition except the book text. Keep it open beside the paperback.",
+    bestFor: "Readers who already have the book, and study partners reading together.",
+    value: "Includes the same worksheets students use in the $97 Tier 1 course.",
+    includes: [
+      "10 chapter study guides with 107 key terms",
+      "50 Reflect & Apply prompts with room to write",
+      "9 Tier 1 course worksheets plus the capstone project",
+      "9 full-color concept graphics",
+      "Wrap-up and notes pages for every chapter",
+    ],
+    details: [
+      ["A study guide for every chapter", "The Scripture anchor, the key idea, what you will be able to do, and 107 key terms across the book."],
+      ["Reflect & Apply journal pages", "All fifty prompts, each with room for a real answer."],
+      ["The Tier 1 course worksheets", "The same nine worksheets and the 13-page capstone project as the Study & Journal Edition."],
+      ["Nine full-color concept graphics", "The big ideas of each chapter, one page each."],
+      ["Wrap-up, notes and monograph pages", "A wrap-up page after every chapter, notes pages throughout, and three herb monograph templates."],
+    ],
+    print: 44, ship: 10, digital: 19,
+  },
+];
+
+const lookInside = [
+  ["/books/bte-look-chapter-page.webp", "A photo page opens every chapter"],
+  ["/books/bte-look-study-guide.webp", "A study guide before every chapter"],
+  ["/books/bte-look-notes-column.webp", "A notes column beside the text"],
+  ["/books/bte-look-journal.webp", "Reflect & Apply, with room to write"],
+  ["/books/bte-look-worksheet.webp", "The Tier 1 course worksheets"],
+  ["/books/bte-look-paperback.webp", "The paperback, in large 12 pt type"],
+];
+
+// The nine concept graphics (Study & Journal Edition and Study Guide), picked from a page-by-page scan of
+// the 380-page book on 2026-09-25 as the pages that make the case fastest: each is one chapter's argument on one page.
+const ideas = [
+  ["lineage", "The Forgotten Lineage", 2, "From Scripture to the monasteries to the Eclectics, and to you."],
+  ["two-models", "Two Models of Health", 3, "The deficiency model and the terrain model, side by side."],
+  ["symptoms", "Symptoms Are Signals", 5, "What you see is not what is wrong."],
+  ["five-tenets", "The Five Tenets of Health", 6, "Hydration, Movement, Nutrition, Rest, Connection."],
+  ["terrain", "Acute, Chronic & Terrain", 7, "How an acute illness becomes a chronic one, stage by stage."],
+  ["constitution", "Constitutional Polarities", 8, "Hot or cold, damp or dry, tense or relaxed."],
+  ["holistic-plant", "The Holistic Plant", 9, "Five lenses for reading God's provision."],
+  ["taste", "Taste as Pharmacology", 9, "The six tastes and what each one does."],
+  ["how-to-begin", "How to Begin", 10, "Five movements from understanding into practice."],
+];
+
+// Pull quotes, all from the manuscript (chapter noted). Not reviews.
+const quotes = [
+  ["You have not borrowed anyone else's inheritance. You have simply forgotten your own.", 2],
+  ["Symptom suppression is tape over the dashboard. It does not repair the car. It removes the only signal telling you the car needs repair.", 5],
+  ["The body is not confused. It is communicating in the only language available to it.", 5],
+  ["A sound mind is not merely correct theology. It is regulated physiology.", 6],
+  ["Terrain is not fate. It is history expressed biologically.", 7],
+  ["That is not herbalism. That is green allopathy with better branding.", 9],
+];
+
+const whoFor = [
+  "You've used herbs for a while and want to understand why they work, or why they haven't.",
+  "You want a framework rooted in Scripture, not borrowed from another religion's philosophy.",
+  "You teach Eden's Table at home and want the adult foundation underneath it.",
+  "You're thinking about the Tier 1 course and want to start with the book it's built on.",
+];
+
+// Comparison table: [label, study-journal, paperback, study-guide]. true/false or text.
+const compare: [string, boolean | string, boolean | string, boolean | string][] = [
+  ["The complete book text", true, true, false],
+  ["Large 12 pt type", true, true, "n/a"],
+  ["Study guide for every chapter", true, false, true],
+  ["Notes column beside the text", true, false, false],
+  ["Reflect & Apply with room to write", true, false, true],
+  ["9 Tier 1 worksheets + capstone", true, false, true],
+  ["9 full-color concept graphics", true, false, true],
+  ["Lies flat (spiral bound)", true, false, true],
+];
+const money = (n: number) => (Number.isInteger(n) ? `$${n}` : `$${n.toFixed(2)}`);
+
+const discover = [
+  "Why your body's symptoms are signals, not mistakes, and why suppressing them creates chronic disease",
+  "How God designed the body to heal itself, and what gets in the way",
+  "The five tenets of health, and why foundation always comes before any herb",
+  "What your constitution is, why it matters more than any diagnosis, and how to recognize your own",
+  "How plants speak the same language as your body, through taste, energy, and tissue affinity",
+  "Why the most important clinical skill isn't knowing herbs, it's learning to see the person in front of you",
+];
+
+const chapters = [
+  ["The Life Force Has a Name", "On the intelligence of living systems, the failure of mechanistic medicine, and what Scripture reveals about the source of biological order."],
+  ["The Forgotten Lineage", "How the Christian tradition generated, preserved, and democratized herbal medicine across two thousand years, and why you belong to that lineage."],
+  ["The Great Reduction", "How modern medicine reduced the body from a living whole to a collection of parts, and what we lost in that reduction."],
+  ["Fear as a Business Model", "On the weaponization of fear in healthcare, the erosion of bodily trust, and what it means to reclaim stewardship of your own health."],
+  ["Symptoms Are Signals", "Why symptoms are not the enemy, what the body is actually doing when it produces them, and the cost of suppression."],
+  ["The Five Tenets of Health", "The foundational principles that govern how the body sustains, defends, and restores itself, and how herbal medicine works with each of them."],
+  ["Acute, Chronic & the Formation of Terrain", "The difference between a crisis response and a constitutional pattern, how chronic disease develops, and why terrain, not pathogen, is the primary field of herbal work."],
+  ["Constitution", "The art of reading a person, their patterns, tendencies, and predispositions, before reaching for any remedy."],
+  ["The Holistic Plant", "How to read an herb the way traditional herbalists read it, through taste, energetics, tissue affinity, and the logic of its design."],
+  ["How to Begin", "Five practical movements that carry you from understanding into practice, without rushing past the foundation."],
+];
+
+const everything = [
+  { icon: Search, title: "Discover Your Body Pattern", body: "The quiz that reads your constitutional pattern, the work of Chapter 8.", href: "/assessment", cta: "bte-cross-quiz" },
+  { icon: Sprout, title: "Eden's Table", body: "A Christ-centered homeschool herbalism curriculum, one plant a week. Week 1 is free.", href: "/homeschool", cta: "bte-cross-homeschool" },
+  { icon: Smartphone, title: "Eden Apothecary", body: "The Eden Institute herb reference app.", href: "/apothecary", cta: "bte-cross-app" },
+  { icon: Headphones, title: "Tales & Table Talk", body: "A weekly read-aloud podcast for moms and their littles.", href: "/tales-and-table-talk", cta: "bte-cross-podcast" },
+  { icon: Leaf, title: "Order Your Herbs", body: "Source the herbs used across the Eden's Table curriculum.", href: "/homeschool/herbs", cta: "bte-cross-herbs" },
+];
+
+const faqs = [
+  ["Which edition should I choose?",
+   "If you want to study, take notes and do the worksheets, choose the Study & Journal Edition: it holds the whole book and the workbook in one spiral book that lies flat. If you already have the paperback, or want a lighter book to carry, pair the paperback with the Study Guide. If you just want to read, the paperback is all you need."],
+  ["Print or digital?",
+   "Print editions are printed to order and mailed to you. Digital editions are PDFs you can read on any device and print at home, and they are the same pages as the print books, so the journal pages and worksheets print ready to use."],
+  ["How long does a printed book take?",
+   "Each copy is printed when you order it and is usually at your door in about two to three weeks."],
+  ["Can I return it?",
+   "Printed books are made just for you, so you have 48 hours after ordering to cancel for a full refund. If a book arrives damaged or misprinted, send a photo within 14 days and we replace it at no cost. Digital downloads can be refunded in full until you download them. The full policy is on our returns page."],
+  ["Is this medical advice?",
+   "No. This book is for education. It does not diagnose, treat, cure or prevent any disease, and it is not a substitute for a qualified healthcare provider, especially if you are pregnant, nursing, managing a chronic condition or taking prescription medication."],
+  ["Do I have to be a Christian to read it?",
+   "The book is written openly from a Christian worldview; Scripture is the lens, not decoration. Readers from other traditions are welcome, and the framework is useful whatever you believe."],
+];
+
+const meta = {
+  title: "Back to Eden: A Biblical Foundation for Herbal Healing | The Eden Institute",
+  description:
+    "The book behind everything The Eden Institute teaches. Learn the framework that makes every herb make sense: symptoms as signals, the five tenets, constitution, and reading the whole plant. Paperback, Study & Journal Edition, or Study Guide, in print or as a download. Read Chapter 1 free.",
+  canonical: "https://edeninstitute.health/back-to-eden",
+};
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Book",
+  name: "Back to Eden: A Biblical Foundation for Herbal Healing",
+  author: { "@type": "Person", name: "Camila Johnson" },
+  publisher: { "@type": "Organization", name: "The Eden Institute", url: "https://edeninstitute.health" },
+  inLanguage: "en",
+  url: meta.canonical,
+  image: "https://edeninstitute.health/books/back-to-eden-paperback.webp",
+  bookEdition: ["Paperback", "Study & Journal Edition", "Study Guide"],
+};
+---
+
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical}
+  ogImage="https://edeninstitute.health/books/back-to-eden-paperback.webp" jsonLd={jsonLd}>
+
+  {/* HERO */}
+  <section class="px-6 pt-14 pb-16" style="background-color:hsl(var(--eden-forest))">
+    <div class="mx-auto grid max-w-5xl items-center gap-10 md:grid-cols-[1.25fr_1fr]">
+      <div class="text-center md:text-left">
+        <p class="font-accent mb-3 text-xs uppercase tracking-[0.2em]" style="color:hsl(var(--eden-gold))">The book behind everything we teach</p>
+        <h1 class="font-serif text-4xl font-bold leading-tight text-white md:text-5xl">Back to Eden</h1>
+        <p class="mt-2 font-serif text-xl italic text-white/85 md:text-2xl">A Biblical Foundation for Herbal Healing</p>
+        <p class="mt-6 font-body text-base leading-relaxed text-white/85 md:text-lg">
+          Why aren't the herbs working? Not because the plants have failed. Not because you did anything wrong.
+          <strong class="text-white">Because no one ever taught you the framework.</strong> This book gives it back.
+        </p>
+        <div class="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:justify-center md:justify-start">
+          <a href="#editions" data-cta="bte-hero-editions" class={btn("eden", "bg-[hsl(var(--eden-gold))] text-[hsl(var(--eden-bark))] border-[hsl(var(--eden-gold))] hover:bg-[hsl(var(--eden-gold)/0.9)]")}>Choose your edition</a>
+          <button type="button" data-cta="bte-hero-ch1" {...ch1} class={btn("eden-outline", "bg-transparent text-white border-white/70 hover:bg-white/10")}>Read Chapter 1 free</button>
+        </div>
+        <p class="mt-4 font-body text-xs text-white/70">Paperback, spiral Study &amp; Journal Edition, or Study Guide · in print or as an instant download</p>
+        <ul class="mt-6 flex flex-wrap justify-center gap-x-5 gap-y-2 font-body text-xs uppercase tracking-wider md:justify-start" style="color:hsl(var(--eden-gold))">
+          <li>10 chapters</li><li>107 key terms</li><li>50 reflection prompts</li><li>9 course worksheets</li>
+        </ul>
+      </div>
+      <div class="mx-auto w-56 md:w-72">
+        <img src="/books/back-to-eden-paperback.webp" width="640" height="960" alt="Back to Eden by Camila Johnson, book cover"
+          class="w-full rounded-sm shadow-2xl ring-1 ring-black/20" fetchpriority="high" />
+      </div>
+    </div>
+  </section>
+
+  {/* THE PROBLEM, in Camila's words */}
+  <section class="bg-background px-6 py-16">
+    <div class="mx-auto max-w-2xl font-body text-lg leading-relaxed" style="color:hsl(var(--eden-bark))">
+      <p>You've read the books. You've bought the tinctures. You've followed the protocols. And still, you don't feel the results you expected.</p>
+      <p class="mt-5">Herbal medicine was never designed to be a list of remedies. It was designed to restore, the way God's original design intended. But somewhere along the way, we started treating herbs like pharmaceuticals: one herb, one symptom, one protocol. And we lost the whole picture.</p>
+      <p class="mt-5 font-serif text-2xl font-bold" style="color:hsl(var(--eden-forest))"><em>Back to Eden</em> gives you that picture back.</p>
+      <p class="mt-5">This is not a remedy guide. There are no protocols here, no "best herb for anxiety" lists. This is a foundation, the kind that makes every herb you've ever studied suddenly make sense.</p>
+    </div>
+  </section>
+
+  {/* WHO IT'S FOR */}
+  <section class="px-6 pb-16 bg-background">
+    <div class="mx-auto max-w-3xl rounded-lg border p-8" style="border-color:hsl(var(--eden-gold) / 0.4);background-color:hsl(var(--eden-parchment))">
+      <h2 class="mb-5 font-serif text-2xl font-bold" style="color:hsl(var(--eden-bark))">This book is for you if</h2>
+      <ul class="space-y-3">
+        {whoFor.map((w) => (
+          <li class="flex gap-3 font-body" style="color:hsl(var(--eden-bark))"><CheckCircle className="mt-1 h-5 w-5 flex-shrink-0" color="hsl(var(--eden-forest))" />{w}</li>
+        ))}
+      </ul>
+      <p class="mt-6 font-body text-sm italic text-muted-foreground">If you want a list of the best herb for every ailment, this isn't that book. Those exist in abundance, and they are part of the problem.</p>
+    </div>
+  </section>
+
+  {/* WHERE IT ALL STARTED */}
+  <section class="px-6 py-16" style="background-color:hsl(var(--eden-cream))">
+    <div class="mx-auto max-w-5xl">
+      <div class="mx-auto mb-10 max-w-2xl text-center">
+        <p class="font-accent mb-2 text-xs uppercase tracking-[0.2em]" style="color:hsl(var(--eden-gold-ink))">Where it all started</p>
+        <h2 class="font-serif text-3xl font-bold" style="color:hsl(var(--eden-bark))">Everything at The Eden Institute grows out of this book</h2>
+        <p class="mt-4 font-body text-muted-foreground">
+          The five tenets our homeschool families learn at the kitchen table, the body patterns behind our quiz and our herb app,
+          and the Tier 1 course, which teaches this book lesson by lesson. It all starts here.
+        </p>
+      </div>
+      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <a href={COURSE} data-cta="bte-origin-course" class="rounded-lg border bg-white p-6 transition-shadow hover:shadow-md" style="border-color:hsl(var(--eden-gold) / 0.4)">
+          <BookOpen className="mb-3 h-7 w-7" color="hsl(var(--eden-gold))" />
+          <h3 class="font-serif text-lg font-bold" style="color:hsl(var(--eden-forest))">The Tier 1 course</h3>
+          <p class="mt-2 font-body text-sm text-muted-foreground">Ten lessons that walk through this book with Camila.</p>
+        </a>
+        <a href="/homeschool" data-cta="bte-origin-homeschool" class="rounded-lg border bg-white p-6 transition-shadow hover:shadow-md" style="border-color:hsl(var(--eden-gold) / 0.4)">
+          <Sprout className="mb-3 h-7 w-7" color="hsl(var(--eden-gold))" />
+          <h3 class="font-serif text-lg font-bold" style="color:hsl(var(--eden-forest))">Eden's Table</h3>
+          <p class="mt-2 font-body text-sm text-muted-foreground">The same framework, taught to children one plant a week.</p>
+        </a>
+        <a href="/assessment" data-cta="bte-origin-quiz" class="rounded-lg border bg-white p-6 transition-shadow hover:shadow-md" style="border-color:hsl(var(--eden-gold) / 0.4)">
+          <Search className="mb-3 h-7 w-7" color="hsl(var(--eden-gold))" />
+          <h3 class="font-serif text-lg font-bold" style="color:hsl(var(--eden-forest))">The Body Pattern quiz</h3>
+          <p class="mt-2 font-body text-sm text-muted-foreground">Chapter 8's constitution work, as a quiz you can take today.</p>
+        </a>
+        <a href="/apothecary" data-cta="bte-origin-app" class="rounded-lg border bg-white p-6 transition-shadow hover:shadow-md" style="border-color:hsl(var(--eden-gold) / 0.4)">
+          <Smartphone className="mb-3 h-7 w-7" color="hsl(var(--eden-gold))" />
+          <h3 class="font-serif text-lg font-bold" style="color:hsl(var(--eden-forest))">Eden Apothecary</h3>
+          <p class="mt-2 font-body text-sm text-muted-foreground">Chapter 9's way of reading a plant, in an herb reference app.</p>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  {/* WHAT YOU WILL DISCOVER */}
+  <section class="bg-background px-6 py-16">
+    <div class="mx-auto max-w-3xl">
+      <h2 class="mb-8 text-center font-serif text-3xl font-bold" style="color:hsl(var(--eden-bark))">What you'll discover</h2>
+      <ul class="space-y-4">
+        {discover.map((d) => (
+          <li class="flex gap-3 font-body text-base leading-relaxed" style="color:hsl(var(--eden-bark))">
+            <CheckCircle className="mt-1 h-5 w-5 flex-shrink-0" color="hsl(var(--eden-forest))" />{d}
+          </li>
+        ))}
+      </ul>
+      <blockquote class="scripture-block mx-auto mt-10 max-w-xl text-center text-base text-muted-foreground">
+        "And God said, 'See, I have given you every herb that yields seed which is on the face of all the earth.'"
+        <footer class="mt-2 font-body text-xs font-medium uppercase tracking-wider not-italic" style="color:hsl(var(--eden-forest))">Genesis 1:29</footer>
+      </blockquote>
+    </div>
+  </section>
+
+  {/* LOOK INSIDE */}
+  <section class="bg-background px-6 py-16">
+    <div class="mx-auto max-w-6xl">
+      <div class="mx-auto mb-10 max-w-2xl text-center">
+        <h2 class="font-serif text-3xl font-bold" style="color:hsl(var(--eden-bark))">Look inside</h2>
+        <p class="mt-3 font-body text-muted-foreground">Real pages from the Study &amp; Journal Edition. The Study Guide has every one of them except the book text.</p>
+      </div>
+      <div class="-mx-6 flex snap-x snap-mandatory gap-5 overflow-x-auto px-6 pb-4 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 lg:grid-cols-6">
+        {lookInside.map(([src, cap]) => (
+          <figure class="w-44 flex-shrink-0 snap-start md:w-auto">
+            <img src={src} alt={cap} width="553" height="716" loading="lazy" class="w-full rounded-sm border shadow-md" style="border-color:hsl(var(--eden-sage) / 0.4)" />
+            <figcaption class="mt-2 text-center font-body text-xs text-muted-foreground">{cap}</figcaption>
+          </figure>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* THE BIG IDEAS */}
+  <section class="px-6 py-16" style="background-color:hsl(var(--eden-cream))">
+    <div class="mx-auto max-w-6xl">
+      <div class="mx-auto mb-10 max-w-2xl text-center">
+        <p class="font-accent mb-2 text-xs uppercase tracking-[0.2em]" style="color:hsl(var(--eden-gold-ink))">In full color</p>
+        <h2 class="font-serif text-3xl font-bold" style="color:hsl(var(--eden-bark))">The big ideas, one page each</h2>
+        <p class="mt-3 font-body text-muted-foreground">Nine concept graphics in the Study &amp; Journal Edition and the Study Guide. Tap one to see it full size.</p>
+      </div>
+      <div class="grid grid-cols-2 gap-5 md:grid-cols-3">
+        {ideas.map(([slug, title, ch, cap]) => (
+          <a href={`/books/bte-idea-${slug}.webp`} target="_blank" rel="noopener" data-cta={`bte-idea-${slug}`} class="group block">
+            <img src={`/books/bte-idea-${slug}.webp`} alt={`${title}, concept graphic from Chapter ${ch} of Back to Eden`} width="1000" height="1615" loading="lazy"
+              class="aspect-[3/4] w-full rounded-md border object-cover object-top shadow-sm transition-shadow group-hover:shadow-lg" style="border-color:hsl(var(--eden-gold) / 0.35)" />
+            <p class="mt-3 font-accent text-[11px] uppercase tracking-widest" style="color:hsl(var(--eden-gold-ink))">Chapter {ch}</p>
+            <h3 class="font-serif text-base font-bold md:text-lg" style="color:hsl(var(--eden-forest))">{title}</h3>
+            <p class="font-body text-xs text-muted-foreground md:text-sm">{cap}</p>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* IN THE BOOK'S OWN WORDS */}
+  <section class="bg-background px-6 py-16">
+    <div class="mx-auto max-w-5xl">
+      <h2 class="mb-10 text-center font-serif text-3xl font-bold" style="color:hsl(var(--eden-bark))">A few lines from the book</h2>
+      <div class="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+        {quotes.map(([q, ch]) => (
+          <figure class="rounded-lg border-l-4 p-6" style="border-color:hsl(var(--eden-gold));background-color:hsl(var(--eden-parchment))">
+            <blockquote class="font-serif text-lg italic leading-snug" style="color:hsl(var(--eden-forest))">"{q}"</blockquote>
+            <figcaption class="mt-3 font-body text-xs uppercase tracking-wider text-muted-foreground">Chapter {ch}</figcaption>
+          </figure>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* INSIDE THE BOOK */}
+  <section class="px-6 py-16" style="background-color:hsl(var(--eden-parchment))">
+    <div class="mx-auto max-w-4xl">
+      <h2 class="mb-2 text-center font-serif text-3xl font-bold" style="color:hsl(var(--eden-bark))">Inside the book</h2>
+      <p class="mb-10 text-center font-body text-muted-foreground">Ten chapters in three parts: The Foundation, The Body Was Designed to Heal, and Reading the Person.</p>
+      <ol class="grid gap-4 md:grid-cols-2">
+        {chapters.map(([t, d], i) => (
+          <li class="rounded-lg bg-white/80 p-5">
+            <p class="font-accent text-xs uppercase tracking-widest" style="color:hsl(var(--eden-gold-ink))">Chapter {i + 1}</p>
+            <h3 class="mt-1 font-serif text-lg font-bold" style="color:hsl(var(--eden-forest))">{t}</h3>
+            <p class="mt-2 font-body text-sm leading-relaxed text-muted-foreground">{d}</p>
+          </li>
+        ))}
+      </ol>
+      <div class="mt-10 text-center">
+        <button type="button" data-cta="bte-inside-ch1" {...ch1} class={btn("eden-outline")}>Read Chapter 1 free</button>
+      </div>
+    </div>
+  </section>
+
+  {/* EDITIONS */}
+  <section id="editions" class="bg-background px-6 py-16 scroll-mt-20">
+    <div class="mx-auto max-w-6xl">
+      <div class="mx-auto mb-12 max-w-2xl text-center">
+        <h2 class="font-serif text-3xl font-bold" style="color:hsl(var(--eden-bark))">Choose your edition</h2>
+        <p class="mt-3 font-body text-muted-foreground">Every edition comes in print, printed to order and mailed to you, or as an instant download you can print at home.</p>
+      </div>
+
+      {/* Two ways to study: all in one, or the paperback and the Study Guide side by side */}
+      <div class="mb-12 grid gap-5 md:grid-cols-2">
+        <a href="#study-journal" data-cta="bte-way-allinone" class="rounded-lg border-2 p-6 transition-shadow hover:shadow-md" style="border-color:hsl(var(--eden-gold));background-color:hsl(var(--eden-cream))">
+          <div class="mb-4 flex h-36 items-end justify-center">
+            <img src="/books/back-to-eden-study-journal.webp" alt="Back to Eden Study &amp; Journal Edition, spiral bound" width="714" height="884" loading="lazy" class="h-36 w-auto" />
+          </div>
+          <p class="font-accent text-xs uppercase tracking-widest" style="color:hsl(var(--eden-gold-ink))">All in one</p>
+          <h3 class="mt-1 font-serif text-xl font-bold" style="color:hsl(var(--eden-forest))">Study &amp; Journal Edition</h3>
+          <p class="mt-2 font-body text-sm text-muted-foreground">The book and the workbook in one spiral book that lies flat.</p>
+          <p class="mt-4 font-body text-sm" style="color:hsl(var(--eden-bark))"><strong class="font-serif text-lg">{money(editions[0].print)}</strong> print · <strong class="font-serif text-lg">{money(editions[0].digital)}</strong> digital</p>
+        </a>
+        <div class="rounded-lg border-2 p-6" style="border-color:hsl(var(--eden-sage) / 0.6)">
+          <div class="mb-4 flex h-36 items-end justify-center gap-3">
+            <img src="/books/back-to-eden-paperback.webp" alt="Back to Eden paperback" width="640" height="960" loading="lazy" class="h-32 w-auto rounded-sm shadow-md" />
+            <span class="pb-12 font-serif text-2xl" style="color:hsl(var(--eden-gold-ink))">+</span>
+            <img src="/books/back-to-eden-study-guide.webp" alt="Back to Eden Study Guide, spiral bound" width="714" height="884" loading="lazy" class="h-36 w-auto" />
+          </div>
+          <p class="font-accent text-xs uppercase tracking-widest" style="color:hsl(var(--eden-gold-ink))">Side by side</p>
+          <h3 class="mt-1 font-serif text-xl font-bold" style="color:hsl(var(--eden-forest))">Paperback + Study Guide</h3>
+          <p class="mt-2 font-body text-sm text-muted-foreground">Read from the paperback, write in the Study Guide. Buy them together, or start with one and add the other later.</p>
+          <p class="mt-4 font-body text-sm" style="color:hsl(var(--eden-bark))">
+            Paperback {money(editions[1].print)} + Study Guide {money(editions[2].print)} = <strong class="font-serif text-lg">{money(editions[1].print + editions[2].print)}</strong> print<br />
+            or {money(editions[1].digital)} + {money(editions[2].digital)} = <strong class="font-serif text-lg">{money(editions[1].digital + editions[2].digital)}</strong> digital
+          </p>
+          <div data-book-buy-row class="mt-4 flex flex-wrap items-center gap-3">
+            <button type="button" data-cta="bte-buy-both-print" data-book-buy="both-print" class={cn(buttonVariants({ variant: "eden" }), "min-h-[44px]", !BUY_LIVE && "hidden")}>Buy both in print</button>
+            <a href="#paperback" data-cta="bte-way-sidebyside" class="font-body text-sm font-semibold underline underline-offset-4" style="color:hsl(var(--eden-forest))">See each book</a>
+          </div>
+          <p class="mt-2 font-body text-xs text-muted-foreground">Both in print ship together in one parcel for {money(Math.max(editions[1].ship, editions[2].ship))}.</p>
+        </div>
+      </div>
+      <div class="grid gap-6 lg:grid-cols-3">
+        {editions.map((e, i) => (
+          <div id={e.id} class={cn("relative flex flex-col rounded-lg border-2 p-7", i === 0 ? "lg:-mt-3 lg:mb-3 shadow-lg" : "")}
+            style={`border-color:${i === 0 ? "hsl(var(--eden-gold))" : "hsl(var(--eden-sage) / 0.6)"};background-color:${i === 0 ? "hsl(var(--eden-cream))" : "white"}`}>
+            {e.badge && (
+              <span class="absolute -top-3 left-6 rounded px-3 py-1 text-xs font-semibold uppercase tracking-widest"
+                style={`background-color:${i === 0 ? "hsl(var(--eden-gold))" : "hsl(var(--eden-sage-ink))"};color:${i === 0 ? "hsl(var(--eden-bark))" : "white"}`}>{e.badge}</span>
+            )}
+            <img src={e.img} alt={`Back to Eden ${e.name} cover`} width={e.id === "paperback" ? 640 : 714} height={e.id === "paperback" ? 960 : 884} loading="lazy"
+              class={e.id === "paperback" ? "mx-auto mb-5 h-56 w-auto rounded-sm shadow-md" : "mx-auto mb-5 h-60 w-auto"} />
+            <h3 class="font-serif text-2xl font-bold" style="color:hsl(var(--eden-forest))">{e.name}</h3>
+            <p class="mt-1 font-body text-xs text-muted-foreground">{e.size}</p>
+            <p class="mt-3 font-body text-sm" style="color:hsl(var(--eden-bark))">{e.blurb}</p>
+            <p class="mt-3 font-body text-sm" style="color:hsl(var(--eden-bark))"><strong>Best for:</strong> {e.bestFor}</p>
+            <ul class="mt-4 mb-6 space-y-2 text-sm text-muted-foreground">
+              {e.includes.map((f) => (
+                <li class="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0" color="hsl(var(--eden-forest))" />{f}</li>
+              ))}
+            </ul>
+            <p class="mb-4 rounded px-3 py-2 font-body text-xs font-semibold" style="background-color:hsl(var(--eden-gold) / 0.15);color:hsl(var(--eden-gold-ink))">{e.value}</p>
+            <div class="mt-auto space-y-3">
+              <div data-book-buy-row class="flex items-center justify-between rounded-md border p-3" style="border-color:hsl(var(--eden-gold) / 0.35)">
+                <div class="flex items-center gap-2"><Printer className="h-4 w-4" color="hsl(var(--eden-forest))" />
+                  <div><p class="font-serif text-xl font-bold" style="color:hsl(var(--eden-bark))">{money(e.print)}</p>
+                  <p class="font-body text-[11px] text-muted-foreground">Print · + {money(e.ship)} flat shipping</p></div></div>
+                <button type="button" data-cta={`bte-buy-${e.id}-print`} data-book-buy={`${e.id}-print`} class={cn(buttonVariants({ variant: "eden" }), "min-h-[44px]", !BUY_LIVE && "hidden")}>Buy print</button>
+                {!BUY_LIVE && <span data-book-soon class="font-body text-xs font-semibold uppercase tracking-wider" style="color:hsl(var(--eden-gold-ink))">Coming soon</span>}
+              </div>
+              <div data-book-buy-row class="flex items-center justify-between rounded-md border p-3" style="border-color:hsl(var(--eden-gold) / 0.35)">
+                <div class="flex items-center gap-2"><Download className="h-4 w-4" color="hsl(var(--eden-forest))" />
+                  <div><p class="font-serif text-xl font-bold" style="color:hsl(var(--eden-bark))">{money(e.digital)}</p>
+                  <p class="font-body text-[11px] text-muted-foreground">Digital · instant PDF download</p></div></div>
+                <button type="button" data-cta={`bte-buy-${e.id}-digital`} data-book-buy={`${e.id}-digital`} class={cn(buttonVariants({ variant: "eden-outline" }), "min-h-[44px]", !BUY_LIVE && "hidden")}>Buy digital</button>
+                {!BUY_LIVE && <span data-book-soon class="font-body text-xs font-semibold uppercase tracking-wider" style="color:hsl(var(--eden-gold-ink))">Coming soon</span>}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Compare */}
+      <div class="mt-14 overflow-x-auto">
+        <h3 class="mb-5 text-center font-serif text-2xl font-bold" style="color:hsl(var(--eden-bark))">Compare the editions</h3>
+        <table class="mx-auto w-full min-w-[560px] max-w-4xl border-collapse font-body text-sm">
+          <thead>
+            <tr style="color:hsl(var(--eden-forest))">
+              <th class="p-3 text-left"></th>
+              <th class="p-3 font-serif text-base">Study &amp; Journal</th>
+              <th class="p-3 font-serif text-base">Paperback</th>
+              <th class="p-3 font-serif text-base">Study Guide</th>
+            </tr>
+          </thead>
+          <tbody>
+            {compare.map(([label, a, b, c]) => (
+              <tr class="border-t" style="border-color:hsl(var(--eden-sage) / 0.35)">
+                <td class="p-3" style="color:hsl(var(--eden-bark))">{label}</td>
+                {[a, b, c].map((v) => (
+                  <td class="p-3 text-center">{v === true ? <CheckCircle className="mx-auto h-5 w-5" color="hsl(var(--eden-forest))" /> : v === false ? <span class="text-muted-foreground">·</span> : <span class="text-xs text-muted-foreground">{v}</span>}</td>
+                ))}
+              </tr>
+            ))}
+            <tr class="border-t font-semibold" style="border-color:hsl(var(--eden-sage) / 0.35);color:hsl(var(--eden-bark))">
+              <td class="p-3">Print</td>
+              {editions.map((e) => <td class="p-3 text-center">{money(e.print)}</td>)}
+            </tr>
+            <tr class="border-t font-semibold" style="border-color:hsl(var(--eden-sage) / 0.35);color:hsl(var(--eden-bark))">
+              <td class="p-3">Digital</td>
+              {editions.map((e) => <td class="p-3 text-center">{money(e.digital)}</td>)}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* What's inside each edition */}
+      <div class="mx-auto mt-14 max-w-3xl">
+        <h3 class="mb-5 text-center font-serif text-2xl font-bold" style="color:hsl(var(--eden-bark))">What's inside each edition</h3>
+        <div class="space-y-3">
+          {editions.map((e, i) => (
+            <details class="rounded-lg border p-5" open={i === 0} style={`border-color:hsl(var(--eden-gold) / 0.4);background-color:${i === 0 ? "hsl(var(--eden-cream))" : "white"}`}>
+              <summary class="cursor-pointer list-none">
+                <span class="font-serif text-xl font-bold" style="color:hsl(var(--eden-forest))">{e.name}</span>
+                <span class="ml-2 font-body text-sm text-muted-foreground">{money(e.print)} print · {money(e.digital)} digital</span>
+              </summary>
+              <dl class="mt-4 space-y-4">
+                {e.details.map(([t, d]) => (
+                  <div>
+                    <dt class="font-body font-semibold" style="color:hsl(var(--eden-bark))">{t}</dt>
+                    <dd class="mt-1 font-body text-sm leading-relaxed text-muted-foreground">{d}</dd>
+                  </div>
+                ))}
+              </dl>
+            </details>
+          ))}
+        </div>
+      </div>
+
+      {!BUY_LIVE && (
+        <p class="mt-8 text-center font-body text-sm text-muted-foreground">
+          The editions open for orders very soon.
+          <button type="button" data-cta="bte-editions-ch1" {...ch1} class="ml-1 font-semibold underline" style="color:hsl(var(--eden-forest))">Read Chapter 1 free</button> and we'll let you know.
+        </p>
+      )}
+    </div>
+  </section>
+
+  {/* FREE CHAPTER */}
+  <section class="px-6 py-14" style="background-color:hsl(var(--eden-forest))">
+    <div class="mx-auto flex max-w-4xl flex-col items-center gap-8 md:flex-row">
+      <img src="/books/back-to-eden-paperback.webp" alt="" width="640" height="960" loading="lazy" class="w-32 rounded-sm shadow-xl md:w-40" />
+      <div class="text-center md:text-left">
+        <h2 class="font-serif text-3xl font-bold text-white">Start with Chapter 1, free</h2>
+        <p class="mt-3 font-body text-white/85">The Life Force Has a Name, the chapter the whole book stands on, with its Reflect &amp; Apply questions. Straight to your inbox.</p>
+        <button type="button" data-cta="bte-band-ch1" {...ch1} class={btn("eden", "mt-6 bg-[hsl(var(--eden-gold))] text-[hsl(var(--eden-bark))] border-[hsl(var(--eden-gold))] hover:bg-[hsl(var(--eden-gold)/0.9)]")}>Send me Chapter 1</button>
+      </div>
+    </div>
+  </section>
+
+  {/* THE COURSE */}
+  <section class="bg-background px-6 py-16">
+    <div class="mx-auto grid max-w-5xl items-center gap-10 md:grid-cols-2">
+      <div>
+        <p class="font-accent mb-2 text-xs uppercase tracking-[0.2em]" style="color:hsl(var(--eden-gold-ink))">Go deeper</p>
+        <h2 class="font-serif text-3xl font-bold" style="color:hsl(var(--eden-bark))">Walk through the book with Camila</h2>
+        <p class="mt-4 font-body leading-relaxed text-muted-foreground">
+          Tier 1 of The Eden Institute, Biblical Framework, is built on this book. Ten self-paced lessons take you through it chapter by chapter,
+          with the worksheets you'll find in the Study &amp; Journal Edition and the Study Guide.
+        </p>
+        <ul class="mt-5 space-y-2 text-sm text-muted-foreground">
+          {["10 lessons, self-paced", "Body Pattern Quiz included", "Certificate of completion", "Lifetime access"].map((f) => (
+            <li class="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0" color="hsl(var(--eden-forest))" />{f}</li>
+          ))}
+        </ul>
+      </div>
+      <div class="rounded-lg border-2 p-8 text-center" style="border-color:hsl(var(--eden-gold));background-color:hsl(var(--eden-cream))">
+        <p class="font-serif text-lg font-bold" style="color:hsl(var(--eden-forest))">Tier 1 · Biblical Framework</p>
+        <p class="mt-3 font-serif text-5xl font-bold" style="color:hsl(var(--eden-bark))">$97</p>
+        <p class="mt-1 font-body text-xs" style="color:hsl(var(--eden-bark) / 0.65)">One payment · self-paced · lifetime access</p>
+        <a href={COURSE} target="_blank" rel="noopener noreferrer" data-cta="bte-course-enroll" class={btn("eden", "mt-6 w-full sm:w-full")}>Enroll in Tier 1</a>
+        <a href="/courses" data-cta="bte-course-all" class="mt-3 inline-block font-body text-sm underline" style="color:hsl(var(--eden-forest))">See all three tiers</a>
+      </div>
+    </div>
+  </section>
+
+  {/* THE AUTHOR */}
+  <section class="px-6 py-16" style="background-color:hsl(var(--eden-cream))">
+    <div class="mx-auto max-w-3xl">
+      <h2 class="mb-6 text-center font-serif text-3xl font-bold" style="color:hsl(var(--eden-bark))">About the author</h2>
+      <div class="space-y-4 font-body leading-relaxed" style="color:hsl(var(--eden-bark))">
+        <p>Camila Johnson has been a devout student of herbalism for many years. She is an educator and the founder of The Eden Institute, an online school dedicated to the study of holistic herbalism through a biblical worldview lens.</p>
+        <p>She holds a Master's degree in Educational Leadership and Policy Studies and brings over twenty years of experience as an educator to her study and teaching. Her approach draws on the Eclectic, Physiomedical, and Vitalist traditions of Western herbalism, while placing the authority and design of Scripture at the center of every question.</p>
+        <p>A lifelong follower of Jesus, Camila has spent decades discovering that the more she learns about science and the natural world, the less it contradicts Scripture, and the more it reinforces it.</p>
+      </div>
+    </div>
+  </section>
+
+  {/* EVERYTHING ELSE */}
+  <section class="bg-background px-6 py-16">
+    <div class="mx-auto max-w-5xl">
+      <h2 class="mb-10 text-center font-serif text-3xl font-bold" style="color:hsl(var(--eden-bark))">More from The Eden Institute</h2>
+      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+        {everything.map((x) => (
+          <a href={x.href} data-cta={x.cta} class="rounded-lg border p-5 transition-shadow hover:shadow-md" style="border-color:hsl(var(--eden-sage) / 0.5)">
+            <x.icon className="mb-3 h-6 w-6" color="hsl(var(--eden-gold))" />
+            <h3 class="font-serif text-base font-bold" style="color:hsl(var(--eden-forest))">{x.title}</h3>
+            <p class="mt-2 font-body text-sm text-muted-foreground">{x.body}</p>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* FAQ */}
+  <section class="px-6 py-16" style="background-color:hsl(var(--eden-parchment))">
+    <div class="mx-auto max-w-3xl">
+      <h2 class="mb-8 text-center font-serif text-3xl font-bold" style="color:hsl(var(--eden-bark))">Questions</h2>
+      <div class="space-y-3">
+        {faqs.map(([q, a]) => (
+          <details class="group rounded-lg bg-white/85 p-5">
+            <summary class="cursor-pointer list-none font-serif text-lg font-bold" style="color:hsl(var(--eden-forest))">{q}</summary>
+            <p class="mt-3 font-body leading-relaxed text-muted-foreground">{a}{q === "Can I return it?" && <> <a href="/returns" class="underline">Read the returns policy</a>.</>}</p>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* FINAL CTA */}
+  <section class="px-6 py-16 text-center" style="background-color:hsl(var(--eden-forest))">
+    <h2 class="font-serif text-3xl font-bold text-white">Back to Eden. Back to Truth.</h2>
+    <p class="mx-auto mt-3 max-w-xl font-body text-white/85">The framework that makes every herb you've ever studied make sense.</p>
+    <div class="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row">
+      <a href="#editions" data-cta="bte-final-editions" class={btn("eden", "bg-[hsl(var(--eden-gold))] text-[hsl(var(--eden-bark))] border-[hsl(var(--eden-gold))] hover:bg-[hsl(var(--eden-gold)/0.9)]")}>Choose your edition</a>
+      <button type="button" data-cta="bte-final-ch1" {...ch1} class={btn("eden-outline", "bg-transparent text-white border-white/70 hover:bg-white/10")}>Read Chapter 1 free</button>
+    </div>
+  </section>
+
+  {/* Sticky buy bar, phones only */}
+  <div class="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] backdrop-blur md:hidden">
+    <div class="flex items-center gap-3">
+      <p class="flex-1 font-serif text-sm font-bold leading-tight" style="color:hsl(var(--eden-forest))">Back to Eden<br /><span class="font-body text-xs font-normal text-muted-foreground">Print or download</span></p>
+      <a href="#editions" data-cta="bte-sticky-editions" class={cn(buttonVariants({ variant: "eden" }), "min-h-[44px]")}>Choose edition</a>
+    </div>
+  </div>
+  <div class="h-20 md:hidden"></div>
+
+  <WaitlistController client:only="react" />
+  <BookCheckoutController client:only="react" live={BUY_LIVE} />
+</MarketingLayout>

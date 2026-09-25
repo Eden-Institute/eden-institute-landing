@@ -37,11 +37,12 @@ import { BookOpen, CheckCircle, Clock, GraduationCap, Users } from "lucide-react
 // Goes through api/go/course.ts so the click is counted (course sells
 // off-site on LearnWorlds; this is the only way to see if the CTA works).
 const T1 = "/go/course?src=courses";
-const BOOK_URL = "https://www.amazon.com/dp/B0GPT81RDF?tag=mobile088c05e-20";
+// 2026-09-25: the book is sold on this site now (founder: cut Amazon out).
+const BOOK_URL = "/back-to-eden";
 // Static no-Pattern fallback (matches the React page's anonymous-visitor path).
 const amazonKitUrl = BOOK_URL;
-const amazonKitLabel = "Get the Eden Foundations Book";
-const amazonKitAriaLabel = "Get the Eden Foundations Book on Amazon (opens in a new tab)";
+const amazonKitLabel = "Get the Back to Eden Book";
+const amazonKitAriaLabel = "Get the Back to Eden book";
 
 const tier1Features = [
   "10 lessons, self-paced",
@@ -130,13 +131,10 @@ const courseJsonLd = {
         <a href="/assessment" data-cta="journey-aware-quiz" class={cn(buttonVariants({ variant: "eden-outline", size: "xl" }), "text-center w-full sm:w-auto h-auto whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6")}>
           Take the Free Quiz First
         </a>
-        <a href={amazonKitUrl} target="_blank" rel="noopener noreferrer sponsored" aria-label={amazonKitAriaLabel} data-cta="courses-hero-amazon-kit" class={cn(buttonVariants({ variant: "eden-outline", size: "xl" }), "text-center w-full sm:w-auto h-auto whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6")}>
+        <a href={amazonKitUrl} aria-label={amazonKitAriaLabel} data-cta="courses-hero-amazon-kit" class={cn(buttonVariants({ variant: "eden-outline", size: "xl" }), "text-center w-full sm:w-auto h-auto whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6")}>
           {amazonKitLabel} →
         </a>
       </div>
-      <p class="mt-4 font-body text-[11px] italic text-muted-foreground">
-        Amazon links are affiliate links. Eden Institute earns a small commission at no extra cost to you.
-      </p>
     </div>
   </section>
 
@@ -181,10 +179,10 @@ const courseJsonLd = {
           <div class="mt-6 rounded-sm border p-6 flex flex-col gap-4" style="background-color:hsl(var(--eden-parchment));border-color:hsl(var(--eden-gold) / 0.4)">
             <div>
               <p class="font-accent text-xs tracking-widest uppercase mb-1" style="color:hsl(var(--eden-gold-ink))">Companion Textbook · Tier 1</p>
-              <h3 class="font-serif text-xl font-bold mb-1" style="color:hsl(var(--eden-forest))">Back to Eden: Foundations of Biblical Herbalism</h3>
+              <h3 class="font-serif text-xl font-bold mb-1" style="color:hsl(var(--eden-forest))">Back to Eden: A Biblical Foundation for Herbal Healing</h3>
               <p class="font-body text-sm" style="color:hsl(var(--eden-bark) / 0.75)">The print companion to the Tier 1 course. Read it alongside the lessons or give it as a gift to someone beginning their herbal journey.</p>
             </div>
-            <a href={BOOK_URL} target="_blank" rel="noopener noreferrer sponsored" aria-label="Browse the Eden Institute book series on Amazon (opens in a new tab)" class="shrink-0 font-body text-xs tracking-widest uppercase font-semibold px-4 py-2 rounded-sm text-center transition-opacity hover:opacity-90" style="background-color:hsl(var(--eden-gold));color:hsl(var(--eden-bark))">
+            <a href={BOOK_URL} data-cta="courses-tier1-book" aria-label="Get the Back to Eden book" class="shrink-0 font-body text-xs tracking-widest uppercase font-semibold px-4 py-2 rounded-sm text-center transition-opacity hover:opacity-90" style="background-color:hsl(var(--eden-gold));color:hsl(var(--eden-bark))">
               Buy the Book
             </a>
           </div>
@@ -276,13 +274,10 @@ const courseJsonLd = {
         <a href={T1} target="_blank" rel="noopener noreferrer" class={cn(buttonVariants({ variant: "eden-outline", size: "xl" }), "text-center w-full sm:w-auto h-auto whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6")}>
           Enroll in Tier 1 · $97
         </a>
-        <a href={amazonKitUrl} target="_blank" rel="noopener noreferrer sponsored" aria-label={amazonKitAriaLabel} data-cta="courses-bottom-amazon-kit" class={cn(buttonVariants({ variant: "eden-outline", size: "xl" }), "text-center w-full sm:w-auto h-auto whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6")}>
+        <a href={amazonKitUrl} aria-label={amazonKitAriaLabel} data-cta="courses-bottom-amazon-kit" class={cn(buttonVariants({ variant: "eden-outline", size: "xl" }), "text-center w-full sm:w-auto h-auto whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6")}>
           {amazonKitLabel} →
         </a>
       </div>
-      <p class="mt-4 font-body text-[11px] italic text-muted-foreground">
-        Amazon links are affiliate links. Eden Institute earns a small commission at no extra cost to you.
-      </p>
     </div>
   </section>
 </MarketingLayout>

@@ -1,0 +1,47 @@
+---
+// /back-to-eden/download?t=...: the link in the Back to Eden PDF delivery email
+// (2026-09-25). The token does not expire, so the email keeps working on any
+// device; each visit mints a fresh one-hour signed link (book-download).
+//
+// NO THIRD-PARTY TAGS HERE, for the same reason as /starter/downloads: the ?t=
+// token stays in the address bar so copied links and "Open in Safari" keep
+// working, which is only safe because nothing on this page can read the URL and
+// send it on. vercel.json sends case variants here so they never reach the SPA.
+// noindex regardless.
+//
+// Copy rule: no em dashes.
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import BookThankYou from "../../components/islands/BookThankYou.tsx";
+
+const meta = {
+  title: "Your download · Back to Eden | The Eden Institute",
+  description: "Download your copy of Back to Eden.",
+  canonical: "https://edeninstitute.health/back-to-eden/download",
+};
+---
+
+<MarketingLayout
+  title={meta.title}
+  description={meta.description}
+  canonical={meta.canonical}
+  noindex={true}
+  noThirdPartyTags={true}
+>
+  <section class="pt-20 pb-14 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-xl mx-auto">
+      <BookThankYou client:only="react" mode="token" />
+      <noscript>
+        <p class="rounded-lg bg-white p-6 text-center font-body" style="color:hsl(var(--eden-bark))">
+          This page needs JavaScript to fetch your download. Please turn it on, or email
+          <a href="mailto:hello@edeninstitute.health" class="underline">hello@edeninstitute.health</a> and we will send your book by hand.
+        </p>
+      </noscript>
+    </div>
+  </section>
+  <section class="py-10 px-6 bg-background">
+    <p class="max-w-2xl mx-auto text-center font-body text-sm text-muted-foreground">
+      Trouble downloading? Email <a href="mailto:hello@edeninstitute.health" class="underline" style="color:hsl(var(--eden-forest))">hello@edeninstitute.health</a>
+      or call <a href="tel:+19315755895" class="underline" style="color:hsl(var(--eden-forest))">(931) 575-5895</a>.
+    </p>
+  </section>
+</MarketingLayout>

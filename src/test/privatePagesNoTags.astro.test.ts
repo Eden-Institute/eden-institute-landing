@@ -34,6 +34,7 @@ const PRIVATE_PAGES = [
   "partner-sample.astro",
   "unsubscribe.astro",
   "preorder-response.astro",
+  "back-to-eden/download.astro",
 ];
 
 /** These read the live herb database while they render (web/lib/herbsPublic.ts)

@@ -69,6 +69,9 @@ import { E2E_BUYER_EMAIL, E2E_HEADER, E2E_METADATA_KEY, E2E_MODE, e2eRequestAllo
 // Print bands (Sprouts, Seedlings), 2026-09-23. A separate line from the
 // lulu-config import above on purpose, to keep this change's hunks apart.
 import { LuluBand, printableProblems } from "../_shared/lulu-config.ts"
+// Back to Eden book shop, 2026-09-25.
+import { isBookBand } from "../_shared/lulu-config.ts"
+import { BOOK_PAGE, BOOK_THANK_YOU, bookDigitalBySku, bookShopLive } from "../_shared/book-shop.ts"
 
 /** Hours a buyer has to cancel a print order, for Stripe's checkout copy. */
 const PRINT_CANCEL_HOURS = Math.round(LULU_PRODUCTION_DELAY_MINUTES / 60)
@@ -285,6 +288,11 @@ serve(async (req) => {
     //     BEFORE the preorder cart branch, which also keys on `items`.
     if (body.print_shop === true || body.print_shop === "true") {
       return await handlePrintCheckout(req, body)
+    }
+    // 1a'. Back to Eden PDF (2026-09-25). Also before the E2E refusal, so the
+    //      test twin can buy one with a test card.
+    if (body.book_digital === true || body.book_digital === "true") {
+      return await handleBookDigitalCheckout(req, body)
     }
     if (E2E_MODE) {
       return jsonError("The E2E checkout serves the print shop only", 400)
@@ -1185,10 +1193,19 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
   }
   const band: LuluBand = [...bands][0]
 
+  // Back to Eden has its own go-live switch (BOOK_SHOP_LIVE), on top of the print
+  // shop's, so the curriculum shop being open never opens the book by accident.
+  if (isBookBand(band) && !bookShopLive() && !isAdminTest) {
+    return new Response(
+      JSON.stringify({ error: "Back to Eden is not on sale yet. Please check back soon.", code: "BOOK_SHOP_NOT_LIVE" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
+    )
+  }
+
   const adminClient = admin()
   const { data: products, error: productError } = await adminClient
     .from("products")
-    .select("id, sku, name, active, fulfillment, stripe_retail_price_id, shipping_tier_cents, retail_price_cents")
+    .select("id, sku, name, active, fulfillment, stripe_retail_price_id, stripe_lookup_key, shipping_tier_cents, retail_price_cents")
     .in("sku", cart.map((c) => c.sku))
   if (productError) {
     console.error("create-checkout: print shop product lookup failed:", productError.message)
@@ -1203,7 +1220,7 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
     }
     const missing: string[] = []
     if (p.fulfillment !== "lulu") missing.push("fulfillment='lulu'")
-    if (!p.stripe_retail_price_id) missing.push("stripe_retail_price_id")
+    if (!p.stripe_retail_price_id && !p.stripe_lookup_key) missing.push("stripe_retail_price_id or stripe_lookup_key")
     if (p.shipping_tier_cents == null) missing.push("shipping_tier_cents")
     if (missing.length) {
       // Loud on our side, gentle on the buyer's. A product row that is not finished
@@ -1253,7 +1270,15 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
       },
       quantity: line.qty,
     }))
-    : cart.map((line) => ({ price: bySku.get(line.sku).stripe_retail_price_id as string, quantity: line.qty }))
+    : await Promise.all(cart.map(async (line) => ({ price: (await printPriceId(bySku.get(line.sku))) as string, quantity: line.qty })))
+  const unpriced = cart.find((_line, i) => !(lineItems[i] as { price?: string; price_data?: unknown }).price && !(lineItems[i] as { price_data?: unknown }).price_data)
+  if (unpriced) {
+    console.error(`print shop: no active Stripe Price for '${unpriced.sku}' (lookup key ${bySku.get(unpriced.sku)?.stripe_lookup_key}); refusing checkout`)
+    return new Response(
+      JSON.stringify({ error: "This book is not quite ready to order. Please check back soon.", code: "PRINT_SHOP_NOT_CONFIGURED", sku: unpriced.sku }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 },
+    )
+  }
   const shippingCents = cart.reduce((n, line) => Math.max(n, bySku.get(line.sku).shipping_tier_cents as number), 0)
   const smsConsent = body.sms_consent === true || body.sms_consent === "true"
 
@@ -1277,12 +1302,16 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
   // the buy box and the buyer could not tell whether it had worked.
   const successUrl = isSafeReturnUrl(body.success_url)
     ? body.success_url
-    : band === "sprouts"
-      ? `${PRINT_SHOP_URL}/thank-you?session_id={CHECKOUT_SESSION_ID}`
-      : `${PRINT_SHOP_URL}/thank-you?band=${band}&session_id={CHECKOUT_SESSION_ID}`
+    : isBookBand(band)
+      ? `${BOOK_THANK_YOU}?kind=print&session_id={CHECKOUT_SESSION_ID}`
+      : band === "sprouts"
+        ? `${PRINT_SHOP_URL}/thank-you?session_id={CHECKOUT_SESSION_ID}`
+        : `${PRINT_SHOP_URL}/thank-you?band=${band}&session_id={CHECKOUT_SESSION_ID}`
   const cancelUrl = isSafeReturnUrl(body.cancel_url)
     ? body.cancel_url
-    : `${PRINT_SHOP_URL}?checkout=cancelled`
+    : isBookBand(band)
+      ? `${BOOK_PAGE}?checkout=cancelled#editions`
+      : `${PRINT_SHOP_URL}?checkout=cancelled`
 
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: "payment",
@@ -1325,7 +1354,9 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
     // numbered, itemized invoice with "Homeschool curriculum" on it. Validated in
     // TEST mode with shipping, automatic tax, phone collection, customer creation,
     // custom text and promotion codes all present. See _shared/receipt.ts.
-    invoice_creation: curriculumInvoiceCreation("print", band),
+    // Not for Back to Eden: it is a book, not curriculum, and our own confirmation
+    // email carries its itemized receipt (Stripe invoicing costs a fee per invoice).
+    ...(isBookBand(band) ? {} : { invoice_creation: curriculumInvoiceCreation("print", band as "sprouts" | "seedlings") }),
   }
 
   // Affiliate codes, same two ways in as the kit: ?promo=CODE pre-applied, else
@@ -1369,6 +1400,135 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
     })
   }
 
+  return new Response(
+    JSON.stringify({ url: session.url, session_id: session.id }),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+  )
+}
+
+/**
+ * The Stripe Price a print product charges: its stored price id, else the active
+ * Price carrying its lookup key (Back to Eden, 2026-09-25: the founder created
+ * those Prices in the Dashboard with lookup keys). Null when neither resolves,
+ * which the caller turns into PRINT_SHOP_NOT_CONFIGURED before any charge.
+ */
+// deno-lint-ignore no-explicit-any
+async function printPriceId(product: any): Promise<string | null> {
+  if (product?.stripe_retail_price_id) return product.stripe_retail_price_id as string
+  const key = product?.stripe_lookup_key as string | null
+  if (!key) return null
+  try {
+    const prices = await stripe.prices.list({ lookup_keys: [key], active: true, limit: 1 })
+    return prices.data[0]?.id ?? null
+  } catch (err) {
+    console.error(`print shop: price lookup for '${key}' failed: ${err instanceof Error ? err.message : String(err)}`)
+    return null
+  }
+}
+
+// ---------- Back to Eden PDF (2026-09-25) ----------
+//
+// Request: { book_digital: true, sku, email?, promo_code?, fbp?, fbc? }
+//
+// One PDF per checkout. The price is the active Stripe Price whose lookup key is
+// the SKU (founder-created); the E2E twin charges the same amount inline on its
+// test key. stripe-webhook recognises book_digital_sku, records the order and
+// emails the download link. Gated by BOOK_SHOP_LIVE (admin and E2E bypass).
+// deno-lint-ignore no-explicit-any
+async function handleBookDigitalCheckout(req: Request, body: Record<string, any>): Promise<Response> {
+  const isAdminTest = isPreorderAdminRequest(req) || E2E_MODE
+  if (!bookShopLive() && !isAdminTest) {
+    return new Response(
+      JSON.stringify({ error: "Back to Eden is not on sale yet. Please check back soon.", code: "BOOK_SHOP_NOT_LIVE" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
+    )
+  }
+  const book = bookDigitalBySku(body.sku)
+  if (!book) return jsonError(`Unknown product '${String(body.sku ?? "")}'`, 404)
+
+  let lineItem: Stripe.Checkout.SessionCreateParams.LineItem
+  if (E2E_MODE) {
+    lineItem = {
+      price_data: {
+        currency: "usd",
+        unit_amount: book.retailCents,
+        tax_behavior: "exclusive" as const,
+        product_data: { name: `E2E TEST: ${book.title}`, tax_code: "txcd_10302000" },
+      },
+      quantity: 1,
+    }
+  } else {
+    let priceId: string | null = null
+    try {
+      const prices = await stripe.prices.list({ lookup_keys: [book.lookupKey], active: true, limit: 1 })
+      priceId = prices.data[0]?.id ?? null
+    } catch (err) {
+      console.error(`book digital: price lookup for '${book.lookupKey}' failed: ${err instanceof Error ? err.message : String(err)}`)
+    }
+    if (!priceId) {
+      console.error(`book digital: no active Stripe Price with lookup key '${book.lookupKey}'; refusing checkout`)
+      return new Response(
+        JSON.stringify({ error: "This book is not quite ready to order. Please check back soon.", code: "BOOK_NOT_CONFIGURED", sku: book.sku }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 },
+      )
+    }
+    lineItem = { price: priceId, quantity: 1 }
+  }
+
+  const metadata: Record<string, string> = { book_digital_sku: book.sku }
+  const fbp = clampMeta(body.fbp); if (fbp) metadata.fbp = fbp
+  const fbc = clampMeta(body.fbc); if (fbc) metadata.fbc = fbc
+  if (isAdminTest) metadata.book_test = "true"
+  if (E2E_MODE) metadata[E2E_METADATA_KEY] = "true"
+
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    mode: "payment",
+    line_items: [lineItem],
+    success_url: `${BOOK_THANK_YOU}?kind=digital&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${BOOK_PAGE}?checkout=cancelled#editions`,
+    automatic_tax: { enabled: true },
+    customer_creation: "always",
+    custom_text: {
+      submit: {
+        message: "Your download appears on the next page, and the link is emailed to you so you can download it again any time.",
+      },
+    },
+    metadata,
+    payment_intent_data: { metadata },
+  }
+
+  const bodyPromoCode = typeof body.promo_code === "string" ? body.promo_code.trim() : ""
+  let promoApplied = false
+  if (bodyPromoCode) {
+    try {
+      const promo = (await stripe.promotionCodes.list({ code: bodyPromoCode, active: true, limit: 1 })).data[0]
+      if (promo) {
+        sessionParams.discounts = [{ promotion_code: promo.id }]
+        promoApplied = true
+        metadata.affiliate_promo_code = promo.code
+        metadata.affiliate_promo_id = promo.id
+      }
+    } catch (err) {
+      console.warn("book digital promo_code lookup failed; leaving the manual field enabled: " + (err instanceof Error ? err.message : String(err)))
+    }
+  }
+  if (!promoApplied) sessionParams.allow_promotion_codes = true
+  if (typeof body.email === "string" && body.email) sessionParams.customer_email = body.email
+  if (E2E_MODE) sessionParams.customer_email = E2E_BUYER_EMAIL
+
+  const session = await stripe.checkout.sessions.create(sessionParams)
+  console.log(`book digital checkout: ${book.sku}${isAdminTest ? " [ADMIN TEST]" : ""} session=${session.id}`)
+
+  if (!isAdminTest) {
+    await sendMetaCapiInitiateCheckout({
+      eventId: session.id,
+      fbp,
+      fbc,
+      email: typeof body.email === "string" ? body.email : null,
+      contentName: book.sku,
+      numItems: 1,
+    })
+  }
   return new Response(
     JSON.stringify({ url: session.url, session_id: session.id }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },

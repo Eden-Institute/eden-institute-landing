@@ -1,0 +1,42 @@
+---
+// /back-to-eden/thank-you: where Stripe returns a Back to Eden buyer (2026-09-25).
+//   ?kind=print&session_id=...    printed copy: order number and what happens next
+//   ?kind=digital&session_id=...  PDF: the download, right here, right now
+// The island does both (BookThankYou). noindex: a confirmation page has nothing
+// for search, and the session id must never reach an index. The layout strips
+// session_id from the address bar before any tag loads.
+//
+// Copy rule: no em dashes.
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import BookThankYou from "../../components/islands/BookThankYou.tsx";
+
+const meta = {
+  title: "Thank you · Back to Eden | The Eden Institute",
+  description: "Your Back to Eden order.",
+  canonical: "https://edeninstitute.health/back-to-eden/thank-you",
+};
+---
+
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} noindex={true}>
+  <section class="pt-20 pb-14 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-xl mx-auto">
+      <BookThankYou client:only="react" mode="session" />
+    </div>
+  </section>
+
+  <section class="py-12 px-6 bg-background">
+    <div class="max-w-2xl mx-auto text-center">
+      <h2 class="font-serif text-2xl font-bold" style="color:hsl(var(--eden-bark))">Ready to go deeper?</h2>
+      <p class="mt-3 font-body text-muted-foreground">
+        Back to Eden is the foundation of everything we teach. The Eden Institute course walks you through it, lesson by lesson.
+      </p>
+      <p class="mt-5">
+        <a href="/go/course?src=back-to-eden-thanks" data-cta="bte-thanks-course" class="font-body font-semibold underline underline-offset-4" style="color:hsl(var(--eden-forest))">See the course</a>
+      </p>
+      <p class="mt-10 font-body text-sm text-muted-foreground">
+        Questions about your order: <a href="mailto:hello@edeninstitute.health" class="underline" style="color:hsl(var(--eden-forest))">hello@edeninstitute.health</a>
+        or <a href="tel:+19315755895" class="underline" style="color:hsl(var(--eden-forest))">(931) 575-5895</a>, Monday to Friday, 9am to 5pm Central.
+      </p>
+    </div>
+  </section>
+</MarketingLayout>

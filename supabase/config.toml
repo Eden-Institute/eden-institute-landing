@@ -238,6 +238,12 @@ verify_jwt = true
 [functions.starter-download]
 verify_jwt = false
 
+# Back to Eden PDF downloads (2026-09-25). Reached from the delivery email and the
+# thank-you page with no Supabase session; the download token or Checkout Session
+# id is the credential, validated and rate-limited in the function.
+[functions.book-download]
+verify_jwt = false
+
 # --- Category 4: Signed-in user and founder functions (explicit pins) ---
 #
 # These had no entry and relied on the CLI default of verify_jwt=true. Pinned

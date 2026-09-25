@@ -24,21 +24,34 @@
 //
 // Voice rule: no em dashes.
 
-export type LuluBookKey = 'tg' | 'nb' | 'ra';
+// tg/nb/ra: the Eden's Table curriculum books. pb/sj/sg (2026-09-25): the Back to
+// Eden book, sold one title at a time: the 6x9 paperback, the Study & Journal
+// Edition and the Study Guide (both 8.5x11 coil).
+export type LuluBookKey = 'tg' | 'nb' | 'ra' | 'pb' | 'sj' | 'sg';
+export const LULU_BOOK_KEYS: readonly LuluBookKey[] = ['tg', 'nb', 'ra', 'pb', 'sj', 'sg'];
 
-export type LuluBand = 'sprouts' | 'seedlings';
-export const LULU_BANDS: readonly LuluBand[] = ['sprouts', 'seedlings'];
+// 'bte' is Camila's book Back to Eden (2026-09-25). Not a curriculum band: it has
+// its own customer wording everywhere a band name would appear (see isBookBand).
+// Kept short and lower-case so it fits the external_id pattern below.
+export type LuluBand = 'sprouts' | 'seedlings' | 'bte';
+export const LULU_BANDS: readonly LuluBand[] = ['sprouts', 'seedlings', 'bte'];
 export const DEFAULT_LULU_BAND: LuluBand = 'sprouts';
 
 /** Customer-facing band facts, used by emails, receipts and the storefront. */
 export const LULU_BAND_INFO: Record<LuluBand, { bandName: string; grades: string }> = {
   sprouts: { bandName: 'Sprouts', grades: 'K-2' },
   seedlings: { bandName: 'Seedlings', grades: '3-5' },
+  bte: { bandName: 'Back to Eden', grades: '' },
 };
 
 /** Read a stored or requested band. Anything unknown, null or absent is Sprouts. */
 export function normalizeLuluBand(raw: unknown): LuluBand {
-  return raw === 'seedlings' ? 'seedlings' : 'sprouts';
+  return raw === 'seedlings' ? 'seedlings' : raw === 'bte' ? 'bte' : 'sprouts';
+}
+
+/** True for the Back to Eden book, whose messages, receipts and pages are not curriculum wording. */
+export function isBookBand(band: LuluBand): boolean {
+  return band === 'bte';
 }
 
 export interface LuluBook {
@@ -73,8 +86,21 @@ export interface LuluBook {
 //   0583X0827.FC.STD.PB.080CW444.GXX   $1.99 + $0.0505/page, 32 to 800 pages
 // At 240 pages the Teacher's Guide comes to $22.19, which matches the price the
 // founder read off Lulu's calculator on 2026-09-09.
-const PACKAGE_LETTER_COIL = '0850X1100.FC.STD.CO.080CW444.GXX';
-const PACKAGE_A5_PERFECT_BOUND = '0583X0827.FC.STD.PB.080CW444.GXX';
+// MATTE covers since 2026-09-25 (founder: "matte everywhere", to match her Lulu
+// projects, which are all matte). The last segment is the cover finish: G gloss,
+// M matte. Same price on the spec sheet. The lulu_printables rows are switched by
+// migration 20260925210000; these defaults only apply to a row with no package id.
+const PACKAGE_LETTER_COIL = '0850X1100.FC.STD.CO.080CW444.MXX';
+const PACKAGE_A5_PERFECT_BOUND = '0583X0827.FC.STD.PB.080CW444.MXX';
+
+// Back to Eden (founder decisions 2026-09-25, matching her Lulu projects after she
+// moved all three to the cheaper papers): the paperback is black and white on 60#
+// white uncoated (its interior has no colour on any page), both coil books standard
+// colour on 60# white uncoated, matte covers. Spec-sheet rows (base + per page):
+//   0600X0900.BW.STD.PB.060UW444.MXX   $1.99 + $0.025/page   186 pp = $6.64
+//   0850X1100.FC.STD.CO.060UW444.MXX   $6.95 + $0.0562/page  386 pp = $28.64, 266 pp = $21.90
+const PACKAGE_BTE_PAPERBACK = '0600X0900.BW.STD.PB.060UW444.MXX';
+const PACKAGE_BTE_COIL = '0850X1100.FC.STD.CO.060UW444.MXX';
 
 // ─── SEEDLINGS PAGE COUNTS: the ONE place to change them ─────────────────────
 // Founder decision 2026-09-23: the Seedlings set prints on the SAME packages as
@@ -85,7 +111,7 @@ const PACKAGE_A5_PERFECT_BOUND = '0583X0827.FC.STD.PB.080CW444.GXX';
 // default: a lulu_printables row with its own page_count wins, and that row is
 // what Lulu is actually sent. Lulu limits: coil 2 to 470 pages, perfect bound
 // 32 to 800 (spec sheet, 2026-09-10).
-export const SEEDLINGS_PAGE_COUNTS: Record<LuluBookKey, number> = {
+export const SEEDLINGS_PAGE_COUNTS: Record<'tg' | 'nb' | 'ra', number> = {
   tg: 245,
   nb: 227,
   ra: 160,
@@ -134,6 +160,28 @@ export const LULU_BOOKS: LuluBook[] = [
     title: "Eden's Table Seedlings: Read-Aloud Storybook",
     podPackageId: PACKAGE_A5_PERFECT_BOUND,
     pageCount: SEEDLINGS_PAGE_COUNTS.ra,
+  },
+  // Back to Eden. Page counts read from the final Lulu interiors on 2026-09-25.
+  {
+    band: 'bte',
+    key: 'pb',
+    title: 'Back to Eden: A Biblical Foundation for Herbal Healing',
+    podPackageId: PACKAGE_BTE_PAPERBACK,
+    pageCount: 186,
+  },
+  {
+    band: 'bte',
+    key: 'sj',
+    title: 'Back to Eden: Study & Journal Edition',
+    podPackageId: PACKAGE_BTE_COIL,
+    pageCount: 386,
+  },
+  {
+    band: 'bte',
+    key: 'sg',
+    title: 'Back to Eden: Study Guide',
+    podPackageId: PACKAGE_BTE_COIL,
+    pageCount: 266,
   },
 ];
 
@@ -193,6 +241,30 @@ export const LULU_PRODUCTS: LuluProduct[] = [
     books: ['nb'],
     maxQtyPerOrder: 5,
   },
+  // Back to Eden (2026-09-25): each title sells on its own, and a buyer can put
+  // the paperback and the Study Guide in one order (one parcel, the higher
+  // shipping tier). Prices come from Stripe by lookup key (products.stripe_lookup_key).
+  {
+    sku: 'bte_paperback_print',
+    band: 'bte',
+    name: 'Back to Eden, Paperback',
+    books: ['pb'],
+    maxQtyPerOrder: 10,
+  },
+  {
+    sku: 'bte_study_journal_print',
+    band: 'bte',
+    name: 'Back to Eden, Study & Journal Edition',
+    books: ['sj'],
+    maxQtyPerOrder: 10,
+  },
+  {
+    sku: 'bte_study_guide_print',
+    band: 'bte',
+    name: 'Back to Eden, Study Guide',
+    books: ['sg'],
+    maxQtyPerOrder: 10,
+  },
 ];
 
 export function luluProductBySku(sku: string): LuluProduct | undefined {
@@ -233,7 +305,7 @@ export function luluLineExternalId(band: LuluBand, key: LuluBookKey): string {
 export function parseLuluLineExternalId(externalId: string): { band: LuluBand; key: LuluBookKey } | null {
   const isKey = (k: string): k is LuluBookKey => k === 'tg' || k === 'nb' || k === 'ra';
   if (isKey(externalId)) return { band: 'sprouts', key: externalId };
-  const m = /^([a-z]+)-(tg|nb|ra)$/.exec(externalId);
+  const m = /^([a-z]+)-(tg|nb|ra|pb|sj|sg)$/.exec(externalId);
   if (!m || m[1] === 'sprouts' || !(LULU_BANDS as readonly string[]).includes(m[1])) return null;
   return { band: m[1] as LuluBand, key: m[2] as LuluBookKey };
 }
@@ -287,6 +359,9 @@ export function printableProblems(band: LuluBand, rows: PrintableReadinessRow[])
 
 /** Where the storefront lives. Checkout returns buyers here. */
 export const PRINT_SHOP_URL = 'https://edeninstitute.health/books';
+
+/** The Back to Eden book page, where its checkout starts and returns. */
+export const BOOK_PAGE_URL = 'https://edeninstitute.health/back-to-eden';
 
 /**
  * Minutes Lulu holds a job before printing. This is the ENTIRE cancellation

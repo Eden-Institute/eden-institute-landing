@@ -71,6 +71,16 @@
       "source": "/:page((?!starter/downloads)[Ss][Tt][Aa][Rr][Tt][Ee][Rr]/[Dd][Oo][Ww][Nn][Ll][Oo][Aa][Dd][Ss])/(.*)",
       "destination": "/starter/downloads",
       "permanent": false
+    },
+    {
+      "source": "/back-to-eden/download/(.+)",
+      "destination": "/back-to-eden/download",
+      "permanent": false
+    },
+    {
+      "source": "/:page((?!back-to-eden/download)[Bb][Aa][Cc][Kk]-[Tt][Oo]-[Ee][Dd][Ee][Nn]/[Dd][Oo][Ww][Nn][Ll][Oo][Aa][Dd])",
+      "destination": "/back-to-eden/download",
+      "permanent": false
     }
   ],
   "headers": [

@@ -543,7 +543,8 @@ export function buildStarterOfferEmail(firstName: string, band: 'sprouts' | 'see
 // homeschool + Facebook. No coupon codes — the Tier-1 price ($97, no increase
 // advertised, founder decision 2026-09-10) is set on the LearnWorlds enrollment page.
 const ARC_COURSE_URL = 'https://learn.edeninstitute.health/course/back-to-eden1';
-const ARC_BOOK_ONE_URL = 'https://www.amazon.com/dp/B0GPW5BZ32';
+// 2026-09-25: the book page on this site replaced Amazon (founder: cut Amazon out).
+const ARC_BOOK_ONE_URL = 'https://edeninstitute.health/back-to-eden?utm_source=email&utm_medium=nurture&utm_campaign=quiz_arc2';
 const ARC_APP_URL = 'https://edeninstitute.health/apothecary/start';
 // 2026-09-24: arc 3 names the two bands on sale and sends families to the band
 // chooser and the free weeks, instead of a "K-12" line that read as all built.
@@ -560,7 +561,7 @@ export function buildNurtureArc1(firstName: string, constitutionName: string, co
 // Day 14: the app + the book.
 export function buildNurtureArc2(firstName: string, constitutionName: string, _constitutionSlug: string): { subject: string; html: string } {
   const patternShort = constitutionName.replace(/^The /i, '');
-  const body = `${p(`Hi ${firstName},`)}${p(`Your pattern doesn&rsquo;t have to live in an inbox. Two ways to keep it close.`)}${goldDivider()}${heading('The Eden Apothecary app')}${p(`Pattern-aware herb guidance in your pocket: your ${patternShort} matched herbs, the full library, energetics and safety, all tied to your constitution. Free to start; Seed and Root unlock more depth when you want it.`)}${brandButton('Start Free in the App', ARC_APP_URL)}${goldDivider()}${heading('The book for your shelf')}${p(`When you&rsquo;d rather hold it in your hands, Book One is the companion to everything we teach.`)}${brandButton('Get the Book', withAffiliateTag(ARC_BOOK_ONE_URL))}${p(`<em>Affiliate link. Eden Institute earns a small commission at no extra cost to you.</em>`)}${signature()}`;
+  const body = `${p(`Hi ${firstName},`)}${p(`Your pattern doesn&rsquo;t have to live in an inbox. Two ways to keep it close.`)}${goldDivider()}${heading('The Eden Apothecary app')}${p(`Pattern-aware herb guidance in your pocket: your ${patternShort} matched herbs, the full library, energetics and safety, all tied to your constitution. Free to start; Seed and Root unlock more depth when you want it.`)}${brandButton('Start Free in the App', ARC_APP_URL)}${goldDivider()}${heading('The book for your shelf')}${p(`When you&rsquo;d rather hold it in your hands, Book One is the companion to everything we teach.`)}${brandButton('Get the Book', ARC_BOOK_ONE_URL)}${signature()}`;
   return { subject: 'Carry your pattern with you', html: emailWrapper(body) };
 }
 

@@ -27,8 +27,9 @@ import {
 import { curriculumInvoiceCreation, RECEIPT_NAMES } from './receipt.ts';
 import { OrderRow } from './order-db.ts';
 
-const COIL = '0850X1100.FC.STD.CO.080CW444.GXX';
-const A5 = '0583X0827.FC.STD.PB.080CW444.GXX';
+// Matte since 2026-09-25 (founder: matte everywhere; migration 20260925210000).
+const COIL = '0850X1100.FC.STD.CO.080CW444.MXX';
+const A5 = '0583X0827.FC.STD.PB.080CW444.MXX';
 
 // deno-lint-ignore no-explicit-any
 function fakeDb(rows: any[]): any {
@@ -84,7 +85,7 @@ Deno.test('Seedlings uses the Sprouts packages and the one page-count table', ()
   assertEquals(luluProductBySku('seedlings_nb_print')?.books, ['nb']);
   assertEquals(luluProductBySku('seedlings_nb_print')?.maxQtyPerOrder, luluProductBySku('sprouts_nb_print')?.maxQtyPerOrder);
   assertEquals(luluBandForSku('seedlings_nb_print'), 'seedlings');
-  assertEquals(LULU_BOOKS.length, 6);
+  assertEquals(LULU_BOOKS.length, 9); // 3 Sprouts + 3 Seedlings + 3 Back to Eden (2026-09-25)
 });
 
 Deno.test('Seedlings page counts sit inside Lulu limits for their bindings', () => {
