@@ -42,7 +42,8 @@ export const NAV_LINKS: readonly SiteLink[] = [
   { label: "Freebies", href: "/freebies" },
   { label: "Adult Courses", href: "/courses" },
   { label: "Herb Reference App", href: "/apothecary", spaRoute: true },
-  { label: "Buy the Book", href: "https://www.amazon.com/dp/B0GPW5BZ32?tag=theedeninstit-20", external: true },
+  // 2026-09-25: the book page on this site replaced the Amazon Kindle link (founder: cut Amazon out).
+  { label: "Buy the Book", href: "/back-to-eden", cta: "nav-buy-book" },
   { label: "Contact", href: "/contact" },
 ];
 

@@ -122,6 +122,23 @@ ${closingBlock()}`;
   return { subject: 'Your Seedlings Week 1 (Elderberry) is ready', html: magnetWrapper(body) };
 }
 
+// Back to Eden free Chapter 1, 2026-09-25 (edeninstitute.health/back-to-eden). Delivers the
+// sample PDF (cover, Chapter 1 with its Reflect & Apply questions, and the Go Deeper QR page)
+// and points to the three editions and the Tier 1 course, which teaches the book lesson by
+// lesson. Course link goes through /go/course so the click is counted. Voice rule: no em dashes.
+export function buildBackToEdenChapter1Email(firstName: string): { subject: string; html: string } {
+  const body = `
+${p(`Hi ${firstName},`)}
+${p('Thank you for asking for this. Chapter 1 of <em>Back to Eden</em> is below: The Life Force Has a Name. It is the chapter the whole book stands on, and it ends with the Reflect &amp; Apply questions, so keep a pen nearby.')}
+${brandButton('READ CHAPTER 1', 'https://edeninstitute.health/lead-magnets/back-to-eden-chapter-1.pdf')}
+${goldDivider()}
+${heading('WHEN YOU WANT THE REST')}
+${p(`The whole book comes three ways, in print or as an instant download: the paperback, the spiral Study &amp; Journal Edition with room to write beside every page, and the Study Guide that sits next to the paperback. ${link('See all three editions', 'https://edeninstitute.health/back-to-eden#editions')}.`)}
+${p(`And if you would like to walk through it with me, the Tier 1 course teaches this book lesson by lesson. ${link('Here is the course', 'https://edeninstitute.health/go/course?src=ch1-email')}.`)}
+${closingBlock()}`;
+  return { subject: 'Your free chapter of Back to Eden is here', html: magnetWrapper(body) };
+}
+
 // Cultivators (6-8) and Practitioners (9-12) waitlist welcome, 2026-09-24. Until
 // then a band-waitlist signup got buildHomeschoolEmail, which calls the whole
 // curriculum unbuilt and points at the adult course. The band descriptions are the
