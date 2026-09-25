@@ -1,0 +1,53 @@
+---
+// /learn: the article index. Added 2026-09-25.
+//
+// NOINDEX WHILE EMPTY. Until the first article is approved and published, this
+// page lists nothing, and an empty page in the index is a thin-content signal
+// against the domain. When the first article's `draft` flag flips to false:
+//   1. remove `noindex` below,
+//   2. add "/learn" to web/lib/sitemapStaticPaths.ts (the sitemap test enforces it),
+//   3. link /learn from the Navbar/Footer if Camila wants it in the menu.
+// Articles themselves are listed in /sitemap.xml by web/pages/sitemap.xml.ts.
+import { getCollection } from "astro:content";
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+
+const articles = (await getCollection("learn", ({ data }) => !data.draft)).sort((a, b) =>
+  b.data.published.localeCompare(a.data.published),
+);
+---
+
+<MarketingLayout
+  title="Homeschool Help and Guides | Eden's Table"
+  description="Plain answers for homeschool families: choosing a Christian science and nature study curriculum, teaching several ages at one table, and bringing plants and Scripture into your school week."
+  canonical="https://edeninstitute.health/learn"
+  noindex
+>
+  <section class="pt-16 pb-10 md:pt-20 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-3xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">Eden's Table</p>
+      <h1 class="font-serif text-3xl md:text-5xl font-bold leading-tight mb-4" style="color:hsl(var(--eden-bark))">Homeschool help and guides</h1>
+      <p class="font-body text-lg text-muted-foreground leading-relaxed">
+        Plain answers to the questions homeschool families ask us most.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-14 px-6 bg-background">
+    <div class="max-w-3xl mx-auto">
+      {articles.length === 0 ? (
+        <p class="font-body text-center text-muted-foreground">
+          The first guides are on their way. In the meantime, <a href="/freebies" class="underline">Week 1 is free</a>.
+        </p>
+      ) : (
+        <ul class="space-y-8">
+          {articles.map((a) => (
+            <li>
+              <a href={`/learn/${a.slug}`} class="font-serif text-xl md:text-2xl font-bold underline-offset-4 hover:underline" style="color:hsl(var(--eden-forest))">{a.data.title}</a>
+              <p class="font-body text-base text-muted-foreground leading-relaxed mt-1">{a.data.description}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  </section>
+</MarketingLayout>

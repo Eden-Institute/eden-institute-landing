@@ -1,0 +1,223 @@
+---
+// /homeschool/<grade>: one page per grade, kindergarten through fifth. Added 2026-09-25.
+// All copy lives in web/lib/gradePages.ts; read the rules block at the top of that
+// file before editing wording here.
+//
+// Built to be found and quoted, the same way /esa/<state> is: the H1 names the
+// grade, the first paragraph answers the search in two sentences, and the page's
+// questions ship as FAQPage JSON-LD so Google and AI assistants can lift the
+// answer with its source.
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import BandChooser from "../../components/BandChooser.astro";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { GRADE_PAGES, gradePath, type GradePage } from "../../lib/gradePages";
+
+export function getStaticPaths() {
+  return GRADE_PAGES.map((g) => ({ params: { grade: g.slug }, props: { g } }));
+}
+
+const { g } = Astro.props as { g: GradePage };
+
+const ORIGIN = "https://edeninstitute.health";
+const canonical = `${ORIGIN}${gradePath(g)}`;
+const isSprouts = g.band === "sprouts";
+const bandName = isSprouts ? "Sprouts" : "Seedlings";
+const bandGrades = isSprouts ? "Grades K-2" : "Grades 3-5";
+const starterHref = isSprouts ? "/starter" : "/starter/seedlings";
+const setHref = isSprouts ? "/books#buy" : "/books#seedlings";
+const freeWeekPlant = isSprouts ? "Lavender" : "Elderberry";
+const cta = (name: string) => `grade-${g.slug}-${name}`;
+
+const steps = [
+  {
+    label: "Step 1 · Try it",
+    name: "Week 1, free",
+    price: "$0",
+    note: `Five full lessons on ${freeWeekPlant}, as PDFs in your inbox in a minute. Print it and teach it today.`,
+    href: "/freebies",
+    button: "Get Week 1 free",
+    key: "free",
+  },
+  {
+    label: "Step 2 · Start now",
+    name: "Starter Unit, weeks 1 to 9",
+    price: "$39",
+    note: "The first nine weeks of the 36-week year: Teacher's Guide, Notebook and storybook, as an instant download.",
+    href: starterHref,
+    button: "Get the Starter Unit",
+    key: "starter",
+  },
+  {
+    label: "Step 3 · The whole year",
+    name: "Printed Curriculum Set",
+    price: "$249",
+    note: "All 36 weeks in three printed books, plus flat $12 shipping. Printed to order and at your door in about 2 to 3 weeks.",
+    href: setHref,
+    button: "Order the printed set",
+    key: "set",
+  },
+];
+
+const others = GRADE_PAGES.filter((o) => o.slug !== g.slug);
+
+const courseJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Course",
+  name: `Eden's Table ${bandName}, ${bandGrades}`,
+  description: `A Bible-based homeschool science and nature study curriculum for ${bandGrades.toLowerCase()}: one plant a week for 36 weeks, with Bible, science, language arts, math, art, history, geography, Latin, health, and character woven into each week.`,
+  url: canonical,
+  inLanguage: "en",
+  educationalLevel: isSprouts ? "Kindergarten to Grade 2" : "Grade 3 to Grade 5",
+  timeRequired: "P36W",
+  provider: { "@type": "Organization", name: "The Eden Institute", url: ORIGIN },
+  audience: { "@type": "EducationalAudience", educationalRole: "homeschooling family" },
+};
+
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: g.faq.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Homeschool Curriculum", item: `${ORIGIN}/homeschool` },
+      { "@type": "ListItem", position: 2, name: g.short, item: canonical },
+    ],
+  },
+  courseJsonLd,
+];
+
+const card = "rounded-lg p-6 bg-white border flex flex-col";
+const cardStyle = "border-color:hsl(var(--eden-gold) / 0.35)";
+---
+
+<MarketingLayout
+  title={`${g.title} | Eden's Table`}
+  description={g.description}
+  canonical={canonical}
+  jsonLd={jsonLd}
+>
+  <section class="pt-16 pb-12 md:pt-20 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-3xl mx-auto text-center">
+      <nav aria-label="Breadcrumb" class="font-body text-xs text-muted-foreground mb-6">
+        <a href="/homeschool" class="underline underline-offset-4">Homeschool Curriculum</a>
+        <span aria-hidden="true"> / </span>
+        <span>{g.short}</span>
+      </nav>
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">
+        Eden's Table · {g.short}
+      </p>
+      <h1 class="font-serif text-3xl md:text-5xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
+        {g.h1}
+      </h1>
+      <p class="font-body text-lg leading-relaxed" style="color:hsl(var(--eden-bark))">{g.answer}</p>
+      <div class="flex flex-col sm:flex-row gap-3 justify-center mt-8">
+        <a href="/freebies" data-cta={cta("hero-free")} class={cn(buttonVariants({ variant: "eden", size: "lg" }), "h-auto min-h-[48px] py-3 px-6")}>
+          Get Week 1 free
+        </a>
+        <a href={starterHref} data-cta={cta("hero-starter")} class={cn(buttonVariants({ variant: "eden-outline", size: "lg" }), "h-auto min-h-[48px] py-3 px-6")}>
+          Nine weeks for $39
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-14 px-6 bg-background">
+    <div class="max-w-3xl mx-auto">
+      <h2 class="font-serif text-2xl md:text-3xl font-bold mb-6" style="color:hsl(var(--eden-bark))">
+        One plant a week. Ten subjects come with it.
+      </h2>
+      <div class="space-y-4 font-body text-base text-muted-foreground leading-relaxed">
+        <p>
+          A single week on a single plant carries Bible, science, language arts, math, art, history, geography,
+          Latin, health, and character, and the Week at a Glance page tells you which day carries which. You are
+          not stacking ten subjects into a morning. You are teaching one plant well, and the disciplines arrive
+          with it.
+        </p>
+        <p>
+          You do not need to know herbalism to teach this. The read-aloud is scripted, the discussion questions
+          are written, the memory verse is chosen, and the kitchen lab tells you exactly which supplies to set on
+          the counter.
+        </p>
+        <p>
+          Every unit is anchored in Scripture. Herbalism here is presented as stewardship of Yahweh's creation,
+          not alternative medicine.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  {isSprouts ? (
+    <section class="py-14 px-6" style="background-color:hsl(var(--eden-cream))">
+      <div class="max-w-5xl mx-auto">
+        <div class="text-center mb-10">
+          <p class="font-accent text-xs tracking-[0.25em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">Sprouts · {bandGrades}</p>
+          <h2 class="font-serif text-2xl md:text-3xl font-bold" style="color:hsl(var(--eden-bark))">
+            Three ways to start {g.inSentence}
+          </h2>
+        </div>
+        <div class="grid gap-5 md:grid-cols-3">
+          {steps.map((s) => (
+            <div class={card} style={cardStyle}>
+              <p class="font-accent text-xs tracking-[0.2em] uppercase mb-2" style="color:hsl(var(--eden-gold-ink))">{s.label}</p>
+              <h3 class="font-serif text-xl font-bold mb-1" style="color:hsl(var(--eden-bark))">{s.name}</h3>
+              <p class="font-serif text-3xl font-bold mb-3" style="color:hsl(var(--eden-forest))">{s.price}</p>
+              <p class="font-body text-sm text-muted-foreground leading-relaxed mb-5">{s.note}</p>
+              <a href={s.href} data-cta={cta(`step-${s.key}`)} class={cn(buttonVariants({ variant: s.key === "set" ? "eden" : "eden-outline", size: "default" }), "mt-auto w-full h-auto min-h-[44px] py-2")}>
+                {s.button}
+              </a>
+            </div>
+          ))}
+        </div>
+        <p class="font-body text-sm text-muted-foreground text-center mt-6">
+          Teaching more than one child? Add extra Student Notebooks at checkout, $39.99 each.
+        </p>
+      </div>
+    </section>
+  ) : (
+    <BandChooser ctaPrefix={`grade-${g.slug}`} heading={`Sprouts or Seedlings for ${g.inSentence}? Here is where to start.`} />
+  )}
+
+  <section class="py-14 px-6 bg-background">
+    <div class="max-w-3xl mx-auto">
+      <h2 class="font-serif text-2xl md:text-3xl font-bold mb-6" style="color:hsl(var(--eden-bark))">
+        Questions {g.inSentence} families ask
+      </h2>
+      <div class="space-y-6">
+        {g.faq.map((f) => (
+          <div>
+            <h3 class="font-serif text-lg font-bold mb-1" style="color:hsl(var(--eden-forest))">{f.q}</h3>
+            <p class="font-body text-base text-muted-foreground leading-relaxed">{f.a}</p>
+          </div>
+        ))}
+      </div>
+      <p class="font-body text-sm text-muted-foreground mt-8">
+        Questions? Email <a href="mailto:hello@edeninstitute.health" class="underline">hello@edeninstitute.health</a> and a real person (Camila) answers.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-3xl mx-auto text-center">
+      <h2 class="font-serif text-xl font-bold mb-4" style="color:hsl(var(--eden-bark))">Eden's Table by grade</h2>
+      <p class="font-body text-sm leading-loose">
+        {others.map((o, i) => (
+          <>
+            {i > 0 && <span aria-hidden="true" class="text-muted-foreground"> · </span>}
+            <a href={gradePath(o)} class="underline underline-offset-4" style="color:hsl(var(--eden-forest))">{o.short}</a>
+          </>
+        ))}
+        <span aria-hidden="true" class="text-muted-foreground"> · </span>
+        <a href="/homeschool" class="underline underline-offset-4" style="color:hsl(var(--eden-forest))">All grades</a>
+      </p>
+    </div>
+  </section>
+</MarketingLayout>
