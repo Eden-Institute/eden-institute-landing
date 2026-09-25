@@ -8,7 +8,7 @@ import { emailWrapperTransactional } from './nurture-email-templates.ts';
 import { escapeHtml, safeHttpsUrl } from './html-escape.ts';
 import { OrderStatus } from './order-state.ts';
 import { SHIP_GUARANTEE_TEXT, SHIP_TARGET } from './order-config.ts';
-import { LULU_BAND_INFO, LULU_PRODUCTION_DELAY_MINUTES, printBandForOrder } from './lulu-config.ts';
+import { LULU_BAND_INFO, LULU_PRODUCTION_DELAY_MINUTES, isBookBand, printBandForOrder } from './lulu-config.ts';
 import { Db, OrderRow, hasSentMessage, logMessage } from './order-db.ts';
 import { sendSms } from './order-sms.ts';
 import { captureException } from './sentry.ts';
@@ -100,6 +100,69 @@ function printBandName(order: OrderRow): string {
   return LULU_BAND_INFO[printBandForOrder(order)].bandName;
 }
 
+/** Camila's book Back to Eden (2026-09-25): its own wording, never curriculum wording. */
+function isBookOrder(order: OrderRow): boolean {
+  return isBookBand(printBandForOrder(order));
+}
+
+// ── Back to Eden printed-book emails (2026-09-25) ──────────────────────────────
+// Same facts as the curriculum emails (48-hour pause, tracking on ship, about two
+// to three weeks), none of the curriculum words. Founder to review the voice.
+function buildBookOrderConfirmationEmail(order: OrderRow, receipt: Receipt | null): { subject: string; html: string } {
+  const item = order.product_label ? escapeHtml(order.product_label) : 'your copy of Back to Eden';
+  const amount = money(order.amount_total_cents);
+  const body =
+    p(`Hi ${firstName(order)},`) +
+    p(`Thank you so much!! Your order is in, and your copy of <em>Back to Eden</em> is about to be printed just for you.`) +
+    heading('Your order') +
+    (order.order_number
+      ? p(`Order number: <strong>${order.order_number}</strong><br>`
+        + `Keep this one. It is how I find you fast if you ever need anything.`)
+      : '') +
+    (receipt ? renderReceiptHtml(receipt) : p(`${item}${amount ? `: ${amount}, charged today` : ''}`)) +
+    heading('What happens now') +
+    p(`Every copy is printed to order, so there is a <strong>${PRINT_CANCEL_HOURS} hour pause</strong> before printing `
+      + `starts. If the address is wrong or you changed your mind, just reply to this email in that window and I will `
+      + `fix it or refund you in full. Once printing starts it cannot be changed.`) +
+    p(`After that your book prints, gets packed and goes in the mail, and you will get an email from me with tracking `
+      + `the day it ships. Plan on about two to three weeks from today to your door.`) +
+    p(`This book is where everything I teach began. I am so glad it is coming to you.`) +
+    signature();
+  return { subject: `Your copy of Back to Eden is ordered${order.order_number ? ` (${order.order_number})` : ''}`, html: emailWrapperTransactional(body, 'order') };
+}
+
+function buildBookShippedEmail(order: OrderRow): { subject: string; html: string } {
+  const item = order.product_label ? order.product_label : 'Back to Eden';
+  const { carrier, code, link } = trackingBits(order);
+  const body =
+    p(`Hi ${firstName(order)},`) +
+    p(`It is on the way!! Your <strong>${escapeHtml(item)}</strong> shipped today${carrier !== 'the carrier' ? ` with ${escapeHtml(carrier)}` : ''}.`) +
+    heading('Tracking') +
+    (code ? p(`Tracking number: <strong>${escapeHtml(code)}</strong>`) : '') +
+    (link
+      ? p(`<a href="${escapeHtml(link)}" style="display:inline-block;background-color:${BRAND.forest};color:#F5F0E8;font-family:Georgia,serif;font-size:16px;font-weight:bold;padding:12px 28px;text-decoration:none;">Track your package</a>`)
+      : '') +
+    (!code && !link ? p(`The carrier has not posted a tracking number yet. If nothing has arrived in two weeks, reply to this email and I will chase it.`) : '') +
+    p(`Mail usually takes a week or two.`) +
+    (order.order_number ? p(`Order number: ${order.order_number}`) : '') +
+    signature();
+  return { subject: `Your copy of Back to Eden shipped`, html: emailWrapperTransactional(body, 'order') };
+}
+
+function buildBookDeliveredEmail(order: OrderRow): { subject: string; html: string } {
+  const item = order.product_label ? order.product_label : 'Back to Eden';
+  const body =
+    p(`Hi ${firstName(order)},`) +
+    p(`Your <strong>${escapeHtml(item)}</strong> was delivered today!`) +
+    p(`If it is not where you expected, check with everyone at home first, then the porch, the side door `
+      + `and anywhere else the mail carrier likes to hide things. Still nothing? Reply to this email and we `
+      + `will sort it out together.`) +
+    p(`If it arrived bent, misprinted or damaged, send me a photo and I will replace it, no charge.`) +
+    p(`Grab a cup of tea and start with the Introduction. I hope it changes the way you see.`) +
+    signature();
+  return { subject: `Your copy of Back to Eden is here`, html: emailWrapperTransactional(body, 'order') };
+}
+
 // ── Print-on-demand order emails ─────────────────────────────────────────────
 // Written 2026-09-11 in the founder's voice, from her own pages and mail. Facts
 // only from the code: the cancellation window equals Lulu's production delay;
@@ -111,6 +174,7 @@ function printBandName(order: OrderRow): string {
 // a DB hiccup) the old single line is the fallback, so the buyer still hears from
 // us. The fallback is logged, because it is not scholarship-ready.
 export function buildOrderConfirmationEmail(order: OrderRow, receipt: Receipt | null = null): { subject: string; html: string } {
+  if (isBookOrder(order)) return buildBookOrderConfirmationEmail(order, receipt);
   const band = printBandName(order);
   const item = order.product_label ? order.product_label : `your ${band} set`;
   const amount = money(order.amount_total_cents);
@@ -139,6 +203,7 @@ export function buildOrderConfirmationEmail(order: OrderRow, receipt: Receipt | 
 }
 
 export function buildShippedEmail(order: OrderRow): { subject: string; html: string } {
+  if (isBookOrder(order)) return buildBookShippedEmail(order);
   const band = printBandName(order);
   const item = order.product_label ? order.product_label : `your ${band} set`;
   const { carrier, code, link } = trackingBits(order);
@@ -159,6 +224,7 @@ export function buildShippedEmail(order: OrderRow): { subject: string; html: str
 }
 
 export function buildDeliveredEmail(order: OrderRow): { subject: string; html: string } {
+  if (isBookOrder(order)) return buildBookDeliveredEmail(order);
   const band = printBandName(order);
   const item = order.product_label ? order.product_label : `your ${band} set`;
   const body =
@@ -219,6 +285,16 @@ export function orderSmsText(templateKey: string, order: OrderRow): string {
   const ref = order.order_number ? ` Order ${order.order_number}.` : '';
   const { carrier, code, link } = trackingBits(order);
   const band = printBandName(order);
+  if (isBookOrder(order)) {
+    switch (templateKey) {
+      case 'order_received_sms':
+        return `Thank you for your Back to Eden order from The Eden Institute!${ref} Your payment went through today. Your book prints in ${PRINT_CANCEL_HOURS} hours; reply to your confirmation email before then to change anything. I will text you when it ships. Reply STOP to opt out.`;
+      case 'shipped_sms':
+        return `Your copy of Back to Eden from The Eden Institute shipped today${carrier !== 'the carrier' ? ` with ${carrier}` : ''}!${link ? ` Track it: ${link}` : ''}${code ? ` (tracking ${code})` : ''} Reply STOP to opt out.`;
+      case 'delivered_sms':
+        return `Your copy of Back to Eden from The Eden Institute was delivered today! Anything wrong with it, reply to your confirmation email and I will make it right. Reply STOP to opt out.`;
+    }
+  }
   switch (templateKey) {
     case 'preorder_received_sms':
       return preorderSmsText(order);

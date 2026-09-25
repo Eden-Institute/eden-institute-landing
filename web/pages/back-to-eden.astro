@@ -19,6 +19,7 @@
 // (WaitlistController) with source back_to_eden_ch1; resend-waitlist sends the chapter.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 import WaitlistController from "../components/islands/WaitlistController.tsx";
+import BookCheckoutController from "../components/islands/BookCheckoutController.tsx";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { BookOpen, CheckCircle, Download, Headphones, Leaf, Printer, Search, Smartphone, Sprout } from "lucide-react";
@@ -440,7 +441,7 @@ const jsonLd = {
           <p class="mt-2 font-body text-sm text-muted-foreground">The book and the workbook in one spiral book that lies flat.</p>
           <p class="mt-4 font-body text-sm" style="color:hsl(var(--eden-bark))"><strong class="font-serif text-lg">{money(editions[0].print)}</strong> print · <strong class="font-serif text-lg">{money(editions[0].digital)}</strong> digital</p>
         </a>
-        <a href="#paperback" data-cta="bte-way-sidebyside" class="rounded-lg border-2 p-6 transition-shadow hover:shadow-md" style="border-color:hsl(var(--eden-sage) / 0.6)">
+        <div class="rounded-lg border-2 p-6" style="border-color:hsl(var(--eden-sage) / 0.6)">
           <div class="mb-4 flex h-36 items-end justify-center gap-3">
             <img src="/books/back-to-eden-paperback.webp" alt="Back to Eden paperback" width="640" height="960" loading="lazy" class="h-32 w-auto rounded-sm shadow-md" />
             <span class="pb-12 font-serif text-2xl" style="color:hsl(var(--eden-gold-ink))">+</span>
@@ -453,7 +454,12 @@ const jsonLd = {
             Paperback {money(editions[1].print)} + Study Guide {money(editions[2].print)} = <strong class="font-serif text-lg">{money(editions[1].print + editions[2].print)}</strong> print<br />
             or {money(editions[1].digital)} + {money(editions[2].digital)} = <strong class="font-serif text-lg">{money(editions[1].digital + editions[2].digital)}</strong> digital
           </p>
-        </a>
+          <div data-book-buy-row class="mt-4 flex flex-wrap items-center gap-3">
+            <button type="button" data-cta="bte-buy-both-print" data-book-buy="both-print" class={cn(buttonVariants({ variant: "eden" }), "min-h-[44px]", !BUY_LIVE && "hidden")}>Buy both in print</button>
+            <a href="#paperback" data-cta="bte-way-sidebyside" class="font-body text-sm font-semibold underline underline-offset-4" style="color:hsl(var(--eden-forest))">See each book</a>
+          </div>
+          <p class="mt-2 font-body text-xs text-muted-foreground">Both in print ship together in one parcel for {money(Math.max(editions[1].ship, editions[2].ship))}.</p>
+        </div>
       </div>
       <div class="grid gap-6 lg:grid-cols-3">
         {editions.map((e, i) => (
@@ -476,21 +482,19 @@ const jsonLd = {
             </ul>
             <p class="mb-4 rounded px-3 py-2 font-body text-xs font-semibold" style="background-color:hsl(var(--eden-gold) / 0.15);color:hsl(var(--eden-gold-ink))">{e.value}</p>
             <div class="mt-auto space-y-3">
-              <div class="flex items-center justify-between rounded-md border p-3" style="border-color:hsl(var(--eden-gold) / 0.35)">
+              <div data-book-buy-row class="flex items-center justify-between rounded-md border p-3" style="border-color:hsl(var(--eden-gold) / 0.35)">
                 <div class="flex items-center gap-2"><Printer className="h-4 w-4" color="hsl(var(--eden-forest))" />
                   <div><p class="font-serif text-xl font-bold" style="color:hsl(var(--eden-bark))">{money(e.print)}</p>
                   <p class="font-body text-[11px] text-muted-foreground">Print · + {money(e.ship)} flat shipping</p></div></div>
-                {BUY_LIVE
-                  ? <button type="button" data-cta={`bte-buy-${e.id}-print`} data-book-buy={`${e.id}-print`} class={cn(buttonVariants({ variant: "eden" }), "min-h-[44px]")}>Buy print</button>
-                  : <span class="font-body text-xs font-semibold uppercase tracking-wider" style="color:hsl(var(--eden-gold-ink))">Coming soon</span>}
+                <button type="button" data-cta={`bte-buy-${e.id}-print`} data-book-buy={`${e.id}-print`} class={cn(buttonVariants({ variant: "eden" }), "min-h-[44px]", !BUY_LIVE && "hidden")}>Buy print</button>
+                {!BUY_LIVE && <span data-book-soon class="font-body text-xs font-semibold uppercase tracking-wider" style="color:hsl(var(--eden-gold-ink))">Coming soon</span>}
               </div>
-              <div class="flex items-center justify-between rounded-md border p-3" style="border-color:hsl(var(--eden-gold) / 0.35)">
+              <div data-book-buy-row class="flex items-center justify-between rounded-md border p-3" style="border-color:hsl(var(--eden-gold) / 0.35)">
                 <div class="flex items-center gap-2"><Download className="h-4 w-4" color="hsl(var(--eden-forest))" />
                   <div><p class="font-serif text-xl font-bold" style="color:hsl(var(--eden-bark))">{money(e.digital)}</p>
                   <p class="font-body text-[11px] text-muted-foreground">Digital · instant PDF download</p></div></div>
-                {BUY_LIVE
-                  ? <button type="button" data-cta={`bte-buy-${e.id}-digital`} data-book-buy={`${e.id}-digital`} class={cn(buttonVariants({ variant: "eden-outline" }), "min-h-[44px]")}>Buy digital</button>
-                  : <span class="font-body text-xs font-semibold uppercase tracking-wider" style="color:hsl(var(--eden-gold-ink))">Coming soon</span>}
+                <button type="button" data-cta={`bte-buy-${e.id}-digital`} data-book-buy={`${e.id}-digital`} class={cn(buttonVariants({ variant: "eden-outline" }), "min-h-[44px]", !BUY_LIVE && "hidden")}>Buy digital</button>
+                {!BUY_LIVE && <span data-book-soon class="font-body text-xs font-semibold uppercase tracking-wider" style="color:hsl(var(--eden-gold-ink))">Coming soon</span>}
               </div>
             </div>
           </div>
@@ -662,4 +666,5 @@ const jsonLd = {
   <div class="h-20 md:hidden"></div>
 
   <WaitlistController client:only="react" />
+  <BookCheckoutController client:only="react" live={BUY_LIVE} />
 </MarketingLayout>

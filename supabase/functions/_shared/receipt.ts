@@ -71,6 +71,20 @@ export const RECEIPT_NAMES: Record<string, { name: string; grade: string }> = {
   },
 };
 
+/**
+ * Receipt names for Camila's book Back to Eden (2026-09-25). Kept apart from
+ * RECEIPT_NAMES on purpose: those are curriculum items and every one must say
+ * "curriculum" (render_receipt_audit.ts); a book must not. No grade level.
+ */
+export const BOOK_RECEIPT_NAMES: Record<string, string> = {
+  bte_paperback_print: 'Back to Eden: A Biblical Foundation for Herbal Healing, paperback (printed to order)',
+  bte_study_journal_print: 'Back to Eden: Study & Journal Edition, spiral bound (printed to order)',
+  bte_study_guide_print: 'Back to Eden: Study Guide, spiral bound (printed to order)',
+  bte_paperback_digital: 'Back to Eden: A Biblical Foundation for Herbal Healing, digital edition (PDF)',
+  bte_study_journal_digital: 'Back to Eden: Study & Journal Edition, digital (PDF)',
+  bte_study_guide_digital: 'Back to Eden: Study Guide, digital (PDF)',
+};
+
 /** The label stored on orders.product_label for a Starter Unit purchase. */
 export const STARTER_ORDER_LABEL = RECEIPT_NAMES.sprouts_starter_unit.name;
 
@@ -105,7 +119,12 @@ export interface Receipt {
   gradeLevel: string | null;
   /** e.g. 'Visa ending 4242'. Null for a non-card payment or when unknown. */
   paidWith: string | null;
+  /** Receipt title. Omitted means the curriculum heading, unchanged. */
+  heading?: string;
 }
+
+const CURRICULUM_HEADING = 'Itemized receipt: homeschool curriculum';
+const BOOK_HEADING = 'Itemized receipt';
 
 const CARD_BRANDS: Record<string, string> = {
   visa: 'Visa',
@@ -164,7 +183,7 @@ export async function loadOrderReceipt(db: Db, order: OrderRow): Promise<Receipt
   // deno-lint-ignore no-explicit-any
   const lines: ReceiptLine[] = data.map((r: any) => {
     const sku = r.products?.sku as string | undefined;
-    const name = (sku && RECEIPT_NAMES[sku]?.name) ?? r.products?.name ?? sku ?? 'Curriculum item';
+    const name = (sku && (RECEIPT_NAMES[sku]?.name ?? BOOK_RECEIPT_NAMES[sku])) ?? r.products?.name ?? sku ?? 'Curriculum item';
     return { name, quantity: num(r.quantity) || 1, unitCents: num(r.unit_price_cents) };
   });
   // Stable order: the set first, add-ons after.
@@ -189,6 +208,36 @@ export async function loadOrderReceipt(db: Db, order: OrderRow): Promise<Receipt
     totalCents: num(order.amount_total_cents),
     gradeLevel: (firstSku && RECEIPT_NAMES[firstSku]?.grade) ?? null,
     paidWith: paidWithFromRaw(raw),
+    ...(firstSku && BOOK_RECEIPT_NAMES[firstSku] ? { heading: BOOK_HEADING } : {}),
+  };
+}
+
+/**
+ * Receipt for a Back to Eden PDF (2026-09-25). Same arithmetic as starterReceipt:
+ * one line at the pre-discount price, discount and tax shown separately.
+ */
+// deno-lint-ignore no-explicit-any
+export function bookDigitalReceipt(order: any, sku: string): Receipt {
+  const name = BOOK_RECEIPT_NAMES[sku];
+  if (!name) throw new Error(`no receipt name for book sku '${sku}'`);
+  const raw = order?.raw ?? {};
+  const totals = raw.total_details ?? {};
+  const total = num(order?.amount_total_cents);
+  const tax = num(order?.tax_cents ?? totals.amount_tax);
+  const discount = num(totals.amount_discount);
+  const subtotal = typeof raw.amount_subtotal === 'number' ? raw.amount_subtotal : total - tax + discount;
+  return {
+    orderNumber: order?.order_number ?? null,
+    purchasedAt: order?.created_at ?? null,
+    billTo: raw.customer_details?.name ?? null,
+    lines: [{ name, quantity: 1, unitCents: subtotal }],
+    discountCents: discount,
+    shippingCents: 0,
+    taxCents: tax,
+    totalCents: total,
+    gradeLevel: null,
+    paidWith: paidWithFromRaw(raw),
+    heading: BOOK_HEADING,
   };
 }
 
@@ -251,7 +300,7 @@ export function renderReceiptHtml(r: Receipt): string {
   return `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E0D7C2;border-radius:6px;background-color:#FBF8F1;margin:8px 0 20px 0;">
 <tr><td style="padding:18px 20px;">
-  <p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:3px;color:#8A6D1F;text-transform:uppercase;margin:0 0 10px 0;">Itemized receipt: homeschool curriculum</p>
+  <p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:3px;color:#8A6D1F;text-transform:uppercase;margin:0 0 10px 0;">${r.heading ?? CURRICULUM_HEADING}</p>
   ${r.orderNumber ? `<p style="${muted}">Order <strong style="color:#3D3832;">${r.orderNumber}</strong></p>` : ''}
   ${date ? `<p style="${muted}">Purchased ${date}</p>` : ''}
   ${r.billTo ? `<p style="${muted}">Bill to ${escapeHtml(r.billTo)}</p>` : ''}
@@ -277,7 +326,7 @@ export function renderReceiptHtml(r: Receipt): string {
 /** The same receipt as plain text, for the text/plain part of the email. */
 export function renderReceiptText(r: Receipt): string {
   const date = longDate(r.purchasedAt);
-  const out: string[] = ['ITEMIZED RECEIPT: HOMESCHOOL CURRICULUM'];
+  const out: string[] = [(r.heading ?? CURRICULUM_HEADING).toUpperCase()];
   if (r.orderNumber) out.push(`Order ${r.orderNumber}`);
   if (date) out.push(`Purchased ${date}`);
   if (r.billTo) out.push(`Bill to ${r.billTo}`);

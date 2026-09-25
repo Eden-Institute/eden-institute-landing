@@ -16,6 +16,8 @@
  *   /starter/downloads    - post-purchase delivery surface
  *   /starter/thank-you    - post-purchase confirmation
  *   /starter/seedlings/thank-you - post-purchase confirmation (Seedlings)
+ *   /back-to-eden/thank-you - post-purchase confirmation (Back to Eden)
+ *   /back-to-eden/download  - post-purchase delivery surface (Back to Eden PDFs)
  */
 export const STATIC_PATHS: readonly string[] = [
   "/",
@@ -28,6 +30,7 @@ export const STATIC_PATHS: readonly string[] = [
   "/community",
   "/freebies",
   "/books",
+  "/back-to-eden",
   "/starter",
   "/starter/seedlings",
   "/contact",
