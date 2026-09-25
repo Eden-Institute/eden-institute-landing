@@ -16,4 +16,7 @@ export const SOCIALS = [
   { label: "Instagram", href: "https://www.instagram.com/edenstablehomeschoolcurriculum/" },
   { label: "Facebook", href: "https://www.facebook.com/EdensTableHomeschoolCurriculum" },
   { label: "Pinterest", href: "https://www.pinterest.com/TheEdenInstituteBoards/" },
+  // Camila's weekly letters, "Letters from Eden's Table". Added 2026-09-25; the
+  // publication URL, not the @camilajohnson1 profile, is what readers subscribe to.
+  { label: "Substack", href: "https://edeninstituteletters.substack.com/" },
 ] as const;
