@@ -16,6 +16,16 @@
       "permanent": true
     },
     {
+      "source": "/preorder",
+      "destination": "/books",
+      "permanent": false
+    },
+    {
+      "source": "/sprouts-founders.html",
+      "destination": "/books",
+      "permanent": false
+    },
+    {
       "source": "/go/deep-dive/:slug",
       "destination": "https://noeqztssupewjidpvhar.supabase.co/functions/v1/guide-checkout?slug=:slug",
       "permanent": false
