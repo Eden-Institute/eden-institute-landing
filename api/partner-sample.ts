@@ -50,14 +50,28 @@
 import { safeEqual } from './_lib/safe-equal.js';
 import { clientIp, isLockedOut, recordWrongKey, WRONG_KEY_WINDOW_SECONDS } from './_lib/wrong-key-limit.js';
 
-/** Button slug -> Storage object path. Order is the reading order of a week. */
+/**
+ * Button slug -> Storage object path. Grouped by band, reading order within each.
+ *
+ * THREE WEEKS OF EACH BAND since 2026-09-24 (founder decision): weeks 1-3 of
+ * Sprouts (K-2) and weeks 1-3 of Seedlings (grades 3-5), so a partner can compare
+ * the two. It replaces the six-week, Sprouts-only sample. The three card sets are
+ * gone from the sample entirely, so the old slugs (field-cards, recipe-cards,
+ * around-the-table-cards, and the unprefixed read-aloud / teachers-guide /
+ * student-notebook) now 404. The page builds every href from its own list, so
+ * only a hand-bookmarked /api URL could still carry an old slug.
+ *
+ * The files are cut page for page from the nine-week Starter masters; the build
+ * script sits beside them in "Projects/Influencer and Partner Outreach/Partner
+ * Sample 3+3 (2026-09-24)". The old `6wk` objects are not deleted by this change.
+ */
 const COMPONENTS: Record<string, string> = {
-  'read-aloud': 'sample/edens-table-6wk-read-aloud.pdf',
-  'teachers-guide': 'sample/edens-table-6wk-teachers-guide.pdf',
-  'student-notebook': 'sample/edens-table-6wk-student-notebook.pdf',
-  'field-cards': 'sample/edens-table-6wk-field-cards.pdf',
-  'recipe-cards': 'sample/edens-table-6wk-recipe-cards.pdf',
-  'around-the-table-cards': 'sample/edens-table-6wk-around-the-table-cards.pdf',
+  'sprouts-read-aloud': 'sample/edens-table-sample-sprouts-3wk-read-aloud.pdf',
+  'sprouts-teachers-guide': 'sample/edens-table-sample-sprouts-3wk-teachers-guide.pdf',
+  'sprouts-student-notebook': 'sample/edens-table-sample-sprouts-3wk-student-notebook.pdf',
+  'seedlings-read-aloud': 'sample/edens-table-sample-seedlings-3wk-read-aloud.pdf',
+  'seedlings-teachers-guide': 'sample/edens-table-sample-seedlings-3wk-teachers-guide.pdf',
+  'seedlings-student-notebook': 'sample/edens-table-sample-seedlings-3wk-student-notebook.pdf',
 };
 
 const BUCKET = 'partner-assets';

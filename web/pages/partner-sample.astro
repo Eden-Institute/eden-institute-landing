@@ -39,15 +39,18 @@ const meta = {
   canonical: "https://edeninstitute.health/partner-sample",
 };
 
-// Order is the reading order of a week, matching the welcome email.
-const components = [
-  { slug: "read-aloud", label: "Read-Aloud", note: "The week's story, read together." },
-  { slug: "teachers-guide", label: "Teacher's Guide", note: "Everything you need to teach the week." },
-  { slug: "student-notebook", label: "Student Notebook", note: "The child's write-in pages." },
-  { slug: "field-cards", label: "Field Cards", note: "Take these outside for plant identification." },
-  { slug: "recipe-cards", label: "Recipe Cards", note: "The week's kitchen work." },
-  { slug: "around-the-table-cards", label: "Around the Table Cards", note: "Discussion prompts for mealtimes." },
+// Three weeks of each band (founder decision 2026-09-24), grouped so a partner
+// can compare Sprouts and Seedlings side by side. Reading order within a band.
+// Slugs must match COMPONENTS in api/partner-sample.ts.
+const pieces = [
+  { key: "read-aloud", label: "Read-Aloud", note: "The stories for these three weeks, read together." },
+  { key: "teachers-guide", label: "Teacher's Guide", note: "Everything you need to teach each week." },
+  { key: "student-notebook", label: "Student Notebook", note: "The child's write-in pages." },
 ];
+const bands = [
+  { id: "sprouts", title: "Sprouts", grades: "Grades K-2", intro: "Weeks 1 to 3: lavender, chamomile and lemon balm." },
+  { id: "seedlings", title: "Seedlings", grades: "Grades 3-5", intro: "Weeks 1 to 3: elderberry, tulsi and ginger." },
+].map((b) => ({ ...b, components: pieces.map((c) => ({ ...c, slug: `${b.id}-${c.key}` })) }));
 ---
 
 <MarketingLayout
@@ -63,11 +66,11 @@ const components = [
         Founding Partner
       </p>
       <h1 class="font-serif text-4xl md:text-5xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
-        Your six-week sample
+        Your Eden's Table sample
       </h1>
       <div class="w-16 h-px mx-auto my-6" style="background-color:hsl(var(--eden-gold))"></div>
       <p class="font-body text-lg text-muted-foreground leading-relaxed">
-        Six weeks of Eden's Table, yours to keep. Take your time with it.
+        Three weeks of Sprouts (K-2) and three weeks of Seedlings (grades 3-5), so you can compare. Yours to keep, so take your time with it.
       </p>
     </div>
   </section>
@@ -85,23 +88,35 @@ const components = [
         </p>
       </div>
 
-      <div id="ps-downloads" class="hidden space-y-3">
-        {components.map((c) => (
-          <a
-            href="#"
-            data-slug={c.slug}
-            class="ps-dl flex items-center justify-between gap-4 rounded-lg p-5 bg-white border no-underline transition-colors hover:bg-[hsl(var(--eden-cream))]"
-            style="border-color:hsl(var(--eden-gold) / 0.3)"
-          >
-            <span>
-              <span class="block font-serif text-base font-bold" style="color:hsl(var(--eden-forest))">{c.label}</span>
-              <span class="block font-body text-sm text-muted-foreground">{c.note}</span>
-            </span>
-            <span
-              class="shrink-0 font-accent text-xs tracking-[0.2em] uppercase border-2 px-4 py-2"
-              style="border-color:hsl(var(--eden-forest));color:hsl(var(--eden-forest))"
-            >Download</span>
-          </a>
+      <div id="ps-downloads" class="hidden space-y-10">
+        {bands.map((b) => (
+          <div>
+            <div class="mb-4">
+              <h2 class="font-serif text-2xl font-bold" style="color:hsl(var(--eden-bark))">
+                {b.title} <span class="font-body text-base font-normal text-muted-foreground">{b.grades}</span>
+              </h2>
+              <p class="font-body text-sm text-muted-foreground">{b.intro}</p>
+            </div>
+            <div class="space-y-3">
+              {b.components.map((c) => (
+                <a
+                  href="#"
+                  data-slug={c.slug}
+                  class="ps-dl flex items-center justify-between gap-4 rounded-lg p-5 bg-white border no-underline transition-colors hover:bg-[hsl(var(--eden-cream))]"
+                  style="border-color:hsl(var(--eden-gold) / 0.3)"
+                >
+                  <span>
+                    <span class="block font-serif text-base font-bold" style="color:hsl(var(--eden-forest))">{c.label}</span>
+                    <span class="block font-body text-sm text-muted-foreground">{c.note}</span>
+                  </span>
+                  <span
+                    class="shrink-0 font-accent text-xs tracking-[0.2em] uppercase border-2 px-4 py-2"
+                    style="border-color:hsl(var(--eden-forest));color:hsl(var(--eden-forest))"
+                  >Download</span>
+                </a>
+              ))}
+            </div>
+          </div>
         ))}
 
         <p class="font-body text-sm text-muted-foreground leading-relaxed pt-6">

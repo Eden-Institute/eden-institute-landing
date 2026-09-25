@@ -37,7 +37,7 @@ function fakeFetch() {
 }
 
 function req(k: string, headers: Record<string, string> = { "x-forwarded-for": "203.0.113.9, 10.0.0.1" }) {
-  return new Request(`https://edeninstitute.health/api/partner-sample?k=${encodeURIComponent(k)}&f=read-aloud`, { headers });
+  return new Request(`https://edeninstitute.health/api/partner-sample?k=${encodeURIComponent(k)}&f=sprouts-read-aloud`, { headers });
 }
 
 const bumps = () => calls.filter((c) => c.url.endsWith("checkout_rate_bump"));
@@ -117,5 +117,32 @@ describe("partner-sample wrong-key limit", () => {
     expect(clientIp(new Headers({ "x-forwarded-for": " 3.3.3.3 , 4.4.4.4" }))).toBe("3.3.3.3");
     expect(clientIp(new Headers())).toBe("");
     expect(bucketKey("3.3.3.3")).toBe("partner_sample_wrong_key:3.3.3.3");
+  });
+});
+
+// Three weeks of each band (founder decision 2026-09-24). Pins the six slugs to
+// their storage objects, and that the retired six-week slugs no longer resolve.
+describe("partner-sample file map (3 weeks Sprouts + 3 weeks Seedlings)", () => {
+  const withSlug = (f: string) =>
+    new Request(`https://edeninstitute.health/api/partner-sample?k=${KEY}&f=${f}`, { headers: { "x-forwarded-for": "203.0.113.9" } });
+
+  it("each band's three components sign their own 3wk object", async () => {
+    peekCount = 0;
+    for (const band of ["sprouts", "seedlings"]) {
+      for (const piece of ["read-aloud", "teachers-guide", "student-notebook"]) {
+        calls = [];
+        const res = await handler(withSlug(`${band}-${piece}`));
+        expect(res.status).toBe(302);
+        const sign = calls.find((c) => c.url.includes("/storage/v1/object/sign/"));
+        expect(sign?.url).toBe(`${SUPA}/storage/v1/object/sign/partner-assets/sample/edens-table-sample-${band}-3wk-${piece}.pdf`);
+      }
+    }
+  });
+
+  it("the six-week slugs, card sets included, are gone", async () => {
+    peekCount = 0;
+    for (const old of ["read-aloud", "teachers-guide", "student-notebook", "field-cards", "recipe-cards", "around-the-table-cards"]) {
+      expect((await handler(withSlug(old))).status).toBe(404);
+    }
   });
 });
