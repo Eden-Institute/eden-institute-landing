@@ -432,12 +432,20 @@ const jsonLd = {
       {/* Two ways to study: all in one, or the paperback and the Study Guide side by side */}
       <div class="mb-12 grid gap-5 md:grid-cols-2">
         <a href="#study-journal" data-cta="bte-way-allinone" class="rounded-lg border-2 p-6 transition-shadow hover:shadow-md" style="border-color:hsl(var(--eden-gold));background-color:hsl(var(--eden-cream))">
+          <div class="mb-4 flex h-36 items-end justify-center">
+            <img src="/books/back-to-eden-study-journal.webp" alt="Back to Eden Study &amp; Journal Edition, spiral bound" width="714" height="884" loading="lazy" class="h-36 w-auto" />
+          </div>
           <p class="font-accent text-xs uppercase tracking-widest" style="color:hsl(var(--eden-gold-ink))">All in one</p>
           <h3 class="mt-1 font-serif text-xl font-bold" style="color:hsl(var(--eden-forest))">Study &amp; Journal Edition</h3>
           <p class="mt-2 font-body text-sm text-muted-foreground">The book and the workbook in one spiral book that lies flat.</p>
           <p class="mt-4 font-body text-sm" style="color:hsl(var(--eden-bark))"><strong class="font-serif text-lg">{money(editions[0].print)}</strong> print · <strong class="font-serif text-lg">{money(editions[0].digital)}</strong> digital</p>
         </a>
         <a href="#paperback" data-cta="bte-way-sidebyside" class="rounded-lg border-2 p-6 transition-shadow hover:shadow-md" style="border-color:hsl(var(--eden-sage) / 0.6)">
+          <div class="mb-4 flex h-36 items-end justify-center gap-3">
+            <img src="/books/back-to-eden-paperback.webp" alt="Back to Eden paperback" width="640" height="960" loading="lazy" class="h-32 w-auto rounded-sm shadow-md" />
+            <span class="pb-12 font-serif text-2xl" style="color:hsl(var(--eden-gold-ink))">+</span>
+            <img src="/books/back-to-eden-study-guide.webp" alt="Back to Eden Study Guide, spiral bound" width="714" height="884" loading="lazy" class="h-36 w-auto" />
+          </div>
           <p class="font-accent text-xs uppercase tracking-widest" style="color:hsl(var(--eden-gold-ink))">Side by side</p>
           <h3 class="mt-1 font-serif text-xl font-bold" style="color:hsl(var(--eden-forest))">Paperback + Study Guide</h3>
           <p class="mt-2 font-body text-sm text-muted-foreground">Read from the paperback, write in the Study Guide. Buy them together, or start with one and add the other later.</p>
@@ -455,8 +463,8 @@ const jsonLd = {
               <span class="absolute -top-3 left-6 rounded px-3 py-1 text-xs font-semibold uppercase tracking-widest"
                 style={`background-color:${i === 0 ? "hsl(var(--eden-gold))" : "hsl(var(--eden-sage-ink))"};color:${i === 0 ? "hsl(var(--eden-bark))" : "white"}`}>{e.badge}</span>
             )}
-            <img src={e.img} alt={`Back to Eden ${e.name} cover`} width="640" height={e.id === "paperback" ? 960 : 828} loading="lazy"
-              class="mx-auto mb-5 h-56 w-auto rounded-sm shadow-md" />
+            <img src={e.img} alt={`Back to Eden ${e.name} cover`} width={e.id === "paperback" ? 640 : 714} height={e.id === "paperback" ? 960 : 884} loading="lazy"
+              class={e.id === "paperback" ? "mx-auto mb-5 h-56 w-auto rounded-sm shadow-md" : "mx-auto mb-5 h-60 w-auto"} />
             <h3 class="font-serif text-2xl font-bold" style="color:hsl(var(--eden-forest))">{e.name}</h3>
             <p class="mt-1 font-body text-xs text-muted-foreground">{e.size}</p>
             <p class="mt-3 font-body text-sm" style="color:hsl(var(--eden-bark))">{e.blurb}</p>
