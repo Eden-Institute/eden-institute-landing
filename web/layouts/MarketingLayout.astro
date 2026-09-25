@@ -94,7 +94,7 @@ const orgJsonLd = {
   logo: "https://edeninstitute.health/favicon-512.png",
   description: orgDescription,
   parentOrganization: { "@type": "Organization", name: "Rooted in Faith Ventures" },
-  sameAs: [...SOCIALS.map((s) => s.href), "https://twitter.com/edeninstitute"],
+  sameAs: SOCIALS.map((s) => s.href),
 };
 const websiteJsonLd = {
   "@context": "https://schema.org",
