@@ -4,8 +4,10 @@
 -- the automatic Eden's Table launch sequence, which sells the Sprouts year. List-wide blasts still
 -- reach it (list-announce selects every edens_table row).
 --
--- Body = the 20260924200000 definition plus 'back_to_eden_ch1' in the source check. Re-read the
--- live definition with pg_get_functiondef before applying and confirm it still matches.
+-- Body = the LIVE definition read with pg_get_functiondef on 2026-09-25 (which already carries
+-- 20260924210000's band column and Seedlings routing) plus 'back_to_eden_ch1' in the source
+-- check. Nothing else changes. An earlier draft of this file was written from 20260924200000 and
+-- would have dropped the band column; it was corrected before it was ever applied.
 
 create or replace function public.enqueue_launch_sequence_on_signup()
 returns trigger
@@ -32,13 +34,15 @@ begin
   end if;
 
   insert into public.launch_email_queue
-    (recipient_email, first_name, sequence_position, scheduled_for, status)
+    (recipient_email, first_name, sequence_position, scheduled_for, status, band)
   select
     lower(new.email),
     coalesce(nullif(trim(new.first_name), ''), 'friend'),
     s.pos,
     now() + (s.day_offset * interval '1 day'),
-    'pending'
+    'pending',
+    -- 2026-09-24: Seedlings free-week signups get the Seedlings copy.
+    case when new.source = 'seedlings_magnet' then 'seedlings' else 'sprouts' end
   from (values
     -- Preorder conversion series.
     (8, 9), (9, 11), (10, 13), (11, 16), (12, 19),
