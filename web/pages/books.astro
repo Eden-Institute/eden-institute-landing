@@ -17,9 +17,9 @@
 // "seedlings"). Until its Stripe Price, shipping tier and Lulu files are all in,
 // that box says "coming soon". The Seedlings copy states only what is verified:
 // grades 3-5, 36 weeks, the three books, their formats, $249 (founder decision
-// 2026-09-23). No page counts here on purpose: they live in ONE place,
-// SEEDLINGS_PAGE_COUNTS in supabase/functions/_shared/lulu-config.ts, and are
-// still being confirmed. No shipping price either: not decided for Seedlings.
+// 2026-09-23). Page counts added 2026-09-25 (founder decision): 245 / 227 / 160,
+// measured from the final Lulu interior PDFs and equal to SEEDLINGS_PAGE_COUNTS in
+// supabase/functions/_shared/lulu-config.ts. Change both together.
 // 2026-09-24: Seedlings went on sale. The meta tags, the hero and the Product
 // JSON-LD now cover both bands, and a BandChooser sits under the hero.
 //
@@ -105,7 +105,7 @@ const seedlingsProductJsonLd = {
   name: "Eden's Table: Seedlings Printed Curriculum Set",
   sku: "seedlings_print_set",
   description:
-    "The Eden's Table Seedlings (grades 3-5) Teacher's Guide, Student Notebook and Read-Aloud Storybook, printed to order and shipped within the United States. 36 weeks, one plant a week, a different 36 plants from Sprouts.",
+    "The Eden's Table Seedlings (grades 3-5) Teacher's Guide (245 pages), Student Notebook (227 pages) and Read-Aloud Storybook (160 pages), printed to order and shipped within the United States. 36 weeks, one plant a week, a different 36 plants from Sprouts.",
   brand: { "@type": "Brand", name: "Eden's Table" },
   offers: {
     "@type": "Offer",
@@ -256,9 +256,9 @@ const faqJsonLd = {
           real reasoning in them. A different 36 plants from Sprouts, so a family who does both finishes with 72.
         </p>
         <ul class="font-body text-base space-y-2 mb-2" style="color:hsl(var(--eden-bark))">
-          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Teacher's Guide,</strong> letter size, coil bound. All 36 weeks.</span></li>
-          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Student Notebook,</strong> letter size, coil bound. All 36 weeks.</span></li>
-          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Read-Aloud Storybook,</strong> small paperback.</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Teacher's Guide,</strong> 245 pages, letter size, coil bound. All 36 weeks.</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Student Notebook,</strong> 227 pages, letter size, coil bound. All 36 weeks.</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Read-Aloud Storybook,</strong> 160 pages, small paperback.</span></li>
           <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Extra Seedlings Student Notebooks for siblings,</strong> $39.99 each, added at checkout and shipped in the same parcel.</span></li>
           <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Printed to order, mailed to you,</strong> tracked, within the United States.</span></li>
         </ul>
