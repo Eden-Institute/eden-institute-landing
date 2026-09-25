@@ -452,7 +452,7 @@ export const ESA_PENDING = [
 
 /** Last content review of the ESA pages. Bump it when what they say changes (see
     the rules at the top). */
-export const ESA_UPDATED_ISO = "2026-09-24";
+export const ESA_UPDATED_ISO = "2026-09-25";
 
 /** The same date as shown on the pages, e.g. "September 2026". */
 export const ESA_UPDATED = new Date(`${ESA_UPDATED_ISO}T12:00:00Z`).toLocaleDateString("en-US", {
@@ -486,7 +486,7 @@ export const ESA_COMMON_FAQ = [
   },
   {
     q: "What comes in the printed set?",
-    a: "The Sprouts set is a Teacher's Guide (240 pages, coil bound), a Student Notebook (224 pages, coil bound) and a Read-Aloud Storybook (112 pages, paperback). The Seedlings set has the same three books for grades 3 to 5: a Teacher's Guide and a Student Notebook, both coil bound, and a paperback Read-Aloud Storybook. Each set covers the full 36-week year and is printed to order.",
+    a: "The Sprouts set is a Teacher's Guide (240 pages, coil bound), a Student Notebook (224 pages, coil bound) and a Read-Aloud Storybook (112 pages, paperback). The Seedlings set has the same three books for grades 3 to 5: a Teacher's Guide (245 pages, coil bound), a Student Notebook (227 pages, coil bound) and a Read-Aloud Storybook (160 pages, paperback). Each set covers the full 36-week year and is printed to order.",
   },
   {
     q: "Is it a Christian curriculum?",
