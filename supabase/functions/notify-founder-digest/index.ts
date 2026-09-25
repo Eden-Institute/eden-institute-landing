@@ -19,8 +19,9 @@
 //   4. Calls lead_capture_digest_window RPC to fetch PII rows in the
 //      window, and fetches open/deferred founder_punch_list items.
 //      If BOTH are empty, marks the run skipped_zero (no email sent).
-//   5. Composes the digest HTML — per-magnet counts, the row table, then
-//      the open punch list.
+//   5. Composes the digest HTML — per-magnet counts, the row table, Sales
+//      (yesterday + last 7 days, sales.ts), ESA, rail health, then the open
+//      punch list.
 //   6. Sends via Resend to hello@edeninstitute.health.
 //   7. UPDATEs the digest_runs row to status='sent' or 'failed'.
 //
@@ -39,6 +40,15 @@
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
 import { pgrstFetch, pgrstReadFetch } from '../_shared/pgrst-retry.ts';
 import { addDays, centralToday, claimDigestRun, digestWindow, isRealYmd } from '../_shared/digest-run-claim.ts';
+import {
+  salesHtml,
+  salesTextLines,
+  salesTotal,
+  tallySales,
+  type SalesDeliveryRow,
+  type SalesDigest,
+  type SalesOrderRow,
+} from './sales.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -70,45 +80,48 @@ interface PunchItem {
   sort_order: number;
 }
 
-// ── Founding-kit runway (preorder system, PR #227) ──
-// Reads the SAME latch-aware gate the checkout enforces (founding_gate RPC,
-// migration 20260717170000): net founding units SUM(quantity) vs
-// products.founding_qty_limit, plus the one-way founding_closed_at latch.
-// `sold` is the real net count (overshoot past the cap is founder-relevant),
-// `closed` is what the pricing actually did. POST because the RPC is volatile
-// (it stamps the latch the first time the cap is reached). Best-effort and
-// silently absent until the preorder migrations exist, so this ships to main
-// ahead of go-live.
-interface FoundingStatus {
-  sold: number;
-  limit: number;
-  closed: boolean;
-}
-
-async function fetchFoundingStatus(): Promise<FoundingStatus | null> {
+// ── Sales (2026-09-24, replaces the retired runway line that sat here) ──
+// Yesterday and the last 7 days: printed sets and extra notebooks by band, Starter
+// Units by band, ESA invoices paid. Sources and exclusions are documented in
+// sales.ts. Unlike the other sections a failed read is SHOWN ("could not be read"),
+// because a sales line that silently vanishes reads exactly like a day with no sales.
+async function fetchSales(
+  dayStart: string,
+  dayEnd: string,
+  weekStart: string,
+  esa: EsaDigest | null,
+): Promise<SalesDigest | null> {
   try {
-    const prodRes = await sbFetch(
-      '/rest/v1/products?sku=eq.sprouts_kit&select=id,founding_qty_limit&limit=1',
+    const enc = encodeURIComponent;
+    const ordersRes = await sbFetch(
+      '/rest/v1/orders?select=customer_email,lookup_key,quantity,created_at,e2e:raw->metadata->>e2e_test,' +
+        'order_items(quantity,products(sku))' +
+        `&created_at=gte.${enc(weekStart)}&created_at=lt.${enc(dayEnd)}` +
+        '&status=not.in.(cancelled,refunded)&order=created_at.asc&limit=2000',
     );
-    if (!prodRes.ok) return null;
-    const prods = await prodRes.json();
-    if (!Array.isArray(prods) || prods.length === 0) return null;
-    const limit = prods[0].founding_qty_limit;
-    if (limit === null || limit === undefined) return null;
-    const gateRes = await sbFetch('/rest/v1/rpc/founding_gate', {
-      method: 'POST',
-      body: JSON.stringify({ p_product_id: prods[0].id }),
-    });
-    if (!gateRes.ok) return null;
-    const rows = await gateRes.json();
-    const row = Array.isArray(rows) ? rows[0] : rows;
-    if (!row || typeof row.sold !== 'number') return null;
-    return { sold: row.sold, limit: Number(limit), closed: !!row.closed };
+    if (!ordersRes.ok) {
+      console.error('notify-founder-digest: sales orders fetch failed', ordersRes.status, await ordersRes.text().catch(() => ''));
+      return null;
+    }
+    const orders: SalesOrderRow[] = await ordersRes.json();
+    // ESA Starters only: they write a delivery keyed esa_* with no Stripe order behind it.
+    const delRes = await sbFetch(
+      '/rest/v1/starter_deliveries?select=email,band,created_at&stripe_checkout_session_id=like.esa_*' +
+        `&created_at=gte.${enc(weekStart)}&created_at=lt.${enc(dayEnd)}&limit=2000`,
+    );
+    if (!delRes.ok) {
+      console.error('notify-founder-digest: sales starter_deliveries fetch failed', delRes.status, await delRes.text().catch(() => ''));
+      return null;
+    }
+    const deliveries: SalesDeliveryRow[] = await delRes.json();
+    return tallySales(
+      orders,
+      deliveries,
+      { yesterday: esa?.paidYesterday ?? 0, week: esa?.paidLast7 ?? 0 },
+      { dayStart, dayEnd, weekStart },
+    );
   } catch (e) {
-    console.error(
-      'notify-founder-digest: founding-status fetch error',
-      e instanceof Error ? e.message : String(e),
-    );
+    console.error('notify-founder-digest: sales fetch error', e instanceof Error ? e.message : String(e));
     return null;
   }
 }
@@ -120,11 +133,13 @@ interface EsaDigest {
   unpaid: number;
   unpaidCents: number;
   paidYesterday: number;
+  /** Paid in [weekStart, windowEnd): the digest day plus the six before it. For the Sales section. */
+  paidLast7: number;
   awaitingConfirm: number;
   failed: number;
 }
 
-async function fetchEsaStatus(windowStart: string, windowEnd: string): Promise<EsaDigest | null> {
+async function fetchEsaStatus(windowStart: string, windowEnd: string, weekStart: string): Promise<EsaDigest | null> {
   try {
     const res = await sbFetch('/rest/v1/esa_invoices?is_test=eq.false&select=status,total_cents,created_at,paid_at,fulfilment_status&limit=5000');
     if (!res.ok) return null;
@@ -141,6 +156,7 @@ async function fetchEsaStatus(windowStart: string, windowEnd: string): Promise<E
       unpaid: unpaid.length,
       unpaidCents: unpaid.reduce((t, r) => t + (r.total_cents ?? 0), 0),
       paidYesterday: rows.filter((r) => inWindow(r.paid_at)).length,
+      paidLast7: rows.filter((r) => !!r.paid_at && Date.parse(r.paid_at) >= Date.parse(weekStart) && Date.parse(r.paid_at) < we).length,
       awaitingConfirm: pending,
       failed: rows.filter((r) => r.fulfilment_status === 'failed').length,
     };
@@ -152,11 +168,9 @@ async function fetchEsaStatus(windowStart: string, windowEnd: string): Promise<E
 
 // ── Magnet identity mapping ──
 // (funnel, source) → human-readable magnet label + welcome email subject.
-// Updated in lockstep with resend-waitlist build* dispatch. `foundingClosed`
-// selects the reserve entry's subject variant (resend-waitlist sends retail
-// copy once the founding_gate latch closes). Coarse by design: the digest
-// labels all of yesterday's rows with today's window state, so a row captured
-// minutes before the flip can be mislabeled; acceptable for founder reporting.
+// Updated in lockstep with resend-waitlist build* dispatch. Since 2026-09-12 the
+// legacy 'reserve' source gets the general homeschool welcome
+// (buildHomeschoolEmail, "Welcome to Eden's Table"), so it is labeled that way.
 // ── Rail health (2026-09-03) ──
 // A queue that has stopped draining reports "nothing due" exactly like a healthy
 // one, so the digest shows the four liveness numbers per rail (view
@@ -228,7 +242,7 @@ async function fetchRailHealth(): Promise<{ rails: RailHealthRow[]; sync: Contac
   return { rails, sync };
 }
 
-function magnetLabel(funnel: string, source: string, foundingClosed = false): {
+function magnetLabel(funnel: string, source: string): {
   magnet: string;
   welcomeSubject: string;
 } {
@@ -253,10 +267,8 @@ function magnetLabel(funnel: string, source: string, foundingClosed = false): {
     }
     if (source === 'reserve') {
       return {
-        magnet: "Homeschool · Eden's Table Founders Club",
-        welcomeSubject: foundingClosed
-          ? "Your seat at Eden's Table is reserved"
-          : "You're in the Founders Club at Eden's Table",
+        magnet: "Homeschool · Eden's Table (legacy reserve source)",
+        welcomeSubject: "Welcome to Eden's Table",
       };
     }
     return {
@@ -265,14 +277,12 @@ function magnetLabel(funnel: string, source: string, foundingClosed = false): {
     };
   }
   if (funnel === 'edens_table') {
-    // The live /homeschool CTAs capture under this funnel; 'reserve' is the
-    // Founders Club welcome (resend-waitlist source branch).
+    // The live /homeschool CTAs capture under this funnel. 'reserve' is a legacy
+    // source that now falls through to the general welcome in resend-waitlist.
     if (source === 'reserve') {
       return {
-        magnet: "Eden's Table · Founders Club (reserve)",
-        welcomeSubject: foundingClosed
-          ? "Your seat at Eden's Table is reserved"
-          : "You're in the Founders Club at Eden's Table",
+        magnet: "Eden's Table · legacy reserve source",
+        welcomeSubject: "Welcome to Eden's Table",
       };
     }
     return {
@@ -335,7 +345,7 @@ function buildDigestEmail(
   rows: CaptureRow[],
   digestDate: string,
   punchItems: PunchItem[],
-  founding: FoundingStatus | null,
+  sales: SalesDigest | null,
   health: { rails: RailHealthRow[]; sync: ContactSyncHealth | null } = { rails: [], sync: null },
   esa: EsaDigest | null = null,
 ): {
@@ -346,7 +356,7 @@ function buildDigestEmail(
   // ── Group by magnet for the headline counts ──
   const byMagnet = new Map<string, { count: number; welcomeSubject: string }>();
   for (const r of rows) {
-    const { magnet, welcomeSubject } = magnetLabel(r.funnel, r.source, founding?.closed ?? false);
+    const { magnet, welcomeSubject } = magnetLabel(r.funnel, r.source);
     const cur = byMagnet.get(magnet);
     if (cur) cur.count += 1;
     else byMagnet.set(magnet, { count: 1, welcomeSubject });
@@ -376,7 +386,7 @@ function buildDigestEmail(
   `).join('');
 
   const detailRows = rows.map((r) => {
-    const { magnet, welcomeSubject } = magnetLabel(r.funnel, r.source, founding?.closed ?? false);
+    const { magnet, welcomeSubject } = magnetLabel(r.funnel, r.source);
     const utmBits = [
       r.utm_source ? `utm_source=${r.utm_source}` : '',
       r.utm_campaign ? `utm_campaign=${r.utm_campaign}` : '',
@@ -450,19 +460,8 @@ function buildDigestEmail(
 </table>
 ` : '';
 
-  // ── Founding-kit runway (absent until the preorder tables exist) ──
-  const foundingSection = founding ? `
-<p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:2px;color:#C9A84C;text-transform:uppercase;margin:16px 0 8px 0;">Founding kits</p>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:8px;">
-<tr><td style="padding:10px 12px;background:#F5F0E8;border-left:3px solid #C9A84C;">
-${founding.closed
-    ? `<span style="font-family:Georgia,serif;font-size:15px;font-weight:bold;color:#1C3A2E;">Founding ${founding.limit} complete (${founding.sold} net units).</span>
-<span style="font-family:Georgia,serif;font-size:13px;color:#3D3832;"> Retail pricing and retail email copy are live automatically, latched one-way.</span>`
-    : `<span style="font-family:Georgia,serif;font-size:15px;font-weight:bold;color:#1C3A2E;">${founding.sold} of ${founding.limit} claimed</span>
-<span style="font-family:Georgia,serif;font-size:13px;color:#3D3832;"> · ${Math.max(0, founding.limit - founding.sold)} founding kits remaining at $249</span>`}
-</td></tr>
-</table>
-` : '';
+  // ── Sales: yesterday and the last 7 days (sales.ts) ──
+  const salesSection = salesHtml(sales);
 
   // ── ESA scholarship invoices ──
   const esaMoney = (c: number) => `$${(c / 100).toFixed(2)}`;
@@ -482,7 +481,7 @@ ${esa.failed > 0 ? `<br><strong style="color:#8B2E2E;">${esa.failed} paid invoic
   const railLabel: Record<string, string> = {
     nurture_email_queue: 'Quiz drip (nurture_email_queue)',
     magnet_email_queue: 'Homeschool magnet (magnet_email_queue)',
-    launch_email_queue: 'Preorder / Starter series (launch_email_queue)',
+    launch_email_queue: 'Starter series (launch_email_queue)',
     buyer_email_queue: 'Buyer track (buyer_email_queue)',
   };
   const railRows = health.rails.map((r) => {
@@ -538,7 +537,7 @@ ${syncLine}
 <tr><td style="padding:24px;">
 <p style="font-family:Georgia,serif;font-size:14px;color:#3D3832;margin:0 0 4px 0;">Digest for <strong>${esc(digestDate)}</strong> (America/Chicago)</p>
 ${capturesBlock}
-${foundingSection}
+${salesSection}
 ${esaSection}
 ${railSection}
 ${punchSection}
@@ -564,21 +563,14 @@ The Eden Institute · edeninstitute.health · automated daily digest
       '',
       'All captures:',
       ...rows.map((r) => {
-        const { magnet } = magnetLabel(r.funnel, r.source, founding?.closed ?? false);
+        const { magnet } = magnetLabel(r.funnel, r.source);
         return `  ${formatLocal(r.entered_at)}\t${r.email}\t${magnet}`;
       }),
     );
   } else {
     lines.push(`No new leads — ${digestDate} (CT)`);
   }
-  if (founding) {
-    lines.push(
-      '',
-      founding.closed
-        ? `Founding kits: all ${founding.limit} claimed (${founding.sold} net units) — retail pricing live, latched one-way`
-        : `Founding kits: ${founding.sold} of ${founding.limit} claimed (${Math.max(0, founding.limit - founding.sold)} remaining at $249)`,
-    );
-  }
+  lines.push('', ...salesTextLines(sales));
   if (esa && (esa.unpaid > 0 || esa.issuedYesterday > 0 || esa.paidYesterday > 0 || esa.awaitingConfirm > 0 || esa.failed > 0)) {
     lines.push(
       '',
@@ -731,18 +723,21 @@ Deno.serve(async (req) => {
       console.error('notify-founder-digest: punch-list fetch error', e instanceof Error ? e.message : String(e));
     }
 
-    // ── Founding-kit runway (best-effort; null until preorder tables exist) ──
-    const founding = await fetchFoundingStatus();
-
     // ── Rail health (best-effort) ──
     const health = await fetchRailHealth();
 
     // ── ESA invoices (best-effort) ──
-    const esa = await fetchEsaStatus(windowStartCt, windowEndCt);
+    // The Sales week is the digest day plus the six before it, on the same -06:00 bounds.
+    const weekStartCt = digestWindow(addDays(digestDate, -6)).windowStart;
+    const esa = await fetchEsaStatus(windowStartCt, windowEndCt, weekStartCt);
+
+    // ── Sales (null = the read failed, and the email says so) ──
+    const sales = await fetchSales(windowStartCt, windowEndCt, weekStartCt, esa);
 
     // ── Zero path: skip only when there are no captures AND no open punch items ──
     const esaNeedsFounder = !!esa && (esa.awaitingConfirm > 0 || esa.failed > 0 || esa.issuedYesterday > 0 || esa.paidYesterday > 0);
-    if ((!rows || rows.length === 0) && punchItems.length === 0 && !esaNeedsFounder) {
+    const salesYesterday = !!sales && salesTotal(sales.yesterday) > 0;
+    if ((!rows || rows.length === 0) && punchItems.length === 0 && !esaNeedsFounder && !salesYesterday) {
       await sbFetch(`/rest/v1/digest_runs?id=eq.${digestRunId}`, {
         method: 'PATCH',
         body: JSON.stringify({
@@ -757,7 +752,7 @@ Deno.serve(async (req) => {
 
     // ── Build + send digest ──
     const captureRows: CaptureRow[] = Array.isArray(rows) ? rows : [];
-    const { subject, html, text } = buildDigestEmail(captureRows, digestDate, punchItems, founding, health, esa);
+    const { subject, html, text } = buildDigestEmail(captureRows, digestDate, punchItems, sales, health, esa);
 
     const resendRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
