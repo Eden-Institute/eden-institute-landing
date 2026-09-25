@@ -11,7 +11,7 @@
  *   /partner-sample       - link-only, noindex (on purpose NOT Disallow-ed in
  *                           robots.txt, or crawlers could never read the noindex)
  *   /curriculum           - link-only, noindex
- *   /preorder             - noindex
+ *   /preorder             - page removed 2026-09-24, redirects to /books (vercel.json)
  *   /books/thank-you      - post-purchase confirmation
  *   /starter/downloads    - post-purchase delivery surface
  *   /starter/thank-you    - post-purchase confirmation

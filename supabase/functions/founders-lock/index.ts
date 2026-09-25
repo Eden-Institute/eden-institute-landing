@@ -60,7 +60,7 @@ const LM = 'https://edeninstitute.health/lead-magnets';
 // notice pointing at a working endpoint.
 const CLOSED = true;
 const CLOSED_MSG =
-  'Preorders are closed. The printed Sprouts curriculum is available now at https://edeninstitute.health/books';
+  'This form is no longer active. The printed Sprouts and Seedlings years are available now at https://edeninstitute.health/books';
 
 // ── b64url + HMAC (mirrors _shared/email-unsubscribe.ts) ──
 function b64urlEncode(bytes: Uint8Array): string {

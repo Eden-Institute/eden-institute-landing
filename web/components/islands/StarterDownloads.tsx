@@ -110,13 +110,12 @@ type State =
 interface Props {
   /** "session" on the confirmation page, "token" on the re-request page. */
   mode: "session" | "token";
-  /** Show the credit code block. Off on the re-request page, where the buyer
-   *  already has the code in the email they clicked from.
-   *  Currently turned on by no page; see the note at the credit block. */
+  /** Accepted and ignored. The credit code block it switched was removed
+   *  2026-09-24; see the note at the end of the component. */
   showCredit?: boolean;
 }
 
-export default function StarterDownloads({ mode, showCredit = false }: Props) {
+export default function StarterDownloads({ mode }: Props) {
   const [state, setState] = useState<State>({ kind: "loading" });
   const timer = useRef<number | null>(null);
   /** The checkout is reported once per mount, not on every 409 poll. */
@@ -315,34 +314,8 @@ export default function StarterDownloads({ mode, showCredit = false }: Props) {
         )}
       </p>
 
-      {/* Switched off on purpose. Founder rule: no credit on anything until the kits are live. Rewrite this wording before it is ever enabled. */}
-      {/* DORMANT since the print-first pivot (2026-09-12): no page passes showCredit={true}, so this never renders. The copy below predates the pivot and is stale (compare returns.astro). Founder must approve new wording before any page turns this on. */}
-      {/* Sprouts only: the wording below names the Sprouts kit, and a Seedlings
-          buyer must never read it (2026-09-23). */}
-      {showCredit && data.credit_code && (data.band ?? "sprouts") === "sprouts" && (
-        <div
-          className="mt-8 rounded-lg p-6 text-center"
-          style={{ border: "2px dashed hsl(var(--eden-gold))", backgroundColor: "hsl(var(--background))" }}
-        >
-          <p
-            className="font-accent text-xs tracking-[0.25em] uppercase mb-3"
-            style={{ color: "hsl(var(--eden-gold))" }}
-          >
-            Your credit toward the full kit
-          </p>
-          <p
-            className="font-serif text-2xl md:text-3xl font-bold tracking-[0.15em] mb-3"
-            style={{ color: "hsl(var(--eden-bark))" }}
-          >
-            {data.credit_code}
-          </p>
-          <p className="font-body text-sm text-muted-foreground leading-relaxed">
-            {data.credit_redeemed
-              ? "This credit has been used. Thank you."
-              : "That is $39 off the Sprouts Complete Kit. It is tied to the email you bought with and can be used once. It does not expire when the founding 500 sell out. It is in your email too, so you do not need to write it down."}
-          </p>
-        </div>
-      )}
+      {/* The dormant kit-credit block that lived here was removed 2026-09-24 (founder
+          order: no kit or preorder wording anywhere). It is in git history. */}
     </div>
   );
 }

@@ -376,7 +376,7 @@ export function buildLaunchEmail4(firstName: string): { subject: string; html: s
   const body =
     `${p(`Hi ${firstName},`)}` +
     `${p(`Today I want to show you what this season actually looks like on my side of the table.`)}` +
-    `${p(`Right now, this very week, we are deep in the unglamorous work that decides whether something is worthy of your home. Refining print specifications page by page, because a K-2 notebook should survive a K-2 artist. Choosing the makers and print partners whose work we would be proud to put in your hands. Building a purchasing experience that treats you like a founding family, not a transaction.`)}` +
+    `${p(`Right now, this very week, we are deep in the unglamorous work that decides whether something is worthy of your home. Refining print specifications page by page, because a K-2 notebook should survive a K-2 artist. Choosing the makers and print partners whose work we would be proud to put in your hands. Building a purchasing experience that treats you like family, not a transaction.`)}` +
     `${p(`I will be honest: the slower road is a discipline. Every week of care is a week you wait, and I feel that. But there is a verse taped over this whole project: &ldquo;Whatever you do, do your work heartily, as for the Lord rather than for men&rdquo; (Colossians 3:23, NASB). This curriculum will sit at your family&rsquo;s table, next to your Bible, in front of your children. It gets built <em>heartily</em>, or it does not ship. Stewardship over speed, every time.`)}` +
     `${goldDivider()}` +
     `${heading(`AND HERE IS WHAT I HAVEN&rsquo;T TOLD YOU`)}` +
@@ -440,7 +440,7 @@ export function buildLaunchEmail6(firstName: string): { subject: string; html: s
     `${p(`One arc, thirteen years, that raises a child from meeting an herb to formulating with it, with Scripture as the spine the entire way.`)}` +
     `${goldDivider()}` +
     `${p(`And all of it, every band, every year, begins in the same place: a kindergartner, a story, and a little dish of lavender. It begins with <strong>Sprouts</strong>.`)}` +
-    `${p(`Sprouts opens for founding families very soon. In my next email I will tell you exactly what that means and what founding families receive. If this path has stirred something in you, that is the email to watch for.`)}` +
+    `${p(`Sprouts is ready now. <a href="${FREEBIES_URL}" style="color:${BRAND.forest};text-decoration:underline;">Week 1 is free</a>, the first nine weeks are a $39 download, and the whole year comes printed to order for $249 plus $12 shipping. If this path has stirred something in you, that is the place to begin.`)}` +
     `${signature()}`;
   return {
     subject: `By the end, they're formulating`,
