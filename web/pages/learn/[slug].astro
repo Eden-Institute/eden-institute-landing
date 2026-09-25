@@ -1,0 +1,123 @@
+---
+// /learn/<slug>: one article. Added 2026-09-25. Content and rules live in
+// web/content/config.ts and web/content/learn/*.md; only `draft: false`
+// articles build.
+//
+// Built to be found and quoted: the first paragraph answers the question, the
+// FAQ ships as FAQPage JSON-LD, and Article JSON-LD carries the real published
+// and updated dates from frontmatter (never the build date).
+import { getCollection, type CollectionEntry } from "astro:content";
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import { GRADE_PAGES, gradePath } from "../../lib/gradePages";
+
+export async function getStaticPaths() {
+  const articles = await getCollection("learn", ({ data }) => !data.draft);
+  return articles.map((entry) => ({ params: { slug: entry.slug }, props: { entry } }));
+}
+
+const { entry } = Astro.props as { entry: CollectionEntry<"learn"> };
+const { Content } = await entry.render();
+const d = entry.data;
+
+const ORIGIN = "https://edeninstitute.health";
+const canonical = `${ORIGIN}/learn/${entry.slug}`;
+const fmt = (iso: string) =>
+  new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
+
+const jsonLd: Record<string, unknown>[] = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: d.title,
+    description: d.description,
+    datePublished: d.published,
+    dateModified: d.updated ?? d.published,
+    author: { "@type": "Person", name: "Camila", url: `${ORIGIN}/why-eden` },
+    publisher: { "@type": "Organization", name: "The Eden Institute", url: ORIGIN },
+    mainEntityOfPage: canonical,
+    inLanguage: "en",
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Guides", item: `${ORIGIN}/learn` },
+      { "@type": "ListItem", position: 2, name: d.title, item: canonical },
+    ],
+  },
+];
+if (d.faq.length > 0) {
+  jsonLd.push({
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: d.faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+  });
+}
+---
+
+<MarketingLayout
+  title={`${d.seoTitle ?? d.title} | Eden's Table`}
+  description={d.description}
+  canonical={canonical}
+  ogType="article"
+  jsonLd={jsonLd}
+>
+  <article class="py-14 md:py-20 px-6 bg-background">
+    <div class="max-w-2xl mx-auto">
+      <nav aria-label="Breadcrumb" class="font-body text-xs text-muted-foreground mb-6">
+        <a href="/learn" class="underline underline-offset-4">Guides</a>
+      </nav>
+      <h1 class="font-serif text-3xl md:text-5xl font-bold leading-tight mb-4" style="color:hsl(var(--eden-bark))">{d.title}</h1>
+      <p class="font-body text-sm text-muted-foreground mb-10">
+        By Camila · {d.updated ? `Updated ${fmt(d.updated)}` : fmt(d.published)}
+      </p>
+
+      <div class="learn-body font-body text-base md:text-lg leading-relaxed">
+        <Content />
+      </div>
+
+      {d.faq.length > 0 && (
+        <section class="mt-14">
+          <h2 class="font-serif text-2xl font-bold mb-6" style="color:hsl(var(--eden-bark))">Questions families ask</h2>
+          <div class="space-y-6">
+            {d.faq.map((f) => (
+              <div>
+                <h3 class="font-serif text-lg font-bold mb-1" style="color:hsl(var(--eden-forest))">{f.q}</h3>
+                <p class="font-body text-base text-muted-foreground leading-relaxed">{f.a}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <aside class="mt-14 rounded-lg p-6 border" style="background-color:hsl(var(--eden-cream));border-color:hsl(var(--eden-gold) / 0.35)">
+        <p class="font-serif text-xl font-bold mb-2" style="color:hsl(var(--eden-bark))">Try a real week of Eden's Table, free</p>
+        <p class="font-body text-sm text-muted-foreground leading-relaxed mb-4">
+          Five full lessons for Sprouts (K-2) or Seedlings (3-5), in your inbox in a minute. Print it and teach it the same morning.
+        </p>
+        <a href="/freebies" data-cta={`learn-${entry.slug}-free`} class="inline-block font-body text-sm font-semibold rounded-md px-5 py-3" style="background-color:hsl(var(--eden-forest));color:hsl(var(--eden-parchment))">Get Week 1 free</a>
+        <p class="font-body text-sm mt-5 leading-loose">
+          <span class="font-bold" style="color:hsl(var(--eden-bark))">By grade:</span>{" "}
+          {GRADE_PAGES.map((g, i) => (
+            <>
+              {i > 0 && <span aria-hidden="true" class="text-muted-foreground"> · </span>}
+              <a href={gradePath(g)} class="underline underline-offset-4" style="color:hsl(var(--eden-forest))">{g.short}</a>
+            </>
+          ))}
+        </p>
+      </aside>
+    </div>
+  </article>
+</MarketingLayout>
+
+<style is:global>
+  .learn-body { color: hsl(var(--eden-bark)); }
+  .learn-body > * + * { margin-top: 1.1em; }
+  .learn-body h2 { font-family: var(--font-serif); font-size: 1.6em; font-weight: 700; line-height: 1.25; margin-top: 1.8em; }
+  .learn-body h3 { font-family: var(--font-serif); font-size: 1.25em; font-weight: 700; margin-top: 1.5em; }
+  .learn-body a { text-decoration: underline; text-underline-offset: 4px; color: hsl(var(--eden-forest)); }
+  .learn-body ul { list-style: disc; padding-left: 1.4em; }
+  .learn-body ol { list-style: decimal; padding-left: 1.4em; }
+  .learn-body li + li { margin-top: 0.4em; }
+  .learn-body blockquote { border-left: 3px solid hsl(var(--eden-gold)); padding-left: 1em; font-style: italic; }
+</style>

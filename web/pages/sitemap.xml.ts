@@ -37,12 +37,14 @@
  * and nothing here ever stamps the build date.
  */
 import type { APIRoute } from "astro";
+import { getCollection } from "astro:content";
 import { herbParam } from "@/lib/herbLinks";
 import { CONSTITUTION_MAP } from "@/lib/constitution-utils";
 import { constitutionProfiles } from "@/lib/constitution-data";
 import { getPublicHerbs } from "../lib/herbsPublic";
 import { ESA_STATES, ESA_UPDATED_ISO } from "../lib/esaStates";
 import { STATIC_PATHS } from "../lib/sitemapStaticPaths";
+import { GRADE_PAGES, gradePath } from "../lib/gradePages";
 
 const ORIGIN = "https://edeninstitute.health";
 
@@ -59,7 +61,12 @@ export const GET: APIRoute = async () => {
   // The only URLs that carry a <lastmod>. See the header for why.
   const datedPaths = new Set(["/esa", ...esaPaths]);
 
-  const urls = [...STATIC_PATHS, ...esaPaths, ...patternPaths, ...herbPaths];
+  const gradePaths = GRADE_PAGES.map(gradePath);
+
+  // Published /learn articles only; drafts build no page and must not be listed.
+  const learnPaths = (await getCollection("learn", ({ data }) => !data.draft)).map((a) => `/learn/${a.slug}`);
+
+  const urls = [...STATIC_PATHS, ...gradePaths, ...learnPaths, ...esaPaths, ...patternPaths, ...herbPaths];
 
   const body = [
     '<?xml version="1.0" encoding="UTF-8"?>',

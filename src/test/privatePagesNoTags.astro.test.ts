@@ -38,13 +38,16 @@ const PRIVATE_PAGES = [
 ];
 
 /** These read the live herb database while they render (web/lib/herbsPublic.ts)
- *  or take their props from getStaticPaths (esa/[state].astro), so a unit test
- *  must not render them. Their source is checked instead. */
+ *  or take their props from getStaticPaths (esa/[state].astro, homeschool/[grade].astro,
+ *  learn/[slug].astro), so a unit test must not render them. Their source is
+ *  checked instead. */
 const NEEDS_BUILD_DATA = [
   "herbs/index.astro",
   "herbs/[slug].astro",
   "results/[slug].astro",
   "esa/[state].astro",
+  "homeschool/[grade].astro",
+  "learn/[slug].astro",
 ];
 
 /** Anything that would load or configure a third-party tag. */

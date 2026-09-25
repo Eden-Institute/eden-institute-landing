@@ -13,6 +13,7 @@
 // Copy rule: no em dashes.
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { GRADE_PAGES, gradePath } from "../lib/gradePages";
 
 interface Props {
   /** Prefix for data-cta beacons, e.g. "home", "homeschool", "books". */
@@ -107,6 +108,15 @@ const paths = [
         </ul>
         <a href="/starter#older-kids" data-cta={`${ctaPrefix}-chooser-why-sprouts`} class="inline-block font-body text-sm font-bold underline underline-offset-4 mt-3" style="color:hsl(var(--eden-forest))">Read the whole reasoning</a>
       </div>
+      <p class="font-body text-sm text-center mt-6 leading-loose">
+        <span class="font-bold" style="color:hsl(var(--eden-bark))">By grade:</span>{" "}
+        {GRADE_PAGES.map((g, i) => (
+          <>
+            {i > 0 && <span aria-hidden="true" class="text-muted-foreground"> · </span>}
+            <a href={gradePath(g)} data-cta={`${ctaPrefix}-chooser-grade-${g.slug}`} class="underline underline-offset-4" style="color:hsl(var(--eden-forest))">{g.short}</a>
+          </>
+        ))}
+      </p>
     </div>
   </div>
 </section>
