@@ -57,7 +57,6 @@ import {
   buildNurtureArc1,
   buildNurtureArc2,
   buildNurtureArc3,
-  buildStarterOfferEmail,
   buildMagnetWeek3FacebookEmail,
   toSlug,
 } from '../_shared/nurture-email-templates.ts';
@@ -579,6 +578,41 @@ type MagnetResult = QueueResult;
 // lead with no story at all.
 const STORY_CUTOFF_MS = Date.parse('2026-06-06T22:38:00Z');
 
+// Day-7 check-in after a free week (founder-approved copy, 2026-09-24). Deliberately
+// plain: no header, no button, no link in the body, because it is meant to read
+// like a note from Camila and to earn a reply (reply_to is hello@). The footer
+// keeps the provenance line, postal address and unsubscribe link the law needs.
+// It never claims a human typed it; "your reply comes straight to me" is true.
+// Lives here rather than in _shared so no other function needs a redeploy.
+function buildFreeWeekCheckinEmail(
+  rawFirstName: string | null,
+  band: 'sprouts' | 'seedlings',
+): { subject: string; html: string } {
+  const plant = band === 'sprouts' ? 'lavender' : 'elderberry';
+  const name = String(rawFirstName ?? '').trim()
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const greeting = name && name.toLowerCase() !== 'friend' ? `Hi ${name}!` : 'Hi there!';
+  const para = (t: string) =>
+    `<p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#222222;margin:0 0 14px 0;">${t}</p>`;
+  const small = (t: string) =>
+    `<p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.5;color:#888888;margin:0 0 4px 0;">${t}</p>`;
+  const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:16px;background-color:#ffffff;">
+<div style="max-width:560px;">
+${para(greeting)}
+${para(`This is Camila from Eden&rsquo;s Table. You grabbed our free ${plant} week about a week ago and I wanted to check in. Did you get to try it with your kids?`)}
+${para(`I&rsquo;d really love to hear how it went, the good and the not so good. And if you&rsquo;re wondering what comes after week 1, just hit reply. Your reply comes straight to me.`)}
+${para('Camila')}
+<div style="border-top:1px solid #eeeeee;margin:28px 0 12px 0;"></div>
+${small('You&rsquo;re receiving this because you requested a free week of Eden&rsquo;s Table from The Eden Institute.')}
+${small('Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Unit 3262, Clarksville, TN 37043')}
+${small('<a href="{{UNSUB_URL}}" style="color:#888888;text-decoration:underline;">Unsubscribe</a>')}
+</div>
+</body></html>`;
+  return { subject: `How did the ${plant} week go?`, html };
+}
+
 // Lock #83 / Phase 3.1.2: drains public.magnet_email_queue. Week 2 (band-specific)
 // + Week 3-7 (band-agnostic). No quiz_completions row needed; first name comes
 // from the queue row. Band-agnostic positions are deduped per recipient; Weeks
@@ -652,12 +686,14 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
       let emailKey: string;
       if (pos === 2) {
         // Position 2 used to deliver the free Week 2 downloads. Retired 2026-08-27
-        // when the lead magnet dropped to ONE free week; the slot now carries the
-        // paid Starter Unit offer instead of ending the free arc on a Facebook
-        // teaser that sold nothing. New engagement key so the founder dashboard
-        // does not silently merge two different emails under one label.
-        built = buildStarterOfferEmail(firstName, band);
-        emailKey = `magnet_starter_offer_${band}`;
+        // when the lead magnet dropped to ONE free week; the slot then carried the
+        // paid Starter Unit offer. 2026-09-24, founder decision: that offer drew 15
+        // openers and ZERO clicks, while free-week delivery emails draw ~58% click
+        // to open, so the slot now carries a short personal check-in from Camila
+        // that asks for a reply. Same number of emails, one better one. New key so
+        // the dashboard never merges it with the old offer's numbers.
+        built = buildFreeWeekCheckinEmail(row.first_name, band);
+        emailKey = `magnet_checkin_${band}`;
       } else if (pos === 3) {
         built = buildMagnetWeek3FacebookEmail(firstName);
         emailKey = MAGNET_KEY_BY_POS[3];
