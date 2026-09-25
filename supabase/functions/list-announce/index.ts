@@ -74,10 +74,27 @@ const SITE = "https://edeninstitute.health";
 // 2026-09-24: Seedlings is live. The previous campaign
 // ("esa_approval_announcement_2026_09_14", subject "Check if you qualify to get this
 // paid for by your ESA") already sent; its copy is on ebfd814.
-const CAMPAIGN = "seedlings_live_2026_09_24";
+// 2026-09-28: the one resend of it to people who did not open it, with a new
+// subject (founder's pick 2026-09-24). Resends are the founder's "fewer, better"
+// rule: each list email gets ONE resend to non-openers, then nothing more.
+const CAMPAIGN = "seedlings_live_resend_2026_09_28";
 
-// Founder's pick, 2026-09-24, option 2 of two.
-const SUBJECT = "Seedlings is live (and you’re the first to know)";
+// When set, this campaign goes ONLY to people who received RESEND_OF and have no
+// open or click on it (matched by that email's exact subject, so opening some
+// other email does not count). Set to null for an ordinary new campaign.
+const RESEND_OF: { campaign: string; subject: string } | null = {
+  campaign: "seedlings_live_2026_09_24",
+  subject: "Seedlings is live (and you\u2019re the first to know)",
+};
+
+// Founder decision 2026-09-24: anyone who joined more than 90 days ago and has not
+// opened or clicked ANY email in the last 90 days stops getting list blasts. They
+// stay on the list and nothing is unsubscribed; opening any email brings them back.
+const DORMANT_DAYS = 90;
+
+// Founder's pick, 2026-09-24. The original's subject was "Seedlings is live (and
+// you're the first to know)".
+const SUBJECT = "In case you missed it: Seedlings is here";
 
 // Ship dates mirror _shared/order-config.ts and _shared/launch-sequence-templates.ts.
 // They are duplicated here deliberately, exactly as launch-sequence-templates duplicates
@@ -194,12 +211,14 @@ function buildAnnouncement(firstName: string): string {
     preheader(`Grades 3-5, 36 brand new plants, ready to order today.`) +
     p(`Hi ${firstName},`) +
     p(`Seedlings is live!! Our grades 3-5 curriculum is finished, printed and ready to order today. ${textLink("Take a look at Seedlings here.", `${SITE}/books#seedlings`)}`) +
-    p(`And you&rsquo;re hearing it first. I haven&rsquo;t posted one word about it on Instagram or Facebook yet. You&rsquo;ve been with me from the very beginning, so you get the news before anyone else does.`) +
+    (RESEND_OF
+      ? p(`Sending this one more time in case it got buried in your inbox!`)
+      : p(`And you&rsquo;re hearing it first. I haven&rsquo;t posted one word about it on Instagram or Facebook yet. You&rsquo;ve been with me from the very beginning, so you get the news before anyone else does.`)) +
     p(`Seedlings covers 36 new plants. None of them repeat Sprouts, so a family that does both ends up knowing 72. Your kids learn body systems and herb profiles, track a hypothesis across a whole week, and get dinner-table questions that make them actually think. It comes as three printed books: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud Storybook. That&rsquo;s all 36 weeks for $249 plus $12 shipping. Extra notebooks for siblings are $39.99 each.`) +
     brandButton(`See Seedlings`, `${SITE}/books#seedlings`) +
     p(`Want to try it first? The ${textLink(`9-week Seedlings Starter Unit is ${STARTER_PRICE}`, `${SITE}/starter/seedlings`)} and downloads instantly. Or ${textLink("grab week 1 free", `${SITE}/freebies`)}, which is five full lessons on elderberry.`) +
     p(`One quick note before you order. If your kids are new to herbs, even if they&rsquo;re in 3rd to 5th grade, ${textLink("start with Sprouts", `${SITE}/books#sprouts-card`)}. Seedlings builds right on top of those 36 plants. If your older kids already know the basics, go straight to Seedlings. Got little ones and big ones? Do Sprouts together first.`) +
-    p(`Now can I ask you a favor? Please follow us on ${textLink("Instagram", IG)} and ${textLink("Facebook", FB)}. When the Seedlings post goes up, like it and share it! We&rsquo;re a small family business, and every share really does help us get this launched. And if you know a family with 3rd to 5th graders, forward them this email.`) +
+    p(`Now can I ask you a favor? Please follow us on ${textLink("Instagram", IG)} and ${textLink("Facebook", FB)}. ${RESEND_OF ? "Like and share our Seedlings posts!" : "When the Seedlings post goes up, like it and share it!"} We&rsquo;re a small family business, and every share really does help us get this launched. And if you know a family with 3rd to 5th graders, forward them this email.`) +
     p(`Thank you so much for being here from the start!!`) +
     signature("In Him,");
   return launchWrapper(body);
@@ -269,6 +288,33 @@ async function starterBuyers(
   return out;
 }
 
+/** Distinct recipients with an open or click matching the filter, lower-cased. Paged:
+ *  PostgREST silently caps a response at 1000 rows. `inserted_at` is used for time
+ *  because occurred_at holds the SEND time, not the event time. */
+async function engagedRecipients(
+  db: ReturnType<typeof admin>,
+  sinceIso: string,
+  subject?: string,
+): Promise<Set<string>> {
+  const out = new Set<string>();
+  for (let from = 0; ; from += PAGE) {
+    let q = db.from("email_events")
+      .select("recipient")
+      .in("event_type", ["opened", "clicked"])
+      .gte("inserted_at", sinceIso);
+    if (subject) q = q.eq("raw->data->>subject", subject);
+    const { data, error } = await q.order("id", { ascending: true }).range(from, from + PAGE - 1);
+    if (error) throw new Error(`email_events: ${error.message}`);
+    const rows = (data ?? []) as Array<{ recipient: string | null }>;
+    for (const r of rows) {
+      const v = (r.recipient ?? "").trim().toLowerCase();
+      if (v) out.add(v);
+    }
+    if (rows.length < PAGE) break;
+  }
+  return out;
+}
+
 interface Recipient {
   email: string;
   first_name: string;
@@ -276,7 +322,7 @@ interface Recipient {
 
 async function recipients(db: ReturnType<typeof admin>): Promise<Recipient[]> {
   // The list itself: homeschool funnel, not globally unsubscribed or bounced.
-  const raw: Array<{ email: string | null; first_name: string | null }> = [];
+  const raw: Array<{ email: string | null; first_name: string | null; created_at: string | null }> = [];
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await db
       .from("waitlist_signups")
@@ -286,7 +332,7 @@ async function recipients(db: ReturnType<typeof admin>): Promise<Recipient[]> {
       .order("created_at", { ascending: true })
       .range(from, from + PAGE - 1);
     if (error) throw new Error(`waitlist_signups: ${error.message}`);
-    const rows = (data ?? []) as Array<{ email: string | null; first_name: string | null }>;
+    const rows = (data ?? []) as Array<{ email: string | null; first_name: string | null; created_at: string | null }>;
     raw.push(...rows);
     if (rows.length < PAGE) break;
   }
@@ -322,6 +368,37 @@ async function recipients(db: ReturnType<typeof admin>): Promise<Recipient[]> {
     if (rows.length < PAGE) break;
   }
 
+  // Dormant pause (DORMANT_DAYS): joined before the cutoff AND no open/click since it.
+  const cutoffIso = new Date(Date.now() - DORMANT_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const recentlyEngaged = await engagedRecipients(db, cutoffIso);
+
+  // Resend: only people who got RESEND_OF and never opened or clicked it.
+  let resendPool: Set<string> | null = null;
+  let openedOriginal = new Set<string>();
+  if (RESEND_OF) {
+    resendPool = new Set<string>();
+    let firstSend: string | null = null;
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await db
+        .from("founders_send_log")
+        .select("email, sent_at")
+        .eq("campaign", RESEND_OF.campaign)
+        .order("email", { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) throw new Error(`founders_send_log (resend): ${error.message}`);
+      const rows = (data ?? []) as Array<{ email: string; sent_at: string }>;
+      for (const r of rows) {
+        resendPool.add(r.email.trim().toLowerCase());
+        if (!firstSend || r.sent_at < firstSend) firstSend = r.sent_at;
+      }
+      if (rows.length < PAGE) break;
+    }
+    // An empty pool means the original never sent; refuse rather than mail nobody
+    // silently or, worse, fall through to the whole list.
+    if (resendPool.size === 0 || !firstSend) throw new Error(`resend: ${RESEND_OF.campaign} has no sends`);
+    openedOriginal = await engagedRecipients(db, firstSend, RESEND_OF.subject);
+  }
+
   const seen = new Set<string>();
   const out: Recipient[] = [];
   for (const r of raw) {
@@ -332,6 +409,8 @@ async function recipients(db: ReturnType<typeof admin>): Promise<Recipient[]> {
     // buyers are. Kit buyers (preorder_broadcast_list) stay excluded, as for every
     // list-announce campaign.
     if (optedOut.has(email) || buyers.has(email) || seedlingsBuyers.has(email) || sent.has(email)) continue;
+    if (resendPool && (!resendPool.has(email) || openedOriginal.has(email))) continue;
+    if (r.created_at && r.created_at < cutoffIso && !recentlyEngaged.has(email)) continue;
     seen.add(email);
     const name = (r.first_name ?? "").trim();
     // Never render "Hi ," at somebody. A neutral greeting is better than a blank.
