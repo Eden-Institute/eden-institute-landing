@@ -1,15 +1,21 @@
 // Partner welcome email — founding-partner gifting flow (2026-07).
 //
 // Sends the one-to-one welcome email to a vetted founding partner with the
-// six-week digital sample attached. Admin-only: every request must carry the
+// digital sample attached. COPY (founder decisions 2026-09-24): the sample is
+// THREE WEEKS OF EACH BAND, Sprouts (K-2) weeks 1-3 + Seedlings (grades 3-5)
+// weeks 1-3, "so they can compare", with no card decks; the at-cost printed set
+// is never advertised here (Camila offers it by hand only); no kit, preorder or
+// kit-credit wording anywhere. Matches Templates PKG-01 in the Outreach Bible.
+//
+// Admin-only: every request must carry the
 // FOUNDERS_ADMIN_TOKEN in `x-partner-admin`. One recipient per call, by design —
 // this is personal correspondence, not a blast.
 //
 // Request (POST JSON):
 //   { action: "testsend" }                                  → sends to hello@ with [TEST] subject
-//   { action: "send", to, first_name, partner_link? }       → sends to one partner
+//   { action: "send", to, first_name }                      → sends to one partner
 //
-// SAMPLE DELIVERY: six DOWNLOAD BUTTONS, matching the lead-magnet emails
+// SAMPLE DELIVERY: six DOWNLOAD BUTTONS (three per band), matching the lead-magnet emails
 // (founder preference 2026-07-22) rather than one large attachment. Each
 // component lives in the PRIVATE partner-assets bucket under sample/, and this
 // function mints a fresh 1-year signed URL per component at send time. Private
@@ -17,9 +23,13 @@
 // do-not-share line in the copy. To swap a component: upload over the same
 // Storage path (x-upsert) — no redeploy, and future sends sign the new file.
 //
-// PARTNER LINK SLOT: `partner_link` renders a P.S. with the partner's private
-// at-cost Stripe Payment Link. Held out of the welcome send until fulfillment
-// (founder decision 2026-07-22) — omit the field and no P.S. renders.
+// 🔴 SAMPLE_BANDS points at the NEW 3+3 files (paths supplied by the sample
+// build, 2026-09-24). Do NOT deploy until all six are uploaded to partner-assets
+// and each one signs and downloads, or every button in the email 404s.
+//
+// The old `partner_link` P.S. (a private at-cost kit Payment Link) was REMOVED
+// 2026-09-24: no kit, and the at-cost offer is never advertised. The field is
+// now ignored if a caller still sends it.
 
 import { applyUnsub } from '../_shared/email-unsubscribe.ts';
 import { escapeHtml } from '../_shared/html-escape.ts';
@@ -32,14 +42,27 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const SAMPLE_BUCKET = 'partner-assets';
 const SIGNED_URL_TTL_SECONDS = 31536000; // 1 year, so a link never dies mid-review
-// Button label → Storage object path. Order is the reading order of a week.
-const SAMPLE_COMPONENTS: Array<{ label: string; path: string }> = [
-  { label: 'READ-ALOUD', path: 'sample/edens-table-6wk-read-aloud.pdf' },
-  { label: "TEACHER'S GUIDE", path: 'sample/edens-table-6wk-teachers-guide.pdf' },
-  { label: 'STUDENT NOTEBOOK', path: 'sample/edens-table-6wk-student-notebook.pdf' },
-  { label: 'FIELD CARDS', path: 'sample/edens-table-6wk-field-cards.pdf' },
-  { label: 'RECIPE CARDS', path: 'sample/edens-table-6wk-recipe-cards.pdf' },
-  { label: 'AROUND THE TABLE CARDS', path: 'sample/edens-table-6wk-around-the-table-cards.pdf' },
+// Band -> button label -> Storage object path. Three weeks of each band
+// (founder 2026-09-24), no card decks. Order within a band is the reading order
+// of a week, matching /partner-sample's {sprouts,seedlings}-{read-aloud,
+// teachers-guide,student-notebook} slugs.
+const SAMPLE_BANDS: Array<{ band: string; components: Array<{ label: string; path: string }> }> = [
+  {
+    band: 'Sprouts, K-2',
+    components: [
+      { label: 'SPROUTS K-2 READ-ALOUD', path: 'sample/edens-table-sample-sprouts-3wk-read-aloud.pdf' },
+      { label: "SPROUTS K-2 TEACHER'S GUIDE", path: 'sample/edens-table-sample-sprouts-3wk-teachers-guide.pdf' },
+      { label: 'SPROUTS K-2 STUDENT NOTEBOOK', path: 'sample/edens-table-sample-sprouts-3wk-student-notebook.pdf' },
+    ],
+  },
+  {
+    band: 'Seedlings, grades 3-5',
+    components: [
+      { label: 'SEEDLINGS 3-5 READ-ALOUD', path: 'sample/edens-table-sample-seedlings-3wk-read-aloud.pdf' },
+      { label: "SEEDLINGS 3-5 TEACHER'S GUIDE", path: 'sample/edens-table-sample-seedlings-3wk-teachers-guide.pdf' },
+      { label: 'SEEDLINGS 3-5 STUDENT NOTEBOOK', path: 'sample/edens-table-sample-seedlings-3wk-student-notebook.pdf' },
+    ],
+  },
 ];
 const TEST_RECIPIENT = 'hello@edeninstitute.health';
 const FROM = 'Camila at The Eden Institute <hello@edeninstitute.health>';
@@ -102,20 +125,18 @@ async function signedUrl(path: string): Promise<string> {
 }
 
 async function buildDownloadButtons(): Promise<string> {
-  const parts = await Promise.all(
-    SAMPLE_COMPONENTS.map(async (c) => ctaButton(c.label, await signedUrl(c.path))),
+  const groups = await Promise.all(
+    SAMPLE_BANDS.map(async (b) => {
+      const buttons = await Promise.all(
+        b.components.map(async (c) => ctaButton(c.label, await signedUrl(c.path))),
+      );
+      return [sectionLabel(b.band), ...buttons].join('\n');
+    }),
   );
-  return parts.join('\n');
+  return groups.join('\n');
 }
 
-function buildPartnerWelcomeHtml(firstName: string, downloadButtons: string, partnerLink?: string): string {
-  const safeLink = partnerLink ? escapeHtml(partnerLink) : '';
-  const psBlock = partnerLink
-    ? para(
-        `P.S. Your private at-cost kit link is ready when you are: <a href="${safeLink}" style="color:#1C3A2E;">${safeLink}</a>. It is yours alone and covers one kit plus actual shipping.`,
-      )
-    : '';
-
+function buildPartnerWelcomeHtml(firstName: string, downloadButtons: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>The Eden Institute</title></head>
@@ -134,14 +155,13 @@ function buildPartnerWelcomeHtml(firstName: string, downloadButtons: string, par
 </td></tr>
 <tr><td style="background-color:#FFFFFF;padding:32px 40px;">
 <p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:0 0 24px 0;">Hi ${escapeHtml(firstName)},</p>
-${para(`Thank you for saying yes. It means more than you know. Below is a six-week digital sample of Eden's Table, our Scripture-rooted herbalism curriculum for children, so you and your family can try it at your own pace and share your honest thoughts, good or bad.`)}
+${para(`Thank you for saying yes. It means more than you know. Below is a digital sample of Eden's Table, our Scripture-rooted herbalism curriculum for children: three weeks of each of our two bands, Sprouts for K-2 and Seedlings for grades 3 to 5, so you can compare them, try it with your family at your own pace and share your honest thoughts, good or bad.`)}
 ${rule()}
-${sectionLabel('Your six-week sample')}
+${sectionLabel('Your sample, three weeks of each band')}
 ${downloadButtons}
 ${rule()}
-${para(`This sample covers six weeks. The full curriculum carries a family through a complete 36-week school year, with a new herb on the table each week.`)}
-${para(`A little honesty about where we are: the whole Sprouts year is finished and in print now, and the boxed kit with the card decks is still ahead of us, waiting on its first print run. That is exactly why partners like you matter so much. You are not a name on a list, you are one of the very first people helping us build this, and I will not forget it.`)}
-${para(`Here is my promise. Because you are one of our founding partners, the printed Sprouts curriculum, all 36 weeks in three books, is yours at our cost whenever you want it: $75 with shipping, instead of $249. Simply what it takes to make it and get it to you, as a thank-you. Just reply to this email when you would like it and I will set it up. And as the Lord grows this, we will keep finding ways to thank the people who believed in it early. Founder perks, for real.`)}
+${para(`Each band is a complete 36-week school year with its own 36 plants, a new herb on the table each week.`)}
+${para(`A little honesty about where we are: both years, Sprouts and Seedlings, are finished and in print now, and we are only just getting started. That is exactly why partners like you matter so much. You are not a name on a list, you are one of the very first people helping us build this, and I will not forget it.`)}
 ${para(`For now, take your time with the sample. If it resonates, an honest word to your community whenever it feels natural is the greatest gift you could give us, and a simple &quot;gifted&quot; note keeps everything above board.`)}
 ${para(`And when you do share, tag us so we can cheer you on and send people your way: <a href="https://www.instagram.com/edenstablehomeschoolcurriculum/" style="color:#1C3A2E;">@edenstablehomeschoolcurriculum</a> on Instagram and <a href="https://www.facebook.com/EdensTableHomeschoolCurriculum/" style="color:#1C3A2E;">Eden's Table Homeschool Curriculum</a> on Facebook.`)}
 ${para(`One small note as you explore: these sample files are for your family, so please keep them within your own family rather than sharing or forwarding them. Thank you for guarding that with us.`)}
@@ -149,7 +169,6 @@ ${para(`Grateful for you.`)}
 <p style="font-family:Georgia,serif;font-size:16px;line-height:1.8;color:#1C3A2E;margin:24px 0 0 0;">In Him,</p>
 <p style="font-family:Georgia,serif;font-size:16px;color:#1C3A2E;font-weight:bold;margin:0;">Camila Johnson</p>
 <p style="font-family:Georgia,serif;font-size:14px;color:#C9A84C;margin:4px 0 16px 0;">Founder and Executive Director, The Eden Institute</p>
-${psBlock}
 </td></tr>
 <tr><td style="background-color:#F5F0E8;padding:30px 20px;text-align:center;border-top:1px solid #C9A84C;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
@@ -202,10 +221,8 @@ Deno.serve(async (req) => {
       to = body.to.trim();
       firstName = body.first_name.trim();
     }
-    const partnerLink = typeof body.partner_link === 'string' && /^https:\/\//.test(body.partner_link) ? body.partner_link : undefined;
-
     const downloadButtons = await buildDownloadButtons();
-    const html = buildPartnerWelcomeHtml(firstName, downloadButtons, partnerLink);
+    const html = buildPartnerWelcomeHtml(firstName, downloadButtons);
     const { html: finalHtml, headers: unsubHeaders } = await applyUnsub(html, to, 'homeschool');
 
     const payload = {
@@ -241,7 +258,7 @@ Deno.serve(async (req) => {
       return json(502, { error: 'Resend send failed', detail: data });
     }
 
-    console.log(`partner-welcome ${action} sent to ${to} (resend id ${data?.id ?? 'unknown'})${partnerLink ? ' with partner link' : ''}`);
+    console.log(`partner-welcome ${action} sent to ${to} (resend id ${data?.id ?? 'unknown'})`);
     return json(200, { ok: true, action, to, resend_id: data?.id ?? null });
   } catch (err) {
     console.error('partner-welcome error:', String(err));
