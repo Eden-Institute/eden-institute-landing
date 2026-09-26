@@ -307,23 +307,55 @@ export default function PrintThankYou() {
         </div>
       </div>
 
-      {/* The Starter Unit card is the Sprouts one (/starter); a Seedlings buyer is
-          not sent to it. */}
-      {status.stage === "received" && status.band !== "seedlings" && (
+      {/* While you wait. Shown until the books arrive (a cancelled order has
+          already returned above). The Starter Unit paragraph is the Sprouts one
+          (/starter), so a Seedlings buyer is not sent to it, and it only makes
+          sense before printing starts. The two short lines below it (2026-09-26)
+          are for every band: Back to Eden for the parent, and the extra Student
+          Notebook for a sibling. Extra notebooks are only sold alongside a set in
+          the /books buy box, so the line says to email for a notebook on its own. */}
+      {status.stage !== "delivered" && (
         <div className={card} style={cardStyle}>
           <h2 className="font-serif text-xl font-bold mb-2" style={forest}>While you wait</h2>
-          <p className="font-body text-sm text-muted-foreground leading-relaxed mb-4">
-            The first nine weeks of Sprouts are a $39 download, so you can read ahead and plan your first
-            lessons tonight instead of waiting for the mail. Or just wait for the books. Either is fine.
-          </p>
-          <a
-            href="/starter"
-            data-cta="books-thankyou-to-starter"
-            className="inline-block font-accent text-xs tracking-[0.2em] uppercase font-bold px-6 py-3 rounded-md"
-            style={{ backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-cream))" }}
-          >
-            See the Starter Unit
-          </a>
+          {status.stage === "received" && status.band !== "seedlings" && (
+            <>
+              <p className="font-body text-sm text-muted-foreground leading-relaxed mb-4">
+                The first nine weeks of Sprouts are a $39 download, so you can read ahead and plan your first
+                lessons tonight instead of waiting for the mail. Or just wait for the books. Either is fine.
+              </p>
+              <a
+                href="/starter"
+                data-cta="books-thankyou-to-starter"
+                className="inline-block font-accent text-xs tracking-[0.2em] uppercase font-bold px-6 py-3 rounded-md mb-5"
+                style={{ backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-cream))" }}
+              >
+                See the Starter Unit
+              </a>
+            </>
+          )}
+          <ul className="font-body text-sm text-muted-foreground leading-relaxed space-y-3">
+            <li>
+              <strong style={bark}>For you, the parent.</strong>{" "}
+              <a href="/back-to-eden" data-cta="books-thankyou-to-bte" className="underline" style={forest}>Back to Eden</a>{" "}
+              is the book behind the curriculum, the same five tenets your children will learn, written for grown-ups.
+              In print or as a download.
+            </li>
+            <li>
+              <strong style={bark}>For a brother or sister.</strong>{" "}
+              Each child writes in their own Student Notebook. Extra notebooks are on the{" "}
+              <a
+                href={status.band === "seedlings" ? "/books#seedlings" : "/books#buy"}
+                data-cta="books-thankyou-to-extra-notebook"
+                className="underline"
+                style={forest}
+              >
+                printed set page
+              </a>
+              . If you only need a notebook, email{" "}
+              <a href="mailto:hello@edeninstitute.health" className="underline" style={forest}>hello@edeninstitute.health</a>{" "}
+              and we will help.
+            </li>
+          </ul>
         </div>
       )}
     </div>

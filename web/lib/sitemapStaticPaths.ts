@@ -33,6 +33,7 @@ export const STATIC_PATHS: readonly string[] = [
   "/freebies",
   "/books",
   "/back-to-eden",
+  "/groups",
   "/starter",
   "/starter/seedlings",
   "/contact",
