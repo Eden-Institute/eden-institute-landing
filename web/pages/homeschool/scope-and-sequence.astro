@@ -1,0 +1,162 @@
+---
+// /homeschool/scope-and-sequence: all 72 plants of Sprouts (K-2) and Seedlings
+// (3-5), week by week, with each week's unit. Added 2026-09-25.
+// Data and its sources live in web/lib/scopeAndSequence.ts; read that header
+// before editing. Copy rules: no em dashes, no health claims, no lesson content.
+//
+// Why a page: curriculum-choosing guides tell parents to read the scope and
+// sequence before buying, and "what plants does it cover" is a question the
+// product pages never answered in one place.
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import {
+  SPROUTS_UNITS,
+  SEEDLINGS_UNITS,
+  SPROUTS_WEEKS,
+  SEEDLINGS_WEEKS,
+  type ScopeWeek,
+} from "../../lib/scopeAndSequence";
+
+const ORIGIN = "https://edeninstitute.health";
+const canonical = `${ORIGIN}/homeschool/scope-and-sequence`;
+
+const bands = [
+  {
+    id: "sprouts",
+    name: "Sprouts",
+    grades: "Grades K-2",
+    units: SPROUTS_UNITS,
+    weeks: SPROUTS_WEEKS,
+    starter: "/starter",
+    intro: "36 plants learned by sight, smell and touch, in six units of six weeks.",
+  },
+  {
+    id: "seedlings",
+    name: "Seedlings",
+    grades: "Grades 3-5",
+    units: SEEDLINGS_UNITS,
+    weeks: SEEDLINGS_WEEKS,
+    starter: "/starter/seedlings",
+    intro: "A different 36 plants, in six units of six weeks, with body systems, herb profiles and a hypothesis your child writes and then tests.",
+  },
+];
+
+const byUnit = (weeks: readonly ScopeWeek[], n: number) => weeks.filter((w) => w.unit === n);
+
+const faq = [
+  {
+    q: "How many plants does Eden's Table cover?",
+    a: "72 across the first two years. Sprouts (grades K-2) teaches 36 plants and Seedlings (grades 3-5) teaches a different 36, one plant a week for 36 weeks each.",
+  },
+  {
+    q: "Are the herbs included?",
+    a: "No. Each week uses a small amount of a common dried herb from your pantry, your garden, or the herb list we keep for families at edeninstitute.health/homeschool/herbs.",
+  },
+  {
+    q: "Where should my family start?",
+    a: "Children in K-2 start with Sprouts. Children in grades 3-5 who are new to herbs usually start with Sprouts too, because its 36 plants are the ones Seedlings builds on. Children in grades 3-5 who already know the basics can go straight to Seedlings.",
+  },
+];
+
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Homeschool Curriculum", item: `${ORIGIN}/homeschool` },
+      { "@type": "ListItem", position: 2, name: "Scope and Sequence", item: canonical },
+    ],
+  },
+  ...bands.map((b) => ({
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: `Eden's Table ${b.name} (${b.grades}): 36 plants, week by week`,
+    numberOfItems: b.weeks.length,
+    itemListElement: b.weeks.map((w) => ({
+      "@type": "ListItem",
+      position: w.week,
+      name: `Week ${w.week}: ${w.plant} (${w.latin})`,
+    })),
+  })),
+];
+---
+
+<MarketingLayout
+  title="Scope and Sequence: All 72 Plants, Grades K-5 | Eden's Table"
+  description="The Eden's Table scope and sequence: every week, plant and unit of Sprouts (K-2) and Seedlings (3-5). 72 plants across two years of Christian homeschool science and nature study."
+  canonical={canonical}
+  jsonLd={jsonLd}
+>
+  <section class="pt-16 pb-10 md:pt-20 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-3xl mx-auto text-center">
+      <nav aria-label="Breadcrumb" class="font-body text-xs text-muted-foreground mb-6">
+        <a href="/homeschool" class="underline underline-offset-4">Homeschool Curriculum</a>
+        <span aria-hidden="true"> / </span>
+        <span>Scope and Sequence</span>
+      </nav>
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">Eden's Table · Grades K-5</p>
+      <h1 class="font-serif text-3xl md:text-5xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
+        Scope and sequence: all 72 plants, week by week
+      </h1>
+      <p class="font-body text-lg leading-relaxed" style="color:hsl(var(--eden-bark))">
+        Every week of Eden's Table centers on one plant. Sprouts (grades K-2) teaches 36 plants and Seedlings (grades 3-5)
+        teaches a different 36, each year in six units of six weeks. Here is every plant, in the order your family meets it.
+      </p>
+      <p class="font-body text-sm mt-6">
+        <a href="#sprouts" class="underline underline-offset-4" style="color:hsl(var(--eden-forest))">Sprouts, K-2</a>
+        <span aria-hidden="true" class="text-muted-foreground"> · </span>
+        <a href="#seedlings" class="underline underline-offset-4" style="color:hsl(var(--eden-forest))">Seedlings, 3-5</a>
+        <span aria-hidden="true" class="text-muted-foreground"> · </span>
+        <a href="/homeschool/herbs" class="underline underline-offset-4" style="color:hsl(var(--eden-forest))">Where to buy the herbs</a>
+      </p>
+    </div>
+  </section>
+
+  {bands.map((b, bi) => (
+    <section id={b.id} class="py-14 px-6 scroll-mt-24 min-[1024px]:scroll-mt-36" style={bi % 2 === 0 ? "" : "background-color:hsl(var(--eden-cream))"}>
+      <div class="max-w-4xl mx-auto">
+        <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2" style="color:hsl(var(--eden-gold-ink))">{b.grades}</p>
+        <h2 class="font-serif text-2xl md:text-3xl font-bold mb-2" style="color:hsl(var(--eden-bark))">{b.name}</h2>
+        <p class="font-body text-base text-muted-foreground leading-relaxed mb-8">{b.intro}</p>
+        <div class="grid gap-6 md:grid-cols-2">
+          {b.units.map((u, ui) => (
+            <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.35)">
+              <h3 class="font-serif text-lg font-bold mb-3" style="color:hsl(var(--eden-forest))">Unit {ui + 1}: {u}</h3>
+              <ol class="space-y-1.5">
+                {byUnit(b.weeks, ui + 1).map((w) => (
+                  <li class="font-body text-sm md:text-base grid grid-cols-[4.5rem_1fr] gap-2">
+                    <span class="text-muted-foreground">Week {w.week}</span>
+                    <span style="color:hsl(var(--eden-bark))"><strong>{w.plant}</strong> <em class="text-muted-foreground">{w.latin}</em></span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ))}
+        </div>
+        <p class="font-body text-sm text-muted-foreground mt-6">
+          Try it: <a href="/freebies" class="underline" data-cta={`scope-${b.id}-free`}>Week 1 is free</a>,
+          <a href={b.starter} class="underline" data-cta={`scope-${b.id}-starter`}>weeks 1 to 9 are $39</a>,
+          or <a href={b.id === "sprouts" ? "/books#buy" : "/books#seedlings"} class="underline" data-cta={`scope-${b.id}-set`}>the whole year in print is $249</a>.
+        </p>
+      </div>
+    </section>
+  ))}
+
+  <section class="py-14 px-6 bg-background">
+    <div class="max-w-3xl mx-auto">
+      <h2 class="font-serif text-2xl font-bold mb-6" style="color:hsl(var(--eden-bark))">Questions families ask</h2>
+      <div class="space-y-6">
+        {faq.map((f) => (
+          <div>
+            <h3 class="font-serif text-lg font-bold mb-1" style="color:hsl(var(--eden-forest))">{f.q}</h3>
+            <p class="font-body text-base text-muted-foreground leading-relaxed">{f.a}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+</MarketingLayout>
