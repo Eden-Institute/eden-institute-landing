@@ -23,6 +23,11 @@ import BookCheckoutController from "../components/islands/BookCheckoutController
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { BookOpen, CheckCircle, Download, Headphones, Leaf, Printer, Search, Smartphone, Sprout } from "lucide-react";
+// Shipping (founder 2026-09-26, "whatever covers my cost"): the same formula
+// create-checkout charges. `ship` below is one copy; the copies selector updates
+// the shown amount live (BookCheckoutController).
+import { printShippingCents } from "../../supabase/functions/_shared/print-pricing";
+const shipOne = (sku: string) => (printShippingCents([{ sku, qty: 1 }]) ?? 0) / 100;
 
 const BUY_LIVE = true; // founder "open the shop" 2026-09-25; BOOK_SHOP_LIVE=true on the server
 const COURSE = "/go/course?src=back-to-eden";
@@ -71,7 +76,7 @@ const editions = [
       ["Nine full-color concept graphics", "Two Models of Health, Symptoms Are Signals, the Five Tenets, how acute illness becomes chronic, Constitutional Polarities, the Holistic Plant, Taste as Pharmacology, the Forgotten Lineage timeline, and How to Begin. The big ideas, on one page each."],
       ["Room to make it yours", "A photo opening page for every chapter, a wrap-up page after each one, notes pages throughout, and three herb monograph templates for the first three plants you choose to learn deeply."],
     ],
-    print: 64, ship: 10, digital: 29,
+    print: 64, ship: shipOne("bte_study_journal_print"), digital: 29,
   },
   {
     id: "paperback",
@@ -93,7 +98,7 @@ const editions = [
       ["Made to be read", "Set in 12 pt type on a comfortable 6 × 9 page, so it reads easily at the kitchen table or in the car line."],
       ["Questions at the end of every chapter", "Each chapter closes with its Reflect & Apply questions. If you want room to answer them, the Study Guide is built to sit right beside this book."],
     ],
-    print: 24.99, ship: 6, digital: 14.99,
+    print: 24.99, ship: shipOne("bte_paperback_print"), digital: 14.99,
   },
   {
     id: "study-guide",
@@ -118,7 +123,7 @@ const editions = [
       ["Nine full-color concept graphics", "The big ideas of each chapter, one page each."],
       ["Wrap-up, notes and monograph pages", "A wrap-up page after every chapter, notes pages throughout, and three herb monograph templates."],
     ],
-    print: 44, ship: 10, digital: 19,
+    print: 44, ship: shipOne("bte_study_guide_print"), digital: 19,
   },
 ];
 
@@ -458,7 +463,7 @@ const jsonLd = {
             <button type="button" data-cta="bte-buy-both-print" data-book-buy="both-print" class={cn(buttonVariants({ variant: "eden" }), "min-h-[44px]", !BUY_LIVE && "hidden")}>Buy both in print</button>
             <a href="#paperback" data-cta="bte-way-sidebyside" class="font-body text-sm font-semibold underline underline-offset-4" style="color:hsl(var(--eden-forest))">See each book</a>
           </div>
-          <p class="mt-2 font-body text-xs text-muted-foreground">Both in print ship together in one parcel for {money(Math.max(editions[1].ship, editions[2].ship))}.</p>
+          <p class="mt-2 font-body text-xs text-muted-foreground">Both in print ship together in one parcel for {money((printShippingCents([{ sku: "bte_paperback_print", qty: 1 }, { sku: "bte_study_guide_print", qty: 1 }]) ?? 0) / 100)} shipping.</p>
         </div>
       </div>
       <div class="grid gap-6 lg:grid-cols-3">
@@ -485,8 +490,17 @@ const jsonLd = {
               <div data-book-buy-row class="flex items-center justify-between rounded-md border p-3" style="border-color:hsl(var(--eden-gold) / 0.35)">
                 <div class="flex items-center gap-2"><Printer className="h-4 w-4" color="hsl(var(--eden-forest))" />
                   <div><p class="font-serif text-xl font-bold" style="color:hsl(var(--eden-bark))">{money(e.print)}</p>
-                  <p class="font-body text-[11px] text-muted-foreground">Print · + {money(e.ship)} flat shipping</p></div></div>
-                <button type="button" data-cta={`bte-buy-${e.id}-print`} data-book-buy={`${e.id}-print`} class={cn(buttonVariants({ variant: "eden" }), "min-h-[44px]", !BUY_LIVE && "hidden")}>Buy print</button>
+                  <p class="font-body text-[11px] text-muted-foreground">Print · <span data-book-ship={`${e.id}-print`}>+ {money(e.ship)} shipping</span></p></div></div>
+                <div class="flex items-center gap-2">
+                  {/* Copies (2026-09-26, groups): 1-10 per title, the server cap in lulu-config.ts, until the founder sets how shipping rises on big book orders. */}
+                  <label class={cn("flex items-center gap-1 font-body text-xs text-muted-foreground", !BUY_LIVE && "hidden")} data-book-buy-qty-label>
+                    <span class="sr-only">Copies of the {e.name}</span>
+                    <select data-book-qty={`${e.id}-print`} aria-label={`Copies of the ${e.name}`} class="rounded-md border px-1 py-1 bg-background" style="border-color:hsl(var(--eden-gold) / 0.5)">
+                      {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => <option value={n}>{n}</option>)}
+                    </select>
+                  </label>
+                  <button type="button" data-cta={`bte-buy-${e.id}-print`} data-book-buy={`${e.id}-print`} class={cn(buttonVariants({ variant: "eden" }), "min-h-[44px]", !BUY_LIVE && "hidden")}>Buy print</button>
+                </div>
                 {!BUY_LIVE && <span data-book-soon class="font-body text-xs font-semibold uppercase tracking-wider" style="color:hsl(var(--eden-gold-ink))">Coming soon</span>}
               </div>
               <div data-book-buy-row class="flex items-center justify-between rounded-md border p-3" style="border-color:hsl(var(--eden-gold) / 0.35)">

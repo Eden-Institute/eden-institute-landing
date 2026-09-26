@@ -21,6 +21,17 @@
 // files not in) shows "coming soon" instead of a button. Mirror of
 // LULU_PRODUCTS in supabase/functions/_shared/lulu-config.ts.
 //
+// 2026-09-26 (founder): extra notebooks go up to 100 per order, $39.99 each for
+// the first 5 and the volume price ($32) from the 6th, shown here with the SAME
+// splitVolumeTierPooled the checkout and the receipt use (prices from the view;
+// in the bundle the first 5 are counted across both bands). Shipping is the
+// cart formula that covers Lulu's cost (printShippingCents, the same one
+// create-checkout charges), shown before checkout, and a heavy parcel shows a
+// "ships by ground" note (likelyNeedsGround). And
+// `band="both"`: the Sprouts and Seedlings sets together (both_bands_print_set),
+// with extra notebooks for either band. Its row is inactive until its Stripe
+// Price exists, so until then the box says "coming soon".
+//
 // Deliberately smaller than PreorderBuyBox: no founding counter, no ship-window
 // disclaimer (these ship in days, not months), no credit codes. It keeps the
 // SMS consent checkbox (default UNCHECKED, TCPA) because the shipped and
@@ -36,28 +47,45 @@ import { supabase } from "@/integrations/supabase/client";
 import { getFbAttribution } from "@/lib/fbAttribution";
 import { centsToValue, pinTrack } from "@/lib/pinterestTag";
 import PayOverTime from "./PayOverTime";
+import ShipToForm, { type ShipToDraft } from "./ShipToForm";
+import { checkShipTo } from "../../../supabase/functions/_shared/ship-address";
+import { likelyNeedsGround, printShippingCents, splitVolumeTierPooled } from "../../../supabase/functions/_shared/print-pricing";
 
 interface PrintProduct {
   sku: string;
   name: string;
   retail_price_cents: number;
   shipping_tier_cents: number;
+  /** Volume tier (2026-09-26). Null when the row has none, or before the migration. */
+  volume_price_cents?: number | null;
+  volume_min_qty?: number | null;
 }
 
 /** Per-order caps. Mirror _shared/lulu-config.ts; the edge function is the gate. */
 const MAX_QTY: Record<string, number> = {
   sprouts_print_set: 2,
-  sprouts_nb_print: 5,
+  sprouts_nb_print: 100,
   seedlings_print_set: 2,
-  seedlings_nb_print: 5,
+  seedlings_nb_print: 100,
+  both_bands_print_set: 2,
 };
 
-export type PrintBand = "sprouts" | "seedlings";
+export type PrintBand = "sprouts" | "seedlings" | "both";
 
-/** Per band: the set SKU, the extra-notebook SKU, and display names. */
-const BAND_CONFIG: Record<PrintBand, { setSku: string; nbSku: string | null; bandName: string }> = {
-  sprouts: { setSku: "sprouts_print_set", nbSku: "sprouts_nb_print", bandName: "Sprouts" },
-  seedlings: { setSku: "seedlings_print_set", nbSku: "seedlings_nb_print", bandName: "Seedlings" },
+/** Per band: the set SKU, the extra-notebook SKUs (with their labels), and display names. */
+const BAND_CONFIG: Record<PrintBand, { setSku: string; nbSkus: { sku: string; label: string }[]; bandName: string; parts: string[] }> = {
+  sprouts: { setSku: "sprouts_print_set", nbSkus: [{ sku: "sprouts_nb_print", label: "Extra Student Notebooks for siblings" }], bandName: "Sprouts", parts: [] },
+  seedlings: { setSku: "seedlings_print_set", nbSkus: [{ sku: "seedlings_nb_print", label: "Extra Student Notebooks for siblings" }], bandName: "Seedlings", parts: [] },
+  both: {
+    setSku: "both_bands_print_set",
+    nbSkus: [
+      { sku: "sprouts_nb_print", label: "Extra Sprouts Student Notebooks" },
+      { sku: "seedlings_nb_print", label: "Extra Seedlings Student Notebooks" },
+    ],
+    bandName: "Sprouts and Seedlings",
+    // Read only to show what the two sets cost bought separately.
+    parts: ["sprouts_print_set", "seedlings_print_set"],
+  },
 };
 
 /**
@@ -80,6 +108,13 @@ function money(cents: number): string {
   return (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
 }
 
+/** 6 -> "6th", 21 -> "21st". */
+function ordinal(n: number): string {
+  const rem100 = n % 100;
+  if (rem100 >= 11 && rem100 <= 13) return `${n}th`;
+  return `${n}${({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[n % 10] ?? "th"}`;
+}
+
 interface Props {
   cta: string;
   /** Which band's set this box sells. Defaults to Sprouts. */
@@ -87,17 +122,22 @@ interface Props {
 }
 
 export default function PrintBuyBox({ cta, band = "sprouts" }: Props) {
-  const { setSku: SET_SKU, nbSku: NB_SKU, bandName } = BAND_CONFIG[band];
+  const { setSku: SET_SKU, nbSkus: NB_SKUS, bandName, parts: PART_SKUS } = BAND_CONFIG[band];
   const isSprouts = band === "sprouts";
+  const isBoth = band === "both";
   const [product, setProduct] = useState<PrintProduct | null | undefined>(undefined);
-  /** The extra-notebook product, when its row is complete; null hides the option. */
-  const [notebook, setNotebook] = useState<PrintProduct | null>(null);
+  /** The extra-notebook products whose rows are complete; a missing one hides its option. */
+  const [notebooks, setNotebooks] = useState<PrintProduct[]>([]);
+  /** Both sets bought separately, in cents (band="both" only; null when unknown). */
+  const [separateCents, setSeparateCents] = useState<number | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
-  const [nbQty, setNbQty] = useState(0);
+  const [nbQty, setNbQty] = useState<Record<string, number>>({});
   const [smsConsent, setSmsConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Heavy orders only: the street address, asked for here (see ShipToForm). */
+  const [shipTo, setShipTo] = useState<ShipToDraft>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [e2eToken, setE2eToken] = useState<string | null>(null);
 
@@ -116,42 +156,86 @@ export default function PrintBuyBox({ cta, band = "sprouts" }: Props) {
     (async () => {
       // The view is newer than the generated Supabase types, hence the cast.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error: e } = await (supabase as any)
+      // The volume columns arrive with migration 20260926120000; before it, fall
+      // back to the old column list so the box keeps selling at the flat price.
+      const wanted = [SET_SKU, ...NB_SKUS.map((n) => n.sku), ...PART_SKUS];
+      let res = await (supabase as any)
         .from("print_products_public")
-        .select("sku, name, retail_price_cents, shipping_tier_cents")
-        .in("sku", NB_SKU ? [SET_SKU, NB_SKU] : [SET_SKU]);
-      if (e) {
+        .select("sku, name, retail_price_cents, shipping_tier_cents, volume_price_cents, volume_min_qty")
+        .in("sku", wanted);
+      if (res.error) {
+        res = await (supabase as any)
+          .from("print_products_public")
+          .select("sku, name, retail_price_cents, shipping_tier_cents")
+          .in("sku", wanted);
+      }
+      if (res.error) {
         setLoadError("We could not load the set right now. Please refresh, or email hello@edeninstitute.health.");
         setProduct(null);
         return;
       }
-      const rows = (data ?? []) as PrintProduct[];
+      const rows = (res.data ?? []) as PrintProduct[];
       setProduct(rows.find((r) => r.sku === SET_SKU) ?? null);
-      setNotebook(NB_SKU ? rows.find((r) => r.sku === NB_SKU) ?? null : null);
+      setNotebooks(NB_SKUS.map((n) => rows.find((r) => r.sku === n.sku)).filter((r): r is PrintProduct => !!r));
+      const partRows = PART_SKUS.map((s) => rows.find((r) => r.sku === s));
+      setSeparateCents(PART_SKUS.length && partRows.every(Boolean) ? partRows.reduce((n, r) => n + (r as PrintProduct).retail_price_cents, 0) : null);
     })();
-  }, [band, SET_SKU, NB_SKU]);
+  }, [band, SET_SKU]);
 
   const max = product ? MAX_QTY[product.sku] ?? 2 : 2;
-  const nbMax = notebook ? MAX_QTY[notebook.sku] ?? 5 : 0;
-  const subtotal = (product ? product.retail_price_cents * qty : 0) + (notebook ? notebook.retail_price_cents * nbQty : 0);
-  // One parcel, one shipping charge, whatever the quantity.
-  const shipping = product ? Math.max(product.shipping_tier_cents, nbQty > 0 && notebook ? notebook.shipping_tier_cents : 0) : 0;
+  const qtyOf = (sku: string) => nbQty[sku] ?? 0;
+  // The first 5 extra notebooks are counted across the whole order (both bands
+  // in the bundle), exactly as create-checkout charges them.
+  const nbSplits = splitVolumeTierPooled(notebooks.map((nb) => ({
+    key: nb.sku,
+    qty: qtyOf(nb.sku),
+    baseCents: nb.retail_price_cents,
+    volumeCents: nb.volume_price_cents,
+    volumeMinQty: nb.volume_min_qty,
+  })));
+  const nbLineTotal = (nb: PrintProduct) => (nbSplits.get(nb.sku) ?? []).reduce((n, p) => n + p.qty * p.unitCents, 0);
+  const nbCount = notebooks.reduce((n, nb) => n + qtyOf(nb.sku), 0);
+  const subtotal = (product ? product.retail_price_cents * qty : 0) + notebooks.reduce((n, nb) => n + nbLineTotal(nb), 0);
+  // One parcel. Shipping covers Lulu's cost for this exact cart (founder
+  // 2026-09-26), the same formula create-checkout charges.
+  const cartItems = product ? [{ sku: product.sku, qty }, ...notebooks.map((nb) => ({ sku: nb.sku, qty: qtyOf(nb.sku) }))] : [];
+  const shipping = product ? printShippingCents(cartItems) ?? product.shipping_tier_cents : 0;
+  const shipsByGround = product ? likelyNeedsGround(cartItems) : false;
+
+  function setNotebookQty(nb: PrintProduct, raw: number) {
+    const cap = MAX_QTY[nb.sku] ?? 5;
+    const n = Number.isFinite(raw) ? Math.min(cap, Math.max(0, Math.floor(raw))) : 0;
+    setNbQty((prev) => ({ ...prev, [nb.sku]: n }));
+  }
 
   async function startCheckout() {
     if (!product) return;
+    // Heavy orders ship by ground: check the street address before anything else.
+    let shipToBody: Record<string, unknown> = {};
+    if (shipsByGround) {
+      const check = checkShipTo(shipTo);
+      if (!check.ok) {
+        setError((check as { message: string }).message);
+        return;
+      }
+      shipToBody = { ship_to: check.value };
+    }
     // Pinterest addtocart, on the click and BEFORE the await: the redirect to
     // Stripe below can cut off anything queued after it. Value is the "Total
     // before tax" this box shows, the same basis the checkout event reports.
-    const nbCount = notebook && nbQty > 0 ? nbQty : 0;
+    const chosen = notebooks.filter((nb) => qtyOf(nb.sku) > 0);
     pinTrack("addtocart", {
       value: centsToValue(subtotal + shipping),
       currency: "USD",
       order_quantity: qty + nbCount,
       line_items: [
         { product_id: product.sku, product_name: product.name, product_price: centsToValue(product.retail_price_cents), product_quantity: qty },
-        ...(notebook && nbCount > 0
-          ? [{ product_id: notebook.sku, product_name: notebook.name, product_price: centsToValue(notebook.retail_price_cents), product_quantity: nbCount }]
-          : []),
+        ...chosen.map((nb) => ({
+          product_id: nb.sku,
+          product_name: nb.name,
+          product_price: centsToValue(Math.round(nbLineTotal(nb) / qtyOf(nb.sku))),
+          product_quantity: qtyOf(nb.sku),
+        })),
       ],
     });
     setLoading(true);
@@ -164,9 +248,10 @@ export default function PrintBuyBox({ cta, band = "sprouts" }: Props) {
           print_shop: true,
           items: [
             { sku: product.sku, qty },
-            ...(notebook && nbQty > 0 ? [{ sku: notebook.sku, qty: nbQty }] : []),
+            ...chosen.map((nb) => ({ sku: nb.sku, qty: qtyOf(nb.sku) })),
           ],
           sms_consent: smsConsent,
+          ...shipToBody,
           success_url: isSprouts
             ? "https://edeninstitute.health/books/thank-you?session_id={CHECKOUT_SESSION_ID}"
             : `https://edeninstitute.health/books/thank-you?band=${band}&session_id={CHECKOUT_SESSION_ID}`,
@@ -188,15 +273,21 @@ export default function PrintBuyBox({ cta, band = "sprouts" }: Props) {
         if (detail?.code === "PRINT_SHOP_NOT_LIVE") {
           throw new Error("Checkout for the printed set is paused for a moment. Please email hello@edeninstitute.health and I will get your order in.");
         }
-        if (!isSprouts && detail?.code === "PRINT_SHOP_NOT_CONFIGURED" && NB_SKU && detail.sku === NB_SKU) {
-          // Only the extra notebook is not ready: drop the option, keep the set on sale.
-          setNotebook(null);
-          setNbQty(0);
+        if (!isSprouts && detail?.code === "PRINT_SHOP_NOT_CONFIGURED" && detail.sku && NB_SKUS.some((n) => n.sku === detail.sku)) {
+          // Only an extra notebook is not ready: drop that option, keep the set on sale.
+          setNotebooks((prev) => prev.filter((nb) => nb.sku !== detail.sku));
+          setNbQty((prev) => ({ ...prev, [detail.sku as string]: 0 }));
           throw new Error("Extra notebooks are not available just yet. Your set can still be ordered on its own.");
         }
         if (!isSprouts && detail?.code === "PRINT_SHOP_NOT_CONFIGURED") {
           // The page listed the set but a file or setting went missing since.
           setProduct(null);
+          setLoading(false);
+          return;
+        }
+        if (detail?.code === "PRINT_ADDRESS_NEEDS_STREET" || detail?.code === "PRINT_ADDRESS_REQUIRED") {
+          // The server's own address check (same rules as above); show its words as they are.
+          setError(detail.error ?? "Please check the shipping address.");
           setLoading(false);
           return;
         }
@@ -234,9 +325,13 @@ export default function PrintBuyBox({ cta, band = "sprouts" }: Props) {
       )}
       {product === null && !loadError && !isSprouts && (
         <>
-          <p className="font-serif text-lg font-bold" style={{ color: "hsl(var(--eden-forest))" }}>{bandName} Printed Curriculum Set</p>
+          <p className="font-serif text-lg font-bold" style={{ color: "hsl(var(--eden-forest))" }}>
+            {isBoth ? "Sprouts and Seedlings Printed Curriculum Sets" : `${bandName} Printed Curriculum Set`}
+          </p>
           <p className="font-body text-sm text-muted-foreground mt-1">
-            Coming soon. The printed {bandName} year is being set up with our print partner now.
+            {isBoth
+              ? "Coming soon. Both printed years in one order is being set up now."
+              : `Coming soon. The printed ${bandName} year is being set up with our print partner now.`}
           </p>
           <button
             type="button"
@@ -254,9 +349,21 @@ export default function PrintBuyBox({ cta, band = "sprouts" }: Props) {
         <>
           <p className="font-serif text-lg font-bold" style={{ color: "hsl(var(--eden-forest))" }}>{product.name}</p>
           <p className="font-body text-sm text-muted-foreground mb-4">
-            Teacher's Guide, Student Notebook and Read-Aloud Storybook, together.
+            {isBoth
+              ? "Both years: the Sprouts and the Seedlings Teacher's Guide, Student Notebook and Read-Aloud Storybook, in one parcel."
+              : "Teacher's Guide, Student Notebook and Read-Aloud Storybook, together."}
           </p>
-          <p className="font-serif text-3xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>{money(product.retail_price_cents)}</p>
+          <p className="font-serif text-3xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>
+            {isBoth && separateCents && separateCents > product.retail_price_cents && (
+              <span className="text-lg font-normal line-through mr-2 text-muted-foreground">{money(separateCents)}</span>
+            )}
+            {money(product.retail_price_cents)}
+          </p>
+          {isBoth && separateCents && separateCents > product.retail_price_cents && (
+            <p className="font-body text-sm mt-1" style={{ color: "hsl(var(--eden-forest))" }}>
+              You save {money(separateCents - product.retail_price_cents)} on the two sets bought separately.
+            </p>
+          )}
 
           <label className="mt-4 flex items-center gap-3 font-body text-sm" style={{ color: "hsl(var(--eden-bark))" }}>
             <span>Sets</span>
@@ -272,30 +379,62 @@ export default function PrintBuyBox({ cta, band = "sprouts" }: Props) {
             </select>
           </label>
 
-          {notebook && (
-            <label className="mt-3 flex items-center gap-3 font-body text-sm" style={{ color: "hsl(var(--eden-bark))" }}>
-              <span>Extra Student Notebooks for siblings, {money(notebook.retail_price_cents)} each</span>
-              <select
-                value={nbQty}
-                onChange={(e) => setNbQty(Number(e.target.value))}
-                className="rounded-md border px-2 py-1 bg-background"
-                style={{ borderColor: "hsl(var(--eden-gold) / 0.5)" }}
-              >
-                {Array.from({ length: nbMax + 1 }, (_, i) => i).map((n) => (
-                  <option key={n} value={n}>{n}</option>
-                ))}
-              </select>
-            </label>
-          )}
+          {notebooks.map((nb) => {
+            const label = NB_SKUS.find((n) => n.sku === nb.sku)?.label ?? "Extra Student Notebooks";
+            const tiered = nb.volume_price_cents != null && nb.volume_min_qty != null && nb.volume_price_cents < nb.retail_price_cents;
+            return (
+              <div key={nb.sku} className="mt-3 font-body text-sm" style={{ color: "hsl(var(--eden-bark))" }}>
+                <label className="flex items-center gap-3">
+                  <span>
+                    {label}, {money(nb.retail_price_cents)} each
+                    {tiered ? `, ${money(nb.volume_price_cents as number)} each from the ${ordinal(nb.volume_min_qty as number)}${isBoth ? " (both years counted together)" : ""}` : ""}
+                  </span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={MAX_QTY[nb.sku] ?? 5}
+                    step={1}
+                    value={qtyOf(nb.sku)}
+                    onChange={(e) => setNotebookQty(nb, Number(e.target.value))}
+                    aria-label={`${label}, how many`}
+                    className="w-20 rounded-md border px-2 py-1 bg-background"
+                    style={{ borderColor: "hsl(var(--eden-gold) / 0.5)" }}
+                  />
+                </label>
+                {tiered && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Up to {MAX_QTY[nb.sku] ?? 5} per order, printed and shipped in the same parcel as your set. Shipping for your whole order is shown below. Great for co-ops and big families.
+                  </p>
+                )}
+              </div>
+            );
+          })}
 
           <div className="mt-4 font-body text-sm" style={{ color: "hsl(var(--eden-bark))" }}>
-            <div className="flex justify-between"><span>{qty} × set</span><span>{money(product.retail_price_cents * qty)}</span></div>
-            {notebook && nbQty > 0 && (
-              <div className="flex justify-between"><span>{nbQty} × extra notebook</span><span>{money(notebook.retail_price_cents * nbQty)}</span></div>
+            <div className="flex justify-between"><span>{qty} × {isBoth ? "both sets" : "set"}</span><span>{money(product.retail_price_cents * qty)}</span></div>
+            {notebooks.flatMap((nb) =>
+              (nbSplits.get(nb.sku) ?? []).map((part) => (
+                <div key={`${nb.sku}-${part.tier}`} className="flex justify-between">
+                  <span>
+                    {part.qty} × {isBoth ? (nb.sku.startsWith("seedlings") ? "extra Seedlings notebook" : "extra Sprouts notebook") : "extra notebook"}
+                    {part.tier === "volume" ? ` at ${money(part.unitCents)}` : ""}
+                  </span>
+                  <span>{money(part.qty * part.unitCents)}</span>
+                </div>
+              )),
             )}
             <div className="flex justify-between"><span>Shipping (one parcel)</span><span>{money(shipping)}</span></div>
             <div className="flex justify-between font-bold mt-1"><span>Total before tax</span><span>{money(subtotal + shipping)}</span></div>
           </div>
+          {shipsByGround && (
+            <>
+              <p className="font-body text-xs mt-2 rounded-md px-3 py-2" style={{ backgroundColor: "hsl(var(--eden-cream))", color: "hsl(var(--eden-bark))" }} role="note">
+                Larger orders ship by ground and need a street address (no PO boxes).
+              </p>
+              <ShipToForm value={shipTo} onChange={setShipTo} idPrefix={`shipto-${band}`} />
+            </>
+          )}
 
           <PayOverTime amountCents={subtotal + shipping} className="mt-3" />
 
@@ -317,7 +456,7 @@ export default function PrintBuyBox({ cta, band = "sprouts" }: Props) {
             }`}
             style={{ backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-cream))" }}
           >
-            {loading ? "Opening checkout..." : `Order the set, ${money(product.retail_price_cents)}`}
+            {loading ? "Opening checkout..." : isBoth ? `Order both sets, ${money(product.retail_price_cents)}` : `Order the set, ${money(product.retail_price_cents)}`}
           </button>
 
           {error && (

@@ -219,6 +219,36 @@ export function calculatePrintJobCost(input: {
   return lulu('/print-job-cost-calculations/', 'POST', input);
 }
 
+/**
+ * The shipping levels Lulu offers for a hypothetical job to this address
+ * (POST /shipping-options/, 2026-09-26). Used to pick a fallback level when the
+ * configured one is not offered for a heavy parcel; never for billing the buyer.
+ * Lulu names the country field `country` here (not `country_code`, which it
+ * refuses with "This field is required": checked against the live endpoint
+ * 2026-09-26), so the address is reshaped.
+ */
+export async function getShippingOptionLevels(input: {
+  line_items: LuluCostLineItem[];
+  shipping_address: Pick<LuluAddress, 'street1' | 'street2' | 'city' | 'state_code' | 'postcode' | 'country_code'>;
+}): Promise<string[]> {
+  const a = input.shipping_address;
+  const res = await lulu('/shipping-options/', 'POST', {
+    line_items: input.line_items,
+    shipping_address: {
+      street1: a.street1,
+      ...(a.street2 ? { street2: a.street2 } : {}),
+      city: a.city,
+      ...(a.state_code ? { state_code: a.state_code } : {}),
+      postcode: a.postcode,
+      country: a.country_code,
+    },
+    currency: 'USD',
+  });
+  const list = Array.isArray(res) ? res : Array.isArray(res?.results) ? res.results : [];
+  // deno-lint-ignore no-explicit-any
+  return list.filter((o: any) => o && o.is_active !== false && typeof o.level === 'string').map((o: any) => o.level as string);
+}
+
 // ── File validation (run once per book, before the first order) ─────────────
 
 // deno-lint-ignore no-explicit-any

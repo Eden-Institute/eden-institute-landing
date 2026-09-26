@@ -115,6 +115,40 @@ Seeded with `stripe_retail_price_id` NULL (the /books Seedlings box hides the
 option until it is set); the live price is `price_1UJK0n2NWfYbCZT8de1VEZ49` on
 product `prod_VJxw2dagT54hOY`.
 
+**Co-op tier and both-bands bundle (migration 20260926120000, founder 2026-09-26).**
+`products.volume_price_cents` / `volume_min_qty`: both notebook rows get 3200 / 6,
+so notebooks 1-5 are $39.99 and the 6th on $32, up to 100 per order, only in a
+cart with a set covering their band (`PRINT_ADDON_NEEDS_SET`). The first 5 are
+counted across the whole order (both bands' notebooks in the bundle), handed out
+in SKU order (`splitVolumeTierPooled`).
+**Shipping covers Lulu's cost on every cart** (founder 2026-09-26): `printShippingCents`
+in `_shared/print-pricing.ts`, one rule over the whole cart: set $12 (+$2 per extra
+set), bundle $16 (+$4.25 per extra bundle), +$0.75 per extra notebook, +$15 when a
+curriculum parcel is too heavy for MAIL; paperback $8 (+$1.25 per copy), coil books
+$10 (+$2.50 per copy). Fitted to Lulu's public shipping quotes for every cart the
+site allows and re-checked by the Deno test against
+`_shared/testdata/lulu-shipping-quotes-2026-09-26.json`: charge >= (shipping +
+$0.75 fee) x 1.10 (Lulu's sales tax) / 0.94 (Stripe's worst-case 6% on the
+shipping itself, Affirm/Afterpay). Re-run the quotes if Lulu changes its rates.
+**Heavy orders need a street address** (`_shared/ship-address.ts`): the buy box
+asks for it, create-checkout refuses a PO box or APO/FPO/DPO before payment and
+locks the address on a Stripe Customer (Checkout gets no address form), and
+stripe-webhook reads it back from `print_ship_to` metadata and alerts the founder
+if a heavy order ever carries one anyway. create-checkout
+charges the volume part as inline `price_data` on the notebook Price's own Stripe
+product; stripe-webhook merges the two Stripe lines back into ONE `order_items`
+row (the table is UNIQUE(order_id, product_id)); the receipt splits it again.
+`both_bands_print_set` ($429, shipping tier $12, Stripe lookup key
+`both_bands_print_set`) is one order line whose Lulu job prints both bands' three
+books. The row is seeded INACTIVE; activate it once the Stripe Price exists.
+**Shipping level:** Lulu's quote (2026-09-26) offers MAIL only up to about one
+Sprouts set plus 5 extra notebooks (a Seedlings set + 5, or the bundle + 3, is
+already over). `LULU_SHIPPING_LEVEL_FALLBACK=GROUND_HD` (founder decision
+2026-09-26, set at deploy): lulu-submit quotes each job first and uses GROUND_HD
+when MAIL is not offered. GROUND_HD is home delivery only, so the buy box tells
+buyers of heavy orders to use a street address (`likelyNeedsGround`, display
+only). Unset = every job on `LULU_SHIPPING_LEVEL`, as before.
+
 `lulu_printables` rows `tg`, `nb`, `ra` with the verified package ids and page
 counts (240, 224, and NULL for the Read-Aloud until its final count is known).
 **Left NULL:** `interior_url`, `cover_url` on all three, and `page_count` on

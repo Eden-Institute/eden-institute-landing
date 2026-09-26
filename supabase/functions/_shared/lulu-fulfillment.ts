@@ -19,6 +19,13 @@
 // LULU_PRODUCTS[].books, each with the quantity of the set. The printables are
 // those of the product's BAND (Sprouts or Seedlings, 2026-09-23), looked up by
 // (band, book_key); a Seedlings order can never be sent a Sprouts file.
+// The both-bands bundle (2026-09-26) is one order line whose product has two
+// PARTS; it becomes six Lulu line items, each part's books from its own band.
+//
+// SHIPPING LEVEL (2026-09-26). LULU_SHIPPING_LEVEL for every job, as before,
+// unless LULU_SHIPPING_LEVEL_FALLBACK is set: then the job's parcel is quoted
+// first and, when Lulu does not offer the primary level for it (a co-op order
+// of many notebooks is too heavy for MAIL), the fallback level is used.
 //
 // THE RECOVERY PATH. Anything that throws inside submitLuluJob puts the job back
 // to 'failed' with last_error set and the drain retries it, up to
@@ -37,7 +44,10 @@ import {
   cancelPrintJob,
   createPrintJob,
   getPrintJob,
+  getShippingOptionLevels,
+  LuluAddress,
   LuluApiError,
+  LuluCostLineItem,
   luluCostCents,
   LuluLineItemInput,
   LuluPrintJob,
@@ -45,15 +55,21 @@ import {
   stripeAddressToLulu,
 } from './lulu.ts';
 import {
+  checkCartBands,
   LULU_PRODUCTION_DELAY_MINUTES,
-  LuluBand,
+  LuluProduct,
   luluBookByKey,
+  luluBandsForSku,
   luluContactEmail,
   luluLineExternalId,
   luluProductBySku,
+  luluProductParts,
   luluShippingLevel,
+  luluShippingLevelFallback,
+  LuluShippingLevel,
   normalizeLuluBand,
   parseLuluLineExternalId,
+  pickShippingLevel,
   printableMapKey,
 } from './lulu-config.ts';
 
@@ -146,9 +162,7 @@ export function buildLuluLineItems(
 ): LuluLineItemInput[] {
   if (items.length === 0) throw new Error('order has no line items');
   const out: LuluLineItemInput[] = [];
-  // One order prints one band (create-checkout refuses a mixed cart). A mixed
-  // order reaching here is refused rather than printed half right.
-  let orderBand: LuluBand | null = null;
+  const products: { it: OrderItemWithProduct; product: LuluProduct }[] = [];
   for (const it of items) {
     const p = it.product;
     if (!p) throw new Error('order line has no product row');
@@ -156,41 +170,116 @@ export function buildLuluLineItems(
     if (!product || p.fulfillment !== 'lulu') {
       throw new Error(`'${p.sku}' is not a Lulu-fulfilled product`);
     }
-    const band = product.band;
-    if (orderBand && orderBand !== band) {
-      throw new Error(`order mixes ${orderBand} and ${band} print products; refusing to build a print job`);
-    }
-    orderBand = band;
+    products.push({ it, product });
+  }
+  // One order prints one band (create-checkout refuses a mixed cart), except an
+  // order led by the both-bands bundle. Anything else mixed that reaches here is
+  // refused rather than printed half right.
+  const bandCheck = checkCartBands(products.map((x) => x.product.sku));
+  if (!bandCheck.ok) {
+    const seen = [...new Set(products.flatMap((x) => luluBandsForSku(x.product.sku)))];
+    throw new Error(`order mixes ${seen.join(' and ')} print products; refusing to build a print job`);
+  }
+  for (const { it, product } of products) {
     const qty = Number.isInteger(it.quantity) && it.quantity > 0 ? it.quantity : 1;
-    for (const key of product.books) {
-      const book = luluBookByKey(key, band);
-      const row = printables.get(printableMapKey(band, key));
-      // Sprouts error text is unchanged; other bands name the band.
-      const label = band === 'sprouts' ? key : `${band}/${key}`;
-      if (!book) throw new Error(`product '${p.sku}' names unknown book '${label}'`);
-      if (!row) throw new Error(`lulu_printables has no row for '${label}'`);
-      const line: LuluLineItemInput = { title: row.title ?? book.title, quantity: qty, external_id: luluLineExternalId(band, key) };
-      if (row.printable_id) {
-        line.printable_id = row.printable_id;
-      } else {
-        const pkg = row.pod_package_id ?? book.podPackageId;
-        const pages = row.page_count ?? book.pageCount;
-        const missing: string[] = [];
-        if (!pkg) missing.push('pod_package_id');
-        if (!pages) missing.push('page_count');
-        if (!row.interior_url) missing.push('interior_url');
-        if (!row.cover_url) missing.push('cover_url');
-        if (missing.length) {
-          throw new Error(`book '${label}' has no printable_id and is missing ${missing.join(', ')} in lulu_printables`);
-        }
-        line.pod_package_id = pkg!;
-        line.interior = { source_url: row.interior_url! };
-        line.cover = { source_url: row.cover_url! };
+    for (const part of luluProductParts(product)) out.push(...partLines(product.sku, part.band, part.books, qty, printables));
+  }
+  return out;
+}
+
+/** The Lulu line items for one band's books of one order line. */
+function partLines(
+  sku: string,
+  band: LuluProduct['band'],
+  books: LuluProduct['books'],
+  qty: number,
+  printables: Map<string, LuluPrintableRow>,
+): LuluLineItemInput[] {
+  const out: LuluLineItemInput[] = [];
+  for (const key of books) {
+    const book = luluBookByKey(key, band);
+    const row = printables.get(printableMapKey(band, key));
+    // Sprouts error text is unchanged; other bands name the band.
+    const label = band === 'sprouts' ? key : `${band}/${key}`;
+    if (!book) throw new Error(`product '${sku}' names unknown book '${label}'`);
+    if (!row) throw new Error(`lulu_printables has no row for '${label}'`);
+    const line: LuluLineItemInput = { title: row.title ?? book.title, quantity: qty, external_id: luluLineExternalId(band, key) };
+    if (row.printable_id) {
+      line.printable_id = row.printable_id;
+    } else {
+      const pkg = row.pod_package_id ?? book.podPackageId;
+      const pages = row.page_count ?? book.pageCount;
+      const missing: string[] = [];
+      if (!pkg) missing.push('pod_package_id');
+      if (!pages) missing.push('page_count');
+      if (!row.interior_url) missing.push('interior_url');
+      if (!row.cover_url) missing.push('cover_url');
+      if (missing.length) {
+        throw new Error(`book '${label}' has no printable_id and is missing ${missing.join(', ')} in lulu_printables`);
       }
-      out.push(line);
+      line.pod_package_id = pkg!;
+      line.interior = { source_url: row.interior_url! };
+      line.cover = { source_url: row.cover_url! };
+    }
+    out.push(line);
+  }
+  return out;
+}
+
+/**
+ * The package, page count and quantity of every book in an order, for a Lulu
+ * shipping quote (which wants specs, not printable ids). Null when any book has
+ * no package or page count, so the caller keeps the primary level.
+ */
+export function luluShippingProbeLines(
+  items: OrderItemWithProduct[],
+  printables: Map<string, LuluPrintableRow>,
+): LuluCostLineItem[] | null {
+  const out: LuluCostLineItem[] = [];
+  for (const it of items) {
+    const product = it.product ? luluProductBySku(it.product.sku) : undefined;
+    if (!product) return null;
+    const qty = Number.isInteger(it.quantity) && it.quantity > 0 ? it.quantity : 1;
+    for (const part of luluProductParts(product)) {
+      for (const key of part.books) {
+        const book = luluBookByKey(key, part.band);
+        const row = printables.get(printableMapKey(part.band, key));
+        const pkg = row?.pod_package_id ?? book?.podPackageId;
+        const pages = row?.page_count ?? book?.pageCount;
+        if (!pkg || !pages) return null;
+        out.push({ pod_package_id: pkg, page_count: pages, quantity: qty });
+      }
     }
   }
   return out;
+}
+
+/**
+ * LULU_SHIPPING_LEVEL, or LULU_SHIPPING_LEVEL_FALLBACK when that is set and Lulu
+ * does not offer the primary level for this parcel. With no fallback set this
+ * makes no network call and returns the primary level, exactly as before. A
+ * failed quote keeps the primary level (Lulu's own refusal is then the loud
+ * failure, as it always was).
+ */
+async function chooseShippingLevel(
+  items: OrderItemWithProduct[],
+  printables: Map<string, LuluPrintableRow>,
+  address: LuluAddress,
+  externalId: string,
+): Promise<LuluShippingLevel> {
+  const primary = luluShippingLevel();
+  const fallback = luluShippingLevelFallback();
+  if (!fallback) return primary;
+  let offered: string[] | null = null;
+  try {
+    const probe = luluShippingProbeLines(items, printables);
+    if (probe) offered = await getShippingOptionLevels({ line_items: probe, shipping_address: address });
+  } catch (err) {
+    console.warn(`[${externalId}] shipping-options quote failed; keeping ${primary}: ${errMessage(err)}`);
+  }
+  const level = pickShippingLevel(primary, fallback, offered);
+  if (level !== primary) console.log(`[${externalId}] ${primary} not offered for this parcel; shipping ${level}`);
+  return level;
 }
 
 async function setJob(db: Db, jobId: string, patch: Record<string, unknown>): Promise<void> {
@@ -287,8 +376,8 @@ export async function submitLuluJob(db: Db, job: LuluJobRow): Promise<SubmitResu
     const printables = await loadPrintables(db);
     const lineItems = buildLuluLineItems(items, printables);
     const shippingAddress = stripeAddressToLulu(order);
-    const shippingLevel = luluShippingLevel();
     const externalId = order.order_number ?? order.id;
+    const shippingLevel = await chooseShippingLevel(items, printables, shippingAddress, externalId);
 
     // 4. POST.
     const created = await createPrintJob({

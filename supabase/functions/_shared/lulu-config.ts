@@ -21,6 +21,10 @@
 // (band, book_key) since migration 20260923200000. Sprouts is the default
 // everywhere a band is not given, so every pre-band caller behaves exactly as
 // it did. One order prints ONE band: create-checkout refuses a mixed cart.
+// The one exception (2026-09-26) is a product that spans bands on purpose, the
+// both-bands bundle (both_bands_print_set, see LuluProduct.parts): a cart with
+// the bundle may also carry either band's extra notebooks, and its Lulu job
+// prints both bands' books in one parcel.
 //
 // Voice rule: no em dashes.
 
@@ -196,12 +200,29 @@ export interface LuluProduct {
   books: LuluBookKey[];
   /** Per-order cap enforced by create-checkout. */
   maxQtyPerOrder: number;
+  /**
+   * A product that prints books from MORE THAN ONE band (2026-09-26: the
+   * both-bands bundle). When present it replaces {band, books} for printing;
+   * `band` then only names the first part, for callers that need one band.
+   */
+  parts?: { band: LuluBand; books: LuluBookKey[] }[];
+  /**
+   * An add-on (the extra Student Notebooks): sold only in the same order as a
+   * set that covers its band, because it ships in the set's parcel and a
+   * notebook on its own lands at a loss (founder 2026-09-26). create-checkout
+   * enforces it; ESA invoices do not use create-checkout and are not affected.
+   */
+  addOn?: true;
 }
 
 // The sellable products. The set (founder decision 2026-09-10: the three books
 // together, never separately) and, since 2026-09-11, an extra Student Notebook
 // for siblings at $39.99, printed in the same job and shipped in the same
 // parcel. Caps are engineering defaults, not founder rules; raise on request.
+// Founder decisions 2026-09-26: extra notebooks up to 100 per order (co-ops),
+// with volume pricing from the 6th (products.volume_price_cents, see
+// print-pricing.ts). Back to Eden print titles stay at 10 copies each until the
+// founder decides how shipping rises on big book orders (2026-09-26).
 export const LULU_PRODUCTS: LuluProduct[] = [
   {
     sku: 'sprouts_print_set',
@@ -215,7 +236,8 @@ export const LULU_PRODUCTS: LuluProduct[] = [
     band: 'sprouts',
     name: 'Extra Student Notebook, printed',
     books: ['nb'],
-    maxQtyPerOrder: 5,
+    maxQtyPerOrder: 100,
+    addOn: true,
   },
   // Founder decision 2026-09-23: the Seedlings (grades 3-5) printed year, the
   // same three books, $249 like Sprouts. The price lives in the products row,
@@ -239,7 +261,24 @@ export const LULU_PRODUCTS: LuluProduct[] = [
     band: 'seedlings',
     name: 'Seedlings Extra Student Notebook, printed',
     books: ['nb'],
-    maxQtyPerOrder: 5,
+    maxQtyPerOrder: 100,
+    addOn: true,
+  },
+  // Founder decision 2026-09-26: both printed years together, $429 + flat $12
+  // shipping (vs $498 bought separately). One order, one Lulu job, both bands'
+  // three books in one parcel. Price by Stripe lookup key
+  // (products.stripe_lookup_key = this SKU); the row ships INACTIVE until the
+  // founder creates that Stripe Price, so the /books box shows "coming soon".
+  {
+    sku: 'both_bands_print_set',
+    band: 'sprouts',
+    name: 'Sprouts and Seedlings Printed Curriculum Sets',
+    books: ['tg', 'nb', 'ra'],
+    maxQtyPerOrder: 2,
+    parts: [
+      { band: 'sprouts', books: ['tg', 'nb', 'ra'] },
+      { band: 'seedlings', books: ['tg', 'nb', 'ra'] },
+    ],
   },
   // Back to Eden (2026-09-25): each title sells on its own, and a buyer can put
   // the paperback and the Study Guide in one order (one parcel, the higher
@@ -271,6 +310,70 @@ export function luluProductBySku(sku: string): LuluProduct | undefined {
   return LULU_PRODUCTS.find((p) => p.sku === sku);
 }
 
+/** What one unit of a product prints, band by band. Single-band products are one part. */
+export function luluProductParts(product: LuluProduct): { band: LuluBand; books: LuluBookKey[] }[] {
+  return product.parts ?? [{ band: product.band, books: product.books }];
+}
+
+/** Every band a SKU prints (one for all but the both-bands bundle). Empty for a non-Lulu SKU. */
+export function luluBandsForSku(sku: string | null | undefined): LuluBand[] {
+  const product = sku ? luluProductBySku(sku) : undefined;
+  if (!product) return [];
+  return [...new Set(luluProductParts(product).map((p) => p.band))];
+}
+
+/** True for a product whose one unit is a full set (Teacher's Guide + Notebook + Read-Aloud) of `band`. */
+function isSetFor(product: LuluProduct, band: LuluBand): boolean {
+  return luluProductParts(product).some((p) => p.band === band && p.books.includes('tg') && p.books.includes('ra'));
+}
+
+export type CartBandCheck =
+  | { ok: true; bands: LuluBand[] }
+  | { ok: false; code: 'PRINT_MIXED_BANDS' | 'PRINT_ADDON_NEEDS_SET'; error: string; sku?: string };
+
+/**
+ * The band rules for one print cart, shared by create-checkout (before the
+ * charge) and buildLuluLineItems (before the print job):
+ *   - One band per order, as before 2026-09-26, UNLESS the cart holds a product
+ *     that spans bands (the both-bands bundle); then every line must print a band
+ *     that product covers. Back to Eden never mixes with the curriculum.
+ *   - `requireSetForAddOns` (checkout only): an add-on (extra notebook) needs a
+ *     set covering its band in the same cart. The Lulu side does not check this:
+ *     ESA invoices sell a notebook on its own and still print through it.
+ * `bands` is ordered by first appearance, so a cart led by the bundle reads
+ * ['sprouts', 'seedlings'].
+ */
+export function checkCartBands(skus: string[], opts: { requireSetForAddOns?: boolean } = {}): CartBandCheck {
+  const products = skus.map((s) => luluProductBySku(s)).filter((p): p is LuluProduct => !!p);
+  const bands: LuluBand[] = [];
+  for (const p of products) for (const b of luluBandsForSku(p.sku)) if (!bands.includes(b)) bands.push(b);
+  if (bands.length > 1) {
+    const spanning = products.filter((p) => luluBandsForSku(p.sku).length > 1);
+    const covered = new Set(spanning.flatMap((p) => luluBandsForSku(p.sku)));
+    if (spanning.length === 0 || bands.some((b) => !covered.has(b))) {
+      return {
+        ok: false,
+        code: 'PRINT_MIXED_BANDS',
+        error: 'The Sprouts and Seedlings sets check out separately, or together as the both-years bundle.',
+      };
+    }
+  }
+  if (opts.requireSetForAddOns) {
+    for (const p of products) {
+      if (!p.addOn) continue;
+      if (!products.some((q) => q !== p && isSetFor(q, p.band))) {
+        return {
+          ok: false,
+          code: 'PRINT_ADDON_NEEDS_SET',
+          error: 'Extra Student Notebooks are added to a printed set order. Please add the set too.',
+          sku: p.sku,
+        };
+      }
+    }
+  }
+  return { ok: true, bands };
+}
+
 /** A band's book by key. `band` defaults to Sprouts, the pre-band behaviour. */
 export function luluBookByKey(key: string, band: LuluBand = DEFAULT_LULU_BAND): LuluBook | undefined {
   return LULU_BOOKS.find((b) => b.key === key && b.band === band);
@@ -289,6 +392,17 @@ export function luluBandForSku(sku: string | null | undefined): LuluBand | null 
  */
 export function printBandForOrder(order: { lookup_key?: string | null } | null | undefined): LuluBand {
   return luluBandForSku(order?.lookup_key ?? null) ?? DEFAULT_LULU_BAND;
+}
+
+/**
+ * The band words a print order's messages use: 'Sprouts', 'Seedlings', 'Back to
+ * Eden', or 'Sprouts and Seedlings' for the both-bands bundle (2026-09-26).
+ * Every single-band order reads exactly as it did before.
+ */
+export function printBandNameForOrder(order: { lookup_key?: string | null } | null | undefined): string {
+  const bands = luluBandsForSku(order?.lookup_key ?? null);
+  if (bands.length > 1) return bands.map((b) => LULU_BAND_INFO[b].bandName).join(' and ');
+  return LULU_BAND_INFO[printBandForOrder(order)].bandName;
 }
 
 /**
@@ -337,7 +451,9 @@ export interface PrintableReadinessRow {
  */
 export function printableProblems(band: LuluBand, rows: PrintableReadinessRow[]): string[] {
   const keys = new Set<LuluBookKey>();
-  for (const p of LULU_PRODUCTS) if (p.band === band) for (const k of p.books) keys.add(k);
+  for (const p of LULU_PRODUCTS) {
+    for (const part of luluProductParts(p)) if (part.band === band) for (const k of part.books) keys.add(k);
+  }
   const problems: string[] = [];
   for (const key of keys) {
     const row = rows.find((r) => normalizeLuluBand(r.band) === band && r.book_key === key);
@@ -410,6 +526,43 @@ export function luluShippingLevel(): LuluShippingLevel {
     throw new Error(`LULU_SHIPPING_LEVEL '${raw}' is not a Lulu shipping level (${LULU_SHIPPING_LEVELS.join(', ')})`);
   }
   return raw as LuluShippingLevel;
+}
+
+/**
+ * The level to fall back to when Lulu does not offer LULU_SHIPPING_LEVEL for a
+ * parcel, or null when LULU_SHIPPING_LEVEL_FALLBACK is unset (then nothing
+ * changes: every job goes out on the primary level, as before 2026-09-26).
+ *
+ * Why it exists: Lulu's public shipping-options quote for the Sprouts set (read
+ * 2026-09-26, to Clarksville TN) offers MAIL up to the set plus 5 extra
+ * notebooks, then stops; from the set plus 6 only GROUND_HD, EXPEDITED and
+ * EXPRESS come back. With MAIL configured, a co-op order of 10 or 100 notebooks
+ * would be charged and then refused by Lulu. Which level to fall back to is a
+ * founder decision, so there is no default here either.
+ */
+export function luluShippingLevelFallback(): LuluShippingLevel | null {
+  const raw = (Deno.env.get('LULU_SHIPPING_LEVEL_FALLBACK') ?? '').trim().toUpperCase();
+  if (!raw) return null;
+  if (!(LULU_SHIPPING_LEVELS as readonly string[]).includes(raw)) {
+    throw new Error(`LULU_SHIPPING_LEVEL_FALLBACK '${raw}' is not a Lulu shipping level (${LULU_SHIPPING_LEVELS.join(', ')})`);
+  }
+  return raw as LuluShippingLevel;
+}
+
+/**
+ * Pick the level for one job from the levels Lulu offers for it. The primary
+ * level whenever it is offered, or when the offer is unknown (quote failed, or
+ * no fallback configured); the fallback only when Lulu offers it and not the
+ * primary. If neither is offered the primary is returned and Lulu's refusal is
+ * the loud failure, exactly as before.
+ */
+export function pickShippingLevel(
+  primary: LuluShippingLevel,
+  fallback: LuluShippingLevel | null,
+  offered: readonly string[] | null,
+): LuluShippingLevel {
+  if (!fallback || !offered || offered.includes(primary)) return primary;
+  return offered.includes(fallback) ? fallback : primary;
 }
 
 /** Contact email Lulu writes to about a job. The shop owner, never the buyer. */

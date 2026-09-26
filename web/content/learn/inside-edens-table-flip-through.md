@@ -75,6 +75,6 @@ It's Charlotte Mason inspired in the ways you'll notice at the table: a real pla
 
 ## How can I flip through it myself?
 
-Download Week 1 and print it. It's the real thing, the same pages families teach from all year: [Sprouts or Seedlings Week 1, free](/freebies). If you like it, the [Starter Unit](/starter) is weeks 1 to 9 as a $39 download, and the [printed year](/books) is $249 plus flat $12 shipping, at your door in about two to three weeks.
+Download Week 1 and print it. It's the real thing, the same pages families teach from all year: [Sprouts or Seedlings Week 1, free](/freebies). If you like it, the [Starter Unit](/starter) is weeks 1 to 9 as a $39 download, and the [printed year](/books) is $249 plus $12 shipping, at your door in about two to three weeks.
 
 Questions about anything you see? Email hello@edeninstitute.health. I answer it myself.

@@ -77,16 +77,22 @@ const meta = {
         sessionStorage.setItem(key, "1");
         // Seedlings checkouts return with ?band=seedlings (2026-09-23); Sprouts
         // returns carry no band param and report exactly as before.
-        const seedlings = new URLSearchParams(window.location.search).get("band") === "seedlings";
-        const itemId = seedlings ? "seedlings_print_set" : "sprouts_print_set";
-        const itemName = seedlings ? "Seedlings Printed Curriculum Set" : "Sprouts Printed Curriculum Set";
+        // Both-bands bundle checkouts return with ?band=both (2026-09-26).
+        const bandParam = new URLSearchParams(window.location.search).get("band");
+        const seedlings = bandParam === "seedlings";
+        const both = bandParam === "both";
+        const itemId = both ? "both_bands_print_set" : seedlings ? "seedlings_print_set" : "sprouts_print_set";
+        const itemName = both
+          ? "Sprouts and Seedlings Printed Curriculum Sets"
+          : seedlings ? "Seedlings Printed Curriculum Set" : "Sprouts Printed Curriculum Set";
+        const value = both ? 429.0 : 249.0;
         (window as any).gtag?.("event", "print_set_purchase", {
           event_category: "conversion",
           event_label: itemId,
-          value: 249.0,
+          value,
           currency: "USD",
           ...(ref ? { transaction_id: ref } : {}),
-          items: [{ item_id: itemId, item_name: itemName, price: 249.0, quantity: 1 }],
+          items: [{ item_id: itemId, item_name: itemName, price: value, quantity: 1 }],
         });
       }
     } catch {

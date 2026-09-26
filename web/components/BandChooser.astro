@@ -9,7 +9,7 @@
 // The full case for Sprouts lives on /starter#older-kids; this links to it.
 //
 // Prices are display copy: $249 set (products table), $39 Starter
-// (starter-config.ts), $12 flat shipping. Change those first, then here.
+// (starter-config.ts), shipping from $12 (print-pricing.ts). Change those first, then here.
 // Copy rule: no em dashes.
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -76,7 +76,7 @@ const paths = [
           <a href={b.setHref} data-cta={`${ctaPrefix}-chooser-${b.key}-set`} class={cn(buttonVariants({ variant: "eden", size: "lg" }), "text-center w-full h-auto whitespace-normal min-h-[48px] py-3 px-4 leading-snug")}>
             The whole year, printed · $249
           </a>
-          <p class="font-body text-xs text-muted-foreground text-center mt-2 mb-4">All 36 weeks in three books. Flat $12 shipping. At your door in about 2 to 3 weeks.</p>
+          <p class="font-body text-xs text-muted-foreground text-center mt-2 mb-4">All 36 weeks in three books. Shipping from $12, calculated in your cart. At your door in about 2 to 3 weeks.</p>
           <div class="grid grid-cols-2 gap-3 mt-auto">
             <a href={b.starterHref} data-cta={`${ctaPrefix}-chooser-${b.key}-starter`} class={cn(buttonVariants({ variant: "eden-outline", size: "default" }), "text-center w-full h-auto whitespace-normal min-h-[44px] py-2 px-3 leading-snug text-xs sm:text-sm")}>
               9 weeks, digital · $39
