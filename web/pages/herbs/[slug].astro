@@ -10,7 +10,8 @@
 // sentence comes from herbs_public, so the page cannot drift from the app.
 import MarketingLayout from "../../layouts/MarketingLayout.astro";
 import { ApothecaryDisclaimer } from "@/components/apothecary/ApothecaryDisclaimer";
-import { herbParam } from "@/lib/herbLinks";
+import { herbParam, herbTitleName } from "@/lib/herbLinks";
+import { CURRICULUM_BANDS, curriculumWeeksForHerb, scopeAndSequenceHref } from "@/lib/curriculumHerbs";
 import { getPublicHerbs, type PublicHerb } from "../../lib/herbsPublic";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -37,9 +38,13 @@ const slug = herbParam(herb);
 const canonical = `https://edeninstitute.health/herbs/${slug}`;
 
 // Title carries the pair people actually search: common name and Latin name.
-const title = herb.latin_name
-  ? `${herb.common_name} (${herb.latin_name}) · Herb Profile | The Eden Institute`
-  : `${herb.common_name} · Herb Profile | The Eden Institute`;
+// herbTitleName (src/lib/herbLinks.ts) builds that pair from the row and is
+// shared with the app page, so the two surfaces title a herb the same way.
+const title = `${herbTitleName(herb)} · Herb Profile | The Eden Institute`;
+
+// The Eden's Table weeks that teach this plant (src/lib/curriculumHerbs.ts).
+// Empty for most herbs, and then the block below does not render.
+const curriculumWeeks = curriculumWeeksForHerb(herb.herb_id);
 
 // Description is the real energetics line, trimmed to a length Google will
 // render whole. No invented copy: if the row has no summary we fall back to
@@ -198,6 +203,36 @@ const jsonLd = [
               {herb.evidence_line}
             </p>
           )}
+        </div>
+      )}
+
+      <!-- Taught in Eden's Table: navigation only, no claims -->
+      {curriculumWeeks.length > 0 && (
+        <div
+          class="rounded-lg p-5 border"
+          style="border-color:hsl(var(--eden-gold) / 0.35);background-color:hsl(var(--eden-cream) / 0.4)"
+        >
+          <h2 class="font-accent text-[11px] tracking-[0.2em] uppercase mb-2" style="color:hsl(var(--eden-gold-ink))">
+            Taught in Eden's Table
+          </h2>
+          <ul class="font-body text-base space-y-1" style="color:hsl(var(--eden-bark))">
+            {curriculumWeeks.map((w) => (
+              <li>
+                <a
+                  href={scopeAndSequenceHref(w.band)}
+                  class="underline underline-offset-4"
+                  style="color:hsl(var(--eden-forest))"
+                  data-cta={`herb-curriculum-${w.band}`}
+                >
+                  {CURRICULUM_BANDS[w.band].name} ({CURRICULUM_BANDS[w.band].grades}), Week {w.week}
+                </a>
+              </li>
+            ))}
+          </ul>
+          <p class="font-body text-sm text-muted-foreground mt-3">
+            Our homeschool curriculum, one plant a week.
+            <a href="/freebies" class="underline" data-cta="herb-curriculum-free">Week 1 is free</a>.
+          </p>
         </div>
       )}
 

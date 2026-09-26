@@ -12,7 +12,8 @@ import { useEdenPattern } from "@/hooks/useEdenPattern";
 import { useCuratedHerbVerdicts } from "@/hooks/useCuratedHerbVerdicts";
 import { resolveHerbVerdict } from "@/lib/herbVerdict";
 import { useViewedHerbs } from "@/hooks/useViewedHerbs";
-import { findHerbByParam, herbCanonicalUrl, herbParam, HERB_ALIASES } from "@/lib/herbLinks";
+import { findHerbByParam, herbCanonicalUrl, herbParam, herbTitleName, HERB_ALIASES } from "@/lib/herbLinks";
+import { CURRICULUM_BANDS, curriculumWeeksForHerb, scopeAndSequenceHref } from "@/lib/curriculumHerbs";
 import { APOTHECARY_PRICES } from "@/lib/apothecaryPrices";
 import { TIER_DEPTH } from "@/lib/apothecaryTiers";
 import { isRootOrAboveTier } from "@/lib/tiers";
@@ -68,6 +69,8 @@ export default function HerbMonograph() {
   // choose between a section and its upsell.
   const hasClinical = isSubscriber;
   const hasRoot = isRootOrAboveTier(tier);
+  // The Eden's Table weeks that teach this plant (src/lib/curriculumHerbs.ts).
+  const curriculumWeeks = curriculumWeeksForHerb(herb?.herb_id);
 
   // CRO Phase 3 retention: record the view once the herb resolves. Hook
   // rules require this ABOVE the early returns; the guard inside skips
@@ -121,8 +124,10 @@ export default function HerbMonograph() {
   // their pre-rendered /herbs/:slug page (the SEO surface per PR #454); gated
   // herbs keep the app URL.
   useDocumentMeta({
+    // Leads with the name people search, common then Latin, built by the
+    // same helper as the pre-rendered /herbs/:slug title.
     title: herb
-      ? `${name} Monograph | Eden Apothecary`
+      ? `${herbTitleName(herb)} · Monograph | Eden Apothecary`
       : "Herb Monograph | Eden Apothecary",
     description: herb
       ? herb.energetics_summary
@@ -624,6 +629,48 @@ export default function HerbMonograph() {
                 {`Unlock with Root, ${APOTHECARY_PRICES.root.monthly}/mo`}
               </Link>
             </Button>
+          </section>
+        )}
+
+        {/* ── Taught in Eden's Table: a quiet path to the curriculum for
+              the plants it teaches. Navigation only, no claims. Plain <a>:
+              both targets are pre-rendered marketing pages, not SPA routes. ── */}
+        {curriculumWeeks.length > 0 && (
+          <section
+            className="p-5 border rounded"
+            style={{
+              borderColor: "hsl(var(--eden-gold) / 0.35)",
+              backgroundColor: "hsl(var(--eden-cream) / 0.4)",
+            }}
+            aria-label="Taught in Eden's Table"
+          >
+            <h2
+              className="font-accent text-[11px] tracking-[0.2em] uppercase mb-2"
+              style={{ color: "hsl(var(--eden-gold-ink))" }}
+            >
+              Taught in Eden's Table
+            </h2>
+            <ul className="font-body text-base space-y-1" style={{ color: "hsl(var(--eden-bark))" }}>
+              {curriculumWeeks.map((w) => (
+                <li key={`${w.band}-${w.week}`}>
+                  <a
+                    href={scopeAndSequenceHref(w.band)}
+                    className="underline underline-offset-4"
+                    style={{ color: "hsl(var(--eden-forest))" }}
+                    data-cta={`monograph-curriculum-${w.band}`}
+                  >
+                    {CURRICULUM_BANDS[w.band].name} ({CURRICULUM_BANDS[w.band].grades}), Week {w.week}
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <p className="font-body text-sm text-muted-foreground mt-3">
+              Our homeschool curriculum, one plant a week.{" "}
+              <a href="/freebies" className="underline" data-cta="monograph-curriculum-free">
+                Week 1 is free
+              </a>
+              .
+            </p>
           </section>
         )}
 

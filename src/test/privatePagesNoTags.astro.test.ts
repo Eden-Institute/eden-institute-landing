@@ -45,6 +45,7 @@ const NEEDS_BUILD_DATA = [
   "herbs/index.astro",
   "herbs/[slug].astro",
   "results/[slug].astro",
+  "homeschool/scope-and-sequence.astro",
   "esa/[state].astro",
   "homeschool/[grade].astro",
   "learn/[slug].astro",
