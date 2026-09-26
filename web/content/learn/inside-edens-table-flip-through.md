@@ -19,7 +19,7 @@ faq:
 
 Eden's Table is three books that work together: a Teacher's Guide you teach from, a Student Notebook your child writes in, and a Read-Aloud Storybook with the family story that runs through the year. Below I walk through what each one looks like inside, using the real Week 1 pages, which you can download free and hold up next to this post.
 
-[VIDEO: flip-through, Tales and Table Talk YouTube, link to add]
+<!-- Flip-through video goes here once it is on the Tales and Table Talk YouTube channel. -->
 
 If you'd like to follow along on paper, [grab Week 1 here](/freebies) first. It comes as PDFs in about a minute.
 
