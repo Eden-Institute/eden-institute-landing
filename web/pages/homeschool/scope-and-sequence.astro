@@ -15,6 +15,9 @@ import {
   SEEDLINGS_WEEKS,
   type ScopeWeek,
 } from "../../lib/scopeAndSequence";
+import { getHerbRoster } from "../../lib/herbsPublic";
+import { herbCanonicalUrl } from "@/lib/herbLinks";
+import { herbIdForCurriculumWeek, type CurriculumBand } from "@/lib/curriculumHerbs";
 
 const ORIGIN = "https://edeninstitute.health";
 const canonical = `${ORIGIN}/homeschool/scope-and-sequence`;
@@ -41,6 +44,24 @@ const bands = [
 ];
 
 const byUnit = (weeks: readonly ScopeWeek[], n: number) => weeks.filter((w) => w.unit === n);
+
+// Each plant that has a herb monograph links to it. The match lives in
+// src/lib/curriculumHerbs.ts (keyed by herb_id); the URL is resolved here from
+// the live roster at build time, so a renamed herb or a tier change can never
+// leave a stale link. herbCanonicalUrl sends free herbs to their pre-rendered
+// /herbs/:slug page and gated herbs to the app's /apothecary/:slug page.
+// Unmatched plants stay plain text.
+const roster = await getHerbRoster();
+const rosterById = new Map(roster.map((h) => [h.herb_id, h]));
+function herbHref(band: CurriculumBand, week: number): string | null {
+  const herbId = herbIdForCurriculumWeek(band, week);
+  if (!herbId) return null;
+  const herb = rosterById.get(herbId);
+  // A mapped herb_id missing from the roster is a broken mapping, not a
+  // missing page. Fail the build rather than publish a dead link.
+  if (!herb) throw new Error(`scope-and-sequence: ${band} week ${week} maps to ${herbId}, which is not in the herb roster`);
+  return herbCanonicalUrl(herb).replace(ORIGIN, "");
+}
 
 const faq = [
   {
@@ -80,6 +101,7 @@ const jsonLd = [
       "@type": "ListItem",
       position: w.week,
       name: `Week ${w.week}: ${w.plant} (${w.latin})`,
+      ...(herbHref(b.id as CurriculumBand, w.week) ? { url: `${ORIGIN}${herbHref(b.id as CurriculumBand, w.week)}` } : {}),
     })),
   })),
 ];
@@ -127,12 +149,22 @@ const jsonLd = [
             <div class="rounded-lg p-5 bg-white border" style="border-color:hsl(var(--eden-gold) / 0.35)">
               <h3 class="font-serif text-lg font-bold mb-3" style="color:hsl(var(--eden-forest))">Unit {ui + 1}: {u}</h3>
               <ol class="space-y-1.5">
-                {byUnit(b.weeks, ui + 1).map((w) => (
-                  <li class="font-body text-sm md:text-base grid grid-cols-[4.5rem_1fr] gap-2">
-                    <span class="text-muted-foreground">Week {w.week}</span>
-                    <span style="color:hsl(var(--eden-bark))"><strong>{w.plant}</strong> <em class="text-muted-foreground">{w.latin}</em></span>
-                  </li>
-                ))}
+                {byUnit(b.weeks, ui + 1).map((w) => {
+                  const href = herbHref(b.id as CurriculumBand, w.week);
+                  return (
+                    <li class="font-body text-sm md:text-base grid grid-cols-[4.5rem_1fr] gap-2">
+                      <span class="text-muted-foreground">Week {w.week}</span>
+                      <span style="color:hsl(var(--eden-bark))">
+                        {href ? (
+                          <a href={href} class="underline underline-offset-4" data-cta={`scope-${b.id}-herb`}><strong>{w.plant}</strong></a>
+                        ) : (
+                          <strong>{w.plant}</strong>
+                        )}{" "}
+                        <em class="text-muted-foreground">{w.latin}</em>
+                      </span>
+                    </li>
+                  );
+                })}
               </ol>
             </div>
           ))}
