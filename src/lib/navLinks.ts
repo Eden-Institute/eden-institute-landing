@@ -81,6 +81,8 @@ export const FOOTER_LINKS: readonly SiteLink[] = [
   // Site-wide entry to the public monograph set, so /herbs (and through it every
   // profile) is reachable from anywhere a crawler lands.
   { label: "Herb Profiles", href: "/herbs" },
+  // The /learn article section (published 2026-09-25): a crawlable path to every guide.
+  { label: "Homeschool Guides", href: "/learn" },
   { label: "Terms & Conditions", href: "/terms" },
   { label: "Privacy Policy", href: "/privacy" },
   { label: "Cookie Policy", href: "/cookies" },
