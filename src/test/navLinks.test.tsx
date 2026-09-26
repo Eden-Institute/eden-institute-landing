@@ -52,6 +52,7 @@ describe("src/lib/navLinks.ts", () => {
     expect(FOOTER_LINKS.map((l) => l.href)).toEqual([
       "/why-eden",
       "/herbs",
+      "/learn",
       "/terms",
       "/privacy",
       "/cookies",
