@@ -22,6 +22,7 @@ import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
 import heroPricing from "@/assets/hero-pricing.jpg";
 
 import { getFbAttribution } from "@/lib/fbAttribution";
+import { getCheckoutAttribution } from "@/lib/attribution";
 type BillingCycle = "monthly" | "yearly";
 
 export default function Pricing() {
@@ -90,7 +91,7 @@ export default function Pricing() {
         const promo = searchParams.get("promo");
         const { data, error } = await supabase.functions.invoke("create-checkout", {
           body: {
-          ...getFbAttribution(), lookup_key: checkout, ...(promo ? { promo_code: promo } : {}) },
+          ...getFbAttribution(), attribution: getCheckoutAttribution(), lookup_key: checkout, ...(promo ? { promo_code: promo } : {}) },
         });
         if (error) throw error;
         if (data?.url && !cancelled) {

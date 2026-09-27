@@ -45,6 +45,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 import { getFbAttribution } from "@/lib/fbAttribution";
+import { getCheckoutAttribution } from "@/lib/attribution";
 // Two dates, and the split is deliberate. SHIP_TARGET is what we are aiming for and
 // what the page talks about; SHIP_GUARANTEE is the BINDING commitment the FTC delay
 // clock runs on. Both must stay visible: if only the target were prominent, it could be
@@ -291,7 +292,7 @@ export default function PreorderBuyBox() {
     try {
       const { data, error: fnError } = await supabase.functions.invoke("create-checkout", {
         body: {
-          ...getFbAttribution(),
+          ...getFbAttribution(), attribution: getCheckoutAttribution(),
           items,
           // Belt and braces: never record consent we never asked for, even if the
           // flag flipped off between mount and checkout.

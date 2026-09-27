@@ -118,3 +118,21 @@ export function getAttribution(): Attribution {
   captureFirstTouch();
   return readStore() ?? {};
 }
+
+/**
+ * The attribution to send with a PURCHASE: the create-checkout request body carries
+ * it as `attribution: getCheckoutAttribution()`, create-checkout sanitizes it into
+ * the Stripe session metadata (attr_utm_source, ...), and stripe-webhook copies it
+ * onto the order. See supabase/functions/_shared/purchase-attribution.ts.
+ *
+ * Same first-touch value a signup gets. Wrapped so that nothing here can ever stop
+ * a buyer from reaching Stripe: on any failure it returns {} and checkout proceeds
+ * unattributed.
+ */
+export function getCheckoutAttribution(): Attribution {
+  try {
+    return getAttribution();
+  } catch {
+    return {};
+  }
+}

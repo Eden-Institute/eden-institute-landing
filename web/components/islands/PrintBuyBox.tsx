@@ -45,6 +45,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getFbAttribution } from "@/lib/fbAttribution";
+import { getCheckoutAttribution } from "@/lib/attribution";
 import { centsToValue, pinTrack } from "@/lib/pinterestTag";
 import PayOverTime from "./PayOverTime";
 import ShipToForm, { type ShipToDraft } from "./ShipToForm";
@@ -244,7 +245,7 @@ export default function PrintBuyBox({ cta, band = "sprouts" }: Props) {
       const { data, error: fnError } = await supabase.functions.invoke(e2eToken ? "create-checkout-e2e" : "create-checkout", {
         ...(e2eToken ? { headers: { "x-eden-e2e": e2eToken } } : {}),
         body: {
-          ...getFbAttribution(),
+          ...getFbAttribution(), attribution: getCheckoutAttribution(),
           print_shop: true,
           items: [
             { sku: product.sku, qty },
