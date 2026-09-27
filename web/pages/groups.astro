@@ -1,0 +1,141 @@
+---
+// /groups: group orders for co-ops, schools, and church and women's groups.
+// Added 2026-09-26 for founder review.
+//
+// There is no group checkout. A group emails Camila, she sends the group a
+// promotion code, and every family orders on the normal /books or /back-to-eden
+// checkout with that code.
+//
+// PRICES ON THIS PAGE ARE DISPLAY COPY. $249, $12 shipping and $39.99 match
+// the print_products_public view and books.astro. The $32 extra-notebook rate
+// (after the first five, ordered together with a set) needs checkout support
+// that the buy box does not have yet (PrintBuyBox caps extra notebooks at 5);
+// this page must not go live before that checkout change does.
+//
+// Copy rule: no em dashes.
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+const meta = {
+  title: "Group Orders for Co-ops, Schools and Church Groups",
+  description:
+    "Group pricing for homeschool co-ops, schools and church groups: 15% off every family's printed Eden's Table set when five or more families order, extra Student Notebooks at $32, and 15% off Back to Eden for groups of six or more.",
+  canonical: "https://edeninstitute.health/groups",
+};
+
+const MAILTO = "mailto:hello@edeninstitute.health?subject=Group%20order";
+
+const link = "underline underline-offset-4";
+const linkStyle = "color:hsl(var(--eden-forest))";
+const card = "rounded-lg p-6 bg-white border";
+const cardStyle = "border-color:hsl(var(--eden-gold) / 0.3)";
+
+const coopReasons = [
+  "Two levels, so mixed ages learn the same plant together: Sprouts for K-2, Seedlings for grades 3-5.",
+  "Charlotte Mason inspired: real books, real plants, narration, and short lessons that fit a co-op morning.",
+  "Each set is a Teacher's Guide, a Student Notebook and a Read-Aloud storybook, so any parent can lead the week.",
+];
+
+const steps = [
+  "Email hello@edeninstitute.health with your group's name and about how many families or people are joining.",
+  "Camila sends you a code just for your group.",
+  "Everyone orders on the site with the code, and it ships to their own door.",
+];
+---
+
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical}>
+  <section class="pt-16 md:pt-20 pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-3xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3 md:mb-4" style="color:hsl(var(--eden-gold-ink))">
+        Co-ops, schools and church groups
+      </p>
+      <h1 class="font-serif text-4xl md:text-5xl font-bold leading-tight mb-4 md:mb-6" style="color:hsl(var(--eden-bark))">
+        Teaching together? Order together.
+      </h1>
+      <div class="w-16 h-px mx-auto my-4 md:my-6" style="background-color:hsl(var(--eden-gold-ink))"></div>
+      <p class="font-body text-base md:text-xl leading-relaxed" style="color:hsl(var(--eden-bark))">
+        Eden's Table is a Christian K-5 science and nature study curriculum: one plant God made each week for 36 weeks,
+        in two levels (Sprouts K-2 and Seedlings 3-5), printed and shipped in about two to three weeks.
+      </p>
+      <a href={MAILTO} data-cta="groups-hero-email" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center mt-8")}>Start a group order</a>
+    </div>
+  </section>
+
+  <section class="py-12 px-6 bg-background">
+    <div class="max-w-3xl mx-auto">
+      <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2" style="color:hsl(var(--eden-gold-ink))">Eden's Table</p>
+      <h2 class="font-serif text-2xl md:text-3xl font-bold mb-6" style="color:hsl(var(--eden-forest))">For co-ops and schools</h2>
+      <div class="grid gap-4 sm:grid-cols-2 mb-8">
+        <div class={card} style={cardStyle}>
+          <p class="font-serif text-3xl font-bold mb-2" style="color:hsl(var(--eden-bark))">15% off</p>
+          <p class="font-body text-sm text-muted-foreground leading-relaxed">
+            every family's printed set when five or more families join in, with a code just for your group.
+            The set is $249 plus flat $12 shipping before the discount.
+          </p>
+        </div>
+        <div class={card} style={cardStyle}>
+          <p class="font-serif text-3xl font-bold mb-2" style="color:hsl(var(--eden-bark))">$32 notebooks</p>
+          <p class="font-body text-sm text-muted-foreground leading-relaxed">
+            Extra Student Notebooks are $32 each after the first five, when they are ordered together with a set.
+            The regular price is $39.99.
+          </p>
+        </div>
+      </div>
+      <h3 class="font-serif text-lg font-bold mb-3" style="color:hsl(var(--eden-forest))">Why it works for a group</h3>
+      <ul class="font-body text-base space-y-2 mb-6" style="color:hsl(var(--eden-bark))">
+        {coopReasons.map((r) => (
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span>{r}</span></li>
+        ))}
+      </ul>
+      <p class="font-body text-sm leading-relaxed" style="color:hsl(var(--eden-bark))">
+        <a href="/freebies" data-cta="groups-coop-free" class={link} style={linkStyle}>Try Week 1 free</a> ·
+        <a href="/books" data-cta="groups-coop-books" class={link} style={linkStyle}>See both printed sets</a> ·
+        <a href="/homeschool/scope-and-sequence" data-cta="groups-coop-scope" class={link} style={linkStyle}>Scope and sequence</a> ·
+        <a href="/esa" data-cta="groups-coop-esa" class={link} style={linkStyle}>Using an ESA?</a>
+      </p>
+    </div>
+  </section>
+
+  <section class="py-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-3xl mx-auto">
+      <p class="font-accent text-xs tracking-[0.25em] uppercase mb-2" style="color:hsl(var(--eden-gold-ink))">Back to Eden</p>
+      <h2 class="font-serif text-2xl md:text-3xl font-bold mb-4" style="color:hsl(var(--eden-forest))">For church and women's groups</h2>
+      <p class="font-body text-base leading-relaxed mb-4" style="color:hsl(var(--eden-bark))">
+        <em>Back to Eden: A Biblical Foundation for Herbal Healing</em> and its companion Study Guide are made for reading
+        together. Every chapter ends with questions to talk through, and the Study Guide gives each woman room to write
+        her answers.
+      </p>
+      <div class={card} style={cardStyle}>
+        <p class="font-serif text-2xl font-bold mb-1" style="color:hsl(var(--eden-bark))">15% off every copy</p>
+        <p class="font-body text-sm text-muted-foreground leading-relaxed">for groups of six or more.</p>
+      </div>
+      <p class="font-body text-sm leading-relaxed mt-4" style="color:hsl(var(--eden-bark))">
+        Want to look first? <a href="/back-to-eden" data-cta="groups-bte-ch1" class={link} style={linkStyle}>Chapter 1 is free</a>.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-12 px-6 bg-background">
+    <div class="max-w-3xl mx-auto">
+      <h2 class="font-serif text-2xl md:text-3xl font-bold mb-6" style="color:hsl(var(--eden-forest))">How it works</h2>
+      <ol class="space-y-4">
+        {steps.map((s, i) => (
+          <li class="flex gap-4 items-start">
+            <span class="font-serif text-xl font-bold w-9 h-9 flex-shrink-0 rounded-full flex items-center justify-center" style="background-color:hsl(var(--eden-forest));color:hsl(var(--eden-cream))">{i + 1}</span>
+            <span class="font-body text-base leading-relaxed pt-1" style="color:hsl(var(--eden-bark))">{s}</span>
+          </li>
+        ))}
+      </ol>
+      <p class="font-body text-sm text-muted-foreground leading-relaxed mt-6">
+        The $32 notebook rate applies when one person orders the extra notebooks together with a set.
+      </p>
+      <div class="text-center mt-10">
+        <a href={MAILTO} data-cta="groups-close-email" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center")}>Start a group order</a>
+        <p class="font-body text-sm text-muted-foreground mt-4">
+          Or write to <a href="mailto:hello@edeninstitute.health" class="underline">hello@edeninstitute.health</a> and a real person (Camila) answers.
+        </p>
+      </div>
+    </div>
+  </section>
+</MarketingLayout>
