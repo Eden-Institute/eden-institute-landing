@@ -21,6 +21,7 @@ import {
 import { FORM_ERROR_FALLBACK, visitorFacingError } from "@/lib/edgeFunctionError";
 
 import { getFbAttribution } from "@/lib/fbAttribution";
+import { getCheckoutAttribution } from "@/lib/attribution";
 
 const GuideLanding = () => {
   const { constitutionSlug } = useParams<{ constitutionSlug: string }>();
@@ -179,7 +180,7 @@ const GuideLanding = () => {
       // useEffect above unlocks the full guide.
       const { data, error: fnError } = await supabase.functions.invoke("create-checkout", {
         body: {
-          ...getFbAttribution(),
+          ...getFbAttribution(), attribution: getCheckoutAttribution(),
           lookup_key: "deep_dive_guide",
           constitution_type: constitutionType,
           constitution_nickname: profile.nickname,

@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ROUTES } from "@/lib/routes";
 import { trackCta } from "@/lib/trackCta";
 import { getFbAttribution } from "@/lib/fbAttribution";
+import { getCheckoutAttribution } from "@/lib/attribution";
 import {
   CHECKOUT_ERROR_FALLBACK,
   friendlyEfError,
@@ -69,7 +70,7 @@ export function CheckoutButton({
       const promo = new URLSearchParams(window.location.search).get("promo");
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: {
-          ...getFbAttribution(), lookup_key: lookupKey, ...(promo ? { promo_code: promo } : {}) },
+          ...getFbAttribution(), attribution: getCheckoutAttribution(), lookup_key: lookupKey, ...(promo ? { promo_code: promo } : {}) },
       });
       if (error) throw error;
       if (!data?.url) throw new Error("Checkout session missing redirect URL");

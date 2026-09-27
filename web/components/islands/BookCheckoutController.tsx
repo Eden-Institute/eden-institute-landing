@@ -16,6 +16,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getFbAttribution } from "@/lib/fbAttribution";
+import { getCheckoutAttribution } from "@/lib/attribution";
 import { pinTrack } from "@/lib/pinterestTag";
 import { likelyNeedsGround, printShippingCents } from "../../../supabase/functions/_shared/print-pricing";
 import { checkShipTo, type ShipTo } from "../../../supabase/functions/_shared/ship-address";
@@ -78,8 +79,8 @@ async function startCheckout(btn: HTMLButtonElement, action: Req, items: Item[],
   try {
     const body =
       action.kind === "print"
-        ? { ...getFbAttribution(), print_shop: true, items, sms_consent: false, ...(shipTo ? { ship_to: shipTo } : {}) }
-        : { ...getFbAttribution(), book_digital: true, sku: action.sku };
+        ? { ...getFbAttribution(), attribution: getCheckoutAttribution(), print_shop: true, items, sms_consent: false, ...(shipTo ? { ship_to: shipTo } : {}) }
+        : { ...getFbAttribution(), attribution: getCheckoutAttribution(), book_digital: true, sku: action.sku };
     const { data, error } = await supabase.functions.invoke(token ? "create-checkout-e2e" : "create-checkout", {
       ...(token ? { headers: { "x-eden-e2e": token } } : {}),
       body,

@@ -18,6 +18,7 @@ import { useStructuredData } from "@/lib/useStructuredData";
 import Navbar from "@/components/landing/Navbar";
 
 import { getFbAttribution } from "@/lib/fbAttribution";
+import { getCheckoutAttribution } from "@/lib/attribution";
 
 const Results = () => {
   const { constitutionSlug } = useParams<{ constitutionSlug: string }>();
@@ -380,7 +381,7 @@ const Results = () => {
                   const slug = patternNameToSlug(profile.nickname);
                   const { data, error: fnError } = await supabase.functions.invoke("create-checkout", {
                     body: {
-          ...getFbAttribution(),
+          ...getFbAttribution(), attribution: getCheckoutAttribution(),
                       lookup_key: "deep_dive_guide",
                       constitution_type: constitutionType,
                       constitution_nickname: profile.nickname,

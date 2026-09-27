@@ -63,6 +63,7 @@ import { creditIssuanceOpen, issueStarterCreditForBand, markCreditRedeemed } fro
 import { escapeLikePattern } from "../_shared/like-escape.ts"
 import { classifyLearnWorldsCharge } from "../_shared/learnworlds-charge.ts"
 import { E2E_MODE, isE2eMetadata, stripeSecretKey, stripeWebhookSecret } from "../_shared/e2e-mode.ts"
+import { attributionColumnsFromMetadata } from "../_shared/purchase-attribution.ts"
 
 /**
  * Normalize a constitution identifier to a guide-registry slug.
@@ -329,6 +330,12 @@ serve(async (req) => {
         await recordOneOffPayment(event, session)
 
         await handleOneOffPayment(session)
+
+        // Where the buyer came from (attr_* metadata stamped by create-checkout).
+        // Best-effort and AFTER the sale is recorded: it can never fail an order.
+        // Both writes are no-ops for sessions that carry no attribution.
+        await stampPurchaseAttribution("orders", "stripe_checkout_session_id", session.id, session.metadata)
+        await stampPurchaseAttribution("payments", "stripe_event_id", event.id, session.metadata)
 
         // Report the sale to Meta (server-side Conversions API). Deliberately
         // AFTER handleOneOffPayment and deliberately un-awaited for failure:
@@ -1729,10 +1736,54 @@ async function recordInvoicePayment(event: Stripe.Event, status: "paid" | "faile
     throw new Error(`payments insert failed for invoice ${inv.id}: ${error.message}`)
   }
 
+  // Subscriber attribution: create-checkout puts the attr_* keys in
+  // subscription_data.metadata, which Stripe copies onto every invoice of that
+  // subscription as subscription_details.metadata. Renewals therefore carry the
+  // subscriber's ORIGINAL first touch (kind='subscription' tells them apart), which is
+  // what revenue-by-source needs. Absent on older API versions and older
+  // subscriptions; best-effort either way.
+  await stampPurchaseAttribution("payments", "stripe_event_id", event.id, inv.subscription_details?.metadata ?? null)
+
   console.log(
     `Recorded ${status} subscription payment: ${amount} ${inv.currency ?? "usd"} ` +
       `invoice=${inv.id} sub=${subscriptionId ?? "n/a"}`,
   )
+}
+
+// ---------- Purchase attribution ----------
+
+/**
+ * Copy the attr_* Checkout metadata (first-touch UTMs, referrer, landing URL) onto
+ * the row a purchase produced. See _shared/purchase-attribution.ts.
+ *
+ * A separate UPDATE rather than part of each insert, deliberately:
+ *   - it NEVER throws and never fails the webhook. Attribution is reporting; the
+ *     order, the email and the Lulu job are the product.
+ *   - it tolerates the migration not being applied yet: PostgREST rejects the
+ *     unknown columns, this logs it, and the order already exists untouched.
+ *   - it touches none of the order writers (_shared/order-flow.ts), so the
+ *     preorder / print / digital paths are byte-for-byte what they were.
+ * No-op when the metadata carries no attribution (every pre-existing session).
+ */
+async function stampPurchaseAttribution(
+  table: "orders" | "payments",
+  matchColumn: "stripe_checkout_session_id" | "stripe_event_id",
+  matchValue: string,
+  metadata: Record<string, unknown> | null | undefined,
+): Promise<void> {
+  try {
+    const cols = attributionColumnsFromMetadata(metadata)
+    if (!cols) return
+    const { error } = await adminClient.from(table).update(cols).eq(matchColumn, matchValue)
+    if (error) {
+      console.error(`purchase attribution not stamped on ${table} (${matchColumn}=${matchValue}): ${error.message}`)
+    }
+  } catch (err) {
+    console.error(
+      `purchase attribution stamp failed on ${table} (${matchColumn}=${matchValue}), non-fatal: ` +
+        (err instanceof Error ? err.message : String(err)),
+    )
+  }
 }
 
 // ---------- Helpers ----------

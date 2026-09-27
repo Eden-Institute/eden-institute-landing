@@ -71,6 +71,16 @@ interface OrderRow {
   shipped_at: string | null;
   delivered_at: string | null;
   lulu_job: LuluJob | null;
+  /** First-touch attribution of the buyer's session, copied from the Checkout
+      metadata by stripe-webhook (2026-09-26). NULL on older orders, on buyers who
+      arrived direct, and until the migration is applied (the RPC omits them). */
+  attr_utm_source?: string | null;
+  attr_utm_medium?: string | null;
+  attr_utm_campaign?: string | null;
+  attr_utm_content?: string | null;
+  attr_utm_term?: string | null;
+  attr_referrer?: string | null;
+  attr_source_url?: string | null;
   items: OrderItem[];
   messages: OrderMsg[];
 }
@@ -125,6 +135,21 @@ function luluResultText(d: unknown): string {
 }
 
 // Status pill colors — terminal states muted red, held/active states brand tones.
+/** "makers_market / plant_card / lavender", or the referring host when the buyer
+ *  arrived by a plain link with no UTMs, or null for direct / unattributed. */
+export function orderSourceText(o: Pick<OrderRow, "attr_utm_source" | "attr_utm_medium" | "attr_utm_content" | "attr_referrer">): string | null {
+  const utm = [o.attr_utm_source, o.attr_utm_medium, o.attr_utm_content].filter((v): v is string => !!v);
+  if (utm.length) return utm.join(" / ");
+  if (o.attr_referrer) {
+    try {
+      return new URL(o.attr_referrer).hostname.replace(/^www\./, "");
+    } catch {
+      return o.attr_referrer;
+    }
+  }
+  return null;
+}
+
 function statusStyle(status: string): React.CSSProperties {
   if (status === "cancelled" || status === "refunded") {
     return { backgroundColor: "hsl(var(--destructive) / 0.12)", color: "hsl(var(--destructive))" };
@@ -257,7 +282,7 @@ export default function OrdersTab({ since }: { since: string }) {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-muted/40">
-                {["Order / Customer", "Items", "Amount", "Status", "Fulfilment", "SMS", "Messages", "Date (CT)"].map((h) => (
+                {["Order / Customer", "Items", "Amount", "Source", "Status", "Fulfilment", "SMS", "Messages", "Date (CT)"].map((h) => (
                   <th key={h} className="px-3 py-2 font-accent text-[11px] tracking-wider uppercase text-muted-foreground">
                     {h}
                   </th>
@@ -319,6 +344,12 @@ export default function OrdersTab({ since }: { since: string }) {
                     {o.tax_cents != null && o.tax_cents > 0 && (
                       <span className="block text-xs text-muted-foreground">incl. tax {money(o.tax_cents)}</span>
                     )}
+                  </td>
+                  <td
+                    className="px-3 py-2 font-body text-xs max-w-[180px] break-words"
+                    title={[o.attr_utm_campaign && `campaign: ${o.attr_utm_campaign}`, o.attr_utm_term && `term: ${o.attr_utm_term}`, o.attr_source_url && `landed: ${o.attr_source_url}`, o.attr_referrer && `referrer: ${o.attr_referrer}`].filter(Boolean).join("\n") || undefined}
+                  >
+                    {orderSourceText(o) ?? <span className="text-muted-foreground">—</span>}
                   </td>
                   <td className="px-3 py-2">
                     <span className="font-accent text-[11px] tracking-wider uppercase px-2 py-1 rounded whitespace-nowrap" style={statusStyle(o.status)}>
@@ -395,7 +426,7 @@ export default function OrdersTab({ since }: { since: string }) {
               ))}
               {orders.length === 0 && !loading && !error && (
                 <tr>
-                  <td className="px-3 py-3 font-body text-sm text-muted-foreground" colSpan={8}>
+                  <td className="px-3 py-3 font-body text-sm text-muted-foreground" colSpan={9}>
                     No orders in this window yet.
                   </td>
                 </tr>

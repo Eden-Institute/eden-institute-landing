@@ -77,6 +77,7 @@ import { checkCartBands, luluBandsForSku } from "../_shared/lulu-config.ts"
 import { likelyNeedsGround, printShippingCents, splitVolumeTierPooled } from "../_shared/print-pricing.ts"
 import { checkShipTo, SHIP_TO_METADATA_KEY, ShipTo, shipToMetadata } from "../_shared/ship-address.ts"
 import { lockShipToSessionParams } from "../_shared/print-session-lock.ts"
+import { checkoutAttributionMetadata } from "../_shared/purchase-attribution.ts"
 
 /** Hours a buyer has to cancel a print order, for Stripe's checkout copy. */
 const PRINT_CANCEL_HOURS = Math.round(LULU_PRODUCTION_DELAY_MINUTES / 60)
@@ -489,6 +490,11 @@ serve(async (req) => {
     // attacker-influencable (they arrive in the request body).
     const fbp = clampMeta(bodyFbp); if (fbp) metadata.fbp = fbp
     const fbc = clampMeta(bodyFbc); if (fbc) metadata.fbc = fbc
+    // First-touch purchase attribution (attr_utm_source, ...). Sanitized and capped;
+    // absent or malformed attribution adds nothing. See _shared/purchase-attribution.ts.
+    // For subscriptions this bag becomes subscription_data.metadata, so it rides on
+    // the Subscription and reaches the webhook via invoice.subscription_details.
+    Object.assign(metadata, checkoutAttributionMetadata(body))
 
     // 7. Construct the Checkout Session.
     //    Defaults for success/cancel URLs depend on product class:
@@ -966,6 +972,7 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
     disclaimer_accepted_at: new Date().toISOString(),
   }
   if (isAdminTest) metadata.preorder_test = "true"
+  Object.assign(metadata, checkoutAttributionMetadata(body))
 
   // Same origin allowlist as the legacy branch: a checkout session must never
   // redirect the payer to an attacker-supplied host.
@@ -1389,6 +1396,7 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
   }
   const fbp = clampMeta(body.fbp); if (fbp) metadata.fbp = fbp
   const fbc = clampMeta(body.fbc); if (fbc) metadata.fbc = fbc
+  Object.assign(metadata, checkoutAttributionMetadata(body))
   if (isAdminTest) metadata.print_test = "true"
   if (E2E_MODE) metadata[E2E_METADATA_KEY] = "true"
   // Sprouts metadata stays exactly as it was; other bands are stamped for the record.
@@ -1633,6 +1641,7 @@ async function handleBookDigitalCheckout(req: Request, body: Record<string, any>
   const metadata: Record<string, string> = { book_digital_sku: book.sku }
   const fbp = clampMeta(body.fbp); if (fbp) metadata.fbp = fbp
   const fbc = clampMeta(body.fbc); if (fbc) metadata.fbc = fbc
+  Object.assign(metadata, checkoutAttributionMetadata(body))
   if (isAdminTest) metadata.book_test = "true"
   if (E2E_MODE) metadata[E2E_METADATA_KEY] = "true"
 

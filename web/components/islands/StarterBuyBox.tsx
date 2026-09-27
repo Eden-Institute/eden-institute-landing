@@ -19,6 +19,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { friendlyEfError } from "@/components/apothecary/friendlyEfError";
 import { getFbAttribution } from "@/lib/fbAttribution";
+import { getCheckoutAttribution } from "@/lib/attribution";
 import { pinTrack } from "@/lib/pinterestTag";
 import PayOverTime from "./PayOverTime";
 
@@ -82,7 +83,7 @@ export default function StarterBuyBox({ cta, wide = false, band = "sprouts" }: P
     try {
       const { data, error: fnError } = await supabase.functions.invoke("create-checkout", {
         body: {
-          ...getFbAttribution(),
+          ...getFbAttribution(), attribution: getCheckoutAttribution(),
           lookup_key: product.lookupKey,
         },
       });
