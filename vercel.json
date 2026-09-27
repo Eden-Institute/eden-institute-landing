@@ -16,6 +16,16 @@
       "permanent": true
     },
     {
+      "source": "/q/:slug([a-z0-9-]+)",
+      "destination": "/?utm_source=stillroom&utm_medium=qr&utm_campaign=makers-wall&utm_content=:slug",
+      "permanent": false
+    },
+    {
+      "source": "/s/:slug([a-z0-9-]+)",
+      "destination": "/?utm_source=stillroom&utm_medium=label-url&utm_campaign=makers-wall&utm_content=:slug",
+      "permanent": false
+    },
+    {
       "source": "/preorder",
       "destination": "/books",
       "permanent": false
