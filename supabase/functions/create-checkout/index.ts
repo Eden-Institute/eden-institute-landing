@@ -76,6 +76,7 @@ import { BOOK_PAGE, BOOK_THANK_YOU, bookDigitalBySku, bookShopLive } from "../_s
 import { checkCartBands, luluBandsForSku } from "../_shared/lulu-config.ts"
 import { likelyNeedsGround, printShippingCents, splitVolumeTierPooled } from "../_shared/print-pricing.ts"
 import { checkShipTo, SHIP_TO_METADATA_KEY, ShipTo, shipToMetadata } from "../_shared/ship-address.ts"
+import { lockShipToSessionParams } from "../_shared/print-session-lock.ts"
 
 /** Hours a buyer has to cancel a print order, for Stripe's checkout copy. */
 const PRINT_CANCEL_HOURS = Math.round(LULU_PRODUCTION_DELAY_MINUTES / 60)
@@ -1485,8 +1486,9 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
     // no address fields, keeps the fixed shipping rate and computes automatic tax
     // from that address. (payment_intent_data.shipping is refused with automatic
     // tax.) customer_creation and customer_email cannot be combined with customer.
-    delete sessionParams.shipping_address_collection
-    delete sessionParams.customer_creation
+    // Also drops custom_text.shipping_address, which Stripe refuses without
+    // shipping_address_collection (every heavy checkout 500'd until 2026-09-27).
+    lockShipToSessionParams(sessionParams)
     const address = {
       line1: shipTo.line1,
       ...(shipTo.line2 ? { line2: shipTo.line2 } : {}),
