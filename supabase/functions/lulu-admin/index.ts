@@ -40,7 +40,7 @@ import {
   validateCover,
   validateInterior,
 } from '../_shared/lulu.ts';
-import { luluBookByKey, luluProductBySku, luluShippingLevel, normalizeLuluBand, printableMapKey } from '../_shared/lulu-config.ts';
+import { luluBookByKey, luluProductBySku, luluProductParts, luluShippingLevel, normalizeLuluBand, printableMapKey } from '../_shared/lulu-config.ts';
 import { captureException } from '../_shared/sentry.ts';
 import { founderGate, withMfaNudge } from '../_shared/founder-identity.ts';
 
@@ -163,13 +163,16 @@ serve(async (req) => {
         }
         const printables = await loadPrintables(adminClient);
         const lineItems: { pod_package_id: string; page_count: number; quantity: number }[] = [];
-        for (const key of product.books) {
-          const book = luluBookByKey(key, product.band)!;
-          const row = printables.get(printableMapKey(product.band, key));
-          const pkg = row?.pod_package_id ?? book.podPackageId;
-          const pages = row?.page_count ?? book.pageCount;
-          if (!pages) return json({ error: `'${key}' has no page count yet` }, 400);
-          lineItems.push({ pod_package_id: pkg, page_count: pages, quantity: qty });
+        // Every part of the product (two for the both-bands bundle, 2026-09-26).
+        for (const part of luluProductParts(product)) {
+          for (const key of part.books) {
+            const book = luluBookByKey(key, part.band)!;
+            const row = printables.get(printableMapKey(part.band, key));
+            const pkg = row?.pod_package_id ?? book.podPackageId;
+            const pages = row?.page_count ?? book.pageCount;
+            if (!pages) return json({ error: `'${part.band}/${key}' has no page count yet` }, 400);
+            lineItems.push({ pod_package_id: pkg, page_count: pages, quantity: qty });
+          }
         }
         const level = typeof body.shipping_level === 'string' && body.shipping_level ? body.shipping_level : luluShippingLevel();
         const calc = await calculatePrintJobCost({

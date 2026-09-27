@@ -45,6 +45,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { claimStripeEvent, markEventProcessed, markEventError, getOrderByPaymentIntent } from "../_shared/order-db.ts"
 import { setContactProperties } from "../_shared/resend-contacts.ts"
 import { recordPreorderFromSession, recordRetailOrderFromSession, applyRefundByPaymentIntent, ResolvedLineItem } from "../_shared/order-flow.ts"
+import { mergePrintLines, PrintProductKeys } from "../_shared/print-lines.ts"
+import { likelyNeedsGround } from "../_shared/print-pricing.ts"
+import { isGroundUndeliverable, shippingDetailsFromMetadata } from "../_shared/ship-address.ts"
 import { cancelLuluForRefund, enqueueLuluJob, notifyFounder } from "../_shared/lulu-fulfillment.ts"
 import { notifyFoundingMilestones } from "../_shared/founding-milestones.ts"
 import { productForPriceId } from "../_shared/order-config.ts"
@@ -796,7 +799,30 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
       return
     }
     const items = await resolvePrintLineItems(session, printSku)
-    const orderNumber = await recordRetailOrderFromSession(adminClient, await withPaymentCard(session), items, { fulfillment: "lulu" })
+    // Heavy orders (2026-09-26): the address was checked by create-checkout and
+    // locked on a Customer, so Checkout collected none and shipping_details is
+    // empty. The checked address rides in metadata; use it for the order row.
+    // deno-lint-ignore no-explicit-any
+    const s = session as any
+    const collected = s.shipping_details ?? s.collected_information?.shipping_details ?? null
+    const locked = collected ? null : shippingDetailsFromMetadata(session.metadata)
+    const sessionForOrder = locked ? { ...(await withPaymentCard(session)), shipping_details: locked } : await withPaymentCard(session)
+    const orderNumber = await recordRetailOrderFromSession(adminClient, sessionForOrder, items, { fulfillment: "lulu" })
+    // Backstop: a heavy parcel ships GROUND_HD, which cannot reach a PO box or an
+    // APO/FPO/DPO address. create-checkout refuses those before payment, so this
+    // should never fire; if it does (an old tab, a hand-built request), tell the
+    // founder at once, inside the 48-hour window, rather than letting Lulu fail.
+    const finalAddress = (collected ?? locked)?.address ?? null
+    if (likelyNeedsGround(items.map((i) => ({ sku: i.sku, qty: i.quantity }))) && isGroundUndeliverable(finalAddress)) {
+      console.error(`[${session.id}] heavy print order ${orderNumber ?? ""} has a PO box / military address; Lulu ground cannot deliver`)
+      runInBackground(notifyFounder(
+        `Heavy order ${orderNumber ?? session.id} ships to a PO box or APO address`,
+        `Order ${orderNumber ?? session.id} is heavy enough that Lulu ships it by ground (FedEx home delivery), ` +
+          `and its address looks like a PO box or an APO/FPO/DPO address, which ground cannot reach.\n\n` +
+          `Address: ${JSON.stringify(finalAddress)}\n\n` +
+          `Please reach out to the buyer for a street address, or refund, within the 48-hour window before printing.`,
+      ))
+    }
     await syncPurchaseProperties(session.customer_details?.email ?? session.customer_email, session.id)
 
     const printPi = typeof session.payment_intent === "string" ? session.payment_intent : null
@@ -1211,7 +1237,10 @@ async function handleBookDigitalPurchase(session: Stripe.Checkout.Session, sku: 
 /**
  * Resolve a print-shop session's cart lines, most-authoritative source first:
  *   1. Stripe line_items expansion, mapped back to SKUs through
- *      products.stripe_retail_price_id (the print shop sells at retail only).
+ *      products.stripe_retail_price_id (the print shop sells at retail only),
+ *      or (2026-09-26) the Price's lookup key (Back to Eden, the both-bands
+ *      bundle), or, for a volume-tier line (inline price_data on the same Stripe
+ *      product), the product of a line already matched. See mergePrintLines.
  *   2. metadata.print_cart (JSON stamped by create-checkout).
  *   3. metadata.print_sku alone as a single qty-1 line.
  */
@@ -1222,35 +1251,13 @@ async function resolvePrintLineItems(
   try {
     const expanded = await stripe.checkout.sessions.retrieve(session.id, { expand: ["line_items.data.price"] })
     const lines = expanded.line_items?.data ?? []
-    const priceIds: string[] = []
-    for (const li of lines) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const id = (li.price as any)?.id
-      if (typeof id === "string") priceIds.push(id)
-    }
     const { data: products, error } = await adminClient
-      .from("products").select("sku, stripe_retail_price_id").in("stripe_retail_price_id", priceIds)
+      .from("products").select("sku, stripe_retail_price_id, stripe_lookup_key").eq("fulfillment", "lulu")
     if (error) throw error
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const skuByPrice = new Map<string, string>((products ?? []).map((p: any) => [p.stripe_retail_price_id, p.sku]))
-    const items: ResolvedLineItem[] = []
-    for (const li of lines) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const price = li.price as any
-      const sku = skuByPrice.get(price?.id)
-      if (!sku) {
-        console.warn(`print session ${session.id}: line price ${price?.id ?? "(none)"} matches no product`)
-        continue
-      }
-      items.push({
-        sku,
-        isFounding: false,
-        quantity: li.quantity ?? 1,
-        unitPriceCents: typeof price?.unit_amount === "number" ? price.unit_amount : null,
-      })
-    }
-    if (items.length > 0 && items.length === lines.length) return items
-    console.warn(`print session ${session.id}: resolved ${items.length}/${lines.length} expanded lines; falling back to metadata`)
+    const items = mergePrintLines(lines as any[], (products ?? []) as PrintProductKeys[])
+    if (items) return items
+    console.warn(`print session ${session.id}: could not resolve every expanded line; falling back to metadata`)
   } catch (err) {
     console.warn(`print session ${session.id}: line_items expansion failed (${err instanceof Error ? err.message : String(err)}); falling back to metadata`)
   }

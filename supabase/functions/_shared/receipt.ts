@@ -18,6 +18,7 @@
 
 import type { Db, OrderRow } from './order-db.ts';
 import { escapeHtml } from './html-escape.ts';
+import { splitVolumeTierPooled } from './print-pricing.ts';
 
 /**
  * The seller of record, printed on every receipt and every Stripe invoice.
@@ -59,6 +60,11 @@ export const RECEIPT_NAMES: Record<string, { name: string; grade: string }> = {
   seedlings_nb_print: {
     name: 'Seedlings Curriculum Student Notebook, additional printed copy',
     grade: '3-5',
+  },
+  // 2026-09-26. Key = the both_bands_print_set SKU in lulu-config.ts.
+  both_bands_print_set: {
+    name: "Sprouts and Seedlings Printed Curriculum Sets: both Teacher's Guides, Student Notebooks and Read-Aloud Storybooks (36 weeks each)",
+    grade: 'K-2 and 3-5',
   },
   sprouts_starter_unit: {
     name: 'Sprouts Starter Unit, Digital Curriculum, Weeks 1 to 9',
@@ -176,16 +182,11 @@ function num(v: any): number {
  */
 export async function loadOrderReceipt(db: Db, order: OrderRow): Promise<Receipt | null> {
   const { data, error } = await db.from('order_items')
-    .select('quantity, unit_price_cents, products(sku, name)')
+    .select('quantity, unit_price_cents, products(sku, name, volume_price_cents, volume_min_qty)')
     .eq('order_id', order.id);
   if (error || !Array.isArray(data) || data.length === 0) return null;
 
-  // deno-lint-ignore no-explicit-any
-  const lines: ReceiptLine[] = data.map((r: any) => {
-    const sku = r.products?.sku as string | undefined;
-    const name = (sku && (RECEIPT_NAMES[sku]?.name ?? BOOK_RECEIPT_NAMES[sku])) ?? r.products?.name ?? sku ?? 'Curriculum item';
-    return { name, quantity: num(r.quantity) || 1, unitCents: num(r.unit_price_cents) };
-  });
+  const lines: ReceiptLine[] = receiptLinesForItems(data);
   // Stable order: the set first, add-ons after.
   lines.sort((a, b) => b.unitCents - a.unitCents);
 
@@ -210,6 +211,46 @@ export async function loadOrderReceipt(db: Db, order: OrderRow): Promise<Receipt
     paidWith: paidWithFromRaw(raw),
     ...(firstSku && BOOK_RECEIPT_NAMES[firstSku] ? { heading: BOOK_HEADING } : {}),
   };
+}
+
+/**
+ * The receipt rows for an order's order_items rows. One row each, except add-ons
+ * bought past the volume threshold (2026-09-26): order_items holds ONE row per
+ * product (UNIQUE(order_id, product_id)) at the base unit price, and this splits
+ * them back into what Stripe charged, with the same shared allowance across the
+ * order that create-checkout used (splitVolumeTierPooled). E.g. 7 notebooks =
+ * 5 x $39.99 + 2 x $32.00, so the receipt still adds up to the card total.
+ */
+// deno-lint-ignore no-explicit-any
+export function receiptLinesForItems(rows: any[]): ReceiptLine[] {
+  // deno-lint-ignore no-explicit-any
+  const keyed = rows.map((r: any, i: number) => ({
+    key: `${r?.products?.sku ?? 'item'}#${i}`,
+    r,
+    sku: r?.products?.sku as string | undefined,
+    quantity: num(r?.quantity) || 1,
+    unitCents: num(r?.unit_price_cents),
+  }));
+  const splits = splitVolumeTierPooled(keyed.map((k) => ({
+    key: k.key,
+    qty: k.quantity,
+    baseCents: k.unitCents,
+    volumeCents: k.r?.products?.volume_price_cents,
+    volumeMinQty: k.r?.products?.volume_min_qty,
+  })));
+  const out: ReceiptLine[] = [];
+  for (const k of keyed) {
+    const name = (k.sku && (RECEIPT_NAMES[k.sku]?.name ?? BOOK_RECEIPT_NAMES[k.sku])) ?? k.r?.products?.name ?? k.sku ?? 'Curriculum item';
+    const parts = splits.get(k.key) ?? [];
+    if (parts.length <= 1 && (parts[0]?.tier ?? 'base') === 'base') {
+      out.push({ name, quantity: k.quantity, unitCents: k.unitCents });
+      continue;
+    }
+    for (const p of parts) {
+      out.push({ name: p.tier === 'volume' ? `${name}, volume price` : name, quantity: p.qty, unitCents: p.unitCents });
+    }
+  }
+  return out;
 }
 
 /**
@@ -371,10 +412,11 @@ export function receiptBalances(r: Receipt): boolean {
 //
 // `band` (2026-09-23) defaults to Sprouts, and the Sprouts output is unchanged
 // character for character. Seedlings swaps the band name and grades only.
-export function curriculumInvoiceCreation(kind: 'print' | 'starter', band: 'sprouts' | 'seedlings' = 'sprouts') {
-  const name = band === 'seedlings' ? 'Seedlings' : 'Sprouts';
-  const grades = band === 'seedlings' ? '3-5' : 'K-2';
-  const grade = `${grades} (${name})`;
+// 'both' (2026-09-26) is the both-bands bundle: "Sprouts and Seedlings", K-5.
+export function curriculumInvoiceCreation(kind: 'print' | 'starter', band: 'sprouts' | 'seedlings' | 'both' = 'sprouts') {
+  const name = band === 'both' ? 'Sprouts and Seedlings' : band === 'seedlings' ? 'Seedlings' : 'Sprouts';
+  const grades = band === 'both' ? 'K-5' : band === 'seedlings' ? '3-5' : 'K-2';
+  const grade = band === 'both' ? 'K-2 (Sprouts) and 3-5 (Seedlings)' : `${grades} (${name})`;
   return {
     enabled: true,
     invoice_data: {

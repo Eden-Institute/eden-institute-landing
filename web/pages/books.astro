@@ -22,6 +22,15 @@
 // supabase/functions/_shared/lulu-config.ts. Change both together.
 // 2026-09-24: Seedlings went on sale. The meta tags, the hero and the Product
 // JSON-LD now cover both bands, and a BandChooser sits under the hero.
+// 2026-09-26 (founder): extra notebooks $32 each from the 6th, up to 100 an
+// order; and a both-years section (#both, PrintBuyBox band="both"), $429 + $12
+// vs $498 separately. The $429 / $498 here are display copy like the $249: the
+// price the buyer pays comes from the products row and Stripe. That box says
+// "coming soon" until the bundle's Stripe Price exists and its row is active.
+// Shipping (founder 2026-09-26, "whatever covers my cost"): calculated per cart
+// by printShippingCents (supabase/functions/_shared/print-pricing.ts) and shown in
+// the buy box before checkout. One set is $12 and the bundle $16; "flat" is gone
+// from the copy because larger orders cost more.
 //
 // Copy rule: no em dashes.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
@@ -36,7 +45,7 @@ import heroBooks from "@/assets/hero-books.jpg";
 const meta = {
   title: "Printed Homeschool Herbalism Curriculum, Sprouts K-2 and Seedlings 3-5 · Eden's Table",
   description:
-    "The Eden's Table Teacher's Guide, Student Notebook and Read-Aloud storybook for Sprouts (K-2) or Seedlings (3-5), printed to order and at your door in about two to three weeks. All 36 weeks, $249 plus flat $12 shipping.",
+    "The Eden's Table Teacher's Guide, Student Notebook and Read-Aloud storybook for Sprouts (K-2) or Seedlings (3-5), printed to order and at your door in about two to three weeks. All 36 weeks, $249 plus $12 shipping.",
   canonical: "https://edeninstitute.health/books",
 };
 
@@ -65,7 +74,7 @@ const faqs = [
   },
   {
     q: "Can I buy just one of the three?",
-    a: "No. They are written to be used together, one plant a week, and one without the others would leave you stuck by Wednesday. The one exception is the Student Notebook: it is the write-in book, so you can add extra copies for siblings at checkout, $39.99 each, printed and shipped with your set.",
+    a: "No. They are written to be used together, one plant a week, and one without the others would leave you stuck by Wednesday. The one exception is the Student Notebook: it is the write-in book, so you can add extra copies for siblings at checkout, $39.99 each for the first five and $32 each from the sixth (up to 100 in one order, for co-ops), printed and shipped with your set. Shipping for larger orders is calculated in your cart before you pay.",
   },
   {
     q: "How is it printed, and how long does it take?",
@@ -153,7 +162,7 @@ const faqJsonLd = {
       <div class="w-16 h-px mx-auto my-4 md:my-6" style="background-color:hsl(var(--eden-gold-ink))"></div>
       <p class="font-body text-base md:text-xl leading-relaxed" style="color:hsl(var(--eden-bark))">
         The Teacher's Guide, the Student Notebook and the Read-Aloud storybook for all 36 weeks,
-        printed to order and mailed to your door. $249 plus flat $12 shipping, for either year.
+        printed to order and mailed to your door. $249 plus $12 shipping, for either year.
       </p>
       <div class="grid gap-3 sm:grid-cols-2 mt-6 max-w-xl mx-auto">
         <a href="#buy" data-cta="books-hero-sprouts" class="rounded-md border-2 px-4 py-3 font-body font-bold text-base leading-snug min-h-[48px] flex flex-col items-center justify-center" style="border-color:hsl(var(--eden-forest));background-color:hsl(var(--eden-forest));color:hsl(var(--eden-cream))">
@@ -210,7 +219,7 @@ const faqJsonLd = {
           <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Teacher's Guide,</strong> 240 pages, letter size, coil bound. All 36 weeks.</span></li>
           <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Student Notebook,</strong> 224 pages, letter size, coil bound. All 36 weeks.</span></li>
           <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Read-Aloud Storybook,</strong> 112 pages, small paperback. All seven stories.</span></li>
-          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Extra Student Notebooks for siblings,</strong> $39.99 each, added at checkout and shipped in the same parcel.</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Extra Student Notebooks for siblings,</strong> $39.99 each, $32 each from the sixth, added at checkout and shipped in the same parcel (shipping calculated in your cart).</span></li>
           <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Printed to order, mailed to you,</strong> tracked, within the United States.</span></li>
         </ul>
         {books.map((b) => (
@@ -249,7 +258,7 @@ const faqJsonLd = {
         <h2 class="font-serif text-2xl font-bold" style="color:hsl(var(--eden-forest))">The Seedlings year, printed</h2>
         <p class="font-body text-base leading-relaxed" style="color:hsl(var(--eden-bark))">
           The same three books for your older children: the Teacher's Guide, the Student Notebook and the
-          Read-Aloud storybook for all 36 weeks of Seedlings, printed to order and mailed to your door. $249 plus flat $12 shipping.
+          Read-Aloud storybook for all 36 weeks of Seedlings, printed to order and mailed to your door. $249 plus $12 shipping.
         </p>
         <p class="font-body text-base leading-relaxed" style="color:hsl(var(--eden-bark))">
           Body systems, herb profiles, a hypothesis your child writes when each jar is sealed and checks when it opens, and dinner-table questions with
@@ -259,11 +268,11 @@ const faqJsonLd = {
           <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Teacher's Guide,</strong> 245 pages, letter size, coil bound. All 36 weeks.</span></li>
           <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Student Notebook,</strong> 227 pages, letter size, coil bound. All 36 weeks.</span></li>
           <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Read-Aloud Storybook,</strong> 160 pages, small paperback.</span></li>
-          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Extra Seedlings Student Notebooks for siblings,</strong> $39.99 each, added at checkout and shipped in the same parcel.</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Extra Seedlings Student Notebooks for siblings,</strong> $39.99 each, $32 each from the sixth, added at checkout and shipped in the same parcel (shipping calculated in your cart).</span></li>
           <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Printed to order, mailed to you,</strong> tracked, within the United States.</span></li>
         </ul>
         <p class="font-body text-sm text-muted-foreground leading-relaxed">
-          Ordering both years? The Sprouts set and the Seedlings set check out separately, one order each.
+          Ordering both years? <a href="#both" class="underline" style="color:hsl(var(--eden-forest))" data-cta="books-seedlings-to-both">Get both sets in one order</a>, one parcel, for less.
         </p>
         <p class="font-body text-sm leading-relaxed" style="color:hsl(var(--eden-bark))">
           New to herbs? Even with a child in grades 3-5, most families start with <a href="#buy" class="underline" style="color:hsl(var(--eden-forest))" data-cta="books-seedlings-start-sprouts">Sprouts</a>, because its 36 plants are the ones Seedlings builds on. <a href="/starter#older-kids" class="underline" style="color:hsl(var(--eden-forest))">Here is why</a>.
@@ -271,6 +280,31 @@ const faqJsonLd = {
       </div>
       <div id="buy-seedlings" class="md:sticky md:top-24 min-[1024px]:top-36">
         <PrintBuyBox client:only="react" cta="books-buy-seedlings" band="seedlings" />
+      </div>
+    </div>
+  </section>
+
+  {/* BOTH YEARS (2026-09-26). Sprouts + Seedlings sets in one order. */}
+  <section id="both" class="py-12 px-6 scroll-mt-24 min-[1024px]:scroll-mt-36" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-5xl mx-auto grid gap-8 md:grid-cols-[1fr_380px] items-start">
+      <div class="grid gap-4">
+        <p class="font-accent text-xs tracking-[0.25em] uppercase" style="color:hsl(var(--eden-gold-ink))">
+          Eden's Table · Sprouts and Seedlings together
+        </p>
+        <h2 class="font-serif text-2xl font-bold" style="color:hsl(var(--eden-forest))">Both years, printed, in one parcel</h2>
+        <p class="font-body text-base leading-relaxed" style="color:hsl(var(--eden-bark))">
+          Little ones and older ones at the same table? Get the Sprouts set and the Seedlings set in one order:
+          both Teacher's Guides, both Student Notebooks and both Read-Aloud storybooks. $429 plus $16 shipping,
+          instead of $498 for the two sets bought separately.
+        </p>
+        <ul class="font-body text-base space-y-2 mb-2" style="color:hsl(var(--eden-bark))">
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>All six books,</strong> 36 weeks each, 72 different plants between the two years.</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Extra Student Notebooks for either year,</strong> $39.99 each for the first five across both years, $32 each after that, in the same parcel (shipping calculated in your cart).</span></li>
+          <li class="flex gap-3"><span style="color:hsl(var(--eden-gold-ink))">·</span><span><strong>Printed to order, mailed to you,</strong> tracked, within the United States.</span></li>
+        </ul>
+      </div>
+      <div id="buy-both" class="md:sticky md:top-24 min-[1024px]:top-36">
+        <PrintBuyBox client:only="react" cta="books-buy-both" band="both" />
       </div>
     </div>
   </section>

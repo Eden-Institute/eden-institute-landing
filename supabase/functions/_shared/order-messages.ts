@@ -8,7 +8,7 @@ import { emailWrapperTransactional } from './nurture-email-templates.ts';
 import { escapeHtml, safeHttpsUrl } from './html-escape.ts';
 import { OrderStatus } from './order-state.ts';
 import { SHIP_GUARANTEE_TEXT, SHIP_TARGET } from './order-config.ts';
-import { LULU_BAND_INFO, LULU_PRODUCTION_DELAY_MINUTES, isBookBand, printBandForOrder } from './lulu-config.ts';
+import { LULU_PRODUCTION_DELAY_MINUTES, isBookBand, printBandForOrder, printBandNameForOrder } from './lulu-config.ts';
 import { Db, OrderRow, hasSentMessage, logMessage } from './order-db.ts';
 import { sendSms } from './order-sms.ts';
 import { captureException } from './sentry.ts';
@@ -94,10 +94,11 @@ const PRINT_CANCEL_HOURS = Math.round(LULU_PRODUCTION_DELAY_MINUTES / 60);
  * The band name a print order's messages use: 'Sprouts' or 'Seedlings', from
  * orders.lookup_key (2026-09-23). Every order that is not a Seedlings print
  * order, including all orders placed before bands existed, reads 'Sprouts', so
- * the Sprouts wording is exactly what it always was.
+ * the Sprouts wording is exactly what it always was. An order led by the
+ * both-bands bundle (2026-09-26) reads 'Sprouts and Seedlings'.
  */
 function printBandName(order: OrderRow): string {
-  return LULU_BAND_INFO[printBandForOrder(order)].bandName;
+  return printBandNameForOrder(order);
 }
 
 /** Camila's book Back to Eden (2026-09-25): its own wording, never curriculum wording. */

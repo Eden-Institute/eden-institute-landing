@@ -75,4 +75,4 @@ Not sure where to start? Children in K-2 start with Sprouts. Kids in grades 3-5 
 
 [Week 1 of Eden's Table is free](/freebies), for Sprouts (K-2, on lavender) or Seedlings (3-5, on elderberry). It is five full lessons, the same pages families teach from all year, and you can print it and teach it the same morning.
 
-If it fits your family, the first nine weeks are a $39 download ([Sprouts](/starter) or [Seedlings](/starter/seedlings)), and the [whole 36-week year in print](/books) is $249 plus flat $12 shipping.
+If it fits your family, the first nine weeks are a $39 download ([Sprouts](/starter) or [Seedlings](/starter/seedlings)), and the [whole 36-week year in print](/books) is $249 plus $12 shipping.

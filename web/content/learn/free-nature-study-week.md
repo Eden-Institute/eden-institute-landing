@@ -14,7 +14,7 @@ faq:
   - q: "Are the herbs included?"
     a: "No. Each week uses a small amount of a common dried herb from your pantry, your garden, or the herb list I keep for families at edeninstitute.health/homeschool/herbs."
   - q: "What comes after the free week?"
-    a: "The Starter Unit is weeks 1 to 9 as a $39 download, for Sprouts or Seedlings. The whole 36-week year in print is $249 plus flat $12 shipping, at your door in about two to three weeks."
+    a: "The Starter Unit is weeks 1 to 9 as a $39 download, for Sprouts or Seedlings. The whole 36-week year in print is $249 plus $12 shipping, at your door in about two to three weeks."
 ---
 
 Yes, you can teach a full week of Christian nature study this week without spending a dollar. I give away Week 1 of Eden's Table: five full lessons on one plant, with the Teacher's Guide, the Student Notebook and a read-aloud, sent to your email as PDFs you can print tonight.
@@ -69,7 +69,7 @@ A good week doesn't have to look perfect. If your kids still remember the smell 
 If it fits your family, keep going. There's no pressure, and nothing has to be bought in order.
 
 - **The Starter Unit, $39.** Weeks 1 to 9 as an instant download: the Teacher's Guide, the Student Notebook and the storybook readings for those weeks. You've already taught Week 1, so this carries you straight on through Week 9. Get it for [Sprouts](/starter) or [Seedlings](/starter/seedlings).
-- **The printed year, $249 plus flat $12 shipping.** All 36 weeks in three books, printed to order and at your door in about two to three weeks. [See the printed sets](/books). Extra Student Notebooks for siblings are $39.99 each.
+- **The printed year, $249 plus $12 shipping.** All 36 weeks in three books, printed to order and at your door in about two to three weeks. [See the printed sets](/books). Extra Student Notebooks for siblings are $39.99 each.
 
 In Sprouts, the first unit, In the Garden God Made, runs six weeks and closes, and weeks 7 to 9 open the second unit. So the Starter Unit lets you finish a whole unit and see how the year moves into the next one.
 

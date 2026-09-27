@@ -10,7 +10,7 @@ faq:
   - q: "Can I start Eden's Table in January?"
     a: "Yes. Week 1 does not depend on anything before it, and its Friday garden activity works with a windowsill plant. Start at Week 1 whenever you begin."
   - q: "How much does it cost to try Eden's Table?"
-    a: "Week 1 is free. The Starter Unit, weeks 1 to 9, is a $39 download. The whole 36-week year in print is $249 plus flat $12 shipping."
+    a: "Week 1 is free. The Starter Unit, weeks 1 to 9, is a $39 download. The whole 36-week year in print is $249 plus $12 shipping."
   - q: "Can I add it to the science we already use?"
     a: "Yes. You can use Eden's Table as your science and nature study, or keep what is working and add it alongside. The Week at a Glance page shows which subjects each day carries."
   - q: "Can I use ESA money for it mid-year?"
@@ -50,7 +50,7 @@ Take it in three steps, and stop at any of them.
 
 1. **Over the break: one free week.** [Download Week 1](/freebies) for Sprouts (lavender) or Seedlings (elderberry), print it, and teach it the first week back. It's five full lessons and it costs nothing.
 2. **January into March: nine weeks for $39.** If the first week goes well, the Starter Unit is weeks 1 to 9 as an instant download, for [Sprouts](/starter) or [Seedlings](/starter/seedlings). Starting the first week of January, nine weeks takes you into March. In Sprouts the first unit runs six weeks and closes, and weeks 7 to 9 open the second, so you finish something whole. The PDFs are yours to keep and reprint for your household.
-3. **When you know: the printed year.** All 36 weeks in three books is [$249 plus flat $12 shipping](/books), printed to order and at your door in about two to three weeks. Order it while you're still in the Starter Unit and you pick up at Week 10 in the printed books.
+3. **When you know: the printed year.** All 36 weeks in three books is [$249 plus $12 shipping](/books), printed to order and at your door in about two to three weeks. Order it while you're still in the Starter Unit and you pick up at Week 10 in the printed books.
 
 Two things to know. The download isn't refundable once the files are downloaded, which is why the free week comes first. And the printed set can be cancelled for a full refund in the 48 hours after you order, before printing starts.
 

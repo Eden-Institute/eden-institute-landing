@@ -72,6 +72,10 @@ import { LuluBand, printableProblems } from "../_shared/lulu-config.ts"
 // Back to Eden book shop, 2026-09-25.
 import { isBookBand } from "../_shared/lulu-config.ts"
 import { BOOK_PAGE, BOOK_THANK_YOU, bookDigitalBySku, bookShopLive } from "../_shared/book-shop.ts"
+// Co-op notebook tier + both-bands bundle, 2026-09-26.
+import { checkCartBands, luluBandsForSku } from "../_shared/lulu-config.ts"
+import { likelyNeedsGround, printShippingCents, splitVolumeTierPooled } from "../_shared/print-pricing.ts"
+import { checkShipTo, SHIP_TO_METADATA_KEY, ShipTo, shipToMetadata } from "../_shared/ship-address.ts"
 
 /** Hours a buyer has to cancel a print order, for Stripe's checkout copy. */
 const PRINT_CANCEL_HOURS = Math.round(LULU_PRODUCTION_DELAY_MINUTES / 60)
@@ -1150,6 +1154,23 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
 //
 // Shipping: one parcel, one charge, the highest shipping_tier_cents in the cart
 // (the blended formula approved for the July fulfilment design). Tax: automatic.
+//
+// 2026-09-26 (founder): extra notebooks go up to 100 per order and are sold only
+// with a set that covers their band (PRINT_ADDON_NEEDS_SET). A products row with
+// volume_price_cents + volume_min_qty is charged in two Stripe lines, the base
+// Price up to the threshold and an inline price_data line ON THE SAME Stripe
+// product for the rest (so product-restricted promo codes still reach it), e.g.
+// 7 notebooks = 5 x $39.99 + 2 x $32.00. The first 5 are counted across the
+// whole order, both bands' notebooks together in the bundle. The split is
+// splitVolumeTierPooled, the same function the receipt and the buy box use. The
+// both-bands bundle (both_bands_print_set) is the one cart allowed to hold two
+// bands.
+//
+// SHIPPING (founder 2026-09-26, "whatever covers my cost"): printShippingCents,
+// one formula over the whole cart (a base, a per-unit amount, and a ground
+// surcharge for heavy curriculum parcels), fitted to and verified against Lulu's
+// own quotes for every cart the site allows. Back to Eden uses it too. A SKU with
+// no rule refuses the checkout (PRINT_SHOP_NOT_CONFIGURED), never a guessed amount.
 // deno-lint-ignore no-explicit-any
 async function handlePrintCheckout(req: Request, body: Record<string, any>): Promise<Response> {
   const live = Deno.env.get("PRINT_SHOP_LIVE") === "true"
@@ -1183,15 +1204,24 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
 
   // ONE BAND PER ORDER (2026-09-23). The confirmation, shipped and delivered
   // messages name the band, and one Lulu job prints one band's files. A family
-  // buying both years places two orders.
-  const bands = new Set<LuluBand>(cart.map((c) => luluProductBySku(c.sku)!.band))
-  if (bands.size > 1) {
+  // buying both years places two orders, or (2026-09-26) buys the both-bands
+  // bundle, the one product allowed to span bands; its cart may add either
+  // band's notebooks. Extra notebooks need a set covering their band.
+  const bandCheck = checkCartBands(cart.map((c) => c.sku), { requireSetForAddOns: true })
+  if (!bandCheck.ok) {
     return new Response(
-      JSON.stringify({ error: "The Sprouts and Seedlings sets check out separately. Please order one set, then the other.", code: "PRINT_MIXED_BANDS" }),
+      JSON.stringify({ error: bandCheck.error, code: bandCheck.code, ...(bandCheck.sku ? { sku: bandCheck.sku } : {}) }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
     )
   }
-  const band: LuluBand = [...bands][0]
+  // The lead line decides orders.lookup_key (and so every message's band words):
+  // the bundle first, then sets, then add-ons. Stable, so a cart the buy box
+  // already sends set-first is unchanged.
+  const rank = (sku: string) => (luluBandsForSku(sku).length > 1 ? 0 : luluProductBySku(sku)!.addOn ? 2 : 1)
+  cart.sort((a, b) => rank(a.sku) - rank(b.sku))
+  const bands: LuluBand[] = bandCheck.bands
+  const band: LuluBand = bands[0]
+  const multiBand = bands.length > 1
 
   // Back to Eden has its own go-live switch (BOOK_SHOP_LIVE), on top of the print
   // shop's, so the curriculum shop being open never opens the book by accident.
@@ -1205,7 +1235,7 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
   const adminClient = admin()
   const { data: products, error: productError } = await adminClient
     .from("products")
-    .select("id, sku, name, active, fulfillment, stripe_retail_price_id, stripe_lookup_key, shipping_tier_cents, retail_price_cents")
+    .select("id, sku, name, active, fulfillment, stripe_retail_price_id, stripe_lookup_key, shipping_tier_cents, retail_price_cents, volume_price_cents, volume_min_qty")
     .in("sku", cart.map((c) => c.sku))
   if (productError) {
     console.error("create-checkout: print shop product lookup failed:", productError.message)
@@ -1239,17 +1269,18 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
   // Fails closed: a lookup error refuses the sale too. Sprouts skips it on
   // purpose: its rows have been live since 2026-09-11 and its checkout path stays
   // exactly as it was.
-  if (band !== "sprouts") {
+  // The both-bands bundle checks Seedlings here too (every band but Sprouts).
+  for (const checkBand of bands.filter((b) => b !== "sprouts")) {
     let problems: string[]
     try {
-      const { data: rows, error } = await adminClient.from("lulu_printables").select("*").eq("band", band)
+      const { data: rows, error } = await adminClient.from("lulu_printables").select("*").eq("band", checkBand)
       if (error) throw new Error(error.message)
-      problems = printableProblems(band, rows ?? [])
+      problems = printableProblems(checkBand, rows ?? [])
     } catch (err) {
       problems = [`lulu_printables lookup failed: ${err instanceof Error ? err.message : String(err)}`]
     }
     if (problems.length) {
-      console.error(`print shop: ${band} printables not ready (${problems.join("; ")}); refusing checkout`)
+      console.error(`print shop: ${checkBand} printables not ready (${problems.join("; ")}); refusing checkout`)
       return new Response(
         JSON.stringify({ error: "The printed set is not quite ready to order. Please check back soon.", code: "PRINT_SHOP_NOT_CONFIGURED", sku: cart[0].sku }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 },
@@ -1260,18 +1291,54 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
   // The stored Price ids are LIVE-mode objects, which the E2E test key cannot use, so
   // the E2E twin charges the same amount as an inline test price. The webhook then
   // resolves the SKUs from print_cart metadata (its documented fallback).
-  const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = E2E_MODE
-    ? cart.map((line) => ({
-      price_data: {
-        currency: "usd",
-        unit_amount: bySku.get(line.sku).retail_price_cents as number,
-        tax_behavior: "exclusive" as const,
-        product_data: { name: `E2E TEST: ${bySku.get(line.sku).name as string}` },
-      },
-      quantity: line.qty,
-    }))
-    : await Promise.all(cart.map(async (line) => ({ price: (await printPriceId(bySku.get(line.sku))) as string, quantity: line.qty })))
-  const unpriced = cart.find((_line, i) => !(lineItems[i] as { price?: string; price_data?: unknown }).price && !(lineItems[i] as { price_data?: unknown }).price_data)
+  //
+  // One cart line can become TWO Stripe lines (volume tier, see the header). The
+  // base part always charges the real Stripe Price; the volume part is price_data
+  // on that Price's own product, at products.volume_price_cents.
+  const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = []
+  let unpriced: { sku: string; qty: number } | undefined
+  const splits = splitVolumeTierPooled(cart.map((line) => {
+    const p = bySku.get(line.sku)
+    return { key: line.sku, qty: line.qty, baseCents: p.retail_price_cents as number, volumeCents: p.volume_price_cents, volumeMinQty: p.volume_min_qty }
+  }))
+  for (const line of cart) {
+    const p = bySku.get(line.sku)
+    const parts = splits.get(line.sku) ?? []
+    if (E2E_MODE) {
+      for (const part of parts) {
+        lineItems.push({
+          price_data: {
+            currency: "usd",
+            unit_amount: part.unitCents,
+            tax_behavior: "exclusive" as const,
+            product_data: { name: `E2E TEST: ${p.name as string}${part.tier === "volume" ? " (volume price)" : ""}` },
+          },
+          quantity: part.qty,
+        })
+      }
+      continue
+    }
+    const price = await printPrice(p, parts.some((x) => x.tier === "volume"))
+    if (!price) {
+      unpriced = line
+      break
+    }
+    for (const part of parts) {
+      if (part.tier === "base") {
+        lineItems.push({ price: price.id, quantity: part.qty })
+      } else {
+        lineItems.push({
+          price_data: {
+            currency: "usd",
+            unit_amount: part.unitCents,
+            product: price.productId as string,
+            tax_behavior: price.taxBehavior,
+          },
+          quantity: part.qty,
+        })
+      }
+    }
+  }
   if (unpriced) {
     console.error(`print shop: no active Stripe Price for '${unpriced.sku}' (lookup key ${bySku.get(unpriced.sku)?.stripe_lookup_key}); refusing checkout`)
     return new Response(
@@ -1279,7 +1346,36 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 },
     )
   }
-  const shippingCents = cart.reduce((n, line) => Math.max(n, bySku.get(line.sku).shipping_tier_cents as number), 0)
+  // Founder 2026-09-26: shipping covers Lulu's cost for this exact cart.
+  const shippingCents = printShippingCents(cart)
+  // HEAVY ORDERS (founder 2026-09-26): a parcel too heavy for MAIL ships GROUND_HD,
+  // which cannot reach a PO box or an APO/FPO/DPO address. The buy box asks for
+  // the address first; it is re-checked here BEFORE any payment, then locked on a
+  // Stripe Customer below so Checkout cannot change it. Every other order is
+  // untouched: Stripe collects its address exactly as before.
+  const heavy = likelyNeedsGround(cart)
+  let shipTo: ShipTo | null = null
+  if (heavy) {
+    const check = checkShipTo(body.ship_to)
+    if (!check.ok) {
+      return new Response(
+        JSON.stringify({
+          error: check.message,
+          code: check.problem === "missing" ? "PRINT_ADDRESS_REQUIRED" : "PRINT_ADDRESS_NEEDS_STREET",
+          problem: check.problem,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
+      )
+    }
+    shipTo = check.value
+  }
+  if (shippingCents == null) {
+    console.error(`print shop: no shipping rule for a SKU in ${cart.map((c) => c.sku).join("+")}; refusing checkout`)
+    return new Response(
+      JSON.stringify({ error: "The printed set is not quite ready to order. Please check back soon.", code: "PRINT_SHOP_NOT_CONFIGURED", sku: cart[0].sku }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 },
+    )
+  }
   const smsConsent = body.sms_consent === true || body.sms_consent === "true"
 
   // print_sku is the webhook's detection key; print_cart is the fallback record if
@@ -1295,7 +1391,8 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
   if (isAdminTest) metadata.print_test = "true"
   if (E2E_MODE) metadata[E2E_METADATA_KEY] = "true"
   // Sprouts metadata stays exactly as it was; other bands are stamped for the record.
-  if (band !== "sprouts") metadata.print_band = band
+  if (multiBand) metadata.print_band = "both"
+  else if (band !== "sprouts") metadata.print_band = band
 
   // Success lands on a real confirmation page, never back on the shop page: the
   // first live order (2026-09-11) returned to /books with a small notice inside
@@ -1304,9 +1401,11 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
     ? body.success_url
     : isBookBand(band)
       ? `${BOOK_THANK_YOU}?kind=print&session_id={CHECKOUT_SESSION_ID}`
-      : band === "sprouts"
-        ? `${PRINT_SHOP_URL}/thank-you?session_id={CHECKOUT_SESSION_ID}`
-        : `${PRINT_SHOP_URL}/thank-you?band=${band}&session_id={CHECKOUT_SESSION_ID}`
+      : multiBand
+        ? `${PRINT_SHOP_URL}/thank-you?band=both&session_id={CHECKOUT_SESSION_ID}`
+        : band === "sprouts"
+          ? `${PRINT_SHOP_URL}/thank-you?session_id={CHECKOUT_SESSION_ID}`
+          : `${PRINT_SHOP_URL}/thank-you?band=${band}&session_id={CHECKOUT_SESSION_ID}`
   const cancelUrl = isSafeReturnUrl(body.cancel_url)
     ? body.cancel_url
     : isBookBand(band)
@@ -1356,7 +1455,7 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
     // custom text and promotion codes all present. See _shared/receipt.ts.
     // Not for Back to Eden: it is a book, not curriculum, and our own confirmation
     // email carries its itemized receipt (Stripe invoicing costs a fee per invoice).
-    ...(isBookBand(band) ? {} : { invoice_creation: curriculumInvoiceCreation("print", band as "sprouts" | "seedlings") }),
+    ...(isBookBand(band) ? {} : { invoice_creation: curriculumInvoiceCreation("print", multiBand ? "both" : band as "sprouts" | "seedlings") }),
   }
 
   // Affiliate codes, same two ways in as the kit: ?promo=CODE pre-applied, else
@@ -1379,13 +1478,47 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
   }
   if (!promoApplied) sessionParams.allow_promotion_codes = true
 
-  if (typeof body.email === "string" && body.email) sessionParams.customer_email = body.email
-  // E2E orders are always bought as hello@, which the dashboards file as internal.
-  if (E2E_MODE) sessionParams.customer_email = E2E_BUYER_EMAIL
+  if (shipTo) {
+    // Lock the checked address: a Customer carrying it, and NO address form in
+    // Checkout. Verified in Stripe TEST mode 2026-09-26: Checkout accepts a
+    // Customer with a shipping address and no shipping_address_collection, shows
+    // no address fields, keeps the fixed shipping rate and computes automatic tax
+    // from that address. (payment_intent_data.shipping is refused with automatic
+    // tax.) customer_creation and customer_email cannot be combined with customer.
+    delete sessionParams.shipping_address_collection
+    delete sessionParams.customer_creation
+    const address = {
+      line1: shipTo.line1,
+      ...(shipTo.line2 ? { line2: shipTo.line2 } : {}),
+      city: shipTo.city,
+      state: shipTo.state,
+      postal_code: shipTo.postal_code,
+      country: "US",
+    }
+    const customer = await stripe.customers.create({
+      name: shipTo.name,
+      // E2E orders are always bought as hello@, which the dashboards file as internal.
+      email: E2E_MODE ? E2E_BUYER_EMAIL : shipTo.email,
+      ...(shipTo.phone ? { phone: shipTo.phone } : {}),
+      address,
+      shipping: { name: shipTo.name, address, ...(shipTo.phone ? { phone: shipTo.phone } : {}) },
+      metadata: { source: "print_shop_heavy_order" },
+    })
+    sessionParams.customer = customer.id
+    // Checkout leaves shipping_details empty when it did not collect an address,
+    // so the webhook reads the locked one from here (and it is on the Customer).
+    metadata[SHIP_TO_METADATA_KEY] = shipToMetadata(shipTo)
+    metadata.print_ship_locked = "true"
+  } else {
+    if (typeof body.email === "string" && body.email) sessionParams.customer_email = body.email
+    // E2E orders are always bought as hello@, which the dashboards file as internal.
+    if (E2E_MODE) sessionParams.customer_email = E2E_BUYER_EMAIL
+  }
 
   const session = await stripe.checkout.sessions.create(sessionParams)
   console.log(
     `print shop checkout: cart=${cart.map((c) => `${c.sku}x${c.qty}`).join("+")} shipping=${shippingCents} sms_consent=${smsConsent}` +
+      `${shipTo ? " [heavy: address locked]" : ""}` +
       `${isAdminTest ? " [ADMIN TEST]" : ""} session=${session.id}`,
   )
 
@@ -1411,17 +1544,37 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
  * Price carrying its lookup key (Back to Eden, 2026-09-25: the founder created
  * those Prices in the Dashboard with lookup keys). Null when neither resolves,
  * which the caller turns into PRINT_SHOP_NOT_CONFIGURED before any charge.
+ *
+ * `needProduct` (2026-09-26, volume tier): also return the Price's Stripe product
+ * and tax behaviour, which the volume line reuses. A stored price id is then
+ * retrieved (one extra Stripe call, only for a cart past the threshold); a
+ * Price that cannot be read counts as not configured, never as a guess.
  */
 // deno-lint-ignore no-explicit-any
-async function printPriceId(product: any): Promise<string | null> {
-  if (product?.stripe_retail_price_id) return product.stripe_retail_price_id as string
+async function printPrice(product: any, needProduct: boolean): Promise<
+  { id: string; productId: string | null; taxBehavior: "exclusive" | "inclusive" } | null
+> {
+  const toResult = (p: Stripe.Price) => ({
+    id: p.id,
+    productId: typeof p.product === "string" ? p.product : (p.product as { id?: string } | null)?.id ?? null,
+    taxBehavior: (p.tax_behavior === "inclusive" ? "inclusive" : "exclusive") as "exclusive" | "inclusive",
+  })
+  const storedId = product?.stripe_retail_price_id as string | null
   const key = product?.stripe_lookup_key as string | null
-  if (!key) return null
   try {
+    if (storedId) {
+      if (!needProduct) return { id: storedId, productId: null, taxBehavior: "exclusive" }
+      const r = toResult(await stripe.prices.retrieve(storedId))
+      return r.productId ? r : null
+    }
+    if (!key) return null
     const prices = await stripe.prices.list({ lookup_keys: [key], active: true, limit: 1 })
-    return prices.data[0]?.id ?? null
+    const found = prices.data[0]
+    if (!found) return null
+    const r = toResult(found)
+    return needProduct && !r.productId ? null : r
   } catch (err) {
-    console.error(`print shop: price lookup for '${key}' failed: ${err instanceof Error ? err.message : String(err)}`)
+    console.error(`print shop: price lookup for '${storedId ?? key}' failed: ${err instanceof Error ? err.message : String(err)}`)
     return null
   }
 }

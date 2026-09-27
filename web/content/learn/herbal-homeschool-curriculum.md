@@ -77,6 +77,6 @@ The printed year is three books: the Teacher's Guide, the Student Notebook your 
 
 - **Free:** [Week 1](/freebies) of Sprouts or Seedlings, five full lessons, sent to your email. Print it and teach it the same morning.
 - **$39:** the 9-week Starter Unit, weeks 1 to 9 as an instant download ([Sprouts](/starter) or [Seedlings](/starter/seedlings)).
-- **$249 plus flat $12 shipping:** the [whole 36-week year in print](/books), printed to order and at your door in about two to three weeks. Extra Student Notebooks for siblings are $39.99 each.
+- **$249 plus $12 shipping:** the [whole 36-week year in print](/books), printed to order and at your door in about two to three weeks. Extra Student Notebooks for siblings are $39.99 each.
 
 Using an education savings account or scholarship? Eden's Table is an approved or registered vendor in seven programs, and the [ESA page](/esa) explains how buying works in each state.
