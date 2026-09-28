@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:astro": "astro dev",
-    "build": "astro build && vite build --outDir dist/_spa --base /_spa/",
+    "build": "astro build && vite build --outDir dist/_spa --base /_spa/ && node scripts/build-apothecary-shells.mjs",
     "build:astro": "astro build",
     "build:podcast": "astro build --config astro.podcast.config.mjs",
     "build:spa": "vite build --outDir dist/_spa --base /_spa/",

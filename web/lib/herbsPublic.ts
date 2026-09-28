@@ -19,6 +19,9 @@
  * herbs_directory_v; a static file at the same path would shadow it on any
  * hard load and freeze DB content at build time. Two surfaces, two audiences,
  * cross-linked: /herbs/* is the public front door, /apothecary/* stays the app.
+ * (Since 2026-09-28 each free herb's /apothecary/<slug> IS a static file, but
+ * only the SPA shell with a head naming /herbs/<slug> as canonical: no herb
+ * content is frozen into it. See scripts/build-apothecary-shells.mjs.)
  *
  * The slug is NOT re-derived here. herbParam() from src/lib/herbLinks.ts is
  * the same function the SPA routes on, so /herbs/chamomile and
