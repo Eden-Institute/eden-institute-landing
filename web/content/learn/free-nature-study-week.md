@@ -17,7 +17,7 @@ faq:
     a: "The Starter Unit is weeks 1 to 9 as a $39 download, for Sprouts or Seedlings. The whole 36-week year in print is $249 plus $12 shipping, at your door in about two to three weeks."
 ---
 
-Yes, you can teach a full week of Christian nature study this week without spending a dollar. I give away Week 1 of Eden's Table: five full lessons on one plant, with the Teacher's Guide, the Student Notebook and a read-aloud, sent to your email as PDFs you can print tonight.
+Yes, you can teach a full week of Christian nature study this week without spending a dollar. I give away Week 1 of [Eden's Table](/homeschool): five full lessons on one plant, with the Teacher's Guide, the Student Notebook and a read-aloud, sent to your email as PDFs you can print tonight.
 
 It isn't a sampler or a few preview pages. It's the same week families teach from when they buy the whole year. Here's what's in it, how the week runs, and what to do once Friday is done.
 

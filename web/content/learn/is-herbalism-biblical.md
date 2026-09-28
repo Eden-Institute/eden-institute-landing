@@ -39,7 +39,7 @@ Nothing in those verses treats plants as suspicious. They are part of a made wor
 
 Because the concern is real, it just is not about the plants. Scripture clearly forbids divination, sorcery and charms (Deuteronomy 18:10-12), and a lot of modern herbal teaching leans on ideas that sit close to that line: a plant's "spirit," "energy" that lives in the herb, chakras, or systems where the plant is treated as the source of life instead of something God made.
 
-I ran straight into this myself. I have been a devout student of herbalism for many years, and every school I attended was rooted in Far Eastern ideas like chakras and doshas. I did not want to walk away from the plants, and I was not willing to learn them through a framework that went against my faith.
+I ran straight into this myself. I have been a devout student of herbalism for many years, and every school I attended was rooted in Far Eastern ideas like chakras and doshas. I did not want to walk away from the plants, and I was not willing to learn them through a framework that went against my faith. For grown-ups who want to go deeper, my book [Back to Eden](/back-to-eden) lays out the biblical foundation.
 
 So the honest answer is that herbalism itself is not a sin, but some herbal teaching carries beliefs you would never want in your homeschool.
 
@@ -66,12 +66,14 @@ A few common-sense habits help:
 
 - An adult is right there for anything that goes in a cup or a mouth.
 - Kids ask before they pick, touch or taste any plant outside.
-- Use dried herbs from a source you trust, the same way you would buy spices.
+- Use dried herbs from [a source you trust](/homeschool/herbs), the same way you would buy spices.
 - If your child has allergies or a health condition, talk with your child's doctor first.
+
+I lay out a simple week, one plant at a time, in [How to Teach Kids About Herbs at Home](/learn/how-to-teach-kids-about-herbs).
 
 ## How does Eden's Table handle faith and herbs?
 
-Eden's Table is the Christian homeschool herbalism curriculum I wrote, and the faith is part of the structure, not a sticker on top. Every week is anchored in a Scripture memory verse and connects that week's plant to God's design in creation. Herbalism here is stewardship of Yahweh's creation. It is not alternative medicine, and no created thing is given a spiritual property.
+[Eden's Table](/homeschool) is the Christian homeschool herbalism curriculum I wrote, and the faith is part of the structure, not a sticker on top. Every week is anchored in a Scripture memory verse and connects that week's plant to God's design in creation. Herbalism here is stewardship of Yahweh's creation. It is not alternative medicine, and no created thing is given a spiritual property.
 
 It comes in two grade bands, and both are on sale now:
 
@@ -81,3 +83,5 @@ It comes in two grade bands, and both are on sale now:
 I taught in the classroom for twelve years, I have a Master's in education, and I answer the email myself. If you want to see how the faith and the plant work fit together before you spend anything, [Week 1 is free](/freebies) for both bands: five full lessons you can print and teach the same morning.
 
 If you are new to herbs, most families start with Sprouts, even with kids in grades 3-5, because those 36 plants are the ones Seedlings builds on. Children in K-2 start with Sprouts. Kids in grades 3-5 who already know the basics can go straight to Seedlings. If you have kids in both, teach Sprouts to everyone together first, then Seedlings the next year. You can see every plant for both years on the [scope and sequence](/homeschool/scope-and-sequence).
+
+Using an ESA or scholarship? Eden's Table is an approved or registered vendor in seven programs, and the [ESA page](/esa) shows how buying works in each state.

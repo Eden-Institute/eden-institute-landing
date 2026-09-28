@@ -17,7 +17,7 @@ faq:
     a: "The Starter Unit PDFs are yours to keep and reprint for your household as often as you like. The printed set includes one Student Notebook, and extra printed Notebooks are $39.99 each."
 ---
 
-Eden's Table is three books that work together: a Teacher's Guide you teach from, a Student Notebook your child writes in, and a Read-Aloud Storybook with the family story that runs through the year. Below I walk through what each one looks like inside, using the real Week 1 pages, which you can download free and hold up next to this post.
+[Eden's Table](/homeschool) is three books that work together: a Teacher's Guide you teach from, a Student Notebook your child writes in, and a Read-Aloud Storybook with the family story that runs through the year. Below I walk through what each one looks like inside, using the real Week 1 pages, which you can download free and hold up next to this post.
 
 <!-- Flip-through video goes here once it is on the Tales and Table Talk YouTube channel. -->
 
@@ -76,5 +76,7 @@ It's Charlotte Mason inspired in the ways you'll notice at the table: a real pla
 ## How can I flip through it myself?
 
 Download Week 1 and print it. It's the real thing, the same pages families teach from all year: [Sprouts or Seedlings Week 1, free](/freebies). If you like it, the [Starter Unit](/starter) is weeks 1 to 9 as a $39 download, and the [printed year](/books) is $249 plus $12 shipping, at your door in about two to three weeks.
+
+Using an ESA or scholarship? Eden's Table is an approved or registered vendor in seven programs, and the [ESA page](/esa) shows how buying works in each state.
 
 Questions about anything you see? Email hello@edeninstitute.health. I answer it myself.

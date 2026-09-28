@@ -42,7 +42,7 @@ Whatever type you choose, these questions will save you from a curriculum that s
 - **Can I teach it without knowing herbs myself?** Look for scripted read-alouds, written discussion questions and a supply list for each week.
 - **Is it written for my kids' ages?** A K-2 child learns plants through the senses. A 3-5 child is ready for measuring, recording and testing an idea.
 - **Can I get the plants?** Common dried herbs you can buy like spices are far easier than wild plants you have to find in season.
-- **Does it pass the worldview test?** Ask of every lesson: does this credit the plant, or the One who made the plant? Words like "energy," "vibration" or a plant's "spirit" are a red flag.
+- **Does it pass the worldview test?** Ask of every lesson: does this credit the plant, or the One who made the plant? Words like "energy," "vibration" or a plant's "spirit" are a red flag. I explain that test in [Is Herbalism Biblical?](/learn/is-herbalism-biblical)
 - **Does it fit into my day, or pile onto it?** Look at a week's plan and see which subjects it already carries alongside the plant.
 - **Does it help with records?** A dated notebook in your child's handwriting is an easy portfolio.
 - **Can I see the whole year?** A scope and sequence shows you every plant before you commit.
@@ -50,7 +50,7 @@ Whatever type you choose, these questions will save you from a curriculum that s
 
 ## Which grade level should we start with?
 
-With Eden's Table, where you start depends on your kids and how much they already know about plants:
+With [Eden's Table](/homeschool), where you start depends on your kids and how much they already know about plants:
 
 - Children in K-2: start with Sprouts.
 - Children in grades 3-5 who are new to herbs: start with Sprouts too. Those are the plants they will build on.

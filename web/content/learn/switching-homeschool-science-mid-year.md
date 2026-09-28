@@ -36,7 +36,7 @@ If the answers point at the curriculum, it's fine to change. If they point at th
 
 Lots of families already take a break around Christmas, so there's a clean stopping point built in. You aren't dropping a program halfway through a unit. You're starting the new year with a new week.
 
-Eden's Table is easy to start on any Monday because each week stands on one plant. Week 1 doesn't depend on anything that came before it, and it doesn't need a garden: Friday's garden activity works with a windowsill plant.
+[Eden's Table](/homeschool) is easy to start on any Monday because each week stands on one plant. Week 1 doesn't depend on anything that came before it, and it doesn't need a garden: Friday's garden activity works with a windowsill plant.
 
 ## Do I have to switch everything, or can I just add nature study?
 
