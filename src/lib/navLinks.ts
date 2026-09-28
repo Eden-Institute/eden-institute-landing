@@ -78,6 +78,10 @@ export const NAV_PODCAST: SiteButton = {
 /** Footer policy/utility links, in display order, separated by "|". */
 export const FOOTER_LINKS: readonly SiteLink[] = [
   { label: "Why Eden", href: "/why-eden" },
+  // 2026-09-28: Search Console found this page "Crawled - currently not indexed" with
+  // "Referring page: None detected". No other page linked to it, so Google had no
+  // path to it but the sitemap. This puts it one click from every page.
+  { label: "Constitutional Herbalism", href: "/constitutional-herbalism" },
   // Site-wide entry to the public monograph set, so /herbs (and through it every
   // profile) is reachable from anywhere a crawler lands.
   { label: "Herb Profiles", href: "/herbs" },

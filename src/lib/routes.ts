@@ -39,7 +39,6 @@ export const ROUTES = {
   // "/" is served by Astro (web/pages/index.astro). The SPA has no homepage; its "/" route only hands a stray client-side navigation to the real page (components/utils/HomeRedirect.tsx). Reach it with a full navigation (<a href>), never <Link>.
   HOME: "/",
   ASSESSMENT: "/assessment",
-  CONSTITUTIONAL_HERBALISM: "/constitutional-herbalism",
   HOMESCHOOL_WELCOME: "/homeschool/welcome",
   TIER_TWO_WAITLIST: "/tier-2-waitlist",
 
@@ -106,6 +105,9 @@ export const ASTRO_PAGES = {
   COURSES: "/courses",
   HOMESCHOOL: "/homeschool",
   COMMUNITY: "/community",
+  // Astro page since #193 (2026-06-07); listed under ROUTES until 2026-09-28,
+  // though the SPA had no <Route> for it.
+  CONSTITUTIONAL_HERBALISM: "/constitutional-herbalism",
   // Legal pages, static since 2026-09-15 (web/pages/terms.astro, privacy.astro,
   // cookies.astro). They were SPA routes until then.
   TERMS: "/terms",
