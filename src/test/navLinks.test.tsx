@@ -51,6 +51,7 @@ describe("src/lib/navLinks.ts", () => {
   it("holds the footer links", () => {
     expect(FOOTER_LINKS.map((l) => l.href)).toEqual([
       "/why-eden",
+      "/constitutional-herbalism",
       "/herbs",
       "/learn",
       "/terms",
