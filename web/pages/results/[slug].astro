@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 // <button> inside an <a> is invalid HTML and a second tab stop. text-center
 // stands in for a <button>'s own centring.
 import heroMonograph from "@/assets/hero-monograph.jpg";
+import HeroBackdrop from "../../components/HeroBackdrop.astro";
 
 export function getStaticPaths() {
   return Object.entries(CONSTITUTION_MAP)
@@ -88,13 +89,7 @@ const jsonLd = [
 
 <MarketingLayout title={title} description={description} canonical={canonical} ogType="article" jsonLd={jsonLd}>
   <section class="relative overflow-hidden py-16 md:py-24 px-6" style="background-color:hsl(var(--eden-cream))">
-    <img
-      src={heroMonograph.src}
-      alt=""
-      aria-hidden="true"
-      class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-      style="opacity:0.9;mix-blend-mode:multiply"
-    />
+    <HeroBackdrop src={heroMonograph} opacity={0.9} />
     <div
       class="relative z-10 max-w-3xl mx-auto text-center rounded-lg"
       style="background-color:hsl(0 0% 100% / 0.92);border:1px solid hsl(var(--eden-gold) / 0.35);padding:clamp(26px, 3.5vw, 52px);box-shadow:0 2px 18px -10px rgba(30,62,46,0.28)"

@@ -22,6 +22,7 @@ import MarketingLayout from "../layouts/MarketingLayout.astro";
 import HomeJourneyPersonalizer from "../components/islands/HomeJourneyPersonalizer.tsx";
 import GetInvolvedSection from "@/components/landing/GetInvolvedSection";
 import heroBotanical from "@/assets/hero-botanical.jpg";
+import HeroBackdrop from "../components/HeroBackdrop.astro";
 import { HERB_CATALOG_SIZE } from "@/lib/herbCatalog";
 
 const year = new Date().getFullYear();
@@ -56,7 +57,7 @@ const meta = {
     class="relative flex items-center justify-center px-8 overflow-hidden"
     style="background-color:hsl(var(--cream));background-image:radial-gradient(circle at 100% 0%, hsl(var(--green-mid) / 0.08), transparent 50%),radial-gradient(circle at 0% 100%, hsl(var(--honey) / 0.08), transparent 50%);padding-top:clamp(60px, 8vw, 120px);padding-bottom:clamp(60px, 8vw, 120px)"
   >
-    <img src={heroBotanical.src} alt="" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" style="opacity:0.32;mix-blend-mode:multiply" />
+    <HeroBackdrop src={heroBotanical} opacity={0.32} avifQuality={50} />
     {/* 2026-09-25, founder decision: the homepage opens with the framework again,
         then the four doors. The curriculum-first hero and the band chooser
         (2026-09-24) came off this page; the chooser lives on /homeschool and /books. */}

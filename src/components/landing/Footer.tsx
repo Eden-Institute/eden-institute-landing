@@ -2,8 +2,7 @@ import { Fragment } from "react";
 import { Link } from "react-router-dom";
 import { FOOTER_LINKS } from "@/lib/navLinks";
 import { SOCIALS } from "@/lib/socials";
-
-const FOOTER_BG_IMG = "https://images.unsplash.com/photo-1726996155615-e986ed87c9d4?auto=format&fit=crop&w=1920&q=80";
+import { FOOTER_BG_IMG, FOOTER_BG_SRCSET, FOOTER_BG_SIZES } from "@/lib/footerImage";
 
 // The policy links and the social profiles come from shared modules
 // (src/lib/navLinks.ts, src/lib/socials.ts) that web/components/Footer.astro
@@ -23,6 +22,10 @@ const Footer = () => {
         {/* Subtle botanical photo overlay */}
         <img
           src={FOOTER_BG_IMG}
+          srcSet={FOOTER_BG_SRCSET}
+          sizes={FOOTER_BG_SIZES}
+          loading="lazy"
+          decoding="async"
           alt=""
           aria-hidden="true"
           className="absolute inset-0 w-full h-full object-cover opacity-[0.06] mix-blend-luminosity pointer-events-none"

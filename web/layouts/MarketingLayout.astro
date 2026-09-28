@@ -8,6 +8,7 @@ import Footer from "../components/Footer.astro";
 import SiteAnalytics from "../components/islands/SiteAnalytics.tsx";
 import { CHECKOUT_SESSION_STRIP_JS } from "@/lib/checkoutSession";
 import { SOCIALS } from "@/lib/socials";
+import { GOOGLE_FONTS_HREF } from "@/lib/fonts";
 
 export interface Props {
   title: string;
@@ -180,6 +181,9 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    {/* Fonts stylesheet as a head link, not an @import in index.css, so it
+        downloads alongside the site CSS instead of after it. src/lib/fonts.ts. */}
+    <link rel="stylesheet" href={GOOGLE_FONTS_HREF} />
     {preconnect.map((origin) => (
       <link rel="preconnect" href={origin} />
     ))}

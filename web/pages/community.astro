@@ -13,6 +13,7 @@ import MarketingLayout from "../layouts/MarketingLayout.astro";
 // the section. The image is 1920x1080 to match the hero aspect; do not swap in a
 // portrait plate, it will crop to a band across the middle of the plant.
 import heroCommunity from "@/assets/hero-community.jpg";
+import HeroBackdrop from "../components/HeroBackdrop.astro";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 // CTA links carry buttonVariants classes rather than wrapping a <Button>: a
@@ -31,7 +32,7 @@ const meta = {
 
 <MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical}>
   <section class="relative overflow-hidden py-20 md:py-28 px-6" style="background-color:hsl(var(--eden-cream))">
-    <img src={heroCommunity.src} alt="" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" style="opacity:0.95;mix-blend-mode:multiply" />
+    <HeroBackdrop src={heroCommunity} opacity={0.95} />
     <div class="relative z-10 max-w-4xl mx-auto text-center rounded-lg" style="background-color:hsl(0 0% 100% / 0.92);border:1px solid hsl(var(--eden-gold) / 0.35);padding:clamp(26px, 3.5vw, 52px);box-shadow:0 2px 18px -10px rgba(30,62,46,0.28)">
       <p class="font-accent text-sm tracking-[0.3em] uppercase mb-6" style="color:hsl(var(--eden-gold-ink))">
         The Rooted Community
