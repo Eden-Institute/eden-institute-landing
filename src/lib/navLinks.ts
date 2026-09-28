@@ -35,8 +35,9 @@ export interface SiteButton extends SiteLink {
 /** Header text links, in display order. */
 export const NAV_LINKS: readonly SiteLink[] = [
   { label: "Homeschool Curriculum", href: "/homeschool" },
-  // CRO 2026-09-24: the printed sets (both bands) had no link in the header or footer.
-  { label: "Printed Curriculum", href: "/books" },
+  // 2026-09-28: "Printed Curriculum" (/books) removed from the header, founder: "it is
+  // confusing" next to Homeschool Curriculum. /books is still reached from the band
+  // chooser on /homeschool, the /learn articles and the book pages.
   // Top of funnel. Sits next to the curriculum link because the freebies ARE Eden's Table
   // sample weeks, and because /homeschool has had no free entry point since #364.
   { label: "Freebies", href: "/freebies" },
