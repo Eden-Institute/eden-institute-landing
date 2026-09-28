@@ -25,7 +25,9 @@ You do not need to be an expert, and you do not need a garden. Here is how to se
 
 Kindergarten is a great age to start. Young children learn plants best with their hands and noses: crushing a leaf, smelling it, feeling the underside. That is not a warm-up for the real lesson, it is the lesson. A child who does it learns to really know a plant, not just know about it.
 
-Around grades 3 to 5, kids are ready for more. They can measure, record, compare, and write down a guess about what will happen before they test it. In Eden's Table that is the difference between my two grade bands: Sprouts (K-2) learns 36 plants by sight, smell and touch, and Seedlings (3-5) learns a different 36 with body systems, herb profiles and a hypothesis your child writes and then tests.
+Around grades 3 to 5, kids are ready for more. They can measure, record, compare, and write down a guess about what will happen before they test it. In [Eden's Table](/homeschool) that is the difference between my two grade bands: Sprouts (K-2) learns 36 plants by sight, smell and touch, and Seedlings (3-5) learns a different 36 with body systems, herb profiles and a hypothesis your child writes and then tests.
+
+If you are wondering whether herbs belong in a Christian homeschool at all, I answer that in [Is Herbalism Biblical?](/learn/is-herbalism-biblical)
 
 ## Which herbs should we start with?
 
@@ -60,7 +62,7 @@ If you want a plan instead of building it yourself, look for a curriculum where 
 
 - Stay right there for anything that goes in a cup or a mouth.
 - Teach kids to ask before they pick, touch or taste any plant outside.
-- Use dried herbs from a trusted source rather than guessing at wild plants.
+- Use dried herbs from [a trusted source](/homeschool/herbs) rather than guessing at wild plants.
 - If your child has allergies or a health condition, check with your child's doctor first.
 
 Keeping the focus on knowing the plant (its name, look, smell, story and how families have cooked with it) keeps things age-appropriate for little ones.
@@ -76,3 +78,5 @@ Not sure where to start? Children in K-2 start with Sprouts. Kids in grades 3-5 
 [Week 1 of Eden's Table is free](/freebies), for Sprouts (K-2, on lavender) or Seedlings (3-5, on elderberry). It is five full lessons, the same pages families teach from all year, and you can print it and teach it the same morning.
 
 If it fits your family, the first nine weeks are a $39 download ([Sprouts](/starter) or [Seedlings](/starter/seedlings)), and the [whole 36-week year in print](/books) is $249 plus $12 shipping.
+
+Using an ESA or scholarship? Eden's Table is an approved or registered vendor in seven programs, and the [ESA page](/esa) shows how buying works in each state.

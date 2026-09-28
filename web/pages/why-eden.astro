@@ -22,7 +22,7 @@ import MarketingLayout from "../layouts/MarketingLayout.astro";
 import heroWhyEden from "@/assets/hero-why-eden.jpg";
 
 const problems = [
-  { heading: "Most herbal programs are spiritually compromised.", body: "Chakras. Doshas. Moon cycles. Energy fields. These frameworks are borrowed from Hinduism, Buddhism, and paganism, and they appear in mainstream herbalism education with regularity. For a Christian trying to learn herbalism, navigating this is exhausting and often disqualifying." },
+  { heading: "Most herbal programs are spiritually compromised.", body: "Chakras. Doshas. Moon cycles. Energy fields. These frameworks are borrowed from Hinduism, Buddhism, and paganism, and they appear in mainstream herbalism education with regularity. For a Christian trying to learn herbalism, navigating this is exhausting and often disqualifying.", more: { before: "We answer the question many Christians ask first in ", label: "Is Herbalism Biblical?", href: "/learn/is-herbalism-biblical" } },
   { heading: "Christian-branded programs are often clinically shallow.", body: "There are a handful of programs that call themselves Christian herbalism schools. But most offer little more than folk remedies and Scripture references dropped into otherwise thin content. They don't teach terrain theory, tissue states, or clinical reasoning. They don't prepare you to actually understand what's happening in the body." },
   { heading: "The academic programs don't speak your language.", body: "The rigorous schools (Herbal Academy, Colorado School of Clinical Herbalism, Chestnut) produce excellent graduates. But they are secular institutions. Faith is absent. You learn biochemistry but not stewardship. You learn pharmacognosy but not the Creator behind the plant." },
 ];
@@ -82,7 +82,7 @@ const meta = {
         What we believe and what we don't
       </p>
       <p class="font-body text-base md:text-lg leading-relaxed" style="color:hsl(var(--eden-bark))">
-        The pulse, the tongue, the way a body runs hot or cold or damp or dry: herbalists across every culture and every century have observed the same human body and named what they saw. We honor every tradition's careful observation. What we don't carry forward is the spiritual story those traditions tell about where life comes from. We name the source of vital force plainly: it is the Holy Spirit, the breath of God, the fingerprint of the Creator pressed into every cell. Yahweh is the source of intelligence in your skin and your blood and your sleep and your strength. Karma didn't put it there. Planets didn't put it there. The Tao didn't put it there. God did. Everything else we teach (the patterns, the herbs, the diagnostics) sits on top of that one truth.
+        The pulse, the tongue, the way a body runs hot or cold or damp or dry: herbalists across every culture and every century have observed the same human body and named what they saw. We honor every tradition's careful observation. What we don't carry forward is the spiritual story those traditions tell about where life comes from. We name the source of vital force plainly: it is the Holy Spirit, the breath of God, the fingerprint of the Creator pressed into every cell. Yahweh is the source of intelligence in your skin and your blood and your sleep and your strength. Karma didn't put it there. Planets didn't put it there. The Tao didn't put it there. God did. Everything else we teach (<a href="/constitutional-herbalism" class="underline underline-offset-4 hover:opacity-80">the patterns</a>, <a href="/herbs" class="underline underline-offset-4 hover:opacity-80">the herbs</a>, the diagnostics) sits on top of that one truth.
       </p>
     </div>
   </section>
@@ -100,7 +100,7 @@ const meta = {
           {problems.map((item) => (
             <div class="p-6 rounded-sm" style="background-color:hsl(var(--eden-parchment));border:1px solid hsl(var(--eden-gold) / 0.2)">
               <h3 class="font-serif text-xl font-bold mb-3" style="color:hsl(var(--eden-forest))">{item.heading}</h3>
-              <p class="font-body text-sm leading-relaxed" style="color:hsl(var(--eden-bark) / 0.85)">{item.body}</p>
+              <p class="font-body text-sm leading-relaxed" style="color:hsl(var(--eden-bark) / 0.85)">{item.body}{item.more && (<>{" "}{item.more.before}<a href={item.more.href} class="underline underline-offset-4 hover:opacity-80">{item.more.label}</a></>)}</p>
             </div>
           ))}
         </div>
