@@ -3,9 +3,9 @@
 // policy links come from src/lib/navLinks.ts, shared with the SPA footer.
 import { SOCIALS } from "@/lib/socials";
 import { FOOTER_LINKS } from "@/lib/navLinks";
+import { FOOTER_BG_IMG, FOOTER_BG_SRCSET, FOOTER_BG_SIZES } from "@/lib/footerImage";
 
 const year = new Date().getFullYear();
-const FOOTER_BG_IMG = "https://images.unsplash.com/photo-1726996155615-e986ed87c9d4?auto=format&fit=crop&w=1920&q=80";
 ---
 
 <footer class="relative overflow-hidden">
@@ -13,6 +13,10 @@ const FOOTER_BG_IMG = "https://images.unsplash.com/photo-1726996155615-e986ed87c
   <div class="relative" style="background-color:hsl(var(--eden-bark))">
     <img
       src={FOOTER_BG_IMG}
+      srcset={FOOTER_BG_SRCSET}
+      sizes={FOOTER_BG_SIZES}
+      loading="lazy"
+      decoding="async"
       alt=""
       aria-hidden="true"
       class="absolute inset-0 w-full h-full object-cover opacity-[0.06] mix-blend-luminosity pointer-events-none"

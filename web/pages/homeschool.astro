@@ -15,6 +15,7 @@ import MarketingLayout from "../layouts/MarketingLayout.astro";
 // the section. The image is 1920x1080 to match the hero aspect; do not swap in a
 // portrait plate, it will crop to a band across the middle of the plant.
 import heroHomeschool from "@/assets/hero-homeschool.jpg";
+import HeroBackdrop from "../components/HeroBackdrop.astro";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 // CTA links carry buttonVariants classes rather than wrapping a <Button>: a
@@ -236,7 +237,7 @@ const PRINT_SET = {
       below preserves the desktop look while buying that line back on mobile.
       If you edit this hero, re-measure it. */}
   <section class="relative overflow-hidden py-12 md:py-28 px-6" style="background-color:hsl(var(--eden-cream))">
-    <img src={heroHomeschool.src} alt="" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" style="opacity:0.95;mix-blend-mode:multiply" />
+    <HeroBackdrop src={heroHomeschool} opacity={0.95} />
     <div class="relative z-10 max-w-4xl mx-auto text-center rounded-lg" style="background-color:hsl(0 0% 100% / 0.92);border:1px solid hsl(var(--eden-gold) / 0.35);padding:clamp(26px, 3.5vw, 52px);box-shadow:0 2px 18px -10px rgba(30,62,46,0.28)">
       <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4 md:mb-6" style="color:hsl(var(--eden-gold-ink))">Eden's Table</p>
       <h1 class="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-4 md:mb-6" style="color:hsl(var(--eden-bark))">
@@ -313,7 +314,9 @@ const PRINT_SET = {
         </div>
         <div>
           <div class="rounded-lg overflow-hidden bg-white shadow-sm border" style="border-color:hsl(var(--eden-gold) / 0.3)">
-            <img src="/showcases/ET_WeekAtAGlance.png" alt="Week 5 of the Sprouts Teacher's Guide, showing the calendula week laid out Monday through Friday with the scripture, the kitchen lab supply list, and the subjects woven through the week." loading="lazy" width="1275" height="1650" class="w-full h-auto" />
+            {/* The WebP is the same page, re-encoded from the PNG (729 KB to 155 KB);
+                the PNG stays as the fallback. Same for the chamomile page below. */}
+            <picture style="display:contents"><source type="image/webp" srcset="/showcases/ET_WeekAtAGlance.webp" /><img src="/showcases/ET_WeekAtAGlance.png" alt="Week 5 of the Sprouts Teacher's Guide, showing the calendula week laid out Monday through Friday with the scripture, the kitchen lab supply list, and the subjects woven through the week." loading="lazy" width="1275" height="1650" class="w-full h-auto" /></picture>
           </div>
           <p class="font-accent text-xs tracking-[0.25em] uppercase mt-2 text-center" style="color:hsl(var(--eden-gold-ink))">One real week, exactly as it arrives · Week 5 · Calendula</p>
         </div>
@@ -631,7 +634,7 @@ const PRINT_SET = {
           {/* Was an Around the Table Faith card until 2026-09-12. The card decks
               came off the site with the kit, so the faith content is shown from
               the Teacher's Guide instead, which is a book a family can buy today. */}
-          <img src="/showcases/Sprouts_W2_TG_Chamomile_p2_Monday.png" width="240" height="336" alt="A Monday lesson page from the Sprouts Teacher's Guide, Week 2, chamomile." loading="lazy" class="w-full h-auto" />
+          <picture style="display:contents"><source type="image/webp" srcset="/showcases/Sprouts_W2_TG_Chamomile_p2_Monday.webp" /><img src="/showcases/Sprouts_W2_TG_Chamomile_p2_Monday.png" width="240" height="336" alt="A Monday lesson page from the Sprouts Teacher's Guide, Week 2, chamomile." loading="lazy" class="w-full h-auto" /></picture>
         </div>
         <div class="md:order-1">
           <h3 class="font-serif text-2xl font-bold mb-4" style="color:hsl(var(--eden-bark))">We worship the Creator. We study what He made.</h3>

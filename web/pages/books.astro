@@ -41,6 +41,7 @@ import BandChooser from "../components/BandChooser.astro";
 // with scripts/build_hero.py and contrast-audited (worst 4.73:1, floor 4.5).
 // Same treatment as /starter and /preorder.
 import heroBooks from "@/assets/hero-books.jpg";
+import HeroBackdrop from "../components/HeroBackdrop.astro";
 
 const meta = {
   title: "Printed Homeschool Herbalism Curriculum, Sprouts K-2 and Seedlings 3-5 · Eden's Table",
@@ -151,7 +152,7 @@ const faqJsonLd = {
   }}
 >
   <section class="relative overflow-hidden pt-16 md:pt-20 pb-10 md:pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
-    <img src={heroBooks.src} alt="" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" style="opacity:0.95;mix-blend-mode:multiply" />
+    <HeroBackdrop src={heroBooks} opacity={0.95} />
     <div class="relative z-10 max-w-3xl mx-auto text-center rounded-lg" style="background-color:hsl(0 0% 100% / 0.92);border:1px solid hsl(var(--eden-gold) / 0.35);padding:clamp(26px, 3.5vw, 52px);box-shadow:0 2px 18px -10px rgba(30,62,46,0.28)">
       <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3 md:mb-4" style="color:hsl(var(--eden-gold-ink))">
         Eden's Table · Sprouts K-2 and Seedlings 3-5

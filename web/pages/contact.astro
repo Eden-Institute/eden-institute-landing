@@ -10,6 +10,7 @@ import MarketingLayout from "../layouts/MarketingLayout.astro";
 // muted-foreground on eden-cream is only 5.3:1 before any image, so the clearing
 // is load-bearing, not decorative. Rendered at 24% with mix-blend-mode:multiply.
 import heroContact from "@/assets/hero-contact.jpg";
+import HeroBackdrop from "../components/HeroBackdrop.astro";
 
 const meta = {
   title: "Contact Eden's Table | The Eden Institute",
@@ -43,7 +44,7 @@ const contactJsonLd = {
 
 <MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} jsonLd={contactJsonLd}>
   <section class="relative overflow-hidden pt-20 pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
-    <img src={heroContact.src} alt="" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" style="opacity:0.95;mix-blend-mode:multiply" />
+    <HeroBackdrop src={heroContact} opacity={0.95} />
     <div class="relative z-10 max-w-2xl mx-auto text-center rounded-lg" style="background-color:hsl(0 0% 100% / 0.92);border:1px solid hsl(var(--eden-gold) / 0.35);padding:clamp(26px, 3.5vw, 52px);box-shadow:0 2px 18px -10px rgba(30,62,46,0.28)">
       <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">
         Customer Service

@@ -15,5 +15,7 @@ export default getViteConfig({
     name: "astro",
     environment: "node",
     include: ["src/**/*.astro.test.ts"],
+    // Seeds the image-asset state a build has; see the file for why.
+    setupFiles: ["./src/test/astroSetup.ts"],
   },
 });

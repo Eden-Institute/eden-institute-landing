@@ -26,6 +26,7 @@
 // Copy rule: no em dashes (feedback_no_em_dashes).
 import MarketingLayout from "../../layouts/MarketingLayout.astro";
 import heroStarter from "@/assets/hero-starter.jpg";
+import HeroBackdrop from "../../components/HeroBackdrop.astro";
 import StarterBuyBox from "../../components/islands/StarterBuyBox.tsx";
 
 const PRICE = "$39";
@@ -128,7 +129,7 @@ const faqJsonLd = {
 >
   <!-- HERO. Same measured layout as /starter; re-measure on a 375x812 phone if edited. -->
   <section class="relative overflow-hidden pt-12 md:pt-20 pb-10 md:pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
-    <img src={heroStarter.src} alt="" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" style="opacity:0.95;mix-blend-mode:multiply" />
+    <HeroBackdrop src={heroStarter} opacity={0.95} />
     <div class="relative z-10 max-w-3xl mx-auto text-center rounded-lg" style="background-color:hsl(0 0% 100% / 0.92);border:1px solid hsl(var(--eden-gold) / 0.35);padding:clamp(26px, 3.5vw, 52px);box-shadow:0 2px 18px -10px rgba(30,62,46,0.28)">
       <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3 md:mb-4" style="color:hsl(var(--eden-gold-ink))">
         Eden's Table · Seedlings, grades 3-5

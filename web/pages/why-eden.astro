@@ -20,6 +20,7 @@ import MarketingLayout from "../layouts/MarketingLayout.astro";
 // the section. The image is 1920x1080 to match the hero aspect; do not swap in a
 // portrait plate, it will crop to a band across the middle of the plant.
 import heroWhyEden from "@/assets/hero-why-eden.jpg";
+import HeroBackdrop from "../components/HeroBackdrop.astro";
 
 const problems = [
   { heading: "Most herbal programs are spiritually compromised.", body: "Chakras. Doshas. Moon cycles. Energy fields. These frameworks are borrowed from Hinduism, Buddhism, and paganism, and they appear in mainstream herbalism education with regularity. For a Christian trying to learn herbalism, navigating this is exhausting and often disqualifying.", more: { before: "We answer the question many Christians ask first in ", label: "Is Herbalism Biblical?", href: "/learn/is-herbalism-biblical" } },
@@ -56,7 +57,7 @@ const meta = {
 >
   {/* HERO */}
   <section class="relative overflow-hidden pt-20 section-padding-lg" style="background-color:hsl(var(--eden-parchment))">
-    <img src={heroWhyEden.src} alt="" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" style="opacity:0.95;mix-blend-mode:multiply" />
+    <HeroBackdrop src={heroWhyEden} opacity={0.95} />
     <div class="relative z-10 eden-container px-6 rounded-lg" style="background-color:hsl(0 0% 100% / 0.92);border:1px solid hsl(var(--eden-gold) / 0.35);padding:clamp(26px, 3.5vw, 52px);box-shadow:0 2px 18px -10px rgba(30,62,46,0.28)">
       <div class="max-w-3xl mx-auto text-center">
         <p class="font-accent text-xs tracking-widest uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">
