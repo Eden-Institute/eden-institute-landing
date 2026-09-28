@@ -41,7 +41,7 @@ Because the concern is real, it just is not about the plants. Scripture clearly 
 
 I ran straight into this myself. I have been a devout student of herbalism for many years, and every school I attended was rooted in Far Eastern ideas like chakras and doshas. I did not want to walk away from the plants, and I was not willing to learn them through a framework that went against my faith. For grown-ups who want to go deeper, my book [Back to Eden](/back-to-eden) lays out the biblical foundation.
 
-So the honest answer is that herbalism itself is not a sin, but some herbal teaching carries beliefs you would never want in your homeschool.
+So the honest answer is that herbalism itself is not a sin, but some herbal teaching carries beliefs you would never want in your homeschool. I go deeper on that question in [Is Herbalism Witchcraft?](/learn/is-herbalism-witchcraft)
 
 ## How can I tell if an herbal resource is okay for our family?
 
