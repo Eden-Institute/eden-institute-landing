@@ -47,10 +47,49 @@ export interface DocumentMeta {
   robots?: string;
 }
 
-const readMetaName = (n: string) =>
-  document.querySelector(`meta[name="${n}"]`)?.getAttribute("content") ?? "";
-const readMetaProp = (p: string) =>
-  document.querySelector(`meta[property="${p}"]`)?.getAttribute("content") ?? "";
+/**
+ * A tag's shipped default. The per-herb shells at /apothecary/<slug>
+ * (scripts/build-apothecary-shells.mjs) ship that herb's title, description
+ * and canonical in the raw HTML, and record the plain SPA shell's value on
+ * each such tag as data-default (empty = the shell has no such tag). Reading
+ * data-default first means a reader who lands on an herb and navigates on
+ * gets the site defaults back, not that herb's head.
+ */
+const shipped = (el: Element | null, value: () => string | null | undefined): string => {
+  if (!el) return "";
+  if (el.hasAttribute("data-default")) return el.getAttribute("data-default") ?? "";
+  return value() ?? "";
+};
+
+/**
+ * The static index.html head, read from `doc`. Exported for tests; the hook
+ * uses the snapshot below.
+ */
+export function readHeadDefaults(doc: Document) {
+  const metaName = (n: string) => {
+    const el = doc.querySelector(`meta[name="${n}"]`);
+    return shipped(el, () => el?.getAttribute("content"));
+  };
+  const metaProp = (p: string) => {
+    const el = doc.querySelector(`meta[property="${p}"]`);
+    return shipped(el, () => el?.getAttribute("content"));
+  };
+  const titleEl = doc.querySelector("title");
+  const canonicalEl = doc.querySelector('link[rel="canonical"]');
+  return {
+    title: titleEl ? shipped(titleEl, () => doc.title) : doc.title,
+    description: metaName("description"),
+    canonical: shipped(canonicalEl, () => canonicalEl?.getAttribute("href")),
+    robots: metaName("robots"),
+    ogTitle: metaProp("og:title"),
+    ogDescription: metaProp("og:description"),
+    ogUrl: metaProp("og:url"),
+    ogImage: metaProp("og:image"),
+    twitterTitle: metaName("twitter:title"),
+    twitterDescription: metaName("twitter:description"),
+    twitterImage: metaName("twitter:image"),
+  };
+}
 
 /**
  * The static index.html head, snapshotted when this module is first
@@ -58,22 +97,7 @@ const readMetaProp = (p: string) =>
  * snapshot is taken before any route mutates <head>. An empty string means
  * index.html does not ship that tag, and cleanup removes it.
  */
-const DEFAULTS =
-  typeof document === "undefined"
-    ? null
-    : {
-        title: document.title,
-        description: readMetaName("description"),
-        canonical: document.querySelector('link[rel="canonical"]')?.getAttribute("href") ?? "",
-        robots: readMetaName("robots"),
-        ogTitle: readMetaProp("og:title"),
-        ogDescription: readMetaProp("og:description"),
-        ogUrl: readMetaProp("og:url"),
-        ogImage: readMetaProp("og:image"),
-        twitterTitle: readMetaName("twitter:title"),
-        twitterDescription: readMetaName("twitter:description"),
-        twitterImage: readMetaName("twitter:image"),
-      };
+const DEFAULTS = typeof document === "undefined" ? null : readHeadDefaults(document);
 
 /**
  * Set the per-route document meta. Call once at the top of any public
