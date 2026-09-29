@@ -26,6 +26,9 @@
 //                                       seedlings_complete, two_band_bundle and nb_addon
 //                                       removed 2026-09-15; recoverable from git history.
 //                                       create-checkout refuses those keys.)
+//   checkout.session.expired       → abandoned-checkout reminder email (2026-09-28;
+//                                     consent-gated, one per address per 30 days;
+//                                     see _shared/checkout-recovery.ts)
 //   charge.refunded                → preorder order → refunded (suppresses messaging)
 //   charge.succeeded               → LearnWorlds course purchase → course_sales
 //                                     (Foundations Course sells on LearnWorlds through THIS
@@ -64,6 +67,17 @@ import { escapeLikePattern } from "../_shared/like-escape.ts"
 import { classifyLearnWorldsCharge } from "../_shared/learnworlds-charge.ts"
 import { E2E_MODE, isE2eMetadata, stripeSecretKey, stripeWebhookSecret } from "../_shared/e2e-mode.ts"
 import { attributionColumnsFromMetadata } from "../_shared/purchase-attribution.ts"
+// Abandoned-checkout recovery email, 2026-09-28.
+import {
+  CART_RECOVERY_COOLDOWN_DAYS,
+  CART_RECOVERY_SENDING,
+  RecoveryFacts,
+  buildCartRecoveryEmail,
+  decideCartRecovery,
+  precheckExpiredSession,
+  recoveryItemNames,
+} from "../_shared/checkout-recovery.ts"
+import { applyUnsub } from "../_shared/email-unsubscribe.ts"
 
 /**
  * Normalize a constitution identifier to a guide-registry slug.
@@ -337,6 +351,9 @@ serve(async (req) => {
         await stampPurchaseAttribution("orders", "stripe_checkout_session_id", session.id, session.metadata)
         await stampPurchaseAttribution("payments", "stripe_event_id", event.id, session.metadata)
 
+        // A paid cart that came back through a recovery link. Reporting only; never throws.
+        await markCartRecovered(session)
+
         // Report the sale to Meta (server-side Conversions API). Deliberately
         // AFTER handleOneOffPayment and deliberately un-awaited for failure:
         // sendMetaCapiPurchase never throws, so ad reporting can never break
@@ -363,6 +380,13 @@ serve(async (req) => {
           postalCode: billingAddr?.postal_code ?? null,
           country: billingAddr?.country ?? null,
         })
+        break
+      }
+
+      // Abandoned checkout (2026-09-28): one reminder email, only with the shopper's
+      // promotional consent. Never throws; see handleCheckoutSessionExpired.
+      case "checkout.session.expired": {
+        await handleCheckoutSessionExpired(event.data.object as Stripe.Checkout.Session)
         break
       }
 
@@ -1783,6 +1807,201 @@ async function stampPurchaseAttribution(
       `purchase attribution stamp failed on ${table} (${matchColumn}=${matchValue}), non-fatal: ` +
         (err instanceof Error ? err.message : String(err)),
     )
+  }
+}
+
+// ---------- Abandoned-checkout recovery (2026-09-28) ----------
+//
+// checkout.session.expired -> at most ONE friendly reminder with Stripe's recovery
+// link, to a shopper who ticked Stripe's promotional-consent box. The rules live in
+// _shared/checkout-recovery.ts (pure, tested); this is the I/O around them. Every
+// decision, sent or skipped, is a row in public.checkout_recoveries.
+//
+// NEVER throws: an expired cart is not a sale, and nothing here may 500 the webhook
+// or make Stripe retry. Any lookup failure SKIPS (fails closed) rather than sends.
+async function recordCartRecovery(row: {
+  session_id: string
+  email: string | null
+  status: "sent" | "skipped"
+  reason: string | null
+  recovery_url?: string | null
+  items?: string | null
+  resend_id?: string | null
+}): Promise<void> {
+  const { error } = await adminClient.from("checkout_recoveries").upsert(row, { onConflict: "session_id" })
+  if (error) console.error(`[${row.session_id}] checkout_recoveries write failed: ${error.message}`)
+}
+
+async function cartRecoveryFacts(email: string, sessionCreated: number | null | undefined): Promise<RecoveryFacts> {
+  const pattern = escapeLikePattern(email)
+  // No created time on the payload would be odd; fall back to 24h, Stripe's default lifetime.
+  const sinceIso = new Date(sessionCreated ? sessionCreated * 1000 : Date.now() - 24 * 3600 * 1000).toISOString()
+  const cooldownIso = new Date(Date.now() - CART_RECOVERY_COOLDOWN_DAYS * 24 * 3600 * 1000).toISOString()
+
+  const [orders, payments, sent, global, perList] = await Promise.all([
+    // Rule 3: bought since this cart started. orders.customer_email is written
+    // lower-cased by every order writer; ilike (wildcards escaped) also catches any
+    // older mixed-case row.
+    adminClient.from("orders").select("id").ilike("customer_email", pattern).gte("created_at", sinceIso).limit(1),
+    adminClient.from("payments").select("id").ilike("customer_email", pattern).eq("status", "paid")
+      .gte("occurred_at", sinceIso).limit(1),
+    // Rule 4: one reminder per address per 30 days. A row still marked as sending
+    // counts too, so two carts expiring together cannot both mail.
+    adminClient.from("checkout_recoveries").select("session_id").eq("email", email)
+      .or(`status.eq.sent,reason.eq.${CART_RECOVERY_SENDING}`).gte("created_at", cooldownIso).limit(1),
+    // Rule 5a: GLOBAL suppression, the same column list-announce and podcast-announce
+    // honour. waitlist_signups.unsubscribed_at carries Resend unsubscribes, hard
+    // bounces and spam complaints (resend-webhook -> waitlist_apply_resend_event),
+    // on ANY funnel row for the address.
+    adminClient.from("waitlist_signups").select("email").ilike("email", pattern).not("unsubscribed_at", "is", null).limit(1),
+    // Rule 5b: the per-list one-click opt-out for these reminders.
+    adminClient.from("email_list_unsubscribes").select("email").eq("email", email).eq("list", "cart").limit(1),
+  ])
+  const checks: Array<[string, { error: { message: string } | null }]> = [
+    ["orders", orders], ["payments", payments], ["checkout_recoveries", sent],
+    ["waitlist_signups", global], ["email_list_unsubscribes", perList],
+  ]
+  for (const [name, r] of checks) {
+    if (r.error) throw new Error(`${name} lookup failed: ${r.error.message}`)
+  }
+  return {
+    alreadyPurchased: (orders.data?.length ?? 0) > 0 || (payments.data?.length ?? 0) > 0,
+    recentlySent: (sent.data?.length ?? 0) > 0,
+    globallySuppressed: (global.data?.length ?? 0) > 0,
+    listUnsubscribed: (perList.data?.length ?? 0) > 0,
+  }
+}
+
+async function handleCheckoutSessionExpired(session: Stripe.Checkout.Session): Promise<void> {
+  const sid = session.id
+  try {
+    // The E2E twin never receives this event (it ignores everything but completed
+    // and refunded), so this is a second lock on the same door.
+    if (E2E_MODE) {
+      console.log(`[${sid}] E2E mode: cart recovery skipped`)
+      return
+    }
+    // deno-lint-ignore no-explicit-any
+    const pre = precheckExpiredSession(session as any)
+    if (!pre.ok) {
+      await recordCartRecovery({ session_id: sid, email: pre.email, status: "skipped", reason: pre.reason, recovery_url: pre.recoveryUrl })
+      console.log(`[${sid}] cart recovery skipped: ${pre.reason}`)
+      return
+    }
+
+    let facts: RecoveryFacts
+    try {
+      facts = await cartRecoveryFacts(pre.email, session.created)
+    } catch (err) {
+      const reason = `lookup_failed: ${err instanceof Error ? err.message : String(err)}`.slice(0, 500)
+      await recordCartRecovery({ session_id: sid, email: pre.email, status: "skipped", reason, recovery_url: pre.recoveryUrl })
+      console.error(`[${sid}] cart recovery skipped, ${reason}`)
+      return
+    }
+    const skip = decideCartRecovery(facts)
+    if (skip) {
+      await recordCartRecovery({ session_id: sid, email: pre.email, status: "skipped", reason: skip, recovery_url: pre.recoveryUrl })
+      console.log(`[${sid}] cart recovery skipped: ${skip}`)
+      return
+    }
+
+    // Item names, best-effort: without them the email simply omits the item lines.
+    let items: string[] = []
+    try {
+      const li = await stripe.checkout.sessions.listLineItems(sid, { limit: 10 })
+      items = recoveryItemNames(li.data)
+    } catch (err) {
+      console.warn(`[${sid}] cart recovery: line items unavailable, sending without them: ${err instanceof Error ? err.message : String(err)}`)
+    }
+    const itemsText = items.length ? items.join("\n") : null
+
+    // Claim BEFORE sending. The primary key is the session id, so a redelivered
+    // event (or a race) finds the row and stops: a crash between claim and send
+    // drops one reminder, it never doubles one.
+    const { error: claimErr } = await adminClient.from("checkout_recoveries").insert({
+      session_id: sid,
+      email: pre.email,
+      status: "skipped",
+      reason: CART_RECOVERY_SENDING,
+      recovery_url: pre.recoveryUrl,
+      items: itemsText,
+    })
+    if (claimErr) {
+      // deno-lint-ignore no-explicit-any
+      if ((claimErr as any).code === "23505") {
+        console.log(`[${sid}] cart recovery already handled; not sending again`)
+      } else {
+        console.error(`[${sid}] cart recovery claim failed, NOT sending: ${claimErr.message}`)
+      }
+      return
+    }
+
+    if (!RESEND_API_KEY) {
+      await recordCartRecovery({ session_id: sid, email: pre.email, status: "skipped", reason: "resend_api_key_missing", recovery_url: pre.recoveryUrl, items: itemsText })
+      console.error(`[${sid}] cart recovery: RESEND_API_KEY missing; not sent`)
+      return
+    }
+
+    const built = buildCartRecoveryEmail({ firstName: pre.firstName, items, recoveryUrl: pre.recoveryUrl })
+    // The same one-click unsubscribe (RFC 8058) the marketing senders use, list 'cart'.
+    const { html, headers: unsubHeaders } = await applyUnsub(built.html, pre.email, "cart")
+    const { html: text } = await applyUnsub(built.text, pre.email, "cart")
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+        // Resend dedupes the same key for 24 hours: a second guard behind the claim.
+        "Idempotency-Key": `cart-recovery:${sid}`,
+      },
+      body: JSON.stringify({
+        // Signed "Camila", so it sends as her (founder choice 2026-09-28), like the
+        // other personal notes. Deliberately not FROM_EMAIL, which is the brand sender.
+        from: "Camila at The Eden Institute <hello@edeninstitute.health>",
+        reply_to: "hello@edeninstitute.health",
+        to: [pre.email],
+        subject: built.subject,
+        html,
+        text,
+        headers: unsubHeaders,
+      }),
+    })
+    const out = await res.json().catch(() => ({})) as { id?: string; message?: string }
+    if (!res.ok) {
+      const reason = `send_failed: ${res.status} ${out?.message ?? ""}`.trim().slice(0, 500)
+      await recordCartRecovery({ session_id: sid, email: pre.email, status: "skipped", reason, recovery_url: pre.recoveryUrl, items: itemsText })
+      console.error(`[${sid}] cart recovery ${reason}`)
+      return
+    }
+    await recordCartRecovery({
+      session_id: sid,
+      email: pre.email,
+      status: "sent",
+      reason: null,
+      recovery_url: pre.recoveryUrl,
+      items: itemsText,
+      resend_id: out?.id ?? null,
+    })
+    console.log(`[${sid}] cart recovery sent to ${pre.email} (Resend id=${out?.id ?? "(none)"})`)
+  } catch (err) {
+    console.error(`[${sid}] cart recovery threw (non-fatal):`, err instanceof Error ? err.message : String(err))
+    await captureException(err, { function: "stripe-webhook", step: "handleCheckoutSessionExpired", session_id: sid })
+  }
+}
+
+/** A recovered cart was paid for: note it on the original row. Never throws, never touches fulfilment. */
+async function markCartRecovered(session: Stripe.Checkout.Session): Promise<void> {
+  // deno-lint-ignore no-explicit-any
+  const from = (session as any).recovered_from as string | null | undefined
+  if (!from) return
+  try {
+    const { error } = await adminClient.from("checkout_recoveries")
+      .update({ recovered_session_id: session.id, recovered_at: new Date().toISOString() })
+      .eq("session_id", from)
+    if (error) console.error(`[${session.id}] recovered_from ${from}: checkout_recoveries update failed: ${error.message}`)
+    else console.log(`[${session.id}] completed a recovered cart (from ${from})`)
+  } catch (err) {
+    console.error(`[${session.id}] markCartRecovered failed (non-fatal):`, err instanceof Error ? err.message : String(err))
   }
 }
 

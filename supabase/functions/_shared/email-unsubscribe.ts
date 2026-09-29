@@ -20,7 +20,9 @@
 // homeschool so a buyer can stop the insider-track emails without touching the
 // homeschool previews, and vice versa. Order and shipping notices are
 // transactional and carry no list at all.
-export type EmailList = 'constitution' | 'homeschool' | 'postpurchase' | 'podcast';
+// cart (2026-09-28): the one abandoned-checkout reminder stripe-webhook sends to a
+// shopper who ticked Stripe's promotional-consent box (_shared/checkout-recovery.ts).
+export type EmailList = 'constitution' | 'homeschool' | 'postpurchase' | 'podcast' | 'cart';
 
 // Human-readable list names shown on the confirmation page.
 export const EMAIL_LISTS: Record<EmailList, string> = {
@@ -28,6 +30,7 @@ export const EMAIL_LISTS: Record<EmailList, string> = {
   homeschool: 'the homeschool preview emails',
   postpurchase: "the Eden's Table buyer updates",
   podcast: 'the Tales and Table Talk emails',
+  cart: 'checkout reminder emails',
 };
 
 export function isEmailList(value: unknown): value is EmailList {
