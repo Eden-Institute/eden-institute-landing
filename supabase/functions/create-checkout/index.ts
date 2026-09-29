@@ -78,6 +78,9 @@ import { likelyNeedsGround, printShippingCents, splitVolumeTierPooled } from "..
 import { checkShipTo, SHIP_TO_METADATA_KEY, ShipTo, shipToMetadata } from "../_shared/ship-address.ts"
 import { lockShipToSessionParams } from "../_shared/print-session-lock.ts"
 import { checkoutAttributionMetadata } from "../_shared/purchase-attribution.ts"
+// Abandoned-checkout recovery email, 2026-09-28. Applied to the main one-off,
+// print and Back to Eden PDF sessions (payment mode only), never to preorders.
+import { applyCheckoutRecovery, createCheckoutSessionWithRecovery } from "../_shared/checkout-recovery.ts"
 
 /** Hours a buyer has to cancel a print order, for Stripe's checkout copy. */
 const PRINT_CANCEL_HOURS = Math.round(LULU_PRODUCTION_DELAY_MINUTES / 60)
@@ -688,7 +691,14 @@ serve(async (req) => {
       sessionParams.invoice_creation = curriculumInvoiceCreation("starter", starterBand)
     }
 
-    const session = await stripe.checkout.sessions.create(sessionParams)
+    // Cart recovery (2026-09-28): 3-hour expiry, Stripe's promotional-consent box and
+    // a recovery URL. Last, because it mirrors the final promo state. A no-op for
+    // subscription sessions (see _shared/checkout-recovery.ts).
+    // If Stripe refuses the recovery params (promotional-emails terms not accepted
+    // on the account), this retries once without them rather than failing the sale.
+    applyCheckoutRecovery(sessionParams)
+
+    const session = await createCheckoutSessionWithRecovery(stripe, sessionParams)
 
     return new Response(
       JSON.stringify({ url: session.url, session_id: session.id }),
@@ -1525,7 +1535,10 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
     if (E2E_MODE) sessionParams.customer_email = E2E_BUYER_EMAIL
   }
 
-  const session = await stripe.checkout.sessions.create(sessionParams)
+  // Cart recovery (2026-09-28). Last, because it mirrors the final promo state.
+  applyCheckoutRecovery(sessionParams)
+
+  const session = await createCheckoutSessionWithRecovery(stripe, sessionParams)
   console.log(
     `print shop checkout: cart=${cart.map((c) => `${c.sku}x${c.qty}`).join("+")} shipping=${shippingCents} sms_consent=${smsConsent}` +
       `${shipTo ? " [heavy: address locked]" : ""}` +
@@ -1680,7 +1693,10 @@ async function handleBookDigitalCheckout(req: Request, body: Record<string, any>
   if (typeof body.email === "string" && body.email) sessionParams.customer_email = body.email
   if (E2E_MODE) sessionParams.customer_email = E2E_BUYER_EMAIL
 
-  const session = await stripe.checkout.sessions.create(sessionParams)
+  // Cart recovery (2026-09-28). Last, because it mirrors the final promo state.
+  applyCheckoutRecovery(sessionParams)
+
+  const session = await createCheckoutSessionWithRecovery(stripe, sessionParams)
   console.log(`book digital checkout: ${book.sku}${isAdminTest ? " [ADMIN TEST]" : ""} session=${session.id}`)
 
   if (!isAdminTest) {

@@ -63,7 +63,7 @@ const CASES = [
     path: "/privacy",
     title: "Privacy Policy | The Eden Institute",
     h1: "Privacy Policy",
-    dates: "Effective Date: June 9, 2026 · Last Updated: September 24, 2026",
+    dates: "Effective Date: June 9, 2026 · Last Updated: September 28, 2026",
     headings: [
       "1. Introduction",
       "2. Information We Collect",
