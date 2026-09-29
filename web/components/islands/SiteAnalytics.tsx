@@ -76,6 +76,7 @@ export default function SiteAnalytics({ thirdPartyTags = true }: Props) {
           p_utm_source: params.get("utm_source"),
           p_utm_medium: params.get("utm_medium"),
           p_utm_campaign: params.get("utm_campaign"),
+          p_utm_content: params.get("utm_content"),
         } as never)
         .then(
           () => {},
