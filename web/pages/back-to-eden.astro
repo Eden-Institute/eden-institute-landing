@@ -243,10 +243,39 @@ const jsonLd = {
   image: "https://edeninstitute.health/books/back-to-eden-paperback.webp",
   bookEdition: ["Paperback", "Study & Journal Edition", "Study Guide"],
 };
+
+// 2026-09-30: one Product per PRINT edition so Google can read the price, image
+// and stock straight off this page (Merchant Center lists the same three; the
+// feed ids equal these skus). Built from `editions`, so a price change there
+// changes the markup too. Digital PDFs are left out on purpose.
+const PRINT_SKU: Record<string, string> = {
+  "study-journal": "bte_study_journal_print",
+  paperback: "bte_paperback_print",
+  "study-guide": "bte_study_guide_print",
+};
+const editionJsonLd = editions.map((e) => ({
+  "@context": "https://schema.org",
+  "@type": "Product",
+  name: e.id === "study-guide"
+    ? "Back to Eden Study Guide"
+    : `Back to Eden: A Biblical Foundation for Herbal Healing, ${e.name}`,
+  sku: PRINT_SKU[e.id],
+  description: `${e.blurb} ${e.size}. Printed to order.`,
+  image: `https://edeninstitute.health${e.img}`,
+  brand: { "@type": "Brand", name: "The Eden Institute" },
+  offers: {
+    "@type": "Offer",
+    price: e.print.toFixed(2),
+    priceCurrency: "USD",
+    availability: "https://schema.org/InStock",
+    url: `${meta.canonical}#${e.id}`,
+    seller: { "@type": "Organization", name: "Rooted in Faith Ventures LLC" },
+  },
+}));
 ---
 
 <MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical}
-  ogImage="https://edeninstitute.health/books/back-to-eden-paperback.webp" jsonLd={jsonLd}>
+  ogImage="https://edeninstitute.health/books/back-to-eden-paperback.webp" jsonLd={[jsonLd, ...editionJsonLd]}>
 
   {/* HERO */}
   <section class="px-6 pt-14 pb-16" style="background-color:hsl(var(--eden-forest))">
