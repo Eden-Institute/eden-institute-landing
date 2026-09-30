@@ -253,6 +253,13 @@ const PRINT_SKU: Record<string, string> = {
   paperback: "bte_paperback_print",
   "study-guide": "bte_study_guide_print",
 };
+// Square product photos (cover over real inside pages), made in Canva 2026-09-30
+// for Google Shopping; the page itself keeps showing e.img.
+const PRODUCT_PHOTO: Record<string, string> = {
+  "study-journal": "/books/bte-product-study-journal.webp",
+  paperback: "/books/bte-product-paperback.webp",
+  "study-guide": "/books/bte-product-study-guide.webp",
+};
 const editionJsonLd = editions.map((e) => ({
   "@context": "https://schema.org",
   "@type": "Product",
@@ -261,7 +268,7 @@ const editionJsonLd = editions.map((e) => ({
     : `Back to Eden: A Biblical Foundation for Herbal Healing, ${e.name}`,
   sku: PRINT_SKU[e.id],
   description: `${e.blurb} ${e.size}. Printed to order.`,
-  image: `https://edeninstitute.health${e.img}`,
+  image: [`https://edeninstitute.health${PRODUCT_PHOTO[e.id]}`, `https://edeninstitute.health${e.img}`],
   brand: { "@type": "Brand", name: "The Eden Institute" },
   offers: {
     "@type": "Offer",
