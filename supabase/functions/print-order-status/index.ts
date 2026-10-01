@@ -57,7 +57,7 @@ serve(async (req) => {
     const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
     const { data: o, error } = await db
       .from('orders')
-      .select('id, order_number, status, fulfillment, lookup_key, product_label, amount_total_cents, tax_cents, currency, customer_email, shipping_name, shipping_address, created_at, lulu_status, shipping_carrier, tracking_number, tracking_url, shipped_at, delivered_at')
+      .select('id, order_number, status, fulfillment, lookup_key, product_label, amount_total_cents, tax_cents, currency, customer_email, shipping_name, shipping_address, created_at, lulu_status, shipping_carrier, tracking_number, tracking_url, shipped_at, delivered_at, total_details:raw->total_details')
       .eq('stripe_checkout_session_id', sessionId)
       .maybeSingle();
     if (error) throw new Error(`orders lookup failed: ${error.message}`);
@@ -65,12 +65,13 @@ serve(async (req) => {
 
     const { data: items } = await db
       .from('order_items')
-      .select('quantity, product:products(name)')
+      .select('quantity, unit_price_cents, product:products(name, sku, fulfillment)')
       .eq('order_id', o.id);
 
     const created = new Date(o.created_at);
     const cancelUntil = new Date(created.getTime() + LULU_PRODUCTION_DELAY_MINUTES * 60_000);
     const addr = (o.shipping_address ?? {}) as { city?: string | null; state?: string | null };
+    const totals = (o.total_details ?? {}) as { amount_shipping?: number | null; amount_discount?: number | null };
 
     return json({
       pending: false,
@@ -93,6 +94,23 @@ serve(async (req) => {
         ? { carrier: o.shipping_carrier, number: o.tracking_number, url: o.tracking_url, shipped_at: o.shipped_at }
         : null,
       delivered_at: o.delivered_at,
+      // GA4 purchase (2026-10-01): the page reports this order to Google Analytics
+      // so Merchant Center can count it. item_id is products.sku, which is the
+      // feed id. physical = printed or stocked goods; the page reports only
+      // those. Shipping and discount come from the Stripe session's own totals,
+      // so nothing on the page is a hardcoded price.
+      analytics: {
+        shipping_cents: totals.amount_shipping ?? 0,
+        discount_cents: totals.amount_discount ?? 0,
+        // deno-lint-ignore no-explicit-any
+        items: (items ?? []).map((i: any) => ({
+          sku: i.product?.sku ?? null,
+          name: i.product?.name ?? o.product_label,
+          unit_price_cents: i.unit_price_cents,
+          quantity: i.quantity,
+          physical: i.product?.fulfillment === 'lulu' || i.product?.fulfillment === 'stock',
+        })),
+      },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

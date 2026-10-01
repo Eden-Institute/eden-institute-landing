@@ -20,6 +20,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { centsToValue, pinCheckoutOnce } from "@/lib/pinterestTag";
 import { readCheckoutSessionId } from "@/lib/checkoutSession";
+import { reportGa4PurchaseOnce, type OrderAnalytics } from "@/lib/ga4Purchase";
 
 interface Status {
   pending: boolean;
@@ -38,6 +39,8 @@ interface Status {
   placed_at?: string;
   cancel_until?: string;
   tracking?: { carrier: string | null; number: string | null; url: string | null } | null;
+  /** Feed ids, unit prices, shipping and discount for the GA4 purchase (2026-10-01). */
+  analytics?: OrderAnalytics | null;
 }
 
 /** Lulu's MAIL level, door to door, including printing. Read off Lulu's shipping-options API 2026-09-11. */
@@ -133,6 +136,10 @@ export default function PrintThankYou() {
           // Outside the polling try on purpose: ad reporting can never turn a
           // shown order back into the pending fallback.
           reportPinterestCheckout(sessionId, found);
+          // GA4 purchase for Merchant Center. Paid orders only (a non-pending
+          // status exists only once stripe-webhook recorded a paid session); a
+          // refunded order is not reported.
+          if (found.stage !== "cancelled") void reportGa4PurchaseOnce(sessionId, found);
           return;
         }
         setTries(i + 1);
