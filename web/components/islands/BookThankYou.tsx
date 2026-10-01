@@ -17,6 +17,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { readCheckoutSessionId } from "@/lib/checkoutSession";
+import { reportGa4PurchaseOnce, type OrderAnalytics } from "@/lib/ga4Purchase";
 
 const DOWNLOAD_FN = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/book-download`;
 const POLL_MS = 1500;
@@ -33,6 +34,10 @@ type PrintStatus = {
   ship_to: { name: string | null; city: string | null; state: string | null };
   cancel_until: string;
   tracking: { carrier: string | null; number: string | null; url: string | null } | null;
+  tax_cents?: number | null;
+  currency?: string;
+  /** Feed ids, unit prices, shipping and discount for the GA4 purchase (2026-10-01). */
+  analytics?: OrderAnalytics | null;
 };
 type State =
   | { kind: "loading" }
@@ -112,6 +117,9 @@ export default function BookThankYou({ mode }: { mode: "session" | "token" }) {
           const { data, error } = await supabase.functions.invoke("print-order-status", { body: { session_id: credential } });
           if (!error && data && !data.pending) {
             if (!cancelled) setState({ kind: "print", data: data as PrintStatus });
+            // GA4 purchase for Merchant Center: printed copies only, never the
+            // PDF (that path never calls print-order-status). Not for a refund.
+            if ((data as PrintStatus).stage !== "cancelled") void reportGa4PurchaseOnce(credential!, data as PrintStatus);
             return;
           }
         } catch {
