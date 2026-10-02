@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { metaTrack } from "@/lib/metaPixel";
 import { pinSetHashedEmail, pinTrack } from "@/lib/pinterestTag";
 import { getMarketingConsent } from "@/lib/consent";
+import { trackEmailSubmit } from "@/lib/emailSubmit";
 import { checkEmail } from "@/lib/emailTypos";
 import { getAttribution } from "@/lib/attribution";
 import { FORM_ERROR_FALLBACK, visitorFacingError } from "@/lib/edgeFunctionError";
@@ -140,7 +141,7 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
 
-      (window as any).gtag?.('event', 'email_submit', { event_category: 'conversion', event_label: source });
+      trackEmailSubmit(source);
       metaTrack("Lead", { content_name: source, content_category: "waitlist" }, fbEventId);
       // Pinterest lead, only after the signup is confirmed above. `email` is this
       // submit's value, captured before the field is cleared below. The helper

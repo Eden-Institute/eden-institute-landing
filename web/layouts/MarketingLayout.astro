@@ -150,9 +150,17 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
       pintrk('load') and pintrk('page'). The click itself is handled by
       applyTagConsent() in src/lib/consent.ts.
     */}
+    {/*
+      Live site only (2026-10-02): window.__edenTagsLive is true only on
+      edeninstitute.health, so Vercel previews and localhost load no GTM,
+      gtag.js or Pinterest tag and send nothing. The gtag() stub is still
+      defined everywhere, so page code can call it safely. Pattern shared with
+      src/lib/productionHost.ts (src/test/productionHost.test.ts).
+    */}
     <script is:inline>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
+      window.__edenTagsLive = /^(www\.)?edeninstitute\.health$/.test(window.location.hostname);
       try {
         if (localStorage.getItem('eden-marketing-consent') === 'denied') {
           window['ga-disable-G-5DVHEZPKL0'] = true;
@@ -161,17 +169,21 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
       } catch (e) {}
     </script>
     <!-- Google Tag Manager (Curious Mind Marketplace container) -->
-    <script is:inline>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    <script is:inline>if (window.__edenTagsLive) (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
     j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
     })(window,document,'script','dataLayer','GTM-PVRHXN8N');</script>
     <!-- End Google Tag Manager -->
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5DVHEZPKL0"></script>
+    <!-- Google tag (gtag.js), injected only on the live site -->
     <script is:inline>
-      gtag('js', new Date());
-      gtag('config', 'G-5DVHEZPKL0');
+      if (window.__edenTagsLive) {
+        (function(){var t=document.createElement('script');t.async=true;
+        t.src='https://www.googletagmanager.com/gtag/js?id=G-5DVHEZPKL0';
+        var f=document.getElementsByTagName('script')[0];f.parentNode.insertBefore(t,f);})();
+        gtag('js', new Date());
+        gtag('config', 'G-5DVHEZPKL0');
+      }
     </script>
     </>)}
 
@@ -262,6 +274,7 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     */}
     {!noThirdPartyTags && (<>
     <script is:inline>
+      if (window.__edenTagsLive) {
       !function(e){if(!window.pintrk){window.pintrk=function(){window.pintrk.queue.push(
       Array.prototype.slice.call(arguments))};var n=window.pintrk;n.queue=[],n.version="3.0";
       var t=document.createElement("script");t.async=!0,t.src=e;var r=document.getElementsByTagName("script")[0];
@@ -269,6 +282,7 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
       try { if (localStorage.getItem('eden-marketing-consent') === 'denied') pintrk('setconsent', false); } catch (e) {}
       pintrk('load', '2613485320295');
       pintrk('page');
+      }
     </script>
     <noscript>
       <img height="1" width="1" style="display:none;" alt=""

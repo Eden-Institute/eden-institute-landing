@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { centsToValue, pinCheckoutOnce } from "@/lib/pinterestTag";
 import { readCheckoutSessionId } from "@/lib/checkoutSession";
 import { reportGa4PurchaseOnce, type OrderAnalytics } from "@/lib/ga4Purchase";
+import { showCustomerReviewsOptIn } from "@/lib/customerReviews";
 
 interface Status {
   pending: boolean;
@@ -140,6 +141,8 @@ export default function PrintThankYou() {
           // status exists only once stripe-webhook recorded a paid session); a
           // refunded order is not reported.
           if (found.stage !== "cancelled") void reportGa4PurchaseOnce(sessionId, found);
+          // Google Customer Reviews opt-in (printed orders only; this page is print-only).
+          showCustomerReviewsOptIn(found);
           return;
         }
         setTries(i + 1);

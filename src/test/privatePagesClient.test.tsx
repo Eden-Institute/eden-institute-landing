@@ -18,6 +18,8 @@ import vercelJsonRaw from "../../vercel.json?raw";
 const rpc = vi.fn((..._args: unknown[]) => Promise.resolve({ data: null, error: null }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: (...a: unknown[]) => rpc(...a) } }));
 vi.mock("@/lib/pinterestTag", () => ({ pinCheckoutOnce: vi.fn(() => Promise.resolve()) }));
+// jsdom runs on localhost; the Pixel loads only on the live site (productionHost.ts).
+vi.mock("@/lib/productionHost", () => ({ isProductionHost: () => true }));
 
 import SiteAnalytics from "../../web/components/islands/SiteAnalytics";
 import StarterDownloads from "../../web/components/islands/StarterDownloads";

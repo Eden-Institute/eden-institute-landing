@@ -20,6 +20,7 @@
 // band heading. Every label also names its band, because the same label shows in the running total.
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { trackEmailSubmit } from "@/lib/emailSubmit";
 import {
   ESA_BANDS,
   ESA_CHOICES,
@@ -144,6 +145,7 @@ export default function EsaInvoiceForm({ state, stateName, short }: Props) {
       }
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data?.ok) throw new Error(data?.error || "Something went wrong. Please try again.");
+      trackEmailSubmit("esa_invoice");
       setResult({
         invoices: (data.invoices as Issued[]).map((inv) => ({ ...inv, href: downloadHref(inv.pdfBase64) })),
         emailed: !!data.emailed,
