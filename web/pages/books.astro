@@ -42,6 +42,7 @@ import BandChooser from "../components/BandChooser.astro";
 // Same treatment as /starter and /preorder.
 import heroBooks from "@/assets/hero-books.jpg";
 import HeroBackdrop from "../components/HeroBackdrop.astro";
+import { printOfferPolicies } from "../lib/merchantOffer";
 
 const meta = {
   title: "Printed Homeschool Herbalism Curriculum, Sprouts K-2 and Seedlings 3-5 · Eden's Table",
@@ -107,6 +108,7 @@ const productJsonLd = {
     availability: "https://schema.org/InStock",
     url: meta.canonical,
     seller: { "@type": "Organization", name: "Rooted in Faith Ventures LLC" },
+    ...printOfferPolicies("sprouts_print_set"),
   },
 };
 
@@ -126,6 +128,7 @@ const seedlingsProductJsonLd = {
     availability: "https://schema.org/InStock",
     url: meta.canonical + "#seedlings",
     seller: { "@type": "Organization", name: "Rooted in Faith Ventures LLC" },
+    ...printOfferPolicies("seedlings_print_set"),
   },
 };
 
@@ -151,6 +154,7 @@ const bothProductJsonLd = {
     availability: "https://schema.org/InStock",
     url: meta.canonical + "#both",
     seller: { "@type": "Organization", name: "Rooted in Faith Ventures LLC" },
+    ...printOfferPolicies("both_bands_print_set"),
   },
 };
 

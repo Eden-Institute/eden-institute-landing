@@ -27,6 +27,7 @@ import { BookOpen, CheckCircle, Download, Headphones, Leaf, Printer, Search, Sma
 // create-checkout charges. `ship` below is one copy; the copies selector updates
 // the shown amount live (BookCheckoutController).
 import { printShippingCents } from "../../supabase/functions/_shared/print-pricing";
+import { printOfferPolicies } from "../lib/merchantOffer";
 const shipOne = (sku: string) => (printShippingCents([{ sku, qty: 1 }]) ?? 0) / 100;
 
 const BUY_LIVE = true; // founder "open the shop" 2026-09-25; BOOK_SHOP_LIVE=true on the server
@@ -277,6 +278,7 @@ const editionJsonLd = editions.map((e) => ({
     availability: "https://schema.org/InStock",
     url: `${meta.canonical}#${e.id}`,
     seller: { "@type": "Organization", name: "Rooted in Faith Ventures LLC" },
+    ...printOfferPolicies(PRINT_SKU[e.id]),
   },
 }));
 ---
