@@ -23,6 +23,7 @@ import { metaTrack } from "@/lib/metaPixel";
 import { getMarketingConsent } from "@/lib/consent";
 import { checkEmail } from "@/lib/emailTypos";
 import { getAttribution } from "@/lib/attribution";
+import { trackEmailSubmit } from "@/lib/emailSubmit";
 import { FORM_ERROR_FALLBACK, visitorFacingError } from "@/lib/edgeFunctionError";
 import { patternNameToSlug } from "@/lib/constitution-utils";
 import Navbar from "@/components/landing/Navbar";
@@ -329,6 +330,7 @@ const Assessment = () => {
         });
         if (fnError) throw fnError;
         if (data?.error) throw new Error(data.error);
+        trackEmailSubmit("constitution_assessment");
         metaTrack("Lead", { content_category: "constitution_quiz", content_name: "balanced" }, fbEventId);
         setPhase("balanced-thanks");
         return;
@@ -373,6 +375,7 @@ const Assessment = () => {
       }
 
       const slugForRedirect = patternNameToSlug(profileForSubmit?.nickname ?? "");
+      trackEmailSubmit("constitution_assessment");
       metaTrack("Lead", { content_category: "constitution_quiz", content_name: submittedConstitution }, fbEventId);
       navigate(ROUTES.RESULTS(slugForRedirect), { replace: true });
     } catch (err: unknown) {

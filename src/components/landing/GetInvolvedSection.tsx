@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { metaTrack } from "@/lib/metaPixel";
+import { trackEmailSubmit } from "@/lib/emailSubmit";
 
 // Homepage "Get Involved" section — partner / collaborator / investor capture,
 // styled in the homepage design system (honey/green tokens, Cormorant/EB
@@ -88,6 +89,7 @@ export default function GetInvolvedSection() {
       });
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
+      trackEmailSubmit(`get_involved_${role}`);
       try {
         metaTrack("Lead", { content_name: role, content_category: "partner" }, crypto.randomUUID());
       } catch (_e) {

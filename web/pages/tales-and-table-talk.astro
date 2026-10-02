@@ -211,6 +211,8 @@ const rhythm = [
 </MarketingLayout>
 
 <script>
+  import { trackEmailSubmit } from "@/lib/emailSubmit";
+
   // Posts to the same resend-waitlist edge function every Eden form uses, on the
   // 'podcast' funnel (separate list, separate unsubscribe, no Eden's Table sequences).
   // source 'ttt_eden_page' tells these signups apart from 'ttt_site', the form on
@@ -266,6 +268,7 @@ const rhythm = [
         if (button) button.disabled = false;
         return;
       }
+      trackEmailSubmit("ttt_eden_page");
       form.reset();
       form.hidden = true;
       say("You're on the list. Check your inbox for a note from me.", "ok");

@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { readCheckoutSessionId } from "@/lib/checkoutSession";
 import { reportGa4PurchaseOnce, type OrderAnalytics } from "@/lib/ga4Purchase";
+import { showCustomerReviewsOptIn } from "@/lib/customerReviews";
 
 const DOWNLOAD_FN = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/book-download`;
 const POLL_MS = 1500;
@@ -33,6 +34,7 @@ type PrintStatus = {
   email: string | null;
   ship_to: { name: string | null; city: string | null; state: string | null };
   cancel_until: string;
+  placed_at?: string;
   tracking: { carrier: string | null; number: string | null; url: string | null } | null;
   tax_cents?: number | null;
   currency?: string;
@@ -120,6 +122,8 @@ export default function BookThankYou({ mode }: { mode: "session" | "token" }) {
             // GA4 purchase for Merchant Center: printed copies only, never the
             // PDF (that path never calls print-order-status). Not for a refund.
             if ((data as PrintStatus).stage !== "cancelled") void reportGa4PurchaseOnce(credential!, data as PrintStatus);
+            // Google Customer Reviews opt-in, printed copies only (same path).
+            showCustomerReviewsOptIn(data as PrintStatus);
             return;
           }
         } catch {
