@@ -15,6 +15,11 @@
 // Only once the Pixel is loaded, which happens only after Accept (metaPixel.ts):
 // no Pixel, no event, and no "sent" mark either, so the server event stands
 // alone. Once per order per browser, like the GA4 event.
+//
+// Never for a test order (2026-10-03): an E2E run pays in Stripe test mode, so
+// its session id starts cs_test_, and a real one always starts cs_live_. The
+// server CAPI event already skips E2E orders; without this, tapping Accept during
+// a test would hand Meta a fake sale.
 
 import { checkoutRef } from "@/lib/pinterestTag";
 import { buildGa4Purchase, type OrderAnalytics } from "@/lib/ga4Purchase";
@@ -33,7 +38,8 @@ export async function reportMetaPurchaseOnce(
   order: { analytics?: OrderAnalytics | null; tax_cents?: number | null; currency?: string | null },
 ): Promise<void> {
   try {
-    if (!sessionId || !order.analytics || getMarketingConsent() !== "granted") return;
+    if (!sessionId || sessionId.startsWith("cs_test_")) return;
+    if (!order.analytics || getMarketingConsent() !== "granted") return;
     if (typeof window.fbq !== "function") return;
     const ref = await checkoutRef(sessionId);
     if (!ref) return;
