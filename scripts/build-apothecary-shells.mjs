@@ -33,7 +33,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 export const SITE = "https://edeninstitute.health";
-export const HERB_PAGE_TITLE_SUFFIX = " · Herb Profile | The Eden Institute";
+export const HERB_PAGE_TITLE_SUFFIX = ": Safety and Energetics | The Eden Institute";
 // Same suffix HerbMonograph.tsx passes to useDocumentMeta, so the raw title and
 // the rendered title agree.
 export const APP_TITLE_SUFFIX = " · Monograph | Eden Apothecary";

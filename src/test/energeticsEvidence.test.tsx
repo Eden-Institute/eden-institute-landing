@@ -362,14 +362,15 @@ const directory = {
 const evidenceMap = new Map<string, Evidence>();
 const tierState = { tier: "free", isSubscriber: false };
 
-vi.mock("@/hooks/useHerbsDirectory", () => ({
-  useHerbsDirectory: () => ({
-    data: [directory],
+vi.mock("@/hooks/useHerbMonograph", () => ({
+  useHerbByParam: (param: string | undefined) => ({
+    data: param?.toLowerCase() === "h111" ? directory : null,
     isLoading: false,
     isError: false,
     isSubscriber: tierState.isSubscriber,
     tier: tierState.tier,
   }),
+  useHerbNames: () => new Map(),
 }));
 vi.mock("@/hooks/useHerbEnergeticsEvidence", () => ({
   useHerbEnergeticsEvidence: () => ({ byHerbId: evidenceMap }),
