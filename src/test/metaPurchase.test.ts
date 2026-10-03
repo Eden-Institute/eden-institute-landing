@@ -1,13 +1,14 @@
 // Meta Pixel Purchase for physical orders. Pinned: eventID is the raw session id
 // (the server CAPI event's event_id, so Meta merges the two), content_ids are the
 // feed skus, value matches GA4, digital-only orders send nothing, a reload never
-// reports twice, and nothing fires without Accept or without the Pixel.
+// reports twice, nothing fires without Accept or without the Pixel, and a
+// Stripe test-mode (E2E) order never reaches Meta.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OrderAnalytics } from "@/lib/ga4Purchase";
 
 const CONSENT_KEY = "eden-marketing-consent";
-const SESSION = "cs_test_books_1";
+const SESSION = "cs_live_books_1";
 
 const order = (over: Partial<OrderAnalytics> = {}) => ({
   tax_cents: 0,
@@ -85,6 +86,12 @@ describe("reportMetaPurchaseOnce", () => {
     localStorage.setItem(CONSENT_KEY, "granted");
     delete (window as unknown as { fbq?: unknown }).fbq;
     await (await load())(SESSION, order());
+    expect(track).not.toHaveBeenCalled();
+    expect(Object.keys(localStorage).some((k) => k.startsWith("meta_purchase_"))).toBe(false);
+  });
+
+  it("sends nothing, and marks nothing, for a Stripe test-mode (E2E) order", async () => {
+    await (await load())("cs_test_books_1", order());
     expect(track).not.toHaveBeenCalled();
     expect(Object.keys(localStorage).some((k) => k.startsWith("meta_purchase_"))).toBe(false);
   });
