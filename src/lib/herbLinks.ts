@@ -78,6 +78,32 @@ export function findHerbByParam<T extends HerbLinkable>(
   );
 }
 
+/** Every slug herbSlug can produce, and every H-code, has this shape. */
+const PARAM_SHAPE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/**
+ * A PostgREST `or` filter that returns every herbs_directory_v row
+ * findHerbByParam could match for this param, so the one-herb page can read
+ * one or two rows instead of the whole view. findHerbByParam still makes the
+ * final choice over what comes back.
+ *
+ *  - herb_id ilike the param, no wildcards: the case-insensitive H-code match.
+ *  - common_name ilike the slug's words joined by wildcards, anchored at the
+ *    start: "bacopa-brahmi" -> bacopa*brahmi* matches "Bacopa (Brahmi)". Every
+ *    common_name starts with a letter or digit (all 299, checked 2026-10-03),
+ *    so its slug starts with the same word. At most two rows match any real
+ *    slug today.
+ *
+ * Returns null when the param cannot be any herb's slug or H-code (anything
+ * outside [a-z0-9-]). That also keeps raw URL text out of the filter string.
+ */
+export function herbParamOrFilter(param: string | undefined): string | null {
+  if (!param) return null;
+  const needle = param.toLowerCase();
+  if (!PARAM_SHAPE.test(needle)) return null;
+  return `herb_id.ilike.${needle},common_name.ilike.${needle.split("-").join("*")}*`;
+}
+
 /**
  * The herb's name as it leads a page <title>: the common name, then the
  * botanical binomial in parentheses, e.g. "Marshmallow (Althaea officinalis)".

@@ -30,7 +30,7 @@ const SHELL = `<!doctype html>
 </html>
 `;
 
-const HERB_PAGE = `<html><head><title>Hibiscus (Hibiscus sabdariffa) · Herb Profile | The Eden Institute</title>
+const HERB_PAGE = `<html><head><title>Hibiscus (Hibiscus sabdariffa): Safety and Energetics | The Eden Institute</title>
 <meta name="description" content="Cool, moist &amp; sour: costs $5 &quot;fresh&quot;.">
 <link rel="canonical" href="https://edeninstitute.health/herbs/hibiscus"></head><body></body></html>`;
 
@@ -102,7 +102,7 @@ describe("build-apothecary-shells", () => {
   });
 
   it("refuses a /herbs page whose title format changed", () => {
-    expect(() => readHerbPageHead(HERB_PAGE.replace("Herb Profile", "Profile"), "hibiscus")).toThrow(/does not end/);
+    expect(() => readHerbPageHead(HERB_PAGE.replace("Safety and Energetics", "Energetics"), "hibiscus")).toThrow(/does not end/);
   });
 
   it("knows the app's own /apothecary routes, so no herb slug can shadow one", () => {

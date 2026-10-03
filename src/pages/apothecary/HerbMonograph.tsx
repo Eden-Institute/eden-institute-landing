@@ -6,13 +6,13 @@ import { HerbFavoriteHeart } from "@/components/apothecary/HerbFavoriteHeart";
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
 import { ApothecaryDisclaimer } from "@/components/apothecary/ApothecaryDisclaimer";
 import { HerbEnergeticsEvidence } from "@/components/apothecary/HerbEnergeticsEvidence";
-import { useHerbsDirectory } from "@/hooks/useHerbsDirectory";
+import { useHerbByParam, useHerbNames } from "@/hooks/useHerbMonograph";
 import { useHerbEnergeticsEvidence } from "@/hooks/useHerbEnergeticsEvidence";
 import { useEdenPattern } from "@/hooks/useEdenPattern";
 import { useCuratedHerbVerdicts } from "@/hooks/useCuratedHerbVerdicts";
 import { resolveHerbVerdict } from "@/lib/herbVerdict";
 import { useViewedHerbs } from "@/hooks/useViewedHerbs";
-import { findHerbByParam, herbCanonicalUrl, herbParam, herbTitleName, HERB_ALIASES } from "@/lib/herbLinks";
+import { herbCanonicalUrl, herbParam, herbTitleName, HERB_ALIASES } from "@/lib/herbLinks";
 import { CURRICULUM_BANDS, curriculumWeeksForHerb, scopeAndSequenceHref } from "@/lib/curriculumHerbs";
 import { APOTHECARY_PRICES } from "@/lib/apothecaryPrices";
 import { TIER_DEPTH } from "@/lib/apothecaryTiers";
@@ -52,7 +52,9 @@ import heroMonograph from "@/assets/hero-monograph.jpg";
  */
 export default function HerbMonograph() {
   const { herbId: param } = useParams<{ herbId: string }>();
-  const { data: herbs, isLoading, isError, isSubscriber, tier } = useHerbsDirectory();
+  // Reads only the row(s) this URL can match, not the whole directory
+  // (src/hooks/useHerbMonograph.ts).
+  const { data: herbRow, isLoading, isError, isSubscriber, tier } = useHerbByParam(param);
   const { data: activePattern, activeProfile, patternSubject } = useEdenPattern();
   // Curated verdict for this pattern; the monograph must agree with the card.
   const { byHerbId: curatedVerdicts } = useCuratedHerbVerdicts(activePattern);
@@ -62,7 +64,7 @@ export default function HerbMonograph() {
   const { byHerbId: energeticsEvidence } = useHerbEnergeticsEvidence();
   const { viewedOrder, recordView } = useViewedHerbs();
 
-  const herb = findHerbByParam(herbs, param);
+  const herb = herbRow ?? undefined;
   const name = herb?.common_name ?? "";
   // Seed opens the clinical study; Root opens interactions, refer-out and
   // sources. The view NULLs those columns below the tier, so these flags only
@@ -85,11 +87,12 @@ export default function HerbMonograph() {
   }, [resolvedHerbId]);
 
   // Recently-viewed strip (excluding the page's own herb) — the public
-  // page's reason-to-keep-going. Resolved against the loaded directory so
-  // stale ids from removed herbs drop out naturally.
-  const recentlyViewed = viewedOrder
-    .filter((id) => id !== resolvedHerbId)
-    .map((id) => herbs.find((h) => h.herb_id === id))
+  // page's reason-to-keep-going. Names are looked up for just these ids, so
+  // stale ids from removed herbs still drop out naturally.
+  const otherViewedIds = viewedOrder.filter((id) => id !== resolvedHerbId);
+  const viewedNames = useHerbNames(otherViewedIds);
+  const recentlyViewed = otherViewedIds
+    .map((id) => viewedNames.get(id))
     .filter((h): h is NonNullable<typeof h> => !!h)
     .slice(0, 4);
 
@@ -141,7 +144,7 @@ export default function HerbMonograph() {
 
   if (isLoading) return <PageSkeleton />;
 
-  // Directory fetch failed (network blip / 5xx after retries): say so and
+  // Herb fetch failed (network blip / 5xx after retries): say so and
   // offer a retry — never assert "not found" for an herb that may exist.
   // Mirrors ApothecaryHome's error handling of the same hook.
   if (isError) {

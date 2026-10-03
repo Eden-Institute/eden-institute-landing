@@ -41,7 +41,11 @@ const canonical = `https://edeninstitute.health/herbs/${slug}`;
 // Title carries the pair people actually search: common name and Latin name.
 // herbTitleName (src/lib/herbLinks.ts) builds that pair from the row and is
 // shared with the app page, so the two surfaces title a herb the same way.
-const title = `${herbTitleName(herb)} · Herb Profile | The Eden Institute`;
+// The words after the name say what the page holds: every free herb carries
+// pregnancy, breastfeeding and children safety fields and an energetics line
+// (all 155 rows, checked 2026-10-03). scripts/build-apothecary-shells.mjs
+// reads the name back off this exact suffix, so change both together.
+const title = `${herbTitleName(herb)}: Safety and Energetics | The Eden Institute`;
 
 // The Eden's Table weeks that teach this plant (src/lib/curriculumHerbs.ts).
 // Empty for most herbs, and then the block below does not render.
@@ -55,12 +59,30 @@ function clamp(text: string, max = 155): string {
   if (flat.length <= max) return flat;
   return flat.slice(0, flat.lastIndexOf(" ", max - 1)).replace(/[,;:.]$/, "") + "...";
 }
-const description = clamp(
+// The safety topics this row actually answers are named at the end, so a
+// search result says the page covers them. Built from which fields are filled,
+// never from what they say: no claim about the herb is added here.
+const safetyTopics = [
+  herb.pregnancy_safety?.trim() ? "pregnancy" : "",
+  herb.breastfeeding_safety?.trim() ? "breastfeeding" : "",
+  herb.children_safety?.trim() ? "children" : "",
+].filter(Boolean);
+const safetyNote = safetyTopics.length
+  ? `Safety notes for ${
+      safetyTopics.length === 1
+        ? safetyTopics[0]
+        : `${safetyTopics.slice(0, -1).join(", ")} and ${safetyTopics[safetyTopics.length - 1]}`
+    }.`
+  : "";
+const baseDescription =
   herb.energetics_summary ??
-    [herb.common_name, herb.latin_name, herb.part_used ? `${herb.part_used} used` : ""]
-      .filter(Boolean)
-      .join(", "),
-);
+  [herb.common_name, herb.latin_name, herb.part_used ? `${herb.part_used} used` : ""]
+    .filter(Boolean)
+    .join(", ");
+// clamp can run 2 characters past its max (it appends "..."), hence the 3.
+const description = safetyNote
+  ? `${clamp(baseDescription, 155 - safetyNote.length - 3)} ${safetyNote}`
+  : clamp(baseDescription);
 
 // Identity facts, rendered only where the row actually carries a value.
 const facts: { label: string; value: string }[] = [
