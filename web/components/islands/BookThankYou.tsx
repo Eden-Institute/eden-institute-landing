@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { readCheckoutSessionId } from "@/lib/checkoutSession";
 import { reportGa4PurchaseOnce, type OrderAnalytics } from "@/lib/ga4Purchase";
+import { reportMetaPurchaseOnce } from "@/lib/metaPurchase";
 import { showCustomerReviewsOptIn } from "@/lib/customerReviews";
 
 const DOWNLOAD_FN = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/book-download`;
@@ -121,7 +122,10 @@ export default function BookThankYou({ mode }: { mode: "session" | "token" }) {
             if (!cancelled) setState({ kind: "print", data: data as PrintStatus });
             // GA4 purchase for Merchant Center: printed copies only, never the
             // PDF (that path never calls print-order-status). Not for a refund.
-            if ((data as PrintStatus).stage !== "cancelled") void reportGa4PurchaseOnce(credential!, data as PrintStatus);
+            if ((data as PrintStatus).stage !== "cancelled") {
+              void reportGa4PurchaseOnce(credential!, data as PrintStatus);
+              void reportMetaPurchaseOnce(credential!, data as PrintStatus);
+            }
             // Google Customer Reviews opt-in, printed copies only (same path).
             showCustomerReviewsOptIn(data as PrintStatus);
             return;
