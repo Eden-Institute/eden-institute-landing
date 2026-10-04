@@ -4,6 +4,10 @@ seoTitle: "Am I Qualified to Homeschool? A Former Teacher's Answer"
 description: "Yes, you're qualified. No state requires every homeschool parent to be a certified teacher. A 12-year classroom teacher on why she let her certificate lapse."
 published: "2026-09-28"
 draft: false
+related:
+  - free-nature-study-week
+  - herbal-homeschool-curriculum
+  - switching-homeschool-science-mid-year
 faq:
   - q: "Do you need a teaching degree to homeschool?"
     a: "No. No state requires every homeschooling parent to be a certified teacher. Some states require a high school diploma or its equivalent, so check your state's law before you start."
@@ -59,7 +63,7 @@ Face it. Smash it. Take it back.
 
 ## Where do I start?
 
-If you're ready to take the first step, [Eden's Table](/homeschool) is the open-and-go homeschool curriculum I built for exactly this: one plant a week, with Bible, science, language arts, history and more woven together, so you're never left staring at a blank page wondering what to teach. You can try it first with [a free week](/freebies).
+If you're ready to take the first step, [Eden's Table](/homeschool) is the open-and-go homeschool curriculum I built for exactly this: one plant a week, with Bible, science, language arts, history and more woven together, so you're never left staring at a blank page wondering what to teach. You can try it first with [a free week](/freebies), and [here's what that week looks like](/learn/free-nature-study-week).
 
 Using an ESA or scholarship? Eden's Table is an approved or registered vendor in seven programs, and the [ESA page](/esa) shows how buying works in each state.
 
