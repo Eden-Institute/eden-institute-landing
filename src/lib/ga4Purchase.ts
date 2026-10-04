@@ -21,6 +21,11 @@
 // blocked), so a reload, or reopening the page days later, sends nothing. GA4
 // also dedupes on transaction_id. A visitor who clicked Decline sends nothing;
 // the layout's ga-disable switch would stop gtag anyway.
+//
+// Never for a test order (2026-10-04, founder): an E2E run pays in Stripe test
+// mode, so its session id starts cs_test_, and a real one always starts cs_live_.
+// Same skip as the Meta Purchase (metaPurchase.ts), so fake sales never reach
+// GA4 or Merchant Center.
 
 import { getMarketingConsent } from "@/lib/consent";
 import { centsToValue, checkoutRef } from "@/lib/pinterestTag";
@@ -110,7 +115,8 @@ export async function reportGa4PurchaseOnce(
   order: { analytics?: OrderAnalytics | null; tax_cents?: number | null; currency?: string | null },
 ): Promise<void> {
   try {
-    if (!sessionId || !order.analytics || getMarketingConsent() === "denied") return;
+    if (!sessionId || sessionId.startsWith("cs_test_")) return;
+    if (!order.analytics || getMarketingConsent() === "denied") return;
     const gtag = (window as unknown as { gtag?: (...args: unknown[]) => void }).gtag;
     if (typeof gtag !== "function") return;
     const ref = await checkoutRef(sessionId);
