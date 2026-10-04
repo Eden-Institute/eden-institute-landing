@@ -23,6 +23,9 @@ const learn = defineCollection({
     draft: z.boolean().default(true),
     /** Shipped as FAQPage JSON-LD and shown at the foot of the article. */
     faq: z.array(z.object({ q: z.string(), a: z.string() })).default([]),
+    /** Up to 3 other article slugs shown as "Keep reading" at the foot of the article.
+        The build fails if one is missing or still a draft, so this never ships a dead link. */
+    related: z.array(z.string()).max(3).default([]),
   }),
 });
 

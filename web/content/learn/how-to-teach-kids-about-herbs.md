@@ -4,6 +4,10 @@ seoTitle: "How to Teach Kids About Herbs at Home"
 description: "The simplest way to teach kids about herbs: one plant a week. Read about it, draw it, try it in the kitchen, learn its story. Free first week inside."
 published: "2026-09-25"
 draft: false
+related:
+  - herbs-in-the-bible
+  - free-nature-study-week
+  - herbal-homeschool-curriculum
 faq:
   - q: "Do I need a garden to teach kids about herbs?"
     a: "No. Each week can use a small amount of a common dried herb from your pantry. A garden is a bonus, not a requirement."
@@ -27,7 +31,7 @@ Kindergarten is a great age to start. Young children learn plants best with thei
 
 Around grades 3 to 5, kids are ready for more. They can measure, record, compare, and write down a guess about what will happen before they test it. In [Eden's Table](/homeschool) that is the difference between my two grade bands: Sprouts (K-2) learns 36 plants by sight, smell and touch, and Seedlings (3-5) learns a different 36 with body systems, herb profiles and a hypothesis your child writes and then tests.
 
-If you are wondering whether herbs belong in a Christian homeschool at all, I answer that in [Is Herbalism Biblical?](/learn/is-herbalism-biblical)
+If you are wondering whether herbs belong in a Christian homeschool at all, I answer that in [Is Herbalism Biblical?](/learn/is-herbalism-biblical). For the plants Scripture itself shows being used for healing, see [Herbs in the Bible for Healing](/learn/herbs-in-the-bible).
 
 ## Which herbs should we start with?
 

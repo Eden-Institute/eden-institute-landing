@@ -4,6 +4,10 @@ seoTitle: "Free Christian Nature Study Week, K-5"
 description: "One full week of Eden's Table, free: five lessons on one plant with the Teacher's Guide, Student Notebook and a read-aloud. Print it and teach it this week."
 published: "2026-09-25"
 draft: false
+related:
+  - inside-edens-table-flip-through
+  - how-to-teach-kids-about-herbs
+  - switching-homeschool-science-mid-year
 faq:
   - q: "Is the free nature study week really free?"
     a: "Yes. Week 1 of Eden's Table is free for Sprouts (K-2) and Seedlings (3-5). It is sent to your email straight away, with no card and no obligation."
