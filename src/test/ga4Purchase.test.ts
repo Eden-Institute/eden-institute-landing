@@ -1,14 +1,15 @@
 // GA4 purchase for Merchant Center. Pinned: item_id is the feed sku, value is
 // physical goods after discount and before shipping/tax, digital lines are left
 // out, the raw session id never reaches gtag, a reload never reports twice, and
-// a visitor who clicked Decline sends nothing.
+// a visitor who clicked Decline sends nothing, and a Stripe test-mode (E2E)
+// order never reaches GA4.
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { buildGa4Purchase, reportGa4PurchaseOnce, type OrderAnalytics } from "@/lib/ga4Purchase";
 
 const CONSENT_KEY = "eden-marketing-consent";
-const SESSION = "cs_test_books_1";
-const REF = "83ee5ded323268fed15d671f1fad79d6"; // first 32 of sha256(cs_test_books_1)
+const SESSION = "cs_live_books_1";
+const REF = "f1899b9932ea9a7a8519dc917af56a1e"; // first 32 of sha256(cs_live_books_1)
 
 const set = (over: Partial<OrderAnalytics> = {}): OrderAnalytics => ({
   shipping_cents: 1200,
@@ -91,5 +92,11 @@ describe("reportGa4PurchaseOnce", () => {
   it("sends nothing for an older print-order-status with no analytics block", async () => {
     await reportGa4PurchaseOnce(SESSION, { tax_cents: 0, currency: "usd" });
     expect(calls).toHaveLength(0);
+  });
+
+  it("sends nothing, and marks nothing, for a Stripe test-mode (E2E) order", async () => {
+    await reportGa4PurchaseOnce("cs_test_books_1", { analytics: set(), tax_cents: 0, currency: "usd" });
+    expect(calls).toHaveLength(0);
+    expect(Object.keys(localStorage).some((k) => k.startsWith("ga4_purchase_"))).toBe(false);
   });
 });

@@ -42,10 +42,10 @@ for Decline before it sends.
 |---|---|---|
 | `page_view` | `gtag('config')` in both heads | automatic |
 | `email_submit` (GA4 key event) | `src/lib/emailSubmit.ts` `trackEmailSubmit(form_name)`, after the server confirms | `form_name` values below |
-| `purchase` (GA4, Merchant Center) | `src/lib/ga4Purchase.ts`, from `PrintThankYou` (`/books/thank-you`) and the print path of `BookThankYou` (`/back-to-eden/thank-you`) | physical lines only, once per order, values from `print-order-status` |
+| `purchase` (GA4, Merchant Center) | `src/lib/ga4Purchase.ts`, from `PrintThankYou` (`/books/thank-you`) and the print path of `BookThankYou` (`/back-to-eden/thank-you`) | physical lines only, once per order, values from `print-order-status`; never for a Stripe test-mode (`cs_test_`) order |
 | `starter_unit_purchase` | `web/pages/starter/thank-you.astro`, `web/pages/starter/seedlings/thank-you.astro` | the $39 digital Starter Unit. Deliberately NOT `purchase` |
 | `purchase_confirmed` | `src/pages/HomeschoolWelcome.tsx` | SPA homeschool checkout |
-| Meta `Lead` / `InitiateCheckout` / `Purchase` | browser `metaTrack` plus server Conversions API (`supabase/functions/_shared/meta-capi.ts`, from `resend-waitlist`, `create-checkout`, `stripe-webhook`) | deduped on event id |
+| Meta `Lead` / `InitiateCheckout` / `Purchase` | browser `metaTrack` plus server Conversions API (`supabase/functions/_shared/meta-capi.ts`, from `resend-waitlist`, `create-checkout`, `stripe-webhook`) | deduped on event id; browser `Purchase` (`src/lib/metaPurchase.ts`) skips `cs_test_` orders, the server skips E2E |
 | Pinterest `lead` / `addtocart` / `checkout` | `src/lib/pinterestTag.ts` | Astro pages only |
 | Google Customer Reviews opt-in | `src/lib/customerReviews.ts`, the same two print thank-you paths | merchant 5861058138, delivery date = order date + 21 days |
 
