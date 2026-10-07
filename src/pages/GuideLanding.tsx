@@ -10,6 +10,7 @@ import Navbar from "@/components/landing/Navbar";
 import { ROUTES } from "@/lib/routes";
 import { trackCta } from "@/lib/trackCta";
 import { readCheckoutSessionId } from "@/lib/checkoutSession";
+import { reportGa4DigitalPurchaseOnce } from "@/lib/ga4DigitalPurchase";
 import {
   clearGuideAccessToken,
   forgetGuideSession,
@@ -76,7 +77,10 @@ const GuideLanding = () => {
       if (sessionId) {
         setVerifying(true);
         try {
-          await verifySession(sessionId, true);
+          const ok = await verifySession(sessionId, true);
+          // GA4 purchase (2026-10-07), only on the post-payment redirect, never on
+          // a return visit from the emailed link or a remembered session.
+          if (ok) void reportGa4DigitalPurchaseOnce(sessionId, { id: "deep_dive_guide", name: "Deep-Dive Guide" });
         } catch (err) {
           console.error("Payment verification failed:", err);
         } finally {

@@ -80,6 +80,8 @@ serve(async (req) => {
       // 'sprouts' | 'seedlings' (2026-09-23), so the page never names the wrong year.
       band: printBandForOrder(o),
       product_label: o.product_label,
+      // GA4 purchase item id for digital orders (2026-10-07, ga4DigitalPurchase.ts).
+      lookup_key: o.lookup_key,
       // deno-lint-ignore no-explicit-any
       items: (items ?? []).map((i: any) => ({ name: i.product?.name ?? o.product_label, quantity: i.quantity })),
       amount_total_cents: o.amount_total_cents,

@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { readCheckoutSessionId } from "@/lib/checkoutSession";
 import { reportGa4PurchaseOnce, type OrderAnalytics } from "@/lib/ga4Purchase";
 import { reportMetaPurchaseOnce } from "@/lib/metaPurchase";
+import { reportGa4DigitalPurchaseOnce } from "@/lib/ga4DigitalPurchase";
 import { showCustomerReviewsOptIn } from "@/lib/customerReviews";
 
 const DOWNLOAD_FN = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/book-download`;
@@ -97,7 +98,12 @@ export default function BookThankYou({ mode }: { mode: "session" | "token" }) {
         });
         const body = await res.json().catch(() => ({}));
         if (cancelled) return;
-        if (res.ok) return setState({ kind: "download", data: body as Download });
+        if (res.ok) {
+          // GA4 purchase for the PDF (2026-10-07), on the paid-checkout path only:
+          // the emailed ?t= link is a return visit, not a sale.
+          if (mode === "session") void reportGa4DigitalPurchaseOnce(credential, { id: "book_digital", name: (body as Download).title });
+          return setState({ kind: "download", data: body as Download });
+        }
         if (res.status === 409 && polls < MAX_POLLS) {
           polls += 1;
           window.setTimeout(pollDownload, POLL_MS);
