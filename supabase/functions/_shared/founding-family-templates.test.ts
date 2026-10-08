@@ -29,3 +29,14 @@ Deno.test('missing first name and HTML in names are safe', () => {
   const x = buildFoundingFamilyEmail('d2', { firstName: '<b>x</b>', band: 'Sprouts', groupInviteOpen: false })!;
   assert(!x.html.includes('<b>x</b>'));
 });
+
+Deno.test('early cohort wording never assumes next day / two weeks / being printed', () => {
+  for (const step of STEPS) {
+    const e = buildFoundingFamilyEmail(step, { firstName: 'Ann', band: 'Sprouts', groupInviteOpen: true, early: true, startedMonth: 'September' })!;
+    assert(!/about two weeks|being printed|near the end of your nine weeks/.test(e.html), step);
+    assert(!/[\u2014\u2013]/.test(e.html), step);
+  }
+  const d1 = buildFoundingFamilyEmail('d1', { firstName: 'Ann', band: 'Sprouts', groupInviteOpen: true, early: true, startedMonth: 'September' })!;
+  assert(d1.html.includes('back in September'));
+  assert(d1.html.includes('groups/foundingfifty'));
+});

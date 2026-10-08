@@ -19,6 +19,10 @@ export interface FoundingFamilyInput {
   firstName: string | null;
   band: string;            // 'Sprouts' | 'Seedlings' | 'Sprouts and Seedlings'
   groupInviteOpen: boolean;
+  /** Bought before the sequence existed (backfilled 2026-10-08): wording must not assume "next day". */
+  early?: boolean;
+  /** Month they bought, e.g. "September" (early cohort wording). */
+  startedMonth?: string;
 }
 
 const TEXT = '#3D3832';
@@ -60,6 +64,8 @@ export function buildFoundingFamilyEmail(
   const band = esc(input.band);
   const subjName = first ? `, ${first}` : '';
   const invite = input.groupInviteOpen ? GROUP_INVITE : '';
+  const early = input.early === true;
+  const when = input.startedMonth ? ` back in ${esc(input.startedMonth)}` : '';
 
   switch (step) {
     case 'd1':
@@ -67,8 +73,11 @@ export function buildFoundingFamilyEmail(
         subject: `Thank you${subjName}`,
         html: wrap(
           hi(first)
-          + p(`Thank you so much for starting the first nine weeks of ${band}! Every family who says yes this early is helping us launch Eden&rsquo;s Table, and I truly appreciate you.`)
-          + p('You are one of our founding families, so I would love to hear how this is landing around your table with your littles. Expect a few short emails from me over the next few months, just to check in. I want to hear it all. The good, the bad and the ugly.')
+          + (early
+            ? p(`I realized I never properly thanked you for starting the first nine weeks of ${band}${when}! You were one of the very first families to say yes, and that helped us launch Eden&rsquo;s Table more than you know. I truly appreciate you.`)
+              + p('You are one of our founding families, so I would love to hear how it has been landing around your table with your littles. Expect a few short emails from me over the next few months, just to check in. I want to hear it all. The good, the bad and the ugly.')
+            : p(`Thank you so much for starting the first nine weeks of ${band}! Every family who says yes this early is helping us launch Eden&rsquo;s Table, and I truly appreciate you.`)
+              + p('You are one of our founding families, so I would love to hear how this is landing around your table with your littles. Expect a few short emails from me over the next few months, just to check in. I want to hear it all. The good, the bad and the ugly.'))
           + invite
           + p('You can reply to this email anytime. It comes straight to me.')
           + SIGN,
@@ -79,7 +88,9 @@ export function buildFoundingFamilyEmail(
         subject: 'How is it going at your table?',
         html: wrap(
           hi(first)
-          + p(`It has been about two weeks. How is ${band} going at your house?`)
+          + (early
+            ? p(`You are probably well into your nine weeks by now, or life happened and you are somewhere in the middle. Both are completely normal!! How is ${band} going at your house?`)
+            : p(`It has been about two weeks. How is ${band} going at your house?`))
           + p(`I would love to know which day your kids look forward to, and if anything has been a struggle. ${CHECK_IN_ASK}`)
           + SIGN,
         ),
@@ -89,8 +100,11 @@ export function buildFoundingFamilyEmail(
         subject: `Checking in${subjName}`,
         html: wrap(
           hi(first)
-          + p('You are probably near the end of your nine weeks by now, or life happened and you are somewhere in the middle. Both are completely normal!!')
-          + p('How has it been? Is there a plant or a moment your kids still talk about? And honestly, is there anything you would change?')
+          + (early
+            ? p('Your nine weeks have probably wrapped up by now, or life happened and you are still working through them. Both are completely normal!!')
+              + p('How did it go? Is there a plant or a moment your kids still talk about? And honestly, is there anything you would change?')
+            : p('You are probably near the end of your nine weeks by now, or life happened and you are somewhere in the middle. Both are completely normal!!')
+              + p('How has it been? Is there a plant or a moment your kids still talk about? And honestly, is there anything you would change?'))
           + SIGN,
         ),
       };
@@ -109,7 +123,7 @@ export function buildFoundingFamilyEmail(
         subject: 'Six months already',
         html: wrap(
           hi(first)
-          + p('It has been about six months since you started Eden&rsquo;s Table with us. Thank you for being one of the very first.')
+          + p(`It has been ${early ? 'a little over' : 'about'} six months since you started Eden&rsquo;s Table with us. Thank you for being one of the very first.`)
           + p('I would still love to hear how it is going, good, bad or ugly. And if it has been a blessing to your family, would you tell one friend about it? That is truly how this grows.')
           + SIGN,
         ),
@@ -119,8 +133,11 @@ export function buildFoundingFamilyEmail(
         subject: `Thank you${subjName}`,
         html: wrap(
           hi(first)
-          + p(`Thank you so much for ordering the printed ${band} year! Every family who says yes this early is helping us launch Eden&rsquo;s Table, and I truly appreciate you. Your books are being printed just for you, and I will email you the day they ship.`)
-          + p('You are one of our founding families, so I would love to hear how this lands around your table with your littles once the books arrive. Expect a few short emails from me over the next few months, just to check in. I want to hear it all. The good, the bad and the ugly.')
+          + (early
+            ? p(`I realized I never properly thanked you for ordering the printed ${band} year${when}! You were one of the very first families to get the books in hand, and that helped us launch Eden&rsquo;s Table more than you know. I truly appreciate you.`)
+              + p('You are one of our founding families, so I would love to hear how this is landing around your table with your littles. Expect a few short emails from me over the next few months, just to check in. I want to hear it all. The good, the bad and the ugly.')
+            : p(`Thank you so much for ordering the printed ${band} year! Every family who says yes this early is helping us launch Eden&rsquo;s Table, and I truly appreciate you. Your books are being printed just for you, and I will email you the day they ship.`)
+              + p('You are one of our founding families, so I would love to hear how this lands around your table with your littles once the books arrive. Expect a few short emails from me over the next few months, just to check in. I want to hear it all. The good, the bad and the ugly.'))
           + invite
           + p('You can reply to this email anytime. It comes straight to me.')
           + SIGN,
@@ -131,7 +148,9 @@ export function buildFoundingFamilyEmail(
         subject: 'How was Week 1?',
         html: wrap(
           hi(first)
-          + p('Your books have been at your house about two weeks now. Have you started Week 1?')
+          + p(early
+            ? 'Your books have been at your house a few weeks now. Have you started Week 1?'
+            : 'Your books have been at your house about two weeks now. Have you started Week 1?')
           + p(`I would love to know how it went, which day your kids liked best, and if anything was confusing. ${CHECK_IN_ASK}`)
           + SIGN,
         ),

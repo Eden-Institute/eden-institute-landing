@@ -1097,7 +1097,7 @@ async function drainFoundingFamilyQueue(): Promise<QueueResult & { enabled?: boo
 
   const nowIso = new Date().toISOString();
   const rows = await supabaseQuery(
-    `founding_family_queue?select=id,order_id,recipient_email,first_name,band,step,retry_count,first_failed_at,orders(status,raw)` +
+    `founding_family_queue?select=id,order_id,recipient_email,first_name,band,step,cohort,retry_count,first_failed_at,orders(status,raw,created_at)` +
       `&status=eq.pending&scheduled_for=lte.${encodeURIComponent(nowIso)}&${dueFilter(nowIso)}` +
       `&order=scheduled_for.asc&limit=${FF_BATCH}`,
   );
@@ -1149,6 +1149,10 @@ async function drainFoundingFamilyQueue(): Promise<QueueResult & { enabled?: boo
         firstName: row.first_name,
         band: row.band,
         groupInviteOpen: cfg?.group_invite_open !== false,
+        early: row.cohort === 'early',
+        startedMonth: row.orders?.created_at
+          ? new Date(row.orders.created_at).toLocaleString('en-US', { month: 'long', timeZone: 'America/Chicago' })
+          : undefined,
       });
       if (!built) {
         await supabaseQuery(`founding_family_queue?id=eq.${row.id}`, {
