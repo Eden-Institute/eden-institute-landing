@@ -78,15 +78,16 @@ const SITE = "https://edeninstitute.health";
 // 2026-09-28: the one resend of it to people who did not open it, with a new
 // subject (founder's pick 2026-09-24). Resends are the founder's "fewer, better"
 // rule: each list email gets ONE resend to non-openers, then nothing more.
-const CAMPAIGN = "seedlings_live_resend_2026_09_28";
+// 2026-09-28 resend ("seedlings_live_resend_2026_09_28") was built but NEVER SENT.
+// 2026-10-08: Chamomile week, founder "it has been too long". Sprouts Week 2 shown
+// Mon-Fri off the real Teacher's Guide (printed pp. 19-24). Copy approved in session;
+// Word copy: Email Journeys and Nurture/List_Email_Chamomile_Week_2026-10-08.docx.
+const CAMPAIGN = "chamomile_week_2026_10_08";
 
 // When set, this campaign goes ONLY to people who received RESEND_OF and have no
 // open or click on it (matched by that email's exact subject, so opening some
 // other email does not count). Set to null for an ordinary new campaign.
-const RESEND_OF: { campaign: string; subject: string } | null = {
-  campaign: "seedlings_live_2026_09_24",
-  subject: "Seedlings is live (and you\u2019re the first to know)",
-};
+const RESEND_OF: { campaign: string; subject: string } | null = null;
 
 // Founder decision 2026-09-24: anyone who joined more than 90 days ago and has not
 // opened or clicked ANY email in the last 90 days stops getting list blasts. They
@@ -95,7 +96,7 @@ const DORMANT_DAYS = 90;
 
 // Founder's pick, 2026-09-24. The original's subject was "Seedlings is live (and
 // you're the first to know)".
-const SUBJECT = "In case you missed it: Seedlings is here";
+const SUBJECT = "A cup of chamomile with your kids this week";
 
 // Ship dates mirror _shared/order-config.ts and _shared/launch-sequence-templates.ts.
 // They are duplicated here deliberately, exactly as launch-sequence-templates duplicates
@@ -195,33 +196,34 @@ function signature(signoff = "Grace and health,"): string {
 }
 
 /**
- * Seedlings is live, to the homeschool list, 2026-09-24.
+ * Chamomile week, to the homeschool list, 2026-10-08 (founder: "it has been too long").
  *
- * Copy approved in session; Word copy at Eden's Table (Homeschool Curriculum)/Projects/
- * Email Journeys and Nurture/List_Email_Seedlings_Live_2026-09-24.docx. Every claim
- * was read off the live site that day: /books (Seedlings set $249 + $12 shipping, three
- * books, all 36 weeks, extra notebooks $39.99), /starter/seedlings ($39, 9 weeks),
- * /freebies (week 1, five lessons on elderberry) and the band chooser (new to herbs,
- * even grades 3-5, start with Sprouts). Social URLs match src/lib/socials.ts.
- * No preorder language, no credit, no em dashes.
+ * Every line about the week was read off the Sprouts Teacher's Guide, Week 2, printed
+ * pages 19-24 (week at a glance, Kitchen Lab steps, Bear moment allergy note, Thursday
+ * Egypt lesson, chant). Links checked live 2026-10-08: /starter/sprouts ($39, 9 weeks),
+ * /freebies (Sprouts Week 1 free), /tales-and-table-talk, and the Roaming Mama episode on
+ * Apple Podcasts (Lynn cleared sharing 2026-09-18). No em dashes.
  */
 function buildAnnouncement(firstName: string): string {
-  const IG = "https://www.instagram.com/edenstablehomeschoolcurriculum";
-  const FB = "https://www.facebook.com/EdensTableHomeschoolCurriculum";
+  const ROAMING_MAMA =
+    "https://podcasts.apple.com/us/podcast/learning-to-notice-faith-nature-the-joy-of-homeschooling/id1873324343?i=1000790934719";
+  const day = (d: string, t: string) => p(`<strong>${d}:</strong> ${t}`, "margin:0 0 10px 0;");
   const body =
-    preheader(`Grades 3-5, 36 brand new plants, ready to order today.`) +
+    preheader(`One plant, five days, and a podcast for you while you fold laundry.`) +
     p(`Hi ${firstName},`) +
-    p(`Seedlings is live!! Our grades 3-5 curriculum is finished, printed and ready to order today. ${textLink("Take a look at Seedlings here.", `${SITE}/books#seedlings`)}`) +
-    (RESEND_OF
-      ? p(`Sending this one more time in case it got buried in your inbox!`)
-      : p(`And you&rsquo;re hearing it first. I haven&rsquo;t posted one word about it on Instagram or Facebook yet. You&rsquo;ve been with me from the very beginning, so you get the news before anyone else does.`)) +
-    p(`Seedlings covers 36 new plants. None of them repeat Sprouts, so a family that does both ends up knowing 72. Your kids learn body systems and herb profiles, track a hypothesis across a whole week, and get dinner-table questions that make them actually think. It comes as three printed books: the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud Storybook. That&rsquo;s all 36 weeks for $249 plus $12 shipping. Extra notebooks for siblings are $39.99 each.`) +
-    brandButton(`See Seedlings`, `${SITE}/books#seedlings`) +
-    p(`Want to try it first? The ${textLink(`9-week Seedlings Starter Unit is ${STARTER_PRICE}`, `${SITE}/starter/seedlings`)} and downloads instantly. Or ${textLink("grab week 1 free", `${SITE}/freebies`)}, which is five full lessons on elderberry.`) +
-    p(`One quick note before you order. If your kids are new to herbs, even if they&rsquo;re in 3rd to 5th grade, ${textLink("start with Sprouts", `${SITE}/books#sprouts-card`)}. Seedlings builds right on top of those 36 plants. If your older kids already know the basics, go straight to Seedlings. Got little ones and big ones? Do Sprouts together first.`) +
-    p(`Now can I ask you a favor? Please follow us on ${textLink("Instagram", IG)} and ${textLink("Facebook", FB)}. ${RESEND_OF ? "Like and share our Seedlings posts!" : "When the Seedlings post goes up, like it and share it!"} We&rsquo;re a small family business, and every share really does help us get this launched. And if you know a family with 3rd to 5th graders, forward them this email.`) +
-    p(`Thank you so much for being here from the start!!`) +
-    signature("In Him,");
+    p(`It has been a few weeks since I wrote, and I have missed you!! So here is one real week of Eden&rsquo;s Table, the way it looks at a kitchen table.`) +
+    p(`<strong>Week 2 of Sprouts is chamomile</strong>, the tiny daisy that smells like apples.`) +
+    day("Monday", `read &ldquo;Life Force,&rdquo; the story of how Gracie&rsquo;s cut heals by God&rsquo;s design, and meet chamomile.`) +
+    day("Tuesday", `look close and sketch the little daisy.`) +
+    day("Wednesday", `Kitchen Lab. Steep 1 teaspoon of dried chamomile flowers in a mug of hot water for 5 minutes, add a little honey, and watch the water turn pale gold. A grown-up handles the hot water. (Chamomile is a daisy cousin, so if anyone reacts to daisies or ragweed, check first.)`) +
+    day("Thursday", `travel to the Nile in ancient Egypt, where people loved chamomile as a &ldquo;sun-herb,&rdquo; and paint a page of chamomile suns.`) +
+    day("Friday", `go outside, look close at a plant, and review the week together.`) +
+    p(`And the chant your kids will be singing all week: <em>&ldquo;Chamomile, a daisy small, gold and gentle, soft and mild.&rdquo;</em>`, "margin:16px 0 16px 0;") +
+    brandButton(`Start with the first nine weeks`, `${SITE}/starter/sprouts`) +
+    p(`That is the ${textLink(`Sprouts Starter Unit, ${STARTER_PRICE}`, `${SITE}/starter/sprouts`)}, and it downloads instantly. Not ready yet? ${textLink("Grab Week 1 free", `${SITE}/freebies`)}, all five days.`) +
+    p(`<strong>Something just for you:</strong> I was a guest on The Roaming Mama Podcast talking about faith, nature and the joy of homeschooling. ${textLink("Listen here", ROAMING_MAMA)}. It is a good one for folding laundry.`) +
+    signature("In Him,") +
+    p(`P.S. I am starting a read-aloud podcast for you and your kids, <em>Tales and Table Talk</em>. It launches in January. ${textLink("Get on the list here", `${SITE}/tales-and-table-talk`)} so you hear the very first episode.`, "margin:24px 0 0 0;");
   return launchWrapper(body);
 }
 
@@ -350,8 +352,9 @@ async function recipients(db: ReturnType<typeof admin>): Promise<Recipient[]> {
   const buyers = new Set(
     await pagedColumn(db, "preorder_broadcast_list", "customer_email", "customer_email"),
   );
-  // Anyone who already bought Seedlings (Starter or printed set) does not need the news.
-  const seedlingsBuyers = await starterBuyers(db, ["seedlings_starter_unit", "seedlings_print_set"]);
+  // 2026-10-08 Chamomile week pitches the Sprouts Starter: leave out anyone who already
+  // owns Sprouts (six of them got their Founding Family thank-you the same afternoon).
+  const sproutsOwners = await starterBuyers(db, ["sprouts_starter_unit", "sprouts_print_set", "both_bands_print_set"]);
 
   // Already sent this campaign. Filtered here as well as claimed at send time: this
   // keeps the reported "remaining" honest across batches.
@@ -406,10 +409,9 @@ async function recipients(db: ReturnType<typeof admin>): Promise<Recipient[]> {
     const email = (r.email ?? "").trim().toLowerCase();
     if (!email || !email.includes("@")) continue;
     if (seen.has(email)) continue; // the list can hold the same address twice
-    // Sprouts Starter buyers are NOT excluded: Seedlings is their next step. Seedlings
-    // buyers are. Kit buyers (preorder_broadcast_list) stay excluded, as for every
-    // list-announce campaign.
-    if (optedOut.has(email) || buyers.has(email) || seedlingsBuyers.has(email) || sent.has(email)) continue;
+    // Sprouts owners are excluded (see sproutsOwners). Kit buyers (preorder_broadcast_list)
+    // stay excluded, as for every list-announce campaign.
+    if (optedOut.has(email) || buyers.has(email) || sproutsOwners.has(email) || sent.has(email)) continue;
     if (resendPool && (!resendPool.has(email) || openedOriginal.has(email))) continue;
     if (r.created_at && r.created_at < cutoffIso && !recentlyEngaged.has(email)) continue;
     seen.add(email);
