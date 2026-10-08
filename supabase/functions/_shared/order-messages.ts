@@ -13,6 +13,7 @@ import { Db, OrderRow, hasSentMessage, logMessage } from './order-db.ts';
 import { sendSms } from './order-sms.ts';
 import { captureException } from './sentry.ts';
 import { Receipt, loadOrderReceipt, renderReceiptHtml } from './receipt.ts';
+import { tagEmailHtml } from './email-utm.ts';
 
 const FROM = 'Camila at The Eden Institute <hello@edeninstitute.health>';
 const REPLY_TO = 'hello@edeninstitute.health';
@@ -317,13 +318,15 @@ export function preorderSmsText(order: OrderRow): string {
   return `Thank you for your preorder from The Eden Institute (edeninstitute.health).${ref} Your card was charged today. We are aiming to ship ${SHIP_TARGET}, guaranteed on or before ${SHIP_GUARANTEE_TEXT}. You may cancel for a full refund any time before it ships. Reply STOP to opt out.`;
 }
 
-async function sendResendEmail(to: string, subject: string, html: string): Promise<string | null> {
+async function sendResendEmail(to: string, subject: string, html: string, templateKey: string): Promise<string | null> {
   const key = Deno.env.get('RESEND_API_KEY');
   if (!key) throw new Error('RESEND_API_KEY missing');
+  // UTM tags on every edeninstitute.health link (founder rule 2026-10-08, email-utm.ts).
+  const tagged = tagEmailHtml(html, { medium: 'receipt', content: templateKey });
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: FROM, to, reply_to: REPLY_TO, subject, html }),
+    body: JSON.stringify({ from: FROM, to, reply_to: REPLY_TO, subject, html: tagged }),
   });
   if (!res.ok) throw new Error(`resend ${res.status}: ${await res.text()}`);
   const json = await res.json().catch(() => ({}));
@@ -413,7 +416,7 @@ export async function dispatchTransitionMessages(
           if (!receipt) console.error(`order_confirmation: NO itemized receipt for ${order.order_number ?? order.id}; sent the single-line fallback`);
         }
         const { subject, html } = buildOrderEmail(def.templateKey, order, receipt);
-        providerId = await sendResendEmail(order.customer_email, subject, html);
+        providerId = await sendResendEmail(order.customer_email, subject, html, def.templateKey);
       } else {
         providerId = await sendSms(order.customer_phone, orderSmsText(def.templateKey, order));
       }

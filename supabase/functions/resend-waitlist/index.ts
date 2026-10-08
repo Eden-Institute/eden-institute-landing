@@ -7,6 +7,7 @@ import { buildBackToEdenChapter1Email, buildBandWaitlistEmail, buildHomeschoolEm
 import { bandFromSource, buildBandWaitlistRow } from '../_shared/band-waitlist.ts';
 import { buildPodcastWelcomeEmail } from '../_shared/podcast-email-templates.ts';
 import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
+import { tagEmailHtml, type EmailTag } from '../_shared/email-utm.ts';
 import { setContactProperties, type ContactProperties } from '../_shared/resend-contacts.ts';
 import { escapeHtml } from '../_shared/html-escape.ts';
 import { bumpRateBucket, clientIp } from '../_shared/rate-bucket.ts';
@@ -101,8 +102,10 @@ function getSlugInfo(constitutionType: string): { slug: string; name: string } |
 
 // ── Send email helper ──
 
-async function sendEmail(to: string, subject: string, html: string, list: EmailList): Promise<void> {
-  const { html: finalHtml, headers: unsubHeaders } = await applyUnsub(html, to, list);
+async function sendEmail(to: string, subject: string, html: string, list: EmailList, utm: EmailTag): Promise<void> {
+  const { html: unsubHtml, headers: unsubHeaders } = await applyUnsub(html, to, list);
+  // UTM tags on every edeninstitute.health link (founder rule 2026-10-08, _shared/email-utm.ts).
+  const finalHtml = tagEmailHtml(unsubHtml, utm);
   const payload = {
     // The podcast list is its own brand; everything else stays The Eden Institute.
     from: list === 'podcast'
@@ -524,7 +527,7 @@ Deno.serve(async (req) => {
                 reply_to: replyTo,
                 to: [normalizedEmail],
                 subject: e1.subject,
-                html: e1u.html,
+                html: tagEmailHtml(e1u.html, { medium: 'nurture', content: 'constitution_1', campaign: 'constitution' }),
                 headers: e1u.headers,
                 tags: [
                   { name: 'campaign', value: 'constitution' },
@@ -608,6 +611,9 @@ Deno.serve(async (req) => {
 
     // ── Step 5: Welcome email dispatch (non-quiz paths) ──
     let emailContent: { subject: string; html: string } | null = null;
+    // utm_content for the welcome: the code-defined name of the branch taken (never the
+    // raw request `source`, which is caller-supplied free text on the fallback branch).
+    let welcomeKey = 'homeschool';
     if (entry_funnel === 'homeschool') {
       emailContent = buildHomeschoolEmail(firstNameHtml);
     } else if (entry_funnel === 'edens_table') {
@@ -621,16 +627,20 @@ Deno.serve(async (req) => {
       // Starter Unit offer (founder decision 2026-08-27, one free week per band).
       if (source === 'sprouts_magnet') {
         emailContent = buildSproutsMagnetEmail(firstNameHtml);
+        welcomeKey = 'sprouts_magnet';
       } else if (source === 'seedlings_magnet') {
         emailContent = buildSeedlingsMagnetEmail(firstNameHtml);
+        welcomeKey = 'seedlings_magnet';
       } else if (source === 'back_to_eden_ch1') {
         // 2026-09-25: free Chapter 1 of Back to Eden from /back-to-eden. Its source is
         // excluded from the Eden's Table launch sequence (migration 20260925100000).
         emailContent = buildBackToEdenChapter1Email(firstNameHtml);
+        welcomeKey = 'back_to_eden_ch1';
       } else if (waitlistBand) {
         // 'cultivators_waitlist' / 'practitioners_waitlist' (2026-09-24). These used
         // to fall through to the generic homeschool welcome below.
         emailContent = buildBandWaitlistEmail(firstNameHtml, waitlistBand);
+        welcomeKey = `${waitlistBand}_waitlist`;
       } else {
         // 'reserve' used to route to the Founders Club welcome ("Preorders are
         // open now, the first 500 kits sell at $249"). Preorders closed on
@@ -646,6 +656,7 @@ Deno.serve(async (req) => {
       // talesandtabletalk.com until its switch to the network). Its own list, so it never
       // picks up the edens_table launch trigger or list-announce broadcasts.
       emailContent = buildPodcastWelcomeEmail(firstNameHtml);
+      welcomeKey = 'podcast';
     }
     // quiz_funnel is handled by the nurture sequence above.
 
@@ -671,7 +682,7 @@ Deno.serve(async (req) => {
         // funnels), except the podcast welcome, which has its own list so a podcast
         // unsubscribe never touches Eden's Table mail and vice versa.
         const welcomeList: EmailList = entry_funnel === 'podcast' ? 'podcast' : 'homeschool';
-        await sendEmail(normalizedEmail, emailContent.subject, emailContent.html, welcomeList);
+        await sendEmail(normalizedEmail, emailContent.subject, emailContent.html, welcomeList, { medium: 'welcome', content: welcomeKey });
         welcomeSent = true;
       } catch (emailErr) {
         console.error('Welcome email send error:', String(emailErr));

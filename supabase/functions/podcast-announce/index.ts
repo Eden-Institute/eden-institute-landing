@@ -39,6 +39,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { applyUnsub } from '../_shared/email-unsubscribe.ts';
+import { tagEmailHtml } from '../_shared/email-utm.ts';
 import { isServiceRoleRequest } from '../_shared/require-service-role.ts';
 import { checkCampaignConfirm } from '../_shared/send-confirm.ts';
 import {
@@ -161,7 +162,14 @@ async function sendOne(
   to: string,
   content: { subject: string; html: string },
 ): Promise<{ status: number; message: string } | null> {
-  const { html, headers } = await applyUnsub(content.html, to, 'podcast');
+  const { html: unsubHtml, headers } = await applyUnsub(content.html, to, 'podcast');
+  // UTM tags on every edeninstitute.health link (founder rule 2026-10-08, _shared/email-utm.ts).
+  // With no campaign loaded this is the internal rail check, tagged under the function name.
+  const html = tagEmailHtml(unsubHtml, {
+    medium: 'podcast_announce',
+    content: CAMPAIGN?.key ?? 'podcast_announce',
+    campaign: CAMPAIGN?.key,
+  });
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },

@@ -42,6 +42,7 @@ import {
   handleVerify,
   parseGuideAccessBody,
 } from "../_shared/guide-access.ts";
+import { tagEmailHtml } from "../_shared/email-utm.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -113,7 +114,9 @@ async function sendLink(email: string, url: string): Promise<boolean> {
       reply_to: "hello@edeninstitute.health",
       to: [email],
       subject: GUIDE_LINK_SUBJECT,
-      html: guideLinkEmailHtml(url),
+      // UTM tags (founder rule 2026-10-08). The guide link itself carries an access token
+      // and is excluded by the helper; this covers any site link added to the email later.
+      html: tagEmailHtml(guideLinkEmailHtml(url), { medium: "guide_access", content: "guide_access_link" }),
       tags: [{ name: "category", value: "guide_access_link" }],
     }),
   });

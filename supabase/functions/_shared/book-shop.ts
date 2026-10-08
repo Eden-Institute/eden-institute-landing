@@ -24,6 +24,7 @@
 import { escapeHtml } from './html-escape.ts';
 import { emailWrapperTransactional } from './nurture-email-templates.ts';
 import { Receipt, renderReceiptHtml } from './receipt.ts';
+import { tagEmailHtml, tagEmailText, type EmailTag } from './email-utm.ts';
 
 export const BOOK_BUCKET = 'book-files';
 export const BOOK_PAGE = 'https://edeninstitute.health/back-to-eden';
@@ -176,7 +177,13 @@ const REPLY_TO = 'hello@edeninstitute.health';
 export async function sendBookDeliveryEmail(m: BookDeliveryModel): Promise<string | null> {
   const key = Deno.env.get('RESEND_API_KEY');
   if (!key) throw new Error('RESEND_API_KEY is not set; cannot email a book download link');
-  const { subject, html, text } = renderBookDeliveryEmail(m);
+  const rendered = renderBookDeliveryEmail(m);
+  // UTM tags on every edeninstitute.health link (founder rule 2026-10-08, email-utm.ts).
+  // The /back-to-eden/download?t= link and /returns are excluded by the helper.
+  const utm: EmailTag = { medium: 'receipt', content: 'book_delivery' };
+  const subject = rendered.subject;
+  const html = tagEmailHtml(rendered.html, utm);
+  const text = tagEmailText(rendered.text, utm);
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
