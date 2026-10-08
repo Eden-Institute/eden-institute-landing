@@ -20,6 +20,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import AffiliateCommissions from "./AffiliateCommissions";
 
 interface PartnerRow {
   // Null since 2026-08-31: a partner served by an Instagram DM link has no address on file.
@@ -97,6 +98,8 @@ export default function PartnersTab() {
 
   return (
     <div>
+      <AffiliateCommissions />
+
       {error && (
         <div className="mb-6 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
           <p className="font-body text-sm text-destructive">{error}</p>

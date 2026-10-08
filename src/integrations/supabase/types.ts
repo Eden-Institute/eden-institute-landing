@@ -5393,6 +5393,25 @@ export type Database = {
         }
         Returns: undefined
       }
+      founder_affiliate_commissions: {
+        Args: never
+        Returns: {
+          code: string
+          commission_rate: number
+          earned_cents: number
+          goods_cents: number
+          holding_cents: number
+          last_order_at: string | null
+          last_paid_on: string | null
+          orders: number
+          owed_cents: number
+          paid_cents: number
+          partner: string
+          payable_cents: number
+          promo_code_id: string
+          waiting_cents: number
+        }[]
+      }
       founder_course_funnel: { Args: { p_since: string }; Returns: Json }
       founder_crm_feed: {
         Args: { p_since?: string }
@@ -5506,6 +5525,10 @@ export type Database = {
       }
       founder_partner_engagement: { Args: never; Returns: Json }
       founder_payments: { Args: { p_since: string }; Returns: Json }
+      founder_record_affiliate_payout: {
+        Args: { p_amount_cents: number; p_note?: string; p_promo_code_id: string }
+        Returns: string
+      }
       founder_revenue: { Args: { p_since: string }; Returns: Json }
       founder_traffic: { Args: { p_since?: string }; Returns: Json }
       founding_gate: {
