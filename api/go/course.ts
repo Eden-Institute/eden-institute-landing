@@ -31,7 +31,14 @@
 //   SUPABASE_URL (or VITE_SUPABASE_URL)   e.g. https://noeqztssupewjidpvhar.supabase.co
 //   SUPABASE_SERVICE_ROLE_KEY             outbound_clicks is RLS-walled, service role only
 
+// 2026-10-08: COURSE PAUSED. Founder cancelled the LearnWorlds plan (it ends
+// Oct 11), so the school goes dark. Every course link now lands on the paused
+// Tier 1 card on /courses instead of LearnWorlds' "school is disabled" page.
+// The click is still logged. To reopen: set COURSE_PAUSED = false and restore
+// the Enroll buttons on web/pages/courses.astro.
+const COURSE_PAUSED = true;
 const COURSE_URL = 'https://learn.edeninstitute.health/course/back-to-eden1';
+const PAUSED_URL = '/courses#tier-1';
 
 // `src` is the page/CTA that sent the visitor. Anything outside this shape is
 // recorded as 'unknown' rather than stored: the value lands in a database and
@@ -110,6 +117,15 @@ export default async function handler(req: Request, context?: EdgeContext): Prom
     // No waitUntil: give the insert a bounded head start, then go regardless.
     // logClick never rejects (everything inside is caught), so this cannot throw.
     await Promise.race([pending, new Promise<void>((r) => setTimeout(r, LOG_TIMEOUT_MS))]);
+  }
+
+  if (COURSE_PAUSED) {
+    // Same-site hop: no UTMs (internal UTMs would overwrite the visitor's real
+    // attribution in GA4).
+    return new Response(null, {
+      status: 302,
+      headers: { Location: new URL(PAUSED_URL, url.origin).toString(), 'Cache-Control': 'no-store' },
+    });
   }
 
   const dest = new URL(COURSE_URL);

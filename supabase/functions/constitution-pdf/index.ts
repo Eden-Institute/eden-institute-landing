@@ -439,7 +439,7 @@ async function renderFullGuide(content: FullGuideContent, plateBytes: Uint8Array
     { const t = "The Foundations Course"; const w = PfB.widthOfTextAtSize(t, 17); page.drawText(t, { x: (PAGE_W - w) / 2, y: y - 30, size: 17, font: PfB, color: C.cream }); }
     { const t = "Learn to read your body pattern and match it to God's provision in the plant world."; const w = GaI.widthOfTextAtSize(t, 10.5); page.drawText(t, { x: (PAGE_W - w) / 2, y: y - 48, size: 10.5, font: GaI, color: C.softGold }); }
     page.drawRectangle({ x: PAGE_W / 2 - 92, y: y - 80, width: 184, height: 22, color: C.gold });
-    tracked("learn.edeninstitute.health", CzB, 8, PAGE_W / 2, y - 73, C.forest, 1.8, "center");
+    tracked("edeninstitute.health/courses", CzB, 8, PAGE_W / 2, y - 73, C.forest, 1.8, "center");
     y -= 90;
   }
 

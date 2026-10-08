@@ -27,7 +27,8 @@ const BRAND = {
   sage: '#5C7A5C',
 };
 
-const COURSE_URL = 'https://learn.edeninstitute.health/course/back-to-eden1';
+// Through /go/course so a paused course never dead-ends (api/go/course.ts).
+const COURSE_URL = 'https://edeninstitute.health/go/course?src=hs-followup-email';
 
 // ── Helpers (verbatim from nurture-email-templates.ts so output matches) ──
 function p(text: string, extra = ''): string {

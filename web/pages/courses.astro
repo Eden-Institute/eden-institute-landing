@@ -35,9 +35,12 @@ import { cn } from "@/lib/utils";
 // fill its stretched wrapper, the link now takes h-auto so it stretches itself.
 import { BookOpen, CheckCircle, Clock, GraduationCap, Users } from "lucide-react";
 
-// Goes through api/go/course.ts so the click is counted (course sells
-// off-site on LearnWorlds; this is the only way to see if the CTA works).
-const T1 = "/go/course?src=courses";
+// 2026-10-08: TIER 1 ENROLLMENT PAUSED (LearnWorlds plan cancelled, ends Oct 11).
+// The Enroll buttons are removed and the Tier 1 card points to the free quiz.
+// Every other course link on the site and in email goes through /go/course,
+// which lands on #tier-1 here while COURSE_PAUSED is true in api/go/course.ts.
+// To reopen: flip that flag and restore the Enroll links from git history
+// (T1 = "/go/course?src=courses").
 // 2026-09-25: the book is sold on this site now (founder: cut Amazon out).
 const BOOK_URL = "/back-to-eden";
 // Static no-Pattern fallback (matches the React page's anonymous-visitor path).
@@ -72,7 +75,7 @@ const whyCards = [
 const meta = {
   title: "Christian Herbalism Courses for Adults | The Eden Institute",
   description:
-    "Biblical clinical herbalism for Christian families, in three tiers. Tier 1, Biblical Framework: 10 self-paced lessons, certificate, lifetime access. $97.",
+    "Biblical clinical herbalism for Christian families, in three tiers. Tier 1, Biblical Framework: 10 self-paced lessons, certificate, lifetime access. Enrollment reopening soon.",
   canonical: "https://edeninstitute.health/courses",
 };
 
@@ -90,7 +93,8 @@ const courseJsonLd = {
     "@type": "Offer",
     price: "97",
     priceCurrency: "USD",
-    availability: "https://schema.org/InStock",
+    // Paused 2026-10-08; back to InStock when enrollment reopens.
+    availability: "https://schema.org/OutOfStock",
     url: "https://edeninstitute.health/courses",
   },
 };
@@ -126,9 +130,6 @@ const courseJsonLd = {
         </footer>
       </blockquote>
       <div class="flex flex-col items-stretch justify-center gap-4 sm:flex-row sm:flex-wrap">
-        <a href={T1} target="_blank" rel="noopener noreferrer" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center w-full sm:w-auto h-auto whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6")}>
-          Enroll in Tier 1 · $97
-        </a>
         <a href="/assessment" data-cta="journey-aware-quiz" class={cn(buttonVariants({ variant: "eden-outline", size: "xl" }), "text-center w-full sm:w-auto h-auto whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6")}>
           Take the Free Quiz First
         </a>
@@ -153,9 +154,9 @@ const courseJsonLd = {
 
       <div class="grid gap-6 md:grid-cols-3">
         {/* Tier 1 */}
-        <div class="relative rounded-lg border-2 p-8" style="border-color:hsl(var(--eden-gold));background-color:hsl(var(--eden-cream))">
+        <div id="tier-1" class="relative scroll-mt-24 rounded-lg border-2 p-8" style="border-color:hsl(var(--eden-gold));background-color:hsl(var(--eden-cream))">
           <span class="absolute -top-3 left-6 rounded px-3 py-1 text-xs font-semibold uppercase tracking-widest" style="background-color:hsl(var(--eden-gold));color:hsl(var(--eden-bark))">
-            Now Enrolling
+            Reopening Soon
           </span>
           <BookOpen className="mb-4 h-8 w-8" color="hsl(var(--eden-gold))" />
           <h3 class="mb-1 font-serif text-xl font-bold" style="color:hsl(var(--eden-bark))">
@@ -170,11 +171,10 @@ const courseJsonLd = {
               <li class="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0" color="hsl(var(--eden-forest))" />{f}</li>
             ))}
           </ul>
-          <p class="mb-1 text-center font-serif text-3xl font-bold" style="color:hsl(var(--eden-bark))">$97</p>
-          <p class="mb-4 text-center font-body text-xs leading-snug" style="color:hsl(var(--eden-bark) / 0.65)">
-            One payment · self-paced · lifetime access
+          <p class="mb-4 text-center font-body text-sm leading-snug" style="color:hsl(var(--eden-bark))">
+            Enrollment is paused for now. In the meantime, the free Body Pattern Quiz is a good place to start.
           </p>
-          <a href={T1} target="_blank" rel="noopener noreferrer" class={cn(buttonVariants({ variant: "eden" }), "text-center w-full")}>Enroll Now</a>
+          <a href="/assessment" data-cta="courses-tier1-paused-quiz" class={cn(buttonVariants({ variant: "eden" }), "text-center w-full whitespace-normal h-auto leading-snug py-2.5")}>Take the Free Quiz</a>
 
           {/* Companion textbook · Tier 1 */}
           <div class="mt-6 rounded-sm border p-6 flex flex-col gap-4" style="background-color:hsl(var(--eden-parchment));border-color:hsl(var(--eden-gold) / 0.4)">
@@ -271,9 +271,6 @@ const courseJsonLd = {
       <div class="flex flex-col items-stretch justify-center gap-4 sm:flex-row sm:flex-wrap">
         <a href="/assessment" data-cta="journey-aware-quiz" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center w-full sm:w-auto h-auto whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6")}>
           Take the Free Quiz
-        </a>
-        <a href={T1} target="_blank" rel="noopener noreferrer" class={cn(buttonVariants({ variant: "eden-outline", size: "xl" }), "text-center w-full sm:w-auto h-auto whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6")}>
-          Enroll in Tier 1 · $97
         </a>
         <a href={amazonKitUrl} aria-label={amazonKitAriaLabel} data-cta="courses-bottom-amazon-kit" class={cn(buttonVariants({ variant: "eden-outline", size: "xl" }), "text-center w-full sm:w-auto h-auto whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6")}>
           {amazonKitLabel} →
