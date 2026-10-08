@@ -73,6 +73,7 @@ import {
 } from '../_shared/launch-sequence-templates.ts';
 import { foundersFormUrl } from '../_shared/founders-link.ts';
 import { buildBuyerEmail } from '../_shared/buyer-sequence-templates.ts';
+import { buildFoundingFamilyEmail, type FoundingFamilyStep } from '../_shared/founding-family-templates.ts';
 import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
 import { tagEmailHtml } from '../_shared/email-utm.ts';
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
@@ -1074,6 +1075,115 @@ async function drainBuyerQueue(): Promise<QueueResult> {
   return result;
 }
 
+// ── Founding Family check-ins (public.founding_family_queue) ─────────────────
+// Personal notes from Camila to every Starter Unit and printed-set buyer (founder
+// spec 2026-10-08, migration 20261008230000). Three gates before any send:
+//   1. founding_family_settings.sending_enabled: off until the founder approves
+//      the copy. While off, nothing here runs at all.
+//   2. the order is re-read: cancelled/refunded, or a payment marked internal
+//      (a test order), cancels the row.
+//   3. the postpurchase opt-out and a global unsubscribe/bounce on
+//      waitlist_signups both cancel it.
+// Replies do NOT stop the sequence (founder 2026-10-08: every family gets every
+// check-in). The inbox scan only lists who replied so Camila can answer them.
+const FF_BATCH = 50;
+
+async function drainFoundingFamilyQueue(): Promise<QueueResult & { enabled?: boolean }> {
+  const result: QueueResult & { enabled?: boolean } = { processed: 0, sent: 0, failed: 0, retrying: 0 };
+  const settings = await supabaseQuery('founding_family_settings?select=sending_enabled,group_invite_open&limit=1');
+  const cfg = Array.isArray(settings) ? settings[0] : null;
+  result.enabled = cfg?.sending_enabled === true;
+  if (!result.enabled) return result;
+
+  const nowIso = new Date().toISOString();
+  const rows = await supabaseQuery(
+    `founding_family_queue?select=id,order_id,recipient_email,first_name,band,step,cohort,retry_count,first_failed_at,orders(status,raw,created_at)` +
+      `&status=eq.pending&scheduled_for=lte.${encodeURIComponent(nowIso)}&${dueFilter(nowIso)}` +
+      `&order=scheduled_for.asc&limit=${FF_BATCH}`,
+  );
+  if (!Array.isArray(rows)) {
+    console.error('drainFoundingFamilyQueue: unexpected query result', JSON.stringify(rows));
+    return result;
+  }
+
+  const cancel = async (id: string, why: string) => {
+    await supabaseQuery(`founding_family_queue?id=eq.${id}&status=eq.pending`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'cancelled', error_message: why, updated_at: new Date().toISOString() }),
+    });
+  };
+
+  for (const row of rows) {
+    if (budgetExhausted()) break;
+    result.processed++;
+    try {
+      const email = String(row.recipient_email);
+      const orderStatus = row.orders?.status;
+      if (orderStatus === 'cancelled' || orderStatus === 'refunded') {
+        await cancel(row.id, `order ${orderStatus}`);
+        continue;
+      }
+      const pi = row.orders?.raw?.payment_intent;
+      if (pi) {
+        const internal = await supabaseQuery(
+          `payments?stripe_payment_intent_id=eq.${encodeURIComponent(String(pi))}&is_internal=eq.true&select=id&limit=1`,
+        );
+        if (Array.isArray(internal) && internal.length > 0) {
+          await cancel(row.id, 'internal/test order');
+          continue;
+        }
+      }
+      if (await isUnsubscribed(email, 'postpurchase')) {
+        await cancel(row.id, 'recipient unsubscribed (postpurchase)');
+        continue;
+      }
+      const gone = await supabaseQuery(
+        `waitlist_signups?email=ilike.${encodeURIComponent(escapeLikePattern(email))}&unsubscribed_at=not.is.null&select=email&limit=1`,
+      );
+      if (Array.isArray(gone) && gone.length > 0) {
+        await cancel(row.id, 'recipient unsubscribed or bounced (global)');
+        continue;
+      }
+
+      const built = buildFoundingFamilyEmail(row.step as FoundingFamilyStep, {
+        firstName: row.first_name,
+        band: row.band,
+        groupInviteOpen: cfg?.group_invite_open !== false,
+        early: row.cohort === 'early',
+        startedMonth: row.orders?.created_at
+          ? new Date(row.orders.created_at).toLocaleString('en-US', { month: 'long', timeZone: 'America/Chicago' })
+          : undefined,
+      });
+      if (!built) {
+        await supabaseQuery(`founding_family_queue?id=eq.${row.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'failed', error_message: `unknown step ${row.step}`, updated_at: new Date().toISOString() }),
+        });
+        result.failed++;
+        continue;
+      }
+
+      const send = await sendEmail(email, built.subject, built.html, 'postpurchase', engagementTags('founding_family_2026', `ff_${row.step}`));
+      if (send.ok) {
+        await markSent('founding_family_queue', row.id, {
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+        result.sent++;
+      } else {
+        await recordSendFailure('founding_family_queue', row, { status: send.status, name: send.name, message: send.error }, result);
+      }
+      await new Promise((r) => setTimeout(r, RATE_LIMIT_MS));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`drainFoundingFamilyQueue: row ${row.id} threw:`, message);
+      await recordSendFailure('founding_family_queue', row, { status: null, message }, result);
+    }
+  }
+  return result;
+}
+
 // ── Founder alert for emails that gave up after 24 hours of retries ─────────
 const BACKOFF_QUEUES = ['buyer_email_queue', 'nurture_email_queue', 'magnet_email_queue', 'launch_email_queue'] as const;
 const GIVE_UP_ALERT_EVERY_MS = 60 * 60 * 1000;
@@ -1177,6 +1287,7 @@ Deno.serve(async (req) => {
     // Small transactional buyer queue first; the 200-row launch batch runs last
     // before the legacy fallback, so a full launch backlog cannot starve buyers.
     const buyer = await drainBuyerQueue();
+    const founding_family = await drainFoundingFamilyQueue();
     const queue = await drainNurtureQueue();
     const magnet = await drainMagnetQueue();
     const launch = await drainLaunchQueue();
@@ -1191,11 +1302,11 @@ Deno.serve(async (req) => {
     console.log(
       `nurture-emails run: queue=${JSON.stringify(
         queue,
-      )} magnet=${JSON.stringify(magnet)} launch=${JSON.stringify(launch)} buyer=${JSON.stringify(buyer)} legacy_email5=${JSON.stringify(legacy_email5)} budget_exhausted=${budget_exhausted} gave_up_alert=${JSON.stringify(gave_up_alert)}`,
+      )} magnet=${JSON.stringify(magnet)} launch=${JSON.stringify(launch)} buyer=${JSON.stringify(buyer)} founding_family=${JSON.stringify(founding_family)} legacy_email5=${JSON.stringify(legacy_email5)} budget_exhausted=${budget_exhausted} gave_up_alert=${JSON.stringify(gave_up_alert)}`,
     );
 
     return new Response(
-      JSON.stringify({ success: true, queue, magnet, launch, buyer, legacy_email5, budget_exhausted, gave_up_alert }),
+      JSON.stringify({ success: true, queue, magnet, launch, buyer, founding_family, legacy_email5, budget_exhausted, gave_up_alert }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
