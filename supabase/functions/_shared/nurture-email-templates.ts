@@ -316,7 +316,7 @@ ${p(`Your quiz result, <strong>${constitutionName}</strong>, reflects your speci
 ${p("This is the foundation of constitutional herbalism. Practitioners have been reading these patterns for 3,000 years in the Western clinical tradition. We've translated it into a framework that makes sense for modern Christian families.")}
 ${spacer(8)}
 ${p("<em>This is exactly what Tier 1 of the Foundations Course covers in depth.</em>")}
-${brandButton("Learn More About the Foundations Course", "https://learn.edeninstitute.health/course/back-to-eden1")}
+${brandButton("Learn More About the Foundations Course", "https://edeninstitute.health/go/course?src=nurture-email")}
 ${p(`${link("Your full quiz results →", `https://edeninstitute.health/results/${constitutionSlug}`)}`)}
 ${signature()}`;
 
@@ -346,7 +346,7 @@ ${p(`You already know yours: <strong>${constitutionName}</strong>. The Foundatio
 ${goldDivider()}
 ${heading("\"BUT I DON'T HAVE TIME FOR A COURSE.\"")}
 ${p("The course is self-paced. No deadlines, no live sessions. Most students spend 2-3 hours per week. The knowledge lasts a lifetime.")}
-${brandButton("See What's Inside the Foundations Course", "https://learn.edeninstitute.health/course/back-to-eden1")}
+${brandButton("See What's Inside the Foundations Course", "https://edeninstitute.health/go/course?src=nurture-email")}
 ${signature()}`;
 
   return {
@@ -410,7 +410,7 @@ ${subheading("\"Is this faith-based?\"")}
 ${p("Yes. Grounded in Scripture, with Yahweh as healer. Clinical rigor within a Biblical worldview.")}
 ${subheading("\"What if I can't finish in time?\"")}
 ${p("The course is entirely self-paced with lifetime access. There is no deadline.")}
-${brandButton("ENROLL NOW: THE FOUNDATIONS COURSE", "https://learn.edeninstitute.health/course/back-to-eden1")}
+${brandButton("ENROLL NOW: THE FOUNDATIONS COURSE", "https://edeninstitute.health/go/course?src=nurture-email")}
 ${goldDivider()}
 ${p("<strong>P.S.</strong> Tier 2, Body Systems & Clinical Literacy, is coming. Tier 1 students are first to hear when it opens, so finishing Foundations puts you at the front of the line.")}
 ${signature()}`;
@@ -446,9 +446,9 @@ ${spacer(8)}
 </td></tr>
 </table>
 ${p("If and when you're ready to go deeper, the Foundations Course is always available.")}
-${p(`${link("Learn about the Foundations Course →", "https://learn.edeninstitute.health/course/back-to-eden1")}`)}
+${p(`${link("Learn about the Foundations Course →", "https://edeninstitute.health/go/course?src=nurture-email")}`)}
 ${goldDivider()}
-${p("<strong>P.S.</strong> Ready to go deeper than the kit? The Foundations Course (Tier 1) is $97, one payment, lifetime access. " + link("Start the Foundations Course →", "https://learn.edeninstitute.health/course/back-to-eden1"))}
+${p("<strong>P.S.</strong> Ready to go deeper than the kit? The Foundations Course (Tier 1) is $97, one payment, lifetime access. " + link("Start the Foundations Course →", "https://edeninstitute.health/go/course?src=nurture-email"))}
 ${signature()}`;
 
   return {
@@ -542,7 +542,9 @@ export function buildStarterOfferEmail(firstName: string, band: 'sprouts' | 'see
 // days 11/14/17). Bridges quiz-takers to: Deep Dive + class, app + book,
 // homeschool + Facebook. No coupon codes — the Tier-1 price ($97, no increase
 // advertised, founder decision 2026-09-10) is set on the LearnWorlds enrollment page.
-const ARC_COURSE_URL = 'https://learn.edeninstitute.health/course/back-to-eden1';
+// Through /go/course (not LearnWorlds directly) so a paused course never
+// dead-ends: see api/go/course.ts COURSE_PAUSED.
+const ARC_COURSE_URL = 'https://edeninstitute.health/go/course?src=arc-email';
 // 2026-09-25: the book page on this site replaced Amazon (founder: cut Amazon out).
 const ARC_BOOK_ONE_URL = 'https://edeninstitute.health/back-to-eden?utm_source=email&utm_medium=nurture&utm_campaign=quiz_arc2';
 const ARC_APP_URL = 'https://edeninstitute.health/apothecary/start';
