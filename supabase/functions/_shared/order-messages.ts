@@ -14,6 +14,7 @@ import { sendSms } from './order-sms.ts';
 import { captureException } from './sentry.ts';
 import { Receipt, loadOrderReceipt, renderReceiptHtml } from './receipt.ts';
 import { tagEmailHtml } from './email-utm.ts';
+import { SHIPPED_NOTE, DELIVERED_NOTE } from './founding-family-templates.ts';
 
 const FROM = 'Camila at The Eden Institute <hello@edeninstitute.health>';
 const REPLY_TO = 'hello@edeninstitute.health';
@@ -212,6 +213,7 @@ export function buildShippedEmail(order: OrderRow): { subject: string; html: str
   const body =
     p(`Hi ${firstName(order)},`) +
     p(`They are on the way!! Your <strong>${escapeHtml(item)}</strong> shipped today${carrier !== 'the carrier' ? ` with ${escapeHtml(carrier)}` : ''}.`) +
+    p(SHIPPED_NOTE) +
     heading('Tracking') +
     (code ? p(`Tracking number: <strong>${escapeHtml(code)}</strong>`) : '') +
     (link
@@ -232,6 +234,7 @@ export function buildDeliveredEmail(order: OrderRow): { subject: string; html: s
   const body =
     p(`Hi ${firstName(order)},`) +
     p(`Your <strong>${escapeHtml(item)}</strong> was delivered today!`) +
+    p(DELIVERED_NOTE) +
     p(`If it is not where you expected, check with everyone at home first, then the porch, the side door `
       + `and anywhere else the mail carrier likes to hide things. Still nothing? Reply to this email and we `
       + `will sort it out together.`) +
