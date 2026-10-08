@@ -65,8 +65,8 @@ export function buildMagnetWeek4Email(firstName: string): { subject: string; htm
     `${p(`You&rsquo;ve spent a few weeks with Eden&rsquo;s Table around your own table. And a lot of you have written with the same question: &ldquo;What about my older kids?&rdquo;`)}` +
     `${p(`The <strong>Cultivators</strong> (middle school) and <strong>Practitioners</strong> (high school) bands are in development. But you don&rsquo;t have to wait to bring this to your older children.`)}` +
     `${p(`<strong>Back to Eden: Foundations of Biblical Herbalism</strong> is the adult course all of Eden&rsquo;s Table grew from. It covers the Biblical framework for wellness, your God-given constitution, plant energetics, tissue states, and terrain-based thinking. When you learn it, you can lead your middle and high schoolers through it directly. The same Scripture-rooted, clinically grounded foundation, taught to you so you can teach them. A stopgap that is really a strong beginning.`)}` +
-    `${brandButton('Begin the Foundations Course &nbsp;&middot;&nbsp; $97', COURSE_URL)}` +
-    `${p(`$97, one payment, lifetime access. No deadline and no price jump.`)}` +
+    `${p(`Enrollment is paused for now while we get the course ready to open again, but you can see what it covers here.`)}` +
+    `${brandButton('See the Foundations Course', COURSE_URL)}` +
     `${signature()}`;
   return { subject: 'For your older kids, a way to start now', html: emailWrapper(body) };
 }

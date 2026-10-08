@@ -52,7 +52,7 @@ export function TierTwoWaitlistForm({ variant = "card" }: TierTwoWaitlistFormPro
       />
       <p className="font-body text-base leading-relaxed text-muted-foreground mb-2">
         Tier 1, the Foundations of Constitutional Herbalism, is{" "}
-        <strong style={{ color: "hsl(var(--eden-bark))" }}>$97</strong>. One payment, self-paced, lifetime access.
+        <strong style={{ color: "hsl(var(--eden-bark))" }}>reopening soon</strong>. Enrollment is paused for now while we get it ready.
       </p>
       <p className="font-body text-base leading-relaxed text-muted-foreground mb-7">
         Tier 1 students are the first to hear when Tier 2 opens, and Tier 2 grows straight out of the foundation you build now.
@@ -63,12 +63,9 @@ export function TierTwoWaitlistForm({ variant = "card" }: TierTwoWaitlistFormPro
           size="xl"
           className="whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] h-auto py-3 px-6"
         >
-          Start with Tier 1 →
+          See Tier 1 →
         </Button>
       </a>
-      <p className="font-body text-xs text-center text-muted-foreground mt-4">
-        No coupon code needed. The price you see is the price.
-      </p>
     </div>
   );
 }

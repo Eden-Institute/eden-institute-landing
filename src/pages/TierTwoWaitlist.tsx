@@ -50,7 +50,7 @@ const TierTwoWaitlist = () => {
           <div className="mt-10">
             <a href="#start-tier-1" className="inline-block">
               <Button variant="eden" size="xl" className="whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] h-auto py-3 px-6">
-                Start with Tier 1
+                See Tier 1
               </Button>
             </a>
           </div>

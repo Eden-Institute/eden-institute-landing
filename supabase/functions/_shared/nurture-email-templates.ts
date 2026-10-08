@@ -376,7 +376,7 @@ ${p(`Six days ago, you discovered your constitutional type: <strong>${constituti
 ${goldDivider()}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;background-color:${BRAND.bgOuter};border:1px solid ${BRAND.gold};">
 <tr><td style="padding:24px;text-align:center;">
-<p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:3px;color:${BRAND.gold};text-transform:uppercase;margin:0 0 8px 0;">NOW ENROLLING</p>
+<p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:3px;color:${BRAND.gold};text-transform:uppercase;margin:0 0 8px 0;">REOPENING SOON</p>
 <p style="font-family:Georgia,serif;font-size:22px;font-weight:bold;color:${BRAND.forest};margin:0;">THE FOUNDATIONS OF CONSTITUTIONAL HERBALISM, TIER 1</p>
 </td></tr>
 </table>
@@ -397,9 +397,8 @@ ${bullet("Lifetime access")}
 ${spacer(12)}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;background-color:${BRAND.bgOuter};padding:20px;text-align:center;">
 <tr><td style="padding:20px;">
-<p style="font-family:Georgia,serif;font-size:22px;font-weight:bold;color:${BRAND.forest};margin:0 0 8px 0;">One price, one payment</p>
-<p style="font-family:Georgia,serif;font-size:15px;color:${BRAND.text};margin:0 0 8px 0;">The Foundations Course (Tier 1) is $97. One payment, lifetime access, no coupon code needed.</p>
-<p style="font-family:Georgia,serif;font-size:14px;color:${BRAND.gold};font-weight:bold;margin:0;">No deadline and no price jump.</p>
+<p style="font-family:Georgia,serif;font-size:22px;font-weight:bold;color:${BRAND.forest};margin:0 0 8px 0;">Enrollment is paused for now</p>
+<p style="font-family:Georgia,serif;font-size:15px;color:${BRAND.text};margin:0;">We are getting Tier 1 ready to open again. You can still read all about it on the course page.</p>
 </td></tr>
 </table>
 ${goldDivider()}
@@ -410,13 +409,13 @@ ${subheading("\"Is this faith-based?\"")}
 ${p("Yes. Grounded in Scripture, with Yahweh as healer. Clinical rigor within a Biblical worldview.")}
 ${subheading("\"What if I can't finish in time?\"")}
 ${p("The course is entirely self-paced with lifetime access. There is no deadline.")}
-${brandButton("ENROLL NOW: THE FOUNDATIONS COURSE", "https://edeninstitute.health/go/course?src=nurture-email")}
+${brandButton("SEE THE FOUNDATIONS COURSE", "https://edeninstitute.health/go/course?src=nurture-email")}
 ${goldDivider()}
 ${p("<strong>P.S.</strong> Tier 2, Body Systems & Clinical Literacy, is coming. Tier 1 students are first to hear when it opens, so finishing Foundations puts you at the front of the line.")}
 ${signature()}`;
 
   return {
-    subject: `Enrollment is open: your ${constitutionName} guide to herbs starts here`,
+    subject: `Going deeper with your ${constitutionName} pattern`,
     html: emailWrapper(body),
   };
 }
@@ -445,10 +444,10 @@ ${spacer(8)}
 <p style="font-family:Georgia,serif;font-size:13px;color:${BRAND.footerText};margin:0;line-height:1.6;"><em>These are affiliate links. I earn a small commission if you purchase through them. It costs you nothing extra. It helps me keep building Eden Institute.</em></p>
 </td></tr>
 </table>
-${p("If and when you're ready to go deeper, the Foundations Course is always available.")}
+${p("If and when you're ready to go deeper, the Foundations Course is reopening soon.")}
 ${p(`${link("Learn about the Foundations Course →", "https://edeninstitute.health/go/course?src=nurture-email")}`)}
 ${goldDivider()}
-${p("<strong>P.S.</strong> Ready to go deeper than the kit? The Foundations Course (Tier 1) is $97, one payment, lifetime access. " + link("Start the Foundations Course →", "https://edeninstitute.health/go/course?src=nurture-email"))}
+${p("<strong>P.S.</strong> Ready to go deeper than the kit? The Foundations Course (Tier 1) is reopening soon. " + link("See what it covers →", "https://edeninstitute.health/go/course?src=nurture-email"))}
 ${signature()}`;
 
   return {
@@ -556,7 +555,7 @@ const ARC_FREEBIES_URL = 'https://edeninstitute.health/freebies';
 // Day 11: Deep-Dive Guide + the Foundations class.
 export function buildNurtureArc1(firstName: string, constitutionName: string, constitutionSlug: string): { subject: string; html: string } {
   const patternShort = constitutionName.replace(/^The /i, '');
-  const body = `${p(`Hi ${firstName},`)}${p(`You&rsquo;ve spent two weeks getting to know your pattern, <strong>${constitutionName}</strong>. If you&rsquo;re ready to go further, there are two doors.`)}${goldDivider()}${heading('1. Your Deep-Dive Guide')}${p(`Your ${patternShort} pattern in full: all 10 matched herbs with actions, preparation methods, dosages, and safety notes, plus a caution list, lifestyle and nutrition guidance, and the Biblical framework for your constitution.`)}${brandButton(`Get Your ${patternShort} Deep-Dive Guide: $4.99`, `https://edeninstitute.health/go/deep-dive/${constitutionSlug}`)}${goldDivider()}${heading('2. The Foundations Class')}${p(`The guide hands you your pattern. The Foundations Course (Tier 1) teaches you to read and work with <em>any</em> constitution: yours, your children&rsquo;s, your whole household&rsquo;s.`)}${p(`It&rsquo;s <strong>$97</strong>, one payment, lifetime access. No coupon code needed.`)}${brandButton('Start the Foundations Class', ARC_COURSE_URL)}${p(`If you&rsquo;ve already begun, wonderful. Keep going.`)}${signature()}`;
+  const body = `${p(`Hi ${firstName},`)}${p(`You&rsquo;ve spent two weeks getting to know your pattern, <strong>${constitutionName}</strong>. If you&rsquo;re ready to go further, there are two doors.`)}${goldDivider()}${heading('1. Your Deep-Dive Guide')}${p(`Your ${patternShort} pattern in full: all 10 matched herbs with actions, preparation methods, dosages, and safety notes, plus a caution list, lifestyle and nutrition guidance, and the Biblical framework for your constitution.`)}${brandButton(`Get Your ${patternShort} Deep-Dive Guide: $4.99`, `https://edeninstitute.health/go/deep-dive/${constitutionSlug}`)}${goldDivider()}${heading('2. The Foundations Class')}${p(`The guide hands you your pattern. The Foundations Course (Tier 1) teaches you to read and work with <em>any</em> constitution: yours, your children&rsquo;s, your whole household&rsquo;s.`)}${p(`Enrollment is paused for now while we get it ready to open again.`)}${brandButton('See the Foundations Class', ARC_COURSE_URL)}${signature()}`;
   return { subject: 'Now you know your pattern. Go deeper', html: emailWrapper(body) };
 }
 
