@@ -82,12 +82,17 @@ const SITE = "https://edeninstitute.health";
 // 2026-10-08: Chamomile week, founder "it has been too long". Sprouts Week 2 shown
 // Mon-Fri off the real Teacher's Guide (printed pp. 19-24). Copy approved in session;
 // Word copy: Email Journeys and Nurture/List_Email_Chamomile_Week_2026-10-08.docx.
-const CAMPAIGN = "chamomile_week_2026_10_08";
+// 2026-10-08 SENT: 1,029, 0 failed. 2026-10-12: its ONE resend to non-openers, new
+// subject (founder pick 2026-10-08: "The tiny daisy that smells like apples").
+const CAMPAIGN = "chamomile_week_resend_2026_10_12";
 
 // When set, this campaign goes ONLY to people who received RESEND_OF and have no
 // open or click on it (matched by that email's exact subject, so opening some
 // other email does not count). Set to null for an ordinary new campaign.
-const RESEND_OF: { campaign: string; subject: string } | null = null;
+const RESEND_OF: { campaign: string; subject: string } | null = {
+  campaign: "chamomile_week_2026_10_08",
+  subject: "A cup of chamomile with your kids this week",
+};
 
 // Founder decision 2026-09-24: anyone who joined more than 90 days ago and has not
 // opened or clicked ANY email in the last 90 days stops getting list blasts. They
@@ -96,7 +101,7 @@ const DORMANT_DAYS = 90;
 
 // Founder's pick, 2026-09-24. The original's subject was "Seedlings is live (and
 // you're the first to know)".
-const SUBJECT = "A cup of chamomile with your kids this week";
+const SUBJECT = "The tiny daisy that smells like apples";
 
 // Ship dates mirror _shared/order-config.ts and _shared/launch-sequence-templates.ts.
 // They are duplicated here deliberately, exactly as launch-sequence-templates duplicates
@@ -211,7 +216,9 @@ function buildAnnouncement(firstName: string): string {
   const body =
     preheader(`One plant, five days, and a podcast for you while you fold laundry.`) +
     p(`Hi ${firstName},`) +
-    p(`It has been a few weeks since I wrote, and I have missed you!! So here is one real week of Eden&rsquo;s Table, the way it looks at a kitchen table.`) +
+    (RESEND_OF
+      ? p(`Sending this one more time in case it got buried in your inbox! Here is one real week of Eden&rsquo;s Table, the way it looks at a kitchen table.`)
+      : p(`It has been a few weeks since I wrote, and I have missed you!! So here is one real week of Eden&rsquo;s Table, the way it looks at a kitchen table.`)) +
     p(`<strong>Week 2 of Sprouts is chamomile</strong>, the tiny daisy that smells like apples.`) +
     day("Monday", `read &ldquo;Life Force,&rdquo; the story of how Gracie&rsquo;s cut heals by God&rsquo;s design, and meet chamomile.`) +
     day("Tuesday", `look close and sketch the little daisy.`) +
