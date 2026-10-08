@@ -35,6 +35,7 @@ import {
 } from './starter-config.ts';
 import { renderStarterDeliveryEmail, StarterEmailModel } from './starter-email.ts';
 import { Receipt, starterReceipt } from './receipt.ts';
+import { tagEmailHtml, tagEmailText, type EmailTag } from './email-utm.ts';
 
 /**
  * An in_progress delivery older than this belongs to a worker that died (OOM at
@@ -434,7 +435,13 @@ export async function fulfilStarterDelivery(
 
 async function sendDeliveryEmail(model: StarterEmailModel, sessionId: string): Promise<void> {
   const resendKey = requiredEnv('RESEND_API_KEY');
-  const { subject, html, text } = renderStarterDeliveryEmail(model);
+  const rendered = renderStarterDeliveryEmail(model);
+  // UTM tags on every edeninstitute.health link (founder rule 2026-10-08, email-utm.ts).
+  // The /starter/downloads?t= link is excluded by the helper.
+  const utm: EmailTag = { medium: 'receipt', content: 'starter_delivery' };
+  const subject = rendered.subject;
+  const html = tagEmailHtml(rendered.html, utm);
+  const text = tagEmailText(rendered.text, utm);
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },

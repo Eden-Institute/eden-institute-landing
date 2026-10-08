@@ -44,6 +44,7 @@ import {
   summarizeSend,
 } from "../_shared/broadcast-resume.ts";
 import { founderGate, withMfaNudge } from "../_shared/founder-identity.ts";
+import { tagEmailHtml, type EmailTag } from "../_shared/email-utm.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -169,8 +170,12 @@ async function sendEmail(
   subject: string,
   html: string,
   idempotencyKey: string,
+  utm: EmailTag,
 ): Promise<string | null> {
   if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY missing");
+  // UTM tags on every edeninstitute.health link (founder rule 2026-10-08, _shared/email-utm.ts).
+  // The /preorder-response consent and cancel links are excluded by the helper.
+  html = tagEmailHtml(html, utm);
   for (let attempt = 0; ; attempt++) {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -610,7 +615,10 @@ async function handle(req: Request, ctx: HandlerContext): Promise<Response> {
               orderNumberLine: r.order_number ? `Order ${r.order_number}` : undefined,
             });
           }
-          const messageId = await sendEmail(r.customer_email, recipientSubject, html, `${broadcastId}:${r.order_id}`);
+          const messageId = await sendEmail(r.customer_email, recipientSubject, html, `${broadcastId}:${r.order_id}`, {
+            medium: "broadcast",
+            content: isDelay ? "delay_notice" : "update",
+          });
           sentNow += 1;
           await markRecipientSent(db, idempotencyKey, r, claimedAt, messageId);
         } catch (e) {

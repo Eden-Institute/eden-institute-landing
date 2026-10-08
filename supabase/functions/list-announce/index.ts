@@ -51,6 +51,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { launchWrapper } from "../_shared/launch-sequence-templates.ts";
 import { applyUnsub } from "../_shared/email-unsubscribe.ts";
+import { tagEmailHtml } from "../_shared/email-utm.ts";
 import { isServiceRoleRequest } from "../_shared/require-service-role.ts";
 import { checkCampaignConfirm } from "../_shared/send-confirm.ts";
 
@@ -421,7 +422,9 @@ async function recipients(db: ReturnType<typeof admin>): Promise<Recipient[]> {
 
 /** One send. Returns null on success, or the error string. */
 async function sendOne(to: string, firstName: string): Promise<string | null> {
-  const { html, headers } = await applyUnsub(buildAnnouncement(firstName), to, "homeschool");
+  const { html: unsubHtml, headers } = await applyUnsub(buildAnnouncement(firstName), to, "homeschool");
+  // UTM tags on every edeninstitute.health link (founder rule 2026-10-08, _shared/email-utm.ts).
+  const html = tagEmailHtml(unsubHtml, { medium: "newsletter", content: "list_announce", campaign: CAMPAIGN });
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {

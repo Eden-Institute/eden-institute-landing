@@ -74,6 +74,7 @@ import {
 import { foundersFormUrl } from '../_shared/founders-link.ts';
 import { buildBuyerEmail } from '../_shared/buyer-sequence-templates.ts';
 import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
+import { tagEmailHtml } from '../_shared/email-utm.ts';
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
 import { pgrstFetch } from '../_shared/pgrst-retry.ts';
 import { captureException } from '../_shared/sentry.ts';
@@ -267,7 +268,16 @@ async function sendEmail(
   list: EmailList,
   tags?: ResendTag[],
 ): Promise<{ ok: boolean; error?: string; status?: number; name?: string }> {
-  const { html: finalHtml, headers: unsubHeaders } = await applyUnsub(html, to, list);
+  const { html: unsubHtml, headers: unsubHeaders } = await applyUnsub(html, to, list);
+  // UTM tags on every edeninstitute.health link (founder rule 2026-10-08, _shared/email-utm.ts),
+  // keyed off the same campaign/email_key tags the engagement dashboard uses. The buyer
+  // sequence (postpurchase list) is 'buyer'; every other drip this drains is 'nurture'.
+  const tagValue = (name: string) => tags?.find((t) => t.name === name)?.value;
+  const finalHtml = tagEmailHtml(unsubHtml, {
+    medium: list === 'postpurchase' ? 'buyer' : 'nurture',
+    content: tagValue('email_key') ?? list,
+    campaign: tagValue('campaign'),
+  });
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {

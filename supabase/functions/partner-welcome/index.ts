@@ -32,6 +32,7 @@
 // now ignored if a caller still sends it.
 
 import { applyUnsub } from '../_shared/email-unsubscribe.ts';
+import { tagEmailHtml } from '../_shared/email-utm.ts';
 import { escapeHtml } from '../_shared/html-escape.ts';
 import { timingSafeEqual } from '../_shared/timing-safe-equal.ts';
 
@@ -223,7 +224,11 @@ Deno.serve(async (req) => {
     }
     const downloadButtons = await buildDownloadButtons();
     const html = buildPartnerWelcomeHtml(firstName, downloadButtons);
-    const { html: finalHtml, headers: unsubHeaders } = await applyUnsub(html, to, 'homeschool');
+    const { html: unsubHtml, headers: unsubHeaders } = await applyUnsub(html, to, 'homeschool');
+    // UTM tags on every edeninstitute.health link (founder rule 2026-10-08, _shared/email-utm.ts).
+    // The sample download buttons are signed Storage URLs on another host and stay untouched.
+    const emailKey = action === 'testsend' ? 'partner_welcome_test' : 'partner_welcome';
+    const finalHtml = tagEmailHtml(unsubHtml, { medium: 'partner', content: emailKey, campaign: 'partner_program' });
 
     const payload = {
       from: FROM,
@@ -240,7 +245,7 @@ Deno.serve(async (req) => {
       // Resend restricts tag values to ASCII letters, numbers, underscore and dash.
       tags: [
         { name: 'campaign', value: 'partner_program' },
-        { name: 'email_key', value: action === 'testsend' ? 'partner_welcome_test' : 'partner_welcome' },
+        { name: 'email_key', value: emailKey },
       ],
     };
 
