@@ -134,7 +134,7 @@ ${brandButton('READ CHAPTER 1', 'https://edeninstitute.health/lead-magnets/back-
 ${goldDivider()}
 ${heading('WHEN YOU WANT THE REST')}
 ${p(`The whole book comes three ways, in print or as an instant download: the paperback, the spiral Study &amp; Journal Edition with room to write beside every page, and the Study Guide that sits next to the paperback. ${link('See all three editions', 'https://edeninstitute.health/back-to-eden#editions')}.`)}
-${p(`And if you would like to walk through it with me, the Tier 1 course teaches this book lesson by lesson. ${link('Here is the course', 'https://edeninstitute.health/go/course?src=ch1-email')}.`)}
+${p(`And if you would like to walk through it with me, the Tier 1 course teaches this book lesson by lesson. It is reopening soon, and ${link('you can see what it covers here', 'https://edeninstitute.health/go/course?src=ch1-email')}.`)}
 ${closingBlock()}`;
   return { subject: 'Your free chapter of Back to Eden is here', html: magnetWrapper(body) };
 }

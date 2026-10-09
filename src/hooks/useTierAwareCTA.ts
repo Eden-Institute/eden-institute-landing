@@ -197,7 +197,7 @@ function computeTierAwareCTAs(
   const course: TierAwareCTA = {
     label: hasUser
       ? "Continue your studies: The Foundations Course"
-      : "Begin the Foundations Course",
+      : "The Foundations Course: reopening soon",
     href: FOUNDATIONS_COURSE_URL,
     external: true,
   };

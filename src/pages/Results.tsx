@@ -442,7 +442,7 @@ const Results = () => {
               className="inline-flex items-center justify-center w-full px-4 py-3 font-serif font-bold text-sm tracking-wider uppercase transition-colors rounded"
               style={{ backgroundColor: "#C9A84C", color: "#1C3A2E" }}
             >
-              Enroll, $97
+              Reopening Soon
             </a>
           </div>
         </div>
