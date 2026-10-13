@@ -6,8 +6,9 @@
  * use a slug derived from common_name ("Marshmallow" → "marshmallow",
  * "Bacopa (Brahmi)" → "bacopa-brahmi") because those are the URLs people
  * share and read. Derived slugs are verified unique across all 300 rows
- * (live audits 2026-07-01 at 108 rows and 2026-09-14 at 300 rows) and contain no dot+extension sequences, so the
- * vercel.json SPA rewrite always serves them.
+ * (live audits 2026-07-01 at 108 rows and 2026-09-14 at 300 rows) and contain no dots (herbSlug keeps only
+ * a-z, 0-9 and "-"), so the vercel.json /apothecary/<param> SPA rewrite, which takes any one segment
+ * without a dot, always serves them.
  *
  * The route accepts BOTH forms: findHerbByParam matches the H-code first
  * (exact, case-insensitive), then the slug. If a common_name is ever

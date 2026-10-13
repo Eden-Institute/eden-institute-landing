@@ -1,0 +1,48 @@
+---
+// 404: the not-found page. Astro builds it to dist/404.html, and Vercel serves
+// that file, with HTTP status 404, for any path that matches no file, no
+// redirect and no rewrite in vercel.json.
+//
+// Before this page, vercel.json rewrote every unknown path to the SPA shell, so
+// a mistyped or retired URL answered HTTP 200 with the homepage title and
+// "index, follow" (a soft 404). vercel.json now rewrites only the SPA's own
+// routes, and src/test/vercelRewrites.test.ts fails if a route in src/App.tsx
+// is left without one.
+//
+// The copy is the SPA's not-found page (src/pages/NotFound.tsx), word for word.
+// noindex, and no canonical: this page is served at whatever URL was asked for,
+// so it has no address of its own to name.
+//
+// Copy rule: no em dashes.
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { ROUTES } from "@/lib/routes";
+---
+
+<MarketingLayout
+  title="Page not found | The Eden Institute"
+  description="This page could not be found. Take the free Pattern of Eden quiz or browse the herbs in the Eden Apothecary."
+  noindex={true}
+>
+  <main
+    class="flex min-h-[calc(100vh-72px)] items-center justify-center px-6 py-20"
+    style="background-color:hsl(var(--eden-cream))"
+  >
+    <div class="max-w-xl text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">
+        404
+      </p>
+      <h1 class="font-serif text-3xl md:text-4xl font-bold mb-4" style="color:hsl(var(--eden-bark))">
+        We couldn't find that page.
+      </h1>
+      <p class="font-body text-base md:text-lg leading-relaxed mb-8" style="color:hsl(var(--eden-bark))">
+        The link may be old or mistyped. Here are two good places to start.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <a href={ROUTES.ASSESSMENT} class={cn(buttonVariants({ variant: "eden", size: "lg" }), "text-center")}>Take the free quiz</a>
+        <a href={ROUTES.APOTHECARY} class={cn(buttonVariants({ variant: "eden-outline", size: "lg" }), "text-center")}>Browse the herbs</a>
+      </div>
+    </div>
+  </main>
+</MarketingLayout>

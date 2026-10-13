@@ -121,11 +121,15 @@ export default function HerbMonograph() {
         )
       : null;
 
-  // Unresolved params (typos the :herbId segment swallows) canonicalize to
-  // the directory URL, never echo the junk param back as a self-referential
-  // canonical/og:url on an HTTP-200 soft-404. Free-tier herbs canonicalize to
-  // their pre-rendered /herbs/:slug page (the SEO surface per PR #454); gated
-  // herbs keep the app URL.
+  // Free-tier herbs canonicalize to their pre-rendered /herbs/:slug page (the
+  // SEO surface per PR #454); gated herbs keep the app URL. An unresolved
+  // param (a typo the :herbId segment swallows) is a not-found page served
+  // with HTTP 200, because vercel.json has to send every /apothecary/<x> to
+  // the SPA: it is marked noindex and carries no canonical at all, so it can
+  // neither be indexed nor lend its junk URL a canonical. While the herb is
+  // loading or the fetch failed, nothing is known yet, so the head keeps the
+  // directory canonical it has always had and stays indexable.
+  const notFound = !isLoading && !isError && !herb;
   useDocumentMeta({
     // Leads with the name people search, common then Latin, built by the
     // same helper as the pre-rendered /herbs/:slug title.
@@ -139,7 +143,10 @@ export default function HerbMonograph() {
       : "Herb monographs organized by body pattern in the Eden Apothecary.",
     canonical: herb
       ? herbCanonicalUrl(herb)
-      : "https://edeninstitute.health/apothecary",
+      : notFound
+        ? undefined
+        : "https://edeninstitute.health/apothecary",
+    robots: notFound ? "noindex, follow" : undefined,
   });
 
   if (isLoading) return <PageSkeleton />;

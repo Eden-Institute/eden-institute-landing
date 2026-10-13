@@ -33,8 +33,12 @@ export interface DocumentMeta {
   title: string;
   /** <meta name="description">. Required. ~150–160 chars optimal. */
   description: string;
-  /** Canonical URL (absolute, with scheme + host). Required. */
-  canonical: string;
+  /**
+   * Canonical URL (absolute, with scheme + host). Omit it only for a
+   * not-found state: the page then carries no canonical and no og:url at
+   * all, rather than naming a URL that has nothing at it.
+   */
+  canonical?: string;
   /** OG image URL (absolute). Optional — falls back to the index.html default. */
   ogImage?: string;
   /** OG type. Defaults to "website". Use "article" for /results, /guide pages. */
@@ -118,11 +122,13 @@ export function useDocumentMeta(meta: DocumentMeta): void {
   useEffect(() => {
     document.title = title;
     setMetaName("description", description);
-    setLink("canonical", canonical);
+    if (canonical) setLink("canonical", canonical);
+    else removeLink("canonical");
 
     setMetaProperty("og:title", title);
     setMetaProperty("og:description", description);
-    setMetaProperty("og:url", canonical);
+    if (canonical) setMetaProperty("og:url", canonical);
+    else removeMetaProperty("og:url");
     setMetaProperty("og:type", ogType);
     if (ogImage) {
       setMetaProperty("og:image", ogImage);

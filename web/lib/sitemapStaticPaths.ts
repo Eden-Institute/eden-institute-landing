@@ -21,6 +21,7 @@
  *   /freebies/sprouts-week-1, /freebies/seedlings-week-1 - free-week delivery
  *                           surfaces linked from the welcome email; the free week
  *                           is reached by signing up on /freebies, not by search
+ *   /404                  - the not-found page (dist/404.html), served with HTTP 404
  */
 export const STATIC_PATHS: readonly string[] = [
   "/",

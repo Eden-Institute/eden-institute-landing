@@ -13,7 +13,10 @@ import { GOOGLE_FONTS_HREF } from "@/lib/fonts";
 export interface Props {
   title: string;
   description: string;
-  canonical: string;
+  /** Omitted only by the 404 page (web/pages/404.astro), which Vercel serves at
+      whatever URL was asked for: no canonical and no og:url are emitted then.
+      Every other page passes its own. */
+  canonical?: string;
   ogImage?: string;
   ogType?: "website" | "article" | "product";
   /** Product Rich Pin tags, for a single-product page someone can buy from.
@@ -195,7 +198,7 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 
     <title>{title}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={canonical} />
+    {canonical && <link rel="canonical" href={canonical} />}
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -222,7 +225,7 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 
     <!-- Open Graph / Twitter -->
     <meta property="og:type" content={ogType} />
-    <meta property="og:url" content={canonical} />
+    {canonical && <meta property="og:url" content={canonical} />}
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImage} />
