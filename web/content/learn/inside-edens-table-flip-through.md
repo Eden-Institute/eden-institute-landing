@@ -4,6 +4,10 @@ seoTitle: "Christian Curriculum Flip-Through, K-5"
 description: "What the Eden's Table Teacher's Guide, Student Notebook and Read-Aloud look like inside, page by page, using the real Week 1 you can download free."
 published: "2026-09-25"
 draft: false
+related:
+  - free-nature-study-week
+  - herbal-homeschool-curriculum
+  - switching-homeschool-science-mid-year
 faq:
   - q: "How many pages are the Eden's Table books?"
     a: "Sprouts: Teacher's Guide 240 pages, Student Notebook 224 pages, Read-Aloud Storybook 112 pages. Seedlings: Teacher's Guide 245 pages, Student Notebook 227 pages, Read-Aloud Storybook 160 pages."
@@ -21,7 +25,7 @@ faq:
 
 <!-- Flip-through video goes here once it is on the Tales and Table Talk YouTube channel. -->
 
-If you'd like to follow along on paper, [grab Week 1 here](/freebies) first. It comes as PDFs in about a minute.
+If you'd like to follow along on paper, [grab Week 1 here](/freebies) first. It comes as PDFs in about a minute. [What's in the free week](/learn/free-nature-study-week) explains what you get and how to run it.
 
 ## What comes in the printed set?
 

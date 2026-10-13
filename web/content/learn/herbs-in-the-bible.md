@@ -4,6 +4,10 @@ seoTitle: "Herbs in the Bible for Healing: 5 Plants God Gave"
 description: "Healing herbs in the Bible, with verses: balm of Gilead, Hezekiah's figs, oil and wine, and the leaves for the healing of the nations."
 published: "2026-10-04"
 draft: false
+related:
+  - is-herbalism-biblical
+  - is-herbalism-witchcraft
+  - how-to-teach-kids-about-herbs
 faq:
   - q: "What does the Bible say about herbs for healing?"
     a: "Scripture shows God giving plants on purpose and His people using them to heal: a cake of figs on Hezekiah's boil (2 Kings 20:7), balm for pain (Jeremiah 51:8), oil and wine on wounds (Luke 10:34), and leaves \"for healing\" by the river of life (Ezekiel 47:12; Revelation 22:2)."
@@ -77,4 +81,4 @@ Our children can learn plants the same way: as gifts from a Creator who planned 
 
 Using an ESA or scholarship? Eden's Table is an approved or registered vendor in seven programs, and the [ESA page](/esa) shows how buying works in each state.
 
-If the question you're still sitting with is whether using herbs is biblical at all, start with [Is Herbalism Biblical?](/learn/is-herbalism-biblical). And for the whole biblical foundation, my book [Back to Eden: A Biblical Foundation for Herbal Healing](/back-to-eden) goes deeper, in print or as a PDF.
+If the question you're still sitting with is whether using herbs is biblical at all, start with [Is Herbalism Biblical?](/learn/is-herbalism-biblical). If you've heard that using herbs is witchcraft, [Is Herbalism Witchcraft?](/learn/is-herbalism-witchcraft) answers that from Scripture. And for the whole biblical foundation, my book [Back to Eden: A Biblical Foundation for Herbal Healing](/back-to-eden) goes deeper, in print or as a PDF.

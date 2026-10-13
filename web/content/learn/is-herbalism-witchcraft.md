@@ -4,6 +4,10 @@ seoTitle: "Is Herbalism Witchcraft? A Christian Answer"
 description: "No. Using the plants God made is not witchcraft. What Scripture actually forbids, why the enemy wants this ground, and how Christians take it back."
 published: "2026-09-28"
 draft: false
+related:
+  - herbs-in-the-bible
+  - is-herbalism-biblical
+  - how-to-teach-kids-about-herbs
 faq:
   - q: "Is using herbs witchcraft?"
     a: "No. Cooking with thyme or steeping peppermint for tea is using a plant God made. Scripture forbids sorcery, spells, divination and worshiping created things, not the plants themselves."
@@ -19,7 +23,7 @@ No. Using a plant God made is not witchcraft. Steeping peppermint for a tea, coo
 
 Everything God created, He created good. At the end of the sixth day, "God saw all that He had made, and behold, it was very good" (Genesis 1:31, NASB). And when He placed the first man, He didn't put him in a city or a cave. "The Lord God planted a garden toward the east, in Eden; and there He placed the man whom He had formed" (Genesis 2:8, NASB). We started in a garden, on purpose.
 
-Scripture ties plants and healing together from beginning to end. Ezekiel sees trees by the river whose "fruit will be for food and their leaves for healing" (Ezekiel 47:12, NASB). Revelation closes with the tree of life, whose "leaves of the tree were for the healing of the nations" (Revelation 22:2, NASB). And when King Hezekiah was sick, the prophet Isaiah said, "Let them take a cake of figs and apply it to the boil, that he may recover" (Isaiah 38:21, NASB).
+Scripture ties plants and healing together from beginning to end. Ezekiel sees trees by the river whose "fruit will be for food and their leaves for healing" (Ezekiel 47:12, NASB). Revelation closes with the tree of life, whose "leaves of the tree were for the healing of the nations" (Revelation 22:2, NASB). And when King Hezekiah was sick, the prophet Isaiah said, "Let them take a cake of figs and apply it to the boil, that he may recover" (Isaiah 38:21, NASB). Every healing plant in Scripture, with its verses, is in [Herbs in the Bible for Healing](/learn/herbs-in-the-bible).
 
 ## The enemy can't create. He can only pervert.
 

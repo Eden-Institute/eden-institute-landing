@@ -4,6 +4,10 @@ seoTitle: "Choosing an Herbal Homeschool Curriculum"
 description: "What to look for in an herbal homeschool curriculum: real plants, open-and-go lessons, the right grade level, and a faith lens that credits the Creator."
 published: "2026-09-25"
 draft: false
+related:
+  - inside-edens-table-flip-through
+  - free-nature-study-week
+  - is-herbalism-biblical
 faq:
   - q: "Do I need to know about herbs to teach an herbal curriculum?"
     a: "Not with an open-and-go one. In Eden's Table the read-alouds are scripted, the questions are written, and the supply list for each week is already made."

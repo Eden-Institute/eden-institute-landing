@@ -17,6 +17,15 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props as { entry: CollectionEntry<"learn"> };
 const { Content } = await entry.render();
+
+// "Keep reading": up to 3 related articles named in frontmatter. A slug that is
+// missing or still a draft fails the build, so a dead link can never ship.
+const published = await getCollection("learn", ({ data }) => !data.draft);
+const related = entry.data.related.map((slug) => {
+  const hit = published.find((a) => a.slug === slug);
+  if (!hit) throw new Error(`/learn/${entry.slug}: related article "${slug}" is missing or still a draft`);
+  return hit;
+});
 const d = entry.data;
 
 const ORIGIN = "https://edeninstitute.health";
@@ -88,6 +97,20 @@ if (d.faq.length > 0) {
             ))}
           </div>
         </section>
+      )}
+
+      {related.length > 0 && (
+        <nav aria-label="Keep reading" class="mt-14">
+          <h2 class="font-serif text-2xl font-bold mb-6" style="color:hsl(var(--eden-bark))">Keep reading</h2>
+          <ul class="space-y-5">
+            {related.map((r) => (
+              <li>
+                <a href={`/learn/${r.slug}`} data-cta={`learn-${entry.slug}-related-${r.slug}`} class="font-serif text-lg font-bold underline underline-offset-4" style="color:hsl(var(--eden-forest))">{r.data.title}</a>
+                <p class="font-body text-sm text-muted-foreground leading-relaxed mt-1">{r.data.description}</p>
+              </li>
+            ))}
+          </ul>
+        </nav>
       )}
 
       <aside class="mt-14 rounded-lg p-6 border" style="background-color:hsl(var(--eden-cream));border-color:hsl(var(--eden-gold) / 0.35)">

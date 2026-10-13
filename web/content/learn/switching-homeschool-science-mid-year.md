@@ -4,6 +4,10 @@ seoTitle: "Switching Homeschool Science Mid-Year"
 description: "Yes, you can switch science or add nature study at the semester break. A low-risk way to try: one free week, then nine weeks for $39, then the printed year."
 published: "2026-09-25"
 draft: false
+related:
+  - free-nature-study-week
+  - inside-edens-table-flip-through
+  - youre-qualified-to-homeschool
 faq:
   - q: "Can I switch homeschool curriculum in the middle of the year?"
     a: "Yes. The break around Christmas is a natural place to do it. Try one week of the new curriculum first, then decide whether to keep going."
@@ -48,7 +52,7 @@ One plant a week brings a lot with it. The Week at a Glance page shows which day
 
 Take it in three steps, and stop at any of them.
 
-1. **Over the break: one free week.** [Download Week 1](/freebies) for Sprouts (lavender) or Seedlings (elderberry), print it, and teach it the first week back. It's five full lessons and it costs nothing.
+1. **Over the break: one free week.** [Download Week 1](/freebies) for Sprouts (lavender) or Seedlings (elderberry), print it, and teach it the first week back. It's five full lessons and it costs nothing. Want to see the pages first? [Here's a look inside](/learn/inside-edens-table-flip-through).
 2. **January into March: nine weeks for $39.** If the first week goes well, the Starter Unit is weeks 1 to 9 as an instant download, for [Sprouts](/starter) or [Seedlings](/starter/seedlings). Starting the first week of January, nine weeks takes you into March. In Sprouts the first unit runs six weeks and closes, and weeks 7 to 9 open the second, so you finish something whole. The PDFs are yours to keep and reprint for your household.
 3. **When you know: the printed year.** All 36 weeks in three books is [$249 plus $12 shipping](/books), printed to order and at your door in about two to three weeks. Order it while you're still in the Starter Unit and you pick up at Week 10 in the printed books.
 

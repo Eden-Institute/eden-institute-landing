@@ -4,6 +4,10 @@ seoTitle: "Is Herbalism Biblical? A Christian Answer"
 description: "Yes, studying the plants God made is biblical. Where Scripture talks about plants, where Christians should be careful, and how to teach it to kids."
 published: "2026-09-25"
 draft: false
+related:
+  - herbs-in-the-bible
+  - is-herbalism-witchcraft
+  - how-to-teach-kids-about-herbs
 faq:
   - q: "Does the Bible mention herbs?"
     a: "Yes. In Genesis 1:29 God says, \"I have given you every plant yielding seed\" (NASB). Psalm 104:14 says He causes \"vegetation for the labor of man\" to grow, and hyssop appears at the Passover and in Psalm 51."
@@ -33,7 +37,7 @@ All over. A few places to start with your kids:
 - **Exodus 12:22 and Psalm 51:7.** Hyssop shows up at the Passover and in David's prayer.
 - **Ezekiel 47:12 and Revelation 22:2.** Trees beside the river of life, with leaves given for healing.
 
-Nothing in those verses treats plants as suspicious. They are part of a made world, given to people to care for and use well.
+Nothing in those verses treats plants as suspicious. They are part of a made world, given to people to care for and use well. For the plants Scripture shows being used for healing, verse by verse, see [Herbs in the Bible for Healing](/learn/herbs-in-the-bible).
 
 ## Then why do some Christians ask if herbalism is a sin?
 
