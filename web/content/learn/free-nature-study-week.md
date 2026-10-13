@@ -56,7 +56,7 @@ Every day has one job. Here's the Sprouts lavender week, the way it's written:
 - **Thursday, History and Art.** The Romans scented their baths and laundry with lavender, and its name is traced to the Latin lavare, "to wash." Your child draws lavender in front of Roman arches and finds the Mediterranean and Italy on a map.
 - **Friday, Garden and Review.** Go find three living things in a garden, a yard or a windowsill pot, then talk through the week's review questions.
 
-Every day also has a line for Little Sprouts and one for Older Sprouts, so a five-year-old and an eight-year-old can do the same lesson at their own level.
+Most days also have a line for Little Sprouts and one for Older Sprouts, so a five-year-old and an eight-year-old can do the same lesson at their own level.
 
 The Seedlings week has the same five-day shape. Monday opens with Psalm 100 read aloud together, and Wednesday is an elderberry syrup lab. Story Seven is the reading that falls in Week 2, so you'll have it ready if you keep going.
 
