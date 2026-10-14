@@ -98,6 +98,10 @@ const RESEND_OF: { campaign: string; subject: string } | null = {
 // opened or clicked ANY email in the last 90 days stops getting list blasts. They
 // stay on the list and nothing is unsubscribed; opening any email brings them back.
 const DORMANT_DAYS = 90;
+// 2026-10-14 (founder, #352): skip anyone who joined in the last 3 days. A brand-new family
+// is still getting the welcome, the next-morning note and (day 7) the check-in; a list email
+// on top of those would break the never-two-within-48-hours rule. They get the next one.
+const NEW_SIGNUP_DAYS = 3;
 
 // Founder's pick, 2026-09-24. The original's subject was "Seedlings is live (and
 // you're the first to know)".
@@ -381,6 +385,7 @@ async function recipients(db: ReturnType<typeof admin>): Promise<Recipient[]> {
 
   // Dormant pause (DORMANT_DAYS): joined before the cutoff AND no open/click since it.
   const cutoffIso = new Date(Date.now() - DORMANT_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const newCutoffIso = new Date(Date.now() - NEW_SIGNUP_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const recentlyEngaged = await engagedRecipients(db, cutoffIso);
 
   // Resend: only people who got RESEND_OF and never opened or clicked it.
@@ -421,6 +426,9 @@ async function recipients(db: ReturnType<typeof admin>): Promise<Recipient[]> {
     if (optedOut.has(email) || buyers.has(email) || sproutsOwners.has(email) || sent.has(email)) continue;
     if (resendPool && (!resendPool.has(email) || openedOriginal.has(email))) continue;
     if (r.created_at && r.created_at < cutoffIso && !recentlyEngaged.has(email)) continue;
+    // Too new (NEW_SIGNUP_DAYS). raw is oldest-first, so this is the family's FIRST signup:
+    // someone who joined months ago and added the other band today still gets it.
+    if (r.created_at && r.created_at > newCutoffIso) { seen.add(email); continue; }
     seen.add(email);
     const name = (r.first_name ?? "").trim();
     // Never render "Hi ," at somebody. A neutral greeting is better than a blank.
