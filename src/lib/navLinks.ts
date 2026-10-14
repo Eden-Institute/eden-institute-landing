@@ -41,6 +41,10 @@ export const NAV_LINKS: readonly SiteLink[] = [
   // Top of funnel. Sits next to the curriculum link because the freebies ARE Eden's Table
   // sample weeks, and because /homeschool has had no free entry point since #364.
   { label: "Freebies", href: "/freebies" },
+  // 2026-10-13 (founder: "add Guides to the top menu"): the /learn article section, until
+  // then reachable only from the footer ("Homeschool Guides"). Sits with the other
+  // homeschool links, before the adult and app links.
+  { label: "Guides", href: "/learn" },
   { label: "Adult Courses", href: "/courses" },
   { label: "Herb Reference App", href: "/apothecary", spaRoute: true },
   // 2026-09-25: the book page on this site replaced the Amazon Kindle link (founder: cut Amazon out).

@@ -25,6 +25,7 @@ describe("src/lib/navLinks.ts", () => {
     expect(NAV_LINKS.map((l) => [l.label, l.href])).toEqual([
       ["Homeschool Curriculum", "/homeschool"],
       ["Freebies", "/freebies"],
+      ["Guides", "/learn"],
       ["Adult Courses", "/courses"],
       ["Herb Reference App", "/apothecary"],
       ["Buy the Book", "/back-to-eden"],
