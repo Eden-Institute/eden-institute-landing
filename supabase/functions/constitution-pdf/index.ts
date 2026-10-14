@@ -313,7 +313,7 @@ async function renderFullGuide(content: FullGuideContent, plateBytes: Uint8Array
     ["Four", "Your Herbal Allies", content.chapterFour.subtitle],
     ["", "Herbs and Foods to Use With Caution", `What may aggravate the ${content.nickname} pattern`],
     ["Five", "Nutrition & Lifestyle", content.chapterFive.subtitle],
-    ["", "Your Next Step", "Consultation and the Foundations Course"],
+    ["", "Your Next Step", "Consultation and the book, Back to Eden"],
   ];
   for (const [n, t, s] of toc) {
     if (n) tracked(`Chapter ${n}`, CzR, 7.5, M, y - 8, C.sage, 1.8);
@@ -428,18 +428,19 @@ async function renderFullGuide(content: FullGuideContent, plateBytes: Uint8Array
     tracked("Coming soon  ·  edeninstitute.health", CzR, 8, PAGE_W / 2, y - 48, C.walnut, 2, "center");
     y -= 90;
   }
-  if (content.courseCTA) {
+  if (content.bookCTA) {
     goldRule(); y -= 14;
-    h3(content.courseCTA.title, { size: 22, before: 0, after: 2 });
-    if (content.courseCTA.subtitle) { tracked(content.courseCTA.subtitle, CzR, 8, M, y - 8, C.sage, 1.8); y -= 24; }
-    if (content.courseCTA.body) para(content.courseCTA.body);
-    if (content.courseCTA.bullets?.length) { label("In the Foundations Course, you will discover", { before: 4 }); for (const b of content.courseCTA.bullets) bullet(b); }
+    h3(content.bookCTA.title, { size: 22, before: 0, after: 2 });
+    if (content.bookCTA.subtitle) { tracked(content.bookCTA.subtitle, CzR, 8, M, y - 8, C.sage, 1.8); y -= 24; }
+    if (content.bookCTA.body) para(content.bookCTA.body);
+    if (content.bookCTA.bullets?.length) { label("In Back to Eden, you will discover", { before: 4 }); for (const b of content.bookCTA.bullets) bullet(b); }
     y -= 10; ensure(96);
     page.drawRectangle({ x: M, y: y - 90, width: CW, height: 90, color: C.forest });
-    { const t = "The Foundations Course"; const w = PfB.widthOfTextAtSize(t, 17); page.drawText(t, { x: (PAGE_W - w) / 2, y: y - 30, size: 17, font: PfB, color: C.cream }); }
-    { const t = "Learn to read your body pattern and match it to God's provision in the plant world."; const w = GaI.widthOfTextAtSize(t, 10.5); page.drawText(t, { x: (PAGE_W - w) / 2, y: y - 48, size: 10.5, font: GaI, color: C.softGold }); }
-    page.drawRectangle({ x: PAGE_W / 2 - 92, y: y - 80, width: 184, height: 22, color: C.gold });
-    tracked("edeninstitute.health/courses", CzB, 8, PAGE_W / 2, y - 73, C.forest, 1.8, "center");
+    { const t = "Back to Eden"; const w = PfB.widthOfTextAtSize(t, 17); page.drawText(t, { x: (PAGE_W - w) / 2, y: y - 30, size: 17, font: PfB, color: C.cream }); }
+    { const t = "The paperback, the Study & Journal Edition and the Study Guide, in print or as a download."; const w = GaI.widthOfTextAtSize(t, 10.5); page.drawText(t, { x: (PAGE_W - w) / 2, y: y - 48, size: 10.5, font: GaI, color: C.softGold }); }
+    // 260 wide (was 184) so the longer /back-to-eden address fits inside the button.
+    page.drawRectangle({ x: PAGE_W / 2 - 130, y: y - 80, width: 260, height: 22, color: C.gold });
+    tracked("edeninstitute.health/back-to-eden", CzB, 8, PAGE_W / 2, y - 73, C.forest, 1.8, "center");
     y -= 90;
   }
 

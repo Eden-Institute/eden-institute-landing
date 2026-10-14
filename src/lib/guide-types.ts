@@ -67,7 +67,8 @@ export interface FullGuideContent {
     bullets: string[];
   };
 
-  courseCTA: {
+  /** The closing book section (was courseCTA until the course was retired 2026-10-14). */
+  bookCTA: {
     title: string;
     subtitle: string;
     body: string;

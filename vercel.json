@@ -36,6 +36,16 @@
       "permanent": false
     },
     {
+      "source": "/courses",
+      "destination": "/back-to-eden",
+      "permanent": false
+    },
+    {
+      "source": "/tier-2-waitlist",
+      "destination": "/back-to-eden",
+      "permanent": false
+    },
+    {
       "source": "/go/deep-dive/:slug",
       "destination": "https://noeqztssupewjidpvhar.supabase.co/functions/v1/guide-checkout?slug=:slug",
       "permanent": false

@@ -18,7 +18,6 @@ import GuideSuccess from "./pages/GuideSuccess";
 import Results from "./pages/Results";
 import GuideLanding from "./pages/GuideLanding";
 import HomeschoolWelcome from "./pages/HomeschoolWelcome";
-import TierTwoWaitlist from "./pages/TierTwoWaitlist";
 import { ApothecaryLayout } from "@/components/apothecary/ApothecaryLayout";
 import { ApothecaryErrorBoundary } from "@/components/apothecary/ApothecaryErrorBoundary";
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
@@ -108,7 +107,7 @@ const App = () => (
                 so its Navbar and ApothecaryNav stay visible while they load. */}
             <Suspense fallback={<PageSkeleton />}>
             <Routes>
-              {/* /why-eden, /courses, /homeschool and /community are served by the
+              {/* /why-eden, /homeschool and /community are served by the
                   ASTRO build and are canonical there. Their React duplicates were
                   deleted because the two had drifted apart in copy and CTAs, and a
                   visitor saw a different page depending on how they arrived. Links
@@ -143,7 +142,6 @@ const App = () => (
                   stripe-webhook EF handles fulfillment (Supabase user
                   provisioning + bundle_buyer flag) server-side. */}
               <Route path={ROUTES.HOMESCHOOL_WELCOME} element={<HomeschoolWelcome />} />
-              <Route path={ROUTES.TIER_TWO_WAITLIST} element={<TierTwoWaitlist />} />
               {/* Founder-only lead-magnet dashboard. RequireAuth bounces anon
                   visitors to sign-in (return_to=/founder); the page itself shows
                   a restricted notice to logged-in non-founders. The real data

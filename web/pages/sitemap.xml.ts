@@ -19,7 +19,7 @@
  * The /results/* pages ARE listed now, because this branch pre-renders them.
  *
  * Still deliberately absent, because they remain client-rendered shells:
- * /assessment, /apothecary/*, /tier-2-waitlist. (/terms, /privacy and /cookies
+ * /assessment and /apothecary/*. (/tier-2-waitlist redirects to /back-to-eden since 2026-10-14; /terms, /privacy and /cookies
  * became static Astro pages on 2026-09-15 and are listed through STATIC_PATHS.)
  * Excluding them advertises nothing false; it does not deindex anything.
  * Pre-rendering /assessment is the obvious next one to fix - it is the quiz

@@ -29,7 +29,6 @@ const year = new Date().getFullYear();
 
 const doors = [
   { badge: "SPROUTS K-2 + SEEDLINGS 3-5 · PRINTED NOW", eyebrow: "FOR THE FAMILY", title: "Eden's Table", subtitle: "K-5 Homeschool Curriculum", body: "The family doorway. Children learn how God designed their bodies and the plants He gave, alongside the parent who teaches them.", cta: "See both grade bands →", href: "/homeschool#choose-band", external: false },
-  { badge: "FOUNDATIONS REOPENING SOON", eyebrow: "FOR THE ADULT", title: "Eden Institute Courses", subtitle: "Adult Courses · Foundations + Body Systems", body: "The parent track. From foundational worldview to terrain-based clinical literacy. Reach genuine clinical competence over time.", cta: "See the Courses →", href: "/courses", external: false },
   { badge: "LIVE NOW", eyebrow: "FOR THE PRACTITIONER", title: "Eden Apothecary", subtitle: "Herb Reference App · Pocket Materia Medica", body: `The tool. Constitutional pattern matching, ${HERB_CATALOG_SIZE} monograph library, clinical reasoning support. So you don't have to hold it all in your head.`, cta: "Open the Apothecary →", href: "/apothecary", external: false },
   { badge: "PRINT OR DOWNLOAD", eyebrow: "WHERE IT STARTED", title: "Back to Eden", subtitle: "The book where the framework began", body: "The origin text: Scripture-anchored herbal healing, written out in full. The work that started everything Eden Institute teaches.", cta: "Read the Book →", href: "/back-to-eden", external: false },
 ];
@@ -62,7 +61,7 @@ const meta = {
   >
     <HeroBackdrop src={heroBotanical} opacity={0.32} avifQuality={50} />
     {/* 2026-09-25, founder decision: the homepage opens with the framework again,
-        then the four doors. The curriculum-first hero and the band chooser
+        then the doors (three since 2026-10-14, when the adult course was retired). The curriculum-first hero and the band chooser
         (2026-09-24) came off this page; the chooser lives on /homeschool and /books. */}
     <div class="relative z-10 max-w-[960px] w-full mx-auto text-center">
       <p class="uppercase tracking-[0.18em] mb-6" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:11px;color:hsl(var(--green-mid-ink))">
@@ -97,7 +96,7 @@ const meta = {
     </div>
   </section>
 
-  <section id="four-doors" aria-label="Four doors"></section>
+  <section id="four-doors" aria-label="Three doors"></section>
 
   {/* FRAMEWORK */}
   <section id="framework" aria-label="Framework" class="px-8" style="background-color:hsl(var(--cream-light));padding-top:clamp(60px, 8vw, 120px);padding-bottom:clamp(60px, 8vw, 120px)">
@@ -107,13 +106,13 @@ const meta = {
           THE FRAMEWORK
         </p>
         <h2 style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:400;font-size:clamp(28px, 4vw, 48px);line-height:1.15;color:hsl(var(--green-deep));margin-bottom:20px">
-          Four doors. One mission.
+          Three doors. One mission.
         </h2>
         <p class="mx-auto" style="font-family:'EB Garamond', Georgia, serif;font-size:18px;color:hsl(var(--ink-soft));max-width:640px;line-height:1.6">
           This page is the teaser. Each door leads to its own full explanation.
         </p>
       </div>
-      <div class="grid grid-cols-1 min-[880px]:grid-cols-4 gap-6">
+      <div class="grid grid-cols-1 min-[880px]:grid-cols-3 gap-6">
         {doors.map((card) => (
           <article class="flex flex-col bg-white transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_12px_32px_-12px_rgba(0,0,0,0.18)]" style="border-radius:4px;border:0.5px solid hsl(var(--sage-border) / 0.6);border-top:3px solid hsl(var(--green-deep));padding:32px">
             <span class="self-start inline-block mb-5" style="background-color:hsl(var(--honey) / 0.15);color:hsl(var(--honey-ink));font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;padding:5px 10px;border-radius:999px;line-height:1.3">
@@ -224,7 +223,7 @@ const meta = {
       <div class="text-left mx-auto" style="max-width:720px">
         <p style="font-family:'EB Garamond', Georgia, serif;font-size:16px;line-height:1.85;color:hsl(var(--ink));margin-bottom:20px">I'm Camila, a credentialed teacher with a Master's in education. I spent years studying herbalism formally. Every school I attended was rooted in Far Eastern mysticism: chakras, doshas, energy paradigms I don't share.</p>
         <p style="font-family:'EB Garamond', Georgia, serif;font-size:16px;line-height:1.85;color:hsl(var(--ink));margin-bottom:20px">I didn't want to quit. The plants are real. The long history of believers who studied them is real. The body's design is real. But I refused to learn it through a paradigm contrary to my faith.</p>
-        <p style="font-family:'EB Garamond', Georgia, serif;font-size:16px;line-height:1.85;color:hsl(var(--ink));margin-bottom:20px">So I built a framework that begins with Yahweh, the source of vital force, and threads Scripture through every plant, every body system, every clinical decision. Then I built the curriculum to teach it to children. Then the courses to teach it to adults. Then the app to make the materia medica portable. Then the book where it's all written out.</p>
+        <p style="font-family:'EB Garamond', Georgia, serif;font-size:16px;line-height:1.85;color:hsl(var(--ink));margin-bottom:20px">So I built a framework that begins with Yahweh, the source of vital force, and threads Scripture through every plant, every body system, every clinical decision. Then I built the curriculum to teach it to children. Then the app to make the materia medica portable. Then the book where it's all written out.</p>
         <p style="font-family:'EB Garamond', Georgia, serif;font-size:16px;line-height:1.85;color:hsl(var(--ink));margin-bottom:32px">If you've ever picked up an herbal book and quietly noticed Eastern frameworks beneath the surface, this is the alternative you've been waiting for.</p>
       </div>
       <div class="text-right">
@@ -249,9 +248,8 @@ const meta = {
           <p class="uppercase mb-5" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:11px;letter-spacing:0.18em;color:hsl(var(--honey-pale))">THE WORK</p>
           <ul class="space-y-3">
             <li><a href="/homeschool" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">Homeschool Curriculum</a></li>
-            <li><a href="/courses" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">Adult Courses</a></li>
+            <li><a href="/back-to-eden" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">Adult Resources</a></li>
             <li><a href="/apothecary" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">Herb Reference App</a></li>
-            <li><a href="/back-to-eden" class="inline-flex items-center min-h-[44px]" style="font-family:'EB Garamond', Georgia, serif;font-size:15px;color:hsl(var(--sage-pale))">Buy the Book</a></li>
           </ul>
         </div>
         <div>

@@ -72,7 +72,7 @@ function formatDate(iso: string | null): string {
  *   - Header: display_name + email
  *   - **NEW (PR γ): JourneyCTA** — surfaces the dominant next step in
  *     the customer-journey state machine (Pattern quiz → Deep-Dive
- *     Guide → Foundations Course → Seed → Root → Practitioner waitlist),
+ *     Guide → Seed → Root → Practitioner waitlist),
  *     mirroring the homepage placement shipped in PR β (commit 56cdddb).
  *     Same component, no prop wiring — JourneyCTA reads useTierAwareCTA
  *     internally and resolves the active person-profile's Pattern via

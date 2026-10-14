@@ -1,5 +1,10 @@
 // Site → Foundations Course click logger + redirect.
 //
+// 2026-10-14: THE COURSE IS RETIRED (founder: "I don't want an adult course, just
+// the books"). This endpoint stays because course links are still out in the world
+// (emails already sent, old pins, the Chapter 1 sample's QR page), and every one of
+// them now lands on the Back to Eden book page. The history below is kept for context.
+//
 // WHY THIS EXISTS. The Foundations Course ($97) sells on LearnWorlds, which
 // runs its own Stripe and never talks to ours, so a click from this site to
 // learn.edeninstitute.health has been completely invisible: no row anywhere,
@@ -31,14 +36,10 @@
 //   SUPABASE_URL (or VITE_SUPABASE_URL)   e.g. https://noeqztssupewjidpvhar.supabase.co
 //   SUPABASE_SERVICE_ROLE_KEY             outbound_clicks is RLS-walled, service role only
 
-// 2026-10-08: COURSE PAUSED. Founder cancelled the LearnWorlds plan (it ends
-// Oct 11), so the school goes dark. Every course link now lands on the paused
-// Tier 1 card on /courses instead of LearnWorlds' "school is disabled" page.
-// The click is still logged. To reopen: set COURSE_PAUSED = false and restore
-// the Enroll buttons on web/pages/courses.astro.
-const COURSE_PAUSED = true;
-const COURSE_URL = 'https://learn.edeninstitute.health/course/back-to-eden1';
-const PAUSED_URL = '/courses#tier-1';
+// 2026-10-08 the LearnWorlds plan was cancelled and course links went to a paused
+// card on /courses. 2026-10-14 the course was retired and /courses removed, so every
+// course link lands on the book page. The click is still logged.
+const RETIRED_URL = '/back-to-eden';
 
 // `src` is the page/CTA that sent the visitor. Anything outside this shape is
 // recorded as 'unknown' rather than stored: the value lands in a database and
@@ -119,29 +120,19 @@ export default async function handler(req: Request, context?: EdgeContext): Prom
     await Promise.race([pending, new Promise<void>((r) => setTimeout(r, LOG_TIMEOUT_MS))]);
   }
 
-  if (COURSE_PAUSED) {
-    // Same-site hop: no UTMs (internal UTMs would overwrite the visitor's real
-    // attribution in GA4).
-    return new Response(null, {
-      status: 302,
-      headers: { Location: new URL(PAUSED_URL, url.origin).toString(), 'Cache-Control': 'no-store' },
-    });
+  // Same-site hop. No internal UTMs (they would overwrite the visitor's real
+  // attribution in GA4), but the visitor's OWN utm_* tags (an email link carries
+  // them) ride along, so the book page still sees where the click came from.
+  const dest = new URL(RETIRED_URL, url.origin);
+  for (const [k, v] of url.searchParams) {
+    if (k.startsWith('utm_')) dest.searchParams.set(k, v);
   }
-
-  const dest = new URL(COURSE_URL);
-  dest.searchParams.set('utm_source', 'edeninstitute.health');
-  dest.searchParams.set('utm_medium', 'site');
-  dest.searchParams.set('utm_campaign', 'foundations');
-  dest.searchParams.set('utm_content', source);
 
   // 302, never 301: a cached permanent redirect would skip this function and
   // the click would go uncounted for as long as the browser remembered it.
   return new Response(null, {
     status: 302,
-    headers: {
-      Location: dest.toString(),
-      'Cache-Control': 'no-store',
-    },
+    headers: { Location: dest.toString(), 'Cache-Control': 'no-store' },
   });
 }
 

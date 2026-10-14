@@ -5,7 +5,8 @@ import { useTierAwareCTA } from "@/hooks/useTierAwareCTA";
 
 /**
  * JourneyCTA — the dominant next-step prompt + 2 always-visible secondary
- * CTAs (Foundations Course + per-Pattern Amazon kit).
+ * CTAs (the Back to Eden book + per-Pattern Amazon kit; the book link was the
+ * Foundations Course until the course was retired 2026-10-14).
  *
  * Replaces the 7 scattered, hasPattern-pivoted CTAs that PR #106 stitched
  * across Index.tsx. Camila's 2026-05-02 spec collapses the homepage's
@@ -13,17 +14,14 @@ import { useTierAwareCTA } from "@/hooks/useTierAwareCTA";
  * state machine in useTierAwareCTA().
  *
  * Customer-journey order:
- *   Pattern quiz → Deep-Dive Guide → Foundations Course
- *   (untrackable in our funnel, surfaced as always-visible) → Seed
- *   → Root → Practitioner → terminal.
+ *   Pattern quiz → Deep-Dive Guide → Seed → Root → Practitioner → terminal,
+ *   with the Back to Eden book always visible in the secondary slot.
  *
  * The dominant slot walks the order and surfaces whichever step the
  * visitor hasn't completed yet. Completed steps disappear from the
- * dominant slot so the page isn't cluttered. The Foundations Course
- * stays permanently in the secondary slot because we cannot track
- * LearnWorlds enrollment from our Stripe webhook — confirmed
- * 2026-05-02 by live $0-test that LearnWorlds runs charges through its
- * own Stripe and never fires events to our stripe-webhook EF.
+ * dominant slot so the page isn't cluttered. The secondary slot held the
+ * Foundations Course until the course was retired 2026-10-14; it now
+ * holds the book.
  *
  * Active-profile awareness: the underlying useEdenPattern resolves the
  * active person_profile's Pattern via ActiveProfileContext (App-scope
@@ -45,7 +43,7 @@ import { useTierAwareCTA } from "@/hooks/useTierAwareCTA";
  */
 export function JourneyCTA() {
   const { journey, amazonKit } = useTierAwareCTA();
-  const { next, course } = journey;
+  const { next, book } = journey;
 
   // The quiz step preserves the legacy Hero "No email required" reassurance
   // — it's the only entry-point step where account creation might be
@@ -88,21 +86,21 @@ export function JourneyCTA() {
         </p>
       )}
 
-      {/* Always-visible secondary CTAs: Foundations Course (always) +
+      {/* Always-visible secondary CTAs: the Back to Eden book (always) +
           per-Pattern Amazon kit (only when a Pattern is resolved). Both
           external — open in new tab; Amazon carries rel="sponsored" per
           Google's affiliate-disclosure attribute. */}
       <div className="flex flex-col sm:flex-row items-center justify-center gap-x-4 gap-y-2 mt-1">
         <a
-          href={course.href}
+          href={book.href}
           target="_blank"
           rel="noopener noreferrer"
-          data-cta="journey-course"
-          aria-label={`${course.label} (opens in a new tab)`}
+          data-cta="journey-book"
+          aria-label={`${book.label} (opens in a new tab)`}
           className="font-body text-sm font-semibold underline-offset-4 hover:underline inline-flex items-center gap-1.5"
           style={{ color: "hsl(var(--eden-forest))" }}
         >
-          {course.label}
+          {book.label}
           <ExternalLink className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
         </a>
         {amazonKit && (

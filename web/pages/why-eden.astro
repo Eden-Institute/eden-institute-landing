@@ -9,7 +9,7 @@
 //     ScrollReveal, so importing it would hide the thesis text in the static
 //     render. Text mirrors the WhyEden usage (caption shown, no headline).
 //   • The journey-aware final CTA -> static links to /assessment (no-Pattern
-//     funnel path) and /courses. The /guide/<slug> upgrade for returning users
+//     funnel path) and /back-to-eden (was /courses until the course was retired 2026-10-14). The /guide/<slug> upgrade for returning users
 //     with a resolved Pattern can be re-added as a client:only island later.
 // Navbar / Footer / analytics come from MarketingLayout.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
@@ -187,11 +187,12 @@ const meta = {
             Take the Free Body Pattern Quiz
           </a>
           <a
-            href="/courses"
+            href="/back-to-eden"
+            data-cta="why-eden-book"
             class="font-body text-sm font-semibold px-8 py-3 rounded-sm"
             style="background-color:transparent;color:hsl(var(--eden-forest));border:1px solid hsl(var(--eden-forest))"
           >
-            View Our Courses
+            Read Back to Eden
           </a>
         </div>
       </div>

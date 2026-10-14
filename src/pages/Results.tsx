@@ -344,7 +344,7 @@ const Results = () => {
           </div>
         )}
 
-        {/* "Also available" — guide, kit, and course demoted to a compact
+        {/* "Also available" — guide, kit, and (since 2026-10-14) the book, demoted to a compact
             supporting row (approved plan §4/§8: subscription-primary; the
             one-off guide is a stepping stone, not the destination). The
             guide checkout wiring is unchanged, only restyled. */}
@@ -428,21 +428,22 @@ const Results = () => {
           </div>
 
           <div className="flex flex-col p-5 border rounded" style={{ borderColor: "hsl(40, 20%, 80%)", backgroundColor: "white" }}>
+            {/* 2026-10-14: was the Foundations Course card. The course is retired
+                (founder: "I don't want an adult course, just the books"). */}
             <h3 className="font-serif text-lg font-bold mb-2" style={{ color: "#1C3A2E" }}>
-              The Foundations Course
+              Back to Eden, the Book
             </h3>
             <p className="font-body text-sm leading-relaxed mb-4 flex-1" style={{ color: "#1C3A2E" }}>
-              Learn to read your body pattern and match it to God's provision
-              in the plant world.
+              The book this quiz comes from. Chapter 8 teaches the art of
+              reading a person's pattern before reaching for any remedy.
             </p>
             <a
-              href="/go/course?src=results"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/back-to-eden"
+              data-cta="results-book"
               className="inline-flex items-center justify-center w-full px-4 py-3 font-serif font-bold text-sm tracking-wider uppercase transition-colors rounded"
               style={{ backgroundColor: "#C9A84C", color: "#1C3A2E" }}
             >
-              Reopening Soon
+              See the Book
             </a>
           </div>
         </div>
