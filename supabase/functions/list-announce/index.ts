@@ -98,10 +98,11 @@ const RESEND_OF: { campaign: string; subject: string } | null = {
 // opened or clicked ANY email in the last 90 days stops getting list blasts. They
 // stay on the list and nothing is unsubscribed; opening any email brings them back.
 const DORMANT_DAYS = 90;
-// 2026-10-14 (founder, #352): skip anyone who joined in the last 3 days. A brand-new family
-// is still getting the welcome, the next-morning note and (day 7) the check-in; a list email
-// on top of those would break the never-two-within-48-hours rule. They get the next one.
-const NEW_SIGNUP_DAYS = 3;
+// 2026-10-14 (founder, #352): skip a family who joined recently. A new family is still getting
+// the welcome, the next-morning note, the day-7 check-in and (added the same day) the day-10
+// Starter note; a list email on top of those would break the never-two-within-48-hours rule.
+// 12 days = through day 10 plus 48 hours. They get the next list email after that.
+const NEW_SIGNUP_DAYS = 12;
 
 // Founder's pick, 2026-09-24. The original's subject was "Seedlings is live (and
 // you're the first to know)".

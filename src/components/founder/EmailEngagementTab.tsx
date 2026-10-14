@@ -56,6 +56,8 @@ const EMAIL_LABELS: Record<string, string> = {
   magnet_nextmorning_seedlings: "Homeschool · Next-morning note from Camila (Seedlings)",
   magnet_checkin_sprouts: "Homeschool · Day-7 check-in from Camila (Sprouts)",
   magnet_checkin_seedlings: "Homeschool · Day-7 check-in from Camila (Seedlings)",
+  magnet_starter_sprouts: "Homeschool · Day-10 Starter note (Sprouts)",
+  magnet_starter_seedlings: "Homeschool · Day-10 Starter note (Seedlings)",
   magnet_w3_fb: "Homeschool · Week 3 (Facebook)",
 };
 
