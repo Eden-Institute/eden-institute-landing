@@ -12,7 +12,7 @@ import { useLocation } from "react-router-dom";
  * Mount once inside <BrowserRouter> so it has access to useLocation.
  * Returns null — it's a side-effect component.
  *
- * Hash navigation (e.g. /tier-2-waitlist#waitlist-form) is preserved:
+ * Hash navigation (e.g. /some-page#a-section) is preserved:
  * we scroll to the named element instead of jumping to the page top,
  * which is what the user expects when they click an anchor link.
  *
@@ -28,7 +28,7 @@ export default function ScrollToTop() {
     if (hash) {
       // Hash navigation: scroll to the named element. The browser does
       // this natively for full-page loads but NOT for SPA pushes —
-      // re-implement it here so /tier-2-waitlist#waitlist-form works
+      // re-implement it here so a link like /some-page#a-section works
       // both as an external link and as an internal Link.
       const id = hash.startsWith("#") ? hash.slice(1) : hash;
       const el = document.getElementById(id);

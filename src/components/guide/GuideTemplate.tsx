@@ -88,7 +88,7 @@ interface Props {
 }
 
 const GuideTemplate = ({ guide }: Props) => {
-  const { chapterOne, chapterTwo, chapterThree, chapterFour, chapterFive, cautionHerbs, coachingCTA, courseCTA } = guide;
+  const { chapterOne, chapterTwo, chapterThree, chapterFour, chapterFive, cautionHerbs, coachingCTA, bookCTA } = guide;
   const plateSrc = `/guide-plates/${guide.slug}.jpg`;
 
   return (
@@ -318,30 +318,31 @@ const GuideTemplate = ({ guide }: Props) => {
 
         <GoldDivider />
 
-        {/* === COURSE CTA === */}
+        {/* === BOOK CTA (was the course CTA until 2026-10-14) === */}
         <section className="mb-16">
           <h2 className="font-bold mb-1" style={{ fontFamily: DISPLAY, color: COLORS.forest, fontSize: "1.75rem" }}>
-            {courseCTA.title}
+            {bookCTA.title}
           </h2>
-          <Eyebrow className="mb-6">{courseCTA.subtitle}</Eyebrow>
-          <p className="mb-6">{fix(courseCTA.body)}</p>
-          <SectionLabel>In the Foundations Course, you will discover</SectionLabel>
-          <div className="mb-8"><Bullets items={courseCTA.bullets} /></div>
+          <Eyebrow className="mb-6">{bookCTA.subtitle}</Eyebrow>
+          <p className="mb-6">{fix(bookCTA.body)}</p>
+          <SectionLabel>In Back to Eden, you will discover</SectionLabel>
+          <div className="mb-8"><Bullets items={bookCTA.bullets} /></div>
           <div className="p-6 md:p-8 text-center" style={{ backgroundColor: COLORS.forest }}>
             <p className="font-bold mb-1" style={{ fontFamily: DISPLAY, color: COLORS.cream, fontSize: "1.25rem" }}>
-              The Foundations Course
+              Back to Eden
             </p>
             <p className="italic mb-5" style={{ color: COLORS.softGold, fontSize: "0.9375rem" }}>
-              Learn to read your body pattern, understand your body's language, and match it to God's provision in the plant world.
+              The paperback, the Study &amp; Journal Edition and the Study Guide, in print or as a download.
             </p>
             <a
-              href="/go/course?src=guide"
+              href="/back-to-eden"
+              data-cta="guide-book"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block px-8 py-3 uppercase font-bold no-underline"
               style={{ backgroundColor: COLORS.gold, color: COLORS.forest, fontFamily: EYEBROW, fontSize: "0.75rem", letterSpacing: "0.16em" }}
             >
-              Reopening Soon: See the Course
+              See the Book
             </a>
           </div>
         </section>

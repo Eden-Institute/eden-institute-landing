@@ -5,7 +5,7 @@
  * WHY THIS EXISTS
  *
  * The deep-dive guides carry a disclaimer (GuideTemplate.tsx) and the Terms
- * carry a full one (Terms.tsx section 11), but the Apothecary itself carried
+ * carry a full one (Terms section 10, "Health and Medical Disclaimer"), but the Apothecary itself carried
  * NONE, on any surface, at any tier. A reader could browse 300 herbs with
  * pregnancy safety fields, drug interactions, refer thresholds and pattern
  * verdicts without ever meeting a "this is educational" line. That is the

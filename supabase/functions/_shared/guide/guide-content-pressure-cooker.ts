@@ -226,17 +226,20 @@ export const pressureCookerGuide: FullGuideContent = {
     ],
   },
 
-  courseCTA: {
-    title: "The Foundations Course",
-    subtitle: "Your Next Step With The Eden Institute",
-    body: "This guide has introduced you to your constitutional pattern through the lens of Western herbal tradition. But this is only the beginning.",
+  // 2026-10-14: was courseCTA (the Foundations Course). The course is retired (founder:
+  // "I don't want an adult course, just the books"), so this section points to the book.
+  // Bullets are the "What you'll discover" list on /back-to-eden, word for word.
+  bookCTA: {
+    title: "Back to Eden",
+    subtitle: "A Biblical Foundation for Herbal Healing",
+    body: "This guide has introduced you to your constitutional pattern. Back to Eden is the book the whole framework comes from: Scripture-anchored herbal healing, written out in full.",
     bullets: [
-      "Deeper Constitutional Mapping: How your pattern connects to classical Western traditions — translated into a Biblical framework without Eastern metaphysics.",
-      "Body System Integration: How your constitutional pattern tends to manifest in each body system — digestive, respiratory, nervous, cardiovascular, endocrine, and more.",
-      "Tissue State Assessment: Learn to read the six tissue states (heat, cold, damp, dry, tension, laxity) and how they layer onto your constitutional baseline.",
-      "Herbal Actions & Materia Medica: A comprehensive herb library organized by constitutional affinity, with detailed monographs.",
-      "Formulation Principles: Learn how to combine herbs effectively for your constitution — which herbs lead, which support, and how to balance a formula.",
-      "Biblical Anchors: Scripture-grounded wisdom for every body system and every herbal decision.",
+      "Why your body's symptoms are signals, not mistakes, and why suppressing them creates chronic disease",
+      "How God designed the body to heal itself, and what gets in the way",
+      "The five tenets of health, and why foundation always comes before any herb",
+      "What your constitution is, why it matters more than any diagnosis, and how to recognize your own",
+      "How plants speak the same language as your body, through taste, energy, and tissue affinity",
+      "Why the most important clinical skill isn't knowing herbs, it's learning to see the person in front of you",
     ],
   },
 };

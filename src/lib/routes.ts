@@ -40,7 +40,6 @@ export const ROUTES = {
   HOME: "/",
   ASSESSMENT: "/assessment",
   HOMESCHOOL_WELCOME: "/homeschool/welcome",
-  TIER_TWO_WAITLIST: "/tier-2-waitlist",
 
   // ── Founder / admin (auth-walled; server-gated by is_founder()) ──
   FOUNDER_LEADS: "/founder",
@@ -102,7 +101,6 @@ export const ROUTES = {
  */
 export const ASTRO_PAGES = {
   WHY_EDEN: "/why-eden",
-  COURSES: "/courses",
   HOMESCHOOL: "/homeschool",
   COMMUNITY: "/community",
   // Astro page since #193 (2026-06-07); listed under ROUTES until 2026-09-28,

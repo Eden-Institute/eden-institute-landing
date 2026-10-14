@@ -45,10 +45,12 @@ export const NAV_LINKS: readonly SiteLink[] = [
   // then reachable only from the footer ("Homeschool Guides"). Sits with the other
   // homeschool links, before the adult and app links.
   { label: "Guides", href: "/learn" },
-  { label: "Adult Courses", href: "/courses" },
+  // 2026-10-14 (founder: "change Adult Courses to Adult Resources, I am only selling the
+  // books"): the adult course is retired, so this goes to the Back to Eden book page.
+  // /courses redirects there too (vercel.json). The separate "Buy the Book" link
+  // (same page, cta nav-buy-book) came out the same day, founder: one adult link, not two.
+  { label: "Adult Resources", href: "/back-to-eden", cta: "nav-adult-resources" },
   { label: "Herb Reference App", href: "/apothecary", spaRoute: true },
-  // 2026-09-25: the book page on this site replaced the Amazon Kindle link (founder: cut Amazon out).
-  { label: "Buy the Book", href: "/back-to-eden", cta: "nav-buy-book" },
   { label: "Contact", href: "/contact" },
 ];
 

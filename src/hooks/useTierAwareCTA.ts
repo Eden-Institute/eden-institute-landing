@@ -47,7 +47,8 @@ export interface JourneyStep extends TierAwareCTA {
 
 export interface JourneyState {
   next: JourneyStep;
-  course: TierAwareCTA;
+  /** The always-visible book link (was the Foundations Course until 2026-10-14). */
+  book: TierAwareCTA;
 }
 
 export interface TierAwareCTAs {
@@ -66,10 +67,10 @@ export interface ComputeTierAwareCTAsArgs {
   amazonKitUrl: string | null;
 }
 
-// Goes through api/go/course.ts so the click is counted (course sells
-// off-site on LearnWorlds; this is the only way to see if the CTA works).
+// 2026-10-14: the Foundations Course is retired (founder: "I don't want an adult
+// course, just the books"), so the secondary journey link goes to the book page.
 // JourneyCTA renders this as a plain <a>, so the relative path is fine.
-const FOUNDATIONS_COURSE_URL = "/go/course?src=journey";
+const BOOK_URL = "/back-to-eden";
 
 function computeTierAwareCTAs(
   args: ComputeTierAwareCTAsArgs,
@@ -194,11 +195,11 @@ function computeTierAwareCTAs(
     };
   }
 
-  const course: TierAwareCTA = {
+  const book: TierAwareCTA = {
     label: hasUser
-      ? "Continue your studies: The Foundations Course"
-      : "The Foundations Course: reopening soon",
-    href: FOUNDATIONS_COURSE_URL,
+      ? "Continue your studies: Back to Eden, the book"
+      : "Read Back to Eden, the book behind the quiz",
+    href: BOOK_URL,
     external: true,
   };
 
@@ -206,7 +207,7 @@ function computeTierAwareCTAs(
     upgrade,
     guide,
     amazonKit,
-    journey: { next, course },
+    journey: { next, book },
   };
 }
 

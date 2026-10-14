@@ -8,7 +8,7 @@
 // record (band_waitlist.sms_consent_text) cannot drift apart.
 //
 // The consent wording is founder-approved 2026-09-24, together with the matching
-// Terms §18 and Privacy §4 paragraphs. Change all three together or none.
+// Terms §17 (§18 until 2026-10-14) and Privacy §4 paragraphs. Change all three together or none.
 // Voice rule: no em dashes.
 
 export type WaitlistBand = 'cultivators' | 'practitioners';

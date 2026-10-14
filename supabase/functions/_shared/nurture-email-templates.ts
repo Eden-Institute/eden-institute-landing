@@ -315,8 +315,8 @@ ${goldDivider()}
 ${p(`Your quiz result, <strong>${constitutionName}</strong>, reflects your specific combination of these three axes. And that combination is why certain herbs work brilliantly for you and others backfire.`)}
 ${p("This is the foundation of constitutional herbalism. Practitioners have been reading these patterns for 3,000 years in the Western clinical tradition. We've translated it into a framework that makes sense for modern Christian families.")}
 ${spacer(8)}
-${p("<em>This is exactly what Tier 1 of the Foundations Course covers in depth.</em>")}
-${brandButton("Learn More About the Foundations Course", "https://edeninstitute.health/go/course?src=nurture-email")}
+${p("<em>This is the heart of Chapter 8 of my book, Back to Eden.</em>")}
+${brandButton("See the Book", "https://edeninstitute.health/back-to-eden")}
 ${p(`${link("Your full quiz results →", `https://edeninstitute.health/results/${constitutionSlug}`)}`)}
 ${signature()}`;
 
@@ -342,11 +342,9 @@ ${heading("THE DISCOVERY")}
 ${p("She was running hot, dry, and tense. Turmeric was adding fuel to a fire. Valerian was the right idea (nervous system support) but the wrong execution for her pattern. Elderberry wasn't addressing her actual imbalance.")}
 ${p("<strong>When she matched herbs to her constitution instead of her symptoms, the results were immediate.</strong>")}
 ${spacer(8)}
-${p(`You already know yours: <strong>${constitutionName}</strong>. The Foundations Course teaches you how to go deeper: how to read your constitution in real time, how to match it precisely to herbs, and how to build protocols that actually work.`)}
-${goldDivider()}
-${heading("\"BUT I DON'T HAVE TIME FOR A COURSE.\"")}
-${p("The course is self-paced. No deadlines, no live sessions. Most students spend 2-3 hours per week. The knowledge lasts a lifetime.")}
-${brandButton("See What's Inside the Foundations Course", "https://edeninstitute.health/go/course?src=nurture-email")}
+${p(`You already know yours: <strong>${constitutionName}</strong>. My book, <em>Back to Eden</em>, goes deeper: why symptoms are signals, how God designed the body to heal, and how to read a person before reaching for any remedy.`)}
+${p("Chapter 1 is free.")}
+${brandButton("See What's Inside Back to Eden", "https://edeninstitute.health/back-to-eden")}
 ${signature()}`;
 
   return {
@@ -362,56 +360,42 @@ export function buildNurtureEmail4(
   constitutionName: string,
   constitutionSlug: string,
 ): { subject: string; html: string } {
-  // 2026-04-30 (revenue-loss bug fix): the FIRSTFRUITS coupon previously
-  // promoted in this email body STACKED on top of LearnWorlds'
-  // already-applied $100 founding-student discount, dropping the $97
-  // course to $0 at checkout. Remediation: remove the explicit price
-  // and the FIRSTFRUITS coupon copy from the email body. The
-  // LearnWorlds enrollment page becomes the single source of truth for
-  // the live price; the email no longer asserts a number that could
-  // double-discount. The button label also drops the "($97)" so the
-  // email's price assertion is fully retired.
+  // 2026-10-14: this email sold the Foundations Course. The course is retired (founder: "I
+  // don't want an adult course, just the books"), so it now introduces the book. Its copy is
+  // the /back-to-eden page's own words. No price appears here: the page is the one place a
+  // price lives (the 2026-04-30 FIRSTFRUITS coupon in this body once stacked on a platform
+  // discount and dropped the course to $0).
   const body = `
 ${p(`Six days ago, you discovered your constitutional type: <strong>${constitutionName}</strong>. Since then, you've learned why herbs work differently in different bodies. Now it's time to go deeper.`)}
 ${goldDivider()}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;background-color:${BRAND.bgOuter};border:1px solid ${BRAND.gold};">
 <tr><td style="padding:24px;text-align:center;">
-<p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:3px;color:${BRAND.gold};text-transform:uppercase;margin:0 0 8px 0;">REOPENING SOON</p>
-<p style="font-family:Georgia,serif;font-size:22px;font-weight:bold;color:${BRAND.forest};margin:0;">THE FOUNDATIONS OF CONSTITUTIONAL HERBALISM, TIER 1</p>
+<p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:3px;color:${BRAND.gold};text-transform:uppercase;margin:0 0 8px 0;">THE BOOK</p>
+<p style="font-family:Georgia,serif;font-size:22px;font-weight:bold;color:${BRAND.forest};margin:0;">BACK TO EDEN: A BIBLICAL FOUNDATION FOR HERBAL HEALING</p>
 </td></tr>
 </table>
-${heading("Part I: The Foundation")}
-${p("God's design, the 5 Tenets of Health, and terrain thinking: the Biblical and historical framework for plant medicine.")}
-${heading("Part II: The Body Was Designed to Heal")}
-${p("The 3 axes, 8 constitutional types, and tissue states: how to understand the human body through constitution.")}
-${heading("Part III: Reading the Person")}
-${p("Constitutional assessment, herb matching, and protocols: how to match people to plants with precision.")}
+${p("Why aren't the herbs working? Not because the plants have failed. Not because you did anything wrong. Because no one ever taught you the framework. <em>Back to Eden</em> gives it back.")}
+${p("This is not a remedy guide. There are no protocols here, no &ldquo;best herb for anxiety&rdquo; lists. It is a foundation, the kind that makes every herb you've ever studied suddenly make sense.")}
 ${goldDivider()}
-${subheading("WHAT'S INCLUDED")}
-${bullet("10 video lessons")}
-${bullet("10 companion guides")}
-${bullet("10 application activities")}
-${bullet("100 quiz questions")}
-${bullet("Certificate of Completion")}
-${bullet("Lifetime access")}
+${subheading("WHAT YOU'LL DISCOVER")}
+${bullet("Why your body's symptoms are signals, not mistakes, and why suppressing them creates chronic disease")}
+${bullet("How God designed the body to heal itself, and what gets in the way")}
+${bullet("The five tenets of health, and why foundation always comes before any herb")}
+${bullet("What your constitution is, why it matters more than any diagnosis, and how to recognize your own")}
+${bullet("How plants speak the same language as your body, through taste, energy, and tissue affinity")}
+${bullet("Why the most important clinical skill isn't knowing herbs, it's learning to see the person in front of you")}
 ${spacer(12)}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;background-color:${BRAND.bgOuter};padding:20px;text-align:center;">
-<tr><td style="padding:20px;">
-<p style="font-family:Georgia,serif;font-size:22px;font-weight:bold;color:${BRAND.forest};margin:0 0 8px 0;">Enrollment is paused for now</p>
-<p style="font-family:Georgia,serif;font-size:15px;color:${BRAND.text};margin:0;">We are getting Tier 1 ready to open again. You can still read all about it on the course page.</p>
-</td></tr>
-</table>
+${subheading("THREE WAYS TO READ IT")}
+${p("The paperback, the spiral Study &amp; Journal Edition with room to write beside every page, or the Study Guide that sits next to the paperback. In print or as an instant download.")}
 ${goldDivider()}
 ${heading("FREQUENTLY ASKED")}
-${subheading("\"Do I need prior herbal knowledge?\"")}
-${p("No. This course was built for beginners. If you already practice, it will deepen your framework.")}
 ${subheading("\"Is this faith-based?\"")}
-${p("Yes. Grounded in Scripture, with Yahweh as healer. Clinical rigor within a Biblical worldview.")}
-${subheading("\"What if I can't finish in time?\"")}
-${p("The course is entirely self-paced with lifetime access. There is no deadline.")}
-${brandButton("SEE THE FOUNDATIONS COURSE", "https://edeninstitute.health/go/course?src=nurture-email")}
-${goldDivider()}
-${p("<strong>P.S.</strong> Tier 2, Body Systems & Clinical Literacy, is coming. Tier 1 students are first to hear when it opens, so finishing Foundations puts you at the front of the line.")}
+${p("Yes. It is written openly from a Christian worldview. Scripture is the lens, not decoration.")}
+${subheading("\"Which edition should I choose?\"")}
+${p("If you want to study, take notes and do the worksheets, choose the Study &amp; Journal Edition. If you just want to read, the paperback is all you need.")}
+${subheading("\"Can I read some first?\"")}
+${p("Yes. Chapter 1, The Life Force Has a Name, is free.")}
+${brandButton("SEE THE BOOK", "https://edeninstitute.health/back-to-eden")}
 ${signature()}`;
 
   return {
@@ -421,7 +405,7 @@ ${signature()}`;
 }
 
 // ══════════════════════════════════════════════════════════════
-// EMAIL 5 — Day 8 (conditional — only if NOT purchased course AND NOT purchased guide)
+// EMAIL 5 — Day 8 (conditional — only if NOT purchased course AND NOT purchased guide; the course check is history since 2026-10-14)
 // ══════════════════════════════════════════════════════════════
 export function buildNurtureEmail5(
   constitutionName: string,
@@ -435,7 +419,7 @@ export function buildNurtureEmail5(
   );
 
   const body = `
-${p("No pressure. Truly. Not everyone is ready for a full course, and that's okay. Herbs meet you where you are.")}
+${p("No pressure. Truly. Not everyone is ready to go deep, and that's okay. Herbs meet you where you are.")}
 ${p(`Based on your constitutional type (<strong>${constitutionName}</strong>), I've put together a curated herb kit on Amazon. These are the specific herbs that match your body's pattern.`)}
 ${brandButton(`Shop Your ${constitutionName} Starter Kit`, amazonUrl)}
 ${spacer(8)}
@@ -444,10 +428,8 @@ ${spacer(8)}
 <p style="font-family:Georgia,serif;font-size:13px;color:${BRAND.footerText};margin:0;line-height:1.6;"><em>These are affiliate links. I earn a small commission if you purchase through them. It costs you nothing extra. It helps me keep building Eden Institute.</em></p>
 </td></tr>
 </table>
-${p("If and when you're ready to go deeper, the Foundations Course is reopening soon.")}
-${p(`${link("Learn about the Foundations Course →", "https://edeninstitute.health/go/course?src=nurture-email")}`)}
-${goldDivider()}
-${p("<strong>P.S.</strong> Ready to go deeper than the kit? The Foundations Course (Tier 1) is reopening soon. " + link("See what it covers →", "https://edeninstitute.health/go/course?src=nurture-email"))}
+${p("If and when you're ready to go deeper, my book <em>Back to Eden</em> is the place to start.")}
+${p(`${link("See the book →", "https://edeninstitute.health/back-to-eden")}`)}
 ${signature()}`;
 
   return {
@@ -538,12 +520,9 @@ export function buildStarterOfferEmail(firstName: string, band: 'sprouts' | 'see
 }
 
 // ── Quiz 3-arc (runs AFTER the constitution drip; queue positions 5/6/7 at
-// days 11/14/17). Bridges quiz-takers to: Deep Dive + class, app + book,
-// homeschool + Facebook. No coupon codes — the Tier-1 price ($97, no increase
-// advertised, founder decision 2026-09-10) is set on the LearnWorlds enrollment page.
-// Through /go/course (not LearnWorlds directly) so a paused course never
-// dead-ends: see api/go/course.ts COURSE_PAUSED.
-const ARC_COURSE_URL = 'https://edeninstitute.health/go/course?src=arc-email';
+// days 11/14/17). Bridges quiz-takers to: the Deep Dive, app + book,
+// homeschool + Facebook. Day 11 also sold the Foundations class until the course
+// was retired 2026-10-14; the book has its own day (14), so day 11 is the guide alone.
 // 2026-09-25: the book page on this site replaced Amazon (founder: cut Amazon out).
 const ARC_BOOK_ONE_URL = 'https://edeninstitute.health/back-to-eden?utm_source=email&utm_medium=nurture&utm_campaign=quiz_arc2';
 const ARC_APP_URL = 'https://edeninstitute.health/apothecary/start';
@@ -552,17 +531,17 @@ const ARC_APP_URL = 'https://edeninstitute.health/apothecary/start';
 const ARC_CHOOSE_BAND_URL = 'https://edeninstitute.health/homeschool#choose-band';
 const ARC_FREEBIES_URL = 'https://edeninstitute.health/freebies';
 
-// Day 11: Deep-Dive Guide + the Foundations class.
+// Day 11: the Deep-Dive Guide.
 export function buildNurtureArc1(firstName: string, constitutionName: string, constitutionSlug: string): { subject: string; html: string } {
   const patternShort = constitutionName.replace(/^The /i, '');
-  const body = `${p(`Hi ${firstName},`)}${p(`You&rsquo;ve spent two weeks getting to know your pattern, <strong>${constitutionName}</strong>. If you&rsquo;re ready to go further, there are two doors.`)}${goldDivider()}${heading('1. Your Deep-Dive Guide')}${p(`Your ${patternShort} pattern in full: all 10 matched herbs with actions, preparation methods, dosages, and safety notes, plus a caution list, lifestyle and nutrition guidance, and the Biblical framework for your constitution.`)}${brandButton(`Get Your ${patternShort} Deep-Dive Guide: $4.99`, `https://edeninstitute.health/go/deep-dive/${constitutionSlug}`)}${goldDivider()}${heading('2. The Foundations Class')}${p(`The guide hands you your pattern. The Foundations Course (Tier 1) teaches you to read and work with <em>any</em> constitution: yours, your children&rsquo;s, your whole household&rsquo;s.`)}${p(`Enrollment is paused for now while we get it ready to open again.`)}${brandButton('See the Foundations Class', ARC_COURSE_URL)}${signature()}`;
+  const body = `${p(`Hi ${firstName},`)}${p(`You&rsquo;ve spent two weeks getting to know your pattern, <strong>${constitutionName}</strong>. If you&rsquo;re ready to go further, here is the next step.`)}${goldDivider()}${heading('Your Deep-Dive Guide')}${p(`Your ${patternShort} pattern in full: all 10 matched herbs with actions, preparation methods, dosages, and safety notes, plus a caution list, lifestyle and nutrition guidance, and the Biblical framework for your constitution.`)}${brandButton(`Get Your ${patternShort} Deep-Dive Guide: $4.99`, `https://edeninstitute.health/go/deep-dive/${constitutionSlug}`)}${signature()}`;
   return { subject: 'Now you know your pattern. Go deeper', html: emailWrapper(body) };
 }
 
 // Day 14: the app + the book.
 export function buildNurtureArc2(firstName: string, constitutionName: string, _constitutionSlug: string): { subject: string; html: string } {
   const patternShort = constitutionName.replace(/^The /i, '');
-  const body = `${p(`Hi ${firstName},`)}${p(`Your pattern doesn&rsquo;t have to live in an inbox. Two ways to keep it close.`)}${goldDivider()}${heading('The Eden Apothecary app')}${p(`Pattern-aware herb guidance in your pocket: your ${patternShort} matched herbs, the full library, energetics and safety, all tied to your constitution. Free to start; Seed and Root unlock more depth when you want it.`)}${brandButton('Start Free in the App', ARC_APP_URL)}${goldDivider()}${heading('The book for your shelf')}${p(`When you&rsquo;d rather hold it in your hands, Book One is the companion to everything we teach.`)}${brandButton('Get the Book', ARC_BOOK_ONE_URL)}${signature()}`;
+  const body = `${p(`Hi ${firstName},`)}${p(`Your pattern doesn&rsquo;t have to live in an inbox. Two ways to keep it close.`)}${goldDivider()}${heading('The Eden Apothecary app')}${p(`Pattern-aware herb guidance in your pocket: your ${patternShort} matched herbs, the full library, energetics and safety, all tied to your constitution. Free to start; Seed and Root unlock more depth when you want it.`)}${brandButton('Start Free in the App', ARC_APP_URL)}${goldDivider()}${heading('The book for your shelf')}${p(`When you&rsquo;d rather hold it in your hands, <em>Back to Eden</em> is the book behind everything we teach.`)}${brandButton('Get the Book', ARC_BOOK_ONE_URL)}${signature()}`;
   return { subject: 'Carry your pattern with you', html: emailWrapper(body) };
 }
 

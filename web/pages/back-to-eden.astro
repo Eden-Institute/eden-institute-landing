@@ -6,11 +6,15 @@
 // Order of the page follows standard long-form book sales pages: promise + cover + two CTAs above
 // the fold, the reader's problem in the author's own words, why this book (the framework behind
 // every Eden product), what you will discover, what is inside, the three editions with prices,
-// a free-chapter capture, the Tier 1 course, the author, everything else, FAQ, final CTA, and a
+// a free-chapter capture, the author, everything else, FAQ, final CTA, and a
 // sticky mobile buy bar. No reviews yet (founder: none to quote; add real ones after the proofs).
 //
+// 2026-10-14: the adult course is retired (founder: "I don't want an adult course, just the books").
+// The course section, the course card and every "Tier 1 course" line came off this page; the
+// worksheets are still in the books, described as worksheets.
+//
 // Copy sources: the Amazon description and About the Author are Camila's own; chapter blurbs are the
-// manuscript's table of contents; Tier 1 facts come from /courses; shipping time and refund terms
+// manuscript's table of contents; shipping time and refund terms
 // from /books and /returns. Prices are the founder's 2026-09-25 "mid ladder".
 //
 // SELLING IS NOT LIVE YET. BUY_LIVE stays false until the book products exist in Stripe and the
@@ -31,7 +35,6 @@ import { printOfferPolicies } from "../lib/merchantOffer";
 const shipOne = (sku: string) => (printShippingCents([{ sku, qty: 1 }]) ?? 0) / 100;
 
 const BUY_LIVE = true; // founder "open the shop" 2026-09-25; BOOK_SHOP_LIVE=true on the server
-const COURSE = "/go/course?src=back-to-eden";
 
 const btn = (variant: "eden" | "eden-outline", extra = "") =>
   cn(buttonVariants({ variant, size: "xl" }),
@@ -48,9 +51,9 @@ const ch1 = {
 };
 
 // Counts measured from the built books (2026-09-25): 10 study guides with 107 key terms, 50 Reflect &
-// Apply prompts (5 per chapter), 9 Tier 1 worksheets + the 13-page capstone, 9 concept graphics, 10 photo
-// chapter openers, 10 wrap-up pages, 3 herb monograph templates. The worksheets are the Tier 1 course
-// downloads (Eden Institute/Tier 1/Course Downloads), so "the same worksheets as the $97 course" is literal.
+// Apply prompts (5 per chapter), 9 worksheets + the 13-page capstone, 9 concept graphics, 10 photo
+// chapter openers, 10 wrap-up pages, 3 herb monograph templates. (The worksheets began as the retired
+// course's downloads; since 2026-10-14 the page calls them worksheets, nothing more.)
 const editions = [
   {
     id: "study-journal",
@@ -60,20 +63,20 @@ const editions = [
     size: "8.5 × 11 in · spiral bound · full color · 386 pages",
     blurb: "The whole book and the whole workbook in one. It lies flat on the table, so your hands are free to write.",
     bestFor: "Anyone who wants to study this, not just read it.",
-    value: "Includes the same worksheets students use in the Tier 1 course.",
+    value: "Includes 9 worksheets and a 13-page capstone project.",
     includes: [
       "The complete book, all 10 chapters, in large 12 pt type",
       "10 chapter study guides with 107 key terms",
       "A notes column beside every page of text",
       "50 Reflect & Apply prompts with room to write",
-      "9 Tier 1 course worksheets plus the capstone project",
+      "9 worksheets plus the capstone project",
       "9 full-color concept graphics",
     ],
     details: [
       ["The complete book", "All ten chapters of Back to Eden, set in 12 pt type, with a lined notes column running beside every page of text. Underline, argue, ask questions in the margin. It is yours."],
       ["A study guide before every chapter", "The Scripture anchor, the one key idea, what you will be able to do when you finish, and the key terms, 107 across the book. Read it first and you will know what to look for."],
       ["Reflect & Apply journal pages", "Every chapter ends with five questions, and here each one has room for a real answer. Fifty prompts that turn what you read into what you understand about your own body and family."],
-      ["The Tier 1 course worksheets", "Nine worksheets from The Eden Institute's Tier 1 course, placed right after the chapter they belong to: the Forgotten Lineage timeline, Spot the Reductionism, the Symptom Reinterpretation exercise, the Five Tenets personal audit, the Terrain timeline, the Family Constitution observation sheet, Herb and Person matching, the Sensory Exploration guide, and the Three Herb deep-study journal. Plus the 13-page capstone project that pulls it all together."],
+      ["Nine worksheets", "Nine worksheets, placed right after the chapter they belong to: the Forgotten Lineage timeline, Spot the Reductionism, the Symptom Reinterpretation exercise, the Five Tenets personal audit, the Terrain timeline, the Family Constitution observation sheet, Herb and Person matching, the Sensory Exploration guide, and the Three Herb deep-study journal. Plus the 13-page capstone project that pulls it all together."],
       ["Nine full-color concept graphics", "Two Models of Health, Symptoms Are Signals, the Five Tenets, how acute illness becomes chronic, Constitutional Polarities, the Holistic Plant, Taste as Pharmacology, the Forgotten Lineage timeline, and How to Begin. The big ideas, on one page each."],
       ["Room to make it yours", "A photo opening page for every chapter, a wrap-up page after each one, notes pages throughout, and three herb monograph templates for the first three plants you choose to learn deeply."],
     ],
@@ -92,7 +95,7 @@ const editions = [
       "The complete book, all 10 chapters",
       "Large 12 pt type that is easy on the eyes",
       "Every chapter's Reflect & Apply questions",
-      "A resource page linking to the quiz, the app, the courses and more",
+      "A resource page linking to the quiz, the app and more",
     ],
     details: [
       ["The complete book", "All ten chapters of Back to Eden in three parts: The Foundation, The Body Was Designed to Heal, and Reading the Person."],
@@ -109,18 +112,18 @@ const editions = [
     size: "8.5 × 11 in · spiral bound · full color · 266 pages",
     blurb: "Everything in the Study & Journal Edition except the book text. Keep it open beside the paperback.",
     bestFor: "Readers who already have the book, and study partners reading together.",
-    value: "Includes the same worksheets students use in the Tier 1 course.",
+    value: "Includes 9 worksheets and a 13-page capstone project.",
     includes: [
       "10 chapter study guides with 107 key terms",
       "50 Reflect & Apply prompts with room to write",
-      "9 Tier 1 course worksheets plus the capstone project",
+      "9 worksheets plus the capstone project",
       "9 full-color concept graphics",
       "Wrap-up and notes pages for every chapter",
     ],
     details: [
       ["A study guide for every chapter", "The Scripture anchor, the key idea, what you will be able to do, and 107 key terms across the book."],
       ["Reflect & Apply journal pages", "All fifty prompts, each with room for a real answer."],
-      ["The Tier 1 course worksheets", "The same nine worksheets and the 13-page capstone project as the Study & Journal Edition."],
+      ["Nine worksheets", "The same nine worksheets and the 13-page capstone project as the Study & Journal Edition."],
       ["Nine full-color concept graphics", "The big ideas of each chapter, one page each."],
       ["Wrap-up, notes and monograph pages", "A wrap-up page after every chapter, notes pages throughout, and three herb monograph templates."],
     ],
@@ -133,7 +136,7 @@ const lookInside = [
   ["/books/bte-look-study-guide.webp", "A study guide before every chapter"],
   ["/books/bte-look-notes-column.webp", "A notes column beside the text"],
   ["/books/bte-look-journal.webp", "Reflect & Apply, with room to write"],
-  ["/books/bte-look-worksheet.webp", "The Tier 1 course worksheets"],
+  ["/books/bte-look-worksheet.webp", "Nine worksheets and a capstone project"],
   ["/books/bte-look-paperback.webp", "The paperback, in large 12 pt type"],
 ];
 
@@ -165,7 +168,6 @@ const whoFor = [
   "You've used herbs for a while and want to understand why they work, or why they haven't.",
   "You want a framework rooted in Scripture, not borrowed from another religion's philosophy.",
   "You teach Eden's Table at home and want the adult foundation underneath it.",
-  "You're thinking about the Tier 1 course and want to start with the book it's built on.",
 ];
 
 // Comparison table: [label, study-journal, paperback, study-guide]. true/false or text.
@@ -175,7 +177,7 @@ const compare: [string, boolean | string, boolean | string, boolean | string][] 
   ["Study guide for every chapter", true, false, true],
   ["Notes column beside the text", true, false, false],
   ["Reflect & Apply with room to write", true, false, true],
-  ["9 Tier 1 worksheets + capstone", true, false, true],
+  ["9 worksheets + capstone", true, false, true],
   ["9 full-color concept graphics", true, false, true],
   ["Lies flat (spiral bound)", true, false, true],
 ];
@@ -303,7 +305,7 @@ const editionJsonLd = editions.map((e) => ({
         </div>
         <p class="mt-4 font-body text-xs text-white/70">Paperback, spiral Study &amp; Journal Edition, or Study Guide · in print or as an instant download</p>
         <ul class="mt-6 flex flex-wrap justify-center gap-x-5 gap-y-2 font-body text-xs uppercase tracking-wider md:justify-start" style="color:hsl(var(--eden-gold))">
-          <li>10 chapters</li><li>107 key terms</li><li>50 reflection prompts</li><li>9 course worksheets</li>
+          <li>10 chapters</li><li>107 key terms</li><li>50 reflection prompts</li><li>9 worksheets</li>
         </ul>
       </div>
       <div class="mx-auto w-56 md:w-72">
@@ -350,16 +352,11 @@ const editionJsonLd = editions.map((e) => ({
         <p class="font-accent mb-2 text-xs uppercase tracking-[0.2em]" style="color:hsl(var(--eden-gold-ink))">Where it all started</p>
         <h2 class="font-serif text-3xl font-bold" style="color:hsl(var(--eden-bark))">Everything at The Eden Institute grows out of this book</h2>
         <p class="mt-4 font-body text-muted-foreground">
-          The five tenets our homeschool families learn at the kitchen table, the body patterns behind our quiz and our herb app,
-          and the Tier 1 course, which teaches this book lesson by lesson. It all starts here.
+          The five tenets our homeschool families learn at the kitchen table, and the body patterns behind our quiz and our herb app.
+          It all starts here.
         </p>
       </div>
-      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <a href={COURSE} data-cta="bte-origin-course" class="rounded-lg border bg-white p-6 transition-shadow hover:shadow-md" style="border-color:hsl(var(--eden-gold) / 0.4)">
-          <BookOpen className="mb-3 h-7 w-7" color="hsl(var(--eden-gold))" />
-          <h3 class="font-serif text-lg font-bold" style="color:hsl(var(--eden-forest))">The Tier 1 course</h3>
-          <p class="mt-2 font-body text-sm text-muted-foreground">Ten lessons that walk through this book with Camila.</p>
-        </a>
+      <div class="grid gap-5 sm:grid-cols-3">
         <a href="/homeschool" data-cta="bte-origin-homeschool" class="rounded-lg border bg-white p-6 transition-shadow hover:shadow-md" style="border-color:hsl(var(--eden-gold) / 0.4)">
           <Sprout className="mb-3 h-7 w-7" color="hsl(var(--eden-gold))" />
           <h3 class="font-serif text-lg font-bold" style="color:hsl(var(--eden-forest))">Eden's Table</h3>
@@ -636,38 +633,13 @@ const editionJsonLd = editions.map((e) => ({
     </div>
   </section>
 
-  {/* THE COURSE */}
-  <section class="bg-background px-6 py-16">
-    <div class="mx-auto grid max-w-5xl items-center gap-10 md:grid-cols-2">
-      <div>
-        <p class="font-accent mb-2 text-xs uppercase tracking-[0.2em]" style="color:hsl(var(--eden-gold-ink))">Go deeper</p>
-        <h2 class="font-serif text-3xl font-bold" style="color:hsl(var(--eden-bark))">Walk through the book with Camila</h2>
-        <p class="mt-4 font-body leading-relaxed text-muted-foreground">
-          Tier 1 of The Eden Institute, Biblical Framework, is built on this book. Ten self-paced lessons take you through it chapter by chapter,
-          with the worksheets you'll find in the Study &amp; Journal Edition and the Study Guide.
-        </p>
-        <ul class="mt-5 space-y-2 text-sm text-muted-foreground">
-          {["10 lessons, self-paced", "Body Pattern Quiz included", "Certificate of completion", "Lifetime access"].map((f) => (
-            <li class="flex gap-2"><CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0" color="hsl(var(--eden-forest))" />{f}</li>
-          ))}
-        </ul>
-      </div>
-      <div class="rounded-lg border-2 p-8 text-center" style="border-color:hsl(var(--eden-gold));background-color:hsl(var(--eden-cream))">
-        <p class="font-serif text-lg font-bold" style="color:hsl(var(--eden-forest))">Tier 1 · Biblical Framework</p>
-        <p class="mt-3 font-serif text-2xl font-bold" style="color:hsl(var(--eden-bark))">Reopening Soon</p>
-        <p class="mt-1 font-body text-xs" style="color:hsl(var(--eden-bark) / 0.65)">Enrollment is paused for now</p>
-        <a href={COURSE} data-cta="bte-course-enroll" class={btn("eden", "mt-6 w-full sm:w-full")}>See Tier 1</a>
-        <a href="/courses" data-cta="bte-course-all" class="mt-3 inline-block font-body text-sm underline" style="color:hsl(var(--eden-forest))">See all three tiers</a>
-      </div>
-    </div>
-  </section>
 
   {/* THE AUTHOR */}
   <section class="px-6 py-16" style="background-color:hsl(var(--eden-cream))">
     <div class="mx-auto max-w-3xl">
       <h2 class="mb-6 text-center font-serif text-3xl font-bold" style="color:hsl(var(--eden-bark))">About the author</h2>
       <div class="space-y-4 font-body leading-relaxed" style="color:hsl(var(--eden-bark))">
-        <p>Camila Johnson has been a devout student of herbalism for many years. She is an educator and the founder of The Eden Institute, an online school dedicated to the study of holistic herbalism through a biblical worldview lens.</p>
+        <p>Camila Johnson has been a devout student of herbalism for many years. She is an educator and the founder of The Eden Institute, dedicated to the study of holistic herbalism through a biblical worldview lens.</p>
         <p>She holds a Master's degree in Educational Leadership and Policy Studies and brings over twenty years of experience as an educator to her study and teaching. Her approach is rooted in Scripture: she studies the history of herbal practice, the Eclectics and Physiomedicalists among it, and weighs all of it against the authority and design of God's Word.</p>
         <p>A lifelong follower of Jesus, Camila has spent decades discovering that the more she learns about science and the natural world, the less it contradicts Scripture, and the more it reinforces it.</p>
       </div>

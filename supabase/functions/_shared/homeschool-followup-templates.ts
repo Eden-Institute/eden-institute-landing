@@ -5,8 +5,9 @@
 // DORMANT since 2026-07-28 (see nurture-emails MAGNET_CHAIN_NEXT): nothing
 // enqueues position 3 any more, so this chain never starts. Kept for re-enabling.
 //
-//   Week 4 (~day 21) — older-kids stopgap → Foundations course ($97 founding
-//                      through Jan 1, 2027). The one email here with a CTA.
+//   Week 4 (~day 21) — older-kids stopgap → the Back to Eden book (was the
+//                      Foundations course until it was retired 2026-10-14).
+//                      The one email here with a CTA.
 //   Week 5 (~day 28) — "use the Around-the-Table cards" (value, no CTA)
 //   Week 6 (~day 35) — seasonal herb of note (value, no CTA)
 //   Week 7 (~day 42) — devotional / identity (no CTA)
@@ -27,8 +28,7 @@ const BRAND = {
   sage: '#5C7A5C',
 };
 
-// Through /go/course so a paused course never dead-ends (api/go/course.ts).
-const COURSE_URL = 'https://edeninstitute.health/go/course?src=hs-followup-email';
+const BOOK_URL = 'https://edeninstitute.health/back-to-eden';
 
 // ── Helpers (verbatim from nurture-email-templates.ts so output matches) ──
 function p(text: string, extra = ''): string {
@@ -58,15 +58,15 @@ function signature(): string {
 <p style="font-family:Georgia,serif;font-size:14px;margin:4px 0 0 0;"><a href="https://edeninstitute.health" style="color:${BRAND.sage};text-decoration:underline;">edeninstitute.health</a></p>`;
 }
 
-// ── Week 4 (~day 21): older-kids stopgap → Foundations course ──
+// ── Week 4 (~day 21): older-kids stopgap → the Back to Eden book ──
 export function buildMagnetWeek4Email(firstName: string): { subject: string; html: string } {
   const body =
     `${p(`Hi ${firstName},`)}` +
     `${p(`You&rsquo;ve spent a few weeks with Eden&rsquo;s Table around your own table. And a lot of you have written with the same question: &ldquo;What about my older kids?&rdquo;`)}` +
     `${p(`The <strong>Cultivators</strong> (middle school) and <strong>Practitioners</strong> (high school) bands are in development. But you don&rsquo;t have to wait to bring this to your older children.`)}` +
-    `${p(`<strong>Back to Eden: Foundations of Biblical Herbalism</strong> is the adult course all of Eden&rsquo;s Table grew from. It covers the Biblical framework for wellness, your God-given constitution, plant energetics, tissue states, and terrain-based thinking. When you learn it, you can lead your middle and high schoolers through it directly. The same Scripture-rooted, clinically grounded foundation, taught to you so you can teach them. A stopgap that is really a strong beginning.`)}` +
-    `${p(`Enrollment is paused for now while we get the course ready to open again, but you can see what it covers here.`)}` +
-    `${brandButton('See the Foundations Course', COURSE_URL)}` +
+    `${p(`<strong><em>Back to Eden: A Biblical Foundation for Herbal Healing</em></strong> is the book all of Eden&rsquo;s Table grew from. It covers why symptoms are signals, the five tenets of health, what your constitution is and how to recognize your own, and how plants speak the same language as your body. When you&rsquo;ve read it, you can lead your middle and high schoolers through it yourself. A stopgap that is really a strong beginning.`)}` +
+    `${p(`Chapter 1 is free.`)}` +
+    `${brandButton('See the Book', BOOK_URL)}` +
     `${signature()}`;
   return { subject: 'For your older kids, a way to start now', html: emailWrapper(body) };
 }

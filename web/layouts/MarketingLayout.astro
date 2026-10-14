@@ -81,7 +81,7 @@ const {
   hideFooter = false,
   noindex = false,
   hideNav = false,
-  orgDescription = "Publisher of Eden's Table, a Christian K-5 homeschool science and nature study curriculum, and of adult courses in Biblical herbalism.",
+  orgDescription = "Publisher of Eden's Table, a Christian K-5 homeschool science and nature study curriculum, and of Back to Eden, a book on Biblical herbalism for adults.",
   preconnect = [],
   noThirdPartyTags = false,
 } = Astro.props;
@@ -253,7 +253,7 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
       Tag manager before changing it.
 
       Lives here rather than in the SPA entry because every ad landing page is
-      Astro: /books, /starter, /homeschool, /freebies, /courses. The SPA is behind
+      Astro: /books, /starter, /homeschool, /freebies, /back-to-eden. The SPA is behind
       auth and is not an ad destination, so tagging it would add tracking without
       adding signal.
 

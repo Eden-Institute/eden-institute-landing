@@ -17,7 +17,7 @@
 //      public.magnet_email_queue. Positions:
 //        2 — Week 2 curriculum (band-specific: Chamomile / Tulsi)
 //        3 — Week 3 "come along for the ride" Facebook/story (band-agnostic)
-//        4 — Week 4 older-kids stopgap → Foundations course (band-agnostic)
+//        4 — Week 4 older-kids stopgap → the Back to Eden book (band-agnostic)
 //        5 — Week 5 use the Around-the-Table cards (band-agnostic)
 //        6 — Week 6 seasonal herb (band-agnostic)
 //        7 — Week 7 devotional (band-agnostic)
@@ -168,11 +168,15 @@ function engagementTags(campaign: string, emailKey: string): ResendTag[] {
 // Returns true if the queued email at this sequence_position would re-pitch an
 // offer the recipient already bought, and should therefore be cancelled rather
 // than sent. Mapping reflects the CURRENT sequence:
-//   pos 2/3/4 → primary CTA is the Foundations course
-//   pos 5 (arc-1) → pitches BOTH the $4.99 guide AND the course
+//   pos 2/3/4 → primary CTA was the Foundations course; since the course was
+//               retired 2026-10-14 it is the Back to Eden book. purchased_course
+//               still suppresses (no one new can buy it). Book purchases are not
+//               tracked on quiz_completions, so nothing gates the book pitch, the
+//               same as pos 6 always was.
+//   pos 5 (arc-1) → the $4.99 guide alone since 2026-10-14 (it pitched the guide
+//               AND the course before, so it needed both owned to suppress). Now
+//               owning the guide is enough.
 //   pos 6/7 (app+book, homeschool+FB) → no guide/course purchase to gate on
-// A course-buyer who has NOT bought the guide should still receive arc-1 (the
-// guide half is still relevant), so pos 5 is only suppressed when BOTH are owned.
 // REVISIT this mapping when the offer-ladder revamp re-sequences pitches.
 function shouldSuppress(
   position: number,
@@ -180,7 +184,7 @@ function shouldSuppress(
   purchasedGuide: boolean,
 ): boolean {
   if ((position === 2 || position === 3 || position === 4) && purchasedCourse) return true;
-  if (position === 5 && purchasedCourse && purchasedGuide) return true;
+  if (position === 5 && purchasedGuide) return true;
   return false;
 }
 
