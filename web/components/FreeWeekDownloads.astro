@@ -1,0 +1,111 @@
+---
+// The free Week 1 download page, one per band: /freebies/sprouts-week-1 and
+// /freebies/seedlings-week-1. Added 2026-10-14 (founder-approved, /freebies audit
+// problem 5).
+//
+// WHY A PAGE AND NOT THE PDFs. The free-week welcome email used to link three raw
+// PDF files. That is the setup that gave a Starter Unit buyer a blank white screen on
+// 2026-09-05: some phone mail apps open links in their own little browser, which
+// cannot display a PDF, and a family cannot tell that from a broken product. A page
+// can explain itself; a PDF cannot. Same fix the Starter Unit got in PR #455
+// (web/pages/starter/downloads.astro).
+//
+// The PDFs are the same public files the email always linked, so already-sent
+// emails keep working. The page is noindex (and kept out of the sitemap) so the free
+// week is reached by signing up, not by search. No token and nothing private here,
+// so the normal analytics tags stay on.
+//
+// Files and order MUST match supabase/functions/_shared/welcome-email-templates.ts
+// and the /freebies "What lands in your inbox" cards. Copy rule: no em dashes.
+
+interface Props {
+  band: "sprouts" | "seedlings";
+}
+const { band } = Astro.props;
+
+const BASE = "/lead-magnets/";
+const BANDS = {
+  sprouts: {
+    name: "Sprouts",
+    grades: "K-2",
+    plant: "Lavender",
+    starter: "/starter",
+    files: [
+      { slug: "ra", name: "Meet the Family (read-aloud)", note: "The story that opens the year. You read it aloud on Monday.", file: "hs-sprouts-w1-ra-lavender.pdf" },
+      { slug: "tg", name: "Teacher's Guide", note: "Every word you need, laid out day by day.", file: "hs-sprouts-w1-tg-lavender.pdf" },
+      { slug: "nb", name: "Student Notebook", note: "Five day pages your child works through.", file: "hs-sprouts-w1-nb-lavender.pdf" },
+    ],
+  },
+  seedlings: {
+    name: "Seedlings",
+    grades: "3-5",
+    plant: "Elderberry",
+    starter: "/starter/seedlings",
+    files: [
+      { slug: "tg", name: "Teacher's Guide", note: "Every word you need, laid out day by day.", file: "hs-seedlings-w1-tg-elderberry.pdf" },
+      { slug: "nb", name: "Student Notebook", note: "Five day pages your child works through.", file: "hs-seedlings-w1-nb-elderberry.pdf" },
+      { slug: "story7", name: "Story Seven: Be Still (read-aloud)", note: "A bonus: the first story of the Seedlings year, which families read together in Week 2.", file: "hs-seedlings-w2-ra-be-still.pdf" },
+    ],
+  },
+} as const;
+
+const b = BANDS[band];
+// Saved filename. No colon: Windows does not allow one in a filename.
+const saveName = (name: string) => `Eden's Table - ${b.name} Week 1 - ${name.replace(/:/g, "")}.pdf`;
+---
+
+<section class="pt-20 pb-10 px-6" style="background-color:hsl(var(--eden-cream))">
+  <div class="max-w-2xl mx-auto text-center">
+    <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">
+      Free Sample Week
+    </p>
+    <h1 class="font-serif text-4xl md:text-5xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
+      Your {b.name} Week 1 ({b.plant})
+    </h1>
+    <div class="w-16 h-px mx-auto my-6" style="background-color:hsl(var(--eden-gold))"></div>
+    <p class="font-body text-lg text-muted-foreground leading-relaxed">
+      All three files are here. Open them, or save them to your device, and come back to
+      this page any time, on any device.
+    </p>
+  </div>
+</section>
+
+<section class="py-12 px-6 bg-background">
+  <div class="max-w-xl mx-auto space-y-4">
+    {b.files.map((f) => (
+      <div class="p-5 rounded-sm border" style="border-color:hsl(var(--eden-gold)/0.35);background-color:hsl(var(--eden-cream)/0.4)">
+        <h2 class="font-serif text-xl mb-1" style="color:hsl(var(--eden-bark))">{f.name}</h2>
+        <p class="font-body text-sm text-muted-foreground leading-relaxed mb-4">{f.note}</p>
+        <a
+          href={`${BASE}${f.file}`}
+          data-cta={`freebies-dl-${band}-${f.slug}-open`}
+          class="inline-flex items-center justify-center min-h-[44px] px-6 py-3 rounded-sm font-body text-sm tracking-wide"
+          style="background-color:#2E3D32;color:#FAF8F3"
+        >Open {f.name}</a>
+        <a
+          href={`${BASE}${f.file}`}
+          download={saveName(f.name)}
+          data-cta={`freebies-dl-${band}-${f.slug}-save`}
+          class="block mt-3 font-body text-sm underline underline-offset-4"
+          style="color:hsl(var(--eden-sage-ink))"
+        >or save it to your device</a>
+      </div>
+    ))}
+
+    <div class="p-5 rounded-sm" style="background-color:hsl(var(--eden-cream));border:1px solid hsl(var(--eden-gold))">
+      <p class="font-body text-sm leading-relaxed" style="color:hsl(var(--eden-bark))">
+        <strong>Seeing a blank white screen?</strong> That is your email app, not your files.
+        Some apps open links in a small built in browser that cannot display a PDF. Press and
+        hold the link instead of tapping it, choose Open in Safari or Open in Chrome, and it
+        will open properly.
+      </p>
+    </div>
+
+    <p class="font-body text-sm text-muted-foreground text-center pt-6">
+      In about a week, Camila will write about the weeks that follow. Ready for more now?
+      <a href={b.starter} data-cta={`freebies-dl-${band}-starter`} class="underline underline-offset-4" style="color:hsl(var(--eden-sage-ink))">
+        Weeks 1 through 9 are $39
+      </a>, as an instant download.
+    </p>
+  </div>
+</section>

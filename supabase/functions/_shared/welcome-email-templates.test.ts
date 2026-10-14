@@ -57,10 +57,10 @@ Deno.test('Sprouts week 1 welcome keeps its subject, copy, three downloads and f
     'Thank you for stepping into this work with us. What follows is a real week of curriculum: Week 1 of Sprouts, the band built for kindergarten through second grade.',
     'Five days with Lavender, a story your child will remember, and the small daily rhythms that turn a kitchen counter into a place of formation.',
     'YOUR THREE DOWNLOADS: SPROUTS WEEK 1 (LAVENDER)',
-    'MEET THE FAMILY (READ-ALOUD)', "TEACHER'S GUIDE", 'STUDENT NOTEBOOK',
-    'href="https://edeninstitute.health/lead-magnets/hs-sprouts-w1-ra-lavender.pdf"',
-    'href="https://edeninstitute.health/lead-magnets/hs-sprouts-w1-tg-lavender.pdf"',
-    'href="https://edeninstitute.health/lead-magnets/hs-sprouts-w1-nb-lavender.pdf"',
+    // 2026-10-14: one download page instead of three raw PDF links (blank-screen fix).
+    'All three are on one page: Meet the Family (the read-aloud), the Teacher&rsquo;s Guide and the Student Notebook.',
+    'OPEN YOUR WEEK 1 DOWNLOADS',
+    'href="https://edeninstitute.health/freebies/sprouts-week-1"',
     'THIS IS A WHOLE WEEK',
     'Everything you need to teach these five days is in the guide and the notebook.',
     'In about a week I will write again about the weeks that follow it, and there is nothing you need to do before then.',
@@ -83,10 +83,10 @@ Deno.test('Seedlings week 1 welcome keeps its subject, copy, three downloads and
     'What follows is a real week of curriculum from Seedlings, our band for third through fifth graders.',
     'Seedlings is built for the child who has begun to ask <em>why</em> and <em>how</em>, the one who has outgrown a worksheet and is ready to track a hypothesis across a week. Week 1 starts with Elderberry.',
     'YOUR THREE DOWNLOADS: SEEDLINGS WEEK 1 (ELDERBERRY)',
-    "TEACHER'S GUIDE", 'STUDENT NOTEBOOK', 'STORY SEVEN: BE STILL (READ-ALOUD)',
-    'href="https://edeninstitute.health/lead-magnets/hs-seedlings-w1-tg-elderberry.pdf"',
-    'href="https://edeninstitute.health/lead-magnets/hs-seedlings-w1-nb-elderberry.pdf"',
-    'href="https://edeninstitute.health/lead-magnets/hs-seedlings-w2-ra-be-still.pdf"',
+    // 2026-10-14: one download page instead of three raw PDF links (blank-screen fix).
+    'All three are on one page: the Teacher&rsquo;s Guide, the Student Notebook and Story Seven, Be Still (the read-aloud).',
+    'OPEN YOUR WEEK 1 DOWNLOADS',
+    'href="https://edeninstitute.health/freebies/seedlings-week-1"',
     'The read-aloud is a bonus: Story Seven, Be Still, the first story of the Seedlings year, which families read together in Week 2.',
     'THIS IS A WHOLE WEEK',
     'Elderberry is Week 1 of the curriculum exactly as it is taught.',
@@ -101,6 +101,14 @@ Deno.test('Seedlings week 1 welcome keeps its subject, copy, three downloads and
   ]);
   assertLegalFooter(html);
   assert(!html.includes('hs-seedlings-w1-ra-'), 'Seedlings has no Week 1 story; its bonus read-aloud is Story Seven (Week 2)');
+});
+
+Deno.test('free-week welcomes link the download page, never a raw PDF', () => {
+  // 2026-10-14: a phone mail app's built-in browser can show a raw PDF as a blank white
+  // screen (Starter Unit, 2026-09-05). The page explains the fix; a PDF cannot.
+  for (const { html } of [buildSproutsMagnetEmail('Sarah'), buildSeedlingsMagnetEmail('Sarah')]) {
+    assert(!/href="[^"]*\.pdf"/i.test(html), 'no raw PDF links in the free-week welcome');
+  }
 });
 
 Deno.test('free-week welcomes no longer mention the retired card decks', () => {

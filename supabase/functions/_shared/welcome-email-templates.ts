@@ -36,13 +36,14 @@ function closingBlock(): string {
 <p style="font-family:Georgia,serif;font-size:14px;color:${BRAND.text};margin:4px 0 0 0;">The Eden Institute</p>`;
 }
 
-// Consecutive download buttons: the shared brandButton, with the stack's outer margins
-// tightened so three buttons read as one group rather than three sections.
-function buttonStack(buttons: [string, string][]): string {
-  return buttons
-    .map(([label, url]) => brandButton(label, url).replace('style="margin:24px 0;"', 'style="margin:12px 0;"'))
-    .join('\n');
-}
+// 2026-10-14 (founder-approved, /freebies audit problem 5): the free-week emails link ONE
+// download page per band instead of three raw PDF URLs. Some phone mail apps open links in
+// a built-in browser that cannot show a PDF, which is how a Starter Unit buyer got a blank
+// white screen on 2026-09-05 (fixed for the Starter Unit in PR #455). The page lists the
+// same three files and explains the blank-screen fix: web/components/FreeWeekDownloads.astro.
+// The old three-button stack (buttonStack) went with this change.
+const SPROUTS_WEEK1_URL = 'https://edeninstitute.health/freebies/sprouts-week-1';
+const SEEDLINGS_WEEK1_URL = 'https://edeninstitute.health/freebies/seedlings-week-1';
 
 function magnetWrapper(body: string): string {
   return emailShell(
@@ -90,11 +91,8 @@ ${p(`Hi ${firstName},`)}
 ${p('Thank you for stepping into this work with us. What follows is a real week of curriculum: Week 1 of Sprouts, the band built for kindergarten through second grade. Not a sample stripped of substance. Five days with Lavender, a story your child will remember, and the small daily rhythms that turn a kitchen counter into a place of formation.')}
 ${goldDivider()}
 ${heading('YOUR THREE DOWNLOADS: SPROUTS WEEK 1 (LAVENDER)')}
-${buttonStack([
-    ['MEET THE FAMILY (READ-ALOUD)', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-ra-lavender.pdf'],
-    ["TEACHER'S GUIDE", 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-tg-lavender.pdf'],
-    ['STUDENT NOTEBOOK', 'https://edeninstitute.health/lead-magnets/hs-sprouts-w1-nb-lavender.pdf'],
-  ])}
+${p('All three are on one page: Meet the Family (the read-aloud), the Teacher&rsquo;s Guide and the Student Notebook. Open them or save them to your device, and come back to the page any time.')}
+${brandButton('OPEN YOUR WEEK 1 DOWNLOADS', SPROUTS_WEEK1_URL)}
 ${goldDivider()}
 ${heading('THIS IS A WHOLE WEEK')}
 ${p('Lavender is Week 1 of the curriculum exactly as it is taught. Five full days, the same pages families teach from all year, and it stands on its own. Everything you need to teach these five days is in the guide and the notebook. Teach it whenever the week suits you. In about a week I will write again about the weeks that follow it, and there is nothing you need to do before then.')}
@@ -109,11 +107,8 @@ ${p(`Hi ${firstName},`)}
 ${p('Thank you for stepping into this work with us. What follows is a real week of curriculum from Seedlings, our band for third through fifth graders. Seedlings is built for the child who has begun to ask <em>why</em> and <em>how</em>, the one who has outgrown a worksheet and is ready to track a hypothesis across a week. Week 1 starts with Elderberry.')}
 ${goldDivider()}
 ${heading('YOUR THREE DOWNLOADS: SEEDLINGS WEEK 1 (ELDERBERRY)')}
-${buttonStack([
-    ["TEACHER'S GUIDE", 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-tg-elderberry.pdf'],
-    ['STUDENT NOTEBOOK', 'https://edeninstitute.health/lead-magnets/hs-seedlings-w1-nb-elderberry.pdf'],
-    ['STORY SEVEN: BE STILL (READ-ALOUD)', 'https://edeninstitute.health/lead-magnets/hs-seedlings-w2-ra-be-still.pdf'],
-  ])}
+${p('All three are on one page: the Teacher&rsquo;s Guide, the Student Notebook and Story Seven, Be Still (the read-aloud). Open them or save them to your device, and come back to the page any time.')}
+${brandButton('OPEN YOUR WEEK 1 DOWNLOADS', SEEDLINGS_WEEK1_URL)}
 ${goldDivider()}
 ${heading('THIS IS A WHOLE WEEK')}
 ${p('Elderberry is Week 1 of the curriculum exactly as it is taught. Five full days, the same pages families teach from all year, and it stands on its own. Everything you need to teach these five days is in the guide and the notebook. The read-aloud is a bonus: Story Seven, Be Still, the first story of the Seedlings year, which families read together in Week 2. Teach it whenever the week suits you. In about a week I will write again with what comes next, and there is nothing you need to do before then.')}
