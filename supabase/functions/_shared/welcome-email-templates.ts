@@ -45,6 +45,11 @@ function closingBlock(): string {
 const SPROUTS_WEEK1_URL = 'https://edeninstitute.health/freebies/sprouts-week-1';
 const SEEDLINGS_WEEK1_URL = 'https://edeninstitute.health/freebies/seedlings-week-1';
 
+// Hidden preview text: the line inboxes show under the subject (draft 2026-10-14).
+function preheader(text: string): string {
+  return `<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${text}</div>`;
+}
+
 function magnetWrapper(body: string): string {
   return emailShell(
     body,
@@ -76,7 +81,7 @@ ${p("Welcome to Eden's Table. I am so glad you are here.")}
 ${p("Eden's Table is a Christ-centered homeschool herbalism curriculum, one plant a week, woven through Scripture, science and the rhythms of your own kitchen table. Two years are finished and ready now: <strong>Sprouts</strong> for kindergarten through second grade, and <strong>Seedlings</strong> for grades 3 to 5. They teach different plants, thirty-six each, so nothing repeats.")}
 ${p('Not sure where to start? Here is what I tell every family. Children in kindergarten through second grade start with Sprouts. Children in grades 3 to 5 who are new to herbs start with Sprouts too, because its plants are the ones Seedlings builds on. If they already know the basics, they can go straight to Seedlings. And if you have children in both, teach Sprouts to everyone together first.')}
 ${brandButton('See where to start', 'https://edeninstitute.health/homeschool#choose-band')}
-${p(`${link('Week 1 of both years is free', FREEBIES_URL)}, if you would like to try before anything else. When you are ready for the whole year, it comes in three printed books, the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud Storybook, all thirty-six weeks, for $249 plus flat $12 shipping: ${link('Sprouts', 'https://edeninstitute.health/books#buy')} or ${link('Seedlings', 'https://edeninstitute.health/books#seedlings')}.`)}
+${p(`${link('Week 1 of both years is free', FREEBIES_URL)}, if you would like to try before anything else. When you are ready for the whole year, it comes in three printed books, the Teacher&rsquo;s Guide, the Student Notebook and the Read-Aloud Storybook, all thirty-six weeks, for $249 plus $12 shipping: ${link('Sprouts', 'https://edeninstitute.health/books#buy')} or ${link('Seedlings', 'https://edeninstitute.health/books#seedlings')}.`)}
 ${goldDivider()}
 ${closingBlock()}`;
   return {
@@ -87,6 +92,7 @@ ${closingBlock()}`;
 
 export function buildSproutsMagnetEmail(firstName: string): { subject: string; html: string } {
   const body = `
+${preheader('Five days with lavender, ready to print tonight.')}
 ${p(`Hi ${firstName},`)}
 ${p('Thank you for stepping into this work with us. What follows is a real week of curriculum: Week 1 of Sprouts, the band built for kindergarten through second grade. Not a sample stripped of substance. Five days with Lavender, a story your child will remember, and the small daily rhythms that turn a kitchen counter into a place of formation.')}
 ${goldDivider()}
@@ -95,7 +101,7 @@ ${p('All three are on one page: Meet the Family (the read-aloud), the Teacher&rs
 ${brandButton('OPEN YOUR WEEK 1 DOWNLOADS', SPROUTS_WEEK1_URL)}
 ${goldDivider()}
 ${heading('THIS IS A WHOLE WEEK')}
-${p('Lavender is Week 1 of the curriculum exactly as it is taught. Five full days, the same pages families teach from all year, and it stands on its own. Everything you need to teach these five days is in the guide and the notebook. Teach it whenever the week suits you. In about a week I will write again about the weeks that follow it, and there is nothing you need to do before then.')}
+${p('Lavender is Week 1 of the curriculum exactly as it is taught. Five full days, the same pages families teach from all year, and it stands on its own. Everything you need to teach these five days is in the guide and the notebook. Teach it whenever the week suits you. Tomorrow morning I will send you a short note on how to get started, and in about a week I will check in to see how it went.')}
 ${p(`If you have children in grades 3 to 5 who already know the basics of herbs, they can start with Seedlings, the next thirty-six plants. ${link('Its Week 1 is free too', FREEBIES_URL)}.`)}
 ${closingBlock()}`;
   return { subject: 'Your Sprouts Week 1 (Lavender) is ready', html: magnetWrapper(body) };
@@ -103,6 +109,7 @@ ${closingBlock()}`;
 
 export function buildSeedlingsMagnetEmail(firstName: string): { subject: string; html: string } {
   const body = `
+${preheader('Five days with elderberry, ready to print tonight.')}
 ${p(`Hi ${firstName},`)}
 ${p('Thank you for stepping into this work with us. What follows is a real week of curriculum from Seedlings, our band for third through fifth graders. Seedlings is built for the child who has begun to ask <em>why</em> and <em>how</em>, the one who has outgrown a worksheet and is ready to track a hypothesis across a week. Week 1 starts with Elderberry.')}
 ${goldDivider()}
@@ -111,7 +118,7 @@ ${p('All three are on one page: the Teacher&rsquo;s Guide, the Student Notebook 
 ${brandButton('OPEN YOUR WEEK 1 DOWNLOADS', SEEDLINGS_WEEK1_URL)}
 ${goldDivider()}
 ${heading('THIS IS A WHOLE WEEK')}
-${p('Elderberry is Week 1 of the curriculum exactly as it is taught. Five full days, the same pages families teach from all year, and it stands on its own. Everything you need to teach these five days is in the guide and the notebook. The read-aloud is a bonus: Story Seven, Be Still, the first story of the Seedlings year, which families read together in Week 2. Teach it whenever the week suits you. In about a week I will write again with what comes next, and there is nothing you need to do before then.')}
+${p('Elderberry is Week 1 of the curriculum exactly as it is taught. Five full days, the same pages families teach from all year, and it stands on its own. Everything you need to teach these five days is in the guide and the notebook. The read-aloud is a bonus: Story Seven, Be Still, the first story of the Seedlings year, which families read together in Week 2. Teach it whenever the week suits you. Tomorrow morning I will send you a short note on how to get started, and in about a week I will check in to see how it went.')}
 ${p(`New to herbs? Even with a child in grades 3 to 5, most families start with Sprouts, because its thirty-six plants are the ones Seedlings builds on. ${link('Sprouts Week 1 is free too', FREEBIES_URL)}.`)}
 ${closingBlock()}`;
   return { subject: 'Your Seedlings Week 1 (Elderberry) is ready', html: magnetWrapper(body) };

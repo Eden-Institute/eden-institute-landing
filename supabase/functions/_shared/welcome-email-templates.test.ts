@@ -38,7 +38,7 @@ Deno.test("Eden's Table welcome names both bands on sale, the start rule and the
     'href="https://edeninstitute.health/freebies"',
     'href="https://edeninstitute.health/books#buy"',
     'href="https://edeninstitute.health/books#seedlings"',
-    '$249 plus flat $12 shipping',
+    '$249 plus $12 shipping',
     "You're receiving this because you signed up at edeninstitute.health.</td>",
     ...CLOSING,
   ]);
@@ -63,7 +63,7 @@ Deno.test('Sprouts week 1 welcome keeps its subject, copy, three downloads and f
     'href="https://edeninstitute.health/freebies/sprouts-week-1"',
     'THIS IS A WHOLE WEEK',
     'Everything you need to teach these five days is in the guide and the notebook.',
-    'In about a week I will write again about the weeks that follow it, and there is nothing you need to do before then.',
+    'Tomorrow morning I will send you a short note on how to get started, and in about a week I will check in to see how it went.',
     // 2026-09-24 start rule: older children who know the basics can start with Seedlings.
     'If you have children in grades 3 to 5 who already know the basics of herbs, they can start with Seedlings, the next thirty-six plants.',
     'href="https://edeninstitute.health/freebies"',
@@ -93,7 +93,7 @@ Deno.test('Seedlings week 1 welcome keeps its subject, copy, three downloads and
     // 2026-09-24 start rule: a family new to herbs starts with Sprouts.
     'New to herbs? Even with a child in grades 3 to 5, most families start with Sprouts, because its thirty-six plants are the ones Seedlings builds on.',
     'href="https://edeninstitute.health/freebies"',
-    'In about a week I will write again with what comes next, and there is nothing you need to do before then.',
+    'Tomorrow morning I will send you a short note on how to get started, and in about a week I will check in to see how it went.',
     'The Eden Institute | edeninstitute.health',
     "You're receiving this because you signed up at edeninstitute.health. No spam, ever.",
     'Shop Medicinal Herbs',

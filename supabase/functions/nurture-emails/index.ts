@@ -650,6 +650,63 @@ ${small('<a href="{{UNSUB_URL}}" style="color:#888888;text-decoration:underline;
   return { subject: "Don't leave it in your inbox", html };
 }
 
+// Day-10 Starter note after a free week (DRAFT 2026-10-14, founder asked for a Starter email
+// after Day 7). Same plain look as the next-morning note and the check-in. Link in the first
+// three lines, two links in all, one ask. Every plant and day is from the Week 1-9 Teacher's
+// Guides (Sprouts roster; Seedlings spine). No credit wording (founder law 2026-09-14), no
+// deadline (there is none). No em dashes.
+function buildFreeWeekStarterEmail(
+  rawFirstName: string | null,
+  band: 'sprouts' | 'seedlings',
+): { subject: string; html: string } {
+  const name = String(rawFirstName ?? '').trim()
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const greeting = name && name.toLowerCase() !== 'friend' ? `Hi ${name}!` : 'Hi there!';
+  const para = (t: string) =>
+    `<p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#222222;margin:0 0 14px 0;">${t}</p>`;
+  const small = (t: string) =>
+    `<p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.5;color:#888888;margin:0 0 4px 0;">${t}</p>`;
+  const a = (text: string, url: string) => `<a href="${url}" style="color:#2E3D32;text-decoration:underline;">${text}</a>`;
+  const url = band === 'sprouts' ? 'https://edeninstitute.health/starter' : 'https://edeninstitute.health/starter/seedlings';
+  const s = band === 'sprouts'
+    ? {
+      pre: 'Chamomile, lemon balm, peppermint and six more plants, ready tonight.',
+      plant: 'lavender',
+      band: 'Sprouts',
+      weeks: 'Week 2 is chamomile. Then lemon balm, peppermint, calendula, plantain, fennel and slippery elm, and in week 9 your kids meet marshmallow root. They fill a jar with cool water in the morning, leave it alone, and come back hours later to taste what waiting made.',
+      shape: 'It is the same rhythm you just tried: meet the plant in a story on Monday, look close and sketch on Tuesday, a Kitchen Lab on Wednesday, history and art on Thursday, and outside on Friday. Every word you say is written out for you.',
+      stories: 'the four read-aloud stories that fall in those weeks',
+    }
+    : {
+      pre: 'Tulsi, ginger, sage and six more plants, ready tonight.',
+      plant: 'elderberry',
+      band: 'Seedlings',
+      weeks: 'Week 2 is tulsi. Then ginger, astragalus, echinacea, reishi, goldenrod and sage, and week 9 is willow bark. In sage week your kids cover dried sage leaves with honey in a jar, label it, and open it two weeks later.',
+      shape: 'Each week your child studies one plant, writes a hypothesis when a jar is sealed, and checks it when the jar opens. Every daily lesson is written out in the Teacher&rsquo;s Guide, ready to open and teach.',
+      stories: 'the read-aloud storybook for those weeks',
+    };
+  const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:16px;background-color:#ffffff;">
+<div style="display:none;max-height:0;overflow:hidden;">${s.pre}</div>
+<div style="max-width:560px;">
+${para(greeting)}
+${para(`If ${s.plant} week went well at your house, here is what comes next. Weeks 1 through 9 of ${s.band} are a $39 download, and you could start tonight: ${a('see weeks 1 to 9', url)}.`)}
+${para(s.weeks)}
+${para(s.shape)}
+${para(`You get the Teacher&rsquo;s Guide, the Student Notebook and ${s.stories}, as PDFs you print at home. Print it again for the next child as often as you like.`)}
+${para(`${a(`Start ${s.band} weeks 1 to 9 for $39`, url)}`)}
+${para('Not ready? That is okay. Your free week is still yours, and I will keep sending you a plant idea every Friday.')}
+${para('Camila')}
+<div style="border-top:1px solid #eeeeee;margin:28px 0 12px 0;"></div>
+${small('You&rsquo;re receiving this because you requested a free week of Eden&rsquo;s Table from The Eden Institute.')}
+${small('Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Unit 3262, Clarksville, TN 37043')}
+${small('<a href="{{UNSUB_URL}}" style="color:#888888;text-decoration:underline;">Unsubscribe</a>')}
+</div>
+</body></html>`;
+  return { subject: 'What weeks 2 through 9 look like', html };
+}
+
 // Day-7 check-in after a free week (founder-approved copy, 2026-09-24). Deliberately
 // plain: no header, no button, no link in the body, because it is meant to read
 // like a note from Camila and to earn a reply (reply_to is hello@). The footer
@@ -661,6 +718,10 @@ function buildFreeWeekCheckinEmail(
   band: 'sprouts' | 'seedlings',
 ): { subject: string; html: string } {
   const plant = band === 'sprouts' ? 'lavender' : 'elderberry';
+  const starterUrl = band === 'sprouts'
+    ? 'https://edeninstitute.health/starter'
+    : 'https://edeninstitute.health/starter/seedlings';
+  const starterLink = `<a href="${starterUrl}" style="color:#2E3D32;text-decoration:underline;">weeks 1 to 9 are here</a>`;
   const name = String(rawFirstName ?? '').trim()
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const greeting = name && name.toLowerCase() !== 'friend' ? `Hi ${name}!` : 'Hi there!';
@@ -676,6 +737,7 @@ ${para(greeting)}
 ${para(`This is Camila from Eden&rsquo;s Table. You grabbed our free ${plant} week about a week ago and I wanted to check in. Did you get to try it with your kids?`)}
 ${para(`I&rsquo;d really love to hear how it went, the good and the not so good. And if you&rsquo;d let me share your words with other moms, just say so. And if you&rsquo;re wondering what comes after week 1, just hit reply. Your reply comes straight to me.`)}
 ${para('Camila')}
+${para(`P.S. If your kids want to keep going, ${starterLink} as a $39 download.`)}
 <div style="border-top:1px solid #eeeeee;margin:28px 0 12px 0;"></div>
 ${small('You&rsquo;re receiving this because you requested a free week of Eden&rsquo;s Table from The Eden Institute.')}
 ${small('Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Unit 3262, Clarksville, TN 37043')}
@@ -770,6 +832,22 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
         // the dashboard never merges it with the old offer's numbers.
         built = buildFreeWeekCheckinEmail(row.first_name, band);
         emailKey = `magnet_checkin_${band}`;
+      } else if (pos === 8) {
+        // 2026-10-14 (founder-approved by inbox proof): the Day-10 Starter note, three days
+        // after the check-in. Never to a family who already owns that band.
+        if (await ownsBand(email, band)) {
+          await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              status: 'cancelled',
+              error_message: `skipped: recipient already owns ${band}`,
+              updated_at: new Date().toISOString(),
+            }),
+          });
+          continue;
+        }
+        built = buildFreeWeekStarterEmail(row.first_name, band);
+        emailKey = `magnet_starter_${band}`;
       } else if (pos === 3) {
         built = buildMagnetWeek3FacebookEmail(firstName);
         emailKey = MAGNET_KEY_BY_POS[3];
@@ -851,6 +929,22 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
 // True if this recipient has a live (not cancelled/refunded) order.
 // ilike is used for case-insensitivity; _ and % are LIKE wildcards, so they
 // are escaped to make this literal equality (jane_doe must not match janeadoe).
+// Day-10 Starter note (magnet position 8): skip a family who already owns that band, so
+// nobody is offered the Starter they just bought. Paid orders of the band's Starter Unit or
+// printed set (or the both-bands set). Exact, case-insensitive match on the address.
+const BAND_OWNER_KEYS: Record<'sprouts' | 'seedlings', string[]> = {
+  sprouts: ['sprouts_starter_unit', 'sprouts_print_set', 'both_bands_print_set'],
+  seedlings: ['seedlings_starter_unit', 'seedlings_print_set', 'both_bands_print_set'],
+};
+
+async function ownsBand(email: string, band: 'sprouts' | 'seedlings'): Promise<boolean> {
+  const literal = escapeLikePattern(email);
+  const rows = await supabaseQuery(
+    `orders?customer_email=ilike.${encodeURIComponent(literal)}&payment_status=eq.paid&lookup_key=in.(${BAND_OWNER_KEYS[band].join(',')})&select=id&limit=1`,
+  );
+  return Array.isArray(rows) && rows.length > 0;
+}
+
 async function hasPreordered(email: string): Promise<boolean> {
   const literal = escapeLikePattern(email);
   const rows = await supabaseQuery(

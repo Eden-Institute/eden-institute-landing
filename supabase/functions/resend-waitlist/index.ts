@@ -110,7 +110,7 @@ async function sendEmail(to: string, subject: string, html: string, list: EmailL
     // The podcast list is its own brand; everything else stays The Eden Institute.
     from: list === 'podcast'
       ? 'Tales & Table Talk <hello@edeninstitute.health>'
-      : 'The Eden Institute <hello@edeninstitute.health>',
+      : 'Camila at The Eden Institute <hello@edeninstitute.health>',
     reply_to: 'hello@edeninstitute.health',
     to: [to],
     subject,
@@ -704,11 +704,14 @@ Deno.serve(async (req) => {
         const band = source === 'sprouts_magnet' ? 'sprouts' : 'seedlings';
         const nowMs = Date.now();
         const day7 = new Date(nowMs + 7 * 24 * 60 * 60 * 1000).toISOString();
+        const day10 = new Date(nowMs + 10 * 24 * 60 * 60 * 1000).toISOString();
         // 2026-10-14 (#352): the next-morning nudge (position 1), about 18 hours later.
         const nextMorning = new Date(nowMs + 18 * 60 * 60 * 1000).toISOString();
         const magnetRows = [
           { recipient_email: normalizedEmail, first_name: firstNameSafe, band, sequence_position: 1, scheduled_for: nextMorning, status: 'pending' },
           { recipient_email: normalizedEmail, first_name: firstNameSafe, band, sequence_position: 2, scheduled_for: day7, status: 'pending' },
+          // 2026-10-14: Day-10 Starter note (nurture-emails position 8), skipped there for owners.
+          { recipient_email: normalizedEmail, first_name: firstNameSafe, band, sequence_position: 8, scheduled_for: day10, status: 'pending' },
         ];
         // ignore-duplicates, not merge: merging would flip an already 'sent'
         // row back to pending with a new date and re-send the day-7 offer to a
