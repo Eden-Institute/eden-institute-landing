@@ -22,6 +22,9 @@ interface Cfg {
   ctaHref?: string;
   ctaLabel?: string;
   ctaBlurb?: string;
+  submitLabel?: string;
+  successMessage?: string;
+  successSubtitle?: string;
   source: string;
 }
 
@@ -46,6 +49,14 @@ export default function WaitlistController() {
           ctaHref: el.getAttribute("data-waitlist-cta-href") || undefined,
           ctaLabel: el.getAttribute("data-waitlist-cta-label") || undefined,
           ctaBlurb: el.getAttribute("data-waitlist-cta-blurb") || undefined,
+          // Free-week wording (web/lib/freeWeekModal.ts). Absent attribute = old
+          // wording. successSubtitle reads hasAttribute because "" is meaningful:
+          // it hides the subtitle once the address is in.
+          submitLabel: el.getAttribute("data-waitlist-submit-label") || undefined,
+          successMessage: el.getAttribute("data-waitlist-success-message") || undefined,
+          successSubtitle: el.hasAttribute("data-waitlist-success-subtitle")
+            ? el.getAttribute("data-waitlist-success-subtitle") ?? ""
+            : undefined,
         });
         setOpen(true);
       };
@@ -65,6 +76,9 @@ export default function WaitlistController() {
       successCtaHref={cfg.ctaHref}
       successCtaLabel={cfg.ctaLabel}
       successCtaBlurb={cfg.ctaBlurb}
+      submitLabel={cfg.submitLabel}
+      successMessage={cfg.successMessage}
+      successSubtitle={cfg.successSubtitle}
       source={cfg.source}
     />
   );

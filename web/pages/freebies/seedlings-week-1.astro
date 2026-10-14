@@ -1,0 +1,23 @@
+---
+// /freebies/seedlings-week-1: where the Seedlings free-week welcome email sends families
+// for their three Week 1 files. All of the content lives in
+// web/components/FreeWeekDownloads.astro (see its header for why this is a page and
+// not three raw PDF links). noindex: the free week is reached by signing up.
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import FreeWeekDownloads from "../../components/FreeWeekDownloads.astro";
+
+const meta = {
+  title: "Your free Seedlings Week 1 (Elderberry) · Eden's Table | The Eden Institute",
+  description: "Your free Eden's Table Seedlings Week 1 downloads.",
+  canonical: "https://edeninstitute.health/freebies/seedlings-week-1",
+};
+---
+
+<MarketingLayout
+  title={meta.title}
+  description={meta.description}
+  canonical={meta.canonical}
+  noindex={true}
+>
+  <FreeWeekDownloads band="seedlings" />
+</MarketingLayout>

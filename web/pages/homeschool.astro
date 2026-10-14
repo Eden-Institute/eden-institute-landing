@@ -27,6 +27,7 @@ import WaitlistController from "../components/islands/WaitlistController.tsx";
 import PayOverTime from "../components/islands/PayOverTime.tsx";
 import ComponentShowcases from "../components/ComponentShowcases.astro";
 import BandChooser from "../components/BandChooser.astro";
+import { FREE_WEEK_MODAL, type FreeWeekModal } from "../lib/freeWeekModal";
 
 const meta = {
   // Sized to what Google shows whole (about 60 / 155 characters).
@@ -85,7 +86,8 @@ interface Rung {
   cta?: string;
   primary?: boolean;
   soon?: boolean;
-  modal?: { source: string; title: string; subtitle: string };
+  // Free-week pop-up wording, shared with /freebies (web/lib/freeWeekModal.ts).
+  modal?: FreeWeekModal;
 }
 interface Band {
   id: "sprouts" | "seedlings" | "cultivators" | "practitioners";
@@ -115,11 +117,7 @@ const BANDS: Band[] = [
         when: "Print it and teach it today.",
         button: "Get Week 1 free",
         cta: "homeschool-sprouts-free",
-        modal: {
-          source: "sprouts_magnet",
-          title: "Get Sprouts Week 1 · Free",
-          subtitle: "Check your inbox. Your free Sprouts Week 1 (Lavender) downloads are on their way right now. Five real lessons, the Teacher's Guide, the Notebook and the story, to print and teach today.",
-        },
+        modal: FREE_WEEK_MODAL.sprouts,
       },
       {
         step: "Step 2 · Start now",
@@ -160,11 +158,7 @@ const BANDS: Band[] = [
         when: "Print it and teach it today.",
         button: "Get Week 1 free",
         cta: "homeschool-seedlings-free",
-        modal: {
-          source: "seedlings_magnet",
-          title: "Get Seedlings Week 1 · Free",
-          subtitle: "Check your inbox. Your free Seedlings Week 1 (Elderberry) downloads are on their way right now. Five real lessons, the Teacher's Guide and the Notebook, to print and teach today.",
-        },
+        modal: FREE_WEEK_MODAL.seedlings,
       },
       // Buyable since 2026-09-23 (founder decision): same shape as the Sprouts rung.
       {
@@ -409,6 +403,9 @@ const PRINT_SET = {
                         data-waitlist-source={r.modal.source}
                         data-waitlist-title={r.modal.title}
                         data-waitlist-subtitle={r.modal.subtitle}
+                        data-waitlist-submit-label={r.modal.submitLabel}
+                        data-waitlist-success-message={r.modal.successMessage}
+                        data-waitlist-success-subtitle={r.modal.successSubtitle}
                         data-waitlist-cta-href="https://edeninstitute.health/homeschool?utm_source=modal&utm_medium=post_signup&utm_campaign=free_weeks_followup"
                         data-waitlist-cta-label="See the full year"
                       >{r.button}</Button>

@@ -47,6 +47,17 @@ interface WaitlistModalProps {
   /** One or two sentences above the button, giving a reason to click. */
   successCtaBlurb?: string;
   /**
+   * Optional wording overrides, added 2026-10-14 for the free-week pop-up
+   * (web/lib/freeWeekModal.ts). Undefined keeps the original wording, so every
+   * other surface renders exactly as before.
+   *   submitLabel      replaces "Connect With Us" on the button.
+   *   successMessage   replaces "You're on the list. We'll be in touch."
+   *   successSubtitle  replaces the subtitle once the address is in; "" hides it.
+   */
+  submitLabel?: string;
+  successMessage?: string;
+  successSubtitle?: string;
+  /**
    * Explicit entry_funnel override, forwarded to the resend-waitlist EF.
    * Takes precedence over the legacy audienceId→funnel mapping there, so a
    * surface that shares an audienceId with another funnel (e.g. Community and
@@ -61,7 +72,7 @@ interface WaitlistModalProps {
   metadata?: Record<string, unknown>;
 }
 
-const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source = "waitlist", funnel, metadata, successCtaHref, successCtaLabel, successCtaBlurb }: WaitlistModalProps) => {
+const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source = "waitlist", funnel, metadata, successCtaHref, successCtaLabel, successCtaBlurb, submitLabel, successMessage, successSubtitle }: WaitlistModalProps) => {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
@@ -176,11 +187,14 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
       <DialogContent className="bg-card border-border max-w-md">
         <DialogHeader>
           <DialogTitle className="font-serif text-2xl text-foreground">{title}</DialogTitle>
-          {subtitle && (<p className="font-body text-sm text-muted-foreground mt-2">{subtitle}</p>)}
+          {(() => {
+            const shown = success && successSubtitle !== undefined ? successSubtitle : subtitle;
+            return shown ? (<p className="font-body text-sm text-muted-foreground mt-2">{shown}</p>) : null;
+          })()}
         </DialogHeader>
         {success ? (
           <div className="py-8 text-center">
-            <p className="font-accent text-lg text-foreground italic mb-2">You're on the list. We'll be in touch.</p>
+            <p className="font-accent text-lg text-foreground italic mb-2">{successMessage ?? "You're on the list. We'll be in touch."}</p>
             <p className="font-body text-xs text-muted-foreground/70 italic">Using Gmail? Your first email may arrive in your Promotions or Spam folder. Please move it to your Primary inbox so you don't miss anything from us.</p>
             {successCtaHref && successCtaLabel && (
               <div className="mt-6 pt-6 border-t border-border">
@@ -248,7 +262,7 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
               </div>
             )}
             {error && (<p className="font-body text-sm text-destructive">{error}</p>)}
-            <Button variant="eden" size="xl" className="w-full" disabled={loading}>{loading ? "Submitting…" : "Connect With Us"}</Button>
+            <Button variant="eden" size="xl" className="w-full" disabled={loading}>{loading ? "Submitting…" : (submitLabel ?? "Connect With Us")}</Button>
             <p className="text-center font-body text-xs text-muted-foreground/60">No spam. Unsubscribe anytime.</p>
           </form>
         )}

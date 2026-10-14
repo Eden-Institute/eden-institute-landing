@@ -82,13 +82,100 @@ const steps = [
   { n: "2", t: "Check your inbox", d: "Week 1 arrives immediately, all five days of it. Nothing else to wait for." },
   { n: "3", t: "Print it and teach it", d: "No prep box, no lesson planning, no screens. Open the guide and go." },
 ];
+
+// 2026-10-14, founder-approved from the /freebies front-door audit
+// (Eden's Table (Homeschool Curriculum)/Projects/UHPN October Sponsorship/
+// Freebies_Front_Door_Audit_2026-10-13.docx, section 4). UHPN (Gina Steffy) moved
+// every network link to this page on 2026-10-13, pitching the free week to moms who
+// already bought this year's curriculum.
+
+// Band hooks: read off each band's live Week 1 Teacher's Guide PDF, 2026-10-13
+// (Sprouts W1 lavender: tea + sachet Wednesday, Roman arches Thursday. Seedlings W1
+// elderberry: syrup Wednesday, Martin Blochwich's book on the elder Thursday).
+// If Week 1 of either band changes, these lines change with it.
+const hooks = [
+  { band: "Sprouts", line: "Week 1 is lavender. Smell it, sketch it, brew a cup of tea, and draw it beside Roman arches." },
+  { band: "Seedlings", line: "Week 1 is elderberry. Look closely at the berries, cook a batch of syrup, and meet a doctor who wrote a whole book about one shrub." },
+];
+
+// Word for word; a cut is marked with an ellipsis. PERMISSION ON FILE for each,
+// as of 2026-10-14 (the Testers tab of the Outreach Bible is the record for T-01/T-02):
+//   Kati       written, 2026-07-12, website testimonial (T-01). Her own message says
+//              "in to"; /homeschool prints "into". Nested quotes are single here.
+//   Amanda     written, 2026-07-06, her whole review on the website (T-02). The cut
+//              drops her list of "table cards" and "recipes": the card decks left
+//              the free week on 2026-09-12, so this page must not promise them.
+//   Brooke     founder's word, 2026-09-15 (no written copy on file).
+//   Kendria    founder's word, 2026-09-15 (no written copy on file). The cut drops
+//              "can't wait until it launches!", which reads stale now.
+//   Coralee    founder's word, 2026-10-14 (no written copy on file).
+// Never add a quote here without a permission line above it.
+const testimonials = [
+  {
+    quote: "I just wanted you to see how in to it they are! No complaining and actually asking to do their ‘learning’!!",
+    who: "Kati, former nurse and paramedic, whose children did Week 1 in June",
+  },
+  {
+    quote: "I am a mother who has been homeschooling kids for over 18 years. … The balance of faith and herb/gardening is perfect, it is a complete lesson and well thought out.",
+    who: "Amanda, homeschooling 18 years, who reviewed the lessons",
+  },
+  {
+    quote: "Ahhhhhh I just spent the last few hours poring over the free sample you sent us. This curriculum is absolutely fantastic. I cannot wait to buy this in the fall. This will be our kids favourite curriculum to explore.",
+    who: "Coralee, who read the free sample cover to cover",
+  },
+  {
+    quote: "This is a beautiful curriculum to start. I've just begun reading our teaching guide.",
+    who: "Brooke, Clarksville, TN",
+  },
+  {
+    quote: "…this curriculum truly puts it into bite-size chunks of information while still incorporating incredible vocabulary, concepts, and quality stories.",
+    who: "Kendria Scriver, curriculum writer",
+  },
+];
+
+// FAQ. Each answer is built from published copy or the Week 1 pages (sources in the
+// audit doc). No "no dosing" claim anywhere: Seedlings Week 1 carries a dose line,
+// which the founder chose to keep (2026-10-14). Genesis 1:29 checked against NASB
+// 2020 on BibleGateway 2026-10-14. No credit wording (founder rule 2026-09-14).
+const faqs = [
+  {
+    q: "Does herbalism belong in a Christian home?",
+    a: "We worship the Creator. We study what He made. Eden's Table is not a remedy guide. Every plant is taught as something God made and gave, never as something with a power of its own. “Behold, I have given you every plant yielding seed that is on the surface of all the earth” (Genesis 1:29).",
+  },
+  {
+    q: "Do I need to know herbs to teach it?",
+    a: "No. Camila isn't an herbalist either. She's a teacher with a Master's in Education, and she wrote it so you can teach it without any background: every word you say is written out, the steps are numbered, and there are notes for little ones and for older kids. New to herbs? Most families start with Sprouts, even with older children.",
+  },
+  {
+    q: "Is it safe for little ones?",
+    a: "Safety notes are printed right on the page, in your guide and on your child's page. A grown-up pours anything hot. In Sprouts Week 1 your child brews a cup of lavender tea and ties a lavender sachet, and Bear the dog reminds them that lavender essential oil is very strong and is never tasted. If your child takes any medicine, check with your health care provider before using an herb.",
+  },
+  {
+    q: "Will it work beside my current curriculum?",
+    a: "Yes. It's one plant a week. Use it as your science and nature study, or add it alongside what's already working. Bible, reading, art, history and a little math are woven into each week, so it sits comfortably next to what you already teach.",
+  },
+  {
+    q: "What happens after I download?",
+    a: "Week 1 lands in your inbox right away, all five days of it. About a week later Camila writes about the weeks that follow, and there's nothing you need to do before then. If you want to keep going, weeks 1 through 9 are $39 as an instant download.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
 ---
 
 <MarketingLayout
   title={meta.title}
   description={meta.description}
   canonical={meta.canonical}
-  jsonLd={offerJsonLd}
+  jsonLd={[offerJsonLd, faqJsonLd]}
 >
   {/* §1 Hero. The two CTAs are the entire job of this page, so they sit above the
       fold with nothing competing for the click. No pricing, no preorder banner. */}
@@ -107,12 +194,27 @@ const steps = [
         preview or a sampler. It is one complete week, five full lessons, the same pages
         families teach from all year.
       </p>
+      {/* For the parent who is nervous about teaching science (founder rule
+          2026-10-13: "your science, or alongside", never "replaces"). Every claim
+          is on the Week 1 pages: words written out, numbered steps, a supply list. */}
+      <p class="font-body text-base max-w-2xl mx-auto mb-8 leading-relaxed" style="color:hsl(var(--eden-bark))">
+        Not a science person? You don't have to be. Every word you say is written out, the
+        steps are numbered, and the supplies are listed. Use it as your science and nature
+        study, or add it alongside what's already working.
+      </p>
 
       <div id="get-free" class="flex flex-col items-center gap-4 scroll-mt-28 min-[1024px]:scroll-mt-40">
         <p class="font-accent text-xs tracking-[0.3em] uppercase" style="color:hsl(var(--eden-gold-ink))">
           Choose your grade band
         </p>
         <DualLeadMagnetCTAs size="xl" variant="eden" />
+        <div class="grid gap-3 sm:grid-cols-2 max-w-2xl mx-auto mt-2 text-left">
+          {hooks.map((h) => (
+            <p class="font-body text-sm leading-relaxed" style="color:hsl(var(--eden-bark))">
+              <span class="font-semibold">{h.band}:</span> {h.line}
+            </p>
+          ))}
+        </div>
         <p class="font-body text-sm text-muted-foreground max-w-md mx-auto mt-1">
           Sent to your email straight away, free. No card, no obligation.
         </p>
@@ -141,6 +243,17 @@ const steps = [
           </div>
         ))}
       </div>
+
+      {/* For the mom who already bought this year's curriculum (UHPN's pitch,
+          2026-10-13). The founder kept this without Gina's "one afternoon a week"
+          sentence (2026-10-14). */}
+      <div class="max-w-2xl mx-auto mt-12 text-center p-6 md:p-8 rounded-sm border" style="border-color:hsl(var(--eden-gold)/0.35);background-color:hsl(var(--eden-cream)/0.4)">
+        <h3 class="font-serif text-2xl mb-3" style="color:hsl(var(--eden-bark))">Already have your curriculum?</h3>
+        <p class="font-body text-base text-muted-foreground leading-relaxed">
+          Keep it. Eden's Table is one plant a week, and it sits right beside what you already
+          use. Your kids get to know a plant God made by sight, smell and name.
+        </p>
+      </div>
     </div>
   </section>
 
@@ -156,6 +269,43 @@ const steps = [
             <p class="font-serif text-5xl mb-4" style="color:hsl(var(--eden-gold-ink))">{s.n}</p>
             <h3 class="font-serif text-xl mb-3" style="color:hsl(var(--eden-bark))">{s.t}</h3>
             <p class="font-body text-sm text-muted-foreground leading-relaxed">{s.d}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* §3a What families said. Quotes and their permission records are in the
+      frontmatter; never add one without a permission line. */}
+  <section class="py-16 px-6 bg-background">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="font-serif text-3xl md:text-4xl text-center mb-12" style="color:hsl(var(--eden-bark))">
+        What families said
+      </h2>
+      <div class="grid gap-6 md:grid-cols-2">
+        {testimonials.map((t) => (
+          <figure class="p-6 rounded-sm border flex flex-col" style="border-color:hsl(var(--eden-gold)/0.25);background-color:hsl(var(--eden-cream)/0.4)">
+            <blockquote class="font-serif text-lg leading-relaxed mb-4" style="color:hsl(var(--eden-bark))">
+              “{t.quote}”
+            </blockquote>
+            <figcaption class="font-body text-sm text-muted-foreground mt-auto">{t.who}</figcaption>
+          </figure>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* §3b Questions families ask. Same text feeds the FAQPage JSON-LD above. */}
+  <section class="py-16 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-3xl mx-auto">
+      <h2 class="font-serif text-3xl md:text-4xl text-center mb-12" style="color:hsl(var(--eden-bark))">
+        Questions families ask
+      </h2>
+      <div class="space-y-8">
+        {faqs.map((f) => (
+          <div>
+            <h3 class="font-serif text-xl mb-2" style="color:hsl(var(--eden-bark))">{f.q}</h3>
+            <p class="font-body text-base text-muted-foreground leading-relaxed">{f.a}</p>
           </div>
         ))}
       </div>

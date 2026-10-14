@@ -3,6 +3,7 @@
 // for SEO) carrying data-waitlist-* attributes; WaitlistController wires the
 // clicks to the modal. Mirrors the DualLeadMagnetCTAs helper in Homeschool.tsx.
 import { Button } from "@/components/ui/button";
+import { FREE_WEEK_MODAL } from "../lib/freeWeekModal";
 
 interface Props {
   size?: "lg" | "xl";
@@ -10,13 +11,11 @@ interface Props {
 }
 const { size = "lg", variant = "eden-outline" } = Astro.props;
 
-// 2026-09-12: the card decks were retired from the free week, both bands, so
-// these no longer promise "all six components". Keep them in step with the
-// modal subtitles in homeschool.astro and the welcome emails in resend-waitlist.
-const sproutsSubtitle =
-  "Check your inbox. Your free Sprouts Week 1 (Lavender) downloads are on their way right now. Five real lessons, the Teacher's Guide, the Notebook and the story, to print and teach today.";
-const seedlingsSubtitle =
-  "Check your inbox. Your free Seedlings Week 1 (Elderberry) downloads are on their way right now. Five real lessons, the Teacher's Guide and the Notebook, to print and teach today.";
+// The pop-up wording (title, subtitle, button, success line) lives in
+// web/lib/freeWeekModal.ts, shared with the /homeschool band ladders since
+// 2026-10-14, so the two pages can no longer drift apart.
+const sprouts = FREE_WEEK_MODAL.sprouts;
+const seedlings = FREE_WEEK_MODAL.seedlings;
 ---
 
 {/*
@@ -38,12 +37,15 @@ const seedlingsSubtitle =
     variant={variant}
     size={size}
     className="w-full sm:w-auto whitespace-normal h-auto min-h-[48px] py-3 px-6 sm:px-10 leading-snug"
-    data-waitlist-source="sprouts_magnet"
+    data-waitlist-source={sprouts.source}
     data-waitlist-cta-href="https://edeninstitute.health/homeschool?utm_source=modal&utm_medium=post_signup&utm_campaign=free_weeks_followup"
     data-waitlist-cta-label="See the full year"
     data-waitlist-cta-blurb="While you wait: families have taught this at their own tables. Here is what they said, and what a full year looks like."
-    data-waitlist-title="Get Sprouts Week 1 · Free"
-    data-waitlist-subtitle={sproutsSubtitle}
+    data-waitlist-title={sprouts.title}
+    data-waitlist-subtitle={sprouts.subtitle}
+    data-waitlist-submit-label={sprouts.submitLabel}
+    data-waitlist-success-message={sprouts.successMessage}
+    data-waitlist-success-subtitle={sprouts.successSubtitle}
   >
     Get Sprouts (K-2) Week 1 · Free
   </Button>
@@ -51,12 +53,15 @@ const seedlingsSubtitle =
     variant={variant}
     size={size}
     className="w-full sm:w-auto whitespace-normal h-auto min-h-[48px] py-3 px-6 sm:px-10 leading-snug"
-    data-waitlist-source="seedlings_magnet"
+    data-waitlist-source={seedlings.source}
     data-waitlist-cta-href="https://edeninstitute.health/homeschool?utm_source=modal&utm_medium=post_signup&utm_campaign=free_weeks_followup"
     data-waitlist-cta-label="See the full year"
     data-waitlist-cta-blurb="While you wait: families have taught this at their own tables. Here is what they said, and what a full year looks like."
-    data-waitlist-title="Get Seedlings Week 1 · Free"
-    data-waitlist-subtitle={seedlingsSubtitle}
+    data-waitlist-title={seedlings.title}
+    data-waitlist-subtitle={seedlings.subtitle}
+    data-waitlist-submit-label={seedlings.submitLabel}
+    data-waitlist-success-message={seedlings.successMessage}
+    data-waitlist-success-subtitle={seedlings.successSubtitle}
   >
     Get Seedlings (3-5) Week 1 · Free
   </Button>

@@ -18,6 +18,9 @@
  *   /starter/seedlings/thank-you - post-purchase confirmation (Seedlings)
  *   /back-to-eden/thank-you - post-purchase confirmation (Back to Eden)
  *   /back-to-eden/download  - post-purchase delivery surface (Back to Eden PDFs)
+ *   /freebies/sprouts-week-1, /freebies/seedlings-week-1 - free-week delivery
+ *                           surfaces linked from the welcome email; the free week
+ *                           is reached by signing up on /freebies, not by search
  */
 export const STATIC_PATHS: readonly string[] = [
   "/",
