@@ -26,6 +26,18 @@
 //   { "mode": "sync",  "batch": 100 }            write up to `batch` changed contacts (max 120)
 //   { "mode": "full",  "batch": 100 }            same, ignoring the stored hash (backfill)
 //   { "mode": "sync",  "email": "a@b.c" }        force one contact, ignoring the hash
+//   { "mode": "sync_unsubscribes", "batch": 200 } push opt-outs to Resend (see below), up to 200 per call
+//
+// Opt-out sync (founder decision 2026-10-14: list emails move to Resend Broadcasts). A
+// Broadcast skips a contact only when that contact's own Resend `unsubscribed` flag is true,
+// but our opt-outs live in Postgres: waitlist_signups.unsubscribed_at (global: unsubscribes,
+// hard bounces, complaints) and email_list_unsubscribes list 'homeschool' (the per-list
+// one-click link). Each one is PATCHed to Resend as unsubscribed:true ONCE and recorded in
+// public.resend_unsubscribe_sync. It never sets the flag back to false: re-subscribing is a
+// person's own choice, never a sync side effect. A 404 (no such Resend contact) is recorded
+// as 'absent', since Resend cannot mail a contact it does not have. The nightly 'sync' run
+// does a small pass too, so new opt-outs reach Resend within a day; run this mode on its own
+// right before any Broadcast is scheduled.
 //
 // Every write goes through _shared/resend-contacts.ts and never throws. The
 // response carries `remaining`, so a driver can loop until it reads zero, the
@@ -57,6 +69,9 @@ const DEFAULT_BATCH = 100;
 const MAX_BATCH = 120;
 const WRITE_SPACING_MS = 200;
 const PAGE = 1000; // PostgREST caps at 1000 rows per request
+const UNSUB_MAX_BATCH = 200;
+const UNSUB_NIGHTLY_BATCH = 60;
+const RESEND_KEY = Deno.env.get('RESEND_CONTACTS_KEY') ?? Deno.env.get('RESEND_API_KEY') ?? '';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -181,6 +196,74 @@ async function upsertState(row: ComputedRow, hash: string, status: number, error
   }
 }
 
+interface UnsubResult {
+  optouts: number;
+  already: number;
+  due: number;
+  processed: number;
+  synced: number;
+  absent: number;
+  failed: number;
+  remaining: number;
+  failures: Array<{ email: string; status: number; error?: string }>;
+}
+
+/** Opt-outs (global + per-list homeschool) not yet pushed to Resend: PATCH unsubscribed:true. */
+async function syncUnsubscribes(limit: number, dryRun = false): Promise<UnsubResult> {
+  const globalRows = await fetchAll<{ email: string }>('waitlist_signups?unsubscribed_at=not.is.null&select=email');
+  const listRows = await fetchAll<{ email: string }>('email_list_unsubscribes?list=eq.homeschool&select=email');
+  const optouts = new Set<string>();
+  for (const r of [...globalRows, ...listRows]) {
+    const e = String(r.email ?? '').trim().toLowerCase();
+    if (e && !e.endsWith('@example.test')) optouts.add(e);
+  }
+  const done = await fetchAll<{ email: string }>('resend_unsubscribe_sync?status=in.(ok,absent)&select=email');
+  const doneSet = new Set(done.map((d) => d.email));
+  const due = [...optouts].filter((e) => !doneSet.has(e)).sort();
+  const out: UnsubResult = {
+    optouts: optouts.size, already: doneSet.size, due: due.length, processed: 0, synced: 0,
+    absent: 0, failed: 0, remaining: due.length, failures: [],
+  };
+  if (dryRun || limit <= 0) return out;
+  if (!RESEND_KEY) throw new Error('RESEND_CONTACTS_KEY / RESEND_API_KEY missing');
+
+  for (const email of due.slice(0, limit)) {
+    out.processed++;
+    let status = 0;
+    let error: string | undefined;
+    try {
+      const res = await fetch(`https://api.resend.com/contacts/${encodeURIComponent(email)}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ unsubscribed: true }),
+      });
+      status = res.status;
+      if (!res.ok) error = (await res.text().catch(() => '')).slice(0, 200);
+      else await res.body?.cancel();
+    } catch (e) {
+      error = e instanceof Error ? e.message : String(e);
+    }
+    const outcome = status >= 200 && status < 300 ? 'ok' : status === 404 ? 'absent' : 'failed';
+    if (outcome === 'ok') out.synced++;
+    else if (outcome === 'absent') out.absent++;
+    else {
+      out.failed++;
+      if (out.failures.length < 20) out.failures.push({ email, status, error });
+    }
+    const up = await rest('resend_unsubscribe_sync?on_conflict=email', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify([{ email, status: outcome, http_status: status, error: outcome === 'failed' ? (error ?? null) : null, synced_at: new Date().toISOString() }]),
+    });
+    if (!up.ok) console.error('resend_unsubscribe_sync upsert failed', up.status, (await up.text().catch(() => '')).slice(0, 200));
+    else await up.body?.cancel();
+    if (status === 429) await new Promise((r) => setTimeout(r, 2000));
+    await new Promise((r) => setTimeout(r, WRITE_SPACING_MS));
+  }
+  out.remaining = Math.max(0, due.length - out.processed + out.failed);
+  return out;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   if (req.method !== 'POST') return json(405, { error: 'method_not_allowed' });
@@ -212,6 +295,13 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (mode === 'sync_unsubscribes') {
+      const n = Math.max(1, Math.min(UNSUB_MAX_BATCH, Number(body.batch) || UNSUB_MAX_BATCH));
+      const result = await syncUnsubscribes(n);
+      console.log('contact-properties-sync unsubscribes', JSON.stringify(result));
+      return json(result.failed ? 207 : 200, { mode, ...result });
+    }
+
     if (mode === 'get') {
       if (!onlyEmail) return json(400, { error: 'email required for mode get' });
       const contact = await getContact(onlyEmail);
@@ -232,6 +322,7 @@ Deno.serve(async (req) => {
         computed: computed.length,
         recorded: state.length,
         delta,
+        unsubscribes: await syncUnsubscribes(0, true),
         distribution: distribution(computed),
       });
     }
@@ -333,6 +424,8 @@ Deno.serve(async (req) => {
       segment_failures: segmentFailures,
       remaining: Math.max(0, due.length - slice.length),
       failures,
+      // Opt-outs to Resend, a small pass each night (mode sync_unsubscribes does the rest).
+      unsubscribes: mode === 'sync' && !onlyEmail ? await syncUnsubscribes(UNSUB_NIGHTLY_BATCH) : null,
     };
     console.log('contact-properties-sync', JSON.stringify(summary));
     return json(200, summary);
