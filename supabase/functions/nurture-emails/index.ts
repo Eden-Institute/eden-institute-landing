@@ -593,6 +593,63 @@ type MagnetResult = QueueResult;
 // lead with no story at all.
 const STORY_CUTOFF_MS = Date.parse('2026-06-06T22:38:00Z');
 
+// Next-morning nudge after a free week (founder-approved copy, 2026-10-14, Gina's punchlist recs
+// #352, from Gina Steffy's Oct 13 advice: "it's in your email, don't leave it there", print it
+// today, a highlighter pass tonight, invite questions). Position 1, about 18 hours after the
+// download. Same plain look as the day-7 check-in, so it reads like a note and earns a reply.
+// It sells nothing. The one link is in the first two sentences (readers rarely click lower)
+// and goes to the band's download page, never a raw PDF. Every plant, supply and day is read
+// off that band's Week 1 Teacher's Guide; change it if Week 1 changes. No em dashes.
+function buildFreeWeekNextMorningEmail(
+  rawFirstName: string | null,
+  band: 'sprouts' | 'seedlings',
+): { subject: string; html: string } {
+  const name = String(rawFirstName ?? '').trim()
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const greeting = name && name.toLowerCase() !== 'friend' ? `Hi ${name}!` : 'Hi there!';
+  const para = (t: string) =>
+    `<p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#222222;margin:0 0 14px 0;">${t}</p>`;
+  const small = (t: string) =>
+    `<p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.5;color:#888888;margin:0 0 4px 0;">${t}</p>`;
+  const page = band === 'sprouts'
+    ? 'https://edeninstitute.health/freebies/sprouts-week-1'
+    : 'https://edeninstitute.health/freebies/seedlings-week-1';
+  const link = `<a href="${page}" style="color:#2E3D32;text-decoration:underline;">Open your Week 1 downloads</a>`;
+  const s = band === 'sprouts'
+    ? {
+      plant: 'lavender',
+      print: 'the Teacher&rsquo;s Guide, the Student Notebook and Meet the Family, the read-aloud',
+      monday: 'grab a highlighter and read through Monday in the guide. Mark the questions you want to ask.',
+      lab: 'Then check Wednesday&rsquo;s supply list: dried lavender buds, a mug, hot water, honey, and a small square of cloth with a tie. That&rsquo;s your first Kitchen Lab. Hot water pulls the scent out of the buds while your child times a five-minute steep.',
+    }
+    : {
+      plant: 'elderberry',
+      print: 'the Teacher&rsquo;s Guide, the Student Notebook and Story Seven, the bonus read-aloud',
+      monday: 'grab a highlighter and read through Monday in the guide, where you read Psalm 100 together. Mark the questions you want to ask.',
+      lab: 'Then check Wednesday&rsquo;s supply list: 1 cup dried elderberries, 4 cups water, 1 cup honey, a pot, a strainer, a clean jar, and tape and a marker for the label. That&rsquo;s your first Kitchen Lab. Simmering pulls the berries&rsquo; deep purple into the syrup. Elderberries are always cooked, never eaten raw; the guide&rsquo;s safety notes are right on that page.',
+    };
+  const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:16px;background-color:#ffffff;">
+<div style="display:none;max-height:0;overflow:hidden;">Print it today, highlight it tonight.</div>
+<div style="max-width:560px;">
+${para(greeting)}
+${para(`Your free ${s.plant} week is in your email. Don&rsquo;t leave it there! All three files are on one page: ${link}.`)}
+${para(`<strong>Today:</strong> print ${s.print}.`)}
+${para(`<strong>Tonight, after dinner:</strong> ${s.monday}`)}
+${para(s.lab)}
+${para('Already have a curriculum? Keep it. This sits right beside it.')}
+${para('Hit reply and tell me what you&rsquo;re wondering. Your reply comes straight to me.')}
+${para('Camila')}
+<div style="border-top:1px solid #eeeeee;margin:28px 0 12px 0;"></div>
+${small('You&rsquo;re receiving this because you requested a free week of Eden&rsquo;s Table from The Eden Institute.')}
+${small('Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Unit 3262, Clarksville, TN 37043')}
+${small('<a href="{{UNSUB_URL}}" style="color:#888888;text-decoration:underline;">Unsubscribe</a>')}
+</div>
+</body></html>`;
+  return { subject: "Don't leave it in your inbox", html };
+}
+
 // Day-7 check-in after a free week (founder-approved copy, 2026-09-24). Deliberately
 // plain: no header, no button, no link in the body, because it is meant to read
 // like a note from Camila and to earn a reply (reply_to is hello@). The footer
@@ -617,7 +674,7 @@ function buildFreeWeekCheckinEmail(
 <div style="max-width:560px;">
 ${para(greeting)}
 ${para(`This is Camila from Eden&rsquo;s Table. You grabbed our free ${plant} week about a week ago and I wanted to check in. Did you get to try it with your kids?`)}
-${para(`I&rsquo;d really love to hear how it went, the good and the not so good. And if you&rsquo;re wondering what comes after week 1, just hit reply. Your reply comes straight to me.`)}
+${para(`I&rsquo;d really love to hear how it went, the good and the not so good. And if you&rsquo;d let me share your words with other moms, just say so. And if you&rsquo;re wondering what comes after week 1, just hit reply. Your reply comes straight to me.`)}
 ${para('Camila')}
 <div style="border-top:1px solid #eeeeee;margin:28px 0 12px 0;"></div>
 ${small('You&rsquo;re receiving this because you requested a free week of Eden&rsquo;s Table from The Eden Institute.')}
@@ -699,7 +756,11 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
 
       let built: { subject: string; html: string };
       let emailKey: string;
-      if (pos === 2) {
+      if (pos === 1) {
+        // 2026-10-14 (#352): the next-morning nudge, about 18 hours after the free week.
+        built = buildFreeWeekNextMorningEmail(row.first_name, band);
+        emailKey = `magnet_nextmorning_${band}`;
+      } else if (pos === 2) {
         // Position 2 used to deliver the free Week 2 downloads. Retired 2026-08-27
         // when the lead magnet dropped to ONE free week; the slot then carried the
         // paid Starter Unit offer. 2026-09-24, founder decision: that offer drew 15
