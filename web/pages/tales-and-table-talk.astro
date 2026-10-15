@@ -18,10 +18,10 @@
 // Version" were removed, because the sources may change (Felice raised the World
 // English Bible). Do not add them back without asking.
 //
-// NOT LINKED YET: the network show page. ultimateradioshow.com/tales-and-table-talk
-// returned 404 on 2026-09-18 and Felice wrote "Gina may have a different idea", so
-// linking it would ship a dead link. Add a "Listen on the network" link once the page
-// is live and its URL is confirmed.
+// 2026-10-15: the network show page is live (Gina built it), so the words "Ultimate
+// Homeschool Podcast Network" in the hero now link to it (founder's pick: link the
+// existing words, no new copy). talesandtabletalk.com and www now 301 there too
+// (vercel.json). No UTM tags: it is another site, so tags could not reach our orders.
 //
 // Styling follows TTT_Brand_Guide_v1_2026-09-13 inside the Eden header and footer.
 // The contrast rules are load-bearing: small text on a light ground is always
@@ -97,7 +97,11 @@ const rhythm = [
         />
         <h1>Tales &amp; Table Talk</h1>
         <p class="tagline">Read-alouds for moms and their littles</p>
-        <p class="launch">Launching January on the Ultimate Homeschool Podcast Network</p>
+        <p class="launch">
+          Launching January on the <a href="https://ultimateradioshow.com/tales-and-table-talk/"
+            >Ultimate Homeschool Podcast Network</a
+          >
+        </p>
       </div>
     </header>
 
@@ -364,6 +368,18 @@ const rhythm = [
     color: var(--linen);
     opacity: 0.82;
     max-width: 30rem;
+  }
+
+  /* Linen on Espresso, like the line around it; the underline marks it as a link. */
+  .launch a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+  }
+
+  .launch a:hover,
+  .launch a:focus-visible {
+    text-decoration-thickness: 2px;
   }
 
   .photo-band img {
