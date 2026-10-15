@@ -134,6 +134,14 @@ const MAGNET_KEY_BY_POS: Record<number, string> = {
 // family should receive each ONCE. Week 2 is band-specific and excluded.
 const MAGNET_BAND_AGNOSTIC = new Set<number>([3, 4, 5, 6, 7]);
 
+// Band-specific welcome steps a both-band family gets once per band: the next-morning
+// note (1), the Day 7 check-in (2) and the Day 10 Starter note (8). About 1 family in 5
+// takes both free weeks, most within minutes, so each pair used to land in the same
+// minute. Founder decision 2026-10-14: the second band's copy of a step goes 2 days after
+// the first band's. Enforced here at send time, so it also covers rows queued earlier.
+const BAND_SPACED_POSITIONS = new Set<number>([1, 2, 8]);
+const BAND_SPACING_MS = 2 * 24 * 60 * 60 * 1000;
+
 // Chained scheduling: when position N sends, enqueue N+1 at +7 days. Only
 // position 2 is enqueued (resend-waitlist, since 2026-07-28). Position 3 and
 // the 4-7 chain are DORMANT: nothing enqueues 3, so this map never fires. Kept
@@ -790,6 +798,27 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
           }),
         });
         continue;
+      }
+
+      // Both-band spacing (see BAND_SPACED_POSITIONS): if the other band's copy of this
+      // step went out in the last 2 days, wait until 2 days after it. The row stays
+      // pending with a later scheduled_for, so a later tick sends it.
+      if (BAND_SPACED_POSITIONS.has(pos)) {
+        const otherBand = band === 'sprouts' ? 'seedlings' : 'sprouts';
+        const sinceIso = new Date(Date.now() - BAND_SPACING_MS).toISOString();
+        const sibling = await supabaseQuery(
+          `magnet_email_queue?recipient_email=eq.${encodeURIComponent(email)}&band=eq.${otherBand}&sequence_position=eq.${pos}&status=eq.sent&sent_at=gte.${encodeURIComponent(sinceIso)}&select=sent_at&order=sent_at.desc&limit=1`,
+        );
+        const siblingSentAt = Array.isArray(sibling) && sibling[0]?.sent_at ? Date.parse(String(sibling[0].sent_at)) : NaN;
+        if (Number.isFinite(siblingSentAt)) {
+          const later = new Date(siblingSentAt + BAND_SPACING_MS).toISOString();
+          await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ scheduled_for: later, updated_at: new Date().toISOString() }),
+          });
+          console.log(`drainMagnetQueue: ${band} position ${pos} spaced to ${later} (other band sent ${sibling[0].sent_at})`);
+          continue;
+        }
       }
 
       // Band-agnostic dedup: a both-band family should get positions 3-7 once.
