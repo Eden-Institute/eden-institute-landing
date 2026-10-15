@@ -111,7 +111,10 @@
     'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
     })(window,document,'script','dataLayer','GTM-PVRHXN8N');</script>
     <!-- End Google Tag Manager -->
-    <!-- Google tag (gtag.js), injected only on the live site -->
+    <!-- Google tag (gtag.js), injected only on the live site. The second config
+         (2026-10-15) is the Google Ads account's tag, which the Purchase
+         conversion in src/lib/googleAdsConversion.ts reports to; it is skipped
+         for a visitor who clicked Decline. Mirrors MarketingLayout.astro. -->
     <script>
       if (window.__edenTagsLive) {
         (function(){var t=document.createElement('script');t.async=true;
@@ -119,6 +122,9 @@
         var f=document.getElementsByTagName('script')[0];f.parentNode.insertBefore(t,f);})();
         gtag('js', new Date());
         gtag('config', 'G-5DVHEZPKL0');
+        var edenAdsOn = true;
+        try { edenAdsOn = localStorage.getItem('eden-marketing-consent') !== 'denied'; } catch (e) {}
+        if (edenAdsOn) gtag('config', 'AW-18494002476');
       }
     </script>
     <title>The Eden Institute: A Framework Our Culture Forgot</title>

@@ -26,8 +26,13 @@
 // mode, so its session id starts cs_test_, and a real one always starts cs_live_.
 // Same skip as the Meta Purchase (metaPurchase.ts), so fake sales never reach
 // GA4 or Merchant Center.
+//
+// The Google Ads Purchase conversion rides on this event (2026-10-15,
+// googleAdsConversion.ts): same value, same transaction_id, same once-only key,
+// sent straight after it.
 
 import { getMarketingConsent } from "@/lib/consent";
+import { sendGoogleAdsPurchase } from "@/lib/googleAdsConversion";
 import { centsToValue, checkoutRef } from "@/lib/pinterestTag";
 
 export interface AnalyticsLine {
@@ -112,7 +117,7 @@ const firedThisPage = new Set<string>();
  */
 export async function reportGa4PurchaseOnce(
   sessionId: string,
-  order: { analytics?: OrderAnalytics | null; tax_cents?: number | null; currency?: string | null },
+  order: { analytics?: OrderAnalytics | null; tax_cents?: number | null; currency?: string | null; email?: string | null },
 ): Promise<void> {
   try {
     if (!sessionId || sessionId.startsWith("cs_test_")) return;
@@ -134,6 +139,7 @@ export async function reportGa4PurchaseOnce(
       // Storage unavailable: the in-memory set above guards this page load.
     }
     gtag("event", "purchase", params);
+    sendGoogleAdsPurchase(gtag, params, order.email);
   } catch {
     // Analytics never break the page.
   }

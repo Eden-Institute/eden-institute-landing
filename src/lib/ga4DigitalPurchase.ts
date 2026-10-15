@@ -20,9 +20,13 @@
 // order. Merchant Center ignores item ids that are not in its feed, so these
 // digital lines do not touch its conversion counts. The Meta Pixel Purchase stays
 // physical-only (metaPurchase.ts), unchanged.
+//
+// The Google Ads Purchase conversion rides on this event too (2026-10-15,
+// googleAdsConversion.ts), with the same value and transaction_id.
 
 import { supabase } from "@/integrations/supabase/client";
 import { getMarketingConsent } from "@/lib/consent";
+import { sendGoogleAdsPurchase } from "@/lib/googleAdsConversion";
 import { centsToValue, checkoutRef } from "@/lib/pinterestTag";
 
 export interface DigitalOrder {
@@ -33,6 +37,7 @@ export interface DigitalOrder {
   amount_total_cents?: number | null;
   tax_cents?: number | null;
   currency?: string | null;
+  email?: string | null;
 }
 
 export interface DigitalItem {
@@ -130,6 +135,7 @@ export async function reportGa4DigitalPurchaseOnce(
       // Storage unavailable: the in-memory set above guards this page load.
     }
     gtag("event", "purchase", params);
+    sendGoogleAdsPurchase(gtag, params, order.email);
   } catch {
     // Analytics never break the page.
   }
