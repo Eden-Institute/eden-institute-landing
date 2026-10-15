@@ -59,6 +59,7 @@ import {
   isBroadcastAudience,
   isBroadcastSegmentName,
   needsRefresh,
+  parseResendTime,
   planStage,
   PROOF_SEGMENT,
   type StageLogRow,
@@ -388,7 +389,19 @@ Deno.serve(async (req: Request) => {
 
     if (mode === 'refresh_due') {
       const nowMs = Date.now();
-      const due = dueForRefresh(await scheduledBroadcasts(), nowMs);
+      const scheduled = await scheduledBroadcasts();
+      const due = dueForRefresh(scheduled, nowMs);
+      // Every scheduled Broadcast with its parsed send time, so "nothing due" can be told
+      // apart from "could not read the send time" (a NaN time is never due).
+      const upcoming = scheduled.map((b) => {
+        const at = parseResendTime(b.scheduled_at);
+        return {
+          broadcast: b.name ?? b.id,
+          scheduled_at: b.scheduled_at ?? null,
+          sends_in_hours: Number.isFinite(at) ? Math.round((at - nowMs) / 360_000) / 10 : null,
+          due: due.includes(b),
+        };
+      });
       const report: Array<Record<string, unknown>> = [];
       if (due.length) {
         const { ids } = await ensureSegments([]);
@@ -427,7 +440,7 @@ Deno.serve(async (req: Request) => {
       }
       console.log('broadcast-stage refresh_due', JSON.stringify(report));
       const failed = report.some((i) => Number(i.failed ?? 0) > 0);
-      return json({ mode, checked_at: new Date(nowMs).toISOString(), due: due.length, report }, failed ? 207 : 200);
+      return json({ mode, checked_at: new Date(nowMs).toISOString(), due: due.length, upcoming, report }, failed ? 207 : 200);
     }
 
     if (mode === 'create') {
