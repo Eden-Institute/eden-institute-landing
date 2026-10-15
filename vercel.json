@@ -1,13 +1,13 @@
 {
   "redirects": [
     {
-      "source": "/:path*",
+      "source": "/(.*)",
       "has": [{ "type": "host", "value": "talesandtabletalk.com" }],
       "destination": "https://ultimateradioshow.com/tales-and-table-talk/",
       "statusCode": 301
     },
     {
-      "source": "/:path*",
+      "source": "/(.*)",
       "has": [{ "type": "host", "value": "www.talesandtabletalk.com" }],
       "destination": "https://ultimateradioshow.com/tales-and-table-talk/",
       "statusCode": 301
