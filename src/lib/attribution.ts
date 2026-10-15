@@ -57,6 +57,21 @@ const UTM_KEYS = [
   "utm_content",
 ] as const;
 
+// GOOGLE CLICK IDS (2026-10-15). A Google Ads click lands with ?gclid= (or
+// gbraid / wbraid on iOS). The id is kept so the checkout can carry it into the
+// Stripe session metadata (supabase/functions/_shared/purchase-attribution.ts),
+// which lets a sale be matched to its ad click later. Unlike the first touch, the
+// LATEST ad click wins, held 90 days to match the Google Ads Purchase action's
+// click-through window. It is an advertising identifier, so it follows the Google
+// tags' consent rule: kept unless the visitor clicked Decline, and Decline removes
+// it. Only checkout reads it; signups never send it. fbclid is not kept here: Meta
+// gets that click as fbc, gated on Accept (fbAttribution.ts).
+const GOOGLE_CLICK_KEY = "eden_google_click_v1";
+export const GOOGLE_CLICK_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+const GOOGLE_CLICK_KEYS = ["gclid", "gbraid", "wbraid"] as const;
+
+export type GoogleClickIds = Partial<Record<(typeof GOOGLE_CLICK_KEYS)[number], string>>;
+
 /** sessionStorage and localStorage throw in some privacy modes and in embedded
  *  webviews. Every access is wrapped: attribution is analytics, and analytics never
  *  breaks a signup or a checkout. */
@@ -121,6 +136,7 @@ function writeStore(value: Attribution): void {
  */
 export function captureFirstTouch(): void {
   if (typeof window === "undefined") return;
+  captureGoogleClick();
   if (readStore()) return;
 
   const params = new URLSearchParams(window.location.search);
@@ -174,9 +190,52 @@ export function getAttribution(): Attribution {
  * a buyer from reaching Stripe: on any failure it returns {} and checkout proceeds
  * unattributed.
  */
-export function getCheckoutAttribution(): Attribution {
+export function getCheckoutAttribution(): Attribution & GoogleClickIds {
   try {
-    return getAttribution();
+    return { ...getAttribution(), ...readGoogleClick() };
+  } catch {
+    return {};
+  }
+}
+
+/** Store the Google click ids on this URL, if any. The latest click wins. */
+function captureGoogleClick(): void {
+  try {
+    if (!persistAllowed()) {
+      window.localStorage.removeItem(GOOGLE_CLICK_KEY);
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    const ids: GoogleClickIds = {};
+    for (const k of GOOGLE_CLICK_KEYS) {
+      const v = params.get(k);
+      if (v) ids[k] = v.slice(0, 200);
+    }
+    if (Object.keys(ids).length === 0) return;
+    window.localStorage.setItem(
+      GOOGLE_CLICK_KEY,
+      JSON.stringify({ v: ids, exp: Date.now() + GOOGLE_CLICK_TTL_MS }),
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
+/** The stored Google click ids, or {} when none, expired, or after Decline. */
+function readGoogleClick(): GoogleClickIds {
+  try {
+    if (!persistAllowed()) {
+      window.localStorage.removeItem(GOOGLE_CLICK_KEY);
+      return {};
+    }
+    const raw = window.localStorage.getItem(GOOGLE_CLICK_KEY);
+    if (!raw) return {};
+    const rec = JSON.parse(raw) as { v?: GoogleClickIds; exp?: number };
+    if (!rec || typeof rec.exp !== "number" || !rec.v || rec.exp <= Date.now()) {
+      window.localStorage.removeItem(GOOGLE_CLICK_KEY);
+      return {};
+    }
+    return rec.v;
   } catch {
     return {};
   }
