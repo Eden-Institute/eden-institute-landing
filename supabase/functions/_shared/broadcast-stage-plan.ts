@@ -14,6 +14,8 @@ export const BROADCAST_AUDIENCES = [
   'weekly',
   'weekly_skip_sprouts_owners',
   'weekly_skip_seedlings_owners',
+  // The whole homeschool list, buyers and kit families included (Nov 20 Thanksgiving, Dec 25).
+  'everyone',
 ] as const;
 export type BroadcastAudience = (typeof BROADCAST_AUDIENCES)[number];
 
