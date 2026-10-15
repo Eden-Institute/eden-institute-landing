@@ -2,7 +2,7 @@
 // resend-waitlist previously inlined a verbatim, collision-renamed copy of
 // _shared/nurture-email-templates.ts; that duplicate has been removed so
 // _shared is the single source of truth for these templates.
-import { buildNurtureEmail1 } from '../_shared/nurture-email-templates.ts';
+import { buildQuizEmail1 } from '../_shared/lead-track-templates.ts';
 import { buildBackToEdenChapter1Email, buildBandWaitlistEmail, buildHomeschoolEmail, buildSeedlingsMagnetEmail, buildSproutsMagnetEmail } from '../_shared/welcome-email-templates.ts';
 import { bandFromSource, buildBandWaitlistRow } from '../_shared/band-waitlist.ts';
 import { buildPodcastWelcomeEmail } from '../_shared/podcast-email-templates.ts';
@@ -97,7 +97,7 @@ function getSlugInfo(constitutionType: string): { slug: string; name: string } |
 // The retired at-signup assessment email (constitutionProfiles + buildAssessmentEmail:
 // per-Pattern intro/patterns/needs/herbs/Biblical anchor and the $4.99 guide CTA) lived
 // here until 2026-09-15. It had no caller since Email 1 moved to _shared
-// buildNurtureEmail1. Its copy differs from src/lib/constitution-data.ts; recover it
+// buildNurtureEmail1 (itself replaced by lead-track-templates buildQuizEmail1, 2026-10-15). Its copy differs from src/lib/constitution-data.ts; recover it
 // from git history (last commit before this removal) if it is ever wanted.
 
 // ── Send email helper ──
@@ -517,7 +517,8 @@ Deno.serve(async (req) => {
             // engagement view attributes opens/clicks to this first touch,
             // matching the campaign/email_key tags the nurture-emails EF sets
             // on Emails 2-7 (see public.email_events + resend-webhook).
-            const e1 = buildNurtureEmail1(name, slug);
+            // 2026-10-15: the approved quiz-track Email 1 (lead-track-templates.ts).
+            const e1 = buildQuizEmail1(firstNameSafe, name, slug);
             const e1u = await applyUnsub(e1.html, normalizedEmail, 'constitution');
             const e1Res = await fetch('https://api.resend.com/emails', {
               method: 'POST',
@@ -729,6 +730,43 @@ Deno.serve(async (req) => {
         }
       } catch (mqErr) {
         console.error('Magnet enqueue error:', String(mqErr));
+      }
+    }
+
+    // 2026-10-15: the Back to Eden Chapter 1 track (lead-track-templates.ts), days 2/4/6 after
+    // the chapter, into public.followup_email_queue (drained by nurture-emails). Day 6 only
+    // sends to someone who tapped Yes on day 2. ignore-duplicates for the same reason as the
+    // magnet rows: a repeat request never re-sends a step. Non-fatal.
+    if (welcomeSent && entry_funnel === 'edens_table' && source === 'back_to_eden_ch1') {
+      try {
+        const nowMs = Date.now();
+        const day = (n: number) => new Date(nowMs + n * 24 * 60 * 60 * 1000).toISOString();
+        const rows = [2, 4, 6].map((d, i) => ({
+          recipient_email: normalizedEmail,
+          first_name: firstNameSafe,
+          track: 'back_to_eden_ch1',
+          sequence_position: i + 2,
+          scheduled_for: day(d),
+          status: 'pending',
+        }));
+        const fqRes = await pgrstFetch(`${SUPABASE_URL}/rest/v1/followup_email_queue?on_conflict=recipient_email,track,sequence_position`, {
+          method: 'POST',
+          headers: {
+            apikey: SUPABASE_SERVICE_ROLE_KEY!,
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json',
+            Prefer: 'return=minimal,resolution=ignore-duplicates',
+          },
+          body: JSON.stringify(rows),
+        });
+        if (!fqRes.ok) {
+          const t = await fqRes.text().catch(() => '<unreadable>');
+          console.error('followup_email_queue (Chapter 1 track) insert failed', { status: fqRes.status, body: t });
+        } else {
+          console.log('Chapter 1 track enqueued (days 2/4/6)');
+        }
+      } catch (fqErr) {
+        console.error('Chapter 1 track enqueue error:', String(fqErr));
       }
     }
 

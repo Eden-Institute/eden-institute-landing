@@ -40,49 +40,6 @@ function withAffiliateTag(url: string): string {
 }
 
 // ── Data mappings ──
-const TOP_HERBS: Record<string, { name: string; note: string }[]> = {
-  'burning-bowstring': [
-    { name: 'Chamomile', note: 'Cools heat and calms digestive tension.' },
-    { name: 'California Poppy', note: 'Relaxes nervous tension without sedation.' },
-    { name: 'Marshmallow Root', note: 'Soothes and moistens dry, irritated tissue.' },
-  ],
-  'open-flame': [
-    { name: 'Witch Hazel', note: 'Tones lax blood vessels and reduces inflammation.' },
-    { name: 'Yarrow', note: 'Tightens loose tissue and cools heat.' },
-    { name: 'Red Raspberry Leaf', note: 'Gently restores muscle tone throughout the body.' },
-  ],
-  'pressure-cooker': [
-    { name: 'Dandelion', note: 'Supports liver and kidney drainage to release pressure.' },
-    { name: 'Linden', note: 'Relaxes tension AND lowers blood pressure AND opens pores.' },
-    { name: 'Calendula', note: 'Moves lymph and heals inflamed tissue.' },
-  ],
-  'overflowing-cup': [
-    { name: 'Calendula', note: 'Moves sluggish lymph and promotes tissue healing.' },
-    { name: 'Sage', note: 'Dries and tones where tissues are too open.' },
-    { name: 'Oregon Grape Root', note: 'Cools damp heat and supports liver function.' },
-  ],
-  'drawn-bowstring': [
-    { name: 'Ashwagandha', note: 'Deeply restorative. Calms anxiety while building strength.' },
-    { name: 'Valerian', note: 'Releases the tension your body cannot let go of on its own.' },
-    { name: 'Milky Oats', note: 'Slowly rebuilds an exhausted nervous system.' },
-  ],
-  'spent-candle': [
-    { name: 'Ashwagandha', note: 'Rebuilds depleted reserves without overstimulating.' },
-    { name: 'Nettle', note: 'Mineral-rich nourishment that rebuilds from the ground up.' },
-    { name: 'Astragalus', note: 'Builds deep immune strength and protective energy over time.' },
-  ],
-  'frozen-knot': [
-    { name: 'Ginger', note: 'Warms the core and moves stagnant fluids.' },
-    { name: 'Valerian', note: 'Releases the tension so warming herbs can penetrate.' },
-    { name: 'Prickly Ash', note: 'Powerfully moves blood and lymph to break through stagnation.' },
-  ],
-  'still-water': [
-    { name: 'Ginger', note: 'Warms and stimulates sluggish digestion and circulation.' },
-    { name: 'Rosemary', note: 'Clears mental fog and lifts depressed spirits.' },
-    { name: 'Astragalus', note: 'Builds deep energy reserves and immune function.' },
-  ],
-};
-
 // Bare URLs — MUST stay in lockstep with src/lib/amazonKitUrls.ts.
 // Affiliate tag is applied at consumption via withAffiliateTag().
 const AMAZON_URLS: Record<string, string> = {
@@ -106,10 +63,11 @@ const AMAZON_URLS: Record<string, string> = {
  *  drains pass 'homeschool'); it was only the visible sentence that was wrong,
  *  which is worse than it sounds: a false provenance line is the first thing a
  *  recipient reads when deciding whether an email is legitimate. */
-export type EmailProvenance = 'constitution' | 'homeschool' | 'preorder' | 'preorder_update' | 'preorder_notice' | 'order';
+export type EmailProvenance = 'constitution' | 'back_to_eden' | 'homeschool' | 'preorder' | 'preorder_update' | 'preorder_notice' | 'order';
 
 const PROVENANCE_LINE: Record<EmailProvenance, string> = {
   constitution: 'You&rsquo;re receiving this because you completed the Constitutional Assessment at edeninstitute.health.',
+  back_to_eden: 'You&rsquo;re receiving this because you asked for the free chapter of Back to Eden at edeninstitute.health.',
   homeschool: 'You&rsquo;re receiving this because you requested a free week of Eden&rsquo;s Table from The Eden Institute.',
   preorder: 'You&rsquo;re receiving this because you placed a preorder at edeninstitute.health.',
   order: 'You&rsquo;re receiving this because you placed an order at edeninstitute.health.',
@@ -169,7 +127,9 @@ ${footerRows}
 </html>`;
 }
 
-export function emailWrapper(bodyContent: string, provenance: EmailProvenance = 'constitution'): string {
+/** `shopCard: false` drops the Shop Medicinal Herbs card for an email that promises
+ *  nothing to buy (the lead tracks' day-2 teaching email, the refund note). */
+export function emailWrapper(bodyContent: string, provenance: EmailProvenance = 'constitution', opts: { shopCard?: boolean } = {}): string {
   const footerRows = `<tr><td style="font-family:Georgia,serif;font-size:14px;font-weight:bold;color:#FFFFFF;text-align:center;">The Eden Institute</td></tr>
 <tr><td style="text-align:center;padding-top:6px;"><a href="https://edeninstitute.health" style="font-family:Georgia,serif;font-size:13px;color:#FFFFFF;text-decoration:underline;">edeninstitute.health</a></td></tr>
 <tr><td style="text-align:center;padding-top:14px;">
@@ -183,7 +143,7 @@ export function emailWrapper(bodyContent: string, provenance: EmailProvenance = 
 <tr><td style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;padding-top:16px;">${PROVENANCE_LINE[provenance]}</td></tr>
 <tr><td style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;padding-top:6px;">Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Unit 3262, Clarksville, TN 37043</td></tr>
 <tr><td style="text-align:center;padding-top:8px;"><a href="{{UNSUB_URL}}" style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-decoration:underline;">Unsubscribe</a></td></tr>`;
-  return emailShell(bodyContent, footerRows, { shopCard: true });
+  return emailShell(bodyContent, footerRows, { shopCard: opts.shopCard ?? true });
 }
 
 /** Transactional variant: same chrome, the right provenance line, and the marketing
@@ -208,14 +168,6 @@ export function heading(text: string): string {
   return `<h2 style="font-family:Georgia,serif;font-size:22px;line-height:1.3;color:${BRAND.forest};margin:0 0 16px 0;font-weight:bold;">${text}</h2>`;
 }
 
-function subheading(text: string): string {
-  return `<h3 style="font-family:Georgia,serif;font-size:18px;line-height:1.3;color:${BRAND.forest};margin:0 0 12px 0;font-weight:bold;">${text}</h3>`;
-}
-
-function bullet(text: string): string {
-  return `<p style="font-family:Georgia,serif;font-size:16px;line-height:1.6;color:${BRAND.text};margin:0 0 8px 0;padding-left:16px;">· ${text}</p>`;
-}
-
 export function brandButton(label: string, url: string): string {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
 <tr><td align="center">
@@ -232,7 +184,7 @@ function link(text: string, url: string): string {
   return `<a href="${url}" style="color:${BRAND.sage};text-decoration:underline;">${text}</a>`;
 }
 
-function signature(): string {
+export function signature(): string {
   return `<p style="font-family:Georgia,serif;font-size:16px;line-height:1.6;color:${BRAND.text};margin:24px 0 4px 0;">Grace and health,</p>
 <p style="font-family:Georgia,serif;font-size:16px;color:${BRAND.text};font-weight:bold;margin:0;">Camila</p>
 <p style="font-family:Georgia,serif;font-size:14px;color:${BRAND.text};margin:4px 0 0 0;">The Eden Institute</p>
@@ -243,166 +195,8 @@ function spacer(h = 8): string {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="height:${h}px;font-size:0;line-height:0;">&nbsp;</td></tr></table>`;
 }
 
-// ══════════════════════════════════════════════════════════════
-// EMAIL 1 — Immediate
-// ══════════════════════════════════════════════════════════════
-export function buildNurtureEmail1(
-  constitutionName: string,
-  constitutionSlug: string,
-): { subject: string; html: string } {
-  const herbs = TOP_HERBS[constitutionSlug] || TOP_HERBS['frozen-knot'];
-  const herbCards = herbs.map(h => `
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;">
-<tr><td style="background-color:${BRAND.bgOuter};padding:16px 20px;border-left:3px solid ${BRAND.gold};">
-<p style="font-family:Georgia,serif;font-size:17px;font-weight:bold;color:${BRAND.forest};margin:0 0 4px 0;">${h.name}</p>
-<p style="font-family:Georgia,serif;font-size:15px;color:${BRAND.text};margin:0;">${h.note}</p>
-</td></tr>
-</table>`).join('');
-
-  const body = `
-${p(`You just took the Constitutional Assessment, and your result is in.`)}
-${spacer(4)}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;border:1px solid ${BRAND.gold};background-color:${BRAND.bgOuter};">
-<tr><td style="padding:24px;text-align:center;">
-<p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:3px;color:${BRAND.gold};text-transform:uppercase;margin:0 0 8px 0;">YOUR TYPE</p>
-<p style="font-family:Georgia,serif;font-size:24px;font-weight:bold;color:${BRAND.forest};margin:0;">${constitutionName}</p>
-</td></tr>
-</table>
-${p("This isn't a personality quiz or a horoscope. It's a pattern, one that shows up in your digestion, your energy, your skin, your sleep, and even in the herbs that work for you (and the ones that don't).")}
-${p("Here's the short version: your body has a specific combination of temperature tendency, fluid balance, and tissue tone. That combination determines how you respond to herbs, food, stress, and seasons. When you work WITH the pattern instead of against it, everything changes.")}
-${goldDivider()}
-${heading("YOUR TOP 3 HERBS")}
-${p("These are the herbs most aligned with your constitutional pattern. Your full guide has all 10 with clinical preparation methods.")}
-${herbCards}
-${spacer(8)}
-${p(`${link("See your full quiz results anytime →", `https://edeninstitute.health/results/${constitutionSlug}`)}`)}
-${goldDivider()}
-${heading("WANT THE FULL PICTURE?")}
-${p("Your Deep-Dive Guide includes all 10 matched herbs with actions, preparation methods, dosages, and safety notes, plus a caution list, lifestyle and nutrition guidance, and a Biblical framework for your constitutional pattern.")}
-${brandButton(`Get Your ${constitutionName.replace(/^The /i, '')} Deep-Dive Guide: $4.99`, `https://edeninstitute.health/go/deep-dive/${constitutionSlug}`)}
-${signature()}`;
-
-  return {
-    subject: `Your body type is ${constitutionName}. Here's what that means`,
-    html: emailWrapper(body),
-  };
-}
-
-// ══════════════════════════════════════════════════════════════
-// EMAIL 2 — Day 2
-// ══════════════════════════════════════════════════════════════
-export function buildNurtureEmail2(
-  constitutionName: string,
-  constitutionSlug: string,
-): { subject: string; html: string } {
-  const body = `
-${p("Have you ever tried an herb that everyone swore by, and it did nothing? Or worse, it made things worse?")}
-${spacer(4)}
-${bullet("<strong>Chamomile</strong> makes some people jittery instead of calm.")}
-${bullet("<strong>Ginger</strong> causes acid reflux in people who already run hot.")}
-${bullet("<strong>Lavender</strong> triggers headaches in certain constitutions.")}
-${spacer(8)}
-${p("This isn't random. It's constitutional.")}
-${goldDivider()}
-${heading("THE 3 AXES OF YOUR CONSTITUTION")}
-${subheading("1. TEMPERATURE: Do you run hot or cold?")}
-${p("This determines whether warming or cooling herbs serve you. Get it wrong and you add fuel to a fire, or ice to a glacier.")}
-${subheading("2. FLUID BALANCE: Do you run dry or damp?")}
-${p("This determines whether moistening or drying herbs are appropriate. A dry body given a drying herb becomes brittle. A damp body given a moistening herb becomes waterlogged.")}
-${subheading("3. TISSUE TONE: Are you tense or relaxed?")}
-${p("This determines whether relaxing or toning herbs are needed. Tension needs release. Laxity needs structure.")}
-${goldDivider()}
-${p(`Your quiz result, <strong>${constitutionName}</strong>, reflects your specific combination of these three axes. And that combination is why certain herbs work brilliantly for you and others backfire.`)}
-${p("This is the foundation of constitutional herbalism. Practitioners have been reading these patterns for 3,000 years in the Western clinical tradition. We've translated it into a framework that makes sense for modern Christian families.")}
-${spacer(8)}
-${p("<em>This is the heart of Chapter 8 of my book, Back to Eden.</em>")}
-${brandButton("See the Book", "https://edeninstitute.health/back-to-eden")}
-${p(`${link("Your full quiz results →", `https://edeninstitute.health/results/${constitutionSlug}`)}`)}
-${signature()}`;
-
-  return {
-    subject: "Why the same herb relaxes her and wires you",
-    html: emailWrapper(body),
-  };
-}
-
-// ══════════════════════════════════════════════════════════════
-// EMAIL 3 — Day 4
-// ══════════════════════════════════════════════════════════════
-export function buildNurtureEmail3(
-  constitutionName: string,
-  constitutionSlug: string,
-): { subject: string; html: string } {
-  const body = `
-${p("She tried turmeric, and it made her stomach burn. She tried valerian, and it made her wired. She took elderberry every winter, and it did nothing.")}
-${p("She wasn't doing anything wrong. She was asking the wrong question.")}
-${p(`She wasn't asking <em>"What herb fixes this symptom?"</em> She was asking <em>"What kind of body do I have, and what does IT need?"</em>`)}
-${goldDivider()}
-${heading("THE DISCOVERY")}
-${p("She was running hot, dry, and tense. Turmeric was adding fuel to a fire. Valerian was the right idea (nervous system support) but the wrong execution for her pattern. Elderberry wasn't addressing her actual imbalance.")}
-${p("<strong>When she matched herbs to her constitution instead of her symptoms, the results were immediate.</strong>")}
-${spacer(8)}
-${p(`You already know yours: <strong>${constitutionName}</strong>. My book, <em>Back to Eden</em>, goes deeper: why symptoms are signals, how God designed the body to heal, and how to read a person before reaching for any remedy.`)}
-${p("Chapter 1 is free.")}
-${brandButton("See What's Inside Back to Eden", "https://edeninstitute.health/back-to-eden")}
-${signature()}`;
-
-  return {
-    subject: "What changed when she finally understood her body",
-    html: emailWrapper(body),
-  };
-}
-
-// ══════════════════════════════════════════════════════════════
-// EMAIL 4 — Day 6
-// ══════════════════════════════════════════════════════════════
-export function buildNurtureEmail4(
-  constitutionName: string,
-  constitutionSlug: string,
-): { subject: string; html: string } {
-  // 2026-10-14: this email sold the Foundations Course. The course is retired (founder: "I
-  // don't want an adult course, just the books"), so it now introduces the book. Its copy is
-  // the /back-to-eden page's own words. No price appears here: the page is the one place a
-  // price lives (the 2026-04-30 FIRSTFRUITS coupon in this body once stacked on a platform
-  // discount and dropped the course to $0).
-  const body = `
-${p(`Six days ago, you discovered your constitutional type: <strong>${constitutionName}</strong>. Since then, you've learned why herbs work differently in different bodies. Now it's time to go deeper.`)}
-${goldDivider()}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;background-color:${BRAND.bgOuter};border:1px solid ${BRAND.gold};">
-<tr><td style="padding:24px;text-align:center;">
-<p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:3px;color:${BRAND.gold};text-transform:uppercase;margin:0 0 8px 0;">THE BOOK</p>
-<p style="font-family:Georgia,serif;font-size:22px;font-weight:bold;color:${BRAND.forest};margin:0;">BACK TO EDEN: A BIBLICAL FOUNDATION FOR HERBAL HEALING</p>
-</td></tr>
-</table>
-${p("Why aren't the herbs working? Not because the plants have failed. Not because you did anything wrong. Because no one ever taught you the framework. <em>Back to Eden</em> gives it back.")}
-${p("This is not a remedy guide. There are no protocols here, no &ldquo;best herb for anxiety&rdquo; lists. It is a foundation, the kind that makes every herb you've ever studied suddenly make sense.")}
-${goldDivider()}
-${subheading("WHAT YOU'LL DISCOVER")}
-${bullet("Why your body's symptoms are signals, not mistakes, and why suppressing them creates chronic disease")}
-${bullet("How God designed the body to heal itself, and what gets in the way")}
-${bullet("The five tenets of health, and why foundation always comes before any herb")}
-${bullet("What your constitution is, why it matters more than any diagnosis, and how to recognize your own")}
-${bullet("How plants speak the same language as your body, through taste, energy, and tissue affinity")}
-${bullet("Why the most important clinical skill isn't knowing herbs, it's learning to see the person in front of you")}
-${spacer(12)}
-${subheading("THREE WAYS TO READ IT")}
-${p("The paperback, the spiral Study &amp; Journal Edition with room to write beside every page, or the Study Guide that sits next to the paperback. In print or as an instant download.")}
-${goldDivider()}
-${heading("FREQUENTLY ASKED")}
-${subheading("\"Is this faith-based?\"")}
-${p("Yes. It is written openly from a Christian worldview. Scripture is the lens, not decoration.")}
-${subheading("\"Which edition should I choose?\"")}
-${p("If you want to study, take notes and do the worksheets, choose the Study &amp; Journal Edition. If you just want to read, the paperback is all you need.")}
-${subheading("\"Can I read some first?\"")}
-${p("Yes. Chapter 1, The Life Force Has a Name, is free.")}
-${brandButton("SEE THE BOOK", "https://edeninstitute.health/back-to-eden")}
-${signature()}`;
-
-  return {
-    subject: `Going deeper with your ${constitutionName} pattern`,
-    html: emailWrapper(body),
-  };
-}
+// Quiz Emails 1-4 (buildNurtureEmail1-4) were replaced 2026-10-15 by the approved quiz track in
+// lead-track-templates.ts (buildQuizEmail1-3 + buildParentsEmail). Recover them from git history.
 
 // ══════════════════════════════════════════════════════════════
 // EMAIL 5 — Day 8 (conditional — only if NOT purchased course AND NOT purchased guide; the course check is history since 2026-10-14)

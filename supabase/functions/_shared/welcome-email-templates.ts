@@ -128,14 +128,18 @@ ${closingBlock()}`;
 // sample PDF (cover, Chapter 1 with its Reflect & Apply questions, and the Go Deeper QR page)
 // and points to the three editions. (It also pointed to the Tier 1 course until the course was
 // retired 2026-10-14.) Voice rule: no em dashes.
+// 2026-10-15: Email 1 of the Chapter 1 track (lead-track-templates.ts sends days 2, 4 and 6),
+// so it gained preview text and one line saying a note follows in two days.
 export function buildBackToEdenChapter1Email(firstName: string): { subject: string; html: string } {
   const body = `
+${preheader('The chapter the whole book stands on, with questions to work through.')}
 ${p(`Hi ${firstName},`)}
 ${p('Thank you for asking for this. Chapter 1 of <em>Back to Eden</em> is below: The Life Force Has a Name. It is the chapter the whole book stands on, and it ends with the Reflect &amp; Apply questions, so keep a pen nearby.')}
 ${brandButton('READ CHAPTER 1', 'https://edeninstitute.health/lead-magnets/back-to-eden-chapter-1.pdf')}
 ${goldDivider()}
 ${heading('WHEN YOU WANT THE REST')}
 ${p(`The whole book comes three ways, in print or as an instant download: the paperback, the spiral Study &amp; Journal Edition with room to write beside every page, and the Study Guide that sits next to the paperback. ${link('See all three editions', 'https://edeninstitute.health/back-to-eden#editions')}.`)}
+${p('In two days I will write again with the one line the whole chapter comes back to.')}
 ${closingBlock()}`;
   return { subject: 'Your free chapter of Back to Eden is here', html: magnetWrapper(body) };
 }

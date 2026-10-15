@@ -31,6 +31,13 @@
 //   3. legacyEmail5() — Pre-Lock-#48 path for the constitution Email 5 fallback. RETIRED 2026-10-15
 //      (LEGACY_EMAIL5_RETIRED): the quiz drip ends at Email 4.
 //
+//   4. drainFollowupQueue() — public.followup_email_queue (2026-10-15): the Back to Eden
+//      Chapter 1 track (positions 2-4, days 2/4/6) and the refund note (position 1, 3 days
+//      after a full refund). Copy: _shared/lead-track-templates.ts, approved by the founder
+//      in her inbox 2026-10-15. Position 4 of BOTH lead tracks (this one and the quiz) sends
+//      only to someone who tapped Yes on the day-2 children question
+//      (public.children_at_home_answers); anyone else's row is cancelled.
+//
 // Engagement tagging: every send carries campaign + email_key tags; Resend
 // echoes them on open/click webhooks (-> public.email_events) for the founder
 // dashboard. Tag values are [A-Za-z0-9_-] per Resend's rules.
@@ -51,9 +58,6 @@
 // a DIFFERENT next email) is deferred until the full K-12 curriculum exists.
 
 import {
-  buildNurtureEmail2,
-  buildNurtureEmail3,
-  buildNurtureEmail4,
   buildNurtureEmail5,
   buildNurtureArc1,
   buildNurtureArc2,
@@ -75,6 +79,15 @@ import {
 import { foundersFormUrl } from '../_shared/founders-link.ts';
 import { buildBuyerEmail } from '../_shared/buyer-sequence-templates.ts';
 import { buildFoundingFamilyEmail, type FoundingFamilyStep } from '../_shared/founding-family-templates.ts';
+import {
+  buildChapterEmail2,
+  buildChapterEmail3,
+  buildParentsEmail,
+  buildQuizEmail2,
+  buildQuizEmail3,
+  buildRefundNote,
+} from '../_shared/lead-track-templates.ts';
+import { childrenAnswerUrls } from '../_shared/children-answer.ts';
 import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
 import { tagEmailHtml } from '../_shared/email-utm.ts';
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
@@ -463,16 +476,30 @@ async function drainNurtureQueue(): Promise<QueueResult> {
         continue;
       }
 
+      // 2026-10-15: positions 2-4 are the approved quiz track (lead-track-templates.ts).
+      // Position 4 goes only to someone who tapped Yes on position 2's children question.
+      if (row.sequence_position === 4 && !(await saidYesToChildren(row.recipient_email))) {
+        await supabaseQuery(`nurture_email_queue?id=eq.${row.id}&status=eq.pending`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: 'cancelled',
+            error_message: 'no Yes to the children question',
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        continue;
+      }
+
       let built: { subject: string; html: string };
       switch (row.sequence_position) {
         case 2:
-          built = buildNurtureEmail2(nickname, slug);
+          built = buildQuizEmail2(firstName, nickname, slug, await childrenAnswerUrls(row.recipient_email, 'quiz'));
           break;
         case 3:
-          built = buildNurtureEmail3(nickname, slug);
+          built = buildQuizEmail3(firstName, nickname, slug, purchasedGuide);
           break;
         case 4:
-          built = buildNurtureEmail4(nickname, slug);
+          built = buildParentsEmail(firstName, 'quiz');
           break;
         case 5:
           built = buildNurtureArc1(firstName, nickname, slug);
@@ -530,6 +557,166 @@ async function drainNurtureQueue(): Promise<QueueResult> {
     }
   }
 
+  return result;
+}
+
+// ── Lead tracks and the refund note (2026-10-15) ──────────────────────────────
+// public.followup_email_queue: the Back to Eden Chapter 1 track (positions 2-4, enqueued by
+// resend-waitlist) and the refund note (position 1, enqueued by trg_enqueue_refund_note 3 days
+// after a full refund). Copy approved in the founder's inbox 2026-10-15.
+
+async function saidYesToChildren(email: string): Promise<boolean> {
+  const rows = await supabaseQuery(
+    `children_at_home_answers?email=eq.${encodeURIComponent(email.trim().toLowerCase())}&select=has_children&limit=1`,
+  );
+  return Array.isArray(rows) && rows[0]?.has_children === true;
+}
+
+async function isGloballyUnsubscribed(email: string): Promise<boolean> {
+  const gone = await supabaseQuery(
+    `waitlist_signups?email=ilike.${encodeURIComponent(escapeLikePattern(email))}&unsubscribed_at=not.is.null&select=email&limit=1`,
+  );
+  return Array.isArray(gone) && gone.length > 0;
+}
+
+// The refund email's own name rule (order-messages buildRefundEmail): the shipping name, else
+// the billing name Stripe collected, else "there".
+// deno-lint-ignore no-explicit-any
+function orderFirstName(order: any): string {
+  const ship = String(order?.shipping_name ?? '').trim().split(/\s+/)[0];
+  const bill = String(order?.raw?.customer_details?.name ?? '').trim().split(/\s+/)[0];
+  return ship || bill || 'there';
+}
+
+// A test refund never gets a note: internal addresses, internal testers, internal payments.
+async function isTestRefund(email: string, paymentIntent: unknown): Promise<boolean> {
+  if (/@(edeninstitute\.health|example\.test)$/i.test(email)) return true;
+  const tester = await supabaseQuery(
+    `internal_testers?email=eq.${encodeURIComponent(email.trim().toLowerCase())}&select=email&limit=1`,
+  );
+  if (Array.isArray(tester) && tester.length > 0) return true;
+  if (paymentIntent) {
+    const internal = await supabaseQuery(
+      `payments?stripe_payment_intent_id=eq.${encodeURIComponent(String(paymentIntent))}&is_internal=eq.true&select=id&limit=1`,
+    );
+    if (Array.isArray(internal) && internal.length > 0) return true;
+  }
+  return false;
+}
+
+const FOLLOWUP_BATCH = 50;
+
+async function drainFollowupQueue(): Promise<QueueResult> {
+  const result: QueueResult = { processed: 0, sent: 0, failed: 0, retrying: 0 };
+  const nowIso = new Date().toISOString();
+  const rows = await supabaseQuery(
+    `followup_email_queue?select=id,recipient_email,first_name,track,sequence_position,order_id,retry_count,first_failed_at,orders(status,raw,shipping_name)` +
+      `&status=eq.pending&scheduled_for=lte.${encodeURIComponent(nowIso)}&${dueFilter(nowIso)}` +
+      `&order=scheduled_for.asc&limit=${FOLLOWUP_BATCH}`,
+  );
+  if (!Array.isArray(rows)) {
+    console.error('drainFollowupQueue: unexpected query result', JSON.stringify(rows));
+    return result;
+  }
+  if (rows.length > 0) console.log(`drainFollowupQueue: found ${rows.length} due rows`);
+
+  const cancel = async (id: string, why: string) => {
+    await supabaseQuery(`followup_email_queue?id=eq.${id}&status=eq.pending`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'cancelled', error_message: why, updated_at: new Date().toISOString() }),
+    });
+  };
+
+  for (const row of rows) {
+    if (budgetExhausted()) {
+      console.log('nurture-emails: run budget reached, remaining rows left pending for next tick');
+      break;
+    }
+    result.processed++;
+    try {
+      const email = String(row.recipient_email);
+      const pos = Number(row.sequence_position);
+      let built: { subject: string; html: string } | null = null;
+      let list: EmailList = 'homeschool';
+      let tags: ResendTag[] = [];
+
+      if (row.track === 'back_to_eden_ch1') {
+        if (await isUnsubscribed(email, 'homeschool')) {
+          await cancel(row.id, 'recipient unsubscribed (homeschool)');
+          continue;
+        }
+        if (await isGloballyUnsubscribed(email)) {
+          await cancel(row.id, 'recipient unsubscribed or bounced (global)');
+          continue;
+        }
+        const firstName = row.first_name || 'friend';
+        if (pos === 2) {
+          built = buildChapterEmail2(firstName, await childrenAnswerUrls(email, 'back_to_eden_ch1'));
+        } else if (pos === 3) {
+          built = buildChapterEmail3(firstName);
+        } else if (pos === 4) {
+          if (!(await saidYesToChildren(email))) {
+            await cancel(row.id, 'no Yes to the children question');
+            continue;
+          }
+          built = buildParentsEmail(firstName, 'chapter');
+        }
+        list = 'homeschool';
+        tags = engagementTags('back_to_eden', `back_to_eden_${pos}`);
+      } else if (row.track === 'refund_note' && pos === 1) {
+        const order = row.orders;
+        if (order?.status !== 'refunded') {
+          await cancel(row.id, `order is ${order?.status ?? 'missing'}, not refunded`);
+          continue;
+        }
+        if (await isTestRefund(email, order?.raw?.payment_intent)) {
+          await cancel(row.id, 'internal/test refund');
+          continue;
+        }
+        if (await isUnsubscribed(email, 'postpurchase')) {
+          await cancel(row.id, 'recipient unsubscribed (postpurchase)');
+          continue;
+        }
+        if (await isGloballyUnsubscribed(email)) {
+          await cancel(row.id, 'recipient unsubscribed or bounced (global)');
+          continue;
+        }
+        built = buildRefundNote(orderFirstName(order));
+        list = 'postpurchase';
+        tags = engagementTags('refund', 'refund_note');
+      }
+
+      if (!built) {
+        await supabaseQuery(`followup_email_queue?id=eq.${row.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: 'failed',
+            error_message: `unknown track/position ${row.track}/${pos}`,
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        result.failed++;
+        continue;
+      }
+
+      const send = await sendEmail(email, built.subject, built.html, list, tags);
+      if (send.ok) {
+        await markSent('followup_email_queue', row.id, {
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+        result.sent++;
+      } else {
+        await recordSendFailure('followup_email_queue', row, { status: send.status, name: send.name, message: send.error }, result);
+      }
+      await new Promise((r) => setTimeout(r, RATE_LIMIT_MS));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`drainFollowupQueue: row ${row.id} threw:`, message);
+      await recordSendFailure('followup_email_queue', row, { status: null, message }, result);
+    }
+  }
   return result;
 }
 
@@ -1380,7 +1567,7 @@ async function drainFoundingFamilyQueue(): Promise<QueueResult & { enabled?: boo
 }
 
 // ── Founder alert for emails that gave up after 24 hours of retries ─────────
-const BACKOFF_QUEUES = ['buyer_email_queue', 'nurture_email_queue', 'magnet_email_queue', 'launch_email_queue'] as const;
+const BACKOFF_QUEUES = ['buyer_email_queue', 'nurture_email_queue', 'magnet_email_queue', 'launch_email_queue', 'followup_email_queue'] as const;
 const GIVE_UP_ALERT_EVERY_MS = 60 * 60 * 1000;
 const GIVE_UP_LIST_PER_QUEUE = 10;
 
@@ -1484,6 +1671,7 @@ Deno.serve(async (req) => {
     const buyer = await drainBuyerQueue();
     const founding_family = await drainFoundingFamilyQueue();
     const queue = await drainNurtureQueue();
+    const followup = await drainFollowupQueue();
     const magnet = await drainMagnetQueue();
     const launch = await drainLaunchQueue();
     const legacy_email5 = await legacyEmail5();
@@ -1497,11 +1685,11 @@ Deno.serve(async (req) => {
     console.log(
       `nurture-emails run: queue=${JSON.stringify(
         queue,
-      )} magnet=${JSON.stringify(magnet)} launch=${JSON.stringify(launch)} buyer=${JSON.stringify(buyer)} founding_family=${JSON.stringify(founding_family)} legacy_email5=${JSON.stringify(legacy_email5)} budget_exhausted=${budget_exhausted} gave_up_alert=${JSON.stringify(gave_up_alert)}`,
+      )} followup=${JSON.stringify(followup)} magnet=${JSON.stringify(magnet)} launch=${JSON.stringify(launch)} buyer=${JSON.stringify(buyer)} founding_family=${JSON.stringify(founding_family)} legacy_email5=${JSON.stringify(legacy_email5)} budget_exhausted=${budget_exhausted} gave_up_alert=${JSON.stringify(gave_up_alert)}`,
     );
 
     return new Response(
-      JSON.stringify({ success: true, queue, magnet, launch, buyer, founding_family, legacy_email5, budget_exhausted, gave_up_alert }),
+      JSON.stringify({ success: true, queue, followup, magnet, launch, buyer, founding_family, legacy_email5, budget_exhausted, gave_up_alert }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
