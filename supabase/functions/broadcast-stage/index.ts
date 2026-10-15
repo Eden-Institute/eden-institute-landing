@@ -58,7 +58,10 @@ import {
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const RESEND_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
+// Segments, contacts and Broadcasts need a FULL-ACCESS key. RESEND_API_KEY is the send-only
+// key (GET /contacts answered 401 with it, 2026-10-14); RESEND_CONTACTS_KEY is the full one,
+// the same key _shared/resend-contacts.ts uses.
+const RESEND_KEY = Deno.env.get('RESEND_CONTACTS_KEY') ?? Deno.env.get('RESEND_API_KEY') ?? '';
 const RESEND_MASTER_AUDIENCE_ID =
   Deno.env.get('RESEND_MASTER_AUDIENCE_ID') ?? Deno.env.get('RESEND_AUDIENCE_ID') ?? '';
 const API = 'https://api.resend.com';
@@ -225,7 +228,7 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'POST only' }, 405);
   if (!isServiceRoleRequest(req)) return serviceRoleRequired(corsHeaders);
-  if (!RESEND_KEY) return json({ error: 'RESEND_API_KEY missing' }, 503);
+  if (!RESEND_KEY) return json({ error: 'RESEND_CONTACTS_KEY / RESEND_API_KEY missing' }, 503);
 
   let body: Record<string, unknown>;
   try {
