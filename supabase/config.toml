@@ -86,6 +86,11 @@ verify_jwt = true
 [functions.unsubscribe]
 verify_jwt = false
 
+# The day-2 "Do you have children at home?" tap (quiz + Back to Eden Chapter 1 tracks,
+# 2026-10-15). POSTed from the public /answer page; security is the signed token.
+[functions.children-answer]
+verify_jwt = false
+
 # Public founding-500 counter for /preorder ({ sold, cap, closed }; read-only,
 # no order data). Called anonymously from the PreorderBuyBox island.
 # Founding-kit counter. Kit preorders closed 2026-09-12; kept for the /preorder notice.

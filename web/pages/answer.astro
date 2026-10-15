@@ -1,0 +1,106 @@
+---
+// /answer?t=...&a=yes|no: where the day-2 "Do you have children at home?" buttons land
+// (quiz and Back to Eden Chapter 1 tracks, founder-approved 2026-10-15). The script POSTs
+// the token and answer to the children-answer edge function, then shows the thank-you line.
+// Nothing is recorded by loading the page without its script, so link scanners that fetch
+// email links do not answer for anyone (_shared/children-answer.ts).
+//
+// Thank-you wording approved by the founder 2026-10-15. Only a Yes gets the day-6 email,
+// which is what the Yes line promises.
+//
+// NO THIRD-PARTY TAGS HERE (noThirdPartyTags below): the ?t= token in the address bar can
+// answer for its owner, so nothing on this page may read the URL and send it on.
+//
+// Copy rule: no em dashes.
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+
+const meta = {
+  title: "Thank you · The Eden Institute",
+  description: "Thank you for answering.",
+  canonical: "https://edeninstitute.health/answer",
+};
+
+const ANSWER_ENDPOINT = "https://noeqztssupewjidpvhar.supabase.co/functions/v1/children-answer";
+---
+
+<MarketingLayout
+  title={meta.title}
+  description={meta.description}
+  canonical={meta.canonical}
+  noindex={true}
+  noThirdPartyTags={true}
+>
+  <section class="pt-20 pb-24 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-xl mx-auto">
+      <div class="rounded-lg p-8 bg-white border text-center" style="border-color:hsl(var(--eden-gold) / 0.4)">
+        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">
+          The Eden Institute
+        </p>
+
+        <div id="an-wait">
+          <p class="font-body text-base text-muted-foreground leading-relaxed">One moment...</p>
+        </div>
+
+        <div id="an-yes" class="hidden">
+          <h1 class="font-serif text-3xl font-bold leading-tight mb-4" style="color:hsl(var(--eden-bark))">
+            Thank you! Got it.
+          </h1>
+          <p class="font-body text-base text-muted-foreground leading-relaxed">
+            In a few days I will send you a note about Eden's Table, our curriculum for children.
+          </p>
+        </div>
+
+        <div id="an-no" class="hidden">
+          <h1 class="font-serif text-3xl font-bold leading-tight mb-4" style="color:hsl(var(--eden-bark))">
+            Thank you! That helps.
+          </h1>
+        </div>
+
+        <div id="an-invalid" class="hidden">
+          <h1 class="font-serif text-3xl font-bold leading-tight mb-4" style="color:hsl(var(--eden-bark))">
+            This link is not working
+          </h1>
+          <p class="font-body text-base text-muted-foreground leading-relaxed">
+            You can reply to the email it came in instead, and we will take care of it.
+          </p>
+        </div>
+
+        <div id="an-error" class="hidden">
+          <h1 class="font-serif text-3xl font-bold leading-tight mb-4" style="color:hsl(var(--eden-bark))">
+            Something went wrong
+          </h1>
+          <p class="font-body text-base text-muted-foreground leading-relaxed">
+            Please tap the button in the email again in a little while, or reply to that email instead.
+          </p>
+        </div>
+
+        <p class="pt-8">
+          <a href="https://edeninstitute.health" class="font-body text-sm underline" style="color:hsl(var(--eden-forest))">Return to edeninstitute.health</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <script is:inline define:vars={{ endpoint: ANSWER_ENDPOINT }}>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var token = params.get("t");
+      var answer = params.get("a");
+      var show = function (id) {
+        document.getElementById("an-wait").classList.add("hidden");
+        document.getElementById(id).classList.remove("hidden");
+      };
+      if (!token || (answer !== "yes" && answer !== "no")) return show("an-invalid");
+      fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ t: token, a: answer }),
+      })
+        .then(function (r) {
+          if (r.ok) return show(answer === "yes" ? "an-yes" : "an-no");
+          show(r.status === 400 ? "an-invalid" : "an-error");
+        })
+        .catch(function () { show("an-error"); });
+    })();
+  </script>
+</MarketingLayout>
