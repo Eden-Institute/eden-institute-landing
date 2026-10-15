@@ -12,8 +12,16 @@
 // set up by Gina), and this page moved to the Eden site at
 // edeninstitute.health/tales-and-table-talk. Until Gina switches the domain, this
 // build stays live with its signup form working, but its canonical names the Eden
-// page, so search engines credit that one and the two do not compete. When the
-// switch happens this build and its Vercel project are retired.
+// page, so search engines credit that one and the two do not compete.
+//
+// 2026-10-15: SWITCHED. At Gina's request (a permanent 301, approved by Camila),
+// every path on talesandtabletalk.com and www.talesandtabletalk.com now 301s to
+// https://ultimateradioshow.com/tales-and-table-talk/ via host-scoped rules at the top of
+// vercel.json. DNS and the Vercel certificate are unchanged: the domain sends HSTS,
+// so a registrar redirect without a certificate would have broken https for past
+// visitors. This page is therefore never served. The build and its Vercel project
+// `tales-and-table-talk` stay for now (founder call), because the 301 rides on
+// that project: deleting this folder would break its build.
 // talesandtabletalkpodcast.com was never bought and will not be.
 import PodcastLayout from "../layouts/PodcastLayout.astro";
 
