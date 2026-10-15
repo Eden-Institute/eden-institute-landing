@@ -46,7 +46,8 @@ function hi(firstName: string | null): string {
 
 const SIGN = p('In Him,<br>Camila');
 
-const GROUP_INVITE = p(
+// Exported for the two-band printed-year thank-you (purchase-track-templates.ts).
+export const GROUP_INVITE = p(
   'I also have a private Facebook group just for our founding families, The Founding 50 · Eden&rsquo;s Table. '
   + 'In there you see new pages before anyone else does, you tell me the truth about them (kind, but honest), '
   + 'and we have Coffee and Curriculum, a live chat with me. Bring your mug! To join, go to '

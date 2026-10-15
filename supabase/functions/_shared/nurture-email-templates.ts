@@ -152,8 +152,8 @@ export function emailWrapper(bodyContent: string, provenance: EmailProvenance = 
  *  rendered sentence: the wrapper writes the apostrophe as &rsquo;, so a replacement
  *  keyed on a straight apostrophe silently never matches (it shipped the quiz footer
  *  on every preorder confirmation before 2026-09-03). */
-export function emailWrapperTransactional(bodyContent: string, provenance: EmailProvenance): string {
-  return emailWrapper(bodyContent, provenance).split('{{UNSUB_URL}}').join('https://edeninstitute.health');
+export function emailWrapperTransactional(bodyContent: string, provenance: EmailProvenance, opts: { shopCard?: boolean } = {}): string {
+  return emailWrapper(bodyContent, provenance, opts).split('{{UNSUB_URL}}').join('https://edeninstitute.health');
 }
 
 export function goldDivider(): string {

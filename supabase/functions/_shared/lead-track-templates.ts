@@ -20,20 +20,20 @@ import { escapeHtml } from './html-escape.ts';
 
 const SITE = 'https://edeninstitute.health';
 
-function preheader(text: string): string {
+export function preheader(text: string): string {
   return `<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${text}</div>`;
 }
 
-function link(text: string, url: string): string {
+export function link(text: string, url: string): string {
   return `<a href="${url}" style="color:${BRAND.sage};text-decoration:underline;">${text}</a>`;
 }
 
-function hi(firstName: string): string {
+export function hi(firstName: string): string {
   return p(`Hi ${escapeHtml(firstName.trim() || 'friend')},`);
 }
 
 /** A verse or a book passage, set apart from the letter around it. */
-function quoteBlock(text: string, source: string): string {
+export function quoteBlock(text: string, source: string): string {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 24px 0;">
 <tr><td style="background-color:${BRAND.bgOuter};padding:20px 24px;border-left:3px solid ${BRAND.gold};">
 <p style="font-family:Georgia,serif;font-size:17px;line-height:1.6;color:${BRAND.forest};font-style:italic;margin:0 0 10px 0;">${text}</p>
@@ -222,7 +222,7 @@ ${signature()}`;
 // Chapter 8 of Back to Eden, page 133 of the published edition, verbatim.
 const PASSAGE_CH8 = 'God did not create one type of human and replicate it. He created a diversity of persons, each bearing His image in a distinct way, each knit together in a mother&rsquo;s womb with particularity and intention. The psalmist does not say God roughly assembled us, or that we were made in approximate proximity to His purposes. The Hebrew is explicit: fearfully and wonderfully made. Each one. Specifically.';
 
-const EDITIONS = 'It comes three ways, in print or as an instant download: the paperback, the spiral Study &amp; Journal Edition with room to write beside every page, and the Study Guide that sits next to the paperback.';
+export const EDITIONS = 'It comes three ways, in print or as an instant download: the paperback, the spiral Study &amp; Journal Edition with room to write beside every page, and the Study Guide that sits next to the paperback.';
 
 // ══════════════════════════════════════════════════════════════
 // QUIZ EMAIL 3, day 4: a Back to Eden passage, then the book (and the guide, unless owned).
@@ -248,16 +248,22 @@ ${signature()}`;
 // EMAIL 4, day 6, parents only (both tracks): Eden's Table and the free week.
 // Sent only to someone who tapped Yes on the day-2 question.
 // ══════════════════════════════════════════════════════════════
+/** The approved Email 4 paragraphs after its opening line (Eden's Table, the two years, the free
+ *  week, where to start). Shared with the Deep-Dive Guide track's parents email. */
+export function edensTableForParents(): string {
+  return `${p('<strong>Eden&rsquo;s Table</strong> is our homeschool curriculum. It teaches children the bodies God designed and the plants He gave to tend them, one plant a week, woven through Scripture, science and the rhythms of your own kitchen table. Each week has a story, a kitchen lab and questions for the dinner table, all on the page.')}
+${p('Two years are ready now: <strong>Sprouts</strong> for kindergarten through second grade, and <strong>Seedlings</strong> for grades 3 to 5. Week 1 of each is free, a whole real week, ready to print tonight.')}
+${brandButton('Get a free week', `${SITE}/freebies`)}
+${p(`Not sure where to start? Children in kindergarten through second grade start with Sprouts. Children in grades 3 to 5 who are new to herbs start with Sprouts too, because its plants are the ones Seedlings builds on. Older children start there as well, since the later years build on these same plants. ${link('Here is more on where to start', `${SITE}/homeschool#choose-band`)}.`)}
+`;
+}
+
 export function buildParentsEmail(firstName: string, track: 'quiz' | 'chapter'): { subject: string; html: string } {
   const body = `
 ${preheader('One plant a week, Scripture first. Week 1 is free.')}
 ${hi(firstName)}
 ${p('You tapped Yes when I asked if you have children at home, so this one is for them.')}
-${p('<strong>Eden&rsquo;s Table</strong> is our homeschool curriculum. It teaches children the bodies God designed and the plants He gave to tend them, one plant a week, woven through Scripture, science and the rhythms of your own kitchen table. Each week has a story, a kitchen lab and questions for the dinner table, all on the page.')}
-${p('Two years are ready now: <strong>Sprouts</strong> for kindergarten through second grade, and <strong>Seedlings</strong> for grades 3 to 5. Week 1 of each is free, a whole real week, ready to print tonight.')}
-${brandButton('Get a free week', `${SITE}/freebies`)}
-${p(`Not sure where to start? Children in kindergarten through second grade start with Sprouts. Children in grades 3 to 5 who are new to herbs start with Sprouts too, because its plants are the ones Seedlings builds on. Older children start there as well, since the later years build on these same plants. ${link('Here is more on where to start', `${SITE}/homeschool#choose-band`)}.`)}
-${signature()}`;
+${edensTableForParents()}${signature()}`;
   return {
     subject: "For your children: a free week of Eden's Table",
     html: emailWrapper(body, track === 'quiz' ? 'constitution' : 'back_to_eden'),

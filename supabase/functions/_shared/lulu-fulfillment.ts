@@ -39,6 +39,7 @@
 
 import { Db, getOrderById, getOrderByPaymentIntent, OrderRow } from './order-db.ts';
 import { transition } from './order-flow.ts';
+import { sendPrintCancelledEmail } from './order-messages.ts';
 import { captureException } from './sentry.ts';
 import {
   cancelPrintJob,
@@ -513,11 +514,18 @@ export async function applyLuluPrintJob(db: Db, job: LuluPrintJob): Promise<Appl
         return { order_id: order.id, lulu_status: name, applied: 'cancelled by us' };
       }
       await db.from('lulu_jobs').update({ status: 'cancelled', last_error: `Lulu cancelled: ${job.status?.message ?? ''}`.slice(0, 2000), updated_at: new Date().toISOString() }).eq('order_id', order.id);
+      // 2026-10-15 lifecycle plan: until now the buyer heard nothing. The order status is left
+      // as it is on purpose, so Resubmit still works. Never throws.
+      const buyerEmail = await sendPrintCancelledEmail(db, order);
+      console.log(`[${ref}] print-cancelled email to buyer: ${buyerEmail}`);
       await notifyFounder(
         `Lulu cancelled order ${ref}`,
         `Lulu cancelled print job ${job.id} for order ${ref} (${order.customer_email}) on its side.\n\n` +
           `Lulu says: ${job.status?.message ?? '(no message)'}\n\n` +
-          `The buyer has paid. Resubmit from the /founder Orders tab once the cause is fixed, or refund in Stripe.`,
+          `The buyer has paid. Resubmit from the /founder Orders tab once the cause is fixed, or refund in Stripe.\n\n` +
+          (buyerEmail === 'failed'
+            ? `The email telling the buyer FAILED to send. Write to them yourself.`
+            : `The buyer has been emailed that the print shop cancelled it and that a full refund is theirs if they ask.`),
       );
       return { order_id: order.id, lulu_status: name, applied: 'founder alerted' };
     }
