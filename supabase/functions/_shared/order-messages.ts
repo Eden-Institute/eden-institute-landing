@@ -275,6 +275,59 @@ export function buildRefundEmail(order: OrderRow): { subject: string; html: stri
   };
 }
 
+/** The refund email's name rule: digital orders collect no shipping name, so fall back to the
+ *  billing name Stripe collected, else "there". */
+function refundName(order: OrderRow): string {
+  const billingFirst = String(order.raw?.customer_details?.name ?? '').trim().split(/\s+/)[0];
+  return order.shipping_name ? firstName(order) : escapeHtml(billingFirst || 'there');
+}
+
+function whichOrder(order: OrderRow): string {
+  const label = order.product_label ? escapeHtml(order.product_label) : '';
+  return order.order_number
+    ? `order <strong>${order.order_number}</strong>${label ? ` (${label})` : ''}`
+    : (label ? `your ${label}` : 'your order');
+}
+
+/**
+ * Partial refund (2026-10-15 lifecycle plan, section 2). A partial refund leaves the order
+ * alone (stripe-webhook charge.refunded with charge.refunded === false), and until now the
+ * buyer heard nothing, because Stripe's own refund receipts are off. `refundCents` is THIS
+ * refund's amount, not the running total on the charge.
+ */
+export function buildPartialRefundEmail(order: OrderRow, refundCents: number): { subject: string; html: string } {
+  const body =
+    p(`Hi ${refundName(order)},`) +
+    p(`<strong>${money(refundCents)}</strong> is on its way back to you for ${whichOrder(order)}.`) +
+    p(`It usually shows up in 5 to 10 business days, depending on your bank. The rest of your order stays exactly as it is.`) +
+    p(`Didn't expect this, or something looks off? Just reply to this email and I will sort it out.`) +
+    signature();
+  return {
+    subject: `Part of your order was refunded${order.order_number ? ` (${order.order_number})` : ''}`,
+    html: emailWrapperTransactional(body, 'order', { shopCard: false }),
+  };
+}
+
+/**
+ * The print shop (Lulu) cancelled the print job on its side (lulu-fulfillment.ts, CANCELED
+ * that we did not ask for). The buyer has paid and nothing is printing; the founder is alerted
+ * and either resubmits or refunds. Until now the buyer heard nothing. No promise of an outcome
+ * or a date: the email says what happened, that Camila has it, and that a refund is theirs for
+ * the asking.
+ */
+export function buildPrintCancelledEmail(order: OrderRow): { subject: string; html: string } {
+  const body =
+    p(`Hi ${refundName(order)},`) +
+    p(`The print shop that prints our books cancelled the print job for ${whichOrder(order)}. Their note comes straight to me, and I will look into it right away.`) +
+    p(`I will email you again as soon as I know more. If you would rather have your money back instead, just reply to this email and I will refund you in full.`) +
+    p(`I am so sorry for the wait.`) +
+    signature();
+  return {
+    subject: `A problem printing your order${order.order_number ? ` (${order.order_number})` : ''}`,
+    html: emailWrapperTransactional(body, 'order', { shopCard: false }),
+  };
+}
+
 export function buildOrderEmail(templateKey: string, order: OrderRow, receipt: Receipt | null = null): { subject: string; html: string } {
   switch (templateKey) {
     case 'preorder_confirmation': return buildPreorderConfirmationEmail(order);
@@ -334,6 +387,62 @@ async function sendResendEmail(to: string, subject: string, html: string, templa
   if (!res.ok) throw new Error(`resend ${res.status}: ${await res.text()}`);
   const json = await res.json().catch(() => ({}));
   return (json && typeof json.id === 'string') ? json.id : null;
+}
+
+/**
+ * Send a one-off order notice that is not a status transition (a partial refund, a print the
+ * print shop cancelled), once. message_log is the guard: `templateKey` must be unique per
+ * event (the partial refund carries the Stripe event id), and the row is keyed on the order's
+ * CURRENT status, which these notices do not change. Never throws: the caller is a webhook
+ * that has already done the real work.
+ */
+async function sendOrderNoticeOnce(
+  db: Db,
+  order: OrderRow,
+  templateKey: string,
+  built: { subject: string; html: string },
+): Promise<'sent' | 'already_sent' | 'failed'> {
+  const status = order.status as OrderStatus;
+  try {
+    if (await hasSentMessage(db, order.id, templateKey, status)) return 'already_sent';
+  } catch (e) {
+    console.error(`${templateKey}: message_log check failed, not sending:`, String(e));
+    return 'failed';
+  }
+  let providerId: string | null = null;
+  let ok = false;
+  try {
+    providerId = await sendResendEmail(order.customer_email, built.subject, built.html, templateKey.split(':')[0]);
+    ok = providerId !== null;
+  } catch (e) {
+    console.error(`order notice failed (${templateKey}):`, String(e));
+    await captureException(e, { function: 'order-messages', template_key: templateKey, channel: 'email', order_id: order.id });
+  }
+  try {
+    await logMessage(db, {
+      order_id: order.id,
+      channel: 'email',
+      template_key: templateKey,
+      triggered_by_status: status,
+      status: ok ? 'sent' : 'failed',
+      provider_id: providerId,
+    });
+  } catch (e) {
+    console.error(`${templateKey}: message_log write failed:`, String(e));
+  }
+  return ok ? 'sent' : 'failed';
+}
+
+/** The partial-refund email, once per Stripe charge.refunded event. */
+export function sendPartialRefundEmail(db: Db, order: OrderRow, refundCents: number, stripeEventId: string) {
+  return sendOrderNoticeOnce(db, order, `partial_refund:${stripeEventId}`, buildPartialRefundEmail(order, refundCents));
+}
+
+/** The print-cancelled email, once per order. Its message_log row also tells nurture-emails
+ *  to skip the refund note if the order is refunded afterwards (founder 2026-10-15). */
+export const PRINT_CANCELLED_TEMPLATE = 'print_cancelled';
+export function sendPrintCancelledEmail(db: Db, order: OrderRow) {
+  return sendOrderNoticeOnce(db, order, PRINT_CANCELLED_TEMPLATE, buildPrintCancelledEmail(order));
 }
 
 // Messages registered per transition, keyed by the EDGE (from -> to) where the

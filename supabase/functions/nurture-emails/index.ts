@@ -88,6 +88,25 @@ import {
   buildRefundNote,
 } from '../_shared/lead-track-templates.ts';
 import { childrenAnswerUrls } from '../_shared/children-answer.ts';
+import {
+  type Band,
+  type BookEdition,
+  buildBookTenets,
+  buildBookThanks,
+  buildBookWords,
+  buildGuideBook,
+  buildGuideHowTo,
+  buildGuideParents,
+  buildPrintReviewAsk,
+  buildSecondBandStarterCheckIn,
+  buildSecondBandStarterThanks,
+  buildStarterWeeks10Email,
+  buildTwoBandPrintThanks,
+  buildTwoBandRhythm,
+  buildTwoBandWords,
+} from '../_shared/purchase-track-templates.ts';
+import { getGuideByNickname, getGuideBySlug } from '../_shared/guide/registry.ts';
+import { PRINT_CANCELLED_TEMPLATE } from '../_shared/order-messages.ts';
 import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
 import { tagEmailHtml } from '../_shared/email-utm.ts';
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
@@ -604,13 +623,187 @@ async function isTestRefund(email: string, paymentIntent: unknown): Promise<bool
   return false;
 }
 
+// ── Purchase tracks (2026-10-15, migration 20261015200000) ────────────────────
+// Enrolled by trg_purchase_tracks_on_order; copy approved in the founder's inbox 2026-10-15
+// (_shared/purchase-track-templates.ts). Every send re-checks the facts the enroll-time
+// decision rested on: what the family owns now, the children answer, the list they are on.
+const PURCHASE_TRACKS = new Set([
+  'starter_weeks10', 'second_band_starter', 'print_review', 'two_band_print', 'book_buyer', 'guide_buyer',
+]);
+const BOOK_KEYS = [
+  'bte_paperback_print', 'bte_study_journal_print', 'bte_study_guide_print',
+  'bte_paperback_digital', 'bte_study_journal_digital', 'bte_study_guide_digital',
+];
+const CURRICULUM_KEYS = [
+  'sprouts_starter_unit', 'seedlings_starter_unit', 'sprouts_print_set', 'seedlings_print_set', 'both_bands_print_set',
+];
+
+function bandOfKey(key: string): Band | 'both' | null {
+  if (key === 'both_bands_print_set') return 'both';
+  if (key.startsWith('sprouts_')) return 'sprouts';
+  if (key.startsWith('seedlings_')) return 'seedlings';
+  return null;
+}
+
+function otherBand(band: Band): Band {
+  return band === 'sprouts' ? 'seedlings' : 'sprouts';
+}
+
+function printKeys(band: Band): string[] {
+  return [`${band}_print_set`, 'both_bands_print_set'];
+}
+
+function editionOfKey(key: string): BookEdition {
+  if (key.startsWith('bte_study_journal')) return 'study_journal';
+  if (key.startsWith('bte_study_guide')) return 'study_guide';
+  return 'paperback';
+}
+
+/** A paid, live order for any of these lookup keys at this address. */
+async function ownsAny(email: string, keys: string[]): Promise<boolean> {
+  const rows = await supabaseQuery(
+    `orders?customer_email=ilike.${encodeURIComponent(escapeLikePattern(email))}&payment_status=eq.paid` +
+      `&status=not.in.(cancelled,refunded)&lookup_key=in.(${keys.join(',')})&select=id&limit=1`,
+  );
+  return Array.isArray(rows) && rows.length > 0;
+}
+
+/** The day-2 children answer: true, false, or null when they never tapped. */
+async function childrenAnswer(email: string): Promise<boolean | null> {
+  const rows = await supabaseQuery(
+    `children_at_home_answers?email=eq.${encodeURIComponent(email.trim().toLowerCase())}&select=has_children&limit=1`,
+  );
+  return Array.isArray(rows) && rows.length > 0 ? rows[0].has_children === true : null;
+}
+
+async function onHomeschoolList(email: string): Promise<boolean> {
+  const rows = await supabaseQuery(
+    `waitlist_signups?email=ilike.${encodeURIComponent(escapeLikePattern(email))}&entry_funnel=eq.edens_table&select=email&limit=1`,
+  );
+  return Array.isArray(rows) && rows.length > 0;
+}
+
+/** Already got the approved parents email from the quiz or the Chapter 1 track. */
+async function gotParentsEmail(email: string): Promise<boolean> {
+  const quiz = await supabaseQuery(
+    `nurture_email_queue?recipient_email=ilike.${encodeURIComponent(escapeLikePattern(email))}&sequence_position=eq.4&status=eq.sent&select=id&limit=1`,
+  );
+  if (Array.isArray(quiz) && quiz.length > 0) return true;
+  const ch = await supabaseQuery(
+    `followup_email_queue?recipient_email=eq.${encodeURIComponent(email.trim().toLowerCase())}&track=eq.back_to_eden_ch1&sequence_position=eq.4&status=eq.sent&select=id&limit=1`,
+  );
+  return Array.isArray(ch) && ch.length > 0;
+}
+
+/** The Founding 50 invite goes only to a family who never got a Founding Family note. */
+async function hadFoundingFamilyNote(email: string): Promise<boolean> {
+  const rows = await supabaseQuery(
+    `founding_family_queue?recipient_email=eq.${encodeURIComponent(email.trim().toLowerCase())}&status=eq.sent&select=id&limit=1`,
+  );
+  return Array.isArray(rows) && rows.length > 0;
+}
+
+async function groupInviteOpen(): Promise<boolean> {
+  const rows = await supabaseQuery('founding_family_settings?select=group_invite_open&limit=1');
+  return Array.isArray(rows) && rows[0]?.group_invite_open !== false;
+}
+
+/** The order had a print the print shop cancelled (its buyer notice is in message_log). */
+async function printShopCancelled(orderId: string | null): Promise<boolean> {
+  if (!orderId) return false;
+  const rows = await supabaseQuery(
+    `message_log?order_id=eq.${encodeURIComponent(orderId)}&template_key=eq.${PRINT_CANCELLED_TEMPLATE}&status=eq.sent&select=id&limit=1`,
+  );
+  return Array.isArray(rows) && rows.length > 0;
+}
+
+type PurchaseDecision =
+  | { built: { subject: string; html: string }; campaign: string }
+  | { cancel: string };
+
+// deno-lint-ignore no-explicit-any
+async function buildPurchaseTrackEmail(row: any, email: string): Promise<PurchaseDecision> {
+  const order = row.orders;
+  const key = String(order?.lookup_key ?? '');
+  const band = bandOfKey(key);
+  const pos = Number(row.sequence_position);
+  const first = String(row.first_name ?? '');
+
+  switch (row.track) {
+    case 'starter_weeks10': {
+      if (band !== 'sprouts' && band !== 'seedlings') return { cancel: `not a Starter order (${key})` };
+      if (await ownsAny(email, printKeys(band))) return { cancel: `owns the printed ${band} year` };
+      return { built: buildStarterWeeks10Email(first, band), campaign: 'starter' };
+    }
+    case 'second_band_starter': {
+      if (band !== 'sprouts' && band !== 'seedlings') return { cancel: `not a Starter order (${key})` };
+      if (pos === 1) return { built: buildSecondBandStarterThanks(first, band, otherBand(band)), campaign: 'second_band' };
+      if (pos === 2) return { built: buildSecondBandStarterCheckIn(first, band), campaign: 'second_band' };
+      if (pos === 3) {
+        if (await ownsAny(email, printKeys(band))) return { cancel: `owns the printed ${band} year` };
+        return { built: buildStarterWeeks10Email(first, band, true), campaign: 'second_band' };
+      }
+      break;
+    }
+    case 'print_review': {
+      if (band !== 'sprouts' && band !== 'seedlings') return { cancel: `not a one-band printed order (${key})` };
+      return { built: buildPrintReviewAsk(first, band), campaign: 'printed_year' };
+    }
+    case 'two_band_print': {
+      if (pos === 1) {
+        if (band === 'both') {
+          const invite = (await groupInviteOpen()) && !(await hadFoundingFamilyNote(email));
+          return { built: buildTwoBandPrintThanks(first, { kind: 'both' }, invite), campaign: 'two_bands' };
+        }
+        if (band !== 'sprouts' && band !== 'seedlings') return { cancel: `not a printed order (${key})` };
+        return {
+          built: buildTwoBandPrintThanks(first, { kind: 'second', band, owned: otherBand(band) }, false),
+          campaign: 'two_bands',
+        };
+      }
+      if (pos === 2) return { built: buildTwoBandRhythm(first), campaign: 'two_bands' };
+      if (pos === 3) return { built: buildTwoBandWords(first), campaign: 'two_bands' };
+      break;
+    }
+    case 'book_buyer': {
+      const print = key.endsWith('_print');
+      if (pos === 1) return { built: buildBookThanks(first, editionOfKey(key), print), campaign: 'back_to_eden_buyer' };
+      if (pos === 2) return { built: buildBookTenets(first, print), campaign: 'back_to_eden_buyer' };
+      if (pos === 3) return { built: buildBookWords(first, print), campaign: 'back_to_eden_buyer' };
+      break;
+    }
+    case 'guide_buyer': {
+      const md = order?.raw?.metadata ?? {};
+      // Never guess a pattern: no resolvable guide, no email (the delivery rule in stripe-webhook).
+      const guide = getGuideByNickname(String(md.constitution_nickname ?? '')) ??
+        getGuideBySlug(String(md.constitution_type ?? ''));
+      if (!guide) return { cancel: 'guide pattern not resolvable from the order' };
+      if (pos === 1) return { built: buildGuideHowTo(first, guide.nickname, guide.slug), campaign: 'guide_buyer' };
+      if (pos === 2) {
+        if (await ownsAny(email, BOOK_KEYS)) return { cancel: 'owns Back to Eden' };
+        return { built: buildGuideBook(first, guide.nickname), campaign: 'guide_buyer' };
+      }
+      if (pos === 3) {
+        const answer = await childrenAnswer(email);
+        if (answer === false) return { cancel: 'answered No to the children question' };
+        if (await onHomeschoolList(email)) return { cancel: 'already has the free week (homeschool list)' };
+        if (await ownsAny(email, CURRICULUM_KEYS)) return { cancel: 'owns the curriculum' };
+        if (await gotParentsEmail(email)) return { cancel: 'already got the parents email from a lead track' };
+        return { built: buildGuideParents(first, answer === true), campaign: 'guide_buyer' };
+      }
+      break;
+    }
+  }
+  return { cancel: `unknown track/position ${row.track}/${pos}` };
+}
+
 const FOLLOWUP_BATCH = 50;
 
 async function drainFollowupQueue(): Promise<QueueResult> {
   const result: QueueResult = { processed: 0, sent: 0, failed: 0, retrying: 0 };
   const nowIso = new Date().toISOString();
   const rows = await supabaseQuery(
-    `followup_email_queue?select=id,recipient_email,first_name,track,sequence_position,order_id,retry_count,first_failed_at,orders(status,raw,shipping_name)` +
+    `followup_email_queue?select=id,recipient_email,first_name,track,sequence_position,order_id,retry_count,first_failed_at,orders(status,raw,shipping_name,lookup_key)` +
       `&status=eq.pending&scheduled_for=lte.${encodeURIComponent(nowIso)}&${dueFilter(nowIso)}` +
       `&order=scheduled_for.asc&limit=${FOLLOWUP_BATCH}`,
   );
@@ -673,6 +866,11 @@ async function drainFollowupQueue(): Promise<QueueResult> {
           await cancel(row.id, 'internal/test refund');
           continue;
         }
+        // Founder 2026-10-15: they did not choose to leave, so no "what didn't fit" note.
+        if (await printShopCancelled(row.order_id)) {
+          await cancel(row.id, 'the print shop cancelled the print; no refund note');
+          continue;
+        }
         if (await isUnsubscribed(email, 'postpurchase')) {
           await cancel(row.id, 'recipient unsubscribed (postpurchase)');
           continue;
@@ -684,6 +882,36 @@ async function drainFollowupQueue(): Promise<QueueResult> {
         built = buildRefundNote(orderFirstName(order));
         list = 'postpurchase';
         tags = engagementTags('refund', 'refund_note');
+      } else if (PURCHASE_TRACKS.has(row.track)) {
+        const order = row.orders;
+        if (!order) {
+          await cancel(row.id, 'order missing');
+          continue;
+        }
+        if (order.status === 'refunded' || order.status === 'cancelled') {
+          await cancel(row.id, `order ${order.status}`);
+          continue;
+        }
+        if (await isTestRefund(email, order.raw?.payment_intent)) {
+          await cancel(row.id, 'internal/test order');
+          continue;
+        }
+        if (await isUnsubscribed(email, 'postpurchase')) {
+          await cancel(row.id, 'recipient unsubscribed (postpurchase)');
+          continue;
+        }
+        if (await isGloballyUnsubscribed(email)) {
+          await cancel(row.id, 'recipient unsubscribed or bounced (global)');
+          continue;
+        }
+        const decision = await buildPurchaseTrackEmail(row, email);
+        if ('cancel' in decision) {
+          await cancel(row.id, decision.cancel);
+          continue;
+        }
+        built = decision.built;
+        list = 'postpurchase';
+        tags = engagementTags(decision.campaign, `${row.track}_${pos}`);
       }
 
       if (!built) {

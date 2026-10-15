@@ -46,6 +46,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { claimStripeEvent, markEventProcessed, markEventError, getOrderByPaymentIntent } from "../_shared/order-db.ts"
+import { sendPartialRefundEmail } from "../_shared/order-messages.ts"
 import { setContactProperties } from "../_shared/resend-contacts.ts"
 import { recordPreorderFromSession, recordRetailOrderFromSession, applyRefundByPaymentIntent, ResolvedLineItem } from "../_shared/order-flow.ts"
 import { mergePrintLines, PrintProductKeys } from "../_shared/print-lines.ts"
@@ -414,6 +415,11 @@ serve(async (req) => {
           console.log(
             `charge.refunded: partial refund, order unchanged ` +
               `(amount_refunded=${charge.amount_refunded}, charge=${charge.id})`,
+          )
+          // 2026-10-15 lifecycle plan: the buyer hears about a partial refund too (Stripe's own
+          // refund receipts are off). Best effort: never fail a refund that already happened.
+          await notifyPartialRefund(event, charge).catch((err) =>
+            console.error(`partial refund email failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
           )
           break
         }
@@ -1661,6 +1667,42 @@ async function recordRefund(event: Stripe.Event, charge: Stripe.Charge) {
   } catch (err) {
     console.error("recordRefund failed (non-fatal):", err instanceof Error ? err.message : String(err))
   }
+}
+
+
+/**
+ * The partial-refund email (2026-10-15). THIS refund's amount, not the running total:
+ * amount_refunded minus the previous_attributes value Stripe sends on the event, else the
+ * newest refund on the charge. message_log keys it on the event id, so a Stripe retry is a
+ * no-op. Test and internal orders are skipped, like the Founding Family notes.
+ */
+async function notifyPartialRefund(event: Stripe.Event, charge: Stripe.Charge) {
+  const pi = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id ?? null
+  if (!pi) return
+  const order = await getOrderByPaymentIntent(adminClient, pi)
+  if (!order) {
+    console.log(`partial refund email: no order for pi=${pi}; nothing sent`)
+    return
+  }
+  // deno-lint-ignore no-explicit-any
+  if ((order.raw as any)?.metadata?.e2e_test) return
+  const { data: internal } = await adminClient.from("payments").select("id")
+    .eq("stripe_payment_intent_id", pi).eq("is_internal", true).limit(1)
+  if (internal && internal.length > 0) return
+
+  // deno-lint-ignore no-explicit-any
+  const prev = (event.data as any).previous_attributes?.amount_refunded
+  let cents = typeof prev === "number" ? (charge.amount_refunded ?? 0) - prev : null
+  if (cents == null || cents <= 0) {
+    const list = await stripe.refunds.list({ charge: charge.id, limit: 1 })
+    cents = list.data[0]?.amount ?? null
+  }
+  if (cents == null || cents <= 0) {
+    console.warn(`partial refund email: could not work out the refund amount (charge=${charge.id}); nothing sent`)
+    return
+  }
+  const outcome = await sendPartialRefundEmail(adminClient, order, cents, event.id)
+  console.log(`partial refund email ${outcome} (order=${order.order_number ?? order.id}, ${cents} cents, event=${event.id})`)
 }
 
 
