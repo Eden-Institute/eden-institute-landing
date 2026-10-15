@@ -12,7 +12,7 @@
 //
 // WHO GETS IT is decided in Postgres, not in Resend: public.broadcast_audience(name)
 // returns the exact set, with list-announce's rules (opt-outs, kit families, the 12-day
-// new-family pause, the 90-day quiet pause). This function copies that set into a STATIC
+// new-family pause, the 90-day quiet pause), or, for 'everyone', the whole list less opt-outs. This function copies that set into a STATIC
 // Resend segment and keeps it equal: `stage` adds the missing and removes anyone who has
 // since left the audience (opted out, bought, ...). Every add is logged in
 // public.broadcast_stage_members, so staging is resumable and never adds twice.

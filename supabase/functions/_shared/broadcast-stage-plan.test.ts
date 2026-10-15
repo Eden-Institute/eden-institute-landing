@@ -40,7 +40,8 @@ Deno.test('segment names: only "Broadcast: ..." is writable', () => {
 
 Deno.test('audiences: known names only', () => {
   assertEquals(isBroadcastAudience('catchup_unused'), true);
-  assertEquals(isBroadcastAudience('everyone'), false);
+  assertEquals(isBroadcastAudience('everyone'), true);
+  assertEquals(isBroadcastAudience('everybody'), false);
 });
 
 Deno.test('checkBroadcastHtml: guards', () => {
