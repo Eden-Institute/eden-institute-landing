@@ -23,6 +23,15 @@
 //   email.bounced          (hard bounces auto-unsubscribe; soft logged only)
 //   email.complained
 //
+// Echo of our own opt-out sync (2026-10-14)
+//   contact-properties-sync pushes every opt-out Postgres already holds to Resend as
+//   unsubscribed:true, so Resend Broadcasts skip those families. Resend then echoes each
+//   push back here as contact.updated with unsubscribed=true. Read as a fresh unsubscribe,
+//   that echo turned 178 HOMESCHOOL-LIST-ONLY opt-outs into GLOBAL unsubscribes on
+//   2026-10-14 (founder rule 2026-09-17: honor only the list they left; repaired the same
+//   night). So an unsubscribe for an address we already hold as an opt-out (a row in
+//   resend_unsubscribe_sync, or a homeschool list opt-out) changes nothing here.
+//
 // Security
 //   svix-standard HMAC-SHA256 signature verification with ±5 minute replay window.
 //   Signing secret lives in RESEND_WEBHOOK_SECRET (Supabase Edge Function secret).
@@ -111,6 +120,35 @@ async function verifySvix(
     .map((s) => s.slice("v1,".length));
 
   return candidates.some((c) => constantTimeEq(c, sigB64));
+}
+
+/** True when this unsubscribe only echoes an opt-out Postgres already holds (see header). */
+async function isKnownOptOutEcho(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  email: string | null,
+  contactId: string | null,
+): Promise<boolean> {
+  let address = (email ?? "").trim().toLowerCase();
+  if (!address && contactId) {
+    const { data } = await supabase
+      .from("waitlist_signups")
+      .select("email")
+      .eq("resend_contact_id", contactId)
+      .limit(1);
+    address = String((data as Array<{ email?: string }> | null)?.[0]?.email ?? "").trim().toLowerCase();
+  }
+  if (!address) return false;
+  const [pushed, listOptOut] = await Promise.all([
+    supabase.from("resend_unsubscribe_sync").select("email").eq("email", address).eq("status", "ok").limit(1),
+    supabase.from("email_list_unsubscribes").select("email").eq("email", address).eq("list", "homeschool").limit(1),
+  ]);
+  if (pushed.error || listOptOut.error) {
+    // Fail toward the old behavior (a global unsubscribe) rather than drop a real opt-out.
+    console.error("resend-webhook: echo check failed", pushed.error?.message, listOptOut.error?.message);
+    return false;
+  }
+  return (pushed.data?.length ?? 0) > 0 || (listOptOut.data?.length ?? 0) > 0;
 }
 
 function extractEmails(value: unknown): string[] {
@@ -327,6 +365,10 @@ Deno.serve(async (req) => {
 
     // Contact-keyed actions (contact.unsubscribed, contact.deleted) — match by contact_id with email fallback.
     const primaryEmail = emails[0] ?? null;
+    if (normalized.action === "contact.unsubscribed" && await isKnownOptOutEcho(supabase, primaryEmail, contactId)) {
+      console.log("resend-webhook: unsubscribe echoes a known opt-out; no change", { contactId });
+      return json({ received: true, ignored: "known_optout_echo", contact_id: contactId });
+    }
     const { data: rows, error } = await supabase.rpc("waitlist_apply_resend_event", {
       p_event_type: normalized.action,
       p_contact_id: contactId,
