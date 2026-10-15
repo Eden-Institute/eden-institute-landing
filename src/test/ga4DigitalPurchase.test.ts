@@ -64,10 +64,13 @@ describe("reportGa4DigitalPurchaseOnce", () => {
     invoke.mockResolvedValue({ data: starter, error: null });
     await reportGa4DigitalPurchaseOnce(SESSION, FALLBACK, 0);
     await reportGa4DigitalPurchaseOnce(SESSION, FALLBACK, 0);
-    expect(calls).toHaveLength(1);
+    // The GA4 purchase, then the Google Ads conversion riding on it.
+    expect(calls).toHaveLength(2);
     expect(calls[0][1]).toBe("purchase");
     expect((calls[0][2] as { transaction_id: string; value: number }).transaction_id).toBe(REF);
     expect((calls[0][2] as { value: number }).value).toBe(39);
+    expect(calls[1][1]).toBe("conversion");
+    expect(calls[1][2]).toMatchObject({ value: 39, currency: "USD", transaction_id: REF });
     expect(JSON.stringify(calls)).not.toContain(SESSION);
     expect(localStorage.getItem(`ga4_purchase_${REF}`)).toBe("1");
   });
@@ -76,7 +79,7 @@ describe("reportGa4DigitalPurchaseOnce", () => {
     invoke.mockResolvedValueOnce({ data: { pending: true }, error: null }).mockResolvedValue({ data: starter, error: null });
     await reportGa4DigitalPurchaseOnce("cs_live_digital_pending", FALLBACK, 0);
     expect(invoke).toHaveBeenCalledTimes(2);
-    expect(calls).toHaveLength(1);
+    expect(calls.map((c) => c[1])).toEqual(["purchase", "conversion"]);
   });
 
   it("does nothing when the print event already reported this order", async () => {
