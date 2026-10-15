@@ -66,6 +66,7 @@ import { bookDigitalBySku, newDownloadToken, sendBookDeliveryEmail } from "../_s
 import { creditIssuanceOpen, issueStarterCreditForBand, markCreditRedeemed } from "../_shared/starter-credit.ts"
 import { escapeLikePattern } from "../_shared/like-escape.ts"
 import { classifyLearnWorldsCharge } from "../_shared/learnworlds-charge.ts"
+import { thisRefundCents } from "../_shared/refund-amount.ts"
 import { E2E_MODE, isE2eMetadata, stripeSecretKey, stripeWebhookSecret } from "../_shared/e2e-mode.ts"
 import { attributionColumnsFromMetadata } from "../_shared/purchase-attribution.ts"
 // Abandoned-checkout recovery email, 2026-09-28.
@@ -1611,12 +1612,28 @@ async function recordOneOffPayment(event: Stripe.Event, session: Stripe.Checkout
  *   3. Partial refunds fall out for free: the paid row stays whole and the refund row
  *      carries only the amount returned.
  *
+ * Each row carries THAT event's refund only (2026-10-15). charge.amount_refunded is the
+ * charge's running total, and writing it on every event overstated a second partial
+ * refund, or a partial followed by the rest. See _shared/refund-amount.ts.
+ *
  * Idempotent on stripe_event_id, so Stripe's retries collide harmlessly.
  */
 async function recordRefund(event: Stripe.Event, charge: Stripe.Charge) {
   try {
-    const refunded = charge.amount_refunded ?? 0
-    if (!refunded) return
+    if (!charge.amount_refunded) return
+    const refunded = await thisRefundCents(charge, event.data.previous_attributes, async (chargeId) => {
+      const list = await stripe.refunds.list({ charge: chargeId, limit: 1 })
+      return list.data[0] ?? null
+    })
+    if (refunded == null) {
+      // Recording the running total instead would be the old overstatement, so nothing is
+      // written. Loud, because the ledger is now short this refund until it is added by hand.
+      const msg = `refund amount unknown for charge ${charge.id} (event ${event.id}, ` +
+        `amount_refunded=${charge.amount_refunded}); NO payments row written, add it by hand`
+      console.error(msg)
+      await captureException(new Error(msg), { function: "stripe-webhook", step: "recordRefund", charge: charge.id, event_id: event.id })
+      return
+    }
 
     const pi = typeof charge.payment_intent === "string"
       ? charge.payment_intent
@@ -1666,6 +1683,7 @@ async function recordRefund(event: Stripe.Event, charge: Stripe.Charge) {
     )
   } catch (err) {
     console.error("recordRefund failed (non-fatal):", err instanceof Error ? err.message : String(err))
+    await captureException(err, { function: "stripe-webhook", step: "recordRefund", charge: charge.id, event_id: event.id })
   }
 }
 
