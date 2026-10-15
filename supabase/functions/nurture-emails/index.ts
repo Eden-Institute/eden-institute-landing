@@ -28,7 +28,8 @@
 //      positions (3-7) are de-duplicated so a family in BOTH bands gets each
 //      of those once; Week 2 is NOT deduped (different real curriculum).
 //
-//   3. legacyEmail5() — Pre-Lock-#48 path for the constitution Email 5 fallback.
+//   3. legacyEmail5() — Pre-Lock-#48 path for the constitution Email 5 fallback. RETIRED 2026-10-15
+//      (LEGACY_EMAIL5_RETIRED): the quiz drip ends at Email 4.
 //
 // Engagement tagging: every send carries campaign + email_key tags; Resend
 // echoes them on open/click webhooks (-> public.email_events) for the founder
@@ -537,7 +538,13 @@ interface LegacyResult {
   candidates: number;
 }
 
+// 2026-10-15, founder rule ("nobody should finish the old nurture sequences"): every event
+// gets 3-4 emails, then the shared Friday list. The quiz drip ends after Email 4 (day 6), so
+// the day-8 Email 5 is retired. Flip back to false only on the founder's say-so.
+const LEGACY_EMAIL5_RETIRED = true;
+
 async function legacyEmail5(): Promise<LegacyResult> {
+  if (LEGACY_EMAIL5_RETIRED) return { sent: 0, candidates: 0 };
   const rows = await supabaseQuery(
     'quiz_completions?email_5_sent_at=is.null&email_4_sent_at=not.is.null&purchased_course=eq.false&purchased_guide=eq.false&limit=50',
   );
