@@ -1592,6 +1592,12 @@ async function recordOneOffPayment(event: Stripe.Event, session: Stripe.Checkout
   }
 }
 
+/** The fallback for thisRefundCents (recordRefund and notifyPartialRefund): newest first. */
+async function newestRefundOnCharge(chargeId: string): Promise<Stripe.Refund | null> {
+  const list = await stripe.refunds.list({ charge: chargeId, limit: 1 })
+  return list.data[0] ?? null
+}
+
 /**
  * Record a refund in the payments ledger.
  *
@@ -1621,10 +1627,7 @@ async function recordOneOffPayment(event: Stripe.Event, session: Stripe.Checkout
 async function recordRefund(event: Stripe.Event, charge: Stripe.Charge) {
   try {
     if (!charge.amount_refunded) return
-    const refunded = await thisRefundCents(charge, event.data.previous_attributes, async (chargeId) => {
-      const list = await stripe.refunds.list({ charge: chargeId, limit: 1 })
-      return list.data[0] ?? null
-    })
+    const refunded = await thisRefundCents(charge, event.data.previous_attributes, newestRefundOnCharge)
     if (refunded == null) {
       // Recording the running total instead would be the old overstatement, so nothing is
       // written. Loud, because the ledger is now short this refund until it is added by hand.
@@ -1689,9 +1692,9 @@ async function recordRefund(event: Stripe.Event, charge: Stripe.Charge) {
 
 
 /**
- * The partial-refund email (2026-10-15). THIS refund's amount, not the running total:
- * amount_refunded minus the previous_attributes value Stripe sends on the event, else the
- * newest refund on the charge. message_log keys it on the event id, so a Stripe retry is a
+ * The partial-refund email (2026-10-15). THIS refund's amount, not the running total,
+ * worked out the same way as the ledger row (thisRefundCents, _shared/refund-amount.ts).
+ * message_log keys it on the event id, so a Stripe retry is a
  * no-op. Test and internal orders are skipped, like the Founding Family notes.
  */
 async function notifyPartialRefund(event: Stripe.Event, charge: Stripe.Charge) {
@@ -1708,14 +1711,8 @@ async function notifyPartialRefund(event: Stripe.Event, charge: Stripe.Charge) {
     .eq("stripe_payment_intent_id", pi).eq("is_internal", true).limit(1)
   if (internal && internal.length > 0) return
 
-  // deno-lint-ignore no-explicit-any
-  const prev = (event.data as any).previous_attributes?.amount_refunded
-  let cents = typeof prev === "number" ? (charge.amount_refunded ?? 0) - prev : null
-  if (cents == null || cents <= 0) {
-    const list = await stripe.refunds.list({ charge: charge.id, limit: 1 })
-    cents = list.data[0]?.amount ?? null
-  }
-  if (cents == null || cents <= 0) {
+  const cents = await thisRefundCents(charge, event.data.previous_attributes, newestRefundOnCharge)
+  if (cents == null) {
     console.warn(`partial refund email: could not work out the refund amount (charge=${charge.id}); nothing sent`)
     return
   }
