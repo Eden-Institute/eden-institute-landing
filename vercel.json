@@ -1,6 +1,18 @@
 {
   "redirects": [
     {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "talesandtabletalk.com" }],
+      "destination": "https://ultimateradioshow.com/tales-and-table-talk/",
+      "statusCode": 301
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.talesandtabletalk.com" }],
+      "destination": "https://ultimateradioshow.com/tales-and-table-talk/",
+      "statusCode": 301
+    },
+    {
       "source": "/Homeschool",
       "destination": "/homeschool",
       "permanent": true
