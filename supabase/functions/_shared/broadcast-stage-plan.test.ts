@@ -4,7 +4,10 @@ import {
   checkScheduledAt,
   isBroadcastAudience,
   isBroadcastSegmentName,
+  needsRefresh,
+  parseResendTime,
   planStage,
+  dueForRefresh,
 } from './broadcast-stage-plan.ts';
 
 const FOOT = 'Rooted in Faith Ventures LLC <a href="{{{RESEND_UNSUBSCRIBE_URL}}}">Unsubscribe</a>';
@@ -61,4 +64,33 @@ Deno.test('checkScheduledAt: window', () => {
   assertEquals('error' in checkScheduledAt('2026-10-29T12:05:00Z', now), true);
   assertEquals('error' in checkScheduledAt('2026-12-15T00:00:00Z', now), true);
   assertEquals('error' in checkScheduledAt('next friday', now), true);
+});
+
+Deno.test('parseResendTime: ISO and the Postgres-style stamps Resend returns', () => {
+  const iso = Date.parse('2026-10-31T00:00:00Z');
+  assertEquals(parseResendTime('2026-10-31T00:00:00.000Z'), iso);
+  assertEquals(parseResendTime('2026-10-31 00:00:00+00'), iso);
+  assertEquals(parseResendTime('2026-10-31 00:00:00.000+00'), iso);
+  assertEquals(parseResendTime('2026-10-31 00:00:00+00:00'), iso);
+  assertEquals(Number.isNaN(parseResendTime(null)), true);
+  assertEquals(Number.isNaN(parseResendTime('')), true);
+});
+
+Deno.test('dueForRefresh: scheduled, ahead, inside the window only', () => {
+  const now = Date.parse('2026-10-30T00:00:00Z');
+  const list = [
+    { id: 'a', status: 'scheduled', scheduled_at: '2026-10-31 00:00:00+00' }, // 24h ahead: due
+    { id: 'b', status: 'scheduled', scheduled_at: '2026-11-07 01:00:00+00' }, // 8 days ahead: not yet
+    { id: 'c', status: 'draft', scheduled_at: null },
+    { id: 'd', status: 'scheduled', scheduled_at: '2026-10-29 23:00:00+00' }, // already past
+    { id: 'e', status: 'sent', scheduled_at: '2026-10-30 10:00:00+00' },
+  ];
+  assertEquals(dueForRefresh(list, now).map((b) => b.id), ['a']);
+});
+
+Deno.test('needsRefresh: never, stale, fresh', () => {
+  const now = Date.parse('2026-10-30T12:00:00Z');
+  assertEquals(needsRefresh(null, now), true);
+  assertEquals(needsRefresh('2026-10-30T05:00:00Z', now), true);
+  assertEquals(needsRefresh('2026-10-30T08:00:00Z', now), false);
 });

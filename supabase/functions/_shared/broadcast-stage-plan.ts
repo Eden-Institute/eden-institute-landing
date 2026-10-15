@@ -107,3 +107,40 @@ export function checkScheduledAt(v: unknown, now: number): { iso: string } | { e
   if (t > now + 31 * 24 * 60 * 60 * 1000) return { error: 'scheduled_at must be within 31 days' };
   return { iso: new Date(t).toISOString() };
 }
+
+// ── Automatic refresh (founder decision 2026-10-14: "schedule ahead, refresh automatically")
+// A Resend segment is a static snapshot, so a Broadcast scheduled days ahead would go to the
+// list as it stood when it was staged. An hourly cron (api/cron/refresh-broadcasts) re-stages
+// the segment of every Broadcast scheduled to send within REFRESH_WINDOW_MS, at most once per
+// REFRESH_EVERY_MS, so the last refresh lands a few hours before the send.
+export const REFRESH_WINDOW_MS = 26 * 60 * 60 * 1000;
+export const REFRESH_EVERY_MS = 6 * 60 * 60 * 1000;
+
+/** Resend timestamps come as ISO or as "YYYY-MM-DD HH:MM:SS(.fff)+00". Returns ms or NaN. */
+export function parseResendTime(v: unknown): number {
+  if (typeof v !== 'string' || !v.trim()) return NaN;
+  let s = v.trim().replace(' ', 'T');
+  if (/[+-]\d{2}$/.test(s)) s += ':00';
+  return Date.parse(s);
+}
+
+export interface BroadcastTiming {
+  id: string;
+  status?: string | null;
+  scheduled_at?: string | null;
+}
+
+/** Scheduled Broadcasts whose send time is still ahead and inside the window. */
+export function dueForRefresh<T extends BroadcastTiming>(list: readonly T[], nowMs: number, windowMs = REFRESH_WINDOW_MS): T[] {
+  return list.filter((b) => {
+    if (b.status !== 'scheduled') return false;
+    const at = parseResendTime(b.scheduled_at);
+    return Number.isFinite(at) && at > nowMs && at - nowMs <= windowMs;
+  });
+}
+
+/** A segment needs a refresh when it was never refreshed, or not within the last `everyMs`. */
+export function needsRefresh(lastRefreshedAt: string | null | undefined, nowMs: number, everyMs = REFRESH_EVERY_MS): boolean {
+  const last = parseResendTime(lastRefreshedAt ?? '');
+  return !Number.isFinite(last) || nowMs - last >= everyMs;
+}

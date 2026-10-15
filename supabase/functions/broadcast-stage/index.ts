@@ -33,6 +33,13 @@
 //            segment that holds exactly the audience right now, and scheduled_at is 15
 //            minutes to 31 days out. Cancel = delete the Broadcast before it goes (Resend
 //            dashboard, or DELETE /broadcasts/{id}).
+//   refresh_due {}
+//            hourly, from Vercel cron api/cron/refresh-broadcasts (founder decision
+//            2026-10-14: schedule ahead, refresh automatically). For every Broadcast SCHEDULED
+//            to send within the next 26 hours, re-stage its segment from the audience recorded
+//            for it in public.broadcast_segments (written by `stage`), at most once every 6
+//            hours. Adds families who became eligible, removes anyone who opted out or bought.
+//            Sends nothing and schedules nothing.
 //
 // Placeholders Resend fills per contact: {{{contact.first_name|there}}} and
 // {{{RESEND_UNSUBSCRIBE_URL}}} (required; checked). Copy rule: no em dashes (checked).
@@ -48,8 +55,10 @@ import {
   type BroadcastAudience,
   checkBroadcastHtml,
   checkScheduledAt,
+  dueForRefresh,
   isBroadcastAudience,
   isBroadcastSegmentName,
+  needsRefresh,
   planStage,
   PROOF_SEGMENT,
   type StageLogRow,
@@ -73,6 +82,9 @@ const DEFAULT_BATCH = 300;
 const MAX_BATCH = 500;
 const WRITE_SPACING_MS = 200; // same pace as contact-properties-sync
 const TIME_BUDGET_MS = 100_000; // stop well inside the wall-clock limit; call again to continue
+// The hourly refresh stays short (the cron forwarder waits on it); an unfinished segment is
+// simply picked up again next hour, because last_refreshed_at is only set once it is done.
+const REFRESH_TIME_BUDGET_MS = 20_000;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -224,6 +236,118 @@ function readContent(body: Record<string, unknown>): ContentInput | { error: str
   return { name, subject, html };
 }
 
+interface StageResult {
+  audience: BroadcastAudience;
+  segment: string;
+  segment_id: string;
+  as_of: string;
+  audience_size: number;
+  added: number;
+  created: number;
+  absent: number;
+  failed: number;
+  removed: number;
+  forgotten: number;
+  remaining: number;
+  in_segment: number;
+  failures: Array<{ email: string; http: number; error?: string }>;
+}
+
+/** Converge one "Broadcast: ..." segment to the audience, within `batch` writes and `budgetMs`. */
+async function stageSegment(
+  db: Db,
+  audience: BroadcastAudience,
+  segment: string,
+  batch: number,
+  asOf: string,
+  budgetMs: number,
+): Promise<StageResult> {
+  const rows = await audienceRows(db, audience, asOf);
+  const names = new Map(rows.map((r) => [r.email, r.first_name]));
+  const plan = planStage(rows.map((r) => r.email), await stageLog(db, segment));
+  const segmentId = await segmentIdByName(segment);
+  if (!segmentId) throw new Error(`could not create segment ${segment}`);
+
+  const started = Date.now();
+  const out = { added: 0, created: 0, absent: 0, failed: 0, removed: 0, forgotten: 0 };
+  const failures: Array<{ email: string; http: number; error?: string }> = [];
+  let budget = batch;
+
+  for (const email of plan.toForget) {
+    await forget(db, segment, email);
+    out.forgotten++;
+  }
+  for (const email of plan.toRemove) {
+    if (budget <= 0 || Date.now() - started > budgetMs) break;
+    budget--;
+    const r = await removeContactFromSegment(email, segmentId);
+    if (r.ok) {
+      await forget(db, segment, email);
+      out.removed++;
+    } else {
+      out.failed++;
+      if (failures.length < 20) failures.push({ email, http: r.status, error: r.error });
+    }
+    await sleep(WRITE_SPACING_MS);
+  }
+  for (const email of plan.toAdd) {
+    if (budget <= 0 || Date.now() - started > budgetMs) break;
+    budget--;
+    const r = await addOne(email, names.get(email) ?? null, segmentId);
+    await logStage(db, segment, email, r.status, r.http, r.error);
+    out[r.status]++;
+    if (r.status === 'failed' && failures.length < 20) failures.push({ email, http: r.http, error: r.error });
+    await sleep(WRITE_SPACING_MS);
+  }
+
+  const after = planStage(rows.map((r) => r.email), await stageLog(db, segment));
+  const remaining = after.toAdd.length + after.toRemove.length;
+
+  // Remember which audience this segment holds, so the hourly refresh can re-stage it.
+  const mark: Record<string, unknown> = { segment_name: segment, audience, updated_at: new Date().toISOString() };
+  if (remaining === 0) mark.last_refreshed_at = new Date().toISOString();
+  const { error: markErr } = await db.from('broadcast_segments').upsert(mark, { onConflict: 'segment_name' });
+  if (markErr) console.error('broadcast_segments upsert failed', segment, markErr.message);
+
+  return {
+    audience, segment, segment_id: segmentId, as_of: asOf,
+    audience_size: rows.length, ...out,
+    remaining,
+    in_segment: after.settled,
+    failures,
+  };
+}
+
+interface ScheduledBroadcast {
+  id: string;
+  name?: string | null;
+  status?: string | null;
+  scheduled_at?: string | null;
+  segment_id?: string | null;
+  audience_id?: string | null;
+}
+
+/** Every SCHEDULED Broadcast on the team (paginated list), each read in full. */
+async function scheduledBroadcasts(): Promise<ScheduledBroadcast[]> {
+  const out: ScheduledBroadcast[] = [];
+  let after: string | null = null;
+  for (let page = 0; page < 20; page++) {
+    const r = await resend(`/broadcasts?limit=100${after ? `&after=${encodeURIComponent(after)}` : ''}`);
+    if (r.status !== 200) throw new Error(`GET /broadcasts ${r.status}: ${JSON.stringify(r.body).slice(0, 200)}`);
+    const rows = (r.body?.data ?? []) as ScheduledBroadcast[];
+    for (const b of rows) {
+      if (b.status !== 'scheduled') continue;
+      // The list may omit scheduled_at / segment_id; the single read always has them.
+      const d = await resend(`/broadcasts/${encodeURIComponent(b.id)}`);
+      if (d.status === 200 && d.body) out.push(d.body as unknown as ScheduledBroadcast);
+      else console.error('GET /broadcasts/{id} failed', b.id, d.status);
+    }
+    if (!r.body?.has_more || rows.length === 0) break;
+    after = rows[rows.length - 1].id;
+  }
+  return out;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'POST only' }, 405);
@@ -256,56 +380,54 @@ Deno.serve(async (req: Request) => {
     if (mode === 'stage') {
       if (!isBroadcastAudience(body.audience)) return json({ error: `audience must be one of ${BROADCAST_AUDIENCES.join(', ')}` }, 400);
       if (!isBroadcastSegmentName(body.segment)) return json({ error: `segment must be named "${BROADCAST_SEGMENT_PREFIX}..."` }, 400);
-      const segment = body.segment;
       const batch = Math.max(1, Math.min(MAX_BATCH, Number(body.batch) || DEFAULT_BATCH));
-      const rows = await audienceRows(db, body.audience, asOf);
-      const names = new Map(rows.map((r) => [r.email, r.first_name]));
-      const plan = planStage(rows.map((r) => r.email), await stageLog(db, segment));
-      const segmentId = await segmentIdByName(segment);
-      if (!segmentId) return json({ error: `could not create segment ${segment}` }, 502);
+      const result = { mode, ...(await stageSegment(db, body.audience, body.segment, batch, asOf, TIME_BUDGET_MS)) };
+      console.log('broadcast-stage stage', JSON.stringify({ ...result, failures: result.failures.length }));
+      return json(result, result.failed ? 207 : 200);
+    }
 
-      const started = Date.now();
-      const out = { added: 0, created: 0, absent: 0, failed: 0, removed: 0, forgotten: 0 };
-      const failures: Array<{ email: string; http: number; error?: string }> = [];
-      let budget = batch;
-
-      for (const email of plan.toForget) {
-        await forget(db, segment, email);
-        out.forgotten++;
-      }
-      for (const email of plan.toRemove) {
-        if (budget <= 0 || Date.now() - started > TIME_BUDGET_MS) break;
-        budget--;
-        const r = await removeContactFromSegment(email, segmentId);
-        if (r.ok) {
-          await forget(db, segment, email);
-          out.removed++;
-        } else {
-          out.failed++;
-          if (failures.length < 20) failures.push({ email, http: r.status, error: r.error });
+    if (mode === 'refresh_due') {
+      const nowMs = Date.now();
+      const due = dueForRefresh(await scheduledBroadcasts(), nowMs);
+      const report: Array<Record<string, unknown>> = [];
+      if (due.length) {
+        const { ids } = await ensureSegments([]);
+        const nameById = new Map([...ids].map(([name, id]) => [id, name]));
+        const started = Date.now();
+        for (const b of due) {
+          const segName = nameById.get(String(b.segment_id ?? b.audience_id ?? '')) ?? null;
+          const item: Record<string, unknown> = { broadcast: b.name ?? b.id, scheduled_at: b.scheduled_at, segment: segName };
+          report.push(item);
+          if (!isBroadcastSegmentName(segName)) {
+            item.skipped = 'not a "Broadcast: " segment';
+            continue;
+          }
+          const { data: seg } = await db.from('broadcast_segments')
+            .select('audience, last_refreshed_at').eq('segment_name', segName).maybeSingle();
+          if (!seg || !isBroadcastAudience(seg.audience)) {
+            item.skipped = 'no audience recorded for this segment (stage it once by hand)';
+            console.error('broadcast-stage refresh_due: no audience for', segName);
+            continue;
+          }
+          if (!needsRefresh(seg.last_refreshed_at, nowMs)) {
+            item.skipped = `refreshed at ${seg.last_refreshed_at}`;
+            continue;
+          }
+          const left = REFRESH_TIME_BUDGET_MS - (Date.now() - started);
+          if (left <= 0) {
+            item.skipped = 'out of time this run; next hour continues';
+            continue;
+          }
+          const r = await stageSegment(db, seg.audience, segName, MAX_BATCH, new Date().toISOString(), left);
+          Object.assign(item, {
+            audience: r.audience, audience_size: r.audience_size, added: r.added + r.created,
+            removed: r.removed, absent: r.absent, failed: r.failed, remaining: r.remaining, in_segment: r.in_segment,
+          });
         }
-        await sleep(WRITE_SPACING_MS);
       }
-      for (const email of plan.toAdd) {
-        if (budget <= 0 || Date.now() - started > TIME_BUDGET_MS) break;
-        budget--;
-        const r = await addOne(email, names.get(email) ?? null, segmentId);
-        await logStage(db, segment, email, r.status, r.http, r.error);
-        out[r.status]++;
-        if (r.status === 'failed' && failures.length < 20) failures.push({ email, http: r.http, error: r.error });
-        await sleep(WRITE_SPACING_MS);
-      }
-
-      const after = planStage(rows.map((r) => r.email), await stageLog(db, segment));
-      const result = {
-        mode, audience: body.audience, segment, segment_id: segmentId, as_of: asOf,
-        audience_size: rows.length, ...out,
-        remaining: after.toAdd.length + after.toRemove.length,
-        in_segment: after.settled,
-        failures,
-      };
-      console.log('broadcast-stage stage', JSON.stringify({ ...result, failures: failures.length }));
-      return json(result, out.failed ? 207 : 200);
+      console.log('broadcast-stage refresh_due', JSON.stringify(report));
+      const failed = report.some((i) => Number(i.failed ?? 0) > 0);
+      return json({ mode, checked_at: new Date(nowMs).toISOString(), due: due.length, report }, failed ? 207 : 200);
     }
 
     if (mode === 'create') {
@@ -388,7 +510,7 @@ Deno.serve(async (req: Request) => {
       return json({ mode, scheduled: true, id, name, segment: segName, scheduled_at: when.iso, recipients_settled: plan.settled });
     }
 
-    return json({ error: 'mode must be preview, stage, create, proof or schedule' }, 400);
+    return json({ error: 'mode must be preview, stage, create, proof, schedule or refresh_due' }, 400);
   } catch (e) {
     console.error('broadcast-stage error', e instanceof Error ? e.message : String(e));
     return json({ error: e instanceof Error ? e.message : String(e) }, 500);
