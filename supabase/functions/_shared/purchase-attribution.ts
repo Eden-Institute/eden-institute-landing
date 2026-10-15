@@ -26,6 +26,15 @@
 //   - Missing, malformed or empty attribution is simply absent. It never fails a
 //     checkout and never fails a webhook.
 //   - Pure TypeScript, no Deno globals, so vitest can import it (src/test).
+//
+// GOOGLE CLICK IDS (2026-10-15). gclid, gbraid and wbraid also ride into the
+// session metadata (attr_gclid, ...), so a Google Ads sale can later be matched
+// to its click (offline conversion import) and read off the Stripe session. They
+// are metadata ONLY: attributionColumnsFromMetadata never maps them, so there is
+// no database column, no migration, and stripe-webhook's write is unchanged.
+// Only the ids' own character set passes. Three more keys at most, so ten in all.
+// fbclid is deliberately NOT here: Meta already gets that click as fbc, gated on
+// Accept (src/lib/fbAttribution.ts), and a raw copy would rebuild it ungated.
 
 export const ATTRIBUTION_FIELDS = [
   "utm_source",
@@ -45,6 +54,14 @@ export const ATTR_PREFIX = "attr_"
 
 export type AttributionColumn = `attr_${AttributionField}`
 export type AttributionColumns = Partial<Record<AttributionColumn, string>>
+
+/** Google Ads click ids. Stripe metadata only, never database columns. */
+export const CLICK_ID_FIELDS = ["gclid", "gbraid", "wbraid"] as const
+export type ClickIdField = (typeof CLICK_ID_FIELDS)[number]
+export type ClickIds = Partial<Record<ClickIdField, string>>
+
+/** Google click ids are URL-safe tokens; anything else is not one. */
+const CLICK_ID_PATTERN = /^[A-Za-z0-9_-]{1,200}$/
 
 /** UTMs are short labels; the browser already caps them at 200. URLs get 500,
  *  which is Stripe's per-value ceiling and the browser's own cap for them. */
@@ -101,8 +118,31 @@ export function attributionToMetadata(attr: PurchaseAttribution): Record<string,
 }
 
 /**
+ * The Google click ids in an untrusted value (the request body's `attribution`),
+ * each kept only if it is a well-formed token. Never throws.
+ */
+export function sanitizeClickIds(raw: unknown): ClickIds {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {}
+  const src = raw as Record<string, unknown>
+  const out: ClickIds = {}
+  for (const field of CLICK_ID_FIELDS) {
+    let v: unknown
+    try {
+      v = src[field]
+    } catch {
+      continue
+    }
+    if (typeof v !== "string") continue
+    const s = v.trim()
+    if (CLICK_ID_PATTERN.test(s)) out[field] = s
+  }
+  return out
+}
+
+/**
  * Body -> metadata in one step, for create-checkout: sanitizes `body.attribution`
- * and returns only the attr_* entries to merge into the session metadata bag.
+ * and returns only the attr_* entries to merge into the session metadata bag,
+ * the seven attribution fields plus any Google click ids.
  */
 export function checkoutAttributionMetadata(body: unknown): Record<string, string> {
   if (!body || typeof body !== "object") return {}
@@ -112,7 +152,13 @@ export function checkoutAttributionMetadata(body: unknown): Record<string, strin
   } catch {
     return {}
   }
-  return attributionToMetadata(sanitizeAttribution(raw))
+  const meta = attributionToMetadata(sanitizeAttribution(raw))
+  const ids = sanitizeClickIds(raw)
+  for (const field of CLICK_ID_FIELDS) {
+    const v = ids[field]
+    if (v) meta[`${ATTR_PREFIX}${field}`] = v
+  }
+  return meta
 }
 
 /**
