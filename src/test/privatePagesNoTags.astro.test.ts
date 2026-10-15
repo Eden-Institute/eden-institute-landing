@@ -1,8 +1,9 @@
 // No ad or analytics tags on the pages whose URL carries a credential.
 //
 // /starter/downloads?t=<durable Starter download token>,
-// /partner-sample?k=<partner key>, /unsubscribe?token=<unsubscribe token> and
-// /preorder-response?token=<delay-notice answer token>
+// /partner-sample?k=<partner key>, /unsubscribe?token=<unsubscribe token>,
+// /preorder-response?token=<delay-notice answer token> and
+// /answer?t=<children-question answer token>
 // keep the credential in the address bar, so
 // every emailed, copied or bookmarked link keeps working. That is only safe if
 // nothing on those pages can read location.href and send it on. This renders
@@ -35,6 +36,7 @@ const PRIVATE_PAGES = [
   "unsubscribe.astro",
   "preorder-response.astro",
   "back-to-eden/download.astro",
+  "answer.astro",
 ];
 
 /** These read the live herb database while they render (web/lib/herbsPublic.ts)
