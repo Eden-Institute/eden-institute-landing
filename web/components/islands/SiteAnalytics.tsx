@@ -14,6 +14,7 @@ import { getMarketingConsent } from "@/lib/consent";
 import { loadMetaPixel, metaPageView } from "@/lib/metaPixel";
 import { ConsentBannerView } from "@/components/ConsentBanner";
 import { captureFirstTouch } from "@/lib/attribution";
+import { startMerchantWidgetAfterAccept } from "@/lib/merchantWidget";
 
 const SKIP_PREFIXES = ["/founder", "/apothecary/auth", "/apothecary/account"];
 
@@ -54,9 +55,14 @@ interface Props {
    *  referrer and the utm_* values, never the t or k credential) and the CTA
    *  click beacon still run. Defaults to true. */
   thirdPartyTags?: boolean;
+  /** Google's store badge (src/lib/merchantWidget.ts), loaded once the visitor
+   *  has tapped Accept. MarketingLayout turns it on for public pages only: off
+   *  on a noindex page (the thank-you pages carry the review opt-in) and on a
+   *  private no-tags page. Defaults to false. */
+  storeBadge?: boolean;
 }
 
-export default function SiteAnalytics({ thirdPartyTags = true }: Props) {
+export default function SiteAnalytics({ thirdPartyTags = true, storeBadge = false }: Props) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -118,8 +124,15 @@ export default function SiteAnalytics({ thirdPartyTags = true }: Props) {
     // 3. Show the consent banner only if the visitor hasn't chosen yet.
     if (getMarketingConsent() === null) setVisible(true);
 
-    return cleanup;
-  }, [thirdPartyTags]);
+    // 4. Google's store badge, never while the banner is up: now for a visitor
+    //    who accepted earlier, or the moment they tap Accept.
+    const stopBadge = storeBadge ? startMerchantWidgetAfterAccept() : () => {};
+
+    return () => {
+      cleanup();
+      stopBadge();
+    };
+  }, [thirdPartyTags, storeBadge]);
 
   if (!visible || !thirdPartyTags) return null;
 

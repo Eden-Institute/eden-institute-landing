@@ -111,6 +111,7 @@ const meta = {
   import { readCheckoutSessionId } from "@/lib/checkoutSession";
   import { checkoutRef } from "@/lib/pinterestTag";
   import { reportGa4DigitalPurchaseOnce } from "@/lib/ga4DigitalPurchase";
+  import { showCustomerReviewsOptInForSession } from "@/lib/customerReviews";
 
   (async () => {
     try {
@@ -139,4 +140,8 @@ const meta = {
   // so Starter sales count in Analytics beside every other sale. See
   // src/lib/ga4DigitalPurchase.ts.
   void reportGa4DigitalPurchaseOnce(readCheckoutSessionId(), { id: "sprouts_starter_unit", name: "Sprouts Starter Unit" });
+
+  // Google Customer Reviews opt-in (2026-10-16), once the order row exists.
+  // See src/lib/customerReviews.ts.
+  void showCustomerReviewsOptInForSession(readCheckoutSessionId());
 </script>
