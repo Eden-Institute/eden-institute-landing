@@ -687,8 +687,9 @@ const editionJsonLd = editions.map((e) => ({
     </div>
   </section>
 
-  {/* Sticky buy bar, phones only */}
-  <div class="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] backdrop-blur md:hidden">
+  {/* Sticky buy bar, phones only. data-sticky-bottom-bar lifts Google's store
+      badge above it (src/lib/merchantWidget.ts). */}
+  <div data-sticky-bottom-bar class="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] backdrop-blur md:hidden">
     <div class="flex items-center gap-3">
       <p class="flex-1 font-serif text-sm font-bold leading-tight" style="color:hsl(var(--eden-forest))">Back to Eden<br /><span class="font-body text-xs font-normal text-muted-foreground">Print or download</span></p>
       <a href="#editions" data-cta="bte-sticky-editions" class={cn(buttonVariants({ variant: "eden" }), "min-h-[44px]")}>Choose edition</a>

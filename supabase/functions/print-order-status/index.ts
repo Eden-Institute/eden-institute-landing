@@ -12,7 +12,7 @@
 // response carries nothing a stranger could use: no card, no phone, no street
 // address, no Stripe ids. The ship-to line is name + city + state only, which
 // is enough for the buyer to spot a wrong address and ask for a fix inside the
-// cancellation window.
+// cancellation window. delivery_country is a two-letter country code only.
 //
 // Deploy with verify_jwt=false (supabase/config.toml): called anonymously from
 // the Astro island.
@@ -43,6 +43,13 @@ function stageFor(status: string, luluStatus: string | null): 'received' | 'prin
   return 'received';
 }
 
+/** An ISO 3166-1 alpha-2 code, upper case, or null for anything else. */
+function countryCode(v: unknown): string | null {
+  if (typeof v !== 'string') return null;
+  const c = v.trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(c) && c !== 'ZZ' ? c : null;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'POST only' }, 405);
@@ -57,7 +64,7 @@ serve(async (req) => {
     const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
     const { data: o, error } = await db
       .from('orders')
-      .select('id, order_number, status, fulfillment, lookup_key, product_label, amount_total_cents, tax_cents, currency, customer_email, shipping_name, shipping_address, created_at, lulu_status, shipping_carrier, tracking_number, tracking_url, shipped_at, delivered_at, total_details:raw->total_details')
+      .select('id, order_number, status, fulfillment, lookup_key, product_label, amount_total_cents, tax_cents, currency, customer_email, shipping_name, shipping_address, created_at, lulu_status, shipping_carrier, tracking_number, tracking_url, shipped_at, delivered_at, total_details:raw->total_details, billing_country:raw->customer_details->address->>country')
       .eq('stripe_checkout_session_id', sessionId)
       .maybeSingle();
     if (error) throw new Error(`orders lookup failed: ${error.message}`);
@@ -70,7 +77,7 @@ serve(async (req) => {
 
     const created = new Date(o.created_at);
     const cancelUntil = new Date(created.getTime() + LULU_PRODUCTION_DELAY_MINUTES * 60_000);
-    const addr = (o.shipping_address ?? {}) as { city?: string | null; state?: string | null };
+    const addr = (o.shipping_address ?? {}) as { city?: string | null; state?: string | null; country?: string | null };
     const totals = (o.total_details ?? {}) as { amount_shipping?: number | null; amount_discount?: number | null };
 
     return json({
@@ -89,6 +96,11 @@ serve(async (req) => {
       currency: o.currency ?? 'usd',
       email: o.customer_email,
       ship_to: { name: o.shipping_name, city: addr.city ?? null, state: addr.state ?? null },
+      // Google Customer Reviews opt-in (2026-10-16, src/lib/customerReviews.ts):
+      // where the order is delivered. A printed order's ship-to country; a
+      // digital order has no shipping address, so the buyer's billing country
+      // from the Stripe session. Null when neither is a two-letter code.
+      delivery_country: countryCode(addr.country) ?? countryCode(o.billing_country),
       placed_at: o.created_at,
       cancel_until: cancelUntil.toISOString(),
       // Only present once Lulu has shipped.

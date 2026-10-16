@@ -47,7 +47,8 @@ for Decline before it sends.
 | `purchase_confirmed` | `src/pages/HomeschoolWelcome.tsx` | SPA homeschool checkout |
 | Meta `Lead` / `InitiateCheckout` / `Purchase` | browser `metaTrack` plus server Conversions API (`supabase/functions/_shared/meta-capi.ts`, from `resend-waitlist`, `create-checkout`, `stripe-webhook`) | deduped on event id; browser `Purchase` (`src/lib/metaPurchase.ts`) skips `cs_test_` orders, the server skips E2E |
 | Pinterest `lead` / `addtocart` / `checkout` | `src/lib/pinterestTag.ts` | Astro pages only |
-| Google Customer Reviews opt-in | `src/lib/customerReviews.ts`, the same two print thank-you paths | merchant 5861058138, delivery date = order date + 21 days |
+| Google Customer Reviews opt-in | `src/lib/customerReviews.ts`, every thank-you page: the two print paths plus `/starter/thank-you`, `/starter/seedlings/thank-you`, the PDF path of `BookThankYou` and the Deep-Dive Guide (`GuideLanding`) | merchant 5861058138; delivery date (Central) = order date + 21 days when the order ships, the order date for digital-only; country from `print-order-status` (`delivery_country`) |
+| Google store badge | `src/lib/merchantWidget.ts`, via `SiteAnalytics` | public Astro pages only (never noindex or private pages), only after Accept, lifted above a `data-sticky-bottom-bar` |
 
 **`email_submit` form_name values**
 

@@ -11,6 +11,7 @@ import { ROUTES } from "@/lib/routes";
 import { trackCta } from "@/lib/trackCta";
 import { readCheckoutSessionId } from "@/lib/checkoutSession";
 import { reportGa4DigitalPurchaseOnce } from "@/lib/ga4DigitalPurchase";
+import { showCustomerReviewsOptInForSession } from "@/lib/customerReviews";
 import {
   clearGuideAccessToken,
   forgetGuideSession,
@@ -79,8 +80,12 @@ const GuideLanding = () => {
         try {
           const ok = await verifySession(sessionId, true);
           // GA4 purchase (2026-10-07), only on the post-payment redirect, never on
-          // a return visit from the emailed link or a remembered session.
-          if (ok) void reportGa4DigitalPurchaseOnce(sessionId, { id: "deep_dive_guide", name: "Deep-Dive Guide" });
+          // a return visit from the emailed link or a remembered session. The
+          // Google Customer Reviews opt-in rides on the same path (2026-10-16).
+          if (ok) {
+            void reportGa4DigitalPurchaseOnce(sessionId, { id: "deep_dive_guide", name: "Deep-Dive Guide" });
+            void showCustomerReviewsOptInForSession(sessionId);
+          }
         } catch (err) {
           console.error("Payment verification failed:", err);
         } finally {

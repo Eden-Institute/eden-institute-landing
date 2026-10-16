@@ -309,7 +309,9 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     {/* client:only — never server-rendered. The shared Supabase client touches
         localStorage at module load, and analytics/consent is a browser-only
         concern with no SEO value, so it must not run during the static build.
-        thirdPartyTags={false} on a private page: no Meta Pixel, no banner. */}
-    <SiteAnalytics client:only="react" thirdPartyTags={!noThirdPartyTags} />
+        thirdPartyTags={false} on a private page: no Meta Pixel, no banner.
+        storeBadge: Google's store badge after Accept, public pages only, never
+        on a noindex page such as a thank-you page (src/lib/merchantWidget.ts). */}
+    <SiteAnalytics client:only="react" thirdPartyTags={!noThirdPartyTags} storeBadge={!noThirdPartyTags && !noindex} />
   </body>
 </html>

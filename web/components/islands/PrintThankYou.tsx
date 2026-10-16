@@ -145,8 +145,8 @@ export default function PrintThankYou() {
             void reportGa4PurchaseOnce(sessionId, found);
             void reportMetaPurchaseOnce(sessionId, found);
           }
-          // Google Customer Reviews opt-in (printed orders only; this page is print-only).
-          showCustomerReviewsOptIn(found);
+          // Google Customer Reviews opt-in (this page is print-only).
+          showCustomerReviewsOptIn(found, "printed");
           return;
         }
         setTries(i + 1);
