@@ -11,8 +11,10 @@
 // --apply before scheduling any Broadcast, then re-stage.
 //
 // WHO GETS IT is decided in Postgres, not in Resend: public.broadcast_audience(name)
-// returns the exact set, with list-announce's rules (opt-outs, kit families, the 12-day
-// new-family pause, the 90-day quiet pause), or, for 'everyone', the whole list less opt-outs. This function copies that set into a STATIC
+// returns the exact set, with list-announce's rules (opt-outs, kit families, the 90-day quiet
+// pause; since 2026-10-16 no new-family pause, so Fridays run alongside the nurture), or, for
+// 'everyone', the whole list less opt-outs. Every audience also carries the founder address
+// (2026-10-16: she watches each Friday arrive in hello@). This function copies that set into a STATIC
 // Resend segment and keeps it equal: `stage` adds the missing and removes anyone who has
 // since left the audience (opted out, bought, ...). Every add is logged in
 // public.broadcast_stage_members, so staging is resumable and never adds twice.
@@ -40,6 +42,10 @@
 //            for it in public.broadcast_segments (written by `stage`), at most once every 6
 //            hours. Adds families who became eligible, removes anyone who opted out or bought.
 //            Sends nothing and schedules nothing.
+//   status {}
+//            read-only: every Broadcast with its status, scheduled_at and sent_at, for the wrap
+//            check that emails fire when they should (scripts/email_health_check.py, founder
+//            2026-10-16). Sends, stages and schedules nothing.
 //
 // Placeholders Resend fills per contact: {{{contact.first_name|there}}} and
 // {{{RESEND_UNSUBSCRIBE_URL}}} (required; checked). Copy rule: no em dashes (checked).
@@ -324,12 +330,15 @@ interface ScheduledBroadcast {
   name?: string | null;
   status?: string | null;
   scheduled_at?: string | null;
+  sent_at?: string | null;
+  created_at?: string | null;
   segment_id?: string | null;
   audience_id?: string | null;
 }
 
-/** Every SCHEDULED Broadcast on the team (paginated list), each read in full. */
-async function scheduledBroadcasts(): Promise<ScheduledBroadcast[]> {
+/** Every Broadcast on the team (paginated list), or only the SCHEDULED ones. Scheduled ones are
+ *  read in full: the list may omit scheduled_at / segment_id; the single read always has them. */
+async function listBroadcasts(onlyScheduled: boolean): Promise<ScheduledBroadcast[]> {
   const out: ScheduledBroadcast[] = [];
   let after: string | null = null;
   for (let page = 0; page < 20; page++) {
@@ -337,16 +346,26 @@ async function scheduledBroadcasts(): Promise<ScheduledBroadcast[]> {
     if (r.status !== 200) throw new Error(`GET /broadcasts ${r.status}: ${JSON.stringify(r.body).slice(0, 200)}`);
     const rows = (r.body?.data ?? []) as ScheduledBroadcast[];
     for (const b of rows) {
-      if (b.status !== 'scheduled') continue;
-      // The list may omit scheduled_at / segment_id; the single read always has them.
+      if (b.status !== 'scheduled') {
+        if (!onlyScheduled) out.push(b);
+        continue;
+      }
       const d = await resend(`/broadcasts/${encodeURIComponent(b.id)}`);
       if (d.status === 200 && d.body) out.push(d.body as unknown as ScheduledBroadcast);
-      else console.error('GET /broadcasts/{id} failed', b.id, d.status);
+      else {
+        console.error('GET /broadcasts/{id} failed', b.id, d.status);
+        if (!onlyScheduled) out.push(b);
+      }
     }
     if (!r.body?.has_more || rows.length === 0) break;
     after = rows[rows.length - 1].id;
   }
   return out;
+}
+
+/** Every SCHEDULED Broadcast on the team, each read in full. */
+async function scheduledBroadcasts(): Promise<ScheduledBroadcast[]> {
+  return listBroadcasts(true);
 }
 
 Deno.serve(async (req: Request) => {
@@ -385,6 +404,22 @@ Deno.serve(async (req: Request) => {
       const result = { mode, ...(await stageSegment(db, body.audience, body.segment, batch, asOf, TIME_BUDGET_MS)) };
       console.log('broadcast-stage stage', JSON.stringify({ ...result, failures: result.failures.length }));
       return json(result, result.failed ? 207 : 200);
+    }
+
+    if (mode === 'status') {
+      const all = await listBroadcasts(false);
+      return json({
+        mode,
+        checked_at: new Date().toISOString(),
+        broadcasts: all.map((b) => ({
+          id: b.id,
+          name: b.name ?? null,
+          status: b.status ?? null,
+          scheduled_at: b.scheduled_at ?? null,
+          sent_at: b.sent_at ?? null,
+          created_at: b.created_at ?? null,
+        })),
+      });
     }
 
     if (mode === 'refresh_due') {
