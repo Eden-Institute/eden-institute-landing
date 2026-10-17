@@ -243,6 +243,20 @@ export const ESA_STATES: EsaState[] = [
           "lists curriculum and learning resources for Arizona ESA families, and Eden's Table is one of them.",
         sponsored: true,
       },
+      // 2026-09-15: Grant Ongstad offered Eden a featured vendor spot in exchange for a link
+      // from this page (Gmail thread 1a0a11df74c03203); Camila proposed this page and he
+      // replied "That would be amazing!". Founder approved adding it 2026-10-17. Exchanged
+      // for a featured spot, so rel="sponsored", same as the azedvendors trade above. URL
+      // and description from the site itself (title "Arizona Christian Homeschool
+      // Directory, Programs by City"; contact gongstad@gmail.com in its footer), checked
+      // 2026-10-17. Says nothing about Eden's own listing there: not verified.
+      {
+        name: "Arizona Christian Homeschool Directory",
+        href: "https://arizonachristianhomeschools.com/",
+        description:
+          "is an independent directory of Christian co-ops, microschools, hybrid programs and tutors across Arizona, listed by city. It is not run by the state or the ESA program.",
+        sponsored: true,
+      },
     ],
     faq: [
       {
@@ -452,7 +466,7 @@ export const ESA_PENDING = [
 
 /** Last content review of the ESA pages. Bump it when what they say changes (see
     the rules at the top). */
-export const ESA_UPDATED_ISO = "2026-09-25";
+export const ESA_UPDATED_ISO = "2026-10-17";
 
 /** The same date as shown on the pages, e.g. "September 2026". */
 export const ESA_UPDATED = new Date(`${ESA_UPDATED_ISO}T12:00:00Z`).toLocaleDateString("en-US", {
