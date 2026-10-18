@@ -20,27 +20,35 @@ const SKIP_PREFIXES = ["/founder", "/apothecary/auth", "/apothecary/account"];
 
 /**
  * CRO Phase 4: cookieless CTA click beacon for Astro pages. Every internal
- * CTA click here triggers a full page unload, which can abort an in-flight
- * supabase-js fetch — so clicks go out via navigator.sendBeacon (survives
- * unload; apikey rides as a query param since sendBeacon can't set
- * headers), with a keepalive fetch fallback. Same privacy posture as the
- * page-view beacon: the RPC hashes IP/UA server-side, nothing identifying
- * leaves the function, no consent gate applies.
+ * CTA click here triggers a full page unload, which can abort an ordinary
+ * in-flight fetch, so the click goes out as a keepalive fetch, which the
+ * browser finishes after the page is gone.
+ *
+ * Not navigator.sendBeacon: a beacon always sends credentials, Supabase
+ * answers CORS with `Access-Control-Allow-Origin: *`, and browsers refuse a
+ * wildcard on a credentialed request. The JSON body made the beacon a
+ * preflighted request, so the preflight failed and the POST never left:
+ * Astro-page clicks were lost from #249 (2026-07-02) until this fix.
+ * credentials: "omit" is what makes the wildcard acceptable, and it matches
+ * the page-view RPC below, which supabase-js sends without credentials and
+ * which records fine.
+ *
+ * Same privacy posture as the page-view beacon: the RPC hashes IP/UA
+ * server-side, nothing identifying leaves the function, no consent gate
+ * applies.
  */
 function beaconCtaClick(cta: string, path: string): void {
   try {
-    const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/record_cta_click?apikey=${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`;
-    const body = JSON.stringify({ p_cta: cta, p_path: path, p_lookup_key: null });
-    if (typeof navigator.sendBeacon === "function") {
-      navigator.sendBeacon(url, new Blob([body], { type: "application/json" }));
-    } else {
-      void fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body,
-        keepalive: true,
-      }).catch(() => {});
-    }
+    void fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/record_cta_click`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      },
+      body: JSON.stringify({ p_cta: cta, p_path: path, p_lookup_key: null }),
+      keepalive: true,
+      credentials: "omit",
+    }).catch(() => {});
   } catch {
     // Analytics never break the page.
   }
