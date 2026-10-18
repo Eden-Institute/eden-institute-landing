@@ -35,6 +35,15 @@
 // Only the ids' own character set passes. Three more keys at most, so ten in all.
 // fbclid is deliberately NOT here: Meta already gets that click as fbc, gated on
 // Accept (src/lib/fbAttribution.ts), and a raw copy would rebuild it ungated.
+//
+// LAST MARKED TOUCH (2026-10-18). First touch never credits the email that brought
+// a buyer back. The browser now also sends `attribution.last`: the most recent
+// arrival that carried UTMs, an ad click id or another site's referrer (never this
+// site's own links). It rides as attr_last_* (the same seven fields plus
+// attr_last_click, the NAME of the ad click id, never its value) and stripe-webhook
+// stamps it onto attr_last_* columns in a SEPARATE update, so the first-touch write
+// above is byte-for-byte what it was. Eight more keys at most, eighteen in all; the
+// longest name is attr_last_utm_campaign, 22 chars.
 
 export const ATTRIBUTION_FIELDS = [
   "utm_source",
@@ -59,6 +68,17 @@ export type AttributionColumns = Partial<Record<AttributionColumn, string>>
 export const CLICK_ID_FIELDS = ["gclid", "gbraid", "wbraid"] as const
 export type ClickIdField = (typeof CLICK_ID_FIELDS)[number]
 export type ClickIds = Partial<Record<ClickIdField, string>>
+
+/** Prefix on the last-touch Stripe metadata keys and database columns. */
+export const LAST_PREFIX = "attr_last_"
+
+/** Which ad click id marked the last touch. Only these names pass. */
+export const CLICK_MARKERS = ["gclid", "gbraid", "wbraid", "fbclid"] as const
+export type ClickMarker = (typeof CLICK_MARKERS)[number]
+
+export type LastTouch = PurchaseAttribution & { click?: ClickMarker }
+export type LastTouchColumn = `attr_last_${AttributionField}` | "attr_last_click"
+export type LastTouchColumns = Partial<Record<LastTouchColumn, string>>
 
 /** Google click ids are URL-safe tokens; anything else is not one. */
 const CLICK_ID_PATTERN = /^[A-Za-z0-9_-]{1,200}$/
@@ -140,9 +160,41 @@ export function sanitizeClickIds(raw: unknown): ClickIds {
 }
 
 /**
+ * Reduce an untrusted value (the request body's `attribution.last`) to the seven
+ * fields plus the click marker. Anything that is not a plain object yields {}.
+ * Never throws.
+ */
+export function sanitizeLastTouch(raw: unknown): LastTouch {
+  const out: LastTouch = sanitizeAttribution(raw)
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out
+  let click: unknown
+  try {
+    click = (raw as Record<string, unknown>).click
+  } catch {
+    return out
+  }
+  if (typeof click === "string" && (CLICK_MARKERS as readonly string[]).includes(click)) {
+    out.click = click as ClickMarker
+  }
+  return out
+}
+
+/** The Stripe metadata entries for a sanitized last touch (attr_last_utm_source, ...). */
+export function lastTouchToMetadata(last: LastTouch): Record<string, string> {
+  const meta: Record<string, string> = {}
+  for (const field of ATTRIBUTION_FIELDS) {
+    const v = last[field]
+    if (v) meta[`${LAST_PREFIX}${field}`] = v
+  }
+  if (last.click) meta[`${LAST_PREFIX}click`] = last.click
+  return meta
+}
+
+/**
  * Body -> metadata in one step, for create-checkout: sanitizes `body.attribution`
  * and returns only the attr_* entries to merge into the session metadata bag,
- * the seven attribution fields plus any Google click ids.
+ * the seven attribution fields plus any Google click ids, plus the last marked
+ * touch as attr_last_*.
  */
 export function checkoutAttributionMetadata(body: unknown): Record<string, string> {
   if (!body || typeof body !== "object") return {}
@@ -157,6 +209,15 @@ export function checkoutAttributionMetadata(body: unknown): Record<string, strin
   for (const field of CLICK_ID_FIELDS) {
     const v = ids[field]
     if (v) meta[`${ATTR_PREFIX}${field}`] = v
+  }
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    let last: unknown
+    try {
+      last = (raw as Record<string, unknown>).last
+    } catch {
+      last = undefined
+    }
+    Object.assign(meta, lastTouchToMetadata(sanitizeLastTouch(last)))
   }
   return meta
 }
@@ -176,6 +237,28 @@ export function attributionColumnsFromMetadata(
     const key = `${ATTR_PREFIX}${field}` as AttributionColumn
     const c = clean(metadata[key], MAX_LEN[field])
     if (c) cols[key] = c
+  }
+  return Object.keys(cols).length ? cols : null
+}
+
+/**
+ * Stripe metadata -> the attr_last_* column values, for stripe-webhook's second,
+ * separate update. Re-sanitized like the first touch. Null when the session
+ * carries no last touch (every session created before 2026-10-18).
+ */
+export function lastTouchColumnsFromMetadata(
+  metadata: Record<string, unknown> | null | undefined,
+): LastTouchColumns | null {
+  if (!metadata || typeof metadata !== "object") return null
+  const cols: LastTouchColumns = {}
+  for (const field of ATTRIBUTION_FIELDS) {
+    const key = `${LAST_PREFIX}${field}` as LastTouchColumn
+    const c = clean(metadata[key], MAX_LEN[field])
+    if (c) cols[key] = c
+  }
+  const click = metadata[`${LAST_PREFIX}click`]
+  if (typeof click === "string" && (CLICK_MARKERS as readonly string[]).includes(click)) {
+    cols.attr_last_click = click
   }
   return Object.keys(cols).length ? cols : null
 }

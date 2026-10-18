@@ -67,7 +67,7 @@ import { creditIssuanceOpen, issueStarterCreditForBand, markCreditRedeemed } fro
 import { escapeLikePattern } from "../_shared/like-escape.ts"
 import { classifyLearnWorldsCharge } from "../_shared/learnworlds-charge.ts"
 import { E2E_MODE, isE2eMetadata, stripeSecretKey, stripeWebhookSecret } from "../_shared/e2e-mode.ts"
-import { attributionColumnsFromMetadata } from "../_shared/purchase-attribution.ts"
+import { attributionColumnsFromMetadata, lastTouchColumnsFromMetadata } from "../_shared/purchase-attribution.ts"
 // Abandoned-checkout recovery email, 2026-09-28.
 import {
   CART_RECOVERY_COOLDOWN_DAYS,
@@ -1830,6 +1830,10 @@ async function recordInvoicePayment(event: Stripe.Event, status: "paid" | "faile
  *   - it touches none of the order writers (_shared/order-flow.ts), so the
  *     preorder / print / digital paths are byte-for-byte what they were.
  * No-op when the metadata carries no attribution (every pre-existing session).
+ *
+ * The last marked touch (attr_last_*, 2026-10-18) is a SECOND update of its own,
+ * after the first-touch one, so a failure there (say its columns are missing)
+ * cannot cost the first touch.
  */
 async function stampPurchaseAttribution(
   table: "orders" | "payments",
@@ -1839,14 +1843,28 @@ async function stampPurchaseAttribution(
 ): Promise<void> {
   try {
     const cols = attributionColumnsFromMetadata(metadata)
-    if (!cols) return
-    const { error } = await adminClient.from(table).update(cols).eq(matchColumn, matchValue)
-    if (error) {
-      console.error(`purchase attribution not stamped on ${table} (${matchColumn}=${matchValue}): ${error.message}`)
+    if (cols) {
+      const { error } = await adminClient.from(table).update(cols).eq(matchColumn, matchValue)
+      if (error) {
+        console.error(`purchase attribution not stamped on ${table} (${matchColumn}=${matchValue}): ${error.message}`)
+      }
     }
   } catch (err) {
     console.error(
       `purchase attribution stamp failed on ${table} (${matchColumn}=${matchValue}), non-fatal: ` +
+        (err instanceof Error ? err.message : String(err)),
+    )
+  }
+  try {
+    const last = lastTouchColumnsFromMetadata(metadata)
+    if (!last) return
+    const { error } = await adminClient.from(table).update(last).eq(matchColumn, matchValue)
+    if (error) {
+      console.error(`last-touch attribution not stamped on ${table} (${matchColumn}=${matchValue}): ${error.message}`)
+    }
+  } catch (err) {
+    console.error(
+      `last-touch attribution stamp failed on ${table} (${matchColumn}=${matchValue}), non-fatal: ` +
         (err instanceof Error ? err.message : String(err)),
     )
   }
