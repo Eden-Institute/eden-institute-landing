@@ -493,8 +493,9 @@ serve(async (req) => {
     // attacker-influencable (they arrive in the request body).
     const fbp = clampMeta(bodyFbp); if (fbp) metadata.fbp = fbp
     const fbc = clampMeta(bodyFbc); if (fbc) metadata.fbc = fbc
-    // First-touch purchase attribution (attr_utm_source, ...). Sanitized and capped;
-    // absent or malformed attribution adds nothing. See _shared/purchase-attribution.ts.
+    // First-touch purchase attribution (attr_utm_source, ...) and the last marked
+    // touch (attr_last_utm_source, ...). Sanitized and capped; absent or malformed
+    // attribution adds nothing. See _shared/purchase-attribution.ts.
     // For subscriptions this bag becomes subscription_data.metadata, so it rides on
     // the Subscription and reaches the webhook via invoice.subscription_details.
     Object.assign(metadata, checkoutAttributionMetadata(body))

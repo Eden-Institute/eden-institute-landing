@@ -25,6 +25,14 @@
 // So the first touch is ALSO kept in localStorage for 30 days, still first touch:
 // a later tagged visit inside that window does not overwrite it.
 //
+// LAST MARKED TOUCH, BESIDE IT (founder approved 2026-10-18). First touch alone
+// never credits the email or Friday note that brought a buyer BACK to buy. So
+// checkout also carries the most recent MARKED arrival: a visit that came in with
+// UTMs, an ad click id, or a link from another site. Direct visits, bookmarks and
+// any click inside this site never count, so the site still cannot credit itself.
+// Held 90 days (founder choice, matching the Google ad click), same consent rule.
+// First touch is untouched by any of this. See captureLastTouch below.
+//
 // CONSENT. These are first-party values describing how someone reached this site,
 // not cross-site identifiers; SiteAnalytics records the same fields to page_views.
 // The 30-day copy follows the founder's consent model for default-on measurement
@@ -71,6 +79,30 @@ export const GOOGLE_CLICK_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 const GOOGLE_CLICK_KEYS = ["gclid", "gbraid", "wbraid"] as const;
 
 export type GoogleClickIds = Partial<Record<(typeof GOOGLE_CLICK_KEYS)[number], string>>;
+
+// LAST MARKED TOUCH (2026-10-18). The newest marked arrival wins, held 90 days.
+// The tab copy always exists; the 90-day copy follows the same consent rule as the
+// first touch. Both carry `at`, so the newer of the two is the last touch (another
+// tab may have recorded a later arrival).
+const LAST_KEY = "eden_last_touch_v1";
+const LAST_PERSIST_KEY = "eden_last_touch_90d_v1";
+export const LAST_TOUCH_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+
+/** Ad click ids that mark an arrival. Only the NAME is kept (`click: "gclid"`),
+ *  never the id: the Google ids are kept separately above, and fbclid stays with
+ *  the consent-gated fbc in fbAttribution.ts. */
+const CLICK_MARKER_KEYS = ["gclid", "gbraid", "wbraid", "fbclid"] as const;
+export type ClickMarker = (typeof CLICK_MARKER_KEYS)[number];
+
+export interface LastTouch extends Attribution {
+  click?: ClickMarker;
+}
+
+/** Referrers that are a step of our own flows, never a marketing source: this
+ *  site, and the payment pages a buyer is sent to and back from. Matched on the
+ *  host or any subdomain of it. */
+const OWN_HOSTS = ["edeninstitute.health"];
+const CHECKOUT_HOSTS = ["stripe.com", "stripe.network", "link.com", "klarna.com", "affirm.com", "afterpay.com"];
 
 /** sessionStorage and localStorage throw in some privacy modes and in embedded
  *  webviews. Every access is wrapped: attribution is analytics, and analytics never
@@ -137,6 +169,7 @@ function writeStore(value: Attribution): void {
 export function captureFirstTouch(): void {
   if (typeof window === "undefined") return;
   captureGoogleClick();
+  captureLastTouch();
   if (readStore()) return;
 
   const params = new URLSearchParams(window.location.search);
@@ -186,16 +219,152 @@ export function getAttribution(): Attribution {
  * the Stripe session metadata (attr_utm_source, ...), and stripe-webhook copies it
  * onto the order. See supabase/functions/_shared/purchase-attribution.ts.
  *
- * Same first-touch value a signup gets. Wrapped so that nothing here can ever stop
- * a buyer from reaching Stripe: on any failure it returns {} and checkout proceeds
- * unattributed.
+ * Same first-touch value a signup gets, plus the last marked touch as `last`
+ * (create-checkout stamps it as attr_last_*). Wrapped so that nothing here can ever
+ * stop a buyer from reaching Stripe: on any failure it returns {} and checkout
+ * proceeds unattributed.
  */
-export function getCheckoutAttribution(): Attribution & GoogleClickIds {
+export function getCheckoutAttribution(): Attribution & GoogleClickIds & { last?: LastTouch } {
   try {
-    return { ...getAttribution(), ...readGoogleClick() };
+    const first = getAttribution();
+    const last = readLastTouch();
+    return { ...first, ...readGoogleClick(), ...(last ? { last } : {}) };
   } catch {
     return {};
   }
+}
+
+let lastTouchSeenThisPage = false;
+
+/** Tests simulate a new page load with this; a real page load gets a fresh module. */
+export function resetLastTouchForTests(): void {
+  lastTouchSeenThisPage = false;
+}
+
+function hostMatches(host: string, list: readonly string[]): boolean {
+  return list.some((h) => host === h || host.endsWith(`.${h}`));
+}
+
+/**
+ * True only for a fresh arrival on this page. A reload or a back/forward visit
+ * replays an old arrival, and an in-app route change keeps the ORIGINAL
+ * document.referrer, so neither is a new touch. Without Navigation Timing (old
+ * browsers, tests) the arrival is taken as fresh.
+ */
+function isFreshArrival(): boolean {
+  try {
+    const nav = window.performance?.getEntriesByType?.("navigation")?.[0] as
+      | PerformanceNavigationTiming
+      | undefined;
+    if (!nav) return true;
+    if (nav.type === "reload" || nav.type === "back_forward") return false;
+    return !nav.name || new URL(nav.name).pathname === window.location.pathname;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Record this arrival as the last marked touch, if it is one.
+ *
+ * Runs once per page load (captureFirstTouch calls it, and both page-view hooks
+ * call that). A marked arrival carries UTMs, an ad click id, or a referrer from
+ * another site. Anything referred by this site is internal navigation and never
+ * counts, even when the link carries UTMs (the post-signup buttons are tagged
+ * utm_source=modal). A return from Stripe or Klarna is not a source either.
+ */
+export function captureLastTouch(): void {
+  try {
+    if (typeof window === "undefined" || lastTouchSeenThisPage) return;
+    lastTouchSeenThisPage = true;
+    if (!isFreshArrival()) return;
+
+    let refHost = "";
+    const ref = document.referrer || "";
+    if (ref) {
+      try {
+        refHost = new URL(ref).hostname.toLowerCase();
+      } catch {
+        /* malformed referrer, treat as absent */
+      }
+    }
+    if (refHost && (refHost === window.location.hostname.toLowerCase() || hostMatches(refHost, OWN_HOSTS))) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const found: LastTouch = {};
+    for (const k of UTM_KEYS) {
+      const v = params.get(k);
+      if (v) found[k] = v.slice(0, 200);
+    }
+    const click = CLICK_MARKER_KEYS.find((k) => params.get(k));
+    if (click) found.click = click;
+    if (refHost && !hostMatches(refHost, CHECKOUT_HOSTS)) found.referrer = ref.slice(0, 500);
+
+    if (Object.keys(found).length === 0) return;
+    found.source_url = (window.location.origin + window.location.pathname).slice(0, 500);
+    writeLastTouch(found);
+  } catch {
+    /* attribution never breaks a page */
+  }
+}
+
+interface LastTouchRecord {
+  v?: LastTouch;
+  at?: number;
+  exp?: number;
+}
+
+function writeLastTouch(value: LastTouch): void {
+  const now = Date.now();
+  const rec = JSON.stringify({ v: value, at: now, exp: now + LAST_TOUCH_TTL_MS });
+  try {
+    window.sessionStorage.setItem(LAST_KEY, rec);
+  } catch {
+    /* ignore */
+  }
+  try {
+    if (persistAllowed()) window.localStorage.setItem(LAST_PERSIST_KEY, rec);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** A stored record if it is well formed and unexpired; a bad one is removed. */
+function readLastRecord(storage: Storage, key: string): LastTouchRecord | null {
+  try {
+    const raw = storage.getItem(key);
+    if (!raw) return null;
+    const rec = JSON.parse(raw) as LastTouchRecord;
+    if (!rec || !rec.v || typeof rec.at !== "number" || typeof rec.exp !== "number" || rec.exp <= Date.now()) {
+      storage.removeItem(key);
+      return null;
+    }
+    return rec;
+  } catch {
+    return null;
+  }
+}
+
+/** The last marked touch: the newer of the tab copy and the 90-day copy. */
+function readLastTouch(): LastTouch | null {
+  let tab: LastTouchRecord | null = null;
+  let kept: LastTouchRecord | null = null;
+  try {
+    tab = readLastRecord(window.sessionStorage, LAST_KEY);
+  } catch {
+    /* ignore */
+  }
+  try {
+    if (persistAllowed()) {
+      kept = readLastRecord(window.localStorage, LAST_PERSIST_KEY);
+    } else {
+      window.localStorage.removeItem(LAST_PERSIST_KEY);
+    }
+  } catch {
+    /* ignore */
+  }
+  const newest = tab && kept ? ((kept.at ?? 0) > (tab.at ?? 0) ? kept : tab) : (tab ?? kept);
+  return newest?.v ?? null;
 }
 
 /** Store the Google click ids on this URL, if any. The latest click wins. */
