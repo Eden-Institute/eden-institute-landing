@@ -39,8 +39,9 @@
 export type EsaStatus =
   /** A family can pay us through the program today. */
   | "open"
-  /** Approved, and a family can buy today by reimbursement or card, while we
-      confirm direct payment with the program's payment platform. */
+  /** Approved, and a family can buy today on our store and request reimbursement from
+      the program, while direct payment (an invoice route, or a marketplace listing that is
+      still waiting on approval) is not open yet. Utah since 2026-10-18. */
   | "confirming"
   /** Approved vendor; the marketplace listings are waiting on the platform's
       approval, so nothing is orderable there yet. */
@@ -382,12 +383,58 @@ export const ESA_STATES: EsaState[] = [
     short: "Utah Fits All",
     platform: "Odyssey",
     approved: "July 2026",
-    status: "listing_pending",
-    statusLabel: "Approved · marketplace listing pending",
+    // Founder decision 2026-10-18 (punch #292 follow-up): while the marketplace listings
+    // wait on approval, Utah families can order on our store and request reimbursement.
+    // Utah allows it (Utah Code 53F-6-405(11), new May 2026; Odyssey's 2026-27 Spending and
+    // Reimbursement Guide): one request per product, one document per request, and a card
+    // receipt must show the last four digits. The order confirmation and Starter emails
+    // carry that receipt (supabase/functions/_shared/receipt.ts: seller, date, items,
+    // total paid, "Paid by <card> ending ####"). Items are what the store sells on its own:
+    // an extra notebook is only added at checkout with a set, with shipping worked out in
+    // the cart (web/pages/books.astro), so it is listed that way here. When the marketplace
+    // listing is approved, switch back to the marketplace steps and the shipping-included
+    // NOTEBOOK / SDL_NOTEBOOK items.
+    status: "confirming",
+    statusLabel: "Approved · order now, then request reimbursement",
     summary:
-      "Yes. Eden's Table is an approved Utah Fits All vendor. Our marketplace listings are waiting on approval, so they cannot be ordered there quite yet.",
-    howToBuy: PENDING_ODYSSEY_STEPS("Utah Fits All"),
-    items: [SET, STARTER, NOTEBOOK, SDL_SET, SDL_STARTER, SDL_NOTEBOOK],
+      "Yes. Eden's Table is an approved Utah Fits All vendor. You can order on our store today and request reimbursement from Odyssey, while our marketplace listings wait on approval.",
+    howToBuy: [
+      {
+        heading: "1. Order on our store",
+        body: "Order the printed set ($249 plus $12 shipping) or a 9-Week Starter Unit ($39), Sprouts or Seedlings, and pay by credit or debit card. Your order confirmation email, or for a Starter the email with your download, is an itemized receipt: it shows the seller, the date, each item, the total paid and the card's last four digits, which Odyssey asks for on card purchases.",
+      },
+      {
+        heading: "2. Request reimbursement in Odyssey",
+        body: "Submit one reimbursement request for each product, enter the purchase date shown on your receipt, and upload the receipt email saved as a PDF as the one document for that request. Odyssey reviews every request. Our printed set is $261 with shipping, the same price as our marketplace listing.",
+      },
+      {
+        heading: "3. We print and ship",
+        body: "Printed books are printed to order and arrive in about two to three weeks. A Starter Unit download comes by email as soon as you buy it.",
+      },
+      {
+        heading: "Waiting for the marketplace instead?",
+        body: "Our Sprouts and Seedlings listings have been submitted in the Utah Fits All marketplace and are waiting for approval, so they cannot be ordered there yet. Once they are approved you can order there with nothing to upload. Email us and we will write back the day they open.",
+      },
+    ],
+    items: [
+      SET,
+      STARTER,
+      {
+        name: "Sprouts (grades K-2) Extra Student Notebook",
+        price: "$39.99",
+        priceValue: 39.99,
+        note: "Added at checkout with a printed set, for a sibling ($32 each from the sixth). Shipping for extra notebooks is worked out in your cart.",
+        image: `${PHOTO}/ET_NB_Cover.webp`,
+      },
+      SDL_SET,
+      SDL_STARTER,
+      {
+        name: "Seedlings (grades 3-5) Extra Student Notebook",
+        price: "$39.99",
+        priceValue: 39.99,
+        note: "Added at checkout with a printed Seedlings set, for a sibling ($32 each from the sixth). Shipping for extra notebooks is worked out in your cart.",
+      },
+    ],
     // 2026-10-18: replaced utaheducationfitsall.org/faqs, which belongs to a private
     // advocacy group (its footer says it "is not the Program Manager"), with the state
     // board's page and the program manager's handbook. Odyssey runs the program for USBE.
@@ -397,9 +444,8 @@ export const ESA_STATES: EsaState[] = [
     ],
     faq: [],
     // Sources checked 2026-10-18 (punch #292). Utah DOES reimburse outside purchases
-    // (53F-6-405(11), new May 2026; Odyssey's 2026-27 Spending Guide). The page describes
-    // that as a program rule only and keeps Eden's Table on the marketplace route: whether
-    // to offer a pay-first-and-get-reimbursed route for Utah is a founder decision.
+    // (53F-6-405(11), new May 2026; Odyssey's 2026-27 Spending Guide), and the founder chose
+    // the same day to offer that route (see the note above `status`).
     guide: {
       heading: "Utah Fits All approved curriculum: what the program pays for",
       intro:
@@ -444,7 +490,7 @@ export const ESA_STATES: EsaState[] = [
           q: "How does Eden's Table fit Utah Fits All's rules?",
           a: [
             "Eden's Table is a Bible-based science and nature study curriculum in printed books: a Teacher's Guide, a Student Notebook and a Read-Aloud Storybook for a 36-week year. Utah law says the program manager may not require a provider to change its creed or curricula to accept scholarship funds.",
-            "Eden's Table is an approved Utah Fits All vendor. Our marketplace listings are waiting on Odyssey's review, so they cannot be ordered in the marketplace yet. Once they are approved, you order them in the marketplace like any other listing, assign each one to your student at checkout, and there is no receipt to upload.",
+            "Eden's Table is an approved Utah Fits All vendor. Our marketplace listings are waiting on Odyssey's review, so they cannot be ordered in the marketplace yet. Until they are, you can order on our store and request reimbursement: the order confirmation email is an itemized receipt with the seller, the date, each item, the total paid and the card's last four digits, and our printed set costs the same $261 with shipping as our marketplace listing. Once the listings are approved, you can order in the marketplace instead, with no receipt to upload.",
           ],
         },
       ],
@@ -636,11 +682,23 @@ export const ESA_STATES: EsaState[] = [
       },
       {
         heading: "2. Upload it in ClassWallet",
-        body: "Upload the PDF invoice as a Direct Pay request in ClassWallet. The Arkansas Department of Education reviews it (their goal is about two weeks, longer in busy seasons), and ClassWallet then pays us.",
+        // 2026-10-18 (founder): ADE's own wording replaces "their goal is about two weeks",
+        // which no ADE document says. Source: ADE EFA FAQs, updated 10/1/26, "How long before
+        // reimbursement funds are deposited into my bank account?".
+        body: "Upload the PDF invoice as a Direct Pay request in ClassWallet. The Arkansas Department of Education reviews it (ADE says it tries to approve requests within 25 business days, and it can take longer in busy periods, especially right after funds go out), and ClassWallet then pays us.",
       },
       {
         heading: "3. We print and ship",
         body: "As soon as payment arrives we order your books. They are printed to order, so plan on about two to three weeks from there.",
+      },
+      // 2026-10-18 (founder): offered like Arizona's. Arkansas reimburses curriculum (a core
+      // educational expense) without preapproval under 6 CAR pt. 35 as amended effective
+      // 2026-06-29; the receipt needs vendor name and contact, date, items, itemized prices and
+      // total, payment method and proof of payment (2026-27 Family Handbook p.22), all on our
+      // order confirmation receipt. The handbook's audit line (p.30) is kept on purpose.
+      {
+        heading: "Prefer to pay first and get reimbursed?",
+        body: "You can also order on our store ($249 plus $12 shipping) and request reimbursement in ClassWallet. Your order confirmation email is an itemized receipt: it shows our name and contact details, the date, each item, the total paid and the card used, and ADE needs proof of payment with every reimbursement. The Arkansas handbook notes that paying out of pocket and requesting reimbursement increases your chances of an audit, so the invoice above is the simpler way.",
       },
     ],
     items: [SET, NOTEBOOK, SDL_SET, SDL_NOTEBOOK],
@@ -671,9 +729,8 @@ export const ESA_STATES: EsaState[] = [
     ],
     // Sources checked 2026-10-18 (punch #292): the 2026-27 Family Handbook (v1.0, Sept 2026),
     // the rule 6 CAR pt. 35 as amended effective 2026-06-29, and the Non-Qualifying Expense
-    // List effective 2026-08-18. No review time is given here on purpose: ADE's FAQ (updated
-    // 10/1/26) says "within 25 business days", which disagrees with the "about two weeks" in
-    // step 2 above. That line is founder-approved copy, so it is flagged, not changed.
+    // List effective 2026-08-18. The review time lives in step 2 above only (ADE's
+    // "within 25 business days", founder decision 2026-10-18), so it is not repeated here.
     guide: {
       heading: "Arkansas EFA approved curriculum: what the program pays for",
       intro:
@@ -715,7 +772,7 @@ export const ESA_STATES: EsaState[] = [
           q: "How does Eden's Table fit Arkansas's rules?",
           a: [
             "Eden's Table is a Bible-based science and nature study curriculum in printed books: a Teacher's Guide, a Student Notebook and a Read-Aloud Storybook for a 36-week year. Under the EFA rule, a provider does not have to change its creed or curriculum to be approved or to accept EFA payments.",
-            "Eden's Table is an approved Arkansas EFA vendor. Our Arkansas invoice is made for one student and shows our name and contact details, the student's name, each book with its price and the total due, so you can upload it as a Direct Pay request. ADE still reviews every request.",
+            "Eden's Table is an approved Arkansas EFA vendor. Our Arkansas invoice is made for one student and shows our name and contact details, the student's name, each book with its price and the total due, so you can upload it as a Direct Pay request. If you pay on our store instead, the order confirmation email is the itemized receipt for a reimbursement request. ADE still reviews every request.",
           ],
         },
       ],

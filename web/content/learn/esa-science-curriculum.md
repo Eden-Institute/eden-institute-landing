@@ -3,6 +3,7 @@ title: "Using Your ESA or Scholarship for a Christian Science and Nature Study C
 seoTitle: "Using Your ESA for Christian Homeschool Science"
 description: "Where Eden's Table is an approved or registered ESA and scholarship vendor, how ordering works in each state, and what to check before you order."
 published: "2026-10-13"
+updated: "2026-10-18"
 draft: false
 related:
   - homeschool-science-this-year
@@ -21,7 +22,7 @@ faq:
     a: "Email hello@edeninstitute.health with your state and program. Where we apply next depends on where families ask. Florida and West Virginia applications are already in and waiting on review."
 ---
 
-If you have ESA or scholarship money set aside for curriculum, you can use it for Eden's Table in seven programs, and in four of them you can order by invoice today. Below is where it's approved, how ordering works in each state, and what to check first.
+If you have ESA or scholarship money set aside for curriculum, you can use it for Eden's Table in seven programs. In four of them you can order by invoice today, and in Utah you can order on our store and request reimbursement while the marketplace listing is pending. Below is where it's approved, how ordering works in each state, and what to check first.
 
 Program rules and marketplace listings change, so check the [ESA page](/esa) the day you order. Everything here comes from those pages.
 
@@ -34,9 +35,12 @@ Program rules and marketplace listings change, so check the [ESA page](/esa) the
 - **Alabama**, CHOOSE Act Education Savings Account: approved. [Alabama page](/esa/alabama)
 - **New Hampshire**, Education Freedom Account (EFA): approved. [New Hampshire page](/esa/new-hampshire)
 
+**Order on our store, then request reimbursement** (the marketplace listing is pending):
+
+- **Utah**, Utah Fits All Scholarship: approved. [Utah page](/esa/utah)
+
 **Approved, marketplace listing pending** (it can't be ordered in the marketplace yet):
 
-- **Utah**, Utah Fits All Scholarship. [Utah page](/esa/utah)
 - **Louisiana**, Louisiana GATOR Scholarship. [Louisiana page](/esa/louisiana)
 - **Wyoming**, Steamboat Legacy Scholarship (ESA). [Wyoming page](/esa/wyoming)
 
@@ -61,7 +65,7 @@ In Arizona, Arkansas, Alabama and New Hampshire it's three steps.
 1. **Make your invoice on your state's page.** Enter the account holder's name as it shows in ClassWallet (Alabama asks for the parent's name), each student's first and last name, what each student needs, and the shipping address. Each student gets their own invoice. It's ready to download right away, and we email you a copy.
 2. **Submit it in ClassWallet.** How you submit it depends on your state:
    - Arizona: submit it as a payment to a vendor.
-   - Arkansas: upload it as a Direct Pay request. The Arkansas Department of Education reviews it (their goal is about two weeks, longer in busy seasons), and ClassWallet then pays us.
+   - Arkansas: upload it as a Direct Pay request. The Arkansas Department of Education reviews it (ADE says it tries to approve requests within 25 business days, and it can take longer in busy periods, especially right after funds go out), and ClassWallet then pays us.
    - Alabama: submit it as a Direct Pay (Pay Vendor) request and choose the expense category for curriculum and supplemental reading materials. Alabama doesn't reimburse purchases, so the invoice is the way to pay.
    - New Hampshire: submit it as a Direct Pay request.
 3. **We print and ship.** As soon as payment arrives, we order your books. They're printed to order, so plan on about two to three weeks from there. In Alabama you can also put the 9-week Starter Unit on your invoice, and those files are emailed to you once payment arrives.
@@ -75,16 +79,18 @@ In Arizona, Arkansas, Alabama and New Hampshire it's three steps.
 
 ## Can I pay first and get reimbursed?
 
-In Arizona and New Hampshire, yes. You can order on our store ($249 plus $12 shipping) and request reimbursement in ClassWallet.
+In Arizona, Arkansas, New Hampshire and Utah, yes. You can order on our store ($249 plus $12 shipping) and request reimbursement from your program. Your order confirmation email is an itemized receipt: it shows the seller, the date, each item, the total paid and the card used.
 
-- **Arizona:** your order confirmation email is an itemized receipt, and Stripe emails its own receipt too. Upload both with your reimbursement request.
-- **New Hampshire:** request reimbursement with your itemized receipt. Every request is reviewed, so check the CSF New Hampshire Parent Handbook first.
+- **Arizona:** your order confirmation email is an itemized receipt, and Stripe emails its own receipt too. Upload both with your reimbursement request in ClassWallet.
+- **Arkansas:** request reimbursement in ClassWallet with your itemized receipt as proof of payment. The Arkansas handbook notes that paying out of pocket and requesting reimbursement increases your chances of an audit, so the invoice is the simpler way.
+- **New Hampshire:** request reimbursement in ClassWallet with your itemized receipt. Every request is reviewed, so check the CSF New Hampshire Parent Handbook first.
+- **Utah:** submit one reimbursement request in Odyssey for each product, and upload the receipt email saved as a PDF as its one document. Pay by credit or debit card, so the receipt shows the card's last four digits, which Odyssey asks for.
 
 ## What should I check before I order?
 
 - **Your program's handbook.** It's the final word on what your program will pay for. Arizona, for example, lists curricula and supplementary materials as a qualified expense, but being a registered vendor doesn't by itself make a purchase allowable, and the program reviews every purchase.
 - **How refunds work.** Refunds on orders paid with program money go back to the program, never to the parent personally.
-- **Whether your listing is live.** In Utah, Louisiana and Wyoming the listings are waiting on marketplace approval. Use "Tell me when it opens" on your state's page and we'll write back the day the listing goes live.
+- **Whether your listing is live.** In Utah, Louisiana and Wyoming the marketplace listings are waiting on approval (in Utah you can order on our store and request reimbursement in the meantime). Use "Tell me when it opens" on your state's page and we'll write back the day the listing goes live.
 
 ## What if my state isn't listed?
 
