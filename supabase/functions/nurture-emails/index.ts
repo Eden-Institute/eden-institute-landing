@@ -1588,6 +1588,11 @@ async function drainLaunchQueue(): Promise<QueueResult> {
 //   2. the order's CURRENT status is re-read here at send time, embedded in
 //      the same query, in case a status changed without the trigger firing
 //      (a direct SQL update, a restore from backup)
+// Opt-outs are also re-read at send time: the postpurchase list, and a global
+// unsubscribe/bounce on waitlist_signups (founder 2026-10-18, punch #180). The
+// global check has to live here because cancel_queued_emails_on_unsubscribe
+// does not touch this table, and a family who unsubscribed BEFORE buying has
+// no pending rows for that trigger to cancel anyway.
 const BUYER_QUEUE_BATCH = 100;
 
 async function drainBuyerQueue(): Promise<QueueResult> {
@@ -1636,6 +1641,20 @@ async function drainBuyerQueue(): Promise<QueueResult> {
           body: JSON.stringify({
             status: 'cancelled',
             error_message: 'recipient unsubscribed (postpurchase)',
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        continue;
+      }
+
+      // A list-level opt-out is honoured only for that list (rule 2026-09-17),
+      // but a GLOBAL unsubscribe or bounce stops buyer emails too.
+      if (await isGloballyUnsubscribed(email)) {
+        await supabaseQuery(`buyer_email_queue?id=eq.${row.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: 'cancelled',
+            error_message: 'recipient unsubscribed or bounced (global)',
             updated_at: new Date().toISOString(),
           }),
         });
