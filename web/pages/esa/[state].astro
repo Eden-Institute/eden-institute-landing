@@ -28,6 +28,7 @@ import {
   ESA_UPDATED_ISO,
   ESA_CONTACT_EMAIL,
   ESA_DISCLAIMER,
+  esaCopyProblems,
   type EsaState,
 } from "../../lib/esaStates";
 
@@ -60,6 +61,31 @@ for (const i of s.items) {
   }
 }
 
+// The same refusal for the copy rules in esaStates.ts: no banned word and no em dash in
+// anything this page shows (added with the curriculum guide, punch #292).
+const visibleCopy = [
+  s.program,
+  s.statusLabel,
+  s.summary,
+  ...s.howToBuy.flatMap((h) => [h.heading, h.body]),
+  ...s.items.flatMap((i) => [i.name, i.note]),
+  ...s.links.map((l) => l.label),
+  ...(s.resources ?? []).flatMap((r) => [r.name, r.description]),
+  ...s.faq.flatMap((f) => [f.q, f.a]),
+  s.guide.heading,
+  s.guide.intro,
+  ...s.guide.sections.flatMap((g) => [g.q, ...g.a, ...(g.list ?? [])]),
+  ...s.guide.sources.map((src) => src.label),
+  ...ESA_COMMON_FAQ.flatMap((f) => [f.q, f.a]),
+  ESA_DISCLAIMER,
+];
+for (const text of visibleCopy) {
+  const problems = esaCopyProblems(text);
+  if (problems.length) {
+    throw new Error(`/esa/${s.slug}: ${problems.join(", ")} in "${text.slice(0, 80)}". See the rules at the top of web/lib/esaStates.ts.`);
+  }
+}
+
 const canonical = `https://edeninstitute.health/esa/${s.slug}`;
 const title = `Use ${s.short} Funds for Eden's Table K-5 Curriculum`;
 const description = `${s.summary} Bible-based science and nature study for grades K-2 (Sprouts) and 3-5 (Seedlings).`;
@@ -86,6 +112,13 @@ const faq = [
   ...s.faq,
   ...ESA_COMMON_FAQ,
 ];
+
+// The curriculum guide's questions are shown in their own section (below the items), not
+// in the FAQ block, and ship in the same FAQPage markup.
+const guideFaq = s.guide.sections.map((g) => ({
+  q: g.q,
+  a: [...g.a, ...(g.list ?? [])].join(" "),
+}));
 
 // What the product is, for anyone deciding whether it counts as curriculum. Uses
 // the locked wording from esaStates.ts; never borrow the /homeschool Course markup,
@@ -140,7 +173,7 @@ const jsonLd = [
     "@context": "https://schema.org",
     "@type": "FAQPage",
     dateModified: ESA_UPDATED_ISO,
-    mainEntity: faq.map((f) => ({
+    mainEntity: [...faq, ...guideFaq].map((f) => ({
       "@type": "Question",
       name: f.q,
       acceptedAnswer: { "@type": "Answer", text: f.a },
@@ -272,6 +305,44 @@ const cardStyle = "border-color:hsl(var(--eden-gold) / 0.3)";
             <a href="/curriculum" class="underline">See the full curriculum description, sample week and specifications</a>.
           </p>
         </div>
+      </div>
+    </div>
+  </section>
+
+  {/* Curriculum guide (punch #292): the program's own rules, with Eden's Table worked through. */}
+  <section id="what-counts" class="pt-12 px-6 bg-background">
+    <div class="max-w-2xl mx-auto">
+      <h2 class="font-serif text-2xl font-bold mb-4" style="color:hsl(var(--eden-bark))">{s.guide.heading}</h2>
+      <p class="font-body text-base text-muted-foreground leading-relaxed mb-6">{s.guide.intro}</p>
+      <div class="space-y-6">
+        {s.guide.sections.map((g) => (
+          <div>
+            <h3 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-forest))">{g.q}</h3>
+            {g.a.map((p) => (
+              <p class="font-body text-sm text-muted-foreground leading-relaxed mb-2">{p}</p>
+            ))}
+            {g.list && (
+              <ul class="list-disc pl-5 space-y-1">
+                {g.list.map((li) => (
+                  <li class="font-body text-sm text-muted-foreground leading-relaxed">{li}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+      </div>
+      <div class="mt-6 pt-4 border-t" style="border-color:hsl(var(--eden-gold) / 0.3)">
+        <p class="font-body text-xs font-semibold text-muted-foreground mb-1">Where these rules come from</p>
+        <ul class="space-y-1">
+          {s.guide.sources.map((src) => (
+            <li class="font-body text-xs text-muted-foreground">
+              <a href={src.href} class="underline" rel="noopener" target="_blank">{src.label}</a>
+            </li>
+          ))}
+        </ul>
+        <p class="font-body text-xs text-muted-foreground mt-2">
+          Checked against these documents on {s.guide.checked}. Program rules change, and your program's current handbook is the final word.
+        </p>
       </div>
     </div>
   </section>
