@@ -32,6 +32,8 @@ import { BookOpen, CheckCircle, Download, Headphones, Leaf, Printer, Search, Sma
 // the shown amount live (BookCheckoutController).
 import { printShippingCents } from "../../supabase/functions/_shared/print-pricing";
 import { printOfferPolicies } from "../lib/merchantOffer";
+import HostClipReel from "../components/HostClipReel.astro";
+import { PLACEMENTS, clipsFor } from "../lib/hostClips";
 const shipOne = (sku: string) => (printShippingCents([{ sku, qty: 1 }]) ?? 0) / 100;
 
 const BUY_LIVE = true; // founder "open the shop" 2026-09-25; BOOK_SHOP_LIVE=true on the server
@@ -283,6 +285,11 @@ const editionJsonLd = editions.map((e) => ({
     ...printOfferPolicies(PRINT_SKU[e.id]),
   },
 }));
+
+// Camila explaining the framework on podcasts: authority clips only, none of the
+// curriculum clips (founder brief 2026-10-17; this page replaced the retired
+// course pages). No permitted clip, no section.
+const bteClips = clipsFor(PLACEMENTS.backToEden);
 ---
 
 <MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical}
@@ -324,6 +331,21 @@ const editionJsonLd = editions.map((e) => ({
       <p class="mt-5">This is not a remedy guide. There are no protocols here, no "best herb for anxiety" lists. This is a foundation, the kind that makes every herb you've ever studied suddenly make sense.</p>
     </div>
   </section>
+
+  {bteClips.length > 0 && (
+    <section class="px-6 pb-16 bg-background">
+      <div class="mx-auto grid max-w-5xl items-center gap-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+        <div class="text-center md:text-left">
+          <p class="font-accent mb-3 text-xs uppercase tracking-[0.2em]" style="color:hsl(var(--eden-gold-ink))">As heard on podcasts</p>
+          <h2 class="font-serif text-3xl font-bold" style="color:hsl(var(--eden-bark))">Hear Camila explain the framework.</h2>
+          <p class="mt-4 font-body leading-relaxed text-muted-foreground">Short clips from her conversations with podcast hosts. Every full episode is on the <a href="/as-heard-on" data-cta="bte-as-heard-on" class="underline underline-offset-4" style="color:hsl(var(--eden-forest))">As Heard On</a> page.</p>
+        </div>
+        <div class="w-full max-w-[340px] md:max-w-none mx-auto">
+          <HostClipReel ids={PLACEMENTS.backToEden} label="Camila on podcasts, explaining the framework" />
+        </div>
+      </div>
+    </section>
+  )}
 
   {/* WHO IT'S FOR */}
   <section class="px-6 pb-16 bg-background">

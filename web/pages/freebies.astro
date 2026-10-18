@@ -31,6 +31,8 @@ import heroFreebies from "@/assets/hero-freebies.jpg";
 import HeroBackdrop from "../components/HeroBackdrop.astro";
 import DualLeadMagnetCTAs from "../components/DualLeadMagnetCTAs.astro";
 import WaitlistController from "../components/islands/WaitlistController.tsx";
+import HostClipReel from "../components/HostClipReel.astro";
+import { PLACEMENTS, clipsFor, disclosureFor } from "../lib/hostClips";
 import { BookOpen, NotebookPen, Leaf } from "lucide-react";
 
 const meta = {
@@ -169,6 +171,11 @@ const faqJsonLd = {
     acceptedAnswer: { "@type": "Answer", text: f.a },
   })),
 };
+
+// One short podcast-host clip beside the sign-up buttons, no more (founder brief
+// 2026-10-17). No permitted clip: the block renders exactly as before.
+const freeClips = clipsFor(PLACEMENTS.freebies);
+const freeDisclosure = disclosureFor(freeClips);
 ---
 
 <MarketingLayout
@@ -203,7 +210,8 @@ const faqJsonLd = {
         study, or add it alongside what's already working.
       </p>
 
-      <div id="get-free" class="flex flex-col items-center gap-4 scroll-mt-28 min-[1024px]:scroll-mt-40">
+      <div id="get-free" class={freeClips.length ? "grid gap-8 items-center md:grid-cols-[minmax(0,1fr)_minmax(0,320px)] scroll-mt-28 min-[1024px]:scroll-mt-40" : "scroll-mt-28 min-[1024px]:scroll-mt-40"}>
+      <div class="flex flex-col items-center gap-4">
         <p class="font-accent text-xs tracking-[0.3em] uppercase" style="color:hsl(var(--eden-gold-ink))">
           Choose your grade band
         </p>
@@ -218,6 +226,13 @@ const faqJsonLd = {
         <p class="font-body text-sm text-muted-foreground max-w-md mx-auto mt-1">
           Sent to your email straight away, free. No card, no obligation.
         </p>
+      </div>
+      {freeClips.length > 0 && (
+        <div class="w-full max-w-[280px] md:max-w-none mx-auto">
+          <HostClipReel ids={PLACEMENTS.freebies} label="A podcast host on teaching the free week" />
+          {freeDisclosure && <p class="font-body text-xs text-muted-foreground mt-2">{freeDisclosure}</p>}
+        </div>
+      )}
       </div>
     </div>
   </section>
