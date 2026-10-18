@@ -33,6 +33,13 @@ const meta = {
 // Bulk "shop everything" link (Mountain Rose Herbs bulk herbs, via AspireIQ).
 const BULK_HREF = "https://get.aspr.app/SH1p9w";
 
+// Mountain Rose renamed some product pages, so those short links' saved destinations now 404
+// (checked 2026-10-18). The same short link still records the affiliate click; `url=` sends the
+// visitor to the current page, and the tracker fills in {transaction_id} so the sale is credited,
+// exactly as on the working links.
+const mrhMoved = (shortCode: string, slug: string) =>
+  `https://get.aspr.app/${shortCode}?url=${encodeURIComponent(`https://mountainroseherbs.com/${slug}?transaction_id={transaction_id}`)}`;
+
 // Every herb below is a Sprouts-tier herb, revisited in greater depth in
 // Cultivators (middle school) and a different way in Practitioners (high school).
 const SPROUTS_PROGRAMS = ["Sprouts", "Cultivators", "Practitioners"];
@@ -98,13 +105,13 @@ const seedlingsHerbs: Herb[] = [
   { name: "Blue Vervain", href: "https://get.aspr.app/SH1pno", source: "mrh" },
   { name: "Boneset", href: "https://get.aspr.app/SH1pnZ", source: "mrh" },
   { name: "California Poppy", href: "https://get.aspr.app/SH1pnq", source: "mrh" },
-  { name: "Cardamom", href: "https://get.aspr.app/SH1pna", source: "mrh" },
+  { name: "Cardamom", href: mrhMoved("SH1pna", "cardamom-pods"), source: "mrh" },
   { name: "Chickweed", href: "https://get.aspr.app/SH1pnu", source: "mrh" },
   { name: "Cleavers", href: "https://get.aspr.app/SH1pni", source: "mrh" },
-  { name: "Comfrey", href: "https://get.aspr.app/SH1pns", source: "mrh" },
+  { name: "Comfrey", href: mrhMoved("SH1pns", "comfrey-leaf"), source: "mrh" },
   { name: "Cramp Bark", href: "https://get.aspr.app/SH1pnv", source: "mrh" },
-  { name: "Echinacea", href: "https://get.aspr.app/SH1pnS", source: "mrh" },
-  { name: "Elderberry", href: "https://get.aspr.app/SH1pnO", source: "mrh" },
+  { name: "Echinacea", href: mrhMoved("SH1pnS", "echinacea-purpurea-root"), source: "mrh" },
+  { name: "Elderberry", href: mrhMoved("SH1pnO", "elder-berries"), source: "mrh" },
   { name: "Elecampane", href: "https://get.aspr.app/SH1pnY", source: "mrh" },
   { name: "Eleuthero", href: "https://get.aspr.app/SH1pnr", source: "mrh" },
   { name: "Gentian", href: "https://get.aspr.app/SH1pnj", source: "mrh" },
@@ -112,18 +119,18 @@ const seedlingsHerbs: Herb[] = [
   { name: "Goldenrod", href: "https://get.aspr.app/SH1pnU", source: "mrh" },
   { name: "Lemon Verbena", href: "https://get.aspr.app/SH1pnf", source: "mrh" },
   { name: "Licorice", href: "https://get.aspr.app/SH1pnd", source: "mrh" },
-  { name: "Meadowsweet", href: "https://get.aspr.app/SH1pnX", source: "mrh" },
+  { name: "Meadowsweet", href: mrhMoved("SH1pnX", "meadowsweet-flowers"), source: "mrh" },
   { name: "Motherwort", href: "https://get.aspr.app/SH1pnb", source: "mrh" },
-  { name: "Passionflower", href: "https://get.aspr.app/SH1pnm", source: "mrh" },
-  { name: "Red Clover", href: "https://get.aspr.app/SH1png", source: "mrh" },
+  { name: "Passionflower", href: mrhMoved("SH1pnm", "passion-flower"), source: "mrh" },
+  { name: "Red Clover", href: mrhMoved("SH1png", "red-clover-blossoms"), source: "mrh" },
   { name: "Reishi", href: "https://get.aspr.app/SH1pnT", source: "mrh" },
-  { name: "Sage", href: "https://get.aspr.app/SH1pnV", source: "mrh" },
+  { name: "Sage", href: mrhMoved("SH1pnV", "sage-leaf"), source: "mrh" },
   { name: "Schisandra", href: "https://get.aspr.app/SH1pnp", source: "mrh" },
   { name: "Self-Heal", href: "https://get.aspr.app/SH1pnx", source: "mrh" },
-  { name: "Skullcap", href: "https://get.aspr.app/SH1pnh", source: "mrh" },
+  { name: "Skullcap", href: mrhMoved("SH1pnh", "skullcap-herb"), source: "mrh" },
   { name: "St. John's Wort", href: "https://get.aspr.app/SH1pnl", source: "mrh" },
   { name: "Sweet Violet", href: "https://get.aspr.app/SH1pnk", source: "mrh" },
-  { name: "Tulsi (Holy Basil)", href: "https://get.aspr.app/SH1pnP", source: "mrh" },
+  { name: "Tulsi (Holy Basil)", href: mrhMoved("SH1pnP", "krishna-holy-basil"), source: "mrh" },
   { name: "Valerian", href: "https://get.aspr.app/SH1pne", source: "mrh" },
   { name: "Wild Cherry Bark", href: "https://get.aspr.app/SH1pnw", source: "mrh" },
   { name: "Willow Bark", href: "https://get.aspr.app/SH1pnW", source: "mrh" },
