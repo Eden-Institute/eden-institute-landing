@@ -1,0 +1,316 @@
+---
+// Self-hosted podcast-host clip player (founder brief, 2026-10-17).
+//
+// One clip loops; several play back to back (next on `ended`, back to the first
+// after the last). Behaves like <video autoplay muted loop playsinline>, but
+// starts only when the player scrolls into view, so a reel below the first
+// screen downloads nothing until it is needed. The poster is a real frame of
+// the clip and shows while the video loads. Visible tap-to-unmute and pause
+// buttons. prefers-reduced-motion: no autoplay, the poster waits with a Play
+// button. Narrow screens get the 9:16 file, wide screens the 16:9 file.
+//
+// Clips come from web/lib/hostClips.ts, which drops any clip without founder-
+// confirmed host permission from live builds. No permitted clip, no player.
+import { clipsFor, clipUrls, isPreviewBuild, type HostClip } from "../lib/hostClips";
+
+export interface Props {
+  ids: string[];
+  /** Short label for screen readers, e.g. "What podcast hosts said". */
+  label: string;
+  /** auto = 9:16 under 768px, 16:9 from 768px. */
+  orientation?: "auto" | "portrait" | "landscape";
+  /** Next to a hero: the video waits for the page load event so it never competes with the first screen. */
+  priority?: boolean;
+  /** false = poster + Play button, nothing plays until tapped (pages with many clips). */
+  autoplay?: boolean;
+  /** Extra classes for sizing the figure. */
+  class?: string;
+}
+
+const { ids, label, orientation = "auto", priority = false, autoplay = true, class: className = "" } = Astro.props;
+const clips: HostClip[] = clipsFor(ids);
+const preview = isPreviewBuild();
+const first = clips[0];
+const firstUrls = first ? clipUrls(first) : null;
+const clientData = clips.map((c) => ({
+  id: c.id,
+  host: c.host,
+  show: c.show,
+  speaker: c.speaker,
+  quote: c.quote,
+  url: c.episodeUrl,
+  pending: !c.permission,
+  ...clipUrls(c),
+}));
+// "Camila on Holy Ground Motherhood, with Julia Geiger"; no repeat when the show already
+// carries the host's name ("Camila on Visibly Fit with Wendie Pett").
+const creditFor = (c: HostClip) => {
+  if (c.kind === "endorsement") return `${c.host}, host of ${c.show}`;
+  const surname = c.host.replace(/,.*$/, "").trim().split(/\s+/).pop() || c.host;
+  return c.show.includes(surname) ? `Camila on ${c.show}` : `Camila on ${c.show}, with ${c.host}`;
+};
+const ariaFor = (c: HostClip) => `${c.speaker}${c.speaker === c.host ? "" : ` with ${c.host}`} on ${c.show}: "${c.quote}"`;
+---
+
+{first && firstUrls && (
+  <figure
+    class={`hcr hcr--${orientation} ${className}`}
+    data-hcr
+    data-orient={orientation}
+    data-priority={priority ? "1" : undefined}
+    data-manual={autoplay ? undefined : "1"}
+    aria-label={label}
+  >
+    <div class="hcr-frame">
+      <picture class="hcr-poster">
+        {orientation === "auto" && <source media="(min-width: 768px)" srcset={firstUrls.p169} />}
+        <img
+          src={orientation === "landscape" ? firstUrls.p169 : firstUrls.p916}
+          alt=""
+          width={orientation === "landscape" ? 1280 : 1080}
+          height={orientation === "landscape" ? 720 : 1920}
+          loading="lazy"
+          decoding="async"
+        />
+      </picture>
+      <video class="hcr-video" muted playsinline preload="none" loop={clips.length === 1} aria-label={ariaFor(first)}></video>
+
+      <div class="hcr-controls">
+        <button type="button" class="hcr-btn" data-hcr-sound data-cta={`hostclip-unmute-${first.id}`} aria-pressed="false">
+          <svg class="hcr-ico hcr-ico-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 9.5l5 5m0-5l-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <svg class="hcr-ico hcr-ico-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+          <span data-hcr-sound-label>Tap to unmute</span>
+        </button>
+        <button type="button" class="hcr-btn hcr-btn--icon" data-hcr-pause aria-label="Pause">
+          <svg class="hcr-ico hcr-ico-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor"/></svg>
+          <svg class="hcr-ico hcr-ico-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l11 7-11 7z" fill="currentColor"/></svg>
+        </button>
+      </div>
+
+      <button type="button" class="hcr-bigplay" data-hcr-play data-cta={`hostclip-play-${first.id}`} hidden aria-label="Play the clip">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l11 7-11 7z" fill="currentColor"/></svg>
+      </button>
+
+      {preview && <p class="hcr-pending" data-hcr-pending hidden={first.permission}>Preview only: waiting on host OK</p>}
+    </div>
+
+    <figcaption class="hcr-credit">
+      <span data-hcr-credit>{creditFor(first)}</span>
+      <a data-hcr-link href={first.episodeUrl} target="_blank" rel="noopener" data-cta={`hostclip-episode-${first.id}`}>Hear the full episode</a>
+      {clips.length > 1 && <span class="hcr-count" data-hcr-count>1 of {clips.length}</span>}
+    </figcaption>
+
+    <script type="application/json" data-hcr-clips set:html={JSON.stringify(clientData.map((c, i) => ({ ...c, credit: creditFor(clips[i]), aria: ariaFor(clips[i]) })))} />
+  </figure>
+)}
+
+<style>
+  .hcr { margin: 0; width: 100%; }
+  .hcr-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 9 / 16;
+    overflow: hidden;
+    border-radius: 6px;
+    background: hsl(var(--eden-forest));
+    border: 1px solid hsl(var(--eden-gold) / 0.35);
+    box-shadow: 0 14px 36px -18px rgba(20, 41, 31, 0.55);
+  }
+  .hcr--landscape .hcr-frame { aspect-ratio: 16 / 9; }
+  @media (min-width: 768px) {
+    .hcr--auto .hcr-frame { aspect-ratio: 16 / 9; }
+  }
+  .hcr-poster, .hcr-poster img, .hcr-video {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;
+  }
+  .hcr-poster { z-index: 1; transition: opacity 0.25s ease; }
+  .hcr.is-playing .hcr-poster { opacity: 0; pointer-events: none; }
+  .hcr-video { z-index: 0; }
+  .hcr-controls {
+    position: absolute; z-index: 3; top: 10px; right: 10px;
+    display: flex; gap: 8px;
+  }
+  .hcr-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    min-height: 44px; padding: 0 14px;
+    border-radius: 999px; border: 1px solid hsl(var(--eden-gold) / 0.55);
+    background: rgba(20, 41, 31, 0.78); color: hsl(var(--eden-parchment));
+    font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 15px; letter-spacing: 0.02em;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .hcr-btn--icon { width: 44px; padding: 0; justify-content: center; }
+  .hcr-btn:focus-visible, .hcr-bigplay:focus-visible, .hcr-credit a:focus-visible {
+    outline: 3px solid hsl(var(--eden-gold-light)); outline-offset: 2px;
+  }
+  .hcr-ico { width: 20px; height: 20px; flex: none; }
+  .hcr-ico-on, .hcr.is-sound .hcr-ico-off { display: none; }
+  .hcr.is-sound .hcr-ico-on { display: block; }
+  .hcr-ico-play, .hcr.is-paused .hcr-ico-pause { display: none; }
+  .hcr.is-paused .hcr-ico-play { display: block; }
+  .hcr-bigplay {
+    position: absolute; z-index: 4; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: 76px; height: 76px; border-radius: 999px;
+    border: 2px solid hsl(var(--eden-gold-light)); background: rgba(20, 41, 31, 0.82);
+    color: hsl(var(--eden-parchment)); display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .hcr-bigplay[hidden] { display: none; }
+  .hcr-bigplay svg { width: 34px; height: 34px; margin-left: 4px; }
+  .hcr-pending {
+    position: absolute; z-index: 3; left: 10px; top: 10px; margin: 0;
+    padding: 4px 10px; border-radius: 4px; background: hsl(var(--rust)); color: #fff;
+    font: 600 12px/1.4 system-ui, sans-serif;
+  }
+  .hcr-pending[hidden] { display: none; }
+  .hcr-credit {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px;
+    margin-top: 10px; font-family: 'EB Garamond', Georgia, serif; font-size: 15px; line-height: 1.4;
+    color: hsl(var(--eden-bark));
+  }
+  .hcr-credit a { color: hsl(var(--eden-forest)); text-decoration: underline; text-underline-offset: 2px; }
+  .hcr-count { color: hsl(var(--eden-bark-light)); font-size: 13px; }
+</style>
+
+<script>
+  const WIDE = window.matchMedia("(min-width: 768px)");
+  const STILL = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+  type ClipData = {
+    id: string; credit: string; aria: string; url: string; pending: boolean;
+    v916: string; v169: string; p916: string; p169: string;
+  };
+
+  function whenLoaded(fn: () => void) {
+    if (document.readyState === "complete") fn();
+    else window.addEventListener("load", fn, { once: true });
+  }
+
+  function initReel(fig: HTMLElement) {
+    const clips: ClipData[] = JSON.parse(fig.querySelector("[data-hcr-clips]")?.textContent || "[]");
+    const video = fig.querySelector("video") as HTMLVideoElement;
+    const sound = fig.querySelector("[data-hcr-sound]") as HTMLButtonElement;
+    const soundLabel = fig.querySelector("[data-hcr-sound-label]") as HTMLElement;
+    const pause = fig.querySelector("[data-hcr-pause]") as HTMLButtonElement;
+    const bigPlay = fig.querySelector("[data-hcr-play]") as HTMLButtonElement;
+    const credit = fig.querySelector("[data-hcr-credit]") as HTMLElement;
+    const link = fig.querySelector("[data-hcr-link]") as HTMLAnchorElement;
+    const count = fig.querySelector("[data-hcr-count]") as HTMLElement | null;
+    const pending = fig.querySelector("[data-hcr-pending]") as HTMLElement | null;
+    const poster = fig.querySelector(".hcr-poster img") as HTMLImageElement;
+    const posterSource = fig.querySelector(".hcr-poster source") as HTMLSourceElement | null;
+    const orient = fig.dataset.orient || "auto";
+    if (!clips.length || !video) return;
+
+    let index = 0;
+    let started = false;
+    let userPaused = false;
+    let inView = false;
+
+    const wide = () => orient === "landscape" || (orient === "auto" && WIDE.matches);
+    const srcFor = (c: ClipData) => (wide() ? c.v169 : c.v916);
+    const posterFor = (c: ClipData) => (wide() ? c.p169 : c.p916);
+
+    function setPaused(p: boolean) {
+      fig.classList.toggle("is-paused", p);
+      pause.setAttribute("aria-label", p ? "Play" : "Pause");
+    }
+
+    function show(i: number, play: boolean) {
+      index = i;
+      const c = clips[i];
+      fig.classList.remove("is-playing");
+      if (posterSource) posterSource.srcset = c.p169;
+      poster.src = orient === "landscape" ? c.p169 : c.p916;
+      video.poster = posterFor(c);
+      video.src = srcFor(c);
+      video.setAttribute("aria-label", c.aria);
+      credit.textContent = c.credit;
+      link.href = c.url;
+      link.dataset.cta = `hostclip-episode-${c.id}`;
+      sound.dataset.cta = `hostclip-unmute-${c.id}`;
+      bigPlay.dataset.cta = `hostclip-play-${c.id}`;
+      if (count) count.textContent = `${i + 1} of ${clips.length}`;
+      if (pending) pending.hidden = !c.pending;
+      if (play) attemptPlay();
+    }
+
+    function attemptPlay() {
+      video.autoplay = true;
+      const p = video.play();
+      if (p && typeof p.catch === "function") {
+        p.then(() => { bigPlay.hidden = true; setPaused(false); })
+         .catch(() => { bigPlay.hidden = false; setPaused(true); });
+      }
+    }
+
+    function begin() {
+      if (started) return;
+      started = true;
+      if (STILL.matches || fig.dataset.manual) {
+        show(0, false);
+        bigPlay.hidden = false;
+        setPaused(true);
+        return;
+      }
+      const go = () => { if (inView && !userPaused) show(0, true); else show(0, false); };
+      if (fig.dataset.priority) whenLoaded(go); else go();
+    }
+
+    video.addEventListener("playing", () => { fig.classList.add("is-playing"); bigPlay.hidden = true; setPaused(false); });
+    video.addEventListener("pause", () => { if (!video.ended) setPaused(true); });
+    video.addEventListener("ended", () => {
+      if (clips.length > 1) show((index + 1) % clips.length, true);
+    });
+
+    sound.addEventListener("click", () => {
+      video.muted = !video.muted;
+      fig.classList.toggle("is-sound", !video.muted);
+      sound.setAttribute("aria-pressed", String(!video.muted));
+      soundLabel.textContent = video.muted ? "Tap to unmute" : "Sound on";
+      if (video.paused) { userPaused = false; attemptPlay(); }
+    });
+
+    pause.addEventListener("click", () => {
+      if (!video.src) show(index, false);
+      started = true;
+      if (video.paused) { userPaused = false; attemptPlay(); }
+      else { userPaused = true; video.pause(); }
+    });
+
+    // A tap on the big Play button is a deliberate choice to watch, so it plays with sound.
+    bigPlay.addEventListener("click", () => {
+      userPaused = false;
+      started = true;
+      if (!video.src) show(index, false);
+      video.muted = false;
+      fig.classList.add("is-sound");
+      sound.setAttribute("aria-pressed", "true");
+      soundLabel.textContent = "Sound on";
+      attemptPlay();
+    });
+
+    WIDE.addEventListener("change", () => {
+      if (!started || orient !== "auto") return;
+      const wasPlaying = !video.paused;
+      show(index, wasPlaying);
+    });
+
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver((entries) => {
+        for (const e of entries) {
+          inView = e.isIntersecting;
+          if (inView) {
+            if (!started) begin();
+            else if (!userPaused && !STILL.matches && !fig.dataset.manual && video.paused && video.src) attemptPlay();
+          } else if (started && !video.paused) {
+            video.pause();
+          }
+        }
+      }, { rootMargin: "200px 0px", threshold: 0.25 }).observe(fig);
+    } else {
+      inView = true;
+      begin();
+    }
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-hcr]").forEach(initReel);
+</script>

@@ -1,0 +1,49 @@
+---
+// Static "As heard on" strip (founder brief, 2026-10-17). Show names as text,
+// no host logos (their artwork is theirs). Each name links to the full episode;
+// the label links to /as-heard-on, where every clip and episode lives.
+import { SHOWS } from "../lib/hostClips";
+
+export interface Props {
+  /** Background behind the strip. */
+  tone?: "cream" | "white";
+}
+const { tone = "white" } = Astro.props;
+---
+
+{SHOWS.length > 0 && (
+  <section aria-label="As heard on" class={`ahs ahs--${tone}`}>
+    <div class="ahs-inner">
+      <a href="/as-heard-on" class="ahs-label" data-cta="home-as-heard-on">As heard on</a>
+      <ul class="ahs-list">
+        {SHOWS.map((s) => (
+          <li><a href={s.episodeUrl} target="_blank" rel="noopener" data-cta={`as-heard-on-${s.show.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}>{s.show}</a></li>
+        ))}
+      </ul>
+    </div>
+  </section>
+)}
+
+<style>
+  .ahs { padding: 22px 24px; border-top: 1px solid hsl(var(--eden-gold) / 0.3); border-bottom: 1px solid hsl(var(--eden-gold) / 0.3); }
+  .ahs--white { background: #fff; }
+  .ahs--cream { background: hsl(var(--eden-cream)); }
+  .ahs-inner { max-width: 1120px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 10px 20px; }
+  .ahs-label {
+    font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 12px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: hsl(var(--eden-gold-ink)); text-decoration: none; white-space: nowrap;
+  }
+  .ahs-label:hover { text-decoration: underline; }
+  .ahs-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 0; }
+  .ahs-list li { display: inline-flex; align-items: baseline; }
+  .ahs-list li + li::before { content: "·"; margin: 0 12px; color: hsl(var(--eden-gold)); }
+  .ahs-list a {
+    font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-size: 18px; line-height: 1.5;
+    color: hsl(var(--eden-forest)); text-decoration: none; white-space: nowrap;
+  }
+  .ahs-list a:hover { text-decoration: underline; }
+  @media (max-width: 640px) {
+    .ahs-list a { font-size: 16px; }
+    .ahs-list li + li::before { margin: 0 8px; }
+  }
+</style>

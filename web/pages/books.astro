@@ -37,6 +37,8 @@ import MarketingLayout from "../layouts/MarketingLayout.astro";
 import PrintBuyBox from "../components/islands/PrintBuyBox.tsx";
 import ComponentShowcases from "../components/ComponentShowcases.astro";
 import BandChooser from "../components/BandChooser.astro";
+import HostClipReel from "../components/HostClipReel.astro";
+import { PLACEMENTS, clipsFor, disclosureFor } from "../lib/hostClips";
 // Hero watermark: calendula, public domain (Koehler's Medizinal-Pflanzen), built
 // with scripts/build_hero.py and contrast-audited (worst 4.73:1, floor 4.5).
 // Same treatment as /starter and /preorder.
@@ -167,6 +169,11 @@ const faqJsonLd = {
     acceptedAnswer: { "@type": "Answer", text: f.a },
   })),
 };
+
+// One podcast-host endorsement beside the Sprouts buy box (founder brief 2026-10-17).
+// It closes the left column, so on phones it sits just above the buy box.
+const booksClips = clipsFor(PLACEMENTS.books);
+const booksDisclosure = disclosureFor(booksClips);
 ---
 
 <MarketingLayout
@@ -243,6 +250,15 @@ const faqJsonLd = {
   <section class="py-12 px-6" style="background-color:hsl(var(--eden-cream))">
     <div class="max-w-5xl mx-auto grid gap-8 md:grid-cols-[1fr_380px] items-start">
       <div class="grid gap-4">
+        {/* Desktop: the host clip opens the left column, level with the buy box's price
+            and Order button. Phones get the same clip right under the buy box (below). */}
+        {booksClips.length > 0 && (
+          <div class="hidden md:block mb-4">
+            <p class="font-accent text-xs tracking-[0.25em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">What a podcast host said</p>
+            <HostClipReel ids={PLACEMENTS.books} label="A podcast host on the printed set" />
+            {booksDisclosure && <p class="font-body text-xs text-muted-foreground mt-2">{booksDisclosure}</p>}
+          </div>
+        )}
         <h2 class="font-serif text-2xl font-bold" style="color:hsl(var(--eden-forest))">What is in the set</h2>
         <div class="rounded-lg overflow-hidden bg-white shadow-sm border" style="border-color:hsl(var(--eden-gold) / 0.3)">
           <img src="/showcases/ET_PrintSet.webp" alt="The three printed Sprouts books on a linen cloth: the coil-bound Teacher's Guide and Student Notebook, and the Read-Aloud Storybook" loading="eager" width="1024" height="1024" class="w-full h-auto" />
@@ -274,6 +290,15 @@ const faqJsonLd = {
         <p class="font-body text-sm text-muted-foreground text-center mt-2">
           Ordering for a co-op or school? <a href="/groups" data-cta="books-groups" class="underline" style="color:hsl(var(--eden-forest))">See group pricing</a>.
         </p>
+        {booksClips.length > 0 && (
+          <div class="md:hidden mt-8">
+            <p class="font-accent text-xs tracking-[0.25em] uppercase mb-3 text-center" style="color:hsl(var(--eden-gold-ink))">What a podcast host said</p>
+            <div class="w-full max-w-[300px] mx-auto">
+              <HostClipReel ids={PLACEMENTS.books} label="A podcast host on the printed set" />
+            </div>
+            {booksDisclosure && <p class="font-body text-xs text-muted-foreground mt-2 text-center">{booksDisclosure}</p>}
+          </div>
+        )}
       </div>
     </div>
   </section>

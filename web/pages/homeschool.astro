@@ -28,6 +28,17 @@ import PayOverTime from "../components/islands/PayOverTime.tsx";
 import ComponentShowcases from "../components/ComponentShowcases.astro";
 import BandChooser from "../components/BandChooser.astro";
 import { FREE_WEEK_MODAL, type FreeWeekModal } from "../lib/freeWeekModal";
+import HostClipReel from "../components/HostClipReel.astro";
+import { PLACEMENTS, clipsFor, disclosureFor } from "../lib/hostClips";
+
+// Podcast-host clips (founder brief 2026-10-17): two new questions, each paired with
+// a clip, and endorsements beside the closing price block. A placement with no
+// permitted clip renders exactly as the page did before.
+const biblicalClips = clipsFor(PLACEMENTS.homeschoolBiblical);
+const kidsClips = clipsFor(PLACEMENTS.homeschoolKids);
+const pricingClips = clipsFor(PLACEMENTS.homeschoolPricing);
+const faqDisclosure = disclosureFor([...biblicalClips, ...kidsClips]);
+const pricingDisclosure = disclosureFor(pricingClips);
 
 const meta = {
   // Sized to what Google shows whole (about 60 / 155 characters).
@@ -599,6 +610,51 @@ const PRINT_SET = {
     </div>
   </section>
 
+  {/* §9.65 The two questions moms ask most, each answered next to a podcast host
+      saying it in her own words (founder brief 2026-10-17; answers drafted for her
+      approval). Facts used: the memory verse is chosen for every week, nothing gives
+      a plant a life of its own (both stated in §9.7 below), kitchen labs, memory
+      songs, garden activities and the recurring family story (§9.3 component copy). */}
+  <section class="py-16 md:py-20 px-6" style="background-color:hsl(var(--eden-cream) / 0.4)">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-12 max-w-3xl mx-auto">
+        <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">Asked every week</p>
+        <h2 class="font-serif text-3xl md:text-4xl font-bold" style="color:hsl(var(--eden-bark))">The two questions we hear most.</h2>
+      </div>
+
+      <div class={biblicalClips.length ? "grid md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-8 items-center mb-16" : "max-w-3xl mx-auto mb-12"}>
+        <div>
+          <h3 class="font-serif text-2xl font-bold mb-4" style="color:hsl(var(--eden-bark))">Is this biblically sound?</h3>
+          <div class="font-body text-sm md:text-base leading-relaxed text-muted-foreground space-y-3">
+            <p>Yes. Every week has a memory verse chosen for it, and every lesson points back to the God who made the plant, never to the plant itself. Nothing in these books gives a plant a life or a spirit of its own.</p>
+            <p>If we ever blur that line, write to us and we will fix it.</p>
+          </div>
+        </div>
+        {biblicalClips.length > 0 && (
+          <div class="w-full max-w-[360px] md:max-w-none mx-auto">
+            <HostClipReel ids={PLACEMENTS.homeschoolBiblical} label="Podcast hosts on the Scripture in Eden's Table" />
+          </div>
+        )}
+      </div>
+
+      <div class={kidsClips.length ? "grid md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-8 items-center" : "max-w-3xl mx-auto"}>
+        {kidsClips.length > 0 && (
+          <div class="w-full max-w-[360px] md:max-w-none mx-auto order-2 md:order-1">
+            <HostClipReel ids={PLACEMENTS.homeschoolKids} label="Podcast hosts on whether kids enjoy it" />
+          </div>
+        )}
+        <div class="order-1 md:order-2">
+          <h3 class="font-serif text-2xl font-bold mb-4" style="color:hsl(var(--eden-bark))">Will my kids actually do this?</h3>
+          <div class="font-body text-sm md:text-base leading-relaxed text-muted-foreground space-y-3">
+            <p>Families who have taught it tell us their kids ask for it. One host's kids asked to do it again the very next day.</p>
+            <p>The weeks are built around things children love: drawing the plant, a hands-on kitchen lab, memory songs, time in the garden, and a family story they come back to. And you learn right alongside them.</p>
+          </div>
+        </div>
+      </div>
+      {faqDisclosure && <p class="font-body text-xs text-muted-foreground text-center mt-10">{faqDisclosure}</p>}
+    </div>
+  </section>
+
   {/* §9.7 Objections (copy doc Section 4) */}
   <section class="py-16 md:py-20 px-6 bg-background">
     <div class="max-w-5xl mx-auto">
@@ -686,6 +742,7 @@ const PRINT_SET = {
       old showcase CTAs all point at /homeschool#pricing and must keep landing on
       something real. The preorder section is on b8751c1 for phase two. */}
   <section id="pricing" class="py-20 md:py-24 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class={pricingClips.length ? "max-w-6xl mx-auto grid gap-10 items-center min-[1024px]:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]" : ""}>
     <div class="max-w-3xl mx-auto text-center">
       <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">Start this month</p>
       <h2 class="font-serif text-3xl md:text-4xl font-bold mb-4" style="color:hsl(var(--eden-bark))">The whole year, on paper, in about two to three weeks.</h2>
@@ -712,6 +769,13 @@ const PRINT_SET = {
       <div class="max-w-3xl mx-auto text-center mt-10">
         <p class="font-body text-xs text-muted-foreground">Questions? Email <a href="mailto:hello@edeninstitute.health" class="underline">hello@edeninstitute.health</a> and a real person (Camila) answers.</p>
       </div>
+    </div>
+    {pricingClips.length > 0 && (
+      <div class="w-full max-w-[380px] min-[1024px]:max-w-none mx-auto">
+        <HostClipReel ids={PLACEMENTS.homeschoolPricing} label="What podcast hosts said after reading Eden's Table" />
+        {pricingDisclosure && <p class="font-body text-xs text-muted-foreground text-center mt-2">{pricingDisclosure}</p>}
+      </div>
+    )}
     </div>
   </section>
 
