@@ -24,7 +24,7 @@ const SHELL = `<!doctype html>
     <meta property="og:type" content="website" />
     <meta property="og:title" content="The Eden Institute: A Framework Our Culture Forgot" />
     <meta property="og:description" content="Site default og description." />
-    <meta property="og:image" content="https://edeninstitute.health/og-default-printset.jpg" />
+    <meta property="og:image" content="https://edeninstitute.health/og-default-realpages.jpg" />
   </head>
   <body><div id="root"></div><script type="module" src="/_spa/assets/index.js"></script></body>
 </html>
@@ -72,7 +72,7 @@ describe("build-apothecary-shells", () => {
     for (const tag of [
       '<meta name="robots" content="index, follow" />',
       '<meta property="og:type" content="website" />',
-      '<meta property="og:image" content="https://edeninstitute.health/og-default-printset.jpg" />',
+      '<meta property="og:image" content="https://edeninstitute.health/og-default-realpages.jpg" />',
     ]) {
       expect(out).toContain(tag);
     }
