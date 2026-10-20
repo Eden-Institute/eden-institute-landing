@@ -7,10 +7,12 @@ import { useDocumentMeta } from "@/lib/useDocumentMeta";
 
 const NotFound = () => {
   const { pathname } = useLocation();
-  // Unknown paths are served the SPA shell with HTTP 200 (vercel.json catch-all),
-  // and index.html says index, follow. Mark this page noindex so crawlers treat
-  // it as a 404; useDocumentMeta restores the shell's robots value on unmount,
-  // so the next route stays indexable.
+  // A hard load of an unknown path gets a real HTTP 404 from Vercel
+  // (web/pages/404.astro): vercel.json rewrites only the SPA's own routes to
+  // the shell. This page still shows for a client-side navigation to a path
+  // the router does not know, inside a shell whose index.html says index,
+  // follow. Mark it noindex; useDocumentMeta restores the shell's robots value
+  // on unmount, so the next route stays indexable.
   useDocumentMeta({
     title: "Page not found | The Eden Institute",
     description: "This page could not be found. Take the free Pattern of Eden quiz or browse the herbs in the Eden Apothecary.",

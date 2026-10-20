@@ -138,7 +138,27 @@
       "destination": "/api/go/course"
     },
     {
-      "source": "/((?!_astro/|_spa/|api/|favicon|robots\\.txt|sitemap\\.xml|.*\\.(?:png|svg|jpg|jpeg|webp|gif|ico|txt|xml|json|js|css|map|woff2?|pdf|html|mp4|webm|mp3|csv|zip|ttf|otf)).*)",
+      "source": "/((?:assessment|quiz|founder|practitioner)/?)",
+      "destination": "/_spa/index.html"
+    },
+    {
+      "source": "/(homeschool/welcome/?)",
+      "destination": "/_spa/index.html"
+    },
+    {
+      "source": "/((?:guide|results)/[^/.]+/?)",
+      "destination": "/_spa/index.html"
+    },
+    {
+      "source": "/(apothecary/?)",
+      "destination": "/_spa/index.html"
+    },
+    {
+      "source": "/(apothecary/auth/(?:signup|signin|reset|update-password)/?)",
+      "destination": "/_spa/index.html"
+    },
+    {
+      "source": "/(apothecary/[^/.]+/?)",
       "destination": "/_spa/index.html"
     }
   ],
