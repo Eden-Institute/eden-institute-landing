@@ -219,6 +219,7 @@ export interface Rewrite {
 }
 
 export interface VercelConfig {
+  trailingSlash?: boolean;
   redirects?: Redirect[];
   rewrites?: Rewrite[];
 }
@@ -285,6 +286,10 @@ function fill(destination: string, params: Record<string, string>): string {
 export function route(config: VercelConfig, url: string, fileFor: (pathname: string) => string | null, host: string = SITE_HOST): Outcome {
   const [pathname, search = ""] = url.split("?");
   const query = new URLSearchParams(search);
+  // trailingSlash: false runs before every other rule: /path/ answers 308 to /path, query kept.
+  if (config.trailingSlash === false && pathname.length > 1 && pathname.endsWith("/")) {
+    return { kind: "redirect", status: 308, location: pathname.slice(0, -1) + (search ? `?${search}` : ""), source: "trailingSlash: false" };
+  }
   for (const r of config.redirects ?? []) {
     const params = matchRule(r, pathname, query, host);
     if (params) return { kind: "redirect", status: r.statusCode ?? (r.permanent ? 308 : 307), location: fill(r.destination, params), source: r.source };
