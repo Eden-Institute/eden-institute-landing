@@ -118,21 +118,21 @@ describe("every App.tsx route has a vercel.json rewrite", () => {
   });
 
   for (const routePath of [...new Set(appRoutes)]) {
-    it(`${routePath} reaches the SPA shell on a hard load, with or without a trailing slash`, () => {
+    it(`${routePath} reaches the SPA shell on a hard load; its trailing-slash form redirects there`, () => {
       if (routePath in SERVED_BY_ASTRO) {
         expect(exactly(ROOT, SERVED_BY_ASTRO[routePath], "file")).toBe(true);
         expect(resolve(routePath)).toEqual({ kind: "file", file: SERVED_BY_ASTRO[routePath] });
         return;
       }
-      for (const url of [concrete(routePath), `${concrete(routePath)}/`]) {
-        const outcome = resolve(url);
-        // A pre-rendered file is fine too (Vercel serves it first), but no App
-        // route has a fixed-path Astro page today; if one appears, say so here.
-        expect(outcome, `${url}: add a rewrite to ${SPA_SHELL} in vercel.json`).toMatchObject({
-          kind: "rewrite",
-          destination: SPA_SHELL,
-        });
-      }
+      const url = concrete(routePath);
+      // A pre-rendered file is fine too (Vercel serves it first), but no App
+      // route has a fixed-path Astro page today; if one appears, say so here.
+      expect(resolve(url), `${url}: add a rewrite to ${SPA_SHELL} in vercel.json`).toMatchObject({
+        kind: "rewrite",
+        destination: SPA_SHELL,
+      });
+      // One address per page (vercel.json "trailingSlash": false).
+      expect(resolve(`${url}/`)).toMatchObject({ kind: "redirect", status: 308, location: url });
     });
   }
 
@@ -155,7 +155,6 @@ describe("every App.tsx route has a vercel.json rewrite", () => {
 /** SPA routes, as people and emails actually reach them. */
 const SPA = [
   "/assessment",
-  "/assessment/",
   "/quiz",
   "/founder",
   "/practitioner",
@@ -169,14 +168,12 @@ const SPA = [
   "/results/frozen-knot",
   "/results/not-a-pattern",
   "/apothecary",
-  "/apothecary/",
   "/apothecary/start",
   "/apothecary/pricing",
   "/apothecary/auth/signup",
   "/apothecary/auth/signin",
   "/apothecary/auth/reset",
   "/apothecary/auth/update-password",
-  "/apothecary/auth/update-password/",
   "/apothecary/welcome-tour",
   "/apothecary/welcome",
   "/apothecary/account",
@@ -223,6 +220,20 @@ const RETIRED: [string, string][] = [
   ["/tier-2-waitlist", "/back-to-eden"],
 ];
 
+/**
+ * One address per page: vercel.json "trailingSlash": false answers every
+ * /path/ with a 308 to /path before any other rule, keeping the query.
+ */
+const TRAILING: [string, string][] = [
+  ["/homeschool/", "/homeschool"],
+  ["/learn/is-herbalism-biblical/", "/learn/is-herbalism-biblical"],
+  ["/assessment/", "/assessment"],
+  ["/apothecary/", "/apothecary"],
+  ["/apothecary/auth/update-password/", "/apothecary/auth/update-password"],
+  ["/homeschool/welcome/?session_id=cs_test_123", "/homeschool/welcome?session_id=cs_test_123"],
+  ["/courses/", "/courses"],
+];
+
 /** Other domains pointed at this project: [host, path, status, location]. */
 const HOST_REDIRECTS: [string, string, number, string][] = [
   ["talesandtabletalk.com", "/", 301, "https://ultimateradioshow.com/tales-and-table-talk/"],
@@ -237,7 +248,6 @@ const HOST_REDIRECTS: [string, string, number, string][] = [
 const FILES: [string, string][] = [
   ["/", "web/pages/index.astro"],
   ["/homeschool", "web/pages/homeschool.astro"],
-  ["/homeschool/", "web/pages/homeschool.astro"],
   ["/homeschool/scope-and-sequence", "web/pages/homeschool/scope-and-sequence.astro"],
   ["/why-eden", "web/pages/why-eden.astro"],
   ["/learn", "web/pages/learn/index.astro"],
@@ -306,6 +316,16 @@ describe("vercel.json routing, example table", () => {
       expect(resolve(url)).toMatchObject({ kind: "redirect", status, location });
     });
   }
+
+  for (const [url, location] of TRAILING) {
+    it(`${url} -> 308 ${location}`, () => {
+      expect(resolve(url)).toMatchObject({ kind: "redirect", status: 308, location });
+    });
+  }
+
+  it("the site root keeps its slash", () => {
+    expect(resolve("/")).toEqual({ kind: "file", file: "web/pages/index.astro" });
+  });
 
   for (const [url, location] of RETIRED) {
     it(`${url} -> redirect to ${location}`, () => {
