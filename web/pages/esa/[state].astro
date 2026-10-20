@@ -67,7 +67,7 @@ const visibleCopy = [
   s.program,
   s.statusLabel,
   s.summary,
-  ...s.howToBuy.flatMap((h) => [h.heading, h.body]),
+  ...s.howToBuy.flatMap((h) => [h.heading, h.body, ...(h.link ? [h.link.label] : [])]),
   ...s.items.flatMap((i) => [i.name, i.note]),
   ...s.links.map((l) => l.label),
   ...(s.resources ?? []).flatMap((r) => [r.name, r.description]),
@@ -245,6 +245,9 @@ const cardStyle = "border-color:hsl(var(--eden-gold) / 0.3)";
         <div class={card} style={cardStyle}>
           <h3 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-forest))">{h.heading}</h3>
           <p class="font-body text-sm text-muted-foreground leading-relaxed">{h.body}</p>
+          {h.link && (
+            <p class="font-body text-sm mt-2"><a href={h.link.href} class="underline" rel="noopener" target="_blank">{h.link.label}</a></p>
+          )}
         </div>
       ))}
       {invoiceState && (
