@@ -41,7 +41,7 @@ const jsonLd: Record<string, unknown>[] = [
     description: d.description,
     datePublished: d.published,
     dateModified: d.updated ?? d.published,
-    author: { "@type": "Person", name: "Camila", url: `${ORIGIN}/why-eden` },
+    author: { "@type": "Person", name: "Camila Johnson", url: `${ORIGIN}/why-eden` },
     publisher: { "@type": "Organization", name: "The Eden Institute", url: ORIGIN },
     mainEntityOfPage: canonical,
     inLanguage: "en",
@@ -78,7 +78,7 @@ if (d.faq.length > 0) {
       </nav>
       <h1 class="font-serif text-3xl md:text-5xl font-bold leading-tight mb-4" style="color:hsl(var(--eden-bark))">{d.title}</h1>
       <p class="font-body text-sm text-muted-foreground mb-10">
-        By Camila · {d.updated ? `Updated ${fmt(d.updated)}` : fmt(d.published)}
+        By Camila Johnson · {d.updated ? `Updated ${fmt(d.updated)}` : fmt(d.published)}
       </p>
 
       <div class="learn-body font-body text-base md:text-lg leading-relaxed">
