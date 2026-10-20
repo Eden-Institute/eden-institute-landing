@@ -138,7 +138,7 @@
       "destination": "/api/go/course"
     },
     {
-      "source": "/((?:assessment|quiz|tier-2-waitlist|founder|practitioner)/?)",
+      "source": "/((?:assessment|quiz|founder|practitioner)/?)",
       "destination": "/_spa/index.html"
     },
     {

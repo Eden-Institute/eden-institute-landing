@@ -73,7 +73,7 @@ function dataPageFor(pathname: string): string | null {
   return dynamic ? `web/pages/${[...parts.slice(0, -1), dynamic].join("/")}` : null;
 }
 
-const resolve = (url: string) => route(config, url, sourceFileFor);
+const resolve = (url: string, host?: string) => route(config, url, sourceFileFor, host);
 
 // ── The routes registered in src/App.tsx ────────────────────────────────────
 
@@ -157,7 +157,6 @@ const SPA = [
   "/assessment",
   "/assessment/",
   "/quiz",
-  "/tier-2-waitlist",
   "/founder",
   "/practitioner",
   "/homeschool/welcome",
@@ -195,7 +194,7 @@ const SPA = [
   "/apothecary/not-a-real-herb-xyz",
 ];
 
-const REDIRECTS: [string, 307 | 308, string][] = [
+const REDIRECTS: [string, number, string][] = [
   ["/Homeschool", 308, "/homeschool"],
   ["/app", 308, "/apothecary"],
   ["/app/pricing", 308, "/apothecary/pricing"],
@@ -212,6 +211,26 @@ const REDIRECTS: [string, 307 | 308, string][] = [
   ["/Starter/Downloads", 307, "/starter/downloads"],
   ["/back-to-eden/download/extra", 307, "/back-to-eden/download"],
   ["/Back-To-Eden/Download", 307, "/back-to-eden/download"],
+];
+
+/**
+ * Retired adult-course pages (PR #630): they redirect to the book page. Status
+ * is not pinned here because the move from temporary to permanent ships in its
+ * own PR; where they land is what matters.
+ */
+const RETIRED: [string, string][] = [
+  ["/courses", "/back-to-eden"],
+  ["/tier-2-waitlist", "/back-to-eden"],
+];
+
+/** Other domains pointed at this project: [host, path, status, location]. */
+const HOST_REDIRECTS: [string, string, number, string][] = [
+  ["talesandtabletalk.com", "/", 301, "https://ultimateradioshow.com/tales-and-table-talk/"],
+  ["talesandtabletalk.com", "/episode-1", 301, "https://ultimateradioshow.com/tales-and-table-talk/"],
+  ["www.talesandtabletalk.com", "/", 301, "https://ultimateradioshow.com/tales-and-table-talk/"],
+  // The retired LearnWorlds school (DNS removed 10/14): every path to the book page.
+  ["learn.edeninstitute.health", "/", 301, "https://edeninstitute.health/back-to-eden"],
+  ["learn.edeninstitute.health", "/about", 301, "https://edeninstitute.health/back-to-eden"],
 ];
 
 /** Served by a file whose path is fixed in the source tree. */
@@ -285,6 +304,18 @@ describe("vercel.json routing, example table", () => {
   for (const [url, status, location] of REDIRECTS) {
     it(`${url} -> ${status} ${location}`, () => {
       expect(resolve(url)).toMatchObject({ kind: "redirect", status, location });
+    });
+  }
+
+  for (const [url, location] of RETIRED) {
+    it(`${url} -> redirect to ${location}`, () => {
+      expect(resolve(url)).toMatchObject({ kind: "redirect", location });
+    });
+  }
+
+  for (const [host, url, status, location] of HOST_REDIRECTS) {
+    it(`${host}${url} -> ${status} ${location}`, () => {
+      expect(resolve(url, host)).toMatchObject({ kind: "redirect", status, location });
     });
   }
 

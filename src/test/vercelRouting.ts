@@ -206,6 +206,7 @@ export interface Redirect {
   source: string;
   destination: string;
   permanent?: boolean;
+  statusCode?: number;
   has?: Condition[];
   missing?: Condition[];
 }
@@ -223,13 +224,22 @@ export interface VercelConfig {
 }
 
 export type Outcome =
-  | { kind: "redirect"; status: 307 | 308; location: string; source: string }
+  | { kind: "redirect"; status: number; location: string; source: string }
   | { kind: "file"; file: string }
   | { kind: "rewrite"; destination: string; source: string }
   | { kind: "404" };
 
-/** Match one rule against a path and query. Returns its parameters, or null. */
-function matchRule(rule: Redirect | Rewrite, pathname: string, query: URLSearchParams): Record<string, string> | null {
+/** The host a request goes to unless a test names another (the talesandtabletalk.com rules match on host). */
+export const SITE_HOST = "edeninstitute.health";
+
+/** Does a has/missing host condition match this host? Vercel reads the value as a full-match pattern. */
+function hostMatches(c: Condition, host: string): boolean {
+  if (c.value === undefined) throw new Error("model needs a value on host conditions");
+  return new RegExp(`^(?:${c.value})$`).test(host);
+}
+
+/** Match one rule against a path, query and host. Returns its parameters, or null. */
+function matchRule(rule: Redirect | Rewrite, pathname: string, query: URLSearchParams, host: string): Record<string, string> | null {
   const { re, keys } = sourceToRegExp(rule.source);
   const m = re.exec(pathname);
   if (!m) return null;
@@ -238,7 +248,11 @@ function matchRule(rule: Redirect | Rewrite, pathname: string, query: URLSearchP
     if (m[idx + 1] !== undefined) params[String(k)] = m[idx + 1];
   });
   for (const c of rule.has ?? []) {
-    if (c.type !== "query") throw new Error(`model handles query conditions only, got ${c.type}`);
+    if (c.type === "host") {
+      if (!hostMatches(c, host)) return null;
+      continue;
+    }
+    if (c.type !== "query") throw new Error(`model handles query and host conditions only, got ${c.type}`);
     const v = query.get(c.key);
     if (v === null) return null;
     if (c.value !== undefined) {
@@ -248,7 +262,11 @@ function matchRule(rule: Redirect | Rewrite, pathname: string, query: URLSearchP
     }
   }
   for (const c of rule.missing ?? []) {
-    if (c.type !== "query") throw new Error(`model handles query conditions only, got ${c.type}`);
+    if (c.type === "host") {
+      if (hostMatches(c, host)) return null;
+      continue;
+    }
+    if (c.type !== "query") throw new Error(`model handles query and host conditions only, got ${c.type}`);
     if (query.has(c.key)) return null;
   }
   return params;
@@ -264,17 +282,17 @@ function fill(destination: string, params: Record<string, string>): string {
  * filesystem (`fileFor` returns the file that serves a path, or null), then
  * rewrites, then 404.
  */
-export function route(config: VercelConfig, url: string, fileFor: (pathname: string) => string | null): Outcome {
+export function route(config: VercelConfig, url: string, fileFor: (pathname: string) => string | null, host: string = SITE_HOST): Outcome {
   const [pathname, search = ""] = url.split("?");
   const query = new URLSearchParams(search);
   for (const r of config.redirects ?? []) {
-    const params = matchRule(r, pathname, query);
-    if (params) return { kind: "redirect", status: r.permanent ? 308 : 307, location: fill(r.destination, params), source: r.source };
+    const params = matchRule(r, pathname, query, host);
+    if (params) return { kind: "redirect", status: r.statusCode ?? (r.permanent ? 308 : 307), location: fill(r.destination, params), source: r.source };
   }
   const file = fileFor(pathname);
   if (file) return { kind: "file", file };
   for (const r of config.rewrites ?? []) {
-    const params = matchRule(r, pathname, query);
+    const params = matchRule(r, pathname, query, host);
     if (params) return { kind: "rewrite", destination: fill(r.destination, params), source: r.source };
   }
   return { kind: "404" };
