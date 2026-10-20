@@ -27,7 +27,7 @@ const PB = '0600X0900.BW.STD.PB.060UW444.MXX';
 const COIL = '0850X1100.FC.STD.CO.060UW444.MXX';
 const bteRows: LuluPrintableRow[] = [
   { band: 'bte', book_key: 'pb', title: 'Back to Eden: A Biblical Foundation for Herbal Healing', pod_package_id: PB, page_count: 186, interior_url: 'https://x.test/pb.pdf', cover_url: 'https://x.test/pbc.pdf', printable_id: null },
-  { band: 'bte', book_key: 'sj', title: 'Back to Eden: Study & Journal Edition', pod_package_id: COIL, page_count: 386, interior_url: 'https://x.test/sj.pdf', cover_url: 'https://x.test/sjc.pdf', printable_id: null },
+  { band: 'bte', book_key: 'sj', title: 'Back to Eden: Study & Journal Edition', pod_package_id: COIL, page_count: 384, interior_url: 'https://x.test/sj.pdf', cover_url: 'https://x.test/sjc.pdf', printable_id: null },
   { band: 'bte', book_key: 'sg', title: 'Back to Eden: Study Guide', pod_package_id: COIL, page_count: 266, interior_url: 'https://x.test/sg.pdf', cover_url: 'https://x.test/sgc.pdf', printable_id: null },
 ];
 
@@ -46,7 +46,7 @@ Deno.test('package ids and page counts match the founder Lulu settings and the f
   assertEquals(luluBookByKey('pb', 'bte')?.podPackageId, PB);
   assertEquals(luluBookByKey('sj', 'bte')?.podPackageId, COIL);
   assertEquals(luluBookByKey('sg', 'bte')?.podPackageId, COIL);
-  assertEquals([186, 386, 266], ['pb', 'sj', 'sg'].map((k) => luluBookByKey(k, 'bte')?.pageCount));
+  assertEquals([186, 384, 266], ['pb', 'sj', 'sg'].map((k) => luluBookByKey(k, 'bte')?.pageCount));
 });
 
 Deno.test('external ids round-trip for the book keys', () => {
