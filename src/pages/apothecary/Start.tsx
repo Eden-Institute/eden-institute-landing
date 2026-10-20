@@ -236,7 +236,7 @@ export default function Start() {
             <PublicTierCard
               tier="seed"
               displayName="Seed"
-              persona="The Institute student"
+              persona="The serious student"
               tagline={TIER_TAGLINES.seed}
               monthlyPrice={APOTHECARY_PRICES.seed.monthly}
               yearlyPrice={APOTHECARY_PRICES.seed.yearly}
