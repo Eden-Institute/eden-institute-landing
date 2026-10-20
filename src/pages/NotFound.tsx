@@ -1,8 +1,8 @@
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import { Button } from "@/components/ui/button";
-import { ROUTES } from "@/lib/routes";
+import { ASTRO_PAGES } from "@/lib/routes";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 
 const NotFound = () => {
@@ -15,7 +15,7 @@ const NotFound = () => {
   // on unmount, so the next route stays indexable.
   useDocumentMeta({
     title: "Page not found | The Eden Institute",
-    description: "This page could not be found. Take the free Pattern of Eden quiz or browse the herbs in the Eden Apothecary.",
+    description: "This page could not be found. Start with the Eden's Table homeschool curriculum or the free curriculum samples.",
     canonical: `https://edeninstitute.health${pathname}`,
     robots: "noindex, follow",
   });
@@ -44,11 +44,12 @@ const NotFound = () => {
             The link may be old or mistyped. Here are two good places to start.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            {/* Both are Astro pages, not SPA routes, so a full page load (a), not <Link>. */}
             <Button asChild variant="eden" size="lg">
-              <Link to={ROUTES.ASSESSMENT}>Take the free quiz</Link>
+              <a href={ASTRO_PAGES.HOMESCHOOL}>Homeschool Curriculum</a>
             </Button>
             <Button asChild variant="eden-outline" size="lg">
-              <Link to={ROUTES.APOTHECARY}>Browse the herbs</Link>
+              <a href="/freebies">Freebies</a>
             </Button>
           </div>
         </div>
