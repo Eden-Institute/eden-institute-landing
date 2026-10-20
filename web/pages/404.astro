@@ -10,6 +10,8 @@
 // is left without one.
 //
 // The copy is the SPA's not-found page (src/pages/NotFound.tsx), word for word.
+// Buttons (founder 2026-10-20): the homeschool curriculum and the free samples,
+// labelled as the main menu labels them (src/lib/navLinks.ts).
 // noindex, and no canonical: this page is served at whatever URL was asked for,
 // so it has no address of its own to name.
 //
@@ -17,12 +19,12 @@
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ROUTES } from "@/lib/routes";
+import { ASTRO_PAGES } from "@/lib/routes";
 ---
 
 <MarketingLayout
   title="Page not found | The Eden Institute"
-  description="This page could not be found. Take the free Pattern of Eden quiz or browse the herbs in the Eden Apothecary."
+  description="This page could not be found. Start with the Eden's Table homeschool curriculum or the free curriculum samples."
   noindex={true}
 >
   <main
@@ -40,8 +42,8 @@ import { ROUTES } from "@/lib/routes";
         The link may be old or mistyped. Here are two good places to start.
       </p>
       <div class="flex flex-col sm:flex-row gap-3 justify-center">
-        <a href={ROUTES.ASSESSMENT} class={cn(buttonVariants({ variant: "eden", size: "lg" }), "text-center")}>Take the free quiz</a>
-        <a href={ROUTES.APOTHECARY} class={cn(buttonVariants({ variant: "eden-outline", size: "lg" }), "text-center")}>Browse the herbs</a>
+        <a href={ASTRO_PAGES.HOMESCHOOL} data-cta="not-found-homeschool" class={cn(buttonVariants({ variant: "eden", size: "lg" }), "text-center")}>Homeschool Curriculum</a>
+        <a href="/freebies" data-cta="not-found-freebies" class={cn(buttonVariants({ variant: "eden-outline", size: "lg" }), "text-center")}>Freebies</a>
       </div>
     </div>
   </main>
