@@ -209,7 +209,8 @@ export const ESA_STATES: EsaState[] = [
       },
       {
         heading: "2. Submit it in ClassWallet",
-        body: "Submit the PDF invoice in ClassWallet as a payment to a vendor. ClassWallet deducts 2%, so this invoice adds 2.0408% to cover it. The invoice shows it as its own line: a printed set (Sprouts or Seedlings) comes to $266.33 and an extra notebook (Sprouts or Seedlings) to $40.81. Arizona reviews every request, so check the current ESA Parent Handbook before you order.",
+        // Search names: founder 2026-10-20, same ClassWallet vendor record as New Hampshire.
+        body: "In ClassWallet, search for Eden's Table or Rooted in Faith (the company that publishes Eden's Table), then submit the PDF invoice as a payment to a vendor. ClassWallet deducts 2%, so this invoice adds 2.0408% to cover it. The invoice shows it as its own line: a printed set (Sprouts or Seedlings) comes to $266.33 and an extra notebook (Sprouts or Seedlings) to $40.81. Arizona reviews every request, so check the current ESA Parent Handbook before you order.",
       },
       {
         heading: "3. We print and ship",
@@ -687,7 +688,8 @@ export const ESA_STATES: EsaState[] = [
         // 2026-10-18 (founder): ADE's own wording replaces "their goal is about two weeks",
         // which no ADE document says. Source: ADE EFA FAQs, updated 10/1/26, "How long before
         // reimbursement funds are deposited into my bank account?".
-        body: "Upload the PDF invoice as a Direct Pay request in ClassWallet. The Arkansas Department of Education reviews it (ADE says it tries to approve requests within 25 business days, and it can take longer in busy periods, especially right after funds go out), and ClassWallet then pays us.",
+        // Search names: founder 2026-10-20, same ClassWallet vendor record as New Hampshire.
+        body: "In ClassWallet, search for Eden's Table or Rooted in Faith (the company that publishes Eden's Table), then upload the PDF invoice as a Direct Pay request. The Arkansas Department of Education reviews it (ADE says it tries to approve requests within 25 business days, and it can take longer in busy periods, especially right after funds go out), and ClassWallet then pays us.",
       },
       {
         heading: "3. We print and ship",
@@ -812,7 +814,8 @@ export const ESA_STATES: EsaState[] = [
       },
       {
         heading: "2. Submit it in ClassWallet",
-        body: "Submit the PDF invoice in ClassWallet as a Direct Pay (Pay Vendor) request and choose the expense category for curriculum and supplemental reading materials. Alabama does not reimburse purchases, so the invoice is the way to pay.",
+        // Search names: founder 2026-10-20, same ClassWallet vendor record as New Hampshire.
+        body: "In ClassWallet, search for Eden's Table or Rooted in Faith (the company that publishes Eden's Table), then submit the PDF invoice as a Direct Pay (Pay Vendor) request and choose the expense category for curriculum and supplemental reading materials. Alabama does not reimburse purchases, so the invoice is the way to pay.",
       },
       {
         heading: "3. We send or ship",
