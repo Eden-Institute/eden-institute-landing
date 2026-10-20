@@ -72,8 +72,10 @@ export interface EsaState {
   statusLabel: string;
   /** One plain sentence under the headline. */
   summary: string;
-  /** Ordered steps. Plain text; links are added by the page from `links`. */
-  howToBuy: { heading: string; body: string }[];
+  /** Ordered steps. Plain text. A step may carry one `link`, shown under its body, for the
+      place the step sends a family (New Hampshire's CSF listing, 2026-10-20); everything
+      else is linked from `links`. */
+  howToBuy: { heading: string; body: string; link?: { label: string; href: string } }[];
   items: EsaItem[];
   /** Official or directory links verified in the research files. */
   links: { label: string; href: string }[];
@@ -902,7 +904,10 @@ export const ESA_STATES: EsaState[] = [
       },
       {
         heading: "2. Submit it in ClassWallet",
-        body: "Submit the PDF invoice in ClassWallet as a Direct Pay request. There is no processing fee on New Hampshire invoices.",
+        // Search names: founder 2026-10-20. Families find us under either name, in ClassWallet
+        // and in the CSF directory. The CSF listing itself is titled "Eden's Table".
+        body: "In ClassWallet, search for Eden's Table or Rooted in Faith (the company that publishes Eden's Table), then submit the PDF invoice as a Direct Pay request. There is no processing fee on New Hampshire invoices. We are also listed under both names in the Children's Scholarship Fund New Hampshire directory.",
+        link: { label: "See our listing in the CSF New Hampshire directory", href: "https://app.nh.scholarshipfund.org/esa/esa_parent/esa_vendors/19171" },
       },
       {
         heading: "3. We print and ship",
@@ -989,7 +994,7 @@ export const ESA_PENDING = [
 
 /** Last content review of the ESA pages. Bump it when what they say changes (see
     the rules at the top). */
-export const ESA_UPDATED_ISO = "2026-10-18";
+export const ESA_UPDATED_ISO = "2026-10-20";
 
 /** The same date as shown on the pages, e.g. "September 2026". */
 export const ESA_UPDATED = new Date(`${ESA_UPDATED_ISO}T12:00:00Z`).toLocaleDateString("en-US", {
