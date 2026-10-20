@@ -65,7 +65,7 @@ export const BOOK_DIGITAL: Record<BookDigitalSku, BookDigital> = {
     title: 'Back to Eden, Study & Journal Edition, Digital (PDF)',
     path: 'digital/back-to-eden-study-journal-edition.pdf',
     filename: 'Back to Eden Study and Journal Edition - Camila Johnson.pdf',
-    pages: 386,
+    pages: 384,
     retailCents: 2900,
   },
   bte_study_guide_digital: {

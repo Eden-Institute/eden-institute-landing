@@ -236,7 +236,7 @@ export function curriculumNeedsGround(items: { sku: string; qty: number }[]): bo
 export const BOOK_PAGE_EQUIV: Record<string, number> = {
   bte_paperback_print: 186 * ((6 * 9) / (8.5 * 11)),
   bte_study_guide_print: 266,
-  bte_study_journal_print: 386,
+  bte_study_journal_print: 384,
 };
 export const BOOK_MAIL_PAGE_LIMIT = 2000;
 
