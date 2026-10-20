@@ -13,6 +13,12 @@
       "statusCode": 301
     },
     {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "learn.edeninstitute.health" }],
+      "destination": "https://edeninstitute.health/back-to-eden",
+      "statusCode": 301
+    },
+    {
       "source": "/Homeschool",
       "destination": "/homeschool",
       "permanent": true
@@ -50,12 +56,12 @@
     {
       "source": "/courses",
       "destination": "/back-to-eden",
-      "permanent": false
+      "permanent": true
     },
     {
       "source": "/tier-2-waitlist",
       "destination": "/back-to-eden",
-      "permanent": false
+      "permanent": true
     },
     {
       "source": "/go/deep-dive/:slug",
