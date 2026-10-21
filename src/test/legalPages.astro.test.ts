@@ -30,7 +30,7 @@ const CASES = [
     path: "/terms",
     title: "Terms and Conditions | The Eden Institute",
     h1: "Terms and Conditions",
-    dates: "Effective Date: June 9, 2026 · Last Updated: October 14, 2026",
+    dates: "Effective Date: June 9, 2026 · Last Updated: October 20, 2026",
     headings: [
       "1. Agreement to Terms",
       "2. Definitions",
