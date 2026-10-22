@@ -10,9 +10,13 @@
 // quiz_completions; accounts from profiles.created_at; subscribers are a
 // live snapshot. Click data begins the day the Phase 4 migration runs, so
 // early windows can show completes > starts — the footnote says so.
+//
+// Above all of that sits Week1SourcesPanel (free Week 1 sign-ups by source,
+// founder_week1_signups_by_source), which loads itself on fixed ranges.
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import Week1SourcesPanel from "./Week1SourcesPanel";
 
 interface Funnel {
   stages: {
@@ -85,6 +89,9 @@ export default function FunnelTab({ since }: { since: string }) {
 
   return (
     <div>
+      {/* Fixed ranges (12 weeks / 6 months), loads itself; ignores `since`. */}
+      <Week1SourcesPanel />
+
       {error && (
         <div className="mb-6 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
           <p className="font-body text-sm text-destructive">{error}</p>

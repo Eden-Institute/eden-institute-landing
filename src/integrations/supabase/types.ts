@@ -5531,6 +5531,10 @@ export type Database = {
       }
       founder_revenue: { Args: { p_since: string }; Returns: Json }
       founder_traffic: { Args: { p_since?: string }; Returns: Json }
+      founder_week1_signups_by_source: {
+        Args: { p_since: string }
+        Returns: Json
+      }
       founding_gate: {
         Args: { p_product_id: string }
         Returns: {
