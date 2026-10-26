@@ -27,6 +27,8 @@ import StarterDownloads from "../../web/components/islands/StarterDownloads";
 const TOKEN = "TOKENPROBE123";
 const SIGNED = "https://stub.supabase.co/storage/v1/object/sign/starter/guide.pdf?token=SIGNEDPROBE";
 const SIGNED_SAVE = `${SIGNED}&download=guide.pdf`;
+/** File buttons go through starter-download's ?f= redirect (first_downloaded_at, 2026-10-26). */
+const REDIRECT = `/functions/v1/starter-download?t=${TOKEN}&f=teachers-guide`;
 const CONSENT_KEY = "eden-marketing-consent";
 
 function metaPixelScripts(): number {
@@ -101,11 +103,11 @@ describe("StarterDownloads links keep clicks away from page tags", () => {
     files: [{ slug: "teachers-guide", label: "Teacher's Guide", url: SIGNED, save_url: SIGNED_SAVE }],
   };
 
-  async function renderReady(mode: "token" | "session") {
+  async function renderReady(mode: "token" | "session", body: Record<string, unknown> = payload) {
     window.history.replaceState(null, "", mode === "token" ? `/starter/downloads?t=${TOKEN}` : "/starter/thank-you?session_id=cs_test_probe");
     vi.stubGlobal(
       "fetch",
-      vi.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(payload) })),
+      vi.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) })),
     );
     render(<StarterDownloads mode={mode} />);
     return screen.findByText("Teacher's Guide");
@@ -153,8 +155,8 @@ describe("StarterDownloads links keep clicks away from page tags", () => {
       const file = await renderReady(mode);
       const save = screen.getByText("or save it to your device");
       const fresh = screen.getByText("get fresh ones here");
-      expect(file.getAttribute("href")).toBe(SIGNED);
-      expect(save.getAttribute("href")).toBe(SIGNED_SAVE);
+      expect(file.getAttribute("href")!.endsWith(REDIRECT)).toBe(true);
+      expect(save.getAttribute("href")!.endsWith(`${REDIRECT}&save=1`)).toBe(true);
       expect(fresh.getAttribute("href")).toBe(`/starter/downloads?t=${TOKEN}`);
 
       const { seen, stop } = listen();
@@ -173,6 +175,13 @@ describe("StarterDownloads links keep clicks away from page tags", () => {
       expect(save.getAttribute("data-cta")).toBe("starter-save-teachers-guide");
     });
   }
+
+  it("a response without a download token keeps the direct signed links", async () => {
+    const { download_token: _omitted, ...older } = payload;
+    const file = await renderReady("token", older);
+    expect(file.getAttribute("href")).toBe(SIGNED);
+    expect(screen.getByText("or save it to your device").getAttribute("href")).toBe(SIGNED_SAVE);
+  });
 
   it("control: an ordinary link in the same document does reach the bubble listener", () => {
     const a = document.createElement("a");
