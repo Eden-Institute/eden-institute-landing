@@ -105,31 +105,6 @@ export function herbParamOrFilter(param: string | undefined): string | null {
   return `herb_id.ilike.${needle},common_name.ilike.${needle.split("-").join("*")}*`;
 }
 
-/**
- * The herb's name as it leads a page <title>: the common name, then the
- * botanical binomial in parentheses, e.g. "Marshmallow (Althaea officinalis)".
- * Both come straight from the herb's own row; nothing is invented.
- *
- *  - A common_name that already carries a second name in parentheses
- *    ("Aged Tangerine Peel (Chen Pi)") is used as it is. Appending the Latin
- *    as well produced a double parenthesis.
- *  - latin_name is cut to the binomial, dropping author abbreviations and
- *    synonym notes ("Camellia sinensis (L.) Kuntze (syn. ...)" becomes
- *    "Camellia sinensis"). The full name still shows on the page.
- *  - The Latin is left off when it only repeats the common name ("Aloe Vera").
- */
-export function herbTitleName(herb: {
-  common_name: string | null;
-  latin_name?: string | null;
-}): string {
-  const common = (herb.common_name ?? "").trim();
-  if (!common) return "";
-  if (common.includes("(")) return common;
-  const latin = herbBinomial(herb.latin_name);
-  if (!latin || latin.toLowerCase() === common.toLowerCase()) return common;
-  return `${common} (${latin})`;
-}
-
 /** "Genus species" (or "Genus x species") from a latin_name, or the text
  *  before any parenthesis when it does not read as a binomial. */
 export function herbBinomial(latin: string | null | undefined): string {

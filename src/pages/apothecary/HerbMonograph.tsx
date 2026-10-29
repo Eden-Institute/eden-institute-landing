@@ -12,7 +12,8 @@ import { useEdenPattern } from "@/hooks/useEdenPattern";
 import { useCuratedHerbVerdicts } from "@/hooks/useCuratedHerbVerdicts";
 import { resolveHerbVerdict } from "@/lib/herbVerdict";
 import { useViewedHerbs } from "@/hooks/useViewedHerbs";
-import { herbCanonicalUrl, herbParam, herbTitleName, HERB_ALIASES } from "@/lib/herbLinks";
+import { herbCanonicalUrl, herbParam, HERB_ALIASES } from "@/lib/herbLinks";
+import { monographDescription, monographNames, monographTitle } from "@/lib/monographMeta";
 import { CURRICULUM_BANDS, curriculumWeeksForHerb, scopeAndSequenceHref } from "@/lib/curriculumHerbs";
 import { APOTHECARY_PRICES } from "@/lib/apothecaryPrices";
 import { TIER_DEPTH } from "@/lib/apothecaryTiers";
@@ -66,7 +67,11 @@ export default function HerbMonograph() {
   const { viewedOrder, recordView } = useViewedHerbs();
 
   const herb = herbRow ?? undefined;
-  const name = herb?.common_name ?? "";
+  // The English name leads (src/lib/monographMeta.ts); every other name the row
+  // carries goes on the "Also known as" line, with the display aliases.
+  const names = herb ? monographNames(herb) : null;
+  const name = names?.english ?? "";
+  const akaNames = herb ? [...(names?.aka ?? []), ...(HERB_ALIASES[herbParam(herb)] ?? [])] : [];
   // Seed opens the clinical study; Root opens interactions, refer-out and
   // sources. The view NULLs those columns below the tier, so these flags only
   // choose between a section and its upsell.
@@ -132,15 +137,11 @@ export default function HerbMonograph() {
   // directory canonical it has always had and stays indexable.
   const notFound = !isLoading && !isError && !herb;
   useDocumentMeta({
-    // Leads with the name people search, common then Latin, built by the
-    // same helper as the pre-rendered /herbs/:slug title.
-    title: herb
-      ? `${herbTitleName(herb)} · Monograph | Eden Apothecary`
-      : "Herb Monograph | Eden Apothecary",
+    // One template for every monograph (founder decision 2026-10-28), the same
+    // helpers as the pre-rendered /herbs/:slug page and the /apothecary heads.
+    title: herb ? monographTitle(herb) : "Herb Monograph | Eden Apothecary",
     description: herb
-      ? herb.energetics_summary
-        ? herb.energetics_summary.slice(0, 155)
-        : `${name} in the Eden Apothecary: identity, energetics, safety, and the clinical study, organized by body pattern.`
+      ? monographDescription(herb)
       : "Herb monographs organized by body pattern in the Eden Apothecary.",
     canonical: herb
       ? herbCanonicalUrl(herb)
@@ -252,9 +253,9 @@ export default function HerbMonograph() {
               {herb.pronunciation}
             </p>
           )}
-          {(HERB_ALIASES[herbParam(herb)] ?? []).length > 0 && (
+          {akaNames.length > 0 && (
             <p className="font-body text-sm text-muted-foreground mb-4">
-              Also known as {HERB_ALIASES[herbParam(herb)].join(", ")}
+              Also known as {akaNames.join(", ")}
             </p>
           )}
           <div className="flex flex-wrap gap-2 mb-2">

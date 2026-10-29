@@ -7,6 +7,7 @@ import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
 import MateriaMedicaPlate from "@/components/MateriaMedicaPlate";
 import { HERB_SLUGS } from "@/components/materiaMedicaHerbs";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
+import { APOTHECARY_HOME_META } from "@/lib/apothecaryRouteMeta";
 import { ROUTES } from "@/lib/routes";
 import { HERB_CATALOG_SIZE } from "@/lib/herbCatalog";
 // Hero botanical: public domain elderberry plate from Koehler's Medizinal-Pflanzen
@@ -35,12 +36,8 @@ import bandPatterns from "@/assets/band-patterns.jpg";
  * ApothecaryHome for them.
  */
 export default function ApothecaryWelcome() {
-  useDocumentMeta({
-    title: "Eden Apothecary | Body Pattern Herb Guide | The Eden Institute",
-    description:
-      "Find your body pattern with the free 2-minute quiz and meet the herbs that fit it. Rooted in Biblical terrain medicine. Built for Christian families.",
-    canonical: "https://edeninstitute.health/apothecary",
-  });
+  // Shared with the build, which writes it into /apothecary's raw HTML.
+  useDocumentMeta(APOTHECARY_HOME_META);
 
   return (
     <div className="bg-background">

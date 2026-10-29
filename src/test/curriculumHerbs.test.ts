@@ -6,7 +6,7 @@ import {
   herbIdForCurriculumWeek,
   scopeAndSequenceHref,
 } from "@/lib/curriculumHerbs";
-import { herbBinomial, herbTitleName } from "@/lib/herbLinks";
+import { herbBinomial } from "@/lib/herbLinks";
 import { SEEDLINGS_WEEKS, SPROUTS_WEEKS } from "../../web/lib/scopeAndSequence";
 
 const weeks = {
@@ -50,32 +50,11 @@ describe("curriculum herb matches", () => {
   });
 });
 
-describe("herbTitleName", () => {
-  it("leads with the common name and puts the binomial in parentheses", () => {
-    expect(herbTitleName({ common_name: "Marshmallow", latin_name: "Althaea officinalis" })).toBe(
-      "Marshmallow (Althaea officinalis)",
-    );
-    expect(herbTitleName({ common_name: "Peppermint", latin_name: "Mentha x piperita" })).toBe(
-      "Peppermint (Mentha x piperita)",
-    );
-  });
-
-  it("keeps a common name that already carries a second name, with no double parenthesis", () => {
-    expect(herbTitleName({ common_name: "Aged Tangerine Peel (Chen Pi)", latin_name: "Citrus reticulata" })).toBe(
-      "Aged Tangerine Peel (Chen Pi)",
-    );
-  });
-
+describe("herbBinomial", () => {
   it("cuts author abbreviations and synonym notes from the Latin", () => {
-    expect(
-      herbTitleName({ common_name: "Green Tea", latin_name: "Camellia sinensis (L.) Kuntze (syn. Thea sinensis L.)" }),
-    ).toBe("Green Tea (Camellia sinensis)");
+    expect(herbBinomial("Camellia sinensis (L.) Kuntze (syn. Thea sinensis L.)")).toBe("Camellia sinensis");
     expect(herbBinomial("Phyllanthus niruri L.")).toBe("Phyllanthus niruri");
     expect(herbBinomial("Ferula assa-foetida")).toBe("Ferula assa-foetida");
-  });
-
-  it("does not repeat a Latin name that equals the common name, and copes with no Latin", () => {
-    expect(herbTitleName({ common_name: "Aloe Vera", latin_name: "Aloe vera" })).toBe("Aloe Vera");
-    expect(herbTitleName({ common_name: "Myrrh", latin_name: null })).toBe("Myrrh");
+    expect(herbBinomial("Mentha x piperita")).toBe("Mentha x piperita");
   });
 });

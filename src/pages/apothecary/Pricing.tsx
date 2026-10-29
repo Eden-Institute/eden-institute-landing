@@ -15,6 +15,7 @@ import { HERB_CATALOG_SIZE } from "@/lib/herbCatalog";
 import { isSubscriberTier } from "@/lib/tiers";
 import { trackCta } from "@/lib/trackCta";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
+import { APOTHECARY_PRICING_META } from "@/lib/apothecaryRouteMeta";
 import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
 // Hero botanical: lemon balm, the same plate as the pricing band on the
 // signed-out /apothecary page (#440). Koehler 1887. Built at this hero's
@@ -26,12 +27,8 @@ import { getCheckoutAttribution } from "@/lib/attribution";
 type BillingCycle = "monthly" | "yearly";
 
 export default function Pricing() {
-  useDocumentMeta({
-    title: "Pricing | Eden Apothecary",
-    description:
-      "Free access to the herb directory and the Pattern quiz. Seed, Root, and Practitioner tiers open the full clinical depth: actions, tissue states, contraindications, and a one-screen practitioner clinic.",
-    canonical: "https://edeninstitute.health/apothecary/pricing",
-  });
+  // Shared with the build, which writes it into /apothecary/pricing's raw HTML.
+  useDocumentMeta(APOTHECARY_PRICING_META);
 
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
 

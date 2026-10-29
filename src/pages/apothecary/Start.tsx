@@ -5,6 +5,7 @@ import { PublicTierCard } from "@/components/apothecary/PublicTierCard";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
+import { APOTHECARY_START_META } from "@/lib/apothecaryRouteMeta";
 import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
 import { PageSkeleton } from "@/components/apothecary/PageSkeleton";
 import { APOTHECARY_PRICES } from "@/lib/apothecaryPrices";
@@ -32,12 +33,8 @@ import heroStart from "@/assets/hero-start.jpg";
  * directory so the tier-select isn't shown to people who already chose.
  */
 export default function Start() {
-  useDocumentMeta({
-    title: "Plans & Getting Started | Eden Apothecary",
-    description:
-      `Start with the free 2-minute Pattern of Eden quiz, then choose your depth: ${HERB_CATALOG_SIZE} herbs anchored to body patterns, tissue states, and stewardship. Free for as long as you'd like.`,
-    canonical: "https://edeninstitute.health/apothecary/start",
-  });
+  // Shared with the build, which writes it into /apothecary/start's raw HTML.
+  useDocumentMeta(APOTHECARY_START_META);
 
   const { user, loading } = useAuth();
   const navigate = useNavigate();
