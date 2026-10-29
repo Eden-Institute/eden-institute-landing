@@ -5,9 +5,9 @@ description: "No state requires every homeschool parent to hold a teaching certi
 published: "2026-09-28"
 draft: false
 related:
+  - how-to-start-homeschooling
   - free-nature-study-week
   - herbal-homeschool-curriculum
-  - switching-homeschool-science-mid-year
 faq:
   - q: "Do you need a teaching degree to homeschool?"
     a: "No. No state requires every homeschooling parent to be a certified teacher. Some states require a high school diploma or its equivalent, so check your state's law before you start."
