@@ -9,6 +9,8 @@
 import { getCollection, type CollectionEntry } from "astro:content";
 import MarketingLayout from "../../layouts/MarketingLayout.astro";
 import { GRADE_PAGES, gradePath } from "../../lib/gradePages";
+import { freeWeekOfferHtml } from "../../lib/freeWeekOffer";
+import WaitlistController from "../../components/islands/WaitlistController.tsx";
 
 export async function getStaticPaths() {
   const articles = await getCollection("learn", ({ data }) => !data.draft);
@@ -123,12 +125,19 @@ if (d.faq.length > 0) {
         </nav>
       )}
 
-      <aside class="mt-14 rounded-lg p-6 border" style="background-color:hsl(var(--eden-cream));border-color:hsl(var(--eden-gold) / 0.35)">
-        <p class="font-serif text-xl font-bold mb-2" style="color:hsl(var(--eden-bark))">Try a real week of Eden's Table, free</p>
-        <p class="font-body text-sm text-muted-foreground leading-relaxed mb-4">
-          Five full lessons for Sprouts (K-2) or Seedlings (3-5), in your inbox in a minute. Print it and teach it the same morning.
-        </p>
-        <a href="/freebies" data-cta={`learn-${entry.slug}-free`} class="inline-block font-body text-sm font-semibold rounded-md px-5 py-3" style="background-color:hsl(var(--eden-forest));color:hsl(var(--eden-parchment))">Get Week 1 free</a>
+      {/* A flagged article (freeWeekOffer) signs readers up right here, the second
+          of its two offers (web/lib/freeWeekOffer.ts); the others link to /freebies. */}
+      {d.freeWeekOffer && <div class="mt-14"><Fragment set:html={freeWeekOfferHtml("learn_end")} /></div>}
+      <aside class={d.freeWeekOffer ? "mt-6" : "mt-14 rounded-lg p-6 border"} style={d.freeWeekOffer ? "" : "background-color:hsl(var(--eden-cream));border-color:hsl(var(--eden-gold) / 0.35)"}>
+        {!d.freeWeekOffer && (
+          <>
+            <p class="font-serif text-xl font-bold mb-2" style="color:hsl(var(--eden-bark))">Try a real week of Eden's Table, free</p>
+            <p class="font-body text-sm text-muted-foreground leading-relaxed mb-4">
+              Five full lessons for Sprouts (K-2) or Seedlings (3-5), in your inbox in a minute. Print it and teach it the same morning.
+            </p>
+            <a href="/freebies" data-cta={`learn-${entry.slug}-free`} class="inline-block font-body text-sm font-semibold rounded-md px-5 py-3" style="background-color:hsl(var(--eden-forest));color:hsl(var(--eden-parchment))">Get Week 1 free</a>
+          </>
+        )}
         <p class="font-body text-sm mt-5 leading-loose">
           <span class="font-bold" style="color:hsl(var(--eden-bark))">By grade:</span>{" "}
           {GRADE_PAGES.map((g, i) => (
@@ -141,6 +150,7 @@ if (d.faq.length > 0) {
       </aside>
     </div>
   </article>
+  {d.freeWeekOffer && <WaitlistController client:only="react" />}
 </MarketingLayout>
 
 <style is:global>

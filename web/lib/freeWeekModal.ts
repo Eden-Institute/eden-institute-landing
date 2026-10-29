@@ -21,6 +21,13 @@
 // Must match the PDFs the welcome email delivers (supabase/functions/_shared/
 // welcome-email-templates.ts). Copy rule: no em dashes.
 
+/**
+ * The Eden's Table waitlist audience. resend-waitlist maps it to
+ * entry_funnel='edens_table'; the per-button `source` routes the nurture. Shared by
+ * WaitlistController (Astro pages) and FreeWeekOfferCard (the app monograph).
+ */
+export const HOMESCHOOL_AUDIENCE_ID = "a48cb66e-b2a9-461d-98a6-bb1b12f72693";
+
 export interface FreeWeekModal {
   source: "sprouts_magnet" | "seedlings_magnet";
   title: string;

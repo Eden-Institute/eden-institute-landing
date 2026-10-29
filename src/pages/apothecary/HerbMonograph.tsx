@@ -26,6 +26,7 @@ import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
 // Built at this header's aspect, 1600x480 for its ~1440x460 with the panel.
 import heroMonograph from "@/assets/hero-monograph.jpg";
 import { HERBS_IN_THE_BIBLE_PATH, HERBS_IN_THE_BIBLE_TITLE, citesScripture } from "@/lib/scriptureHerbs";
+import { FreeWeekOfferCard } from "@/components/apothecary/FreeWeekOfferCard";
 
 /**
  * HerbMonograph — the public per-herb page at /apothecary/:herbId
@@ -701,6 +702,10 @@ export default function HerbMonograph() {
             </p>
           </section>
         )}
+
+        {/* ── Free Week 1, on every herb (2026-10-28): the sign-up itself, beside
+              the curriculum weeks above. Same offer as /herbs/<slug>. ── */}
+        <FreeWeekOfferCard />
 
         {/* ── No Pattern yet: the quiz is the personalization hook. ── */}
         {!activePattern && (

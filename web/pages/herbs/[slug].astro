@@ -22,6 +22,8 @@ import { cn } from "@/lib/utils";
 // stands in for a <button>'s own centring.
 import heroMonograph from "@/assets/hero-monograph.jpg";
 import HeroBackdrop from "../../components/HeroBackdrop.astro";
+import WaitlistController from "../../components/islands/WaitlistController.tsx";
+import { freeWeekOfferHtml } from "../../lib/freeWeekOffer";
 
 export async function getStaticPaths() {
   const herbs = await getPublicHerbs();
@@ -226,6 +228,10 @@ const jsonLd = [
         </div>
       )}
 
+      <!-- Free Week 1, on every herb (2026-10-28): the sign-up itself, beside the
+           curriculum weeks above (web/lib/freeWeekOffer.ts). -->
+      <Fragment set:html={freeWeekOfferHtml("herb")} />
+
       <!-- Safety -->
       {safety.length > 0 && (
         <div>
@@ -312,4 +318,5 @@ const jsonLd = [
       <ApothecaryDisclaimer />
     </div>
   </section>
+  <WaitlistController client:only="react" />
 </MarketingLayout>

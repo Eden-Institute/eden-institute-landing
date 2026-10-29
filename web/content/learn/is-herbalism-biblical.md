@@ -4,6 +4,7 @@ seoTitle: "Is Herbalism Biblical? What Scripture Says About Plants"
 description: "Where the Bible talks about plants and healing, where Christians should be careful, and a simple test for any herbal resource before you use it."
 published: "2026-09-25"
 draft: false
+freeWeekOffer: true
 related:
   - herbs-in-the-bible
   - is-herbalism-witchcraft

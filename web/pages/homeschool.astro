@@ -241,25 +241,30 @@ const PRINT_SET = {
       original hero pushed the credit line to y=816, i.e. the one sentence that
       explains why both buttons exist started below the fold. Every md: prefix
       below preserves the desktop look while buying that line back on mobile.
-      If you edit this hero, re-measure it. */}
+      If you edit this hero, re-measure it.
+      2026-10-28 (analytics and search developer prompt, task 19): on a phone the
+      two doors now come straight after the headline (order-*), ahead of the
+      description, so "Get the printed year" sits above the cookie banner on a
+      first visit: measured on 375x812 the banner starts at y=590 and the button
+      used to sit at 661-765, under it. md: and up keep the original order. */}
   <section class="relative overflow-hidden py-12 md:py-28 px-6" style="background-color:hsl(var(--eden-cream))">
     <HeroBackdrop src={heroHomeschool} opacity={0.95} />
-    <div class="relative z-10 max-w-4xl mx-auto text-center rounded-lg" style="background-color:hsl(0 0% 100% / 0.92);border:1px solid hsl(var(--eden-gold) / 0.35);padding:clamp(26px, 3.5vw, 52px);box-shadow:0 2px 18px -10px rgba(30,62,46,0.28)">
+    <div class="relative z-10 max-w-4xl mx-auto text-center rounded-lg flex flex-col md:block" style="background-color:hsl(0 0% 100% / 0.92);border:1px solid hsl(var(--eden-gold) / 0.35);padding:clamp(26px, 3.5vw, 52px);box-shadow:0 2px 18px -10px rgba(30,62,46,0.28)">
       <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4 md:mb-6" style="color:hsl(var(--eden-gold-ink))">Eden's Table</p>
       <h1 class="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-4 md:mb-6" style="color:hsl(var(--eden-bark))">
         Herbalism for the<br /><span class="italic">Whole Family Table.</span>
       </h1>
       <div class="w-16 h-px mx-auto my-5 md:my-8" style="background-color:hsl(var(--eden-gold-ink))"></div>
-      <p class="font-body text-base md:text-lg text-muted-foreground max-w-2xl mx-auto mb-4 md:mb-6 leading-relaxed" style="color:hsl(var(--eden-bark))">
+      <p class="order-4 md:order-none mt-6 md:mt-0 font-body text-base md:text-lg text-muted-foreground max-w-2xl mx-auto mb-4 md:mb-6 leading-relaxed" style="color:hsl(var(--eden-bark))">
         A Biblical herbalism curriculum for K-5 homeschool families, with grades 6 to 12 to follow. Open-and-go lesson plans, memory songs, kitchen labs, garden activities, and a recurring family story, all rooted in Scripture and creation stewardship.
       </p>
-      <p class="font-accent text-sm tracking-wider uppercase mb-5 md:mb-8" style="color:hsl(var(--eden-sage-ink))">
+      <p class="order-5 md:order-none font-accent text-sm tracking-wider uppercase mb-5 md:mb-8" style="color:hsl(var(--eden-sage-ink))">
         Sprouts (K-2) and Seedlings (3-5) · Two complete 36-week years, in print or 9 weeks at a time
       </p>
       {/* id="early-access" is load-bearing: the homepage links to
           /homeschool#early-access (index.astro). Keep it even though the
           lead-magnet capture that originally lived here is gone. */}
-      <div id="early-access" class="flex flex-col items-center gap-4 scroll-mt-28 min-[1024px]:scroll-mt-40">
+      <div id="early-access" class="order-3 md:order-none flex flex-col items-center gap-4 scroll-mt-28 min-[1024px]:scroll-mt-40">
         {/* TWO doors, founder direction 2026-09-12. The kit came off the site
             with the print-first pivot, so the printed year leads and the $39 is
             the outlined try-it door. The kit button, its copy and its buy box are
