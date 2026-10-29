@@ -1,7 +1,7 @@
 ---
 title: "You're Qualified to Homeschool. Here's Why I Let My Teaching Certificate Lapse."
-seoTitle: "Am I Qualified to Homeschool? A Former Teacher's Answer"
-description: "Yes, you're qualified. No state requires every homeschool parent to be a certified teacher. A 12-year classroom teacher on why she let her certificate lapse."
+seoTitle: "Do You Need Teacher Certification to Homeschool?"
+description: "No state requires every homeschool parent to hold a teaching certificate. A credentialed teacher explains what states ask and what matters more."
 published: "2026-09-28"
 draft: false
 related:

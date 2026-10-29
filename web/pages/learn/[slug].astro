@@ -28,6 +28,16 @@ const related = entry.data.related.map((slug) => {
 });
 const d = entry.data;
 
+// Herbs in the Bible heads "Keep reading" on every other article (2026-10-28,
+// analytics and search developer prompt, task 11): it ranks on page 2 for its
+// search, and these are its closest pages. Its own title and description are the
+// link, so nothing is authored here.
+const HERBS_IN_THE_BIBLE = "herbs-in-the-bible";
+const bible = entry.slug === HERBS_IN_THE_BIBLE || d.related.includes(HERBS_IN_THE_BIBLE)
+  ? null
+  : published.find((a) => a.slug === HERBS_IN_THE_BIBLE) ?? null;
+const keepReading = bible ? [bible, ...related] : related;
+
 const ORIGIN = "https://edeninstitute.health";
 const canonical = `${ORIGIN}/learn/${entry.slug}`;
 const fmt = (iso: string) =>
@@ -99,11 +109,11 @@ if (d.faq.length > 0) {
         </section>
       )}
 
-      {related.length > 0 && (
+      {keepReading.length > 0 && (
         <nav aria-label="Keep reading" class="mt-14">
           <h2 class="font-serif text-2xl font-bold mb-6" style="color:hsl(var(--eden-bark))">Keep reading</h2>
           <ul class="space-y-5">
-            {related.map((r) => (
+            {keepReading.map((r) => (
               <li>
                 <a href={`/learn/${r.slug}`} data-cta={`learn-${entry.slug}-related-${r.slug}`} class="font-serif text-lg font-bold underline underline-offset-4" style="color:hsl(var(--eden-forest))">{r.data.title}</a>
                 <p class="font-body text-sm text-muted-foreground leading-relaxed mt-1">{r.data.description}</p>

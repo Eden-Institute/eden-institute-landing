@@ -24,6 +24,7 @@ import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
 // a fine, neutral texture so it never competes with the herb being read.
 // Built at this header's aspect, 1600x480 for its ~1440x460 with the panel.
 import heroMonograph from "@/assets/hero-monograph.jpg";
+import { HERBS_IN_THE_BIBLE_PATH, HERBS_IN_THE_BIBLE_TITLE, citesScripture } from "@/lib/scriptureHerbs";
 
 /**
  * HerbMonograph — the public per-herb page at /apothecary/:herbId
@@ -398,6 +399,20 @@ export default function HerbMonograph() {
                 style={{ color: "hsl(var(--eden-bark))" }}
               >
                 {herb.biblical_traditional_reference}
+              </p>
+            )}
+            {/* Plants Scripture names link to the article (2026-10-28, src/lib/scriptureHerbs.ts). */}
+            {citesScripture(herb.biblical_traditional_reference) && (
+              <p className="font-body text-sm mb-3" style={{ color: "hsl(var(--eden-bark))" }}>
+                Related reading:{" "}
+                <a
+                  href={HERBS_IN_THE_BIBLE_PATH}
+                  data-cta="herb-bible-article"
+                  className="underline underline-offset-4"
+                  style={{ color: "hsl(var(--eden-forest))" }}
+                >
+                  {HERBS_IN_THE_BIBLE_TITLE}
+                </a>
               </p>
             )}
             {herb.stewardship_note && (

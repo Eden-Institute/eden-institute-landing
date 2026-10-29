@@ -1,7 +1,7 @@
 ---
 title: "Is Herbalism Biblical? What Christian Homeschool Families Should Know"
-seoTitle: "Is Herbalism Biblical? A Christian Answer"
-description: "Yes, studying the plants God made is biblical. Where Scripture talks about plants, where Christians should be careful, and how to teach it to kids."
+seoTitle: "Is Herbalism Biblical? What Scripture Says About Plants"
+description: "Where the Bible talks about plants and healing, where Christians should be careful, and a simple test for any herbal resource before you use it."
 published: "2026-09-25"
 draft: false
 related:
