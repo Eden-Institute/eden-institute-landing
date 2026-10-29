@@ -10,7 +10,8 @@
 // sentence comes from herbs_public, so the page cannot drift from the app.
 import MarketingLayout from "../../layouts/MarketingLayout.astro";
 import { ApothecaryDisclaimer } from "@/components/apothecary/ApothecaryDisclaimer";
-import { herbParam, herbTitleName } from "@/lib/herbLinks";
+import { herbParam } from "@/lib/herbLinks";
+import { monographDescription, monographNames, monographTitle } from "@/lib/monographMeta";
 import { HERBS_IN_THE_BIBLE_PATH, HERBS_IN_THE_BIBLE_TITLE, citesScripture } from "@/lib/scriptureHerbs";
 import { CURRICULUM_BANDS, curriculumWeeksForHerb, scopeAndSequenceHref } from "@/lib/curriculumHerbs";
 import { getPublicHerbs, type PublicHerb } from "../../lib/herbsPublic";
@@ -39,51 +40,19 @@ const { herb, siblings } = Astro.props as Props;
 const slug = herbParam(herb);
 const canonical = `https://edeninstitute.health/herbs/${slug}`;
 
-// Title carries the pair people actually search: common name and Latin name.
-// herbTitleName (src/lib/herbLinks.ts) builds that pair from the row and is
-// shared with the app page, so the two surfaces title a herb the same way.
-// The words after the name say what the page holds: every free herb carries
-// pregnancy, breastfeeding and children safety fields and an energetics line
-// (all 155 rows, checked 2026-10-03). scripts/build-apothecary-shells.mjs
-// reads the name back off this exact suffix, so change both together.
-const title = `${herbTitleName(herb)}: Safety and Energetics | The Eden Institute`;
+// One title and one description template for every monograph (founder decision
+// 2026-10-28, src/lib/monographMeta.ts), shared with the app page and the
+// /apothecary/<slug> heads, so all three title a herb the same way. The English
+// name leads; Sanskrit and pinyin names move to the "Also known as" line below.
+// The energetics line, which used to be the description, stays in the body.
+const names = monographNames(herb);
+const title = monographTitle(herb);
+const description = monographDescription(herb);
 
 // The Eden's Table weeks that teach this plant (src/lib/curriculumHerbs.ts).
 // Empty for most herbs, and then the block below does not render.
 const curriculumWeeks = curriculumWeeksForHerb(herb.herb_id);
 
-// Description is the real energetics line, trimmed to a length Google will
-// render whole. No invented copy: if the row has no summary we fall back to
-// the identity facts, which are always present.
-function clamp(text: string, max = 155): string {
-  const flat = text.replace(/\s+/g, " ").trim();
-  if (flat.length <= max) return flat;
-  return flat.slice(0, flat.lastIndexOf(" ", max - 1)).replace(/[,;:.]$/, "") + "...";
-}
-// The safety topics this row actually answers are named at the end, so a
-// search result says the page covers them. Built from which fields are filled,
-// never from what they say: no claim about the herb is added here.
-const safetyTopics = [
-  herb.pregnancy_safety?.trim() ? "pregnancy" : "",
-  herb.breastfeeding_safety?.trim() ? "breastfeeding" : "",
-  herb.children_safety?.trim() ? "children" : "",
-].filter(Boolean);
-const safetyNote = safetyTopics.length
-  ? `Safety notes for ${
-      safetyTopics.length === 1
-        ? safetyTopics[0]
-        : `${safetyTopics.slice(0, -1).join(", ")} and ${safetyTopics[safetyTopics.length - 1]}`
-    }.`
-  : "";
-const baseDescription =
-  herb.energetics_summary ??
-  [herb.common_name, herb.latin_name, herb.part_used ? `${herb.part_used} used` : ""]
-    .filter(Boolean)
-    .join(", ");
-// clamp can run 2 characters past its max (it appends "..."), hence the 3.
-const description = safetyNote
-  ? `${clamp(baseDescription, 155 - safetyNote.length - 3)} ${safetyNote}`
-  : clamp(baseDescription);
 
 // Identity facts, rendered only where the row actually carries a value.
 const facts: { label: string; value: string }[] = [
@@ -170,10 +139,13 @@ const jsonLd = [
         <a href="/herbs" class="hover:underline">Eden Apothecary · Herb Profile</a>
       </p>
       <h1 class="font-serif text-4xl md:text-5xl font-bold leading-tight" style="color:hsl(var(--eden-bark))">
-        {herb.common_name}
+        {names.english}
       </h1>
       {herb.latin_name && (
         <p class="font-serif italic text-lg mt-3" style="color:hsl(var(--eden-forest))">{herb.latin_name}</p>
+      )}
+      {names.aka.length > 0 && (
+        <p class="font-body text-sm text-muted-foreground mt-1">Also known as {names.aka.join(", ")}</p>
       )}
       {herb.pronunciation && (
         <p class="font-body text-sm text-muted-foreground mt-1">Pronounced {herb.pronunciation}</p>

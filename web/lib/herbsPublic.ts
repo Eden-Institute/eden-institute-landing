@@ -151,6 +151,8 @@ export const NO_PRE1900_SOURCE_LINE = "No pre-1900 source found for this reading
 export interface RosterHerb {
   herb_id: string;
   common_name: string;
+  /** For the monograph title and description templates (src/lib/monographMeta.ts). */
+  latin_name: string | null;
   tier_visibility: string | null;
 }
 
@@ -175,7 +177,7 @@ export async function getHerbRoster(): Promise<RosterHerb[]> {
 
   const { data, error } = await supabase
     .from("herbs_directory_v")
-    .select("herb_id, common_name, tier_visibility")
+    .select("herb_id, common_name, latin_name, tier_visibility")
     .range(0, 999);
 
   if (error) {
