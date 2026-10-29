@@ -11,6 +11,7 @@
 import MarketingLayout from "../../layouts/MarketingLayout.astro";
 import { ApothecaryDisclaimer } from "@/components/apothecary/ApothecaryDisclaimer";
 import { herbParam, herbTitleName } from "@/lib/herbLinks";
+import { HERBS_IN_THE_BIBLE_PATH, HERBS_IN_THE_BIBLE_TITLE, citesScripture } from "@/lib/scriptureHerbs";
 import { CURRICULUM_BANDS, curriculumWeeksForHerb, scopeAndSequenceHref } from "@/lib/curriculumHerbs";
 import { getPublicHerbs, type PublicHerb } from "../../lib/herbsPublic";
 import { buttonVariants } from "@/components/ui/button";
@@ -290,6 +291,12 @@ const jsonLd = [
           <p class="font-body text-base leading-relaxed" style="color:hsl(var(--eden-bark))">
             {herb.biblical_traditional_reference}
           </p>
+          {citesScripture(herb.biblical_traditional_reference) && (
+            <p class="font-body text-sm mt-3" style="color:hsl(var(--eden-bark))">
+              Related reading:{" "}
+              <a href={HERBS_IN_THE_BIBLE_PATH} data-cta={`herb-${slug}-bible-article`} class="underline underline-offset-4" style="color:hsl(var(--eden-forest))">{HERBS_IN_THE_BIBLE_TITLE}</a>
+            </p>
+          )}
         </div>
       )}
 

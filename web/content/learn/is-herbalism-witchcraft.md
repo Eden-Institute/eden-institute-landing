@@ -1,7 +1,7 @@
 ---
 title: "Is Herbalism Witchcraft? What the Bible Says About Herbs"
-seoTitle: "Is Herbalism Witchcraft? A Christian Answer"
-description: "No. Using the plants God made is not witchcraft. What Scripture actually forbids, why the enemy wants this ground, and how Christians take it back."
+seoTitle: "Is Herbalism Witchcraft? What the Bible Actually Says"
+description: "Scripture forbids sorcery, not the plants God made. The verses that settle it, where the real line is, and whether Christians can use sage."
 published: "2026-09-28"
 draft: false
 related:
