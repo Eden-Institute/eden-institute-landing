@@ -19,7 +19,7 @@ const rpc = vi.fn((..._args: unknown[]) => Promise.resolve({ data: null, error: 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: (...a: unknown[]) => rpc(...a) } }));
 vi.mock("@/lib/pinterestTag", () => ({ pinCheckoutOnce: vi.fn(() => Promise.resolve()) }));
 // jsdom runs on localhost; the Pixel loads only on the live site (productionHost.ts).
-vi.mock("@/lib/productionHost", () => ({ isProductionHost: () => true }));
+vi.mock("@/lib/productionHost", () => ({ isProductionHost: () => true, thirdPartyTagsAllowed: () => true }));
 
 import SiteAnalytics from "../../web/components/islands/SiteAnalytics";
 import StarterDownloads from "../../web/components/islands/StarterDownloads";

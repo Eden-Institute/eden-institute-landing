@@ -147,6 +147,8 @@ export default function HerbMonograph() {
         ? undefined
         : "https://edeninstitute.health/apothecary",
     robots: notFound ? "noindex, follow" : undefined,
+    // GA's page_view waits for the herb's own title (src/lib/gaPageView.ts).
+    pending: isLoading,
   });
 
   if (isLoading) return <PageSkeleton />;

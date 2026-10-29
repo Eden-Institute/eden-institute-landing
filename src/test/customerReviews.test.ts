@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const live = { value: true };
-vi.mock("@/lib/productionHost", () => ({ isProductionHost: () => live.value }));
+vi.mock("@/lib/productionHost", () => ({ isProductionHost: () => live.value, thirdPartyTagsAllowed: () => live.value }));
 const invoke = vi.fn();
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { functions: { invoke: (...a: unknown[]) => invoke(...a) } } }));
 

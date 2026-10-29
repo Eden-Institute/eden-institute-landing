@@ -9,8 +9,9 @@
 // index.html, next to the GA4 config, on the live site only.
 //
 // Sent from inside reportGa4PurchaseOnce (printed orders) and
-// reportGa4DigitalPurchaseOnce (digital orders), straight after the GA4
-// "purchase", so it inherits every guard that event already has: paid orders
+// reportGa4DigitalPurchaseOnce (digital orders). Since 2026-10-28 GA4's "purchase"
+// comes from stripe-webhook instead of the browser, and this conversion is all
+// those two still send. It keeps every guard they always had: paid orders
 // only, nothing after Decline, nothing for a Stripe test-mode (E2E) order,
 // once per order per browser on the SAME localStorage key, and transaction_id =
 // checkoutRef(session id), never the session id. value and currency are the

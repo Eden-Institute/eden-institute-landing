@@ -104,8 +104,9 @@ const meta = {
     }
   })();
 
-  // The standard GA4 "purchase" as well (2026-10-07), with the real amount paid,
-  // so Starter sales count in Analytics beside every other sale. See
+  // The Google Ads conversion, with the real amount paid. GA4's standard
+  // "purchase" for the Starter comes from stripe-webhook since 2026-10-28, so it
+  // counts in Analytics even when this page never runs. See
   // src/lib/ga4DigitalPurchase.ts.
   void reportGa4DigitalPurchaseOnce(readCheckoutSessionId(), { id: "seedlings_starter_unit", name: "Seedlings Starter Unit" });
 

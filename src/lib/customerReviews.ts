@@ -36,7 +36,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { getMarketingConsent } from "@/lib/consent";
-import { isProductionHost } from "@/lib/productionHost";
+import { thirdPartyTagsAllowed } from "@/lib/productionHost";
 
 export const GCR_MERCHANT_ID = 5861058138;
 export const GCR_DELIVERY_DAYS = 21;
@@ -117,7 +117,7 @@ const shownThisPage = new Set<string>();
  */
 export function showCustomerReviewsOptIn(order: GcrOrder, kind: GcrOrderKind): void {
   try {
-    if (typeof window === "undefined" || !isProductionHost()) return;
+    if (typeof window === "undefined" || !thirdPartyTagsAllowed()) return;
     if (order.stage === "cancelled" || getMarketingConsent() === "denied") return;
     const params = buildGcrOptIn(order, kind);
     if (!params) return;
@@ -168,7 +168,7 @@ export async function showCustomerReviewsOptInForSession(
   pollMs: number = POLL_MS,
 ): Promise<void> {
   try {
-    if (!sessionId || typeof window === "undefined" || !isProductionHost()) return;
+    if (!sessionId || typeof window === "undefined" || !thirdPartyTagsAllowed()) return;
     if (getMarketingConsent() === "denied") return;
     for (let i = 0; i < MAX_POLLS; i++) {
       try {

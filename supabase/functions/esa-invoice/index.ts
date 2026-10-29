@@ -49,6 +49,7 @@ import {
 } from "../_shared/esa-invoice-issue.ts";
 import { captureException } from "../_shared/sentry.ts";
 import { esc } from "../_shared/html-escape.ts";
+import { tagEmailHtml } from "../_shared/email-utm.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -229,7 +230,8 @@ async function sendEmail(args: {
         to: args.to,
         reply_to: FOUNDER,
         subject: args.subject,
-        html: args.html,
+        // UTM tags on every edeninstitute.health link (hard gate 2026-10-28, email-utm.ts).
+        html: tagEmailHtml(args.html, { medium: "nurture", campaign: "esa_invoice" }),
         attachments: args.attachments,
       }),
     });

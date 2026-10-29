@@ -616,7 +616,8 @@ async function handle(req: Request, ctx: HandlerContext): Promise<Response> {
             });
           }
           const messageId = await sendEmail(r.customer_email, recipientSubject, html, `${broadcastId}:${r.order_id}`, {
-            medium: "broadcast",
+            medium: "newsletter",
+            campaign: "founder_broadcast",
             content: isDelay ? "delay_notice" : "update",
           });
           sentNow += 1;

@@ -79,7 +79,8 @@ const GuideLanding = () => {
         setVerifying(true);
         try {
           const ok = await verifySession(sessionId, true);
-          // GA4 purchase (2026-10-07), only on the post-payment redirect, never on
+          // Google Ads conversion (GA4's purchase comes from stripe-webhook since
+          // 2026-10-28), only on the post-payment redirect, never on
           // a return visit from the emailed link or a remembered session. The
           // Google Customer Reviews opt-in rides on the same path (2026-10-16).
           if (ok) {

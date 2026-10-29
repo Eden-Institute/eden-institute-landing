@@ -30,6 +30,10 @@
 //                                     consent-gated, one per address per 30 days;
 //                                     see _shared/checkout-recovery.ts)
 //   charge.refunded                → preorder order → refunded (suppresses messaging)
+//   GA4 (2026-10-28)               → every paid checkout, every subscription invoice
+//                                     and every refund goes to Google Analytics through
+//                                     the Measurement Protocol, with the outcome written
+//                                     to payments.ga4_status (_shared/ga4-mp.ts)
 //   charge.succeeded               → LearnWorlds course purchase → course_sales
 //                                     (Foundations Course sells on LearnWorlds through THIS
 //                                     Stripe account via Stripe Connect; those charges carry
@@ -68,6 +72,19 @@ import { escapeLikePattern } from "../_shared/like-escape.ts"
 import { classifyLearnWorldsCharge } from "../_shared/learnworlds-charge.ts"
 import { E2E_MODE, isE2eMetadata, stripeSecretKey, stripeWebhookSecret } from "../_shared/e2e-mode.ts"
 import { attributionColumnsFromMetadata, lastTouchColumnsFromMetadata } from "../_shared/purchase-attribution.ts"
+// Every sale, renewal and refund reported to GA4 from here, 2026-10-28.
+import {
+  buildPurchase,
+  buildRefund,
+  centsToValue,
+  checkoutRef,
+  decideGa4,
+  fallbackClientId,
+  ga4VisitorFromMetadata,
+  sendGa4,
+  type Ga4Item,
+  type Ga4Status,
+} from "../_shared/ga4-mp.ts"
 // Abandoned-checkout recovery email, 2026-09-28.
 import {
   CART_RECOVERY_COOLDOWN_DAYS,
@@ -79,6 +96,7 @@ import {
   recoveryItemNames,
 } from "../_shared/checkout-recovery.ts"
 import { applyUnsub } from "../_shared/email-unsubscribe.ts"
+import { tagEmailHtml, tagEmailText } from "../_shared/email-utm.ts"
 
 /**
  * Normalize a constitution identifier to a guide-registry slug.
@@ -103,6 +121,9 @@ const stripe = new Stripe(stripeSecretKey(), {
 const webhookSecret = stripeWebhookSecret()
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")
+// GA4 Measurement Protocol secret (GA Admin > Data streams > Measurement Protocol API
+// secrets). Absent: every payment is marked ga4_status = 'skipped_no_secret'.
+const GA4_MP_API_SECRET = Deno.env.get("GA4_MP_API_SECRET") ?? ""
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 
@@ -189,7 +210,8 @@ async function sendGuidePdf(
         reply_to: "hello@edeninstitute.health",
         to: [email],
         subject: "Your Constitutional Deep-Dive Guide",
-        html,
+        // UTM tags on any edeninstitute.health link (hard gate 2026-10-28, email-utm.ts).
+        html: tagEmailHtml(html, { medium: "nurture", campaign: "guide_delivery" }),
         attachments: [{ filename: "Eden-Institute-Constitutional-Deep-Dive-Guide.pdf", content: pdfB64 }],
       }),
     })
@@ -354,6 +376,12 @@ serve(async (req) => {
 
         // A paid cart that came back through a recovery link. Reporting only; never throws.
         await markCartRecovered(session)
+
+        // The sale to Google Analytics, from here rather than the thank-you page, so
+        // an ad blocker or a closed tab can no longer lose it. After the order exists
+        // (its lines become the GA items). Never throws; E2E sessions are marked
+        // skipped_test on their ledger row.
+        await reportCheckoutToGa4(event, session)
 
         // Report the sale to Meta (server-side Conversions API). Deliberately
         // AFTER handleOneOffPayment and deliberately un-awaited for failure:
@@ -1586,6 +1614,22 @@ async function recordOneOffPayment(event: Stripe.Event, session: Stripe.Checkout
     if (error && (error as any).code !== "23505") {
       console.error(`payments insert failed for session ${session.id}: ${error.message}`)
     }
+
+    // The same sale, counted once (2026-10-28). A curriculum checkout turns on Stripe's
+    // invoice_creation (_shared/receipt.ts), and that invoice fires invoice.paid a few
+    // seconds BEFORE this event, so recordInvoicePayment wrote a second 'paid' row for
+    // the same money: every Starter Unit and printed set was in the ledger twice. This
+    // row is the record of the sale; the invoice row becomes 'duplicate', kept for the
+    // audit trail and left out of every revenue total (they all sum status = 'paid').
+    const invoiceId = typeof session.invoice === "string" ? session.invoice : session.invoice?.id ?? null
+    if (invoiceId) {
+      const { error: dupErr } = await adminClient.from("payments")
+        .update({ status: "duplicate" })
+        .eq("stripe_invoice_id", invoiceId)
+        .eq("status", "paid")
+        .is("stripe_subscription_id", null)
+      if (dupErr) console.error(`marking invoice ${invoiceId} duplicate failed: ${dupErr.message}`)
+    }
   } catch (err) {
     console.error("recordOneOffPayment failed (non-fatal):", err instanceof Error ? err.message : String(err))
   }
@@ -1625,22 +1669,19 @@ async function recordRefund(event: Stripe.Event, charge: Stripe.Charge) {
     // Inherit kind/description/lookup_key from the payment being refunded so the refund
     // row groups with it in revenue reporting. Absent for a charge that predates the
     // ledger, which is fine: the refund is still recorded, just less richly labelled.
-    let original: {
-      kind?: string; description?: string | null; lookup_key?: string | null
-      customer_email?: string | null; user_id?: string | null; currency?: string | null
-    } | null = null
+    let original: Ga4RefundOriginal | null = null
     if (pi) {
       const { data } = await adminClient
         .from("payments")
-        .select("kind, description, lookup_key, customer_email, user_id, currency")
+        .select("kind, description, lookup_key, customer_email, user_id, currency, is_internal, occurred_at, ga4_status, ga4_transaction_id, raw_id:raw->>id, raw_object:raw->>object, md:raw->metadata")
         .eq("stripe_payment_intent_id", pi)
         .eq("status", "paid")
         .maybeSingle()
-      original = data ?? null
+      original = (data as Ga4RefundOriginal | null) ?? null
     }
 
     const isPartial = !charge.refunded
-    const { error } = await adminClient.from("payments").insert({
+    const { data: row, error } = await adminClient.from("payments").insert({
       stripe_event_id: event.id,
       stripe_payment_intent_id: pi,
       stripe_charge_id: charge.id,
@@ -1655,7 +1696,7 @@ async function recordRefund(event: Stripe.Event, charge: Stripe.Charge) {
       status: "refunded",
       occurred_at: new Date(event.created * 1000).toISOString(),
       raw: charge,
-    })
+    }).select("id, is_internal").maybeSingle()
     // deno-lint-ignore no-explicit-any
     if (error && (error as any).code !== "23505") {
       console.error(`refund insert failed for charge ${charge.id}: ${error.message}`)
@@ -1664,6 +1705,8 @@ async function recordRefund(event: Stripe.Event, charge: Stripe.Charge) {
     console.log(
       `payments: recorded ${isPartial ? "partial " : ""}refund of ${refunded} (charge=${charge.id})`,
     )
+    // A retry that hit the unique key returns no row: it was reported the first time.
+    if (row) await reportRefundToGa4(event, row, original, refunded, charge.currency ?? original?.currency ?? "usd")
   } catch (err) {
     console.error("recordRefund failed (non-fatal):", err instanceof Error ? err.message : String(err))
   }
@@ -1758,9 +1801,28 @@ async function recordInvoicePayment(event: Stripe.Event, status: "paid" | "faile
   }
 
   const line = inv.lines?.data?.[0]
-  const subscriptionId = typeof inv.subscription === "string"
+  // Webhook events arrive in the endpoint's API version. From 2025 Stripe moved the
+  // subscription off the invoice into parent.subscription_details, which is where every
+  // invoice since August carries it: without this the Root renewal of 2026-10-20 was
+  // ledgered with no subscription at all.
+  const subscriptionId: string | null = typeof inv.subscription === "string"
     ? inv.subscription
-    : inv.subscription?.id ?? line?.subscription ?? null
+    : inv.subscription?.id ?? inv.parent?.subscription_details?.subscription ??
+      line?.subscription ?? line?.parent?.subscription_item_details?.subscription ?? null
+  const subscriptionMetadata = inv.subscription_details?.metadata ?? inv.parent?.subscription_details?.metadata ?? null
+
+  // An invoice with no subscription is the receipt Checkout's invoice_creation makes
+  // for a curriculum purchase. The checkout.session row already holds that money, so
+  // when it is there first this invoice is not written at all; when the invoice comes
+  // first (the usual order), recordOneOffPayment marks this row 'duplicate'.
+  if (!subscriptionId && status === "paid" && inv.id) {
+    const { data: twin } = await adminClient.from("payments").select("id")
+      .eq("raw->>object", "checkout.session").eq("raw->>invoice", inv.id).limit(1)
+    if (twin && twin.length > 0) {
+      console.log(`invoice ${inv.id} belongs to a checkout already in the ledger; not recorded twice`)
+      return
+    }
+  }
 
   const lookupKey = line?.price?.lookup_key ?? null
   const tier = tierFromLookupKey(lookupKey)
@@ -1775,7 +1837,7 @@ async function recordInvoicePayment(event: Stripe.Event, status: "paid" | "faile
 
   const period = line?.period ?? null
 
-  const { error } = await adminClient.from("payments").insert({
+  const { data: row, error } = await adminClient.from("payments").insert({
     stripe_event_id: event.id,
     stripe_invoice_id: inv.id ?? null,
     stripe_payment_intent_id: typeof inv.payment_intent === "string" ? inv.payment_intent : null,
@@ -1794,12 +1856,18 @@ async function recordInvoicePayment(event: Stripe.Event, status: "paid" | "faile
     period_end: period?.end ? new Date(period.end * 1000).toISOString() : null,
     occurred_at: new Date((inv.status_transitions?.paid_at ?? inv.created ?? event.created) * 1000).toISOString(),
     raw: inv,
-  })
+  }).select("id, is_internal").maybeSingle()
 
   // 23505 = already recorded by a retry or the backfill. Expected, not a failure.
   // deno-lint-ignore no-explicit-any
   if (error && (error as any).code !== "23505") {
     throw new Error(`payments insert failed for invoice ${inv.id}: ${error.message}`)
+  }
+
+  // A subscription payment (the first month or a renewal) to Google Analytics. Never
+  // throws, so it cannot make Stripe retry a payment that is already recorded.
+  if (row && status === "paid") {
+    await reportInvoiceToGa4(event, inv, row, { subscriptionId, subscriptionMetadata, amount, lookupKey })
   }
 
   // Subscriber attribution: create-checkout puts the attr_* keys in
@@ -1808,12 +1876,200 @@ async function recordInvoicePayment(event: Stripe.Event, status: "paid" | "faile
   // subscriber's ORIGINAL first touch (kind='subscription' tells them apart), which is
   // what revenue-by-source needs. Absent on older API versions and older
   // subscriptions; best-effort either way.
-  await stampPurchaseAttribution("payments", "stripe_event_id", event.id, inv.subscription_details?.metadata ?? null)
+  await stampPurchaseAttribution("payments", "stripe_event_id", event.id, subscriptionMetadata)
 
   console.log(
     `Recorded ${status} subscription payment: ${amount} ${inv.currency ?? "usd"} ` +
       `invoice=${inv.id} sub=${subscriptionId ?? "n/a"}`,
   )
+}
+
+// ---------- Google Analytics (GA4 Measurement Protocol) ----------
+//
+// Every paid checkout, subscription invoice and refund, reported from here
+// (2026-10-28, founder: "Server, every sale"). The browser no longer sends
+// "purchase". Each payments row gets the outcome in ga4_status, so GA4 purchase
+// revenue for a month equals sum(paid) - sum(refunded) over rows with
+// ga4_status = 'sent', and every other row names why it was not sent. Rules and
+// payload shapes: _shared/ga4-mp.ts. None of this ever throws.
+
+type Ga4RefundOriginal = {
+  kind?: string; description?: string | null; lookup_key?: string | null
+  customer_email?: string | null; user_id?: string | null; currency?: string | null
+  is_internal?: boolean | null; occurred_at?: string | null
+  ga4_status?: string | null; ga4_transaction_id?: string | null
+  raw_id?: string | null; raw_object?: string | null; md?: Record<string, unknown> | null
+}
+
+async function writeGa4Outcome(rowId: string, status: Ga4Status, transactionId: string | null) {
+  const { error } = await adminClient.from("payments").update({
+    ga4_status: status,
+    ga4_transaction_id: transactionId,
+    ga4_sent_at: status === "sent" ? new Date().toISOString() : null,
+  }).eq("id", rowId)
+  if (error) console.error(`ga4: writing ${status} on payment ${rowId} failed: ${error.message}`)
+}
+
+/** The order's lines as GA items: feed sku, name, unit price, quantity. */
+async function ga4ItemsForSession(session: Stripe.Checkout.Session, amountCents: number): Promise<Ga4Item[]> {
+  const md = session.metadata ?? {}
+  const fallbackId = md.lookup_key ?? md.book_digital_sku ?? md.print_sku ?? md.preorder_sku ?? "one_off"
+  const single = (id: string, name: string): Ga4Item[] => [{ item_id: id, item_name: name, price: centsToValue(amountCents), quantity: 1 }]
+  try {
+    const { data: o } = await adminClient.from("orders").select("id, lookup_key, product_label")
+      .eq("stripe_checkout_session_id", session.id).maybeSingle()
+    if (!o) return single(fallbackId, fallbackId)
+    const { data: lines } = await adminClient.from("order_items")
+      .select("quantity, unit_price_cents, product:products(name, sku)").eq("order_id", o.id)
+    // deno-lint-ignore no-explicit-any
+    const items = ((lines ?? []) as any[]).filter((l) => (l.quantity ?? 0) > 0).map((l) => ({
+      item_id: l.product?.sku ?? o.lookup_key ?? fallbackId,
+      item_name: l.product?.name ?? o.product_label ?? fallbackId,
+      price: centsToValue(l.unit_price_cents ?? 0),
+      quantity: l.quantity,
+    }))
+    return items.length ? items : single(o.lookup_key ?? fallbackId, o.product_label ?? fallbackId)
+  } catch {
+    return single(fallbackId, fallbackId)
+  }
+}
+
+async function reportCheckoutToGa4(event: Stripe.Event, session: Stripe.Checkout.Session) {
+  try {
+    const { data: row } = await adminClient.from("payments")
+      .select("id, amount_cents, currency, is_internal, ga4_status")
+      .eq("stripe_event_id", event.id).maybeSingle()
+    // No row: $0 or unpaid (recordOneOffPayment wrote nothing). A status: done already.
+    if (!row || row.ga4_status) return
+    const visitor = ga4VisitorFromMetadata(session.metadata)
+    const ref = await checkoutRef(session.id)
+    const skip = decideGa4({
+      livemode: event.livemode,
+      e2e: E2E_MODE || isE2eMetadata(session.metadata),
+      isInternal: !!row.is_internal,
+      consent: visitor.consent,
+      hasSecret: !!GA4_MP_API_SECRET,
+    })
+    if (skip || !ref) return await writeGa4Outcome(row.id, skip ?? "failed", ref)
+    const payload = buildPurchase({
+      clientId: visitor.clientId ?? fallbackClientId(ref, event.created),
+      sessionId: visitor.sessionId,
+      transactionId: ref,
+      valueCents: row.amount_cents,
+      currency: row.currency,
+      taxCents: session.total_details?.amount_tax ?? 0,
+      shippingCents: session.total_details?.amount_shipping ?? 0,
+      items: await ga4ItemsForSession(session, row.amount_cents),
+      epochSeconds: event.created,
+    })
+    const res = await sendGa4(payload, GA4_MP_API_SECRET)
+    if (!res.ok) console.error(`ga4: purchase for session ref ${ref} answered ${res.status}`)
+    await writeGa4Outcome(row.id, res.ok ? "sent" : "failed", ref)
+  } catch (err) {
+    console.error("reportCheckoutToGa4 failed (non-fatal):", err instanceof Error ? err.message : String(err))
+  }
+}
+
+async function reportInvoiceToGa4(
+  event: Stripe.Event,
+  // deno-lint-ignore no-explicit-any
+  inv: any,
+  row: { id: string; is_internal: boolean | null },
+  f: { subscriptionId: string | null; subscriptionMetadata: Record<string, unknown> | null; amount: number; lookupKey: string | null },
+) {
+  try {
+    const txid: string | null = inv.id ?? null
+    // A curriculum receipt (no subscription): its checkout row reports the sale.
+    if (!f.subscriptionId || !txid) return await writeGa4Outcome(row.id, "skipped_not_subscription", null)
+    const visitor = ga4VisitorFromMetadata(f.subscriptionMetadata)
+    const skip = decideGa4({
+      livemode: event.livemode,
+      e2e: E2E_MODE,
+      isInternal: !!row.is_internal,
+      consent: visitor.consent,
+      hasSecret: !!GA4_MP_API_SECRET,
+    })
+    if (skip) return await writeGa4Outcome(row.id, skip, txid)
+    const line = inv.lines?.data?.[0]
+    const payload = buildPurchase({
+      clientId: visitor.clientId ?? fallbackClientId(f.subscriptionId, inv.created ?? event.created),
+      // Only the first invoice belongs to the checkout visit; a renewal has no visit.
+      sessionId: inv.billing_reason === "subscription_create" ? visitor.sessionId : null,
+      transactionId: txid,
+      valueCents: f.amount,
+      currency: inv.currency,
+      taxCents: typeof inv.tax === "number" ? inv.tax : 0,
+      items: [{
+        item_id: f.lookupKey ?? line?.price?.id ?? "subscription",
+        item_name: line?.description ?? "Subscription",
+        price: centsToValue(f.amount),
+        quantity: 1,
+      }],
+      epochSeconds: inv.status_transitions?.paid_at ?? event.created,
+    })
+    const res = await sendGa4(payload, GA4_MP_API_SECRET)
+    if (!res.ok) console.error(`ga4: purchase for invoice ${txid} answered ${res.status}`)
+    await writeGa4Outcome(row.id, res.ok ? "sent" : "failed", txid)
+  } catch (err) {
+    console.error("reportInvoiceToGa4 failed (non-fatal):", err instanceof Error ? err.message : String(err))
+  }
+}
+
+/**
+ * A refund, for the amount its ledger row records. It follows its sale: a sale that
+ * was skipped (declined, internal, test) leaves its refund skipped for the same
+ * reason, so the pair drops out of both sides of the monthly match together. A sale
+ * from before 2026-10-28 has no ga4 fields; it is judged now the same way.
+ */
+async function reportRefundToGa4(
+  event: Stripe.Event,
+  row: { id: string; is_internal: boolean | null },
+  original: Ga4RefundOriginal | null,
+  refundedCents: number,
+  currency: string,
+) {
+  try {
+    if (!event.livemode || E2E_MODE) return await writeGa4Outcome(row.id, "skipped_test", null)
+    // A subscription charge's refund carries no link back to its invoice in this API
+    // version, so it cannot be matched to the transaction GA holds.
+    if (!original) return await writeGa4Outcome(row.id, "skipped_unmatched", null)
+
+    let txid = original.ga4_transaction_id ?? null
+    const visitor = ga4VisitorFromMetadata(original.md)
+    if (original.ga4_status && original.ga4_status !== "sent") {
+      return await writeGa4Outcome(row.id, original.ga4_status as Ga4Status, txid)
+    }
+    if (!original.ga4_status) {
+      if (original.raw_object !== "checkout.session" || !original.raw_id) {
+        return await writeGa4Outcome(row.id, "skipped_unmatched", null)
+      }
+      txid = await checkoutRef(original.raw_id)
+      const skip = decideGa4({
+        livemode: true,
+        e2e: isE2eMetadata(original.md),
+        isInternal: !!original.is_internal,
+        consent: visitor.consent,
+        hasSecret: !!GA4_MP_API_SECRET,
+      })
+      if (skip) return await writeGa4Outcome(row.id, skip, txid)
+    }
+    if (!txid) return await writeGa4Outcome(row.id, "skipped_unmatched", null)
+    if (!GA4_MP_API_SECRET) return await writeGa4Outcome(row.id, "skipped_no_secret", txid)
+
+    const soldAt = original.occurred_at ? Math.floor(new Date(original.occurred_at).getTime() / 1000) : event.created
+    const payload = buildRefund({
+      clientId: visitor.clientId ?? fallbackClientId(txid, soldAt),
+      transactionId: txid,
+      valueCents: refundedCents,
+      currency,
+      epochSeconds: event.created,
+    })
+    const res = await sendGa4(payload, GA4_MP_API_SECRET)
+    if (!res.ok) console.error(`ga4: refund for ${txid} answered ${res.status}`)
+    await writeGa4Outcome(row.id, res.ok ? "sent" : "failed", txid)
+  } catch (err) {
+    console.error("reportRefundToGa4 failed (non-fatal):", err instanceof Error ? err.message : String(err))
+  }
 }
 
 // ---------- Purchase attribution ----------
@@ -2004,8 +2260,13 @@ async function handleCheckoutSessionExpired(session: Stripe.Checkout.Session): P
 
     const built = buildCartRecoveryEmail({ firstName: pre.firstName, items, recoveryUrl: pre.recoveryUrl })
     // The same one-click unsubscribe (RFC 8058) the marketing senders use, list 'cart'.
-    const { html, headers: unsubHeaders } = await applyUnsub(built.html, pre.email, "cart")
-    const { html: text } = await applyUnsub(built.text, pre.email, "cart")
+    const { html: unsubHtml, headers: unsubHeaders } = await applyUnsub(built.html, pre.email, "cart")
+    const { html: unsubText } = await applyUnsub(built.text, pre.email, "cart")
+    // UTM tags on every edeninstitute.health link (hard gate 2026-10-28, email-utm.ts). The
+    // Stripe recovery link is on Stripe's host and is left alone.
+    const cartTag = { medium: "nurture", campaign: "cart_recovery" } as const
+    const html = tagEmailHtml(unsubHtml, cartTag)
+    const text = tagEmailText(unsubText, cartTag)
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {

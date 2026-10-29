@@ -14,6 +14,24 @@
 
 import { getMarketingConsent } from "@/lib/consent";
 
+/**
+ * A click on a link between the site's own pages that used to carry UTM tags
+ * (2026-10-28). A tag on an internal link starts a new GA session credited to the
+ * tag and erases the visitor's real source, so these links are plain now and the
+ * click is this event instead: select_content with the link's content_type, and
+ * the path it leads to as content_id. Same consent rule as email_submit.
+ */
+export function trackInternalLinkClick(contentType: string, href: string): void {
+  try {
+    if (getMarketingConsent() === "denied") return;
+    const gtag = (window as unknown as { gtag?: (...args: unknown[]) => void }).gtag;
+    if (typeof gtag !== "function") return;
+    gtag("event", "select_content", { content_type: contentType, content_id: href });
+  } catch {
+    // Analytics never break a link.
+  }
+}
+
 export function trackEmailSubmit(formName: string): void {
   try {
     if (getMarketingConsent() === "denied") return;

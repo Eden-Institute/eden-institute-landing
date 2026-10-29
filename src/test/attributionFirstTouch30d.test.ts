@@ -86,7 +86,8 @@ describe("30-day first touch", () => {
     expect(window.localStorage.getItem(PERSIST_KEY)).toBeNull();
     closeTab();
     visit("/back-to-eden");
-    expect(getCheckoutAttribution()).toEqual({});
+    // No attribution at all; only the Decline itself, so the server skips the sale in GA.
+    expect(getCheckoutAttribution()).toEqual({ ga: { consent: "denied" } });
   });
 
   it("Decline after the fact removes an existing 30-day copy", () => {
@@ -97,7 +98,7 @@ describe("30-day first touch", () => {
 
     window.localStorage.setItem(CONSENT_KEY, "denied");
     visit("/back-to-eden");
-    expect(getCheckoutAttribution()).toEqual({});
+    expect(getCheckoutAttribution()).toEqual({ ga: { consent: "denied" } });
     expect(window.localStorage.getItem(PERSIST_KEY)).toBeNull();
   });
 
