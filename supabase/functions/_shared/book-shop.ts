@@ -180,7 +180,7 @@ export async function sendBookDeliveryEmail(m: BookDeliveryModel): Promise<strin
   const rendered = renderBookDeliveryEmail(m);
   // UTM tags on every edeninstitute.health link (founder rule 2026-10-08, email-utm.ts).
   // The /back-to-eden/download?t= link and /returns are excluded by the helper.
-  const utm: EmailTag = { medium: 'receipt', content: 'book_delivery' };
+  const utm: EmailTag = { medium: 'nurture', campaign: 'book_delivery', content: 'book_delivery' };
   const subject = rendered.subject;
   const html = tagEmailHtml(rendered.html, utm);
   const text = tagEmailText(rendered.text, utm);

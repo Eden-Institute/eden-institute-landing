@@ -9,6 +9,7 @@ import { FontScaleProvider } from "@/contexts/FontScaleContext";
 import { childPath, ROUTES } from "@/lib/routes";
 import ScrollToTop from "@/components/utils/ScrollToTop";
 import PageViewTracker from "@/components/utils/PageViewTracker";
+import GaPageViewTracker from "@/components/utils/GaPageViewTracker";
 import CtaClickTracker from "@/components/utils/CtaClickTracker";
 import MetaPixelTracker from "@/components/utils/MetaPixelTracker";
 import HomeRedirect from "@/components/utils/HomeRedirect";
@@ -94,6 +95,9 @@ const App = () => (
             {/* Cookieless first-party page-view beacon (writes via record_page_view
                 RPC). Sibling to <Routes> so it sees every navigation. */}
             <PageViewTracker />
+            {/* GA4 page_view with each route's real title, sent once useDocumentMeta
+                has set it; index.html turns GA's own page_view off. */}
+            <GaPageViewTracker />
             {/* CRO Phase 4: delegated [data-cta] click beacon (record_cta_click
                 RPC) — one capture-phase listener makes every CTA measurable. */}
             <CtaClickTracker />

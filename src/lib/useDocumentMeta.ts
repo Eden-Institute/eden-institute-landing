@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { announceDocumentMeta } from "@/lib/gaPageView";
 
 /**
  * Per-route document meta — one-stop typed primitive for setting
@@ -49,6 +50,13 @@ export interface DocumentMeta {
    * index.html default ("index, follow") stays in place.
    */
   robots?: string;
+  /**
+   * True while the page is still loading what its title is about (an herb
+   * before the herb has loaded). The title is set as usual, but GA's page_view
+   * waits for the settled one (src/lib/gaPageView.ts, 2026-10-28), so GA never
+   * records a placeholder such as "Herb Monograph | Eden Apothecary".
+   */
+  pending?: boolean;
 }
 
 /**
@@ -117,10 +125,11 @@ const DEFAULTS = typeof document === "undefined" ? null : readHeadDefaults(docum
  * so it's safe to inline the object literal at the call site.
  */
 export function useDocumentMeta(meta: DocumentMeta): void {
-  const { title, description, canonical, ogImage, ogType = "website", robots } = meta;
+  const { title, description, canonical, ogImage, ogType = "website", robots, pending = false } = meta;
 
   useEffect(() => {
     document.title = title;
+    announceDocumentMeta(title, pending);
     setMetaName("description", description);
     if (canonical) setLink("canonical", canonical);
     else removeLink("canonical");
@@ -161,7 +170,7 @@ export function useDocumentMeta(meta: DocumentMeta): void {
       if (DEFAULTS.ogImage) setMetaProperty("og:image", DEFAULTS.ogImage);
       if (DEFAULTS.twitterImage) setMetaName("twitter:image", DEFAULTS.twitterImage);
     };
-  }, [title, description, canonical, ogImage, ogType, robots]);
+  }, [title, description, canonical, ogImage, ogType, robots, pending]);
 }
 
 // ─── DOM helpers ───────────────────────────────────────────────────

@@ -438,7 +438,7 @@ async function sendDeliveryEmail(model: StarterEmailModel, sessionId: string): P
   const rendered = renderStarterDeliveryEmail(model);
   // UTM tags on every edeninstitute.health link (founder rule 2026-10-08, email-utm.ts).
   // The /starter/downloads?t= link is excluded by the helper.
-  const utm: EmailTag = { medium: 'receipt', content: 'starter_delivery' };
+  const utm: EmailTag = { medium: 'nurture', campaign: 'starter_delivery', content: 'starter_delivery' };
   const subject = rendered.subject;
   const html = tagEmailHtml(rendered.html, utm);
   const text = tagEmailText(rendered.text, utm);

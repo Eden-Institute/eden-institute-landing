@@ -92,11 +92,14 @@
     <!-- Live site only (2026-10-02): window.__edenTagsLive is true only on
          edeninstitute.health, so Vercel previews and localhost load no GTM or
          gtag.js. Pattern shared with src/lib/productionHost.ts
-         (src/test/productionHost.test.ts). -->
+         (src/test/productionHost.test.ts). Never in a test session either
+         (2026-10-28): an automated browser, the E2E switch, or a tab that arrived
+         on an e2e_check / claude_e2e / utm_medium=test link (TEST_SESSION_GUARD_JS). -->
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       window.__edenTagsLive = /^(www\.)?edeninstitute\.health$/.test(window.location.hostname);
+      try { var edenQ = new URLSearchParams(window.location.search); if (/^(e2e_check|claude_e2e)$/.test(edenQ.get('utm_source') || '') || edenQ.get('utm_medium') === 'test') sessionStorage.setItem('eden-test-session', '1'); if (navigator.webdriver || localStorage.getItem('eden_e2e_token') || sessionStorage.getItem('eden-test-session') === '1') window.__edenTagsLive = false; } catch (e) {}
       try {
         if (localStorage.getItem('eden-marketing-consent') === 'denied') {
           window['ga-disable-G-5DVHEZPKL0'] = true;
@@ -121,7 +124,10 @@
         t.src='https://www.googletagmanager.com/gtag/js?id=G-5DVHEZPKL0';
         var f=document.getElementsByTagName('script')[0];f.parentNode.insertBefore(t,f);})();
         gtag('js', new Date());
-        gtag('config', 'G-5DVHEZPKL0');
+        // send_page_view: false (2026-10-28). The app sends each page_view itself
+        // once the route has set its real title (src/lib/gaPageView.ts); GA's own
+        // fired before that and logged placeholders.
+        gtag('config', 'G-5DVHEZPKL0', { send_page_view: false });
         var edenAdsOn = true;
         try { edenAdsOn = localStorage.getItem('eden-marketing-consent') !== 'denied'; } catch (e) {}
         if (edenAdsOn) gtag('config', 'AW-18494002476');

@@ -44,6 +44,14 @@
 // stamps it onto attr_last_* columns in a SEPARATE update, so the first-touch write
 // above is byte-for-byte what it was. Eight more keys at most, eighteen in all; the
 // longest name is attr_last_utm_campaign, 22 chars.
+//
+// GA4 VISITOR (2026-10-28). `attribution.ga` carries the buyer's Google Analytics
+// client id, session id and cookie-banner choice, so stripe-webhook can report the
+// sale to GA from the server and join it to the visit that made it. It rides as
+// ga_client_id, ga_session_id and ga_consent (three more keys, twenty-one in all),
+// metadata only, never database columns. Sanitized in _shared/ga4-mp.ts.
+
+import { gaVisitorToMetadata } from "./ga4-mp.ts"
 
 export const ATTRIBUTION_FIELDS = [
   "utm_source",
@@ -194,7 +202,7 @@ export function lastTouchToMetadata(last: LastTouch): Record<string, string> {
  * Body -> metadata in one step, for create-checkout: sanitizes `body.attribution`
  * and returns only the attr_* entries to merge into the session metadata bag,
  * the seven attribution fields plus any Google click ids, plus the last marked
- * touch as attr_last_*.
+ * touch as attr_last_*, plus the GA4 visitor as ga_*.
  */
 export function checkoutAttributionMetadata(body: unknown): Record<string, string> {
   if (!body || typeof body !== "object") return {}
@@ -218,6 +226,13 @@ export function checkoutAttributionMetadata(body: unknown): Record<string, strin
       last = undefined
     }
     Object.assign(meta, lastTouchToMetadata(sanitizeLastTouch(last)))
+    let ga: unknown
+    try {
+      ga = (raw as Record<string, unknown>).ga
+    } catch {
+      ga = undefined
+    }
+    Object.assign(meta, gaVisitorToMetadata(ga))
   }
   return meta
 }

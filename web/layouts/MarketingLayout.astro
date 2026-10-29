@@ -7,6 +7,7 @@ import Navbar from "../components/Navbar.astro";
 import Footer from "../components/Footer.astro";
 import SiteAnalytics from "../components/islands/SiteAnalytics.tsx";
 import { CHECKOUT_SESSION_STRIP_JS } from "@/lib/checkoutSession";
+import { TEST_SESSION_GUARD_JS } from "@/lib/productionHost";
 import { SOCIALS } from "@/lib/socials";
 import { GOOGLE_FONTS_HREF } from "@/lib/fonts";
 
@@ -159,11 +160,17 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
       gtag.js or Pinterest tag and send nothing. The gtag() stub is still
       defined everywhere, so page code can call it safely. Pattern shared with
       src/lib/productionHost.ts (src/test/productionHost.test.ts).
+      Never in a test session either (2026-10-28): the guard right after it turns
+      __edenTagsLive off for an automated browser, the E2E switch, or a tab that
+      arrived on an e2e_check / claude_e2e / utm_medium=test link.
     */}
     <script is:inline>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       window.__edenTagsLive = /^(www\.)?edeninstitute\.health$/.test(window.location.hostname);
+    </script>
+    <script is:inline set:html={TEST_SESSION_GUARD_JS}></script>
+    <script is:inline>
       try {
         if (localStorage.getItem('eden-marketing-consent') === 'denied') {
           window['ga-disable-G-5DVHEZPKL0'] = true;

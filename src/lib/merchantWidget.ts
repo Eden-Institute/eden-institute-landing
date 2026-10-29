@@ -25,7 +25,7 @@
 
 import { CONSENT_CHANGE_EVENT, getMarketingConsent } from "@/lib/consent";
 import { GCR_MERCHANT_ID } from "@/lib/customerReviews";
-import { isProductionHost } from "@/lib/productionHost";
+import { thirdPartyTagsAllowed } from "@/lib/productionHost";
 
 export const MERCHANT_WIDGET_SCRIPT = "https://www.gstatic.com/shopping/merchant/merchantwidget.js";
 export const STICKY_BAR_SELECTOR = "[data-sticky-bottom-bar]";
@@ -63,7 +63,7 @@ let started = false;
 /** Load the badge once, if the visitor has accepted. Never throws. */
 export function startMerchantWidget(): void {
   try {
-    if (started || typeof window === "undefined" || !isProductionHost()) return;
+    if (started || typeof window === "undefined" || !thirdPartyTagsAllowed()) return;
     if (getMarketingConsent() !== "granted") return;
     started = true;
     const s = document.createElement("script");

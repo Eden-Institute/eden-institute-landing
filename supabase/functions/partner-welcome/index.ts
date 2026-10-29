@@ -228,7 +228,7 @@ Deno.serve(async (req) => {
     // UTM tags on every edeninstitute.health link (founder rule 2026-10-08, _shared/email-utm.ts).
     // The sample download buttons are signed Storage URLs on another host and stay untouched.
     const emailKey = action === 'testsend' ? 'partner_welcome_test' : 'partner_welcome';
-    const finalHtml = tagEmailHtml(unsubHtml, { medium: 'partner', content: emailKey, campaign: 'partner_program' });
+    const finalHtml = tagEmailHtml(unsubHtml, { medium: 'welcome', content: emailKey, campaign: 'partner_program' });
 
     const payload = {
       from: FROM,

@@ -42,6 +42,7 @@
 // stays in fbAttribution.ts, which is consent-gated and must remain so.
 
 import { getMarketingConsent } from "./consent";
+import { readGaVisitor, type GaVisitor } from "./gaVisitor";
 
 const KEY = "eden_first_touch_v1";
 const PERSIST_KEY = "eden_first_touch_30d_v1";
@@ -220,15 +221,17 @@ export function getAttribution(): Attribution {
  * onto the order. See supabase/functions/_shared/purchase-attribution.ts.
  *
  * Same first-touch value a signup gets, plus the last marked touch as `last`
- * (create-checkout stamps it as attr_last_*). Wrapped so that nothing here can ever
- * stop a buyer from reaching Stripe: on any failure it returns {} and checkout
- * proceeds unattributed.
+ * (create-checkout stamps it as attr_last_*), plus the GA4 visitor as `ga`
+ * (src/lib/gaVisitor.ts; stamped as ga_*, so stripe-webhook can report the sale).
+ * Wrapped so that nothing here can ever stop a buyer from reaching Stripe: on any
+ * failure it returns {} and checkout proceeds unattributed.
  */
-export function getCheckoutAttribution(): Attribution & GoogleClickIds & { last?: LastTouch } {
+export function getCheckoutAttribution(): Attribution & GoogleClickIds & { last?: LastTouch; ga?: GaVisitor } {
   try {
     const first = getAttribution();
     const last = readLastTouch();
-    return { ...first, ...readGoogleClick(), ...(last ? { last } : {}) };
+    const ga = readGaVisitor();
+    return { ...first, ...readGoogleClick(), ...(last ? { last } : {}), ...(Object.keys(ga).length ? { ga } : {}) };
   } catch {
     return {};
   }

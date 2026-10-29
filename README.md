@@ -33,6 +33,24 @@ from the head of `web/layouts/MarketingLayout.astro` (every Astro page) and `ind
 Reviews) loads only when the hostname is `edeninstitute.health` or `www.edeninstitute.health`.
 Vercel previews and localhost send nothing. The pattern lives in `src/lib/productionHost.ts`
 and is copied inline in both heads, and `src/test/productionHost.test.ts` fails if they drift.
+Test sessions send nothing either (2026-10-28): an automated browser (`navigator.webdriver`), the
+E2E switch (`eden_e2e_token`), or a tab that arrived on a `utm_source=e2e_check` / `claude_e2e` or
+`utm_medium=test` link (`TEST_SESSION_GUARD_JS`, remembered for the tab in `eden-test-session`).
+
+**Purchases come from the server** (2026-10-28). `stripe-webhook` sends GA4's `purchase` for every
+paid checkout and subscription invoice, and `refund` for every refund, through the Measurement
+Protocol (`supabase/functions/_shared/ga4-mp.ts`, secret `GA4_MP_API_SECRET`). The browser no
+longer sends `purchase`. Each `payments` row records the outcome in `ga4_status` (`sent`, `failed`,
+or `skipped_test` / `skipped_internal` / `skipped_declined` / `skipped_no_secret` /
+`skipped_unmatched` / `skipped_not_subscription`), so GA4 purchase revenue for a month equals
+`sum(paid) - sum(refunded)` over rows with `ga4_status = 'sent'`, and every other row says why.
+`value` is the full amount the row records (tax and shipping included); a buyer who clicked
+Decline is never sent. The visit is joined through `ga_client_id` / `ga_session_id` in the
+checkout metadata (`src/lib/gaVisitor.ts`).
+
+**Internal links carry no UTM tags.** A tag on a link between the site's own pages starts a new
+session credited to the tag. Such clicks are `select_content` events instead
+(`trackInternalLinkClick` in `src/lib/emailSubmit.ts`).
 
 **Consent** (`src/lib/consent.ts`): Google and Pinterest run by default and stop after Decline
 (`eden-marketing-consent` = `denied`). The Meta Pixel waits for Accept. Every event below checks
@@ -40,10 +58,12 @@ for Decline before it sends.
 
 | Event | Where it fires | Notes |
 |---|---|---|
-| `page_view` | `gtag('config')` in both heads | automatic |
+| `page_view` | Astro pages: `gtag('config')`, automatic. SPA routes: `GaPageViewTracker` (`src/lib/gaPageView.ts`), sent once `useDocumentMeta` has set the route's real title; `index.html` sets `send_page_view: false` | GA4 Enhanced measurement "Page changes based on browser history events" must stay OFF, or SPA routes count twice |
 | `email_submit` (GA4 key event) | `src/lib/emailSubmit.ts` `trackEmailSubmit(form_name)`, after the server confirms | `form_name` values below |
-| `purchase` (GA4, Merchant Center) | `src/lib/ga4Purchase.ts`, from `PrintThankYou` (`/books/thank-you`) and the print path of `BookThankYou` (`/back-to-eden/thank-you`) | physical lines only, once per order, values from `print-order-status`; never for a Stripe test-mode (`cs_test_`) order |
-| `starter_unit_purchase` | `web/pages/starter/thank-you.astro`, `web/pages/starter/seedlings/thank-you.astro` | the $39 digital Starter Unit. Deliberately NOT `purchase` |
+| `purchase` / `refund` (GA4, Merchant Center) | `stripe-webhook`, server side (see above) | every product; `transaction_id` = `checkoutRef(session id)` for a checkout, the invoice id for a subscription; items = the order's lines (`products.sku`) |
+| `select_content` (`content_type` `post_signup_modal`) | the button after a `WaitlistModal` signup | replaced the `utm_source=modal` tags |
+| Google Ads `conversion` | `src/lib/ga4Purchase.ts` / `ga4DigitalPurchase.ts`, from the thank-you pages | browser only; never for a `cs_test_` order |
+| `starter_unit_purchase` | `web/pages/starter/thank-you.astro`, `web/pages/starter/seedlings/thank-you.astro` | an extra marker for the $39 digital Starter Unit; its GA4 `purchase` comes from `stripe-webhook` like every sale |
 | `purchase_confirmed` | `src/pages/HomeschoolWelcome.tsx` | SPA homeschool checkout |
 | Meta `Lead` / `InitiateCheckout` / `Purchase` | browser `metaTrack` plus server Conversions API (`supabase/functions/_shared/meta-capi.ts`, from `resend-waitlist`, `create-checkout`, `stripe-webhook`) | deduped on event id; browser `Purchase` (`src/lib/metaPurchase.ts`) skips `cs_test_` orders, the server skips E2E |
 | Pinterest `lead` / `addtocart` / `checkout` | `src/lib/pinterestTag.ts` | Astro pages only |
@@ -54,7 +74,11 @@ for Decline before it sends.
 
 | form_name | Form |
 |---|---|
-| `sprouts_magnet`, `seedlings_magnet`, `back_to_eden_ch1`, `cultivators_waitlist`, `practitioners_waitlist` (any `data-waitlist-source`) | `WaitlistModal` on `/freebies`, `/homeschool`, `/back-to-eden` |
+| `freebies_sprouts_week1`, `freebies_seedlings_week1` | free-week pop-ups, `/freebies` |
+| `homeschool_sprouts_week1`, `homeschool_seedlings_week1` | free-week pop-ups in the band ladders, `/homeschool` |
+| `homeschool_cultivators_waitlist`, `homeschool_practitioners_waitlist` | "Tell me when it opens", `/homeschool` |
+| `back_to_eden_ch1` | free Chapter 1, `/back-to-eden` |
+| any other `data-waitlist-source` | a `WaitlistModal` with no `data-waitlist-form-name` falls back to its source |
 | `constitution_assessment` | quiz email gate, `/assessment` |
 | `get_involved_<role>` | homepage partner / investor / parent form |
 | `ttt_eden_page` | `/tales-and-table-talk` signup |

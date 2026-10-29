@@ -138,7 +138,8 @@ export default function PrintThankYou() {
           // Outside the polling try on purpose: ad reporting can never turn a
           // shown order back into the pending fallback.
           reportPinterestCheckout(sessionId, found);
-          // GA4 purchase for Merchant Center. Paid orders only (a non-pending
+          // Google Ads conversion (GA4's purchase comes from stripe-webhook since
+          // 2026-10-28). Paid orders only (a non-pending
           // status exists only once stripe-webhook recorded a paid session); a
           // refunded order is not reported.
           if (found.stage !== "cancelled") {

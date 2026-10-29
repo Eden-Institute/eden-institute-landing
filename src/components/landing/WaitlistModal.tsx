@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { metaTrack } from "@/lib/metaPixel";
 import { pinSetHashedEmail, pinTrack } from "@/lib/pinterestTag";
 import { getMarketingConsent } from "@/lib/consent";
-import { trackEmailSubmit } from "@/lib/emailSubmit";
+import { trackEmailSubmit, trackInternalLinkClick } from "@/lib/emailSubmit";
 import { checkEmail } from "@/lib/emailTypos";
 import { getAttribution } from "@/lib/attribution";
 import { FORM_ERROR_FALLBACK, visitorFacingError } from "@/lib/edgeFunctionError";
@@ -44,6 +44,13 @@ interface WaitlistModalProps {
    */
   successCtaHref?: string;
   successCtaLabel?: string;
+  /**
+   * GA4 form_name for email_submit (2026-10-28): which FORM this is, one value per
+   * placement, e.g. "freebies_sprouts_week1". `source` names the LIST and drives
+   * the nurture routing, and the same list is offered from several pages, so it
+   * cannot tell the forms apart. Defaults to source.
+   */
+  formName?: string;
   /** One or two sentences above the button, giving a reason to click. */
   successCtaBlurb?: string;
   /**
@@ -72,7 +79,7 @@ interface WaitlistModalProps {
   metadata?: Record<string, unknown>;
 }
 
-const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source = "waitlist", funnel, metadata, successCtaHref, successCtaLabel, successCtaBlurb, submitLabel, successMessage, successSubtitle }: WaitlistModalProps) => {
+const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source = "waitlist", funnel, metadata, successCtaHref, successCtaLabel, successCtaBlurb, submitLabel, successMessage, successSubtitle, formName }: WaitlistModalProps) => {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
@@ -152,7 +159,7 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
 
-      trackEmailSubmit(source);
+      trackEmailSubmit(formName || source);
       metaTrack("Lead", { content_name: source, content_category: "waitlist" }, fbEventId);
       // Pinterest lead, only after the signup is confirmed above. `email` is this
       // submit's value, captured before the field is cleared below. The helper
@@ -201,8 +208,12 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
                 {successCtaBlurb && (
                   <p className="font-body text-sm text-muted-foreground mb-4 leading-relaxed">{successCtaBlurb}</p>
                 )}
+                {/* A plain internal link, never UTM-tagged (2026-10-28): the click is
+                    a select_content event, and data-cta feeds the first-party beacon. */}
                 <a
                   href={successCtaHref}
+                  data-cta="post-signup-modal"
+                  onClick={() => trackInternalLinkClick("post_signup_modal", successCtaHref)}
                   className="inline-flex items-center justify-center min-h-[44px] px-6 py-3 rounded-sm font-body text-sm tracking-wide transition-colors duration-200"
                   style={{ backgroundColor: "#2E3D32", color: "#FAF8F3" }}
                 >

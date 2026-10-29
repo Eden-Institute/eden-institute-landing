@@ -378,7 +378,7 @@ async function sendResendEmail(to: string, subject: string, html: string, templa
   const key = Deno.env.get('RESEND_API_KEY');
   if (!key) throw new Error('RESEND_API_KEY missing');
   // UTM tags on every edeninstitute.health link (founder rule 2026-10-08, email-utm.ts).
-  const tagged = tagEmailHtml(html, { medium: 'receipt', content: templateKey });
+  const tagged = tagEmailHtml(html, { medium: 'nurture', campaign: 'order_emails', content: templateKey });
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },

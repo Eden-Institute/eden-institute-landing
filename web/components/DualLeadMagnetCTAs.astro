@@ -19,6 +19,11 @@ const seedlings = FREE_WEEK_MODAL.seedlings;
 ---
 
 {/*
+  The post-signup button is a plain internal link (2026-10-28): it carried
+  utm_source=modal, which started a new GA session and erased each new family's
+  real source. WaitlistModal reports the click as select_content instead.
+  data-waitlist-form-name is the GA4 form_name for this page's two forms.
+
   The className here is not decoration, it stops these buttons breaking the
   page on a phone. The shadcn base carries whitespace-nowrap and size="lg" is
   h-12 px-10, so an unwrappable label plus 80px of horizontal padding rendered
@@ -38,7 +43,8 @@ const seedlings = FREE_WEEK_MODAL.seedlings;
     size={size}
     className="w-full sm:w-auto whitespace-normal h-auto min-h-[48px] py-3 px-6 sm:px-10 leading-snug"
     data-waitlist-source={sprouts.source}
-    data-waitlist-cta-href="https://edeninstitute.health/homeschool?utm_source=modal&utm_medium=post_signup&utm_campaign=free_weeks_followup"
+    data-waitlist-form-name="freebies_sprouts_week1"
+    data-waitlist-cta-href="/homeschool"
     data-waitlist-cta-label="See the full year"
     data-waitlist-cta-blurb="While you wait: families have taught this at their own tables. Here is what they said, and what a full year looks like."
     data-waitlist-title={sprouts.title}
@@ -54,7 +60,8 @@ const seedlings = FREE_WEEK_MODAL.seedlings;
     size={size}
     className="w-full sm:w-auto whitespace-normal h-auto min-h-[48px] py-3 px-6 sm:px-10 leading-snug"
     data-waitlist-source={seedlings.source}
-    data-waitlist-cta-href="https://edeninstitute.health/homeschool?utm_source=modal&utm_medium=post_signup&utm_campaign=free_weeks_followup"
+    data-waitlist-form-name="freebies_seedlings_week1"
+    data-waitlist-cta-href="/homeschool"
     data-waitlist-cta-label="See the full year"
     data-waitlist-cta-blurb="While you wait: families have taught this at their own tables. Here is what they said, and what a full year looks like."
     data-waitlist-title={seedlings.title}

@@ -24,7 +24,7 @@
 // The unsubscribe link in a proof is real: clicking it opts the founder out of that list.
 
 import { applyUnsub, isEmailList } from '../_shared/email-unsubscribe.ts';
-import { tagEmailHtml } from '../_shared/email-utm.ts';
+import { asEmailMedium, tagEmailHtml } from '../_shared/email-utm.ts';
 import { resolveFounderEmail } from '../_shared/founder-identity.ts';
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
 
@@ -87,9 +87,10 @@ Deno.serve(async (req: Request) => {
   if (!isEmailList(body.list)) return json({ error: 'list must be a known email list' }, 400);
   const list = body.list;
 
-  const medium = typeof body.utm?.medium === 'string' ? body.utm.medium : 'nurture';
+  // Only the four approved email mediums (hard gate 2026-10-28); a campaign always.
+  const medium = asEmailMedium(body.utm?.medium) ?? 'nurture';
   const content = typeof body.utm?.content === 'string' ? body.utm.content : list;
-  const campaign = typeof body.utm?.campaign === 'string' ? body.utm.campaign : undefined;
+  const campaign = typeof body.utm?.campaign === 'string' && body.utm.campaign.trim() ? body.utm.campaign : list;
 
   const { email: to } = await resolveFounderEmail();
 

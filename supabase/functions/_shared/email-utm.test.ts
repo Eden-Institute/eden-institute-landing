@@ -4,11 +4,11 @@
 // links it must never touch (downloads, legal pages, tokens, other hosts).
 
 import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { tagEmailHtml, tagEmailText, tagEmailUrl, type EmailTag } from './email-utm.ts';
+import { asEmailMedium, tagEmailHtml, tagEmailText, tagEmailUrl, utmSlug, type EmailTag } from './email-utm.ts';
 
-const TAG: EmailTag = { medium: 'nurture', content: 'constitution_2' };
-const Q = 'utm_source=email&utm_medium=nurture&utm_content=constitution_2';
-const QA = 'utm_source=email&amp;utm_medium=nurture&amp;utm_content=constitution_2';
+const TAG: EmailTag = { medium: 'nurture', campaign: 'constitution', content: 'constitution_2' };
+const Q = 'utm_source=email&utm_medium=nurture&utm_campaign=constitution&utm_content=constitution_2';
+const QA = 'utm_source=email&amp;utm_medium=nurture&amp;utm_campaign=constitution&amp;utm_content=constitution_2';
 
 Deno.test('plain link gets ?utm_...', () => {
   assertEquals(tagEmailUrl('https://edeninstitute.health/books', TAG), `https://edeninstitute.health/books?${Q}`);
@@ -36,18 +36,45 @@ Deno.test('query goes BEFORE the #fragment', () => {
   );
 });
 
-Deno.test('campaign is added when given; values lowercased and encoded', () => {
+Deno.test('values are written literally as slugs: lowercase, underscores, no encoding', () => {
   assertEquals(
-    tagEmailUrl('https://edeninstitute.health/starter', { medium: 'Newsletter', content: 'List Announce', campaign: 'seedlings_live_2026_09_24' }),
-    'https://edeninstitute.health/starter?utm_source=email&utm_medium=newsletter&utm_content=list%20announce&utm_campaign=seedlings_live_2026_09_24',
+    tagEmailUrl('https://edeninstitute.health/starter', { medium: 'newsletter', content: 'List Announce', campaign: 'Seedlings Live 2026-09-24' }),
+    'https://edeninstitute.health/starter?utm_source=email&utm_medium=newsletter&utm_campaign=seedlings_live_2026_09_24&utm_content=list_announce',
+  );
+  assertEquals(utmSlug('  Ginger Week / 2026.10.30 '), 'ginger_week_2026_10_30');
+});
+
+Deno.test('content is optional; campaign never is', () => {
+  assertEquals(
+    tagEmailUrl('https://edeninstitute.health/books', { medium: 'welcome', campaign: 'sprouts_magnet' }),
+    'https://edeninstitute.health/books?utm_source=email&utm_medium=welcome&utm_campaign=sprouts_magnet',
+  );
+  // An empty campaign still yields a campaign, never a link without one.
+  assertEquals(
+    tagEmailUrl('https://edeninstitute.health/books', { medium: 'nurture', campaign: '  ' }),
+    'https://edeninstitute.health/books?utm_source=email&utm_medium=nurture&utm_campaign=email',
   );
 });
 
-Deno.test('an already-tagged link is left alone', () => {
+Deno.test('only the four approved mediums pass from an untrusted body', () => {
+  for (const m of ['newsletter', 'nurture', 'welcome', 'signature']) assertEquals(asEmailMedium(m), m);
+  for (const m of ['receipt', 'broadcast', 'Newsletter', '', null, 3]) assertEquals(asEmailMedium(m), null);
+});
+
+Deno.test('a fully tagged link is left alone', () => {
   const u = 'https://edeninstitute.health/back-to-eden?utm_source=email&utm_medium=nurture&utm_campaign=quiz_arc2';
   assertEquals(tagEmailUrl(u, TAG), u);
-  const v = 'https://edeninstitute.health/books?ref=x&UTM_campaign=hand';
-  assertEquals(tagEmailUrl(v, TAG), v);
+});
+
+Deno.test('a partly tagged link gets only the missing tags, never an overwrite', () => {
+  assertEquals(
+    tagEmailUrl('https://edeninstitute.health/books?utm_source=email&utm_medium=newsletter', TAG),
+    'https://edeninstitute.health/books?utm_source=email&utm_medium=newsletter&utm_campaign=constitution',
+  );
+  assertEquals(
+    tagEmailUrl('https://edeninstitute.health/books?ref=x&UTM_campaign=hand', TAG),
+    'https://edeninstitute.health/books?ref=x&UTM_campaign=hand&utm_source=email&utm_medium=nurture',
+  );
 });
 
 Deno.test('excluded: files, unsubscribe, thank-you, session_id, t= token, legal, downloads, guide access', () => {

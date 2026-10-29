@@ -316,13 +316,14 @@ async function sendEmail(
 ): Promise<{ ok: boolean; error?: string; status?: number; name?: string }> {
   const { html: unsubHtml, headers: unsubHeaders } = await applyUnsub(html, to, list);
   // UTM tags on every edeninstitute.health link (founder rule 2026-10-08, _shared/email-utm.ts),
-  // keyed off the same campaign/email_key tags the engagement dashboard uses. The buyer
-  // sequence (postpurchase list) is 'buyer'; every other drip this drains is 'nurture'.
+  // keyed off the same campaign/email_key tags the engagement dashboard uses. Every drip
+  // this drains is 'nurture', the buyer sequence included (hard gate 2026-10-28: four
+  // approved mediums); a sequence with no campaign tag is named by its list.
   const tagValue = (name: string) => tags?.find((t) => t.name === name)?.value;
   const finalHtml = tagEmailHtml(unsubHtml, {
-    medium: list === 'postpurchase' ? 'buyer' : 'nurture',
+    medium: 'nurture',
     content: tagValue('email_key') ?? list,
-    campaign: tagValue('campaign'),
+    campaign: tagValue('campaign') ?? list,
   });
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',

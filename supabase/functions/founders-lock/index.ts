@@ -43,6 +43,7 @@ import postgres from 'https://deno.land/x/postgresjs@v3.4.5/mod.js';
 import { shopApothecaryCard } from '../_shared/shop-cta.ts';
 import { twilioBasicAuth } from '../_shared/order-sms.ts';
 import { escapeHtml } from '../_shared/html-escape.ts';
+import { tagEmailHtml } from '../_shared/email-utm.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -186,7 +187,8 @@ async function ensureSendLog(sql: ReturnType<typeof postgres>): Promise<void> {
   await sql`CREATE TABLE IF NOT EXISTS public.founders_send_log (campaign text NOT NULL, email text NOT NULL, sent_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY (campaign, email))`;
 }
 async function sendOne(email: string, name: string): Promise<boolean> {
-  const html = announcementHtml(name, formUrl(await formToken(email, name, CAMPAIGN)), unsubUrl(await unsubToken(email)));
+  // UTM tags on every edeninstitute.health link (hard gate 2026-10-28, email-utm.ts).
+  const html = tagEmailHtml(announcementHtml(name, formUrl(await formToken(email, name, CAMPAIGN)), unsubUrl(await unsubToken(email))), { medium: 'newsletter', campaign: CAMPAIGN, content: 'announcement' });
   const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: FROM, to: [email], subject: SUBJECT, html }) });
   return r.ok;
 }
@@ -268,7 +270,7 @@ function confirmationHtml(firstName: string, unsub: string): string {
 
 async function sendConfirmation(email: string, name: string): Promise<void> {
   if (!RESEND_API_KEY) return;
-  const html = confirmationHtml(name, unsubUrl(await unsubToken(email)));
+  const html = tagEmailHtml(confirmationHtml(name, unsubUrl(await unsubToken(email))), { medium: 'newsletter', campaign: CAMPAIGN, content: 'confirmation' });
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
@@ -341,7 +343,7 @@ Deno.serve(async (req) => {
       // holds. Both are false since 2026-09-12.
       if (CLOSED) return jsonRes(410, { error: 'preorders_closed', message: CLOSED_MSG });
       if (!e) return jsonRes(400, { error: 'missing to' });
-      const html = announcementHtml(n, formUrl(await formToken(e, n, c)), unsubUrl(await unsubToken(e)));
+      const html = tagEmailHtml(announcementHtml(n, formUrl(await formToken(e, n, c)), unsubUrl(await unsubToken(e))), { medium: 'newsletter', campaign: c, content: 'announcement' });
       const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: FROM, to: [e], subject: SUBJECT, html }) });
       return jsonRes(r.status, await r.json().catch(() => ({})));
     }

@@ -238,7 +238,8 @@ function readContent(body: Record<string, unknown>): ContentInput | { error: str
   const problem = checkBroadcastHtml(body.html);
   if (problem) return { error: problem };
   const content = typeof body.content === 'string' && body.content.trim() ? body.content.trim() : 'broadcast';
-  const campaign = typeof body.campaign === 'string' && body.campaign.trim() ? body.campaign.trim() : undefined;
+  // utm_campaign is required (hard gate 2026-10-28): the issue's own name, else the broadcast name.
+  const campaign = typeof body.campaign === 'string' && body.campaign.trim() ? body.campaign.trim() : name;
   const html = tagEmailHtml(String(body.html), { medium: 'newsletter', content, campaign });
   return { name, subject, html };
 }

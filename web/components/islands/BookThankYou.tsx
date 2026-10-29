@@ -99,8 +99,9 @@ export default function BookThankYou({ mode }: { mode: "session" | "token" }) {
         const body = await res.json().catch(() => ({}));
         if (cancelled) return;
         if (res.ok) {
-          // GA4 purchase for the PDF (2026-10-07), on the paid-checkout path only:
-          // the emailed ?t= link is a return visit, not a sale. The Google
+          // The Google Ads conversion for the PDF, on the paid-checkout path only:
+          // the emailed ?t= link is a return visit, not a sale. (GA4's purchase
+          // itself comes from stripe-webhook since 2026-10-28.) The Google
           // Customer Reviews opt-in rides on the same path (2026-10-16).
           if (mode === "session") {
             void reportGa4DigitalPurchaseOnce(credential, { id: "book_digital", name: (body as Download).title });
@@ -130,8 +131,9 @@ export default function BookThankYou({ mode }: { mode: "session" | "token" }) {
           const { data, error } = await supabase.functions.invoke("print-order-status", { body: { session_id: credential } });
           if (!error && data && !data.pending) {
             if (!cancelled) setState({ kind: "print", data: data as PrintStatus });
-            // GA4 purchase for Merchant Center: printed copies only, never the
-            // PDF (that path never calls print-order-status). Not for a refund.
+            // Google Ads and Meta purchase for printed copies only, never the PDF
+            // (that path never calls print-order-status). Not for a refund. GA4's
+            // purchase comes from stripe-webhook since 2026-10-28.
             if ((data as PrintStatus).stage !== "cancelled") {
               void reportGa4PurchaseOnce(credential!, data as PrintStatus);
               void reportMetaPurchaseOnce(credential!, data as PrintStatus);

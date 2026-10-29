@@ -116,7 +116,7 @@ async function sendLink(email: string, url: string): Promise<boolean> {
       subject: GUIDE_LINK_SUBJECT,
       // UTM tags (founder rule 2026-10-08). The guide link itself carries an access token
       // and is excluded by the helper; this covers any site link added to the email later.
-      html: tagEmailHtml(guideLinkEmailHtml(url), { medium: "guide_access", content: "guide_access_link" }),
+      html: tagEmailHtml(guideLinkEmailHtml(url), { medium: "nurture", campaign: "guide_access", content: "guide_access_link" }),
       tags: [{ name: "category", value: "guide_access_link" }],
     }),
   });
