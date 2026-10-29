@@ -6,7 +6,7 @@ published: "2026-10-13"
 updated: "2026-10-18"
 draft: false
 related:
-  - homeschool-science-this-year
+  - what-do-i-need-to-homeschool
   - how-to-evaluate-christian-homeschool-curriculum
   - free-nature-study-week
 faq:
