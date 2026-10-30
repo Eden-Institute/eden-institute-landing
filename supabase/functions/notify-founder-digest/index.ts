@@ -49,6 +49,15 @@ import {
   type SalesDigest,
   type SalesOrderRow,
 } from './sales.ts';
+import {
+  evaluateSystemHealth,
+  hasHealthProblem,
+  QUEUE_LABEL,
+  systemHealthHtml,
+  systemHealthTextLines,
+  type HealthCheck,
+  type SystemHealthInput,
+} from './system-health.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -242,6 +251,82 @@ async function fetchRailHealth(): Promise<{ rails: RailHealthRow[]; sync: Contac
   return { rails, sync };
 }
 
+// ── System health (2026-10-30, system-health.ts says why) ──
+// The server-side GA4 purchase path (PR #679) went live 2026-10-29; payments
+// recorded before it carry no ga4_status by design, so they are not counted.
+const GA4_PATH_LIVE = '2026-10-29T04:00:00Z';
+
+/** Row count from PostgREST's Content-Range ("0-0/12", "*\/0"); null when unreadable. */
+async function countRows(path: string): Promise<{ n: number; rows: any[] } | null> {
+  try {
+    const res = await sbFetch(path, { headers: { Prefer: 'count=exact' } });
+    if (!res.ok) {
+      console.error('notify-founder-digest: health read failed', path.split('?')[0], res.status);
+      return null;
+    }
+    const n = Number((res.headers.get('content-range') ?? '').split('/')[1]);
+    const rows = await res.json().catch(() => []);
+    return Number.isFinite(n) ? { n, rows: Array.isArray(rows) ? rows : [] } : null;
+  } catch (e) {
+    console.error('notify-founder-digest: health read error', path.split('?')[0], e instanceof Error ? e.message : String(e));
+    return null;
+  }
+}
+
+async function fetchSystemHealthInput(digestDate: string, todayCt: string, now: Date): Promise<SystemHealthInput> {
+  const iso = (msAgo: number) => encodeURIComponent(new Date(now.getTime() - msAgo).toISOString());
+  const HOUR = 3_600_000;
+  const queues = Object.keys(QUEUE_LABEL);
+  const ga4Since = new Date(Math.max(now.getTime() - 7 * 24 * HOUR, Date.parse(GA4_PATH_LIVE))).toISOString();
+
+  const [recap, trends, digestFailed, failed, stuck, stripe, lulu, starter, payments] = await Promise.all([
+    countRows(`/rest/v1/recap_runs?recap_date=eq.${digestDate}&select=status&limit=1`),
+    countRows('/rest/v1/weekly_trends_runs?status=eq.sent&select=run_date&order=run_date.desc&limit=1'),
+    countRows(`/rest/v1/digest_runs?status=eq.failed&digest_date=gte.${addDays(todayCt, -30)}&select=digest_date&limit=1`),
+    Promise.all(queues.map((q) => countRows(`/rest/v1/${q}?status=eq.failed&select=scheduled_for&order=scheduled_for.asc&limit=1`))),
+    Promise.all(queues.map((q) => countRows(`/rest/v1/${q}?status=eq.pending&scheduled_for=lt.${iso(24 * HOUR)}&select=id&limit=1`))),
+    countRows(`/rest/v1/stripe_events?received_at=gte.${iso(30 * 24 * HOUR)}&or=(error.not.is.null,and(processed_at.is.null,received_at.lt.${iso(HOUR)}))&select=event_id&limit=1`),
+    countRows(`/rest/v1/lulu_jobs?status=not.in.(submitted,cancelled)&created_at=lt.${iso(HOUR)}&select=id&limit=1`),
+    countRows(`/rest/v1/starter_deliveries?status=not.in.(sent,skipped)&created_at=lt.${iso(HOUR)}&select=id&limit=1`),
+    countRows(`/rest/v1/payments?is_internal=is.false&status=in.(paid,refunded)&created_at=gte.${encodeURIComponent(ga4Since)}&select=ga4_status&limit=1000`),
+  ]);
+
+  const failedByQueue: Record<string, number | null> = {};
+  const stuckByQueue: Record<string, number | null> = {};
+  let oldestFailed: string | null = null;
+  queues.forEach((q, i) => {
+    failedByQueue[q] = failed[i]?.n ?? null;
+    stuckByQueue[q] = stuck[i]?.n ?? null;
+    const first = failed[i]?.rows?.[0]?.scheduled_for;
+    if (typeof first === 'string' && (!oldestFailed || first < oldestFailed)) oldestFailed = first;
+  });
+
+  let ga4ByStatus: Record<string, number> | null = null;
+  if (payments) {
+    ga4ByStatus = {};
+    for (const p of payments.rows) {
+      const s = typeof p.ga4_status === 'string' && p.ga4_status ? p.ga4_status : 'none';
+      ga4ByStatus[s] = (ga4ByStatus[s] ?? 0) + 1;
+    }
+  }
+
+  return {
+    recapStatus: typeof recap?.rows?.[0]?.status === 'string' ? recap.rows[0].status : null,
+    recapUnread: recap === null,
+    lastTrendsSent: typeof trends?.rows?.[0]?.run_date === 'string' ? trends.rows[0].run_date : null,
+    trendsUnread: trends === null,
+    digestFailed30d: digestFailed?.n ?? null,
+    failedByQueue,
+    oldestFailed,
+    stuckByQueue,
+    stripeProblems: stripe?.n ?? null,
+    luluProblems: lulu?.n ?? null,
+    starterProblems: starter?.n ?? null,
+    ga4ByStatus,
+    ga4SecretSet: !!Deno.env.get('GA4_MP_API_SECRET'),
+  };
+}
+
 function magnetLabel(funnel: string, source: string): {
   magnet: string;
   welcomeSubject: string;
@@ -348,6 +433,7 @@ function buildDigestEmail(
   sales: SalesDigest | null,
   health: { rails: RailHealthRow[]; sync: ContactSyncHealth | null } = { rails: [], sync: null },
   esa: EsaDigest | null = null,
+  systemChecks: HealthCheck[] = [],
 ): {
   subject: string;
   html: string;
@@ -366,9 +452,10 @@ function buildDigestEmail(
 
   const total = rows.length;
   const punchCount = punchItems.length;
-  const subject = total > 0
+  const baseSubject = total > 0
     ? `${total} new lead${total === 1 ? '' : 's'} — ${digestDate} · Eden Institute`
     : `No new leads · ${punchCount} open item${punchCount === 1 ? '' : 's'} — ${digestDate} · Eden Institute`;
+  const subject = hasHealthProblem(systemChecks) ? `System check needs you · ${baseSubject}` : baseSubject;
 
   // ── HTML ──
   const summaryRows = magnetSummary.map(([magnet, info]) => `
@@ -537,6 +624,7 @@ ${syncLine}
 <tr><td style="padding:24px;">
 <p style="font-family:Georgia,serif;font-size:14px;color:#3D3832;margin:0 0 4px 0;">Digest for <strong>${esc(digestDate)}</strong> (America/Chicago)</p>
 ${capturesBlock}
+${systemHealthHtml(systemChecks)}
 ${salesSection}
 ${esaSection}
 ${railSection}
@@ -570,6 +658,7 @@ The Eden Institute · edeninstitute.health · automated daily digest
   } else {
     lines.push(`No new leads — ${digestDate} (CT)`);
   }
+  if (systemChecks.length > 0) lines.push('', ...systemHealthTextLines(systemChecks));
   lines.push('', ...salesTextLines(sales));
   if (esa && (esa.unpaid > 0 || esa.issuedYesterday > 0 || esa.paidYesterday > 0 || esa.awaitingConfirm > 0 || esa.failed > 0)) {
     lines.push(
@@ -734,10 +823,13 @@ Deno.serve(async (req) => {
     // ── Sales (null = the read failed, and the email says so) ──
     const sales = await fetchSales(windowStartCt, windowEndCt, weekStartCt, esa);
 
-    // ── Zero path: skip only when there are no captures AND no open punch items ──
+    // ── System health (best-effort; an unreadable check shows as "could not check") ──
+    const systemChecks = evaluateSystemHealth(await fetchSystemHealthInput(digestDate, todayCt, nowUtc), digestDate, todayCt);
+
+    // ── Zero path: skip only when there is nothing at all to tell the founder ──
     const esaNeedsFounder = !!esa && (esa.awaitingConfirm > 0 || esa.failed > 0 || esa.issuedYesterday > 0 || esa.paidYesterday > 0);
     const salesYesterday = !!sales && salesTotal(sales.yesterday) > 0;
-    if ((!rows || rows.length === 0) && punchItems.length === 0 && !esaNeedsFounder && !salesYesterday) {
+    if ((!rows || rows.length === 0) && punchItems.length === 0 && !esaNeedsFounder && !salesYesterday && !hasHealthProblem(systemChecks)) {
       await sbFetch(`/rest/v1/digest_runs?id=eq.${digestRunId}`, {
         method: 'PATCH',
         body: JSON.stringify({
@@ -752,7 +844,7 @@ Deno.serve(async (req) => {
 
     // ── Build + send digest ──
     const captureRows: CaptureRow[] = Array.isArray(rows) ? rows : [];
-    const { subject, html, text } = buildDigestEmail(captureRows, digestDate, punchItems, sales, health, esa);
+    const { subject, html, text } = buildDigestEmail(captureRows, digestDate, punchItems, sales, health, esa, systemChecks);
 
     const resendRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',

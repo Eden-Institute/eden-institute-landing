@@ -1,15 +1,15 @@
 // submit-partner-inquiry — durable capture for partner / collaborator / co-op /
-// investor inquiries from the public marketing site (homepage "Get Involved"
+// donor inquiries from the public marketing site (homepage "Get Involved"
 // and /homeschool group licensing). Supabase partner_inquiries is the source
 // of truth; the email to hello@ is best-effort enrichment and never blocks
 // success. Mirrors the submit-feedback pattern (Lock #15).
 //
 // verify_jwt is OFF intentionally: called from anonymous marketing pages.
 //
-// Investor handling (capture-then-approve): investor inquiries are saved and
-// flagged in the email subject/body, AND auto-create a founder_punch_list
-// follow-up item so they ride the daily digest until handled. Camila reviews
-// and sends the booking link manually — investors never receive an inline link.
+// Donor handling: donor inquiries are saved and flagged in the email
+// subject/body, AND auto-create a founder_punch_list follow-up item so they
+// ride the daily digest until handled. Camila replies personally with how to
+// give — donors never receive the booking link. (Eden takes no investors.)
 
 import { bumpRateBucket, clientIp } from "../_shared/rate-bucket.ts";
 
@@ -26,7 +26,7 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const INQUIRY_TO = "hello@edeninstitute.health";
 const INQUIRY_FROM = "Eden Institute Partnerships <hello@edeninstitute.health>";
 
-// Each accepted POST emails hello@ (and investor ones add a punch-list row), so an
+// Each accepted POST emails hello@ (and donor ones add a punch-list row), so an
 // unthrottled endpoint is an inbox and digest flood. Own bucket, not the checkout one.
 const INQUIRIES_PER_WINDOW = 5;
 const INQUIRY_WINDOW_SECONDS = 600;
@@ -35,7 +35,7 @@ const TYPE_LABELS: Record<string, string> = {
   brand: "Aligned brand / business",
   creator: "Podcaster / creator",
   venture: "Strategic venture",
-  investor: "Investor",
+  donor: "Donor",
   coop: "Homeschool co-op",
   pod: "Homeschool pod / microschool",
   ministry: "Church / ministry program",
@@ -114,12 +114,12 @@ function row(label: string, value: string | null): string {
 
 function buildEmail(v: Parsed, id: string, createdAt: string): { subject: string; html: string } {
   const label = TYPE_LABELS[v.inquiryType];
-  const isInvestor = v.inquiryType === "investor";
-  const subject = isInvestor
-    ? `[INVESTOR — review before sending link] ${v.name}${v.orgName ? " · " + v.orgName : ""}`
+  const isDonor = v.inquiryType === "donor";
+  const subject = isDonor
+    ? `[DONOR — reply with how to give] ${v.name}`
     : `[Partner inquiry] ${label} — ${v.name}${v.orgName ? " · " + v.orgName : ""}`;
-  const banner = isInvestor
-    ? `<div style="background:#7A2E2E;color:#fff;padding:12px 16px;font-size:13px;">Investor inquiry — capture-then-approve. Review, then send the booking link manually if it's a fit. (Also added to your punch list.)</div>`
+  const banner = isDonor
+    ? `<div style="background:#C5A44E;color:#2C3E2D;padding:12px 16px;font-size:13px;">Donor inquiry — they want to give to the mission. Reply personally with how to give. (Also added to your punch list.)</div>`
     : "";
   const msgHtml = v.message ? escapeHtml(v.message).replace(/\n/g, "<br>") : null;
   const html = `<!DOCTYPE html>
@@ -176,14 +176,12 @@ async function sendEmail(args: { subject: string; html: string; replyTo: string 
   }
 }
 
-// Investor inquiries auto-create a founder follow-up item so they ride the
+// Donor inquiries auto-create a founder follow-up item so they ride the
 // daily digest until handled. Best-effort — never blocks the inquiry.
-async function addInvestorFollowUp(v: Parsed): Promise<void> {
+async function addDonorFollowUp(v: Parsed): Promise<void> {
   try {
-    const orgBit = v.orgName ? ` (${v.orgName})` : "";
     const detailBits = [
       `Email: ${v.email}`,
-      v.website ? `Site: ${v.website}` : "",
       v.message ? `Note: ${v.message.slice(0, 300)}` : "",
     ].filter(Boolean).join(" · ");
     const res = await fetch(`${SUPABASE_URL}/rest/v1/founder_punch_list`, {
@@ -194,18 +192,18 @@ async function addInvestorFollowUp(v: Parsed): Promise<void> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        title: `Follow up with investor: ${v.name}${orgBit}`,
-        detail: `Capture-then-approve — review and send the booking link if it's a fit. ${detailBits}`,
+        title: `Follow up with donor: ${v.name}`,
+        detail: `Wants to give to the mission — reply personally with how to give. ${detailBits}`,
         owner: "C",
         status: "open",
         sort_order: 15,
       }),
     });
     if (!res.ok) {
-      console.error("Investor follow-up punch-list insert failed:", res.status, await res.text().catch(() => ""));
+      console.error("Donor follow-up punch-list insert failed:", res.status, await res.text().catch(() => ""));
     }
   } catch (err) {
-    console.error("Investor follow-up punch-list insert error:", err instanceof Error ? err.message : String(err));
+    console.error("Donor follow-up punch-list insert error:", err instanceof Error ? err.message : String(err));
   }
 }
 
@@ -277,9 +275,9 @@ Deno.serve(async (req) => {
     const id = record?.id ?? "unknown";
     const createdAt = record?.created_at ?? new Date().toISOString();
 
-    // STEP 1b — investor inquiries auto-create a founder follow-up (best-effort)
-    if (v.inquiryType === "investor") {
-      await addInvestorFollowUp(v);
+    // STEP 1b — donor inquiries auto-create a founder follow-up (best-effort)
+    if (v.inquiryType === "donor") {
+      await addDonorFollowUp(v);
     }
 
     // STEP 2 — BEST-EFFORT MIRROR to hello@

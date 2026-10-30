@@ -3,11 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { metaTrack } from "@/lib/metaPixel";
 import { trackEmailSubmit } from "@/lib/emailSubmit";
 
-// Homepage "Get Involved" section — partner / collaborator / investor capture,
+// Homepage "Get Involved" section — partner / collaborator / donor capture,
 // styled in the homepage design system (honey/green tokens, Cormorant/EB
-// Garamond). Submits to the shared submit-partner-inquiry EF. Investors get
-// capture-then-approve (no inline link); aligned partners get the booking
-// link; parents are routed to the curriculum.
+// Garamond). Submits to the shared submit-partner-inquiry EF. Donors get a
+// short form and a personal reply with how to give (no booking link); aligned
+// partners get the booking link; parents are routed to the curriculum.
 
 const BOOKING_URL = "https://calendar.app.google/HRuPEVYU1UqYsLai6";
 const SERIF = "'Cormorant Garamond', Georgia, serif";
@@ -17,7 +17,7 @@ const ROLES = [
   { value: "brand", label: "A wellness, faith, or natural-living brand" },
   { value: "creator", label: "A podcaster or content creator" },
   { value: "venture", label: "Another aligned venture" },
-  { value: "investor", label: "An investor" },
+  { value: "donor", label: "A donor who loves what we do and wants to give" },
   { value: "parent", label: "A parent looking for the curriculum" },
 ];
 
@@ -67,7 +67,7 @@ export default function GetInvolvedSection() {
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
 
-  const isInvestor = role === "investor";
+  const isDonor = role === "donor";
   const isParent = role === "parent";
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -152,14 +152,14 @@ export default function GetInvolvedSection() {
           style={{ maxWidth: "560px", borderRadius: "4px", borderTop: "3px solid hsl(var(--honey))", padding: "32px" }}
         >
           {done ? (
-            isInvestor ? (
+            isDonor ? (
               <div className="text-center" style={{ padding: "16px 0" }}>
                 <p style={{ fontFamily: SERIF, fontSize: "26px", color: "hsl(var(--green-deep))", marginBottom: "10px" }}>
                   Thank you.
                 </p>
                 <p style={{ fontFamily: BODY, fontSize: "16px", color: "hsl(var(--ink-soft))", lineHeight: 1.6 }}>
-                  We review investor inquiries personally and will be in touch shortly. We appreciate your interest in
-                  what we're building.
+                  We'll write back personally with how to give. No strings attached; we're simply grateful you
+                  believe in this work.
                 </p>
               </div>
             ) : (
@@ -256,21 +256,25 @@ export default function GetInvolvedSection() {
                     <label htmlFor="gi-email" style={labelStyle}>Email</label>
                     <input id="gi-email" autoComplete="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={inputStyle} placeholder="your@email.com" />
                   </div>
+                  {!isDonor && (
+                    <>
+                      <div style={{ marginBottom: "16px" }}>
+                        <label htmlFor="gi-org" style={labelStyle}>Business or show name</label>
+                        <input id="gi-org" autoComplete="organization" type="text" value={orgName} onChange={(e) => setOrgName(e.target.value)} style={inputStyle} placeholder="Your brand, show, or company" />
+                      </div>
+                      <div style={{ marginBottom: "16px" }}>
+                        <label htmlFor="gi-website" style={labelStyle}>Website or social</label>
+                        <input id="gi-website" autoComplete="url" type="text" value={website} onChange={(e) => setWebsite(e.target.value)} style={inputStyle} placeholder="https://" />
+                      </div>
+                      <div style={{ marginBottom: "16px" }}>
+                        <label htmlFor="gi-audience" style={labelStyle}>Audience size (if relevant)</label>
+                        <input id="gi-audience" type="text" value={audienceSize} onChange={(e) => setAudienceSize(e.target.value)} style={inputStyle} placeholder="e.g. 12k newsletter, 30k downloads/mo" />
+                      </div>
+                    </>
+                  )}
                   <div style={{ marginBottom: "16px" }}>
-                    <label htmlFor="gi-org" style={labelStyle}>Business or show name</label>
-                    <input id="gi-org" autoComplete="organization" type="text" value={orgName} onChange={(e) => setOrgName(e.target.value)} style={inputStyle} placeholder="Your brand, show, or company" />
-                  </div>
-                  <div style={{ marginBottom: "16px" }}>
-                    <label htmlFor="gi-website" style={labelStyle}>Website or social</label>
-                    <input id="gi-website" autoComplete="url" type="text" value={website} onChange={(e) => setWebsite(e.target.value)} style={inputStyle} placeholder="https://" />
-                  </div>
-                  <div style={{ marginBottom: "16px" }}>
-                    <label htmlFor="gi-audience" style={labelStyle}>Audience size (if relevant)</label>
-                    <input id="gi-audience" type="text" value={audienceSize} onChange={(e) => setAudienceSize(e.target.value)} style={inputStyle} placeholder="e.g. 12k newsletter, 30k downloads/mo" />
-                  </div>
-                  <div style={{ marginBottom: "16px" }}>
-                    <label htmlFor="gi-message" style={labelStyle}>What do you have in mind?</label>
-                    <textarea id="gi-message" value={message} onChange={(e) => setMessage(e.target.value)} rows={3} style={inputStyle} placeholder="A sentence or two is plenty." />
+                    <label htmlFor="gi-message" style={labelStyle}>{isDonor ? "A note for us (optional)" : "What do you have in mind?"}</label>
+                    <textarea id="gi-message" value={message} onChange={(e) => setMessage(e.target.value)} rows={3} style={inputStyle} placeholder={isDonor ? "Anything you'd like us to know." : "A sentence or two is plenty."} />
                   </div>
                   {error && (
                     <p role="alert" style={{ fontFamily: BODY, fontSize: "14px", color: "hsl(var(--rust))", marginBottom: "12px" }}>{error}</p>
@@ -281,11 +285,11 @@ export default function GetInvolvedSection() {
                     className="w-full min-h-[44px] transition-colors"
                     style={{ ...primaryBtn, padding: "12px 20px", cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1 }}
                   >
-                    {loading ? "Sending…" : isInvestor ? "Submit inquiry" : "Continue to booking"}
+                    {loading ? "Sending…" : isDonor ? "Send" : "Continue to booking"}
                   </button>
-                  {isInvestor && (
+                  {isDonor && (
                     <p className="text-center" style={{ fontFamily: BODY, fontSize: "12px", color: "hsl(var(--ink-soft))", marginTop: "10px" }}>
-                      We review investor inquiries personally before scheduling.
+                      We'll reply personally with how to give. No strings attached.
                     </p>
                   )}
                 </form>

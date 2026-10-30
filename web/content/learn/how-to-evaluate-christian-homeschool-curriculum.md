@@ -5,7 +5,7 @@ description: "Ten questions to ask before you buy a Christian homeschool curricu
 published: "2026-10-13"
 draft: false
 related:
-  - is-herbalism-biblical
+  - how-to-start-homeschooling
   - homeschool-science-this-year
   - free-nature-study-week
 faq:
