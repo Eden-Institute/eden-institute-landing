@@ -2,6 +2,8 @@ import { defineConfig } from "astro/config";
 import react from "@astrojs/react";
 import tailwind from "@astrojs/tailwind";
 import { fileURLToPath } from "node:url";
+// The free-week offer after the first section of a flagged /learn article (2026-10-28).
+import { remarkFreeWeekOffer } from "./web/lib/freeWeekOffer.ts";
 
 const fromRoot = (p) => fileURLToPath(new URL(p, import.meta.url));
 
@@ -17,6 +19,9 @@ export default defineConfig({
   srcDir: "./web",
   output: "static",
   trailingSlash: "ignore",
+  markdown: {
+    remarkPlugins: [remarkFreeWeekOffer],
+  },
   integrations: [
     react(),
     // We own base styles via src/index.css imported in the layout.

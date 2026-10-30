@@ -10,11 +10,12 @@
 
 import { useEffect, useState } from "react";
 import WaitlistModal from "@/components/landing/WaitlistModal";
+import { HOMESCHOOL_AUDIENCE_ID } from "../../lib/freeWeekModal";
 
-// Eden's Table waitlist audience — same constant the React page uses. The
-// resend-waitlist EF maps this audienceId to entry_funnel='edens_table';
-// the per-CTA `source` tag drives band-specific nurture routing.
-const HS_AUD = "a48cb66e-b2a9-461d-98a6-bb1b12f72693";
+// Eden's Table waitlist audience (web/lib/freeWeekModal.ts). The resend-waitlist
+// EF maps it to entry_funnel='edens_table'; the per-CTA `source` tag drives
+// band-specific nurture routing.
+const HS_AUD = HOMESCHOOL_AUDIENCE_ID;
 
 interface Cfg {
   title: string;

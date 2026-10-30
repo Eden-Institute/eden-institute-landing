@@ -4,6 +4,7 @@ seoTitle: "Herbs in the Bible for Healing: 5 Plants God Gave"
 description: "Healing herbs in the Bible, with verses: balm of Gilead, Hezekiah's figs, oil and wine, and the leaves for the healing of the nations."
 published: "2026-10-04"
 draft: false
+freeWeekOffer: true
 related:
   - is-herbalism-biblical
   - is-herbalism-witchcraft

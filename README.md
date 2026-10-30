@@ -78,6 +78,9 @@ for Decline before it sends.
 | `homeschool_sprouts_week1`, `homeschool_seedlings_week1` | free-week pop-ups in the band ladders, `/homeschool` |
 | `homeschool_cultivators_waitlist`, `homeschool_practitioners_waitlist` | "Tell me when it opens", `/homeschool` |
 | `back_to_eden_ch1` | free Chapter 1, `/back-to-eden` |
+| `learn_mid_sprouts_week1`, `learn_mid_seedlings_week1` | free-week offer after the first section of a `/learn` article with `freeWeekOffer: true` (`web/lib/freeWeekOffer.ts`) |
+| `learn_end_sprouts_week1`, `learn_end_seedlings_week1` | the same offer at the foot of that article |
+| `herb_sprouts_week1`, `herb_seedlings_week1` | free-week offer on every herb page, `/herbs/<slug>` and the app monograph |
 | any other `data-waitlist-source` | a `WaitlistModal` with no `data-waitlist-form-name` falls back to its source |
 | `constitution_assessment` | quiz email gate, `/assessment` |
 | `get_involved_<role>` | homepage partner / investor / parent form |
