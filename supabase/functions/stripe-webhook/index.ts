@@ -97,6 +97,10 @@ import {
 } from "../_shared/checkout-recovery.ts"
 import { applyUnsub } from "../_shared/email-unsubscribe.ts"
 import { tagEmailHtml, tagEmailText } from "../_shared/email-utm.ts"
+// FPEA 2027 convention offer, 2026-10-30: a printed set bought under it gifts its
+// band's Starter Unit (no credit, ever). Only sessions with metadata.offer reach it.
+import { isFpeaOfferMetadata } from "../_shared/fpea-offer.ts"
+import { queueFpeaGiftStarters } from "../_shared/fpea-gift.ts"
 
 /**
  * Normalize a constitution identifier to a guide-registry slug.
@@ -901,6 +905,12 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
 
     const { data: orderRow, error: orderErr } = await adminClient
       .from("orders").select("id").eq("stripe_checkout_session_id", session.id).maybeSingle()
+    // FPEA 2027: the gifted Starter(s). Before the early returns below, so a failed
+    // re-read or an E2E order still gets them (E2E buys as hello@, so the gift
+    // email goes there too and proves the rail). Never throws.
+    if (isFpeaOfferMetadata(session.metadata)) {
+      await giveFpeaStarters(session, items.map((i) => i.sku), orderRow?.id ?? null, orderNumber)
+    }
     if (orderErr || !orderRow?.id) {
       console.error(`[${session.id}] print order recorded but could not be re-read to queue its Lulu job: ${orderErr?.message ?? "no row"}`)
       return
@@ -1540,6 +1550,54 @@ async function cancelCreditForRefundedStarter(paymentIntentId: string): Promise<
     .eq("id", credit.id)
   if (error) throw new Error(`local credit deactivation write failed: ${error.message}`)
   console.log(`[${order.stripe_checkout_session_id}] starter refunded; credit ${credit.code} cancelled`)
+}
+
+/**
+ * FPEA 2027 offer: queue the Starter Unit(s) a printed set bought under the offer
+ * gifts, then kick starter-fulfill for each, the same rail and the same email a
+ * bought Starter gets (the email says it was a gift and carries no receipt).
+ *
+ * NO CREDIT, by founder law: this path never calls issueStarterCreditForBand, never
+ * writes starter_credits and never touches Stripe (see _shared/fpea-gift.ts).
+ *
+ * Never throws: the print order is recorded and its confirmation sent, and Stripe
+ * retrying the event would only re-run work that is already done. A gift that could
+ * not be queued is logged, sent to Sentry and emailed to the founder, inside the
+ * 48-hour window, so the family is never left without what they were promised.
+ */
+async function giveFpeaStarters(
+  session: Stripe.Checkout.Session,
+  skus: string[],
+  orderId: string | null,
+  orderNumber: string | null,
+): Promise<void> {
+  const sid = session.id
+  try {
+    const out = await queueFpeaGiftStarters(adminClient, {
+      sessionId: sid,
+      orderId,
+      email: session.customer_details?.email ?? session.customer_email ?? null,
+      purchaserName: session.customer_details?.name ?? null,
+      skus,
+    })
+    for (const key of out.queued) runInBackground(kickStarterFulfill(key))
+    console.log(
+      `[${sid}] FPEA gift Starter(s) ${out.bands.join("+") || "(none: no printed set)"}: ` +
+        `queued ${out.queued.length}, already queued ${out.alreadyQueued.length}, failed ${out.errors.length}`,
+    )
+    if (out.errors.length) throw new Error(out.errors.join("; "))
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    console.error(`[${sid}] FPEA gift Starter could not be queued: ${message}`)
+    await captureException(err instanceof Error ? err : new Error(message), { function: "stripe-webhook", stage: "fpea_gift_starter", session_id: sid })
+    runInBackground(notifyFounder(
+      `FPEA gift Starter not queued for ${orderNumber ?? sid}`,
+      `Order ${orderNumber ?? sid} was bought with the FPEA convention offer, which gifts the Starter Unit ` +
+        `download, but the gift could not be queued.\n\nError: ${message}\n\n` +
+        `The printed order itself is recorded and going to print as normal. Please send the Starter by hand, ` +
+        `or ask Claude to re-queue it.`,
+    ))
+  }
 }
 
 /** Fire-and-forget nudge to starter-fulfill. Never throws. */

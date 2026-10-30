@@ -51,6 +51,8 @@ import PayOverTime from "./PayOverTime";
 import ShipToForm, { type ShipToDraft } from "./ShipToForm";
 import { checkShipTo } from "../../../supabase/functions/_shared/ship-address";
 import { likelyNeedsGround, printShippingCents, splitVolumeTierPooled } from "../../../supabase/functions/_shared/print-pricing";
+// FPEA 2027 convention offer (/fpea, 2026-10-30). Without the `offer` prop this box is unchanged.
+import { FPEA_OFFER_ID, fpeaGiftBands, giftStarterPhrase } from "../../../supabase/functions/_shared/fpea-offer";
 
 interface PrintProduct {
   sku: string;
@@ -120,9 +122,15 @@ interface Props {
   cta: string;
   /** Which band's set this box sells. Defaults to Sprouts. */
   band?: PrintBand;
+  /**
+   * FPEA 2027 convention offer (/fpea only). Shipping shows and charges $0, the
+   * gifted Starter is named, and the request carries `offer` so create-checkout
+   * applies it (and refuses it outside the window). Omitted everywhere else.
+   */
+  offer?: typeof FPEA_OFFER_ID;
 }
 
-export default function PrintBuyBox({ cta, band = "sprouts" }: Props) {
+export default function PrintBuyBox({ cta, band = "sprouts", offer }: Props) {
   const { setSku: SET_SKU, nbSkus: NB_SKUS, bandName, parts: PART_SKUS } = BAND_CONFIG[band];
   const isSprouts = band === "sprouts";
   const isBoth = band === "both";
@@ -148,7 +156,10 @@ export default function PrintBuyBox({ cta, band = "sprouts" }: Props) {
     // A return notice belongs to the box whose checkout it came from. Sprouts
     // returns carry no band param (as before); other bands add ?band=.
     const returnedBand = params.get("band") ?? "sprouts";
-    const state = returnedBand === band ? params.get("checkout") : null;
+    // On /fpea every box names itself in ?item=, so a return reaches only its own box.
+    const state = offer
+      ? (params.get("item") === `print-${band}` ? params.get("checkout") : null)
+      : returnedBand === band ? params.get("checkout") : null;
     if (state === "cancelled") setNotice("No payment was taken. The set is still here whenever you are ready.");
     // ?checkout=success is the OLD return address (before /books/thank-you). Kept
     // so a stale tab or bookmark still reads as a success, not a blank page.
@@ -200,7 +211,8 @@ export default function PrintBuyBox({ cta, band = "sprouts" }: Props) {
   // One parcel. Shipping covers Lulu's cost for this exact cart (founder
   // 2026-09-26), the same formula create-checkout charges.
   const cartItems = product ? [{ sku: product.sku, qty }, ...notebooks.map((nb) => ({ sku: nb.sku, qty: qtyOf(nb.sku) }))] : [];
-  const shipping = product ? printShippingCents(cartItems) ?? product.shipping_tier_cents : 0;
+  // FPEA: the whole order ships free (create-checkout charges the same 0).
+  const shipping = offer ? 0 : product ? printShippingCents(cartItems) ?? product.shipping_tier_cents : 0;
   const shipsByGround = product ? likelyNeedsGround(cartItems) : false;
 
   function setNotebookQty(nb: PrintProduct, raw: number) {
@@ -253,10 +265,13 @@ export default function PrintBuyBox({ cta, band = "sprouts" }: Props) {
           ],
           sms_consent: smsConsent,
           ...shipToBody,
+          ...(offer ? { offer } : {}),
           success_url: isSprouts
             ? "https://edeninstitute.health/books/thank-you?session_id={CHECKOUT_SESSION_ID}"
             : `https://edeninstitute.health/books/thank-you?band=${band}&session_id={CHECKOUT_SESSION_ID}`,
-          cancel_url: isSprouts
+          cancel_url: offer
+            ? `https://edeninstitute.health/fpea?checkout=cancelled&item=print-${band}#print-${band}`
+            : isSprouts
             ? "https://edeninstitute.health/books?checkout=cancelled"
             : `https://edeninstitute.health/books?checkout=cancelled&band=${band}#${band}`,
         },
@@ -354,6 +369,11 @@ export default function PrintBuyBox({ cta, band = "sprouts" }: Props) {
               ? "Both years: the Sprouts and the Seedlings Teacher's Guide, Student Notebook and Read-Aloud Storybook, in one parcel."
               : "Teacher's Guide, Student Notebook and Read-Aloud Storybook, together."}
           </p>
+          {offer && (
+            <p className="font-body text-sm mb-4 rounded-md px-3 py-2" style={{ backgroundColor: "hsl(var(--eden-cream))", color: "hsl(var(--eden-forest))" }}>
+              FPEA offer: free shipping, plus {giftStarterPhrase(fpeaGiftBands([product.sku]))} emailed to you right after you pay.
+            </p>
+          )}
           <p className="font-serif text-3xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>
             {isBoth && separateCents && separateCents > product.retail_price_cents && (
               <span className="text-lg font-normal line-through mr-2 text-muted-foreground">{money(separateCents)}</span>
@@ -425,7 +445,7 @@ export default function PrintBuyBox({ cta, band = "sprouts" }: Props) {
                 </div>
               )),
             )}
-            <div className="flex justify-between"><span>Shipping (one parcel)</span><span>{money(shipping)}</span></div>
+            <div className="flex justify-between"><span>Shipping (one parcel)</span><span>{offer ? "Free" : money(shipping)}</span></div>
             <div className="flex justify-between font-bold mt-1"><span>Total before tax</span><span>{money(subtotal + shipping)}</span></div>
           </div>
           {shipsByGround && (

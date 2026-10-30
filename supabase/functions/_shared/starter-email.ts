@@ -19,6 +19,7 @@
 import { STARTER_BANDS, STARTER_LICENSE_LINE, StarterBand } from './starter-config.ts';
 import { Receipt, renderReceiptHtml, renderReceiptText } from './receipt.ts';
 import { escapeHtml } from './html-escape.ts';
+import { FPEA_OFFER_ID } from './fpea-offer.ts';
 
 export interface StarterEmailModel {
   firstName: string | null;
@@ -36,6 +37,13 @@ export interface StarterEmailModel {
    * email come from STARTER_BANDS, so a Seedlings buyer never reads "Sprouts".
    */
   band?: StarterBand;
+  /**
+   * FPEA 2027 (2026-10-30): set when this Starter was GIFTED with a printed set
+   * bought under the FPEA convention offer (fpea-offer.ts). The email then says so,
+   * points at the printed order instead of selling it, and drops the refund line
+   * (nothing was paid for it). Omitted means the normal email, byte for byte.
+   */
+  gift?: typeof FPEA_OFFER_ID;
 }
 
 // 2026-09-12, the print-first pivot. This delivery email used to hand the buyer
@@ -91,7 +99,19 @@ export function renderStarterDeliveryEmail(m: StarterEmailModel): {
 
   // A band whose printed year is not on sale yet (Seedlings, 2026-09-23) gets an
   // honest sentence and no button, rather than a link to another band's books.
-  const creditBlock = printSetUrl
+  // FPEA 2027 gift (see the model). Every gift-only string sits behind `gift`, so
+  // the normal email below renders exactly as it did before.
+  const gift = m.gift === FPEA_OFFER_ID;
+  const intro = gift
+    ? `Thank you for your order at the FPEA convention! As promised, here are the first nine weeks of Eden's Table, ${cfg.bandName}, free, so you can start this week while your printed books are being made. Everything you need to start teaching is in these three files.`
+    : `Here are your first nine weeks of Eden's Table, ${cfg.bandName}. Everything you need to start teaching is in these three files.`;
+  const giftBlock = `
+${rule()}
+${sectionLabel('Your printed books')}
+${para(`Your printed order has its own confirmation email. Printing begins 48 hours after you ordered, and I will email you tracking the day it ships. Plan on about two to three weeks to your door.`)}
+`;
+
+  const creditBlock = gift ? giftBlock : printSetUrl
     ? `
 ${rule()}
 ${sectionLabel('When you want the rest of the year')}
@@ -116,7 +136,7 @@ ${para(`These are the first nine weeks of the 36-week year. The printed ${cfg.ba
 </td></tr>
 <tr><td style="padding:34px 36px;">
 ${para(escapeHtml(greeting))}
-${para(`Here are your first nine weeks of Eden's Table, ${cfg.bandName}. Everything you need to start teaching is in these three files.`)}
+${para(intro)}
 
 ${sectionLabel('Your downloads')}
 ${para(`Your Teacher's Guide, Student Notebook and Read-Aloud Storybook are waiting on one page:`)}
@@ -130,7 +150,7 @@ ${renderReceiptHtml(m.receipt)}
 ${para(`<span style="font-size:14px;color:#5A6B5F;">Using a scholarship or education savings account? This receipt is itemized for your records, and Stripe also emails you a numbered invoice you can download as a PDF.</span>`)}` : ''}
 ${rule()}
 ${para(`<span style="font-size:14px;color:#5A6B5F;">${STARTER_LICENSE_LINE} If you teach a co-op or a classroom, reply to this email and we will sort out the right licence for you.</span>`)}
-${para(`<span style="font-size:14px;color:#5A6B5F;">Because this is a digital download, it is not refundable once the files have been downloaded. Our full policy is <a href="${RETURNS_URL}" style="color:#1C3A2E;">here</a>.</span>`)}
+${gift ? '' : para(`<span style="font-size:14px;color:#5A6B5F;">Because this is a digital download, it is not refundable once the files have been downloaded. Our full policy is <a href="${RETURNS_URL}" style="color:#1C3A2E;">here</a>.</span>`)}
 ${para(`Grace and health,`)}
 ${para(`<strong>Camila</strong><br><span style="font-size:14px;">The Eden Institute</span>`)}
 </td></tr>
@@ -143,7 +163,9 @@ ${para(`<strong>Camila</strong><br><span style="font-size:14px;">The Eden Instit
   const text = [
     greeting,
     '',
-    `Here are your first nine weeks of Eden's Table, ${cfg.bandName}.`,
+    gift
+      ? `Thank you for your order at the FPEA convention! As promised, here are the first nine weeks of Eden's Table, ${cfg.bandName}, free, so you can start this week while your printed books are being made.`
+      : `Here are your first nine weeks of Eden's Table, ${cfg.bandName}.`,
     '',
     "Your Teacher's Guide, Student Notebook and Read-Aloud Storybook are on one page:",
     downloadsUrl,
@@ -152,7 +174,11 @@ ${para(`<strong>Camila</strong><br><span style="font-size:14px;">The Eden Instit
     '',
     'If a file opens as a blank white screen, you are not doing anything wrong. Some email apps open links in a small built in browser that cannot display a PDF. Press and hold the link instead of tapping it, choose Open in Safari or Open in Chrome, and it will open properly. Opening this email on a computer works too.',
     '',
-    ...(printSetUrl
+    ...(gift
+      ? [
+        'Your printed books: your printed order has its own confirmation email. Printing begins 48 hours after you ordered, and I will email you tracking the day it ships. Plan on about two to three weeks to your door.',
+      ]
+      : printSetUrl
       ? [
         'When you want the rest of the year: the other twenty-seven weeks are finished and the whole year is printed to order, at your door in about two to three weeks.',
         `See the printed year: ${printSetUrl}`,
@@ -165,12 +191,14 @@ ${para(`<strong>Camila</strong><br><span style="font-size:14px;">The Eden Instit
     STARTER_LICENSE_LINE,
     'If you teach a co-op or a classroom, reply to this email and we will sort out the right licence for you.',
     '',
-    `Because this is a digital download, it is not refundable once the files have been downloaded. Full policy: ${RETURNS_URL}`,
-    '',
+    ...(gift
+      ? []
+      : [`Because this is a digital download, it is not refundable once the files have been downloaded. Full policy: ${RETURNS_URL}`, '']),
     'Grace and health,',
     'Camila',
     'The Eden Institute',
   ].join('\n');
 
-  return { subject: "Your Eden's Table Starter Unit is ready", html, text };
+  const subject = gift ? `Your free ${cfg.bandName} Starter Unit is ready` : "Your Eden's Table Starter Unit is ready";
+  return { subject, html, text };
 }

@@ -22,6 +22,8 @@ import { getFbAttribution } from "@/lib/fbAttribution";
 import { getCheckoutAttribution } from "@/lib/attribution";
 import { pinTrack } from "@/lib/pinterestTag";
 import PayOverTime from "./PayOverTime";
+// FPEA 2027 convention offer (/fpea, 2026-10-30). Without the `offer` prop this box is unchanged.
+import { FPEA_OFFER_ID, FPEA_STARTER_DISCOUNT_PERCENT, fpeaStarterPriceCents } from "../../../supabase/functions/_shared/fpea-offer";
 
 /**
  * One Starter Unit per band (2026-09-23). The lookup keys mirror STARTER_BANDS in
@@ -51,10 +53,28 @@ interface Props {
   /** Which band's Starter Unit this button sells. Defaults to Sprouts, so every
    *  existing /starter button is unchanged. */
   band?: StarterBand;
+  /**
+   * FPEA 2027 convention offer (/fpea only): shows and sends the FPEA price, 25% off
+   * this box's own list price (PRICE_VALUE, which fpea-offer.test.ts holds equal to
+   * STARTER_BANDS in starter-config.ts; that file reads Deno.env, so the browser
+   * bundle does not import it). create-checkout computes the charge itself from the
+   * Stripe Price and refuses the offer outside its window. Omitted everywhere else.
+   */
+  offer?: typeof FPEA_OFFER_ID;
 }
 
-export default function StarterBuyBox({ cta, wide = false, band = "sprouts" }: Props) {
+/** 2925 -> "$29.25". Used only for the FPEA price. */
+function money(cents: number): string {
+  return (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
+}
+
+export default function StarterBuyBox({ cta, wide = false, band = "sprouts", offer }: Props) {
   const product = STARTER_PRODUCTS[band];
+  // FPEA: display price only; the server charges 25% off the real Stripe Price.
+  const listCents = PRICE_VALUE * 100;
+  const offerCents = offer ? fpeaStarterPriceCents(listCents) : null;
+  const priceLabel = offerCents != null ? money(offerCents) : PRICE_LABEL;
+  const priceValue = offerCents != null ? offerCents / 100 : PRICE_VALUE;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cancelled, setCancelled] = useState(false);
@@ -65,17 +85,18 @@ export default function StarterBuyBox({ cta, wide = false, band = "sprouts" }: P
     // exact failure mode that cost reservations on the preorder Reserve CTA in
     // July: a silent non-response reads as a broken button.
     const params = new URLSearchParams(window.location.search);
-    if (params.get("checkout") === "cancelled") setCancelled(true);
+    // On /fpea every box names itself in ?item=, so a return reaches only its own box.
+    if (params.get("checkout") === "cancelled" && (!offer || params.get("item") === `starter-${band}`)) setCancelled(true);
   }, []);
 
   async function startCheckout() {
     // Pinterest addtocart, on the click and BEFORE the await, because the
     // redirect to Stripe below can cut off anything queued after it.
     pinTrack("addtocart", {
-      value: PRICE_VALUE,
+      value: priceValue,
       currency: "USD",
       order_quantity: 1,
-      line_items: [{ product_id: product.lookupKey, product_name: product.productName, product_price: PRICE_VALUE, product_quantity: 1 }],
+      line_items: [{ product_id: product.lookupKey, product_name: product.productName, product_price: priceValue, product_quantity: 1 }],
     });
     setLoading(true);
     setError(null);
@@ -85,6 +106,9 @@ export default function StarterBuyBox({ cta, wide = false, band = "sprouts" }: P
         body: {
           ...getFbAttribution(), attribution: getCheckoutAttribution(),
           lookup_key: product.lookupKey,
+          ...(offer
+            ? { offer, cancel_url: `https://edeninstitute.health/fpea?checkout=cancelled&item=starter-${band}#starter-${band}` }
+            : {}),
         },
       });
       // A coded EF failure (RATE_LIMITED, STARTER_NOT_CONFIGURED) carries a
@@ -128,7 +152,7 @@ export default function StarterBuyBox({ cta, wide = false, band = "sprouts" }: P
         } ${loading ? "opacity-60 cursor-wait" : "hover:opacity-90"}`}
         style={{ backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-cream))" }}
       >
-        {loading ? "Opening checkout..." : `Get the Starter Unit, ${PRICE_LABEL}`}
+        {loading ? "Opening checkout..." : `Get the Starter Unit, ${priceLabel}`}
       </button>
 
       {error && (
@@ -137,7 +161,13 @@ export default function StarterBuyBox({ cta, wide = false, band = "sprouts" }: P
         </p>
       )}
 
-      <PayOverTime amountCents={PRICE_VALUE * 100} align="center" className="mt-3" />
+      {offerCents != null && (
+        <p className="font-body text-sm mt-3" style={{ color: "hsl(var(--eden-forest))" }}>
+          FPEA price: {FPEA_STARTER_DISCOUNT_PERCENT}% off the regular {money(listCents)}.
+        </p>
+      )}
+
+      <PayOverTime amountCents={offerCents ?? PRICE_VALUE * 100} align="center" className="mt-3" />
 
       {/* Founder 2026-09-12: sits under every buy button so nobody pays thinking
           this is the whole year. "9-week starter", never "partial" or "quarter". */}

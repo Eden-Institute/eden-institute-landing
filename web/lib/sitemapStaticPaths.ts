@@ -11,6 +11,7 @@
  *   /partner-sample       - link-only, noindex (on purpose NOT Disallow-ed in
  *                           robots.txt, or crawlers could never read the noindex)
  *   /curriculum           - link-only, noindex
+ *   /fpea                 - FPEA 2027 convention offer, reached by the booth QR code only
  *   /preorder             - page removed 2026-09-24, redirects to /books (vercel.json)
  *   /books/thank-you      - post-purchase confirmation
  *   /starter/downloads    - post-purchase delivery surface

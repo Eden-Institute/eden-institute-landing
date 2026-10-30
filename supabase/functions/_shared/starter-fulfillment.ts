@@ -36,6 +36,7 @@ import {
 import { renderStarterDeliveryEmail, StarterEmailModel } from './starter-email.ts';
 import { Receipt, starterReceipt } from './receipt.ts';
 import { tagEmailHtml, tagEmailText, type EmailTag } from './email-utm.ts';
+import { FPEA_OFFER_ID, isFpeaGiftDeliveryKey } from './fpea-offer.ts';
 
 /**
  * An in_progress delivery older than this belongs to a worker that died (OOM at
@@ -379,7 +380,11 @@ export async function fulfilStarterDelivery(
     // the webhook wrote. Best effort BY DESIGN: a missing order must never hold
     // back a buyer's files, so a miss is logged and the email goes without it.
     let receipt: Receipt | null = null;
-    if (delivery.order_id) {
+    // FPEA 2027 gift (fpea-offer.ts): the Starter came free with a printed set. Its
+    // order_id is the PRINT order, whose receipt is in the order confirmation, so
+    // no receipt here (a Starter receipt built from it would show the set's total).
+    const gift = isFpeaGiftDeliveryKey(sid);
+    if (delivery.order_id && !gift) {
       try {
         const { data: orderRow } = await db.from('orders')
           .select('order_number, created_at, amount_total_cents, tax_cents, raw')
@@ -390,7 +395,7 @@ export async function fulfilStarterDelivery(
         console.error(`[${sid}] receipt load threw; sending without it:`, String(e));
       }
     }
-    if (!receipt) console.error(`[${sid}] NO itemized receipt on this delivery (order_id=${delivery.order_id ?? 'null'})`);
+    if (!receipt && !gift) console.error(`[${sid}] NO itemized receipt on this delivery (order_id=${delivery.order_id ?? 'null'})`);
 
     const model: StarterEmailModel = {
       firstName: (delivery.purchaser_name ?? '').trim().split(/\s+/)[0] || null,
@@ -399,6 +404,7 @@ export async function fulfilStarterDelivery(
       downloadToken: delivery.download_token,
       receipt,
       band,
+      ...(gift ? { gift: FPEA_OFFER_ID } : {}),
     };
 
     const t4 = performance.now();
