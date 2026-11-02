@@ -147,12 +147,6 @@ verify_jwt = false
 [functions.stripe-webhook-e2e]
 verify_jwt = false
 
-# LearnWorlds course-purchase webhook. Authenticity = Learnworlds-Webhook-Signature,
-# a STATIC pre-shared value compared in constant time (not an HMAC of the body;
-# see learnworlds-webhook/index.ts header), not a Supabase JWT.
-[functions.learnworlds-webhook]
-verify_jwt = false
-
 # Lulu print-job status webhook (print-on-demand books). Authenticity is the
 # Lulu-HMAC-SHA256 signature over the raw body, keyed with our Lulu client
 # secret, not a Supabase JWT. Deploy with --no-verify-jwt.

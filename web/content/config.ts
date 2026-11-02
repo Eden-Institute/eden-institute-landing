@@ -26,6 +26,9 @@ const learn = defineCollection({
     /** Up to 3 other article slugs shown as "Keep reading" at the foot of the article.
         The build fails if one is missing or still a draft, so this never ships a dead link. */
     related: z.array(z.string()).max(3).default([]),
+    /** The free-week sign-up after the first section and again at the foot of the
+        article (2026-10-28, web/lib/freeWeekOffer.ts). Off unless set. */
+    freeWeekOffer: z.boolean().default(false),
   }),
 });
 

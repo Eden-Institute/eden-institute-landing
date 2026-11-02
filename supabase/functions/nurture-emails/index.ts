@@ -316,13 +316,14 @@ async function sendEmail(
 ): Promise<{ ok: boolean; error?: string; status?: number; name?: string }> {
   const { html: unsubHtml, headers: unsubHeaders } = await applyUnsub(html, to, list);
   // UTM tags on every edeninstitute.health link (founder rule 2026-10-08, _shared/email-utm.ts),
-  // keyed off the same campaign/email_key tags the engagement dashboard uses. The buyer
-  // sequence (postpurchase list) is 'buyer'; every other drip this drains is 'nurture'.
+  // keyed off the same campaign/email_key tags the engagement dashboard uses. Every drip
+  // this drains is 'nurture', the buyer sequence included (hard gate 2026-10-28: four
+  // approved mediums); a sequence with no campaign tag is named by its list.
   const tagValue = (name: string) => tags?.find((t) => t.name === name)?.value;
   const finalHtml = tagEmailHtml(unsubHtml, {
-    medium: list === 'postpurchase' ? 'buyer' : 'nurture',
+    medium: 'nurture',
     content: tagValue('email_key') ?? list,
-    campaign: tagValue('campaign'),
+    campaign: tagValue('campaign') ?? list,
   });
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -1588,6 +1589,11 @@ async function drainLaunchQueue(): Promise<QueueResult> {
 //   2. the order's CURRENT status is re-read here at send time, embedded in
 //      the same query, in case a status changed without the trigger firing
 //      (a direct SQL update, a restore from backup)
+// Opt-outs are also re-read at send time: the postpurchase list, and a global
+// unsubscribe/bounce on waitlist_signups (founder 2026-10-18, punch #180). The
+// global check has to live here because cancel_queued_emails_on_unsubscribe
+// does not touch this table, and a family who unsubscribed BEFORE buying has
+// no pending rows for that trigger to cancel anyway.
 const BUYER_QUEUE_BATCH = 100;
 
 async function drainBuyerQueue(): Promise<QueueResult> {
@@ -1636,6 +1642,20 @@ async function drainBuyerQueue(): Promise<QueueResult> {
           body: JSON.stringify({
             status: 'cancelled',
             error_message: 'recipient unsubscribed (postpurchase)',
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        continue;
+      }
+
+      // A list-level opt-out is honoured only for that list (rule 2026-09-17),
+      // but a GLOBAL unsubscribe or bounce stops buyer emails too.
+      if (await isGloballyUnsubscribed(email)) {
+        await supabaseQuery(`buyer_email_queue?id=eq.${row.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: 'cancelled',
+            error_message: 'recipient unsubscribed or bounced (global)',
             updated_at: new Date().toISOString(),
           }),
         });

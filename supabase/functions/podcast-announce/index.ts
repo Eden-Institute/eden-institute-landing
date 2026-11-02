@@ -166,9 +166,9 @@ async function sendOne(
   // UTM tags on every edeninstitute.health link (founder rule 2026-10-08, _shared/email-utm.ts).
   // With no campaign loaded this is the internal rail check, tagged under the function name.
   const html = tagEmailHtml(unsubHtml, {
-    medium: 'podcast_announce',
+    medium: 'newsletter',
     content: CAMPAIGN?.key ?? 'podcast_announce',
-    campaign: CAMPAIGN?.key,
+    campaign: CAMPAIGN?.key ?? 'podcast_announce',
   });
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',

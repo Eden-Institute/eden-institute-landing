@@ -72,26 +72,24 @@ describe("reportGa4PurchaseOnce", () => {
     delete (window as unknown as { gtag?: unknown }).gtag;
   });
 
-  it("fires one purchase, keyed by the hashed reference, never the session id", async () => {
+  it("fires one Ads conversion, keyed by the hashed reference, never the session id", async () => {
     await reportGa4PurchaseOnce(SESSION, { analytics: set(), tax_cents: 0, currency: "usd" });
     await reportGa4PurchaseOnce(SESSION, { analytics: set(), tax_cents: 0, currency: "usd" });
-    // The GA4 purchase, then the Google Ads conversion riding on it.
-    expect(calls).toHaveLength(2);
+    // The Google Ads conversion only: GA4's purchase comes from stripe-webhook (2026-10-28).
+    expect(calls).toHaveLength(1);
     expect(calls[0][0]).toBe("event");
-    expect(calls[0][1]).toBe("purchase");
-    expect((calls[0][2] as { transaction_id: string }).transaction_id).toBe(REF);
-    expect(calls[1][1]).toBe("conversion");
-    expect(calls[1][2]).toMatchObject({ send_to: "AW-18494002476/L_oFCOO-gZ4dEKyq0PJE", value: 249, currency: "USD", transaction_id: REF });
+    expect(calls[0][1]).toBe("conversion");
+    expect(calls[0][2]).toMatchObject({ send_to: "AW-18494002476/L_oFCOO-gZ4dEKyq0PJE", value: 249, currency: "USD", transaction_id: REF });
     expect(JSON.stringify(calls)).not.toContain(SESSION);
     expect(localStorage.getItem(`ga4_purchase_${REF}`)).toBe("1");
   });
 
-  it("gives the email to Google Ads only, after the GA4 purchase is sent", async () => {
+  it("gives the email to Google Ads only, and never sends a browser purchase", async () => {
     // Its own session: the in-memory once-guard already holds SESSION's key.
     await reportGa4PurchaseOnce("cs_live_books_email", { analytics: set(), tax_cents: 0, currency: "usd", email: "Buyer@Example.com" });
-    expect(calls.map((c) => c[1])).toEqual(["purchase", "user_data", "conversion"]);
-    expect(JSON.stringify(calls[0])).not.toContain("example.com");
-    expect(calls[1]).toEqual(["set", "user_data", { email: "buyer@example.com" }]);
+    expect(calls.map((c) => c[1])).toEqual(["user_data", "conversion"]);
+    expect(calls.some((c) => c[1] === "purchase")).toBe(false);
+    expect(calls[0]).toEqual(["set", "user_data", { email: "buyer@example.com" }]);
   });
 
   it("sends nothing after Decline", async () => {

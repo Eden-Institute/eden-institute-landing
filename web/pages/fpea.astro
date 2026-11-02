@@ -1,0 +1,50 @@
+---
+// /fpea: the FPEA Florida Homeschool Convention offer (Gaylord Palms, Kissimmee FL),
+// reached only by the QR code on the booth table. Founder decisions 2026-10-30:
+// any printed set ships free and brings that year's Starter Unit download; a Starter
+// Unit on its own is 25% off; open 2027-05-27 through 2027-06-05, New York time.
+//
+// UNLISTED: noindex, not in STATIC_PATHS (web/lib/sitemapStaticPaths.ts), and
+// linked from no navigation. Tags stay ON (no credential in this URL), so the QR
+// scans and their sales are measured like any other page.
+//
+// The offer, the dates and the buy boxes are the FpeaOffer island: the window has to
+// be checked when the page is VIEWED, not when it was built. create-checkout is the
+// real gate (supabase/functions/_shared/fpea-offer.ts).
+//
+// Copy rule: no em dashes. No kits, preorders, credits or health claims.
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+import FpeaOffer from "../components/islands/FpeaOffer.tsx";
+
+const meta = {
+  title: "FPEA Convention Offer · Eden's Table",
+  description: "The Eden's Table offer for families at the FPEA Florida Homeschool Convention.",
+  canonical: "https://edeninstitute.health/fpea",
+};
+---
+
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} noindex={true}>
+  <section class="pt-16 md:pt-20 pb-8 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">
+        FPEA Florida Homeschool Convention
+      </p>
+      <h1 class="font-serif text-4xl md:text-5xl font-bold leading-tight mb-4" style="color:hsl(var(--eden-bark))">
+        Welcome, FPEA families!
+      </h1>
+      <p class="font-body text-lg leading-relaxed" style="color:hsl(var(--eden-bark))">
+        So glad you found us at the FPEA Florida Homeschool Convention.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-10 px-6" style="background-color:hsl(var(--eden-cream))">
+    <FpeaOffer client:only="react" />
+  </section>
+
+  <section class="pb-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <p class="font-body text-sm text-muted-foreground text-center">
+      Questions? Email me: <a href="mailto:hello@edeninstitute.health" class="underline" style="color:hsl(var(--eden-forest))">hello@edeninstitute.health</a>
+    </p>
+  </section>
+</MarketingLayout>

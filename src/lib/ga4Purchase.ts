@@ -1,5 +1,11 @@
 // GA4 "purchase" for physical orders (2026-10-01).
 //
+// SERVER-SIDE SINCE 2026-10-28. GA4's "purchase" now comes from stripe-webhook for
+// every sale (supabase/functions/_shared/ga4-mp.ts): the browser lost sales to ad
+// blockers and closed tabs. This file no longer sends "purchase". It still builds
+// the same parameters and sends the Google Ads Purchase conversion with them, on
+// the same guards and once-only key, so Ads reporting is unchanged.
+//
 // Google Merchant Center counts conversions only from the standard GA4
 // "purchase" event, with items[].item_id matching the product feed. The feed ids
 // are products.sku (sprouts_print_set, bte_paperback_print, ...), and
@@ -138,7 +144,7 @@ export async function reportGa4PurchaseOnce(
     } catch {
       // Storage unavailable: the in-memory set above guards this page load.
     }
-    gtag("event", "purchase", params);
+    // No gtag("event", "purchase") here since 2026-10-28: stripe-webhook reports it.
     sendGoogleAdsPurchase(gtag, params, order.email);
   } catch {
     // Analytics never break the page.

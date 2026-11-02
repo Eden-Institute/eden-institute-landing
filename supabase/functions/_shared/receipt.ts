@@ -19,6 +19,7 @@
 import type { Db, OrderRow } from './order-db.ts';
 import { escapeHtml } from './html-escape.ts';
 import { splitVolumeTierPooled } from './print-pricing.ts';
+import { isFpeaOfferMetadata } from './fpea-offer.ts';
 
 /**
  * The seller of record, printed on every receipt and every Stripe invoice.
@@ -127,6 +128,12 @@ export interface Receipt {
   paidWith: string | null;
   /** Receipt title. Omitted means the curriculum heading, unchanged. */
   heading?: string;
+  /**
+   * FPEA 2027 convention offer (2026-10-30): the order shipped free, so the receipt
+   * shows a Shipping row reading "Free" instead of leaving shipping off. Omitted on
+   * every other receipt, which therefore renders exactly as before.
+   */
+  freeShipping?: boolean;
 }
 
 const CURRICULUM_HEADING = 'Itemized receipt: homeschool curriculum';
@@ -210,6 +217,7 @@ export async function loadOrderReceipt(db: Db, order: OrderRow): Promise<Receipt
     gradeLevel: (firstSku && RECEIPT_NAMES[firstSku]?.grade) ?? null,
     paidWith: paidWithFromRaw(raw),
     ...(firstSku && BOOK_RECEIPT_NAMES[firstSku] ? { heading: BOOK_HEADING } : {}),
+    ...(isFpeaOfferMetadata(raw.metadata) && num(totals.amount_shipping) === 0 ? { freeShipping: true } : {}),
   };
 }
 
@@ -354,7 +362,11 @@ export function renderReceiptHtml(r: Receipt): string {
     ${itemRows}
     ${summary('Subtotal', subtotal)}
     ${r.discountCents > 0 ? summary('Discount', -r.discountCents) : ''}
-    ${r.shippingCents > 0 ? summary('Shipping', r.shippingCents) : ''}
+    ${r.shippingCents > 0 ? summary('Shipping', r.shippingCents) : r.freeShipping ? `
+<tr>
+  <td style="${cell}">Shipping</td>
+  <td style="${right}">Free</td>
+</tr>` : ''}
     ${summary('Sales tax', r.taxCents)}
     ${summary('Total paid', r.totalCents, true)}
   </table>
@@ -381,6 +393,7 @@ export function renderReceiptText(r: Receipt): string {
   out.push('', `Subtotal   ${usd(subtotal)}`);
   if (r.discountCents > 0) out.push(`Discount   ${usd(-r.discountCents)}`);
   if (r.shippingCents > 0) out.push(`Shipping   ${usd(r.shippingCents)}`);
+  else if (r.freeShipping) out.push('Shipping   Free');
   out.push(`Sales tax  ${usd(r.taxCents)}`, `Total paid ${usd(r.totalCents)}`);
   if (r.paidWith) out.push(`Paid by ${r.paidWith}`);
   out.push('', `Sold by ${SELLER_LEGAL_NAME} (${SELLER_BRANDS}), ${SELLER_ADDRESS}. ${SELLER_CONTACT}`);

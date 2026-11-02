@@ -65,7 +65,7 @@ export const BOOK_DIGITAL: Record<BookDigitalSku, BookDigital> = {
     title: 'Back to Eden, Study & Journal Edition, Digital (PDF)',
     path: 'digital/back-to-eden-study-journal-edition.pdf',
     filename: 'Back to Eden Study and Journal Edition - Camila Johnson.pdf',
-    pages: 386,
+    pages: 384,
     retailCents: 2900,
   },
   bte_study_guide_digital: {
@@ -180,7 +180,7 @@ export async function sendBookDeliveryEmail(m: BookDeliveryModel): Promise<strin
   const rendered = renderBookDeliveryEmail(m);
   // UTM tags on every edeninstitute.health link (founder rule 2026-10-08, email-utm.ts).
   // The /back-to-eden/download?t= link and /returns are excluded by the helper.
-  const utm: EmailTag = { medium: 'receipt', content: 'book_delivery' };
+  const utm: EmailTag = { medium: 'nurture', campaign: 'book_delivery', content: 'book_delivery' };
   const subject = rendered.subject;
   const html = tagEmailHtml(rendered.html, utm);
   const text = tagEmailText(rendered.text, utm);

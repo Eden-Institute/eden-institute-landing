@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Leaf, Shield, Smartphone, Star } from "lucide-react";
+import { Leaf, Shield, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WorldviewBand } from "@/components/landing/WorldviewBand";
 import { TierComparison } from "@/components/apothecary/TierComparison";
@@ -7,6 +7,7 @@ import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
 import MateriaMedicaPlate from "@/components/MateriaMedicaPlate";
 import { HERB_SLUGS } from "@/components/materiaMedicaHerbs";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
+import { APOTHECARY_HOME_META } from "@/lib/apothecaryRouteMeta";
 import { ROUTES } from "@/lib/routes";
 import { HERB_CATALOG_SIZE } from "@/lib/herbCatalog";
 // Hero botanical: public domain elderberry plate from Koehler's Medizinal-Pflanzen
@@ -35,12 +36,8 @@ import bandPatterns from "@/assets/band-patterns.jpg";
  * ApothecaryHome for them.
  */
 export default function ApothecaryWelcome() {
-  useDocumentMeta({
-    title: "Eden Apothecary | Body Pattern Herb Guide | The Eden Institute",
-    description:
-      "Find your body pattern with the free 2-minute quiz and meet the herbs that fit it. Rooted in Biblical terrain medicine. Built for Christian families.",
-    canonical: "https://edeninstitute.health/apothecary",
-  });
+  // Shared with the build, which writes it into /apothecary's raw HTML.
+  useDocumentMeta(APOTHECARY_HOME_META);
 
   return (
     <div className="bg-background">
@@ -119,7 +116,7 @@ export default function ApothecaryWelcome() {
             intelligence, not symptom lookup.
           </p>
         </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid md:grid-cols-3 gap-6">
           <div
             className="rounded-lg p-6 border"
             style={{
@@ -188,29 +185,6 @@ export default function ApothecaryWelcome() {
               Yahweh as the source of vital force, named plainly. Classical
               pattern observation honored across traditions, anchored in
               Scripture alone.
-            </p>
-          </div>
-          <div
-            className="rounded-lg p-6 border"
-            style={{
-              borderColor: "hsl(var(--border))",
-              backgroundColor: "hsl(var(--eden-cream) / 0.4)",
-            }}
-          >
-            <Star
-              className="w-7 h-7 mb-4"
-              style={{ color: "hsl(var(--eden-gold))" }}
-            />
-            <h3
-              className="font-serif text-base font-semibold mb-2"
-              style={{ color: "hsl(var(--eden-bark))" }}
-            >
-              Course Integration
-            </h3>
-            <p className="font-body text-sm text-muted-foreground leading-relaxed">
-              Built as the clinical companion to the Eden Institute courses,
-              so what you study in class is at your fingertips in the
-              kitchen.
             </p>
           </div>
         </div>

@@ -24,6 +24,7 @@
 
 import { STATE_RULES, type EsaStateCode, money } from "./esa-invoice.ts";
 import { esc } from "./html-escape.ts";
+import { tagEmailHtml } from "./email-utm.ts";
 import type { StarterBand } from "./starter-config.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
@@ -133,7 +134,8 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: FROM, to: [to], reply_to: FOUNDER, subject, html }),
+      // UTM tags on every edeninstitute.health link (hard gate 2026-10-28, email-utm.ts).
+      body: JSON.stringify({ from: FROM, to: [to], reply_to: FOUNDER, subject, html: tagEmailHtml(html, { medium: "nurture", campaign: "esa_order" }) }),
     });
     if (!res.ok) console.error("esa email failed:", res.status, await res.text().catch(() => ""));
     return res.ok;

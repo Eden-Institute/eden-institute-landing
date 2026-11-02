@@ -1,5 +1,11 @@
 // GA4 "purchase" for digital orders (2026-10-07, founder: "every sale = purchase").
 //
+// SERVER-SIDE SINCE 2026-10-28. GA4's "purchase" now comes from stripe-webhook for
+// every sale (supabase/functions/_shared/ga4-mp.ts): the browser lost sales to ad
+// blockers and closed tabs. This file no longer sends "purchase". It still builds
+// the same parameters and sends the Google Ads Purchase conversion with them, on
+// the same guards and once-only key, so Ads reporting is unchanged.
+//
 // Until now only printed orders sent the standard GA4 "purchase" (ga4Purchase.ts,
 // for Merchant Center). The Starter Units sent their own "starter_unit_purchase",
 // and the Deep-Dive Guide and the Back to Eden PDF sent nothing, so Analytics
@@ -134,7 +140,7 @@ export async function reportGa4DigitalPurchaseOnce(
     } catch {
       // Storage unavailable: the in-memory set above guards this page load.
     }
-    gtag("event", "purchase", params);
+    // No gtag("event", "purchase") here since 2026-10-28: stripe-webhook reports it.
     sendGoogleAdsPurchase(gtag, params, order.email);
   } catch {
     // Analytics never break the page.

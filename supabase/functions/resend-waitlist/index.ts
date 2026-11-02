@@ -678,7 +678,7 @@ Deno.serve(async (req) => {
         // funnels), except the podcast welcome, which has its own list so a podcast
         // unsubscribe never touches Eden's Table mail and vice versa.
         const welcomeList: EmailList = entry_funnel === 'podcast' ? 'podcast' : 'homeschool';
-        await sendEmail(normalizedEmail, emailContent.subject, emailContent.html, welcomeList, { medium: 'welcome', content: welcomeKey });
+        await sendEmail(normalizedEmail, emailContent.subject, emailContent.html, welcomeList, { medium: 'welcome', campaign: welcomeKey, content: 'welcome' });
         welcomeSent = true;
       } catch (emailErr) {
         console.error('Welcome email send error:', String(emailErr));

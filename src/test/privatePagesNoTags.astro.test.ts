@@ -207,3 +207,45 @@ describe("every other page keeps its tags", () => {
     expect(using).toEqual([...PRIVATE_PAGES].sort());
   });
 });
+
+// Google's store badge (src/lib/merchantWidget.ts, 2026-10-16) rides on
+// SiteAnalytics: on for public pages, off for every noindex page (the thank-you
+// pages carry the Customer Reviews opt-in, which must not be covered) and every
+// private page.
+describe("the store badge is only on public pages", () => {
+  const NOINDEX = '<meta name="robots" content="noindex, nofollow">';
+
+  it("is off on every noindex page and on, for SiteAnalytics, on every indexed one", () => {
+    let on = 0;
+    for (const [page, html] of rendered) {
+      const props = siteAnalyticsProps(html);
+      expect(props, page).not.toBeNull();
+      if (html.includes(NOINDEX)) {
+        expect(props, page).toContain('"storeBadge":[0,false]');
+      } else {
+        expect(props, page).toContain('"storeBadge":[0,true]');
+        on++;
+      }
+    }
+    expect(on).toBeGreaterThanOrEqual(10);
+  });
+
+  it("is off on every thank-you page and on the shop pages", () => {
+    for (const page of ["starter/thank-you.astro", "starter/seedlings/thank-you.astro", "books/thank-you.astro", "back-to-eden/thank-you.astro"]) {
+      expect(siteAnalyticsProps(rendered.get(page) as string), page).toContain('"storeBadge":[0,false]');
+    }
+    for (const page of ["books.astro", "back-to-eden.astro", "index.astro"]) {
+      expect(siteAnalyticsProps(rendered.get(page) as string), page).toContain('"storeBadge":[0,true]');
+    }
+  });
+
+  it("is off on every private page", () => {
+    for (const page of PRIVATE_PAGES) {
+      expect(siteAnalyticsProps(rendered.get(page) as string), page).toContain('"storeBadge":[0,false]');
+    }
+  });
+
+  it("the Back to Eden phone buy bar is marked so the badge sits above it", () => {
+    expect(rendered.get("back-to-eden.astro")).toMatch(/<div data-sticky-bottom-bar[^>]*class="fixed inset-x-0 bottom-0/);
+  });
+});

@@ -9,6 +9,8 @@
 import { getCollection, type CollectionEntry } from "astro:content";
 import MarketingLayout from "../../layouts/MarketingLayout.astro";
 import { GRADE_PAGES, gradePath } from "../../lib/gradePages";
+import { freeWeekOfferHtml } from "../../lib/freeWeekOffer";
+import WaitlistController from "../../components/islands/WaitlistController.tsx";
 
 export async function getStaticPaths() {
   const articles = await getCollection("learn", ({ data }) => !data.draft);
@@ -28,6 +30,16 @@ const related = entry.data.related.map((slug) => {
 });
 const d = entry.data;
 
+// Herbs in the Bible heads "Keep reading" on every other article (2026-10-28,
+// analytics and search developer prompt, task 11): it ranks on page 2 for its
+// search, and these are its closest pages. Its own title and description are the
+// link, so nothing is authored here.
+const HERBS_IN_THE_BIBLE = "herbs-in-the-bible";
+const bible = entry.slug === HERBS_IN_THE_BIBLE || d.related.includes(HERBS_IN_THE_BIBLE)
+  ? null
+  : published.find((a) => a.slug === HERBS_IN_THE_BIBLE) ?? null;
+const keepReading = bible ? [bible, ...related] : related;
+
 const ORIGIN = "https://edeninstitute.health";
 const canonical = `${ORIGIN}/learn/${entry.slug}`;
 const fmt = (iso: string) =>
@@ -41,7 +53,7 @@ const jsonLd: Record<string, unknown>[] = [
     description: d.description,
     datePublished: d.published,
     dateModified: d.updated ?? d.published,
-    author: { "@type": "Person", name: "Camila", url: `${ORIGIN}/why-eden` },
+    author: { "@type": "Person", name: "Camila Johnson", url: `${ORIGIN}/why-eden` },
     publisher: { "@type": "Organization", name: "The Eden Institute", url: ORIGIN },
     mainEntityOfPage: canonical,
     inLanguage: "en",
@@ -78,7 +90,7 @@ if (d.faq.length > 0) {
       </nav>
       <h1 class="font-serif text-3xl md:text-5xl font-bold leading-tight mb-4" style="color:hsl(var(--eden-bark))">{d.title}</h1>
       <p class="font-body text-sm text-muted-foreground mb-10">
-        By Camila · {d.updated ? `Updated ${fmt(d.updated)}` : fmt(d.published)}
+        By Camila Johnson · {d.updated ? `Updated ${fmt(d.updated)}` : fmt(d.published)}
       </p>
 
       <div class="learn-body font-body text-base md:text-lg leading-relaxed">
@@ -99,11 +111,11 @@ if (d.faq.length > 0) {
         </section>
       )}
 
-      {related.length > 0 && (
+      {keepReading.length > 0 && (
         <nav aria-label="Keep reading" class="mt-14">
           <h2 class="font-serif text-2xl font-bold mb-6" style="color:hsl(var(--eden-bark))">Keep reading</h2>
           <ul class="space-y-5">
-            {related.map((r) => (
+            {keepReading.map((r) => (
               <li>
                 <a href={`/learn/${r.slug}`} data-cta={`learn-${entry.slug}-related-${r.slug}`} class="font-serif text-lg font-bold underline underline-offset-4" style="color:hsl(var(--eden-forest))">{r.data.title}</a>
                 <p class="font-body text-sm text-muted-foreground leading-relaxed mt-1">{r.data.description}</p>
@@ -113,12 +125,19 @@ if (d.faq.length > 0) {
         </nav>
       )}
 
-      <aside class="mt-14 rounded-lg p-6 border" style="background-color:hsl(var(--eden-cream));border-color:hsl(var(--eden-gold) / 0.35)">
-        <p class="font-serif text-xl font-bold mb-2" style="color:hsl(var(--eden-bark))">Try a real week of Eden's Table, free</p>
-        <p class="font-body text-sm text-muted-foreground leading-relaxed mb-4">
-          Five full lessons for Sprouts (K-2) or Seedlings (3-5), in your inbox in a minute. Print it and teach it the same morning.
-        </p>
-        <a href="/freebies" data-cta={`learn-${entry.slug}-free`} class="inline-block font-body text-sm font-semibold rounded-md px-5 py-3" style="background-color:hsl(var(--eden-forest));color:hsl(var(--eden-parchment))">Get Week 1 free</a>
+      {/* A flagged article (freeWeekOffer) signs readers up right here, the second
+          of its two offers (web/lib/freeWeekOffer.ts); the others link to /freebies. */}
+      {d.freeWeekOffer && <div class="mt-14"><Fragment set:html={freeWeekOfferHtml("learn_end")} /></div>}
+      <aside class={d.freeWeekOffer ? "mt-6" : "mt-14 rounded-lg p-6 border"} style={d.freeWeekOffer ? "" : "background-color:hsl(var(--eden-cream));border-color:hsl(var(--eden-gold) / 0.35)"}>
+        {!d.freeWeekOffer && (
+          <>
+            <p class="font-serif text-xl font-bold mb-2" style="color:hsl(var(--eden-bark))">Try a real week of Eden's Table, free</p>
+            <p class="font-body text-sm text-muted-foreground leading-relaxed mb-4">
+              Five full lessons for Sprouts (K-2) or Seedlings (3-5), in your inbox in a minute. Print it and teach it the same morning.
+            </p>
+            <a href="/freebies" data-cta={`learn-${entry.slug}-free`} class="inline-block font-body text-sm font-semibold rounded-md px-5 py-3" style="background-color:hsl(var(--eden-forest));color:hsl(var(--eden-parchment))">Get Week 1 free</a>
+          </>
+        )}
         <p class="font-body text-sm mt-5 leading-loose">
           <span class="font-bold" style="color:hsl(var(--eden-bark))">By grade:</span>{" "}
           {GRADE_PAGES.map((g, i) => (
@@ -131,6 +150,7 @@ if (d.faq.length > 0) {
       </aside>
     </div>
   </article>
+  {d.freeWeekOffer && <WaitlistController client:only="react" />}
 </MarketingLayout>
 
 <style is:global>
@@ -143,4 +163,10 @@ if (d.faq.length > 0) {
   .learn-body ol { list-style: decimal; padding-left: 1.4em; }
   .learn-body li + li { margin-top: 0.4em; }
   .learn-body blockquote { border-left: 3px solid hsl(var(--eden-gold)); padding-left: 1em; font-style: italic; }
+  .learn-body h4 { font-family: var(--font-serif); font-size: 1.1em; font-weight: 700; margin-top: 1.4em; }
+  /* Tables (added 2026-10-29 for the supplies scale and the Khan Academy checklists). display:block
+     lets a wide table scroll sideways on a phone instead of pushing the page wider. */
+  .learn-body table { display: block; overflow-x: auto; max-width: 100%; border-collapse: collapse; font-size: 0.85em; line-height: 1.45; }
+  .learn-body th, .learn-body td { border: 1px solid hsl(var(--eden-gold) / 0.35); padding: 0.55em 0.75em; text-align: left; vertical-align: top; min-width: 5.5em; }
+  .learn-body th { background-color: hsl(var(--eden-cream)); font-weight: 700; }
 </style>

@@ -20,7 +20,7 @@ import { readCheckoutSessionId } from "@/lib/checkoutSession";
 import { reportGa4PurchaseOnce, type OrderAnalytics } from "@/lib/ga4Purchase";
 import { reportMetaPurchaseOnce } from "@/lib/metaPurchase";
 import { reportGa4DigitalPurchaseOnce } from "@/lib/ga4DigitalPurchase";
-import { showCustomerReviewsOptIn } from "@/lib/customerReviews";
+import { showCustomerReviewsOptIn, showCustomerReviewsOptInForSession } from "@/lib/customerReviews";
 
 const DOWNLOAD_FN = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/book-download`;
 const POLL_MS = 1500;
@@ -99,9 +99,14 @@ export default function BookThankYou({ mode }: { mode: "session" | "token" }) {
         const body = await res.json().catch(() => ({}));
         if (cancelled) return;
         if (res.ok) {
-          // GA4 purchase for the PDF (2026-10-07), on the paid-checkout path only:
-          // the emailed ?t= link is a return visit, not a sale.
-          if (mode === "session") void reportGa4DigitalPurchaseOnce(credential, { id: "book_digital", name: (body as Download).title });
+          // The Google Ads conversion for the PDF, on the paid-checkout path only:
+          // the emailed ?t= link is a return visit, not a sale. (GA4's purchase
+          // itself comes from stripe-webhook since 2026-10-28.) The Google
+          // Customer Reviews opt-in rides on the same path (2026-10-16).
+          if (mode === "session") {
+            void reportGa4DigitalPurchaseOnce(credential, { id: "book_digital", name: (body as Download).title });
+            void showCustomerReviewsOptInForSession(credential);
+          }
           return setState({ kind: "download", data: body as Download });
         }
         if (res.status === 409 && polls < MAX_POLLS) {
@@ -126,14 +131,16 @@ export default function BookThankYou({ mode }: { mode: "session" | "token" }) {
           const { data, error } = await supabase.functions.invoke("print-order-status", { body: { session_id: credential } });
           if (!error && data && !data.pending) {
             if (!cancelled) setState({ kind: "print", data: data as PrintStatus });
-            // GA4 purchase for Merchant Center: printed copies only, never the
-            // PDF (that path never calls print-order-status). Not for a refund.
+            // Google Ads and Meta purchase for printed copies only, never the PDF
+            // (that path never calls print-order-status). Not for a refund. GA4's
+            // purchase comes from stripe-webhook since 2026-10-28.
             if ((data as PrintStatus).stage !== "cancelled") {
               void reportGa4PurchaseOnce(credential!, data as PrintStatus);
               void reportMetaPurchaseOnce(credential!, data as PrintStatus);
             }
-            // Google Customer Reviews opt-in, printed copies only (same path).
-            showCustomerReviewsOptIn(data as PrintStatus);
+            // Google Customer Reviews opt-in for the printed copy (the PDF path
+            // above has its own).
+            showCustomerReviewsOptIn(data as PrintStatus, "printed");
             return;
           }
         } catch {

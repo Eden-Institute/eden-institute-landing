@@ -102,7 +102,7 @@ const PACKAGE_A5_PERFECT_BOUND = '0583X0827.FC.STD.PB.080CW444.MXX';
 // white uncoated (its interior has no colour on any page), both coil books standard
 // colour on 60# white uncoated, matte covers. Spec-sheet rows (base + per page):
 //   0600X0900.BW.STD.PB.060UW444.MXX   $1.99 + $0.025/page   186 pp = $6.64
-//   0850X1100.FC.STD.CO.060UW444.MXX   $6.95 + $0.0562/page  386 pp = $28.64, 266 pp = $21.90
+//   0850X1100.FC.STD.CO.060UW444.MXX   $6.95 + $0.0562/page  384 pp = $28.53, 266 pp = $21.90
 const PACKAGE_BTE_PAPERBACK = '0600X0900.BW.STD.PB.060UW444.MXX';
 const PACKAGE_BTE_COIL = '0850X1100.FC.STD.CO.060UW444.MXX';
 
@@ -178,7 +178,7 @@ export const LULU_BOOKS: LuluBook[] = [
     key: 'sj',
     title: 'Back to Eden: Study & Journal Edition',
     podPackageId: PACKAGE_BTE_COIL,
-    pageCount: 386,
+    pageCount: 384,
   },
   {
     band: 'bte',

@@ -81,6 +81,17 @@ interface OrderRow {
   attr_utm_term?: string | null;
   attr_referrer?: string | null;
   attr_source_url?: string | null;
+  /** Last MARKED touch before the purchase (2026-10-18): the most recent arrival
+      with UTMs, an ad click id or an outside referrer, never a click inside the
+      site. attr_last_click is the click id's name (gclid, fbclid, ...), not the id. */
+  attr_last_utm_source?: string | null;
+  attr_last_utm_medium?: string | null;
+  attr_last_utm_campaign?: string | null;
+  attr_last_utm_content?: string | null;
+  attr_last_utm_term?: string | null;
+  attr_last_referrer?: string | null;
+  attr_last_source_url?: string | null;
+  attr_last_click?: string | null;
   items: OrderItem[];
   messages: OrderMsg[];
 }
@@ -148,6 +159,55 @@ export function orderSourceText(o: Pick<OrderRow, "attr_utm_source" | "attr_utm_
     }
   }
   return null;
+}
+
+type LastTouchFields = Pick<
+  OrderRow,
+  "attr_last_utm_source" | "attr_last_utm_medium" | "attr_last_utm_content" | "attr_last_referrer" | "attr_last_click"
+>;
+
+/** The last marked touch, read the same way as orderSourceText. An ad click with
+ *  no UTMs shows its referrer and the click id's name, e.g. "google.com (gclid click)". */
+export function orderLastSourceText(o: LastTouchFields): string | null {
+  const host = orderSourceText({ attr_referrer: o.attr_last_referrer });
+  const click = o.attr_last_click ? `${o.attr_last_click} click` : null;
+  const utm = [o.attr_last_utm_source, o.attr_last_utm_medium, o.attr_last_utm_content].filter((v): v is string => !!v);
+  if (utm.length) return utm.join(" / ");
+  if (host) return click ? `${host} (${click})` : host;
+  return click;
+}
+
+export const NO_LAST_TOUCH = "None recorded";
+
+/** One row of the "Sales by last source" box: source / medium, so a nurture email
+ *  and a Friday note are told apart while one-off content labels are not split out. */
+export function lastSourceGroup(o: LastTouchFields): string {
+  const utm = [o.attr_last_utm_source, o.attr_last_utm_medium].filter((v): v is string => !!v);
+  if (utm.length) return utm.join(" / ");
+  return orderLastSourceText(o) ?? NO_LAST_TOUCH;
+}
+
+export interface LastSourceTotal {
+  source: string;
+  orders: number;
+  cents: number;
+}
+
+/** Orders and money per last source, counted the way the Gross tile counts:
+ *  internal, cancelled and refunded orders are left out. Largest first. */
+export function salesByLastSource(
+  orders: (LastTouchFields & Pick<OrderRow, "is_internal" | "status" | "amount_total_cents">)[],
+): LastSourceTotal[] {
+  const totals = new Map<string, LastSourceTotal>();
+  for (const o of orders) {
+    if (o.is_internal || o.status === "cancelled" || o.status === "refunded") continue;
+    const source = lastSourceGroup(o);
+    const t = totals.get(source) ?? { source, orders: 0, cents: 0 };
+    t.orders += 1;
+    t.cents += o.amount_total_cents ?? 0;
+    totals.set(source, t);
+  }
+  return [...totals.values()].sort((a, b) => b.cents - a.cents || b.orders - a.orders || a.source.localeCompare(b.source));
 }
 
 function statusStyle(status: string): React.CSSProperties {
@@ -225,6 +285,9 @@ export default function OrdersTab({ since }: { since: string }) {
 
   const s = payload?.summary;
   const orders = payload?.orders ?? [];
+  // From the listed orders (the RPC returns up to 500 per window), so it always
+  // agrees with the table below.
+  const lastSources = salesByLastSource(orders);
 
   // See RevenueTab: a broken query must not render as a confident zero. This tab is
   // worse than most, because its empty-state row prints the words "No orders in this
@@ -268,6 +331,50 @@ export default function OrdersTab({ since }: { since: string }) {
       )}
       {mfaNudge && <p className="font-body text-xs mb-4 text-muted-foreground">{MFA_NUDGE}</p>}
       {stepUpDialog}
+
+      {/* What brought each buyer BACK to buy (founder request 2026-10-18). The Source
+          column below shows first and last touch per order. */}
+      {!unknown && (
+        <section className="mb-8">
+          <p className="font-accent text-xs tracking-[0.2em] uppercase" style={{ color: "hsl(var(--eden-gold))" }}>
+            Sales by last source
+          </p>
+          <div className="mt-3 overflow-x-auto rounded-lg border border-border">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-muted/40">
+                  {["Last source", "Orders", "Sales"].map((h) => (
+                    <th key={h} className="px-3 py-2 font-accent text-[11px] tracking-wider uppercase text-muted-foreground">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {lastSources.map((t) => (
+                  <tr key={t.source} className="border-t border-border">
+                    <td className="px-3 py-2 font-body text-sm break-words">{t.source}</td>
+                    <td className="px-3 py-2 font-body text-sm">{t.orders}</td>
+                    <td className="px-3 py-2 font-body text-sm whitespace-nowrap">{money(t.cents)}</td>
+                  </tr>
+                ))}
+                {lastSources.length === 0 && (
+                  <tr className="border-t border-border">
+                    <td colSpan={3} className="px-3 py-2 font-body text-sm text-muted-foreground">
+                      No sales in this window yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <p className="font-body text-xs mt-2 text-muted-foreground">
+            The last tagged link, ad click or outside website before the purchase, within 90 days.
+            Counted like Gross: internal, cancelled and refunded orders are left out.
+            "{NO_LAST_TOUCH}" means the buyer came in directly, or ordered before last-touch tracking began.
+          </p>
+        </section>
+      )}
 
       <section className="mb-4">
         <div className="flex items-center justify-between">
@@ -347,9 +454,22 @@ export default function OrdersTab({ since }: { since: string }) {
                   </td>
                   <td
                     className="px-3 py-2 font-body text-xs max-w-[180px] break-words"
-                    title={[o.attr_utm_campaign && `campaign: ${o.attr_utm_campaign}`, o.attr_utm_term && `term: ${o.attr_utm_term}`, o.attr_source_url && `landed: ${o.attr_source_url}`, o.attr_referrer && `referrer: ${o.attr_referrer}`].filter(Boolean).join("\n") || undefined}
+                    title={[
+                      o.attr_utm_campaign && `campaign: ${o.attr_utm_campaign}`,
+                      o.attr_utm_term && `term: ${o.attr_utm_term}`,
+                      o.attr_source_url && `landed: ${o.attr_source_url}`,
+                      o.attr_referrer && `referrer: ${o.attr_referrer}`,
+                      o.attr_last_utm_campaign && `last campaign: ${o.attr_last_utm_campaign}`,
+                      o.attr_last_utm_term && `last term: ${o.attr_last_utm_term}`,
+                      o.attr_last_source_url && `last landed: ${o.attr_last_source_url}`,
+                      o.attr_last_referrer && `last referrer: ${o.attr_last_referrer}`,
+                    ].filter(Boolean).join("\n") || undefined}
                   >
+                    <span className="text-muted-foreground">First:</span>{" "}
                     {orderSourceText(o) ?? <span className="text-muted-foreground">—</span>}
+                    <br />
+                    <span className="text-muted-foreground">Last:</span>{" "}
+                    {orderLastSourceText(o) ?? <span className="text-muted-foreground">—</span>}
                   </td>
                   <td className="px-3 py-2">
                     <span className="font-accent text-[11px] tracking-wider uppercase px-2 py-1 rounded whitespace-nowrap" style={statusStyle(o.status)}>

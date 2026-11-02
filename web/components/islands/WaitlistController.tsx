@@ -10,11 +10,12 @@
 
 import { useEffect, useState } from "react";
 import WaitlistModal from "@/components/landing/WaitlistModal";
+import { HOMESCHOOL_AUDIENCE_ID } from "../../lib/freeWeekModal";
 
-// Eden's Table waitlist audience — same constant the React page uses. The
-// resend-waitlist EF maps this audienceId to entry_funnel='edens_table';
-// the per-CTA `source` tag drives band-specific nurture routing.
-const HS_AUD = "a48cb66e-b2a9-461d-98a6-bb1b12f72693";
+// Eden's Table waitlist audience (web/lib/freeWeekModal.ts). The resend-waitlist
+// EF maps it to entry_funnel='edens_table'; the per-CTA `source` tag drives
+// band-specific nurture routing.
+const HS_AUD = HOMESCHOOL_AUDIENCE_ID;
 
 interface Cfg {
   title: string;
@@ -26,6 +27,8 @@ interface Cfg {
   successMessage?: string;
   successSubtitle?: string;
   source: string;
+  /** GA4 form_name (data-waitlist-form-name); WaitlistModal falls back to source. */
+  formName?: string;
 }
 
 export default function WaitlistController() {
@@ -44,6 +47,7 @@ export default function WaitlistController() {
       const onClick = () => {
         setCfg({
           source: el.getAttribute("data-waitlist-source") || "waitlist",
+          formName: el.getAttribute("data-waitlist-form-name") || undefined,
           title: el.getAttribute("data-waitlist-title") || "",
           subtitle: el.getAttribute("data-waitlist-subtitle") || undefined,
           ctaHref: el.getAttribute("data-waitlist-cta-href") || undefined,
@@ -78,6 +82,7 @@ export default function WaitlistController() {
       successCtaBlurb={cfg.ctaBlurb}
       submitLabel={cfg.submitLabel}
       successMessage={cfg.successMessage}
+      formName={cfg.formName}
       successSubtitle={cfg.successSubtitle}
       source={cfg.source}
     />

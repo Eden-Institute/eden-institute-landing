@@ -9,7 +9,7 @@
 // never injected, so every metaTrack/metaPageView there is a no-op. Meta has no
 // hostname filter to catch preview traffic after the fact. See productionHost.ts.
 
-import { isProductionHost } from "@/lib/productionHost";
+import { thirdPartyTagsAllowed } from "@/lib/productionHost";
 
 const PIXEL_ID = "1535058498232762";
 let injected = false;
@@ -23,7 +23,7 @@ declare global {
 
 /** Inject + init the Pixel. Idempotent. Does NOT fire PageView — callers do. */
 export function loadMetaPixel(): void {
-  if (injected || typeof window === "undefined" || !isProductionHost()) return;
+  if (injected || typeof window === "undefined" || !thirdPartyTagsAllowed()) return;
   injected = true;
   /* Meta's standard loader snippet. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

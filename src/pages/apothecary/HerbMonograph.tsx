@@ -12,7 +12,8 @@ import { useEdenPattern } from "@/hooks/useEdenPattern";
 import { useCuratedHerbVerdicts } from "@/hooks/useCuratedHerbVerdicts";
 import { resolveHerbVerdict } from "@/lib/herbVerdict";
 import { useViewedHerbs } from "@/hooks/useViewedHerbs";
-import { herbCanonicalUrl, herbParam, herbTitleName, HERB_ALIASES } from "@/lib/herbLinks";
+import { herbCanonicalUrl, herbParam, HERB_ALIASES } from "@/lib/herbLinks";
+import { monographDescription, monographNames, monographTitle } from "@/lib/monographMeta";
 import { CURRICULUM_BANDS, curriculumWeeksForHerb, scopeAndSequenceHref } from "@/lib/curriculumHerbs";
 import { APOTHECARY_PRICES } from "@/lib/apothecaryPrices";
 import { TIER_DEPTH } from "@/lib/apothecaryTiers";
@@ -24,6 +25,8 @@ import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
 // a fine, neutral texture so it never competes with the herb being read.
 // Built at this header's aspect, 1600x480 for its ~1440x460 with the panel.
 import heroMonograph from "@/assets/hero-monograph.jpg";
+import { HERBS_IN_THE_BIBLE_PATH, HERBS_IN_THE_BIBLE_TITLE, citesScripture } from "@/lib/scriptureHerbs";
+import { FreeWeekOfferCard } from "@/components/apothecary/FreeWeekOfferCard";
 
 /**
  * HerbMonograph — the public per-herb page at /apothecary/:herbId
@@ -65,7 +68,11 @@ export default function HerbMonograph() {
   const { viewedOrder, recordView } = useViewedHerbs();
 
   const herb = herbRow ?? undefined;
-  const name = herb?.common_name ?? "";
+  // The English name leads (src/lib/monographMeta.ts); every other name the row
+  // carries goes on the "Also known as" line, with the display aliases.
+  const names = herb ? monographNames(herb) : null;
+  const name = names?.english ?? "";
+  const akaNames = herb ? [...(names?.aka ?? []), ...(HERB_ALIASES[herbParam(herb)] ?? [])] : [];
   // Seed opens the clinical study; Root opens interactions, refer-out and
   // sources. The view NULLs those columns below the tier, so these flags only
   // choose between a section and its upsell.
@@ -121,25 +128,30 @@ export default function HerbMonograph() {
         )
       : null;
 
-  // Unresolved params (typos the :herbId segment swallows) canonicalize to
-  // the directory URL, never echo the junk param back as a self-referential
-  // canonical/og:url on an HTTP-200 soft-404. Free-tier herbs canonicalize to
-  // their pre-rendered /herbs/:slug page (the SEO surface per PR #454); gated
-  // herbs keep the app URL.
+  // Free-tier herbs canonicalize to their pre-rendered /herbs/:slug page (the
+  // SEO surface per PR #454); gated herbs keep the app URL. An unresolved
+  // param (a typo the :herbId segment swallows) is a not-found page served
+  // with HTTP 200, because vercel.json has to send every /apothecary/<x> to
+  // the SPA: it is marked noindex and carries no canonical at all, so it can
+  // neither be indexed nor lend its junk URL a canonical. While the herb is
+  // loading or the fetch failed, nothing is known yet, so the head keeps the
+  // directory canonical it has always had and stays indexable.
+  const notFound = !isLoading && !isError && !herb;
   useDocumentMeta({
-    // Leads with the name people search, common then Latin, built by the
-    // same helper as the pre-rendered /herbs/:slug title.
-    title: herb
-      ? `${herbTitleName(herb)} · Monograph | Eden Apothecary`
-      : "Herb Monograph | Eden Apothecary",
+    // One template for every monograph (founder decision 2026-10-28), the same
+    // helpers as the pre-rendered /herbs/:slug page and the /apothecary heads.
+    title: herb ? monographTitle(herb) : "Herb Monograph | Eden Apothecary",
     description: herb
-      ? herb.energetics_summary
-        ? herb.energetics_summary.slice(0, 155)
-        : `${name} in the Eden Apothecary: identity, energetics, safety, and the clinical study, organized by body pattern.`
+      ? monographDescription(herb)
       : "Herb monographs organized by body pattern in the Eden Apothecary.",
     canonical: herb
       ? herbCanonicalUrl(herb)
-      : "https://edeninstitute.health/apothecary",
+      : notFound
+        ? undefined
+        : "https://edeninstitute.health/apothecary",
+    robots: notFound ? "noindex, follow" : undefined,
+    // GA's page_view waits for the herb's own title (src/lib/gaPageView.ts).
+    pending: isLoading,
   });
 
   if (isLoading) return <PageSkeleton />;
@@ -242,9 +254,9 @@ export default function HerbMonograph() {
               {herb.pronunciation}
             </p>
           )}
-          {(HERB_ALIASES[herbParam(herb)] ?? []).length > 0 && (
+          {akaNames.length > 0 && (
             <p className="font-body text-sm text-muted-foreground mb-4">
-              Also known as {HERB_ALIASES[herbParam(herb)].join(", ")}
+              Also known as {akaNames.join(", ")}
             </p>
           )}
           <div className="flex flex-wrap gap-2 mb-2">
@@ -389,6 +401,20 @@ export default function HerbMonograph() {
                 style={{ color: "hsl(var(--eden-bark))" }}
               >
                 {herb.biblical_traditional_reference}
+              </p>
+            )}
+            {/* Plants Scripture names link to the article (2026-10-28, src/lib/scriptureHerbs.ts). */}
+            {citesScripture(herb.biblical_traditional_reference) && (
+              <p className="font-body text-sm mb-3" style={{ color: "hsl(var(--eden-bark))" }}>
+                Related reading:{" "}
+                <a
+                  href={HERBS_IN_THE_BIBLE_PATH}
+                  data-cta="herb-bible-article"
+                  className="underline underline-offset-4"
+                  style={{ color: "hsl(var(--eden-forest))" }}
+                >
+                  {HERBS_IN_THE_BIBLE_TITLE}
+                </a>
               </p>
             )}
             {herb.stewardship_note && (
@@ -676,6 +702,10 @@ export default function HerbMonograph() {
             </p>
           </section>
         )}
+
+        {/* ── Free Week 1, on every herb (2026-10-28): the sign-up itself, beside
+              the curriculum weeks above. Same offer as /herbs/<slug>. ── */}
+        <FreeWeekOfferCard />
 
         {/* ── No Pattern yet: the quiz is the personalization hook. ── */}
         {!activePattern && (

@@ -9,13 +9,26 @@
 // round-trips, so an existing query, its encoding and any `{CHECKOUT_SESSION_ID}` style
 // literal are left exactly as they were.
 //
-// Added:   utm_source=email & utm_medium=<medium> & utm_content=<content> [& utm_campaign=<campaign>]
-// Values are lowercased and URL-encoded. In HTML the separator this adds is `&amp;`;
-// existing separators are never touched.
+// Added:   utm_source=email & utm_medium=<medium> & utm_campaign=<campaign> [& utm_content=<content>]
+// HARD GATE (2026-10-28, the analytics developer prompt and the Naming rules tab):
+//   - utm_medium is one of newsletter, nurture, welcome, signature. EmailMedium makes any
+//     other value a type error, so no sender can ship one. Transactional mail (receipts,
+//     delivery, guide access, cart reminder) is 'nurture': the relationship after a
+//     purchase; each names itself in utm_campaign.
+//   - utm_campaign is required: the issue or sequence, as a slug.
+//   - Every value is written literally as a slug (lowercase, underscores, a-z 0-9), so
+//     nothing needs URL-encoding and nothing can arrive scrambled from our side. (The
+//     garbled mediums GA showed in October, "fvtabghef" and friends, decode letter for
+//     letter to signature / newsletter / esa_outreach: something after delivery rewrote
+//     them, including links from the Gmail signature that no code here ever touches.)
+//   - Tags already on a link are never overwritten. A link missing some of the three is
+//     given only the missing ones.
+// In HTML the separator this adds is `&amp;`; existing separators are never touched.
 //
 // Left alone (never tagged):
 //   - any host other than edeninstitute.health / www.edeninstitute.health
-//   - a URL that already carries ANY utm_ param (hand-tagged links keep their tags)
+//   - a URL that already carries utm_source, utm_medium and utm_campaign (hand-tagged
+//     links keep their tags; one missing some gets only the missing ones)
 //   - file links: .pdf .png .jpg .jpeg .gif .webp .svg .ico
 //   - account / legal / delivery paths: /unsubscribe, /preorder-response, /returns,
 //     /privacy, /terms, /starter/downloads, /back-to-eden/download, any path containing
@@ -24,7 +37,29 @@
 //   - an unrendered `${` template (should never reach here; skipped rather than guessed)
 // These add noise, not attribution: nobody is "acquired" by clicking their own download.
 
-export type EmailTag = { medium: string; content: string; campaign?: string };
+/** The only email mediums the Naming rules allow. */
+export const EMAIL_MEDIUMS = ['newsletter', 'nurture', 'welcome', 'signature'] as const;
+export type EmailMedium = (typeof EMAIL_MEDIUMS)[number];
+
+export type EmailTag = {
+  medium: EmailMedium;
+  /** The issue or sequence name; written as a slug. Required by the hard gate. */
+  campaign: string;
+  /** Which email in the sequence (optional): utm_content. */
+  content?: string;
+};
+
+/** A value as the Naming rules write it: lowercase, underscores, letters and digits only. */
+export function utmSlug(value: string): string {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+/** An untrusted value (a request body) as an approved medium, or null. */
+export function asEmailMedium(value: unknown): EmailMedium | null {
+  return typeof value === 'string' && (EMAIL_MEDIUMS as readonly string[]).includes(value)
+    ? (value as EmailMedium)
+    : null;
+}
 
 const HOST_RE = /^(https?:\/\/)(www\.)?edeninstitute\.health(?=[/?#]|$)/i;
 const FILE_EXT_RE = /\.(pdf|png|jpe?g|gif|webp|svg|ico)$/i;
@@ -39,15 +74,16 @@ const EXCLUDED_PATH_PREFIXES = [
 ];
 const TOKEN_PARAMS = new Set(['session_id', 't']);
 
-function utmQuery(tag: EmailTag, sep: string): string {
-  const enc = (v: string) => encodeURIComponent(v.trim().toLowerCase());
-  const parts = [
-    `utm_source=email`,
-    `utm_medium=${enc(tag.medium)}`,
-    `utm_content=${enc(tag.content)}`,
+/** The tags a link should end up with, in the order they are written. */
+function wantedTags(tag: EmailTag): [string, string][] {
+  const out: [string, string][] = [
+    ['utm_source', 'email'],
+    ['utm_medium', tag.medium],
+    ['utm_campaign', utmSlug(tag.campaign) || 'email'],
   ];
-  if (tag.campaign && tag.campaign.trim()) parts.push(`utm_campaign=${enc(tag.campaign)}`);
-  return parts.join(sep);
+  const content = tag.content ? utmSlug(tag.content) : '';
+  if (content) out.push(['utm_content', content]);
+  return out;
 }
 
 /** Param names in a raw query string, whether it is separated by `&` or `&amp;`. */
@@ -82,9 +118,13 @@ export function tagEmailUrl(url: string, tag: EmailTag, sep: '&' | '&amp;' = '&'
   if (lowerPath.includes('thank-you')) return url;
 
   const names = paramNames(query);
-  if (names.some((n) => n.startsWith('utm_'))) return url;
   if (names.some((n) => TOKEN_PARAMS.has(n))) return url;
   if (lowerPath.startsWith('/guide/') && names.includes('access')) return url;
+  // Never overwrite: only the tags the link does not already carry are added. A link
+  // with any utm_ of its own was tagged by hand, so utm_content is not added to it.
+  const handTagged = names.some((n) => n.startsWith('utm_'));
+  const missing = wantedTags(tag).filter(([n]) => !names.includes(n) && !(handTagged && n === 'utm_content'));
+  if (missing.length === 0) return url;
 
   // A bare origin gets its slash, so the result reads .../?utm_... rather than ...health?utm_...
   const base = path === '' && qAt === -1 ? `${beforeHash}/` : beforeHash;
@@ -93,7 +133,7 @@ export function tagEmailUrl(url: string, tag: EmailTag, sep: '&' | '&amp;' = '&'
   else if (base.endsWith('?') || base.endsWith('&') || base.toLowerCase().endsWith('&amp;')) joiner = '';
   else joiner = sep;
 
-  return `${base}${joiner}${utmQuery(tag, sep)}${fragment}`;
+  return `${base}${joiner}${missing.map(([n, v]) => `${n}=${v}`).join(sep)}${fragment}`;
 }
 
 /** Rewrite every href="..." / href='...' in an HTML body. */

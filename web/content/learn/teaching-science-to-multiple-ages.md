@@ -5,9 +5,9 @@ description: "How to teach homeschool science to several ages at once: one lesso
 published: "2026-10-13"
 draft: false
 related:
+  - what-a-homeschool-day-looks-like
   - homeschool-science-this-year
   - free-nature-study-week
-  - switching-homeschool-science-mid-year
 faq:
   - q: "Can I teach science to all my kids at the same time?"
     a: "Yes, and science is one of the easiest subjects to share. Teach one topic to everyone and let the older child go further in writing, measuring and the harder questions."

@@ -1,7 +1,7 @@
 // PartnerInquiryForm — shared capture-then-book island for the partner /
 // collaborator surfaces. Role select -> contact fields -> submit to the
-// submit-partner-inquiry EF -> reveal the booking button. Investors get the
-// capture-then-approve path (no inline link; Camila reviews and sends it).
+// submit-partner-inquiry EF -> reveal the booking button. Donors get a short
+// form and no booking link; Camila replies personally with how to give.
 //
 // client:only — imports the Supabase client (touches localStorage at module
 // load), so it must never run during the Astro static build.
@@ -16,7 +16,7 @@ type Variant = "home" | "homeschool";
 
 interface Props {
   variant: Variant;
-  /** Generic Google booking link revealed to qualified (non-investor) leads. */
+  /** Generic Google booking link revealed to partner (non-donor) leads. */
   bookingUrl: string;
 }
 
@@ -30,7 +30,7 @@ const ROLES: Record<Variant, RoleOption[]> = {
     { value: "brand", label: "A wellness, faith, or natural-living brand" },
     { value: "creator", label: "A podcaster or content creator" },
     { value: "venture", label: "Another aligned venture" },
-    { value: "investor", label: "An investor" },
+    { value: "donor", label: "A donor who loves what we do and wants to give" },
   ],
   homeschool: [
     { value: "coop", label: "A homeschool co-op leader" },
@@ -58,7 +58,7 @@ export default function PartnerInquiryForm({ variant, bookingUrl }: Props) {
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
 
-  const isInvestor = role === "investor";
+  const isDonor = role === "donor";
   const isHomeschool = variant === "homeschool";
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -97,12 +97,12 @@ export default function PartnerInquiryForm({ variant, bookingUrl }: Props) {
   };
 
   if (done) {
-    if (isInvestor) {
+    if (isDonor) {
       return (
         <div className="max-w-md mx-auto text-center py-8">
           <p className="font-serif text-2xl mb-3" style={{ color: "hsl(var(--eden-bark))" }}>Thank you.</p>
           <p className="font-body text-muted-foreground leading-relaxed">
-            We review investor inquiries personally and will be in touch shortly. We appreciate your interest in what we're building.
+            We'll write back personally with how to give. No strings attached; we're simply grateful you believe in this work.
           </p>
         </div>
       );
@@ -148,36 +148,40 @@ export default function PartnerInquiryForm({ variant, bookingUrl }: Props) {
             <label className={labelClass}>Email</label>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputClass} placeholder="your@email.com" />
           </div>
-          <div>
-            <label className={labelClass}>{isHomeschool ? "Co-op / organization name" : "Business or show name"}</label>
-            <input type="text" value={orgName} onChange={(e) => setOrgName(e.target.value)} className={inputClass} placeholder={isHomeschool ? "Your group's name" : "Your brand, show, or company"} />
-          </div>
-          <div>
-            <label className={labelClass}>Website or social</label>
-            <input type="text" value={website} onChange={(e) => setWebsite(e.target.value)} className={inputClass} placeholder="https://" />
-          </div>
-          {isHomeschool ? (
-            <div>
-              <label className={labelClass}>How many children?</label>
-              <input type="number" min="1" value={groupSize} onChange={(e) => setGroupSize(e.target.value)} className={inputClass} placeholder="e.g. 18" />
-            </div>
-          ) : (
-            <div>
-              <label className={labelClass}>Audience size (if relevant)</label>
-              <input type="text" value={audienceSize} onChange={(e) => setAudienceSize(e.target.value)} className={inputClass} placeholder="e.g. 12k newsletter, 30k downloads/mo" />
-            </div>
+          {!isDonor && (
+            <>
+              <div>
+                <label className={labelClass}>{isHomeschool ? "Co-op / organization name" : "Business or show name"}</label>
+                <input type="text" value={orgName} onChange={(e) => setOrgName(e.target.value)} className={inputClass} placeholder={isHomeschool ? "Your group's name" : "Your brand, show, or company"} />
+              </div>
+              <div>
+                <label className={labelClass}>Website or social</label>
+                <input type="text" value={website} onChange={(e) => setWebsite(e.target.value)} className={inputClass} placeholder="https://" />
+              </div>
+              {isHomeschool ? (
+                <div>
+                  <label className={labelClass}>How many children?</label>
+                  <input type="number" min="1" value={groupSize} onChange={(e) => setGroupSize(e.target.value)} className={inputClass} placeholder="e.g. 18" />
+                </div>
+              ) : (
+                <div>
+                  <label className={labelClass}>Audience size (if relevant)</label>
+                  <input type="text" value={audienceSize} onChange={(e) => setAudienceSize(e.target.value)} className={inputClass} placeholder="e.g. 12k newsletter, 30k downloads/mo" />
+                </div>
+              )}
+            </>
           )}
           <div>
-            <label className={labelClass}>What do you have in mind?</label>
-            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3} className={inputClass} placeholder="A sentence or two is plenty." />
+            <label className={labelClass}>{isDonor ? "A note for us (optional)" : "What do you have in mind?"}</label>
+            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3} className={inputClass} placeholder={isDonor ? "Anything you'd like us to know." : "A sentence or two is plenty."} />
           </div>
           {error && <p className="font-body text-sm text-destructive">{error}</p>}
           <Button variant="eden" size="xl" className="w-full" disabled={loading}>
-            {loading ? "Sending…" : isInvestor ? "Submit inquiry" : "Continue to booking"}
+            {loading ? "Sending…" : isDonor ? "Send" : "Continue to booking"}
           </Button>
-          {isInvestor && (
+          {isDonor && (
             <p className="text-center font-body text-xs text-muted-foreground/70">
-              We review investor inquiries personally before scheduling.
+              We'll reply personally with how to give. No strings attached.
             </p>
           )}
         </>

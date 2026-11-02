@@ -6,8 +6,9 @@
  * use a slug derived from common_name ("Marshmallow" → "marshmallow",
  * "Bacopa (Brahmi)" → "bacopa-brahmi") because those are the URLs people
  * share and read. Derived slugs are verified unique across all 300 rows
- * (live audits 2026-07-01 at 108 rows and 2026-09-14 at 300 rows) and contain no dot+extension sequences, so the
- * vercel.json SPA rewrite always serves them.
+ * (live audits 2026-07-01 at 108 rows and 2026-09-14 at 300 rows) and contain no dots (herbSlug keeps only
+ * a-z, 0-9 and "-"), so the vercel.json /apothecary/<param> SPA rewrite, which takes any one segment
+ * without a dot, always serves them.
  *
  * The route accepts BOTH forms: findHerbByParam matches the H-code first
  * (exact, case-insensitive), then the slug. If a common_name is ever
@@ -102,31 +103,6 @@ export function herbParamOrFilter(param: string | undefined): string | null {
   const needle = param.toLowerCase();
   if (!PARAM_SHAPE.test(needle)) return null;
   return `herb_id.ilike.${needle},common_name.ilike.${needle.split("-").join("*")}*`;
-}
-
-/**
- * The herb's name as it leads a page <title>: the common name, then the
- * botanical binomial in parentheses, e.g. "Marshmallow (Althaea officinalis)".
- * Both come straight from the herb's own row; nothing is invented.
- *
- *  - A common_name that already carries a second name in parentheses
- *    ("Aged Tangerine Peel (Chen Pi)") is used as it is. Appending the Latin
- *    as well produced a double parenthesis.
- *  - latin_name is cut to the binomial, dropping author abbreviations and
- *    synonym notes ("Camellia sinensis (L.) Kuntze (syn. ...)" becomes
- *    "Camellia sinensis"). The full name still shows on the page.
- *  - The Latin is left off when it only repeats the common name ("Aloe Vera").
- */
-export function herbTitleName(herb: {
-  common_name: string | null;
-  latin_name?: string | null;
-}): string {
-  const common = (herb.common_name ?? "").trim();
-  if (!common) return "";
-  if (common.includes("(")) return common;
-  const latin = herbBinomial(herb.latin_name);
-  if (!latin || latin.toLowerCase() === common.toLowerCase()) return common;
-  return `${common} (${latin})`;
 }
 
 /** "Genus species" (or "Genus x species") from a latin_name, or the text

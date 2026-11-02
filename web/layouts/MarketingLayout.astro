@@ -7,13 +7,17 @@ import Navbar from "../components/Navbar.astro";
 import Footer from "../components/Footer.astro";
 import SiteAnalytics from "../components/islands/SiteAnalytics.tsx";
 import { CHECKOUT_SESSION_STRIP_JS } from "@/lib/checkoutSession";
+import { TEST_SESSION_GUARD_JS } from "@/lib/productionHost";
 import { SOCIALS } from "@/lib/socials";
 import { GOOGLE_FONTS_HREF } from "@/lib/fonts";
 
 export interface Props {
   title: string;
   description: string;
-  canonical: string;
+  /** Omitted only by the 404 page (web/pages/404.astro), which Vercel serves at
+      whatever URL was asked for: no canonical and no og:url are emitted then.
+      Every other page passes its own. */
+  canonical?: string;
   ogImage?: string;
   ogType?: "website" | "article" | "product";
   /** Product Rich Pin tags, for a single-product page someone can buy from.
@@ -65,10 +69,10 @@ export interface Props {
   noThirdPartyTags?: boolean;
 }
 
-// Default share card: public/og-default-printset.jpg, 1200 x 630. Width and
+// Default share card: public/og-default-realpages.jpg, 1200 x 630. Width and
 // height are emitted only for this default, since a page-supplied image may
 // have other dimensions.
-const DEFAULT_OG_IMAGE = "https://edeninstitute.health/og-default-printset.jpg";
+const DEFAULT_OG_IMAGE = "https://edeninstitute.health/og-default-realpages.jpg";
 
 const {
   title,
@@ -156,11 +160,17 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
       gtag.js or Pinterest tag and send nothing. The gtag() stub is still
       defined everywhere, so page code can call it safely. Pattern shared with
       src/lib/productionHost.ts (src/test/productionHost.test.ts).
+      Never in a test session either (2026-10-28): the guard right after it turns
+      __edenTagsLive off for an automated browser, the E2E switch, or a tab that
+      arrived on an e2e_check / claude_e2e / utm_medium=test link.
     */}
     <script is:inline>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       window.__edenTagsLive = /^(www\.)?edeninstitute\.health$/.test(window.location.hostname);
+    </script>
+    <script is:inline set:html={TEST_SESSION_GUARD_JS}></script>
+    <script is:inline>
       try {
         if (localStorage.getItem('eden-marketing-consent') === 'denied') {
           window['ga-disable-G-5DVHEZPKL0'] = true;
@@ -195,7 +205,7 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 
     <title>{title}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={canonical} />
+    {canonical && <link rel="canonical" href={canonical} />}
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -222,7 +232,7 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 
     <!-- Open Graph / Twitter -->
     <meta property="og:type" content={ogType} />
-    <meta property="og:url" content={canonical} />
+    {canonical && <meta property="og:url" content={canonical} />}
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImage} />
@@ -309,7 +319,9 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     {/* client:only — never server-rendered. The shared Supabase client touches
         localStorage at module load, and analytics/consent is a browser-only
         concern with no SEO value, so it must not run during the static build.
-        thirdPartyTags={false} on a private page: no Meta Pixel, no banner. */}
-    <SiteAnalytics client:only="react" thirdPartyTags={!noThirdPartyTags} />
+        thirdPartyTags={false} on a private page: no Meta Pixel, no banner.
+        storeBadge: Google's store badge after Accept, public pages only, never
+        on a noindex page such as a thank-you page (src/lib/merchantWidget.ts). */}
+    <SiteAnalytics client:only="react" thirdPartyTags={!noThirdPartyTags} storeBadge={!noThirdPartyTags && !noindex} />
   </body>
 </html>

@@ -1,0 +1,69 @@
+---
+// /as-heard-on: every podcast conversation Camila has been a guest on, every
+// approved host clip, and a link to each full episode (founder brief, 2026-10-17).
+// Clips are tap-to-play here, not autoplay: with every clip on one page, several
+// would otherwise play at once. Live builds show only clips whose host gave
+// permission (web/lib/hostClips.ts); the show list and episode links always show.
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+import HostClipReel from "../components/HostClipReel.astro";
+import { SHOWS, allClips, disclosureFor } from "../lib/hostClips";
+
+const clips = allClips();
+const disclosure = disclosureFor(clips);
+const meta = {
+  title: "As Heard On | Eden Institute",
+  description:
+    "Podcast conversations with Camila, founder of Eden's Table, the Christian K-5 homeschool curriculum rooted in Scripture. Clips from each host and links to every full episode.",
+  canonical: "https://edeninstitute.health/as-heard-on",
+};
+---
+
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical}>
+  <section class="px-6 py-16 md:py-20" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-3xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">As heard on</p>
+      <h1 class="font-serif text-3xl md:text-5xl font-bold mb-5" style="color:hsl(var(--eden-bark))">Conversations about Eden's Table</h1>
+      <p class="font-body text-lg leading-relaxed text-muted-foreground">
+        I've been a guest on these shows, talking about raising children who know the God who made them, their own bodies, and the plants He gave us.
+        Here is what the hosts said, in their own words, with a link to every full episode.
+      </p>
+    </div>
+  </section>
+
+  <section class="px-6 py-14 md:py-16 bg-background">
+    <div class="max-w-6xl mx-auto space-y-14">
+      {SHOWS.map((s) => {
+        const mine = clips.filter((c) => c.show === s.show);
+        return (
+          <article class="grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-8 items-start border-t pt-10" style="border-color:hsl(var(--eden-gold) / 0.3)">
+            <div>
+              <h2 class="font-serif text-2xl md:text-3xl font-bold mb-2" style="color:hsl(var(--eden-bark))">{s.show}</h2>
+              <p class="font-accent text-lg mb-3" style="color:hsl(var(--eden-forest))">with {s.host}</p>
+              <p class="font-body text-base text-muted-foreground mb-4">{s.episodeTitle}</p>
+              <a href={s.episodeUrl} target="_blank" rel="noopener" class="font-body underline" style="color:hsl(var(--eden-forest))" data-cta={`as-heard-on-page-${s.show.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}>Listen to the full episode</a>
+            </div>
+            {mine.length > 0 && (
+              <div class="grid sm:grid-cols-2 gap-6">
+                {mine.map((c) => (
+                  <HostClipReel ids={[c.id]} label={`Clip from ${s.show}`} autoplay={false} />
+                ))}
+              </div>
+            )}
+          </article>
+        );
+      })}
+      {disclosure && <p class="font-body text-sm text-muted-foreground text-center pt-6">{disclosure}</p>}
+    </div>
+  </section>
+
+  <section class="px-6 py-16" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto text-center">
+      <h2 class="font-serif text-2xl md:text-3xl font-bold mb-4" style="color:hsl(var(--eden-bark))">See it for yourself</h2>
+      <p class="font-body text-muted-foreground mb-6">Week 1 of Sprouts (K-2) or Seedlings (3-5) is free. Teach it at your own table first.</p>
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <a href="/freebies" data-cta="as-heard-on-free-week" class="inline-flex items-center justify-center min-h-[48px] px-7 rounded-sm font-accent font-semibold tracking-wide" style="background-color:hsl(var(--eden-gold));color:hsl(var(--footer-bg))">Get Week 1 free</a>
+        <a href="/books" data-cta="as-heard-on-books" class="inline-flex items-center justify-center min-h-[48px] px-7 rounded-sm font-accent font-semibold tracking-wide border" style="border-color:hsl(var(--eden-forest));color:hsl(var(--eden-forest))">Order the printed year · $249</a>
+      </div>
+    </div>
+  </section>
+</MarketingLayout>

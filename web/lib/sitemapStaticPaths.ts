@@ -11,6 +11,7 @@
  *   /partner-sample       - link-only, noindex (on purpose NOT Disallow-ed in
  *                           robots.txt, or crawlers could never read the noindex)
  *   /curriculum           - link-only, noindex
+ *   /fpea                 - FPEA 2027 convention offer, reached by the booth QR code only
  *   /preorder             - page removed 2026-09-24, redirects to /books (vercel.json)
  *   /books/thank-you      - post-purchase confirmation
  *   /starter/downloads    - post-purchase delivery surface
@@ -21,6 +22,7 @@
  *   /freebies/sprouts-week-1, /freebies/seedlings-week-1 - free-week delivery
  *                           surfaces linked from the welcome email; the free week
  *                           is reached by signing up on /freebies, not by search
+ *   /404                  - the not-found page (dist/404.html), served with HTTP 404
  */
 export const STATIC_PATHS: readonly string[] = [
   "/",
@@ -46,4 +48,5 @@ export const STATIC_PATHS: readonly string[] = [
   "/herbs",
   "/esa",
   "/tales-and-table-talk",
+  "/as-heard-on",
 ];

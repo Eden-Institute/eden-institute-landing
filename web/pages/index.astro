@@ -15,7 +15,7 @@
 //   • All section IDs and links preserved; hero overlay imported as an asset.
 //   • Uses hideFooter — the page ships its own bespoke 4-column footer, so the
 //     shared <Footer /> is suppressed.
-//   • The <GetInvolvedSection> client:only island renders the partner / investor
+//   • The <GetInvolvedSection> client:only island renders the partner / donor
 //     "Get Involved" capture-then-book form (honey/green), in place of the
 //     former empty #cta placeholder. Submits to submit-partner-inquiry.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
@@ -24,8 +24,17 @@ import GetInvolvedSection from "@/components/landing/GetInvolvedSection";
 import heroBotanical from "@/assets/hero-botanical.jpg";
 import HeroBackdrop from "../components/HeroBackdrop.astro";
 import { HERB_CATALOG_SIZE } from "@/lib/herbCatalog";
+import HostClipReel from "../components/HostClipReel.astro";
+import AsHeardOnStrip from "../components/AsHeardOnStrip.astro";
+import { PLACEMENTS, clipsFor, disclosureFor } from "../lib/hostClips";
 
 const year = new Date().getFullYear();
+// Podcast-host reel beside the hero (founder brief 2026-10-17). Headline, offer
+// and CTAs stay first on every screen; the reel sits to their right from 1024px
+// and below the buttons on smaller screens. No permitted clip, no reel, and the
+// hero falls back to its original single centred column.
+const heroClips = clipsFor(PLACEMENTS.homeHero);
+const heroDisclosure = disclosureFor(heroClips);
 
 const doors = [
   { badge: "SPROUTS K-2 + SEEDLINGS 3-5 · PRINTED NOW", eyebrow: "FOR THE FAMILY", title: "Eden's Table", subtitle: "K-5 Homeschool Curriculum", body: "The family doorway. Children learn how God designed their bodies and the plants He gave, alongside the parent who teaches them.", cta: "See both grade bands →", href: "/homeschool#choose-band", external: false },
@@ -41,12 +50,15 @@ const forgot = [
 ];
 
 const meta = {
-  // Curriculum-led on purpose (founder, 2026-09-25). "Eden Institute" now sits
-  // inside the ~60 characters Google shows: most of this page's impressions are
-  // the search "eden institute", and the old 77-character title cut it off.
-  title: "Christian Homeschool Herbalism Curriculum | Eden Institute",
+  // The Eden Institute umbrella (founder decision 2026-10-28, analytics and search
+  // developer prompt, Search snippets tab). /homeschool keeps "Christian Homeschool
+  // Herbalism Curriculum K-5" and owns the curriculum searches, so the two pages no
+  // longer compete. The approved description named "adult courses"; the course was
+  // retired on 2026-10-20, so it names the Back to Eden book instead (founder,
+  // 2026-10-28).
+  title: "Eden Institute: Biblical Herbalism Education for Christian Families",
   description:
-    "Eden's Table is a K-5 homeschool herbalism curriculum rooted in Scripture, one plant a week. Start with a free week of Sprouts (K-2) or Seedlings (3-5).",
+    "Scripture-grounded herbal education: the Eden's Table K-5 homeschool curriculum, the Back to Eden book, and a free herb library. Start with a free week.",
   canonical: "https://edeninstitute.health/",
 };
 ---
@@ -63,7 +75,8 @@ const meta = {
     {/* 2026-09-25, founder decision: the homepage opens with the framework again,
         then the doors (three since 2026-10-14, when the adult course was retired). The curriculum-first hero and the band chooser
         (2026-09-24) came off this page; the chooser lives on /homeschool and /books. */}
-    <div class="relative z-10 max-w-[960px] w-full mx-auto text-center">
+    <div class={heroClips.length ? "relative z-10 w-full max-w-[1200px] mx-auto grid gap-10 items-center min-[1024px]:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]" : "relative z-10 max-w-[960px] w-full mx-auto"}>
+    <div class="max-w-[960px] w-full mx-auto text-center">
       <p class="uppercase tracking-[0.18em] mb-6" style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:11px;color:hsl(var(--green-mid-ink))">
         THE EDEN INSTITUTE
       </p>
@@ -94,7 +107,16 @@ const meta = {
         >Open the Apothecary</a>
       </div>
     </div>
+    {heroClips.length > 0 && (
+      <div class="w-full max-w-[420px] min-[768px]:max-w-[640px] mx-auto">
+        <HostClipReel ids={PLACEMENTS.homeHero} label="What podcast hosts said about Eden's Table" priority={true} />
+        {heroDisclosure && <p class="mt-2 text-center" style="font-family:'EB Garamond', Georgia, serif;font-size:13px;color:hsl(var(--ink-soft))">{heroDisclosure}</p>}
+      </div>
+    )}
+    </div>
   </section>
+
+  <AsHeardOnStrip />
 
   <section id="four-doors" aria-label="Three doors"></section>
 

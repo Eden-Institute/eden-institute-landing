@@ -64,4 +64,27 @@ describe("useDocumentMeta", () => {
     expect(robotsContent()).toBeNull();
     second.unmount();
   });
+
+  it("a not-found state that omits canonical carries no canonical and no og:url", () => {
+    const canonicalHref = () => document.querySelector('link[rel="canonical"]')?.getAttribute("href") ?? null;
+    const ogUrl = () => document.querySelector('meta[property="og:url"]')?.getAttribute("content") ?? null;
+
+    // A previous route left both behind (e.g. a hard load of an herb shell).
+    const first = renderHook(() => useDocumentMeta(BASE));
+    expect(canonicalHref()).toBe(BASE.canonical);
+    expect(ogUrl()).toBe(BASE.canonical);
+    first.unmount();
+    document.head.insertAdjacentHTML(
+      "beforeend",
+      '<link rel="canonical" href="https://edeninstitute.health/apothecary"><meta property="og:url" content="https://edeninstitute.health/apothecary">',
+    );
+
+    const notFound = renderHook(() =>
+      useDocumentMeta({ title: BASE.title, description: BASE.description, robots: "noindex, follow" }),
+    );
+    expect(canonicalHref()).toBeNull();
+    expect(ogUrl()).toBeNull();
+    expect(robotsContent()).toBe("noindex, follow");
+    notFound.unmount();
+  });
 });

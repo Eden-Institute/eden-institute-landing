@@ -60,8 +60,9 @@ function reportPinterestCheckout(sessionId: string, band: string | undefined): v
  * WHY. On /starter/thank-you Google Analytics runs, and its enhanced
  * measurement turns a click on a link to another site into a "click" event and
  * a click on a .pdf link into a "file_download" event, each carrying the full
- * link_url. The file links here are seven-day signed Storage URLs with their
- * token in the query string, so a buyer clicking one sent that URL to Google.
+ * link_url. The file links here carry a credential in the query string (seven-day
+ * signed Storage URLs until 2026-10-26, the durable download token since), so a
+ * buyer clicking one sent it to Google.
  * Seen with the real gtag.js for G-5DVHEZPKL0 on 2026-09-13.
  *
  * HOW. gtag.js listens for click and auxclick on document in the bubble phase
@@ -75,6 +76,21 @@ function reportPinterestCheckout(sessionId: string, band: string | undefined): v
  */
 function keepClickFromPageTags(e: MouseEvent<HTMLAnchorElement>): void {
   e.stopPropagation();
+}
+
+/**
+ * Where a file button goes: starter-download's ?f= redirect, not the signed
+ * Storage URL itself, so Eden records the buyer's first file tap
+ * (starter_deliveries.first_downloaded_at, 2026-10-26, punch #25). The
+ * redirect signs a fresh URL and answers 302 to it, so the buyer lands on the
+ * same file as before. ?t= on both pages: the response carries the download
+ * token in session mode too. A response without one (an older deploy) keeps
+ * the direct links.
+ */
+function fileHref(data: Payload, f: FileLink, save: boolean): string | undefined {
+  if (!data.download_token) return save ? f.save_url : f.url;
+  const qs = `t=${encodeURIComponent(data.download_token)}&f=${encodeURIComponent(f.slug)}`;
+  return `${FUNCTIONS_BASE}?${qs}${save ? "&save=1" : ""}`;
 }
 
 /** ~45 seconds of patience. Stamping two PDFs measured about 300ms, so anything
@@ -249,7 +265,7 @@ export default function StarterDownloads({ mode }: Props) {
         {data.files.map((f) => (
           <div key={f.slug}>
             <a
-              href={f.url}
+              href={fileHref(data, f, false)}
               onClick={keepClickFromPageTags}
               onAuxClick={keepClickFromPageTags}
               data-cta={`starter-download-${f.slug}`}
@@ -261,7 +277,7 @@ export default function StarterDownloads({ mode }: Props) {
             {f.save_url && (
               <p className="text-center mt-1.5">
                 <a
-                  href={f.save_url}
+                  href={fileHref(data, f, true)}
                   onClick={keepClickFromPageTags}
                   onAuxClick={keepClickFromPageTags}
                   data-cta={`starter-save-${f.slug}`}

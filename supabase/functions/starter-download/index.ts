@@ -25,6 +25,18 @@
 //
 // Rate limited per token so a leaked link cannot be turned into a distribution
 // endpoint by scripting it.
+//
+// FIRST OPEN AND FIRST DOWNLOAD (2026-10-26, punch #25). The delivery email says
+// the Starter Unit is not refundable once the files have been downloaded, and the
+// only sign of that used to be Resend's click tracking on the email link, which is
+// being turned off for delivery mail. So this function keeps Eden's own record on
+// the delivery row, each column SET ONCE (the first value stays, later visits
+// never move it):
+//   first_opened_at      a ?t= request for the file list, i.e. /starter/downloads
+//                        from the email link. The thank-you page asks with ?s= the
+//                        moment every buyer lands on it, so it does not count.
+//   first_downloaded_at  a ?f= redirect, i.e. a tap on a file button. Both pages
+//                        send their file buttons through it for this reason.
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -101,6 +113,30 @@ async function withinRateLimit(token: string): Promise<boolean> {
     return typeof data === 'number' ? data <= 40 : true;
   } catch {
     return true;
+  }
+}
+
+/**
+ * Stamp first_opened_at or first_downloaded_at, only if it is still empty. The
+ * `is null` filter is what makes it set-once: a second visit, or two taps racing,
+ * matches no row and changes nothing.
+ *
+ * Never fails the buyer's request. A missed stamp is a gap in our records; a
+ * failed download is a customer who cannot reach what they paid for.
+ */
+async function recordFirst(
+  deliveryId: string,
+  column: 'first_opened_at' | 'first_downloaded_at',
+  sid: string,
+): Promise<void> {
+  try {
+    const { error } = await adminClient.from('starter_deliveries')
+      .update({ [column]: new Date().toISOString() })
+      .eq('id', deliveryId)
+      .is(column, null);
+    if (error) console.error(`[${sid}] could not record ${column}: ${error.message}`);
+  } catch (err) {
+    console.error(`[${sid}] could not record ${column}: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -197,7 +233,16 @@ serve(async (req) => {
       .update({ links_expire_at: expiresAt.toISOString(), updated_at: new Date().toISOString() })
       .eq('id', data.id).then(undefined, () => {});
 
-    if (slug && slug in FILES) {
+    // Set-once records (see the header). The row read above already says whether
+    // the column is filled, so only the first visit costs an extra write.
+    const isFileTap = !!slug && slug in FILES;
+    if (isFileTap) {
+      if (!data.first_downloaded_at) await recordFirst(data.id, 'first_downloaded_at', sid);
+    } else if (token && !data.first_opened_at) {
+      await recordFirst(data.id, 'first_opened_at', sid);
+    }
+
+    if (isFileTap) {
       const pair = slug === 'teachers-guide'
         ? links.teachersGuide
         : slug === 'student-notebook'

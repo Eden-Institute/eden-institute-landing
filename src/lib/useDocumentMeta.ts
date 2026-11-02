@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { announceDocumentMeta } from "@/lib/gaPageView";
 
 /**
  * Per-route document meta — one-stop typed primitive for setting
@@ -33,8 +34,12 @@ export interface DocumentMeta {
   title: string;
   /** <meta name="description">. Required. ~150–160 chars optimal. */
   description: string;
-  /** Canonical URL (absolute, with scheme + host). Required. */
-  canonical: string;
+  /**
+   * Canonical URL (absolute, with scheme + host). Omit it only for a
+   * not-found state: the page then carries no canonical and no og:url at
+   * all, rather than naming a URL that has nothing at it.
+   */
+  canonical?: string;
   /** OG image URL (absolute). Optional — falls back to the index.html default. */
   ogImage?: string;
   /** OG type. Defaults to "website". Use "article" for /results, /guide pages. */
@@ -45,6 +50,13 @@ export interface DocumentMeta {
    * index.html default ("index, follow") stays in place.
    */
   robots?: string;
+  /**
+   * True while the page is still loading what its title is about (an herb
+   * before the herb has loaded). The title is set as usual, but GA's page_view
+   * waits for the settled one (src/lib/gaPageView.ts, 2026-10-28), so GA never
+   * records a placeholder such as "Herb Monograph | Eden Apothecary".
+   */
+  pending?: boolean;
 }
 
 /**
@@ -113,16 +125,19 @@ const DEFAULTS = typeof document === "undefined" ? null : readHeadDefaults(docum
  * so it's safe to inline the object literal at the call site.
  */
 export function useDocumentMeta(meta: DocumentMeta): void {
-  const { title, description, canonical, ogImage, ogType = "website", robots } = meta;
+  const { title, description, canonical, ogImage, ogType = "website", robots, pending = false } = meta;
 
   useEffect(() => {
     document.title = title;
+    announceDocumentMeta(title, pending);
     setMetaName("description", description);
-    setLink("canonical", canonical);
+    if (canonical) setLink("canonical", canonical);
+    else removeLink("canonical");
 
     setMetaProperty("og:title", title);
     setMetaProperty("og:description", description);
-    setMetaProperty("og:url", canonical);
+    if (canonical) setMetaProperty("og:url", canonical);
+    else removeMetaProperty("og:url");
     setMetaProperty("og:type", ogType);
     if (ogImage) {
       setMetaProperty("og:image", ogImage);
@@ -155,7 +170,7 @@ export function useDocumentMeta(meta: DocumentMeta): void {
       if (DEFAULTS.ogImage) setMetaProperty("og:image", DEFAULTS.ogImage);
       if (DEFAULTS.twitterImage) setMetaName("twitter:image", DEFAULTS.twitterImage);
     };
-  }, [title, description, canonical, ogImage, ogType, robots]);
+  }, [title, description, canonical, ogImage, ogType, robots, pending]);
 }
 
 // ─── DOM helpers ───────────────────────────────────────────────────
