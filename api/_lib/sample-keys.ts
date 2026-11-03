@@ -3,7 +3,7 @@
 // Every link used to carry the one shared PARTNER_SAMPLE_KEY, so a single leak meant
 // rotating it for everyone (2026-09-10: 67 holders, 36 apology emails). Links issued
 // from 2026-11-03 carry a key of their own, a row in public.partner_sample_keys
-// (migration 20261103210000_partner_sample_keys.sql). The table holds only the
+// (migration 20261103213350_partner_sample_keys.sql). The table holds only the
 // SHA-256 of the key; scripts/issue_sample_key.py in the Biblical Herbalism folder
 // mints the key, stores its hash and prints the link.
 //
