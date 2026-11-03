@@ -29,9 +29,13 @@
  */
 import { createClient } from "@supabase/supabase-js";
 
-/** The columns herbs_public exposes. Free-tier rows only — the view's own
- *  WHERE clause is the tier gate (tier_visibility = 'free' OR IS NULL), so
- *  nothing paid can leak into a static file by accident. */
+/** The free columns of every herb in the directory (punch #296, founder
+ *  2026-11-03: all 299 visible herbs get a public page, not only the 155
+ *  free-tier ones). Since 2026-09-15 every herb shows exactly these fields to
+ *  a free visitor in the app. Two locks keep Seed and Root content out of a
+ *  static file: the select below names only these columns, and the build reads
+ *  as anon, for whom herbs_directory_v NULLs every Seed/Root column anyway.
+ *  src/test/herbPagesPublic.test.ts holds the column list to that. */
 export interface PublicHerb {
   herb_id: string;
   common_name: string;
@@ -66,14 +70,21 @@ export interface PublicHerb {
   evidence_line: string | null;
 }
 
+/** Every column a public /herbs page may read. Nothing Seed or Root. */
+export const PUBLIC_HERB_COLUMNS = [
+  "herb_id", "common_name", "latin_name", "plant_family", "part_used", "taste", "temperature", "moisture",
+  "pronunciation", "energetics_summary", "stewardship_note", "cautions", "contraindications_general",
+  "pregnancy_safety", "breastfeeding_safety", "children_safety", "biblical_traditional_reference", "status",
+] as const;
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 /**
- * Fetch every free-tier monograph, sorted by common_name.
+ * Fetch every visible herb's free fields, sorted by common_name.
  *
  * Throws rather than returning [] on any failure. A silent empty result here
- * would still produce a green build — one that quietly deletes 155 live pages
+ * would still produce a green build — one that quietly deletes 299 live pages
  * and publishes a sitemap that no longer lists them. An empty result must mean
  * empty, never "the call failed".
  */
@@ -93,22 +104,19 @@ export async function getPublicHerbs(): Promise<PublicHerb[]> {
   });
 
   const { data, error } = await supabase
-    .from("herbs_public")
-    .select(
-      "herb_id, common_name, latin_name, plant_family, part_used, taste, temperature, moisture, " +
-        "pronunciation, energetics_summary, stewardship_note, cautions, contraindications_general, " +
-        "pregnancy_safety, breastfeeding_safety, children_safety, biblical_traditional_reference, status",
-    )
+    .from("herbs_directory_v")
+    .select(PUBLIC_HERB_COLUMNS.join(", "))
     .order("common_name", { ascending: true })
-    // The view returned 155 rows on 2026-09-05. PostgREST caps at 1000 by
+    // 155 rows from herbs_public on 2026-09-05; 299 from herbs_directory_v on
+    // 2026-11-03 (hidden herbs excluded by the view). PostgREST caps at 1000 by
     // default; an explicit range keeps the ceiling visible if the roster grows.
     .range(0, 999);
 
   if (error) {
-    throw new Error("herbsPublic: herbs_public query failed - " + error.message);
+    throw new Error("herbsPublic: herbs_directory_v (public herbs) query failed - " + error.message);
   }
   if (!data || data.length === 0) {
-    throw new Error("herbsPublic: herbs_public returned zero rows. Refusing to build an empty herb index.");
+    throw new Error("herbsPublic: herbs_directory_v returned zero rows. Refusing to build an empty herb index.");
   }
 
   // The evidence line, read as anon exactly as a visitor would. The view NULLs
@@ -139,7 +147,7 @@ export async function getPublicHerbs(): Promise<PublicHerb[]> {
     if (row.herb_id && line) lineFor.set(row.herb_id, line);
   }
 
-  return (data as PublicHerb[])
+  return (data as unknown as PublicHerb[])
     .filter((h) => !!h.common_name)
     .map((h) => ({ ...h, evidence_line: lineFor.get(h.herb_id) ?? null }));
 }

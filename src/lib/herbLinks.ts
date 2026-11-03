@@ -46,15 +46,13 @@ export function herbParam(herb: HerbLinkable): string {
   return herb.herb_id ?? "";
 }
 
-/** Absolute canonical URL for an herb. Free-tier rows have a pre-rendered
- *  /herbs/:slug page (PR #454), which is the SEO surface; gated rows exist
- *  only in the app, so they canonicalize to /apothecary/:param. Keyed on
- *  tier_visibility (the herbs_public predicate), never is_locked, which the
- *  view sets false for every row when the caller is Seed+. */
+/** Absolute canonical URL for an herb. Every herb in herbs_directory_v has a
+ *  pre-rendered /herbs/:slug page (PR #454 for the 155 free-tier herbs; every
+ *  tier since punch #296, 2026-11-03), which is the SEO surface. A row with no
+ *  common_name has no slug page and keeps the app URL. tier_visibility no
+ *  longer decides it. */
 export function herbCanonicalUrl(herb: HerbLinkable): string {
-  const hasStaticPage =
-    !!herb.common_name &&
-    (herb.tier_visibility === "free" || herb.tier_visibility == null);
+  const hasStaticPage = !!herb.common_name;
   return hasStaticPage
     ? `https://edeninstitute.health/herbs/${herbParam(herb)}`
     : `https://edeninstitute.health/apothecary/${herbParam(herb)}`;

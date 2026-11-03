@@ -1,13 +1,15 @@
 ---
 // /herbs/:slug - public, pre-rendered herb monograph.
 //
-// One static page per free-tier herb (155 on 2026-09-05). This is the SEO
+// One static page per visible herb (155 free-tier on 2026-09-05; all 299 since
+// punch #296, 2026-11-03), free fields only. This is the SEO
 // surface: the app's /apothecary/:herbId renders the same herb live, with tier
 // gating and favorites, but it is client-rendered and a crawler sees nothing
 // there. See web/lib/herbsPublic.ts for why these live on their own path.
 //
 // Content is DB-driven and nothing on this page is authored here. Every
-// sentence comes from herbs_public, so the page cannot drift from the app.
+// sentence comes from herbs_directory_v's free columns (web/lib/herbsPublic.ts),
+// so the page cannot drift from the app.
 import MarketingLayout from "../../layouts/MarketingLayout.astro";
 import { ApothecaryDisclaimer } from "@/components/apothecary/ApothecaryDisclaimer";
 import { herbParam } from "@/lib/herbLinks";
