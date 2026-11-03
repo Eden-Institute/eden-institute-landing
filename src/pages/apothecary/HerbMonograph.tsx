@@ -128,8 +128,8 @@ export default function HerbMonograph() {
         )
       : null;
 
-  // Free-tier herbs canonicalize to their pre-rendered /herbs/:slug page (the
-  // SEO surface per PR #454); gated herbs keep the app URL. An unresolved
+  // Every herb canonicalizes to its pre-rendered /herbs/:slug page (the SEO
+  // surface per PR #454; all tiers since punch #296). An unresolved
   // param (a typo the :herbId segment swallows) is a not-found page served
   // with HTTP 200, because vercel.json has to send every /apothecary/<x> to
   // the SPA: it is marked noindex and carries no canonical at all, so it can
