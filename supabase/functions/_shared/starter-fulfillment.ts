@@ -37,6 +37,7 @@ import { renderStarterDeliveryEmail, StarterEmailModel } from './starter-email.t
 import { Receipt, starterReceipt } from './receipt.ts';
 import { tagEmailHtml, tagEmailText, type EmailTag } from './email-utm.ts';
 import { FPEA_OFFER_ID, isFpeaGiftDeliveryKey } from './fpea-offer.ts';
+import { STARTER_GIFT_ID, isStarterGiftDeliveryKey } from './starter-gift.ts';
 
 /**
  * An in_progress delivery older than this belongs to a worker that died (OOM at
@@ -385,7 +386,9 @@ export async function fulfilStarterDelivery(
     // FPEA 2027 gift (fpea-offer.ts): the Starter came free with a printed set. Its
     // order_id is the PRINT order, whose receipt is in the order confirmation, so
     // no receipt here (a Starter receipt built from it would show the set's total).
-    const gift = isFpeaGiftDeliveryKey(sid);
+    // Founder gift (starter-gift.ts): nothing was bought, so there is no order at all.
+    const giftId = isFpeaGiftDeliveryKey(sid) ? FPEA_OFFER_ID : isStarterGiftDeliveryKey(sid) ? STARTER_GIFT_ID : null;
+    const gift = giftId !== null;
     if (delivery.order_id && !gift) {
       try {
         const { data: orderRow } = await db.from('orders')
@@ -406,7 +409,7 @@ export async function fulfilStarterDelivery(
       downloadToken: delivery.download_token,
       receipt,
       band,
-      ...(gift ? { gift: FPEA_OFFER_ID } : {}),
+      ...(giftId ? { gift: giftId } : {}),
     };
 
     const t4 = performance.now();

@@ -20,6 +20,7 @@ import { STARTER_BANDS, STARTER_LICENSE_LINE, StarterBand } from './starter-conf
 import { Receipt, renderReceiptHtml, renderReceiptText } from './receipt.ts';
 import { escapeHtml } from './html-escape.ts';
 import { FPEA_OFFER_ID } from './fpea-offer.ts';
+import { STARTER_GIFT_ID } from './starter-gift.ts';
 
 export interface StarterEmailModel {
   firstName: string | null;
@@ -42,8 +43,11 @@ export interface StarterEmailModel {
    * bought under the FPEA convention offer (fpea-offer.ts). The email then says so,
    * points at the printed order instead of selling it, and drops the refund line
    * (nothing was paid for it). Omitted means the normal email, byte for byte.
+   *
+   * STARTER_GIFT_ID (2026-11-03, starter-gift.ts): a Starter Camila gave someone,
+   * with no purchase at all. Gift wording, no refund line, no sell-the-print block.
    */
-  gift?: typeof FPEA_OFFER_ID;
+  gift?: typeof FPEA_OFFER_ID | typeof STARTER_GIFT_ID;
 }
 
 // 2026-09-12, the print-first pivot. This delivery email used to hand the buyer
@@ -101,9 +105,16 @@ export function renderStarterDeliveryEmail(m: StarterEmailModel): {
   // honest sentence and no button, rather than a link to another band's books.
   // FPEA 2027 gift (see the model). Every gift-only string sits behind `gift`, so
   // the normal email below renders exactly as it did before.
-  const gift = m.gift === FPEA_OFFER_ID;
-  const intro = gift
+  // A founder gift (STARTER_GIFT_ID) shares the FPEA gift's subject and drops the same
+  // refund line, but has no printed order to point at and nothing to sell.
+  const fpeaGift = m.gift === FPEA_OFFER_ID;
+  const founderGift = m.gift === STARTER_GIFT_ID;
+  const gift = fpeaGift || founderGift;
+  const founderGiftIntro = `This one is a gift from me: the first nine weeks of Eden's Table, ${cfg.bandName}, free.`;
+  const intro = fpeaGift
     ? `Thank you for your order at the FPEA convention! As promised, here are the first nine weeks of Eden's Table, ${cfg.bandName}, free, so you can start this week while your printed books are being made. Everything you need to start teaching is in these three files.`
+    : founderGift
+    ? `${founderGiftIntro} Everything you need to start teaching is in these three files.`
     : `Here are your first nine weeks of Eden's Table, ${cfg.bandName}. Everything you need to start teaching is in these three files.`;
   const giftBlock = `
 ${rule()}
@@ -111,7 +122,7 @@ ${sectionLabel('Your printed books')}
 ${para(`Your printed order has its own confirmation email. Printing begins 48 hours after you ordered, and I will email you tracking the day it ships. Plan on about two to three weeks to your door.`)}
 `;
 
-  const creditBlock = gift ? giftBlock : printSetUrl
+  const creditBlock = fpeaGift ? giftBlock : founderGift ? '' : printSetUrl
     ? `
 ${rule()}
 ${sectionLabel('When you want the rest of the year')}
@@ -163,8 +174,10 @@ ${para(`<strong>Camila</strong><br><span style="font-size:14px;">The Eden Instit
   const text = [
     greeting,
     '',
-    gift
+    fpeaGift
       ? `Thank you for your order at the FPEA convention! As promised, here are the first nine weeks of Eden's Table, ${cfg.bandName}, free, so you can start this week while your printed books are being made.`
+      : founderGift
+      ? founderGiftIntro
       : `Here are your first nine weeks of Eden's Table, ${cfg.bandName}.`,
     '',
     "Your Teacher's Guide, Student Notebook and Read-Aloud Storybook are on one page:",
@@ -174,7 +187,9 @@ ${para(`<strong>Camila</strong><br><span style="font-size:14px;">The Eden Instit
     '',
     'If a file opens as a blank white screen, you are not doing anything wrong. Some email apps open links in a small built in browser that cannot display a PDF. Press and hold the link instead of tapping it, choose Open in Safari or Open in Chrome, and it will open properly. Opening this email on a computer works too.',
     '',
-    ...(gift
+    ...(founderGift
+      ? []
+      : fpeaGift
       ? [
         'Your printed books: your printed order has its own confirmation email. Printing begins 48 hours after you ordered, and I will email you tracking the day it ships. Plan on about two to three weeks to your door.',
       ]
