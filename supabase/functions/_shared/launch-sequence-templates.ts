@@ -68,7 +68,9 @@ const FACEBOOK_URL = 'https://www.facebook.com/EdensTableHomeschoolCurriculum';
 // Eden's Table social rebrand. Instagram does NOT redirect old usernames; the old URL 404s, verified
 // in-browser. Any template still carrying the old handle ships a dead link.
 const INSTAGRAM_URL = 'https://instagram.com/edenstablehomeschoolcurriculum';
-const PINTEREST_URL = 'https://pin.it/6AuiXypgA';
+// The full profile address, not a pin.it short link: Resend's deliverability check
+// flags link shorteners (2026-10-14).
+const PINTEREST_URL = 'https://www.pinterest.com/TheEdenInstituteBoards/';
 // Primary CTA target for Email 7 is the founders-price capture page, but that
 // page REQUIRES a signed `?t=` token or it disables its own Reserve button. The
 // bare URL constant that used to live here shipped a dead button to 1,382

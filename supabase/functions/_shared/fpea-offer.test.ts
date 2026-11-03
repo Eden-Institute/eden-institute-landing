@@ -492,6 +492,9 @@ Deno.test('FPEA order confirmation: one added paragraph naming free shipping and
 });
 
 // ── REGRESSION: byte-for-byte golden hashes from origin/main 5eee539 ─────
+// 2026-11-03: confirmation_* re-pinned for ONE change, the footer Pinterest
+// link (pin.it short link -> www.pinterest.com/TheEdenInstituteBoards/). Swapping that URL
+// back reproduced every old hash exactly before these were updated.
 
 const GOLDEN: Record<string, string> = {
   starter_email_0: 'a75bacd45186e965f80dc736683937fe0675fc2e2f0ef5c386bf92970c967038',
@@ -501,13 +504,13 @@ const GOLDEN: Record<string, string> = {
   receipt_shipped: 'a96db1e3d0b0ffddaf134f5f59b698f2691e55347b065ac469558b4865062d64',
   receipt_zero: '1467e7f99c7771449aec6c063a09dac48b9ed10c796fb5bcff9a54d6193cda2e',
   order_receipt_0: 'a04c3c62386a81b2545053e5ffcc7e579aacf10489c7c21c23b630a2c0062664',
-  confirmation_0: 'ccee98350ef98a2854d92948cc88eb9936f94a5bd0bb6f56733695897c086b86',
+  confirmation_0: '80487acd13f0baf4245ffaad5dbebccb83dc5f233faab270291bdc62885725fa',
   order_receipt_1: 'd9586de8f222f5da83b636d33df5b92bd2bd63a82743df83df4718ad00c7f58c',
-  confirmation_1: 'f6224d9fec9036222e00be121b9505edde6beff3eef604aa73e888623ae28e72',
+  confirmation_1: '979637b84310c94fc44d740787d5967483f6daab6e5f1811f485432414dac6d8',
   order_receipt_2: 'a04c3c62386a81b2545053e5ffcc7e579aacf10489c7c21c23b630a2c0062664',
-  confirmation_2: '43ed4dfe7c5d55b932e7c1628cf735d01d5165315446bd30fa1aa0a412821aa3',
+  confirmation_2: '2362e0810291f375d8c35de227082057466d82d8f0223eeb3616e5872d00b1b8',
   order_receipt_3: 'a04c3c62386a81b2545053e5ffcc7e579aacf10489c7c21c23b630a2c0062664',
-  confirmation_3: '09b965ec8e16b6ef74ce9a45b5576ec834604227ceed7310b8d41c06927c7a60',
+  confirmation_3: 'c302b9c644e6ae0dab108dd4528eeee5116e605d72a3647bcb7e24b851ecbe17',
 };
 
 async function sha256(s: string): Promise<string> {

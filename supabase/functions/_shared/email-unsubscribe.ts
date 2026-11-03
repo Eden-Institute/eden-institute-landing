@@ -16,6 +16,8 @@
 // browser). Rotating it invalidates outstanding unsubscribe links — acceptable;
 // a recipient can still unsubscribe from any newer email.
 
+import { confirmPageUrl } from './unsubscribe-request.ts';
+
 // postpurchase (2026-09-03): the buyer track (buyer_email_queue). Kept apart from
 // homeschool so a buyer can stop the insider-track emails without touching the
 // homeschool previews, and vice versa. Order and shipping notices are
@@ -114,16 +116,23 @@ export async function unsubUrl(email: string, list: EmailList): Promise<string> 
 // The single helper senders call: swap the {{UNSUB_URL}} placeholder baked into
 // every footer for the per-(email,list) tokenized link, and return the RFC 8058
 // headers to spread into the Resend send. One token computation, reused.
+//
+// The footer link goes straight to the confirm page on edeninstitute.health (the
+// function's GET only ever 303s there anyway), so no supabase.co link sits in the
+// body; Resend's deliverability check flagged that domain (2026-10-14). The
+// List-Unsubscribe header keeps the function URL: mail clients POST the one-click
+// unsubscribe to it directly.
 export async function applyUnsub(
   html: string,
   email: string,
   list: EmailList,
 ): Promise<{ html: string; headers: Record<string, string> }> {
-  const url = await unsubUrl(email, list);
+  const token = await signUnsubToken(email, list);
+  const oneClick = `${unsubEndpoint()}?token=${encodeURIComponent(token)}`;
   return {
-    html: html.split('{{UNSUB_URL}}').join(url),
+    html: html.split('{{UNSUB_URL}}').join(confirmPageUrl(token)),
     headers: {
-      'List-Unsubscribe': `<${url}>`,
+      'List-Unsubscribe': `<${oneClick}>`,
       'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
     },
   };

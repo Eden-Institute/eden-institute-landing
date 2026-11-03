@@ -137,7 +137,7 @@ export function emailWrapper(bodyContent: string, provenance: EmailProvenance = 
 &nbsp;|&nbsp;
 <a href="https://instagram.com/edenstablehomeschoolcurriculum" style="font-family:Georgia,serif;font-size:12px;color:#FFFFFF;text-decoration:underline;">Instagram</a>
 &nbsp;|&nbsp;
-<a href="https://pin.it/6AuiXypgA" style="font-family:Georgia,serif;font-size:12px;color:#FFFFFF;text-decoration:underline;">Pinterest</a>
+<a href="https://www.pinterest.com/TheEdenInstituteBoards/" style="font-family:Georgia,serif;font-size:12px;color:#FFFFFF;text-decoration:underline;">Pinterest</a>
 </td></tr>
 <tr><td style="text-align:center;padding-top:14px;font-family:Georgia,serif;font-size:13px;color:${BRAND.gold};font-style:italic;">Back to Eden. Back to Truth.</td></tr>
 <tr><td style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;padding-top:16px;">${PROVENANCE_LINE[provenance]}</td></tr>
