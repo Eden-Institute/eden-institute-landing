@@ -97,6 +97,11 @@
       "permanent": false
     },
     {
+      "source": "/starter/sprouts",
+      "destination": "/starter",
+      "permanent": false
+    },
+    {
       "source": "/starter/downloads/(.+)",
       "destination": "/starter/downloads",
       "permanent": false
