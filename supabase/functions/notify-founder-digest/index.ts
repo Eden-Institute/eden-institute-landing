@@ -58,6 +58,7 @@ import {
   type HealthCheck,
   type SystemHealthInput,
 } from './system-health.ts';
+import { findSampleLinkSpikes } from './sample-links.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -278,8 +279,9 @@ async function fetchSystemHealthInput(digestDate: string, todayCt: string, now: 
   const HOUR = 3_600_000;
   const queues = Object.keys(QUEUE_LABEL);
   const ga4Since = new Date(Math.max(now.getTime() - 7 * 24 * HOUR, Date.parse(GA4_PATH_LIVE))).toISOString();
+  const day = digestWindow(digestDate);
 
-  const [recap, trends, digestFailed, failed, stuck, stripe, lulu, starter, payments] = await Promise.all([
+  const [recap, trends, digestFailed, failed, stuck, stripe, lulu, starter, payments, sampleServes] = await Promise.all([
     countRows(`/rest/v1/recap_runs?recap_date=eq.${digestDate}&select=status&limit=1`),
     countRows('/rest/v1/weekly_trends_runs?status=eq.sent&select=run_date&order=run_date.desc&limit=1'),
     countRows(`/rest/v1/digest_runs?status=eq.failed&digest_date=gte.${addDays(todayCt, -30)}&select=digest_date&limit=1`),
@@ -289,6 +291,11 @@ async function fetchSystemHealthInput(digestDate: string, todayCt: string, now: 
     countRows(`/rest/v1/lulu_jobs?status=not.in.(submitted,cancelled)&created_at=lt.${iso(HOUR)}&select=id&limit=1`),
     countRows(`/rest/v1/starter_deliveries?status=not.in.(sent,skipped)&created_at=lt.${iso(HOUR)}&select=id&limit=1`),
     countRows(`/rest/v1/payments?is_internal=is.false&status=in.(paid,refunded)&created_at=gte.${encodeURIComponent(ga4Since)}&select=ga4_status&limit=1000`),
+    // Every sample download on the digest day, with the holder of a per-recipient key.
+    countRows(
+      '/rest/v1/partner_sample_serves?select=key_id,visitor_hash,partner_sample_keys(email,name,revoked_at)' +
+        `&served_at=gte.${encodeURIComponent(day.windowStart)}&served_at=lt.${encodeURIComponent(day.windowEnd)}&limit=10000`,
+    ),
   ]);
 
   const failedByQueue: Record<string, number | null> = {};
@@ -324,6 +331,7 @@ async function fetchSystemHealthInput(digestDate: string, todayCt: string, now: 
     starterProblems: starter?.n ?? null,
     ga4ByStatus,
     ga4SecretSet: !!Deno.env.get('GA4_MP_API_SECRET'),
+    sampleLinkSpikes: sampleServes ? findSampleLinkSpikes(sampleServes.rows) : null,
   };
 }
 

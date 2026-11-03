@@ -32,6 +32,10 @@ function fakeFetch() {
     if (url.includes("/storage/v1/object/sign/")) {
       return new Response(JSON.stringify({ signedURL: "/object/sign/partner-assets/x.pdf?token=t" }), { status: 200 });
     }
+    // The serve log (punch #244); partnerSampleKeys.test.ts pins what it records.
+    if (url.endsWith("/rest/v1/partner_sample_serves")) {
+      return new Response(null, { status: 201 });
+    }
     return new Response("unexpected", { status: 500 });
   });
 }
