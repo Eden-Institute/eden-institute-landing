@@ -110,7 +110,8 @@ async function sendLink(email: string, url: string): Promise<boolean> {
     method: "POST",
     headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: "Camila at The Eden Institute <hello@edeninstitute.health>",
+      // orders. subdomain: Resend click tracking OFF, so the guide link arrives unwrapped.
+      from: "Camila at The Eden Institute <hello@orders.edeninstitute.health>",
       reply_to: "hello@edeninstitute.health",
       to: [email],
       subject: GUIDE_LINK_SUBJECT,

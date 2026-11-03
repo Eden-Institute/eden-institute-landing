@@ -71,7 +71,9 @@ function requiredEnv(name: string): string {
 
 const supabaseUrl = () => requiredEnv('SUPABASE_URL');
 const serviceRoleKey = () => requiredEnv('SUPABASE_SERVICE_ROLE_KEY');
-const FROM = 'Camila at The Eden Institute <hello@edeninstitute.health>';
+// orders.edeninstitute.health has Resend click tracking OFF, so the download links
+// reach privacy inboxes (Proton, tracker blockers) unwrapped. Replies still go to hello@.
+const FROM = 'Camila at The Eden Institute <hello@orders.edeninstitute.health>';
 const REPLY_TO = 'hello@edeninstitute.health';
 
 export interface DeliveryRow {
