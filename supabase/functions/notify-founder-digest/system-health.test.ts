@@ -34,6 +34,7 @@ function healthy(): SystemHealthInput {
     starterProblems: 0,
     ga4ByStatus: { sent: 2, skipped_internal: 1, skipped_declined: 1 },
     ga4SecretSet: true,
+    sampleLinkSpikes: [],
   };
 }
 
@@ -42,11 +43,11 @@ const byKey = (input: SystemHealthInput) =>
 
 Deno.test('all healthy: every check passes and the block is one green line', () => {
   const checks = evaluateSystemHealth(healthy(), '2026-10-30', '2026-10-31');
-  assertEquals(checks.length, 9);
+  assertEquals(checks.length, 10);
   assert(checks.every((c) => c.ok === true));
   assertEquals(hasHealthProblem(checks), false);
-  assertStringIncludes(systemHealthHtml(checks), 'All 9 checks passed');
-  assertEquals(systemHealthTextLines(checks), ['System health: all 9 checks passed.']);
+  assertStringIncludes(systemHealthHtml(checks), 'All 10 checks passed');
+  assertEquals(systemHealthTextLines(checks), ['System health: all 10 checks passed.']);
 });
 
 Deno.test('the October 2026 state: 74 old failed emails and no GA4 key are both caught', () => {
@@ -62,7 +63,7 @@ Deno.test('the October 2026 state: 74 old failed emails and no GA4 key are both 
   assertStringIncludes(c.ga4.detail, '1 sale in the last 7 days did not reach Google Analytics (GA4 key missing 1)');
   const checks = Object.values(c);
   assert(hasHealthProblem(checks));
-  assertStringIncludes(systemHealthHtml(checks), '7 of 9 checks passed');
+  assertStringIncludes(systemHealthHtml(checks), '8 of 10 checks passed');
 });
 
 Deno.test('a read that failed is "could not check", never a pass', () => {

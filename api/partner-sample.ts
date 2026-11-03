@@ -21,8 +21,25 @@
 // Required env (Vercel project settings):
 //   SUPABASE_URL                e.g. https://noeqztssupewjidpvhar.supabase.co
 //   SUPABASE_SERVICE_ROLE_KEY   full service-role JWT (signing requires it)
-//   PARTNER_SAMPLE_KEY          shared secret embedded in the link the founder
-//                               pastes. Rotate to revoke every outstanding link.
+//   PARTNER_SAMPLE_KEY          the OLD shared secret, still in every link sent
+//                               before 2026-11-03. Rotating it revokes all of those
+//                               links at once; per-recipient keys are unaffected.
+//
+// PER-RECIPIENT KEYS, added 2026-11-03 (punch #244, founder approved). Every link
+// issued from then on carries a key of its own, a row in public.partner_sample_keys
+// minted by scripts/issue_sample_key.py (Biblical Herbalism folder). A leak is a
+// one-row revoke (revoked_at) that nobody else feels. The shared key keeps working
+// for the links already sent; retiring it is a later step only the founder decides.
+// The lookup fails closed: if the table cannot be read, a non-shared key gets 503
+// and is not counted as wrong. `f=verify` answers 204 for a live key without signing
+// a file or logging a visit; the issuing script uses it to prove a new link works.
+//
+// SERVE LOG, added 2026-11-03 (punch #244 FIX 3). Every download writes a row to
+// public.partner_sample_serves (which key, which file, a keyed hash of the
+// visitor's network, never the IP). The daily founder digest counts distinct
+// visitors per key per day and flags a link that has gone public, by name. The log
+// fails open and never blocks a download. Nothing noticed the 2026-09-10 leak;
+// the host told the founder.
 //
 // WRONG-KEY LIMIT, added 2026-09-15 (founder decision). The key stays one shared
 // value, but a connection that sends 10 wrong keys in 15 minutes gets 429 before its
@@ -49,6 +66,7 @@
 
 import { safeEqual } from './_lib/safe-equal.js';
 import { clientIp, isLockedOut, recordWrongKey, WRONG_KEY_WINDOW_SECONDS } from './_lib/wrong-key-limit.js';
+import { lookupRecipientKey, recordServe, visitorHash } from './_lib/sample-keys.js';
 
 /**
  * Button slug -> Storage object path. Grouped by band, reading order within each.
@@ -128,15 +146,45 @@ export default async function handler(req: Request): Promise<Response> {
     );
   }
 
+  // The shared key first (no database call), then the recipient's own key.
+  let keyId: string | null = null;
   if (!safeEqual(key, expectedKey)) {
-    if (ip) await recordWrongKey(limiter, ip);
-    console.warn(`partner-sample: rejected key for slug=${slug || '(none)'}`);
-    return fail(403, 'This link is not valid. Please check with hello@edeninstitute.health.');
+    const found = await lookupRecipientKey(limiter, key);
+    if (found.status === 'error') {
+      console.error('partner-sample: key lookup failed, refusing without counting the key as wrong');
+      return fail(503, 'We could not check this link just now. Please try again in a minute.', { 'Retry-After': '60' });
+    }
+    if (found.status !== 'active') {
+      if (ip) await recordWrongKey(limiter, ip);
+      const which = found.status === 'revoked' ? `revoked key ${found.id}` : 'rejected key';
+      console.warn(`partner-sample: ${which} for slug=${slug || '(none)'}`);
+      return fail(403, 'This link is not valid. Please check with hello@edeninstitute.health.');
+    }
+    keyId = found.id;
+  }
+
+  if (slug === 'verify') {
+    return new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, nofollow' } });
   }
 
   const path = COMPONENTS[slug];
   if (!path) return fail(404, 'Unknown sample component');
 
+  // Logged alongside the signing call, so it costs the download no time.
+  const [response] = await Promise.all([
+    signAndRedirect(supabaseUrl, serviceRoleKey, path, slug, keyId),
+    recordServe(limiter, { key_id: keyId, visitor_hash: await visitorHash(ip, serviceRoleKey), slug }),
+  ]);
+  return response;
+}
+
+async function signAndRedirect(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  path: string,
+  slug: string,
+  keyId: string | null,
+): Promise<Response> {
   let signRes: Response;
   try {
     signRes = await fetch(
@@ -163,10 +211,10 @@ export default async function handler(req: Request): Promise<Response> {
 
   const { signedURL } = (await signRes.json()) as { signedURL: string };
 
-  // The only download telemetry that exists for this rail. The Gmail send gives
-  // none at all (no Resend tags, so nothing lands in public.email_events), so
-  // these lines are how we learn whether partners actually open the files.
-  console.log(`partner-sample: served ${slug}`);
+  // The Gmail send gives no telemetry at all (no Resend tags, so nothing lands in
+  // public.email_events). This line and public.partner_sample_serves are how we
+  // learn whether partners actually open the files, and whose link served them.
+  console.log(`partner-sample: served ${slug} via ${keyId ? `key ${keyId}` : 'shared key'}`);
 
   return new Response(null, {
     status: 302,

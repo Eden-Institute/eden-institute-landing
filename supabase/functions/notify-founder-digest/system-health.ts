@@ -19,6 +19,8 @@
 // A count that could not be read is null and shows as "could not be checked", never
 // as a pass: a check that cannot see is not a healthy check.
 
+import { describeSpike, type SampleLinkSpike } from './sample-links.ts';
+
 export interface SystemHealthInput {
   /** recap_runs.status for the digest day; null when no row exists. */
   recapStatus: string | null;
@@ -47,6 +49,9 @@ export interface SystemHealthInput {
    *  digest sees the same value stripe-webhook does, and catches a missing key before
    *  the first sale is lost rather than after. */
   ga4SecretSet: boolean;
+  /** Partner sample links opened from an unusual number of places on the digest day
+   *  (sample-links.ts); null when partner_sample_serves could not be read. */
+  sampleLinkSpikes: SampleLinkSpike[] | null;
 }
 
 export interface HealthCheck {
@@ -185,6 +190,21 @@ export function evaluateSystemHealth(input: SystemHealthInput, digestDate: strin
     }
   }
 
+  // Partner sample links (punch #244): a link opened from many places in one day has
+  // probably been posted publicly. A link already turned off is reported, not flagged.
+  if (input.sampleLinkSpikes === null) {
+    checks.push({ key: 'sample_links', ok: null, detail: 'Partner sample links: could not be checked.' });
+  } else {
+    const open = input.sampleLinkSpikes.filter((s) => !s.revoked);
+    const closed = input.sampleLinkSpikes.filter((s) => s.revoked);
+    if (open.length === 0) {
+      const note = closed.map((s) => ` ${describeSpike(s, digestDate)}`).join('');
+      checks.push({ key: 'sample_links', ok: true, detail: `Partner sample links: none opened from an unusual number of places on ${digestDate}.${note}` });
+    } else {
+      checks.push({ key: 'sample_links', ok: false, detail: open.map((s) => describeSpike(s, digestDate)).join(' ') });
+    }
+  }
+
   return checks;
 }
 
@@ -201,7 +221,7 @@ export function systemHealthHtml(checks: HealthCheck[]): string {
   const label = `<p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:2px;color:#C9A84C;text-transform:uppercase;margin:16px 0 8px 0;">System health</p>`;
   if (problems.length === 0) {
     return `${label}
-<p style="font-family:Georgia,serif;font-size:13px;color:#1C3A2E;margin:0 0 8px 0;">All ${checks.length} checks passed: scheduled emails, failed and waiting emails, Stripe, Lulu, Starter downloads, and sales reaching Google Analytics.</p>`;
+<p style="font-family:Georgia,serif;font-size:13px;color:#1C3A2E;margin:0 0 8px 0;">All ${checks.length} checks passed: scheduled emails, failed and waiting emails, Stripe, Lulu, Starter downloads, sales reaching Google Analytics, and partner sample links.</p>`;
   }
   const items = problems.map((c) =>
     `<li style="margin:0 0 6px 0;">${c.ok === null ? '<strong>Could not check.</strong> ' : ''}${esc(c.detail)}</li>`

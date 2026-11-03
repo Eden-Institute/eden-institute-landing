@@ -35,7 +35,7 @@ export function clientIp(headers: Headers): string {
   return (headers.get('x-forwarded-for') ?? '').split(',')[0].trim();
 }
 
-async function sha256Hex(s: string): Promise<string> {
+export async function sha256Hex(s: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
   return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
