@@ -170,7 +170,9 @@ export function renderBookDeliveryEmail(m: BookDeliveryModel): { subject: string
   return { subject: 'Your copy of Back to Eden is ready', html: emailWrapperTransactional(body, 'order'), text };
 }
 
-const FROM = 'Camila at The Eden Institute <hello@edeninstitute.health>';
+// orders.edeninstitute.health has Resend click tracking OFF, so the download link
+// reaches privacy inboxes (Proton, tracker blockers) unwrapped. Replies still go to hello@.
+const FROM = 'Camila at The Eden Institute <hello@orders.edeninstitute.health>';
 const REPLY_TO = 'hello@edeninstitute.health';
 
 /** Send the delivery email through Resend. Throws on failure so the caller can record and retry. */
