@@ -111,6 +111,14 @@ interface Band {
   planned?: string[];
 }
 
+// Punch #394 (founder 2026-11-03): the phone hero's free way in, one tap per band,
+// each opening that band's Week 1 pop-up (the same FREE_WEEK_MODAL the rungs use).
+const HERO_FREE = (["sprouts", "seedlings"] as const).map((band) => ({
+  band,
+  label: band === "sprouts" ? "Sprouts (K-2)" : "Seedlings (3-5)",
+  modal: FREE_WEEK_MODAL[band],
+}));
+
 const BANDS: Band[] = [
   {
     id: "sprouts",
@@ -281,6 +289,34 @@ const PRINT_SET = {
             <span class="block mt-1 text-[11px] sm:text-xs font-normal normal-case tracking-normal opacity-85">Instant download. Teach it tonight.</span>
           </a>
         </div>
+
+        {/* Punch #394, founder 2026-11-03: PHONES ONLY, a free way in on the first
+            screen (it sat about 2 screens down). WaitlistController opens the band's
+            Week 1 pop-up from the data-waitlist-* attributes; GA form_name
+            homeschool_hero_<band>_week1. md: and up are unchanged. */}
+        <p class="md:hidden font-body text-sm -mt-1 leading-relaxed" style="color:hsl(var(--eden-bark))">
+          Or try Week 1 free:{" "}
+          {HERO_FREE.map((f, i) => (
+            <>
+              {i > 0 && " or "}
+              <button
+                type="button"
+                class="inline-block py-2 font-semibold underline underline-offset-4"
+                style="color:hsl(var(--eden-forest))"
+                data-cta={`homeschool-hero-${f.band}-free`}
+                data-waitlist-source={f.modal.source}
+                data-waitlist-form-name={`homeschool_hero_${f.band}_week1`}
+                data-waitlist-title={f.modal.title}
+                data-waitlist-subtitle={f.modal.subtitle}
+                data-waitlist-submit-label={f.modal.submitLabel}
+                data-waitlist-success-message={f.modal.successMessage}
+                data-waitlist-success-subtitle={f.modal.successSubtitle}
+                data-waitlist-cta-href="/homeschool"
+                data-waitlist-cta-label="See the full year"
+              >{f.label}</button>
+            </>
+          ))}
+        </p>
 
         {/* One line per door, so a reader skimming can take the meaning from
             here without reading the rest of the page. */}
