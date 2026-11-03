@@ -208,6 +208,8 @@ const REDIRECTS: [string, number, string][] = [
   ["/Starter/Downloads", 307, "/starter/downloads"],
   ["/back-to-eden/download/extra", 307, "/back-to-eden/download"],
   ["/Back-To-Eden/Download", 307, "/back-to-eden/download"],
+  // List emails (Oct 8, Oct 16, Nov 6, Dec 18) link here; the Sprouts Starter page is /starter.
+  ["/starter/sprouts", 307, "/starter"],
 ];
 
 /**
@@ -289,7 +291,6 @@ const NOT_FOUND = [
   "/LEARN/is-herbalism-biblical",
   "/Assessment",
   "/APOTHECARY",
-  "/starter/sprouts",
   "/guide",
   "/results",
   "/assessment/extra",
