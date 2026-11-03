@@ -31,6 +31,7 @@ import {
   esaCopyProblems,
   type EsaState,
 } from "../../lib/esaStates";
+import { RETURN_POLICY } from "../../lib/merchantOffer";
 
 export function getStaticPaths() {
   return ESA_STATES.map((s) => ({ params: { state: s.slug }, props: { s } }));
@@ -146,8 +147,8 @@ const curriculumJsonLd = [
 // now, and OutOfStock says the books are unavailable. No Offer is the honest markup.
 // The student audience sits on the Course above: Google's merchant listings read
 // Product.audience as a PeopleAudience and flag an EducationalAudience as invalid.
-// Item names already name the band ("Sprouts (grades K-2) ..."). A Seedlings item
-// has no photo yet, so its Product carries no image rather than a Sprouts one.
+// Item names already name the band ("Sprouts (grades K-2) ..."). Every item carries
+// its own band's image (Google requires one) and the /returns policy.
 const productJsonLd =
   s.status === "listing_pending"
     ? []
@@ -156,7 +157,7 @@ const productJsonLd =
         "@type": "Product",
         name: `Eden's Table: ${i.name}`,
         description: i.note,
-        ...(i.image ? { image: i.image } : {}),
+        image: i.image,
         brand: { "@type": "Brand", name: "Eden's Table" },
         offers: {
           "@type": "Offer",
@@ -165,6 +166,7 @@ const productJsonLd =
           availability: "https://schema.org/InStock",
           url: canonical,
           seller: { "@type": "Organization", name: "Rooted in Faith Ventures LLC" },
+          hasMerchantReturnPolicy: RETURN_POLICY,
         },
       }));
 

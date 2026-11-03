@@ -53,9 +53,10 @@ export interface EsaItem {
   /** The amount `price` shows, as a number, for the Product JSON-LD. */
   priceValue: number;
   note: string;
-  /** Product photo for the JSON-LD: the same photo /curriculum shows for this item. Omitted where
-      no photo of that product exists yet (Seedlings), rather than borrowing another band's. */
-  image?: string;
+  /** Product photo for the JSON-LD. Required: Google rejects a merchant listing without one.
+      Always this band's own photo, and one already on the site (founder 2026-11-03: no new or
+      swapped site images). */
+  image: string;
 }
 
 export interface EsaState {
@@ -145,24 +146,28 @@ const STARTER: EsaItem = {
   note: "Weeks 1 to 9 of the 36-week year, as a download. Not the full year.",
   image: `${PHOTO}/ET_StarterUnit.webp`,
 };
-// Seedlings (grades 3-5), founder decisions 2026-09-24. No photo yet, so no image.
+// Seedlings (grades 3-5), founder decisions 2026-09-24. Images are the real Week 1 pages and
+// notebook cover already on the site for the marketplace listings (#569, #570).
 const SDL_SET: EsaItem = {
   name: "Seedlings (grades 3-5) Printed Curriculum Set",
   price: "$261 total",
   priceValue: 261,
   note: "$249 plus $12 shipping. Teacher's Guide, Student Notebook and Read-Aloud Storybook, all 36 weeks for grades 3-5.",
+  image: `${PHOTO}/ET_Seedlings_PrintSet_Pages.webp`,
 };
 const SDL_STARTER: EsaItem = {
   name: "Seedlings (grades 3-5) 9-Week Starter Unit",
   price: "$39",
   priceValue: 39,
   note: "Weeks 1 to 9 of the 36-week Seedlings year, as a download. Not the full year.",
+  image: `${PHOTO}/ET_Seedlings_StarterUnit.webp`,
 };
 const SDL_NOTEBOOK: EsaItem = {
   name: "Seedlings (grades 3-5) Extra Student Notebook",
   price: "$39.99",
   priceValue: 39.99,
   note: "Shipping included. A second write-in notebook for another child using the Seedlings set.",
+  image: `${PHOTO}/ET_Seedlings_NB_Cover.webp`,
 };
 
 const PENDING_ODYSSEY_STEPS = (short: string) => [
@@ -241,12 +246,14 @@ export const ESA_STATES: EsaState[] = [
         price: "$266.33 by invoice",
         priceValue: 266.33,
         note: "$261 ($249 plus $12 shipping) plus the $5.33 Arizona processing fee. Teacher's Guide, Student Notebook and Read-Aloud Storybook, all 36 weeks for grades 3-5.",
+        image: `${PHOTO}/ET_Seedlings_PrintSet_Pages.webp`,
       },
       {
         name: "Seedlings (grades 3-5) Extra Student Notebook",
         price: "$40.81 by invoice",
         priceValue: 40.81,
         note: "$39.99 with shipping, plus the $0.82 Arizona processing fee. A second write-in notebook for another child using the Seedlings set.",
+        image: `${PHOTO}/ET_Seedlings_NB_Cover.webp`,
       },
     ],
     links: [
@@ -436,6 +443,7 @@ export const ESA_STATES: EsaState[] = [
         price: "$39.99",
         priceValue: 39.99,
         note: "Added at checkout with a printed Seedlings set, for a sibling ($32 each from the sixth). Shipping for extra notebooks is worked out in your cart.",
+        image: `${PHOTO}/ET_Seedlings_NB_Cover.webp`,
       },
     ],
     // 2026-10-18: replaced utaheducationfitsall.org/faqs, which belongs to a private

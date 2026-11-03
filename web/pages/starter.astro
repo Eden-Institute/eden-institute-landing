@@ -45,6 +45,7 @@ import heroStarter from "@/assets/hero-starter.jpg";
 import HeroBackdrop from "../components/HeroBackdrop.astro";
 import StarterBuyBox from "../components/islands/StarterBuyBox.tsx";
 import ComponentShowcases from "../components/ComponentShowcases.astro";
+import { RETURN_POLICY } from "../lib/merchantOffer";
 
 const PRICE = "$39";
 const SET_PRICE = "$249";
@@ -125,6 +126,10 @@ const productJsonLd = {
   description:
     "The 9-week starter: weeks 1 to 9 of the 36-week Eden's Table Sprouts (K-2) Biblical herbalism curriculum, delivered as PDF. " +
     "Includes the Teacher's Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks.",
+  // Google rejects a merchant listing with no image. This is a real Sprouts page already on
+  // the site (Week 5, inside the nine weeks); founder 2026-11-03: fill blanks only, never swap
+  // or add site images.
+  image: "https://edeninstitute.health/showcases/ET_WeekAtAGlance.webp",
   brand: { "@type": "Brand", name: "Eden's Table" },
   offers: {
     "@type": "Offer",
@@ -132,6 +137,7 @@ const productJsonLd = {
     priceCurrency: "USD",
     availability: "https://schema.org/InStock",
     url: "https://edeninstitute.health/starter",
+    hasMerchantReturnPolicy: RETURN_POLICY,
   },
 };
 
