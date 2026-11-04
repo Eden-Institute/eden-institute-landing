@@ -62,7 +62,7 @@ const CASES = [
     path: "/privacy",
     title: "Privacy Policy | The Eden Institute",
     h1: "Privacy Policy",
-    dates: "Effective Date: June 9, 2026 · Last Updated: October 14, 2026",
+    dates: "Effective Date: June 9, 2026 · Last Updated: November 4, 2026",
     headings: [
       "1. Introduction",
       "2. Information We Collect",
@@ -84,7 +84,7 @@ const CASES = [
     path: "/cookies",
     title: "Cookie Policy | The Eden Institute",
     h1: "Cookie Policy",
-    dates: "Effective Date: June 9, 2026 · Last Updated: October 14, 2026",
+    dates: "Effective Date: June 9, 2026 · Last Updated: November 4, 2026",
     headings: [
       "1. What Are Cookies",
       "2. How We Use Cookies",
