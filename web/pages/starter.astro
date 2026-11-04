@@ -46,6 +46,7 @@ import HeroBackdrop from "../components/HeroBackdrop.astro";
 import StarterBuyBox from "../components/islands/StarterBuyBox.tsx";
 import ComponentShowcases from "../components/ComponentShowcases.astro";
 import { RETURN_POLICY } from "../lib/merchantOffer";
+import { productDetails } from "../lib/productDetails";
 
 const PRICE = "$39";
 const SET_PRICE = "$249";
@@ -123,6 +124,7 @@ const productJsonLd = {
   "@type": "Product",
   name: "Eden's Table: Sprouts Starter Unit",
   sku: "sprouts_starter_unit",
+  ...productDetails("sprouts_starter_unit"),
   description:
     "The 9-week starter: weeks 1 to 9 of the 36-week Eden's Table Sprouts (K-2) Biblical herbalism curriculum, delivered as PDF. " +
     "Includes the Teacher's Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks.",

@@ -9,22 +9,29 @@
 // Student Notebooks are coil bound, Read-Aloud Storybooks and the Back to Eden
 // paperback are perfect bound, the Study & Journal Edition and Study Guide are
 // coil (spiral) bound. Change a value here and in the feed together.
+//
+// The two 9-week Starter Units (/starter, /starter/seedlings, added 2026-11-03)
+// are digital, so they are not in the feed (digital left out on purpose,
+// 2026-09-30); their format is the pages' own "PDF, instant download".
 
 type Detail = [name: string, value: string];
 
 const SET_FORMAT = "Coil-bound Teacher's Guide and Student Notebook, paperback Read-Aloud Storybook";
 const BOTH_FORMAT = "Coil-bound Teacher's Guides and Student Notebooks, paperback Read-Aloud Storybooks";
+const STARTER_FORMAT = "Instant digital download (PDF)";
 
 export const PRODUCT_DETAILS: Record<string, Detail[]> = {
   sprouts_print_set: [["Genre", "Homeschool Curriculum"], ["Grade level", "K-2"], ["Format", SET_FORMAT], ["Language", "English"]],
   seedlings_print_set: [["Genre", "Homeschool Curriculum"], ["Grade level", "3-5"], ["Format", SET_FORMAT], ["Language", "English"]],
   both_bands_print_set: [["Genre", "Homeschool Curriculum"], ["Grade level", "K-5"], ["Format", BOTH_FORMAT], ["Language", "English"]],
+  sprouts_starter_unit: [["Genre", "Homeschool Curriculum"], ["Grade level", "K-2"], ["Format", STARTER_FORMAT], ["Language", "English"]],
+  seedlings_starter_unit: [["Genre", "Homeschool Curriculum"], ["Grade level", "3-5"], ["Format", STARTER_FORMAT], ["Language", "English"]],
   bte_paperback_print: [["Genre", "Biblical Herbalism"], ["Format", "Paperback"], ["Language", "English"], ["Author", "Camila Johnson"]],
   bte_study_journal_print: [["Genre", "Biblical Herbalism"], ["Format", "Spiral-bound"], ["Language", "English"], ["Author", "Camila Johnson"]],
   bte_study_guide_print: [["Genre", "Biblical Herbalism"], ["Format", "Spiral-bound"], ["Language", "English"], ["Author", "Camila Johnson"]],
 };
 
-/** schema.org `additionalProperty` for one feed sku. */
+/** schema.org `additionalProperty` for one product sku. */
 export function productDetails(sku: string) {
   const details = PRODUCT_DETAILS[sku];
   if (!details) throw new Error(`No product details for ${sku}`);
