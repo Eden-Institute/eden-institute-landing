@@ -305,6 +305,33 @@ async function claimRecipient(
   }
 }
 
+/**
+ * Keep the exact subject and HTML this order is about to receive on its claimed log row,
+ * BEFORE the Resend call (punch #143). Every email here is personalised (first name, order
+ * number, and on a delay notice the opt-in wording and signed consent links), so
+ * broadcasts.body_html cannot hold it: for delay notices it is null on purpose. A notice
+ * the buyer consents to is evidence, and the 2026-08-26 one had to be rebuilt from Gmail.
+ * Throws, so an order whose copy cannot be kept is not mailed (the claim is released and a
+ * resume retries it). A row whose send then fails is deleted with its claim; a stale
+ * claim taken over is overwritten with the copy actually sent.
+ */
+async function keepSentCopy(
+  db: ReturnType<typeof admin>,
+  key: string,
+  r: Recipient,
+  claimedAt: string,
+  subject: string,
+  html: string,
+): Promise<void> {
+  const { data, error } = await db.from("broadcast_recipient_sends")
+    .update({ sent_subject: subject, sent_html: html })
+    .eq("idempotency_key", key).eq("order_id", r.order_id).eq("recipient_email", normEmail(r.customer_email))
+    .eq("claimed_at", claimedAt)
+    .select("order_id");
+  if (error) throw error;
+  if (!Array.isArray(data) || data.length !== 1) throw new Error("sent copy not kept: claim row not found");
+}
+
 /** Resend accepted the email: record it at once. Never throws. */
 async function markRecipientSent(
   db: ReturnType<typeof admin>,
@@ -615,6 +642,7 @@ async function handle(req: Request, ctx: HandlerContext): Promise<Response> {
               orderNumberLine: r.order_number ? `Order ${r.order_number}` : undefined,
             });
           }
+          await keepSentCopy(db, idempotencyKey, r, claimedAt, recipientSubject, html);
           const messageId = await sendEmail(r.customer_email, recipientSubject, html, `${broadcastId}:${r.order_id}`, {
             medium: "newsletter",
             campaign: "founder_broadcast",
