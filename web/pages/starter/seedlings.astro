@@ -29,6 +29,7 @@ import heroStarter from "@/assets/hero-starter.jpg";
 import HeroBackdrop from "../../components/HeroBackdrop.astro";
 import StarterBuyBox from "../../components/islands/StarterBuyBox.tsx";
 import { RETURN_POLICY } from "../../lib/merchantOffer";
+import { productDetails } from "../../lib/productDetails";
 
 const PRICE = "$39";
 
@@ -91,6 +92,7 @@ const productJsonLd = {
   "@type": "Product",
   name: "Eden's Table: Seedlings Starter Unit",
   sku: "seedlings_starter_unit",
+  ...productDetails("seedlings_starter_unit"),
   description:
     "The 9-week starter: weeks 1 to 9 of the 36-week Eden's Table Seedlings (grades 3-5) Biblical herbalism curriculum, delivered as PDF. " +
     "Includes the Teacher's Guide, the Student Notebook and the Read-Aloud storybook for those nine weeks.",
