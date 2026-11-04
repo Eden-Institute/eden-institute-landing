@@ -355,6 +355,20 @@ export function buildOrderEmail(templateKey: string, order: OrderRow, receipt: R
   }
 }
 
+/**
+ * The number order texts go to: the one the buyer typed next to the SMS consent box
+ * (create-checkout stamps it into the Checkout Session metadata as sms_phone, "+1" and
+ * 10 digits, and the session is stored on the order as raw). That box is where they
+ * agreed to be texted, so it wins over the phone Stripe collects for the carrier.
+ * Sessions created before the box had a number field carry no sms_phone and fall back
+ * to the Stripe phone, as every order did before.
+ */
+export function smsNumberFor(order: OrderRow): string | null {
+  const typed = order.raw?.metadata?.sms_phone;
+  if (typeof typed === 'string' && typed.trim()) return typed.trim();
+  return order.customer_phone || null;
+}
+
 export function orderSmsText(templateKey: string, order: OrderRow): string {
   const ref = order.order_number ? ` Order ${order.order_number}.` : '';
   const { carrier, code, link } = trackingBits(order);
@@ -525,7 +539,7 @@ export async function dispatchTransitionMessages(
   const defs = (REGISTRY[toStatus] ?? []).filter((d) => !d.from || d.from === from);
   for (const def of defs) {
     if (def.channel === 'sms' && !order.sms_consent) continue;
-    if (def.channel === 'sms' && !order.customer_phone) continue;
+    if (def.channel === 'sms' && !smsNumberFor(order)) continue;
     if (await hasSentMessage(db, order.id, def.templateKey, toStatus)) continue;
 
     let providerId: string | null = null;
@@ -546,7 +560,7 @@ export async function dispatchTransitionMessages(
         const { subject, html } = buildOrderEmail(def.templateKey, order, receipt);
         providerId = await sendResendEmail(order.customer_email, subject, html, def.templateKey);
       } else {
-        providerId = await sendSms(order.customer_phone, orderSmsText(def.templateKey, order));
+        providerId = await sendSms(smsNumberFor(order), orderSmsText(def.templateKey, order));
       }
       ok = providerId !== null;
     } catch (e) {

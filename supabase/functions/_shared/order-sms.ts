@@ -4,6 +4,21 @@
 // flow can send without importing across functions. If A2P 10DLC is not yet live or the
 // Twilio secrets are absent, sendSms sends nothing and returns null (a graceful skip).
 
+/**
+ * The mobile number typed next to the SMS consent box on the print buy box, as "+1" and
+ * 10 digits, or null when it is not a US phone number. A2P 10DLC wants the phone field on
+ * the same form as the consent checkbox, so this is the number the buyer agreed to have
+ * texted. Mirror of web/lib/smsPhone.ts; keep the two in step.
+ */
+export function usMobileE164(raw: unknown): string | null {
+  let d = String(raw ?? '').replace(/\D/g, '');
+  if (d.length === 11 && d.startsWith('1')) d = d.slice(1);
+  if (d.length !== 10) return null;
+  // North American numbering: the area code and the exchange never start with 0 or 1.
+  if (d[0] === '0' || d[0] === '1' || d[3] === '0' || d[3] === '1') return null;
+  return `+1${d}`;
+}
+
 export function normalizePhone(raw: string | null | undefined): string {
   const s = (raw ?? '').replace(/[^\d+]/g, '');
   if (!s) return '';
