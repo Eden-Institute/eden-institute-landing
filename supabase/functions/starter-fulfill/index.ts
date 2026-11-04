@@ -9,7 +9,9 @@
 //   POST { }             - the cron drain (Vercel cron, see api/cron/), which is
 //                          the safety net for anything the kick missed: a webhook
 //                          that could not reach us, an isolate that died
-//                          mid-stamp, a Resend outage.
+//                          mid-stamp, a Resend outage. It finds the rows and makes
+//                          the { session_id } call for each, so every delivery
+//                          gets an invocation (and a CPU budget) of its own.
 //
 // The two can race. They do not conflict, because fulfilStarterDelivery claims
 // each row with a compare-and-set on status before doing any work, and the loser
@@ -36,13 +38,21 @@ const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { global: { fetch: pgrstFetch } });
 
 /**
- * How many deliveries one drain handles.
+ * How many deliveries one drain hands out.
  *
- * Each is roughly 20MB of PDF work plus two uploads and a send, so this is a
- * wall-clock bound, not a throughput target. Anything left over is picked up by
- * the next tick; the count is logged so a backlog is visible rather than silent.
+ * Each delivery runs in its OWN invocation of this function (deliverInOwnInvocation),
+ * because the platform allows 2 s of CPU per invocation and one Starter costs about
+ * 0.35-0.53 s of it, almost all in the stamp. On 2026-11-03 a drain that did five
+ * in one invocation was killed at 2,000 ms of CPU (shutdown reason CPUTime, memory
+ * 108 MB of 256) right after stamping the fifth: no email, row left in_progress
+ * until the 15-minute stale re-claim. The drain itself now only waits on I/O.
+ *
+ * They are handed out one after another, so a backlog still drains in the order
+ * people paid, at about 5 s each; four keeps one drain to roughly 20 s of waiting.
+ * Anything left over is picked up by the next tick; the count is logged so a
+ * backlog is visible rather than silent.
  */
-const DRAIN_BATCH = 5;
+const DRAIN_BATCH = 4;
 
 /** Give up automatic retries after this many, so a poison row cannot loop forever. */
 const MAX_ATTEMPTS = 5;
@@ -73,6 +83,39 @@ async function creditCodeFor(sessionId: string): Promise<string | null> {
     return null;
   }
   return data?.code ?? null;
+}
+
+/** Credit lookup, stamp, store, sign and send for one row, in this invocation. */
+async function deliverHere(row: DeliveryRow): Promise<{ status: string; detail?: string }> {
+  // A band with no credit (Seedlings) never has a code; do not look one up.
+  // An unrecognised band is left to fulfilStarterDelivery, which fails it loudly.
+  let hasCredit = true;
+  try { hasCredit = starterBandHasCredit(normalizeStarterBand(row.band)); } catch { /* handled below */ }
+  const code = hasCredit ? await creditCodeFor(row.stripe_checkout_session_id) : null;
+  return await fulfilStarterDelivery(adminClient, row, code);
+}
+
+/**
+ * Hand one row to a fresh invocation of this function, the same { session_id }
+ * call stripe-webhook makes, and wait for its answer. Never throws: a call that
+ * fails leaves the row as it was (pending, failed, or in_progress until it goes
+ * stale), and the next drain picks it up.
+ */
+async function deliverInOwnInvocation(sessionId: string): Promise<{ status: string; detail?: string }> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/starter-fulfill`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${SERVICE_ROLE_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: sessionId }),
+    });
+    const reply = await res.json().catch(() => null) as { results?: Array<{ status: string; detail?: string }> } | null;
+    const out = reply?.results?.[0];
+    if (res.ok && out) return { status: out.status, ...(out.detail ? { detail: out.detail } : {}) };
+    return { status: 'failed', detail: `own invocation returned ${res.status}; the next drain retries` };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { status: 'failed', detail: `own invocation unreachable (${message}); the next drain retries` };
+  }
 }
 
 serve(async (req) => {
@@ -118,12 +161,9 @@ serve(async (req) => {
 
     const results: Array<{ session_id: string; status: string; detail?: string }> = [];
     for (const row of rows) {
-      // A band with no credit (Seedlings) never has a code; do not look one up.
-      // An unrecognised band is left to fulfilStarterDelivery, which fails it loudly.
-      let hasCredit = true;
-      try { hasCredit = starterBandHasCredit(normalizeStarterBand(row.band)); } catch { /* handled below */ }
-      const code = hasCredit ? await creditCodeFor(row.stripe_checkout_session_id) : null;
-      const out = await fulfilStarterDelivery(adminClient, row, code);
+      // One delivery per invocation (see DRAIN_BATCH): the kick does its row here,
+      // the drain hands each of its rows to a fresh invocation.
+      const out = sessionId ? await deliverHere(row) : await deliverInOwnInvocation(row.stripe_checkout_session_id);
       results.push({ session_id: row.stripe_checkout_session_id, ...out });
     }
 
