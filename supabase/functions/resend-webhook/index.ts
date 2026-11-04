@@ -16,6 +16,13 @@
 //   email.complained
 //   email.opened      (engagement — see email_events; subscribe to enable)
 //   email.clicked     (engagement — see email_events; subscribe to enable)
+//   contact.topics.updated   (punch #22 — a family's choice on the preference page,
+//                      recorded in email_topic_preferences; subscribe when topics go live)
+//
+// Topic choices (2026-11-04)
+//   contact.topics.updated has its own path (recordTopicPreferences) and NEVER reaches
+//   waitlist_apply_resend_event: unticking one topic is not leaving the list, and must not
+//   become a global unsubscribe the way the 10/14 echo did. See _shared/email-topics.ts.
 //
 // Internal action taxonomy passed to the RPC
 //   contact.unsubscribed   ← synthesized from contact.updated when data.unsubscribed=true
@@ -42,6 +49,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { decodeBase64 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
+import { parseTopicsUpdate, type TopicsUpdate } from "../_shared/email-topics.ts";
 
 const RESEND_WEBHOOK_SECRET = Deno.env.get("RESEND_WEBHOOK_SECRET") ?? "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
@@ -239,6 +247,53 @@ async function logEngagementEvent(event: ResendEvent): Promise<Response> {
   });
 }
 
+/**
+ * contact.topics.updated: record each topic choice in email_topic_preferences. Writes that
+ * table and nothing else (see the header). A stored choice newer than this event is kept,
+ * so a late retry cannot undo what the family chose since.
+ */
+async function recordTopicPreferences(update: TopicsUpdate): Promise<Response> {
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data: stored, error: readErr } = await supabase
+    .from("email_topic_preferences")
+    .select("topic_id, changed_at")
+    .eq("email", update.email)
+    .in("topic_id", update.topics.map((t) => t.id));
+  if (readErr) {
+    console.error("resend-webhook: topic preference read failed", readErr.message);
+    return json({ error: "handler_error" }, 500);
+  }
+  const storedAt = new Map(
+    ((stored ?? []) as Array<{ topic_id: string; changed_at: string }>).map((r) => [r.topic_id, Date.parse(r.changed_at)]),
+  );
+  const eventAt = Date.parse(update.changedAt);
+  const receivedAt = new Date().toISOString();
+  const rows = update.topics
+    .filter((t) => !((storedAt.get(t.id) ?? -Infinity) > eventAt))
+    .map((t) => ({
+      email: update.email,
+      topic_id: t.id,
+      subscription: t.subscription,
+      changed_at: update.changedAt,
+      received_at: receivedAt, // sent explicitly: an upsert leaves an omitted column at its first value
+    }));
+  if (rows.length) {
+    const { error } = await supabase.from("email_topic_preferences").upsert(rows, { onConflict: "email,topic_id" });
+    if (error) {
+      console.error("resend-webhook: topic preference write failed", error.message);
+      return json({ error: "handler_error" }, 500);
+    }
+  }
+  return json({
+    received: true,
+    action: "topics.recorded",
+    recorded: rows.length,
+    skipped_older: update.topics.length - rows.length,
+  });
+}
+
 // Map a raw Resend event to our internal action taxonomy.
 // Returns null if the event carries no waitlist-state transition.
 function normalizeEvent(event: ResendEvent):
@@ -298,6 +353,16 @@ Deno.serve(async (req) => {
   // do not affect waitlist state — handle them on their own path.
   if (event.type === "email.opened" || event.type === "email.clicked") {
     return await logEngagementEvent(event);
+  }
+
+  // Topic choices are recorded on their own path and never reach the unsubscribe RPC below.
+  if (event.type === "contact.topics.updated") {
+    const update = parseTopicsUpdate(event);
+    if (!update) {
+      console.warn("resend-webhook: contact.topics.updated payload not understood; nothing written");
+      return json({ received: true, ignored: "topics_payload_unreadable" });
+    }
+    return await recordTopicPreferences(update);
   }
 
   const normalized = normalizeEvent(event);
