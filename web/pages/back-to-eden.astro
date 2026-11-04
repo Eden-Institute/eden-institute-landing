@@ -32,6 +32,7 @@ import { BookOpen, CheckCircle, Download, Headphones, Leaf, Printer, Search, Sma
 // the shown amount live (BookCheckoutController).
 import { printShippingCents } from "../../supabase/functions/_shared/print-pricing";
 import { printOfferPolicies } from "../lib/merchantOffer";
+import { bookEditionDetails, productDetails } from "../lib/productDetails";
 import HostClipReel from "../components/HostClipReel.astro";
 import { PLACEMENTS, clipsFor } from "../lib/hostClips";
 const shipOne = (sku: string) => (printShippingCents([{ sku, qty: 1 }]) ?? 0) / 100;
@@ -244,6 +245,7 @@ const jsonLd = {
   author: { "@type": "Person", name: "Camila Johnson" },
   publisher: { "@type": "Organization", name: "The Eden Institute", url: "https://edeninstitute.health" },
   inLanguage: "en",
+  genre: "Biblical Herbalism",
   url: meta.canonical,
   image: "https://edeninstitute.health/books/back-to-eden-paperback.webp",
   bookEdition: ["Paperback", "Study & Journal Edition", "Study Guide"],
@@ -253,6 +255,8 @@ const jsonLd = {
 // and stock straight off this page (Merchant Center lists the same three; the
 // feed ids equal these skus). Built from `editions`, so a price change there
 // changes the markup too. Digital PDFs are left out on purpose.
+// 2026-11-03: each one is also typed Book and carries the feed's book details
+// (genre, format, language, author, page count), from lib/productDetails.
 const PRINT_SKU: Record<string, string> = {
   "study-journal": "bte_study_journal_print",
   paperback: "bte_paperback_print",
@@ -267,11 +271,13 @@ const PRODUCT_PHOTO: Record<string, string> = {
 };
 const editionJsonLd = editions.map((e) => ({
   "@context": "https://schema.org",
-  "@type": "Product",
+  "@type": ["Product", "Book"],
   name: e.id === "study-guide"
     ? "Back to Eden Study Guide"
     : `Back to Eden: A Biblical Foundation for Herbal Healing, ${e.name}`,
   sku: PRINT_SKU[e.id],
+  ...bookEditionDetails(PRINT_SKU[e.id], e.size),
+  ...productDetails(PRINT_SKU[e.id]),
   description: `${e.blurb} ${e.size}. Printed to order.`,
   image: [`https://edeninstitute.health${PRODUCT_PHOTO[e.id]}`, `https://edeninstitute.health${e.img}`],
   brand: { "@type": "Brand", name: "The Eden Institute" },
