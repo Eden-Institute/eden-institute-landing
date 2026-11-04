@@ -13,7 +13,7 @@
 //
 // Returns, matching /returns: printed to order, so no returns once printing has
 // started (cancel within 48 hours for a full refund); a damaged or misprinted
-// book reported within 14 days is replaced. Digital downloads are not refundable
+// book reported the day it is delivered (founder 2026-11-03; was 14 days) is replaced. Digital downloads are not refundable
 // once downloaded. schema.org has no "defects only" category, so this is
 // MerchantReturnNotPermitted with the policy page linked, which is what Merchant
 // Center's own return policy says in its own terms.

@@ -72,6 +72,13 @@ const books = [
   },
 ];
 
+// Punch #260 decision 6 (founder 2026-11-03): the refund policy, said once under
+// every buy box rather than only in the FAQ. Same terms as the FAQ and /returns.
+// Damage is reported the day it arrives (founder 2026-11-03: "immediately", with a
+// photo whose date shows; it was 14 days).
+const REFUND_LINE =
+  "Change your mind within 48 hours for a full refund. Arrives damaged or misprinted? Send me a photo the day it arrives and I'll replace it free.";
+
 const faqs = [
   {
     q: "Is this the whole curriculum, or a sample of it?",
@@ -87,7 +94,7 @@ const faqs = [
   },
   {
     q: "Can I return it?",
-    a: "Once printing has started, no, because it was printed for you and nobody else. Before that, yes, for a full refund, just reply to your confirmation email. If a book arrives bent, misprinted or damaged, send me a photo within 14 days and I will replace it at no cost to you.",
+    a: "Once printing has started, no, because it was printed for you and nobody else. Before that, yes, for a full refund, just reply to your confirmation email. If a book arrives bent, misprinted or damaged, send me a photo the day it arrives and I will replace it at no cost to you.",
   },
   {
     q: "Is this a good place to start, or should I try the $39 Starter Unit first?",
@@ -304,6 +311,7 @@ const booksDisclosure = disclosureFor(booksClips);
       </div>
       <div id="buy" class="md:sticky md:top-24 min-[1024px]:top-36 scroll-mt-24 min-[1024px]:scroll-mt-36">
         <PrintBuyBox client:only="react" cta="books-buy" />
+        <p class="font-body text-sm text-center mt-3" style="color:hsl(var(--eden-bark))">{REFUND_LINE}</p>
         <p class="font-body text-sm text-muted-foreground text-center mt-3">
           Using an education savings account or scholarship? <a href="/esa" data-cta="books-esa" class="underline" style="color:hsl(var(--eden-forest))">See how to buy in your state</a>.
         </p>
@@ -360,6 +368,7 @@ const booksDisclosure = disclosureFor(booksClips);
       </div>
       <div id="buy-seedlings" class="md:sticky md:top-24 min-[1024px]:top-36">
         <PrintBuyBox client:only="react" cta="books-buy-seedlings" band="seedlings" />
+        <p class="font-body text-sm text-center mt-3" style="color:hsl(var(--eden-bark))">{REFUND_LINE}</p>
       </div>
     </div>
   </section>
@@ -385,6 +394,7 @@ const booksDisclosure = disclosureFor(booksClips);
       </div>
       <div id="buy-both" class="md:sticky md:top-24 min-[1024px]:top-36">
         <PrintBuyBox client:only="react" cta="books-buy-both" band="both" />
+        <p class="font-body text-sm text-center mt-3" style="color:hsl(var(--eden-bark))">{REFUND_LINE}</p>
       </div>
     </div>
   </section>

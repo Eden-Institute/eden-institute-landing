@@ -161,7 +161,7 @@ function buildBookDeliveredEmail(order: OrderRow): { subject: string; html: stri
     p(`If it is not where you expected, check with everyone at home first, then the porch, the side door `
       + `and anywhere else the mail carrier likes to hide things. Still nothing? Reply to this email and we `
       + `will sort it out together.`) +
-    p(`If it arrived bent, misprinted or damaged, send me a photo and I will replace it, no charge.`) +
+    p(`If it arrived bent, misprinted or damaged, send me a photo today and I will replace it, no charge.`) +
     p(`Grab a cup of tea and start with the Introduction. I hope it changes the way you see.`) +
     signature();
   return { subject: `Your copy of Back to Eden is here`, html: emailWrapperTransactional(body, 'order') };
@@ -254,7 +254,7 @@ export function buildDeliveredEmail(order: OrderRow): { subject: string; html: s
     p(`If it is not where you expected, check with everyone at home first, then the porch, the side door `
       + `and anywhere else the mail carrier likes to hide things. Still nothing? Reply to this email and we `
       + `will sort it out together.`) +
-    p(`If a book arrived bent, misprinted or damaged, send me a photo and I will replace it, no charge.`) +
+    p(`If a book arrived bent, misprinted or damaged, send me a photo today and I will replace it, no charge.`) +
     p(`Now go find a plant. Week 1 starts whenever you are ready.`) +
     signature();
   return { subject: `Your ${band} books are here`, html: emailWrapperTransactional(body, 'order') };
