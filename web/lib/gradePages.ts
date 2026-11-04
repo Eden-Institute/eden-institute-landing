@@ -63,6 +63,23 @@ const HERBS_FAQ: GradeFaq = {
   a: "No. Each week uses a small amount of a common dried herb from your pantry, your garden, or the herb list we keep for families at edeninstitute.health/homeschool/herbs.",
 };
 
+// 2026-11-03 (founder interview): Camila's own answers to three questions families search,
+// also on /books. Grade science names each page's grade; grades 3-5 add the Seedlings line.
+const LEARNING_NEEDS_FAQ: GradeFaq = {
+  q: "Will it work for a child with ADHD or dyslexia, or one who is behind?",
+  a: "Absolutely. Every week is built around a real plant your child can see, smell and touch, and that hands-on learning gives every child something to hold on to, especially a child who struggles. You read the lesson aloud from the Teacher's Guide, so a child who finds reading hard still does the whole week by drawing, smelling and handling the plant. The core lesson can be short, the extras are optional, and each lesson is written at two depths, so you set the pace for the child in front of you.",
+};
+
+const BIBLE_BASED_FAQ: GradeFaq = {
+  q: "What makes a science curriculum Bible-based?",
+  a: "Most science curriculums point to the wonder of nature and credit it to happenstance, even accident. A science curriculum taught from a biblical worldview starts with the Creator and shows how creation declares the glory of God. God reveals Himself in two ways: through His Word and through His creation. People often think science and faith can't go together, but I think science is more connected to faith than any other subject. It's an opportunity to show children the wonderful God who created everything.",
+};
+
+const gradeScienceFaq = (child: string, seedlings: boolean): GradeFaq => ({
+  q: `What science should a ${child} learn?`,
+  a: "In the elementary years, the most important thing is to nurture your child's sense of wonder and curiosity so they become a lifelong learner. I'm a big believer in using science and social studies to that end, exploring the topics that fascinate them, wherever that may lead. Eden's Table is one place to start: one real plant a week, with botany, plant identification and careful observation, and room to keep going wherever your child's questions lead." + (seedlings ? " In Seedlings, children also write a hypothesis and then test it." : ""),
+});
+
 export const GRADE_PAGES: readonly GradePage[] = [
   {
     slug: "kindergarten",
@@ -90,6 +107,9 @@ export const GRADE_PAGES: readonly GradePage[] = [
       },
       NO_HERBALISM_FAQ,
       HERBS_FAQ,
+      gradeScienceFaq("kindergartner", false),
+      BIBLE_BASED_FAQ,
+      LEARNING_NEEDS_FAQ,
     ],
   },
   {
@@ -118,6 +138,9 @@ export const GRADE_PAGES: readonly GradePage[] = [
       },
       NO_HERBALISM_FAQ,
       HERBS_FAQ,
+      gradeScienceFaq("first grader", false),
+      BIBLE_BASED_FAQ,
+      LEARNING_NEEDS_FAQ,
     ],
   },
   {
@@ -146,6 +169,9 @@ export const GRADE_PAGES: readonly GradePage[] = [
       },
       NO_HERBALISM_FAQ,
       HERBS_FAQ,
+      gradeScienceFaq("second grader", false),
+      BIBLE_BASED_FAQ,
+      LEARNING_NEEDS_FAQ,
     ],
   },
   {
@@ -168,6 +194,9 @@ export const GRADE_PAGES: readonly GradePage[] = [
       BABYISH_FAQ,
       NO_HERBALISM_FAQ,
       HERBS_FAQ,
+      gradeScienceFaq("third grader", true),
+      BIBLE_BASED_FAQ,
+      LEARNING_NEEDS_FAQ,
     ],
   },
   {
@@ -190,6 +219,9 @@ export const GRADE_PAGES: readonly GradePage[] = [
       },
       NO_HERBALISM_FAQ,
       HERBS_FAQ,
+      gradeScienceFaq("fourth grader", true),
+      BIBLE_BASED_FAQ,
+      LEARNING_NEEDS_FAQ,
     ],
   },
   {
@@ -212,6 +244,9 @@ export const GRADE_PAGES: readonly GradePage[] = [
       BABYISH_FAQ,
       NO_HERBALISM_FAQ,
       HERBS_FAQ,
+      gradeScienceFaq("fifth grader", true),
+      BIBLE_BASED_FAQ,
+      LEARNING_NEEDS_FAQ,
     ],
   },
 ];
