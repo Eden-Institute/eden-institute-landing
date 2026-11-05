@@ -503,7 +503,7 @@ export default function OrdersTab({ since }: { since: string }) {
                         )}
                         {o.status !== "cancelled" && o.status !== "refunded" && (
                           <div className="flex flex-wrap gap-1 pt-1">
-                            {(!o.lulu_print_job_id || o.lulu_job?.status === "failed" || o.lulu_job?.status === "cancelled") && o.status !== "shipped" && o.status !== "delivered" && (
+                            {(!o.lulu_print_job_id || o.lulu_job?.status === "failed" || o.lulu_job?.status === "cancelled" || ["REJECTED", "ERROR", "CANCELED"].includes(o.lulu_status ?? "")) && o.status !== "shipped" && o.status !== "delivered" && (
                               <Button variant="outline" size="sm" disabled={acting !== null} onClick={() => luluAction("resubmit", o)}>
                                 {acting === `resubmit:${o.id}` ? "…" : "Resubmit"}
                               </Button>
