@@ -144,6 +144,10 @@
       "destination": "/api/go/course"
     },
     {
+      "source": "/esa/confirm",
+      "destination": "/api/esa-confirm"
+    },
+    {
       "source": "/((?:assessment|quiz|founder|practitioner)/?)",
       "destination": "/_spa/index.html"
     },
