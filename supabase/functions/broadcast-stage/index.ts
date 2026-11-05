@@ -23,8 +23,10 @@
 //   preview  { audience?, segment? }       counts per audience; with segment, what `stage` would do.
 //   stage    { audience, segment, batch? } converge segment "Broadcast: ..." to the audience.
 //                                          Repeat until remaining is 0.
-//   create   { segment, name, subject, html, campaign, content }
+//   create   { segment, name, subject, html, campaign, content, topic? }
 //            create (or update, if a DRAFT of that name exists) a Broadcast. Sends nothing.
+//            topic (a key of _shared/email-topics.ts, punch #22) scopes it to that topic, so
+//            families who unticked it are skipped; refused if the topic is not in Resend.
 //   proof    { name, subject, html, campaign, content }
 //            send the same email as a real Broadcast to the "Founder proof" segment, whose
 //            only member is the founder address from app_settings (refuses otherwise).
@@ -34,7 +36,8 @@
 //            Broadcast's exact name, it is still a draft, its segment is a "Broadcast: "
 //            segment that holds exactly the audience right now, and scheduled_at is 15
 //            minutes to 31 days out. Cancel = delete the Broadcast before it goes (Resend
-//            dashboard, or DELETE /broadcasts/{id}).
+//            dashboard, or DELETE /broadcasts/{id}). Once any EMAIL_TOPICS topic exists in
+//            Resend it also refuses a Broadcast with no topic, which would ignore choices.
 //   refresh_due {}
 //            hourly, from Vercel cron api/cron/refresh-broadcasts (founder decision
 //            2026-10-14: schedule ahead, refresh automatically). For every Broadcast SCHEDULED
@@ -42,6 +45,13 @@
 //            for it in public.broadcast_segments (written by `stage`), at most once every 6
 //            hours. Adds families who became eligible, removes anyone who opted out or bought.
 //            Sends nothing and schedules nothing.
+//   inspect  { broadcast_id }
+//            read-only: one Broadcast's status, scheduled_at, topic_id, subject, from, reply_to and
+//            the SHA-256 + length of its HTML, to prove an edit left the approved email unchanged.
+//   topics   { create? }
+//            each _shared/email-topics.ts topic as Resend has it (id, opt_in/opt_out, public/
+//            private). With create: true, creates any missing one opt_in + public (punch #22).
+//            Never changes an existing topic. Sends nothing.
 //   status {}
 //            read-only: every Broadcast with its status, scheduled_at and sent_at, for the wrap
 //            check that emails fire when they should (scripts/email_health_check.py, founder
@@ -54,6 +64,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { addContactToSegment, ensureSegments, removeContactFromSegment } from '../_shared/resend-contacts.ts';
 import { tagEmailHtml } from '../_shared/email-utm.ts';
 import { resolveFounderEmail } from '../_shared/founder-identity.ts';
+import { EMAIL_TOPICS, type EmailTopicKey, isEmailTopicKey } from '../_shared/email-topics.ts';
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
 import {
   BROADCAST_AUDIENCES,
@@ -117,6 +128,23 @@ async function resend(path: string, init: RequestInit = {}): Promise<{ status: n
   const res = await fetch(`${API}${path}`, { ...init, headers: resendHeaders() });
   const body = await res.json().catch(() => null) as Record<string, unknown> | null;
   return { status: res.status, body };
+}
+
+/**
+ * The Resend id of each topic in EMAIL_TOPICS that exists, by exact name (punch #22).
+ * Throws when the topic list cannot be read: a Broadcast must never be created or scheduled
+ * on a guess about whether families' choices exist.
+ */
+async function liveTopicIds(): Promise<Map<EmailTopicKey, string>> {
+  const r = await resend('/topics?limit=100');
+  if (r.status !== 200 || !Array.isArray(r.body?.data)) throw new Error(`GET /topics ${r.status}`);
+  const byName = new Map((r.body.data as Array<{ id?: string; name?: string }>).map((t) => [String(t.name ?? ''), String(t.id ?? '')]));
+  const out = new Map<EmailTopicKey, string>();
+  for (const [key, t] of Object.entries(EMAIL_TOPICS) as Array<[EmailTopicKey, { name: string }]>) {
+    const id = byName.get(t.name);
+    if (id) out.set(key, id);
+  }
+  return out;
 }
 
 interface AudienceRow {
@@ -407,6 +435,62 @@ Deno.serve(async (req: Request) => {
       return json(result, result.failed ? 207 : 200);
     }
 
+    if (mode === 'inspect') {
+      // Read-only (punch #22 go-live, 2026-11-05): one Broadcast's fingerprint, so a re-tag can be
+      // proven to leave the approved email byte for byte unchanged (compare before and after).
+      const id = typeof body.broadcast_id === 'string' ? body.broadcast_id.trim() : '';
+      if (!id) return json({ error: 'broadcast_id required' }, 400);
+      const b = await resend(`/broadcasts/${encodeURIComponent(id)}`);
+      if (b.status !== 200 || !b.body) return json({ error: `GET /broadcasts/${id} ${b.status}` }, 502);
+      const html = String(b.body.html ?? '');
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(html));
+      return json({
+        mode, id, name: b.body.name ?? null, status: b.body.status ?? null, scheduled_at: b.body.scheduled_at ?? null,
+        topic_id: b.body.topic_id ?? null, segment_id: b.body.segment_id ?? b.body.audience_id ?? null,
+        subject: b.body.subject ?? null, from: b.body.from ?? null, reply_to: b.body.reply_to ?? null,
+        html_length: html.length,
+        html_sha256: Array.from(new Uint8Array(digest)).map((x) => x.toString(16).padStart(2, '0')).join(''),
+      });
+    }
+
+    if (mode === 'topics') {
+      // Punch #22 go-live (2026-11-05). Reports each EMAIL_TOPICS topic in Resend; with
+      // { create: true } it creates any that are missing, opt_in (everyone keeps receiving it
+      // unless she unticks it; Resend cannot change this after creation) and public (shown on
+      // the preference page; Resend's default is private, which would hide the choice). An
+      // existing topic is reported, never changed. Done here because this function holds the
+      // full-access Resend key and the Resend connector cannot set visibility.
+      const listed = await resend('/topics?limit=100');
+      if (listed.status !== 200 || !Array.isArray(listed.body?.data)) {
+        return json({ error: `GET /topics ${listed.status}`, body: listed.body }, 502);
+      }
+      const existing = listed.body.data as Array<Record<string, unknown>>;
+      const report: Array<Record<string, unknown>> = [];
+      for (const [key, t] of Object.entries(EMAIL_TOPICS) as Array<[EmailTopicKey, { name: string; description: string }]>) {
+        const found = existing.find((e) => String(e.name ?? '') === t.name);
+        if (found) {
+          report.push({
+            key, name: t.name, id: found.id ?? null, action: 'exists',
+            default_subscription: found.default_subscription ?? null, visibility: found.visibility ?? null,
+          });
+          continue;
+        }
+        if (body.create !== true) {
+          report.push({ key, name: t.name, id: null, action: 'missing' });
+          continue;
+        }
+        const made = await resend('/topics', {
+          method: 'POST',
+          body: JSON.stringify({ name: t.name, description: t.description, default_subscription: 'opt_in', visibility: 'public' }),
+        });
+        if (made.status < 200 || made.status >= 300) {
+          return json({ error: `could not create topic "${t.name}"`, status: made.status, body: made.body, report }, 502);
+        }
+        report.push({ key, name: t.name, id: made.body?.id ?? null, action: 'created' });
+      }
+      return json({ mode, topics: report });
+    }
+
     if (mode === 'status') {
       const all = await listBroadcasts(false);
       return json({
@@ -489,7 +573,17 @@ Deno.serve(async (req: Request) => {
       }
       const segmentId = await segmentIdByName(body.segment);
       if (!segmentId) return json({ error: `segment ${body.segment} not found` }, 502);
-      const payload = { segment_id: segmentId, from: FROM, reply_to: REPLY_TO, subject: c.subject, html: c.html, name: c.name };
+      // Optional topic (punch #22): the Broadcast skips anyone who unticked it.
+      let topicId: string | undefined;
+      if (body.topic !== undefined) {
+        if (!isEmailTopicKey(body.topic)) return json({ error: `topic must be one of ${Object.keys(EMAIL_TOPICS).join(', ')}` }, 400);
+        topicId = (await liveTopicIds()).get(body.topic);
+        if (!topicId) return json({ error: `topic "${EMAIL_TOPICS[body.topic].name}" is not set up in Resend` }, 409);
+      }
+      const payload = {
+        segment_id: segmentId, from: FROM, reply_to: REPLY_TO, subject: c.subject, html: c.html, name: c.name,
+        ...(topicId ? { topic_id: topicId } : {}),
+      };
 
       const existing = await findDraftByName(c.name);
       if (existing && existing.status !== 'draft') {
@@ -549,6 +643,10 @@ Deno.serve(async (req: Request) => {
       const segId = String(b.body.segment_id ?? b.body.audience_id ?? '');
       const segName = segId ? await segmentNameById(segId) : null;
       if (!isBroadcastSegmentName(segName)) return json({ error: 'Broadcast is not aimed at a "Broadcast: " segment', segment: segName }, 409);
+      // Once families can choose topics, a Broadcast without one would ignore their choices.
+      if (!b.body.topic_id && (await liveTopicIds()).size > 0) {
+        return json({ error: 'topics are live, so this Broadcast needs a topic; re-create it with topic set' }, 409);
+      }
       const plan = planStage((await audienceRows(db, body.audience, asOf)).map((r) => r.email), await stageLog(db, segName));
       if (plan.toAdd.length || plan.toRemove.length) {
         return json({ error: 'segment does not match the audience right now; run stage first', to_add: plan.toAdd.length, to_remove: plan.toRemove.length }, 409);
