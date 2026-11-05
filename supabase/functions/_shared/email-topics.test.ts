@@ -12,7 +12,9 @@ Deno.test('topics fit Resend limits and the copy rules', () => {
     assert(!EM_DASH.test(t.name) && !EM_DASH.test(t.description), t.name);
   }
   assertEquals(new Set(Object.values(EMAIL_TOPICS).map((t) => t.name)).size, Object.keys(EMAIL_TOPICS).length);
-  assert(isEmailTopicKey('fridays') && isEmailTopicKey('news'));
+  assert(isEmailTopicKey('fridays') && isEmailTopicKey('news') && isEmailTopicKey('partners'));
+  // The exact names the founder approved (11/4 + 11/5); Resend topics are matched by name.
+  assertEquals(Object.values(EMAIL_TOPICS).map((t) => t.name), ['The Friday letter', 'New books and sales', 'Partner promotions']);
   for (const k of ['', 'FRIDAYS', 'toString', 'hasOwnProperty', null, 3]) assert(!isEmailTopicKey(k), String(k));
 });
 

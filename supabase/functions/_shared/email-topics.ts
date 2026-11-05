@@ -27,6 +27,12 @@ export const EMAIL_TOPICS = {
     name: 'New books and sales',
     description: 'When a new book or band is ready, or something goes on sale.',
   },
+  // Added 2026-11-05 at go-live (founder: "Can we create a new one called partner promotions";
+  // description chosen by her tap). Partner mentions such as the Arizona Education Vendors email.
+  partners: {
+    name: 'Partner promotions',
+    description: 'Now and then, a note about a homeschool friend or business we trust and think your family would enjoy.',
+  },
 } as const;
 
 export type EmailTopicKey = keyof typeof EMAIL_TOPICS;
