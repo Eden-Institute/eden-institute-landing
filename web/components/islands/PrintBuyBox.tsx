@@ -46,6 +46,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getFbAttribution } from "@/lib/fbAttribution";
 import { getCheckoutAttribution } from "@/lib/attribution";
+import { usMobileE164 } from "../../lib/smsPhone";
 import { centsToValue, pinTrack } from "@/lib/pinterestTag";
 import PayOverTime from "./PayOverTime";
 import ShipToForm, { type ShipToDraft } from "./ShipToForm";
@@ -143,6 +144,8 @@ export default function PrintBuyBox({ cta, band = "sprouts", offer }: Props) {
   const [qty, setQty] = useState(1);
   const [nbQty, setNbQty] = useState<Record<string, number>>({});
   const [smsConsent, setSmsConsent] = useState(false);
+  /** The number typed next to the SMS box; texts go to it (A2P: same form as the checkbox). */
+  const [smsPhone, setSmsPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** Heavy orders only: the street address, asked for here (see ShipToForm). */
@@ -223,6 +226,12 @@ export default function PrintBuyBox({ cta, band = "sprouts", offer }: Props) {
 
   async function startCheckout() {
     if (!product) return;
+    // A ticked text box needs the number it is for.
+    const smsPhoneE164 = smsConsent ? usMobileE164(smsPhone) : null;
+    if (smsConsent && !smsPhoneE164) {
+      setError("Please add your 10-digit mobile number for text updates, or untick the text box.");
+      return;
+    }
     // Heavy orders ship by ground: check the street address before anything else.
     let shipToBody: Record<string, unknown> = {};
     if (shipsByGround) {
@@ -264,6 +273,7 @@ export default function PrintBuyBox({ cta, band = "sprouts", offer }: Props) {
             ...chosen.map((nb) => ({ sku: nb.sku, qty: qtyOf(nb.sku) })),
           ],
           sms_consent: smsConsent,
+          ...(smsPhoneE164 ? { sms_phone: smsPhoneE164 } : {}),
           ...shipToBody,
           ...(offer ? { offer } : {}),
           success_url: isSprouts
@@ -298,6 +308,11 @@ export default function PrintBuyBox({ cta, band = "sprouts", offer }: Props) {
         if (!isSprouts && detail?.code === "PRINT_SHOP_NOT_CONFIGURED") {
           // The page listed the set but a file or setting went missing since.
           setProduct(null);
+          setLoading(false);
+          return;
+        }
+        if (detail?.code === "SMS_PHONE_INVALID") {
+          setError(detail.error ?? "Please check the mobile number for text updates.");
           setLoading(false);
           return;
         }
@@ -459,10 +474,24 @@ export default function PrintBuyBox({ cta, band = "sprouts", offer }: Props) {
 
           <PayOverTime amountCents={subtotal + shipping} className="mt-3" />
 
-          <label className="mt-4 flex items-start gap-2 font-body text-sm text-muted-foreground">
+          <label htmlFor={`sms-phone-${band}`} className="mt-4 block font-body text-sm text-muted-foreground">
+            Mobile number for text updates (optional)
+          </label>
+          <input
+            id={`sms-phone-${band}`}
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel-national"
+            placeholder="Mobile number"
+            value={smsPhone}
+            onChange={(e) => setSmsPhone(e.target.value)}
+            className="mt-1 w-full rounded-md border px-3 py-2 bg-background font-body text-sm"
+            style={{ borderColor: "hsl(var(--eden-gold) / 0.5)" }}
+          />
+          <label className="mt-2 flex items-start gap-2 font-body text-sm text-muted-foreground">
             <input type="checkbox" checked={smsConsent} onChange={(e) => setSmsConsent(e.target.checked)} className="mt-1" />
             <span>
-              Text me order updates from The Eden Institute: an order confirmation, when it ships and when it is delivered (up to 3 messages per order). Message and data rates may apply. Reply STOP to opt out, HELP for help. See our{" "}
+              Text me order updates from The Eden Institute at this number: an order confirmation, when it ships and when it is delivered (up to 3 messages per order). Message and data rates may apply. Reply STOP to opt out, HELP for help. See our{" "}
               <a href="/terms" className="underline">Terms</a> and <a href="/privacy" className="underline">Privacy Policy</a>.
             </span>
           </label>

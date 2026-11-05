@@ -29,6 +29,7 @@ import {
   LULU_JOB_COLUMNS,
   LuluJobRow,
   refreshLuluOrder,
+  releaseDeadLuluJob,
   submitLuluJob,
 } from '../_shared/lulu-fulfillment.ts';
 import {
@@ -88,13 +89,19 @@ serve(async (req) => {
       case 'resubmit': {
         const orderId = String(body.order_id ?? '');
         if (!orderId) return json({ error: 'Missing order_id' }, 400);
+        // A job Lulu REJECTED / ERRORed / CANCELED will never print: detach it from the
+        // order first, or submitLuluJob skips the order as "already submitted".
+        const { released } = await releaseDeadLuluJob(adminClient, orderId);
         // Reset attempts so a job that burned its retries on a since-fixed cause
         // gets a fresh run. Insert the row if the order never got one.
         const { data: existing } = await adminClient.from('lulu_jobs').select('id').eq('order_id', orderId).maybeSingle();
         if (existing) {
           const { error } = await adminClient.from('lulu_jobs')
-            .update({ status: 'pending', attempts: 0, last_error: null, updated_at: new Date().toISOString() })
-            .eq('order_id', orderId).in('status', ['pending', 'failed', 'cancelled']);
+            .update({
+              status: 'pending', attempts: 0, updated_at: new Date().toISOString(),
+              ...(released ? { print_job_id: null, last_error: `previous Lulu job ${released} released for resubmit` } : { last_error: null }),
+            })
+            .eq('order_id', orderId).in('status', released ? ['pending', 'failed', 'cancelled', 'submitted'] : ['pending', 'failed', 'cancelled']);
           if (error) throw error;
         } else {
           const { error } = await adminClient.from('lulu_jobs').insert({ order_id: orderId, status: 'pending' });

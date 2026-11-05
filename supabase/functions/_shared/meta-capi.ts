@@ -73,6 +73,19 @@ async function postMetaEvents(label: string, events: unknown[]): Promise<boolean
  * until the token is configured — same defensive pattern as sendMetaCapiLead.
  * Returns true only when Meta accepted the event (useful for logging).
  */
+/**
+ * Marketing consent, as the checkout carried it (punch 278, founder 2026-11-04: send only
+ * for buyers who tapped Accept). The browser hands over fbp / fbc ONLY after the visitor
+ * accepted marketing cookies (src/lib/fbAttribution.ts returns {} otherwise, and the Meta
+ * pixel that sets _fbp loads only on Accept), and create-checkout stamps them into the
+ * session metadata. So their presence is the consent signal: no fbp and no fbc means the
+ * buyer declined, never chose, or blocked the pixel, and nothing about them goes to Meta.
+ * Same rule the waitlist Lead already follows (resend-waitlist, marketingConsent).
+ */
+export function hasMarketingConsent(opts: { fbp?: string | null; fbc?: string | null }): boolean {
+  return !!(opts.fbp && String(opts.fbp).trim()) || !!(opts.fbc && String(opts.fbc).trim())
+}
+
 export async function sendMetaCapiPurchase(opts: {
   /** Stripe checkout session id — doubles as the Meta dedupe key. */
   eventId: string
@@ -105,6 +118,10 @@ export async function sendMetaCapiPurchase(opts: {
   sourceUrl?: string | null
 }): Promise<boolean> {
   if (!META_CAPI_ACCESS_TOKEN) return false
+  if (!hasMarketingConsent(opts)) {
+    console.log(`Meta CAPI Purchase skipped: no marketing consent on this checkout (session=${opts.eventId})`)
+    return false
+  }
   try {
     // Meta rejects Purchase without a value. A zero/absent total means we cannot
     // report revenue meaningfully, so skip rather than send a misleading 0.
@@ -224,6 +241,10 @@ export async function sendMetaCapiInitiateCheckout(opts: {
   sourceUrl?: string | null
 }): Promise<boolean> {
   if (!META_CAPI_ACCESS_TOKEN) return false
+  if (!hasMarketingConsent(opts)) {
+    console.log(`Meta CAPI InitiateCheckout skipped: no marketing consent on this checkout (session=${opts.eventId})`)
+    return false
+  }
   try {
     const userData: Record<string, unknown> = {}
     if (opts.email) userData.em = [await sha256Hex(opts.email)]

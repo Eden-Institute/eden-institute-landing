@@ -5,7 +5,7 @@ import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.t
 Deno.env.set("SUPABASE_URL", "https://example.supabase.co");
 Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", "service-test-key");
 Deno.env.set("RESEND_API_KEY", "re_test");
-const { applyPayment, confirmWithToken, ESA_STARTER_SKUS } = await import("./esa-fulfil.ts");
+const { applyPayment, confirmWithToken, emailFounderConfirm, ESA_STARTER_SKUS } = await import("./esa-fulfil.ts");
 
 type Call = { method: string; url: string; body: string };
 
@@ -221,4 +221,23 @@ Deno.test("esa-payment-confirm treats both Starter SKUs as Starters", async () =
   const src = await Deno.readTextFile(new URL("../esa-payment-confirm/index.ts", import.meta.url));
   assert(src.includes("ESA_STARTER_SKUS.includes(i.sku)"));
   assert(!src.includes('i.sku === "ET-SPR-K2-003"'));
+});
+
+Deno.test("founder Confirm link opens on edeninstitute.health, keeps its token, carries no UTM (punch #446)", async () => {
+  const s = stub(baseInvoice({ status: "issued" }));
+  try {
+    const token = "11111111-2222-4333-8444-555555555555";
+    const ok = await emailFounderConfirm(
+      { subject: "ClassWallet payment", excerpt: "Paid $266.33", status: "matched", reason: "amount and student match" },
+      [{ invoice: baseInvoice({ status: "issued" }) as never, token }],
+    );
+    assert(ok);
+    const sent = s.calls.filter((c) => c.url === "https://api.resend.com/emails");
+    assertEquals(sent.length, 1);
+    const html = JSON.parse(sent[0].body).html as string;
+    assert(html.includes(`href="https://edeninstitute.health/esa/confirm?t=${token}"`), html);
+    // Supabase serves a text/html function response on supabase.co as text/plain: never link there.
+    assert(!html.includes("/functions/v1/esa-payment-confirm"));
+    assert(!html.includes("esa/confirm?t=" + token + "&amp;utm_"));
+  } finally { s.restore(); }
 });

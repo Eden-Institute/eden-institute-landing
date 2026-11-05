@@ -34,7 +34,11 @@ export const FROM = "Camila at The Eden Institute <hello@edeninstitute.health>";
 export const FOUNDER = "hello@edeninstitute.health";
 /** Lulu requires a phone on every shipment. When a family leaves it blank the business line is used. */
 export const FALLBACK_PHONE = "(931) 575-5895";
-const CONFIRM_URL = `${SUPABASE_URL}/functions/v1/esa-payment-confirm`;
+// The founder's Confirm paid link opens on the site, not on supabase.co: Supabase serves a
+// text/html function response there as text/plain (plus a sandbox CSP), so the page showed as
+// raw source with no button (2026-11-04, punch #446). api/esa-confirm.ts relays it unchanged.
+// The t= token keeps email-utm.ts from tagging this link.
+const CONFIRM_URL = "https://edeninstitute.health/esa/confirm";
 
 // One invoice carries one product (one student, one choice), so a printed order never mixes bands.
 const SKU_TO_PRODUCT: Record<string, { sku: string; label: string }> = {

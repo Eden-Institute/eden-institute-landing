@@ -7,6 +7,11 @@
 //
 // Once 3 payments the matcher called "matched" are confirmed here, esa-payment applies matched
 // payments on its own (esa_auto_confirm_ready()).
+//
+// The email links to https://edeninstitute.health/esa/confirm, NOT to this function's own
+// supabase.co address (2026-11-05, punch #446): Supabase serves a text/html function response
+// there as text/plain with a sandbox CSP, so the page showed as source and the button could not
+// be pressed. api/esa-confirm.ts relays GET and POST here and re-serves this page as HTML.
 
 import { money, STATE_RULES } from "../_shared/esa-invoice.ts";
 import { confirmWithToken, emailFounderAlert, ESA_STARTER_SKUS, getInvoice, rest } from "../_shared/esa-fulfil.ts";

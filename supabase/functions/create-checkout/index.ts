@@ -48,6 +48,7 @@ import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { FOUNDING_GATE_SKU, PREORDER_FLAT_SHIPPING_CENTS, PREORDER_PRODUCTS, SHIP_WINDOW, preorderProductBySku } from "../_shared/order-config.ts"
 import { getFoundingGate, getStockGate } from "../_shared/order-db.ts"
+import { usMobileE164 } from "../_shared/order-sms.ts"
 import { enforceCheckoutRateLimit } from "../_shared/checkout-rate-limit.ts"
 import { sendMetaCapiInitiateCheckout } from "../_shared/meta-capi.ts"
 import {
@@ -1197,7 +1198,7 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
 
 // ---------- Print shop (Lulu print-on-demand) ----------
 //
-// Request: { print_shop: true, items: [{sku, qty}], sms_consent?, email?,
+// Request: { print_shop: true, items: [{sku, qty}], sms_consent?, sms_phone?, email?,
 //            promo_code?, success_url?, cancel_url?, fbp?, fbc? }
 //
 // The printed Sprouts set (Teacher's Guide + Student Notebook + Read-Aloud, sold
@@ -1448,6 +1449,20 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
     )
   }
   const smsConsent = body.sms_consent === true || body.sms_consent === "true"
+  // The mobile number typed next to the consent box (A2P: the number field sits on the
+  // same form as the checkbox). Order texts go to it (order-messages smsNumberFor). A
+  // page loaded before the field existed sends none: those orders text the Stripe phone,
+  // as before. A number that is there but not 10 US digits is sent back to be fixed.
+  let smsPhone: string | null = null
+  if (smsConsent && body.sms_phone != null && String(body.sms_phone).trim() !== "") {
+    smsPhone = usMobileE164(body.sms_phone)
+    if (!smsPhone) {
+      return new Response(
+        JSON.stringify({ error: "Please check the mobile number for text updates. It needs 10 digits.", code: "SMS_PHONE_INVALID" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
+      )
+    }
+  }
 
   // print_sku is the webhook's detection key; print_cart is the fallback record if
   // the webhook's line_items expansion fails. Far under Stripe's 500-char cap.
@@ -1457,6 +1472,7 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
     fulfillment: "lulu",
     sms_consent: String(smsConsent),
   }
+  if (smsPhone) metadata.sms_phone = smsPhone
   const fbp = clampMeta(body.fbp); if (fbp) metadata.fbp = fbp
   const fbc = clampMeta(body.fbc); if (fbc) metadata.fbc = fbc
   Object.assign(metadata, checkoutAttributionMetadata(body))
