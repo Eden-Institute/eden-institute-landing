@@ -255,3 +255,12 @@ Deno.test('receipt name for the Seedlings set says curriculum and not Sprouts', 
   assert(r.name.includes('Curriculum') && !r.name.includes('Sprouts'), r.name);
   assertEquals(RECEIPT_NAMES.sprouts_print_set.name, "Sprouts Printed Curriculum Set: Teacher's Guide, Student Notebook and Read-Aloud Storybook (36 weeks)");
 });
+
+// 2026-11-05 (ET-1043): a REJECTED / ERROR / CANCELED Lulu job is dead, so Resubmit may release it.
+Deno.test('isDeadLuluStatus: only terminal Lulu failures count', async () => {
+  const { isDeadLuluStatus } = await import('./lulu-fulfillment.ts');
+  for (const s of ['REJECTED', 'ERROR', 'CANCELED', 'rejected']) assert(isDeadLuluStatus(s), s);
+  for (const s of ['CREATED', 'UNPAID', 'PRODUCTION_DELAYED', 'IN_PRODUCTION', 'SHIPPED', '', null, undefined]) {
+    assert(!isDeadLuluStatus(s), String(s));
+  }
+});

@@ -330,6 +330,48 @@ export interface SubmitResult {
   print_job_id?: number;
 }
 
+/** Lulu print-job statuses after which that job will never print. */
+export const LULU_DEAD_JOB_STATUSES = ['REJECTED', 'ERROR', 'CANCELED'] as const;
+
+export function isDeadLuluStatus(status: string | null | undefined): boolean {
+  const s = String(status ?? '').toUpperCase();
+  return (LULU_DEAD_JOB_STATUSES as readonly string[]).includes(s);
+}
+
+/**
+ * Detach a live order from a Lulu job that Lulu rejected, errored or cancelled, so the
+ * founder's Resubmit can create a new job. Without this, submitLuluJob's "already at
+ * Lulu" guard skips any order that still carries a job id (2026-11-05, ET-1043: job
+ * 3140703 REJECTED, Resubmit did nothing).
+ *
+ * Only for orders still waiting on print (in_production / ready_to_fulfill). The order
+ * goes back to ready_to_fulfill by a direct write, not transition(): there is no
+ * in_production -> ready_to_fulfill edge, and no message is registered for either that
+ * move or the following ready_to_fulfill -> in_production, so the buyer hears nothing.
+ * The old job stays on record in lulu_events and in lulu_status_message.
+ */
+export async function releaseDeadLuluJob(db: Db, orderId: string): Promise<{ released: number | null }> {
+  const order = await getOrderById(db, orderId);
+  if (!order || !order.lulu_print_job_id || !isDeadLuluStatus(order.lulu_status)) return { released: null };
+  if (order.status !== 'in_production' && order.status !== 'ready_to_fulfill') return { released: null };
+  const old = order.lulu_print_job_id;
+  // Guarded on the dead job id, so a webhook or submit that lands meanwhile is never clobbered.
+  const { data, error } = await db.from('orders')
+    .update({
+      status: 'ready_to_fulfill',
+      lulu_print_job_id: null,
+      lulu_submitted_at: null,
+      lulu_status: null,
+      lulu_status_message: `previous Lulu job ${old} ${order.lulu_status}; resubmitted by founder`,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', order.id)
+    .eq('lulu_print_job_id', old)
+    .select('id');
+  if (error) throw new Error(`orders release failed: ${error.message}`);
+  return { released: data && data.length ? old : null };
+}
+
 /**
  * Submit one queued job to Lulu.
  *
@@ -361,6 +403,17 @@ export async function submitLuluJob(db: Db, job: LuluJobRow): Promise<SubmitResu
     if (order.status === 'cancelled' || order.status === 'refunded') {
       await setJob(db, job.id, { status: 'cancelled', last_error: `order is ${order.status}` });
       return { order_id: order.id, status: 'skipped', detail: `order is ${order.status}` };
+    }
+    if (order.lulu_print_job_id && isDeadLuluStatus(order.lulu_status)) {
+      // Lulu rejected, errored or cancelled that job: it will never print. Keep the job
+      // FAILED so /founder shows Resubmit. (2026-11-05: this path used to flip ET-1043's
+      // rejected job back to 'submitted', which hid the rejection and blocked Resubmit.)
+      await setJob(db, job.id, {
+        status: 'failed',
+        print_job_id: order.lulu_print_job_id,
+        last_error: `Lulu job ${order.lulu_print_job_id} is ${order.lulu_status}: fix the cause, then Resubmit`,
+      });
+      return { order_id: order.id, status: 'skipped', detail: `Lulu job ${order.lulu_print_job_id} is ${order.lulu_status}`, print_job_id: order.lulu_print_job_id };
     }
     if (order.lulu_print_job_id) {
       // Already at Lulu (a previous attempt got the id written, then died).
