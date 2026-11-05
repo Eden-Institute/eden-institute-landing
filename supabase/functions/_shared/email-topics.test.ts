@@ -71,3 +71,10 @@ Deno.test('broadcast-stage topics mode: creates only what is missing, opt_in + p
   assert(block.indexOf("action: 'exists'") < block.indexOf("method: 'POST'"), 'an existing topic is reported before any create');
   assert(!block.includes("method: 'PATCH'") && !block.includes("method: 'DELETE'"), 'never changes or removes a topic');
 });
+
+Deno.test('broadcast-stage inspect mode is read-only', async () => {
+  const src = await Deno.readTextFile(new URL('../broadcast-stage/index.ts', import.meta.url));
+  const block = src.slice(src.indexOf("if (mode === 'inspect')"), src.indexOf("if (mode === 'topics')"));
+  assert(block.includes('html_sha256') && block.includes('topic_id'));
+  assert(!/method: '(POST|PATCH|DELETE)'/.test(block), 'inspect never writes');
+});

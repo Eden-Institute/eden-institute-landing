@@ -45,6 +45,9 @@
 //            for it in public.broadcast_segments (written by `stage`), at most once every 6
 //            hours. Adds families who became eligible, removes anyone who opted out or bought.
 //            Sends nothing and schedules nothing.
+//   inspect  { broadcast_id }
+//            read-only: one Broadcast's status, scheduled_at, topic_id, subject, from, reply_to and
+//            the SHA-256 + length of its HTML, to prove an edit left the approved email unchanged.
 //   topics   { create? }
 //            each _shared/email-topics.ts topic as Resend has it (id, opt_in/opt_out, public/
 //            private). With create: true, creates any missing one opt_in + public (punch #22).
@@ -430,6 +433,24 @@ Deno.serve(async (req: Request) => {
       const result = { mode, ...(await stageSegment(db, body.audience, body.segment, batch, asOf, TIME_BUDGET_MS)) };
       console.log('broadcast-stage stage', JSON.stringify({ ...result, failures: result.failures.length }));
       return json(result, result.failed ? 207 : 200);
+    }
+
+    if (mode === 'inspect') {
+      // Read-only (punch #22 go-live, 2026-11-05): one Broadcast's fingerprint, so a re-tag can be
+      // proven to leave the approved email byte for byte unchanged (compare before and after).
+      const id = typeof body.broadcast_id === 'string' ? body.broadcast_id.trim() : '';
+      if (!id) return json({ error: 'broadcast_id required' }, 400);
+      const b = await resend(`/broadcasts/${encodeURIComponent(id)}`);
+      if (b.status !== 200 || !b.body) return json({ error: `GET /broadcasts/${id} ${b.status}` }, 502);
+      const html = String(b.body.html ?? '');
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(html));
+      return json({
+        mode, id, name: b.body.name ?? null, status: b.body.status ?? null, scheduled_at: b.body.scheduled_at ?? null,
+        topic_id: b.body.topic_id ?? null, segment_id: b.body.segment_id ?? b.body.audience_id ?? null,
+        subject: b.body.subject ?? null, from: b.body.from ?? null, reply_to: b.body.reply_to ?? null,
+        html_length: html.length,
+        html_sha256: Array.from(new Uint8Array(digest)).map((x) => x.toString(16).padStart(2, '0')).join(''),
+      });
     }
 
     if (mode === 'topics') {
