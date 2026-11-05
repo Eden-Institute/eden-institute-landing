@@ -1,7 +1,9 @@
 // notify-founder-digest Edge Function
 //
-// Sends a daily lead-magnet capture digest to hello@edeninstitute.health,
-// with an appended "Open punch list" section sourced from founder_punch_list.
+// Sends a daily lead-magnet capture digest to hello@edeninstitute.health.
+// The open punch list is NOT in this email (founder 2026-11-05: she works the
+// punch list every day, so repeating it here was overkill). The System health
+// block is what this email is for.
 //
 // Flow:
 //   1. Triggered by Vercel cron at 14:00 UTC (08:00 America/Chicago CST).
@@ -17,11 +19,10 @@
 //      the first run could not finish still goes out.
 //      Body {"date":"YYYY-MM-DD"} re-sends a missed past day.
 //   4. Calls lead_capture_digest_window RPC to fetch PII rows in the
-//      window, and fetches open/deferred founder_punch_list items.
-//      If BOTH are empty, marks the run skipped_zero (no email sent).
-//   5. Composes the digest HTML — per-magnet counts, the row table, Sales
-//      (yesterday + last 7 days, sales.ts), ESA, rail health, then the open
-//      punch list.
+//      window. Marks the run skipped_zero (no email sent) only when there is
+//      nothing at all: no captures, sales, ESA news or health checks.
+//   5. Composes the digest HTML — per-magnet counts, the row table, System
+//      health, Sales (yesterday + last 7 days, sales.ts), ESA, rail health.
 //   6. Sends via Resend to hello@edeninstitute.health.
 //   7. UPDATEs the digest_runs row to status='sent' or 'failed'.
 //
@@ -80,14 +81,6 @@ interface CaptureRow {
   source_url: string | null;
   utm_source: string | null;
   utm_campaign: string | null;
-}
-
-interface PunchItem {
-  title: string;
-  detail: string | null;
-  owner: string | null;
-  status: string;
-  sort_order: number;
 }
 
 // ── Sales (2026-09-24, replaces the retired runway line that sat here) ──
@@ -437,7 +430,6 @@ function formatLocal(iso: string): string {
 function buildDigestEmail(
   rows: CaptureRow[],
   digestDate: string,
-  punchItems: PunchItem[],
   sales: SalesDigest | null,
   health: { rails: RailHealthRow[]; sync: ContactSyncHealth | null } = { rails: [], sync: null },
   esa: EsaDigest | null = null,
@@ -459,10 +451,9 @@ function buildDigestEmail(
     .sort((a, b) => b[1].count - a[1].count);
 
   const total = rows.length;
-  const punchCount = punchItems.length;
   const baseSubject = total > 0
     ? `${total} new lead${total === 1 ? '' : 's'} — ${digestDate} · Eden Institute`
-    : `No new leads · ${punchCount} open item${punchCount === 1 ? '' : 's'} — ${digestDate} · Eden Institute`;
+    : `No new leads — ${digestDate} · Eden Institute`;
   const subject = hasHealthProblem(systemChecks) ? `System check needs you · ${baseSubject}` : baseSubject;
 
   // ── HTML ──
@@ -536,24 +527,6 @@ function buildDigestEmail(
 ` : `
 <p style="font-family:Georgia,serif;font-size:18px;color:#1C3A2E;margin:8px 0 24px 0;">No new leads captured yesterday.</p>
 `;
-
-  const punchRows = punchItems.map((p) => `
-    <tr>
-      <td style="padding:8px 10px;border-bottom:1px solid #F0EAD8;font-family:Georgia,serif;font-size:13px;color:#1C3A2E;vertical-align:top;">
-        <strong>${esc(p.title)}</strong>${p.detail ? `<br><span style="font-size:11px;color:#6B6560;">${esc(p.detail)}</span>` : ''}
-      </td>
-      <td style="padding:8px 10px;border-bottom:1px solid #F0EAD8;font-family:Georgia,serif;font-size:11px;color:#6B6560;vertical-align:top;white-space:nowrap;text-align:right;">
-        ${esc(p.owner ?? '')}${p.status && p.status !== 'open' ? ` · ${esc(p.status)}` : ''}
-      </td>
-    </tr>
-  `).join('');
-
-  const punchSection = punchCount > 0 ? `
-<p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:2px;color:#C9A84C;text-transform:uppercase;margin:8px 0 8px 0;">Open punch list (${punchCount})</p>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:8px;">
-<tbody>${punchRows}</tbody>
-</table>
-` : '';
 
   // ── Sales: yesterday and the last 7 days (sales.ts) ──
   const salesSection = salesHtml(sales);
@@ -636,7 +609,6 @@ ${systemHealthHtml(systemChecks)}
 ${salesSection}
 ${esaSection}
 ${railSection}
-${punchSection}
 
 <p style="font-family:Georgia,serif;font-size:12px;color:#6B6560;margin:24px 0 0 0;font-style:italic;">
   Live analytics dashboard: ask in Cowork — "show me the lead-magnet dashboard" (artifact stays current).
@@ -688,13 +660,6 @@ The Eden Institute · edeninstitute.health · automated daily digest
           (health.sync.synced_36h === 0 ? ' — NIGHTLY SYNC DID NOT RUN' : ''),
       );
     }
-  }
-  if (punchCount > 0) {
-    lines.push(
-      '',
-      `Open punch list (${punchCount}):`,
-      ...punchItems.map((p) => `  [${p.owner ?? ''}${p.status && p.status !== 'open' ? '/' + p.status : ''}] ${p.title}`),
-    );
   }
   const text = lines.join('\n');
 
@@ -807,19 +772,6 @@ Deno.serve(async (req) => {
     }
     const rows: CaptureRow[] = await rpcRes.json();
 
-    // ── Fetch open/deferred punch-list items (best-effort; never blocks the digest) ──
-    let punchItems: PunchItem[] = [];
-    try {
-      const punchRes = await sbFetch('/rest/v1/founder_punch_list?status=neq.done&order=sort_order.asc,created_at.asc');
-      if (punchRes.ok) {
-        punchItems = await punchRes.json();
-      } else {
-        console.error('notify-founder-digest: punch-list fetch failed', punchRes.status);
-      }
-    } catch (e) {
-      console.error('notify-founder-digest: punch-list fetch error', e instanceof Error ? e.message : String(e));
-    }
-
     // ── Rail health (best-effort) ──
     const health = await fetchRailHealth();
 
@@ -835,9 +787,12 @@ Deno.serve(async (req) => {
     const systemChecks = evaluateSystemHealth(await fetchSystemHealthInput(digestDate, todayCt, nowUtc), digestDate, todayCt);
 
     // ── Zero path: skip only when there is nothing at all to tell the founder ──
+    // The punch list used to keep this email coming every morning. It is gone
+    // (2026-11-05), so the System health block does that job now: a day with
+    // health checks still sends, and a missing email means the digest itself broke.
     const esaNeedsFounder = !!esa && (esa.awaitingConfirm > 0 || esa.failed > 0 || esa.issuedYesterday > 0 || esa.paidYesterday > 0);
     const salesYesterday = !!sales && salesTotal(sales.yesterday) > 0;
-    if ((!rows || rows.length === 0) && punchItems.length === 0 && !esaNeedsFounder && !salesYesterday && !hasHealthProblem(systemChecks)) {
+    if ((!rows || rows.length === 0) && systemChecks.length === 0 && !esaNeedsFounder && !salesYesterday && !hasHealthProblem(systemChecks)) {
       await sbFetch(`/rest/v1/digest_runs?id=eq.${digestRunId}`, {
         method: 'PATCH',
         body: JSON.stringify({
@@ -846,13 +801,13 @@ Deno.serve(async (req) => {
           completed_at: new Date().toISOString(),
         }),
       });
-      console.log(`notify-founder-digest: zero captures and no punch items for ${digestDate} — no email sent`);
-      return json(200, { sent: false, reason: 'zero_captures_no_punch', digest_date: digestDate });
+      console.log(`notify-founder-digest: nothing to report for ${digestDate} — no email sent`);
+      return json(200, { sent: false, reason: 'nothing_to_report', digest_date: digestDate });
     }
 
     // ── Build + send digest ──
     const captureRows: CaptureRow[] = Array.isArray(rows) ? rows : [];
-    const { subject, html, text } = buildDigestEmail(captureRows, digestDate, punchItems, sales, health, esa, systemChecks);
+    const { subject, html, text } = buildDigestEmail(captureRows, digestDate, sales, health, esa, systemChecks);
 
     const resendRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -885,7 +840,7 @@ Deno.serve(async (req) => {
     }
 
     const resendData = await resendRes.json().catch(() => ({}));
-    console.log(`notify-founder-digest: sent ${digestDate} digest`, JSON.stringify({ resendId: resendData?.id, count: captureRows.length, punch: punchItems.length }));
+    console.log(`notify-founder-digest: sent ${digestDate} digest`, JSON.stringify({ resendId: resendData?.id, count: captureRows.length }));
 
     await sbFetch(`/rest/v1/digest_runs?id=eq.${digestRunId}`, {
       method: 'PATCH',
@@ -900,7 +855,6 @@ Deno.serve(async (req) => {
       sent: true,
       digest_date: digestDate,
       captures_count: captureRows.length,
-      punch_items: punchItems.length,
       resend_id: resendData?.id ?? null,
     });
   } catch (err) {
