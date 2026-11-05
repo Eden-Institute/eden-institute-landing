@@ -45,6 +45,10 @@
 //            for it in public.broadcast_segments (written by `stage`), at most once every 6
 //            hours. Adds families who became eligible, removes anyone who opted out or bought.
 //            Sends nothing and schedules nothing.
+//   topics   { create? }
+//            each _shared/email-topics.ts topic as Resend has it (id, opt_in/opt_out, public/
+//            private). With create: true, creates any missing one opt_in + public (punch #22).
+//            Never changes an existing topic. Sends nothing.
 //   status {}
 //            read-only: every Broadcast with its status, scheduled_at and sent_at, for the wrap
 //            check that emails fire when they should (scripts/email_health_check.py, founder
@@ -426,6 +430,44 @@ Deno.serve(async (req: Request) => {
       const result = { mode, ...(await stageSegment(db, body.audience, body.segment, batch, asOf, TIME_BUDGET_MS)) };
       console.log('broadcast-stage stage', JSON.stringify({ ...result, failures: result.failures.length }));
       return json(result, result.failed ? 207 : 200);
+    }
+
+    if (mode === 'topics') {
+      // Punch #22 go-live (2026-11-05). Reports each EMAIL_TOPICS topic in Resend; with
+      // { create: true } it creates any that are missing, opt_in (everyone keeps receiving it
+      // unless she unticks it; Resend cannot change this after creation) and public (shown on
+      // the preference page; Resend's default is private, which would hide the choice). An
+      // existing topic is reported, never changed. Done here because this function holds the
+      // full-access Resend key and the Resend connector cannot set visibility.
+      const listed = await resend('/topics?limit=100');
+      if (listed.status !== 200 || !Array.isArray(listed.body?.data)) {
+        return json({ error: `GET /topics ${listed.status}`, body: listed.body }, 502);
+      }
+      const existing = listed.body.data as Array<Record<string, unknown>>;
+      const report: Array<Record<string, unknown>> = [];
+      for (const [key, t] of Object.entries(EMAIL_TOPICS) as Array<[EmailTopicKey, { name: string; description: string }]>) {
+        const found = existing.find((e) => String(e.name ?? '') === t.name);
+        if (found) {
+          report.push({
+            key, name: t.name, id: found.id ?? null, action: 'exists',
+            default_subscription: found.default_subscription ?? null, visibility: found.visibility ?? null,
+          });
+          continue;
+        }
+        if (body.create !== true) {
+          report.push({ key, name: t.name, id: null, action: 'missing' });
+          continue;
+        }
+        const made = await resend('/topics', {
+          method: 'POST',
+          body: JSON.stringify({ name: t.name, description: t.description, default_subscription: 'opt_in', visibility: 'public' }),
+        });
+        if (made.status < 200 || made.status >= 300) {
+          return json({ error: `could not create topic "${t.name}"`, status: made.status, body: made.body, report }, 502);
+        }
+        report.push({ key, name: t.name, id: made.body?.id ?? null, action: 'created' });
+      }
+      return json({ mode, topics: report });
     }
 
     if (mode === 'status') {

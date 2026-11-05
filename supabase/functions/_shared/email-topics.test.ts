@@ -61,3 +61,13 @@ Deno.test('broadcast-stage: create can scope a Broadcast to a topic; schedule re
   assert(src.includes('...(topicId ? { topic_id: topicId } : {})'));
   assert(src.includes("if (!b.body.topic_id && (await liveTopicIds()).size > 0)"));
 });
+
+Deno.test('broadcast-stage topics mode: creates only what is missing, opt_in + public, and only with create: true', async () => {
+  const src = await Deno.readTextFile(new URL('../broadcast-stage/index.ts', import.meta.url));
+  const block = src.slice(src.indexOf("if (mode === 'topics')"), src.indexOf("if (mode === 'status')"));
+  assert(block.length > 0, 'topics mode exists');
+  assert(block.includes("default_subscription: 'opt_in', visibility: 'public'"), 'created opt_in and public');
+  assert(block.includes('if (body.create !== true)'), 'report-only unless create: true');
+  assert(block.indexOf("action: 'exists'") < block.indexOf("method: 'POST'"), 'an existing topic is reported before any create');
+  assert(!block.includes("method: 'PATCH'") && !block.includes("method: 'DELETE'"), 'never changes or removes a topic');
+});
