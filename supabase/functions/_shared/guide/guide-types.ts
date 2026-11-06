@@ -60,13 +60,6 @@ export interface FullGuideContent {
     spiritualPractice: string;
   };
 
-  coachingCTA: {
-    title: string;
-    intro: string;
-    body: string;
-    bullets: string[];
-  };
-
   /** The closing book section (was courseCTA until the course was retired 2026-10-14). */
   bookCTA: {
     title: string;

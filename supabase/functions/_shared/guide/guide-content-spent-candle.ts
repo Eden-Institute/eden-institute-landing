@@ -211,19 +211,6 @@ export const spentCandleGuide: FullGuideContent = {
     spiritualPractice: "\"He restores my soul\" (Psalm 23:3). The Spent Candle is not in a season of doing — it is in a season of receiving. Allow yourself to be ministered to. Accept help. Sit in God's presence without striving to perform. Rest is not laziness when the candle is spent. It is the only path to re-lighting.",
   },
 
-  coachingCTA: {
-    title: "Need Help Applying This?",
-    intro: "This guide gives you the map. A 1:1 consultation helps you navigate it.",
-    body: "You now know your constitutional pattern, your herbal allies, and the lifestyle principles that support your body. But applying this to your specific life — your symptoms, your season, your family's needs — is where the real transformation happens.",
-    bullets: [
-      "Review your quiz results and identify any secondary patterns layered on top of your primary constitution",
-      "Build a personalized herbal protocol — your specific herbs, your specific doses, matched to what you're experiencing right now",
-      "Create a daily rhythm plan tailored to your constitutional needs — when to eat, move, rest, and supplement",
-      "Address your top 3 health concerns through a constitutional lens, not a symptom-chasing one",
-      "Walk you through preparation methods so you feel confident making teas, tinctures, or decoctions at home",
-    ],
-  },
-
   // 2026-10-14: was courseCTA (the Foundations Course). The course is retired (founder:
   // "I don't want an adult course, just the books"), so this section points to the book.
   // Bullets are the "What you'll discover" list on /back-to-eden, word for word.

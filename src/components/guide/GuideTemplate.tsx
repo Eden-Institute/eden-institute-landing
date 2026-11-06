@@ -88,7 +88,7 @@ interface Props {
 }
 
 const GuideTemplate = ({ guide }: Props) => {
-  const { chapterOne, chapterTwo, chapterThree, chapterFour, chapterFive, cautionHerbs, coachingCTA, bookCTA } = guide;
+  const { chapterOne, chapterTwo, chapterThree, chapterFour, chapterFive, cautionHerbs, bookCTA } = guide;
   const plateSrc = `/guide-plates/${guide.slug}.jpg`;
 
   return (
@@ -295,31 +295,12 @@ const GuideTemplate = ({ guide }: Props) => {
 
         <GoldDivider />
 
-        {/* === COACHING CTA === */}
+        {/* === BOOK CTA (was the course CTA until 2026-10-14) ===
+            2026-11-06: the "1:1 Constitutional Consultation, coming soon" section that sat above
+            this is gone (it promised a personalized protocol with doses; Camila is not an
+            herbalist and does not practice), so "Your Next Step" now heads the book section. */}
         <section className="mb-16">
           <Eyebrow color={COLORS.gold} className="mb-3" size="0.8125rem">Your Next Step</Eyebrow>
-          <h2 className="font-bold mb-2" style={{ fontFamily: DISPLAY, color: COLORS.forest, fontSize: "1.75rem" }}>
-            {coachingCTA.title}
-          </h2>
-          <p className="italic mb-4" style={{ color: COLORS.olive }}>{fix(coachingCTA.intro)}</p>
-          <p className="mb-6">{fix(coachingCTA.body)}</p>
-          <SectionLabel>In a 1:1 Constitutional Consultation, we will</SectionLabel>
-          <div className="mb-8"><Bullets items={coachingCTA.bullets} /></div>
-          <div className="p-6 text-center" style={{ backgroundColor: COLORS.linen, border: `1px solid ${COLORS.gold}` }}>
-            <p className="font-bold mb-1" style={{ fontFamily: DISPLAY, color: COLORS.forest, fontSize: "1.25rem" }}>
-              1:1 Constitutional Consultation
-            </p>
-            <p className="italic mb-4" style={{ color: COLORS.light, fontSize: "0.9375rem" }}>
-              A personalized session to translate this guide into a protocol built for your body, your life, and your season.
-            </p>
-            <Eyebrow color={COLORS.walnut} size="0.6875rem">Coming Soon</Eyebrow>
-          </div>
-        </section>
-
-        <GoldDivider />
-
-        {/* === BOOK CTA (was the course CTA until 2026-10-14) === */}
-        <section className="mb-16">
           <h2 className="font-bold mb-1" style={{ fontFamily: DISPLAY, color: COLORS.forest, fontSize: "1.75rem" }}>
             {bookCTA.title}
           </h2>
