@@ -67,6 +67,7 @@ import { starterOrderLabel } from "../_shared/receipt.ts"
 // Back to Eden PDFs, 2026-09-25.
 import { BOOK_RECEIPT_NAMES, bookDigitalReceipt } from "../_shared/receipt.ts"
 import { bookDigitalBySku, newDownloadToken, sendBookDeliveryEmail } from "../_shared/book-shop.ts"
+import { isSettledPaymentStatus, unsentOrderEmails } from "../_shared/webhook-guards.ts"
 import { creditIssuanceOpen, issueStarterCreditForBand, markCreditRedeemed } from "../_shared/starter-credit.ts"
 import { escapeLikePattern } from "../_shared/like-escape.ts"
 import { classifyLearnWorldsCharge } from "../_shared/learnworlds-charge.ts"
@@ -832,6 +833,35 @@ async function syncPurchaseProperties(email: string | null | undefined, context:
  * confirmation and the Starter delivery drain. Best effort: a Stripe error or a
  * non-card payment returns the session untouched and the receipt omits the line.
  */
+// A 100%-off code (payment_status "no_payment_required") is settled and delivered;
+// only "unpaid" (async money not in yet) is refused. See _shared/webhook-guards.ts.
+function isSettled(session: Stripe.Checkout.Session): boolean {
+  return isSettledPaymentStatus(session.payment_status)
+}
+
+// A confirmation the buyer never got must not be final (audit 2026-11-06, A4).
+// dispatchTransitionMessages logs a failed send and carries on, so the sale and the
+// print job are never held up by email. This runs AFTER the branch's real work: if an
+// order email failed and has not been sent since, it fails the request, the outer
+// catch logs it to Sentry, and Stripe redelivers the event (live mode retries for up
+// to three days). The redelivery repeats only what is missing: the order, its items
+// and the Lulu job are idempotent, and message_log skips any email already sent.
+// A failed READ of message_log never fails a sale; it is logged and ignored.
+async function failIfOrderEmailUnsent(orderId: string, label: string): Promise<void> {
+  const { data, error } = await adminClient
+    .from("message_log")
+    .select("channel, template_key, triggered_by_status, status")
+    .eq("order_id", orderId)
+  if (error) {
+    console.error(`[${label}] message_log re-check failed, not retrying on it: ${error.message}`)
+    return
+  }
+  const missing = unsentOrderEmails(data ?? [])
+  if (missing.length > 0) {
+    throw new Error(`order ${label}: email not sent (${missing.join(", ")}); failing so Stripe redelivers and it is retried`)
+  }
+}
+
 async function withPaymentCard(session: Stripe.Checkout.Session): Promise<Stripe.Checkout.Session> {
   const pi = typeof session.payment_intent === "string" ? session.payment_intent : null
   if (!pi) return session
@@ -859,12 +889,15 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
   // ---- Branch 0b: print shop (Lulu print-on-demand books) ----
   // Detected by the print_sku metadata stamped by create-checkout's print branch.
   // Record the order (is_preorder=false, fulfillment='lulu'), paid -> ready_to_fulfill
-  // (fires the order confirmation), queue the Lulu job, kick lulu-submit. The kick
-  // and the queue are best-effort with respect to the HTTP response: the sale is
-  // recorded first and the cron drain recovers anything the kick misses.
+  // (fires the order confirmation), queue the Lulu job, kick lulu-submit. The sale
+  // is recorded first. The KICK is best-effort (the cron drain recovers a missed
+  // kick), but a missing lulu_jobs row is not: lulu-submit scans only lulu_jobs, so
+  // a job that was never queued is invisible to the drain. A failed re-read or
+  // enqueue therefore fails the request and Stripe redelivers the event; every step
+  // before it is idempotent (audit 2026-11-06, A3).
   const printSku = (session.metadata?.print_sku as string | undefined) ?? null
   if (printSku) {
-    if (session.payment_status !== "paid") {
+    if (!isSettled(session)) {
       console.warn(`print shop session ${session.id} completed with payment_status=${session.payment_status}; order NOT recorded`)
       return
     }
@@ -913,27 +946,31 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
       await giveFpeaStarters(session, items.map((i) => i.sku), orderRow?.id ?? null, orderNumber)
     }
     if (orderErr || !orderRow?.id) {
-      console.error(`[${session.id}] print order recorded but could not be re-read to queue its Lulu job: ${orderErr?.message ?? "no row"}`)
-      return
+      // Throw, so Stripe redelivers: returning here left a paid order with no Lulu job.
+      throw new Error(`[${session.id}] print order recorded but could not be re-read to queue its Lulu job: ${orderErr?.message ?? "no row"}`)
     }
     // E2E: the order and its confirmation are real rows, but NOTHING goes to Lulu.
     // No lulu_jobs row means lulu-submit has nothing to claim, so no print is bought.
     if (E2E_MODE) {
       console.log(`[${session.id}] E2E order ${orderNumber ?? orderRow.id} recorded; Lulu job deliberately NOT queued`)
+      // The E2E confirmation is real (it lands in hello@), so it is checked like a live one.
+      await failIfOrderEmailUnsent(orderRow.id, orderNumber ?? session.id)
       return
     }
     try {
       const { queued } = await enqueueLuluJob(adminClient, orderRow.id)
       console.log(`[${session.id}] Lulu job ${queued ? "queued" : "already queued"} for order ${orderNumber ?? orderRow.id}`)
     } catch (err) {
-      // The order exists and the buyer has been emailed. Loud, but not a 500: Stripe
-      // would retry a completed sale. The drain's stuck count is where a missing job
-      // surfaces, and Resubmit on /founder creates one by hand.
-      console.error(`[${session.id}] Lulu job could not be queued: ${err instanceof Error ? err.message : String(err)}`)
-      await captureException(err, { function: "stripe-webhook", stage: "enqueueLuluJob", session_id: session.id })
-      return
+      // The order exists and the buyer has been emailed, but with no lulu_jobs row
+      // nothing will ever print: lulu-submit scans only lulu_jobs, so the drain cannot
+      // see it. Fail the request so Stripe redelivers (the outer catch logs it to
+      // Sentry and marks the event 'error', which claimStripeEvent lets run again).
+      // The redelivery repeats nothing that is done: the order, its items, the
+      // confirmation (message_log) and the job (enqueueLuluJob) are all idempotent.
+      throw new Error(`[${session.id}] Lulu job could not be queued: ${err instanceof Error ? err.message : String(err)}`)
     }
     runInBackground(kickLuluSubmit(orderRow.id))
+    await failIfOrderEmailUnsent(orderRow.id, orderNumber ?? session.id)
     return
   }
 
@@ -1235,7 +1272,7 @@ async function handleBookDigitalPurchase(session: Stripe.Checkout.Session, sku: 
     console.error(`[${session.id}] book_digital_sku '${sku}' is not a Back to Eden PDF; nothing delivered`)
     return
   }
-  if (session.payment_status !== "paid") {
+  if (!isSettled(session)) {
     console.warn(`[${session.id}] book PDF session completed with payment_status=${session.payment_status}; NOT delivered yet`)
     return
   }
@@ -1392,10 +1429,13 @@ async function kickLuluSubmit(orderId: string): Promise<void> {
  *      webhook timing out, and a timed-out webhook is retried, which means
  *      re-doing work that already half-happened.
  *
- * Steps 2 and 3 are best-effort with respect to the HTTP response: neither may
- * throw the webhook into a 500, because Stripe would then retry an event whose
- * sale is already recorded. Both are individually recoverable (the credit by a
- * re-run of this branch, the delivery by the cron drain), and both log loudly.
+ * Step 2 (the credit) is best-effort with respect to the HTTP response: a
+ * failure is logged and the delivery goes without a code. Step 3 is NOT: if the
+ * starter_deliveries row cannot be written, nothing exists for the starter-fulfill
+ * drain to pick up, so the buyer would never get the files. That failure throws,
+ * the request 500s, and Stripe redelivers the event; the three unique constraints
+ * below make the redelivery repeat nothing that already happened (audit
+ * 2026-11-06, A3). Once the row exists, the drain owns delivery and its retries.
  *
  * IDEMPOTENCY, end to end: `orders` is unique on stripe_checkout_session_id,
  * `starter_credits` is unique on stripe_checkout_session_id, and
@@ -1413,7 +1453,8 @@ async function handleStarterUnitPurchase(
   const isSprouts = band === "sprouts"
 
   // Async payment methods fire checkout.session.completed before money moves.
-  if (session.payment_status !== "paid") {
+  // A 100%-off code (no_payment_required) is settled and is delivered.
+  if (!isSettled(session)) {
     console.warn(`[${sid}] starter unit completed with payment_status=${session.payment_status}; not fulfilling`)
     return
   }
@@ -1491,11 +1532,12 @@ async function handleStarterUnitPurchase(
       return
     }
   } catch (err) {
-    console.error(
+    // No row means nothing for starter-fulfill to deliver, ever. Fail the request so
+    // Stripe redelivers; the outer catch logs it to Sentry (audit 2026-11-06, A3).
+    throw new Error(
       `[${sid}] starter delivery could not be queued: ` +
         (err instanceof Error ? err.message : String(err)),
     )
-    return
   }
 
   // Kick the fulfiller so delivery is near-immediate rather than waiting for the
