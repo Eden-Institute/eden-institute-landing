@@ -235,14 +235,18 @@ const App = () => (
                 <Route path={childPath(ROUTES.APOTHECARY_FAVORITES)} element={<Favorites />} />
                 {/* Stage 6.3.5 Phase B sub-task 4 Layer 1+2: in-app Pattern of
                     Eden quiz, mounted under ApothecaryLayout so the picker
-                    pill is visible during the quiz. Root+ only — the Pattern
-                    of Eden write path is a Root-tier clinical action per
-                    Lock #40 (id-keyed Edge Functions to diagnostic_completions). */}
+                    pill is visible during the quiz. Seed+ (founder decision
+                    2026-11-06): Seed is sold as up to 5 family profiles, and
+                    this quiz is the only way a family member's profile gets
+                    its Pattern. The write goes through the id-keyed
+                    record-diagnostic-completion Edge Function (Lock #40),
+                    which already accepts Layer 1 (the Eden Pattern) from
+                    every signed-in tier. */}
                 <Route
                   path={childPath(ROUTES.APOTHECARY_QUIZ)}
                   element={
                     <RequireAuth>
-                      <RequireTier allow={["root", "practitioner"]}>
+                      <RequireTier allow={["seed", "root", "practitioner"]}>
                         <Assessment />
                       </RequireTier>
                     </RequireAuth>

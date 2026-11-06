@@ -82,7 +82,7 @@ export const ROUTES = {
   APOTHECARY_ACCOUNT: "/apothecary/account",
   APOTHECARY_PROFILES: "/apothecary/profiles",
   APOTHECARY_FAVORITES: "/apothecary/favorites",  // Stage 7.X save-favorites (auth required; Seed gate retired in CRO Phase 3, see App.tsx)
-  APOTHECARY_QUIZ: "/apothecary/quiz",  // Root + Practitioner only
+  APOTHECARY_QUIZ: "/apothecary/quiz",  // Seed, Root + Practitioner (per-profile Pattern quiz)
 
   // ── Aliases & redirects (declared here, redirected in App.tsx) ──
   /**

@@ -30,8 +30,9 @@ import { useActiveProfileOptional } from "@/contexts/ActiveProfileContext";
  * instead. That route IS wrapped in ApothecaryLayout (so ActiveProfileContext
  * is available, targetProfile resolves, diagnosticMode engages, and the
  * record-diagnostic-completion id-keyed write fires per Lock #40). It is
- * also gated by RequireTier(["root","practitioner"]) which matches the
- * design intent: sub-profile clinical writes are a Root-tier feature.
+ * gated by RequireTier(["seed","root","practitioner"]): every paid tier that
+ * can hold family profiles can give each one its Pattern (Seed opened
+ * 2026-11-06, when Seed's up-to-5 family profiles were made to work as sold).
  *
  * Self-profile CTA keeps ROUTES.ASSESSMENT — the public marketing quiz is
  * correct for first-time self Pattern resolution by anon visitors and by
@@ -101,8 +102,8 @@ export function PatternMatchHero() {
     // v4 (PR #109): non-self CTA routes to the in-app diagnostic quiz
     // (/apothecary/quiz) instead of the public marketing quiz (/assessment).
     // The in-app route is the only one wrapped in ApothecaryLayout (which
-    // provides ActiveProfileContext) and is gated to root/practitioner
-    // tier per Lock #40. Self CTA keeps the public route.
+    // provides ActiveProfileContext) and is gated to Seed+ (any tier that
+    // holds family profiles). Self CTA keeps the public route.
     const ctaHref = isNonSelfEmpty
       ? `${ROUTES.APOTHECARY_QUIZ}?profileId=${activeProfile!.id}`
       : ROUTES.ASSESSMENT;
