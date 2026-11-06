@@ -55,6 +55,39 @@ describe("PERSON_PROFILE_CAP_BY_TIER", { timeout: 30_000 }, () => {
   });
 });
 
+// Founder decision 2026-11-06: Seed is sold as up to 5 profiles for the member
+// AND family. v4.3.1 (20260502142601) had added a trigger rule that blocked
+// every non-self profile on Seed, so the cap of 5 above was unreachable and the
+// Add profile button failed. Guard both halves of the fix.
+const TRIGGER_DEFINITION =
+  /create\s+or\s+replace\s+function\s+public\.tg_person_profiles_enforce_cap\s*\(/i;
+
+describe("Seed family profiles", { timeout: 30_000 }, () => {
+  it("the latest tg_person_profiles_enforce_cap does not forbid Seed family profiles", () => {
+    const files = readdirSync(migrationsDir)
+      .filter((f) => f.endsWith(".sql"))
+      .sort();
+    let latest: { file: string; sql: string } | null = null;
+    for (const file of files) {
+      const sql = readFileSync(join(migrationsDir, file), "utf8");
+      if (TRIGGER_DEFINITION.test(sql)) latest = { file, sql };
+    }
+    if (!latest) throw new Error("no migration defines public.tg_person_profiles_enforce_cap");
+    // Comments may name the retired rule; only the executable SQL matters.
+    const code = latest.sql.replace(/--.*$/gm, "");
+    expect(code, latest.file).toMatch(/profile_cap_exceeded/);
+    expect(code, latest.file).not.toMatch(/seed_tier_subprofiles_forbidden/);
+  });
+
+  it("Seed can open the per-profile Pattern quiz", () => {
+    const app = readFileSync(join(__dirname, "..", "App.tsx"), "utf8");
+    const at = app.indexOf("childPath(ROUTES.APOTHECARY_QUIZ)");
+    expect(at).toBeGreaterThan(-1);
+    const gate = /<RequireTier\s+allow=\{\[([^\]]*)\]\}/.exec(app.slice(at));
+    expect(gate?.[1]).toContain('"seed"');
+  });
+});
+
 describe("personProfileCap", () => {
   it("returns the per-tier cap and 0 for an unknown tier", () => {
     expect(personProfileCap("seed")).toBe(5);
