@@ -313,7 +313,7 @@ async function renderFullGuide(content: FullGuideContent, plateBytes: Uint8Array
     ["Four", "Your Herbal Allies", content.chapterFour.subtitle],
     ["", "Herbs and Foods to Use With Caution", `What may aggravate the ${content.nickname} pattern`],
     ["Five", "Nutrition & Lifestyle", content.chapterFive.subtitle],
-    ["", "Your Next Step", "Consultation and the book, Back to Eden"],
+    ["", "Your Next Step", "The book, Back to Eden"],
   ];
   for (const [n, t, s] of toc) {
     if (n) tracked(`Chapter ${n}`, CzR, 7.5, M, y - 8, C.sage, 1.8);
@@ -417,19 +417,10 @@ async function renderFullGuide(content: FullGuideContent, plateBytes: Uint8Array
   chapterRunning = `${content.nickname}  ·  Your Next Step`;
   newPage(); y -= 26;
   tracked("Your next step", CzR, 10, M, y - 10, C.gold, 3); y -= 30;
-  if (content.coachingCTA) {
-    h3(content.coachingCTA.title, { size: 22, before: 0, after: 2 });
-    if (content.coachingCTA.intro) { drawLines(wrapRuns([{ text: content.coachingCTA.intro, font: GaI, size: 12, color: C.olive }], CW), M, 17); y -= 8; }
-    if (content.coachingCTA.body) para(content.coachingCTA.body);
-    if (content.coachingCTA.bullets?.length) { label("In a 1:1 constitutional consultation, we will", { before: 4 }); for (const b of content.coachingCTA.bullets) bullet(b); }
-    y -= 10; ensure(80);
-    page.drawRectangle({ x: M, y: y - 64, width: CW, height: 64, color: C.linen, borderColor: C.gold, borderWidth: 1 });
-    { const t = "1:1 Constitutional Consultation"; const w = PfB.widthOfTextAtSize(t, 15); page.drawText(t, { x: (PAGE_W - w) / 2, y: y - 26, size: 15, font: PfB, color: C.forest }); }
-    tracked("Coming soon  ·  edeninstitute.health", CzR, 8, PAGE_W / 2, y - 48, C.walnut, 2, "center");
-    y -= 90;
-  }
+  // 2026-11-06: the "1:1 Constitutional Consultation, coming soon" box that stood here is gone.
+  // It promised a personalized protocol with specific doses, and Camila is not an herbalist
+  // and does not practice. The book section now stands alone on this page.
   if (content.bookCTA) {
-    goldRule(); y -= 14;
     h3(content.bookCTA.title, { size: 22, before: 0, after: 2 });
     if (content.bookCTA.subtitle) { tracked(content.bookCTA.subtitle, CzR, 8, M, y - 8, C.sage, 1.8); y -= 24; }
     if (content.bookCTA.body) para(content.bookCTA.body);

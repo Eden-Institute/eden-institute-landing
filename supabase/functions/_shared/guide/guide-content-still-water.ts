@@ -209,19 +209,6 @@ export const stillWaterGuide: FullGuideContent = {
     spiritualPractice: "\"Whatever you do, work heartily, as for the Lord\" (Colossians 3:23). The Still Water's spiritual discipline is initiation — beginning the thing, taking the first step, saying yes to the call even when inertia says no. You do not need to feel ready to begin. Obedience precedes motivation.",
   },
 
-  coachingCTA: {
-    title: "Need Help Applying This?",
-    intro: "This guide gives you the map. A 1:1 consultation helps you navigate it.",
-    body: "You now know your constitutional pattern, your herbal allies, and the lifestyle principles that support your body. But applying this to your specific life — your symptoms, your season, your family's needs — is where the real transformation happens.",
-    bullets: [
-      "Review your quiz results and identify any secondary patterns layered on top of your primary constitution",
-      "Build a personalized herbal protocol — your specific herbs, your specific doses, matched to what you're experiencing right now",
-      "Create a daily rhythm plan tailored to your constitutional needs — when to eat, move, rest, and supplement",
-      "Address your top 3 health concerns through a constitutional lens, not a symptom-chasing one",
-      "Walk you through preparation methods so you feel confident making teas, tinctures, or decoctions at home",
-    ],
-  },
-
   // 2026-10-14: was courseCTA (the Foundations Course). The course is retired (founder:
   // "I don't want an adult course, just the books"), so this section points to the book.
   // Bullets are the "What you'll discover" list on /back-to-eden, word for word.

@@ -213,19 +213,6 @@ export const pressureCookerGuide: FullGuideContent = {
     spiritualPractice: "\"Cast all your anxiety on Him, because He cares for you\" (1 Peter 5:7). The Pressure Cooker carries burdens internally until they become unbearable. Learning to release — to God, to trusted others, to the body through movement — is the central spiritual discipline for this type.",
   },
 
-  coachingCTA: {
-    title: "Need Help Applying This?",
-    intro: "This guide gives you the map. A 1:1 consultation helps you navigate it.",
-    body: "You now know your constitutional pattern, your herbal allies, and the lifestyle principles that support your body. But applying this to your specific life — your symptoms, your season, your family's needs — is where the real transformation happens.",
-    bullets: [
-      "Review your quiz results and identify any secondary patterns layered on top of your primary constitution",
-      "Build a personalized herbal protocol — your specific herbs, your specific doses, matched to what you're experiencing right now",
-      "Create a daily rhythm plan tailored to your constitutional needs — when to eat, move, rest, and supplement",
-      "Address your top 3 health concerns through a constitutional lens, not a symptom-chasing one",
-      "Walk you through preparation methods so you feel confident making teas, tinctures, or decoctions at home",
-    ],
-  },
-
   // 2026-10-14: was courseCTA (the Foundations Course). The course is retired (founder:
   // "I don't want an adult course, just the books"), so this section points to the book.
   // Bullets are the "What you'll discover" list on /back-to-eden, word for word.
