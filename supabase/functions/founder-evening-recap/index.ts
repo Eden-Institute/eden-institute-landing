@@ -346,7 +346,7 @@ Deno.serve(async (req) => {
         ${section(`Email ${dayWord}`, `<p style="font-size:16px;color:#2f2a24;margin:0 0 10px;"><strong>${totalOpeners}</strong> people opened &middot; <strong>${totalClickers}</strong> clicked</p>${emailBlock}<div style="margin-top:10px;">${sentBlock}</div>`)}
         ${section('New signups', signupBlock)}
         ${section('Queue health', healthBlock)}
-        <p style="font-size:11px;color:#a99e8e;margin:24px 0 0;border-top:1px solid #f0ece4;padding-top:12px;">${past ? 'Full-day figures for a past Central-time day; the pending count is as of the re-send' : 'Same-day figures, Central time'}. Opens are pixel-based and undercount Apple Mail Privacy Protection and image-blocking clients.</p>
+        <p style="font-size:11px;color:#a99e8e;margin:24px 0 0;border-top:1px solid #f0ece4;padding-top:12px;">${past ? 'Full-day figures for a past Central-time day; the pending count is as of the re-send' : "Figures since last night's recap, Central time"}. Opens are pixel-based and undercount Apple Mail Privacy Protection and image-blocking clients.</p>
       </div></body></html>`;
 
     const text = [
