@@ -3,20 +3,12 @@
 // Small, pure decisions the Stripe webhook makes about a completed checkout.
 // Kept here (not in stripe-webhook/index.ts, which starts a server on import) so they
 // can be unit tested. Added by the 2026-11-06 checkout audit (Lane 2, Camila's go).
-
-/**
- * Has the buyer finished paying for this Checkout Session?
- *
- * "paid" obviously. "no_payment_required" too: that is a 100%-off code, Stripe takes no
- * money, and the buyer is owed the product all the same. Before this the Starter, print
- * and book branches accepted only "paid", so a free code silently delivered nothing (the
- * guide branch has always delivered it, and its comment calls it "a legitimate free
- * delivery"). Only "unpaid" is refused: an asynchronous method whose money has not
- * arrived yet.
- */
-export function isSettledPaymentStatus(paymentStatus: string | null | undefined): boolean {
-  return paymentStatus === 'paid' || paymentStatus === 'no_payment_required';
-}
+//
+// VERIFIED 2026-11-06 (sandbox order ET-1045): a 100%-off promotion code in a
+// mode:"payment" Checkout Session completes with payment_status "paid", NOT
+// "no_payment_required" (Stripe reserves that for sessions that collect no payment now,
+// e.g. setup mode). So the webhook's `payment_status !== "paid"` guards already deliver
+// free-code orders; do not "fix" them on the assumption that a $0 order is refused.
 
 export interface MessageLogRow {
   channel: string;

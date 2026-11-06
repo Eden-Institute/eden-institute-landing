@@ -67,7 +67,7 @@ import { starterOrderLabel } from "../_shared/receipt.ts"
 // Back to Eden PDFs, 2026-09-25.
 import { BOOK_RECEIPT_NAMES, bookDigitalReceipt } from "../_shared/receipt.ts"
 import { bookDigitalBySku, newDownloadToken, sendBookDeliveryEmail } from "../_shared/book-shop.ts"
-import { isSettledPaymentStatus, unsentOrderEmails } from "../_shared/webhook-guards.ts"
+import { unsentOrderEmails } from "../_shared/webhook-guards.ts"
 import { creditIssuanceOpen, issueStarterCreditForBand, markCreditRedeemed } from "../_shared/starter-credit.ts"
 import { escapeLikePattern } from "../_shared/like-escape.ts"
 import { classifyLearnWorldsCharge } from "../_shared/learnworlds-charge.ts"
@@ -833,11 +833,6 @@ async function syncPurchaseProperties(email: string | null | undefined, context:
  * confirmation and the Starter delivery drain. Best effort: a Stripe error or a
  * non-card payment returns the session untouched and the receipt omits the line.
  */
-// A 100%-off code (payment_status "no_payment_required") is settled and delivered;
-// only "unpaid" (async money not in yet) is refused. See _shared/webhook-guards.ts.
-function isSettled(session: Stripe.Checkout.Session): boolean {
-  return isSettledPaymentStatus(session.payment_status)
-}
 
 // A confirmation the buyer never got must not be final (audit 2026-11-06, A4).
 // dispatchTransitionMessages logs a failed send and carries on, so the sale and the
@@ -897,7 +892,7 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
   // before it is idempotent (audit 2026-11-06, A3).
   const printSku = (session.metadata?.print_sku as string | undefined) ?? null
   if (printSku) {
-    if (!isSettled(session)) {
+    if (session.payment_status !== "paid") {
       console.warn(`print shop session ${session.id} completed with payment_status=${session.payment_status}; order NOT recorded`)
       return
     }
@@ -1272,7 +1267,7 @@ async function handleBookDigitalPurchase(session: Stripe.Checkout.Session, sku: 
     console.error(`[${session.id}] book_digital_sku '${sku}' is not a Back to Eden PDF; nothing delivered`)
     return
   }
-  if (!isSettled(session)) {
+  if (session.payment_status !== "paid") {
     console.warn(`[${session.id}] book PDF session completed with payment_status=${session.payment_status}; NOT delivered yet`)
     return
   }
@@ -1453,8 +1448,7 @@ async function handleStarterUnitPurchase(
   const isSprouts = band === "sprouts"
 
   // Async payment methods fire checkout.session.completed before money moves.
-  // A 100%-off code (no_payment_required) is settled and is delivered.
-  if (!isSettled(session)) {
+  if (session.payment_status !== "paid") {
     console.warn(`[${sid}] starter unit completed with payment_status=${session.payment_status}; not fulfilling`)
     return
   }

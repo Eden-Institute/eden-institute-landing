@@ -1,20 +1,10 @@
 // deno test supabase/functions/_shared/webhook-guards.test.ts
 //
-// The 2026-11-06 checkout audit: a free (100%-off) checkout is delivered, and an order
-// email that failed and was never re-sent is detected so the webhook can ask Stripe to
-// redeliver the event.
+// The 2026-11-06 checkout audit: an order email that failed and was never re-sent is
+// detected, so the webhook can ask Stripe to redeliver the event.
 
 import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { isSettledPaymentStatus, unsentOrderEmails } from './webhook-guards.ts';
-
-Deno.test('paid and 100%-off checkouts are settled; unpaid (async, money not in) is not', () => {
-  assertEquals(isSettledPaymentStatus('paid'), true);
-  assertEquals(isSettledPaymentStatus('no_payment_required'), true);
-  assertEquals(isSettledPaymentStatus('unpaid'), false);
-  assertEquals(isSettledPaymentStatus(null), false);
-  assertEquals(isSettledPaymentStatus(undefined), false);
-  assertEquals(isSettledPaymentStatus(''), false);
-});
+import { unsentOrderEmails } from './webhook-guards.ts';
 
 const row = (template_key: string, status: string, channel = 'email', triggered_by_status = 'ready_to_fulfill') =>
   ({ channel, template_key, triggered_by_status, status });
