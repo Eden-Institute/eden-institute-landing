@@ -10,9 +10,12 @@
 // (UTC-6) it lands at 19:00 CT. Same one-hour seasonal drift the morning
 // digest accepts; we do not reschedule the cron twice a year.
 //
-// Window: TODAY in Central time, from 00:00 CT up to the moment it runs. This
-// is a same-day recap, not a previous-day summary. The morning digest already
-// covers the completed previous day.
+// Window (changed 2026-11-06, founder go): from the PREVIOUS evening's recap slot
+// (01:00 UTC yesterday) up to the moment it runs, via _shared/recap-window.ts.
+// It used to be 00:00 CT to now, which left everything between the recap and
+// midnight in no recap at all (ESA orders ET-1043/1044, 11/4 8:24 PM CT). The
+// recap_runs claim is still keyed on today's Central date. The morning digest
+// still covers the completed previous day, midnight to midnight.
 //
 // Covers, in the order Camila reads them:
 //   1. Orders and revenue today
@@ -43,6 +46,7 @@ import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-se
 import { pgrstFetch } from '../_shared/pgrst-retry.ts';
 import { escapeHtml } from '../_shared/html-escape.ts';
 import { claimRun, RECAP_RUNS } from '../_shared/digest-run-claim.ts';
+import { recapWindowStart } from '../_shared/recap-window.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -223,12 +227,15 @@ Deno.serve(async (req) => {
       runId = claim.id;
     }
 
-    const startIso = past ? past.startIso : today.startIso;
+    // A live recap starts at the previous evening's recap slot, so no evening hour is
+    // left out of every recap. A re-send of a past day stays midnight to midnight.
+    const liveStart = recapWindowStart(now);
+    const startIso = past ? past.startIso : liveStart.toISOString();
     const label = past ? past.label : today.label;
     const enc = encodeURIComponent(startIso);
     // Upper bound only for a past day; a live recap runs up to now.
     const before = (col: string) => (past ? `&${col}=lt.${encodeURIComponent(past.endIso)}` : '');
-    const dayWord = past ? 'that day' : 'today';
+    const dayWord = past ? 'that day' : "since last night's recap";
 
     // 1. Orders placed that day that are still live.
     const orders = await fetchAllPages<OrderRow>(
@@ -297,7 +304,7 @@ Deno.serve(async (req) => {
              <td style="${td}">${money(o.amount_total_cents ?? 0)}</td>
            </tr>`).join('')}
          </table>`
-      : `<p style="font-size:14px;color:#6b6257;margin:0;">No orders ${past ? 'that day' : 'yet today'}.</p>`;
+      : `<p style="font-size:14px;color:#6b6257;margin:0;">No orders ${dayWord}.</p>`;
 
     const emailBlock = emailRows.length > 0
       ? `<table style="width:100%;border-collapse:collapse;">
@@ -334,7 +341,7 @@ Deno.serve(async (req) => {
     const html = `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#faf7f2;font-family:Georgia,serif;">
       <div style="max-width:640px;margin:0 auto;background:#fffdf9;border:1px solid #e6e0d6;border-radius:6px;padding:28px;">
         <h1 style="font-size:20px;color:#2f2a24;margin:0 0 4px;">Evening recap</h1>
-        <p style="font-size:13px;color:#8a7f70;margin:0 0 24px;">${past ? `${label}, the full day (re-sent because the original recap did not go out)` : `${label}, through ${now.toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' })} Central`}</p>
+        <p style="font-size:13px;color:#8a7f70;margin:0 0 24px;">${past ? `${label}, the full day (re-sent because the original recap did not go out)` : `${label}: from ${liveStart.toLocaleString('en-US', { timeZone: 'America/Chicago', weekday: 'long', hour: 'numeric', minute: '2-digit' })} through ${now.toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit' })} Central`}</p>
         ${section(`Orders ${dayWord}`, `<p style="font-size:22px;color:#2f2a24;margin:0 0 10px;"><strong>${orders.length}</strong> order${orders.length === 1 ? '' : 's'} &middot; ${units} unit${units === 1 ? '' : 's'} &middot; <strong>${money(grossCents)}</strong></p>${ordersBlock}`)}
         ${section(`Email ${dayWord}`, `<p style="font-size:16px;color:#2f2a24;margin:0 0 10px;"><strong>${totalOpeners}</strong> people opened &middot; <strong>${totalClickers}</strong> clicked</p>${emailBlock}<div style="margin-top:10px;">${sentBlock}</div>`)}
         ${section('New signups', signupBlock)}
@@ -359,7 +366,7 @@ Deno.serve(async (req) => {
     const subjectLead = past ? `Evening recap for ${past.label}` : 'Evening recap';
     const subject = orders.length > 0
       ? `${subjectLead}: ${orders.length} order${orders.length === 1 ? '' : 's'}, ${money(grossCents)}`
-      : `${subjectLead}: ${totalOpeners} openers, no orders${past ? '' : ' yet'}`;
+      : `${subjectLead}: ${totalOpeners} openers, no orders`;
 
     const sendRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
