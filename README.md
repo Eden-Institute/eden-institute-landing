@@ -42,11 +42,13 @@ paid checkout and subscription invoice, and `refund` for every refund, through t
 Protocol (`supabase/functions/_shared/ga4-mp.ts`, secret `GA4_MP_API_SECRET`). The browser no
 longer sends `purchase`. Each `payments` row records the outcome in `ga4_status` (`sent`, `failed`,
 or `skipped_test` / `skipped_internal` / `skipped_declined` / `skipped_no_secret` /
-`skipped_unmatched` / `skipped_not_subscription`), so GA4 purchase revenue for a month equals
-`sum(paid) - sum(refunded)` over rows with `ga4_status = 'sent'`, and every other row says why.
-`value` is the full amount the row records (tax and shipping included); a buyer who clicked
+`skipped_unmatched` / `skipped_not_subscription` / `skipped_esa`), so GA4 purchase revenue for a
+month equals `sum(paid) - sum(refunded)` over rows with `ga4_status = 'sent'`, and every other row
+says why. `value` is the full amount the row records (tax and shipping included); a buyer who clicked
 Decline is never sent. The visit is joined through `ga_client_id` / `ga_session_id` in the
-checkout metadata (`src/lib/gaVisitor.ts`).
+checkout metadata (`src/lib/gaVisitor.ts`). ESA invoices are never sent either: the family pays
+through ClassWallet or Odyssey, off the site, so `esa-fulfil` writes `skipped_esa` on the ledger row
+and the founder digest reads it as an on-purpose gap (punch #450, 2026-11-09).
 
 **Internal links carry no UTM tags.** A tag on a link between the site's own pages starts a new
 session credited to the tag. Such clicks are `select_content` events instead

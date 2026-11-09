@@ -117,6 +117,16 @@ Deno.test('deliberate GA4 skips are not problems; never-reported and refused are
   assertStringIncludes(byKey(input).ga4.detail, 'never reported 1, GA4 refused 2');
 });
 
+Deno.test('ESA sales (skipped_esa) are an on-purpose gap, not a lost sale (punch #450)', () => {
+  // The November 2026 state once labelled: the 2 Shaffer ESA invoices + one buyer who clicked Decline.
+  const input = healthy();
+  input.ga4ByStatus = { skipped_esa: 2, skipped_declined: 1 };
+  assertEquals(byKey(input).ga4.ok, true);
+  // Before the label the same rows read as NULL, which the check rightly called "never reported".
+  input.ga4ByStatus = { none: 2, skipped_declined: 1 };
+  assertStringIncludes(byKey(input).ga4.detail, '2 sales in the last 7 days did not reach Google Analytics (never reported 2)');
+});
+
 Deno.test('a missing GA4 key fails the check even before any sale is lost', () => {
   const input = healthy();
   input.ga4SecretSet = false;
