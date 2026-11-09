@@ -495,6 +495,10 @@ Deno.test('FPEA order confirmation: one added paragraph naming free shipping and
 // 2026-11-03: confirmation_* re-pinned for ONE change, the footer Pinterest
 // link (pin.it short link -> www.pinterest.com/TheEdenInstituteBoards/). Swapping that URL
 // back reproduced every old hash exactly before these were updated.
+// 2026-11-09: confirmation_* re-pinned for ONE change, the Unsubscribe row removed from
+// the transactional footer (founder tap 2026-11-06, "Remove it from receipts"). The same
+// render before and after differs only by that 206-character row; every other key here
+// (Starter emails, receipts, order receipts) kept its hash.
 
 const GOLDEN: Record<string, string> = {
   starter_email_0: 'a75bacd45186e965f80dc736683937fe0675fc2e2f0ef5c386bf92970c967038',
@@ -504,13 +508,13 @@ const GOLDEN: Record<string, string> = {
   receipt_shipped: 'a96db1e3d0b0ffddaf134f5f59b698f2691e55347b065ac469558b4865062d64',
   receipt_zero: '1467e7f99c7771449aec6c063a09dac48b9ed10c796fb5bcff9a54d6193cda2e',
   order_receipt_0: 'a04c3c62386a81b2545053e5ffcc7e579aacf10489c7c21c23b630a2c0062664',
-  confirmation_0: '80487acd13f0baf4245ffaad5dbebccb83dc5f233faab270291bdc62885725fa',
+  confirmation_0: '05a7964cfcfa738636cdd5119cb2ef3c2002a4b490fae6e8aebd0c2ef19c91ee',
   order_receipt_1: 'd9586de8f222f5da83b636d33df5b92bd2bd63a82743df83df4718ad00c7f58c',
-  confirmation_1: '979637b84310c94fc44d740787d5967483f6daab6e5f1811f485432414dac6d8',
+  confirmation_1: '28722d062076d85ebb0e7568c3e81dc854eee431b590ed47cc23f1d80f372acb',
   order_receipt_2: 'a04c3c62386a81b2545053e5ffcc7e579aacf10489c7c21c23b630a2c0062664',
-  confirmation_2: '2362e0810291f375d8c35de227082057466d82d8f0223eeb3616e5872d00b1b8',
+  confirmation_2: 'cde8d70e7efc9322bd80300ae0bc7c3e3c1d49965e8b0c6adf89f59680f9cf80',
   order_receipt_3: 'a04c3c62386a81b2545053e5ffcc7e579aacf10489c7c21c23b630a2c0062664',
-  confirmation_3: 'c302b9c644e6ae0dab108dd4528eeee5116e605d72a3647bcb7e24b851ecbe17',
+  confirmation_3: '57f10455f563c5495ef0681532f0ab3a479d1d33ad4e7eeb8f9cc0662eff4789',
 };
 
 async function sha256(s: string): Promise<string> {
