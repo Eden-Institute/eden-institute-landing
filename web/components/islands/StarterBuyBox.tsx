@@ -175,8 +175,7 @@ export default function StarterBuyBox({ cta, wide = false, band = "sprouts", off
         The 9-week starter: weeks 1 to 9 of the 36-week year.
       </p>
       <p className="font-body text-xs mt-2 text-muted-foreground">
-        Instant download. Because this is a digital product, it is not refundable once
-        the files have been downloaded.{" "}
+        Instant download. Because this is a digital product, it is not refundable.{" "}
         <a href="/returns" className="underline" style={{ color: "hsl(var(--eden-forest))" }}>
           Read the policy
         </a>{" "}

@@ -56,7 +56,7 @@ Take it in three steps, and stop at any of them.
 2. **January into March: nine weeks for $39.** If the first week goes well, the Starter Unit is weeks 1 to 9 as an instant download, for [Sprouts](/starter) or [Seedlings](/starter/seedlings). Starting the first week of January, nine weeks takes you into March. In Sprouts the first unit runs six weeks and closes, and weeks 7 to 9 open the second, so you finish something whole. The PDFs are yours to keep and reprint for your household.
 3. **When you know: the printed year.** All 36 weeks in three books is [$249 plus $12 shipping](/books), printed to order and at your door in about two to three weeks. Order it while you're still in the Starter Unit and you pick up at Week 10 in the printed books.
 
-Two things to know. The download isn't refundable once the files are downloaded, which is why the free week comes first. And the printed set can be cancelled for a full refund in the 48 hours after you order, before printing starts.
+Two things to know. The download isn't refundable, which is why the free week comes first. And the printed set can be cancelled for a full refund in the 48 hours after you order, before printing starts.
 
 Paying with an ESA or scholarship? Eden's Table is an approved or registered vendor in seven programs, and the [ESA page](/esa) shows how buying works in each state.
 

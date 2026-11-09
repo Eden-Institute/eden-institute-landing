@@ -77,7 +77,7 @@ If it fits your family, keep going. There's no pressure, and nothing has to be b
 
 In Sprouts, the first unit, In the Garden God Made, runs six weeks and closes, and weeks 7 to 9 open the second unit. So the Starter Unit lets you finish a whole unit and see how the year moves into the next one.
 
-One thing to know before you buy the download: because it's digital, it isn't refundable once the files are downloaded. That's what the free week is for. You get to teach a real week before you spend anything.
+One thing to know before you buy the download: because it's digital, it isn't refundable. That's what the free week is for. You get to teach a real week before you spend anything.
 
 Using an ESA or scholarship? Eden's Table is an approved or registered vendor in seven programs, and the [ESA page](/esa) shows how buying works in each state.
 
