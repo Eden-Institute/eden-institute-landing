@@ -42,6 +42,8 @@ Deno.test('preorder update carries the preorder footer, not the quiz footer', ()
 Deno.test('transactional broadcasts carry no unsubscribe placeholder', () => {
   for (const html of [delayNotice(), buildUpdateEmail({ firstName: 'Ruth', bodyMarkdown: 'x' })]) {
     assertEquals(html.includes('{{UNSUB_URL}}'), false);
+    // And no link labelled Unsubscribe that only opens the homepage (founder tap 2026-11-06).
+    assertEquals(html.includes('Unsubscribe'), false);
   }
 });
 

@@ -127,10 +127,10 @@ ${footerRows}
 </html>`;
 }
 
-/** `shopCard: false` drops the Shop Medicinal Herbs card for an email that promises
- *  nothing to buy (the lead tracks' day-2 teaching email, the refund note). */
-export function emailWrapper(bodyContent: string, provenance: EmailProvenance = 'constitution', opts: { shopCard?: boolean } = {}): string {
-  const footerRows = `<tr><td style="font-family:Georgia,serif;font-size:14px;font-weight:bold;color:#FFFFFF;text-align:center;">The Eden Institute</td></tr>
+/** The standard footer rows. `unsubscribe: false` leaves out the Unsubscribe row: only
+ *  emailWrapperTransactional passes it (see there). */
+function standardFooterRows(provenance: EmailProvenance, unsubscribe: boolean): string {
+  const rows = `<tr><td style="font-family:Georgia,serif;font-size:14px;font-weight:bold;color:#FFFFFF;text-align:center;">The Eden Institute</td></tr>
 <tr><td style="text-align:center;padding-top:6px;"><a href="https://edeninstitute.health" style="font-family:Georgia,serif;font-size:13px;color:#FFFFFF;text-decoration:underline;">edeninstitute.health</a></td></tr>
 <tr><td style="text-align:center;padding-top:14px;">
 <a href="https://www.facebook.com/EdensTableHomeschoolCurriculum" style="font-family:Georgia,serif;font-size:12px;color:#FFFFFF;text-decoration:underline;">Facebook</a>
@@ -141,19 +141,29 @@ export function emailWrapper(bodyContent: string, provenance: EmailProvenance = 
 </td></tr>
 <tr><td style="text-align:center;padding-top:14px;font-family:Georgia,serif;font-size:13px;color:${BRAND.gold};font-style:italic;">Back to Eden. Back to Truth.</td></tr>
 <tr><td style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;padding-top:16px;">${PROVENANCE_LINE[provenance]}</td></tr>
-<tr><td style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;padding-top:6px;">Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Unit 3262, Clarksville, TN 37043</td></tr>
+<tr><td style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;padding-top:6px;">Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Unit 3262, Clarksville, TN 37043</td></tr>`;
+  if (!unsubscribe) return rows;
+  return `${rows}
 <tr><td style="text-align:center;padding-top:8px;"><a href="{{UNSUB_URL}}" style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-decoration:underline;">Unsubscribe</a></td></tr>`;
-  return emailShell(bodyContent, footerRows, { shopCard: opts.shopCard ?? true });
 }
 
-/** Transactional variant: same chrome, the right provenance line, and the marketing
- *  unsubscribe placeholder pointed at the site (a buyer cannot opt out of order or
- *  delay notices). Pick the footer by provenance rather than string-replacing the
- *  rendered sentence: the wrapper writes the apostrophe as &rsquo;, so a replacement
- *  keyed on a straight apostrophe silently never matches (it shipped the quiz footer
- *  on every preorder confirmation before 2026-09-03). */
+/** `shopCard: false` drops the Shop Medicinal Herbs card for an email that promises
+ *  nothing to buy (the lead tracks' day-2 teaching email, the refund note). */
+export function emailWrapper(bodyContent: string, provenance: EmailProvenance = 'constitution', opts: { shopCard?: boolean } = {}): string {
+  return emailShell(bodyContent, standardFooterRows(provenance, true), { shopCard: opts.shopCard ?? true });
+}
+
+/** Transactional variant: same chrome and the right provenance line, with NO Unsubscribe
+ *  row. Receipts, shipping and refund notes, and preorder delay / update notices cannot be
+ *  opted out of, so a link labelled Unsubscribe that only opened the homepage misled the
+ *  buyer (founder tap 2026-11-06: "Remove it from receipts"; it used to point the
+ *  {{UNSUB_URL}} placeholder at the site). The provenance line and the postal address
+ *  stay. Pick the footer by provenance rather than string-replacing the rendered
+ *  sentence: the wrapper writes the apostrophe as &rsquo;, so a replacement keyed on a
+ *  straight apostrophe silently never matches (it shipped the quiz footer on every
+ *  preorder confirmation before 2026-09-03). */
 export function emailWrapperTransactional(bodyContent: string, provenance: EmailProvenance, opts: { shopCard?: boolean } = {}): string {
-  return emailWrapper(bodyContent, provenance, opts).split('{{UNSUB_URL}}').join('https://edeninstitute.health');
+  return emailShell(bodyContent, standardFooterRows(provenance, false), { shopCard: opts.shopCard ?? true });
 }
 
 export function goldDivider(): string {
