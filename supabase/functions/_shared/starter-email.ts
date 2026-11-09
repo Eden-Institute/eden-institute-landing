@@ -161,7 +161,7 @@ ${renderReceiptHtml(m.receipt)}
 ${para(`<span style="font-size:14px;color:#5A6B5F;">Using a scholarship or education savings account? This receipt is itemized for your records, and Stripe also emails you a numbered invoice you can download as a PDF.</span>`)}` : ''}
 ${rule()}
 ${para(`<span style="font-size:14px;color:#5A6B5F;">${STARTER_LICENSE_LINE} If you teach a co-op or a classroom, reply to this email and we will sort out the right licence for you.</span>`)}
-${gift ? '' : para(`<span style="font-size:14px;color:#5A6B5F;">Because this is a digital download, it is not refundable once the files have been downloaded. Our full policy is <a href="${RETURNS_URL}" style="color:#1C3A2E;">here</a>.</span>`)}
+${gift ? '' : para(`<span style="font-size:14px;color:#5A6B5F;">Because this is a digital download, it is not refundable. Our full policy is <a href="${RETURNS_URL}" style="color:#1C3A2E;">here</a>.</span>`)}
 ${para(`Grace and health,`)}
 ${para(`<strong>Camila</strong><br><span style="font-size:14px;">The Eden Institute</span>`)}
 </td></tr>
@@ -208,7 +208,7 @@ ${para(`<strong>Camila</strong><br><span style="font-size:14px;">The Eden Instit
     '',
     ...(gift
       ? []
-      : [`Because this is a digital download, it is not refundable once the files have been downloaded. Full policy: ${RETURNS_URL}`, '']),
+      : [`Because this is a digital download, it is not refundable. Full policy: ${RETURNS_URL}`, '']),
     'Grace and health,',
     'Camila',
     'The Eden Institute',

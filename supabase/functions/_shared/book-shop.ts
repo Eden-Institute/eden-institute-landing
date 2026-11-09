@@ -145,7 +145,7 @@ export function renderBookDeliveryEmail(m: BookDeliveryModel): { subject: string
       ? p(`It prints on regular letter paper, so you can print a chapter at a time and write right on the pages.`)
       : '') +
     (m.receipt ? heading('Your receipt') + renderReceiptHtml(m.receipt) : '') +
-    small(`This book is for you and your household. Because it is a digital download, it is not refundable once it has been downloaded. Our full policy is <a href="${RETURNS_URL}" style="color:${BRAND.forest};">here</a>.`) +
+    small(`This book is for you and your household. Because it is a digital download, it is not refundable. Our full policy is <a href="${RETURNS_URL}" style="color:${BRAND.forest};">here</a>.`) +
     p(`Grace and health,`, 'margin-top:24px;') +
     p(`<strong>Camila</strong><br><span style="font-size:14px;">The Eden Institute</span>`);
 
@@ -160,7 +160,7 @@ export function renderBookDeliveryEmail(m: BookDeliveryModel): { subject: string
     '',
     'If the file opens as a blank white screen, nothing is wrong with it. Some email apps open links in a small built in browser that cannot show a PDF. Press and hold the link, choose Open in Safari or Open in Chrome, and it will open properly.',
     '',
-    `This book is for you and your household. Because it is a digital download, it is not refundable once it has been downloaded. Full policy: ${RETURNS_URL}`,
+    `This book is for you and your household. Because it is a digital download, it is not refundable. Full policy: ${RETURNS_URL}`,
     '',
     'Grace and health,',
     'Camila',

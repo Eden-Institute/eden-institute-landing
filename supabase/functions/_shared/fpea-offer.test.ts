@@ -499,11 +499,14 @@ Deno.test('FPEA order confirmation: one added paragraph naming free shipping and
 // the transactional footer (founder tap 2026-11-06, "Remove it from receipts"). The same
 // render before and after differs only by that 206-character row; every other key here
 // (Starter emails, receipts, order receipts) kept its hash.
+// 2026-11-09: starter_email_* re-pinned for ONE change, the refund sentence in the Starter
+// delivery email ("not refundable once the files have been downloaded" -> "not refundable";
+// founder: "No digital refunds. Ever."). Every other key kept its hash.
 
 const GOLDEN: Record<string, string> = {
-  starter_email_0: 'a75bacd45186e965f80dc736683937fe0675fc2e2f0ef5c386bf92970c967038',
-  starter_email_1: 'a4431943685711ff8058d89f20c3d8cf81b68fedf08a0af5dc2a68e16a1dbd71',
-  starter_email_2: '1e346959c52166fae5daeacc0dfc369a769fbad8df09e484f5c03b6e74584849',
+  starter_email_0: '76a861f83b6a6f031f4e00d1213cd75e345792d13e56f172e64dc7676925b61a',
+  starter_email_1: '6a933105bb2e113362b50a53ad8152b7e1327b1384509fa186ecbf0b93d05a65',
+  starter_email_2: '6204c197abeed9de8812da2a4f0bdc3807ae16afda797151182a50e12628a81c',
   receipt_starter: '48d4b460a520972d3713c2f29108dea06820e8b05aa49672239b7704e78d186e',
   receipt_shipped: 'a96db1e3d0b0ffddaf134f5f59b698f2691e55347b065ac469558b4865062d64',
   receipt_zero: '1467e7f99c7771449aec6c063a09dac48b9ed10c796fb5bcff9a54d6193cda2e',

@@ -26,8 +26,10 @@
 // Rate limited per token so a leaked link cannot be turned into a distribution
 // endpoint by scripting it.
 //
-// FIRST OPEN AND FIRST DOWNLOAD (2026-10-26, punch #25). The delivery email says
-// the Starter Unit is not refundable once the files have been downloaded, and the
+// FIRST OPEN AND FIRST DOWNLOAD (2026-10-26, punch #25). The delivery email said
+// the Starter Unit is not refundable once the files have been downloaded (since
+// 2026-11-09 digital products are not refundable at all: founder, "No digital
+// refunds. Ever."; the record still answers "did they get the files?"), and the
 // only sign of that used to be Resend's click tracking on the email link, which is
 // being turned off for delivery mail. So this function keeps Eden's own record on
 // the delivery row, each column SET ONCE (the first value stays, later visits
