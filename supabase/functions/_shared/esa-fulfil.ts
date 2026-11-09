@@ -365,7 +365,14 @@ async function fulfil(inv: EsaInvoiceRow): Promise<string> {
   throw new Error("invoice has no fulfilable items");
 }
 
-/** One payments-ledger row per paid invoice, so revenue reports see ESA income. Idempotent. */
+/** One payments-ledger row per paid invoice, so revenue reports see ESA income. Idempotent.
+ *  ga4_status 'skipped_esa' (punch #450, 2026-11-09): the family pays through ClassWallet or
+ *  Odyssey, off the site, and the /esa form keeps no GA visitor id or cookie choice, so there is
+ *  no visit to credit the sale to and it is never sent to GA4. Without the label the digest's GA4
+ *  check (notify-founder-digest/system-health.ts, GA4_PROBLEM) counted every ESA sale as
+ *  "never reported". Any ga4_status outside GA4_PROBLEM reads there as an on-purpose skip.
+ *  (Kept out of _shared/ga4-mp.ts's Ga4Status on purpose: that file is in create-checkout's and
+ *  stripe-webhook's import closure, so touching it redeploys the card checkout.) */
 async function recordLedger(inv: EsaInvoiceRow): Promise<void> {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/payments?on_conflict=stripe_event_id`, {
     method: "POST",
@@ -381,6 +388,7 @@ async function recordLedger(inv: EsaInvoiceRow): Promise<void> {
       lookup_key: inv.items.map((i) => i.sku).join(","),
       occurred_at: inv.paid_at ?? new Date().toISOString(),
       raw: { source: "esa", invoice_number: inv.invoice_number, fee_cents: inv.fee_cents, paid_via: inv.paid_via },
+      ga4_status: "skipped_esa",
     }),
   });
   if (!res.ok) console.error("esa ledger insert failed (not blocking):", res.status, await res.text().catch(() => ""));

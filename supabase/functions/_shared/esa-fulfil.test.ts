@@ -82,6 +82,21 @@ Deno.test("Starter invoice: delivery with an unguessable key and no order link, 
   } finally { s.restore(); }
 });
 
+Deno.test("ledger row is labelled skipped_esa, so the digest's GA4 check does not count it as a lost sale (punch #450)", async () => {
+  // Printed set and Starter both go through recordLedger; check both paths carry the label.
+  const printed = stub(baseInvoice());
+  try {
+    await applyPayment("inv-1", "manual", null);
+    const row = JSON.parse(posted(printed.calls, "payments")[0].body);
+    assertEquals([row.status, row.ga4_status], ["paid", "skipped_esa"]);
+  } finally { printed.restore(); }
+  const starter = stub(baseInvoice({ state: "AL", invoice_number: "ET-AL-2026-001", ship_address: null, items: [{ sku: "ET-SPR-K2-003", qty: 1, unit_cents: 3900, amount_cents: 3900 }], total_cents: 3900, fee_cents: 0 }));
+  try {
+    await applyPayment("inv-1", "manual", null);
+    assertEquals(JSON.parse(posted(starter.calls, "payments")[0].body).ga4_status, "skipped_esa");
+  } finally { starter.restore(); }
+});
+
 Deno.test("already paid: a second apply changes nothing and fulfils nothing", async () => {
   const s = stub(baseInvoice(), false);
   try {
