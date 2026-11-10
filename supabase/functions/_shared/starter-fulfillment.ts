@@ -10,9 +10,16 @@
 //
 // THE RECOVERY PATH, which is the part that matters at 2am:
 //   - Anything throws -> the delivery goes back to 'failed' with last_error set,
-//     and the cron drain retries it. Nothing is lost, nothing double-sends.
+//     and the cron drain retries it, up to STARTER_MAX_ATTEMPTS. The attempt that
+//     uses up the last try emails the founder at once (2026-11-10, D1), instead of
+//     leaving it for the next morning's digest.
 //   - The email is the LAST step and is guarded by sent_at, so a retry after a
-//     successful send is a no-op rather than a second copy in the buyer's inbox.
+//     recorded send is a no-op. A send whose "sent" write never landed (the write
+//     failed, or the worker died in between) is caught by Resend's Idempotency-Key
+//     instead (2026-11-10, D2; resend-idempotency.ts), so the retry does not put a
+//     second copy in the buyer's inbox.
+//   - A master PDF too big to stamp safely is refused by name before stamping
+//     (2026-11-10, D3), rather than crashing the worker at the memory ceiling.
 //   - Stamped PDFs are kept. A retry after a successful stamp re-signs the
 //     existing objects instead of re-stamping 20MB, so retries get cheaper rather
 //     than more expensive.
@@ -38,6 +45,85 @@ import { Receipt, starterReceipt } from './receipt.ts';
 import { tagEmailHtml, tagEmailText, type EmailTag } from './email-utm.ts';
 import { FPEA_OFFER_ID, isFpeaGiftDeliveryKey } from './fpea-offer.ts';
 import { STARTER_GIFT_ID, isStarterGiftDeliveryKey } from './starter-gift.ts';
+import { alertFounder } from './founder-alert.ts';
+import {
+  IDEMPOTENCY_HEADER,
+  classifyResendResponse,
+  deliveryIdempotencyKey,
+  type ResendOutcome,
+} from './resend-idempotency.ts';
+
+/**
+ * Give up automatic retries after this many, so a poison row cannot loop forever.
+ * Moved here from starter-fulfill/index.ts (2026-11-10) so the attempt that uses up
+ * the last try can tell the founder itself.
+ */
+export const STARTER_MAX_ATTEMPTS = 5;
+
+/**
+ * Size guard for the master PDFs (2026-11-10, D3; the 2026-09-01 Canva lesson in
+ * CLAUDE.md). pdf-lib holds the whole file while it stamps, and all three masters
+ * and all three stamped copies are held together until upload, against a 256 MB
+ * edge-function ceiling. The raw Canva exports on 9/1 were 41.67 / 42.42 / 21.58 MB
+ * and would have run every purchase out of memory: no catch block runs on an OOM, so
+ * the row just sat in_progress. Refusing by name turns that into a normal failure
+ * with a clear reason, which the retry limit then reports to the founder.
+ *
+ * Live masters on 2026-11-10 (storage.objects, partner-assets/sample/): Sprouts
+ * 13.08 + 11.81 + 2.65 MB = 27.54 MB; Seedlings 10.94 + 12.07 + 3.75 MB = 26.76 MB.
+ * The limits leave room for an ordinary re-export and refuse a raw print-grade one.
+ * Fix for a refusal: recompress the file (PyMuPDF rewrite_images, see CLAUDE.md) and
+ * upload it again; never raise these to make a big file fit.
+ */
+export const STARTER_MASTER_MAX_BYTES = 18 * 1024 * 1024;
+export const STARTER_MASTERS_TOTAL_MAX_BYTES = 36 * 1024 * 1024;
+
+const mb = (bytes: number) => `${(bytes / 1048576).toFixed(2)} MB`;
+
+/** Null when the file is within the limits, otherwise the reason (with the path). */
+export function masterSizeProblem(path: string, bytes: number, totalSoFar: number): string | null {
+  if (bytes > STARTER_MASTER_MAX_BYTES) {
+    return `${path} is ${mb(bytes)}, over the ${mb(STARTER_MASTER_MAX_BYTES)} per-file limit`;
+  }
+  if (totalSoFar + bytes > STARTER_MASTERS_TOTAL_MAX_BYTES) {
+    return `the masters come to ${mb(totalSoFar + bytes)} with ${path}, over the ${mb(STARTER_MASTERS_TOTAL_MAX_BYTES)} limit for one delivery`;
+  }
+  return null;
+}
+
+/**
+ * The founder email for a delivery that has used up its automatic tries (D1). Pure,
+ * so the wording is tested. Names the row by its id, not its session key: an ESA
+ * row's key is a download credential and does not belong in an email.
+ */
+export function starterExhaustedAlert(input: {
+  deliveryId: string;
+  email: string;
+  band: string;
+  attempts: number;
+  lastError: string;
+  workerDied?: boolean;
+}): { subject: string; text: string } {
+  const what = input.workerDied
+    ? 'The delivery worker stopped partway through its last try without recording an error (most likely the memory or time limit).'
+    : `The last try failed with: ${input.lastError.slice(0, 600)}`;
+  return {
+    subject: `Starter Unit NOT delivered after ${input.attempts} tries (${input.band})`,
+    text: [
+      'A Starter Unit buyer has not received their files, and the automatic retries have stopped.',
+      '',
+      `Buyer: ${input.email}`,
+      `Band: ${input.band}`,
+      `Tries: ${input.attempts}`,
+      `Delivery row: ${input.deliveryId}`,
+      '',
+      what,
+      '',
+      'Their delivery email has not gone out. Nothing retries on its own from here.',
+      `Once the cause is fixed, tell Claude "retry the Starter delivery ${input.deliveryId}". You can also send their files by hand.`,
+    ].join('\n'),
+  };
+}
 
 /**
  * An in_progress delivery older than this belongs to a worker that died (OOM at
@@ -128,12 +214,24 @@ async function logStage(
   }
 }
 
-async function storageDownload(bucket: string, path: string): Promise<Uint8Array> {
+/** Thrown for a master over the size guard, so the caller can name it as such. */
+class MasterTooLargeError extends Error {}
+
+/**
+ * Download one object. With `maxBytes`, a declared Content-Length over it is refused
+ * before the body is read (D3), so an oversized master never even lands in memory.
+ */
+async function storageDownload(bucket: string, path: string, maxBytes?: number): Promise<Uint8Array> {
   const res = await fetch(`${supabaseUrl()}/storage/v1/object/${bucket}/${path}`, {
     headers: { Authorization: `Bearer ${serviceRoleKey()}`, apikey: serviceRoleKey() },
   });
   if (!res.ok) {
     throw new Error(`storage download ${bucket}/${path} failed: ${res.status} ${await res.text().catch(() => '')}`);
+  }
+  const declared = Number(res.headers.get('content-length'));
+  if (maxBytes && Number.isFinite(declared) && declared > maxBytes) {
+    await res.body?.cancel();
+    throw new MasterTooLargeError(`${path} is ${mb(declared)}, over the ${mb(maxBytes)} per-file limit`);
   }
   return new Uint8Array(await res.arrayBuffer());
 }
@@ -149,7 +247,13 @@ async function storageUpload(bucket: string, path: string, bytes: Uint8Array): P
       // 409ing forever on a path that already exists.
       'x-upsert': 'true',
     },
-    body: bytes,
+    // Type-only cast, no runtime change. Newer TypeScript (Deno 2.9 in CI) types a
+    // plain Uint8Array as Uint8Array<ArrayBufferLike>, which its fetch typings no
+    // longer accept as a body (TS2769), although every runtime does. This line was the
+    // "deno check fails when several entrypoints are checked together" quirk in the
+    // Lane 2 tracker (2026-11-09); it surfaced in CI once a test imported this module.
+    // Copying to a fresh ArrayBuffer to satisfy the type would double ~13 MB per file.
+    body: bytes as unknown as BodyInit,
   });
   if (!res.ok) {
     throw new Error(`storage upload ${bucket}/${path} failed: ${res.status} ${await res.text().catch(() => '')}`);
@@ -243,8 +347,10 @@ export interface FulfilResult {
  * A row stuck in 'in_progress' past STALE_IN_PROGRESS_MS is also claimable: its
  * worker died without reaching the catch block. The winning UPDATE sets
  * updated_at to now, so a concurrent takeover re-evaluates the WHERE and matches
- * nothing. Residual: a kill between the send and the sent_at writeback re-sends
- * the delivery email once on takeover (a duplicate email, never a charge).
+ * nothing. A kill between the send and the sent_at writeback used to re-send the
+ * delivery email on takeover; since 2026-11-10 (D2) the takeover sends under the same
+ * Idempotency-Key, so Resend returns the first send instead (within its 24 hours,
+ * far longer than the 15-minute stale window).
  */
 export async function fulfilStarterDelivery(
   db: Db,
@@ -312,16 +418,26 @@ export async function fulfilStarterDelivery(
       for (const f of missing) {
         let data: Uint8Array;
         try {
-          data = await storageDownload(STARTER_SOURCE_BUCKET, f.master);
+          data = await storageDownload(STARTER_SOURCE_BUCKET, f.master, STARTER_MASTER_MAX_BYTES);
         } catch (err) {
+          const why = err instanceof Error ? err.message : String(err);
+          await logStage(db, delivery, attempt, 'fetch_master', false, `${band} master ${f.master}: ${why}`);
+          if (err instanceof MasterTooLargeError) {
+            throw new Error(`STARTER MASTER TOO LARGE TO STAMP (${band}): ${why}. Recompress it and upload it again.`);
+          }
           // Named loudly: a missing master is an upload that has not happened
           // (the Seedlings masters were not in the bucket when this shipped), and
           // "storage download failed: 400" alone sends the diagnosis elsewhere.
-          const why = err instanceof Error ? err.message : String(err);
-          await logStage(db, delivery, attempt, 'fetch_master', false, `${band} master ${f.master}: ${why}`);
           throw new Error(
             `STARTER MASTER MISSING OR UNREADABLE (${band}): ${STARTER_SOURCE_BUCKET}/${f.master}. ${why}`,
           );
+        }
+        // D3: checked again on the real byte count (a response may not declare its
+        // length) and on the running total, BEFORE anything is stamped.
+        const tooBig = masterSizeProblem(f.master, data.length, bytes);
+        if (tooBig) {
+          await logStage(db, delivery, attempt, 'fetch_master', false, `${band}: ${tooBig}`);
+          throw new Error(`STARTER MASTER TOO LARGE TO STAMP (${band}): ${tooBig}. Recompress it and upload it again.`);
         }
         bytes += data.length;
         loaded.push({ key: f.key, out: f.out, data });
@@ -412,9 +528,32 @@ export async function fulfilStarterDelivery(
       ...(giftId ? { gift: giftId } : {}),
     };
 
+    // D2: the Idempotency-Key generation is the number of DEFINITE Resend refusals
+    // already logged for this delivery (stage 'email', ok false). It changes only
+    // after a recorded refusal, so a retry after an unclear outcome (the "sent" write
+    // failed, the worker died, a concurrent 409) reuses the key and Resend returns the
+    // first send instead of mailing a second copy. resend-idempotency.ts says why.
+    const { count: refusals, error: refusalsErr } = await db.from('starter_delivery_attempts')
+      .select('id', { count: 'exact', head: true })
+      .eq('delivery_id', delivery.id)
+      .eq('stage', 'email')
+      .eq('ok', false);
+    if (refusalsErr) throw new Error(`could not read earlier email attempts: ${refusalsErr.message}`);
+    const idempotencyKey = deliveryIdempotencyKey('starter-delivery', delivery.id, refusals ?? 0);
+
     const t4 = performance.now();
-    await sendDeliveryEmail(model, sid);
-    await logStage(db, delivery, attempt, 'email', true, undefined, Math.round(performance.now() - t4));
+    const sendResult = await sendDeliveryEmail(model, sid, idempotencyKey);
+    if (sendResult.outcome === 'refused') {
+      await logStage(db, delivery, attempt, 'email', false, sendResult.detail, Math.round(performance.now() - t4));
+      throw new Error(`Resend send failed: ${sendResult.detail}`);
+    }
+    if (sendResult.outcome === 'in_flight') {
+      // Not logged as a refusal, so the next try keeps this key.
+      throw new Error('Resend is still sending this delivery from another worker; the next try checks again');
+    }
+    await logStage(db, delivery, attempt, 'email', true,
+      sendResult.outcome === 'already_sent' ? 'already accepted under this idempotency key' : undefined,
+      Math.round(performance.now() - t4));
 
     const { error: doneErr } = await db.from('starter_deliveries')
       .update({
@@ -426,8 +565,12 @@ export async function fulfilStarterDelivery(
       })
       .eq('id', delivery.id);
     if (doneErr) {
-      // The buyer HAS their email. Failing loudly here would make a retry send a
-      // second copy, so this is logged and swallowed deliberately.
+      // The buyer HAS their email. Logged and swallowed: there is nothing useful to
+      // retry here. The row stays in_progress with sent_at null, so the drain will
+      // re-claim it after STALE_IN_PROGRESS_MS and run the send again; that second
+      // send reuses the same Idempotency-Key (no refusal was logged), so Resend
+      // returns the first send and the buyer gets one copy. (Before 2026-11-10 this
+      // comment said swallowing alone prevented the second copy; it did not.)
       console.error(`[${sid}] delivered but status writeback failed: ${doneErr.message}`);
     }
     await logStage(db, delivery, attempt, 'complete', true);
@@ -440,11 +583,35 @@ export async function fulfilStarterDelivery(
     await db.from('starter_deliveries')
       .update({ status: 'failed', last_error: message.slice(0, 2000), updated_at: new Date().toISOString() })
       .eq('id', delivery.id);
+    // D1 (2026-11-10): the try that uses up the automatic retries tells the founder
+    // now, not at the next 8 AM digest. A manual re-kick past the limit that fails
+    // again alerts again, which is right: someone is waiting on it.
+    if (attempt >= STARTER_MAX_ATTEMPTS) {
+      let bandName = String(delivery.band ?? 'sprouts');
+      try { bandName = normalizeStarterBand(delivery.band); } catch { /* keep the raw value */ }
+      const alert = starterExhaustedAlert({
+        deliveryId: delivery.id,
+        email: delivery.email,
+        band: bandName,
+        attempts: attempt,
+        lastError: message,
+      });
+      await alertFounder(alert.subject, alert.text, 'starter-fulfill');
+    }
     return { status: 'failed', detail: message };
   }
 }
 
-async function sendDeliveryEmail(model: StarterEmailModel, sessionId: string): Promise<void> {
+/**
+ * Send the delivery email under an Idempotency-Key (D2). Never throws for a Resend
+ * answer: the caller decides what each outcome means. A network failure still throws
+ * (an unclear outcome, so the caller logs no refusal and the key is reused).
+ */
+async function sendDeliveryEmail(
+  model: StarterEmailModel,
+  sessionId: string,
+  idempotencyKey: string,
+): Promise<{ outcome: ResendOutcome; detail?: string }> {
   const resendKey = requiredEnv('RESEND_API_KEY');
   const rendered = renderStarterDeliveryEmail(model);
   // UTM tags on every edeninstitute.health link (founder rule 2026-10-08, email-utm.ts).
@@ -455,12 +622,21 @@ async function sendDeliveryEmail(model: StarterEmailModel, sessionId: string): P
   const text = tagEmailText(rendered.text, utm);
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+    headers: {
+      Authorization: `Bearer ${resendKey}`,
+      'Content-Type': 'application/json',
+      [IDEMPOTENCY_HEADER]: idempotencyKey,
+    },
     body: JSON.stringify({ from: FROM, reply_to: REPLY_TO, to: [model.email], subject, html, text }),
   });
-  if (!res.ok) {
-    throw new Error(`Resend send failed: ${res.status} ${await res.text().catch(() => '')}`);
+  const bodyText = await res.text().catch(() => '');
+  const outcome = classifyResendResponse(res.status, bodyText);
+  if (outcome === 'sent') {
+    let id = '(none)';
+    try { id = (JSON.parse(bodyText) as { id?: string }).id ?? id; } catch { /* keep (none) */ }
+    console.log(`[${sessionId}] delivery email queued with Resend id=${id}`);
+  } else if (outcome === 'already_sent') {
+    console.log(`[${sessionId}] delivery email was already accepted under ${idempotencyKey}; not sent again`);
   }
-  const body = await res.json().catch(() => ({})) as { id?: string };
-  console.log(`[${sessionId}] delivery email queued with Resend id=${body.id ?? '(none)'}`);
+  return outcome === 'sent' ? { outcome } : { outcome, detail: `${res.status} ${bodyText.slice(0, 500)}` };
 }

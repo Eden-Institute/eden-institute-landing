@@ -25,6 +25,7 @@ import { escapeHtml } from './html-escape.ts';
 import { emailWrapperTransactional } from './nurture-email-templates.ts';
 import { Receipt, renderReceiptHtml } from './receipt.ts';
 import { tagEmailHtml, tagEmailText, type EmailTag } from './email-utm.ts';
+import { IDEMPOTENCY_HEADER, classifyResendResponse } from './resend-idempotency.ts';
 
 export const BOOK_BUCKET = 'book-files';
 export const BOOK_PAGE = 'https://edeninstitute.health/back-to-eden';
@@ -175,8 +176,22 @@ export function renderBookDeliveryEmail(m: BookDeliveryModel): { subject: string
 const FROM = 'Camila at The Eden Institute <hello@orders.edeninstitute.health>';
 const REPLY_TO = 'hello@edeninstitute.health';
 
-/** Send the delivery email through Resend. Throws on failure so the caller can record and retry. */
-export async function sendBookDeliveryEmail(m: BookDeliveryModel): Promise<string | null> {
+/**
+ * Send the delivery email through Resend. Throws on failure so the caller can record
+ * and retry.
+ *
+ * `idempotencyKey` (2026-11-10, D2): stripe-webhook passes
+ * `book-delivery/<book_downloads id>/<email_attempts so far>`. If the send landed but
+ * the email_sent_at write did not, a Stripe redelivery sends under the same key and
+ * Resend returns the first send instead of a second copy. Every recorded failure bumps
+ * email_attempts and so the key, so a failure Resend might keep under a key is never
+ * replayed (resend-idempotency.ts). Returns the Resend id, or null when Resend had
+ * already accepted this delivery under the key (the buyer has it; treat as sent).
+ */
+export async function sendBookDeliveryEmail(
+  m: BookDeliveryModel,
+  idempotencyKey?: string,
+): Promise<string | null> {
   const key = Deno.env.get('RESEND_API_KEY');
   if (!key) throw new Error('RESEND_API_KEY is not set; cannot email a book download link');
   const rendered = renderBookDeliveryEmail(m);
@@ -188,10 +203,20 @@ export async function sendBookDeliveryEmail(m: BookDeliveryModel): Promise<strin
   const text = tagEmailText(rendered.text, utm);
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    headers: {
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json',
+      ...(idempotencyKey ? { [IDEMPOTENCY_HEADER]: idempotencyKey } : {}),
+    },
     body: JSON.stringify({ from: FROM, reply_to: REPLY_TO, to: [m.email], subject, html, text }),
   });
-  if (!res.ok) throw new Error(`Resend send failed: ${res.status} ${await res.text().catch(() => '')}`);
-  const out = await res.json().catch(() => ({})) as { id?: string };
-  return out.id ?? null;
+  const bodyText = await res.text().catch(() => '');
+  const outcome = classifyResendResponse(res.status, bodyText);
+  if (outcome === 'already_sent' && idempotencyKey) return null;
+  if (outcome !== 'sent') throw new Error(`Resend send failed: ${res.status} ${bodyText}`);
+  try {
+    return (JSON.parse(bodyText) as { id?: string }).id ?? null;
+  } catch {
+    return null;
+  }
 }
