@@ -247,7 +247,13 @@ async function storageUpload(bucket: string, path: string, bytes: Uint8Array): P
       // 409ing forever on a path that already exists.
       'x-upsert': 'true',
     },
-    body: bytes,
+    // Type-only cast, no runtime change. Newer TypeScript (Deno 2.9 in CI) types a
+    // plain Uint8Array as Uint8Array<ArrayBufferLike>, which its fetch typings no
+    // longer accept as a body (TS2769), although every runtime does. This line was the
+    // "deno check fails when several entrypoints are checked together" quirk in the
+    // Lane 2 tracker (2026-11-09); it surfaced in CI once a test imported this module.
+    // Copying to a fresh ArrayBuffer to satisfy the type would double ~13 MB per file.
+    body: bytes as unknown as BodyInit,
   });
   if (!res.ok) {
     throw new Error(`storage upload ${bucket}/${path} failed: ${res.status} ${await res.text().catch(() => '')}`);
