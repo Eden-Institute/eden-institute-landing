@@ -67,6 +67,7 @@ import { starterOrderLabel } from "../_shared/receipt.ts"
 // Back to Eden PDFs, 2026-09-25.
 import { BOOK_RECEIPT_NAMES, bookDigitalReceipt } from "../_shared/receipt.ts"
 import { bookDigitalBySku, newDownloadToken, sendBookDeliveryEmail } from "../_shared/book-shop.ts"
+import { deliveryIdempotencyKey } from "../_shared/resend-idempotency.ts"
 import { unsentOrderEmails } from "../_shared/webhook-guards.ts"
 import { creditIssuanceOpen, issueStarterCreditForBand, markCreditRedeemed } from "../_shared/starter-credit.ts"
 import { escapeLikePattern } from "../_shared/like-escape.ts"
@@ -150,11 +151,30 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary)
 }
 
+// D5 (2026-11-10, Lane 2 audit area 2): every way the attached Guide PDF can fail to
+// go out now emails the founder. Before, each one was console-only while the order
+// already read `delivered`, so a buyer could go without the PDF and nobody knew.
+// notifyFounder never throws, so the webhook still answers 200.
+async function guidePdfFailed(email: string, reason: string): Promise<void> {
+  console.error(`sendGuidePdf: ${reason}`)
+  await notifyFounder(
+    "Deep-Dive Guide PDF did NOT reach a buyer",
+    [
+      "A Constitutional Deep-Dive Guide purchase went through, but the emailed PDF copy did not go out.",
+      "",
+      `Buyer: ${email}`,
+      `Why: ${reason}`,
+      "",
+      "The payment and order are fine. Only the PDF email is missing. Check that they can open their guide, and send them the PDF by hand (or ask Claude to) if they cannot.",
+    ].join("\n"),
+  )
+}
+
 // Deliver the buyer's pattern-specific Deep-Dive Guide PDF by email immediately on
 // purchase, so a buyer
 // never depends on the client-rendered /guide page (which can render blank when
-// opened from a mobile email browser). Best-effort: failures are logged and
-// swallowed so the webhook still returns 200 (the purchase must not fail).
+// opened from a mobile email browser). Best-effort: the webhook still returns 200
+// (the purchase must not fail), and every failure is reported (guidePdfFailed).
 async function sendGuidePdf(
   email: string,
   constitutionType: string | null,
@@ -162,7 +182,9 @@ async function sendGuidePdf(
 ): Promise<void> {
   try {
     if (!RESEND_API_KEY) {
-      console.warn("sendGuidePdf: RESEND_API_KEY missing; skipping guide delivery")
+      // notifyFounder needs the same key, so it can only log here; still routed
+      // through the one helper so every exit reads the same in the logs.
+      await guidePdfFailed(email, "RESEND_API_KEY is missing; no guide email was sent")
       return
     }
 
@@ -183,9 +205,10 @@ async function sendGuidePdf(
     // would email a paying customer a guide for a constitution they do not have.
     // Sending nothing is recoverable; sending the wrong paid content is not.
     if (!guide) {
-      console.error(
-        `sendGuidePdf: could not resolve a guide (nickname=${JSON.stringify(constitutionNickname)}, ` +
-          `type=${JSON.stringify(constitutionType)}); sending nothing rather than the wrong guide`,
+      await guidePdfFailed(
+        email,
+        `could not tell which guide they bought (nickname=${JSON.stringify(constitutionNickname)}, ` +
+          `type=${JSON.stringify(constitutionType)}), so nothing was sent rather than the wrong guide`,
       )
       return
     }
@@ -196,7 +219,7 @@ async function sendGuidePdf(
       headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
     })
     if (!pdfRes.ok) {
-      console.error("sendGuidePdf: constitution-pdf failed", pdfRes.status)
+      await guidePdfFailed(email, `the PDF could not be built (constitution-pdf answered ${pdfRes.status} for ${pdfType})`)
       return
     }
     const pdfB64 = bytesToBase64(new Uint8Array(await pdfRes.arrayBuffer()))
@@ -222,12 +245,13 @@ async function sendGuidePdf(
       }),
     })
     if (!sendRes.ok) {
-      console.error("sendGuidePdf: Resend failed", sendRes.status, await sendRes.text().catch(() => ""))
+      const detail = (await sendRes.text().catch(() => "")).slice(0, 300)
+      await guidePdfFailed(email, `Resend refused the email (${sendRes.status} ${detail})`)
     } else {
       console.log(`sendGuidePdf: delivered guide PDF (type=${pdfType}) to ${email}`)
     }
   } catch (err) {
-    console.error("sendGuidePdf error (non-fatal):", err instanceof Error ? err.message : String(err))
+    await guidePdfFailed(email, `unexpected error: ${err instanceof Error ? err.message : String(err)}`)
   }
 }
 
@@ -1315,13 +1339,15 @@ async function handleBookDigitalPurchase(session: Stripe.Checkout.Session, sku: 
     console.warn(`[${session.id}] book receipt not built: ${err instanceof Error ? err.message : String(err)}`)
   }
   try {
+    // D2 (2026-11-10): keyed on the row and its failure count, so a redelivery after a
+    // send whose email_sent_at write was lost returns the first send, not a second copy.
     const id = await sendBookDeliveryEmail({
       firstName: name ? name.split(/\s+/)[0] : null,
       email,
       book,
       downloadToken: dl.download_token,
       receipt,
-    })
+    }, deliveryIdempotencyKey("book-delivery", dl.id, dl.email_attempts ?? 0))
     await adminClient.from("book_downloads").update({
       email_sent_at: new Date().toISOString(),
       email_attempts: (dl.email_attempts ?? 0) + 1,

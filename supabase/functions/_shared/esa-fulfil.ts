@@ -265,13 +265,99 @@ async function fulfilAfterMark(invoiceId: string, changed: boolean): Promise<App
     return { changed: true, invoice: await getInvoice(invoiceId), fulfilment: f };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    await patchInvoice(invoiceId, { fulfilment_status: "failed", fulfilment_note: msg.slice(0, 500) });
+    // Never let this write stop the alert below: when the failure WAS an invoice
+    // write (the D4 case), this one is likely to fail the same way (2026-11-10).
+    await patchInvoice(invoiceId, { fulfilment_status: "failed", fulfilment_note: msg.slice(0, 500) }).catch((pe) =>
+      console.error(`esa: could not mark ${inv.invoice_number} failed:`, pe instanceof Error ? pe.message : String(pe))
+    );
+    // D4 (2026-11-10): say what was ACTUALLY created before the failure. The old text
+    // always said "nothing was sent to print... Nothing retries this automatically",
+    // even when an order and its Lulu job (or a Starter delivery) already existed and
+    // their own queues would carry them through.
+    const progress = await lookupEsaProgress(inv);
     await emailFounderAlert(`ESA fulfilment FAILED: ${inv.invoice_number}`, [
-      `Invoice ${esc(inv.invoice_number)} (${esc(inv.student_name)}, ${money(inv.total_cents)}) is marked paid, but fulfilment failed and nothing was sent to print.`,
+      `Invoice ${esc(inv.invoice_number)} (${esc(inv.student_name)}, ${money(inv.total_cents)}) is marked paid, but fulfilment did not finish.`,
       `Error: ${esc(msg.slice(0, 400))}`,
-      `Nothing retries this automatically. Tell Claude "retry ESA fulfilment for ${esc(inv.invoice_number)}".`,
+      ...esaFailureLines(progress, inv.invoice_number),
     ]);
-    return { changed: true, invoice: await getInvoice(invoiceId), fulfilment: "failed", note: msg };
+    return { changed: true, invoice: await getInvoice(invoiceId).catch(() => inv), fulfilment: "failed", note: msg };
+  }
+}
+
+/** What an invoice had already created when its fulfilment failed (D4). */
+export interface EsaProgress {
+  order: { id: string; order_number: string } | null;
+  luluJob: boolean;
+  delivery: { id: string } | null;
+  lookupFailed: boolean;
+}
+
+/**
+ * The founder-alert lines for a failed fulfilment, from what already exists. Pure, so
+ * every case is tested. A retry is always safe since 2026-11-10: fulfil() reuses an
+ * order or delivery this invoice already created instead of making a second one.
+ */
+export function esaFailureLines(p: EsaProgress, invoiceNumber: string): string[] {
+  const retry = `Tell Claude "retry ESA fulfilment for ${esc(invoiceNumber)}".`;
+  if (p.lookupFailed) {
+    return [
+      "I could not check what was already created for it.",
+      `Before anything is retried, check orders (raw invoice_number ${esc(invoiceNumber)}) and starter_deliveries (the family's email), so nothing is sent twice. A retry reuses anything it finds. ${retry}`,
+    ];
+  }
+  if (p.order) {
+    return [
+      p.luluJob
+        ? `Order ${esc(p.order.order_number)} WAS created for it and its Lulu print job is queued. The print queue submits it on its own (every 10 minutes), so the books will print. Do NOT make another order.`
+        : `Order ${esc(p.order.order_number)} WAS created for it, but its Lulu print job was not queued, so it will not print yet.`,
+      `The invoice was not linked to the order and the family has not had their payment email. A retry links them, queues the print job if it is missing and sends that email, reusing order ${esc(p.order.order_number)} (it cannot print a second set). ${retry}`,
+    ];
+  }
+  if (p.delivery) {
+    return [
+      "A Starter delivery WAS queued for this family. The delivery job sends it on its own (every 10 minutes), so their files will go out.",
+      `The invoice was not linked to it. A retry links it and reuses that delivery, so the family cannot get a second set. ${retry}`,
+    ];
+  }
+  return [
+    "Nothing was created for it yet: nothing went to print and no files were sent. Nothing retries this automatically.",
+    retry,
+  ];
+}
+
+/** An order this invoice already created (orders.raw.invoice_number), or null. */
+async function findEsaOrder(inv: EsaInvoiceRow): Promise<{ id: string; order_number: string } | null> {
+  const rows = await rest<{ id: string; order_number: string }[] | null>(
+    `orders?raw->>invoice_number=eq.${encodeURIComponent(inv.invoice_number)}&select=id,order_number&order=created_at.asc&limit=1`,
+  );
+  return (rows ?? [])[0] ?? null;
+}
+
+/**
+ * A Starter delivery this invoice already queued, or null. starter_deliveries has no
+ * invoice column, so it is matched on what the insert below writes: the family email,
+ * an esa_ key, the band, created after the invoice. (One family buying the SAME
+ * Starter twice on two invoices would match the first; it is the same files.)
+ */
+async function findEsaDelivery(inv: EsaInvoiceRow, band: StarterBand): Promise<{ id: string; stripe_checkout_session_id: string } | null> {
+  const rows = await rest<{ id: string; stripe_checkout_session_id: string }[] | null>(
+    `starter_deliveries?email=eq.${encodeURIComponent(inv.family_email)}&stripe_checkout_session_id=like.esa_*` +
+      `&band=eq.${band}&created_at=gte.${encodeURIComponent(inv.created_at)}&select=id,stripe_checkout_session_id&order=created_at.asc&limit=1`,
+  );
+  return (rows ?? [])[0] ?? null;
+}
+
+async function lookupEsaProgress(inv: EsaInvoiceRow): Promise<EsaProgress> {
+  try {
+    const printed = inv.items.some((i) => SKU_TO_PRODUCT[i.sku]);
+    const band = inv.items.map((i) => STARTER_SKU_BAND[i.sku]).find(Boolean) ?? null;
+    const order = printed ? await findEsaOrder(inv) : null;
+    const jobs = order ? await rest<{ id: string }[] | null>(`lulu_jobs?order_id=eq.${order.id}&select=id&limit=1`) : null;
+    const delivery = !printed && band ? await findEsaDelivery(inv, band) : null;
+    return { order, luluJob: (jobs ?? []).length > 0, delivery, lookupFailed: false };
+  } catch (e) {
+    console.error("esa: progress lookup failed:", e instanceof Error ? e.message : String(e));
+    return { order: null, luluJob: false, delivery: null, lookupFailed: true };
   }
 }
 
@@ -299,7 +385,11 @@ async function fulfil(inv: EsaInvoiceRow): Promise<string> {
       const p = bySku.get(SKU_TO_PRODUCT[i.sku].sku);
       if (!p || p.fulfillment !== "lulu") throw new Error(`product ${SKU_TO_PRODUCT[i.sku].sku} missing or not a Lulu product`);
     }
-    const [order] = await rest<{ id: string; order_number: string }[]>("orders", {
+    // D4 (2026-11-10): a retry after a failure part-way through (the order was made, then
+    // a later write failed, so inv.order_id is still null) REUSES that order instead of
+    // making a second one, which would print and charge a second set.
+    const existing = await findEsaOrder(inv);
+    const [order] = existing ? [existing] : await rest<{ id: string; order_number: string }[]>("orders", {
       method: "POST",
       headers: { Prefer: "return=representation" },
       body: JSON.stringify({
@@ -324,13 +414,27 @@ async function fulfil(inv: EsaInvoiceRow): Promise<string> {
         raw: { source: "esa", invoice_number: inv.invoice_number, state: inv.state, paid_via: inv.paid_via, fee_cents: inv.fee_cents },
       }),
     });
-    await rest("order_items", {
+    // The items go in as one insert, so a reused order has all of them or none.
+    const haveItems = existing
+      ? ((await rest<{ id: string }[] | null>(`order_items?order_id=eq.${order.id}&select=id&limit=1`)) ?? []).length > 0
+      : false;
+    if (!haveItems) {
+      await rest("order_items", {
+        method: "POST",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify(printed.map((i) => ({ order_id: order.id, product_id: bySku.get(SKU_TO_PRODUCT[i.sku].sku)!.id, quantity: i.qty, unit_price_cents: i.unit_cents }))),
+      });
+    }
+    // lulu_jobs.order_id is UNIQUE: on a reused order whose job already exists this is a no-op.
+    await rest("lulu_jobs?on_conflict=order_id", {
       method: "POST",
-      headers: { Prefer: "return=minimal" },
-      body: JSON.stringify(printed.map((i) => ({ order_id: order.id, product_id: bySku.get(SKU_TO_PRODUCT[i.sku].sku)!.id, quantity: i.qty, unit_price_cents: i.unit_cents }))),
+      headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
+      body: JSON.stringify({ order_id: order.id, status: "pending" }),
     });
-    await rest("lulu_jobs", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ order_id: order.id, status: "pending" }) });
-    await patchInvoice(inv.id, { order_id: order.id, fulfilment_status: "print_queued", status: "fulfilled", fulfilled_at: new Date().toISOString(), fulfilment_note: `order ${order.order_number}` });
+    await patchInvoice(inv.id, {
+      order_id: order.id, fulfilment_status: "print_queued", status: "fulfilled", fulfilled_at: new Date().toISOString(),
+      fulfilment_note: existing ? `order ${order.order_number} (reused after an earlier failed attempt)` : `order ${order.order_number}`,
+    });
     await kick("lulu-submit", { order_id: order.id });
     await emailFamilyPaid(inv);
     return "print_queued";
@@ -339,8 +443,11 @@ async function fulfil(inv: EsaInvoiceRow): Promise<string> {
   if (starterBand) {
     if (inv.starter_delivery_id) return inv.fulfilment_status;
     const isSprouts = starterBand === "sprouts";
-    const sessionKey = `esa_${randomHex(32)}`; // starter-download accepts this as a credential: must be unguessable
-    const [delivery] = await rest<{ id: string }[]>("starter_deliveries", {
+    // D4 (2026-11-10): a retry after the delivery was queued but the invoice write failed
+    // reuses that delivery. A second row would stamp and email a second set.
+    const existing = await findEsaDelivery(inv, starterBand);
+    const sessionKey = existing?.stripe_checkout_session_id ?? `esa_${randomHex(32)}`; // starter-download accepts this as a credential: must be unguessable
+    const [delivery] = existing ? [existing] : await rest<{ id: string }[]>("starter_deliveries", {
       method: "POST",
       headers: { Prefer: "return=representation" },
       body: JSON.stringify({
@@ -357,7 +464,8 @@ async function fulfil(inv: EsaInvoiceRow): Promise<string> {
     });
     // The kit relaunch list (L-29) is the Sprouts Starter's stand-in for its kit credit. Seedlings has
     // no credit of any kind (founder 2026-09-23), so it goes on no list.
-    const note = isSprouts ? "starter delivery queued; kit relaunch list (L-29)" : `starter delivery queued (${starterBand}; no credit, no kit list)`;
+    const note = (isSprouts ? "starter delivery queued; kit relaunch list (L-29)" : `starter delivery queued (${starterBand}; no credit, no kit list)`) +
+      (existing ? " (reused after an earlier failed attempt)" : "");
     await patchInvoice(inv.id, { starter_delivery_id: delivery.id, fulfilment_status: "queued", status: "fulfilled", fulfilled_at: new Date().toISOString(), fulfilment_note: note });
     await kick("starter-fulfill", { session_id: sessionKey });
     return "queued";

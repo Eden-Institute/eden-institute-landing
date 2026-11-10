@@ -24,9 +24,16 @@
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { DeliveryRow, fulfilStarterDelivery, staleInProgressCutoff } from '../_shared/starter-fulfillment.ts';
+import {
+  DeliveryRow,
+  fulfilStarterDelivery,
+  STARTER_MAX_ATTEMPTS,
+  staleInProgressCutoff,
+  starterExhaustedAlert,
+} from '../_shared/starter-fulfillment.ts';
 import { normalizeStarterBand, starterBandHasCredit } from '../_shared/starter-config.ts';
 import { captureException } from '../_shared/sentry.ts';
+import { alertFounder } from '../_shared/founder-alert.ts';
 import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-service-role.ts';
 import { pgrstFetch } from '../_shared/pgrst-retry.ts';
 
@@ -54,8 +61,49 @@ const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { global: { fet
  */
 const DRAIN_BATCH = 4;
 
-/** Give up automatic retries after this many, so a poison row cannot loop forever. */
-const MAX_ATTEMPTS = 5;
+/** Give up automatic retries after this many (shared with the delivery code, 2026-11-10). */
+const MAX_ATTEMPTS = STARTER_MAX_ATTEMPTS;
+
+/**
+ * D1, the case the delivery code cannot report itself (2026-11-10). When a worker is
+ * killed on the LAST try (memory or CPU limit), no catch block runs, so nobody is
+ * told and the row sits in_progress past every retry. The drain closes those rows as
+ * 'failed' with a plain reason and emails the founder once per row: the update only
+ * matches rows still in_progress, so a later drain finds nothing and sends nothing.
+ * A failed row can still be re-kicked by hand ({ session_id }), and the delivery's
+ * Idempotency-Key keeps that from mailing a second copy if the dead worker had sent.
+ * Never throws: this is reporting, and the drain's own work is already done.
+ */
+async function closeDeadFinalAttempts(staleBefore: string): Promise<number> {
+  try {
+    const { data, error } = await adminClient
+      .from('starter_deliveries')
+      .update({
+        status: 'failed',
+        last_error: 'the delivery worker stopped partway through its last try without recording an error (most likely the memory or time limit)',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('status', 'in_progress')
+      .lt('updated_at', staleBefore)
+      .gte('attempts', MAX_ATTEMPTS)
+      .is('sent_at', null)
+      .select('id, email, band, attempts');
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as Array<{ id: string; email: string; band: string | null; attempts: number }>;
+    for (const r of rows) {
+      let band = String(r.band ?? 'sprouts');
+      try { band = normalizeStarterBand(r.band); } catch { /* keep the raw value */ }
+      const alert = starterExhaustedAlert({
+        deliveryId: r.id, email: r.email, band, attempts: r.attempts, lastError: '', workerDied: true,
+      });
+      await alertFounder(alert.subject, alert.text, 'starter-fulfill');
+    }
+    return rows.length;
+  } catch (err) {
+    console.error('starter-fulfill: could not close dead final attempts:', err instanceof Error ? err.message : String(err));
+    return 0;
+  }
+}
 
 // '*' (was an explicit column list until 2026-09-23) so the row's `band` comes back
 // once the band migration has run, WITHOUT this select failing before it has. A
@@ -167,6 +215,9 @@ serve(async (req) => {
       results.push({ session_id: row.stripe_checkout_session_id, ...out });
     }
 
+    // D1: a worker that died on its last try is closed and reported here (drain only).
+    const closedDead = sessionId ? 0 : await closeDeadFinalAttempts(staleBefore);
+
     // Surface a stuck backlog rather than letting it sit. A row that has burned
     // MAX_ATTEMPTS is invisible to the drain from then on, which is exactly the
     // failure shape that let two scheduled tasks look healthy for three weeks in
@@ -186,9 +237,9 @@ serve(async (req) => {
 
     const sent = results.filter((r) => r.status === 'sent').length;
     const failed = results.filter((r) => r.status === 'failed').length;
-    console.log(`starter-fulfill: processed=${results.length} sent=${sent} failed=${failed} stuck=${stuck ?? 0}`);
+    console.log(`starter-fulfill: processed=${results.length} sent=${sent} failed=${failed} stuck=${stuck ?? 0} closed_dead=${closedDead}`);
 
-    return json(200, { processed: results.length, sent, failed, stuck: stuck ?? 0, results });
+    return json(200, { processed: results.length, sent, failed, stuck: stuck ?? 0, closed_dead: closedDead, results });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('starter-fulfill error:', message);
