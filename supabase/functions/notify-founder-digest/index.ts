@@ -53,6 +53,7 @@ import {
 import {
   evaluateSystemHealth,
   hasHealthProblem,
+  LULU_OVERDUE_DAYS,
   QUEUE_LABEL,
   systemHealthHtml,
   systemHealthTextLines,
@@ -60,6 +61,7 @@ import {
   type SystemHealthInput,
 } from './system-health.ts';
 import { findSampleLinkSpikes } from './sample-links.ts';
+import { checkPrintFileUrl, printFileHost } from '../_shared/print-file-check.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -267,6 +269,32 @@ async function countRows(path: string): Promise<{ n: number; rows: any[] } | nul
   }
 }
 
+/**
+ * (L5, 2026-11-11) Read the first bytes of every print file Lulu would download. Rows with a
+ * printable_id set by hand are skipped: Lulu prints those from its stored copy, not the link.
+ * null when lulu_printables cannot be read (a check that cannot see is not a pass).
+ */
+async function checkLuluPrintFiles(): Promise<SystemHealthInput['luluFiles']> {
+  const res = await countRows('/rest/v1/lulu_printables?select=band,book_key,title,interior_url,cover_url,printable_id&limit=200');
+  if (!res) return null;
+  const targets: { label: string; url: string }[] = [];
+  for (const r of res.rows) {
+    if (r?.printable_id) continue;
+    const name = typeof r?.title === 'string' && r.title ? r.title : `${r?.band ?? 'sprouts'}/${r?.book_key ?? '?'}`;
+    if (typeof r?.interior_url === 'string' && r.interior_url) targets.push({ label: `${name} (inside pages)`, url: r.interior_url });
+    if (typeof r?.cover_url === 'string' && r.cover_url) targets.push({ label: `${name} (cover)`, url: r.cover_url });
+  }
+  const results = await Promise.all(targets.map(async (t) => ({ ...t, r: await checkPrintFileUrl(t.url, { timeoutMs: 15_000 }) })));
+  for (const x of results.filter((x) => x.r.state !== 'ok')) {
+    console.error('notify-founder-digest: print file', x.r.state, x.label, printFileHost(x.url), x.r.detail);
+  }
+  return {
+    checked: results.length,
+    bad: results.filter((x) => x.r.state === 'bad').map((x) => `${x.label}: ${x.r.detail}`),
+    unreachable: results.filter((x) => x.r.state === 'unreachable').map((x) => `${x.label}: ${x.r.detail}`),
+  };
+}
+
 async function fetchSystemHealthInput(digestDate: string, todayCt: string, now: Date): Promise<SystemHealthInput> {
   const iso = (msAgo: number) => encodeURIComponent(new Date(now.getTime() - msAgo).toISOString());
   const HOUR = 3_600_000;
@@ -274,7 +302,7 @@ async function fetchSystemHealthInput(digestDate: string, todayCt: string, now: 
   const ga4Since = new Date(Math.max(now.getTime() - 7 * 24 * HOUR, Date.parse(GA4_PATH_LIVE))).toISOString();
   const day = digestWindow(digestDate);
 
-  const [recap, trends, digestFailed, failed, stuck, stripe, lulu, starter, payments, sampleServes] = await Promise.all([
+  const [recap, trends, digestFailed, failed, stuck, stripe, lulu, starter, payments, sampleServes, luluUnpaid, luluOverdue, luluFiles] = await Promise.all([
     countRows(`/rest/v1/recap_runs?recap_date=eq.${digestDate}&select=status&limit=1`),
     countRows('/rest/v1/weekly_trends_runs?status=eq.sent&select=run_date&order=run_date.desc&limit=1'),
     countRows(`/rest/v1/digest_runs?status=eq.failed&digest_date=gte.${addDays(todayCt, -30)}&select=digest_date&limit=1`),
@@ -289,6 +317,18 @@ async function fetchSystemHealthInput(digestDate: string, todayCt: string, now: 
       '/rest/v1/partner_sample_serves?select=key_id,visitor_hash,partner_sample_keys(email,name,revoked_at)' +
         `&served_at=gte.${encodeURIComponent(day.windowStart)}&served_at=lt.${encodeURIComponent(day.windowEnd)}&limit=10000`,
     ),
+    // (L4, 2026-11-11) Print orders Lulu holds as UNPAID an hour after they were sent.
+    countRows(`/rest/v1/orders?lulu_status=eq.UNPAID&status=not.in.(cancelled,refunded)&lulu_submitted_at=lt.${iso(HOUR)}&select=order_number&limit=20`),
+    // (L4) Print orders at Lulu longer than LULU_OVERDUE_DAYS and still not shipped.
+    countRows(
+      `/rest/v1/orders?lulu_print_job_id=not.is.null&shipped_at=is.null&status=in.(ready_to_fulfill,in_production)` +
+        `&lulu_submitted_at=lt.${iso(LULU_OVERDUE_DAYS * 24 * HOUR)}&select=order_number&limit=20`,
+    ),
+    // (L5) Every print-file link still hands out a PDF.
+    checkLuluPrintFiles().catch((e) => {
+      console.error('notify-founder-digest: print file check failed', e instanceof Error ? e.message : String(e));
+      return null;
+    }),
   ]);
 
   const failedByQueue: Record<string, number | null> = {};
@@ -322,6 +362,9 @@ async function fetchSystemHealthInput(digestDate: string, todayCt: string, now: 
     stripeProblems: stripe?.n ?? null,
     luluProblems: lulu?.n ?? null,
     starterProblems: starter?.n ?? null,
+    luluUnpaid: luluUnpaid?.n ?? null,
+    luluOverdue: luluOverdue?.n ?? null,
+    luluFiles,
     ga4ByStatus,
     ga4SecretSet: !!Deno.env.get('GA4_MP_API_SECRET'),
     sampleLinkSpikes: sampleServes ? findSampleLinkSpikes(sampleServes.rows) : null,

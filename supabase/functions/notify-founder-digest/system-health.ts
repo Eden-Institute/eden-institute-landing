@@ -43,6 +43,14 @@ export interface SystemHealthInput {
   luluProblems: number | null;
   /** starter_deliveries not sent an hour after they were created. */
   starterProblems: number | null;
+  /** (L4, 2026-11-11) Print orders Lulu holds as UNPAID more than an hour after they were
+   *  sent. Lulu does not print an unpaid job. Absent = the check is not run. */
+  luluUnpaid?: number | null;
+  /** (L4) Print orders sent to Lulu more than LULU_OVERDUE_DAYS ago and still not shipped. */
+  luluOverdue?: number | null;
+  /** (L5) Every print-file URL in lulu_printables, read for its first bytes. null when the
+   *  table could not be read; absent = the check is not run. */
+  luluFiles?: { checked: number; bad: string[]; unreachable: string[] } | null;
   /** Real payments recorded since the GA4 server path went live, by ga4_status ('none' = never attempted). */
   ga4ByStatus: Record<string, number> | null;
   /** Whether GA4_MP_API_SECRET is set. Edge Function secrets are project-wide, so the
@@ -104,6 +112,10 @@ function perQueue(m: Record<string, number | null>): string {
 function plural(n: number, one: string, many = `${one}s`): string {
   return `${n} ${n === 1 ? one : many}`;
 }
+
+/** (L4) Past jobs went from sent to shipped in 5 to 13 days (2-day production delay, then
+ *  3 to 11 days at the printer); past 14 days something is wrong. */
+export const LULU_OVERDUE_DAYS = 14;
 
 /** The checks, in the order the founder reads them. `digestDate` is the Central-time
  *  day the digest covers (yesterday); `todayCt` is today in Central time. */
@@ -171,6 +183,47 @@ export function evaluateSystemHealth(input: SystemHealthInput, digestDate: strin
     else checks.push({ key, ok: false, detail: `${plural(n, one, many.toLowerCase())} failed or stuck. A customer may be waiting.` });
   }
 
+  // (L4, 2026-11-11) After a job reaches Lulu nothing else watches it: an order Lulu holds
+  // as UNPAID, or one that never ships, used to sit at in_production with nobody told.
+  if (input.luluUnpaid !== undefined || input.luluOverdue !== undefined) {
+    const u = input.luluUnpaid ?? null;
+    const o = input.luluOverdue ?? null;
+    if (u === null || o === null) {
+      checks.push({ key: 'lulu_printer', ok: null, detail: 'Lulu print orders at the printer: could not be checked.' });
+    } else if (u === 0 && o === 0) {
+      checks.push({ key: 'lulu_printer', ok: true, detail: 'Lulu print orders at the printer: none on hold, none overdue.' });
+    } else {
+      const parts: string[] = [];
+      if (u > 0) {
+        parts.push(`${plural(u, 'print order')} on hold at Lulu as UNPAID. Lulu will not print ${u === 1 ? 'it' : 'them'} until the payment is fixed in your Lulu account.`);
+      }
+      if (o > 0) {
+        parts.push(`${plural(o, 'print order')} sent to Lulu more than ${LULU_OVERDUE_DAYS} days ago and still not shipped. Look ${o === 1 ? 'it' : 'them'} up in your Lulu account.`);
+      }
+      checks.push({ key: 'lulu_printer', ok: false, detail: parts.join(' ') });
+    }
+  }
+
+  // (L5) Lulu downloads every print file from its link on every order, so a dead link
+  // stays hidden until a sale fails (the Dropbox outage, 2026-11-04).
+  if (input.luluFiles !== undefined) {
+    const f = input.luluFiles;
+    const list = (xs: string[]) => xs.slice(0, 5).join('; ') + (xs.length > 5 ? `; and ${xs.length - 5} more` : '');
+    if (f === null) {
+      checks.push({ key: 'lulu_files', ok: null, detail: 'Lulu print files: could not be checked.' });
+    } else if (f.bad.length > 0) {
+      checks.push({
+        key: 'lulu_files',
+        ok: false,
+        detail: `${plural(f.bad.length, 'Lulu print file')} would not download as a PDF: ${list(f.bad)}. The next print order for that book will fail until the link in lulu_printables is fixed.`,
+      });
+    } else if (f.unreachable.length > 0) {
+      checks.push({ key: 'lulu_files', ok: null, detail: `Lulu print files: ${plural(f.unreachable.length, 'file')} did not answer the check (${list(f.unreachable)}).` });
+    } else {
+      checks.push({ key: 'lulu_files', ok: true, detail: `Lulu print files: all ${f.checked} answer as PDFs.` });
+    }
+  }
+
   if (!input.ga4SecretSet) {
     checks.push({
       key: 'ga4',
@@ -221,7 +274,7 @@ export function systemHealthHtml(checks: HealthCheck[]): string {
   const label = `<p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:2px;color:#C9A84C;text-transform:uppercase;margin:16px 0 8px 0;">System health</p>`;
   if (problems.length === 0) {
     return `${label}
-<p style="font-family:Georgia,serif;font-size:13px;color:#1C3A2E;margin:0 0 8px 0;">All ${checks.length} checks passed: scheduled emails, failed and waiting emails, Stripe, Lulu, Starter downloads, sales reaching Google Analytics, and partner sample links.</p>`;
+<p style="font-family:Georgia,serif;font-size:13px;color:#1C3A2E;margin:0 0 8px 0;">All ${checks.length} checks passed: scheduled emails, failed and waiting emails, Stripe, Lulu (orders and print files), Starter downloads, sales reaching Google Analytics, and partner sample links.</p>`;
   }
   const items = problems.map((c) =>
     `<li style="margin:0 0 6px 0;">${c.ok === null ? '<strong>Could not check.</strong> ' : ''}${esc(c.detail)}</li>`

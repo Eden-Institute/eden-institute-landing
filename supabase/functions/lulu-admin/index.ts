@@ -10,7 +10,8 @@
 // before and the reply carries "mfa_enrolled": false.
 //
 // Actions (POST JSON { action, ... }):
-//   resubmit          { order_id }   reset the job to pending and submit now
+//   resubmit          { order_id }   reset the job to pending and submit now (asks Lulu
+//                                    for an existing live job first; 409 while a submit runs)
 //   cancel            { order_id }   cancel at Lulu (only works inside the production delay)
 //   refresh           { order_id }   pull the job from Lulu and apply its status
 //   validate_files    { book, band? } start Lulu's interior + cover validation for one
@@ -27,6 +28,7 @@ import {
   cancelLuluForOrder,
   loadPrintables,
   LULU_JOB_COLUMNS,
+  LULU_STALE_CLAIM_MINUTES,
   LuluJobRow,
   refreshLuluOrder,
   releaseDeadLuluJob,
@@ -89,19 +91,34 @@ serve(async (req) => {
       case 'resubmit': {
         const orderId = String(body.order_id ?? '');
         if (!orderId) return json({ error: 'Missing order_id' }, 400);
+        // (L1, 2026-11-11) A submit that is running right now is left alone. A claim older
+        // than LULU_STALE_CLAIM_MINUTES belongs to a worker that died, and Resubmit may
+        // now free it (before, a stuck in_progress row could not be reset at all).
+        const { data: current } = await adminClient.from('lulu_jobs').select('status, updated_at').eq('order_id', orderId).maybeSingle();
+        const claimAge = current?.status === 'in_progress' ? Date.now() - Date.parse(String(current.updated_at ?? '')) : NaN;
+        const staleClaim = current?.status === 'in_progress' && !(claimAge < LULU_STALE_CLAIM_MINUTES * 60_000);
+        if (current?.status === 'in_progress' && !staleClaim) {
+          return json({ error: `A submit for this order is running right now. Try Resubmit again in ${LULU_STALE_CLAIM_MINUTES} minutes.` }, 409);
+        }
         // A job Lulu REJECTED / ERRORed / CANCELED will never print: detach it from the
         // order first, or submitLuluJob skips the order as "already submitted".
         const { released } = await releaseDeadLuluJob(adminClient, orderId);
         // Reset attempts so a job that burned its retries on a since-fixed cause
         // gets a fresh run. Insert the row if the order never got one.
+        // The note is never empty: it tells submitLuluJob an earlier try may have reached
+        // Lulu, so Lulu is asked for an existing live job before anything is sent (L2).
         const { data: existing } = await adminClient.from('lulu_jobs').select('id').eq('order_id', orderId).maybeSingle();
         if (existing) {
+          const allowed = released ? ['pending', 'failed', 'cancelled', 'submitted'] : ['pending', 'failed', 'cancelled'];
+          if (staleClaim) allowed.push('in_progress');
           const { error } = await adminClient.from('lulu_jobs')
             .update({
               status: 'pending', attempts: 0, updated_at: new Date().toISOString(),
-              ...(released ? { print_job_id: null, last_error: `previous Lulu job ${released} released for resubmit` } : { last_error: null }),
+              ...(released
+                ? { print_job_id: null, last_error: `previous Lulu job ${released} released for resubmit` }
+                : { last_error: staleClaim ? 'resubmitted by founder after a submit stopped partway' : 'resubmitted by founder' }),
             })
-            .eq('order_id', orderId).in('status', released ? ['pending', 'failed', 'cancelled', 'submitted'] : ['pending', 'failed', 'cancelled']);
+            .eq('order_id', orderId).in('status', allowed);
           if (error) throw error;
         } else {
           const { error } = await adminClient.from('lulu_jobs').insert({ order_id: orderId, status: 'pending' });

@@ -140,3 +140,44 @@ Deno.test('detail text is escaped in the HTML block', () => {
   const html = systemHealthHtml([{ key: 'x', ok: false, detail: '<b>&' }]);
   assertStringIncludes(html, '&lt;b&gt;&amp;');
 });
+
+// ── Lulu after submit (L4) and print files (L5), 2026-11-11 ──
+
+Deno.test('L4/L5: the Lulu printer and print-file checks are skipped when not supplied, so older inputs still read 10', () => {
+  const c = byKey(healthy());
+  assertEquals('lulu_printer' in c, false);
+  assertEquals('lulu_files' in c, false);
+});
+
+Deno.test('L4/L5: all clear reads as two more passing checks', () => {
+  const input = { ...healthy(), luluUnpaid: 0, luluOverdue: 0, luluFiles: { checked: 18, bad: [], unreachable: [] } };
+  const checks = evaluateSystemHealth(input, '2026-10-30', '2026-10-31');
+  assertEquals(checks.length, 12);
+  assert(checks.every((x) => x.ok === true));
+  const c = byKey(input);
+  assertStringIncludes(c.lulu_printer.detail, 'none on hold, none overdue');
+  assertStringIncludes(c.lulu_files.detail, 'all 18 answer as PDFs');
+  assertStringIncludes(systemHealthHtml(checks), 'Lulu (orders and print files)');
+});
+
+Deno.test('L4: an order held UNPAID at Lulu, and one that never shipped, are both named', () => {
+  const c = byKey({ ...healthy(), luluUnpaid: 1, luluOverdue: 2 });
+  assertEquals(c.lulu_printer.ok, false);
+  assertStringIncludes(c.lulu_printer.detail, '1 print order on hold at Lulu as UNPAID');
+  assertStringIncludes(c.lulu_printer.detail, 'Lulu will not print it until the payment is fixed');
+  assertStringIncludes(c.lulu_printer.detail, '2 print orders sent to Lulu more than 14 days ago and still not shipped');
+  const unread = byKey({ ...healthy(), luluUnpaid: null, luluOverdue: 0 });
+  assertEquals(unread.lulu_printer.ok, null);
+});
+
+Deno.test('L5: a dead print file is a problem; a silent host is "could not check"; an unreadable table too', () => {
+  const dead = byKey({ ...healthy(), luluFiles: { checked: 18, bad: ["Eden's Table Sprouts: Teacher's Guide (cover): HTTP 404"], unreachable: [] } });
+  assertEquals(dead.lulu_files.ok, false);
+  assertStringIncludes(dead.lulu_files.detail, '1 Lulu print file would not download as a PDF');
+  assertStringIncludes(dead.lulu_files.detail, 'HTTP 404');
+  const quiet = byKey({ ...healthy(), luluFiles: { checked: 18, bad: [], unreachable: ['x (cover): no answer (TimeoutError)'] } });
+  assertEquals(quiet.lulu_files.ok, null);
+  assertEquals(byKey({ ...healthy(), luluFiles: null }).lulu_files.ok, null);
+  const many = byKey({ ...healthy(), luluFiles: { checked: 18, bad: ['a', 'b', 'c', 'd', 'e', 'f', 'g'], unreachable: [] } });
+  assertStringIncludes(many.lulu_files.detail, 'and 2 more');
+});

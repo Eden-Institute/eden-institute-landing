@@ -193,6 +193,38 @@ export function getPrintJob(id: number | string): Promise<LuluPrintJob> {
   return lulu(`/print-jobs/${id}/`);
 }
 
+/** One page of GET /print-jobs/ (Lulu's paginated list). */
+export interface LuluPrintJobPage {
+  count: number;
+  next: string | null;
+  previous?: string | null;
+  results: LuluPrintJob[];
+}
+
+/**
+ * GET /print-jobs/ with Lulu's documented list filters. Parameter names are taken
+ * verbatim from Lulu's public OpenAPI spec (api.lulu.com/api-docs/openapi-specs/
+ * openapi_public.yml, read 2026-11-11): `search` matches across id, external_id,
+ * order_id, status, line item fields and the shipping address, so it is a broad text
+ * search and the caller MUST filter the results on external_id exactly.
+ * `created_after` takes ISO 8601 up to second precision (the spec lists no
+ * fractional-second form, so none is sent).
+ */
+export function listPrintJobs(params: {
+  search?: string;
+  created_after?: string;
+  page_size?: number;
+  exclude_line_items?: boolean;
+}): Promise<LuluPrintJobPage> {
+  const q = new URLSearchParams();
+  if (params.search) q.set('search', params.search);
+  if (params.created_after) q.set('created_after', params.created_after);
+  if (params.page_size) q.set('page_size', String(params.page_size));
+  if (params.exclude_line_items) q.set('exclude_line_items', 'true');
+  const qs = q.toString();
+  return lulu(`/print-jobs/${qs ? `?${qs}` : ''}`);
+}
+
 /**
  * Cancel a job. Lulu accepts this only while the job has not entered
  * production (the production_delay window); afterwards it returns an error and
