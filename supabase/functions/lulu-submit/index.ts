@@ -23,6 +23,8 @@ import {
   LULU_JOB_COLUMNS,
   LULU_JOB_MAX_ATTEMPTS,
   LuluJobRow,
+  luluRetryDue,
+  releaseStaleLuluClaims,
   submitLuluJob,
   SubmitResult,
 } from '../_shared/lulu-fulfillment.ts';
@@ -41,6 +43,13 @@ const adminClient = createClient(
 /** Jobs per drain. Each is one Lulu round trip; a backlog drains on the next tick. */
 const DRAIN_BATCH = 10;
 
+/**
+ * Rows read per drain before the retry-spacing filter (L7, 2026-11-11): failed rows
+ * still waiting out their delay are skipped in code, so they must not crowd due rows
+ * out of the batch.
+ */
+const DRAIN_SCAN = 50;
+
 function json(status: number, body: Record<string, unknown>): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -57,6 +66,8 @@ serve(async (req) => {
 
   try {
     let rows: LuluJobRow[] = [];
+    let releasedStale = 0;
+    let waiting = 0;
     if (orderId) {
       const { data, error } = await adminClient
         .from('lulu_jobs').select(LULU_JOB_COLUMNS).eq('order_id', orderId).maybeSingle();
@@ -64,15 +75,29 @@ serve(async (req) => {
       if (!data) return json(404, { error: 'no Lulu job for that order', order_id: orderId });
       rows = [data as LuluJobRow];
     } else {
-      // Oldest first, so a backlog drains in the order people paid.
+      // (L1) A claim left in_progress by a worker that died goes back to 'failed' first,
+      // so it is retried (after Lulu is asked for an existing job) instead of sitting
+      // stuck. A failure here is logged and the drain carries on.
+      try {
+        const stale = await releaseStaleLuluClaims(adminClient);
+        releasedStale = stale.released;
+      } catch (e) {
+        console.error('lulu-submit: stale claim release failed:', e instanceof Error ? e.message : String(e));
+      }
+      // Oldest first, so a backlog drains in the order people paid. (L7) A failed row
+      // waits out its retry delay; only due rows are tried.
       const { data, error } = await adminClient
         .from('lulu_jobs').select(LULU_JOB_COLUMNS)
         .in('status', ['pending', 'failed'])
         .lt('attempts', LULU_JOB_MAX_ATTEMPTS)
         .order('created_at', { ascending: true })
-        .limit(DRAIN_BATCH);
+        .limit(DRAIN_SCAN);
       if (error) throw new Error(`job scan failed: ${error.message}`);
-      rows = (data ?? []) as LuluJobRow[];
+      const now = new Date();
+      const candidates = (data ?? []) as LuluJobRow[];
+      const due = candidates.filter((r) => luluRetryDue(r, now));
+      waiting = candidates.length - due.length;
+      rows = due.slice(0, DRAIN_BATCH);
     }
 
     const results: SubmitResult[] = [];
@@ -96,8 +121,11 @@ serve(async (req) => {
 
     const submitted = results.filter((r) => r.status === 'submitted').length;
     const failed = results.filter((r) => r.status === 'failed').length;
-    console.log(`lulu-submit: processed=${results.length} submitted=${submitted} failed=${failed} stuck=${stuck ?? 0}`);
-    return json(200, { processed: results.length, submitted, failed, stuck: stuck ?? 0, results });
+    console.log(
+      `lulu-submit: processed=${results.length} submitted=${submitted} failed=${failed} stuck=${stuck ?? 0} ` +
+        `waiting=${waiting} released_stale=${releasedStale}`,
+    );
+    return json(200, { processed: results.length, submitted, failed, stuck: stuck ?? 0, waiting, released_stale: releasedStale, results });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('lulu-submit error:', message);
