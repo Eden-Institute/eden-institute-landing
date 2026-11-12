@@ -115,6 +115,7 @@ import { captureException } from '../_shared/sentry.ts';
 import { escapeLikePattern } from '../_shared/like-escape.ts';
 import { dueFilter, planSendFailure, type SendFailure } from '../_shared/send-backoff.ts';
 import { alertFounder } from '../_shared/founder-alert.ts';
+import { rowsOrThrow } from '../_shared/signup-safety.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -392,13 +393,22 @@ async function recordSendFailure(
 
 // Voluntary per-list opt-out check (vs. the global unsubscribe handled by
 // resend-webhook + the cancel_queued_emails_on_unsubscribe trigger).
+//
+// 2026-11-12 (area 5 F6): this check and isGloballyUnsubscribed / ownsBand /
+// hasPreordered fail CLOSED. An unreadable answer used to read as "not opted out",
+// so a database hiccup could email someone who had left. rowsOrThrow throws
+// instead; every caller sits inside a drain's per-row try, which keeps the row
+// pending and retries it like a failed send.
 async function isUnsubscribed(email: string, list: EmailList): Promise<boolean> {
-  const rows = await supabaseQuery(
-    `email_list_unsubscribes?email=eq.${encodeURIComponent(
-      email.trim().toLowerCase(),
-    )}&list=eq.${list}&select=email&limit=1`,
+  const rows = rowsOrThrow(
+    await supabaseQuery(
+      `email_list_unsubscribes?email=eq.${encodeURIComponent(
+        email.trim().toLowerCase(),
+      )}&list=eq.${list}&select=email&limit=1`,
+    ),
+    `opt-out check (${list})`,
   );
-  return Array.isArray(rows) && rows.length > 0;
+  return rows.length > 0;
 }
 
 interface QueueResult {
@@ -593,10 +603,13 @@ async function saidYesToChildren(email: string): Promise<boolean> {
 }
 
 async function isGloballyUnsubscribed(email: string): Promise<boolean> {
-  const gone = await supabaseQuery(
-    `waitlist_signups?email=ilike.${encodeURIComponent(escapeLikePattern(email))}&unsubscribed_at=not.is.null&select=email&limit=1`,
+  const gone = rowsOrThrow(
+    await supabaseQuery(
+      `waitlist_signups?email=ilike.${encodeURIComponent(escapeLikePattern(email))}&unsubscribed_at=not.is.null&select=email&limit=1`,
+    ),
+    'global opt-out check',
   );
-  return Array.isArray(gone) && gone.length > 0;
+  return gone.length > 0;
 }
 
 // The refund email's own name rule (order-messages buildRefundEmail): the shipping name, else
@@ -1222,6 +1235,21 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
         });
         continue;
       }
+      // 2026-11-12 (area 5 F5): a global opt-out (unsubscribe from everything, hard
+      // bounce or complaint, waitlist_signups.unsubscribed_at) is checked at send time
+      // too, as the buyer and Chapter 1 drains already do (#660). Until now this drain
+      // relied only on the cancel trigger firing at the moment of the change.
+      if (await isGloballyUnsubscribed(email)) {
+        await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: 'cancelled',
+            error_message: 'recipient unsubscribed or bounced (global)',
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        continue;
+      }
 
       // Both-band spacing (see BAND_SPACED_POSITIONS): if the other band's copy of this
       // step went out in the last 2 days, wait until 2 days after it. The row stays
@@ -1391,18 +1419,24 @@ const BAND_OWNER_KEYS: Record<'sprouts' | 'seedlings', string[]> = {
 
 async function ownsBand(email: string, band: 'sprouts' | 'seedlings'): Promise<boolean> {
   const literal = escapeLikePattern(email);
-  const rows = await supabaseQuery(
-    `orders?customer_email=ilike.${encodeURIComponent(literal)}&payment_status=eq.paid&lookup_key=in.(${BAND_OWNER_KEYS[band].join(',')})&select=id&limit=1`,
+  const rows = rowsOrThrow(
+    await supabaseQuery(
+      `orders?customer_email=ilike.${encodeURIComponent(literal)}&payment_status=eq.paid&lookup_key=in.(${BAND_OWNER_KEYS[band].join(',')})&select=id&limit=1`,
+    ),
+    `owner check (${band})`,
   );
-  return Array.isArray(rows) && rows.length > 0;
+  return rows.length > 0;
 }
 
 async function hasPreordered(email: string): Promise<boolean> {
   const literal = escapeLikePattern(email);
-  const rows = await supabaseQuery(
-    `orders?customer_email=ilike.${encodeURIComponent(literal)}&status=not.in.(cancelled,refunded)&select=id&limit=1`,
+  const rows = rowsOrThrow(
+    await supabaseQuery(
+      `orders?customer_email=ilike.${encodeURIComponent(literal)}&status=not.in.(cancelled,refunded)&select=id&limit=1`,
+    ),
+    'order check',
   );
-  return Array.isArray(rows) && rows.length > 0;
+  return rows.length > 0;
 }
 
 // ── Founding-window check (copy variant for the retired positions 13-17) ──

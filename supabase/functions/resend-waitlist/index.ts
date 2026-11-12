@@ -15,6 +15,8 @@ import { pgrstFetch } from '../_shared/pgrst-retry.ts';
 import { sendMetaCapiLead } from '../_shared/meta-capi.ts';
 import { getCallerUser } from '../_shared/caller-user.ts';
 import { applyMemberRetake, memberRetakeUserId } from '../_shared/quiz-member-retake.ts';
+import { insertOrFetchWithRetry, sendWelcomeWithRetry, type WelcomeSendResult } from '../_shared/signup-safety.ts';
+import { alertFounder } from '../_shared/founder-alert.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -102,7 +104,10 @@ function getSlugInfo(constitutionType: string): { slug: string; name: string } |
 
 // ── Send email helper ──
 
-async function sendEmail(to: string, subject: string, html: string, list: EmailList, utm: EmailTag): Promise<void> {
+// Returns what Resend really did (2026-11-12, area 5 F1): a refusal used to be
+// logged and then counted as sent. One retry for a 429 / 5xx / network failure,
+// one Idempotency-Key per sign-up request across both tries (_shared/signup-safety.ts).
+async function sendEmail(to: string, subject: string, html: string, list: EmailList, utm: EmailTag): Promise<WelcomeSendResult> {
   const { html: unsubHtml, headers: unsubHeaders } = await applyUnsub(html, to, list);
   // UTM tags on every edeninstitute.health link (founder rule 2026-10-08, _shared/email-utm.ts).
   const finalHtml = tagEmailHtml(unsubHtml, utm);
@@ -118,20 +123,16 @@ async function sendEmail(to: string, subject: string, html: string, list: EmailL
     headers: unsubHeaders,
   };
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
+  const result = await sendWelcomeWithRetry(payload, {
+    apiKey: RESEND_API_KEY ?? '',
+    idempotencyKey: `welcome/${crypto.randomUUID()}`,
   });
-  const data = await res.json();
-  if (!res.ok) {
-    console.error('Email send failed:', res.status, JSON.stringify(data));
+  if (!result.ok) {
+    console.error('Email send failed:', result.status, result.attempts, result.error ?? '');
   } else {
-    console.log('Email sent successfully:', JSON.stringify(data));
+    console.log('Email sent successfully:', JSON.stringify({ id: result.id, attempts: result.attempts }));
   }
+  return result;
 }
 
 // ── Main handler ──
@@ -309,6 +310,26 @@ Deno.serve(async (req) => {
       if (upsertResult) {
         waitlistId = upsertResult.id;
         existingResendContactId = upsertResult.resend_contact_id;
+      } else {
+        // 2026-11-12 (area 5 F4): the sign-up still goes on (welcome, drip), but a
+        // family with no waitlist_signups row is missing from the Friday emails, the
+        // digest and the nightly contact sync, so the founder hears about it.
+        await alertFounder(
+          `Sign-up NOT saved (${entry_funnel})`,
+          [
+            'A family signed up on the site, but their sign-up could not be saved to the list after 2 tries.',
+            '',
+            `Email: ${normalizedEmail}`,
+            `First name: ${firstNameSafe || '(none)'}`,
+            `Funnel: ${entry_funnel}, source: ${source ?? 'none'}`,
+            '',
+            'Their welcome email still goes out, but they are not on the list for the Friday emails or the morning digest.',
+            'To fix it: ask Claude to add this sign-up to waitlist_signups.',
+            '',
+            '(Sent by resend-waitlist.)',
+          ].join('\n'),
+          'resend-waitlist',
+        );
       }
     }
 
@@ -671,17 +692,52 @@ Deno.serve(async (req) => {
       if (!sendAllowed) console.warn('welcome send throttled (per-recipient cap)');
     }
 
+    // welcomeSent is true only when Resend ACCEPTED the welcome (2026-11-12, area 5
+    // F1): it is what the form reads (welcome_email_sent) to choose its thank-you
+    // screen. A welcome that was tried and not accepted emails the founder (F1/F2).
     let welcomeSent = false;
+    const welcomeAttempted = Boolean(emailContent && sendAllowed);
+    const isFreeWeek = entry_funnel === 'edens_table' && (source === 'sprouts_magnet' || source === 'seedlings_magnet');
     if (emailContent && sendAllowed) {
+      let failure: WelcomeSendResult | null = null;
       try {
         // Non-quiz welcomes belong to the homeschool list (edens_table/homeschool
         // funnels), except the podcast welcome, which has its own list so a podcast
         // unsubscribe never touches Eden's Table mail and vice versa.
         const welcomeList: EmailList = entry_funnel === 'podcast' ? 'podcast' : 'homeschool';
-        await sendEmail(normalizedEmail, emailContent.subject, emailContent.html, welcomeList, { medium: 'welcome', campaign: welcomeKey, content: 'welcome' });
-        welcomeSent = true;
+        const sent = await sendEmail(normalizedEmail, emailContent.subject, emailContent.html, welcomeList, { medium: 'welcome', campaign: welcomeKey, content: 'welcome' });
+        welcomeSent = sent.ok;
+        if (!sent.ok) failure = sent;
       } catch (emailErr) {
         console.error('Welcome email send error:', String(emailErr));
+        failure = { ok: false, status: null, error: String(emailErr).slice(0, 300), attempts: 0 };
+      }
+      if (failure) {
+        const what = failure.status === null
+          ? `The send failed before Resend answered (${failure.attempts} ${failure.attempts === 1 ? 'try' : 'tries'}): ${failure.error ?? 'no detail'}`
+          : `Resend refused it with ${failure.status} after ${failure.attempts} ${failure.attempts === 1 ? 'try' : 'tries'}: ${failure.error ?? 'no detail'}`;
+        const next = isFreeWeek
+          ? 'Their next-morning note (it has the Week 1 download link) is still queued for about 18 hours from now, then the Day-7 check-in and the Day-10 note. The free-week sign-up form shows an "Open Week 1" button when this happens.'
+          : welcomeKey === 'back_to_eden_ch1'
+          ? 'Their Chapter 1 follow-up notes were NOT queued, because those notes assume the chapter arrived.'
+          : 'Nothing else is queued from this sign-up.';
+        await alertFounder(
+          `Welcome email NOT sent (${welcomeKey})`,
+          [
+            'A family signed up on the site, but their welcome email did not go out.',
+            '',
+            `Email: ${normalizedEmail}`,
+            `Sign-up: ${welcomeKey} (funnel ${entry_funnel}, source ${source ?? 'none'})`,
+            `What happened: ${what}`,
+            '',
+            next,
+            '',
+            'To fix it by hand: send them the welcome from hello@ (or reply to them there).',
+            '',
+            '(Sent by resend-waitlist.)',
+          ].join('\n'),
+          'resend-waitlist',
+        );
       }
     }
 
@@ -695,7 +751,12 @@ Deno.serve(async (req) => {
     // 20260728233000). Positions 4-7 chain off 3 via MAGNET_CHAIN_NEXT in
     // nurture-emails, so dropping 3 ends the whole W3-W7 tail without touching
     // the chain map, and without stranding anyone already partway through it.
-    if (welcomeSent && entry_funnel === 'edens_table' && (source === 'sprouts_magnet' || source === 'seedlings_magnet')) {
+    //
+    // 2026-11-12 (area 5 F2): queued whenever the welcome was TRIED, not only when
+    // it went. A welcome that failed used to leave the family with nothing, ever: no
+    // next-morning note, no check-in, no Day-10 note. The next-morning note carries
+    // the Week 1 download link, so it doubles as the recovery for a lost welcome.
+    if (welcomeAttempted && isFreeWeek) {
       try {
         const band = source === 'sprouts_magnet' ? 'sprouts' : 'seedlings';
         const nowMs = Date.now();
@@ -908,6 +969,12 @@ function json(status: number, payload: unknown): Response {
 
 // Insert a waitlist_signups row; on (email, entry_funnel) conflict return
 // the existing row. Returns null on unexpected failure.
+//
+// 2026-11-12 (area 5 F4): one retry for a gateway 502/503/504 or a network
+// failure (_shared/signup-safety.ts insertOrFetchWithRetry). Repeating the INSERT
+// is safe because of UNIQUE (email, entry_funnel): a first try that did commit
+// makes the repeat answer 409, and the existing row is looked up. The caller
+// emails the founder when this still returns null.
 async function waitlistUpsert(row: {
   email: string;
   first_name: string;
@@ -922,49 +989,29 @@ async function waitlistUpsert(row: {
   utm_content: string | null;
   consents: Record<string, unknown>;
 }): Promise<{ id: string; resend_contact_id: string | null } | null> {
-  const insertRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/waitlist_signups?select=id,resend_contact_id`,
-    {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_SERVICE_ROLE_KEY!,
-        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY!}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation',
-      },
-      body: JSON.stringify(row),
-    }
-  );
-
-  if (insertRes.ok) {
-    const data = await insertRes.json();
-    if (Array.isArray(data) && data.length > 0) {
-      return { id: data[0].id, resend_contact_id: data[0].resend_contact_id ?? null };
-    }
-  }
-
-  // Unique violation (409) → row exists → fetch and return it.
-  if (insertRes.status === 409) {
-    const fetchRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/waitlist_signups?email=eq.${encodeURIComponent(row.email)}&entry_funnel=eq.${row.entry_funnel}&select=id,resend_contact_id&limit=1`,
-      {
+  return await insertOrFetchWithRetry(
+    () =>
+      fetch(`${SUPABASE_URL}/rest/v1/waitlist_signups?select=id,resend_contact_id`, {
+        method: 'POST',
         headers: {
           'apikey': SUPABASE_SERVICE_ROLE_KEY!,
           'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY!}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation',
         },
-      }
-    );
-    if (fetchRes.ok) {
-      const existing = await fetchRes.json();
-      if (Array.isArray(existing) && existing.length > 0) {
-        return { id: existing[0].id, resend_contact_id: existing[0].resend_contact_id ?? null };
-      }
-    }
-  }
-
-  const errText = await insertRes.text().catch(() => '');
-  console.error('waitlist_signups upsert failed:', insertRes.status, errText);
-  return null;
+        body: JSON.stringify(row),
+      }),
+    () =>
+      fetch(
+        `${SUPABASE_URL}/rest/v1/waitlist_signups?email=eq.${encodeURIComponent(row.email)}&entry_funnel=eq.${row.entry_funnel}&select=id,resend_contact_id&limit=1`,
+        {
+          headers: {
+            'apikey': SUPABASE_SERVICE_ROLE_KEY!,
+            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY!}`,
+          },
+        },
+      ),
+  );
 }
 
 async function waitlistMarkSyncedById(id: string, resendContactId: string): Promise<void> {

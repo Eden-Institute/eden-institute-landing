@@ -66,6 +66,9 @@ export function FreeWeekOfferCard() {
           successSubtitle={m.successSubtitle}
           successCtaHref="/homeschool"
           successCtaLabel="See the full year"
+          lateMessage={m.lateMessage}
+          lateHref={m.lateHref}
+          lateLabel={m.lateLabel}
         />
       )}
     </section>
