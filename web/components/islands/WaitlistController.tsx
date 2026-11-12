@@ -10,7 +10,7 @@
 
 import { useEffect, useState } from "react";
 import WaitlistModal from "@/components/landing/WaitlistModal";
-import { HOMESCHOOL_AUDIENCE_ID } from "../../lib/freeWeekModal";
+import { HOMESCHOOL_AUDIENCE_ID, freeWeekLateFor } from "../../lib/freeWeekModal";
 
 // Eden's Table waitlist audience (web/lib/freeWeekModal.ts). The resend-waitlist
 // EF maps it to entry_funnel='edens_table'; the per-CTA `source` tag drives
@@ -70,6 +70,10 @@ export default function WaitlistController() {
     return () => cleanups.forEach((c) => c());
   }, []);
 
+  // Late-email fallback (2026-11-12, area 5 F3): free-week buttons only, read from
+  // the button's source, so no page has to carry three more data attributes.
+  const late = freeWeekLateFor(cfg.source);
+
   return (
     <WaitlistModal
       open={open}
@@ -85,6 +89,9 @@ export default function WaitlistController() {
       formName={cfg.formName}
       successSubtitle={cfg.successSubtitle}
       source={cfg.source}
+      lateMessage={late?.lateMessage}
+      lateHref={late?.lateHref}
+      lateLabel={late?.lateLabel}
     />
   );
 }

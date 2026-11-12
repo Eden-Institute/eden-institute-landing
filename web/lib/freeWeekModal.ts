@@ -35,10 +35,22 @@ export interface FreeWeekModal {
   submitLabel: string;
   successMessage: string;
   successSubtitle: string;
+  /** Thank-you line when the server says the Week 1 email did NOT go (see LATE_MESSAGE). */
+  lateMessage: string;
+  /** The band's Week 1 download page, shown as a button in that case. */
+  lateHref: string;
+  lateLabel: string;
 }
 
 const SUBMIT_LABEL = "Send me Week 1";
 const SUCCESS_MESSAGE = "Week 1 is on its way to your inbox now.";
+// 2026-11-12, founder-approved wording (tap "Yes, build + ship all", Lane 2 area 5
+// F3). resend-waitlist answers welcome_email_sent=false when Resend did not accept
+// the Week 1 email; the pop-up then shows this line and a button to the band's
+// Week 1 download page (the same page the welcome and the next-morning note link),
+// instead of saying the email is on its way. Copy rule: no em dashes.
+const LATE_MESSAGE = "You're signed up. Your email is running late, so here is Week 1 now:";
+const LATE_LABEL = "Open Week 1";
 
 export const FREE_WEEK_MODAL: Record<"sprouts" | "seedlings", FreeWeekModal> = {
   sprouts: {
@@ -49,6 +61,9 @@ export const FREE_WEEK_MODAL: Record<"sprouts" | "seedlings", FreeWeekModal> = {
     submitLabel: SUBMIT_LABEL,
     successMessage: SUCCESS_MESSAGE,
     successSubtitle: "",
+    lateMessage: LATE_MESSAGE,
+    lateHref: "/freebies/sprouts-week-1",
+    lateLabel: LATE_LABEL,
   },
   seedlings: {
     source: "seedlings_magnet",
@@ -58,5 +73,21 @@ export const FREE_WEEK_MODAL: Record<"sprouts" | "seedlings", FreeWeekModal> = {
     submitLabel: SUBMIT_LABEL,
     successMessage: SUCCESS_MESSAGE,
     successSubtitle: "",
+    lateMessage: LATE_MESSAGE,
+    lateHref: "/freebies/seedlings-week-1",
+    lateLabel: LATE_LABEL,
   },
 };
+
+/**
+ * The late-email fallback for a pop-up opened with this `source`, or null for any
+ * other sign-up (those keep their normal thank-you screen). WaitlistController reads
+ * it from the button's data-waitlist-source, so every free-week button on every
+ * page gets it without carrying three more attributes.
+ */
+export function freeWeekLateFor(
+  source: string | null | undefined,
+): Pick<FreeWeekModal, "lateMessage" | "lateHref" | "lateLabel"> | null {
+  const m = source === "sprouts_magnet" ? FREE_WEEK_MODAL.sprouts : source === "seedlings_magnet" ? FREE_WEEK_MODAL.seedlings : null;
+  return m ? { lateMessage: m.lateMessage, lateHref: m.lateHref, lateLabel: m.lateLabel } : null;
+}

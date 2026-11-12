@@ -65,6 +65,17 @@ interface WaitlistModalProps {
   successMessage?: string;
   successSubtitle?: string;
   /**
+   * Late-email fallback, added 2026-11-12 for the free-week pop-up (Lane 2 area 5
+   * F3, founder-approved wording in web/lib/freeWeekModal.ts). resend-waitlist
+   * answers welcome_email_sent=false when Resend did not accept the welcome email;
+   * the success screen used to say "on its way" regardless. When all three are set
+   * and that happens, lateMessage replaces the success line and a button links to
+   * lateHref. Undefined (every other surface) keeps the normal success screen.
+   */
+  lateMessage?: string;
+  lateHref?: string;
+  lateLabel?: string;
+  /**
    * Explicit entry_funnel override, forwarded to the resend-waitlist EF.
    * Takes precedence over the legacy audienceId→funnel mapping there, so a
    * surface that shares an audienceId with another funnel (e.g. Community and
@@ -79,7 +90,7 @@ interface WaitlistModalProps {
   metadata?: Record<string, unknown>;
 }
 
-const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source = "waitlist", funnel, metadata, successCtaHref, successCtaLabel, successCtaBlurb, submitLabel, successMessage, successSubtitle, formName }: WaitlistModalProps) => {
+const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source = "waitlist", funnel, metadata, successCtaHref, successCtaLabel, successCtaBlurb, submitLabel, successMessage, successSubtitle, formName, lateMessage, lateHref, lateLabel }: WaitlistModalProps) => {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
@@ -94,6 +105,9 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
   const [smsConsent, setSmsConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  // True when the sign-up went through but the server says the welcome email did
+  // not (welcome_email_sent === false) and this surface has a late fallback.
+  const [late, setLate] = useState(false);
   const [error, setError] = useState("");
 
   const acceptSuggestion = () => {
@@ -165,6 +179,7 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
       // submit's value, captured before the field is cleared below. The helper
       // hashes it in the browser and attaches it only with marketing consent.
       void pinSetHashedEmail(email).then(() => pinTrack("lead", { lead_type: source, event_id: fbEventId }));
+      setLate(data?.welcome_email_sent === false && Boolean(lateMessage && lateHref && lateLabel));
       setSuccess(true);
       setFirstName("");
       setEmail("");
@@ -182,6 +197,7 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
   const handleClose = (val: boolean) => {
     if (!val) {
       setSuccess(false);
+      setLate(false);
       setError("");
       setEmailSuggestion(null);
       setTypoAcknowledged(false);
@@ -201,7 +217,20 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
         </DialogHeader>
         {success ? (
           <div className="py-8 text-center">
-            <p className="font-accent text-lg text-foreground italic mb-2">{successMessage ?? "You're on the list. We'll be in touch."}</p>
+            <p className="font-accent text-lg text-foreground italic mb-2">{late ? lateMessage : successMessage ?? "You're on the list. We'll be in touch."}</p>
+            {late && lateHref && lateLabel && (
+              <div className="my-3">
+                <a
+                  href={lateHref}
+                  data-cta="post-signup-late-week1"
+                  onClick={() => trackInternalLinkClick("post_signup_late_week1", lateHref)}
+                  className="inline-flex items-center justify-center min-h-[44px] px-6 py-3 rounded-sm font-body text-sm tracking-wide transition-colors duration-200"
+                  style={{ backgroundColor: "#2E3D32", color: "#FAF8F3" }}
+                >
+                  {lateLabel}
+                </a>
+              </div>
+            )}
             <p className="font-body text-xs text-muted-foreground/70 italic">Using Gmail? Your first email may arrive in your Promotions or Spam folder. Please move it to your Primary inbox so you don't miss anything from us.</p>
             {successCtaHref && successCtaLabel && (
               <div className="mt-6 pt-6 border-t border-border">
