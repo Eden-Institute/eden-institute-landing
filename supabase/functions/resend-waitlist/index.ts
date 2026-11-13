@@ -16,6 +16,7 @@ import { sendMetaCapiLead } from '../_shared/meta-capi.ts';
 import { getCallerUser } from '../_shared/caller-user.ts';
 import { applyMemberRetake, memberRetakeUserId } from '../_shared/quiz-member-retake.ts';
 import { insertOrFetchWithRetry, sendWelcomeWithRetry, type WelcomeSendResult } from '../_shared/signup-safety.ts';
+import { centralMorningLabel, nextMorningSendAt } from '../_shared/next-morning.ts';
 import { alertFounder } from '../_shared/founder-alert.ts';
 
 const corsHeaders = {
@@ -698,6 +699,11 @@ Deno.serve(async (req) => {
     let welcomeSent = false;
     const welcomeAttempted = Boolean(emailContent && sendAllowed);
     const isFreeWeek = entry_funnel === 'edens_table' && (source === 'sprouts_magnet' || source === 'seedlings_magnet');
+    // 2026-11-13 (area 5 F10, founder tap "Send at 8 AM Central"): the next-morning note
+    // goes at 8 AM Central the next morning, so the welcome's "Tomorrow morning I will
+    // send you a short note" is true. Worked out once here so the founder alert below
+    // and the queue row further down name the same time.
+    const nextMorningMs = nextMorningSendAt(Date.now());
     if (emailContent && sendAllowed) {
       let failure: WelcomeSendResult | null = null;
       try {
@@ -717,7 +723,7 @@ Deno.serve(async (req) => {
           ? `The send failed before Resend answered (${failure.attempts} ${failure.attempts === 1 ? 'try' : 'tries'}): ${failure.error ?? 'no detail'}`
           : `Resend refused it with ${failure.status} after ${failure.attempts} ${failure.attempts === 1 ? 'try' : 'tries'}: ${failure.error ?? 'no detail'}`;
         const next = isFreeWeek
-          ? 'Their next-morning note (it has the Week 1 download link) is still queued for about 18 hours from now, then the Day-7 check-in and the Day-10 note. The free-week sign-up form shows an "Open Week 1" button when this happens.'
+          ? `Their next-morning note (it has the Week 1 download link) is still queued for ${centralMorningLabel(nextMorningMs)}, then the Day-7 check-in and the Day-10 note. The free-week sign-up form shows an "Open Week 1" button when this happens.`
           : welcomeKey === 'back_to_eden_ch1'
           ? 'Their Chapter 1 follow-up notes were NOT queued, because those notes assume the chapter arrived.'
           : 'Nothing else is queued from this sign-up.';
@@ -762,8 +768,10 @@ Deno.serve(async (req) => {
         const nowMs = Date.now();
         const day7 = new Date(nowMs + 7 * 24 * 60 * 60 * 1000).toISOString();
         const day10 = new Date(nowMs + 10 * 24 * 60 * 60 * 1000).toISOString();
-        // 2026-10-14 (#352): the next-morning nudge (position 1), about 18 hours later.
-        const nextMorning = new Date(nowMs + 18 * 60 * 60 * 1000).toISOString();
+        // 2026-10-14 (#352): the next-morning nudge (position 1). Until 2026-11-13 it went
+        // 18 hours after sign-up; now 8 AM Central the next morning (area 5 F10, see
+        // _shared/next-morning.ts).
+        const nextMorning = new Date(nextMorningMs).toISOString();
         const magnetRows = [
           { recipient_email: normalizedEmail, first_name: firstNameSafe, band, sequence_position: 1, scheduled_for: nextMorning, status: 'pending' },
           { recipient_email: normalizedEmail, first_name: firstNameSafe, band, sequence_position: 2, scheduled_for: day7, status: 'pending' },
