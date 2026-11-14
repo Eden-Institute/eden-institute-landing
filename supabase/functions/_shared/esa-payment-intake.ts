@@ -55,3 +55,28 @@ export function intakeFailureRow(b: Record<string, unknown>, error: unknown): Re
 export function shouldAlertIntakeFailure(earlierFailuresForMessage: number | null): boolean {
   return earlierFailuresForMessage === null || earlierFailuresForMessage === 0;
 }
+
+// ----------------------------------------------------------------------------- E1 (2026-11-13)
+// Lane 2 deep audit area 4, finding E1 (founder go 2026-11-13 "Yes, build + ship"). Intake used to
+// answer "duplicate" for ANY notice whose esa_payments row existed. The row is written first, so a
+// failure after it (the mark-paid call, a Confirm-link insert, an email) left the notice unapplied
+// forever, while the failure alert said the script would try again. A notice is now finished only
+// once the founder has been told about it (founder_notified_at): the confirm email, the auto-apply
+// note or the "matched nothing" alert. Until then each run of the intake script picks it up again.
+
+/** What intake does with a notice, given the esa_payments row already saved for it (or none). */
+export type IntakeStep =
+  /** First time this Gmail message is seen: save it, match it, act on it. */
+  | "new"
+  /** Saved before, not applied, founder not told: an earlier run stopped part-way. Match and act again. */
+  | "resume"
+  /** Applied automatically on an earlier run that stopped before the founder was told: finish that. */
+  | "finish_applied"
+  /** The founder was told (or it was applied and she was told): nothing to do. */
+  | "done";
+
+export function intakeResumeStep(prior: { applied: boolean; founder_notified_at: string | null } | null): IntakeStep {
+  if (!prior) return "new";
+  if (prior.founder_notified_at) return "done";
+  return prior.applied ? "finish_applied" : "resume";
+}

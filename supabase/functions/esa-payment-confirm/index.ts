@@ -45,6 +45,26 @@ async function loadToken(t: string): Promise<TokenRow | null> {
   return rows[0] ?? null;
 }
 
+/**
+ * E3 (2026-11-13, Lane 2 area 4; founder go "Yes, build + ship"): an ambiguous notice gets one link
+ * per candidate invoice, and every link used to stay valid after one was confirmed, so two taps paid
+ * two invoices (two orders, two print sets) from one payment. esa_confirm_payment_token now refuses
+ * (outcome payment_used, migration 20261114042129_esa_one_payment_one_invoice.sql); this shows it before
+ * the button. Returns the invoice number the payment already paid, or null.
+ */
+async function paymentUsedFor(tok: TokenRow): Promise<string | null> {
+  if (!tok.payment_id) return null;
+  const p = await rest<{ applied: boolean; invoice_id: string | null }[]>(`esa_payments?id=eq.${tok.payment_id}&select=applied,invoice_id`);
+  const row = p[0];
+  if (!row?.applied || !row.invoice_id || row.invoice_id === tok.invoice_id) return null;
+  const other = await getInvoice(row.invoice_id).catch(() => null);
+  return other?.invoice_number ?? "another invoice";
+}
+
+const paymentUsedBody = (summary: string, invoiceNumber: string, other: string) =>
+  `${summary}<p>This ClassWallet payment was already confirmed for invoice <b>${esc(other)}</b>, so it cannot pay this one too. Nothing was changed.</p>` +
+  `<p>If this family paid separately, their own payment notice will bring its own link. Or, once you see their money arrive, tell Claude "mark ESA invoice ${esc(invoiceNumber)} paid".</p>`;
+
 Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
@@ -67,6 +87,8 @@ Items: ${esc(inv.items.map((i) => `${i.sku} x${i.qty}`).join(", "))}<br>Total: <
     if (inv.status !== "issued") {
       return page("Already done", `${summary}<p>This invoice is already <b>${esc(inv.status)}</b> (fulfilment: ${esc(inv.fulfilment_status)}). Nothing more to do.</p>`);
     }
+    const usedFor = await paymentUsedFor(tok);
+    if (usedFor) return page("Payment already used", paymentUsedBody(summary, inv.invoice_number, usedFor));
     if (tok.used_at) return page("Link used", `${summary}<p>This link was already used.</p>`);
     if (Date.parse(tok.expires_at) < Date.now()) return page("Link expired", `${summary}<p>This link expired. Ask Claude to mark the invoice paid if the money arrived.</p>`, 410);
 
@@ -87,6 +109,9 @@ Items: ${esc(inv.items.map((i) => `${i.sku} x${i.qty}`).join(", "))}<br>Total: <
     // (row lock, so a double-click applies once). If it errors, neither happened and this link still
     // works. Fulfilment runs only after it succeeded.
     const c = await confirmWithToken(tok.token);
+    if (c.outcome === "payment_used") {
+      return page("Payment already used", paymentUsedBody(summary, inv.invoice_number, (await paymentUsedFor(tok).catch(() => null)) ?? "another invoice"));
+    }
     if (c.outcome === "used") return page("Link used", `${summary}<p>This link was already used.</p>`);
     if (c.outcome === "expired") return page("Link expired", `${summary}<p>This link expired. Ask Claude to mark the invoice paid if the money arrived.</p>`, 410);
     if (c.outcome === "not_found") return page("Link not valid", "<p>This confirmation link is not valid. Ask Claude to look up the payment.</p>", 404);
