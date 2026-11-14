@@ -237,7 +237,9 @@ export async function applyPayment(invoiceId: string, via: "founder_confirm" | "
   return fulfilAfterMark(invoiceId, changed);
 }
 
-export type ConfirmOutcome = "applied" | "used" | "expired" | "not_found" | "not_issued";
+/** payment_used (E3, 2026-11-13): the notice behind this link was already confirmed for a DIFFERENT
+ *  invoice. An ambiguous notice gets one link per candidate invoice; only the first tap may apply it. */
+export type ConfirmOutcome = "applied" | "used" | "expired" | "not_found" | "not_issued" | "payment_used";
 
 /**
  * The founder's Confirm paid button. esa_confirm_payment_token() marks the invoice paid AND uses the
@@ -256,8 +258,47 @@ export async function confirmWithToken(token: string): Promise<{ outcome: Confir
   return { outcome: "applied", result: await fulfilAfterMark(row.invoice_id, true) };
 }
 
-async function fulfilAfterMark(invoiceId: string, changed: boolean): Promise<ApplyResult> {
+/**
+ * E2 (2026-11-13, Lane 2 area 4; founder go "Yes, build + ship"): re-run fulfilment for an invoice
+ * that is PAID but whose fulfilment failed or never started. Until now nothing could: mark-paid only
+ * changes 'issued' invoices, so every path returned "already paid" and fulfilled nothing, while the
+ * failure alert told the founder to ask Claude to retry. Reached through esa-payment
+ * {action: "retry_fulfilment", invoice_number}. fulfil() reuses an order or Starter delivery the
+ * invoice already created (D4, 2026-11-10), so a retry can never print or send a second set.
+ * Refuses anything that is not paid, or whose fulfilment already went through.
+ */
+export async function retryFulfilment(invoiceId: string): Promise<ApplyResult> {
   const inv = await getInvoice(invoiceId);
+  if (!inv) return { changed: false, invoice: null, fulfilment: "none", note: "invoice not found" };
+  if (inv.status !== "paid") {
+    return { changed: false, invoice: inv, fulfilment: inv.fulfilment_status, note: `invoice is ${inv.status}, not paid: nothing to retry` };
+  }
+  if (inv.fulfilment_status !== "none" && inv.fulfilment_status !== "failed") {
+    return { changed: false, invoice: inv, fulfilment: inv.fulfilment_status, note: `fulfilment is already ${inv.fulfilment_status}: nothing to retry` };
+  }
+  return fulfilAfterMark(invoiceId, true);
+}
+
+async function fulfilAfterMark(invoiceId: string, changed: boolean): Promise<ApplyResult> {
+  let inv: EsaInvoiceRow | null;
+  try {
+    inv = await getInvoice(invoiceId);
+  } catch (e) {
+    if (!changed) throw e; // nothing was marked: the caller's own error path is the right one
+    // E1 (2026-11-13): the invoice WAS just marked paid, but reading it back failed, so fulfilment
+    // never started. This used to throw past every alert and leave it paid with fulfilment 'none':
+    // no books, no Starter files, no email to anyone. Mark it failed (best effort) and say so.
+    const msg = e instanceof Error ? e.message : String(e);
+    await patchInvoice(invoiceId, { fulfilment_status: "failed", fulfilment_note: `marked paid, then the invoice could not be read back: ${msg}`.slice(0, 500) }).catch((pe) =>
+      console.error(`esa: could not mark invoice ${invoiceId} failed:`, pe instanceof Error ? pe.message : String(pe))
+    );
+    await emailFounderAlert(`ESA fulfilment FAILED: invoice ${invoiceId}`, [
+      `An ESA invoice was marked paid, but it could not be read back right after, so fulfilment never started: nothing went to print and no files were sent.`,
+      `Error: ${esc(msg.slice(0, 400))}`,
+      `Invoice id: ${esc(invoiceId)}. Tell Claude "retry ESA fulfilment for invoice ${esc(invoiceId)}". A retry reuses anything already created, so nothing is sent twice.`,
+    ]);
+    return { changed: true, invoice: null, fulfilment: "failed", note: msg };
+  }
   if (!inv) return { changed: false, invoice: null, fulfilment: "none", note: "invoice not found" };
   if (!changed) return { changed: false, invoice: inv, fulfilment: inv.fulfilment_status, note: `already ${inv.status}` };
   try {
