@@ -56,8 +56,13 @@ describe("remarkFreeWeekOffer", () => {
     expect(out[3].value).toContain("learn_mid_sprouts_week1");
   });
 
-  it("does nothing to an unflagged article", () => {
+  it("offers it in an article that doesn't set the flag (every article since 2026-11-16)", () => {
     const out = run([p("intro"), h2("One"), p("a"), h2("Two")], undefined);
+    expect(out.filter((n) => n.type === "html")).toHaveLength(1);
+  });
+
+  it("does nothing to an article that sets freeWeekOffer: false", () => {
+    const out = run([p("intro"), h2("One"), p("a"), h2("Two")], false);
     expect(out.some((n) => n.type === "html")).toBe(false);
   });
 

@@ -20,6 +20,11 @@ import { HERBS_IN_THE_BIBLE_PATH, HERBS_IN_THE_BIBLE_TITLE, citesScripture } fro
 import { CURRICULUM_BANDS, curriculumWeeksForHerb, scopeAndSequenceHref } from "@/lib/curriculumHerbs";
 import { friendLinksForHerb } from "@/lib/herbFriendLinks";
 import { mrhLinkForHerb } from "@/lib/herbAffiliateLinks";
+import { bookChapterOfferHtml } from "../../lib/bookChapterOffer";
+// The most-read /learn article (28 visitors in the 30 days to 2026-11-16), linked from every plant
+// page; src/test/bookChapterOffer.test.ts fails the build if this slug or title drifts.
+const HERBALISM_WITCHCRAFT_PATH = "/learn/is-herbalism-witchcraft";
+const HERBALISM_WITCHCRAFT_TITLE = "Is Herbalism Witchcraft? What the Bible Says About Herbs";
 import { getPublicHerbs, type PublicHerb } from "../../lib/herbsPublic";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -213,6 +218,15 @@ const jsonLd = [
         </div>
       )}
 
+      <!-- Two offers, high on the page (2026-11-16 funnel fix, web/lib/bookChapterOffer.ts):
+           in the 30 days before, these pages had 1,043 landing visitors and 0 sign-ups with only
+           the curriculum's Week 1 further down. Adults looking up one plant now get Back to Eden's
+           free Chapter 1 first; parents get Week 1 right under it (web/lib/freeWeekOffer.ts). -->
+      <div class="space-y-4">
+        <Fragment set:html={bookChapterOfferHtml("herb")} />
+        <Fragment set:html={freeWeekOfferHtml("herb")} />
+      </div>
+
       <!-- Taught in Eden's Table: navigation only, no claims -->
       {curriculumWeeks.length > 0 && (
         <div
@@ -266,9 +280,6 @@ const jsonLd = [
         </div>
       ))}
 
-      <!-- Free Week 1, on every herb (2026-10-28): the sign-up itself, beside the
-           curriculum weeks above (web/lib/freeWeekOffer.ts). -->
-      <Fragment set:html={freeWeekOfferHtml("herb")} />
 
       <!-- Safety -->
       {safety.length > 0 && (
@@ -354,12 +365,16 @@ const jsonLd = [
           temperature, moisture and tone, then matches herbs to it.
         </p>
         <div class="flex flex-wrap gap-3 justify-center">
-          <a href="/assessment" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center")}>Take the free assessment</a>
-          <a href={`/apothecary/${slug}`} class={cn(buttonVariants({ variant: "outline", size: "xl" }), "text-center")}>Open {herb.common_name} in the Apothecary</a>
+          <a href="/assessment" data-cta="herb-assessment" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center")}>Take the free assessment</a>
+          <a href={`/apothecary/${slug}`} data-cta="herb-open-apothecary" class={cn(buttonVariants({ variant: "outline", size: "xl" }), "text-center")}>Open {herb.common_name} in the Apothecary</a>
         </div>
         <p class="font-body text-sm text-muted-foreground mt-6">
-          Teaching children at home? <a href="/homeschool" class="underline">Eden's Table</a> builds a full
+          Teaching children at home? <a href="/homeschool" data-cta="herb-homeschool-bottom" class="underline">Eden's Table</a> builds a full
           herbalism curriculum around plants like this one.
+        </p>
+        <p class="font-body text-sm text-muted-foreground mt-3">
+          Related reading:{" "}
+          <a href={HERBALISM_WITCHCRAFT_PATH} data-cta="herb-witchcraft-article" class="underline">{HERBALISM_WITCHCRAFT_TITLE}</a>
         </p>
       </div>
 

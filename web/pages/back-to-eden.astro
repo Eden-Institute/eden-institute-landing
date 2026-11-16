@@ -23,6 +23,7 @@
 // (WaitlistController) with source back_to_eden_ch1; resend-waitlist sends the chapter.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 import WaitlistController from "../components/islands/WaitlistController.tsx";
+import { BACK_TO_EDEN_CH1_ATTRS } from "../lib/bookChapterOffer";
 import BookCheckoutController from "../components/islands/BookCheckoutController.tsx";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -43,15 +44,9 @@ const btn = (variant: "eden" | "eden-outline", extra = "") =>
   cn(buttonVariants({ variant, size: "xl" }),
      "text-center w-full sm:w-auto h-auto whitespace-normal text-sm sm:text-base leading-snug min-h-[48px] py-3 px-6", extra);
 
-const ch1 = {
-  "data-waitlist-source": "back_to_eden_ch1",
-  "data-waitlist-title": "Read Chapter 1 free",
-  "data-waitlist-subtitle":
-    "Check your inbox. Chapter 1 of Back to Eden, The Life Force Has a Name, is on its way now, with the Reflect & Apply questions at the end.",
-  "data-waitlist-cta-href": "https://edeninstitute.health/back-to-eden#editions",
-  "data-waitlist-cta-label": "See the three editions",
-  "data-waitlist-cta-blurb": "While you wait: the whole book comes as a paperback, a spiral Study & Journal Edition, or a Study Guide, in print or as a download.",
-};
+// The Chapter 1 pop-up wording lives in web/lib/bookChapterOffer.ts (2026-11-16) so the plant
+// pages and articles that now offer the chapter use the very same words.
+const ch1 = BACK_TO_EDEN_CH1_ATTRS;
 
 // Counts measured from the built books (2026-09-25): 10 study guides with 107 key terms, 50 Reflect &
 // Apply prompts (5 per chapter), 9 worksheets + the 13-page capstone, 9 concept graphics, 10 photo

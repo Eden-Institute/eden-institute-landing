@@ -5,6 +5,7 @@ description: "Scripture forbids sorcery, not the plants God made. The verses tha
 published: "2026-09-28"
 draft: false
 freeWeekOffer: true
+bookOffer: true
 related:
   - herbs-in-the-bible
   - is-herbalism-biblical

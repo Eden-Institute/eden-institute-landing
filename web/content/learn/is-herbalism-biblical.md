@@ -5,6 +5,7 @@ description: "Where the Bible talks about plants and healing, where Christians s
 published: "2026-09-25"
 draft: false
 freeWeekOffer: true
+bookOffer: true
 related:
   - herbs-in-the-bible
   - is-herbalism-witchcraft

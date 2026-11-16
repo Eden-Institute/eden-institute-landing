@@ -27,8 +27,14 @@ const learn = defineCollection({
         The build fails if one is missing or still a draft, so this never ships a dead link. */
     related: z.array(z.string()).max(3).default([]),
     /** The free-week sign-up after the first section and again at the foot of the
-        article (2026-10-28, web/lib/freeWeekOffer.ts). Off unless set. */
-    freeWeekOffer: z.boolean().default(false),
+        article (2026-10-28, web/lib/freeWeekOffer.ts). ON for every article since
+        2026-11-16 (Lane SEO funnel fix: 85 article landers, 1 sign-up in 30 days with
+        only 3 articles carrying it); set false to leave one out. */
+    freeWeekOffer: z.boolean().default(true),
+    /** Back to Eden's free Chapter 1 at the foot of the article, before the free week
+        (2026-11-16, web/lib/bookChapterOffer.ts): for articles adults come to, like the
+        "is herbalism Biblical / witchcraft" questions. Off unless set. */
+    bookOffer: z.boolean().default(false),
   }),
 });
 

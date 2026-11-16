@@ -27,6 +27,7 @@ import { BotanicalHero } from "@/components/apothecary/BotanicalHero";
 import heroMonograph from "@/assets/hero-monograph.jpg";
 import { HERBS_IN_THE_BIBLE_PATH, HERBS_IN_THE_BIBLE_TITLE, citesScripture } from "@/lib/scriptureHerbs";
 import { FreeWeekOfferCard } from "@/components/apothecary/FreeWeekOfferCard";
+import { BookChapterOfferCard } from "@/components/apothecary/BookChapterOfferCard";
 
 /**
  * HerbMonograph — the public per-herb page at /apothecary/:herbId
@@ -391,6 +392,15 @@ export default function HerbMonograph() {
           </section>
         )}
 
+        {/* ── Two offers, high on the page (2026-11-16 funnel fix, same as /herbs/<slug>):
+              Back to Eden's free Chapter 1 for adults looking up one plant, then Week 1
+              of the curriculum for parents. The free week sat below the curriculum
+              weeks until then (2026-10-28). ── */}
+        <div className="space-y-4">
+          <BookChapterOfferCard />
+          <FreeWeekOfferCard />
+        </div>
+
         {/* ── Biblical & traditional (Band 2) ── */}
         {(herb.biblical_traditional_reference || herb.stewardship_note) && (
           <section aria-label="Biblical and traditional context">
@@ -702,10 +712,6 @@ export default function HerbMonograph() {
             </p>
           </section>
         )}
-
-        {/* ── Free Week 1, on every herb (2026-10-28): the sign-up itself, beside
-              the curriculum weeks above. Same offer as /herbs/<slug>. ── */}
-        <FreeWeekOfferCard />
 
         {/* ── No Pattern yet: the quiz is the personalization hook. ── */}
         {!activePattern && (
