@@ -10,7 +10,8 @@
 // Content is DB-driven and nothing on this page is authored here. Every
 // sentence comes from herbs_directory_v's free columns (web/lib/herbsPublic.ts),
 // so the page cannot drift from the app. The one exception is a friend's-site
-// line on the few herbs listed in src/lib/herbFriendLinks.ts (punch #455).
+// line on the few herbs listed in src/lib/herbFriendLinks.ts (punch #455), and the "Where to buy" box
+// with Camila's Mountain Rose Herbs affiliate link (src/lib/herbAffiliateLinks.ts, 2026-11-16).
 import MarketingLayout from "../../layouts/MarketingLayout.astro";
 import { ApothecaryDisclaimer } from "@/components/apothecary/ApothecaryDisclaimer";
 import { herbParam } from "@/lib/herbLinks";
@@ -18,6 +19,7 @@ import { monographDescription, monographNames, monographTitle } from "@/lib/mono
 import { HERBS_IN_THE_BIBLE_PATH, HERBS_IN_THE_BIBLE_TITLE, citesScripture } from "@/lib/scriptureHerbs";
 import { CURRICULUM_BANDS, curriculumWeeksForHerb, scopeAndSequenceHref } from "@/lib/curriculumHerbs";
 import { friendLinksForHerb } from "@/lib/herbFriendLinks";
+import { mrhLinkForHerb } from "@/lib/herbAffiliateLinks";
 import { getPublicHerbs, type PublicHerb } from "../../lib/herbsPublic";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -62,6 +64,11 @@ const curriculumWeeks = curriculumWeeksForHerb(herb.herb_id);
 // A friend's page the founder promised to link from this herb (src/lib/herbFriendLinks.ts).
 // Empty for almost every herb, and then the block below does not render.
 const friendLinks = friendLinksForHerb(herb.herb_id);
+
+// Camila's Mountain Rose Herbs affiliate link (src/lib/herbAffiliateLinks.ts). Null for herbs Mountain Rose
+// does not sell and for the safety-excluded herbs, and then the box below does not render.
+const mrhLink = mrhLinkForHerb(herb.herb_id);
+const shortName = (herb.common_name ?? "").replace(/\s*\(.*?\)\s*/g, " ").trim();
 
 
 // Identity facts, rendered only where the row actually carries a value.
@@ -282,6 +289,31 @@ const jsonLd = [
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      <!-- Where to buy: Camila's Mountain Rose Herbs affiliate link, below the safety section on purpose (2026-11-16) -->
+      {mrhLink && (
+        <div
+          class="rounded-lg p-5 border"
+          style="border-color:hsl(var(--eden-gold) / 0.35);background-color:hsl(var(--eden-cream) / 0.4)"
+        >
+          <h2 class="font-accent text-[11px] tracking-[0.2em] uppercase mb-2" style="color:hsl(var(--eden-gold-ink))">
+            Where to buy {shortName}
+          </h2>
+          <p class="font-body text-base mb-3" style="color:hsl(var(--eden-bark))">
+            Mountain Rose Herbs carries {mrhLink.product}.
+          </p>
+          <a
+            href={mrhLink.href}
+            target="_blank"
+            rel="sponsored noopener"
+            class={cn(buttonVariants({ size: "sm" }))}
+            data-cta="herb-mrh-affiliate"
+          >Buy {shortName} from Mountain Rose Herbs</a>
+          <p class="font-body text-xs mt-3 text-muted-foreground">
+            Affiliate link: The Eden Institute earns a small commission if you buy, at no extra cost to you.
+          </p>
         </div>
       )}
 
