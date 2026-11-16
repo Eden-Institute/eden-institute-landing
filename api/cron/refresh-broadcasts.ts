@@ -7,6 +7,12 @@
 // before the send: families who became eligible are added, anyone who opted out or bought is
 // removed. It sends nothing and schedules nothing; with nothing due it is one Resend list call.
 //
+// 2026-11-16 (Lane 2 area 7, founder go): each run first passes new unsubscribes to Resend
+// (so a family who leaves is skipped by the next Broadcast within the hour), a list gets one
+// more refresh in the last 90 minutes before its send, and a run that could not do its job
+// answers 500 (so this forwarder logs ef_error, not ok) and emails the founder, at most once
+// per 6 hours. The founder email itself is sent by broadcast-stage.
+//
 // Schedule: every hour at :05.
 //
 // Pattern mirrors api/cron/sync-contact-properties.ts.
