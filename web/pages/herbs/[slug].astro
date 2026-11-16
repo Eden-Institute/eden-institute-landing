@@ -9,13 +9,15 @@
 //
 // Content is DB-driven and nothing on this page is authored here. Every
 // sentence comes from herbs_directory_v's free columns (web/lib/herbsPublic.ts),
-// so the page cannot drift from the app.
+// so the page cannot drift from the app. The one exception is a friend's-site
+// line on the few herbs listed in src/lib/herbFriendLinks.ts (punch #455).
 import MarketingLayout from "../../layouts/MarketingLayout.astro";
 import { ApothecaryDisclaimer } from "@/components/apothecary/ApothecaryDisclaimer";
 import { herbParam } from "@/lib/herbLinks";
 import { monographDescription, monographNames, monographTitle } from "@/lib/monographMeta";
 import { HERBS_IN_THE_BIBLE_PATH, HERBS_IN_THE_BIBLE_TITLE, citesScripture } from "@/lib/scriptureHerbs";
 import { CURRICULUM_BANDS, curriculumWeeksForHerb, scopeAndSequenceHref } from "@/lib/curriculumHerbs";
+import { friendLinksForHerb } from "@/lib/herbFriendLinks";
 import { getPublicHerbs, type PublicHerb } from "../../lib/herbsPublic";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -56,6 +58,10 @@ const description = monographDescription(herb);
 // The Eden's Table weeks that teach this plant (src/lib/curriculumHerbs.ts).
 // Empty for most herbs, and then the block below does not render.
 const curriculumWeeks = curriculumWeeksForHerb(herb.herb_id);
+
+// A friend's page the founder promised to link from this herb (src/lib/herbFriendLinks.ts).
+// Empty for almost every herb, and then the block below does not render.
+const friendLinks = friendLinksForHerb(herb.herb_id);
 
 
 // Identity facts, rendered only where the row actually carries a value.
@@ -229,6 +235,29 @@ const jsonLd = [
           </p>
         </div>
       )}
+
+      <!-- A friend's page, on the few herbs listed in src/lib/herbFriendLinks.ts -->
+      {friendLinks.map((l) => (
+        <div
+          class="rounded-lg p-5 border"
+          style="border-color:hsl(var(--eden-gold) / 0.35);background-color:hsl(var(--eden-cream) / 0.4)"
+        >
+          <h2 class="font-accent text-[11px] tracking-[0.2em] uppercase mb-2" style="color:hsl(var(--eden-gold-ink))">
+            {l.heading}
+          </h2>
+          <p class="font-body text-base" style="color:hsl(var(--eden-bark))">
+            {l.lead}{" "}
+            <a
+              href={l.href}
+              target="_blank"
+              rel="noopener"
+              class="underline underline-offset-4"
+              style="color:hsl(var(--eden-forest))"
+              data-cta={l.cta}
+            >{l.anchor}</a>.
+          </p>
+        </div>
+      ))}
 
       <!-- Free Week 1, on every herb (2026-10-28): the sign-up itself, beside the
            curriculum weeks above (web/lib/freeWeekOffer.ts). -->
