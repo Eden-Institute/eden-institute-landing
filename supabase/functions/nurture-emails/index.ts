@@ -53,6 +53,16 @@
 // before. Nothing about WHEN a row counts as sent changed: status and markSent
 // are exactly as they were, so a sent row is never picked up again.
 //
+// No double sends (2026-11-16, area 6 N1, _shared/drip-idempotency.ts): every
+// drip send carries a Resend Idempotency-Key of table + row id + retry_count, so a
+// row whose "mark sent" was lost, or that two runs picked up at once, is refused
+// by Resend the second time (kept 24 h) instead of reaching the family twice.
+//
+// Fail closed on unreadable checks (2026-11-16, area 6 N2/N3): the Founding Family
+// opt-out and test-order checks and the parents-email Yes check throw on a
+// database error, so the row stays pending and is retried, never sent to someone
+// who left and never cancelled for someone who said Yes.
+//
 // Behavioral suppression (Phase 1): drainNurtureQueue cancels a queued email
 // that would re-pitch an offer the recipient already bought. Phase 2 (branch to
 // a DIFFERENT next email) is deferred until the full K-12 curriculum exists.
@@ -114,6 +124,7 @@ import { pgrstFetch } from '../_shared/pgrst-retry.ts';
 import { captureException } from '../_shared/sentry.ts';
 import { escapeLikePattern } from '../_shared/like-escape.ts';
 import { dueFilter, planSendFailure, type SendFailure } from '../_shared/send-backoff.ts';
+import { dripIdempotencyKey, readIdempotencyConflict } from '../_shared/drip-idempotency.ts';
 import { alertFounder } from '../_shared/founder-alert.ts';
 import { rowsOrThrow } from '../_shared/signup-safety.ts';
 
@@ -271,7 +282,9 @@ async function markSent(
   } catch (err) {
     status = err instanceof Error ? err.name : 'error';
   }
-  const message = `sent but could not mark ${table} ${id} (${status}); the next run will send this email again`;
+  // Since 2026-11-16 (N1) the next run resends with the SAME Idempotency-Key (retry_count
+  // is unchanged), so Resend refuses the repeat for 24 hours and the row is marked then.
+  const message = `sent but could not mark ${table} ${id} (${status}); the next run's repeat carries the same Idempotency-Key, so Resend should refuse it`;
   console.error(`nurture-emails: ${message}`);
   await captureException(new Error(message), { function: 'nurture-emails', table, id, status });
 }
@@ -308,13 +321,26 @@ async function enqueueNextMagnet(row: any, nextPos: number): Promise<void> {
   }
 }
 
+interface SendResult {
+  ok: boolean;
+  error?: string;
+  status?: number;
+  name?: string;
+  /** Resend refused a repeat of a key it already took (409 invalid_idempotent_request): mark sent. */
+  duplicate?: boolean;
+  /** Another run is sending this row right now (409 concurrent_idempotent_requests): leave it alone. */
+  inFlight?: boolean;
+}
+
+// idempotencyKey: dripIdempotencyKey(table, row.id, row.retry_count) for every drip (N1).
 async function sendEmail(
   to: string,
   subject: string,
   html: string,
   list: EmailList,
-  tags?: ResendTag[],
-): Promise<{ ok: boolean; error?: string; status?: number; name?: string }> {
+  tags: ResendTag[] | undefined,
+  idempotencyKey: string,
+): Promise<SendResult> {
   const { html: unsubHtml, headers: unsubHeaders } = await applyUnsub(html, to, list);
   // UTM tags on every edeninstitute.health link (founder rule 2026-10-08, _shared/email-utm.ts),
   // keyed off the same campaign/email_key tags the engagement dashboard uses. Every drip
@@ -331,6 +357,7 @@ async function sendEmail(
     headers: {
       Authorization: `Bearer ${RESEND_API_KEY}`,
       'Content-Type': 'application/json',
+      'Idempotency-Key': idempotencyKey,
     },
     body: JSON.stringify({
       from: 'Camila at The Eden Institute <hello@edeninstitute.health>',
@@ -346,6 +373,15 @@ async function sendEmail(
   // throw, or a transient outage would be recorded without its status.
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    const conflict = readIdempotencyConflict(res.status, typeof data?.name === 'string' ? data.name : undefined);
+    if (conflict === 'already_sent') {
+      console.warn(`nurture-emails: Resend already took ${idempotencyKey}; not sent again, marking sent`);
+      return { ok: true, duplicate: true };
+    }
+    if (conflict === 'in_flight') {
+      console.log(`nurture-emails: ${idempotencyKey} is being sent by another run; left for that run`);
+      return { ok: false, inFlight: true, status: res.status, name: data?.name, error: data?.message };
+    }
     console.error('Email send failed:', res.status, JSON.stringify(data));
     return {
       ok: false,
@@ -565,6 +601,7 @@ async function drainNurtureQueue(): Promise<QueueResult> {
         built.html,
         'constitution',
         engagementTags('constitution', emailKey),
+        dripIdempotencyKey('nurture_email_queue', row.id, row.retry_count),
       );
       if (send.ok) {
         await markSent('nurture_email_queue', row.id, {
@@ -573,7 +610,7 @@ async function drainNurtureQueue(): Promise<QueueResult> {
           updated_at: new Date().toISOString(),
         });
         result.sent++;
-      } else {
+      } else if (!send.inFlight) {
         await recordSendFailure('nurture_email_queue', row, { status: send.status, name: send.name, message: send.error }, result);
       }
 
@@ -595,11 +632,18 @@ async function drainNurtureQueue(): Promise<QueueResult> {
 // resend-waitlist) and the refund note (position 1, enqueued by trg_enqueue_refund_note 3 days
 // after a full refund). Copy approved in the founder's inbox 2026-10-15.
 
+// 2026-11-16 (area 6 N3): fails CLOSED. An unreadable answer used to read as "no Yes",
+// and position 4 was CANCELLED for good for a family who had tapped Yes. Now it throws;
+// both callers sit inside a drain's per-row try, which keeps the row pending and retries
+// it like a failed send.
 async function saidYesToChildren(email: string): Promise<boolean> {
-  const rows = await supabaseQuery(
-    `children_at_home_answers?email=eq.${encodeURIComponent(email.trim().toLowerCase())}&select=has_children&limit=1`,
+  const rows = rowsOrThrow(
+    await supabaseQuery(
+      `children_at_home_answers?email=eq.${encodeURIComponent(email.trim().toLowerCase())}&select=has_children&limit=1`,
+    ),
+    'children answer check',
   );
-  return Array.isArray(rows) && rows[0]?.has_children === true;
+  return rows[0]?.has_children === true;
 }
 
 async function isGloballyUnsubscribed(email: string): Promise<boolean> {
@@ -941,7 +985,14 @@ async function drainFollowupQueue(): Promise<QueueResult> {
         continue;
       }
 
-      const send = await sendEmail(email, built.subject, built.html, list, tags);
+      const send = await sendEmail(
+        email,
+        built.subject,
+        built.html,
+        list,
+        tags,
+        dripIdempotencyKey('followup_email_queue', row.id, row.retry_count),
+      );
       if (send.ok) {
         await markSent('followup_email_queue', row.id, {
           status: 'sent',
@@ -949,7 +1000,7 @@ async function drainFollowupQueue(): Promise<QueueResult> {
           updated_at: new Date().toISOString(),
         });
         result.sent++;
-      } else {
+      } else if (!send.inFlight) {
         await recordSendFailure('followup_email_queue', row, { status: send.status, name: send.name, message: send.error }, result);
       }
       await new Promise((r) => setTimeout(r, RATE_LIMIT_MS));
@@ -1013,6 +1064,8 @@ async function legacyEmail5(): Promise<LegacyResult> {
       html,
       'constitution',
       engagementTags('constitution', 'constitution_5'),
+      // Retired path (LEGACY_EMAIL5_RETIRED); one attempt per row, so attempt 0.
+      dripIdempotencyKey('quiz_completions_email5', row.id, 0),
     );
     if (send.ok) {
       await markSent('quiz_completions', row.id, { email_5_sent_at: now.toISOString() });
@@ -1358,6 +1411,7 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
         built.html,
         'homeschool',
         engagementTags('homeschool', emailKey),
+        dripIdempotencyKey('magnet_email_queue', row.id, row.retry_count),
       );
       if (send.ok) {
         accepted = true;
@@ -1371,7 +1425,7 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
         // Chain the next follow-up (Weeks 4-7) at +7 days.
         const nextPos = MAGNET_CHAIN_NEXT[pos];
         if (nextPos) await enqueueNextMagnet(row, nextPos);
-      } else {
+      } else if (!send.inFlight) {
         await recordSendFailure('magnet_email_queue', row, { status: send.status, name: send.name, message: send.error }, result);
       }
       await new Promise((r) => setTimeout(r, RATE_LIMIT_MS));
@@ -1584,6 +1638,7 @@ async function drainLaunchQueue(): Promise<QueueResult> {
         built.html,
         'homeschool',
         engagementTags('launch_2026', emailKey),
+        dripIdempotencyKey('launch_email_queue', row.id, row.retry_count),
       );
       if (send.ok) {
         await markSent('launch_email_queue', row.id, {
@@ -1592,7 +1647,7 @@ async function drainLaunchQueue(): Promise<QueueResult> {
           updated_at: new Date().toISOString(),
         });
         result.sent++;
-      } else {
+      } else if (!send.inFlight) {
         await recordSendFailure('launch_email_queue', row, { status: send.status, name: send.name, message: send.error }, result);
       }
       await new Promise((r) => setTimeout(r, RATE_LIMIT_MS));
@@ -1716,6 +1771,7 @@ async function drainBuyerQueue(): Promise<QueueResult> {
         built.html,
         'postpurchase',
         engagementTags('buyer_2026', `buyer_${pos}`),
+        dripIdempotencyKey('buyer_email_queue', row.id, row.retry_count),
       );
       if (send.ok) {
         await markSent('buyer_email_queue', row.id, {
@@ -1724,7 +1780,7 @@ async function drainBuyerQueue(): Promise<QueueResult> {
           updated_at: new Date().toISOString(),
         });
         result.sent++;
-      } else {
+      } else if (!send.inFlight) {
         await recordSendFailure('buyer_email_queue', row, { status: send.status, name: send.name, message: send.error }, result);
       }
       await new Promise((r) => setTimeout(r, RATE_LIMIT_MS));
@@ -1787,12 +1843,18 @@ async function drainFoundingFamilyQueue(): Promise<QueueResult & { enabled?: boo
         await cancel(row.id, `order ${orderStatus}`);
         continue;
       }
+      // 2026-11-16 (area 6 N2): both checks below fail CLOSED. An unreadable answer
+      // used to read as "not a test order" / "not unsubscribed" and send; now it throws,
+      // the catch below records a transient failure, and the row is retried later.
       const pi = row.orders?.raw?.payment_intent;
       if (pi) {
-        const internal = await supabaseQuery(
-          `payments?stripe_payment_intent_id=eq.${encodeURIComponent(String(pi))}&is_internal=eq.true&select=id&limit=1`,
+        const internal = rowsOrThrow(
+          await supabaseQuery(
+            `payments?stripe_payment_intent_id=eq.${encodeURIComponent(String(pi))}&is_internal=eq.true&select=id&limit=1`,
+          ),
+          'internal order check',
         );
-        if (Array.isArray(internal) && internal.length > 0) {
+        if (internal.length > 0) {
           await cancel(row.id, 'internal/test order');
           continue;
         }
@@ -1801,10 +1863,7 @@ async function drainFoundingFamilyQueue(): Promise<QueueResult & { enabled?: boo
         await cancel(row.id, 'recipient unsubscribed (postpurchase)');
         continue;
       }
-      const gone = await supabaseQuery(
-        `waitlist_signups?email=ilike.${encodeURIComponent(escapeLikePattern(email))}&unsubscribed_at=not.is.null&select=email&limit=1`,
-      );
-      if (Array.isArray(gone) && gone.length > 0) {
+      if (await isGloballyUnsubscribed(email)) {
         await cancel(row.id, 'recipient unsubscribed or bounced (global)');
         continue;
       }
@@ -1827,7 +1886,14 @@ async function drainFoundingFamilyQueue(): Promise<QueueResult & { enabled?: boo
         continue;
       }
 
-      const send = await sendEmail(email, built.subject, built.html, 'postpurchase', engagementTags('founding_family_2026', `ff_${row.step}`));
+      const send = await sendEmail(
+        email,
+        built.subject,
+        built.html,
+        'postpurchase',
+        engagementTags('founding_family_2026', `ff_${row.step}`),
+        dripIdempotencyKey('founding_family_queue', row.id, row.retry_count),
+      );
       if (send.ok) {
         await markSent('founding_family_queue', row.id, {
           status: 'sent',
@@ -1835,7 +1901,7 @@ async function drainFoundingFamilyQueue(): Promise<QueueResult & { enabled?: boo
           updated_at: new Date().toISOString(),
         });
         result.sent++;
-      } else {
+      } else if (!send.inFlight) {
         await recordSendFailure('founding_family_queue', row, { status: send.status, name: send.name, message: send.error }, result);
       }
       await new Promise((r) => setTimeout(r, RATE_LIMIT_MS));
