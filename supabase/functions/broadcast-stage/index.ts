@@ -45,6 +45,14 @@
 //            for it in public.broadcast_segments (written by `stage`), at most once every 6
 //            hours. Adds families who became eligible, removes anyone who opted out or bought.
 //            Sends nothing and schedules nothing.
+//            2026-11-16 (Lane 2 area 7, founder tap "Yes, build + ship both"):
+//            B1: FIRST pushes every opt-out Resend has not been told about (unsubscribed:true,
+//            logged in resend_unsubscribe_sync, up to OPTOUT_PUSH_PER_RUN), so a family who
+//            leaves through our link is skipped by the next Broadcast within the hour; and a
+//            list gets one more refresh inside the last 90 minutes before its send.
+//            B2: a refresh that cannot run (Resend list errors, a database error, a missing
+//            audience, an unreadable Broadcast, failed adds/removes, an opt-out that keeps
+//            failing) answers 500 and emails the founder, at most once per 6 hours.
 //   inspect  { broadcast_id }
 //            read-only: one Broadcast's status, scheduled_at, topic_id, subject, from, reply_to and
 //            the SHA-256 + length of its HTML, to prove an edit left the approved email unchanged.
@@ -76,9 +84,16 @@ import {
   isBroadcastAudience,
   isBroadcastSegmentName,
   needsRefresh,
+  OPTOUT_PUSH_PER_RUN,
+  optOutPushOutcome,
+  optOutsToPush,
   parseResendTime,
   planStage,
   PROOF_SEGMENT,
+  REFRESH_EVERY_MS,
+  refreshAlertKey,
+  refreshAlertText,
+  refreshProblemAlerts,
   type StageLogRow,
   type StageStatus,
 } from '../_shared/broadcast-stage-plan.ts';
@@ -100,9 +115,13 @@ const DEFAULT_BATCH = 300;
 const MAX_BATCH = 500;
 const WRITE_SPACING_MS = 200; // same pace as contact-properties-sync
 const TIME_BUDGET_MS = 100_000; // stop well inside the wall-clock limit; call again to continue
-// The hourly refresh stays short (the cron forwarder waits on it); an unfinished segment is
-// simply picked up again next hour, because last_refreshed_at is only set once it is done.
-const REFRESH_TIME_BUDGET_MS = 20_000;
+// The hourly refresh stays short (the cron forwarder waits on it, and a Vercel edge route must
+// answer within ~25 s); an unfinished segment is simply picked up again next hour, because
+// last_refreshed_at is only set once it is done. Counted from the start of the run, so the
+// opt-out push (its own smaller budget) and the founder alert (5 s cap) fit inside it.
+const REFRESH_TIME_BUDGET_MS = 18_000;
+const OPTOUT_PUSH_BUDGET_MS = 5_000;
+const ALERT_TIMEOUT_MS = 5_000;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -367,7 +386,7 @@ interface ScheduledBroadcast {
 
 /** Every Broadcast on the team (paginated list), or only the SCHEDULED ones. Scheduled ones are
  *  read in full: the list may omit scheduled_at / segment_id; the single read always has them. */
-async function listBroadcasts(onlyScheduled: boolean): Promise<ScheduledBroadcast[]> {
+async function listBroadcasts(onlyScheduled: boolean, problems?: string[]): Promise<ScheduledBroadcast[]> {
   const out: ScheduledBroadcast[] = [];
   let after: string | null = null;
   for (let page = 0; page < 20; page++) {
@@ -383,6 +402,9 @@ async function listBroadcasts(onlyScheduled: boolean): Promise<ScheduledBroadcas
       if (d.status === 200 && d.body) out.push(d.body as unknown as ScheduledBroadcast);
       else {
         console.error('GET /broadcasts/{id} failed', b.id, d.status);
+        // 2026-11-16 (B2): a scheduled Broadcast that cannot be read used to vanish from the
+        // refresh without a word; the caller now hears about it.
+        problems?.push(`scheduled Broadcast "${b.name ?? b.id}" could not be read from Resend (HTTP ${d.status}), so its list was not checked this hour`);
         if (!onlyScheduled) out.push(b);
       }
     }
@@ -393,8 +415,134 @@ async function listBroadcasts(onlyScheduled: boolean): Promise<ScheduledBroadcas
 }
 
 /** Every SCHEDULED Broadcast on the team, each read in full. */
-async function scheduledBroadcasts(): Promise<ScheduledBroadcast[]> {
-  return listBroadcasts(true);
+async function scheduledBroadcasts(problems?: string[]): Promise<ScheduledBroadcast[]> {
+  return listBroadcasts(true, problems);
+}
+
+/** Every email in `table` matching `filter`, paged (PostgREST caps a read at 1000 rows). */
+async function emailsWhere(
+  db: Db,
+  table: string,
+  // deno-lint-ignore no-explicit-any
+  filter: (q: any) => any,
+): Promise<string[]> {
+  const out: string[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await filter(db.from(table).select('email'))
+      .order('email', { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) throw new Error(`${table}: ${error.message}`);
+    const rows = (data ?? []) as Array<{ email: string | null }>;
+    for (const r of rows) if (r.email) out.push(r.email);
+    if (rows.length < PAGE) break;
+  }
+  return out;
+}
+
+interface OptOutPushResult {
+  due: number;
+  pushed: number;
+  absent: number;
+  failed: number;
+  remaining: number;
+  /** Addresses whose push failed this run AND on an earlier run: a real, lasting problem. */
+  repeat_failures: string[];
+}
+
+/**
+ * B1 (2026-11-16): tell Resend about every opt-out it has not heard of yet, so the next
+ * Broadcast skips that family whatever its segment holds. Same rule and log table as
+ * contact-properties-sync's nightly pass (which keeps running): PATCH /contacts/{email}
+ * unsubscribed:true, logged ok / absent / failed in resend_unsubscribe_sync. Never sets the
+ * flag back to false. The echo this PATCH causes (contact.updated -> resend-webhook) is
+ * ignored there for a homeschool-list opt-out, whose row exists before the push; a global
+ * opt-out is already global. Throws only when the opt-out lists cannot be read.
+ */
+async function pushNewOptOuts(db: Db, budgetMs: number): Promise<OptOutPushResult> {
+  const started = Date.now();
+  const [globalEmails, listEmails, settledEmails, failedEmails] = await Promise.all([
+    emailsWhere(db, 'waitlist_signups', (q) => q.not('unsubscribed_at', 'is', null)),
+    emailsWhere(db, 'email_list_unsubscribes', (q) => q.eq('list', 'homeschool')),
+    emailsWhere(db, 'resend_unsubscribe_sync', (q) => q.in('status', ['ok', 'absent'])),
+    emailsWhere(db, 'resend_unsubscribe_sync', (q) => q.eq('status', 'failed')),
+  ]);
+  const due = optOutsToPush(globalEmails, listEmails, settledEmails);
+  const failedBefore = new Set(failedEmails.map((e) => e.trim().toLowerCase()));
+  const out: OptOutPushResult = { due: due.length, pushed: 0, absent: 0, failed: 0, remaining: due.length, repeat_failures: [] };
+
+  let processed = 0;
+  for (const email of due.slice(0, OPTOUT_PUSH_PER_RUN)) {
+    if (Date.now() - started > budgetMs) break;
+    processed++;
+    let status = 0;
+    let error: string | undefined;
+    try {
+      const res = await fetch(`${API}/contacts/${encodeURIComponent(email)}`, {
+        method: 'PATCH',
+        headers: resendHeaders(),
+        body: JSON.stringify({ unsubscribed: true }),
+        signal: AbortSignal.timeout(8_000),
+      });
+      status = res.status;
+      if (!res.ok) error = (await res.text().catch(() => '')).slice(0, 200);
+      else await res.body?.cancel();
+    } catch (e) {
+      error = e instanceof Error ? e.message : String(e);
+    }
+    const outcome = optOutPushOutcome(status);
+    if (outcome === 'ok') out.pushed++;
+    else if (outcome === 'absent') out.absent++;
+    else {
+      out.failed++;
+      if (failedBefore.has(email)) out.repeat_failures.push(email);
+    }
+    const { error: upErr } = await db.from('resend_unsubscribe_sync').upsert(
+      { email, status: outcome, http_status: status, error: outcome === 'failed' ? (error ?? null) : null, synced_at: new Date().toISOString() },
+      { onConflict: 'email' },
+    );
+    if (upErr) console.error('resend_unsubscribe_sync upsert failed', email, upErr.message);
+    if (status === 429) await sleep(2000);
+    await sleep(WRITE_SPACING_MS);
+  }
+  out.remaining = Math.max(0, due.length - processed + out.failed);
+  return out;
+}
+
+/**
+ * B2 (2026-11-16): the founder alert for a broken refresh, sent at most once per 6-hour block
+ * through a Resend Idempotency-Key (a repeat with the same key is not sent again; a 409 means
+ * this block's alert already went). Not _shared/founder-alert.ts: adding a key there would
+ * make every function that imports it stale. Same sender, recipient and env names. Never throws.
+ */
+async function alertFounderOnce(subject: string, text: string, key: string): Promise<'sent' | 'already' | 'failed'> {
+  const sendKey = Deno.env.get('RESEND_API_KEY') ?? RESEND_KEY;
+  const to = Deno.env.get('FOUNDER_EMAIL') ?? 'hello@edeninstitute.health';
+  const from = Deno.env.get('FROM_EMAIL') ?? 'The Eden Institute <hello@edeninstitute.health>';
+  if (!sendKey) {
+    console.error('broadcast-stage: no Resend key; could not send the refresh alert');
+    return 'failed';
+  }
+  try {
+    const res = await fetch(`${API}/emails`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${sendKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': key },
+      body: JSON.stringify({ from, to, subject, text }),
+      signal: AbortSignal.timeout(ALERT_TIMEOUT_MS),
+    });
+    if (res.ok) {
+      await res.body?.cancel();
+      return 'sent';
+    }
+    if (res.status === 409) {
+      await res.body?.cancel();
+      return 'already';
+    }
+    console.error('broadcast-stage: refresh alert refused', res.status, (await res.text().catch(() => '')).slice(0, 200));
+    return 'failed';
+  } catch (e) {
+    console.error('broadcast-stage: refresh alert failed', e instanceof Error ? e.message : String(e));
+    return 'failed';
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -509,7 +657,42 @@ Deno.serve(async (req: Request) => {
 
     if (mode === 'refresh_due') {
       const nowMs = Date.now();
-      const scheduled = await scheduledBroadcasts();
+      const runStarted = Date.now();
+      // B2: every reason this run could not do its job. Any entry -> 500, and the ones that
+      // matter now also go to `alerts` (see refreshProblemAlerts) for the founder email.
+      const problems: string[] = [];
+      const alerts: string[] = [];
+
+      // B1: opt-outs reach Resend first, so even a list refreshed hours ago skips them.
+      let optouts: OptOutPushResult | null = null;
+      try {
+        optouts = await pushNewOptOuts(db, OPTOUT_PUSH_BUDGET_MS);
+        if (optouts.failed > 0) {
+          problems.push(`${optouts.failed} unsubscribe(s) could not be passed to Resend this hour`);
+        }
+        if (optouts.repeat_failures.length) {
+          alerts.push(
+            `${optouts.repeat_failures.length} unsubscribe(s) keep failing to reach Resend, so a Friday email could still reach them: ${optouts.repeat_failures.slice(0, 5).join(', ')}`,
+          );
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        problems.push(`could not read the unsubscribe lists (${msg}), so new unsubscribes were not passed to Resend`);
+        alerts.push(`could not read the unsubscribe lists (${msg}), so new unsubscribes were not passed to Resend`);
+      }
+
+      let scheduled: ScheduledBroadcast[] = [];
+      try {
+        // A scheduled Broadcast that cannot be read has no known send time, so it alerts at once.
+        const unreadable: string[] = [];
+        scheduled = await scheduledBroadcasts(unreadable);
+        problems.push(...unreadable);
+        alerts.push(...unreadable);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        problems.push(`could not list the Broadcasts in Resend (${msg}), so no list was refreshed this hour`);
+        alerts.push(`could not list the Broadcasts in Resend (${msg}), so no list was refreshed this hour`);
+      }
       const due = dueForRefresh(scheduled, nowMs);
       // Every scheduled Broadcast with its parsed send time, so "nothing due" can be told
       // apart from "could not read the send time" (a NaN time is never due).
@@ -524,43 +707,82 @@ Deno.serve(async (req: Request) => {
       });
       const report: Array<Record<string, unknown>> = [];
       if (due.length) {
-        const { ids } = await ensureSegments([]);
+        const { ids, failed: segListFailed } = await ensureSegments([]);
         const nameById = new Map([...ids].map(([name, id]) => [id, name]));
-        const started = Date.now();
         for (const b of due) {
+          const label = String(b.name ?? b.id);
+          const sendAtMs = parseResendTime(b.scheduled_at);
+          // A problem with this Broadcast reaches the founder once it is inside 8 hours of its send.
+          const problem = (text: string, alertNow = refreshProblemAlerts(sendAtMs, nowMs)) => {
+            problems.push(`"${label}": ${text}`);
+            if (alertNow) alerts.push(`"${label}" (sends ${b.scheduled_at}): ${text}`);
+          };
           const segName = nameById.get(String(b.segment_id ?? b.audience_id ?? '')) ?? null;
-          const item: Record<string, unknown> = { broadcast: b.name ?? b.id, scheduled_at: b.scheduled_at, segment: segName };
+          const item: Record<string, unknown> = { broadcast: label, scheduled_at: b.scheduled_at, segment: segName };
           report.push(item);
+          // B2: an unreadable segment list used to look like "not a Broadcast segment" and pass as 200.
+          if (segListFailed.length) {
+            item.error = `could not read the segment list from Resend: ${JSON.stringify(segListFailed).slice(0, 200)}`;
+            problem('its list could not be refreshed (Resend would not list the segments)');
+            continue;
+          }
           if (!isBroadcastSegmentName(segName)) {
             item.skipped = 'not a "Broadcast: " segment';
             continue;
           }
-          const { data: seg } = await db.from('broadcast_segments')
+          const { data: seg, error: segErr } = await db.from('broadcast_segments')
             .select('audience, last_refreshed_at').eq('segment_name', segName).maybeSingle();
+          if (segErr) {
+            // B2: a database error used to read as "no audience recorded", logged only.
+            item.error = `broadcast_segments: ${segErr.message}`;
+            problem(`its list could not be refreshed (database error: ${segErr.message})`);
+            continue;
+          }
           if (!seg || !isBroadcastAudience(seg.audience)) {
             item.skipped = 'no audience recorded for this segment (stage it once by hand)';
             console.error('broadcast-stage refresh_due: no audience for', segName);
+            // Not a blip: it will not heal on its own, so it alerts at once.
+            problem('no audience is recorded for its list, so it never refreshes (stage it once by hand)', true);
             continue;
           }
-          if (!needsRefresh(seg.last_refreshed_at, nowMs)) {
+          if (!needsRefresh(seg.last_refreshed_at, nowMs, REFRESH_EVERY_MS, sendAtMs)) {
             item.skipped = `refreshed at ${seg.last_refreshed_at}`;
             continue;
           }
-          const left = REFRESH_TIME_BUDGET_MS - (Date.now() - started);
+          const left = REFRESH_TIME_BUDGET_MS - (Date.now() - runStarted);
           if (left <= 0) {
             item.skipped = 'out of time this run; next hour continues';
             continue;
           }
-          const r = await stageSegment(db, seg.audience, segName, MAX_BATCH, new Date().toISOString(), left);
-          Object.assign(item, {
-            audience: r.audience, audience_size: r.audience_size, added: r.added + r.created,
-            removed: r.removed, absent: r.absent, failed: r.failed, remaining: r.remaining, in_segment: r.in_segment,
-          });
+          try {
+            const r = await stageSegment(db, seg.audience, segName, MAX_BATCH, new Date().toISOString(), left);
+            Object.assign(item, {
+              audience: r.audience, audience_size: r.audience_size, added: r.added + r.created,
+              removed: r.removed, absent: r.absent, failed: r.failed, remaining: r.remaining, in_segment: r.in_segment,
+            });
+            if (r.failed > 0) problem(`${r.failed} add/remove call(s) to Resend failed while refreshing its list`);
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            item.error = msg;
+            problem(`its list could not be refreshed (${msg})`);
+          }
         }
       }
-      console.log('broadcast-stage refresh_due', JSON.stringify(report));
-      const failed = report.some((i) => Number(i.failed ?? 0) > 0);
-      return json({ mode, checked_at: new Date(nowMs).toISOString(), due: due.length, upcoming, report }, failed ? 207 : 200);
+
+      let alert: string | null = null;
+      if (alerts.length) {
+        alert = await alertFounderOnce(
+          'Eden alert: the Friday list refresh hit a problem',
+          refreshAlertText(alerts),
+          refreshAlertKey(nowMs),
+        );
+      }
+      console.log('broadcast-stage refresh_due', JSON.stringify({ optouts, report, problems, alert }));
+      if (problems.length) console.error('broadcast-stage refresh_due problems', JSON.stringify(problems));
+      return json(
+        { mode, checked_at: new Date(nowMs).toISOString(), due: due.length, upcoming, optouts, report, problems, alert },
+        problems.length ? 500 : 200,
+      );
     }
 
     if (mode === 'create') {

@@ -139,8 +139,99 @@ export function dueForRefresh<T extends BroadcastTiming>(list: readonly T[], now
   });
 }
 
-/** A segment needs a refresh when it was never refreshed, or not within the last `everyMs`. */
-export function needsRefresh(lastRefreshedAt: string | null | undefined, nowMs: number, everyMs = REFRESH_EVERY_MS): boolean {
+// 2026-11-16 (Lane 2 area 7 B1, founder tap "Yes, build + ship both"): with refreshes every
+// 6 hours the last one used to land 2-8 hours before the send (Nov 13: 5 hours). Inside the
+// last FINAL_REFRESH_MS before the send, a list that was not refreshed inside that window is
+// refreshed once more, so the hourly :05 run lands its last refresh within the hour before a
+// :00 send.
+export const FINAL_REFRESH_MS = 90 * 60 * 1000;
+
+/**
+ * A segment needs a refresh when it was never refreshed, or not within the last `everyMs`, or
+ * (given the send time) the send is inside the final window and the last refresh came before
+ * that window opened.
+ */
+export function needsRefresh(
+  lastRefreshedAt: string | null | undefined,
+  nowMs: number,
+  everyMs = REFRESH_EVERY_MS,
+  sendAtMs?: number,
+): boolean {
   const last = parseResendTime(lastRefreshedAt ?? '');
-  return !Number.isFinite(last) || nowMs - last >= everyMs;
+  if (!Number.isFinite(last) || nowMs - last >= everyMs) return true;
+  if (sendAtMs !== undefined && Number.isFinite(sendAtMs)) {
+    const toSend = sendAtMs - nowMs;
+    if (toSend > 0 && toSend <= FINAL_REFRESH_MS && sendAtMs - last > FINAL_REFRESH_MS) return true;
+  }
+  return false;
+}
+
+// ── Opt-outs reach Resend every hour (2026-11-16, area 7 B1) ───────────────────────────────
+// A Broadcast skips a contact whose own Resend `unsubscribed` flag is true, whatever its
+// segment holds. Our unsubscribe link writes only Postgres, and the nightly
+// sync-contact-properties run pushed the flag once a day, so a family who left on a Friday
+// afternoon still got that evening's email. refresh_due now pushes every opt-out Resend has
+// not been told about at the start of each hourly run.
+export const OPTOUT_PUSH_PER_RUN = 25;
+
+/**
+ * Opt-outs not yet settled in Resend: global (waitlist_signups.unsubscribed_at) plus
+ * homeschool-list (email_list_unsubscribes), lowercased, @example.test dropped, minus every
+ * address already logged ok or absent in resend_unsubscribe_sync. Sorted, deterministic.
+ * Same rule as contact-properties-sync's nightly pass, which keeps running.
+ */
+export function optOutsToPush(
+  globalEmails: readonly string[],
+  listEmails: readonly string[],
+  settledEmails: readonly string[],
+): string[] {
+  const settled = new Set(settledEmails.map((e) => e.trim().toLowerCase()));
+  const out = new Set<string>();
+  for (const raw of [...globalEmails, ...listEmails]) {
+    const e = String(raw ?? '').trim().toLowerCase();
+    if (!e || e.endsWith('@example.test') || settled.has(e)) continue;
+    out.add(e);
+  }
+  return [...out].sort();
+}
+
+/** How a Resend PATCH unsubscribed:true answer is logged. 404 and 422 mean Resend can never mail it. */
+export function optOutPushOutcome(status: number): 'ok' | 'absent' | 'failed' {
+  if (status >= 200 && status < 300) return 'ok';
+  if (status === 404 || status === 422) return 'absent';
+  return 'failed';
+}
+
+// ── Founder alert when the refresh breaks (2026-11-16, area 7 B2) ───────────────────────────
+// A refresh that could not run used to return 200 and the cron logged "ok". Now refresh_due
+// collects every problem, answers 500, and emails the founder. A refresh problem only alerts
+// once the Broadcast is inside ALERT_WITHIN_MS of its send (earlier blips are retried every
+// hour and usually heal); a missing audience and an unreadable Broadcast list alert at once.
+// At most one alert per ALERT_BUCKET_HOURS, through a Resend Idempotency-Key.
+export const ALERT_WITHIN_MS = 8 * 60 * 60 * 1000;
+export const ALERT_BUCKET_HOURS = 6;
+
+/** True when a refresh problem for a Broadcast sending at `sendAtMs` should reach the founder now. */
+export function refreshProblemAlerts(sendAtMs: number, nowMs: number, withinMs = ALERT_WITHIN_MS): boolean {
+  return Number.isFinite(sendAtMs) && sendAtMs - nowMs <= withinMs;
+}
+
+/** One key per UTC day and 6-hour block, so Resend sends at most one alert per block. */
+export function refreshAlertKey(nowMs: number): string {
+  const d = new Date(nowMs);
+  const block = Math.floor(d.getUTCHours() / ALERT_BUCKET_HOURS);
+  return `broadcast-stage/refresh-alert/${d.toISOString().slice(0, 10)}/${block}`;
+}
+
+/** Plain-text alert body. No em dashes (copy rule). */
+export function refreshAlertText(problems: readonly string[]): string {
+  return [
+    'The hourly refresh of the Friday list emails hit a problem, so a list email may go out to a',
+    'list that is not up to date (a family who just unsubscribed could still get it).',
+    '',
+    ...problems.map((p) => `- ${p}`),
+    '',
+    'It tries again every hour, and this alert repeats at most once every 6 hours while the',
+    'problem lasts. To look into it, tell Claude: "check the Broadcast refresh".',
+  ].join('\n');
 }
