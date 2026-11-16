@@ -5,6 +5,7 @@ description: "Healing herbs in the Bible, with verses: balm of Gilead, Hezekiah'
 published: "2026-10-04"
 draft: false
 freeWeekOffer: true
+bookOffer: true
 related:
   - is-herbalism-biblical
   - is-herbalism-witchcraft

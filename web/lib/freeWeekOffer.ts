@@ -9,8 +9,9 @@
 // GA reports each sign-up as email_submit with this placement's form_name.
 //
 // WHERE.
-//   learn_mid    after the first section of a /learn article whose frontmatter
-//                says freeWeekOffer: true (remarkFreeWeekOffer, astro.config.mjs)
+//   learn_mid    after the first section of every /learn article unless its
+//                frontmatter says freeWeekOffer: false (remarkFreeWeekOffer,
+//                astro.config.mjs; every article since 2026-11-16, was opt-in)
 //   learn_end    at the foot of that article (web/pages/learn/[slug].astro)
 //   herb         every /herbs/<slug> page, beside the curriculum-week link; the app
 //                monograph renders the same offer (src/components/apothecary/FreeWeekOfferCard.tsx)
@@ -91,14 +92,15 @@ interface MdNode {
 }
 
 /**
- * remark plugin: in a /learn article whose frontmatter sets freeWeekOffer: true,
- * insert the offer right after the first section, i.e. just before the article's
+ * remark plugin: in every /learn article (unless its frontmatter sets
+ * freeWeekOffer: false; opt-in until 2026-11-16), insert the offer right after the first section, i.e. just before the article's
  * second "## " heading. An article with fewer than two such headings gets none
  * here (it still gets the one at its foot).
  */
 export function remarkFreeWeekOffer() {
   return (tree: MdNode, file: { data?: { astro?: { frontmatter?: Record<string, unknown> } } }) => {
-    if (file.data?.astro?.frontmatter?.freeWeekOffer !== true) return;
+    // Raw frontmatter, not the zod default, so mirror config.ts: on unless false.
+    if (file.data?.astro?.frontmatter?.freeWeekOffer === false) return;
     const children = tree.children ?? [];
     const h2 = children.map((n, i) => (n.type === "heading" && n.depth === 2 ? i : -1)).filter((i) => i >= 0);
     if (h2.length < 2) return;

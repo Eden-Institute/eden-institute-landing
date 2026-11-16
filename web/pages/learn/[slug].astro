@@ -10,6 +10,7 @@ import { getCollection, type CollectionEntry } from "astro:content";
 import MarketingLayout from "../../layouts/MarketingLayout.astro";
 import { GRADE_PAGES, gradePath } from "../../lib/gradePages";
 import { freeWeekOfferHtml } from "../../lib/freeWeekOffer";
+import { bookChapterOfferHtml } from "../../lib/bookChapterOffer";
 import WaitlistController from "../../components/islands/WaitlistController.tsx";
 
 export async function getStaticPaths() {
@@ -127,7 +128,9 @@ if (d.faq.length > 0) {
 
       {/* A flagged article (freeWeekOffer) signs readers up right here, the second
           of its two offers (web/lib/freeWeekOffer.ts); the others link to /freebies. */}
-      {d.freeWeekOffer && <div class="mt-14"><Fragment set:html={freeWeekOfferHtml("learn_end")} /></div>}
+      {/* Back to Eden's free Chapter 1 for articles adults come to (bookOffer, 2026-11-16). */}
+      {d.bookOffer && <div class="mt-14"><Fragment set:html={bookChapterOfferHtml("learn_end")} /></div>}
+      {d.freeWeekOffer && <div class={d.bookOffer ? "mt-6" : "mt-14"}><Fragment set:html={freeWeekOfferHtml("learn_end")} /></div>}
       <aside class={d.freeWeekOffer ? "mt-6" : "mt-14 rounded-lg p-6 border"} style={d.freeWeekOffer ? "" : "background-color:hsl(var(--eden-cream));border-color:hsl(var(--eden-gold) / 0.35)"}>
         {!d.freeWeekOffer && (
           <>
@@ -150,7 +153,7 @@ if (d.faq.length > 0) {
       </aside>
     </div>
   </article>
-  {d.freeWeekOffer && <WaitlistController client:only="react" />}
+  {(d.freeWeekOffer || d.bookOffer) && <WaitlistController client:only="react" />}
 </MarketingLayout>
 
 <style is:global>
