@@ -1244,6 +1244,66 @@ ${small('<a href="{{UNSUB_URL}}" style="color:#888888;text-decoration:underline;
   return { subject: `How did the ${plant} week go?`, html };
 }
 
+// Day-7 check-in, version B (founder chose "Use this draft" + "Let's do A/B testing" on the
+// Lane FW review page, 2026-11-16). The 9/24 copy above (version A) drew 46% opens and 0
+// replies in ~110 sends, while a hand-sent note with ONE easy question earned replies. B asks
+// for a one-word reply first, then two feedback questions, then a real-photo + words
+// permission ask tied to Wednesday's Kitchen Lab (lab wording matches
+// buildFreeWeekNextMorningEmail). Same subject, sender, footer and $39 P.S. as A. No em dashes.
+function buildFreeWeekCheckinEmailV2(
+  rawFirstName: string | null,
+  band: 'sprouts' | 'seedlings',
+): { subject: string; html: string } {
+  const plant = band === 'sprouts' ? 'lavender' : 'elderberry';
+  const photo = band === 'sprouts'
+    ? 'And if you did the lavender steep on Wednesday, I&rsquo;d love to see a picture. Hands, mugs and notebook pages are perfect if you&rsquo;d rather keep faces out of it.'
+    : 'And if you made the elderberry syrup on Wednesday, I&rsquo;d love to see a picture. Hands, jars and notebook pages are perfect if you&rsquo;d rather keep faces out of it.';
+  const starterUrl = band === 'sprouts'
+    ? 'https://edeninstitute.health/starter'
+    : 'https://edeninstitute.health/starter/seedlings';
+  const starterLink = `<a href="${starterUrl}" style="color:#2E3D32;text-decoration:underline;">weeks 1 to 9 are here</a>`;
+  const name = String(rawFirstName ?? '').trim()
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const greeting = name && name.toLowerCase() !== 'friend' ? `Hi ${name}!` : 'Hi there!';
+  const para = (t: string) =>
+    `<p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#222222;margin:0 0 14px 0;">${t}</p>`;
+  const small = (t: string) =>
+    `<p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.5;color:#888888;margin:0 0 4px 0;">${t}</p>`;
+  const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:16px;background-color:#ffffff;">
+<div style="display:none;max-height:0;overflow:hidden;">A one-word reply is perfect.</div>
+<div style="max-width:560px;">
+${para(greeting)}
+${para(`It&rsquo;s Camila from Eden&rsquo;s Table. Quick question about the free ${plant} week: did you get to try it?`)}
+${para('Just hit reply with one word: yes, started, or not yet. Your reply comes straight to me.')}
+${para('If you tried it, tell me what your kids liked best and what was hard. The hard parts help me the most!')}
+${para(`${photo} Just tell me it&rsquo;s okay to share your picture or your words with other moms. I&rsquo;ll only ever use your first name.`)}
+${para('Camila')}
+${para(`P.S. If your kids want to keep going, ${starterLink} as a $39 download.`)}
+<div style="border-top:1px solid #eeeeee;margin:28px 0 12px 0;"></div>
+${small('You&rsquo;re receiving this because you requested a free week of Eden&rsquo;s Table from The Eden Institute.')}
+${small('Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Unit 3262, Clarksville, TN 37043')}
+${small('<a href="{{UNSUB_URL}}" style="color:#888888;text-decoration:underline;">Unsubscribe</a>')}
+</div>
+</body></html>`;
+  return { subject: `How did the ${plant} week go?`, html };
+}
+
+// Day-7 A/B split (2026-11-16): a stable 50/50 by address, so a family keeps the same version
+// for both bands and on every retry. FNV-1a 32-bit over the trimmed, lowercased address; even
+// = A (9/24 copy, key magnet_checkin_<band>), odd = B (V2, key magnet_checkin_v2_<band>).
+// Lane FW's analysis script recomputes the same hash to put each reply in its arm, so do not
+// change this function while the test runs.
+function day7Variant(email: string): 'A' | 'B' {
+  let h = 0x811c9dc5;
+  for (const ch of email.trim().toLowerCase()) {
+    h ^= ch.codePointAt(0) ?? 0;
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h % 2 === 0 ? 'A' : 'B';
+}
+
 // Lock #83 / Phase 3.1.2: drains public.magnet_email_queue. Week 2 (band-specific)
 // + Week 3-7 (band-agnostic). No quiz_completions row needed; first name comes
 // from the queue row. Band-agnostic positions are deduped per recipient; Weeks
@@ -1363,8 +1423,15 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
         // to open, so the slot now carries a short personal check-in from Camila
         // that asks for a reply. Same number of emails, one better one. New key so
         // the dashboard never merges it with the old offer's numbers.
-        built = buildFreeWeekCheckinEmail(row.first_name, band);
-        emailKey = `magnet_checkin_${band}`;
+        // 2026-11-16 A/B (founder): half get the 9/24 copy (A), half the one-word-reply
+        // version (B), split by address. Separate keys keep the two arms' numbers apart.
+        if (day7Variant(email) === 'B') {
+          built = buildFreeWeekCheckinEmailV2(row.first_name, band);
+          emailKey = `magnet_checkin_v2_${band}`;
+        } else {
+          built = buildFreeWeekCheckinEmail(row.first_name, band);
+          emailKey = `magnet_checkin_${band}`;
+        }
       } else if (pos === 8) {
         // 2026-10-14 (founder-approved by inbox proof): the Day-10 Starter note, three days
         // after the check-in. Never to a family who already owns that band.
