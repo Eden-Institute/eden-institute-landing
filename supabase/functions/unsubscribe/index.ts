@@ -98,10 +98,14 @@ async function recordUnsubscribe(email: string, list: EmailList): Promise<boolea
         'Content-Type': 'application/json',
         Prefer: 'return=minimal,resolution=merge-duplicates',
       },
+      // unsubscribed_at is sent on purpose (2026-11-17, area 8 U3): merge-duplicates updates
+      // only the columns sent, and the drips compare this time with when each email was
+      // queued, so a family who left, came back and leaves AGAIN must get a fresh time.
       body: JSON.stringify({
         email: email.trim().toLowerCase(),
         list,
         source: 'one_click_unsubscribe',
+        unsubscribed_at: new Date().toISOString(),
       }),
     });
     if (!res.ok) {

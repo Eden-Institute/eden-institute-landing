@@ -104,6 +104,74 @@ function getSlugInfo(constitutionType: string): { slug: string; name: string } |
 // buildNurtureEmail1 (itself replaced by lead-track-templates buildQuizEmail1, 2026-10-15). Its copy differs from src/lib/constitution-data.ts; recover it
 // from git history (last commit before this removal) if it is ever wanted.
 
+// ── A family who once unsubscribed signs up again (2026-11-17, Lane 2 area 8 U3) ──
+// Founder tap "Let them back in": the series they just asked for comes back for them (free
+// week, quiz or Advent); their other opt-outs stay; hard bounces and spam complaints stay
+// blocked. public.reopen_series_on_signup clears THAT series' queue rows that were cancelled
+// because of the old opt-out (they would block the fresh queue on its unique keys), stamps the
+// Advent re-sign-up time, and records the return; it never deletes an opt-out record. The
+// drips then send rows queued after the opt-out (public.email_send_blocked). Call it BEFORE
+// the series' queue insert. Never throws: on any failure the sign-up carries on exactly as it
+// did before this change (welcome only), and the error is logged.
+type ReturnSeries = 'free_week' | 'quiz' | 'advent_2026';
+async function reopenSeriesOnSignup(
+  email: string,
+  series: ReturnSeries,
+  band?: 'sprouts' | 'seedlings',
+): Promise<{ action?: string; cleared_cancelled_rows?: number; resend_unsubscribe_off?: boolean } | null> {
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/reopen_series_on_signup`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_SERVICE_ROLE_KEY!,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY!}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_email: email, p_series: series, p_band: band ?? null }),
+    });
+    const body = await r.json().catch(() => null);
+    if (!r.ok || !body || typeof body !== 'object') {
+      console.error('reopen_series_on_signup failed', { series, status: r.status, body: JSON.stringify(body)?.slice(0, 300) });
+      return null;
+    }
+    if (body.action && body.action !== 'none') console.log('reopen_series_on_signup', series, JSON.stringify(body));
+    return body;
+  } catch (e) {
+    console.error('reopen_series_on_signup threw', { series, error: String(e).slice(0, 300) });
+    return null;
+  }
+}
+
+// Advent returnee only: Resend skips a contact whose own `unsubscribed` flag is true, and every
+// opt-out is pushed to Resend that way, so the Sunday Broadcasts would never reach them. Their
+// Friday letters stay off because broadcast_audience still leaves them out of every Friday list
+// (only advent_2026 takes them back). The resulting contact.updated with unsubscribed:false is
+// ignored by resend-webhook. Returns true when Resend accepted the change.
+async function resendContactSubscribedAgain(email: string): Promise<boolean> {
+  const key = RESEND_CONTACTS_KEY || RESEND_API_KEY;
+  if (!key) {
+    console.error('resendContactSubscribedAgain: no Resend key');
+    return false;
+  }
+  try {
+    const res = await fetch(`https://api.resend.com/contacts/${encodeURIComponent(email)}`, {
+      method: 'PATCH',
+      headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ unsubscribed: false }),
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!res.ok) {
+      console.error('resendContactSubscribedAgain refused', res.status, (await res.text().catch(() => '')).slice(0, 200));
+      return false;
+    }
+    await res.body?.cancel();
+    return true;
+  } catch (e) {
+    console.error('resendContactSubscribedAgain failed', String(e).slice(0, 300));
+    return false;
+  }
+}
+
 // ── Send email helper ──
 
 // Returns what Resend really did (2026-11-12, area 5 F1): a refusal used to be
@@ -402,6 +470,30 @@ Deno.serve(async (req) => {
           'resend-waitlist',
         );
       }
+
+      // 2026-11-17 (area 8 U3): a family who had unsubscribed and signs up for Advent gets the
+      // four Sundays (broadcast_audience advent_2026 compares their latest Advent sign-up with
+      // their opt-outs). Resend must also stop skipping them. If that fails, the founder hears
+      // about it, because the "You're in" note below promises the Sundays.
+      const reopened = await reopenSeriesOnSignup(normalizedEmail, 'advent_2026');
+      if (reopened?.resend_unsubscribe_off && !(await resendContactSubscribedAgain(normalizedEmail))) {
+        await alertFounder(
+          'Advent sign-up: could not turn their emails back on in Resend',
+          [
+            'A family who had unsubscribed earlier signed up for Plants of the Nativity again.',
+            'Their sign-up is saved, but Resend still has them marked unsubscribed, so the four Sunday',
+            'emails would skip them.',
+            '',
+            `Email: ${normalizedEmail}`,
+            '',
+            'To fix it: ask Claude to set this contact to subscribed in Resend (unsubscribed: false).',
+            'Their Friday letters stay off either way.',
+            '',
+            '(Sent by resend-waitlist.)',
+          ].join('\n'),
+          'resend-waitlist',
+        );
+      }
     }
 
     // ── Step 2: Resend contact create in master audience ──
@@ -606,8 +698,13 @@ Deno.serve(async (req) => {
             if (!e1Res.ok) console.error('Nurture Email 1 send failed', e1Res.status);
             else console.log('Nurture Email 1 sent');
 
+            // 2026-11-17 (area 8 U3): a family who had unsubscribed gets the quiz emails back.
+            // Before the upsert below: it clears their opt-out-cancelled quiz rows, which would
+            // otherwise make it fail on the (recipient_email, sequence_position) unique key.
+            await reopenSeriesOnSignup(normalizedEmail, 'quiz');
+
             // Emails 2/3/4: UPSERT into nurture_email_queue
-            const day2 = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString();
+            const day2 =new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString();
             const day4 = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000).toISOString();
             const day6 = new Date(now.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString();
             // 2026-10-15, founder rule: every event gets 3-4 emails, then the shared
@@ -816,6 +913,10 @@ Deno.serve(async (req) => {
     if (welcomeAttempted && isFreeWeek) {
       try {
         const band = source === 'sprouts_magnet' ? 'sprouts' : 'seedlings';
+        // 2026-11-17 (area 8 U3): a family who had unsubscribed gets this free week back.
+        // Must run before the insert below: it clears their opt-out-cancelled rows for this
+        // band, which would otherwise block it (ignore-duplicates on the unique key).
+        await reopenSeriesOnSignup(normalizedEmail, 'free_week', band);
         const nowMs = Date.now();
         const day7 = new Date(nowMs + 7 * 24 * 60 * 60 * 1000).toISOString();
         const day10 = new Date(nowMs + 10 * 24 * 60 * 60 * 1000).toISOString();
