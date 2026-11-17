@@ -13,6 +13,9 @@
 //   herb        every /herbs/<slug> page, high on the page, before the free week
 //   learn_end   the foot of a /learn article whose frontmatter says bookOffer: true
 //   monograph   the app monograph (src/components/apothecary/BookChapterOfferCard.tsx)
+//   herb_exit   the "before you go" box on a /herbs/<slug> page (web/components/ExitOffer.astro)
+//   learn_exit  the same box on a faith /learn article (bookOffer: true)
+//   podcast     a podcast show's short-link page, e.g. /roaming-mama (web/lib/podcastLinks.ts)
 // form_name = `${placement}_bte_ch1`, data-cta = `${placement}-bte-ch1`.
 //
 // COPY. Nothing here is new wording. The heading and button are the /back-to-eden
@@ -20,7 +23,7 @@
 // pop-up wording is BACK_TO_EDEN_CH1_ATTRS, moved here unchanged from
 // web/pages/back-to-eden.astro so the two can never drift. No em dashes.
 
-export type BookOfferPlacement = "herb" | "learn_end" | "monograph";
+export type BookOfferPlacement = "herb" | "learn_end" | "monograph" | "herb_exit" | "learn_exit" | "podcast";
 
 /** The pop-up wording, exactly as the /back-to-eden hero button has used it since
  *  2026-09-25. WaitlistController reads these attributes; the app card passes the

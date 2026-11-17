@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 import heroMonograph from "@/assets/hero-monograph.jpg";
 import HeroBackdrop from "../../components/HeroBackdrop.astro";
 import WaitlistController from "../../components/islands/WaitlistController.tsx";
+import ExitOffer from "../../components/ExitOffer.astro";
 import { freeWeekOfferHtml } from "../../lib/freeWeekOffer";
 
 export async function getStaticPaths() {
@@ -396,5 +397,7 @@ const jsonLd = [
       <ApothecaryDisclaimer />
     </div>
   </section>
+  {/* "Before you go": Chapter 1 once, as a reader turns to leave (batch 5, b5_exit). */}
+  <ExitOffer offer="book" placement="herb_exit" />
   <WaitlistController client:only="react" />
 </MarketingLayout>

@@ -1,0 +1,84 @@
+---
+// The page behind edeninstitute.health/<show>: the short link a podcast host or Camila
+// can say on air (2026-11-16, Lane SEO batch 5, b5_podcast). Each show has a two-line
+// page file, web/pages/<slug>.astro, that renders this with its slug; see
+// web/lib/podcastLinks.ts for why, and for how to add a show. (One file per show, not a
+// top-level [show].astro: a catch-all at the root would answer every unknown path.)
+//
+// Greets the listener with that show's own host clip, then the free starting points:
+// Week 1 of Eden's Table, Chapter 1 of Back to Eden, and the Body Pattern quiz, in the
+// order the show's audience suits. noindex and kept out of the sitemap: it is for
+// listeners, not search. Offer blocks, the quiz card and the clip are the site's
+// existing wording; the only new words are the welcome lines. Copy rule: no em dashes.
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+import HostClipReel from "./HostClipReel.astro";
+import WaitlistController from "./islands/WaitlistController.tsx";
+import { PODCAST_LINKS, showFor } from "../lib/podcastLinks";
+import { freeWeekOfferHtml } from "../lib/freeWeekOffer";
+import { bookChapterOfferHtml } from "../lib/bookChapterOffer";
+
+export interface Props {
+  slug: string;
+  /** Always true: these pages are for listeners, not search. The page file states it so
+   *  src/test/sitemapStaticPaths.test.ts can see it without rendering. */
+  noindex: true;
+}
+
+const link = PODCAST_LINKS.find((l) => l.slug === Astro.props.slug);
+if (!link) throw new Error(`PodcastWelcome: no PODCAST_LINKS entry for "${Astro.props.slug}"`);
+const show = showFor(link);
+const canonical = `https://edeninstitute.health/${link.slug}`;
+const week1 = freeWeekOfferHtml("podcast");
+const ch1 = bookChapterOfferHtml("podcast");
+const offers = link.audience === "wellness" ? ["book", "quiz", "week1"] : ["week1", "book", "quiz"];
+---
+
+<MarketingLayout
+  title={`Welcome, ${show.show} listeners · The Eden Institute`}
+  description={`Heard Camila on ${show.show}? Start here: Week 1 of Eden's Table, Chapter 1 of Back to Eden and the Body Pattern quiz, all free.`}
+  canonical={canonical}
+  noindex={true}
+>
+  <section class="pt-16 md:pt-20 pb-10 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-3xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">
+        As heard on {show.show}
+      </p>
+      <h1 class="font-serif text-3xl md:text-5xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
+        Welcome! So glad you're here.
+      </h1>
+      <p class="font-body text-lg leading-relaxed" style="color:hsl(var(--eden-bark))">
+        You heard Camila talk with {show.host}. Here is where to start, and all of it is free.
+      </p>
+      {link.clip && (
+        <div class="mt-10 max-w-sm md:max-w-2xl mx-auto">
+          <HostClipReel ids={[link.clip]} label={`Clip from ${show.show}`} autoplay={false} />
+        </div>
+      )}
+    </div>
+  </section>
+
+  <section class="py-12 px-6 bg-background">
+    <div class="max-w-2xl mx-auto space-y-6">
+      {offers.map((o) =>
+        o === "week1" ? (
+          <Fragment set:html={week1} />
+        ) : o === "book" ? (
+          <Fragment set:html={ch1} />
+        ) : (
+          <a href="/assessment" data-cta="podcast-quiz" class="block rounded-lg border bg-white p-6 transition-shadow hover:shadow-md" style="border-color:hsl(var(--eden-gold) / 0.4)">
+            <p class="font-serif text-xl font-bold mb-2" style="color:hsl(var(--eden-forest))">The Body Pattern quiz</p>
+            <p class="font-body text-sm text-muted-foreground">Chapter 8's constitution work, as a quiz you can take today.</p>
+          </a>
+        ),
+      )}
+
+      <p class="font-body text-sm text-muted-foreground text-center pt-4">
+        <a href={show.episodeUrl} target="_blank" rel="noopener" data-cta="podcast-episode" class="underline underline-offset-4" style="color:hsl(var(--eden-sage-ink))">Listen to the full episode</a>
+        <span aria-hidden="true"> · </span>
+        <a href="/as-heard-on" data-cta="podcast-as-heard-on" class="underline underline-offset-4" style="color:hsl(var(--eden-sage-ink))">Every show Camila has joined</a>
+      </p>
+    </div>
+  </section>
+  <WaitlistController client:only="react" />
+</MarketingLayout>

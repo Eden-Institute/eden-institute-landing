@@ -15,6 +15,10 @@
 //   learn_end    at the foot of that article (web/pages/learn/[slug].astro)
 //   herb         every /herbs/<slug> page, beside the curriculum-week link; the app
 //                monograph renders the same offer (src/components/apothecary/FreeWeekOfferCard.tsx)
+//   learn_exit   the "before you go" box on a /learn article (web/components/ExitOffer.astro)
+//   podcast      a podcast show's short-link page, e.g. /roaming-mama (web/lib/podcastLinks.ts)
+//   starter      "Teach Week 1 first" on /starter and /starter/seedlings (one band each,
+//                freeWeekButtonHtml)
 // form_name = `${placement}_${band}_week1`, e.g. learn_mid_sprouts_week1.
 //
 // The heading is the developer prompt's own wording; the line under it and the
@@ -23,7 +27,7 @@
 import { FREE_WEEK_MODAL } from "./freeWeekModal";
 
 export type FreeWeekBand = "sprouts" | "seedlings";
-export type FreeWeekPlacement = "learn_mid" | "learn_end" | "herb";
+export type FreeWeekPlacement = "learn_mid" | "learn_end" | "herb" | "learn_exit" | "podcast" | "starter";
 
 export const FREE_WEEK_OFFER_HEADING = "Free: Week 1 of Eden's Table (Sprouts K-2 or Seedlings 3-5)";
 export const FREE_WEEK_OFFER_LINE =
@@ -53,26 +57,45 @@ function esc(text: string): string {
  * mount <WaitlistController client:only="react" />. Without JavaScript the
  * /freebies link still works.
  */
+/** The data-* attributes of one free-week button: the pop-up wording for that band,
+ *  plus this placement's GA4 form_name and data-cta. */
+function freeWeekButtonAttrs(placement: FreeWeekPlacement, band: FreeWeekBand): string[] {
+  const m = FREE_WEEK_MODAL[band];
+  return [
+    `type="button"`,
+    `data-cta="${placement.replace(/_/g, "-")}-${band}-free"`,
+    `data-waitlist-source="${m.source}"`,
+    `data-waitlist-form-name="${freeWeekFormName(placement, band)}"`,
+    `data-waitlist-title="${esc(m.title)}"`,
+    `data-waitlist-subtitle="${esc(m.subtitle)}"`,
+    `data-waitlist-submit-label="${esc(m.submitLabel)}"`,
+    `data-waitlist-success-message="${esc(m.successMessage)}"`,
+    `data-waitlist-success-subtitle="${esc(m.successSubtitle)}"`,
+    `data-waitlist-cta-href="/homeschool"`,
+    `data-waitlist-cta-label="See the full year"`,
+  ];
+}
+
+/**
+ * One free-week button for one band, for pages that already know the band (the
+ * Starter pages). `className`/`style` replace the default forest button look; the
+ * label defaults to the offer's own button label.
+ */
+export function freeWeekButtonHtml(
+  placement: FreeWeekPlacement,
+  band: FreeWeekBand,
+  opts: { label?: string; className?: string; style?: string } = {},
+): string {
+  const attrs = [
+    ...freeWeekButtonAttrs(placement, band),
+    `class="${esc(opts.className ?? "font-body text-sm font-semibold rounded-md px-5 py-3 min-h-[48px] w-full sm:w-auto")}"`,
+    `style="${esc(opts.style ?? "background-color:hsl(var(--eden-forest));color:hsl(var(--eden-parchment))")}"`,
+  ].join(" ");
+  return `<button ${attrs}>${esc(opts.label ?? FREE_WEEK_BUTTON_LABELS[band])}</button>`;
+}
+
 export function freeWeekOfferHtml(placement: FreeWeekPlacement): string {
-  const buttons = BANDS.map((band) => {
-    const m = FREE_WEEK_MODAL[band];
-    const attrs = [
-      `type="button"`,
-      `data-cta="${placement.replace(/_/g, "-")}-${band}-free"`,
-      `data-waitlist-source="${m.source}"`,
-      `data-waitlist-form-name="${freeWeekFormName(placement, band)}"`,
-      `data-waitlist-title="${esc(m.title)}"`,
-      `data-waitlist-subtitle="${esc(m.subtitle)}"`,
-      `data-waitlist-submit-label="${esc(m.submitLabel)}"`,
-      `data-waitlist-success-message="${esc(m.successMessage)}"`,
-      `data-waitlist-success-subtitle="${esc(m.successSubtitle)}"`,
-      `data-waitlist-cta-href="/homeschool"`,
-      `data-waitlist-cta-label="See the full year"`,
-      `class="font-body text-sm font-semibold rounded-md px-5 py-3 min-h-[48px] w-full sm:w-auto"`,
-      `style="background-color:hsl(var(--eden-forest));color:hsl(var(--eden-parchment))"`,
-    ].join(" ");
-    return `<button ${attrs}>${esc(FREE_WEEK_BUTTON_LABELS[band])}</button>`;
-  }).join("");
+  const buttons = BANDS.map((band) => freeWeekButtonHtml(placement, band)).join("");
   return (
     `<aside class="free-week-offer rounded-lg p-6 border" aria-label="Free Week 1 of Eden's Table" ` +
     `style="background-color:hsl(var(--eden-cream));border-color:hsl(var(--eden-gold) / 0.35)">` +

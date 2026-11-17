@@ -12,6 +12,7 @@ import { GRADE_PAGES, gradePath } from "../../lib/gradePages";
 import { freeWeekOfferHtml } from "../../lib/freeWeekOffer";
 import { bookChapterOfferHtml } from "../../lib/bookChapterOffer";
 import WaitlistController from "../../components/islands/WaitlistController.tsx";
+import ExitOffer from "../../components/ExitOffer.astro";
 
 export async function getStaticPaths() {
   const articles = await getCollection("learn", ({ data }) => !data.draft);
@@ -153,6 +154,8 @@ if (d.faq.length > 0) {
       </aside>
     </div>
   </article>
+  {/* "Before you go" (batch 5, b5_exit): Chapter 1 on the faith articles, Week 1 on the rest. */}
+  {(d.freeWeekOffer || d.bookOffer) && <ExitOffer offer={d.bookOffer ? "book" : "free_week"} placement="learn_exit" />}
   {(d.freeWeekOffer || d.bookOffer) && <WaitlistController client:only="react" />}
 </MarketingLayout>
 

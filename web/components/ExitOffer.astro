@@ -1,0 +1,216 @@
+---
+// "Before you go": one gentle sign-up box when a reader is about to leave a plant page
+// or an article (2026-11-16, Lane SEO funnel ideas, batch 5 item b5_exit, Camila: "Do it").
+//
+// WHY. The plant pages and articles are where search traffic lands (1,043 plant-page
+// landers and 85 article landers in the 30 days to 2026-11-16) and almost none of them
+// signed up. Most leave without scrolling to an offer. This shows the offer the page
+// already carries, once, at the moment they turn to go.
+//
+// WHAT IT SHOWS. Nothing new: the page's own offer block (bookChapterOfferHtml or
+// freeWeekOfferHtml) inside a small dialog, plus "No thanks". Its buttons open the same
+// WaitlistModal through WaitlistController, so the page must mount
+// <WaitlistController client:only="react" />.
+//   offer "book"       Back to Eden Chapter 1 (plant pages: adults looking up a plant;
+//                      the three faith articles)
+//   offer "free_week"  Week 1 of Eden's Table (every other article)
+//
+// WHEN. At most once per visitor every 30 days (localStorage "eden-exit-offer"), never in
+// the first 12 seconds on the page, and never after the reader has already pressed any
+// sign-up button on the page. If localStorage is blocked it never shows, because it
+// could not keep the once-per-visitor promise.
+//   desktop  the pointer leaves through the top of the window (towards the tabs or Back)
+//   touch    after reading past 40% of the page, a quick flick back up (over 60 px at 800 px/s)
+//
+// MEASURING. data-cta "<placement>-shown" fires once when it opens (a hidden element
+// clicked by the script, picked up by the SiteAnalytics click beacon), and its buttons
+// carry their own data-cta / form_name (herb-exit-bte-ch1, learn-exit-sprouts-free, ...).
+// Copy rule: no em dashes.
+import { bookChapterOfferHtml, type BookOfferPlacement } from "../lib/bookChapterOffer";
+import { freeWeekOfferHtml, type FreeWeekPlacement } from "../lib/freeWeekOffer";
+
+export interface Props {
+  offer: "book" | "free_week";
+  placement: "herb_exit" | "learn_exit";
+}
+
+const { offer, placement } = Astro.props;
+const offerHtml =
+  offer === "book"
+    ? bookChapterOfferHtml(placement as Exclude<BookOfferPlacement, "monograph">)
+    : freeWeekOfferHtml(placement as FreeWeekPlacement);
+const shownCta = `${placement.replace(/_/g, "-")}-shown`;
+---
+
+<div id="exit-offer" class="exit-offer" hidden role="dialog" aria-modal="true" aria-label="Before you go">
+  <div class="exit-offer__backdrop" data-exit-close></div>
+  <div class="exit-offer__panel">
+    <button type="button" class="exit-offer__x" data-exit-close aria-label="Close">&times;</button>
+    <p class="font-accent text-xs tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">Before you go</p>
+    <Fragment set:html={offerHtml} />
+    <button type="button" class="exit-offer__no font-body text-sm underline underline-offset-4" data-exit-close>No thanks</button>
+    <span hidden data-cta={shownCta} data-exit-shown></span>
+  </div>
+</div>
+
+<style>
+  .exit-offer {
+    position: fixed;
+    inset: 0;
+    /* Above the cookie banner (z-[60], later in the page), which otherwise covered the
+       phone bottom sheet's buttons for every first-time visitor. */
+    z-index: 70;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  .exit-offer[hidden] {
+    display: none;
+  }
+  .exit-offer__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgb(20 24 20 / 0.5);
+  }
+  .exit-offer__panel {
+    position: relative;
+    width: 100%;
+    max-width: 34rem;
+    max-height: calc(100vh - 2rem);
+    /* x hidden: with both on auto, Windows drew a pair of empty scrollbars (each one's
+       gutter made room for the other) though nothing overflowed. */
+    overflow-x: hidden;
+    overflow-y: auto;
+    border-radius: 0.75rem;
+    padding: 1.75rem 1.25rem 1.25rem;
+    background-color: hsl(var(--eden-parchment));
+    box-shadow: 0 20px 50px rgb(0 0 0 / 0.25);
+  }
+  .exit-offer__x {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 44px;
+    height: 44px;
+    font-size: 1.75rem;
+    line-height: 1;
+    color: hsl(var(--eden-bark));
+    background: transparent;
+  }
+  .exit-offer__no {
+    display: block;
+    width: auto;
+    margin: 1rem auto 0;
+    min-height: 44px;
+    color: hsl(var(--eden-sage-ink));
+    background: transparent;
+  }
+  @media (max-width: 640px) {
+    .exit-offer {
+      align-items: flex-end;
+      padding: 0;
+    }
+    .exit-offer__panel {
+      max-width: none;
+      border-radius: 0.75rem 0.75rem 0 0;
+      max-height: 85vh;
+    }
+  }
+</style>
+
+<script>
+  const KEY = "eden-exit-offer";
+  const QUIET_DAYS = 30;
+  const ARM_MS = 12000;
+
+  function init() {
+    const box = document.getElementById("exit-offer");
+    if (!box) return;
+
+    // Once per visitor. No storage = never show (the promise could not be kept).
+    try {
+      const last = Number(window.localStorage.getItem(KEY));
+      if (last && Date.now() - last < QUIET_DAYS * 86400000) return;
+    } catch {
+      return;
+    }
+    const remember = () => {
+      try {
+        window.localStorage.setItem(KEY, String(Date.now()));
+      } catch {
+        /* storage went away: nothing to do */
+      }
+    };
+
+    let armed = false;
+    let done = false;
+    window.setTimeout(() => {
+      armed = true;
+    }, ARM_MS);
+
+    const hide = () => {
+      box.hidden = true;
+    };
+
+    const show = () => {
+      if (done || !armed) return;
+      done = true;
+      remember();
+      box.hidden = false;
+      box.querySelector<HTMLElement>("[data-waitlist-source]")?.focus();
+      box.querySelector<HTMLElement>("[data-exit-shown]")?.click();
+    };
+
+    // A sign-up button pressed anywhere: outside the box it means they found the offer
+    // themselves, so never interrupt them; inside it, the pop-up takes over from here.
+    document.addEventListener(
+      "click",
+      (e) => {
+        const t = e.target as Element | null;
+        if (!t || typeof t.closest !== "function" || !t.closest("[data-waitlist-source]")) return;
+        if (box.contains(t)) {
+          window.setTimeout(hide, 0);
+        } else if (!done) {
+          done = true;
+          remember();
+        }
+      },
+      true,
+    );
+
+    box.querySelectorAll("[data-exit-close]").forEach((el) => el.addEventListener("click", hide));
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !box.hidden) hide();
+    });
+
+    // Desktop: the pointer leaves through the top edge of the window.
+    document.addEventListener("mouseout", (e) => {
+      if (!e.relatedTarget && e.clientY <= 0) show();
+    });
+
+    // Touch: no pointer to watch. Past 40% of the page, a fast flick back up reads as leaving.
+    if (window.matchMedia("(pointer: coarse)").matches) {
+      let lastY = window.scrollY;
+      let lastT = performance.now();
+      let maxDepth = 0;
+      window.addEventListener(
+        "scroll",
+        () => {
+          const y = window.scrollY;
+          const now = performance.now();
+          const room = document.documentElement.scrollHeight - window.innerHeight;
+          if (room > 0) maxDepth = Math.max(maxDepth, y / room);
+          const up = lastY - y;
+          const speed = up / Math.max(1, now - lastT); // px per ms
+          if (maxDepth > 0.4 && up > 60 && speed > 0.8) show();
+          lastY = y;
+          lastT = now;
+        },
+        { passive: true },
+      );
+    }
+  }
+
+  init();
+</script>
