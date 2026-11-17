@@ -3,7 +3,7 @@ title: "Using Your ESA or Scholarship for a Christian Science and Nature Study C
 seoTitle: "Using Your ESA for Christian Homeschool Science"
 description: "Where Eden's Table is an approved or registered ESA and scholarship vendor, how ordering works in each state, and what to check before you order."
 published: "2026-10-13"
-updated: "2026-10-18"
+updated: "2026-11-17"
 draft: false
 related:
   - what-do-i-need-to-homeschool
@@ -19,7 +19,7 @@ faq:
   - q: "What happens to a refund on a scholarship purchase?"
     a: "Refunds on orders paid with program money go back to the program, never to the parent personally, as the programs require."
   - q: "My state is not listed. What should I do?"
-    a: "Email hello@edeninstitute.health with your state and program. Where we apply next depends on where families ask. Florida and West Virginia applications are already in and waiting on review."
+    a: "Email hello@edeninstitute.health with your state and program. Where we apply next depends on where families ask. Florida, West Virginia and South Carolina applications are already in and waiting on review."
 ---
 
 If you have ESA or scholarship money set aside for curriculum, you can use it for Eden's Table in seven programs. In four of them you can order by invoice today, and in Utah you can order on our store and request reimbursement while the marketplace listing is pending. Below is where it's approved, how ordering works in each state, and what to check first.
@@ -44,7 +44,7 @@ Program rules and marketplace listings change, so check the [ESA page](/esa) the
 - **Louisiana**, Louisiana GATOR Scholarship. [Louisiana page](/esa/louisiana)
 - **Wyoming**, Steamboat Legacy Scholarship (ESA). [Wyoming page](/esa/wyoming)
 
-**Applied and waiting:** Florida (Step Up For Students scholarships) and West Virginia (Hope Scholarship).
+**Applied and waiting:** Florida (Step Up For Students scholarships), West Virginia (Hope Scholarship) and South Carolina (Education Scholarship Trust Fund).
 
 Being an approved or registered vendor means a program allows families to buy from us. It isn't an endorsement by any state agency or program, and each program decides what it will pay for.
 
