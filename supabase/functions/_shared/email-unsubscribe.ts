@@ -12,9 +12,15 @@
 //     cancel_queued_emails_on_unsubscribe trigger cancels all queued sends in
 //     that case. The two layers compose; this file never touches the global one.
 //
-// Token signing key: SUPABASE_SERVICE_ROLE_KEY (server-only, never shipped to a
-// browser). Rotating it invalidates outstanding unsubscribe links — acceptable;
-// a recipient can still unsubscribe from any newer email.
+// Token signing key (2026-11-17, Lane 2 area 8 U2, founder tap "Yes, build + ship"):
+// UNSUB_SIGNING_SECRET, a secret of its own, set to the value SUPABASE_SERVICE_ROLE_KEY
+// had on that day, so every link already sent still verifies. New links are signed
+// with it; a token verifies against it OR the current service-role key. Before this,
+// links were signed with the service-role key alone, so rotating that key would have
+// broken every unsubscribe link ever sent, and the inbox one-click button would have
+// answered 200 with nothing saved. Both keys are server-only, never in a browser.
+// With UNSUB_SIGNING_SECRET unset, everything falls back to the service-role key
+// (the old behaviour), so deploy order does not matter.
 
 import { confirmPageUrl } from './unsubscribe-request.ts';
 
@@ -54,16 +60,23 @@ function b64urlDecode(s: string): Uint8Array {
   return out;
 }
 
-function getSecret(): string {
-  const s = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!s) throw new Error('SUPABASE_SERVICE_ROLE_KEY missing — cannot sign unsubscribe token');
-  return s;
+/** Signing keys in order: the first signs, any of them verifies. Never empty (throws). */
+export function unsubSigningSecrets(): string[] {
+  const out: string[] = [];
+  for (const name of ['UNSUB_SIGNING_SECRET', 'SUPABASE_SERVICE_ROLE_KEY']) {
+    const v = (Deno.env.get(name) ?? '').trim();
+    if (v && !out.includes(v)) out.push(v);
+  }
+  if (!out.length) {
+    throw new Error('UNSUB_SIGNING_SECRET and SUPABASE_SERVICE_ROLE_KEY both missing — cannot sign unsubscribe token');
+  }
+  return out;
 }
 
-async function hmac(message: string): Promise<Uint8Array> {
+async function hmac(message: string, secret: string): Promise<Uint8Array> {
   const key = await crypto.subtle.importKey(
     'raw',
-    new TextEncoder().encode(getSecret()),
+    new TextEncoder().encode(secret),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign'],
@@ -72,35 +85,62 @@ async function hmac(message: string): Promise<Uint8Array> {
   return new Uint8Array(sig);
 }
 
+// length-checked constant-time-ish compare
+function sameString(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 // token = b64url(payloadJson) + '.' + b64url(hmac(payloadJson))
 export async function signUnsubToken(email: string, list: EmailList): Promise<string> {
   const payload = JSON.stringify({ e: email.trim().toLowerCase(), l: list });
   const p = b64urlEncode(new TextEncoder().encode(payload));
-  const sig = b64urlEncode(await hmac(payload));
+  const sig = b64urlEncode(await hmac(payload, unsubSigningSecrets()[0]));
   return `${p}.${sig}`;
+}
+
+/**
+ * ok: the signature matches one of the signing keys.
+ * bad_signature: the token reads as a real unsubscribe link (an email and a known list)
+ *   but no key signs it. That is a link signed with a key we no longer hold, or a
+ *   tampered one, and it is the one case worth telling the founder about (the person
+ *   asked to leave and nothing was saved). Never honoured: anyone could forge one.
+ * malformed: anything else (empty, garbage, truncated by a mail client).
+ */
+export type UnsubTokenCheck =
+  | { ok: true; email: string; list: EmailList }
+  | { ok: false; reason: 'bad_signature'; email: string; list: EmailList }
+  | { ok: false; reason: 'malformed' };
+
+export async function checkUnsubToken(token: string): Promise<UnsubTokenCheck> {
+  try {
+    const dot = token.indexOf('.');
+    if (dot <= 0) return { ok: false, reason: 'malformed' };
+    const p = token.slice(0, dot);
+    const sig = token.slice(dot + 1);
+    const payload = new TextDecoder().decode(b64urlDecode(p));
+    const obj = JSON.parse(payload) as { e?: unknown; l?: unknown };
+    if (typeof obj.e !== 'string' || !isEmailList(obj.l)) {
+      return { ok: false, reason: 'malformed' };
+    }
+    for (const secret of unsubSigningSecrets()) {
+      if (sameString(sig, b64urlEncode(await hmac(payload, secret)))) {
+        return { ok: true, email: obj.e, list: obj.l };
+      }
+    }
+    return { ok: false, reason: 'bad_signature', email: obj.e, list: obj.l };
+  } catch {
+    return { ok: false, reason: 'malformed' };
+  }
 }
 
 export async function verifyUnsubToken(
   token: string,
 ): Promise<{ email: string; list: EmailList } | null> {
-  try {
-    const dot = token.indexOf('.');
-    if (dot <= 0) return null;
-    const p = token.slice(0, dot);
-    const sig = token.slice(dot + 1);
-    const payload = new TextDecoder().decode(b64urlDecode(p));
-    const expected = b64urlEncode(await hmac(payload));
-    // length-checked constant-time-ish compare
-    if (sig.length !== expected.length) return null;
-    let diff = 0;
-    for (let i = 0; i < sig.length; i++) diff |= sig.charCodeAt(i) ^ expected.charCodeAt(i);
-    if (diff !== 0) return null;
-    const obj = JSON.parse(payload) as { e?: unknown; l?: unknown };
-    if (typeof obj.e !== 'string' || !isEmailList(obj.l)) return null;
-    return { email: obj.e, list: obj.l };
-  } catch {
-    return null;
-  }
+  const c = await checkUnsubToken(token);
+  return c.ok ? { email: c.email, list: c.list } : null;
 }
 
 function unsubEndpoint(): string {

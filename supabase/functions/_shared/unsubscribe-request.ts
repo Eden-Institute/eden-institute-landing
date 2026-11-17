@@ -102,3 +102,49 @@ export function confirmPageUrl(token: string): string {
 export function resultPageUrl(result: UnsubResult): string {
   return `${UNSUBSCRIBE_PAGE_URL}?status=${result}`;
 }
+
+// ── A real-looking link that failed its check (2026-11-17, Lane 2 area 8 U2) ──
+// A POST (the page button or the inbox one-click) whose token names an email and a
+// known list but is not signed by any key we hold. The person asked to leave and
+// nothing was saved, so the founder hears about it once per person, list and UTC day
+// (Resend Idempotency-Key, so retries and repeat clicks never send a second alert).
+// The key carries a hash, not the address. A GET never alerts: link scanners fetch
+// footer links without anyone asking to leave.
+
+/** Idempotency-Key for the bad-link alert: unsubscribe/bad-link/<UTC date>/<16 hex of sha256(email|list)>. */
+export async function badLinkAlertKey(email: string, list: string, nowMs: number): Promise<string> {
+  const day = new Date(nowMs).toISOString().slice(0, 10);
+  const data = new TextEncoder().encode(`${email.trim().toLowerCase()}|${list}`);
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', data));
+  const hex = Array.from(digest.slice(0, 8), (b) => b.toString(16).padStart(2, '0')).join('');
+  return `unsubscribe/bad-link/${day}/${hex}`;
+}
+
+/** The founder alert for a bad link. listName is the human name (EMAIL_LISTS). */
+export function badLinkAlert(input: {
+  email: string;
+  list: string;
+  listName: string;
+  via: 'one_click' | 'form_post';
+}): { subject: string; text: string } {
+  const how = input.via === 'one_click'
+    ? 'the Unsubscribe button in their email app (one-click)'
+    : 'the Unsubscribe button on our unsubscribe page';
+  return {
+    subject: 'Eden alert: an unsubscribe was NOT saved',
+    text: [
+      'Someone asked to unsubscribe, but their link did not pass its security check, so nothing was saved.',
+      '',
+      `Email: ${input.email.trim().toLowerCase()}`,
+      `List: ${input.listName} (${input.list})`,
+      `How: ${how}`,
+      '',
+      `Please honor it: ask Claude to add this email to email_list_unsubscribes (list ${input.list}).`,
+      '',
+      'If more of these come in, the unsubscribe signing key has probably changed. Ask Claude to check the',
+      'UNSUB_SIGNING_SECRET secret on the unsubscribe function.',
+      '',
+      '(Sent by unsubscribe. At most one of these per person, per list, per day.)',
+    ].join('\n'),
+  };
+}
