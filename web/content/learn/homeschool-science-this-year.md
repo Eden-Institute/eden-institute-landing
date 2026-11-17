@@ -31,6 +31,8 @@ It also grows up with them. In Seedlings, color, smell, taste and texture turn i
 
 And every plant points back to the One who made it. "How many are Your works! In wisdom You have made them all" (Psalm 104:24, NASB). Every week is anchored in a Scripture memory verse and connects that week's plant to God's design in creation.
 
+If you're still comparing programs, I walk through the ones most Christian families look at in [The Best Christian Homeschool Science Curriculum for K-5](/learn/best-christian-homeschool-science-curriculum-k-5).
+
 ## What's on the shelf for it?
 
 For each year, three books:
