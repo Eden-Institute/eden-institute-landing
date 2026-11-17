@@ -54,7 +54,7 @@ describe("adventOfferHtml", () => {
 });
 
 describe("Advent back end", () => {
-  const sql = read("supabase/migrations/20261117033000_advent_optins_and_audience.sql");
+  const sql = read("supabase/migrations/20261117033011_advent_optins_and_audience.sql");
 
   it("the opt-in table is service-role only, with RLS on", () => {
     expect(sql).toContain("create table if not exists public.seasonal_optins");
