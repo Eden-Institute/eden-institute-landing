@@ -447,6 +447,31 @@ async function isUnsubscribed(email: string, list: EmailList): Promise<boolean> 
   return rows.length > 0;
 }
 
+// 2026-11-17 (area 8 U3, founder tap "Let them back in"): the free-week and quiz drips ask
+// public.email_send_blocked instead of the two checks above. The rule: an opt-out blocks every
+// email queued BEFORE it; a sign-up AFTER it queued this row, so the row may send; a later
+// opt-out blocks it again. A hard bounce, a spam complaint, a deleted contact or a global
+// opt-out of unknown cause always blocks. queuedAt is the row's created_at; without one, any
+// opt-out blocks. Fails CLOSED like the checks above: an unreadable answer throws, and the
+// drain's per-row try keeps the row pending for the next tick.
+async function sendBlocked(email: string, list: EmailList, queuedAt: unknown): Promise<boolean> {
+  const at = typeof queuedAt === 'string' && queuedAt.trim() ? queuedAt : null;
+  const res = await pgrstFetch(`${SUPABASE_URL}/rest/v1/rpc/email_send_blocked`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY!,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ p_email: email, p_list: list, p_queued_at: at }),
+  });
+  const body = await res.json().catch(() => null);
+  if (!res.ok || typeof body !== 'boolean') {
+    throw new Error(`opt-out check (${list}): could not check (${res.status} ${JSON.stringify(body)?.slice(0, 200)})`);
+  }
+  return body;
+}
+
 interface QueueResult {
   processed: number;
   sent: number;
@@ -515,12 +540,15 @@ async function drainNurtureQueue(): Promise<QueueResult> {
         'Your Constitutional Type';
       const slug = qc.constitution_type || toSlug(nickname);
 
-      if (await isUnsubscribed(row.recipient_email, 'constitution')) {
+      // 2026-11-17 (area 8 U3): the quiz list AND the global opt-out (this drip never checked
+      // global before: 9 quiz emails reached people who had left everything), by the queue
+      // time rule in sendBlocked. Keep "unsubscribed" in the message: a later return looks for it.
+      if (await sendBlocked(row.recipient_email, 'constitution', row.created_at)) {
         await supabaseQuery(`nurture_email_queue?id=eq.${row.id}`, {
           method: 'PATCH',
           body: JSON.stringify({
             status: 'cancelled',
-            error_message: 'recipient unsubscribed (constitution)',
+            error_message: 'recipient unsubscribed (constitution or global), or bounced',
             updated_at: new Date().toISOString(),
           }),
         });
@@ -1337,27 +1365,18 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
       const pos = row.sequence_position;
       const email = String(row.recipient_email);
 
-      if (await isUnsubscribed(email, 'homeschool')) {
+      // 2026-11-12 (area 5 F5): the homeschool list AND the global opt-out (unsubscribe from
+      // everything, hard bounce or complaint) are checked at send time, as the buyer and
+      // Chapter 1 drains do (#660). 2026-11-17 (area 8 U3, "Let them back in"): one check,
+      // by the queue time rule in sendBlocked, so a family who left and signed up for the
+      // free week again gets this week's emails; their Friday letters stay off. Keep
+      // "unsubscribed" in the message: a later return looks for it.
+      if (await sendBlocked(email, 'homeschool', row.created_at)) {
         await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
           method: 'PATCH',
           body: JSON.stringify({
             status: 'cancelled',
-            error_message: 'recipient unsubscribed (homeschool)',
-            updated_at: new Date().toISOString(),
-          }),
-        });
-        continue;
-      }
-      // 2026-11-12 (area 5 F5): a global opt-out (unsubscribe from everything, hard
-      // bounce or complaint, waitlist_signups.unsubscribed_at) is checked at send time
-      // too, as the buyer and Chapter 1 drains already do (#660). Until now this drain
-      // relied only on the cancel trigger firing at the moment of the change.
-      if (await isGloballyUnsubscribed(email)) {
-        await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({
-            status: 'cancelled',
-            error_message: 'recipient unsubscribed or bounced (global)',
+            error_message: 'recipient unsubscribed (homeschool or global), or bounced',
             updated_at: new Date().toISOString(),
           }),
         });
