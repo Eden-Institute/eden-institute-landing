@@ -14,6 +14,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { ctr } from "@/lib/emailRates";
 
 interface ByEmail {
   email_key: string;
@@ -65,10 +66,6 @@ const EMAIL_LABELS: Record<string, string> = {
 
 function emailLabel(key: string): string {
   return EMAIL_LABELS[key] ?? key;
-}
-
-function ctr(clicks: number, opens: number): string {
-  return opens > 0 ? `${((clicks / opens) * 100).toFixed(0)}%` : "—";
 }
 
 export default function EmailEngagementTab({ since }: { since: string }) {
@@ -176,7 +173,7 @@ export default function EmailEngagementTab({ since }: { since: string }) {
                       <Td right className="text-muted-foreground">{e.unique_opens}</Td>
                       <Td right className="font-semibold">{e.clicks}</Td>
                       <Td right className="text-muted-foreground">{e.unique_clicks}</Td>
-                      <Td right className="text-muted-foreground">{ctr(e.clicks, e.opens)}</Td>
+                      <Td right className="text-muted-foreground">{ctr(e.unique_clicks, e.unique_opens)}</Td>
                     </tr>
                   ))}
                   {byEmail.length === 0 && !loading && (
