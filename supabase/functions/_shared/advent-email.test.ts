@@ -3,7 +3,10 @@ import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { ADVENT_CONFIRM_SUBJECT, buildAdventConfirmEmail } from "./advent-email.ts";
 
 Deno.test("advent confirmation renders byte for byte the approved proof", async () => {
-  const approved = await Deno.readTextFile(new URL("./advent-email.approved.html", import.meta.url));
+  // Line endings normalised: a Windows checkout (core.autocrlf) turns the fixture's LF into CRLF.
+  const approved = (await Deno.readTextFile(new URL("./advent-email.approved.html", import.meta.url))).replace(/
+/g, "
+");
   const got = buildAdventConfirmEmail("Camila");
   assertEquals(got.subject, ADVENT_CONFIRM_SUBJECT);
   assertEquals(got.subject, "You're in for Plants of the Nativity");
