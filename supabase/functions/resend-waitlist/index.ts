@@ -4,6 +4,7 @@
 // _shared is the single source of truth for these templates.
 import { buildQuizEmail1 } from '../_shared/lead-track-templates.ts';
 import { buildBackToEdenChapter1Email, buildBandWaitlistEmail, buildHomeschoolEmail, buildSeedlingsMagnetEmail, buildSproutsMagnetEmail } from '../_shared/welcome-email-templates.ts';
+import { ADVENT_SOURCE, buildAdventConfirmEmail } from '../_shared/advent-email.ts';
 import { bandFromSource, buildBandWaitlistRow } from '../_shared/band-waitlist.ts';
 import { buildPodcastWelcomeEmail } from '../_shared/podcast-email-templates.ts';
 import { applyUnsub, type EmailList } from '../_shared/email-unsubscribe.ts';
@@ -359,6 +360,50 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── Step 1c: seasonal opt-in row (Plants of the Nativity, Advent 2026) ──
+    // Written on EVERY Advent sign-up, including people already on the list, whose
+    // waitlist_signups insert above is a no-op on conflict and keeps their old source
+    // (the band_waitlist lesson). public.broadcast_audience('advent_2026') reads this
+    // table, so a family missing here would not get the four Sunday emails. Non-fatal,
+    // but the founder hears about a failure: it is the only record of the opt-in.
+    if (source === ADVENT_SOURCE) {
+      try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/seasonal_optins?on_conflict=email,series`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_SERVICE_ROLE_KEY!,
+            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY!}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=ignore-duplicates,return=minimal',
+          },
+          body: JSON.stringify({
+            email: normalizedEmail,
+            series: ADVENT_SOURCE,
+            first_name: firstNameSafe || null,
+            source_url: source_url ?? null,
+          }),
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}: ${(await r.text()).slice(0, 300)}`);
+      } catch (e) {
+        console.error('seasonal_optins insert failed', String(e));
+        await alertFounder(
+          'Advent sign-up NOT saved',
+          [
+            'A family signed up for Plants of the Nativity, but the opt-in could not be saved.',
+            '',
+            `Email: ${normalizedEmail}`,
+            `Error: ${String(e).slice(0, 300)}`,
+            '',
+            `They get the "You're in" email, but they will NOT get the four Sunday emails until this is fixed.`,
+            'To fix it: ask Claude to add this email to seasonal_optins (series advent_2026).',
+            '',
+            '(Sent by resend-waitlist.)',
+          ].join('\n'),
+          'resend-waitlist',
+        );
+      }
+    }
+
     // ── Step 2: Resend contact create in master audience ──
     // Idempotent at the Resend level (existing email in audience returns 409;
     // we handle that as success). Skipped if the Supabase row already has a
@@ -649,6 +694,12 @@ Deno.serve(async (req) => {
       } else if (source === 'seedlings_magnet') {
         emailContent = buildSeedlingsMagnetEmail(firstNameHtml);
         welcomeKey = 'seedlings_magnet';
+      } else if (source === ADVENT_SOURCE) {
+        // 2026-11-17: Plants of the Nativity, four opt-in Sunday emails through Advent.
+        // This is only the "You're in" note (founder-approved by inbox proof 2026-11-16);
+        // the Sundays are Resend Broadcasts to audience 'advent_2026'. No nurture track.
+        emailContent = buildAdventConfirmEmail(firstNameHtml);
+        welcomeKey = ADVENT_SOURCE;
       } else if (source === 'back_to_eden_ch1') {
         // 2026-09-25: free Chapter 1 of Back to Eden from /back-to-eden. Its source is
         // excluded from the Eden's Table launch sequence (migration 20260925100000).

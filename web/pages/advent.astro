@@ -1,0 +1,60 @@
+---
+// /advent: Plants of the Nativity, the four opt-in Advent Sunday emails (web/lib/adventOffer.ts).
+// The page the Friday Nov 20 and Nov 27 emails link to. noindex: a seasonal sign-up, not a
+// search page. The plant list is the four approved emails' plants and dates. No em dashes.
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+import AdventOffer from "../components/AdventOffer.astro";
+import WaitlistController from "../components/islands/WaitlistController.tsx";
+import { ADVENT_HIDE_FROM } from "../lib/adventOffer";
+
+const SUNDAYS = [
+  { date: "Sunday, November 29", plant: "Frankincense", note: "one of the wise men's gifts" },
+  { date: "Sunday, December 6", plant: "Myrrh", note: "there at His birth and at His burial" },
+  { date: "Sunday, December 13", plant: "The terebinth", note: "a shoot from the stump of Jesse" },
+  { date: "Sunday, December 20", plant: "Saffron", note: "and Isaiah's crocus in the desert" },
+];
+---
+
+<MarketingLayout
+  title="Plants of the Nativity: four Advent Sundays · Eden's Table | The Eden Institute"
+  description="Four short Sunday emails through Advent, each one teaching a plant from the Christmas story. We start with frankincense on Nov 29."
+  canonical="https://edeninstitute.health/advent"
+  noindex={true}
+>
+  <section class="pt-16 md:pt-20 pb-10 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">Advent 2026</p>
+      <h1 class="font-serif text-3xl md:text-5xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">Plants of the Nativity</h1>
+      <p class="font-body text-lg leading-relaxed" style="color:hsl(var(--eden-bark))">
+        Each email has the Bible verses, where the plant grows, how people gathered it long ago, and one simple
+        thing to do with your kids at the table that week.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-12 px-6 bg-background">
+    <div class="max-w-xl mx-auto space-y-8">
+      <ol class="space-y-4">
+        {SUNDAYS.map((s) => (
+          <li class="rounded-lg border p-5" style="border-color:hsl(var(--eden-gold) / 0.35)">
+            <p class="font-accent text-xs tracking-[0.2em] uppercase mb-1" style="color:hsl(var(--eden-gold-ink))">{s.date}, 7 PM Central</p>
+            <p class="font-serif text-xl font-bold" style="color:hsl(var(--eden-bark))">{s.plant}</p>
+            <p class="font-body text-sm text-muted-foreground">{s.note}</p>
+          </li>
+        ))}
+      </ol>
+      <AdventOffer placement="advent_page" />
+      <p id="advent-over" hidden class="font-body text-base text-center" style="color:hsl(var(--eden-bark))" data-advent-over={ADVENT_HIDE_FROM}>
+        Advent 2026 has wrapped up. Merry Christmas from our table to yours!
+        <a href="/freebies" data-cta="advent-over-freebies" class="underline underline-offset-4" style="color:hsl(var(--eden-forest))">Try a free week of Eden's Table</a>.
+      </p>
+    </div>
+  </section>
+  <WaitlistController client:only="react" />
+</MarketingLayout>
+
+<script>
+  const over = document.getElementById("advent-over");
+  const until = Date.parse(over?.getAttribute("data-advent-over") || "");
+  if (over && until && Date.now() >= until) over.hidden = false;
+</script>
