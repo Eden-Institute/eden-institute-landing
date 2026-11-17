@@ -369,9 +369,12 @@ const jsonLd = [
           The same herb can calm one person and wire another. Our free assessment reads your pattern across
           temperature, moisture and tone, then matches herbs to it.
         </p>
+        {/* 2026-11-17 (Lane 2 area 13 P1): the Apothecary button wraps. The shared button never wraps, and with long
+            herb names ("Open Pinkroot (also Indian Pink, ...) in the Apothecary") it ran off a 375px screen on 77 of
+            299 herb pages. Only this button changes; the shared button stays as it is. */}
         <div class="flex flex-wrap gap-3 justify-center">
           <a href="/assessment" data-cta="herb-assessment" class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center")}>Take the free assessment</a>
-          <a href={`/apothecary/${slug}`} data-cta="herb-open-apothecary" class={cn(buttonVariants({ variant: "outline", size: "xl" }), "text-center")}>Open {herb.common_name} in the Apothecary</a>
+          <a href={`/apothecary/${slug}`} data-cta="herb-open-apothecary" class={cn(buttonVariants({ variant: "outline", size: "xl" }), "text-center whitespace-normal h-auto min-h-[3.5rem] max-w-full px-6 sm:px-12")}>Open {herb.common_name} in the Apothecary</a>
         </div>
         <p class="font-body text-sm text-muted-foreground mt-6">
           Teaching children at home? <a href="/homeschool" data-cta="herb-homeschool-bottom" class="underline">Eden's Table</a> builds a full

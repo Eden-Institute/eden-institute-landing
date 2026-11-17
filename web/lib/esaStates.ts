@@ -449,9 +449,14 @@ export const ESA_STATES: EsaState[] = [
     // 2026-10-18: replaced utaheducationfitsall.org/faqs, which belongs to a private
     // advocacy group (its footer says it "is not the Program Manager"), with the state
     // board's page and the program manager's handbook. Odyssey runs the program for USBE.
+    // 2026-11-17 (Lane 2 area 13 P2): Odyssey moved its help center from /hc/en-us (every old link 404) to /en/articles.
+    // Each Utah and Louisiana source was relinked to the new article with the same title, opened and checked; the two
+    // "How to Use the ... Marketplace" guides have no same-titled article and were dropped, as was Wyoming's withdrawn
+    // "Allowable and Disallowable Expense Guidance" PDF (404, no longer listed on WDE's ESA page). The "checked" dates
+    // below are left as they were: only the links were re-checked, not the answers.
     links: [
       { label: "Utah State Board of Education, Utah Fits All Scholarship", href: "https://schools.utah.gov/utahfitsallscholarship" },
-      { label: "Utah Fits All Handbook (Odyssey, the program manager)", href: "https://support.withodyssey.com/hc/en-us/categories/36775387584539-Utah-Fits-All-UFA-Handbook" },
+      { label: "Utah Fits All Handbook (Odyssey, the program manager)", href: "https://support.withodyssey.com/en/articles/17011001-ufa-scholarship-program-handbook" },
     ],
     faq: [],
     // Sources checked 2026-10-18 (punch #292). Utah DOES reimburse outside purchases
@@ -506,14 +511,13 @@ export const ESA_STATES: EsaState[] = [
         },
       ],
       sources: [
-        { label: "Odyssey, Utah Fits All Spending and Reimbursement Guide", href: "https://support.withodyssey.com/hc/en-us/articles/52216257447323" },
-        { label: "Odyssey, Eligible Expense Guide", href: "https://support.withodyssey.com/hc/en-us/articles/37894468672283" },
-        { label: "Odyssey, UFA Ineligible Expense Guide", href: "https://support.withodyssey.com/hc/en-us/articles/44943389629595" },
-        { label: "Odyssey, UFA Acceptable Documentation for Reimbursements", href: "https://support.withodyssey.com/hc/en-us/articles/51870309021851" },
-        { label: "Odyssey, Reimbursement Denial Reasons", href: "https://support.withodyssey.com/hc/en-us/articles/40492738658715" },
-        { label: "Odyssey, Submitting an Eligibility Request", href: "https://support.withodyssey.com/hc/en-us/articles/53023926979611" },
-        { label: "Odyssey, How to Use the UFA Marketplace", href: "https://support.withodyssey.com/hc/en-us/articles/40218512108187" },
-        { label: "Odyssey, Utah Fits All Marketplace: Categories for Offerings", href: "https://support.withodyssey.com/hc/en-us/articles/37894643079707" },
+        { label: "Odyssey, Utah Fits All Spending and Reimbursement Guide", href: "https://support.withodyssey.com/en/articles/17011047-utah-fits-all-ufa-spending-and-reimbursement-guide" },
+        { label: "Odyssey, Eligible Expense Guide", href: "https://support.withodyssey.com/en/articles/17011048-eligible-expense-guide" },
+        { label: "Odyssey, UFA Ineligible Expense Guide", href: "https://support.withodyssey.com/en/articles/17011051-ufa-ineligible-expense-guide" },
+        { label: "Odyssey, UFA Acceptable Documentation for Reimbursements", href: "https://support.withodyssey.com/en/articles/17011054-utah-fits-all-acceptable-documentation-for-reimbursements" },
+        { label: "Odyssey, Reimbursement Denial Reasons", href: "https://support.withodyssey.com/en/articles/17011022-reimbursement-denial-reasons" },
+        { label: "Odyssey, Submitting an Eligibility Request", href: "https://support.withodyssey.com/en/articles/17010986-submitting-an-eligibility-request" },
+        { label: "Odyssey, Utah Fits All Marketplace: Categories for Offerings", href: "https://support.withodyssey.com/en/articles/17011077-utah-fits-all-marketplace-categories-for-offerings" },
         { label: "Utah Code 53F-6-401, definitions", href: "https://le.utah.gov/xcode/Title53F/Chapter6/53F-6-S401.html" },
         { label: "Utah Code 53F-6-406, provider autonomy", href: "https://le.utah.gov/xcode/Title53F/Chapter6/53F-6-S406.html" },
       ],
@@ -588,10 +592,9 @@ export const ESA_STATES: EsaState[] = [
         { label: "LDOE, LA GATOR Scholarship Program", href: "https://doe.louisiana.gov/topic-pages/louisiana-school-choice/la-gator" },
         { label: "LDOE, LA GATOR Scholarship Program Policy", href: "https://doe.louisiana.gov/topic-pages/louisiana-school-choice/la-gator/la-gator-policy" },
         { label: "LDOE, LA GATOR Service Providers", href: "https://doe.louisiana.gov/topic-pages/louisiana-school-choice/la-gator/la-gator-service-providers" },
-        { label: "Odyssey, Eligible Educational Expenses for the LA GATOR Program", href: "https://support.withodyssey.com/hc/en-us/articles/31114295732379" },
-        { label: "Odyssey, Approved Curriculum/Books for the LA GATOR Scholarship Program", href: "https://support.withodyssey.com/hc/en-us/articles/35905159982747" },
-        { label: "Odyssey, How to Use the LA GATOR Marketplace", href: "https://support.withodyssey.com/hc/en-us/articles/38952332772379" },
-        { label: "Odyssey, How to Become a Vendor or Service Provider for the LA GATOR Program", href: "https://support.withodyssey.com/hc/en-us/articles/31142680151963" },
+        { label: "Odyssey, Eligible Educational Expenses for the LA GATOR Program", href: "https://support.withodyssey.com/en/articles/17007535-what-are-eligible-educational-expenses-for-the-la-gator-program" },
+        { label: "Odyssey, Approved Curriculum/Books for the LA GATOR Scholarship Program", href: "https://support.withodyssey.com/en/articles/17007607-approved-curriculum-books-for-the-la-gator-scholarship-program" },
+        { label: "Odyssey, How to Apply to Become a LA GATOR Vendor or Service Provider", href: "https://support.withodyssey.com/en/articles/17631304-how-to-apply-to-become-a-la-gator-vendor-or-service-provider" },
         { label: "Louisiana Revised Statutes 17:4037.3, definitions", href: "https://legis.la.gov/legis/Law.aspx?d=1391565" },
         { label: "Louisiana Revised Statutes 17:4037.6, account funds", href: "https://legis.la.gov/legis/Law.aspx?d=1391568" },
         { label: "Louisiana Revised Statutes 17:4037.8, schools and service providers", href: "https://legis.la.gov/legis/Law.aspx?d=1391570" },
@@ -666,7 +669,6 @@ export const ESA_STATES: EsaState[] = [
       ],
       sources: [
         { label: "WDE, ESA 2026-27 Family Handbook", href: "https://edu.wyoming.gov/wp-content/uploads/2025/04/ESA-Family-Handbook.pdf" },
-        { label: "WDE, Allowable and Disallowable Expense Guidance", href: "https://edu.wyoming.gov/wp-content/uploads/2025/05/Allowable-and-Disallowable-Expense-Guidance-1.pdf" },
         { label: "WDE, Reimbursement Guidelines", href: "https://edu.wyoming.gov/wp-content/uploads/2025/04/Reimbursement-Guidelines.pdf" },
         { label: "WDE, ESA Registered Providers and Vendors (August 25, 2026)", href: "https://edu.wyoming.gov/wp-content/uploads/2025/05/ESA-Registered-Providers-Vendors-1.pdf" },
         { label: "WDE, Education Savings Account program page", href: "https://edu.wyoming.gov/parents/education-savings-accounts/" },
