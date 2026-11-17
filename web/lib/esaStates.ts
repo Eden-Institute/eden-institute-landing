@@ -1004,6 +1004,7 @@ export const ESA_PENDING = [
   { state: "Florida", program: "Step Up For Students scholarships", note: "Provider application submitted, waiting on review." },
   { state: "West Virginia", program: "Hope Scholarship", note: "Provider application submitted September 2026, waiting on review." },
   { state: "South Carolina", program: "Education Scholarship Trust Fund", note: "Provider application submitted November 2026, waiting on review." },
+  { state: "Georgia", program: "Georgia Promise Scholarship", note: "Vendor application in review; requested documents sent November 2026." },
 ];
 
 /** Last content review of the ESA pages. Bump it when what they say changes (see
