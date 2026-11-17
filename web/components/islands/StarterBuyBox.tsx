@@ -21,6 +21,7 @@ import { friendlyEfError } from "@/components/apothecary/friendlyEfError";
 import { getFbAttribution } from "@/lib/fbAttribution";
 import { getCheckoutAttribution } from "@/lib/attribution";
 import { pinTrack } from "@/lib/pinterestTag";
+import { partnerPromoBody, partnerPromoCode } from "../../lib/partnerPromo";
 import PayOverTime from "./PayOverTime";
 // FPEA 2027 convention offer (/fpea, 2026-10-30). Without the `offer` prop this box is unchanged.
 import { FPEA_OFFER_ID, FPEA_STARTER_DISCOUNT_PERCENT, fpeaStarterPriceCents } from "../../../supabase/functions/_shared/fpea-offer";
@@ -39,10 +40,11 @@ export type StarterBand = keyof typeof STARTER_PRODUCTS;
 
 /** Display copy only. The Stripe Price is the billing truth. */
 const PRICE_LABEL = "$39";
-/** Pre-tax price for ad reporting. Mirrors STARTER_PRICE_CENTS in
- *  supabase/functions/_shared/starter-config.ts. This button sends no promo
- *  code and Checkout shows no promo field for this key (NO_PROMO_LOOKUP_KEYS in
- *  create-checkout), so a sale from here is this amount before tax. */
+/** Pre-tax LIST price for ad reporting. Mirrors STARTER_PRICE_CENTS in
+ *  supabase/functions/_shared/starter-config.ts. Checkout does take a promotion
+ *  code for this key (NO_PROMO_LOOKUP_KEYS in create-checkout is empty since the
+ *  founder's 9/23 choice), and since 2026-11-17 a partner's ?promo= code is sent
+ *  along (web/lib/partnerPromo.ts), so a coded sale is less than this. */
 const PRICE_VALUE = 39;
 
 interface Props {
@@ -109,6 +111,8 @@ export default function StarterBuyBox({ cta, wide = false, band = "sprouts", off
           ...(offer
             ? { offer, cancel_url: `https://edeninstitute.health/fpea?checkout=cancelled&item=starter-${band}#starter-${band}` }
             : {}),
+          // A partner's ?promo= code (this visit), never with the FPEA offer.
+          ...partnerPromoBody(partnerPromoCode(), offer),
         },
       });
       // A coded EF failure (RATE_LIMITED, STARTER_NOT_CONFIGURED) carries a

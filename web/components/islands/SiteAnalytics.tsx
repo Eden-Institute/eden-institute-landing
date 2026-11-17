@@ -15,6 +15,7 @@ import { loadMetaPixel, metaPageView } from "@/lib/metaPixel";
 import { ConsentBannerView } from "@/components/ConsentBanner";
 import { captureFirstTouch } from "@/lib/attribution";
 import { startMerchantWidgetAfterAccept } from "@/lib/merchantWidget";
+import { partnerPromoCode } from "../../lib/partnerPromo";
 
 const SKIP_PREFIXES = ["/founder", "/apothecary/auth", "/apothecary/account"];
 
@@ -78,6 +79,10 @@ export default function SiteAnalytics({ thirdPartyTags = true, storeBadge = fals
     //    lands on a tagged link and navigates before signing up is still
     //    credited to the link rather than to this site.
     captureFirstTouch();
+    // 0b. A partner's ?promo= code, remembered for this visit so the buy boxes on any later
+    //     page send it to checkout (web/lib/partnerPromo.ts, 2026-11-17). A discount code the
+    //     family brought with them, kept in this tab only: functional, no consent needed.
+    partnerPromoCode();
 
     // 1. Cookieless first-party page view (no consent required).
     const path = window.location.pathname;
