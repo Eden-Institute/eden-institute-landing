@@ -36,6 +36,8 @@
 //
 // Copy rule: no em dashes (feedback_no_em_dashes).
 import MarketingLayout from "../layouts/MarketingLayout.astro";
+import WaitlistController from "../components/islands/WaitlistController.tsx";
+import { freeWeekButtonHtml } from "../lib/freeWeekOffer";
 // Hero watermark: public domain botanical plate from Koehler's Medizinal-Pflanzen
 // (1887), desaturated to a sage wash, feathered, and cleared through the middle
 // where the text sits. See #428 for the full treatment and the contrast maths:
@@ -224,6 +226,11 @@ const faqJsonLd = {
       </div>
       <p class="font-body text-sm text-muted-foreground text-center mt-4">
         Using an education savings account or scholarship? <a href="/esa" data-cta="starter-esa" class="underline" style="color:hsl(var(--eden-forest))">See how to buy in your state</a>.
+      </p>
+      {/* Not ready to buy: the free Week 1 of this band first (2026-11-16, Lane SEO batch 5,
+          b5_week1, the Gather 'Round / Sonlight sample route). */}
+      <p class="font-body text-sm text-center mt-3" style="color:hsl(var(--eden-bark))">
+        Not sure yet? <Fragment set:html={freeWeekButtonHtml("starter", "sprouts", { label: "Teach Week 1 free first", className: "inline w-auto p-0 font-semibold underline underline-offset-4", style: "color:hsl(var(--eden-forest));background:transparent" })} />, then decide.
       </p>
       <p class="font-body text-sm text-center mt-3" style="color:hsl(var(--eden-bark))">
         Children in grades 3-5? Most families still <a href="#older-kids" data-cta="starter-hero-older-kids" class="underline" style="color:hsl(var(--eden-forest))">start here</a>.
@@ -455,4 +462,5 @@ const faqJsonLd = {
       </div>
     </div>
   </section>
+  <WaitlistController client:only="react" />
 </MarketingLayout>

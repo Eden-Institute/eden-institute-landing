@@ -101,7 +101,16 @@ const saveName = (name: string) => `Eden's Table - ${b.name} Week 1 - ${name.rep
       </p>
     </div>
 
+    {/* The whole year's plan, so a family that likes Week 1 can see where it goes
+        (2026-11-16, Lane SEO batch 5, b5_week1). */}
     <p class="font-body text-sm text-muted-foreground text-center pt-6">
+      Wondering where the year goes from here?
+      <a href={`/homeschool/scope-and-sequence#${band}`} data-cta={`freebies-dl-${band}-year-plan`} class="underline underline-offset-4" style="color:hsl(var(--eden-sage-ink))">
+        See the whole {b.name} year: all 36 plants, week by week
+      </a>.
+    </p>
+
+    <p class="font-body text-sm text-muted-foreground text-center pt-2">
       In about a week, Camila will write about the weeks that follow. Ready for more now?
       <a href={b.starter} data-cta={`freebies-dl-${band}-starter`} class="underline underline-offset-4" style="color:hsl(var(--eden-sage-ink))">
         Weeks 1 through 9 are $39
