@@ -42,9 +42,11 @@ const pricingDisclosure = disclosureFor(pricingClips);
 
 const meta = {
   // Sized to what Google shows whole (about 60 / 155 characters).
-  title: "Christian Homeschool Herbalism Curriculum K-5 | Eden's Table",
+  // 2026-11-17 (founder's review page): "science" leads, because that is the word
+  // Christian homeschool moms search; "Herbalism" stays in the title and the H1.
+  title: "Christian Homeschool Science & Herbalism, K-5 | Eden's Table",
   description:
-    "Christ-centered homeschool herbalism, one plant a week. Sprouts (K-2) and Seedlings (3-5): a free Week 1, a $39 Starter Unit, or all 36 weeks in print.",
+    "Open-and-go Christian homeschool science, one plant a week: botany, nature study and herbs. Sprouts (K-2), Seedlings (3-5). Free Week 1 or $39 Starter.",
   canonical: "https://edeninstitute.health/homeschool",
 };
 
@@ -59,7 +61,15 @@ const courseJsonLd = {
   url: "https://edeninstitute.health/homeschool",
   inLanguage: "en",
   educationalLevel: "Elementary school (K-5)",
-  about: ["Christian homeschool curriculum", "Biblical herbalism", "Faith-based science", "creation stewardship"],
+  about: [
+    "Christian homeschool curriculum",
+    "Christian homeschool science curriculum",
+    "Biblical herbalism",
+    "Faith-based science",
+    "Botany",
+    "Nature study",
+    "creation stewardship",
+  ],
   provider: { "@type": "Organization", name: "The Eden Institute", url: "https://edeninstitute.health" },
   audience: { "@type": "EducationalAudience", educationalRole: "homeschooling family" },
 };
@@ -545,6 +555,21 @@ const PRINT_SET = {
           <h3 class="font-serif text-lg font-semibold mb-3 text-white">Scripture Throughout</h3>
           <p class="font-body text-sm leading-relaxed" style="color:rgba(255,255,255,0.75)">Every unit anchored in Scripture. Herbalism presented as stewardship of Yahweh's creation, not alternative medicine.</p>
         </div>
+      </div>
+    </div>
+  </section>
+
+  {/* §3.5 Science, in the words families search (founder's review page, 2026-11-17).
+      Wording rule (2026-10-13): "use it as your science and nature study, or add it
+      alongside what's already working"; never "replaces your science". Content is
+      plant science: botany, observation, classification, measuring, kitchen lab. */}
+  <section id="christian-homeschool-science" class="py-14 md:py-16 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-3xl mx-auto">
+      <h2 class="font-serif text-3xl md:text-4xl font-bold leading-tight text-center mb-6" style="color:hsl(var(--eden-bark))">A Christian homeschool science curriculum for K-5</h2>
+      <div class="font-body text-base md:text-lg leading-relaxed space-y-4" style="color:hsl(var(--eden-bark))">
+        <p>Eden's Table teaches plant science one plant a week: botany, close observation, how plants are named and classified, and measuring, with a kitchen lab every week and Scripture at the root of it all.</p>
+        <p>You don't have to be a science person to teach it. The Teacher's Guide writes out every lesson, and the week's kitchen lab supplies are listed for you.</p>
+        <p>Use it as your science and nature study, or add it alongside what's already working. Sprouts is written for K-2 and Seedlings for 3-5, and Week 1 is free to try.</p>
       </div>
     </div>
   </section>
