@@ -16,6 +16,10 @@
 // so it has no address of its own to name.
 //
 // Copy rule: no em dashes.
+//
+// Stray punctuation (2026-11-17, Lane 2 area 11 T1): an address that only failed because a colon, period,
+// comma or bracket from the surrounding sentence was pasted into the link (/freebies:) is forwarded to the
+// real page by the script below (web/lib/strayPunctuation.ts). Anything else stays on this page.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -48,3 +52,13 @@ import { ASTRO_PAGES } from "@/lib/routes";
     </div>
   </main>
 </MarketingLayout>
+
+<script>
+  import { strayPunctuationTarget } from "../lib/strayPunctuation";
+  try {
+    const target = strayPunctuationTarget(window.location.pathname);
+    if (target) window.location.replace(target + window.location.search + window.location.hash);
+  } catch {
+    // stay on the not-found page
+  }
+</script>
