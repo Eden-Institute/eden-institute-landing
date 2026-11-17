@@ -11,12 +11,22 @@ import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { captureFirstTouch } from "@/lib/attribution";
+import { installClientErrorBeacon } from "@/lib/clientErrorBeacon";
 
 const SKIP_PREFIXES = ["/founder", "/apothecary/auth", "/apothecary/account"];
 
 export default function PageViewTracker() {
   const location = useLocation();
   const lastPath = useRef<string | null>(null);
+
+  // Browser error report (src/lib/clientErrorBeacon.ts, 2026-11-17). Once per page load, on every app
+  // route including the skipped ones below: a broken page is worth knowing about wherever it is.
+  useEffect(() => {
+    installClientErrorBeacon({
+      supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+      key: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    });
+  }, []);
 
   useEffect(() => {
     const path = location.pathname;
