@@ -4,9 +4,8 @@ import { ADVENT_CONFIRM_SUBJECT, buildAdventConfirmEmail } from "./advent-email.
 
 Deno.test("advent confirmation renders byte for byte the approved proof", async () => {
   // Line endings normalised: a Windows checkout (core.autocrlf) turns the fixture's LF into CRLF.
-  const approved = (await Deno.readTextFile(new URL("./advent-email.approved.html", import.meta.url))).replace(/
-/g, "
-");
+  const raw = await Deno.readTextFile(new URL("./advent-email.approved.html", import.meta.url));
+  const approved = raw.replaceAll("\r\n", "\n");
   const got = buildAdventConfirmEmail("Camila");
   assertEquals(got.subject, ADVENT_CONFIRM_SUBJECT);
   assertEquals(got.subject, "You're in for Plants of the Nativity");
