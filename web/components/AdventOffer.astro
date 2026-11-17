@@ -1,0 +1,27 @@
+---
+// The Plants of the Nativity sign-up box (web/lib/adventOffer.ts), plus the few lines that hide
+// every such box once the last Sunday email has gone (ADVENT_HIDE_FROM). The page must mount
+// <WaitlistController client:only="react" />.
+import { adventOfferHtml, type AdventPlacement } from "../lib/adventOffer";
+
+export interface Props {
+  placement: AdventPlacement;
+  class?: string;
+}
+const { placement, class: className = "" } = Astro.props;
+---
+
+<div class={className} data-advent-wrap>
+  <Fragment set:html={adventOfferHtml(placement)} />
+</div>
+
+<script>
+  // After the last Advent email the sign-up would promise emails that will never come.
+  document.querySelectorAll<HTMLElement>("[data-advent-until]").forEach((el) => {
+    const until = Date.parse(el.getAttribute("data-advent-until") || "");
+    if (until && Date.now() >= until) {
+      const wrap = el.closest<HTMLElement>("[data-advent-wrap]") || el;
+      wrap.hidden = true;
+    }
+  });
+</script>

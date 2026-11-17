@@ -13,6 +13,7 @@ import { freeWeekOfferHtml } from "../../lib/freeWeekOffer";
 import { bookChapterOfferHtml } from "../../lib/bookChapterOffer";
 import WaitlistController from "../../components/islands/WaitlistController.tsx";
 import ExitOffer from "../../components/ExitOffer.astro";
+import AdventOffer from "../../components/AdventOffer.astro";
 
 export async function getStaticPaths() {
   const articles = await getCollection("learn", ({ data }) => !data.draft);
@@ -132,6 +133,8 @@ if (d.faq.length > 0) {
       {/* Back to Eden's free Chapter 1 for articles adults come to (bookOffer, 2026-11-16). */}
       {d.bookOffer && <div class="mt-14"><Fragment set:html={bookChapterOfferHtml("learn_end")} /></div>}
       {d.freeWeekOffer && <div class={d.bookOffer ? "mt-6" : "mt-14"}><Fragment set:html={freeWeekOfferHtml("learn_end")} /></div>}
+      {/* Plants of the Nativity, Advent 2026 (hides itself after Dec 20). */}
+      {(d.freeWeekOffer || d.bookOffer) && <AdventOffer placement="learn_end" class="mt-6" />}
       <aside class={d.freeWeekOffer ? "mt-6" : "mt-14 rounded-lg p-6 border"} style={d.freeWeekOffer ? "" : "background-color:hsl(var(--eden-cream));border-color:hsl(var(--eden-gold) / 0.35)"}>
         {!d.freeWeekOffer && (
           <>

@@ -35,6 +35,7 @@ import heroMonograph from "@/assets/hero-monograph.jpg";
 import HeroBackdrop from "../../components/HeroBackdrop.astro";
 import WaitlistController from "../../components/islands/WaitlistController.tsx";
 import ExitOffer from "../../components/ExitOffer.astro";
+import AdventOffer from "../../components/AdventOffer.astro";
 import { freeWeekOfferHtml } from "../../lib/freeWeekOffer";
 
 export async function getStaticPaths() {
@@ -352,6 +353,9 @@ const jsonLd = [
           )}
         </div>
       )}
+
+      {/* Plants of the Nativity, Advent 2026 (hides itself after Dec 20). */}
+      <AdventOffer placement="herb" />
 
       <!-- Conversion band -->
       <div

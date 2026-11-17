@@ -16,6 +16,8 @@ export const BROADCAST_AUDIENCES = [
   'weekly_skip_seedlings_owners',
   // The whole homeschool list, buyers and kit families included (Nov 20 Thanksgiving, Dec 25).
   'everyone',
+  // Plants of the Nativity (Advent 2026): opt-ins only, from public.seasonal_optins.
+  'advent_2026',
 ] as const;
 export type BroadcastAudience = (typeof BROADCAST_AUDIENCES)[number];
 
