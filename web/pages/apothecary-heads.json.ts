@@ -17,7 +17,8 @@ import type { APIRoute } from "astro";
 import { getHerbRoster } from "../lib/herbsPublic";
 import { herbCanonicalUrl, herbParam } from "@/lib/herbLinks";
 import { monographDescription, monographTitle } from "@/lib/monographMeta";
-import { APOTHECARY_PUBLIC_ROUTES } from "@/lib/apothecaryRouteMeta";
+// SPA_HEAD_ROUTES = the public /apothecary routes plus /assessment, the quiz (2026-11-17, Lane 2 area 12 S1).
+import { SPA_HEAD_ROUTES } from "@/lib/apothecaryRouteMeta";
 
 export interface ApothecaryHead {
   /** Path under the site root, no trailing slash: "/apothecary/agrimony". */
@@ -35,7 +36,7 @@ export const GET: APIRoute = async () => {
     description: monographDescription(h),
     canonical: herbCanonicalUrl(h),
   }));
-  const routes: ApothecaryHead[] = APOTHECARY_PUBLIC_ROUTES.map(({ path, title, description, canonical }) => ({
+  const routes: ApothecaryHead[] = SPA_HEAD_ROUTES.map(({ path, title, description, canonical }) => ({
     path,
     title,
     description,
