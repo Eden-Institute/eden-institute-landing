@@ -42,3 +42,17 @@ export const APOTHECARY_START_META: RouteMeta = {
 };
 
 export const APOTHECARY_PUBLIC_ROUTES: RouteMeta[] = [APOTHECARY_HOME_META, APOTHECARY_PRICING_META, APOTHECARY_START_META];
+
+// The public Pattern of Eden quiz (2026-11-17, Lane 2 area 12 S1; founder tap "Yes, build + ship"). Not under
+// /apothecary, but served from the same SPA shell, so a link preview or an AI crawler that never runs JavaScript saw
+// "The Eden Institute: A Framework Our Culture Forgot" on the site's highest-intent page. Wording unchanged from
+// what Assessment.tsx passed to useDocumentMeta. (The account-only /apothecary/quiz above keeps the plain shell.)
+export const ASSESSMENT_META: RouteMeta = {
+  path: "/assessment",
+  title: "Pattern of Eden Quiz | The Eden Institute",
+  description: "Take the free 2-minute Pattern of Eden quiz to find your body pattern and the herbs that meet it.",
+  canonical: "https://edeninstitute.health/assessment",
+};
+
+/** Every SPA route that gets its own head in the raw HTML (scripts/build-apothecary-shells.mjs). */
+export const SPA_HEAD_ROUTES: RouteMeta[] = [...APOTHECARY_PUBLIC_ROUTES, ASSESSMENT_META];

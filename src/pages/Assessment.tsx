@@ -28,6 +28,7 @@ import { FORM_ERROR_FALLBACK, visitorFacingError } from "@/lib/edgeFunctionError
 import { patternNameToSlug } from "@/lib/constitution-utils";
 import Navbar from "@/components/landing/Navbar";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
+import { ASSESSMENT_META } from "@/lib/apothecaryRouteMeta";
 
 interface Question {
   id: number;
@@ -161,10 +162,11 @@ function AxisSpectrum({ axisLabel, leftLabel, rightLabel, position, isInconclusi
 }
 
 const Assessment = () => {
+  // One source with the raw HTML head the build writes (src/lib/apothecaryRouteMeta.ts, 2026-11-17).
   useDocumentMeta({
-    title: "Pattern of Eden Quiz | The Eden Institute",
-    description: "Take the free 2-minute Pattern of Eden quiz to find your body pattern and the herbs that meet it.",
-    canonical: "https://edeninstitute.health/assessment",
+    title: ASSESSMENT_META.title,
+    description: ASSESSMENT_META.description,
+    canonical: ASSESSMENT_META.canonical,
   });
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();

@@ -17,6 +17,7 @@
 //     the monograph title and description templates (src/lib/monographMeta.ts),
 //     canonical = the /herbs/<slug> twin for a free herb, itself for a gated one
 //   - the public app routes: /apothecary, /apothecary/pricing, /apothecary/start
+//   - the public quiz /assessment (2026-11-17), the one route outside /apothecary
 // The share image is the shell's own og:image, the real-pages card
 // (og-default-realpages.jpg), never an AI image.
 //
@@ -101,7 +102,8 @@ export function checkHeads({ herbs, routes }, reserved) {
   if (!Array.isArray(routes) || routes.length === 0) throw new Error(`${MANIFEST}: no app routes`);
   const seen = new Set();
   for (const h of [...herbs, ...routes]) {
-    if (!/^\/apothecary(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)?$/.test(h.path)) throw new Error(`bad path: ${h.path}`);
+    // /assessment (the public quiz, 2026-11-17) is the one SPA route outside /apothecary that gets a head.
+    if (!/^(?:\/apothecary(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)?|\/assessment)$/.test(h.path)) throw new Error(`bad path: ${h.path}`);
     if (seen.has(h.path)) throw new Error(`two heads for ${h.path}`);
     seen.add(h.path);
     if (!h.title?.trim() || !h.description?.trim()) throw new Error(`${h.path}: empty title or description`);
@@ -135,5 +137,5 @@ export function run(root) {
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
   const n = run(root);
-  console.log(`build-apothecary-shells: wrote ${n.herbs} herb heads and ${n.routes} app route heads under /apothecary`);
+  console.log(`build-apothecary-shells: wrote ${n.herbs} herb heads and ${n.routes} app route heads (/apothecary and /assessment)`);
 }

@@ -16,6 +16,8 @@ import {
   reservedApothecarySegments,
 } from "../../scripts/build-apothecary-shells.mjs";
 import { readHeadDefaults } from "@/lib/useDocumentMeta";
+import { ASSESSMENT_META, SPA_HEAD_ROUTES } from "@/lib/apothecaryRouteMeta";
+import { readFileSync } from "node:fs";
 
 const SHELL = `<!doctype html>
 <html lang="en">
@@ -135,6 +137,28 @@ describe("build-apothecary-shells", () => {
     expect(() => checkHeads({ herbs: [AGRIMONY, AGRIMONY], routes: [PRICING] }, reserved)).toThrow(/two heads/);
     expect(() => checkHeads({ herbs: [{ ...AGRIMONY, description: "x".repeat(160) }], routes: [PRICING] }, reserved)).toThrow(/160 characters/);
     expect(() => checkHeads({ herbs: [{ ...AGRIMONY, path: "/apothecary/../x" }], routes: [PRICING] }, reserved)).toThrow(/bad path/);
+  });
+
+  // 2026-11-17 (Lane 2 area 12 S1): the public quiz is the one SPA route outside /apothecary with its own head.
+  it("accepts /assessment as an app route, and nothing else outside /apothecary", () => {
+    const reserved = new Set(["start", "auth", "pricing"]);
+    const QUIZ = { ...ASSESSMENT_META };
+    expect(() => checkHeads({ herbs: [AGRIMONY], routes: [PRICING, QUIZ] }, reserved)).not.toThrow();
+    for (const path of ["/assessment/x", "/assessments", "/quiz", "/results", "/books"]) {
+      expect(() => checkHeads({ herbs: [AGRIMONY], routes: [{ ...QUIZ, path }] }, reserved), path).toThrow(/bad path/);
+    }
+  });
+
+  it("the quiz's raw head is its own title, description and canonical, from the same object the page uses", () => {
+    expect(SPA_HEAD_ROUTES.map((r) => r.path)).toContain("/assessment");
+    expect(ASSESSMENT_META.canonical).toBe("https://edeninstitute.health/assessment");
+    const html = buildShell(SHELL, ASSESSMENT_META);
+    expect(html).toMatch(/<title[^>]*>Pattern of Eden Quiz \| The Eden Institute<\/title>/);
+    expect(html).toContain('href="https://edeninstitute.health/assessment"');
+    expect(html).toContain(`content="${ASSESSMENT_META.description}"`);
+    // The shell's own title survives only as data-default (for useDocumentMeta), never as the text.
+    expect(html).not.toMatch(/>The Eden Institute: A Framework Our Culture Forgot<\/title>/);
+    expect(readFileSync("src/pages/Assessment.tsx", "utf8")).toMatch(/title: ASSESSMENT_META\.title/);
   });
 
   it("knows the app's own /apothecary routes, so no herb slug can shadow one", () => {
