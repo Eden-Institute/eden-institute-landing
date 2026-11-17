@@ -20,7 +20,7 @@
 // sign-up button on the page. If localStorage is blocked it never shows, because it
 // could not keep the once-per-visitor promise.
 //   desktop  the pointer leaves through the top of the window (towards the tabs or Back)
-//   touch    after reading past 40% of the page, a fast flick back up
+//   touch    after reading past 40% of the page, a quick flick back up (over 60 px at 800 px/s)
 //
 // MEASURING. data-cta "<placement>-shown" fires once when it opens (a hidden element
 // clicked by the script, picked up by the SiteAnalytics click beacon), and its buttons
@@ -57,7 +57,9 @@ const shownCta = `${placement.replace(/_/g, "-")}-shown`;
   .exit-offer {
     position: fixed;
     inset: 0;
-    z-index: 60;
+    /* Above the cookie banner (z-[60], later in the page), which otherwise covered the
+       phone bottom sheet's buttons for every first-time visitor. */
+    z-index: 70;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -201,7 +203,7 @@ const shownCta = `${placement.replace(/_/g, "-")}-shown`;
           if (room > 0) maxDepth = Math.max(maxDepth, y / room);
           const up = lastY - y;
           const speed = up / Math.max(1, now - lastT); // px per ms
-          if (maxDepth > 0.4 && up > 60 && speed > 1.2) show();
+          if (maxDepth > 0.4 && up > 60 && speed > 0.8) show();
           lastY = y;
           lastT = now;
         },
