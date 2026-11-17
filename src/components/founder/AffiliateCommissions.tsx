@@ -71,7 +71,9 @@ export default function AffiliateCommissions() {
       orders: sum("orders"),
       sales: sum("goods_cents"),
       earned: sum("earned_cents"),
-      owed: sum("owed_cents"),
+      // 2026-11-17 (Lane 2 area 9 C3): only what you owe. A partner whose paid order was later
+      // refunded shows a NEGATIVE balance (overpaid); adding it in would hide what is owed to others.
+      owed: list.reduce((n, r) => n + Math.max(0, Number(r.owed_cents ?? 0)), 0),
       paid: sum("paid_cents"),
     };
   }, [rows]);
@@ -208,7 +210,9 @@ export default function AffiliateCommissions() {
                         )}
                       </Td>
                       <Td right className={Number(r.owed_cents) > 0 ? "font-semibold" : "text-muted-foreground"}>
-                        {money(Number(r.owed_cents))}
+                        {Number(r.owed_cents) < 0
+                          ? `${money(-Number(r.owed_cents))} overpaid`
+                          : money(Number(r.owed_cents))}
                       </Td>
                       <Td>
                         {rate > 0 && paying !== r.promo_code_id && (

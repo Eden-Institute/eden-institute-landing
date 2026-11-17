@@ -47,6 +47,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getFbAttribution } from "@/lib/fbAttribution";
 import { getCheckoutAttribution } from "@/lib/attribution";
 import { usMobileE164 } from "../../lib/smsPhone";
+import { partnerPromoBody, partnerPromoCode } from "../../lib/partnerPromo";
 import { centsToValue, pinTrack } from "@/lib/pinterestTag";
 import PayOverTime from "./PayOverTime";
 import ShipToForm, { type ShipToDraft } from "./ShipToForm";
@@ -276,6 +277,8 @@ export default function PrintBuyBox({ cta, band = "sprouts", offer }: Props) {
           ...(smsPhoneE164 ? { sms_phone: smsPhoneE164 } : {}),
           ...shipToBody,
           ...(offer ? { offer } : {}),
+          // A partner's ?promo= code (this visit), never with the FPEA offer (2026-11-17).
+          ...partnerPromoBody(partnerPromoCode(), offer),
           success_url: isSprouts
             ? "https://edeninstitute.health/books/thank-you?session_id={CHECKOUT_SESSION_ID}"
             : `https://edeninstitute.health/books/thank-you?band=${band}&session_id={CHECKOUT_SESSION_ID}`,

@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getFbAttribution } from "@/lib/fbAttribution";
 import { getCheckoutAttribution } from "@/lib/attribution";
 import { pinTrack } from "@/lib/pinterestTag";
+import { partnerPromoBody, partnerPromoCode } from "../../lib/partnerPromo";
 import { likelyNeedsGround, printShippingCents } from "../../../supabase/functions/_shared/print-pricing";
 import { checkShipTo, type ShipTo } from "../../../supabase/functions/_shared/ship-address";
 import ShipToForm, { type ShipToDraft } from "./ShipToForm";
@@ -77,10 +78,12 @@ async function startCheckout(btn: HTMLButtonElement, action: Req, items: Item[],
   btn.disabled = true;
   btn.textContent = "Opening checkout...";
   try {
+    // A partner's ?promo= code for this visit (web/lib/partnerPromo.ts, 2026-11-17).
+    const promo = partnerPromoBody(partnerPromoCode());
     const body =
       action.kind === "print"
-        ? { ...getFbAttribution(), attribution: getCheckoutAttribution(), print_shop: true, items, sms_consent: false, ...(shipTo ? { ship_to: shipTo } : {}) }
-        : { ...getFbAttribution(), attribution: getCheckoutAttribution(), book_digital: true, sku: action.sku };
+        ? { ...getFbAttribution(), attribution: getCheckoutAttribution(), print_shop: true, items, sms_consent: false, ...(shipTo ? { ship_to: shipTo } : {}), ...promo }
+        : { ...getFbAttribution(), attribution: getCheckoutAttribution(), book_digital: true, sku: action.sku, ...promo };
     const { data, error } = await supabase.functions.invoke(token ? "create-checkout-e2e" : "create-checkout", {
       ...(token ? { headers: { "x-eden-e2e": token } } : {}),
       body,
