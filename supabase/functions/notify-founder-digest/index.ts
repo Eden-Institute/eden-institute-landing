@@ -55,6 +55,7 @@ import {
   hasHealthProblem,
   LULU_OVERDUE_DAYS,
   QUEUE_LABEL,
+  summarizeBrowserErrors,
   systemHealthHtml,
   systemHealthTextLines,
   type HealthCheck,
@@ -302,7 +303,7 @@ async function fetchSystemHealthInput(digestDate: string, todayCt: string, now: 
   const ga4Since = new Date(Math.max(now.getTime() - 7 * 24 * HOUR, Date.parse(GA4_PATH_LIVE))).toISOString();
   const day = digestWindow(digestDate);
 
-  const [recap, trends, digestFailed, failed, stuck, stripe, lulu, starter, payments, sampleServes, luluUnpaid, luluOverdue, luluFiles] = await Promise.all([
+  const [recap, trends, digestFailed, failed, stuck, stripe, lulu, starter, payments, sampleServes, luluUnpaid, luluOverdue, luluFiles, clientErrors] = await Promise.all([
     countRows(`/rest/v1/recap_runs?recap_date=eq.${digestDate}&select=status&limit=1`),
     countRows('/rest/v1/weekly_trends_runs?status=eq.sent&select=run_date&order=run_date.desc&limit=1'),
     countRows(`/rest/v1/digest_runs?status=eq.failed&digest_date=gte.${addDays(todayCt, -30)}&select=digest_date&limit=1`),
@@ -329,6 +330,13 @@ async function fetchSystemHealthInput(digestDate: string, todayCt: string, now: 
       console.error('notify-founder-digest: print file check failed', e instanceof Error ? e.message : String(e));
       return null;
     }),
+    // (L2, 2026-11-17) Errors reported from visitors' browsers on the digest day
+    // (client_errors, written by record_client_error from src/lib/clientErrorBeacon.ts).
+    countRows(
+      '/rest/v1/client_errors?select=kind,message,path,fn,status,visitor_hash' +
+        `&occurred_at=gte.${encodeURIComponent(day.windowStart)}&occurred_at=lt.${encodeURIComponent(day.windowEnd)}` +
+        '&order=occurred_at.desc&limit=500',
+    ),
   ]);
 
   const failedByQueue: Record<string, number | null> = {};
@@ -368,6 +376,7 @@ async function fetchSystemHealthInput(digestDate: string, todayCt: string, now: 
     ga4ByStatus,
     ga4SecretSet: !!Deno.env.get('GA4_MP_API_SECRET'),
     sampleLinkSpikes: sampleServes ? findSampleLinkSpikes(sampleServes.rows) : null,
+    browserErrors: clientErrors ? summarizeBrowserErrors(clientErrors.rows, clientErrors.n) : null,
   };
 }
 

@@ -16,6 +16,7 @@ import { ConsentBannerView } from "@/components/ConsentBanner";
 import { captureFirstTouch } from "@/lib/attribution";
 import { startMerchantWidgetAfterAccept } from "@/lib/merchantWidget";
 import { partnerPromoCode } from "../../lib/partnerPromo";
+import { installClientErrorBeacon } from "@/lib/clientErrorBeacon";
 
 const SKIP_PREFIXES = ["/founder", "/apothecary/auth", "/apothecary/account"];
 
@@ -83,6 +84,12 @@ export default function SiteAnalytics({ thirdPartyTags = true, storeBadge = fals
     //     page send it to checkout (web/lib/partnerPromo.ts, 2026-11-17). A discount code the
     //     family brought with them, kept in this tab only: functional, no consent needed.
     partnerPromoCode();
+    // 0c. Browser error report (src/lib/clientErrorBeacon.ts, 2026-11-17): this site's own script errors,
+    //     uncaught promise failures and edge-function calls that fail. Cookieless, no consent gate, every page.
+    installClientErrorBeacon({
+      supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+      key: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    });
 
     // 1. Cookieless first-party page view (no consent required).
     const path = window.location.pathname;

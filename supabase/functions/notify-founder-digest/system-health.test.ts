@@ -7,6 +7,7 @@ import { assert, assertEquals, assertStringIncludes } from 'https://deno.land/st
 import {
   evaluateSystemHealth,
   hasHealthProblem,
+  summarizeBrowserErrors,
   systemHealthHtml,
   systemHealthTextLines,
   type SystemHealthInput,
@@ -180,4 +181,56 @@ Deno.test('L5: a dead print file is a problem; a silent host is "could not check
   assertEquals(byKey({ ...healthy(), luluFiles: null }).lulu_files.ok, null);
   const many = byKey({ ...healthy(), luluFiles: { checked: 18, bad: ['a', 'b', 'c', 'd', 'e', 'f', 'g'], unreachable: [] } });
   assertStringIncludes(many.lulu_files.detail, 'and 2 more');
+});
+
+// (L2, 2026-11-17) Errors reported from visitors' browsers (client_errors).
+Deno.test('L2: the browser-error check is skipped when not supplied, so older inputs still read 10', () => {
+  assertEquals(evaluateSystemHealth(healthy(), '2026-10-30', '2026-10-31').length, 10);
+});
+
+Deno.test('L2: no browser errors is one more passing check; an unreadable table is "could not check"', () => {
+  const clear = healthy();
+  clear.browserErrors = { total: 0, people: 0, top: [] };
+  const checks = evaluateSystemHealth(clear, '2026-10-30', '2026-10-31');
+  assertEquals(checks.length, 11);
+  assert(checks.every((c) => c.ok === true));
+  assertStringIncludes(byKey(clear).browser_errors.detail, "No errors reported from visitors' browsers on 2026-10-30");
+  assertStringIncludes(systemHealthHtml(checks), "errors in visitors' browsers");
+
+  const unread = healthy();
+  unread.browserErrors = null;
+  assertEquals(byKey(unread).browser_errors.ok, null);
+  assertEquals(hasHealthProblem(evaluateSystemHealth(unread, '2026-10-30', '2026-10-31')), true);
+});
+
+Deno.test('L2: errors are a problem line naming the commonest ones, the page and how many people', () => {
+  const rows = [
+    { kind: 'function', message: 'create-checkout answered 503', path: '/books', fn: 'create-checkout', status: 503, visitor_hash: 'a' },
+    { kind: 'function', message: 'create-checkout answered 503', path: '/books', fn: 'create-checkout', status: 503, visitor_hash: 'b' },
+    { kind: 'error', message: "TypeError: Cannot read properties of undefined (reading 'qty')", path: '/back-to-eden', visitor_hash: 'a' },
+    { kind: 'error', message: 'x', path: '/a', visitor_hash: 'c' },
+    { kind: 'error', message: 'y', path: '/b', visitor_hash: 'c' },
+  ];
+  const summary = summarizeBrowserErrors(rows, 5);
+  assertEquals(summary.total, 5);
+  assertEquals(summary.people, 3);
+  assertEquals(summary.top.length, 3);
+  assertEquals(summary.top[0], { label: '"create-checkout answered 503" on /books', n: 2 });
+
+  const input = healthy();
+  input.browserErrors = summary;
+  const c = byKey(input).browser_errors;
+  assertEquals(c.ok, false);
+  assertStringIncludes(c.detail, "The website hit 5 errors in visitors' browsers on 2026-10-30 (3 people)");
+  assertStringIncludes(c.detail, '"create-checkout answered 503" on /books (2)');
+  assertStringIncludes(c.detail, 'Ask Claude to look into them.');
+  assertStringIncludes(systemHealthHtml(evaluateSystemHealth(input, '2026-10-30', '2026-10-31')), '&quot;create-checkout answered 503&quot; on /books (2)');
+});
+
+Deno.test('L2: one error reads in the singular, and the exact count wins over the rows read', () => {
+  const one = healthy();
+  one.browserErrors = summarizeBrowserErrors([{ message: 'z', path: '/', visitor_hash: 'a' }], 1);
+  assertStringIncludes(byKey(one).browser_errors.detail, "hit 1 error in visitors' browsers on 2026-10-30 (1 person)");
+  assertStringIncludes(byKey(one).browser_errors.detail, 'look into it.');
+  assertEquals(summarizeBrowserErrors([{ message: 'z' }], 742).total, 742);
 });

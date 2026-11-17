@@ -60,6 +60,46 @@ export interface SystemHealthInput {
   /** Partner sample links opened from an unusual number of places on the digest day
    *  (sample-links.ts); null when partner_sample_serves could not be read. */
   sampleLinkSpikes: SampleLinkSpike[] | null;
+  /** (L2, 2026-11-17) Errors reported from visitors' browsers on the digest day
+   *  (client_errors, src/lib/clientErrorBeacon.ts). null when the table could not be read;
+   *  absent = the check is not run. */
+  browserErrors?: BrowserErrorSummary | null;
+}
+
+/** One client_errors row, as the digest reads it. */
+export interface BrowserErrorRow {
+  kind?: string | null;
+  message?: string | null;
+  path?: string | null;
+  fn?: string | null;
+  status?: number | null;
+  visitor_hash?: string | null;
+}
+
+export interface BrowserErrorSummary {
+  /** Reports on the digest day (the exact count, not only the rows read). */
+  total: number;
+  /** Different visitors among the rows read. */
+  people: number;
+  /** The most frequent errors, at most three, as "message" on /path. */
+  top: Array<{ label: string; n: number }>;
+}
+
+/** Group the day's reports by message and page, most frequent first. Pure, so deno test runs it. */
+export function summarizeBrowserErrors(rows: BrowserErrorRow[], total: number): BrowserErrorSummary {
+  const counts = new Map<string, number>();
+  const people = new Set<string>();
+  for (const r of rows) {
+    const msg = (r.message ?? '').trim() || '(no message)';
+    const label = `"${msg.length > 120 ? `${msg.slice(0, 117)}...` : msg}" on ${r.path || '/'}`;
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+    if (r.visitor_hash) people.add(r.visitor_hash);
+  }
+  const top = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 3)
+    .map(([label, n]) => ({ label, n }));
+  return { total: Math.max(total, rows.length), people: people.size, top };
 }
 
 export interface HealthCheck {
@@ -258,6 +298,24 @@ export function evaluateSystemHealth(input: SystemHealthInput, digestDate: strin
     }
   }
 
+  // (L2, 2026-11-17) Errors in visitors' browsers. A buy button or form that broke before its
+  // request reached the server used to leave no trace anywhere (area 16 finding E1).
+  if (input.browserErrors !== undefined) {
+    const b = input.browserErrors;
+    if (b === null) {
+      checks.push({ key: 'browser_errors', ok: null, detail: "Errors in visitors' browsers: could not be checked." });
+    } else if (b.total === 0) {
+      checks.push({ key: 'browser_errors', ok: true, detail: `No errors reported from visitors' browsers on ${digestDate}.` });
+    } else {
+      const top = b.top.map((t) => `${t.label} (${t.n})`).join('; ');
+      checks.push({
+        key: 'browser_errors',
+        ok: false,
+        detail: `The website hit ${plural(b.total, 'error')} in visitors' browsers on ${digestDate} (${plural(b.people, 'person', 'people')}): ${top}. Ask Claude to look into ${b.total === 1 ? 'it' : 'them'}.`,
+      });
+    }
+  }
+
   return checks;
 }
 
@@ -274,7 +332,7 @@ export function systemHealthHtml(checks: HealthCheck[]): string {
   const label = `<p style="font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:2px;color:#C9A84C;text-transform:uppercase;margin:16px 0 8px 0;">System health</p>`;
   if (problems.length === 0) {
     return `${label}
-<p style="font-family:Georgia,serif;font-size:13px;color:#1C3A2E;margin:0 0 8px 0;">All ${checks.length} checks passed: scheduled emails, failed and waiting emails, Stripe, Lulu (orders and print files), Starter downloads, sales reaching Google Analytics, and partner sample links.</p>`;
+<p style="font-family:Georgia,serif;font-size:13px;color:#1C3A2E;margin:0 0 8px 0;">All ${checks.length} checks passed: scheduled emails, failed and waiting emails, Stripe, Lulu (orders and print files), Starter downloads, sales reaching Google Analytics, partner sample links, and errors in visitors' browsers.</p>`;
   }
   const items = problems.map((c) =>
     `<li style="margin:0 0 6px 0;">${c.ok === null ? '<strong>Could not check.</strong> ' : ''}${esc(c.detail)}</li>`
