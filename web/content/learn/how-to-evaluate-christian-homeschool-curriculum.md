@@ -73,4 +73,6 @@ It's only fair to run my own curriculum through the list.
 - **Cost (8):** Week 1 is free. The Starter Unit, weeks 1 to 9, is a $39 download. The printed year is $249 plus $12 shipping, and extra Student Notebooks for siblings are $39.99 each, or $32 each from the sixth. The herbs aren't included. Each week uses a small amount of a common dried herb from your pantry, your garden, or the herb list I keep for families.
 - **Proof (9 and 10):** [Week 1 is free](/freebies) for both bands, five full lessons. The [scope and sequence](/homeschool/scope-and-sequence) lists all 72 plants. The family quotes on the Eden's Table page are from families who took the free sample and taught it at their own tables.
 
+Choosing science? I compare the programs most Christian families look at in [The Best Christian Homeschool Science Curriculum for K-5](/learn/best-christian-homeschool-science-curriculum-k-5).
+
 Whatever you choose this January, choose it after a real week at your own table. If you'd like to start with mine, [get Week 1 here](/freebies).
