@@ -1004,13 +1004,13 @@ export const ESA_PENDING = [
   { state: "Florida", program: "Step Up For Students scholarships", note: "Provider application submitted, waiting on review." },
   { state: "West Virginia", program: "Hope Scholarship", note: "Provider application submitted September 2026, waiting on review." },
   { state: "South Carolina", program: "Education Scholarship Trust Fund", note: "Provider application submitted November 2026, waiting on review." },
-  { state: "Georgia", program: "Georgia Promise Scholarship", note: "Vendor application in review; requested documents sent November 2026." },
+  { state: "Georgia", program: "Georgia Promise Scholarship", note: "Vendor application under appeal, November 2026." },
   { state: "Missouri", program: "MOScholars", note: "Vendor application submitted November 2026, waiting on review." },
 ];
 
 /** Last content review of the ESA pages. Bump it when what they say changes (see
     the rules at the top). */
-export const ESA_UPDATED_ISO = "2026-11-17";
+export const ESA_UPDATED_ISO = "2026-11-18";
 
 /** The same date as shown on the pages, e.g. "September 2026". */
 export const ESA_UPDATED = new Date(`${ESA_UPDATED_ISO}T12:00:00Z`).toLocaleDateString("en-US", {
