@@ -194,5 +194,14 @@ export function buildFoundingFamilyEmail(
 // Notes added to the existing shipped and delivered emails (order-messages.ts), printed sets only.
 export const SHIPPED_NOTE =
   'Okay, I am a little giddy. Your books are really on their way, and I cannot wait for you to open that box. If you take a picture when it lands, I would love to see it!';
+// 2026-11-18 (Camila's yes via Lane 0): the old line said "Somewhere in that box is the very first plant your
+// kids are going to meet", and a buyer asked whether seeds or plants come in the box. They do not (books.astro:
+// "The herbs are not included"), so the plant now lives on the Week 1 pages and the herbs line says so plainly.
 export const DELIVERED_NOTE =
-  'This is my favorite part!! Somewhere in that box is the very first plant your kids are going to meet. Open the Teacher&rsquo;s Guide to Week 1 and read it together at the table. That is the whole method.';
+  'This is my favorite part!! Open the Teacher&rsquo;s Guide to Week 1 and you will meet the very first plant your kids are going to learn about. Read it together at the table. That is the whole method.';
+export const DELIVERED_HERBS_NOTE =
+  'One thing so nobody is surprised: the herbs are not in the box. Each week uses a little of a common dried herb from your pantry, your garden, or the <a href="https://edeninstitute.health/homeschool/herbs" style="color:#2C3E2D;">herb list I keep for you</a>.';
+// A box that holds only an extra Student Notebook (an ESA family buys it on its own invoice) has no Teacher's
+// Guide in it, so it gets its own note.
+export const DELIVERED_NOTEBOOK_NOTE =
+  'This notebook is for one more child at your table, so everyone gets their own pages to draw and write on. It follows the same weeks as the Teacher&rsquo;s Guide, so just open it to Week 1 right alongside everyone else.';
