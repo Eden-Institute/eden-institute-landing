@@ -25,6 +25,11 @@
 //   - Resend accepted, the "mark sent" PATCH failed      -> same key, refused
 //   - the worker stopped between the send and the mark   -> same key, refused
 //   - two runs picked up the same pending row            -> same key, refused
+// 2026-11-18 (area 6 NEW-1): a failure recorded BEFORE any send (an opt-out or
+// ownership check could not run) keeps retry_count (SendFailure.beforeSend), and
+// a throw AFTER Resend accepted is not recorded at all, so neither moves the key.
+// Before this, "mark sent" lost + a failed check on the next run = a new key and
+// a second email.
 // Not covered (left as it was): Resend accepted but its reply never arrived, so
 // the send threw and the failure was recorded; the retry uses a new key.
 // Accepted risk: a 409 invalid_idempotent_request is read as "already sent". It

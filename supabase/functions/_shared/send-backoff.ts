@@ -33,6 +33,11 @@ export interface SendFailure {
   /** Resend's error `name` (e.g. 'daily_quota_exceeded', 'validation_error'), when present. */
   name?: string | null;
   message?: string | null;
+  /** (2026-11-18, area 6 NEW-1) The row failed BEFORE any send was attempted (an opt-out or ownership check
+   *  could not run). It backs off and gives up exactly like a send failure, but retry_count, which is part of
+   *  the row's Idempotency-Key (drip-idempotency.ts), does not change: if an earlier run's email was accepted
+   *  and only its "mark sent" was lost, the next attempt still carries the same key and Resend refuses it. */
+  beforeSend?: boolean;
 }
 
 const TRANSIENT_TEXT = /quota|rate[ _-]?limit|too many requests|timed? ?out|temporar|unavailable|overloaded/i;
@@ -96,6 +101,8 @@ export function planSendFailure(
   const nowMs = now.getTime();
   const nowIso = now.toISOString();
   const retryCount = (row.retry_count ?? 0) + 1;
+  // What is written back. A failure before the send keeps the count (and so the key); the backoff still uses retryCount.
+  const storedCount = failure.beforeSend ? (row.retry_count ?? 0) : retryCount;
   const parsedFirst = row.first_failed_at ? Date.parse(row.first_failed_at) : NaN;
   // A first_failed_at in the future (clock skew, bad data) must not extend the window.
   const firstMs = Number.isFinite(parsedFirst) && parsedFirst <= nowMs ? parsedFirst : nowMs;
@@ -110,7 +117,7 @@ export function planSendFailure(
       reason: 'permanent',
       patch: {
         status: 'failed',
-        retry_count: retryCount,
+        retry_count: storedCount,
         first_failed_at: firstIso,
         next_attempt_at: null,
         // A bad address is not an outage: failed at once, as before, with no founder alert.
@@ -127,7 +134,7 @@ export function planSendFailure(
       reason: 'window_expired',
       patch: {
         status: 'failed',
-        retry_count: retryCount,
+        retry_count: storedCount,
         first_failed_at: firstIso,
         next_attempt_at: null,
         gave_up_at: nowIso,
@@ -141,7 +148,7 @@ export function planSendFailure(
     action: 'retry',
     patch: {
       status: 'pending',
-      retry_count: retryCount,
+      retry_count: storedCount,
       first_failed_at: firstIso,
       next_attempt_at: new Date(nextMs).toISOString(),
       error_message: `transient, retrying: ${detail}`,
