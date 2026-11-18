@@ -118,6 +118,18 @@ export function isNotebookOnlyOrder(order: OrderRow): boolean {
   return order.lookup_key ? luluProductBySku(order.lookup_key)?.addOn === true : false;
 }
 
+/**
+ * (2026-11-18) An ESA order is one box per form submission when it can be (esa-fulfil.ts planEsaPrint). When some
+ * of the family's invoices print in a different box (another band, another address, or one paid much later),
+ * esa-fulfil records them in raw.esa_ships_separately, and the shipped and delivered emails say so, so a family
+ * that sees one box knows the rest is coming.
+ */
+export function partOfOrderNote(order: OrderRow): string {
+  const others = order.raw?.esa_ships_separately;
+  if (!Array.isArray(others) || others.length === 0) return '';
+  return p(`This box is one part of your order. The rest is coming in its own box, so if only one shows up, the other is on its way.`);
+}
+
 // ── Back to Eden printed-book emails (2026-09-25) ──────────────────────────────
 // Same facts as the curriculum emails (48-hour pause, tracking on ship, about two
 // to three weeks), none of the curriculum words. Founder to review the voice.
@@ -239,6 +251,7 @@ export function buildShippedEmail(order: OrderRow): { subject: string; html: str
   const body =
     p(`Hi ${firstName(order)},`) +
     p(`They are on the way!! Your <strong>${escapeHtml(item)}</strong> shipped today${carrier !== 'the carrier' ? ` with ${escapeHtml(carrier)}` : ''}.`) +
+    partOfOrderNote(order) +
     p(SHIPPED_NOTE) +
     heading('Tracking') +
     (code ? p(`Tracking number: <strong>${escapeHtml(code)}</strong>`) : '') +
@@ -267,6 +280,7 @@ export function buildDeliveredEmail(order: OrderRow): { subject: string; html: s
   const body =
     p(`Hi ${firstName(order)},`) +
     p(`Your <strong>${escapeHtml(item)}</strong> was delivered today!`) +
+    partOfOrderNote(order) +
     (notebookOnly ? p(DELIVERED_NOTEBOOK_NOTE) : p(DELIVERED_NOTE) + p(DELIVERED_HERBS_NOTE)) +
     p(`If it is not where you expected, check with everyone at home first, then the porch, the side door `
       + `and anywhere else the mail carrier likes to hide things. Still nothing? Reply to this email and we `

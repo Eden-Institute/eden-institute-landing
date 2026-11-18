@@ -14,7 +14,7 @@
 // be pressed. api/esa-confirm.ts relays GET and POST here and re-serves this page as HTML.
 
 import { money, STATE_RULES } from "../_shared/esa-invoice.ts";
-import { confirmWithToken, emailFounderAlert, ESA_STARTER_SKUS, getInvoice, rest } from "../_shared/esa-fulfil.ts";
+import { confirmWithToken, emailFounderAlert, ESA_SIBLING_MAX_WAIT_DAYS, ESA_STARTER_SKUS, getInvoice, rest } from "../_shared/esa-fulfil.ts";
 import { esc } from "../_shared/html-escape.ts";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -122,6 +122,10 @@ Items: ${esc(inv.items.map((i) => `${i.sku} x${i.qty}`).join(", "))}<br>Total: <
     const r = c.result;
     if (r.fulfilment === "failed") {
       return page("Paid, but fulfilment failed", `${summary}<p>Marked paid, but sending it on failed: ${esc(r.note ?? "")}. You have an email with the details.</p>`, 500);
+    }
+    if (r.fulfilment === "awaiting_siblings") {
+      // (2026-11-18) One box per submission: this invoice's books wait for the family's other invoice(s).
+      return page("Confirmed", `${summary}<p><b>Confirmed.</b> This family has another invoice for the same box that is not paid yet, so these books wait and then print together in one box: ${esc(r.invoice?.fulfilment_note ?? "")}. If that payment has not come in ${ESA_SIBLING_MAX_WAIT_DAYS} days from now, they print on their own and you get an email.</p>`);
     }
     return page("Confirmed", `${summary}<p><b>Confirmed.</b> ${r.changed ? `Fulfilment: ${esc(r.fulfilment)}.` : esc(r.note ?? "Nothing changed.")}</p>`);
   } catch (e) {
