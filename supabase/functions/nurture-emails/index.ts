@@ -501,6 +501,10 @@ async function drainNurtureQueue(): Promise<QueueResult> {
   console.log(`drainNurtureQueue: found ${rows.length} due rows`);
 
   for (const row of rows) {
+    // 2026-11-18 (area 6 NEW-1): a failure before the send keeps this row's Idempotency-Key;
+    // a throw after Resend accepted it is not a failure at all.
+    let sendAttempted = false;
+    let sendAccepted = false;
     if (budgetExhausted()) {
       console.log('nurture-emails: run budget reached, remaining rows left pending for next tick');
       break;
@@ -519,7 +523,7 @@ async function drainNurtureQueue(): Promise<QueueResult> {
         console.error(
           `drainNurtureQueue: no quiz_completions row for ${row.recipient_email}`,
         );
-        await supabaseQuery(`nurture_email_queue?id=eq.${row.id}`, {
+        await supabaseQuery(`nurture_email_queue?id=eq.${row.id}&status=eq.pending`, {
           method: 'PATCH',
           body: JSON.stringify({
             status: 'failed',
@@ -544,7 +548,7 @@ async function drainNurtureQueue(): Promise<QueueResult> {
       // global before: 9 quiz emails reached people who had left everything), by the queue
       // time rule in sendBlocked. Keep "unsubscribed" in the message: a later return looks for it.
       if (await sendBlocked(row.recipient_email, 'constitution', row.created_at)) {
-        await supabaseQuery(`nurture_email_queue?id=eq.${row.id}`, {
+        await supabaseQuery(`nurture_email_queue?id=eq.${row.id}&status=eq.pending`, {
           method: 'PATCH',
           body: JSON.stringify({
             status: 'cancelled',
@@ -559,7 +563,7 @@ async function drainNurtureQueue(): Promise<QueueResult> {
       const purchasedCourse = qc.purchased_course === true;
       const purchasedGuide = qc.purchased_guide === true;
       if (shouldSuppress(row.sequence_position, purchasedCourse, purchasedGuide)) {
-        await supabaseQuery(`nurture_email_queue?id=eq.${row.id}`, {
+        await supabaseQuery(`nurture_email_queue?id=eq.${row.id}&status=eq.pending`, {
           method: 'PATCH',
           body: JSON.stringify({
             status: 'cancelled',
@@ -608,7 +612,7 @@ async function drainNurtureQueue(): Promise<QueueResult> {
           console.error(
             `drainNurtureQueue: unknown sequence_position ${row.sequence_position}`,
           );
-          await supabaseQuery(`nurture_email_queue?id=eq.${row.id}`, {
+          await supabaseQuery(`nurture_email_queue?id=eq.${row.id}&status=eq.pending`, {
             method: 'PATCH',
             body: JSON.stringify({
               status: 'failed',
@@ -623,6 +627,7 @@ async function drainNurtureQueue(): Promise<QueueResult> {
       const emailKey =
         CONSTITUTION_KEY_BY_POS[row.sequence_position] ??
         `constitution_pos${row.sequence_position}`;
+      sendAttempted = true;
       const send = await sendEmail(
         row.recipient_email,
         built.subject,
@@ -632,6 +637,7 @@ async function drainNurtureQueue(): Promise<QueueResult> {
         dripIdempotencyKey('nurture_email_queue', row.id, row.retry_count),
       );
       if (send.ok) {
+        sendAccepted = true;
         await markSent('nurture_email_queue', row.id, {
           status: 'sent',
           sent_at: new Date().toISOString(),
@@ -648,7 +654,12 @@ async function drainNurtureQueue(): Promise<QueueResult> {
       console.error(`drainNurtureQueue: row ${row.id} threw:`, message);
       // Thrown before or during the send (network, a gateway error on a lookup):
       // no response from Resend, so it is treated as transient.
-      await recordSendFailure('nurture_email_queue', row, { status: null, message }, result);
+      if (sendAccepted) {
+        // Resend took it; the row is sent (or still pending under the SAME key, which Resend refuses to send twice).
+        console.warn(`nurture-emails: nurture_email_queue ${row.id} threw after Resend accepted it; not recorded as a failure`);
+        continue;
+      }
+      await recordSendFailure('nurture_email_queue', row, { status: null, message, beforeSend: !sendAttempted }, result);
     }
   }
 
@@ -907,6 +918,10 @@ async function drainFollowupQueue(): Promise<QueueResult> {
   };
 
   for (const row of rows) {
+    // 2026-11-18 (area 6 NEW-1): a failure before the send keeps this row's Idempotency-Key;
+    // a throw after Resend accepted it is not a failure at all.
+    let sendAttempted = false;
+    let sendAccepted = false;
     if (budgetExhausted()) {
       console.log('nurture-emails: run budget reached, remaining rows left pending for next tick');
       break;
@@ -1001,7 +1016,7 @@ async function drainFollowupQueue(): Promise<QueueResult> {
       }
 
       if (!built) {
-        await supabaseQuery(`followup_email_queue?id=eq.${row.id}`, {
+        await supabaseQuery(`followup_email_queue?id=eq.${row.id}&status=eq.pending`, {
           method: 'PATCH',
           body: JSON.stringify({
             status: 'failed',
@@ -1013,6 +1028,7 @@ async function drainFollowupQueue(): Promise<QueueResult> {
         continue;
       }
 
+      sendAttempted = true;
       const send = await sendEmail(
         email,
         built.subject,
@@ -1022,6 +1038,7 @@ async function drainFollowupQueue(): Promise<QueueResult> {
         dripIdempotencyKey('followup_email_queue', row.id, row.retry_count),
       );
       if (send.ok) {
+        sendAccepted = true;
         await markSent('followup_email_queue', row.id, {
           status: 'sent',
           sent_at: new Date().toISOString(),
@@ -1035,7 +1052,12 @@ async function drainFollowupQueue(): Promise<QueueResult> {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`drainFollowupQueue: row ${row.id} threw:`, message);
-      await recordSendFailure('followup_email_queue', row, { status: null, message }, result);
+      if (sendAccepted) {
+        // Resend took it; the row is sent (or still pending under the SAME key, which Resend refuses to send twice).
+        console.warn(`nurture-emails: followup_email_queue ${row.id} threw after Resend accepted it; not recorded as a failure`);
+        continue;
+      }
+      await recordSendFailure('followup_email_queue', row, { status: null, message, beforeSend: !sendAttempted }, result);
     }
   }
   return result;
@@ -1351,6 +1373,10 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
   }
   console.log(`drainMagnetQueue: found ${rows.length} due rows`);
   for (const row of rows) {
+    // 2026-11-18 (area 6 NEW-1): a failure before the send keeps this row's Idempotency-Key;
+    // a throw after Resend accepted it is not a failure at all.
+    let sendAttempted = false;
+    let sendAccepted = false;
     if (budgetExhausted()) {
       console.log('nurture-emails: run budget reached, remaining rows left pending for next tick');
       break;
@@ -1372,7 +1398,7 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
       // free week again gets this week's emails; their Friday letters stay off. Keep
       // "unsubscribed" in the message: a later return looks for it.
       if (await sendBlocked(email, 'homeschool', row.created_at)) {
-        await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
+        await supabaseQuery(`magnet_email_queue?id=eq.${row.id}&status=eq.pending`, {
           method: 'PATCH',
           body: JSON.stringify({
             status: 'cancelled',
@@ -1395,7 +1421,7 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
         const siblingSentAt = Array.isArray(sibling) && sibling[0]?.sent_at ? Date.parse(String(sibling[0].sent_at)) : NaN;
         if (Number.isFinite(siblingSentAt)) {
           const later = new Date(siblingSentAt + BAND_SPACING_MS).toISOString();
-          await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
+          await supabaseQuery(`magnet_email_queue?id=eq.${row.id}&status=eq.pending`, {
             method: 'PATCH',
             body: JSON.stringify({ scheduled_for: later, updated_at: new Date().toISOString() }),
           });
@@ -1416,7 +1442,7 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
           already = Array.isArray(prior) && prior.length > 0;
         }
         if (already) {
-          await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
+          await supabaseQuery(`magnet_email_queue?id=eq.${row.id}&status=eq.pending`, {
             method: 'PATCH',
             body: JSON.stringify({
               status: 'cancelled',
@@ -1455,7 +1481,7 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
         // 2026-10-14 (founder-approved by inbox proof): the Day-10 Starter note, three days
         // after the check-in. Never to a family who already owns that band.
         if (await ownsBand(email, band)) {
-          await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
+          await supabaseQuery(`magnet_email_queue?id=eq.${row.id}&status=eq.pending`, {
             method: 'PATCH',
             body: JSON.stringify({
               status: 'cancelled',
@@ -1483,7 +1509,7 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
         built = buildMagnetWeek7Email(firstName);
         emailKey = MAGNET_KEY_BY_POS[7];
       } else {
-        await supabaseQuery(`magnet_email_queue?id=eq.${row.id}`, {
+        await supabaseQuery(`magnet_email_queue?id=eq.${row.id}&status=eq.pending`, {
           method: 'PATCH',
           body: JSON.stringify({ status: 'failed', error_message: `Unknown sequence_position ${pos}`, updated_at: new Date().toISOString() }),
         });
@@ -1491,6 +1517,7 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
         continue;
       }
 
+      sendAttempted = true;
       const send = await sendEmail(
         email,
         built.subject,
@@ -1500,6 +1527,7 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
         dripIdempotencyKey('magnet_email_queue', row.id, row.retry_count),
       );
       if (send.ok) {
+        sendAccepted = true;
         accepted = true;
         await markSent('magnet_email_queue', row.id, {
           status: 'sent',
@@ -1522,7 +1550,12 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
         await captureException(err, { function: 'nurture-emails', table: 'magnet_email_queue', id: row.id, stage: 'after-send' });
         continue;
       }
-      await recordSendFailure('magnet_email_queue', row, { status: null, message }, result);
+      if (sendAccepted) {
+        // Resend took it; the row is sent (or still pending under the SAME key, which Resend refuses to send twice).
+        console.warn(`nurture-emails: magnet_email_queue ${row.id} threw after Resend accepted it; not recorded as a failure`);
+        continue;
+      }
+      await recordSendFailure('magnet_email_queue', row, { status: null, message, beforeSend: !sendAttempted }, result);
     }
   }
   return result;
@@ -1639,6 +1672,10 @@ async function drainLaunchQueue(): Promise<QueueResult> {
     if (!founding) console.log('drainLaunchQueue: founding window CLOSED, using retail copy');
   }
   for (const row of rows) {
+    // 2026-11-18 (area 6 NEW-1): a failure before the send keeps this row's Idempotency-Key;
+    // a throw after Resend accepted it is not a failure at all.
+    let sendAttempted = false;
+    let sendAccepted = false;
     if (budgetExhausted()) {
       console.log('nurture-emails: run budget reached, remaining rows left pending for next tick');
       break;
@@ -1650,7 +1687,7 @@ async function drainLaunchQueue(): Promise<QueueResult> {
       const pos = row.sequence_position;
 
       if (await isUnsubscribed(email, 'homeschool')) {
-        await supabaseQuery(`launch_email_queue?id=eq.${row.id}`, {
+        await supabaseQuery(`launch_email_queue?id=eq.${row.id}&status=eq.pending`, {
           method: 'PATCH',
           body: JSON.stringify({
             status: 'cancelled',
@@ -1663,7 +1700,7 @@ async function drainLaunchQueue(): Promise<QueueResult> {
 
       // The whole launch sequence stops the moment a family preorders.
       if (await hasPreordered(email)) {
-        await supabaseQuery(`launch_email_queue?id=eq.${row.id}`, {
+        await supabaseQuery(`launch_email_queue?id=eq.${row.id}&status=eq.pending`, {
           method: 'PATCH',
           body: JSON.stringify({
             status: 'cancelled',
@@ -1697,7 +1734,7 @@ async function drainLaunchQueue(): Promise<QueueResult> {
       // undefined and buildLaunchEmail treats it as Sprouts, exactly as today.
       const built = buildLaunchEmail(pos, firstName, founding, foundersUrl, variant, row.band);
       if (!built) {
-        await supabaseQuery(`launch_email_queue?id=eq.${row.id}`, {
+        await supabaseQuery(`launch_email_queue?id=eq.${row.id}&status=eq.pending`, {
           method: 'PATCH',
           body: JSON.stringify({
             status: 'failed',
@@ -1718,6 +1755,7 @@ async function drainLaunchQueue(): Promise<QueueResult> {
         pos === EMAIL_7_RESEND_POSITION
           ? `launch_7_resend_${variant}`
           : `launch_${pos}`;
+      sendAttempted = true;
       const send = await sendEmail(
         email,
         built.subject,
@@ -1727,6 +1765,7 @@ async function drainLaunchQueue(): Promise<QueueResult> {
         dripIdempotencyKey('launch_email_queue', row.id, row.retry_count),
       );
       if (send.ok) {
+        sendAccepted = true;
         await markSent('launch_email_queue', row.id, {
           status: 'sent',
           sent_at: new Date().toISOString(),
@@ -1742,7 +1781,12 @@ async function drainLaunchQueue(): Promise<QueueResult> {
       console.error(`drainLaunchQueue: row ${row.id} threw:`, message);
       // Thrown before or during the send (network, a gateway error on a lookup):
       // no response from Resend, so it is treated as transient.
-      await recordSendFailure('launch_email_queue', row, { status: null, message }, result);
+      if (sendAccepted) {
+        // Resend took it; the row is sent (or still pending under the SAME key, which Resend refuses to send twice).
+        console.warn(`nurture-emails: launch_email_queue ${row.id} threw after Resend accepted it; not recorded as a failure`);
+        continue;
+      }
+      await recordSendFailure('launch_email_queue', row, { status: null, message, beforeSend: !sendAttempted }, result);
     }
   }
   return result;
@@ -1786,6 +1830,10 @@ async function drainBuyerQueue(): Promise<QueueResult> {
   if (rows.length > 0) console.log(`drainBuyerQueue: found ${rows.length} due rows`);
 
   for (const row of rows) {
+    // 2026-11-18 (area 6 NEW-1): a failure before the send keeps this row's Idempotency-Key;
+    // a throw after Resend accepted it is not a failure at all.
+    let sendAttempted = false;
+    let sendAccepted = false;
     if (budgetExhausted()) {
       console.log('nurture-emails: run budget reached, remaining rows left pending for next tick');
       break;
@@ -1798,7 +1846,7 @@ async function drainBuyerQueue(): Promise<QueueResult> {
       const orderStatus = row.orders?.status;
 
       if (orderStatus === 'cancelled' || orderStatus === 'refunded') {
-        await supabaseQuery(`buyer_email_queue?id=eq.${row.id}`, {
+        await supabaseQuery(`buyer_email_queue?id=eq.${row.id}&status=eq.pending`, {
           method: 'PATCH',
           body: JSON.stringify({
             status: 'cancelled',
@@ -1812,7 +1860,7 @@ async function drainBuyerQueue(): Promise<QueueResult> {
       // Buyer emails have their own list (postpurchase, 2026-09-03) so a
       // homeschool-preview opt-out does not silence a paying buyer's updates.
       if (await isUnsubscribed(email, 'postpurchase')) {
-        await supabaseQuery(`buyer_email_queue?id=eq.${row.id}`, {
+        await supabaseQuery(`buyer_email_queue?id=eq.${row.id}&status=eq.pending`, {
           method: 'PATCH',
           body: JSON.stringify({
             status: 'cancelled',
@@ -1826,7 +1874,7 @@ async function drainBuyerQueue(): Promise<QueueResult> {
       // A list-level opt-out is honoured only for that list (rule 2026-09-17),
       // but a GLOBAL unsubscribe or bounce stops buyer emails too.
       if (await isGloballyUnsubscribed(email)) {
-        await supabaseQuery(`buyer_email_queue?id=eq.${row.id}`, {
+        await supabaseQuery(`buyer_email_queue?id=eq.${row.id}&status=eq.pending`, {
           method: 'PATCH',
           body: JSON.stringify({
             status: 'cancelled',
@@ -1839,7 +1887,7 @@ async function drainBuyerQueue(): Promise<QueueResult> {
 
       const built = buildBuyerEmail(pos, firstName);
       if (!built) {
-        await supabaseQuery(`buyer_email_queue?id=eq.${row.id}`, {
+        await supabaseQuery(`buyer_email_queue?id=eq.${row.id}&status=eq.pending`, {
           method: 'PATCH',
           body: JSON.stringify({
             status: 'failed',
@@ -1851,6 +1899,7 @@ async function drainBuyerQueue(): Promise<QueueResult> {
         continue;
       }
 
+      sendAttempted = true;
       const send = await sendEmail(
         email,
         built.subject,
@@ -1860,6 +1909,7 @@ async function drainBuyerQueue(): Promise<QueueResult> {
         dripIdempotencyKey('buyer_email_queue', row.id, row.retry_count),
       );
       if (send.ok) {
+        sendAccepted = true;
         await markSent('buyer_email_queue', row.id, {
           status: 'sent',
           sent_at: new Date().toISOString(),
@@ -1875,7 +1925,12 @@ async function drainBuyerQueue(): Promise<QueueResult> {
       console.error(`drainBuyerQueue: row ${row.id} threw:`, message);
       // Thrown before or during the send (network, a gateway error on a lookup):
       // no response from Resend, so it is treated as transient.
-      await recordSendFailure('buyer_email_queue', row, { status: null, message }, result);
+      if (sendAccepted) {
+        // Resend took it; the row is sent (or still pending under the SAME key, which Resend refuses to send twice).
+        console.warn(`nurture-emails: buyer_email_queue ${row.id} threw after Resend accepted it; not recorded as a failure`);
+        continue;
+      }
+      await recordSendFailure('buyer_email_queue', row, { status: null, message, beforeSend: !sendAttempted }, result);
     }
   }
   return result;
@@ -1920,6 +1975,10 @@ async function drainFoundingFamilyQueue(): Promise<QueueResult & { enabled?: boo
   };
 
   for (const row of rows) {
+    // 2026-11-18 (area 6 NEW-1): a failure before the send keeps this row's Idempotency-Key;
+    // a throw after Resend accepted it is not a failure at all.
+    let sendAttempted = false;
+    let sendAccepted = false;
     if (budgetExhausted()) break;
     result.processed++;
     try {
@@ -1964,7 +2023,7 @@ async function drainFoundingFamilyQueue(): Promise<QueueResult & { enabled?: boo
           : undefined,
       });
       if (!built) {
-        await supabaseQuery(`founding_family_queue?id=eq.${row.id}`, {
+        await supabaseQuery(`founding_family_queue?id=eq.${row.id}&status=eq.pending`, {
           method: 'PATCH',
           body: JSON.stringify({ status: 'failed', error_message: `unknown step ${row.step}`, updated_at: new Date().toISOString() }),
         });
@@ -1972,6 +2031,7 @@ async function drainFoundingFamilyQueue(): Promise<QueueResult & { enabled?: boo
         continue;
       }
 
+      sendAttempted = true;
       const send = await sendEmail(
         email,
         built.subject,
@@ -1981,6 +2041,7 @@ async function drainFoundingFamilyQueue(): Promise<QueueResult & { enabled?: boo
         dripIdempotencyKey('founding_family_queue', row.id, row.retry_count),
       );
       if (send.ok) {
+        sendAccepted = true;
         await markSent('founding_family_queue', row.id, {
           status: 'sent',
           sent_at: new Date().toISOString(),
@@ -1994,7 +2055,12 @@ async function drainFoundingFamilyQueue(): Promise<QueueResult & { enabled?: boo
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`drainFoundingFamilyQueue: row ${row.id} threw:`, message);
-      await recordSendFailure('founding_family_queue', row, { status: null, message }, result);
+      if (sendAccepted) {
+        // Resend took it; the row is sent (or still pending under the SAME key, which Resend refuses to send twice).
+        console.warn(`nurture-emails: founding_family_queue ${row.id} threw after Resend accepted it; not recorded as a failure`);
+        continue;
+      }
+      await recordSendFailure('founding_family_queue', row, { status: null, message, beforeSend: !sendAttempted }, result);
     }
   }
   return result;
