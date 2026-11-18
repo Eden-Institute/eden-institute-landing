@@ -61,6 +61,16 @@ Each week your child adds a page to the Nature Notebook: a drawing of the plant,
 
 If you'd like more of Charlotte Mason's everyday diary in your week, bring the Notebook outside on Friday and let your child draw whatever they find out there.
 
+<aside class="supply-box rounded-lg p-6 border" aria-label="For your nature study basket" style="background-color:hsl(var(--eden-cream) / 0.4);border-color:hsl(var(--eden-gold) / 0.35)">
+<p class="font-serif text-xl font-bold mb-2" style="color:hsl(var(--eden-bark))">For your nature study basket</p>
+<p class="mb-3">A plant, a pencil and attention really are enough. If you would like a couple of extras:</p>
+<ul>
+<li><a href="https://get.aspr.app/SH1pA7" target="_blank" rel="sponsored noopener" data-cta="learn-charlotte-mason-nature-study-mrh-lavender"><strong>English lavender flowers</strong></a>, Mountain Rose Herbs. Dried buds for Week 1.</li>
+<li><a href="https://www.homesciencetools.com/product/plant-press-6-x-9/?aff=258" target="_blank" rel="sponsored noopener" data-cta="learn-charlotte-mason-nature-study-hst-plant-press"><strong>Plant and flower press (6 x 9 inch)</strong></a>, Home Science Tools. For the leaves and flowers your child brings home on Friday, to press and tape into the Notebook. Home Science Tools labels it ages 12 and up, so press them together.</li>
+</ul>
+<p class="font-body text-xs mt-3 text-muted-foreground">Affiliate links: The Eden Institute earns a small commission if you buy, at no extra cost to you.</p>
+</aside>
+
 ## How long should nature study take?
 
 Not long. Charlotte Mason paired attention with short lessons, and the Eden's Table guide says it the same way: "Plan a short, unhurried session each day. If a week needs two, take two. This is a feast, not a race."
