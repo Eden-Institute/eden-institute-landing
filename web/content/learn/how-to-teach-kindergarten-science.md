@@ -47,6 +47,17 @@ Not to get started. Your child's questions are the curriculum at this age. If yo
 
 Not long. A short, unhurried lesson is plenty for a five-year-old. When a question grabs them, that's your sign to slow down and follow it.
 
+<aside class="supply-box rounded-lg p-6 border" aria-label="Two simple tools for kindergarten science" style="background-color:hsl(var(--eden-cream) / 0.4);border-color:hsl(var(--eden-gold) / 0.35)">
+<p class="font-serif text-xl font-bold mb-2" style="color:hsl(var(--eden-bark))">Two simple tools, if you&rsquo;d like them</p>
+<p class="mb-3">Your yard and your child&rsquo;s questions do most of the work. For the treasures they carry inside:</p>
+<ul>
+<li><a href="https://www.homesciencetools.com/product/magnifying-glass-4-inches-2-5x/?aff=258" target="_blank" rel="sponsored noopener" data-cta="learn-how-to-teach-kindergarten-science-hst-magnifier"><strong>Big magnifying glass (4 inch, 2.5x)</strong></a>, Home Science Tools. A big lens shows a whole leaf or bug at once.</li>
+<li><a href="https://www.homesciencetools.com/product/deluxe-bug-magnifier/?aff=258" target="_blank" rel="sponsored noopener" data-cta="learn-how-to-teach-kindergarten-science-hst-bug-jar"><strong>Bug magnifier jar</strong></a>, Home Science Tools. A lens in the lid and air holes, so the beetle gets a close look and then goes back outside.</li>
+</ul>
+<p class="mt-3">Home Science Tools labels both for ages 12 and up, so make them use-together tools.</p>
+<p class="font-body text-xs mt-3 text-muted-foreground">Affiliate links: The Eden Institute earns a small commission if you buy, at no extra cost to you.</p>
+</aside>
+
 ## Where to start
 
 Start with your child's next question. Then, if you'd like to see what a week of discovery-led science looks like on paper, [Week 1 of Eden's Table is free](/freebies): five lessons on lavender for Sprouts, with the Teacher's Guide and Student Notebook, sent to your email as PDFs you can print tonight.
