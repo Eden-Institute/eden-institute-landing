@@ -44,6 +44,16 @@ If you want to see every plant before you choose, the [scope and sequence](/home
 
 Not much. Print the pages and look at the Week at a Glance page first, because that's where the kitchen lab supply list is. For the Sprouts lavender week, the list is dried lavender buds, hot water, a mug, honey, and a cloth square with a tie. That's it.
 
+<aside class="supply-box rounded-lg p-6 border" aria-label="Where to find lavender buds" style="background-color:hsl(var(--eden-cream) / 0.4);border-color:hsl(var(--eden-gold) / 0.35)">
+<p class="font-serif text-xl font-bold mb-2" style="color:hsl(var(--eden-bark))">Don&rsquo;t have lavender buds?</p>
+<p class="mb-3">Any dried culinary lavender works. If your pantry doesn&rsquo;t have any, here is where to find it:</p>
+<ul>
+<li><a href="https://get.aspr.app/SH1pA7" target="_blank" rel="sponsored noopener" data-cta="learn-free-nature-study-week-mrh-lavender"><strong>English lavender flowers</strong></a>, Mountain Rose Herbs. Dried buds, the same plant as Week 1.</li>
+<li><a href="https://get.aspr.app/SH1p9w?url=https%3A%2F%2Fmountainroseherbs.com%2Fcotton-muslin-bags%3Ftransaction_id%3D%7Btransaction_id%7D" target="_blank" rel="sponsored noopener" data-cta="learn-free-nature-study-week-mrh-muslin-bags"><strong>Cotton muslin bags</strong></a>, Mountain Rose Herbs. A little drawstring bag works for the sachet if you have no cloth square.</li>
+</ul>
+<p class="font-body text-xs mt-3 text-muted-foreground">Affiliate links: The Eden Institute earns a small commission if you buy, at no extra cost to you.</p>
+</aside>
+
 You don't need a garden, either. Friday's garden activity works in a yard or with a windowsill plant. And you don't need to know anything about herbs. The read-aloud is scripted, the discussion questions are written, and the memory verse is already chosen for you.
 
 ## How does a week of nature study actually run?
