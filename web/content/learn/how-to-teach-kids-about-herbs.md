@@ -44,6 +44,20 @@ Pick plants that are easy to find, safe to handle and interesting to smell. A lo
 
 Dried herbs are fine. Buy them the way you would buy spices, from a source you trust. I keep a list of every herb in the curriculum with a place to order each one, and the [scope and sequence](/homeschool/scope-and-sequence) shows which week each plant comes in.
 
+<aside class="supply-box rounded-lg p-6 border" aria-label="The first five herbs, ready to order" style="background-color:hsl(var(--eden-cream) / 0.4);border-color:hsl(var(--eden-gold) / 0.35)">
+<p class="font-serif text-xl font-bold mb-2" style="color:hsl(var(--eden-bark))">The first five, ready to order</p>
+<p class="mb-3">These five are from the Sprouts year:</p>
+<ul>
+<li><a href="https://get.aspr.app/SH1pA7" target="_blank" rel="sponsored noopener" data-cta="learn-how-to-teach-kids-about-herbs-mrh-lavender"><strong>English lavender flowers</strong></a>, Mountain Rose Herbs. The first plant of the year.</li>
+<li><a href="https://get.aspr.app/SH1pA8" target="_blank" rel="sponsored noopener" data-cta="learn-how-to-teach-kids-about-herbs-mrh-chamomile"><strong>Chamomile flowers</strong></a>, Mountain Rose Herbs.</li>
+<li><a href="https://get.aspr.app/SH1pAC" target="_blank" rel="sponsored noopener" data-cta="learn-how-to-teach-kids-about-herbs-mrh-peppermint"><strong>Peppermint leaf</strong></a>, Mountain Rose Herbs.</li>
+<li><a href="https://get.aspr.app/SH1pA9" target="_blank" rel="sponsored noopener" data-cta="learn-how-to-teach-kids-about-herbs-mrh-lemon-balm"><strong>Lemon balm</strong></a>, Mountain Rose Herbs.</li>
+<li><a href="https://get.aspr.app/SH1pAD" target="_blank" rel="sponsored noopener" data-cta="learn-how-to-teach-kids-about-herbs-mrh-calendula"><strong>Calendula</strong></a>, Mountain Rose Herbs.</li>
+</ul>
+<p class="mt-3">The full list, with a place to order every herb, is on the <a href="/homeschool/herbs" data-cta="learn-how-to-teach-kids-about-herbs-herb-list">herb list page</a>.</p>
+<p class="font-body text-xs mt-3 text-muted-foreground">Affiliate links: The Eden Institute earns a small commission if you buy, at no extra cost to you.</p>
+</aside>
+
 ## What does a week of herb study look like?
 
 Giving each day one job keeps it simple for you and gives your kids something to look forward to. This is the rhythm Eden's Table uses, and you can borrow it even if you build your own lessons:
