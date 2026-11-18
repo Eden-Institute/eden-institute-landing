@@ -17,7 +17,8 @@
 //   ("retry ESA fulfilment for <invoice>" in the failure alerts). Reuses anything already created.
 // POST { action: "daily" }
 //   From the Vercel cron (api/cron/esa-daily.ts): the ONE family reminder at 14 days, and a founder
-//   alert for any invoice still unpaid at 30 days.
+//   alert for any invoice still unpaid at 30 days. Since 2026-11-18 it first re-plans paid invoices that
+//   are waiting for their siblings (one box per submission, _shared/esa-fulfil.ts releaseHeldInvoices).
 
 import { isServiceRoleRequest } from "../_shared/require-service-role.ts";
 import { money } from "../_shared/esa-invoice.ts";
@@ -26,6 +27,7 @@ import {
   emailFamilyReminder,
   emailFounderAlert,
   type EsaInvoiceRow,
+  releaseHeldInvoices,
   rest,
   retryFulfilment,
 } from "../_shared/esa-fulfil.ts";
@@ -100,13 +102,17 @@ async function retryFulfil(b: Record<string, unknown>) {
     number ? `esa_invoices?invoice_number=eq.${encodeURIComponent(number)}&select=id,invoice_number` : `esa_invoices?id=eq.${id}&select=id,invoice_number`,
   );
   if (!rows.length) return json(404, { error: `no invoice ${number || id}` });
-  const r = await retryFulfilment(rows[0].id);
+  // (2026-11-18) release: true ships an invoice that is waiting for its siblings now, with whatever is paid.
+  const r = await retryFulfilment(rows[0].id, { release: b.release === true });
   return json(200, { invoice_number: rows[0].invoice_number, changed: r.changed, status: r.invoice?.status, fulfilment: r.fulfilment, note: r.note });
 }
 
 async function daily() {
   const now = Date.now();
   const day = 86400000;
+  // (2026-11-18) Paid invoices waiting for their siblings: ship the ones whose wait is over or whose unpaid
+  // siblings were voided. Runs first and never throws, so the reminders below always run.
+  const held = await releaseHeldInvoices(now);
   const open = await rest<EsaInvoiceRow[]>("esa_invoices?status=eq.issued&select=*&order=created_at.asc");
   let reminded = 0;
   const stale: EsaInvoiceRow[] = [];
@@ -132,7 +138,7 @@ async function daily() {
       }
     }
   }
-  return json(200, { open: open.length, reminded, founder_alerted: stale.length });
+  return json(200, { open: open.length, reminded, founder_alerted: stale.length, held_checked: held.checked, held_shipped: held.shipped, held_released_alone: held.releasedAlone });
 }
 
 Deno.serve(async (req) => {

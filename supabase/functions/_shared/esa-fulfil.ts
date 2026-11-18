@@ -40,12 +40,14 @@ export const FALLBACK_PHONE = "(931) 575-5895";
 // The t= token keeps email-utm.ts from tagging this link.
 const CONFIRM_URL = "https://edeninstitute.health/esa/confirm";
 
-// One invoice carries one product (one student, one choice), so a printed order never mixes bands.
-const SKU_TO_PRODUCT: Record<string, { sku: string; label: string }> = {
-  "ET-SPR-K2-004": { sku: "sprouts_print_set", label: "Sprouts Printed Curriculum Set" },
-  "ET-SPR-K2-005": { sku: "sprouts_nb_print", label: "Sprouts Extra Student Notebook" },
-  "ET-SDL-35-004": { sku: "seedlings_print_set", label: "Seedlings Printed Curriculum Set" },
-  "ET-SDL-35-005": { sku: "seedlings_nb_print", label: "Seedlings Extra Student Notebook" },
+// One invoice carries one product (one student, one choice). Invoices from ONE form submission that print the
+// same band and ship to the same address are printed together as one order (2026-11-18, below); different bands
+// stay separate orders, because the print-job builder refuses a mixed-band order (lulu-fulfillment.ts).
+const SKU_TO_PRODUCT: Record<string, { sku: string; label: string; band: "sprouts" | "seedlings"; addOn: boolean }> = {
+  "ET-SPR-K2-004": { sku: "sprouts_print_set", label: "Sprouts Printed Curriculum Set", band: "sprouts", addOn: false },
+  "ET-SPR-K2-005": { sku: "sprouts_nb_print", label: "Sprouts Extra Student Notebook", band: "sprouts", addOn: true },
+  "ET-SDL-35-004": { sku: "seedlings_print_set", label: "Seedlings Printed Curriculum Set", band: "seedlings", addOn: false },
+  "ET-SDL-35-005": { sku: "seedlings_nb_print", label: "Seedlings Extra Student Notebook", band: "seedlings", addOn: true },
 };
 /** ESA Starter SKU -> the starter_deliveries band it delivers. */
 const STARTER_SKU_BAND: Record<string, StarterBand> = {
@@ -56,6 +58,8 @@ export const ESA_STARTER_SKUS: readonly string[] = Object.keys(STARTER_SKU_BAND)
 
 export interface EsaInvoiceRow {
   id: string;
+  /** The /esa form submission this invoice came from (one invoice per student; NOT NULL in the table). */
+  submission_id?: string | null;
   invoice_number: string;
   is_test: boolean;
   state: EsaStateCode;
@@ -77,6 +81,7 @@ export interface EsaInvoiceRow {
   paid_email_resend_id?: string | null;
   payment_id: string | null;
   fulfilment_status: string;
+  fulfilment_note?: string | null;
   order_id: string | null;
   starter_delivery_id: string | null;
   created_at: string;
@@ -223,6 +228,119 @@ async function emailFamilyPaid(inv: EsaInvoiceRow): Promise<boolean> {
   return sent.ok;
 }
 
+/** (2026-11-18) Family: this invoice is paid, but a sibling invoice for the same box is not yet, so the books wait
+ *  (at most ESA_SIBLING_MAX_WAIT_DAYS) and then print together. Pure, so the copy is tested and proofed. */
+export function familyHeldEmail(inv: EsaInvoiceRow, waitingOn: string[]): { subject: string; html: string } {
+  const list = waitingOn.length === 1 ? `invoice <b>${esc(waitingOn[0])}</b>` : `invoices <b>${waitingOn.map(esc).join("</b> and <b>")}</b>`;
+  const html = wrap(
+    para(`Hi ${esc(firstName(inv.parent_name))},`) +
+      para(`Good news! The payment for invoice <b>${esc(inv.invoice_number)}</b> (${esc(inv.student_name)}) arrived.`) +
+      para(`Your order has more than one invoice, so I am holding these books until the payment for ${list} comes in. Then everything prints together and ships to you in one box.`) +
+      para(`If that payment takes longer than ${ESA_SIBLING_MAX_WAIT_DAYS} days, I will send these on ahead in their own box so nobody waits too long.`) +
+      para(`If anything needs to change, like the shipping address, just reply to this email.`) +
+      signature,
+    `Invoice ${inv.invoice_number}. You are receiving this because you ordered Eden's Table with a scholarship invoice.`,
+  );
+  return { subject: `${testTag(inv)}Payment received: your Eden's Table books will ship together`, html };
+}
+
+async function emailFamilyHeld(inv: EsaInvoiceRow, waitingOn: string[]): Promise<boolean> {
+  if (paidEmailAlreadySent(inv)) return true;
+  const m = familyHeldEmail(inv, waitingOn);
+  const sent = await sendEmailDetailed(inv.family_email, m.subject, m.html);
+  if (sent.ok) {
+    // Recorded like the payment email, so this invoice does not get a second "payment received" email when its box ships.
+    await patchInvoice(inv.id, { paid_email_sent_at: new Date().toISOString(), paid_email_resend_id: sent.id }).catch((e) =>
+      console.error(`esa: held email for ${inv.invoice_number} went out but could not be recorded:`, e instanceof Error ? e.message : String(e))
+    );
+  }
+  return sent.ok;
+}
+
+// ----------------------------------------------------------------------------- one box per submission (2026-11-18)
+// Lane 0 hand-off, Camila's yes: Brianne's Seedlings set (ET-AR-2026-001) and extra notebook (ET-AR-2026-002) came
+// from one form, were paid 3 s apart, and became two orders, two Lulu jobs and two boxes four days apart. Lulu gets
+// a job seconds after payment (it holds it 48 h on its side), so a second invoice cannot be added to a job already
+// sent. Instead a printed invoice whose same-band, same-address siblings are still unpaid WAITS, and the payment
+// that completes the set prints all of them as ONE order. A held invoice ships on its own after
+// ESA_SIBLING_MAX_WAIT_DAYS (esa-payment daily), or as soon as the unpaid siblings are voided or refunded.
+
+/** How long a paid invoice waits for its unpaid siblings before it ships on its own. */
+export const ESA_SIBLING_MAX_WAIT_DAYS = 3;
+const UNPAID_STATUSES = new Set(["pending", "issued"]);
+const CLOSED_STATUSES = new Set(["void", "refunded"]);
+
+type GroupRow = Pick<EsaInvoiceRow, "id" | "invoice_number" | "is_test" | "status" | "order_id" | "items" | "ship_address" | "submission_id">;
+
+/** The band an invoice prints, or null when it prints nothing (a Starter invoice). */
+export function printBandOfInvoice(inv: Pick<EsaInvoiceRow, "items">): "sprouts" | "seedlings" | null {
+  for (const i of inv.items) if (SKU_TO_PRODUCT[i.sku]) return SKU_TO_PRODUCT[i.sku].band;
+  return null;
+}
+
+/** A shipping address reduced to what decides "same box": case, spaces and ZIP+4 do not matter. */
+export function shipAddressKey(a: EsaInvoiceRow["ship_address"]): string | null {
+  if (!a) return null;
+  const n = (s: string | null | undefined) => String(s ?? "").toLowerCase().replace(/[.,#]/g, " ").replace(/\s+/g, " ").trim();
+  return [n(a.line1), n(a.line2), n(a.city), n(a.region), String(a.zip ?? "").replace(/\D/g, "").slice(0, 5)].join("|");
+}
+
+export type EsaPrintPlan =
+  | { kind: "hold"; waitingOn: string[] }
+  | { kind: "ship"; memberIds: string[]; groupKey: string; shipsSeparately: string[] };
+
+/**
+ * Pure: what to do with a just-paid printed invoice, given every other invoice from its submission.
+ * - hold: a sibling for the SAME box (same band, same address, not test, not void/refunded) is still unpaid.
+ *   `release` (the daily pass after the wait, or a retry) skips the hold and ships what is paid.
+ * - ship: this invoice plus every paid same-box sibling that has no order yet, as one order. groupKey names that
+ *   box (submission + its first invoice number), so two payments landing together cannot make two orders.
+ *   shipsSeparately = the submission's other printed invoices that are NOT in this box (other band, other address,
+ *   already shipped, or still unpaid after a release), so the box's emails can say the rest comes separately.
+ */
+export function planEsaPrint(inv: GroupRow, siblings: GroupRow[], opts: { release?: boolean } = {}): EsaPrintPlan {
+  const band = printBandOfInvoice(inv);
+  const addr = shipAddressKey(inv.ship_address);
+  const printed = siblings.filter((s) =>
+    s.id !== inv.id && !s.is_test && !CLOSED_STATUSES.has(s.status) && printBandOfInvoice(s) !== null
+  );
+  const sameBox = printed.filter((s) => printBandOfInvoice(s) === band && shipAddressKey(s.ship_address) === addr && !s.order_id);
+  const unpaid = sameBox.filter((s) => UNPAID_STATUSES.has(s.status)).map((s) => s.invoice_number).sort();
+  if (unpaid.length && !opts.release) return { kind: "hold", waitingOn: unpaid };
+  const members = [inv, ...sameBox.filter((s) => s.status === "paid")].sort((a, b) => a.invoice_number.localeCompare(b.invoice_number));
+  const ids = new Set(members.map((m) => m.id));
+  return {
+    kind: "ship",
+    memberIds: members.map((m) => m.id),
+    groupKey: `${inv.submission_id ?? inv.id}:${members[0].invoice_number}`,
+    shipsSeparately: printed.filter((s) => !ids.has(s.id)).map((s) => s.invoice_number).sort(),
+  };
+}
+
+/** Pure: the order fields for one box made of these invoices (sets lead, like checkout's cart order). */
+export function boxOrderFields(members: EsaInvoiceRow[]): {
+  lines: { invoice: string; sku: string; label: string; qty: number; unit_cents: number }[];
+  lookup_key: string;
+  product_label: string;
+  amount_total_cents: number;
+  quantity: number;
+} {
+  const lines = members.flatMap((m) =>
+    m.items.filter((i) => SKU_TO_PRODUCT[i.sku]).map((i) => ({
+      invoice: m.invoice_number, sku: SKU_TO_PRODUCT[i.sku].sku, label: SKU_TO_PRODUCT[i.sku].label, qty: i.qty, unit_cents: i.unit_cents,
+      addOn: SKU_TO_PRODUCT[i.sku].addOn,
+    }))
+  ).sort((a, b) => Number(a.addOn) - Number(b.addOn));
+  if (!lines.length) throw new Error("no printed items in this box");
+  return {
+    lines: lines.map(({ addOn: _a, ...l }) => l),
+    lookup_key: lines[0].sku,
+    product_label: lines.map((l) => l.label).join(" + "),
+    amount_total_cents: members.reduce((t, m) => t + m.total_cents, 0),
+    quantity: lines.reduce((t, l) => t + l.qty, 0),
+  };
+}
+
 /** Family: the one reminder, 14 days after an unpaid invoice. */
 export async function emailFamilyReminder(inv: EsaInvoiceRow): Promise<boolean> {
   const html = wrap(
@@ -295,20 +413,62 @@ export async function confirmWithToken(token: string): Promise<{ outcome: Confir
  * {action: "retry_fulfilment", invoice_number}. fulfil() reuses an order or Starter delivery the
  * invoice already created (D4, 2026-11-10), so a retry can never print or send a second set.
  * Refuses anything that is not paid, or whose fulfilment already went through.
+ * 2026-11-18: an invoice waiting for its siblings (awaiting_siblings) may be retried too; `release: true`
+ * ships it now with whatever is paid, without waiting for the rest.
  */
-export async function retryFulfilment(invoiceId: string): Promise<ApplyResult> {
+export async function retryFulfilment(invoiceId: string, opts: { release?: boolean } = {}): Promise<ApplyResult> {
   const inv = await getInvoice(invoiceId);
   if (!inv) return { changed: false, invoice: null, fulfilment: "none", note: "invoice not found" };
   if (inv.status !== "paid") {
     return { changed: false, invoice: inv, fulfilment: inv.fulfilment_status, note: `invoice is ${inv.status}, not paid: nothing to retry` };
   }
-  if (inv.fulfilment_status !== "none" && inv.fulfilment_status !== "failed") {
+  if (!["none", "failed", "awaiting_siblings"].includes(inv.fulfilment_status)) {
     return { changed: false, invoice: inv, fulfilment: inv.fulfilment_status, note: `fulfilment is already ${inv.fulfilment_status}: nothing to retry` };
   }
-  return fulfilAfterMark(invoiceId, true);
+  return fulfilAfterMark(invoiceId, true, opts);
 }
 
-async function fulfilAfterMark(invoiceId: string, changed: boolean): Promise<ApplyResult> {
+/**
+ * (2026-11-18) The daily pass (esa-payment {action: "daily"}): every paid invoice still waiting for its
+ * siblings is planned again. It ships with the rest of its box when the unpaid siblings were voided or
+ * refunded, and on its own once it has waited ESA_SIBLING_MAX_WAIT_DAYS (the founder is told). Otherwise it
+ * keeps waiting. Never throws; a failed invoice gets the usual failure alert.
+ */
+export async function releaseHeldInvoices(nowMs = Date.now()): Promise<{ checked: number; shipped: string[]; releasedAlone: string[] }> {
+  const out = { checked: 0, shipped: [] as string[], releasedAlone: [] as string[] };
+  let held: EsaInvoiceRow[] = [];
+  try {
+    held = (await rest<EsaInvoiceRow[] | null>(
+      "esa_invoices?fulfilment_status=eq.awaiting_siblings&status=eq.paid&order_id=is.null&select=*&order=paid_at.asc",
+    )) ?? [];
+  } catch (e) {
+    console.error("esa: could not read held invoices:", e instanceof Error ? e.message : String(e));
+    return out;
+  }
+  for (const h of held) {
+    // A sibling's payment, or an earlier invoice in this loop, may have boxed it since the list was read.
+    const inv = await getInvoice(h.id).catch(() => null);
+    if (!inv || inv.order_id || inv.fulfilment_status !== "awaiting_siblings") continue;
+    out.checked++;
+    const waitedDays = (nowMs - Date.parse(inv.paid_at ?? inv.created_at)) / 86400000;
+    const release = waitedDays >= ESA_SIBLING_MAX_WAIT_DAYS;
+    const r = await runFulfil(inv, { release });
+    if (r.fulfilment === "print_queued") {
+      out.shipped.push(inv.invoice_number);
+      if (release) out.releasedAlone.push(inv.invoice_number);
+    }
+  }
+  if (out.releasedAlone.length) {
+    await emailFounderAlert(`ESA: ${out.releasedAlone.length} held invoice${out.releasedAlone.length > 1 ? "s" : ""} sent to print on ${out.releasedAlone.length > 1 ? "their" : "its"} own`, [
+      `These ESA invoices were paid, then held for ${ESA_SIBLING_MAX_WAIT_DAYS} days so they could ship in one box with the family's other invoice(s), which are still not paid. They went to print today on their own, and their shipped and delivered emails say the rest of the order comes separately.`,
+      ...out.releasedAlone.map((n) => esc(n)),
+      `When the other invoice is paid, it prints in its own box as usual.`,
+    ]).catch(() => false);
+  }
+  return out;
+}
+
+async function fulfilAfterMark(invoiceId: string, changed: boolean, opts: { release?: boolean } = {}): Promise<ApplyResult> {
   let inv: EsaInvoiceRow | null;
   try {
     inv = await getInvoice(invoiceId);
@@ -330,8 +490,14 @@ async function fulfilAfterMark(invoiceId: string, changed: boolean): Promise<App
   }
   if (!inv) return { changed: false, invoice: null, fulfilment: "none", note: "invoice not found" };
   if (!changed) return { changed: false, invoice: inv, fulfilment: inv.fulfilment_status, note: `already ${inv.status}` };
+  return runFulfil(inv, opts);
+}
+
+/** fulfil() with the failure handling: marked failed, founder alerted with what already exists. */
+async function runFulfil(inv: EsaInvoiceRow, opts: { release?: boolean } = {}): Promise<ApplyResult> {
+  const invoiceId = inv.id;
   try {
-    const f = await fulfil(inv);
+    const f = await fulfil(inv, opts);
     return { changed: true, invoice: await getInvoice(invoiceId), fulfilment: f };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -395,10 +561,25 @@ export function esaFailureLines(p: EsaProgress, invoiceNumber: string): string[]
   ];
 }
 
-/** An order this invoice already created (orders.raw.invoice_number), or null. */
-async function findEsaOrder(inv: EsaInvoiceRow): Promise<{ id: string; order_number: string } | null> {
+/** An order this invoice already created (orders.raw.invoice_number), or a one-box order it is part of
+ *  (orders.raw.invoice_numbers, 2026-11-18), or null. */
+type EsaOrderRef = { id: string; order_number: string; raw?: { invoice_numbers?: unknown } | null };
+async function findEsaOrder(inv: EsaInvoiceRow): Promise<EsaOrderRef | null> {
+  const rows = await rest<EsaOrderRef[] | null>(
+    `orders?raw->>invoice_number=eq.${encodeURIComponent(inv.invoice_number)}&select=id,order_number,raw&order=created_at.asc&limit=1`,
+  );
+  const own = (rows ?? [])[0];
+  if (own) return own;
+  const box = await rest<EsaOrderRef[] | null>(
+    `orders?raw->invoice_numbers=cs.${encodeURIComponent(JSON.stringify([inv.invoice_number]))}&select=id,order_number,raw&order=created_at.asc&limit=1`,
+  );
+  return (box ?? [])[0] ?? null;
+}
+
+/** The one-box order already made under this group key (a payment landing at the same moment made it). */
+async function findEsaBoxOrder(groupKey: string): Promise<{ id: string; order_number: string } | null> {
   const rows = await rest<{ id: string; order_number: string }[] | null>(
-    `orders?raw->>invoice_number=eq.${encodeURIComponent(inv.invoice_number)}&select=id,order_number&order=created_at.asc&limit=1`,
+    `orders?raw->>esa_group_key=eq.${encodeURIComponent(groupKey)}&select=id,order_number&limit=1`,
   );
   return (rows ?? [])[0] ?? null;
 }
@@ -431,7 +612,7 @@ async function lookupEsaProgress(inv: EsaInvoiceRow): Promise<EsaProgress> {
   }
 }
 
-async function fulfil(inv: EsaInvoiceRow): Promise<string> {
+async function fulfil(inv: EsaInvoiceRow, opts: { release?: boolean } = {}): Promise<string> {
   const printed = inv.items.filter((i) => SKU_TO_PRODUCT[i.sku]);
   const starterBand = inv.items.map((i) => STARTER_SKU_BAND[i.sku]).find(Boolean) ?? null;
 
@@ -447,66 +628,141 @@ async function fulfil(inv: EsaInvoiceRow): Promise<string> {
     if (inv.order_id) return inv.fulfilment_status; // never create a second order
     const a = inv.ship_address;
     if (!a) throw new Error("no structured shipping address on the invoice");
-    const products = await rest<{ id: string; sku: string; fulfillment: string }[]>(
-      `products?sku=in.(${printed.map((i) => SKU_TO_PRODUCT[i.sku].sku).join(",")})&select=id,sku,fulfillment`,
-    );
-    const bySku = new Map(products.map((p) => [p.sku, p]));
-    for (const i of printed) {
-      const p = bySku.get(SKU_TO_PRODUCT[i.sku].sku);
-      if (!p || p.fulfillment !== "lulu") throw new Error(`product ${SKU_TO_PRODUCT[i.sku].sku} missing or not a Lulu product`);
-    }
     // D4 (2026-11-10): a retry after a failure part-way through (the order was made, then
     // a later write failed, so inv.order_id is still null) REUSES that order instead of
-    // making a second one, which would print and charge a second set.
+    // making a second one, which would print and charge a second set. Since 2026-11-18 that
+    // includes a one-box order this invoice is part of.
     const existing = await findEsaOrder(inv);
-    const [order] = existing ? [existing] : await rest<{ id: string; order_number: string }[]>("orders", {
-      method: "POST",
-      headers: { Prefer: "return=representation" },
-      body: JSON.stringify({
-        stripe_checkout_session_id: `esa_${randomHex(24)}`,
-        customer_email: inv.family_email,
-        customer_phone: inv.phone || FALLBACK_PHONE,
-        lookup_key: SKU_TO_PRODUCT[printed[0].sku].sku,
-        product_label: printed.map((i) => SKU_TO_PRODUCT[i.sku].label).join(" + "),
-        amount_total_cents: inv.total_cents,
-        tax_cents: 0,
-        currency: "usd",
-        quantity: printed.reduce((t, i) => t + i.qty, 0),
-        payment_status: "paid",
-        shipping_name: inv.parent_name,
-        shipping_address: { line1: a.line1, line2: a.line2 || null, city: a.city, state: a.region, postal_code: a.zip, country: "US" },
-        status: "ready_to_fulfill",
-        sms_consent: false,
-        is_preorder: false,
-        fulfillment: "lulu",
-        // No student name here (founder 2026-09-15: children's names are stored on esa_invoices only).
-        // The invoice number links back to it.
-        raw: { source: "esa", invoice_number: inv.invoice_number, state: inv.state, paid_via: inv.paid_via, fee_cents: inv.fee_cents },
-      }),
-    });
-    // The items go in as one insert, so a reused order has all of them or none.
-    const haveItems = existing
-      ? ((await rest<{ id: string }[] | null>(`order_items?order_id=eq.${order.id}&select=id&limit=1`)) ?? []).length > 0
-      : false;
-    if (!haveItems) {
-      await rest("order_items", {
+
+    // 2026-11-18: one box per submission (planEsaPrint above). Siblings matter only while no order exists.
+    let members: EsaInvoiceRow[] = [inv];
+    let groupKey: string | null = null;
+    let shipsSeparately: string[] = [];
+    if (existing) {
+      const boxNumbers = Array.isArray(existing.raw?.invoice_numbers) ? existing.raw!.invoice_numbers as string[] : [];
+      if (boxNumbers.length > 1) {
+        const rows = (await rest<EsaInvoiceRow[] | null>(
+          `esa_invoices?invoice_number=in.(${boxNumbers.map(encodeURIComponent).join(",")})&select=*`,
+        )) ?? [];
+        if (rows.length) members = rows.sort((x, y) => x.invoice_number.localeCompare(y.invoice_number));
+      }
+    } else if (inv.submission_id) {
+      const siblings = (await rest<EsaInvoiceRow[] | null>(
+        `esa_invoices?submission_id=eq.${encodeURIComponent(inv.submission_id)}&id=neq.${inv.id}&select=*`,
+      )) ?? [];
+      const plan = planEsaPrint(inv, siblings, opts);
+      if (plan.kind === "hold") {
+        // Marked waiting only while it has no order (a box made at the same moment by a sibling's payment wins).
+        await rest(`esa_invoices?id=eq.${inv.id}&order_id=is.null`, {
+          method: "PATCH",
+          headers: { Prefer: "return=minimal" },
+          body: JSON.stringify({
+            fulfilment_status: "awaiting_siblings",
+            fulfilment_note: `waiting for ${plan.waitingOn.join(", ")} to be paid, so everything ships in one box`,
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        await emailFamilyHeld(inv, plan.waitingOn);
+        return "awaiting_siblings";
+      }
+      const byId = new Map(siblings.map((s) => [s.id, s]));
+      members = plan.memberIds.map((id) => (id === inv.id ? inv : byId.get(id)!));
+      groupKey = plan.groupKey;
+      shipsSeparately = plan.shipsSeparately;
+    }
+
+    const box = boxOrderFields(members);
+    const products = await rest<{ id: string; sku: string; fulfillment: string }[]>(
+      `products?sku=in.(${[...new Set(box.lines.map((l) => l.sku))].join(",")})&select=id,sku,fulfillment`,
+    );
+    const bySku = new Map(products.map((p) => [p.sku, p]));
+    for (const l of box.lines) {
+      const p = bySku.get(l.sku);
+      if (!p || p.fulfillment !== "lulu") throw new Error(`product ${l.sku} missing or not a Lulu product`);
+    }
+    let order: { id: string; order_number: string } | null = existing ? { id: existing.id, order_number: existing.order_number } : null;
+    let madeElsewhere = false;
+    if (!order) {
+      try {
+        [order] = await rest<{ id: string; order_number: string }[]>("orders", {
+          method: "POST",
+          headers: { Prefer: "return=representation" },
+          body: JSON.stringify({
+            stripe_checkout_session_id: `esa_${randomHex(24)}`,
+            customer_email: inv.family_email,
+            customer_phone: members.map((m) => m.phone).find((ph) => ph) || FALLBACK_PHONE,
+            lookup_key: box.lookup_key,
+            product_label: box.product_label,
+            amount_total_cents: box.amount_total_cents,
+            tax_cents: 0,
+            currency: "usd",
+            quantity: box.quantity,
+            payment_status: "paid",
+            shipping_name: inv.parent_name,
+            shipping_address: { line1: a.line1, line2: a.line2 || null, city: a.city, state: a.region, postal_code: a.zip, country: "US" },
+            status: "ready_to_fulfill",
+            sms_consent: false,
+            is_preorder: false,
+            fulfillment: "lulu",
+            // No student name here (founder 2026-09-15: children's names are stored on esa_invoices only).
+            // The invoice number(s) link back to it.
+            raw: {
+              source: "esa", invoice_number: members[0].invoice_number, state: inv.state, paid_via: inv.paid_via,
+              fee_cents: members.reduce((t, m) => t + (m.fee_cents ?? 0), 0),
+              ...(members.length > 1 ? { invoice_numbers: members.map((m) => m.invoice_number) } : {}),
+              ...(groupKey ? { esa_group_key: groupKey } : {}),
+              ...(shipsSeparately.length ? { esa_ships_separately: shipsSeparately } : {}),
+            },
+          }),
+        });
+      } catch (e) {
+        // orders_esa_group_key_uniq: a sibling's payment made this exact box a moment ago. Use that order; the run
+        // that made it adds the items and the print job, so this one must not add them a second time.
+        const other = groupKey && /23505|duplicate key|409/.test(String(e)) ? await findEsaBoxOrder(groupKey) : null;
+        if (!other) throw e;
+        order = other;
+        madeElsewhere = true;
+      }
+    }
+    if (!order) throw new Error("no order was created or found");
+    const theOrder = order;
+    if (!madeElsewhere) {
+      // The items go in as one insert, so a reused order has all of them or none.
+      const haveItems = existing
+        ? ((await rest<{ id: string }[] | null>(`order_items?order_id=eq.${theOrder.id}&select=id&limit=1`)) ?? []).length > 0
+        : false;
+      if (!haveItems) {
+        await rest("order_items", {
+          method: "POST",
+          headers: { Prefer: "return=minimal" },
+          body: JSON.stringify(box.lines.map((l) => ({ order_id: theOrder.id, product_id: bySku.get(l.sku)!.id, quantity: l.qty, unit_price_cents: l.unit_cents }))),
+        });
+      }
+      // lulu_jobs.order_id is UNIQUE: on a reused order whose job already exists this is a no-op.
+      await rest("lulu_jobs?on_conflict=order_id", {
         method: "POST",
-        headers: { Prefer: "return=minimal" },
-        body: JSON.stringify(printed.map((i) => ({ order_id: order.id, product_id: bySku.get(SKU_TO_PRODUCT[i.sku].sku)!.id, quantity: i.qty, unit_price_cents: i.unit_cents }))),
+        headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
+        body: JSON.stringify({ order_id: theOrder.id, status: "pending" }),
       });
     }
-    // lulu_jobs.order_id is UNIQUE: on a reused order whose job already exists this is a no-op.
-    await rest("lulu_jobs?on_conflict=order_id", {
-      method: "POST",
-      headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
-      body: JSON.stringify({ order_id: order.id, status: "pending" }),
-    });
+    const together = members.length > 1 ? ` (one box with ${members.map((m) => m.invoice_number).join(" + ")})` : "";
     await patchInvoice(inv.id, {
-      order_id: order.id, fulfilment_status: "print_queued", status: "fulfilled", fulfilled_at: new Date().toISOString(),
-      fulfilment_note: existing ? `order ${order.order_number} (reused after an earlier failed attempt)` : `order ${order.order_number}`,
+      order_id: theOrder.id, fulfilment_status: "print_queued", status: "fulfilled", fulfilled_at: new Date().toISOString(),
+      fulfilment_note: (existing ? `order ${theOrder.order_number} (reused after an earlier failed attempt)` : `order ${theOrder.order_number}`) + together,
     });
-    await kick("lulu-submit", { order_id: order.id });
-    await emailFamilyPaid(inv);
+    for (const m of members) {
+      if (m.id === inv.id) continue;
+      await rest(`esa_invoices?id=eq.${m.id}&order_id=is.null`, {
+        method: "PATCH",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({
+          order_id: theOrder.id, fulfilment_status: "print_queued", status: "fulfilled", fulfilled_at: new Date().toISOString(),
+          fulfilment_note: `order ${theOrder.order_number}${together}`, updated_at: new Date().toISOString(),
+        }),
+      });
+    }
+    if (!madeElsewhere) await kick("lulu-submit", { order_id: theOrder.id });
+    for (const m of members) await emailFamilyPaid(m);
     return "print_queued";
   }
 
