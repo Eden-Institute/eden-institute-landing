@@ -560,7 +560,7 @@ const bteClips = clipsFor(PLACEMENTS.backToEden);
                   {/* Copies (2026-09-26, groups): 1-10 per title, the server cap in lulu-config.ts, until the founder sets how shipping rises on big book orders. */}
                   <label class={cn("flex items-center gap-1 font-body text-xs text-muted-foreground", !BUY_LIVE && "hidden")} data-book-buy-qty-label>
                     <span class="sr-only">Copies of the {e.name}</span>
-                    <select data-book-qty={`${e.id}-print`} aria-label={`Copies of the ${e.name}`} class="rounded-md border px-1 py-1 bg-background" style="border-color:hsl(var(--eden-gold) / 0.5)">
+                    <select data-book-qty={`${e.id}-print`} aria-label={`Copies of the ${e.name}`} class="rounded-md border px-1 py-1 bg-background text-base sm:text-xs" style="border-color:hsl(var(--eden-gold) / 0.5)">
                       {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => <option value={n}>{n}</option>)}
                     </select>
                   </label>

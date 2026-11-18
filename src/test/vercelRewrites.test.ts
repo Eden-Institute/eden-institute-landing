@@ -102,6 +102,10 @@ const concrete = (routePath: string) => routePath.replace(/:[A-Za-z]+/g, "sample
 /** Served by an Astro page, not the SPA, even though App.tsx registers it (HomeRedirect). */
 const SERVED_BY_ASTRO: Record<string, string> = { "/": "web/pages/index.astro" };
 
+/** App aliases vercel.json redirects before the app loads (2026-11-17: /quiz, the old quiz address). The
+ *  route stays in App.tsx for any client-side link; a hard load never reaches it. */
+const REDIRECTED_ALIASES: Record<string, string> = { "/quiz": "/assessment" };
+
 describe("every App.tsx route has a vercel.json rewrite", () => {
   it("reads the route table (a check that reads nothing must not pass)", () => {
     expect(appRoutes.length).toBeGreaterThanOrEqual(20);
@@ -122,6 +126,11 @@ describe("every App.tsx route has a vercel.json rewrite", () => {
       if (routePath in SERVED_BY_ASTRO) {
         expect(exactly(ROOT, SERVED_BY_ASTRO[routePath], "file")).toBe(true);
         expect(resolve(routePath)).toEqual({ kind: "file", file: SERVED_BY_ASTRO[routePath] });
+        return;
+      }
+      if (routePath in REDIRECTED_ALIASES) {
+        expect(resolve(routePath)).toMatchObject({ kind: "redirect", status: 308, location: REDIRECTED_ALIASES[routePath] });
+        expect(resolve(REDIRECTED_ALIASES[routePath])).toMatchObject({ kind: "rewrite", destination: SPA_SHELL });
         return;
       }
       const url = concrete(routePath);
@@ -155,7 +164,6 @@ describe("every App.tsx route has a vercel.json rewrite", () => {
 /** SPA routes, as people and emails actually reach them. */
 const SPA = [
   "/assessment",
-  "/quiz",
   "/founder",
   "/practitioner",
   "/homeschool/welcome",
@@ -198,6 +206,8 @@ const REDIRECTS: [string, number, string][] = [
   ["/q/lavender", 307, "/?utm_source=stillroom&utm_medium=qr&utm_campaign=makers-wall&utm_content=lavender"],
   ["/s/lavender", 307, "/?utm_source=stillroom&utm_medium=label-url&utm_campaign=makers-wall&utm_content=lavender"],
   ["/preorder", 307, "/books"],
+  // 2026-11-17 (Lane 2 area 12 follow-up): the old /quiz alias now redirects instead of serving the app shell.
+  ["/quiz", 308, "/assessment"],
   ["/sprouts-founders.html", 307, "/books"],
   ["/go/deep-dive/frozen-knot", 307, "https://noeqztssupewjidpvhar.supabase.co/functions/v1/guide-checkout?slug=frozen-knot"],
   ["/preorder-response?token=abc", 307, "https://noeqztssupewjidpvhar.supabase.co/functions/v1/preorder-response?token=abc"],

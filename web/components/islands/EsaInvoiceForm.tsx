@@ -61,7 +61,7 @@ interface Issued {
 }
 
 const input =
-  "w-full px-3 py-2.5 bg-white border rounded-md font-body text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2";
+  "w-full px-3 py-2.5 bg-white border rounded-md font-body text-base sm:text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2";
 const inputStyle = { borderColor: "hsl(var(--eden-gold) / 0.45)" };
 const label = "block font-body text-sm font-semibold mb-1";
 const labelStyle = { color: "hsl(var(--eden-bark))" };

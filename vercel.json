@@ -45,6 +45,11 @@
       "permanent": false
     },
     {
+      "source": "/quiz",
+      "destination": "/assessment",
+      "permanent": true
+    },
+    {
       "source": "/preorder",
       "destination": "/books",
       "permanent": false
