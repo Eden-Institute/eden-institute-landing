@@ -19,6 +19,7 @@ import { applyMemberRetake, memberRetakeUserId } from '../_shared/quiz-member-re
 import { insertOrFetchWithRetry, sendWelcomeWithRetry, type WelcomeSendResult } from '../_shared/signup-safety.ts';
 import { centralMorningLabel, nextMorningSendAt } from '../_shared/next-morning.ts';
 import { alertFounder } from '../_shared/founder-alert.ts';
+import { attributionFillFilter, attributionPatch, type SignupAttribution } from '../_shared/signup-attribution.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -767,6 +768,13 @@ Deno.serve(async (req) => {
           console.warn('quiz_funnel waitlist sync update failed:', String(e))
         );
       }
+
+      // (2026-11-18, area 11 T3) The quiz page sends the visitor's landing page and UTMs, but the trigger that owns
+      // this row has no attribution columns, so they were lost (8 of 8 quiz sign-ups in 30 days). Fill them here,
+      // first touch only: the row is written only while it has no landing page yet. Never blocks the sign-up.
+      await waitlistFillAttributionByFunnel(normalizedEmail, 'quiz_funnel', {
+        source_url, referrer, utm_source, utm_medium, utm_campaign, utm_term, utm_content,
+      }).catch((e) => console.warn('quiz_funnel attribution fill failed:', String(e)));
     }
 
     // ── Step 5: Welcome email dispatch (non-quiz paths) ──
@@ -1221,5 +1229,29 @@ async function waitlistMarkSyncedByFunnel(
   if (!res.ok) {
     const txt = await res.text().catch(() => '');
     throw new Error(`PATCH by funnel failed: ${res.status} ${txt}`);
+  }
+}
+
+/** (2026-11-18, area 11 T3) First-touch attribution on a funnel row the quiz trigger owns (signup-attribution.ts). */
+async function waitlistFillAttributionByFunnel(
+  email: string,
+  funnel: EntryFunnel,
+  attribution: SignupAttribution,
+): Promise<void> {
+  const patch = attributionPatch(attribution);
+  if (!Object.keys(patch).length) return;
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/waitlist_signups?${attributionFillFilter(email, funnel)}`, {
+    method: 'PATCH',
+    headers: {
+      'apikey': SUPABASE_SERVICE_ROLE_KEY!,
+      'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY!}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal',
+    },
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    throw new Error(`attribution PATCH by funnel failed: ${res.status} ${txt}`);
   }
 }
