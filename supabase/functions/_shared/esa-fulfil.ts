@@ -72,6 +72,9 @@ export interface EsaInvoiceRow {
   status: string;
   paid_at: string | null;
   paid_via: string | null;
+  /** When the family's "payment received" email went out, and Resend's id for it (2026-11-17). */
+  paid_email_sent_at?: string | null;
+  paid_email_resend_id?: string | null;
   payment_id: string | null;
   fulfilment_status: string;
   order_id: string | null;
@@ -130,9 +133,14 @@ export const para = (s: string) => `<p style="margin:0 0 14px">${s}</p>`;
 const signature = `<p style="margin:0">Warmly,<br>Camila<br><span style="color:#5C4A28;font-size:14px">Eden's Table · Rooted in Faith Ventures LLC · (931) 575-5895</span></p>`;
 
 export async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
+  return (await sendEmailDetailed(to, subject, html)).ok;
+}
+
+/** sendEmail plus the Resend message id, for an email whose send must be recorded. */
+export async function sendEmailDetailed(to: string, subject: string, html: string): Promise<{ ok: boolean; id: string | null }> {
   if (!RESEND_API_KEY) {
     console.warn("RESEND_API_KEY missing, email skipped:", subject);
-    return false;
+    return { ok: false, id: null };
   }
   try {
     const res = await fetch("https://api.resend.com/emails", {
@@ -141,11 +149,15 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
       // UTM tags on every edeninstitute.health link (hard gate 2026-10-28, email-utm.ts).
       body: JSON.stringify({ from: FROM, to: [to], reply_to: FOUNDER, subject, html: tagEmailHtml(html, { medium: "nurture", campaign: "esa_order" }) }),
     });
-    if (!res.ok) console.error("esa email failed:", res.status, await res.text().catch(() => ""));
-    return res.ok;
+    if (!res.ok) {
+      console.error("esa email failed:", res.status, await res.text().catch(() => ""));
+      return { ok: false, id: null };
+    }
+    const body = await res.json().catch(() => null) as { id?: unknown } | null;
+    return { ok: true, id: typeof body?.id === "string" ? body.id : null };
   } catch (e) {
     console.error("esa email error:", e instanceof Error ? e.message : String(e));
-    return false;
+    return { ok: false, id: null };
   }
 }
 
@@ -181,8 +193,19 @@ export async function emailFounderAlert(subject: string, lines: string[]): Promi
   return sendEmail(FOUNDER, subject, wrap(lines.map(para).join(""), "ESA payment automation alert."));
 }
 
-/** Family: payment arrived, books are going to print. (Starter families get the Starter files email instead.) */
+/** (2026-11-17, Lane 2 area 1 finding 2) True when the "payment received" email already went out. */
+export function paidEmailAlreadySent(inv: Pick<EsaInvoiceRow, "paid_email_sent_at">): boolean {
+  return typeof inv.paid_email_sent_at === "string" && inv.paid_email_sent_at.length > 0;
+}
+
+/** Family: payment arrived, books are going to print. (Starter families get the Starter files email instead.)
+ *  Sent once per invoice; the send time and Resend id are kept on the invoice (2026-11-17), so a retried
+ *  fulfilment does not email twice and a check can see that it went out. */
 async function emailFamilyPaid(inv: EsaInvoiceRow): Promise<boolean> {
+  if (paidEmailAlreadySent(inv)) {
+    console.log(`esa: payment-received email for ${inv.invoice_number} already sent ${inv.paid_email_sent_at}; not sending again`);
+    return true;
+  }
   const html = wrap(
     para(`Hi ${esc(firstName(inv.parent_name))},`) +
       para(`Good news! The payment for invoice <b>${esc(inv.invoice_number)}</b> (${esc(inv.student_name)}) arrived, and your Eden's Table books are headed to the printer.`) +
@@ -191,7 +214,13 @@ async function emailFamilyPaid(inv: EsaInvoiceRow): Promise<boolean> {
       signature,
     `Invoice ${inv.invoice_number}. You are receiving this because you ordered Eden's Table with a scholarship invoice.`,
   );
-  return sendEmail(inv.family_email, `${testTag(inv)}Payment received: your Eden's Table books are going to print`, html);
+  const sent = await sendEmailDetailed(inv.family_email, `${testTag(inv)}Payment received: your Eden's Table books are going to print`, html);
+  if (sent.ok) {
+    await patchInvoice(inv.id, { paid_email_sent_at: new Date().toISOString(), paid_email_resend_id: sent.id }).catch((e) =>
+      console.error(`esa: payment-received email for ${inv.invoice_number} went out but could not be recorded:`, e instanceof Error ? e.message : String(e))
+    );
+  }
+  return sent.ok;
 }
 
 /** Family: the one reminder, 14 days after an unpaid invoice. */

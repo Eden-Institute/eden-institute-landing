@@ -73,7 +73,9 @@ Deno.test("D4 print retry: an order this invoice already made is REUSED (no seco
     const job = posts(s.calls, "/rest/v1/lulu_jobs")[0];
     assertStringIncludes(job.url, "on_conflict=order_id");
     assertEquals(JSON.parse(job.body).order_id, "ord-old");
-    const patch = JSON.parse(invoicePatches(s.calls).at(-1)!.body);
+    // The fulfilment write (the payment email's own record, 2026-11-17, comes after it).
+    const patch = JSON.parse(invoicePatches(s.calls).find((c) => c.body.includes('"order_id"'))!.body);
+    assert(invoicePatches(s.calls).some((c) => c.body.includes("paid_email_sent_at")), "the payment email's send is recorded");
     assertEquals(patch.order_id, "ord-old");
     assertStringIncludes(patch.fulfilment_note, "reused");
     assert(resendBodies(s.calls).some((b) => b.subject.includes("Payment received")), "the family's payment email still goes");

@@ -59,16 +59,44 @@ function errCode(err: any): string | undefined { return err?.code; }
  * never permanently skipped. (A rare concurrent double-delivery is caught downstream by the
  * order UNIQUE and the message_log partial-unique.)
  */
+/** (2026-11-17, Lane 2 area 1 A5) How long a 'received' row counts as a run still in progress. */
+export const EVENT_IN_PROGRESS_MS = 10 * 60 * 1000;
+
+/**
+ * What to do with a Stripe event that is already in the ledger.
+ *   - 'processed': done before; skip (200, duplicate).
+ *   - 'received' less than EVENT_IN_PROGRESS_MS ago: another delivery of this event is probably
+ *     still running. Answer 409 so Stripe retries later, instead of running the event twice at
+ *     once: order messages check message_log, send, then log, so two OVERLAPPING runs could both
+ *     send the same email.
+ *   - anything else ('received' older than that = a run that crashed, 'error', unknown): run it.
+ * Pure, so deno test covers it (stripe-event-claim.test.ts).
+ */
+export function claimDecision(
+  status: string | null | undefined,
+  receivedAt: string | null | undefined,
+  nowMs: number,
+): 'proceed' | 'duplicate' | 'in_progress' {
+  if (status === 'processed') return 'duplicate';
+  if (status === 'received' && receivedAt) {
+    const t = Date.parse(receivedAt);
+    if (Number.isFinite(t) && nowMs - t < EVENT_IN_PROGRESS_MS) return 'in_progress';
+  }
+  return 'proceed';
+}
+
 export async function claimStripeEvent(
   db: Db,
   event: { id: string; type: string; payload?: unknown },
-): Promise<{ proceed: boolean }> {
+): Promise<{ proceed: boolean; inProgress?: boolean }> {
   const { error } = await db.from('stripe_events')
     .insert({ event_id: event.id, type: event.type, payload: event.payload ?? null, status: 'received' });
   if (!error) return { proceed: true };
   if (errCode(error) === '23505') {
-    const { data } = await db.from('stripe_events').select('status').eq('event_id', event.id).maybeSingle();
-    return { proceed: data?.status !== 'processed' };
+    const { data } = await db.from('stripe_events').select('status, received_at').eq('event_id', event.id).maybeSingle();
+    const decision = claimDecision(data?.status, data?.received_at, Date.now());
+    if (decision === 'in_progress') return { proceed: false, inProgress: true };
+    return { proceed: decision === 'proceed' };
   }
   throw error;
 }

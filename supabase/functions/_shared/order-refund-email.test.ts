@@ -49,3 +49,20 @@ Deno.test("missing order number and amount still read cleanly", () => {
   assertEquals(subject, "Your refund is on its way")
   assertStringIncludes(html, "Your money is on its way back to you for your Sprouts Printed Curriculum Set.")
 })
+
+// (2026-11-17, Lane 2 area 1 A7) After an earlier partial refund, the final refund returns only the rest.
+Deno.test("after a partial refund, the final refund email states the remaining amount, not the order total", () => {
+  const { html } = buildRefundEmail(order(), 6100)
+  assertStringIncludes(html, "Your refund is done! The remaining <strong>$61.00</strong> is on its way back to you")
+  assert(!html.includes("$261.00"))
+})
+
+Deno.test("a single full refund still states the order total", () => {
+  assertStringIncludes(buildRefundEmail(order(), 26100).html, "<strong>$261.00</strong> is on its way back to you")
+  assertStringIncludes(buildRefundEmail(order(), null).html, "<strong>$261.00</strong> is on its way back to you")
+  assertStringIncludes(buildRefundEmail(order(), 0).html, "<strong>$261.00</strong> is on its way back to you")
+})
+
+Deno.test("the template registry passes the refund amount through", () => {
+  assertStringIncludes(buildOrderEmail("refund_confirmation", order(), null, { refundCents: 6100 }).html, "The remaining <strong>$61.00</strong>")
+})

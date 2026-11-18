@@ -268,8 +268,18 @@ export function buildDeliveredEmail(order: OrderRow): { subject: string; html: s
  * the buyer gets. Product-neutral on purpose: printed sets, preorders and digital
  * orders all reach this state.
  */
-export function buildRefundEmail(order: OrderRow): { subject: string; html: string } {
-  const amount = money(order.amount_total_cents);
+/** Extra facts a transition's messages may need that the order row does not carry. */
+export interface TransitionContext {
+  /** (2026-11-17, Lane 2 area 1 A7) Cents THIS refund returned (refund-amount.ts). After an
+   *  earlier partial refund it is less than the order total, and the email says so. */
+  refundCents?: number | null;
+}
+
+export function buildRefundEmail(order: OrderRow, refundCents: number | null = null): { subject: string; html: string } {
+  const total = order.amount_total_cents;
+  // After an earlier partial refund, the final (full) refund only returns the rest.
+  const remainder = typeof refundCents === 'number' && refundCents > 0 && typeof total === 'number' && refundCents < total;
+  const amount = money(remainder ? refundCents : total);
   // Digital orders collect no shipping name; fall back to the billing name.
   const billingFirst = String(order.raw?.customer_details?.name ?? '').trim().split(/\s+/)[0];
   const name = order.shipping_name ? firstName(order) : escapeHtml(billingFirst || 'there');
@@ -279,7 +289,9 @@ export function buildRefundEmail(order: OrderRow): { subject: string; html: stri
     : (label ? `your ${label}` : 'your order');
   const body =
     p(`Hi ${name},`) +
-    p(`Your refund is done! ${amount ? `<strong>${amount}</strong> is` : 'Your money is'} on its way back to you for ${which}.`) +
+    p(remainder && amount
+      ? `Your refund is done! The remaining <strong>${amount}</strong> is on its way back to you for ${which}.`
+      : `Your refund is done! ${amount ? `<strong>${amount}</strong> is` : 'Your money is'} on its way back to you for ${which}.`) +
     p(`It usually shows up in 5 to 10 business days, depending on your bank. If you paid with Klarna, `
       + `Afterpay or Affirm, they cancel any payments you have left and send back what you already paid.`) +
     p(`Didn't ask for this refund, or something looks off? Just reply to this email and I will sort it out.`) +
@@ -344,13 +356,13 @@ export function buildPrintCancelledEmail(order: OrderRow): { subject: string; ht
   };
 }
 
-export function buildOrderEmail(templateKey: string, order: OrderRow, receipt: Receipt | null = null): { subject: string; html: string } {
+export function buildOrderEmail(templateKey: string, order: OrderRow, receipt: Receipt | null = null, ctx: TransitionContext = {}): { subject: string; html: string } {
   switch (templateKey) {
     case 'preorder_confirmation': return buildPreorderConfirmationEmail(order);
     case 'order_confirmation': return buildOrderConfirmationEmail(order, receipt);
     case 'shipped': return buildShippedEmail(order);
     case 'delivered': return buildDeliveredEmail(order);
-    case 'refund_confirmation': return buildRefundEmail(order);
+    case 'refund_confirmation': return buildRefundEmail(order, ctx.refundCents ?? null);
     default: throw new Error(`No email builder for template '${templateKey}'`);
   }
 }
@@ -534,6 +546,7 @@ export async function dispatchTransitionMessages(
   order: OrderRow,
   toStatus: OrderStatus,
   fromStatus: OrderStatus | null = null,
+  ctx: TransitionContext = {},
 ): Promise<void> {
   const from = fromStatus ?? inferFromStatus(order, toStatus);
   const defs = (REGISTRY[toStatus] ?? []).filter((d) => !d.from || d.from === from);
@@ -557,7 +570,7 @@ export async function dispatchTransitionMessages(
           }
           if (!receipt) console.error(`order_confirmation: NO itemized receipt for ${order.order_number ?? order.id}; sent the single-line fallback`);
         }
-        const { subject, html } = buildOrderEmail(def.templateKey, order, receipt);
+        const { subject, html } = buildOrderEmail(def.templateKey, order, receipt, ctx);
         providerId = await sendResendEmail(order.customer_email, subject, html, def.templateKey);
       } else {
         providerId = await sendSms(smsNumberFor(order), orderSmsText(def.templateKey, order));

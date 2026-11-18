@@ -42,3 +42,23 @@ Deno.test('a send for a different status does not cover a failure', () => {
 Deno.test('no rows at all is nothing to retry', () => {
   assertEquals(unsentOrderEmails([]), []);
 });
+
+// (2026-11-17, Lane 2 area 1 A8) Meta hears only about real paid sales.
+import { isMetaReportablePurchase } from "./webhook-guards.ts"
+
+Deno.test("Meta purchase: a paid session with money in it is reported", () => {
+  if (!isMetaReportablePurchase({ payment_status: "paid", amount_total: 2900 })) throw new Error("paid $29 should report")
+})
+
+Deno.test("Meta purchase: unpaid, free, missing or unknown sessions are not reported", () => {
+  for (const s of [
+    { payment_status: "unpaid", amount_total: 2900 },
+    { payment_status: "no_payment_required", amount_total: 0 },
+    { payment_status: "paid", amount_total: 0 },
+    { payment_status: "paid", amount_total: null },
+    { payment_status: null, amount_total: 2900 },
+    {},
+  ]) {
+    if (isMetaReportablePurchase(s)) throw new Error(`should not report ${JSON.stringify(s)}`)
+  }
+})
