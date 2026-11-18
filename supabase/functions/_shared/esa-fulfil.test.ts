@@ -256,3 +256,13 @@ Deno.test("founder Confirm link opens on edeninstitute.health, keeps its token, 
     assert(!html.includes("esa/confirm?t=" + token + "&amp;utm_"));
   } finally { s.restore(); }
 });
+
+// (2026-11-17, Lane 2 area 1 finding 2) The "payment received" email goes out once per invoice.
+import { paidEmailAlreadySent } from "./esa-fulfil.ts"
+
+Deno.test("paid email: an invoice with a recorded send is not emailed again", () => {
+  if (!paidEmailAlreadySent({ paid_email_sent_at: "2026-11-17T23:00:00Z" })) throw new Error("recorded send should count")
+  for (const v of [null, undefined, ""]) {
+    if (paidEmailAlreadySent({ paid_email_sent_at: v as string | null | undefined })) throw new Error(`${v} should not count`)
+  }
+})

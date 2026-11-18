@@ -68,7 +68,7 @@ import { starterOrderLabel } from "../_shared/receipt.ts"
 import { BOOK_RECEIPT_NAMES, bookDigitalReceipt } from "../_shared/receipt.ts"
 import { bookDigitalBySku, newDownloadToken, sendBookDeliveryEmail } from "../_shared/book-shop.ts"
 import { deliveryIdempotencyKey } from "../_shared/resend-idempotency.ts"
-import { unsentOrderEmails } from "../_shared/webhook-guards.ts"
+import { isMetaReportablePurchase, unsentOrderEmails } from "../_shared/webhook-guards.ts"
 import { creditIssuanceOpen, issueStarterCreditForBand, markCreditRedeemed } from "../_shared/starter-credit.ts"
 import { escapeLikePattern } from "../_shared/like-escape.ts"
 import { classifyLearnWorldsCharge } from "../_shared/learnworlds-charge.ts"
@@ -326,7 +326,16 @@ serve(async (req) => {
 
   // ---------- 2. Idempotency gate: skip events already fully processed ----------
   try {
-    const { proceed } = await claimStripeEvent(adminClient, { id: event.id, type: event.type, payload: event })
+    const { proceed, inProgress } = await claimStripeEvent(adminClient, { id: event.id, type: event.type, payload: event })
+    if (inProgress) {
+      // (2026-11-17, Lane 2 area 1 A5) Another delivery of this event is still running.
+      // A non-2xx makes Stripe retry later; running both at once could send an email twice.
+      console.log(`Event ${event.id} (${event.type}) is still being processed by another delivery; asking Stripe to retry.`)
+      return new Response(JSON.stringify({ received: true, in_progress: true }), {
+        headers: { "Content-Type": "application/json" },
+        status: 409,
+      })
+    }
     if (!proceed) {
       console.log(`Event ${event.id} (${event.type}) already processed; skipping.`)
       return new Response(JSON.stringify({ received: true, duplicate: true }), {
@@ -424,6 +433,12 @@ serve(async (req) => {
         // the address fields are Stripe's own collection, previously discarded.
         // Never report an E2E test purchase to Meta.
         if (E2E_MODE) break
+        // (2026-11-17, Lane 2 area 1 A8) Only a real paid sale: not an 'unpaid' session (a delayed
+        // payment method) and not a free order.
+        if (!isMetaReportablePurchase(session)) {
+          console.log(`Meta purchase not reported for ${session.id}: payment_status=${session.payment_status}, amount_total=${session.amount_total}`)
+          break
+        }
         const billingAddr = session.customer_details?.address ?? null
         await sendMetaCapiPurchase({
           eventId: session.id,
@@ -491,7 +506,10 @@ serve(async (req) => {
           if (luluCancel.outcome !== "no_order" && luluCancel.outcome !== "no_job") {
             console.log(`charge.refunded: Lulu cancel for pi=${pi}: ${luluCancel.outcome}${luluCancel.detail ? ` (${luluCancel.detail})` : ""}`)
           }
-          const applied = await applyRefundByPaymentIntent(adminClient, pi)
+          // (2026-11-17, Lane 2 area 1 A7) What THIS refund returned: after an earlier partial
+          // refund the final one only returns the rest, and the email must say that amount.
+          const refundCents = await thisRefundCents(charge, event.data.previous_attributes, newestRefundOnCharge).catch(() => null)
+          const applied = await applyRefundByPaymentIntent(adminClient, pi, { refundCents })
           console.log(`charge.refunded: ${applied ? "order -> refunded" : "no matching order"} (pi=${pi}, charge=${charge.id})`)
           if (applied) {
             // The refund changes purchase_status / founding on the Resend contact.

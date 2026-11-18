@@ -32,3 +32,12 @@ export function unsentOrderEmails(rows: readonly MessageLogRow[]): string[] {
   }
   return [...missing];
 }
+
+/**
+ * (2026-11-17, Lane 2 area 1 A8) Report a one-off checkout to Meta as a Purchase only when
+ * money actually changed hands: payment_status 'paid' and an amount above zero. A session
+ * that completes 'unpaid' (a delayed payment method) or a free order is not a sale.
+ */
+export function isMetaReportablePurchase(session: { payment_status?: string | null; amount_total?: number | null }): boolean {
+  return session.payment_status === 'paid' && typeof session.amount_total === 'number' && session.amount_total > 0;
+}

@@ -13,7 +13,7 @@ import {
   setOrderStatus,
   upsertOrderPaid,
 } from './order-db.ts';
-import { dispatchTransitionMessages } from './order-messages.ts';
+import { dispatchTransitionMessages, type TransitionContext } from './order-messages.ts';
 
 interface ShippingDetailsLike {
   name?: string | null;
@@ -219,11 +219,11 @@ export async function recordRetailOrderFromSession(
 }
 
 /** Apply a refund: locate the order by payment_intent and move it to `refunded` (no messages). */
-export async function applyRefundByPaymentIntent(db: Db, paymentIntentId: string): Promise<boolean> {
+export async function applyRefundByPaymentIntent(db: Db, paymentIntentId: string, ctx: TransitionContext = {}): Promise<boolean> {
   const order = await getOrderByPaymentIntent(db, paymentIntentId);
   if (!order) return false;
   if (order.status === 'refunded') return true; // idempotent
-  await transition(db, order.id, 'refunded');
+  await transition(db, order.id, 'refunded', ctx);
   return true;
 }
 
@@ -233,7 +233,7 @@ export async function applyRefundByPaymentIntent(db: Db, paymentIntentId: string
  * what each state sends; cancelled sends nothing, refunded sends the refund confirmation;
  * a disallowed edge is ignored, not forced).
  */
-export async function transition(db: Db, orderId: string, to: OrderStatus): Promise<void> {
+export async function transition(db: Db, orderId: string, to: OrderStatus, ctx: TransitionContext = {}): Promise<void> {
   const order = await getOrderById(db, orderId);
   if (!order) throw new Error(`transition: order ${orderId} not found`);
   if (order.status === to) {
@@ -242,7 +242,7 @@ export async function transition(db: Db, orderId: string, to: OrderStatus): Prom
     // confirmation email/SMS is permanently lost. message_log dedupes real sends,
     // and the refund email is deduped the same way, so this is replay-safe. The source
     // state is unknown here; the dispatcher infers it where a message depends on it.
-    await dispatchTransitionMessages(db, order, to, null);
+    await dispatchTransitionMessages(db, order, to, null, ctx);
     return;
   }
   if (!canTransition(order.status, to)) {
@@ -251,5 +251,5 @@ export async function transition(db: Db, orderId: string, to: OrderStatus): Prom
   }
   const from = order.status;
   await setOrderStatus(db, orderId, to);
-  await dispatchTransitionMessages(db, { ...order, status: to }, to, from);
+  await dispatchTransitionMessages(db, { ...order, status: to }, to, from, ctx);
 }
