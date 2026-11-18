@@ -8,13 +8,13 @@ import { emailWrapperTransactional } from './nurture-email-templates.ts';
 import { escapeHtml, safeHttpsUrl } from './html-escape.ts';
 import { OrderStatus } from './order-state.ts';
 import { SHIP_GUARANTEE_TEXT, SHIP_TARGET } from './order-config.ts';
-import { LULU_PRODUCTION_DELAY_MINUTES, isBookBand, printBandForOrder, printBandNameForOrder } from './lulu-config.ts';
+import { LULU_PRODUCTION_DELAY_MINUTES, isBookBand, luluProductBySku, printBandForOrder, printBandNameForOrder } from './lulu-config.ts';
 import { Db, OrderRow, hasSentMessage, logMessage } from './order-db.ts';
 import { sendSms } from './order-sms.ts';
 import { captureException } from './sentry.ts';
 import { Receipt, loadOrderReceipt, renderReceiptHtml } from './receipt.ts';
 import { tagEmailHtml } from './email-utm.ts';
-import { SHIPPED_NOTE, DELIVERED_NOTE } from './founding-family-templates.ts';
+import { SHIPPED_NOTE, DELIVERED_NOTE, DELIVERED_HERBS_NOTE, DELIVERED_NOTEBOOK_NOTE } from './founding-family-templates.ts';
 import { giftStarterPhrase, isFpeaOfferMetadata, parseGiftBands } from './fpea-offer.ts';
 
 const FROM = 'Camila at The Eden Institute <hello@edeninstitute.health>';
@@ -107,6 +107,15 @@ function printBandName(order: OrderRow): string {
 /** Camila's book Back to Eden (2026-09-25): its own wording, never curriculum wording. */
 function isBookOrder(order: OrderRow): boolean {
   return isBookBand(printBandForOrder(order));
+}
+
+/**
+ * (2026-11-18) A box holding only extra Student Notebooks, with no Teacher's Guide in it. lookup_key is the
+ * order's first item, and checkout sorts add-ons last and refuses a notebook without its set, so a Stripe order
+ * never leads with one; an ESA family's notebook bought on its own invoice becomes its own order that does.
+ */
+export function isNotebookOnlyOrder(order: OrderRow): boolean {
+  return order.lookup_key ? luluProductBySku(order.lookup_key)?.addOn === true : false;
 }
 
 // ── Back to Eden printed-book emails (2026-09-25) ──────────────────────────────
@@ -225,6 +234,7 @@ export function buildShippedEmail(order: OrderRow): { subject: string; html: str
   if (isBookOrder(order)) return buildBookShippedEmail(order);
   const band = printBandName(order);
   const item = order.product_label ? order.product_label : `your ${band} set`;
+  const notebookOnly = isNotebookOnlyOrder(order);
   const { carrier, code, link } = trackingBits(order);
   const body =
     p(`Hi ${firstName(order)},`) +
@@ -236,28 +246,38 @@ export function buildShippedEmail(order: OrderRow): { subject: string; html: str
       ? p(`<a href="${escapeHtml(link)}" style="display:inline-block;background-color:${BRAND.forest};color:#F5F0E8;font-family:Georgia,serif;font-size:16px;font-weight:bold;padding:12px 28px;text-decoration:none;">Track your package</a>`)
       : '') +
     (!code && !link ? p(`The carrier has not posted a tracking number yet. If nothing has arrived in two weeks, reply to this email and I will chase it.`) : '') +
-    p(`Mail usually takes a week or two. When the box lands, open the Teacher's Guide to Week 1 and read it `
-      + `together at the table before you do anything else. That is the whole method.`) +
+    (notebookOnly
+      ? p(`Mail usually takes a week or two. When it lands, open the notebook to Week 1 right alongside the `
+        + `Teacher's Guide.`)
+      : p(`Mail usually takes a week or two. When the box lands, open the Teacher's Guide to Week 1 and read it `
+        + `together at the table before you do anything else. That is the whole method.`)) +
     (order.order_number ? p(`Order number: ${order.order_number}`) : '') +
     signature();
-  return { subject: `Your ${band} books shipped`, html: emailWrapperTransactional(body, 'order') };
+  return {
+    subject: notebookOnly ? `Your ${band} notebook shipped` : `Your ${band} books shipped`,
+    html: emailWrapperTransactional(body, 'order'),
+  };
 }
 
 export function buildDeliveredEmail(order: OrderRow): { subject: string; html: string } {
   if (isBookOrder(order)) return buildBookDeliveredEmail(order);
   const band = printBandName(order);
   const item = order.product_label ? order.product_label : `your ${band} set`;
+  const notebookOnly = isNotebookOnlyOrder(order);
   const body =
     p(`Hi ${firstName(order)},`) +
     p(`Your <strong>${escapeHtml(item)}</strong> was delivered today!`) +
-    p(DELIVERED_NOTE) +
+    (notebookOnly ? p(DELIVERED_NOTEBOOK_NOTE) : p(DELIVERED_NOTE) + p(DELIVERED_HERBS_NOTE)) +
     p(`If it is not where you expected, check with everyone at home first, then the porch, the side door `
       + `and anywhere else the mail carrier likes to hide things. Still nothing? Reply to this email and we `
       + `will sort it out together.`) +
     p(`If a book arrived bent, misprinted or damaged, send me a photo today and I will replace it, no charge.`) +
-    p(`Now go find a plant. Week 1 starts whenever you are ready.`) +
+    p(notebookOnly ? `Week 1 starts whenever you are ready.` : `Now go find your first plant. Week 1 starts whenever you are ready.`) +
     signature();
-  return { subject: `Your ${band} books are here`, html: emailWrapperTransactional(body, 'order') };
+  return {
+    subject: notebookOnly ? `Your ${band} notebook is here` : `Your ${band} books are here`,
+    html: emailWrapperTransactional(body, 'order'),
+  };
 }
 
 /**
