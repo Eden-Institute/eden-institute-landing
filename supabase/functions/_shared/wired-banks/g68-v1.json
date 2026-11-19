@@ -1,0 +1,323 @@
+{
+  "version": "g68-v1",
+  "set_kind": "g6_8",
+  "approved_at": "2026-11-19",
+  "source": "Wired_Quiz_Grades6-8_Question_Set.md",
+  "weights": {
+    "scenario": 0.5,
+    "frequency": 0.5
+  },
+  "instructions": "Think about your child over the past month. For each moment, pick the ONE answer that sounds most like your child right now, even if more than one fits. There are no wrong answers: every choice is a strength.",
+  "frequency_stem": "In the past month, how often does your child...",
+  "scale": {
+    "points": 5,
+    "labels": [
+      "Rarely",
+      "Sometimes",
+      "Often",
+      "Very often",
+      "Constantly"
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "g68-s01",
+      "prompt": "A free afternoon with no plans. Your child is most likely to...",
+      "options": [
+        {
+          "id": "g68-s01-a",
+          "domain": "storyteller",
+          "text": "read, or write a story, a script or a comic"
+        },
+        {
+          "id": "g68-s01-b",
+          "domain": "organizer",
+          "text": "work on a strategy game, a code, or a brain teaser"
+        },
+        {
+          "id": "g68-s01-c",
+          "domain": "designer",
+          "text": "draw, design something, or rearrange their room"
+        }
+      ]
+    },
+    {
+      "id": "g68-s02",
+      "prompt": "In a co-op class or youth group, your child comes alive during...",
+      "options": [
+        {
+          "id": "g68-s02-a",
+          "domain": "maker",
+          "text": "anything hands-on: labs, building, sports or active games"
+        },
+        {
+          "id": "g68-s02-b",
+          "domain": "psalmist",
+          "text": "worship, choir, or anything with music and rhythm"
+        },
+        {
+          "id": "g68-s02-c",
+          "domain": "connector",
+          "text": "small-group time and getting to know everyone"
+        }
+      ]
+    },
+    {
+      "id": "g68-s03",
+      "prompt": "On a camping trip or a long day outdoors, your child...",
+      "options": [
+        {
+          "id": "g68-s03-a",
+          "domain": "ponderer",
+          "text": "wanders off a little way and enjoys the quiet"
+        },
+        {
+          "id": "g68-s03-b",
+          "domain": "cultivator",
+          "text": "names the birds, plants or tracks, or wants to look them up"
+        },
+        {
+          "id": "g68-s03-c",
+          "domain": "seeker",
+          "text": "asks big questions, like why God made the world the way He did"
+        }
+      ]
+    },
+    {
+      "id": "g68-s04",
+      "prompt": "When your child is upset about something, they usually...",
+      "options": [
+        {
+          "id": "g68-s04-a",
+          "domain": "storyteller",
+          "text": "talk it out, or write about it"
+        },
+        {
+          "id": "g68-s04-b",
+          "domain": "maker",
+          "text": "do something physical: shoot hoops, build, or go for a run"
+        },
+        {
+          "id": "g68-s04-c",
+          "domain": "ponderer",
+          "text": "go off alone and think it through"
+        }
+      ]
+    },
+    {
+      "id": "g68-s05",
+      "prompt": "On a long road trip, your child...",
+      "options": [
+        {
+          "id": "g68-s05-a",
+          "domain": "organizer",
+          "text": "tracks the route, the miles or the time left"
+        },
+        {
+          "id": "g68-s05-b",
+          "domain": "psalmist",
+          "text": "has music on and knows every word"
+        },
+        {
+          "id": "g68-s05-c",
+          "domain": "cultivator",
+          "text": "watches the land change and points out animals and farms"
+        }
+      ]
+    },
+    {
+      "id": "g68-s06",
+      "prompt": "At church, your child is most drawn to...",
+      "options": [
+        {
+          "id": "g68-s06-a",
+          "domain": "designer",
+          "text": "the art, the building, or sketching during the sermon"
+        },
+        {
+          "id": "g68-s06-b",
+          "domain": "connector",
+          "text": "the people, from the little kids to the older folks"
+        },
+        {
+          "id": "g68-s06-c",
+          "domain": "seeker",
+          "text": "the teaching, and asking hard questions about it afterward"
+        }
+      ]
+    },
+    {
+      "id": "g68-s07",
+      "prompt": "Late in the evening, your child is most likely to...",
+      "options": [
+        {
+          "id": "g68-s07-a",
+          "domain": "storyteller",
+          "text": "be deep in a book, or writing something of their own"
+        },
+        {
+          "id": "g68-s07-b",
+          "domain": "psalmist",
+          "text": "be listening to music, playing, or making up songs"
+        },
+        {
+          "id": "g68-s07-c",
+          "domain": "seeker",
+          "text": "want to talk about God, purpose, or what is fair and right"
+        }
+      ]
+    },
+    {
+      "id": "g68-s08",
+      "prompt": "On family game night, your child...",
+      "options": [
+        {
+          "id": "g68-s08-a",
+          "domain": "organizer",
+          "text": "figures out the best strategy and knows every rule"
+        },
+        {
+          "id": "g68-s08-b",
+          "domain": "connector",
+          "text": "keeps everyone laughing and makes sure no one is left out"
+        },
+        {
+          "id": "g68-s08-c",
+          "domain": "ponderer",
+          "text": "joins in, then wants time to themselves afterward"
+        }
+      ]
+    },
+    {
+      "id": "g68-s09",
+      "prompt": "Given a free Saturday and some supplies, your child would...",
+      "options": [
+        {
+          "id": "g68-s09-a",
+          "domain": "designer",
+          "text": "design something: a room layout, a sketchbook page, a model"
+        },
+        {
+          "id": "g68-s09-b",
+          "domain": "maker",
+          "text": "build, repair or take apart something with real tools"
+        },
+        {
+          "id": "g68-s09-c",
+          "domain": "cultivator",
+          "text": "work in the garden, train a pet, or explore the creek"
+        }
+      ]
+    },
+    {
+      "id": "g68-s10",
+      "prompt": "When friends come over, your child...",
+      "options": [
+        {
+          "id": "g68-s10-a",
+          "domain": "storyteller",
+          "text": "has everyone laughing at their stories and jokes"
+        },
+        {
+          "id": "g68-s10-b",
+          "domain": "connector",
+          "text": "plans the fun and makes sure everyone feels welcome"
+        },
+        {
+          "id": "g68-s10-c",
+          "domain": "cultivator",
+          "text": "heads outside with them: the woods, the barn or the backyard"
+        }
+      ]
+    },
+    {
+      "id": "g68-s11",
+      "prompt": "Handed a big project, your child...",
+      "options": [
+        {
+          "id": "g68-s11-a",
+          "domain": "organizer",
+          "text": "breaks it into steps, a list or a schedule first"
+        },
+        {
+          "id": "g68-s11-b",
+          "domain": "maker",
+          "text": "jumps in to build, test or try something"
+        },
+        {
+          "id": "g68-s11-c",
+          "domain": "seeker",
+          "text": "wants to know why it matters before they start"
+        }
+      ]
+    },
+    {
+      "id": "g68-s12",
+      "prompt": "On a quiet evening at home, your child is most likely to...",
+      "options": [
+        {
+          "id": "g68-s12-a",
+          "domain": "designer",
+          "text": "sketch, design, or work on something detailed"
+        },
+        {
+          "id": "g68-s12-b",
+          "domain": "psalmist",
+          "text": "practice an instrument, sing, or make a playlist"
+        },
+        {
+          "id": "g68-s12-c",
+          "domain": "ponderer",
+          "text": "journal, or sit and think things over"
+        }
+      ]
+    }
+  ],
+  "frequency": [
+    {
+      "id": "g68-f01",
+      "domain": "storyteller",
+      "text": "read, write, or tell stories for fun"
+    },
+    {
+      "id": "g68-f02",
+      "domain": "organizer",
+      "text": "enjoy puzzles, numbers, or figuring out how things work"
+    },
+    {
+      "id": "g68-f03",
+      "domain": "designer",
+      "text": "draw, design, or picture how something will look before making it"
+    },
+    {
+      "id": "g68-f04",
+      "domain": "maker",
+      "text": "build, fix, cook, or make things with their hands"
+    },
+    {
+      "id": "g68-f05",
+      "domain": "psalmist",
+      "text": "sing, play music, or notice sounds and rhythms"
+    },
+    {
+      "id": "g68-f06",
+      "domain": "connector",
+      "text": "help others, or bring people together"
+    },
+    {
+      "id": "g68-f07",
+      "domain": "ponderer",
+      "text": "want time alone to think things through"
+    },
+    {
+      "id": "g68-f08",
+      "domain": "cultivator",
+      "text": "notice, care for, or ask about plants, animals or the outdoors"
+    },
+    {
+      "id": "g68-f09",
+      "domain": "seeker",
+      "text": "ask big questions about God, life, or right and wrong"
+    }
+  ]
+}

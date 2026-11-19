@@ -1,0 +1,442 @@
+{
+  "version": "adult-v1",
+  "set_kind": "adult",
+  "approved_at": "2026-11-19",
+  "source": "Wired_Quiz_Mom_Set.md",
+  "weights": {
+    "scenario": 0.5,
+    "frequency": 0.5
+  },
+  "instructions": "This part is about you, not your child. Think about yourself over the past month. For each moment, pick the ONE answer that sounds most like you right now, even if more than one fits. There are no wrong answers: every choice is a strength.",
+  "frequency_stem": "In the past month, how often do you...",
+  "scale": {
+    "points": 5,
+    "labels": [
+      "Rarely",
+      "Sometimes",
+      "Often",
+      "Very often",
+      "Constantly"
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "adult-s01",
+      "prompt": "A free hour all to yourself. You are most likely to...",
+      "options": [
+        {
+          "id": "adult-s01-a",
+          "domain": "storyteller",
+          "text": "read, or write something: a letter, a blog, a story"
+        },
+        {
+          "id": "adult-s01-b",
+          "domain": "organizer",
+          "text": "plan, budget, or work on a puzzle"
+        },
+        {
+          "id": "adult-s01-c",
+          "domain": "designer",
+          "text": "rearrange a room, sketch, or plan how a space could look"
+        }
+      ]
+    },
+    {
+      "id": "adult-s02",
+      "prompt": "At a church event, you are happiest...",
+      "options": [
+        {
+          "id": "adult-s02-a",
+          "domain": "maker",
+          "text": "in the kitchen or setting up, with your hands busy"
+        },
+        {
+          "id": "adult-s02-b",
+          "domain": "psalmist",
+          "text": "singing, or helping with the music"
+        },
+        {
+          "id": "adult-s02-c",
+          "domain": "connector",
+          "text": "greeting people and making new families feel at home"
+        }
+      ]
+    },
+    {
+      "id": "adult-s03",
+      "prompt": "On a walk by yourself, you...",
+      "options": [
+        {
+          "id": "adult-s03-a",
+          "domain": "ponderer",
+          "text": "sort through your own thoughts and plans"
+        },
+        {
+          "id": "adult-s03-b",
+          "domain": "cultivator",
+          "text": "notice the birds, the plants and the weather changing"
+        },
+        {
+          "id": "adult-s03-c",
+          "domain": "seeker",
+          "text": "think about life's big questions and God's purposes"
+        }
+      ]
+    },
+    {
+      "id": "adult-s04",
+      "prompt": "When you have a problem to work out, you...",
+      "options": [
+        {
+          "id": "adult-s04-a",
+          "domain": "storyteller",
+          "text": "talk it through, or write it all down"
+        },
+        {
+          "id": "adult-s04-b",
+          "domain": "maker",
+          "text": "keep busy: clean, cook, or work with your hands while you think"
+        },
+        {
+          "id": "adult-s04-c",
+          "domain": "ponderer",
+          "text": "need quiet time alone before you decide"
+        }
+      ]
+    },
+    {
+      "id": "adult-s05",
+      "prompt": "On a long drive, you...",
+      "options": [
+        {
+          "id": "adult-s05-a",
+          "domain": "organizer",
+          "text": "plan the stops, watch the time, or run through your to-do list"
+        },
+        {
+          "id": "adult-s05-b",
+          "domain": "psalmist",
+          "text": "turn up the music and sing along"
+        },
+        {
+          "id": "adult-s05-c",
+          "domain": "cultivator",
+          "text": "watch the fields, trees and animals go by"
+        }
+      ]
+    },
+    {
+      "id": "adult-s06",
+      "prompt": "Planning a family celebration, the part you love most is...",
+      "options": [
+        {
+          "id": "adult-s06-a",
+          "domain": "designer",
+          "text": "how it looks: the table, the colors, the decorations"
+        },
+        {
+          "id": "adult-s06-b",
+          "domain": "connector",
+          "text": "who comes, and making sure everyone feels welcome"
+        },
+        {
+          "id": "adult-s06-c",
+          "domain": "seeker",
+          "text": "what it means: the story or the blessing behind it"
+        }
+      ]
+    },
+    {
+      "id": "adult-s07",
+      "prompt": "In your quiet time with the Lord, you are most drawn to...",
+      "options": [
+        {
+          "id": "adult-s07-a",
+          "domain": "storyteller",
+          "text": "reading, and the words of Scripture themselves"
+        },
+        {
+          "id": "adult-s07-b",
+          "domain": "psalmist",
+          "text": "worship music, hymns, or singing"
+        },
+        {
+          "id": "adult-s07-c",
+          "domain": "seeker",
+          "text": "wrestling with hard questions and what they mean for your life"
+        }
+      ]
+    },
+    {
+      "id": "adult-s08",
+      "prompt": "When you volunteer, you would rather...",
+      "options": [
+        {
+          "id": "adult-s08-a",
+          "domain": "organizer",
+          "text": "run the schedule, the sign-ups or the money"
+        },
+        {
+          "id": "adult-s08-b",
+          "domain": "connector",
+          "text": "be with the people: welcoming, teaching, encouraging"
+        },
+        {
+          "id": "adult-s08-c",
+          "domain": "ponderer",
+          "text": "take a task you can do quietly on your own"
+        }
+      ]
+    },
+    {
+      "id": "adult-s09",
+      "prompt": "With a free Saturday, you would most enjoy...",
+      "options": [
+        {
+          "id": "adult-s09-a",
+          "domain": "designer",
+          "text": "a design project: a room makeover, a photo album, a sketch"
+        },
+        {
+          "id": "adult-s09-b",
+          "domain": "maker",
+          "text": "building, sewing, baking, or fixing something"
+        },
+        {
+          "id": "adult-s09-c",
+          "domain": "cultivator",
+          "text": "working in the garden or caring for animals"
+        }
+      ]
+    },
+    {
+      "id": "adult-s10",
+      "prompt": "With friends, you are usually the one who...",
+      "options": [
+        {
+          "id": "adult-s10-a",
+          "domain": "storyteller",
+          "text": "tells the stories that get everyone laughing"
+        },
+        {
+          "id": "adult-s10-b",
+          "domain": "connector",
+          "text": "remembers what everyone is going through and checks in"
+        },
+        {
+          "id": "adult-s10-c",
+          "domain": "cultivator",
+          "text": "suggests getting outside: a hike, a farm, the park"
+        }
+      ]
+    },
+    {
+      "id": "adult-s11",
+      "prompt": "Starting something new, like a homeschool year, you...",
+      "options": [
+        {
+          "id": "adult-s11-a",
+          "domain": "organizer",
+          "text": "make the plan, the calendar and the lists first"
+        },
+        {
+          "id": "adult-s11-b",
+          "domain": "maker",
+          "text": "dive in and figure it out by doing"
+        },
+        {
+          "id": "adult-s11-c",
+          "domain": "seeker",
+          "text": "start with why: who you hope your children become"
+        }
+      ]
+    },
+    {
+      "id": "adult-s12",
+      "prompt": "When you need to recharge, you...",
+      "options": [
+        {
+          "id": "adult-s12-a",
+          "domain": "designer",
+          "text": "make something beautiful: arrange, draw, or decorate"
+        },
+        {
+          "id": "adult-s12-b",
+          "domain": "psalmist",
+          "text": "put on music, or play or sing"
+        },
+        {
+          "id": "adult-s12-c",
+          "domain": "ponderer",
+          "text": "get time alone to think, journal or reflect"
+        }
+      ]
+    }
+  ],
+  "frequency": [
+    {
+      "id": "adult-f01",
+      "domain": "storyteller",
+      "text": "read, write, or enjoy playing with words"
+    },
+    {
+      "id": "adult-f02",
+      "domain": "organizer",
+      "text": "plan, budget, or work through a problem step by step"
+    },
+    {
+      "id": "adult-f03",
+      "domain": "designer",
+      "text": "picture how something will look before you make or change it"
+    },
+    {
+      "id": "adult-f04",
+      "domain": "maker",
+      "text": "make, fix, cook, or build things with your hands"
+    },
+    {
+      "id": "adult-f05",
+      "domain": "psalmist",
+      "text": "have music on, sing, or play an instrument"
+    },
+    {
+      "id": "adult-f06",
+      "domain": "connector",
+      "text": "reach out to encourage, host, or help people"
+    },
+    {
+      "id": "adult-f07",
+      "domain": "ponderer",
+      "text": "need time alone to think things through"
+    },
+    {
+      "id": "adult-f08",
+      "domain": "cultivator",
+      "text": "spend time outdoors, in the garden, or with animals"
+    },
+    {
+      "id": "adult-f09",
+      "domain": "seeker",
+      "text": "think about big questions of faith, purpose, or right and wrong"
+    }
+  ],
+  "teaching_style": {
+    "instructions": "For each line, tap the spot that sounds most like you right now. There are no right answers: every homeschool runs a little differently.",
+    "scale": {
+      "points": 5,
+      "labels": [
+        "Much more like the left",
+        "A bit more like the left",
+        "Somewhere in between",
+        "A bit more like the right",
+        "Much more like the right"
+      ]
+    },
+    "bands": {
+      "left_max": 30,
+      "right_min": 70
+    },
+    "dimensions": [
+      {
+        "key": "structure",
+        "left": "leans toward a steady routine",
+        "right": "leans toward going with the flow",
+        "items": [
+          {
+            "id": "ts-st1",
+            "stem": "Our school days...",
+            "left": "follow the same routine most days",
+            "right": "look different from day to day"
+          },
+          {
+            "id": "ts-st2",
+            "stem": "For tomorrow's lessons, I like...",
+            "left": "knowing exactly what we'll cover",
+            "right": "seeing where the day takes us"
+          },
+          {
+            "id": "ts-st3",
+            "stem": "When something more interesting comes up mid-lesson, I usually...",
+            "left": "note it for later and keep going",
+            "right": "set the plan aside and follow it"
+          }
+        ]
+      },
+      {
+        "key": "planning",
+        "left": "leans toward planning ahead",
+        "right": "leans toward deciding in the moment",
+        "items": [
+          {
+            "id": "ts-pl1",
+            "stem": "I usually plan our lessons...",
+            "left": "a week or more ahead",
+            "right": "the morning of, or as we go"
+          },
+          {
+            "id": "ts-pl2",
+            "stem": "Starting a school day without a plan feels...",
+            "left": "like something is missing",
+            "right": "perfectly fine"
+          },
+          {
+            "id": "ts-pl3",
+            "stem": "Our best lessons tend to come from...",
+            "left": "careful preparation",
+            "right": "ideas on the spot"
+          }
+        ]
+      },
+      {
+        "key": "capacity",
+        "left": "has room to spare right now",
+        "right": "is running close to empty right now",
+        "items": [
+          {
+            "id": "ts-ca1",
+            "stem": "Most days, I have...",
+            "left": "the energy to teach the way I want",
+            "right": "less energy than teaching takes"
+          },
+          {
+            "id": "ts-ca2",
+            "stem": "By early afternoon, I usually...",
+            "left": "still have plenty left",
+            "right": "feel worn out"
+          },
+          {
+            "id": "ts-ca3",
+            "stem": "Keeping more than one child's lessons going at once feels...",
+            "left": "doable",
+            "right": "like a lot right now"
+          }
+        ]
+      },
+      {
+        "key": "resistance",
+        "left": "leans toward finding another way in",
+        "right": "leans toward steady follow-through",
+        "items": [
+          {
+            "id": "ts-re1",
+            "stem": "When my child pushes back on a lesson, I usually...",
+            "left": "look for another way to teach it",
+            "right": "keep the expectation and help them finish"
+          },
+          {
+            "id": "ts-re2",
+            "stem": "Choices about what or how to learn...",
+            "left": "I offer my child often",
+            "right": "I mostly make, and explain why"
+          },
+          {
+            "id": "ts-re3",
+            "stem": "When my child is frustrated, I usually...",
+            "left": "pause and talk about how they feel",
+            "right": "encourage them to push through"
+          }
+        ]
+      }
+    ]
+  }
+}
