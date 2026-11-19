@@ -18,6 +18,7 @@ import {
   firstNameFrom,
   precheckExpiredSession,
   recoveryItemNames,
+  siteReminderMetadata,
   type ExpiredSessionLike,
   type RecoveryFacts,
 } from './checkout-recovery.ts';
@@ -108,6 +109,45 @@ Deno.test('precheck falls back to customer_email', () => {
     assertEquals(r.email, 'a@b.co');
     assertEquals(r.firstName, null);
   }
+});
+
+// ── site one-reminder box (CheckoutContact, 2026-11-18) ──
+
+Deno.test('site box: metadata only with a usable email; the yes only with an email', () => {
+  assertEquals(siteReminderMetadata({ email: ' mom@example.com ', reminder_consent: true }), { email: 'mom@example.com', reminder_consent: 'true' });
+  assertEquals(siteReminderMetadata({ email: 'mom@example.com', reminder_consent: 'true' }), { email: 'mom@example.com', reminder_consent: 'true' });
+  assertEquals(siteReminderMetadata({ email: 'mom@example.com', reminder_consent: false }), { email: 'mom@example.com' });
+  assertEquals(siteReminderMetadata({ email: 'mom@example.com' }), { email: 'mom@example.com' });
+  assertEquals(siteReminderMetadata({ reminder_consent: true }), {});
+  assertEquals(siteReminderMetadata({ email: 'not-an-email', reminder_consent: true }), {});
+  assertEquals(siteReminderMetadata({ email: 'a@b', reminder_consent: true }), {});
+  assertEquals(siteReminderMetadata({ email: `${'x'.repeat(250)}@b.co`, reminder_consent: true }), {});
+  assertEquals(siteReminderMetadata(null), {});
+});
+
+Deno.test('site box: its yes counts when Stripe recorded no choice, with the email from metadata', () => {
+  const r = precheckExpiredSession(expired({
+    consent: null,
+    customer_details: null,
+    customer_email: null,
+    metadata: { email: 'Mom@Example.com', reminder_consent: 'true' },
+  }));
+  assert(r.ok);
+  if (r.ok) assertEquals(r.email, 'mom@example.com');
+});
+
+Deno.test('site box: Stripe opt_out always wins; no yes anywhere still skips', () => {
+  const reason = (s: ExpiredSessionLike) => {
+    const r = precheckExpiredSession(s);
+    return r.ok ? null : r.reason;
+  };
+  assertEquals(reason(expired({ consent: { promotions: 'opt_out' }, metadata: { email: 'm@e.co', reminder_consent: 'true' } })), 'no_promotional_consent');
+  assertEquals(reason(expired({ consent: null, metadata: { email: 'm@e.co' } })), 'no_promotional_consent');
+  assertEquals(reason(expired({ consent: null, metadata: { email: 'm@e.co', reminder_consent: 'false' } })), 'no_promotional_consent');
+  // Stripe's own yes with no email anywhere is still no_email, as before.
+  assertEquals(reason(expired({ customer_details: null, customer_email: null, metadata: {} })), 'no_email');
+  // The site box yes but no email anywhere: no_email.
+  assertEquals(reason(expired({ consent: null, customer_details: null, customer_email: null, metadata: { reminder_consent: 'true' } })), 'no_email');
 });
 
 Deno.test('decide: purchase, cooldown, global suppression, list opt-out, else send', () => {

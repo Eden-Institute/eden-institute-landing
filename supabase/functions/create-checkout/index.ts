@@ -81,7 +81,7 @@ import { lockShipToSessionParams } from "../_shared/print-session-lock.ts"
 import { checkoutAttributionMetadata } from "../_shared/purchase-attribution.ts"
 // Abandoned-checkout recovery email, 2026-09-28. Applied to the main one-off,
 // print and Back to Eden PDF sessions (payment mode only), never to preorders.
-import { applyCheckoutRecovery, createCheckoutSessionWithRecovery } from "../_shared/checkout-recovery.ts"
+import { applyCheckoutRecovery, createCheckoutSessionWithRecovery, siteReminderMetadata } from "../_shared/checkout-recovery.ts"
 // FPEA 2027 convention offer, 2026-10-30 (/fpea). Every use below sits behind a
 // request that carried `offer`; a request without one takes the paths above unchanged.
 import {
@@ -527,6 +527,9 @@ serve(async (req) => {
     // For subscriptions this bag becomes subscription_data.metadata, so it rides on
     // the Subscription and reaches the webhook via invoice.subscription_details.
     Object.assign(metadata, checkoutAttributionMetadata(body))
+    // The site's optional email + one-reminder box (CheckoutContact, 2026-11-18):
+    // metadata.email + reminder_consent, read by the checkout.session.expired precheck.
+    Object.assign(metadata, siteReminderMetadata(body))
 
     // 7. Construct the Checkout Session.
     //    Defaults for success/cancel URLs depend on product class:
@@ -1476,6 +1479,9 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
   const fbp = clampMeta(body.fbp); if (fbp) metadata.fbp = fbp
   const fbc = clampMeta(body.fbc); if (fbc) metadata.fbc = fbc
   Object.assign(metadata, checkoutAttributionMetadata(body))
+  // The site's optional email + one-reminder box (CheckoutContact, 2026-11-18):
+  // metadata.email + reminder_consent, read by the checkout.session.expired precheck.
+  Object.assign(metadata, siteReminderMetadata(body))
   if (isAdminTest) metadata.print_test = "true"
   if (E2E_MODE) metadata[E2E_METADATA_KEY] = "true"
   // Sprouts metadata stays exactly as it was; other bands are stamped for the record.
@@ -1732,6 +1738,9 @@ async function handleBookDigitalCheckout(req: Request, body: Record<string, any>
   const fbp = clampMeta(body.fbp); if (fbp) metadata.fbp = fbp
   const fbc = clampMeta(body.fbc); if (fbc) metadata.fbc = fbc
   Object.assign(metadata, checkoutAttributionMetadata(body))
+  // The site's optional email + one-reminder box (CheckoutContact, 2026-11-18):
+  // metadata.email + reminder_consent, read by the checkout.session.expired precheck.
+  Object.assign(metadata, siteReminderMetadata(body))
   if (isAdminTest) metadata.book_test = "true"
   if (E2E_MODE) metadata[E2E_METADATA_KEY] = "true"
 

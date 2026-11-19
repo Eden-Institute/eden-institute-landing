@@ -186,22 +186,49 @@ export function firstNameFrom(name: string | null | undefined): string | null {
   return first ? first : null;
 }
 
+/** Metadata key the site's own one-reminder box sets (CheckoutContact, 2026-11-18). */
+export const SITE_REMINDER_CONSENT_KEY = 'reminder_consent';
+
+/**
+ * Session metadata for the optional email + one-reminder box on the curriculum buy
+ * boxes (Spring Buying Season Plan move 1, founder "All 13: Do it" 2026-11-18).
+ * The box hands create-checkout `email` and `reminder_consent`; this keeps a usable
+ * email (loose check: Stripe does the real one) and records the yes only together
+ * with an email. Nothing at all for a blank or malformed email.
+ */
+export function siteReminderMetadata(body: Record<string, unknown> | null | undefined): Record<string, string> {
+  const raw = typeof body?.email === 'string' ? body.email.trim() : '';
+  const email = raw && raw.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw) ? raw : '';
+  if (!email) return {};
+  const out: Record<string, string> = { email };
+  if (body?.reminder_consent === true || body?.reminder_consent === 'true') out[SITE_REMINDER_CONSENT_KEY] = 'true';
+  return out;
+}
+
 /**
  * Rules that need only the session itself, in order:
  *   1. not a preorder session (preorders are closed permanently),
  *      and not an E2E test session;
- *   2. consent.promotions === "opt_in", an email, and an https recovery URL.
+ *   2. consent: Stripe's consent.promotions === "opt_in", OR (since 2026-11-18) the
+ *      site's own one-reminder box (metadata reminder_consent "true") when Stripe
+ *      recorded no choice. An explicit "opt_out" on Stripe's box always wins;
+ *   3. an email (Stripe's, else the one the site passed in metadata.email), and an
+ *      https recovery URL.
  */
 export function precheckExpiredSession(session: ExpiredSessionLike): Precheck {
   const meta = session.metadata ?? {};
-  const email = normalizeRecoveryEmail(session.customer_details?.email ?? session.customer_email ?? null);
+  const metaEmail = typeof meta.email === 'string' ? meta.email : null;
+  const email = normalizeRecoveryEmail(session.customer_details?.email ?? session.customer_email ?? metaEmail);
   const rawUrl = session.after_expiration?.recovery?.url ?? null;
   const recoveryUrl = safeHttpsUrl(rawUrl);
   const fail = (reason: string): Precheck => ({ ok: false, reason, email, recoveryUrl: rawUrl });
 
   if (typeof meta.preorder_sku === 'string' && meta.preorder_sku) return fail('preorder_session');
   if (isE2eMetadata(meta)) return fail('e2e_session');
-  if (session.consent?.promotions !== 'opt_in') return fail('no_promotional_consent');
+  const stripeConsent = session.consent?.promotions ?? null;
+  const siteConsent = meta[SITE_REMINDER_CONSENT_KEY] === 'true';
+  if (stripeConsent === 'opt_out') return fail('no_promotional_consent');
+  if (stripeConsent !== 'opt_in' && !siteConsent) return fail('no_promotional_consent');
   if (!email) return fail('no_email');
   if (!rawUrl) return fail('no_recovery_url');
   if (!recoveryUrl) return fail('recovery_url_not_https');

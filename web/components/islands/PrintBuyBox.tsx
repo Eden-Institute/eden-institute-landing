@@ -49,7 +49,9 @@ import { getCheckoutAttribution } from "@/lib/attribution";
 import { usMobileE164 } from "../../lib/smsPhone";
 import { partnerPromoBody, partnerPromoCode } from "../../lib/partnerPromo";
 import { centsToValue, pinTrack } from "@/lib/pinterestTag";
+import { trackCta } from "@/lib/trackCta";
 import PayOverTime from "./PayOverTime";
+import CheckoutContact, { EMPTY_CHECKOUT_CONTACT, checkoutContactBody, type CheckoutContactValue } from "./CheckoutContact";
 import ShipToForm, { type ShipToDraft } from "./ShipToForm";
 import { checkShipTo } from "../../../supabase/functions/_shared/ship-address";
 import { likelyNeedsGround, printShippingCents, splitVolumeTierPooled } from "../../../supabase/functions/_shared/print-pricing";
@@ -145,6 +147,8 @@ export default function PrintBuyBox({ cta, band = "sprouts", offer }: Props) {
   const [qty, setQty] = useState(1);
   const [nbQty, setNbQty] = useState<Record<string, number>>({});
   const [smsConsent, setSmsConsent] = useState(false);
+  /** Optional email + one-reminder consent (CheckoutContact). Not shown for heavy orders, whose address form asks for an email. */
+  const [contact, setContact] = useState<CheckoutContactValue>(EMPTY_CHECKOUT_CONTACT);
   /** The number typed next to the SMS box; texts go to it (A2P: same form as the checkbox). */
   const [smsPhone, setSmsPhone] = useState("");
   const [loading, setLoading] = useState(false);
@@ -261,6 +265,9 @@ export default function PrintBuyBox({ cta, band = "sprouts", offer }: Props) {
         })),
       ],
     });
+    // Funnel moment: one checkout-start per create-checkout invoke (the founder
+    // dashboard's "Checkout starts" counts only this event, not the button's data-cta).
+    trackCta("checkout-start", { lookupKey: product.sku });
     setLoading(true);
     setError(null);
     try {
@@ -268,6 +275,8 @@ export default function PrintBuyBox({ cta, band = "sprouts", offer }: Props) {
         ...(e2eToken ? { headers: { "x-eden-e2e": e2eToken } } : {}),
         body: {
           ...getFbAttribution(), attribution: getCheckoutAttribution(),
+          // Optional email + one-reminder consent; heavy orders send ship_to.email instead.
+          ...(shipsByGround ? {} : checkoutContactBody(contact)),
           print_shop: true,
           items: [
             { sku: product.sku, qty },
@@ -476,6 +485,8 @@ export default function PrintBuyBox({ cta, band = "sprouts", offer }: Props) {
           )}
 
           <PayOverTime amountCents={subtotal + shipping} className="mt-3" />
+
+          {!shipsByGround && <CheckoutContact value={contact} onChange={setContact} className="mt-4" />}
 
           <label htmlFor={`sms-phone-${band}`} className="mt-4 block font-body text-sm text-muted-foreground">
             Mobile number for text updates (optional)
