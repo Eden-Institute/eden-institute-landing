@@ -48,6 +48,7 @@
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext"
+import { WIRED_CART_KEY, wiredOrderLabel } from "../_shared/wired-checkout.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { claimStripeEvent, markEventProcessed, markEventError, getOrderByPaymentIntent } from "../_shared/order-db.ts"
 import { sendPartialRefundEmail } from "../_shared/order-messages.ts"
@@ -1162,6 +1163,14 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
     return
   }
 
+  // Branch 2c: Fearfully & Wonderfully Wired cart (W6, 2026-11-19). create-checkout
+  // verified the family, children and upgrade gate before charging; this records the
+  // sale and grants the unlocks + PDF jobs in one transaction (wired_grant_purchase).
+  if (lookupKey === WIRED_CART_KEY) {
+    await handleWiredPurchase(session, email)
+    return
+  }
+
   // Branch 3: one-off DIGITAL products (Deep-Dive Guide, future courses).
   //
   // Order of operations here is deliberate and was previously wrong:
@@ -1268,7 +1277,9 @@ async function recordDigitalOrder(
     ? `Deep-Dive Guide${nickname ? `: ${nickname}` : ""}`
     : starterBandForLookupKey(lookupKey)
       ? starterOrderLabel(lookupKey)
-      : BOOK_RECEIPT_NAMES[lookupKey] ?? lookupKey
+      : lookupKey.startsWith("wired_")
+        ? wiredOrderLabel(lookupKey, Number(session.metadata?.wired_extra_children ?? 0) || 0)
+        : BOOK_RECEIPT_NAMES[lookupKey] ?? lookupKey
 
   const { error } = await adminClient.from("orders").upsert({
     stripe_checkout_session_id: session.id,
@@ -1483,6 +1494,69 @@ async function kickLuluSubmit(orderId: string): Promise<void> {
  * and queues no second email. That is the acceptance criterion, enforced by three
  * database constraints rather than by hoping this function runs once.
  */
+// ---------- Fearfully & Wonderfully Wired (W6, 2026-11-19) ----------
+//
+// 1. Record the sale (orders, idempotent on the session; lookup_key wired_<product>).
+// 2. wired_grant_purchase: wired_buyers row, wired_unlocks + unlocked_via for every covered
+//    child, and the durable PDF job(s), in ONE transaction, idempotent on the order.
+//    A failure THROWS so Stripe redelivers (step 1 is a no-op the second time).
+// The PDF drain is W7. No Resend contact is created for a wired buyer (answer 7), so this
+// path deliberately skips syncPurchaseProperties.
+async function handleWiredPurchase(session: Stripe.Checkout.Session, email: string | null): Promise<void> {
+  const sid = session.id
+  if (session.payment_status === "unpaid") {
+    console.warn(`[${sid}] wired cart completed with payment_status=unpaid; not granting`)
+    return
+  }
+  const product = (session.metadata?.wired_product as string | undefined) ?? ""
+  const pendingId = (session.metadata?.wired_pending_id as string | undefined) ?? ""
+  const orderKey = product ? `wired_${product}` : WIRED_CART_KEY
+  await recordDigitalOrder(await withPaymentCard(session), orderKey, email)
+  const { data: orderRow } = await adminClient
+    .from("orders").select("id").eq("stripe_checkout_session_id", sid).maybeSingle()
+  const orderId = orderRow?.id ?? null
+
+  const alert = (why: string) => notifyFounder(
+    "Wired quiz purchase needs a look",
+    [
+      "A Fearfully & Wonderfully Wired purchase went through, but the unlock step reported a problem.",
+      "",
+      `Buyer: ${email ?? "(no email)"}`,
+      `Stripe session: ${sid}`,
+      `What happened: ${why}`,
+      "",
+      "The payment and order are recorded. Ask Claude (Lane 2) to check this purchase.",
+    ].join("\n"),
+  )
+
+  if (!orderId || !pendingId || !email) {
+    const why = !orderId ? "no orders row after recording" : !pendingId ? "no wired_pending_id in the session metadata" : "no buyer email"
+    console.error(`[${sid}] wired purchase cannot be granted: ${why}`)
+    await alert(why)
+    return
+  }
+  const unlockAs = product === "blueprint" ? "blueprint" : "family_map"
+  const { data, error } = await adminClient.rpc("wired_grant_purchase", {
+    p_pending_id: pendingId,
+    p_order_id: orderId,
+    p_email: email,
+    p_name: session.customer_details?.name ?? null,
+    p_amount_cents: session.amount_total ?? 0,
+    p_customer: typeof session.customer === "string" ? session.customer : session.customer?.id ?? null,
+    p_unlock_as: unlockAs,
+  })
+  if (error) throw new Error(`wired_grant_purchase failed for session ${sid}: ${error.message}`)
+  console.log(`[${sid}] wired grant: ${JSON.stringify(data)}`)
+  const out = (data ?? {}) as Record<string, unknown>
+  if (out.status !== "ok") {
+    await alert(`grant status ${String(out.status)}`)
+  } else if (out.upgrade_verified === false) {
+    await alert("the $28 upgrade was paid but no same-year Blueprint was found; the Family Map was granted anyway")
+  } else if (Number(out.missing_children ?? 0) > 0) {
+    await alert(`${out.missing_children} child(ren) on the order were removed before payment and were not unlocked`)
+  }
+}
+
 async function handleStarterUnitPurchase(
   session: Stripe.Checkout.Session,
   email: string | null,

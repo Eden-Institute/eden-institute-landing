@@ -74,6 +74,52 @@ describe("WiredResults", () => {
     expect(screen.getByText("Unlock with a Blueprint ($19)")).toBeTruthy();
   });
 
+  it("W6: the Blueprint button offers the $28 upgrade, and each choice asks create-checkout for the right cart", async () => {
+    localStorage.setItem(RESULTS_KEY, "TOKEN123");
+    const assign = vi.fn();
+    vi.stubGlobal("location", { ...window.location, href: window.location.href, assign });
+    const fetchMock = mockFetch({
+      "wired-results": { status: 200, body: { children: [unlockedChild] } },
+      "wired-matches": { status: 200, body: { matches: [], budget_filter_offered: true } },
+      "create-checkout": { status: 200, body: { url: "https://checkout.stripe.com/c/pay/x" } },
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<WiredResults />);
+    await waitFor(() => expect(screen.getByText("Get Lily's Blueprint ($19)")).toBeTruthy());
+    fireEvent.click(screen.getByText("Get Lily's Blueprint ($19)"));
+    expect(screen.getByText("Teaching more than one? Upgrade to the Family Map for $28 more.")).toBeTruthy();
+    fireEvent.click(screen.getByText("Just Lily's Blueprint ($19)"));
+    await waitFor(() => expect(assign).toHaveBeenCalledWith("https://checkout.stripe.com/c/pay/x"));
+    const call = fetchMock.mock.calls.find(([u]) => String(u).includes("create-checkout"))!;
+    expect(JSON.parse((call[1] as RequestInit).body as string)).toEqual({ lookup_key: "wired_cart", token: "TOKEN123", product: "blueprint", child_ids: ["c1"] });
+  });
+
+  it("W6: a refused checkout shows the server's sentence and re-enables the buttons", async () => {
+    localStorage.setItem(RESULTS_KEY, "TOKEN123");
+    vi.stubGlobal("fetch", mockFetch({
+      "wired-results": { status: 200, body: { children: [unlockedChild] } },
+      "wired-matches": { status: 200, body: { matches: [], budget_filter_offered: true } },
+      "create-checkout": { status: 409, body: { error: "You already have the Family Map this school year.", code: "WIRED_ALREADY_OWNED" } },
+    }));
+    render(<WiredResults />);
+    await waitFor(() => expect(screen.getByText("Get the Family Map ($47 for up to 5 kids)")).toBeTruthy());
+    fireEvent.click(screen.getByText("Get the Family Map ($47 for up to 5 kids)"));
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toBe("You already have the Family Map this school year."));
+    expect((screen.getByText("Get the Family Map ($47 for up to 5 kids)") as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("W6: back from Stripe, ?paid= is stripped and the thank-you line shows", async () => {
+    localStorage.setItem(RESULTS_KEY, "TOKEN123");
+    window.history.replaceState(null, "", "/wired/results?paid=cs_live_123");
+    vi.stubGlobal("fetch", mockFetch({
+      "wired-results": { status: 200, body: { children: [unlockedChild] } },
+      "wired-matches": { status: 200, body: { matches: [], budget_filter_offered: true } },
+    }));
+    render(<WiredResults />);
+    await waitFor(() => expect(screen.getByRole("status").textContent).toMatch(/^Thank you! Lily's full results are open below/));
+    expect(window.location.search).toBe("");
+  });
+
   it("with no token on this device it says so, and never calls the server", async () => {
     const f = mockFetch({});
     vi.stubGlobal("fetch", f);

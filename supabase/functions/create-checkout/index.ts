@@ -45,6 +45,8 @@
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext"
+import { handleWiredCheckout } from "./wired-checkout.ts"
+import { WIRED_CART_KEY } from "../_shared/wired-checkout.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { FOUNDING_GATE_SKU, PREORDER_FLAT_SHIPPING_CENTS, PREORDER_PRODUCTS, SHIP_WINDOW, preorderProductBySku } from "../_shared/order-config.ts"
 import { getFoundingGate, getStockGate } from "../_shared/order-db.ts"
@@ -107,7 +109,7 @@ const stripe = new Stripe(stripeSecretKey(), {
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": `authorization, x-client-info, apikey, content-type, x-preorder-admin, ${E2E_HEADER}`,
+  "Access-Control-Allow-Headers": `authorization, x-client-info, apikey, content-type, x-preorder-admin, x-wired-preview, ${E2E_HEADER}`,
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 }
 
@@ -319,6 +321,18 @@ serve(async (req) => {
     }
     if (E2E_MODE) {
       return jsonError("The E2E checkout serves the print shop only", 400)
+    }
+
+    // 1a''. Fearfully & Wonderfully Wired cart (W6, 2026-11-19). Dark until WIRED_ENABLED;
+    //       verifies the results token and children before any Stripe session exists.
+    if (lookup_key === WIRED_CART_KEY) {
+      return await handleWiredCheckout(req, body, {
+        stripe,
+        db: admin(),
+        cors: corsHeaders,
+        createSession: (params) => createCheckoutSessionWithRecovery(stripe, params),
+        extraMetadata: (b) => ({ ...checkoutAttributionMetadata(b), ...siteReminderMetadata(b) }),
+      })
     }
 
     // 1b. Founding-preorder branch (preorder system Phase 1). Distinct request

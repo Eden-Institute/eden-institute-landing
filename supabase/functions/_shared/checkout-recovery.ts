@@ -287,6 +287,8 @@ export function precheckExpiredSession(session: ExpiredSessionLike): Precheck {
 
   if (typeof meta.preorder_sku === 'string' && meta.preorder_sku) return fail('preorder_session');
   if (isE2eMetadata(meta)) return fail('e2e_session');
+  // The wired quiz cart has its own reminder rules (24 h, 50/50 holdout); never the store's 3-hour one.
+  if (meta.lookup_key === 'wired_cart') return fail('wired_session');
   const stripeConsent = session.consent?.promotions ?? null;
   const siteConsent = meta[SITE_REMINDER_CONSENT_KEY] === 'true';
   if (stripeConsent === 'opt_out') return fail('no_promotional_consent');
