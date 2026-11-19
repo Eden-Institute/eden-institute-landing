@@ -1,0 +1,27 @@
+---
+// /wired/results: a family's quiz results (W4; spec 7.1 step 8, answers 12 and 28).
+// PRIVATE: noindex always, and NO THIRD-PARTY TAGS (noThirdPartyTags below): an email link may
+// arrive carrying ?t=, a token that opens this family's results, so nothing here may read the URL and
+// send it on. The island moves the token to localStorage and strips it from the address bar at once.
+// Listed in src/test/privatePagesNoTags.astro.test.ts PRIVATE_PAGES.
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import WiredResults from "../../components/islands/WiredResults";
+
+const meta = {
+  title: "Your quiz results · The Eden Institute",
+  description: "Your Fearfully & Wonderfully Wired results.",
+  canonical: "https://edeninstitute.health/wired/results",
+};
+---
+
+<MarketingLayout
+  title={meta.title}
+  description={meta.description}
+  canonical={meta.canonical}
+  noindex={true}
+  noThirdPartyTags={true}
+>
+  <main>
+    <WiredResults client:only="react" />
+  </main>
+</MarketingLayout>
