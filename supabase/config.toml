@@ -179,6 +179,24 @@ verify_jwt = true
 [functions.replay-quiz-completion-failures]
 verify_jwt = true
 
+# Fearfully & Wonderfully Wired (W3, 2026-11-19), spec section 18 answer 19: the public,
+# token-gated functions are verify_jwt = false; the service-role cron is true. All dark
+# until the WIRED_ENABLED secret is "true" (_shared/wired-gate.ts).
+[functions.wired-bank]
+verify_jwt = false
+
+[functions.wired-submit]
+verify_jwt = false
+
+[functions.wired-results]
+verify_jwt = false
+
+[functions.wired-matches]
+verify_jwt = false
+
+[functions.wired-replay-failures]
+verify_jwt = true
+
 # launch-email-preview mails the founder a copy of each launch email a day early.
 # Invoked only by the Vercel cron with the service-role key; it additionally
 # requires role=service_role via _shared/require-service-role.ts, so verify_jwt

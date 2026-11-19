@@ -117,8 +117,14 @@ export interface Match {
   score: number;                                  // 0..1, rounded to 4 decimals
   components: Record<Component, number>;          // each 0..1
   contributions: Record<Component, number>;       // weight x component
-  because: Component[];                           // the two largest contributions, largest first
+  /**
+   * The reason lines to show (answer 28c): the two largest contributions, largest first,
+   * never 'siblings' for a one-child family and never 'budget' when she said "not sure"
+   * (or the price is unknown); plus 'esa' as a third when the ESA box is ticked.
+   */
+  because: (Component | 'esa')[];
   served_top3: Domain[];                          // which of the child's top 3 it serves
+  esa_state?: string;                             // set when 'esa' is a reason
 }
 
 export interface MatchOutput {
@@ -227,9 +233,21 @@ export function rankCurricula(input: MatchInput): MatchOutput {
     }
     // "Matched because": the two components with the largest weighted contribution;
     // ties follow her ranking order, so the reason she ranked higher is named first.
-    const because = ranking.slice().sort((a, b) => contributions[b] - contributions[a] || ranking.indexOf(a) - ranking.indexOf(b))
-      .filter((k) => contributions[k] > 0).slice(0, 2);
-    return { id: c.id, name: c.name, score: Math.round(score * 1e4) / 1e4, components, contributions, because, served_top3: wiring.served };
+    // A one-child family never sees the siblings reason; "not sure" on budget (or an
+    // unknown price) never shows a budget reason (answer 28c).
+    const showable = (k: Component) =>
+      contributions[k] > 0 &&
+      !(k === 'siblings' && prefs.kids === '1') &&
+      !(k === 'budget' && (!budgetOffered || c.price_cents === null));
+    const because: Match['because'] = ranking.slice()
+      .sort((a, b) => contributions[b] - contributions[a] || ranking.indexOf(a) - ranking.indexOf(b))
+      .filter(showable).slice(0, 2);
+    const m: Match = { id: c.id, name: c.name, score: Math.round(score * 1e4) / 1e4, components, contributions, because, served_top3: wiring.served };
+    if (f.esaOnly && f.state) {
+      m.because.push('esa');
+      m.esa_state = f.state.toUpperCase();
+    }
+    return m;
   });
 
   // Ties: alphabetical by name (never by affiliate status), then id for a stable order.

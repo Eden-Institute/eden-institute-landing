@@ -187,6 +187,10 @@
       "schedule": "*/30 * * * *"
     },
     {
+      "path": "/api/cron/wired-replay-failures",
+      "schedule": "*/30 * * * *"
+    },
+    {
       "path": "/api/cron/notify-founder-digest",
       "schedule": "0 14 * * *"
     },

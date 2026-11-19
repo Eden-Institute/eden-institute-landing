@@ -124,6 +124,24 @@ Deno.test('ranking: weights x components, highest first; "because" names the two
   assertEquals(out.matches[0].served_top3, ['maker', 'designer', 'cultivator']);
 });
 
+Deno.test('reasons (answer 28c): no siblings reason for one child, no budget reason when unsure, ESA as a third when ticked', () => {
+  const rows = [toMatchCurriculum(row({ id: 'a', name: 'Alpha', domains_served: ['Storyteller'], prep_load: 'Heavy' }))];
+  // one child, budget unsure: contributions = wiring 0, prep 0, budget .1458, siblings .0625 -> neither may show
+  const one = rankCurricula(input(rows, { prefs: { kids: '1', prep: 'light', budget: 'unsure' } }));
+  assertEquals(one.matches[0].because, []);
+  // two kids, stated budget: budget + siblings may show
+  const two = rankCurricula(input(rows, { prefs: { kids: '2', prep: 'light', budget: '100_300' } }));
+  assertEquals(two.matches[0].because, ['budget', 'siblings']);
+  // unknown price never gives a budget reason
+  const nullPrice = [toMatchCurriculum(row({ id: 'n', name: 'NoPrice', price_cents: null }))];
+  assert(!rankCurricula(input(nullPrice)).matches[0].because.includes('budget'));
+  // ESA ticked with a state: 'esa' appended as a third reason
+  const esa = [{ curriculum_id: 'a', state: 'TN', eligible: 'yes', verified_at: '2026-11-18' }];
+  const withEsa = rankCurricula(input(rows, { esa, prefs: { kids: '2', prep: 'light', budget: '100_300', filters: { esaOnly: true, state: 'tn' } } }));
+  assertEquals(withEsa.matches[0].because, ['budget', 'siblings', 'esa']);
+  assertEquals(withEsa.matches[0].esa_state, 'TN');
+});
+
 Deno.test('her ranking changes the order (budget first puts the cheaper one on top)', () => {
   const rows = [
     toMatchCurriculum(row({ id: 'a', name: 'Alpha', domains_served: ['Maker', 'Designer', 'Cultivator'], price_cents: 90_000 })),
