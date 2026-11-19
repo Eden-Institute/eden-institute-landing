@@ -174,11 +174,19 @@ export function budgetComponent(c: MatchCurriculum, budget: string): number {
   return 0;
 }
 
-/** 1 if its prep load fits her daily prep time, 0.5 one step over, else 0 (unknown prep = 0). */
+/** Neutral score for a curriculum whose prep level is not recorded yet (answer 34, Camila 2026-11-19). */
+export const UNKNOWN_PREP_SCORE = 0.5;
+
+/**
+ * 1 if its prep load fits her daily prep time, 0.5 one step over, else 0. A curriculum with no
+ * prep level recorded scores 0.5 for every mom (neither helps nor hurts) and never shows a prep
+ * reason (answer 34, "Neutral until set"); a level set on /founder/wired replaces it at once.
+ */
 export function prepComponent(c: MatchCurriculum, prep: string): number {
   const her = PREP_LEVELS.indexOf(prep as typeof PREP_LEVELS[number]);
   const its = PREP_LEVELS.indexOf(c.prep_load as typeof PREP_LEVELS[number]);
-  if (her < 0 || its < 0) return 0;
+  if (its < 0) return UNKNOWN_PREP_SCORE;
+  if (her < 0) return 0;
   if (its <= her) return 1;
   if (its === her + 1) return 0.5;
   return 0;
@@ -238,7 +246,8 @@ export function rankCurricula(input: MatchInput): MatchOutput {
     const showable = (k: Component) =>
       contributions[k] > 0 &&
       !(k === 'siblings' && prefs.kids === '1') &&
-      !(k === 'budget' && (!budgetOffered || c.price_cents === null));
+      !(k === 'budget' && (!budgetOffered || c.price_cents === null)) &&
+      !(k === 'prep' && !PREP_LEVELS.includes(c.prep_load as typeof PREP_LEVELS[number]));
     const because: Match['because'] = ranking.slice()
       .sort((a, b) => contributions[b] - contributions[a] || ranking.indexOf(a) - ranking.indexOf(b))
       .filter(showable).slice(0, 2);

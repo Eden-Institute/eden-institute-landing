@@ -83,7 +83,8 @@ Deno.test('components: wiring, budget bounds, prep steps, siblings', () => {
   assertEquals(prepComponent(prep('Light'), 'light'), 1);
   assertEquals(prepComponent(prep('Moderate'), 'light'), 0.5);
   assertEquals(prepComponent(prep('Heavy'), 'light'), 0);
-  assertEquals(prepComponent(prep(''), 'light'), 0);
+  assertEquals(prepComponent(prep(''), 'light'), 0.5); // no level recorded = neutral (answer 34)
+  assertEquals(prepComponent(prep(''), 'heavy'), 0.5);
 
   assertEquals(siblingsComponent(toMatchCurriculum(row({ multi_age: false })), '1'), 1);
   assertEquals(siblingsComponent(toMatchCurriculum(row({ multi_age: false })), '3'), 0.3);
@@ -140,6 +141,14 @@ Deno.test('reasons (answer 28c): no siblings reason for one child, no budget rea
   const withEsa = rankCurricula(input(rows, { esa, prefs: { kids: '2', prep: 'light', budget: '100_300', filters: { esaOnly: true, state: 'tn' } } }));
   assertEquals(withEsa.matches[0].because, ['budget', 'siblings', 'esa']);
   assertEquals(withEsa.matches[0].esa_state, 'TN');
+});
+
+Deno.test('answer 34: a curriculum with no prep level never shows a prep reason, even with prep ranked first', () => {
+  const rows = [toMatchCurriculum(row({ id: 'n', name: 'NoPrep', prep_load: null, domains_served: ['Storyteller'] }))];
+  const out = rankCurricula(input(rows, { prefs: { kids: '2', prep: 'light', budget: '100_300', ranking: ['prep', 'budget', 'wiring', 'siblings'] } }));
+  assertEquals(out.matches[0].components.prep, 0.5);
+  assert(!out.matches[0].because.includes('prep'));
+  assertEquals(out.matches[0].because, ['budget', 'siblings']);
 });
 
 Deno.test('her ranking changes the order (budget first puts the cheaper one on top)', () => {
