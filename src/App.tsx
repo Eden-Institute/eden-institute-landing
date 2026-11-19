@@ -31,6 +31,7 @@ import ConsentBanner from "@/components/ConsentBanner";
 // clinic, the Apothecary). The ad-driven funnel pages above stay eager so the
 // quiz -> results transition never shows a skeleton.
 const FounderLeads = lazy(() => import("./pages/FounderLeads"));
+const FounderWired = lazy(() => import("./pages/FounderWired"));
 const PractitionerClinic = lazy(() => import("./pages/PractitionerClinic"));
 const ApothecaryIndex = lazy(() => import("./pages/apothecary/ApothecaryIndex"));
 const HerbMonograph = lazy(() => import("./pages/apothecary/HerbMonograph"));
@@ -157,6 +158,17 @@ const App = () => (
                 element={
                   <RequireAuth>
                     <FounderLeads />
+                  </RequireAuth>
+                }
+              />
+              {/* Wired quiz curriculum database (W5). Same boundary as /founder: the
+                  wired_admin_* RPCs answer FOUNDER_ONLY to anyone else, and
+                  approve / rollback / import also need her authenticator code. */}
+              <Route
+                path={ROUTES.FOUNDER_WIRED}
+                element={
+                  <RequireAuth>
+                    <FounderWired />
                   </RequireAuth>
                 }
               />

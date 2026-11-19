@@ -43,6 +43,9 @@ export const ROUTES = {
 
   // ── Founder / admin (auth-walled; server-gated by is_founder()) ──
   FOUNDER_LEADS: "/founder",
+  // Wired quiz curriculum database (W5, 2026-11-19): wired_admin_* RPCs gate on is_founder(),
+  // and approve / unapprove / rollback / import on is_founder_mfa() as well.
+  FOUNDER_WIRED: "/founder/wired",
   // FOUNDER_STUDIO ("/studio") removed 2026-07-26. The Ad Studio was retired at the
   // founder's request. Its route, 20 source files, 10 test files, 3 edge functions
   // and 8 tables were removed together; see chore/remove-studio.
