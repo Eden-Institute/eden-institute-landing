@@ -28,18 +28,25 @@ export function trackCta(
   opts?: { path?: string; lookupKey?: string | null },
 ): void {
   if (!cta) return;
-  const path =
-    opts?.path ??
-    (typeof window !== "undefined" ? window.location.pathname : "/");
-  void supabase
-    .rpc("record_cta_click", {
-      p_cta: cta,
-      p_path: path,
-      // p_lookup_key is optional (SQL default null), so omit it rather than send null.
-      ...(opts?.lookupKey ? { p_lookup_key: opts.lookupKey } : {}),
-    })
-    .then(
-      () => {},
-      () => {},
-    );
+  // A synchronous throw (no client, a stubbed client without .rpc) must not escape
+  // either: the curriculum buy boxes call this right before create-checkout, and an
+  // analytics error there would stop checkout from opening (2026-11-18).
+  try {
+    const path =
+      opts?.path ??
+      (typeof window !== "undefined" ? window.location.pathname : "/");
+    void supabase
+      .rpc("record_cta_click", {
+        p_cta: cta,
+        p_path: path,
+        // p_lookup_key is optional (SQL default null), so omit it rather than send null.
+        ...(opts?.lookupKey ? { p_lookup_key: opts.lookupKey } : {}),
+      })
+      .then(
+        () => {},
+        () => {},
+      );
+  } catch {
+    /* analytics never breaks a click */
+  }
 }

@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getFbAttribution } from "@/lib/fbAttribution";
 import { getCheckoutAttribution } from "@/lib/attribution";
 import { pinTrack } from "@/lib/pinterestTag";
+import { trackCta } from "@/lib/trackCta";
 import { partnerPromoBody, partnerPromoCode } from "../../lib/partnerPromo";
 import { likelyNeedsGround, printShippingCents } from "../../../supabase/functions/_shared/print-pricing";
 import { checkShipTo, type ShipTo } from "../../../supabase/functions/_shared/ship-address";
@@ -77,6 +78,9 @@ async function startCheckout(btn: HTMLButtonElement, action: Req, items: Item[],
   const label = btn.textContent;
   btn.disabled = true;
   btn.textContent = "Opening checkout...";
+  // Funnel moment: one checkout-start per create-checkout invoke (the founder
+  // dashboard's "Checkout starts" counts only this event).
+  trackCta("checkout-start", { lookupKey: action.kind === "print" ? items[0]?.sku ?? null : action.sku });
   try {
     // A partner's ?promo= code for this visit (web/lib/partnerPromo.ts, 2026-11-17).
     const promo = partnerPromoBody(partnerPromoCode());

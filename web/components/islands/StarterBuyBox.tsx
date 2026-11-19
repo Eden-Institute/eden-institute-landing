@@ -21,8 +21,10 @@ import { friendlyEfError } from "@/components/apothecary/friendlyEfError";
 import { getFbAttribution } from "@/lib/fbAttribution";
 import { getCheckoutAttribution } from "@/lib/attribution";
 import { pinTrack } from "@/lib/pinterestTag";
+import { trackCta } from "@/lib/trackCta";
 import { partnerPromoBody, partnerPromoCode } from "../../lib/partnerPromo";
 import PayOverTime from "./PayOverTime";
+import CheckoutContact, { EMPTY_CHECKOUT_CONTACT, checkoutContactBody, type CheckoutContactValue } from "./CheckoutContact";
 // FPEA 2027 convention offer (/fpea, 2026-10-30). Without the `offer` prop this box is unchanged.
 import { FPEA_OFFER_ID, FPEA_STARTER_DISCOUNT_PERCENT, fpeaStarterPriceCents } from "../../../supabase/functions/_shared/fpea-offer";
 
@@ -80,6 +82,7 @@ export default function StarterBuyBox({ cta, wide = false, band = "sprouts", off
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cancelled, setCancelled] = useState(false);
+  const [contact, setContact] = useState<CheckoutContactValue>(EMPTY_CHECKOUT_CONTACT);
 
   useEffect(() => {
     // Stripe sends the buyer back here with ?checkout=cancelled if they back out.
@@ -100,6 +103,9 @@ export default function StarterBuyBox({ cta, wide = false, band = "sprouts", off
       order_quantity: 1,
       line_items: [{ product_id: product.lookupKey, product_name: product.productName, product_price: priceValue, product_quantity: 1 }],
     });
+    // Funnel moment: one checkout-start per create-checkout invoke (the founder
+    // dashboard's "Checkout starts" counts only this event, not the button's data-cta).
+    trackCta("checkout-start", { lookupKey: product.lookupKey });
     setLoading(true);
     setError(null);
     setCancelled(false);
@@ -108,6 +114,8 @@ export default function StarterBuyBox({ cta, wide = false, band = "sprouts", off
         body: {
           ...getFbAttribution(), attribution: getCheckoutAttribution(),
           lookup_key: product.lookupKey,
+          // Optional email + one-reminder consent (CheckoutContact). Empty unless typed.
+          ...checkoutContactBody(contact),
           ...(offer
             ? { offer, cancel_url: `https://edeninstitute.health/fpea?checkout=cancelled&item=starter-${band}#starter-${band}` }
             : {}),
@@ -141,6 +149,8 @@ export default function StarterBuyBox({ cta, wide = false, band = "sprouts", off
           No payment was taken. Your Starter Unit is still here whenever you are ready.
         </p>
       )}
+
+      <CheckoutContact value={contact} onChange={setContact} className={`mb-4 ${wide ? "md:max-w-[420px] md:mx-auto" : ""}`} />
 
       <button
         type="button"
