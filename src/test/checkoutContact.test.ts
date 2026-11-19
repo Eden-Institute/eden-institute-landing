@@ -16,6 +16,15 @@ describe("cleanContactEmail", () => {
     expect(cleanContactEmail("mom example.com")).toBeNull();
     expect(cleanContactEmail(`${"x".repeat(250)}@b.co`)).toBeNull();
   });
+  it("drops what Stripe refuses, so a typo can never fail the checkout (2026-11-19)", () => {
+    for (const e of ["mom@example.com.", "mom@example.com,", "<mom@example.com>", "mom@example.com​", "mom@.example.com"]) {
+      expect(cleanContactEmail(e)).toBeNull();
+    }
+    // and keeps the unusual-but-real ones Stripe takes
+    for (const e of ["o'brien@example.com", "mom+eden@example.com", "jané@example.com"]) {
+      expect(cleanContactEmail(e)).toBe(e);
+    }
+  });
 });
 
 describe("checkoutContactBody", () => {

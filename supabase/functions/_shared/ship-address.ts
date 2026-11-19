@@ -24,8 +24,10 @@
 // PMB ("private mailbox", e.g. a UPS Store box) is a street address and is
 // allowed. "Unit" is allowed (our own business address is "Unit 3262").
 //
-// PURE AND DEPENDENCY-FREE: imported by create-checkout, stripe-webhook, the
-// buy boxes and the tests. Voice rule: no em dashes.
+// PURE: imported by create-checkout, stripe-webhook, the buy boxes and the tests.
+// Its one import (contact-email.ts) is pure too. Voice rule: no em dashes.
+
+import { isStripeSafeEmail } from './contact-email.ts';
 
 export interface ShipTo {
   name: string;
@@ -111,7 +113,10 @@ export function checkShipTo(raw: unknown): ShipToCheck {
   if (isPoBoxLine(v.line1) || isPoBoxLine(v.line2)) return { ok: false, problem: 'po_box', message: MESSAGES.po_box };
   if (!SHIP_TO_STATES.includes(v.state)) return { ok: false, problem: 'state', message: MESSAGES.state };
   if (!/^\d{5}(-\d{4})?$/.test(v.postal_code)) return { ok: false, problem: 'zip', message: MESSAGES.zip };
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)) return { ok: false, problem: 'email', message: MESSAGES.email };
+  // Stripe-safe check (contact-email.ts, 2026-11-19): a heavy order creates a Stripe
+  // Customer from this address, and one Stripe refuses ("mom@example.com.") used to
+  // fail checkout with a generic error instead of this friendly line.
+  if (!isStripeSafeEmail(v.email)) return { ok: false, problem: 'email', message: MESSAGES.email };
   return { ok: true, value: v };
 }
 

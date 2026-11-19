@@ -81,6 +81,12 @@ describe("checkShipTo", () => {
     expect(checkShipTo({ ...good, email: "ada.example.com" })).toMatchObject({ ok: false, problem: "email" });
     expect(checkShipTo(null)).toMatchObject({ ok: false, problem: "missing" });
   });
+  it("asks again for an email Stripe would refuse, instead of failing checkout (2026-11-19)", () => {
+    for (const email of ["ada@example.com.", "ada@example.com,", "<ada@example.com>", "ada@.example.com"]) {
+      expect(checkShipTo({ ...good, email })).toMatchObject({ ok: false, problem: "email" });
+    }
+    expect(checkShipTo({ ...good, email: "o'brien+eden@example.com" })).toMatchObject({ ok: true });
+  });
 });
 
 describe("locked address round trip (create-checkout metadata -> stripe-webhook)", () => {
