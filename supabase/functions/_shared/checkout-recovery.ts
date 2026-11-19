@@ -31,6 +31,7 @@ import { escapeHtml, safeHttpsUrl } from './html-escape.ts';
 import { SELLER_ADDRESS, SELLER_LEGAL_NAME } from './receipt.ts';
 import { isE2eMetadata } from './e2e-mode.ts';
 import { captureException } from './sentry.ts';
+import { cleanContactEmail } from './contact-email.ts';
 
 /** Session lifetime. The reminder goes out when the session expires, ~3 hours after it started. */
 export const CART_RECOVERY_EXPIRY_SECONDS = 3 * 60 * 60;
@@ -112,6 +113,43 @@ export function isRecoveryParamRejection(err: unknown): boolean {
   return /consent_collection|after_expiration/.test(text);
 }
 
+/**
+ * True when Stripe refused the session's `customer_email` (400 email_invalid,
+ * param customer_email). Seen in TEST mode 2026-11-19 for addresses the site's old
+ * loose check passed, e.g. "mom@example.com." or "mom@example.com,".
+ */
+export function isCustomerEmailRejection(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  // deno-lint-ignore no-explicit-any
+  const e = err as any;
+  const invalid = e.type === 'StripeInvalidRequestError' || e.rawType === 'invalid_request_error' ||
+    e.raw?.type === 'invalid_request_error';
+  if (!invalid) return false;
+  const code = e.code ?? e.raw?.code;
+  const param = e.param ?? e.raw?.param;
+  return code === 'email_invalid' && param === 'customer_email';
+}
+
+/**
+ * Drop the buyer-typed email from a create-params object, in place: customer_email,
+ * and the site box's metadata.email + reminder_consent (a reminder needs a usable
+ * address, and the yes was given together with this one). Stripe's page then asks
+ * for the email as it always did. Both metadata bags are cleaned, because for a
+ * subscription create-checkout puts the bag under subscription_data.
+ */
+export function stripCustomerEmail<T extends Params>(params: T): T {
+  // deno-lint-ignore no-explicit-any
+  const p = params as any;
+  delete p.customer_email;
+  for (const bag of [p.metadata, p.subscription_data?.metadata]) {
+    if (bag && typeof bag === 'object') {
+      delete bag.email;
+      delete bag[SITE_REMINDER_CONSENT_KEY];
+    }
+  }
+  return params;
+}
+
 // Structural, so tests can pass a fake. The session type is read off the client's
 // own create() (for stripe-node, Stripe.Response<Stripe.Checkout.Session>).
 // deno-lint-ignore no-explicit-any
@@ -131,6 +169,13 @@ type CreatedSession<C extends CheckoutSessionCreator> = Awaited<ReturnType<C['ch
  * after_expiration, strip ALL the recovery params (restoring the normal 24-hour
  * lifetime), report it loudly, and retry exactly once. Any other error, or a
  * failure on the retry, propagates unchanged.
+ *
+ * Same for the buyer-typed email (2026-11-19): the curriculum buy boxes' optional
+ * email field (PR #756) reaches Stripe as customer_email, and a refused address
+ * (400 email_invalid) used to fail the whole checkout. If Stripe refuses it, drop
+ * the email and retry once, so an optional field can never block a purchase. Each
+ * fallback runs at most once, in whichever order Stripe raises them, so the worst
+ * case is three calls.
  */
 export async function createCheckoutSessionWithRecovery<C extends CheckoutSessionCreator, T extends Params>(
   stripe: C,
@@ -138,23 +183,40 @@ export async function createCheckoutSessionWithRecovery<C extends CheckoutSessio
   report: (err: unknown, context: Record<string, unknown>) => Promise<void> = captureException,
 ): Promise<CreatedSession<C>> {
   const create = (x: T) => stripe.checkout.sessions.create(x) as Promise<CreatedSession<C>>;
-  try {
-    return await create(params);
-  } catch (err) {
-    if (!isRecoveryParamRejection(err)) throw err;
-    const message = err instanceof Error ? err.message : String(err);
-    console.error(
-      `create-checkout: CART RECOVERY DISABLED for this session because Stripe rejected the ` +
-        `recovery params (${message}). Retrying once without them. Accept the promotional-emails ` +
-        `terms at https://dashboard.stripe.com/settings/checkout to turn cart recovery back on.`,
-    );
+  let recoveryStripped = false;
+  let emailStripped = false;
+  for (;;) {
     try {
-      await report(err, { function: 'create-checkout', step: 'cart_recovery_params_rejected' });
-    } catch {
-      // reporting must never block a checkout
+      return await create(params);
+    } catch (err) {
+      if (!recoveryStripped && isRecoveryParamRejection(err)) {
+        recoveryStripped = true;
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(
+          `create-checkout: CART RECOVERY DISABLED for this session because Stripe rejected the ` +
+            `recovery params (${message}). Retrying once without them. Accept the promotional-emails ` +
+            `terms at https://dashboard.stripe.com/settings/checkout to turn cart recovery back on.`,
+        );
+        try {
+          await report(err, { function: 'create-checkout', step: 'cart_recovery_params_rejected' });
+        } catch {
+          // reporting must never block a checkout
+        }
+        stripCheckoutRecovery(params);
+        continue;
+      }
+      if (!emailStripped && isCustomerEmailRejection(err)) {
+        emailStripped = true;
+        // The address itself stays out of the log (it is the buyer's typing).
+        console.warn(
+          'create-checkout: Stripe refused the customer_email the buyer typed (email_invalid); ' +
+            'retrying once without it, so Stripe asks for the email on its own page.',
+        );
+        stripCustomerEmail(params);
+        continue;
+      }
+      throw err;
     }
-    stripCheckoutRecovery(params);
-    return await create(params);
   }
 }
 
@@ -197,8 +259,8 @@ export const SITE_REMINDER_CONSENT_KEY = 'reminder_consent';
  * with an email. Nothing at all for a blank or malformed email.
  */
 export function siteReminderMetadata(body: Record<string, unknown> | null | undefined): Record<string, string> {
-  const raw = typeof body?.email === 'string' ? body.email.trim() : '';
-  const email = raw && raw.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw) ? raw : '';
+  // The same Stripe-safe check the box itself uses (contact-email.ts, 2026-11-19).
+  const email = cleanContactEmail(typeof body?.email === 'string' ? body.email : null);
   if (!email) return {};
   const out: Record<string, string> = { email };
   if (body?.reminder_consent === true || body?.reminder_consent === 'true') out[SITE_REMINDER_CONSENT_KEY] = 'true';

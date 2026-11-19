@@ -16,6 +16,13 @@
 //   - No em dashes in buyer-facing copy.
 
 import { useId } from "react";
+// A usable email or null. Shared with create-checkout and the print ship-to form, so
+// all three refuse exactly the addresses Stripe refuses (a trailing dot or comma,
+// "<...>", a zero-width space); one Stripe refused used to fail the whole checkout
+// (2026-11-19). Stripe still does the real check.
+import { cleanContactEmail } from "../../../supabase/functions/_shared/contact-email";
+
+export { cleanContactEmail };
 
 export interface CheckoutContactValue {
   email: string;
@@ -23,13 +30,6 @@ export interface CheckoutContactValue {
 }
 
 export const EMPTY_CHECKOUT_CONTACT: CheckoutContactValue = { email: "", remind: false };
-
-/** A usable email or null. Deliberately loose: Stripe does the real check. */
-export function cleanContactEmail(raw: string | null | undefined): string | null {
-  const e = (raw ?? "").trim();
-  if (!e || e.length > 254) return null;
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) ? e : null;
-}
 
 /**
  * The fields to add to a create-checkout request body. Nothing when the email is

@@ -13,8 +13,10 @@ import {
   buildCartRecoveryEmail,
   createCheckoutSessionWithRecovery,
   decideCartRecovery,
+  isCustomerEmailRejection,
   isRecoveryParamRejection,
   stripCheckoutRecovery,
+  stripCustomerEmail,
   firstNameFrom,
   precheckExpiredSession,
   recoveryItemNames,
@@ -123,6 +125,12 @@ Deno.test('site box: metadata only with a usable email; the yes only with an ema
   assertEquals(siteReminderMetadata({ email: 'a@b', reminder_consent: true }), {});
   assertEquals(siteReminderMetadata({ email: `${'x'.repeat(250)}@b.co`, reminder_consent: true }), {});
   assertEquals(siteReminderMetadata(null), {});
+});
+
+Deno.test('site box: an address Stripe would refuse is not kept (trailing dot, comma, <...>)', () => {
+  for (const email of ['mom@example.com.', 'mom@example.com,', '<mom@example.com>', 'mom@example.com​']) {
+    assertEquals(siteReminderMetadata({ email, reminder_consent: true }), {}, JSON.stringify(email));
+  }
 });
 
 Deno.test('site box: its yes counts when Stripe recorded no choice, with the email from metadata', () => {
@@ -281,13 +289,16 @@ Deno.test('create-checkout: recovery params on main, print and book PDF; never o
 // ── fail-safe: Stripe refuses the recovery params ──
 
 // The shape stripe-node throws (StripeInvalidRequestError), trimmed to what we read.
-function stripeInvalid(message: string, param?: string): Error {
+function stripeInvalid(message: string, param?: string, code?: string): Error {
   const e = new Error(message) as Error & Record<string, unknown>;
   e.type = 'StripeInvalidRequestError';
   e.rawType = 'invalid_request_error';
   if (param) e.param = param;
+  if (code) e.code = code;
   return e;
 }
+// The exact TEST-mode refusal seen 2026-11-19 for a typed address with a trailing dot.
+const EMAIL_ERR = () => stripeInvalid('Invalid email address: mom@example.com.', 'customer_email', 'email_invalid');
 // The exact TEST-mode rejection seen 2026-09-28.
 const TERMS_ERR = 'To set `consent_collection.promotions`, please visit https://dashboard.stripe.com/settings/checkout to agree to the Terms of Service.';
 
@@ -422,6 +433,89 @@ Deno.test('stripCheckoutRecovery without a prior apply drops only promotions', (
     consent_collection: { promotions: 'auto', terms_of_service: 'required' },
   } as Record<string, unknown>);
   assertEquals(p, { mode: 'payment', consent_collection: { terms_of_service: 'required' } });
+});
+
+// ── fail-safe: Stripe refuses the buyer-typed email (2026-11-19) ──
+
+function emailParams(extra: Record<string, unknown> = {}) {
+  return recoveryParams({
+    customer_email: 'mom@example.com.',
+    metadata: { email: 'mom@example.com.', reminder_consent: 'true', attr_utm_source: 'facebook' },
+    ...extra,
+  });
+}
+
+Deno.test('email fail-safe (f): a refused customer_email retries once without the typed email', async () => {
+  const stripe = fakeStripe([EMAIL_ERR(), { id: 'cs_5' }]);
+  const s = await silenced(() => createCheckoutSessionWithRecovery(stripe, emailParams(), quiet));
+  assertEquals(s.id, 'cs_5');
+  assertEquals(stripe.calls.length, 2);
+  const retry = stripe.calls[1];
+  assert(!('customer_email' in retry), 'no customer_email');
+  assertEquals(retry.metadata, { attr_utm_source: 'facebook' }, 'email + reminder yes dropped, the rest kept');
+  // Cart recovery itself is untouched: only the email went.
+  assertEquals(retry.consent_collection, { promotions: 'auto' });
+  assert('after_expiration' in retry && 'expires_at' in retry);
+});
+
+Deno.test('email fail-safe (f2): both fallbacks in one checkout, either order, three calls at most', async () => {
+  const a = fakeStripe([stripeInvalid(TERMS_ERR), EMAIL_ERR(), { id: 'cs_6' }]);
+  assertEquals((await silenced(() => createCheckoutSessionWithRecovery(a, emailParams(), quiet))).id, 'cs_6');
+  assertEquals(a.calls.length, 3);
+  assert(!('customer_email' in a.calls[2]) && !('consent_collection' in a.calls[2]));
+  const b = fakeStripe([EMAIL_ERR(), stripeInvalid(TERMS_ERR), { id: 'cs_7' }]);
+  assertEquals((await silenced(() => createCheckoutSessionWithRecovery(b, emailParams(), quiet))).id, 'cs_7');
+  assertEquals(b.calls.length, 3);
+  assert(!('customer_email' in b.calls[2]) && !('consent_collection' in b.calls[2]));
+});
+
+Deno.test('email fail-safe (f3): a second email refusal is not retried again', async () => {
+  const second = EMAIL_ERR();
+  const stripe = fakeStripe([EMAIL_ERR(), second, { id: 'never' }]);
+  let thrown: unknown = null;
+  try {
+    await silenced(() => createCheckoutSessionWithRecovery(stripe, emailParams(), quiet));
+  } catch (e) {
+    thrown = e;
+  }
+  assert(thrown === second);
+  assertEquals(stripe.calls.length, 2);
+});
+
+Deno.test('email fail-safe (f4): email_invalid on another param, or another code on customer_email, is rethrown', async () => {
+  for (const err of [
+    stripeInvalid('Invalid email address', 'customer_update[email]', 'email_invalid'),
+    stripeInvalid('Something about customer_email', 'customer_email', 'parameter_invalid_string'),
+  ]) {
+    const stripe = fakeStripe([err, { id: 'never' }]);
+    let thrown: unknown = null;
+    try {
+      await createCheckoutSessionWithRecovery(stripe, emailParams(), quiet);
+    } catch (e) {
+      thrown = e;
+    }
+    assert(thrown === err);
+    assertEquals(stripe.calls.length, 1);
+  }
+});
+
+Deno.test('isCustomerEmailRejection needs invalid_request_error + email_invalid + customer_email', () => {
+  assert(isCustomerEmailRejection(EMAIL_ERR()));
+  assert(isCustomerEmailRejection({ raw: { type: 'invalid_request_error', code: 'email_invalid', param: 'customer_email' } }));
+  assert(!isCustomerEmailRejection({ type: 'StripeAPIError', code: 'email_invalid', param: 'customer_email' }));
+  assert(!isCustomerEmailRejection(stripeInvalid(TERMS_ERR)));
+  assert(!isCustomerEmailRejection(null));
+});
+
+Deno.test('stripCustomerEmail cleans customer_email and both metadata bags, nothing else', () => {
+  const p = stripCustomerEmail({
+    mode: 'subscription',
+    customer_email: 'x@y.co',
+    metadata: { email: 'x@y.co', reminder_consent: 'true', keep: '1' },
+    subscription_data: { metadata: { email: 'x@y.co', reminder_consent: 'true', keep: '2' } },
+  } as Record<string, unknown>);
+  assertEquals(p, { mode: 'subscription', metadata: { keep: '1' }, subscription_data: { metadata: { keep: '2' } } });
+  assertEquals(stripCustomerEmail({ mode: 'payment' } as Record<string, unknown>), { mode: 'payment' });
 });
 
 Deno.test('isRecoveryParamRejection reads type, rawType, param and message', () => {
