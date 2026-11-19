@@ -1,0 +1,323 @@
+{
+  "version": "g912-v1",
+  "set_kind": "g9_12",
+  "approved_at": "2026-11-19",
+  "source": "Wired_Quiz_Grades9-12_Question_Set.md",
+  "weights": {
+    "scenario": 0.5,
+    "frequency": 0.5
+  },
+  "instructions": "Think about your teen over the past month. For each moment, pick the ONE answer that sounds most like your teen right now, even if more than one fits. There are no wrong answers: every choice is a strength.",
+  "frequency_stem": "In the past month, how often does your teen...",
+  "scale": {
+    "points": 5,
+    "labels": [
+      "Rarely",
+      "Sometimes",
+      "Often",
+      "Very often",
+      "Constantly"
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "g912-s01",
+      "prompt": "A free evening all to themselves. Your teen is most likely to...",
+      "options": [
+        {
+          "id": "g912-s01-a",
+          "domain": "storyteller",
+          "text": "read, write, or work on an essay, story or blog"
+        },
+        {
+          "id": "g912-s01-b",
+          "domain": "organizer",
+          "text": "work on a strategy game, a coding project or a logic puzzle"
+        },
+        {
+          "id": "g912-s01-c",
+          "domain": "designer",
+          "text": "draw, edit photos or video, or redo their space"
+        }
+      ]
+    },
+    {
+      "id": "g912-s02",
+      "prompt": "In a group (co-op class, youth group, a team), your teen shines when...",
+      "options": [
+        {
+          "id": "g912-s02-a",
+          "domain": "maker",
+          "text": "there is something physical to do: build, play, compete"
+        },
+        {
+          "id": "g912-s02-b",
+          "domain": "psalmist",
+          "text": "there is music: worship team, choir or a band"
+        },
+        {
+          "id": "g912-s02-c",
+          "domain": "connector",
+          "text": "they can lead, encourage, or pull the group together"
+        }
+      ]
+    },
+    {
+      "id": "g912-s03",
+      "prompt": "On a hike or camping trip, your teen...",
+      "options": [
+        {
+          "id": "g912-s03-a",
+          "domain": "ponderer",
+          "text": "likes to hang back and have some quiet time alone"
+        },
+        {
+          "id": "g912-s03-b",
+          "domain": "cultivator",
+          "text": "knows, or wants to know, the plants, birds and trees"
+        },
+        {
+          "id": "g912-s03-c",
+          "domain": "seeker",
+          "text": "ends up in deep talks about God, creation or purpose"
+        }
+      ]
+    },
+    {
+      "id": "g912-s04",
+      "prompt": "When your teen is stressed, they usually...",
+      "options": [
+        {
+          "id": "g912-s04-a",
+          "domain": "storyteller",
+          "text": "talk it out, or write it down"
+        },
+        {
+          "id": "g912-s04-b",
+          "domain": "maker",
+          "text": "work it off: exercise, build, cook or fix something"
+        },
+        {
+          "id": "g912-s04-c",
+          "domain": "ponderer",
+          "text": "pull back for a while to think it through alone"
+        }
+      ]
+    },
+    {
+      "id": "g912-s05",
+      "prompt": "Planning a family trip, your teen is the one who...",
+      "options": [
+        {
+          "id": "g912-s05-a",
+          "domain": "organizer",
+          "text": "builds the schedule, the budget or the packing list"
+        },
+        {
+          "id": "g912-s05-b",
+          "domain": "psalmist",
+          "text": "makes the playlist for the drive"
+        },
+        {
+          "id": "g912-s05-c",
+          "domain": "cultivator",
+          "text": "finds the trails, parks, farms or wildlife to see"
+        }
+      ]
+    },
+    {
+      "id": "g912-s06",
+      "prompt": "At church or youth group, your teen is most drawn to...",
+      "options": [
+        {
+          "id": "g912-s06-a",
+          "domain": "designer",
+          "text": "the creative side: slides, stage design, photos or art"
+        },
+        {
+          "id": "g912-s06-b",
+          "domain": "connector",
+          "text": "the people: mentoring younger kids or talking with adults"
+        },
+        {
+          "id": "g912-s06-c",
+          "domain": "seeker",
+          "text": "the teaching, and wrestling with hard questions afterward"
+        }
+      ]
+    },
+    {
+      "id": "g912-s07",
+      "prompt": "Late at night, your teen is most likely to...",
+      "options": [
+        {
+          "id": "g912-s07-a",
+          "domain": "storyteller",
+          "text": "be reading, writing, or deep in a good story"
+        },
+        {
+          "id": "g912-s07-b",
+          "domain": "psalmist",
+          "text": "be listening to, playing, or writing music"
+        },
+        {
+          "id": "g912-s07-c",
+          "domain": "seeker",
+          "text": "want to talk about faith, meaning, or what is right"
+        }
+      ]
+    },
+    {
+      "id": "g912-s08",
+      "prompt": "In a group project, your teen naturally...",
+      "options": [
+        {
+          "id": "g912-s08-a",
+          "domain": "organizer",
+          "text": "sets up the plan, the numbers or the system"
+        },
+        {
+          "id": "g912-s08-b",
+          "domain": "connector",
+          "text": "keeps everyone working together and feeling heard"
+        },
+        {
+          "id": "g912-s08-c",
+          "domain": "ponderer",
+          "text": "takes one piece and does it on their own"
+        }
+      ]
+    },
+    {
+      "id": "g912-s09",
+      "prompt": "Your teen's dream summer job or project would be...",
+      "options": [
+        {
+          "id": "g912-s09-a",
+          "domain": "designer",
+          "text": "something creative: design, photos or decorating"
+        },
+        {
+          "id": "g912-s09-b",
+          "domain": "maker",
+          "text": "something hands-on: building, repairing, cooking or a trade"
+        },
+        {
+          "id": "g912-s09-c",
+          "domain": "cultivator",
+          "text": "something outdoors: a farm, a vet clinic or a park"
+        }
+      ]
+    },
+    {
+      "id": "g912-s10",
+      "prompt": "With friends, your teen is usually the one who...",
+      "options": [
+        {
+          "id": "g912-s10-a",
+          "domain": "storyteller",
+          "text": "tells the stories everyone remembers"
+        },
+        {
+          "id": "g912-s10-b",
+          "domain": "connector",
+          "text": "notices who is left out and pulls them in"
+        },
+        {
+          "id": "g912-s10-c",
+          "domain": "cultivator",
+          "text": "gets everyone outside: hiking, fishing or caring for animals"
+        }
+      ]
+    },
+    {
+      "id": "g912-s11",
+      "prompt": "Faced with a hard problem, your teen...",
+      "options": [
+        {
+          "id": "g912-s11-a",
+          "domain": "organizer",
+          "text": "breaks it down logically, step by step"
+        },
+        {
+          "id": "g912-s11-b",
+          "domain": "maker",
+          "text": "tries things with their hands until something works"
+        },
+        {
+          "id": "g912-s11-c",
+          "domain": "seeker",
+          "text": "asks what the right thing to do is, and why"
+        }
+      ]
+    },
+    {
+      "id": "g912-s12",
+      "prompt": "Given an hour alone, your teen is most likely to...",
+      "options": [
+        {
+          "id": "g912-s12-a",
+          "domain": "designer",
+          "text": "sketch, design, or build something detailed"
+        },
+        {
+          "id": "g912-s12-b",
+          "domain": "psalmist",
+          "text": "practice an instrument, sing, or write a song"
+        },
+        {
+          "id": "g912-s12-c",
+          "domain": "ponderer",
+          "text": "journal, reflect, or set goals for themselves"
+        }
+      ]
+    }
+  ],
+  "frequency": [
+    {
+      "id": "g912-f01",
+      "domain": "storyteller",
+      "text": "read, write, or play with words for fun"
+    },
+    {
+      "id": "g912-f02",
+      "domain": "organizer",
+      "text": "enjoy puzzles, numbers, logic, or figuring out how things work"
+    },
+    {
+      "id": "g912-f03",
+      "domain": "designer",
+      "text": "draw, design, or picture how something will look before making it"
+    },
+    {
+      "id": "g912-f04",
+      "domain": "maker",
+      "text": "build, fix, cook, or make things with their hands"
+    },
+    {
+      "id": "g912-f05",
+      "domain": "psalmist",
+      "text": "sing, play music, or notice sounds and rhythms"
+    },
+    {
+      "id": "g912-f06",
+      "domain": "connector",
+      "text": "help, lead, or encourage the people around them"
+    },
+    {
+      "id": "g912-f07",
+      "domain": "ponderer",
+      "text": "want time alone to think or set their own goals"
+    },
+    {
+      "id": "g912-f08",
+      "domain": "cultivator",
+      "text": "care for or explore plants, animals and the outdoors"
+    },
+    {
+      "id": "g912-f09",
+      "domain": "seeker",
+      "text": "ask big questions about God, purpose, or right and wrong"
+    }
+  ]
+}

@@ -1,0 +1,323 @@
+{
+  "version": "k2-v1",
+  "set_kind": "k2",
+  "approved_at": "2026-11-18",
+  "source": "Wired_Quiz_K2_Question_Set.md",
+  "weights": {
+    "scenario": 0.5,
+    "frequency": 0.5
+  },
+  "instructions": "Think about your child over the past month. For each moment, pick the ONE answer that sounds most like your child right now, even if more than one fits. There are no wrong answers: every choice is a strength.",
+  "frequency_stem": "In the past month, how often does your child...",
+  "scale": {
+    "points": 5,
+    "labels": [
+      "Rarely",
+      "Sometimes",
+      "Often",
+      "Very often",
+      "Constantly"
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "k2-s01",
+      "prompt": "A rainy afternoon with nothing planned. Your child is most likely to...",
+      "options": [
+        {
+          "id": "k2-s01-a",
+          "domain": "storyteller",
+          "text": "make up a story, or ask you to read one"
+        },
+        {
+          "id": "k2-s01-b",
+          "domain": "organizer",
+          "text": "sort, count, or set up a game with rules"
+        },
+        {
+          "id": "k2-s01-c",
+          "domain": "designer",
+          "text": "draw, or build something tall with blocks"
+        }
+      ]
+    },
+    {
+      "id": "k2-s02",
+      "prompt": "At the park, your child is most likely to...",
+      "options": [
+        {
+          "id": "k2-s02-a",
+          "domain": "maker",
+          "text": "climb, run, or dig in the sand"
+        },
+        {
+          "id": "k2-s02-b",
+          "domain": "psalmist",
+          "text": "sing, or make up a chant while they swing"
+        },
+        {
+          "id": "k2-s02-c",
+          "domain": "connector",
+          "text": "find the other kids and start a game"
+        }
+      ]
+    },
+    {
+      "id": "k2-s03",
+      "prompt": "On a slow evening walk, your child is most likely to...",
+      "options": [
+        {
+          "id": "k2-s03-a",
+          "domain": "ponderer",
+          "text": "walk along quietly, lost in their own thoughts"
+        },
+        {
+          "id": "k2-s03-b",
+          "domain": "cultivator",
+          "text": "stop to look at bugs, leaves or birds"
+        },
+        {
+          "id": "k2-s03-c",
+          "domain": "seeker",
+          "text": "ask a big question, like where heaven is"
+        }
+      ]
+    },
+    {
+      "id": "k2-s04",
+      "prompt": "After you read a story together, your child...",
+      "options": [
+        {
+          "id": "k2-s04-a",
+          "domain": "storyteller",
+          "text": "tells it back, or makes up a new ending"
+        },
+        {
+          "id": "k2-s04-b",
+          "domain": "maker",
+          "text": "acts it out, or builds something from it"
+        },
+        {
+          "id": "k2-s04-c",
+          "domain": "ponderer",
+          "text": "goes quiet, then brings it up days later"
+        }
+      ]
+    },
+    {
+      "id": "k2-s05",
+      "prompt": "On a car ride, your child is most likely to...",
+      "options": [
+        {
+          "id": "k2-s05-a",
+          "domain": "organizer",
+          "text": "count trucks, read signs, or keep track of the turns"
+        },
+        {
+          "id": "k2-s05-b",
+          "domain": "psalmist",
+          "text": "sing along or tap out a beat"
+        },
+        {
+          "id": "k2-s05-c",
+          "domain": "cultivator",
+          "text": "watch for cows, horses or birds out the window"
+        }
+      ]
+    },
+    {
+      "id": "k2-s06",
+      "prompt": "At church or Sunday school, your child loves...",
+      "options": [
+        {
+          "id": "k2-s06-a",
+          "domain": "designer",
+          "text": "the coloring page or the craft"
+        },
+        {
+          "id": "k2-s06-b",
+          "domain": "connector",
+          "text": "seeing friends and talking with everyone"
+        },
+        {
+          "id": "k2-s06-c",
+          "domain": "seeker",
+          "text": "asking questions about God and the Bible story"
+        }
+      ]
+    },
+    {
+      "id": "k2-s07",
+      "prompt": "At bedtime, your child wants to...",
+      "options": [
+        {
+          "id": "k2-s07-a",
+          "domain": "storyteller",
+          "text": "hear one more story, or tell you all about their day"
+        },
+        {
+          "id": "k2-s07-b",
+          "domain": "psalmist",
+          "text": "sing a song, or have you sing one"
+        },
+        {
+          "id": "k2-s07-c",
+          "domain": "seeker",
+          "text": "pray, and ask you big questions about God"
+        }
+      ]
+    },
+    {
+      "id": "k2-s08",
+      "prompt": "With a new game or puzzle, your child...",
+      "options": [
+        {
+          "id": "k2-s08-a",
+          "domain": "organizer",
+          "text": "wants to know every rule and how to win"
+        },
+        {
+          "id": "k2-s08-b",
+          "domain": "connector",
+          "text": "wants the whole family to play"
+        },
+        {
+          "id": "k2-s08-c",
+          "domain": "ponderer",
+          "text": "likes to work on it alone, at their own pace"
+        }
+      ]
+    },
+    {
+      "id": "k2-s09",
+      "prompt": "Give your child a big empty box and they turn it into...",
+      "options": [
+        {
+          "id": "k2-s09-a",
+          "domain": "designer",
+          "text": "a house or a rocket they plan and decorate"
+        },
+        {
+          "id": "k2-s09-b",
+          "domain": "maker",
+          "text": "a fort to climb into, or a car to push around"
+        },
+        {
+          "id": "k2-s09-c",
+          "domain": "cultivator",
+          "text": "a home for a pet, or for the bugs they found"
+        }
+      ]
+    },
+    {
+      "id": "k2-s10",
+      "prompt": "When family or friends come over, your child...",
+      "options": [
+        {
+          "id": "k2-s10-a",
+          "domain": "storyteller",
+          "text": "tells them everything, with lots of details"
+        },
+        {
+          "id": "k2-s10-b",
+          "domain": "connector",
+          "text": "plays host and makes sure everyone is included"
+        },
+        {
+          "id": "k2-s10-c",
+          "domain": "cultivator",
+          "text": "wants to show them the garden, the pets or a bug jar"
+        }
+      ]
+    },
+    {
+      "id": "k2-s11",
+      "prompt": "Helping you in the kitchen, your child loves to...",
+      "options": [
+        {
+          "id": "k2-s11-a",
+          "domain": "organizer",
+          "text": "measure, count and do the steps in order"
+        },
+        {
+          "id": "k2-s11-b",
+          "domain": "maker",
+          "text": "stir, pour, knead and get their hands in it"
+        },
+        {
+          "id": "k2-s11-c",
+          "domain": "seeker",
+          "text": "talk with you about big things, like why God made us"
+        }
+      ]
+    },
+    {
+      "id": "k2-s12",
+      "prompt": "Playing alone in their room, your child is most likely to...",
+      "options": [
+        {
+          "id": "k2-s12-a",
+          "domain": "designer",
+          "text": "draw, build, or arrange things just so"
+        },
+        {
+          "id": "k2-s12-b",
+          "domain": "psalmist",
+          "text": "sing, dance or play music"
+        },
+        {
+          "id": "k2-s12-c",
+          "domain": "ponderer",
+          "text": "daydream, look at books, or simply think"
+        }
+      ]
+    }
+  ],
+  "frequency": [
+    {
+      "id": "k2-f01",
+      "domain": "storyteller",
+      "text": "play with words: new words, rhymes or long stories"
+    },
+    {
+      "id": "k2-f02",
+      "domain": "organizer",
+      "text": "count, sort, or ask how something works"
+    },
+    {
+      "id": "k2-f03",
+      "domain": "designer",
+      "text": "draw, build, or notice shapes and where things go"
+    },
+    {
+      "id": "k2-f04",
+      "domain": "maker",
+      "text": "want to touch, move or make things with their hands"
+    },
+    {
+      "id": "k2-f05",
+      "domain": "psalmist",
+      "text": "sing, hum or keep a beat"
+    },
+    {
+      "id": "k2-f06",
+      "domain": "connector",
+      "text": "notice how others feel and want to play together"
+    },
+    {
+      "id": "k2-f07",
+      "domain": "ponderer",
+      "text": "want quiet time to play or think on their own"
+    },
+    {
+      "id": "k2-f08",
+      "domain": "cultivator",
+      "text": "notice or ask about plants, animals or the weather"
+    },
+    {
+      "id": "k2-f09",
+      "domain": "seeker",
+      "text": "ask big questions about God, heaven, or right and wrong"
+    }
+  ]
+}
