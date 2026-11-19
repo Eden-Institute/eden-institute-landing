@@ -126,6 +126,7 @@ import { escapeLikePattern } from '../_shared/like-escape.ts';
 import { dueFilter, planSendFailure, type SendFailure } from '../_shared/send-backoff.ts';
 import { dripIdempotencyKey, readIdempotencyConflict } from '../_shared/drip-idempotency.ts';
 import { alertFounder } from '../_shared/founder-alert.ts';
+import { DRAIN_TABLES, readFailureAlert, readFailures } from '../_shared/drain-read-failure.ts';
 import { rowsOrThrow } from '../_shared/signup-safety.ts';
 
 const corsHeaders = {
@@ -477,6 +478,8 @@ interface QueueResult {
   sent: number;
   failed: number;
   retrying: number;
+  /** NEW-3: the queue could not be read this run (not the same as nothing due). */
+  read_failed?: boolean;
 }
 
 async function drainNurtureQueue(): Promise<QueueResult> {
@@ -495,6 +498,7 @@ async function drainNurtureQueue(): Promise<QueueResult> {
       'drainNurtureQueue: unexpected query result',
       JSON.stringify(rows),
     );
+    result.read_failed = true;
     return result;
   }
 
@@ -906,6 +910,7 @@ async function drainFollowupQueue(): Promise<QueueResult> {
   );
   if (!Array.isArray(rows)) {
     console.error('drainFollowupQueue: unexpected query result', JSON.stringify(rows));
+    result.read_failed = true;
     return result;
   }
   if (rows.length > 0) console.log(`drainFollowupQueue: found ${rows.length} due rows`);
@@ -1066,6 +1071,7 @@ async function drainFollowupQueue(): Promise<QueueResult> {
 interface LegacyResult {
   sent: number;
   candidates: number;
+  read_failed?: boolean;
 }
 
 // 2026-10-15, founder rule ("nobody should finish the old nurture sequences"): every event
@@ -1081,7 +1087,7 @@ async function legacyEmail5(): Promise<LegacyResult> {
 
   if (!Array.isArray(rows)) {
     console.error('legacyEmail5: unexpected query result', JSON.stringify(rows));
-    return { sent: 0, candidates: 0 };
+    return { sent: 0, candidates: 0, read_failed: true };
   }
 
   const candidates = rows.length;
@@ -1369,6 +1375,7 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
   );
   if (!Array.isArray(rows)) {
     console.error('drainMagnetQueue: unexpected query result', JSON.stringify(rows));
+    result.read_failed = true;
     return result;
   }
   console.log(`drainMagnetQueue: found ${rows.length} due rows`);
@@ -1660,6 +1667,7 @@ async function drainLaunchQueue(): Promise<QueueResult> {
   );
   if (!Array.isArray(rows)) {
     console.error('drainLaunchQueue: unexpected query result', JSON.stringify(rows));
+    result.read_failed = true;
     return result;
   }
   if (rows.length > 0) console.log(`drainLaunchQueue: found ${rows.length} due rows`);
@@ -1825,6 +1833,7 @@ async function drainBuyerQueue(): Promise<QueueResult> {
   );
   if (!Array.isArray(rows)) {
     console.error('drainBuyerQueue: unexpected query result', JSON.stringify(rows));
+    result.read_failed = true;
     return result;
   }
   if (rows.length > 0) console.log(`drainBuyerQueue: found ${rows.length} due rows`);
@@ -1952,7 +1961,13 @@ const FF_BATCH = 50;
 async function drainFoundingFamilyQueue(): Promise<QueueResult & { enabled?: boolean }> {
   const result: QueueResult & { enabled?: boolean } = { processed: 0, sent: 0, failed: 0, retrying: 0 };
   const settings = await supabaseQuery('founding_family_settings?select=sending_enabled,group_invite_open&limit=1');
-  const cfg = Array.isArray(settings) ? settings[0] : null;
+  if (!Array.isArray(settings)) {
+    // NEW-3: an unreadable settings row used to read as "sending off".
+    console.error('drainFoundingFamilyQueue: settings read failed', JSON.stringify(settings));
+    result.read_failed = true;
+    return result;
+  }
+  const cfg = settings[0] ?? null;
   result.enabled = cfg?.sending_enabled === true;
   if (!result.enabled) return result;
 
@@ -1964,6 +1979,7 @@ async function drainFoundingFamilyQueue(): Promise<QueueResult & { enabled?: boo
   );
   if (!Array.isArray(rows)) {
     console.error('drainFoundingFamilyQueue: unexpected query result', JSON.stringify(rows));
+    result.read_failed = true;
     return result;
   }
 
@@ -2145,6 +2161,46 @@ async function alertFounderOfGiveUps(): Promise<{ alerted: number; held?: string
   return { alerted: total };
 }
 
+// NEW-3: re-read each failed queue once (a few seconds later); if it still fails,
+// email the founder, at most once per UTC clock hour (Resend drops a repeated
+// Idempotency-Key, and a 409 for the same key means this hour's alert already went).
+// Never throws into the run.
+async function alertReadFailures(failed: string[]): Promise<{ still_failing: string[]; alerted: boolean; held?: string }> {
+  const still: string[] = [];
+  for (const d of failed) {
+    const table = DRAIN_TABLES[d];
+    if (!table) {
+      still.push(d);
+      continue;
+    }
+    try {
+      const rows = await supabaseQuery(`${table}?select=id&limit=1`);
+      if (!Array.isArray(rows)) still.push(d);
+    } catch {
+      still.push(d);
+    }
+  }
+  if (!still.length) return { still_failing: [], alerted: false, held: 'second read worked' };
+  const resendKey = Deno.env.get('RESEND_API_KEY');
+  if (!resendKey) return { still_failing: still, alerted: false, held: 'no RESEND_API_KEY' };
+  const alert = readFailureAlert(still, new Date());
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': alert.idempotencyKey },
+    body: JSON.stringify({
+      from: Deno.env.get('FROM_EMAIL') ?? 'The Eden Institute <hello@edeninstitute.health>',
+      to: Deno.env.get('FOUNDER_EMAIL') ?? 'hello@edeninstitute.health',
+      subject: alert.subject,
+      text: alert.text,
+    }),
+    signal: AbortSignal.timeout(15_000),
+  });
+  await res.body?.cancel();
+  if (res.status === 409) return { still_failing: still, alerted: false, held: 'already alerted this hour' };
+  if (!res.ok) return { still_failing: still, alerted: false, held: `resend ${res.status}` };
+  return { still_failing: still, alerted: true };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -2182,15 +2238,27 @@ Deno.serve(async (req) => {
       return { alerted: 0, held: 'threw' };
     });
 
+    // NEW-3 (2026-11-19): a queue this run could not read is a failed run, not "nothing due".
+    const read_failed = readFailures({ buyer, founding_family, queue, followup, magnet, launch, legacy_email5 });
+    const read_alert = read_failed.length
+      ? await alertReadFailures(read_failed).catch((err) => {
+        console.error('nurture-emails: read-failure alert threw', err instanceof Error ? err.message : String(err));
+        return { still_failing: read_failed, alerted: false };
+      })
+      : null;
+
     console.log(
       `nurture-emails run: queue=${JSON.stringify(
         queue,
-      )} followup=${JSON.stringify(followup)} magnet=${JSON.stringify(magnet)} launch=${JSON.stringify(launch)} buyer=${JSON.stringify(buyer)} founding_family=${JSON.stringify(founding_family)} legacy_email5=${JSON.stringify(legacy_email5)} budget_exhausted=${budget_exhausted} gave_up_alert=${JSON.stringify(gave_up_alert)}`,
+      )} followup=${JSON.stringify(followup)} magnet=${JSON.stringify(magnet)} launch=${JSON.stringify(launch)} buyer=${JSON.stringify(buyer)} founding_family=${JSON.stringify(founding_family)} legacy_email5=${JSON.stringify(legacy_email5)} budget_exhausted=${budget_exhausted} gave_up_alert=${JSON.stringify(gave_up_alert)}` +
+        (read_failed.length ? ` read_failed=${JSON.stringify(read_failed)} read_alert=${JSON.stringify(read_alert)}` : ''),
     );
+    if (read_failed.length) console.error(`nurture-emails: QUEUE READ FAILED this run: ${read_failed.join(', ')}`);
 
     return new Response(
-      JSON.stringify({ success: true, queue, followup, magnet, launch, buyer, founding_family, legacy_email5, budget_exhausted, gave_up_alert }),
+      JSON.stringify({ success: read_failed.length === 0, queue, followup, magnet, launch, buyer, founding_family, legacy_email5, budget_exhausted, gave_up_alert, ...(read_failed.length ? { read_failed, read_alert } : {}) }),
       {
+        status: read_failed.length ? 500 : 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
     );
