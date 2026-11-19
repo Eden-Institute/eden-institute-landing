@@ -2083,7 +2083,19 @@ async function drainFoundingFamilyQueue(): Promise<QueueResult & { enabled?: boo
 }
 
 // ── Founder alert for emails that gave up after 24 hours of retries ─────────
-const BACKOFF_QUEUES = ['buyer_email_queue', 'nurture_email_queue', 'magnet_email_queue', 'launch_email_queue', 'followup_email_queue'] as const;
+// founding_family_queue joined 2026-11-19 (audit area 6 N9): it uses the same backoff
+// and 24 h give-up (recordSendFailure) and carries gave_up_at / founder_alerted_at, but
+// was missing here, so a Founding Family give-up waited for the next morning's digest.
+const BACKOFF_QUEUES = ['buyer_email_queue', 'nurture_email_queue', 'magnet_email_queue', 'launch_email_queue', 'followup_email_queue', 'founding_family_queue'] as const;
+/** The step column per queue: founding_family_queue calls it `step`, the rest `sequence_position`. */
+const POSITION_COLUMN: Record<typeof BACKOFF_QUEUES[number], 'sequence_position' | 'step'> = {
+  buyer_email_queue: 'sequence_position',
+  nurture_email_queue: 'sequence_position',
+  magnet_email_queue: 'sequence_position',
+  launch_email_queue: 'sequence_position',
+  followup_email_queue: 'sequence_position',
+  founding_family_queue: 'step',
+};
 const GIVE_UP_ALERT_EVERY_MS = 60 * 60 * 1000;
 const GIVE_UP_LIST_PER_QUEUE = 10;
 
@@ -2105,8 +2117,9 @@ async function alertFounderOfGiveUps(): Promise<{ alerted: number; held?: string
   const sections: string[] = [];
   let total = 0;
   for (const table of BACKOFF_QUEUES) {
+    const pos = POSITION_COLUMN[table];
     const res = await pgrstFetch(
-      `${SUPABASE_URL}/rest/v1/${table}?${unreported}&select=id,recipient_email,sequence_position,error_message,gave_up_at` +
+      `${SUPABASE_URL}/rest/v1/${table}?${unreported}&select=id,recipient_email,${pos},error_message,gave_up_at` +
         `&order=gave_up_at.asc&limit=${GIVE_UP_LIST_PER_QUEUE}`,
       {
         headers: {
@@ -2120,13 +2133,13 @@ async function alertFounderOfGiveUps(): Promise<{ alerted: number; held?: string
       await res.body?.cancel();
       return { alerted: 0, held: `${table} read failed (${res.status})` };
     }
-    const rows = await res.json().catch(() => []) as Array<{ recipient_email: string; sequence_position: number; error_message: string | null }>;
+    const rows = await res.json().catch(() => []) as Array<{ recipient_email: string; sequence_position?: number; step?: number; error_message: string | null }>;
     if (!Array.isArray(rows) || rows.length === 0) continue;
     const count = totalFromContentRange(res.headers.get('content-range')) ?? rows.length;
     total += count;
     sections.push(
       `${table}: ${count}\n` +
-        rows.map((r) => `  - ${r.recipient_email}, position ${r.sequence_position}: ${(r.error_message ?? '').slice(0, 160)}`).join('\n') +
+        rows.map((r) => `  - ${r.recipient_email}, ${pos === 'step' ? 'step' : 'position'} ${r[pos]}: ${(r.error_message ?? '').slice(0, 160)}`).join('\n') +
         (count > rows.length ? `\n  (and ${count - rows.length} more)` : ''),
     );
   }
