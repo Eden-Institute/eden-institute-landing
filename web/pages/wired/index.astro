@@ -1,0 +1,22 @@
+---
+// /wired: Fearfully & Wonderfully Wired, the learner quiz (W4; spec 7.1, section 14).
+// DARK until launch (spec section 18 answer 18): noindex, not in the sitemap, linked from nowhere,
+// and the quiz functions answer 404 until the WIRED_ENABLED secret is on. At launch: flip noindex
+// off and add /wired to web/lib/sitemapStaticPaths.ts (the canonical below is already the clean URL).
+// The quiz itself is the WiredQuiz island (client:only: it reads localStorage and the address bar).
+// No child data reaches analytics (rule 7): the island's only event is "wired_start".
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import WiredQuiz from "../../components/islands/WiredQuiz";
+
+const meta = {
+  title: "Fearfully & Wonderfully Wired · The Eden Institute",
+  description: "A free quiz for homeschool moms about the strengths and interests you see in your child right now.",
+  canonical: "https://edeninstitute.health/wired",
+};
+---
+
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} noindex={true}>
+  <main>
+    <WiredQuiz client:only="react" />
+  </main>
+</MarketingLayout>
