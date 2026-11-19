@@ -51,6 +51,7 @@ const yes = (v: string) => /^(yes|y|true|1)$/i.test(v.trim());
 const list = (v: string, lower = false) => v.split(/[;\n]/).map((x) => (lower ? x.trim().toLowerCase() : x.trim())).filter(Boolean);
 function grade(v: string): number | null {
   const t = v.trim().toUpperCase();
+  if (t === "") return null; // a blank cell is unknown, never kindergarten (Number("") is 0)
   if (t === "K" || t === "0") return 0;
   const n = Number(t);
   return Number.isInteger(n) && n >= 0 && n <= 12 ? n : null;
@@ -76,7 +77,8 @@ export function mapCurricula(csv: string): { rows: CurriculumRow[]; skipped: num
       sheet_id: r.curriculum_id, name: r.name, publisher: opt(r.publisher ?? ""), url: opt(r.product_url ?? ""),
       approach: opt(r.approach ?? ""), subjects: list(r.subjects ?? ""),
       grade_min: grade(r.grade_min ?? ""), grade_max: grade(r.grade_max ?? ""),
-      domains_served: list(r.domains_served ?? "", true), prep_load: opt(r.prep_load ?? ""),
+      // "Open-and-go (about 0-10 min of parent prep a day)" -> "Open-and-go": the level name only.
+      domains_served: list(r.domains_served ?? "", true), prep_load: opt((r.prep_load ?? "").split("(")[0]),
       price_cents: cents(r.price_usd ?? ""), price_basis: opt(r.price_basis ?? ""), multi_age: yes(r.multi_age ?? ""),
       faith_alignment: opt(r.faith_alignment ?? ""), affiliate_url: opt(r.affiliate_url ?? ""), is_affiliate: yes(r.is_affiliate ?? ""),
       eden_band: opt(r.eden_band ?? ""), coming_soon: yes(r.coming_soon ?? ""), last_verified_at: isoDate(r.last_verified_date ?? ""),

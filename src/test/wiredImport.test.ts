@@ -10,6 +10,7 @@ const CURRICULA = [
   'C001,"The Good and the Beautiful, ""Science""",TGTB,https://example.com/tgtb,Charlotte Mason,Complete,Science,K,5,Cultivator; Designer,Light,"$1,089.50",Per family per year,,,,Yes,Christian (explicit),https://aff.example/t,Yes,,No,3,Jane Doe,Owner,jane@example.com,https://example.com/about,2026-11-18 10:00,"line one\nline two",Approve,Ready for Camila',
   "C002,Rejected One,X,https://x.example,,,Math,3,8,Organizer,Moderate,0,Free,,,,No,Secular / neutral,,No,,No,0,,,,,2026-11-18,,Reject,Ready for Camila",
   "C003,No Price Yet,Y,https://y.example,Classical,,History; Bible,6,12,Seeker; Storyteller,Heavy,,,,,,No,Christian-friendly,,No,,No,0,,,,,,,,Draft (Claude)",
+  "C004,Blank Top Grade,Z,https://z.example,Online / video,,Math,3,,Organizer,Open-and-go (about 0-10 min of parent prep a day),48.95,Per child per year,,,,No,Secular / neutral,,No,,No,0,,,,,2026-11-18,,,Ready for Camila",
 ].join("\n");
 
 const ESA = [
@@ -29,7 +30,7 @@ describe("parseCsv", () => {
 describe("mapCurricula", () => {
   const { rows, skipped } = mapCurricula(CURRICULA);
   it("finds the header under the colour-key line, skips the EXAMPLE and the Rejected row", () => {
-    expect(rows.map((r) => r.sheet_id)).toEqual(["C001", "C003"]);
+    expect(rows.map((r) => r.sheet_id)).toEqual(["C001", "C003", "C004"]);
     expect(skipped).toBe(2);
   });
   it("maps every field the database keeps", () => {
@@ -45,6 +46,12 @@ describe("mapCurricula", () => {
     expect(rows[1].price_cents).toBeNull();
     expect([rows[1].grade_min, rows[1].grade_max]).toEqual([6, 12]);
     expect(rows[1].last_verified_at).toBeUndefined();
+  });
+  it("a blank grade stays null, never K (the real workbook's C019 had a blank top grade); prep keeps only the level name", () => {
+    const r = rows.find((x) => x.sheet_id === "C004")!;
+    expect([r.grade_min, r.grade_max]).toEqual([3, null]);
+    expect(r.prep_load).toBe("Open-and-go");
+    expect(r.price_cents).toBe(4895);
   });
   it("refuses a file with no header row", () => {
     expect(() => mapCurricula("a,b\n1,2")).toThrow(/header row/);
