@@ -20,10 +20,18 @@ export interface FinderCurriculum {
 export async function fetchFinderRows(): Promise<FinderCurriculum[]> {
   const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
-  if (!url || !key) throw new Error("curriculumFinder: VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY are not set at build time");
+  // A production build must never ship an empty finder, so it fails loudly. Tests and local dev
+  // (no keys) render the page shell with no rows.
+  if (!url || !key) {
+    if (import.meta.env.PROD) throw new Error("curriculumFinder: VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY are not set at build time");
+    return [];
+  }
   const sb = createClient(url, key, { auth: { persistSession: false } });
   const { data, error } = await sb.rpc("curriculum_finder_list");
-  if (error) throw new Error(`curriculumFinder: curriculum_finder_list failed: ${error.message}`);
+  if (error) {
+    if (import.meta.env.PROD) throw new Error(`curriculumFinder: curriculum_finder_list failed: ${error.message}`);
+    return [];
+  }
   return ((data ?? []) as FinderCurriculum[]).filter((r) => !r.coming_soon);
 }
 
