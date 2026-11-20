@@ -185,6 +185,19 @@ const PENDING_ODYSSEY_STEPS = (short: string) => [
   },
 ];
 
+/** Odyssey marketplace open (Utah + Wyoming, offerings approved 2026-11-20, Odyssey email msg 1a1fa90aee063cfb).
+    Listing names in these two portals were not read, so the steps name no listing (Lane 4, 15:15). */
+const OPEN_ODYSSEY_STEPS = (short: string) => [
+  {
+    heading: "1. Order in the marketplace",
+    body: `Sign in to your ${short} marketplace and search for Eden's Table or Rooted in Faith Ventures (the company that publishes Eden's Table). Our Sprouts (grades K-2) and Seedlings (grades 3-5) listings are there, and you order them the way you order anything else in the marketplace.`,
+  },
+  {
+    heading: "2. We print and ship",
+    body: "Printed books are printed to order and arrive in about two to three weeks.",
+  },
+];
+
 export const ESA_STATES: EsaState[] = [
   {
     slug: "arizona",
@@ -404,56 +417,24 @@ export const ESA_STATES: EsaState[] = [
     // the cart (web/pages/books.astro), so it is listed that way here. When the marketplace
     // listing is approved, switch back to the marketplace steps and the shipping-included
     // NOTEBOOK / SDL_NOTEBOOK items.
-    status: "confirming",
-    statusLabel: "Approved · order now, then request reimbursement",
+    // 2026-11-20 Camila (Lane 4 tap ~15:15, "Yes, update both"): the Utah and Wyoming offerings were approved
+    // (Odyssey email 14:05). Utah keeps reimbursement as a second way (UFA handbook lists reimbursements).
+    status: "open",
+    statusLabel: "Approved · order in the marketplace",
     summary:
-      "Yes. Eden's Table is an approved Utah Fits All vendor. You can order on our store today and request reimbursement from Odyssey, while our marketplace listings wait on approval.",
+      "Yes. Eden's Table is an approved Utah Fits All vendor, and our listings are open in the Utah Fits All marketplace.",
     howToBuy: [
+      ...OPEN_ODYSSEY_STEPS("Utah Fits All"),
       {
-        heading: "1. Order on our store",
-        body: "Order the printed set ($249 plus $12 shipping) or a 9-Week Starter Unit ($39), Sprouts or Seedlings, and pay by credit or debit card. Your order confirmation email, or for a Starter the email with your download, is an itemized receipt: it shows the seller, the date, each item, the total paid and the card's last four digits, which Odyssey asks for on card purchases.",
+        heading: "Or order on our store and request reimbursement",
+        body: "You can also order the printed set ($249 plus $12 shipping) or a 9-Week Starter Unit ($39), Sprouts or Seedlings, on our store and pay by credit or debit card. Your order confirmation email, or for a Starter the email with your download, is an itemized receipt: it shows the seller, the date, each item, the total paid and the card's last four digits, which Odyssey asks for on card purchases.",
       },
       {
-        heading: "2. Request reimbursement in Odyssey",
+        heading: "Then request reimbursement in Odyssey",
         body: "Submit one reimbursement request for each product, enter the purchase date shown on your receipt, and upload the receipt email saved as a PDF as the one document for that request. Odyssey reviews every request. Our printed set is $261 with shipping, the same price as our marketplace listing.",
       },
-      {
-        heading: "3. We print and ship",
-        body: "Printed books are printed to order and arrive in about two to three weeks. A Starter Unit download comes by email as soon as you buy it.",
-      },
-      {
-        heading: "Waiting for the marketplace instead?",
-        body: "Our Sprouts and Seedlings listings have been submitted in the Utah Fits All marketplace and are waiting for approval, so they cannot be ordered there yet. Once they are approved you can order there with nothing to upload. Email us and we will write back the day they open.",
-      },
     ],
-    items: [
-      SET,
-      STARTER,
-      {
-        name: "Sprouts (grades K-2) Extra Student Notebook",
-        price: "$39.99",
-        priceValue: 39.99,
-        note: "Added at checkout with a printed set, for a sibling ($32 each from the sixth). Shipping for extra notebooks is worked out in your cart.",
-        image: `${PHOTO}/ET_NB_Cover.webp`,
-      },
-      SDL_SET,
-      SDL_STARTER,
-      {
-        name: "Seedlings (grades 3-5) Extra Student Notebook",
-        price: "$39.99",
-        priceValue: 39.99,
-        note: "Added at checkout with a printed Seedlings set, for a sibling ($32 each from the sixth). Shipping for extra notebooks is worked out in your cart.",
-        image: `${PHOTO}/ET_Seedlings_NB_Cover.webp`,
-      },
-    ],
-    // 2026-10-18: replaced utaheducationfitsall.org/faqs, which belongs to a private
-    // advocacy group (its footer says it "is not the Program Manager"), with the state
-    // board's page and the program manager's handbook. Odyssey runs the program for USBE.
-    // 2026-11-17 (Lane 2 area 13 P2): Odyssey moved its help center from /hc/en-us (every old link 404) to /en/articles.
-    // Each Utah and Louisiana source was relinked to the new article with the same title, opened and checked; the two
-    // "How to Use the ... Marketplace" guides have no same-titled article and were dropped, as was Wyoming's withdrawn
-    // "Allowable and Disallowable Expense Guidance" PDF (404, no longer listed on WDE's ESA page). The "checked" dates
-    // below are left as they were: only the links were re-checked, not the answers.
+    items: [SET, STARTER, NOTEBOOK, SDL_SET, SDL_STARTER, SDL_NOTEBOOK],
     links: [
       { label: "Utah State Board of Education, Utah Fits All Scholarship", href: "https://schools.utah.gov/utahfitsallscholarship" },
       { label: "Utah Fits All Handbook (Odyssey, the program manager)", href: "https://support.withodyssey.com/en/articles/17011001-ufa-scholarship-program-handbook" },
@@ -506,7 +487,7 @@ export const ESA_STATES: EsaState[] = [
           q: "How does Eden's Table fit Utah Fits All's rules?",
           a: [
             "Eden's Table is a Bible-based science and nature study curriculum in printed books: a Teacher's Guide, a Student Notebook and a Read-Aloud Storybook for a 36-week year. Utah law says the program manager may not require a provider to change its creed or curricula to accept scholarship funds.",
-            "Eden's Table is an approved Utah Fits All vendor. Our marketplace listings are waiting on Odyssey's review, so they cannot be ordered in the marketplace yet. Until they are, you can order on our store and request reimbursement: the order confirmation email is an itemized receipt with the seller, the date, each item, the total paid and the card's last four digits, and our printed set costs the same $261 with shipping as our marketplace listing. Once the listings are approved, you can order in the marketplace instead, with no receipt to upload.",
+            "Eden's Table is an approved Utah Fits All vendor. Our listings are open in the Utah Fits All marketplace. You can also order on our store and request reimbursement: the order confirmation email is an itemized receipt with the seller, the date, each item, the total paid and the card's last four digits, and our printed set costs the same $261 with shipping as our marketplace listing. Ordering in the marketplace needs no receipt to upload.",
           ],
         },
       ],
@@ -609,11 +590,13 @@ export const ESA_STATES: EsaState[] = [
     short: "Wyoming ESA",
     platform: "Odyssey",
     approved: "July 2026",
-    status: "listing_pending",
-    statusLabel: "Approved · marketplace listing pending",
+    // 2026-11-20 Camila (Lane 4 tap ~15:15): offerings approved (Odyssey email 14:05). Marketplace only: Wyoming
+    // reimburses only items that are NOT in the marketplace (Family Handbook), so no store route here.
+    status: "open",
+    statusLabel: "Approved · order in the marketplace",
     summary:
-      "Yes. Eden's Table is an approved Wyoming ESA vendor. Our marketplace listings are waiting on approval, so they cannot be ordered there quite yet.",
-    howToBuy: PENDING_ODYSSEY_STEPS("Wyoming ESA"),
+      "Yes. Eden's Table is an approved Wyoming ESA vendor, and our listings are open in the Wyoming ESA marketplace.",
+    howToBuy: OPEN_ODYSSEY_STEPS("Wyoming ESA"),
     items: [SET, STARTER, NOTEBOOK, SDL_SET, SDL_STARTER, SDL_NOTEBOOK],
     links: [
       { label: "Wyoming ESA Family Handbook", href: "https://edu.wyoming.gov/wp-content/uploads/2025/04/ESA-Family-Handbook.pdf" },
@@ -663,7 +646,7 @@ export const ESA_STATES: EsaState[] = [
           q: "How does Eden's Table fit Wyoming's rules?",
           a: [
             "Eden's Table is a Bible-based science and nature study curriculum in printed books: a Teacher's Guide, a Student Notebook and a Read-Aloud Storybook for a 36-week year. Science is one of Wyoming's required subjects, and Wyoming law says a provider does not have to change its creed or curriculum to accept ESA payments.",
-            "Rooted in Faith Ventures LLC, which publishes Eden's Table, is on the WDE's list of registered providers and vendors. Our marketplace listings are waiting on approval, so they cannot be ordered there yet. Once they are approved, you order them in the marketplace like any other pre-approved product.",
+            "Rooted in Faith Ventures LLC, which publishes Eden's Table, is on the WDE's list of registered providers and vendors. Our listings are open in the Wyoming ESA marketplace, and you order them there like any other pre-approved product.",
           ],
         },
       ],
