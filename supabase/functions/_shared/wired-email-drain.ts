@@ -28,6 +28,22 @@ import { buildTxEmail, SITE as TX_SITE, type TxEmail } from "./wired-email-tx.ts
 import { observerCode } from "./wired-raters.ts";
 import { quizYear } from "./wired-engine.ts";
 import { notifyFounder } from "./lulu-fulfillment.ts";
+import { classifyResendResponse } from "./resend-idempotency.ts";
+
+/**
+ * Resend's answer for a keyed send. A 409 invalid_idempotent_request means Resend already took this key in
+ * the last 24 hours with a different body (every PDF render differs by a few bytes): the email went out, so
+ * the row is marked sent, never retried into a false "did NOT go out" alert. A 409 concurrent_idempotent_requests
+ * means another run is sending it right now: put the row back and let that run finish. Anything else throws.
+ */
+async function readResend(res: Response): Promise<{ id?: string; inFlight?: boolean; alreadySent?: boolean }> {
+  const text = await res.text().catch(() => "");
+  const outcome = classifyResendResponse(res.status, text);
+  if (outcome === "in_flight") return { inFlight: true };
+  if (outcome === "already_sent") return { alreadySent: true };
+  if (outcome === "refused") throw new Error(`Resend ${res.status}: ${text.slice(0, 300)}`);
+  try { return { id: (JSON.parse(text) as { id?: string }).id }; } catch { return {}; }
+}
 
 export const EMAILS_PER_RUN = 3;
 const MAX_TRIES = 5;
@@ -117,8 +133,8 @@ export async function drainEmailQueue(db: Db, o: EmailDrainOptions): Promise<Rec
           tags: [{ name: "category", value: "wired_email_1" }],
         }),
       });
-      if (!res.ok) throw new Error(`Resend ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);
-      const sent = await res.json().catch(() => ({})) as { id?: string };
+      const sent = await readResend(res);
+      if (sent.inFlight) { await putBack(); out.details.push({ id: row.id, in_flight: true }); continue; }
       if (o.testTo) {
         await putBack();
         out.details.push({ id: row.id, test_send: true, bytes: pdf.bytes.length });
@@ -273,8 +289,8 @@ async function sendLearner(
       headers: { Authorization: `Bearer ${o.resendKey}`, "Content-Type": "application/json", "Idempotency-Key": `wired-email-${o.testTo ? "test-" : ""}${row.id}` },
       body: JSON.stringify({ from: o.from, reply_to: o.replyTo, to: [to], subject: mail.subject, html, text, headers: unsubHeaders, tags: [{ name: "category", value: tag }] }),
     });
-    if (!res.ok) throw new Error(`Resend ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);
-    const sent = await res.json().catch(() => ({})) as { id?: string };
+    const sent = await readResend(res);
+    if (sent.inFlight) { await putBack(); out.details.push({ id: row.id, in_flight: true }); return; }
     if (o.testTo) { await putBack(); out.details.push({ id: row.id, test_send: true, subject: mail.subject }); return; }
     claimed = false; // it went out: today stays claimed
     await pg(db, `wired_email_queue?id=eq.${row.id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ sent_at: new Date().toISOString(), resend_id: sent.id ?? null }) });
@@ -374,8 +390,8 @@ async function sendTransactional(
         ...(attachment ? { attachments: [attachment] } : {}), tags: [{ name: "category", value: `wired_${row.kind}` }],
       }),
     });
-    if (!res.ok) throw new Error(`Resend ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);
-    const sent = await res.json().catch(() => ({})) as { id?: string };
+    const sent = await readResend(res);
+    if (sent.inFlight) { await putBack(); out.details.push({ id: row.id, in_flight: true }); return; }
     if (o.testTo) { await putBack(); out.details.push({ id: row.id, test_send: true, subject: mail.subject, attachment: !!attachment }); return; }
     await pg(db, `wired_email_queue?id=eq.${row.id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ sent_at: new Date().toISOString(), resend_id: sent.id ?? null }) });
     if (row.kind === "observer_reminder" && row.observer_id) {
