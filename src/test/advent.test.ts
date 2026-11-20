@@ -34,7 +34,7 @@ describe("adventOfferHtml", () => {
   it("uses the founder-reviewed box copy, with no em dashes", () => {
     expect(ADVENT_HEADING).toBe("Plants of the Nativity, four Advent Sundays");
     expect(ADVENT_LINE).toBe(
-      "Four short Sunday emails through Advent, each one teaching a plant from the Christmas story. We start with frankincense on Nov 29.",
+      "Four short Sunday emails through Advent, each one teaching a plant from the Christmas story: frankincense, myrrh, terebinth and saffron.",
     );
     for (const f of ["web/lib/adventOffer.ts", "web/components/AdventOffer.astro", "web/pages/advent.astro"]) {
       expect(read(f).includes("—"), f).toBe(false);
