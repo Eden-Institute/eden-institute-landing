@@ -10,6 +10,7 @@ import { getBank, pilot, savedResultsToken, WiredDark } from "../../lib/wiredApi
 import { FAMILY_QUESTIONS } from "../../lib/wiredCopy";
 import { PILOT, pilotThanks, SURVEYS, type Q } from "../../lib/wiredPilotCopy";
 import { WIRING_WRITEUPS } from "../../lib/wiredWriteups";
+import WiredNotOpen from "./WiredNotOpen";
 
 const STATES = "AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY".split(" ");
 const GRADES: [number, string][] = [[0, "K"], ...Array.from({ length: 12 }, (_, i) => [i + 1, String(i + 1)] as [number, string])];
@@ -175,7 +176,7 @@ export default function WiredPilot() {
   const child = status?.child;
   const opens = useMemo(() => (status?.opens_at ? new Date(status.opens_at).toLocaleDateString() : null), [status?.opens_at]);
   if (view === "loading") return card(<p>Loading...</p>);
-  if (view === "closed") return card(<p>This page isn't open yet.</p>);
+  if (view === "closed") return <WiredNotOpen />;
   if (view === "apply") return card(<Apply />);
   if (!child) return card(<p><a className="underline" href="/wired">Take the quiz</a> for one of your children first, on this device.</p>);
   if (msg) return card(<p className="text-lg">{msg}</p>);
