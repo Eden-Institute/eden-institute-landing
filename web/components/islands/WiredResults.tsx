@@ -2,12 +2,14 @@
 // Private page (noThirdPartyTags): the token arrives in localStorage from the quiz, or as ?t= from an
 // email link (W8), which is moved to localStorage and STRIPPED from the address bar at once (answer 12).
 // Copy: web/lib/wiredCopy.ts + wiredWriteups.ts (approved, word for word).
-// Not wired yet (later tickets): the Blueprint / Family Map buttons (W6), the teen link and "Delete my
+// Buy buttons (W6): create-checkout's wired cart; Stripe brings her back with ?paid=, which is stripped.
+// Not wired yet (later tickets): the later $28 upgrade button (needs buyer state from wired-results), the teen link and "Delete my
 // quiz data" (W9), the coming-soon waitlist button (W11), curriculum links + prep/"Free" reason lines
 // (need display fields per match, W5 with the curriculum import). client:only.
 
 import { useEffect, useState } from "react";
-import { getMatches, getResults, RESULTS_KEY, savedResultsToken, WiredDark, writeStore } from "../../lib/wiredApi";
+import { getMatches, getResults, RESULTS_KEY, savedResultsToken, startWiredCheckout, WiredDark, writeStore, type WiredBuy } from "../../lib/wiredApi";
+import { CHECKOUT } from "../../lib/wiredCheckoutCopy";
 import { APPROACHES, COMING_SOON_912, REASONS, RESULTS, SCREENS, TIP_LABELS, TIPS, fill, type TipKind } from "../../lib/wiredCopy";
 import { WIRING_WRITEUPS } from "../../lib/wiredWriteups";
 import { DOMAINS, type Domain } from "../../../supabase/functions/_shared/wired-engine";
@@ -44,6 +46,19 @@ function takeToken(): string | null {
   return savedResultsToken();
 }
 
+/** True once when Stripe sent her back (?paid=cs_...); the parameter is removed from the address bar. */
+function takePaid(): boolean {
+  try {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("paid")) return false;
+    url.searchParams.delete("paid");
+    window.history.replaceState(null, "", url.pathname + (url.search ? url.search : "") + url.hash);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function reasonLines(m: Match, name: string, top3: Domain[]): string[] {
   const out: string[] = [];
   for (const r of m.because) {
@@ -70,12 +85,16 @@ export default function WiredResults() {
   const [sel, setSel] = useState(0);
   const [filters, setFilters] = useState({ withinBudget: false, christianOnly: false, esaOnly: false, state: "" });
   const [live, setLive] = useState<{ matches: Match[]; budget_filter_offered: boolean } | null>(null);
+  const [paid, setPaid] = useState(false);
+  const [buying, setBuying] = useState<string | null>(null);
+  const [buyError, setBuyError] = useState<string | null>(null);
+  const [upsell, setUpsell] = useState(false);
 
   useEffect(() => {
     const t = takeToken();
     setToken(t);
     if (!t) return setState("none");
-    getResults(t)
+    const load = () => getResults(t)
       .then(({ status, data }) => {
         if (status === 401) return setState("none");
         if (status !== 200) return setState("error");
@@ -83,7 +102,31 @@ export default function WiredResults() {
         setState("ready");
       })
       .catch((err) => setState(err instanceof WiredDark ? "dark" : "error"));
+    load();
+    // Back from Stripe: the webhook may land a few seconds after her, so look again twice.
+    if (takePaid()) {
+      setPaid(true);
+      setTimeout(load, 4000);
+      setTimeout(load, 12000);
+    }
   }, []);
+
+  async function buy(product: WiredBuy, childIds?: string[]) {
+    if (!token || buying) return;
+    setBuying(product);
+    setBuyError(null);
+    try {
+      const { status, data } = await startWiredCheckout({ token, product, ...(childIds ? { child_ids: childIds } : {}) });
+      if (status === 200 && data.url) {
+        window.location.assign(data.url);
+        return;
+      }
+      setBuyError(data.error ?? CHECKOUT.failed);
+    } catch {
+      setBuyError(CHECKOUT.failed);
+    }
+    setBuying(null);
+  }
 
   const child = children[sel];
   useEffect(() => {
@@ -101,6 +144,12 @@ export default function WiredResults() {
   if (state === "error" || !child) return wrap(<p>We couldn't load your results just now. Please try again in a minute.</p>);
 
   const name = child.nickname;
+  const buyNote = buyError ? <p className="text-sm mt-3" role="alert">{buyError}</p> : buying ? <p className="text-sm mt-3">{CHECKOUT.starting}</p> : null;
+  const paidNote = paid && (
+    <p className="mb-6 rounded-md p-4" style={{ backgroundColor: "hsl(var(--eden-cream))" }} role="status">
+      {children.length > 1 ? CHECKOUT.paidThanksFamily : fill(CHECKOUT.paidThanks, { name })}
+    </p>
+  );
   const tabs = children.length > 1 && (
     <div className="flex flex-wrap gap-2 mb-6">
       {children.map((c, k) => (
@@ -115,9 +164,11 @@ export default function WiredResults() {
       {tabs}
       <p className="text-base">{fill(RESULTS.thirdChild, { name, wiring: child.preview ? wname(child.preview.top_wiring) : "" })}</p>
       <div className="flex flex-wrap gap-3 mt-5">
-        <button type="button" className={`${btn} opacity-60`} style={forest} disabled>{RESULTS.thirdChildBlueprint}</button>
-        <button type="button" className={`${btn} opacity-60`} style={forest} disabled>{RESULTS.thirdChildFamilyMap}</button>
+        <button type="button" className={btn} style={forest} disabled={!!buying} onClick={() => buy("blueprint", [child.child_id])}>{RESULTS.thirdChildBlueprint}</button>
+        <button type="button" className={btn} style={forest} disabled={!!buying} onClick={() => buy("family_map")}>{RESULTS.thirdChildFamilyMap}</button>
       </div>
+      <p className="text-xs mt-2">{CHECKOUT.allSalesFinal}</p>
+      {buyNote}
     </>);
   }
 
@@ -129,6 +180,7 @@ export default function WiredResults() {
   const budgetOffered = live?.budget_filter_offered ?? true;
 
   return wrap(<>
+    {paidNote}
     {tabs}
     <h1 className="font-display text-3xl">{fill(RESULTS.heading, { name })}</h1>
     <p className="mt-3">{fill(RESULTS.intro, { name })}</p>
@@ -208,14 +260,28 @@ export default function WiredResults() {
     <section className="mt-8 rounded-md p-5" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
       <p>{fill(RESULTS.blueprintOffer, { name })}</p>
       <p className="mt-2 text-sm">{fill(RESULTS.blueprintObservers, { name })}</p>
-      <button type="button" className={`${btn} mt-4 opacity-60`} style={forest} disabled>{fill(RESULTS.blueprintButton, { name })}</button>
+      {!upsell ? (
+        <button type="button" className={`${btn} mt-4`} style={forest} disabled={!!buying}
+          onClick={() => (child.offers.family_map ? setUpsell(true) : buy("blueprint", [child.child_id]))}>{fill(RESULTS.blueprintButton, { name })}</button>
+      ) : (
+        <div className="mt-4">
+          <p className="font-semibold">{CHECKOUT.upsellLine}</p>
+          <div className="flex flex-wrap gap-3 mt-3">
+            <button type="button" className={btn} style={forest} disabled={!!buying} onClick={() => buy("blueprint_upgrade")}>{CHECKOUT.upsellYes}</button>
+            <button type="button" className={`${btn} border`} style={{ borderColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-forest))" }} disabled={!!buying}
+              onClick={() => buy("blueprint", [child.child_id])}>{fill(CHECKOUT.upsellNo, { name })}</button>
+          </div>
+        </div>
+      )}
       <p className="text-xs mt-2">{RESULTS.blueprintSmall}</p>
+      {!child.offers.family_map && buyNote}
     </section>
     {child.offers.family_map && (
       <section className="mt-4 rounded-md p-5" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
         <p>{RESULTS.familyMapOffer}</p>
-        <button type="button" className={`${btn} mt-4 opacity-60`} style={forest} disabled>{RESULTS.familyMapButton}</button>
+        <button type="button" className={`${btn} mt-4`} style={forest} disabled={!!buying} onClick={() => buy("family_map")}>{RESULTS.familyMapButton}</button>
         <p className="text-xs mt-2">{RESULTS.familyMapSmall}</p>
+        {buyNote}
       </section>
     )}
 

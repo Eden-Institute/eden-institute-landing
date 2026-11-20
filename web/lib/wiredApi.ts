@@ -55,3 +55,8 @@ export const submitQuiz = (body: unknown) => call<Record<string, unknown>>("wire
 export const getResults = (token: string, childId?: string) =>
   call<Record<string, unknown>>("wired-results", { method: "POST", body: { token, ...(childId ? { child_id: childId } : {}) } });
 export const getMatches = (body: unknown) => call<Record<string, unknown>>("wired-matches", { method: "POST", body });
+
+/** W6: the wired cart. create-checkout verifies the token and children, then answers { url } (Stripe). */
+export type WiredBuy = "blueprint" | "family_map" | "blueprint_upgrade" | "family_map_upgrade";
+export const startWiredCheckout = (body: { token: string; product: WiredBuy; child_ids?: string[] }) =>
+  call<{ url?: string; error?: string; code?: string }>("create-checkout", { method: "POST", body: { lookup_key: "wired_cart", ...body } });

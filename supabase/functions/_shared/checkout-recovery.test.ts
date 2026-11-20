@@ -526,3 +526,11 @@ Deno.test('isRecoveryParamRejection reads type, rawType, param and message', () 
   assert(!isRecoveryParamRejection(stripeInvalid('No such price', 'line_items[0][price]')));
   assert(!isRecoveryParamRejection(null));
 });
+
+Deno.test("precheck: a wired quiz cart never gets the store's 3-hour reminder", () => {
+  const r = precheckExpiredSession({
+    id: "cs_w", metadata: { lookup_key: "wired_cart", email: "a@example.com", reminder_consent: "true" },
+    consent: { promotions: "opt_in" }, after_expiration: { recovery: { url: "https://buy.stripe.com/r/x" } },
+  });
+  assertEquals(r.ok ? "sent" : r.reason, "wired_session");
+});
