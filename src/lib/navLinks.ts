@@ -45,6 +45,8 @@ export const NAV_LINKS: readonly SiteLink[] = [
   // then reachable only from the footer ("Homeschool Guides"). Sits with the other
   // homeschool links, before the adult and app links.
   { label: "Guides", href: "/learn" },
+  // 2026-11-19 (founder: "make it public and make sure it ranks"): the public curriculum finder.
+  { label: "Curriculum Finder", href: "/curriculum-finder", cta: "nav-curriculum-finder" },
   // 2026-10-14 (founder: "change Adult Courses to Adult Resources, I am only selling the
   // books"): the adult course is retired, so this goes to the Back to Eden book page.
   // /courses redirects there too (vercel.json). The separate "Buy the Book" link
@@ -94,6 +96,8 @@ export const FOOTER_LINKS: readonly SiteLink[] = [
   { label: "Herb Profiles", href: "/herbs" },
   // The /learn article section (published 2026-09-25): a crawlable path to every guide.
   { label: "Homeschool Guides", href: "/learn" },
+  // The curriculum finder (2026-11-19): one click from every page for crawlers.
+  { label: "Curriculum Finder", href: "/curriculum-finder", cta: "footer-curriculum-finder" },
   { label: "Terms & Conditions", href: "/terms" },
   { label: "Privacy Policy", href: "/privacy" },
   { label: "Cookie Policy", href: "/cookies" },

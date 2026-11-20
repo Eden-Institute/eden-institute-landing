@@ -3,9 +3,9 @@
 // email to browse, "Email me my shortlist" to collect emails, an UNTICKED Friday box, free-trial links and a
 // "completely free" filter). Indexable on purpose: built from curriculum_finder_list() at build time so every
 // curriculum is in the HTML. NOT /curriculum, which is the noindex page for ESA reviewers.
-// ⚠️ Page copy is DRAFT (FINDER_COPY), pending Camila's approval; keep noindex until she approves.
+// PUBLIC since 2026-11-19 (founder: "Make it public and make sure it ranks"); copy approved with that go.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
-import CurriculumFinder from "../components/islands/CurriculumFinder";
+import CurriculumFinder, { finderSlug } from "../components/islands/CurriculumFinder";
 import { FINDER_COPY, fetchFinderRows } from "../lib/curriculumFinder";
 
 const rows = await fetchFinderRows();
@@ -19,11 +19,11 @@ const itemList = {
   "@type": "ItemList",
   name: FINDER_COPY.heading,
   numberOfItems: rows.length,
-  itemListElement: rows.slice(0, 100).map((r, i) => ({ "@type": "ListItem", position: i + 1, name: r.name })),
+  itemListElement: rows.map((r, i) => ({ "@type": "ListItem", position: i + 1, name: r.name, url: `${meta.canonical}#${finderSlug(r.name)}` })),
 };
 ---
 
-<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} noindex={true}>
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} noindex={false}>
   <script type="application/ld+json" set:html={JSON.stringify(itemList)} />
   <main>
     <CurriculumFinder client:load rows={rows} />

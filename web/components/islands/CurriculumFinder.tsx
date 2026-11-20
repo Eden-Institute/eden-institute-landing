@@ -30,6 +30,11 @@ function attribution(): Record<string, string> {
   } catch { return {}; }
 }
 
+/** Stable anchor per curriculum, so /curriculum-finder#math-u-see links straight to its card. */
+export function finderSlug(name: string): string {
+  return name.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+}
+
 export function priceText(c: FinderCurriculum): string | null {
   if (c.completely_free) return T.free;
   if (c.price_cents === null) return null;
@@ -65,7 +70,7 @@ function Card({ c, starred, onStar }: { c: FinderCurriculum; starred: boolean; o
     c.faith_alignment,
   ].filter(Boolean);
   return (
-    <article className="rounded-lg border p-5 bg-white/70" style={{ borderColor: "hsl(var(--eden-gold) / 0.35)" }}>
+    <article id={finderSlug(c.name)} className="rounded-lg border p-5 bg-white/70 scroll-mt-24" style={{ borderColor: "hsl(var(--eden-gold) / 0.35)" }}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="font-display text-xl">
