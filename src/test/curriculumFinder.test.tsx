@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import CurriculumFinder, { matches, priceText } from "../../web/components/islands/CurriculumFinder";
-import { EDEN_TESTIMONIALS, type FinderCurriculum } from "../../web/lib/curriculumFinder";
+import { comingSoonName, EDEN_TESTIMONIALS, type FinderCurriculum } from "../../web/lib/curriculumFinder";
 import { readFileSync } from "node:fs";
 
 const base: FinderCurriculum = {
@@ -43,6 +43,20 @@ describe("curriculum finder", () => {
     render(<CurriculumFinder rows={[{ ...base, sheet_id: "C031", name: "Eden's Table: Sprouts" }, base]} />);
     expect(screen.getAllByText("What families say")).toHaveLength(1);
     expect(screen.getByText(/so these aren't independent reviews/)).toBeTruthy();
+  });
+
+  it("coming-soon Eden's Table sets show a clean name, the approved line and the waitlist button, no star", () => {
+    const cs = { ...base, id: "33333333-3333-4333-8333-333333333333", sheet_id: "C033", coming_soon: true, grade_min: 6, grade_max: 8,
+      name: comingSoonName({ sheet_id: "C033", name: "Eden's Table: grades 6-8 set (name to come from Lane 8)" }), free_trial_url: null };
+    expect(cs.name).toBe("Eden's Table: Cultivators (grades 6-8)");
+    render(<CurriculumFinder rows={[cs]} />);
+    expect(screen.getByText(/Coming soon · Planned for late 2027/)).toBeTruthy();
+    expect(screen.getByText(/Eden's Table for grades 6-8 is on the way/)).toBeTruthy();
+    expect(screen.getByText("Join the waitlist")).toBeTruthy();
+    expect(screen.queryByText(/Save to my shortlist/)).toBeNull();
+    expect(document.body.textContent).not.toMatch(/name to come/);
+    expect(matches(cs, { ...none, grade: "7" })).toBe(true);
+    expect(matches(cs, { ...none, hasTrial: true })).toBe(false);
   });
 
   it("starring shows the bar; the Friday box starts unticked; the form posts the starred ids", async () => {
