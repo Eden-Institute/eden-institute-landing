@@ -2,8 +2,13 @@
 // the browser. Stars live on her device (localStorage); "Email me my shortlist" posts to the
 // curriculum-shortlist edge function. The Friday box is UNTICKED by default (Camila's tap).
 // Copy: FINDER_COPY in web/lib/curriculumFinder.ts (DRAFT, pending her approval).
-import { useEffect, useMemo, useState } from "react";
-import { EDEN_TABLE_SHEET_IDS, EDEN_TESTIMONIALS, FINDER_COPY as T, PREP_ORDER, SUBJECT_GROUPS, type FinderCurriculum } from "../../lib/curriculumFinder";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { COMING_SOON_BANDS, EDEN_TABLE_SHEET_IDS, EDEN_TESTIMONIALS, FINDER_COPY as T, PREP_ORDER, SUBJECT_GROUPS, type FinderCurriculum } from "../../lib/curriculumFinder";
+import { HOMESCHOOL_AUDIENCE_ID } from "../../lib/freeWeekModal";
+
+// The site's existing grade 6-12 waitlist form (same as /homeschool's "Tell me when it opens"), loaded only
+// when a mom taps "Join the waitlist": it touches localStorage at module load, so never during the build.
+const WaitlistModal = lazy(() => import("@/components/landing/WaitlistModal"));
 
 const STARS_KEY = "eden_finder_stars";
 const STATES = "AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY".split(" ");
@@ -57,6 +62,21 @@ export function matches(c: FinderCurriculum, f: { q: string; grade: string; subj
   if (f.hasTrial && !c.free_trial_url) return false;
   if (f.christian && c.faith_alignment !== "Christian (explicit)") return false;
   return true;
+}
+
+function ComingSoonCard({ c, onWaitlist }: { c: FinderCurriculum; onWaitlist: (sheetId: string) => void }) {
+  const b = COMING_SOON_BANDS[c.sheet_id];
+  const facts = [c.grade_min !== null ? `Grades ${gradeText(c.grade_min)}-${gradeText(c.grade_max)}` : null, c.subjects.join(", ") || null, c.approach, c.faith_alignment].filter(Boolean);
+  return (
+    <article id={finderSlug(c.name)} className="rounded-lg border-2 border-dashed p-5 bg-white/50 scroll-mt-24" style={{ borderColor: "hsl(var(--eden-gold) / 0.5)" }}>
+      <p className="text-xs font-bold uppercase tracking-wide opacity-80">{T.comingSoon}{b ? ` · ${b.status}` : ""}</p>
+      <h2 className="font-display text-xl mt-1">{c.name}</h2>
+      {c.publisher && <p className="text-sm opacity-80">{c.publisher}</p>}
+      <p className="mt-2 text-sm">{facts.join("  ·  ")}</p>
+      {b && <p className="mt-3 text-sm">{T.comingSoonLine(b.grades)}</p>}
+      {b && <button type="button" className={`${btn} mt-3`} style={forest} onClick={() => onWaitlist(c.sheet_id)} data-cta={`finder-${b.band}-waitlist`}>{T.waitlistButton}</button>}
+    </article>
+  );
 }
 
 function Card({ c, starred, onStar }: { c: FinderCurriculum; starred: boolean; onStar: () => void }) {
@@ -141,6 +161,8 @@ export default function CurriculumFinder({ rows }: { rows: FinderCurriculum[] })
   const [honey, setHoney] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [msg, setMsg] = useState("");
+  const [waitlistFor, setWaitlistFor] = useState<string | null>(null);
+  const wl = waitlistFor ? COMING_SOON_BANDS[waitlistFor] : null;
 
   useEffect(() => { setStars(readStars().filter((id) => rows.some((r) => r.id === id))); }, [rows]);
   const toggle = (id: string) => setStars((s) => { const n = s.includes(id) ? s.filter((x) => x !== id) : [...s, id].slice(0, 30); writeStars(n); return n; });
@@ -198,7 +220,9 @@ export default function CurriculumFinder({ rows }: { rows: FinderCurriculum[] })
       <p className="mt-6 text-sm opacity-80">{T.count(shown.length)}</p>
       {rows.some((r) => r.is_affiliate) && <p className="mt-1 text-xs opacity-70">{T.affiliate}</p>}
       <div className="mt-3 grid gap-4">
-        {shown.length ? shown.map((c) => <Card key={c.id} c={c} starred={stars.includes(c.id)} onStar={() => toggle(c.id)} />) : <p>{T.empty}</p>}
+        {shown.length ? shown.map((c) => (c.coming_soon
+          ? <ComingSoonCard key={c.id} c={c} onWaitlist={setWaitlistFor} />
+          : <Card key={c.id} c={c} starred={stars.includes(c.id)} onStar={() => toggle(c.id)} />)) : <p>{T.empty}</p>}
       </div>
 
       <section className="mt-10 rounded-lg p-6" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
@@ -206,6 +230,23 @@ export default function CurriculumFinder({ rows }: { rows: FinderCurriculum[] })
         <p className="mt-2">{T.quizLine}</p>
         <a href="/wired" className={`${btn} mt-4`} style={forest}>{T.quizButton}</a>
       </section>
+
+      {wl && (
+        <Suspense fallback={null}>
+          <WaitlistModal
+            open={!!wl}
+            onOpenChange={(o) => { if (!o) setWaitlistFor(null); }}
+            audienceId={HOMESCHOOL_AUDIENCE_ID}
+            source={`${wl.band}_waitlist`}
+            formName={`finder_${wl.band}_waitlist`}
+            title={`Tell me when ${wl.name} opens`}
+            subtitle={`I will email you the moment ${wl.name} has a date. Add your mobile number if you would also like a text when it opens.`}
+            successCtaHref="https://edeninstitute.health/homeschool#choose-band"
+            successCtaLabel="See where to start today"
+            successCtaBlurb={`${wl.name} goes deeper into the 72 plants your child meets in Sprouts and Seedlings, so the best preparation is to start with them now.`}
+          />
+        </Suspense>
+      )}
 
       {stars.length > 0 && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 backdrop-blur px-4 py-3" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>

@@ -18,6 +18,10 @@ export const BROADCAST_AUDIENCES = [
   'everyone',
   // Plants of the Nativity (Advent 2026): opt-ins only, from public.seasonal_optins.
   'advent_2026',
+  // Grade 6-12 waitlists (2026-11-20): from public.band_waitlist.
+  'waitlist_cultivators',
+  'waitlist_practitioners',
+  'waitlist_upper_bands',
 ] as const;
 export type BroadcastAudience = (typeof BROADCAST_AUDIENCES)[number];
 

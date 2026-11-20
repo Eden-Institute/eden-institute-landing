@@ -32,7 +32,19 @@ export async function fetchFinderRows(): Promise<FinderCurriculum[]> {
     if (import.meta.env.PROD) throw new Error(`curriculumFinder: curriculum_finder_list failed: ${error.message}`);
     return [];
   }
-  return ((data ?? []) as FinderCurriculum[]).filter((r) => !r.coming_soon);
+  // Coming-soon rows stay in (founder 2026-11-20: show the 2 coming-soon sets, with a waitlist), with the
+  // internal sheet placeholder stripped from the public name.
+  return ((data ?? []) as FinderCurriculum[]).map((r) => (r.coming_soon ? { ...r, name: comingSoonName(r) } : r));
+}
+
+/** The public waitlist bands (same names, dates and wording as the /homeschool band cards). */
+export const COMING_SOON_BANDS: Record<string, { band: "cultivators" | "practitioners"; name: string; grades: string; status: string }> = {
+  C033: { band: "cultivators", name: "Cultivators", grades: "grades 6-8", status: "Planned for late 2027" },
+  C034: { band: "practitioners", name: "Practitioners", grades: "grades 9-12", status: "Planned for 2028" },
+};
+export function comingSoonName(r: { sheet_id: string; name: string }): string {
+  const b = COMING_SOON_BANDS[r.sheet_id];
+  return b ? `Eden's Table: ${b.name} (${b.grades})` : r.name.replace(/\s*\(name to come[^)]*\)/i, "");
 }
 
 /** wired_curricula.subjects -> the finder's subject filter (data mapping, not copy). */
@@ -90,6 +102,10 @@ export const FINDER_COPY = {
   affiliate: "Some of these links pay Eden a commission if you buy. That never changes which curricula show up or the order they're in.",
   affiliateLabel: "Eden earns a commission",
   empty: "Nothing matches all of those filters. Try removing one.",
+  comingSoon: "Coming soon",
+  /** The approved Eden's Table coming-soon line (results copy, approved 2026-11-19). */
+  comingSoonLine: (grades: string) => `Eden's Table for ${grades} is on the way, made the same Charlotte Mason way as our K-5 sets. Join the waitlist and be the first to know.`,
+  waitlistButton: "Join the waitlist",
   familiesSay: "What families say",
   familiesNote: "Shared with permission by families who used the free sample. Eden's Table is our own curriculum, so these aren't independent reviews.",
 };
