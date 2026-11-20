@@ -62,6 +62,7 @@ export const SHOWS: Show[] = [
   { show: "Christian Wellness for Weary Women", host: "Cassie Hutton", episodeTitle: "Ep. 117: Functional Health Starts at Home Before You Reach for Another Remedy", episodeUrl: "https://cassiehutton27.podbean.com/e/ep-117-functional-health-starts-at-home-before-you-reach-for-another-remedy-with-camila-johnson/" },
   { show: "The Roaming Mama Podcast", host: "Lynn Benson", episodeTitle: "Learning to Notice: Faith, Nature & the Joy of Homeschooling", episodeUrl: "https://podcasts.apple.com/us/podcast/learning-to-notice-faith-nature-the-joy-of-homeschooling/id1873324343?i=1000790934719" },
   { show: "Homeschooling Systems for ADHD Families", host: "Jenny Prior", episodeTitle: "Ep. 26: How Unit Studies & Interest-led Learning Help Kids Find Identity & Purpose", episodeUrl: "https://homeschoolingsystemsforadhdfamilies.podbean.com/e/26-how-unit-studies-interest-led-learning-help-kids-find-identity-purpose-a-chat-with-camila-johnson/" },
+  { show: "Gardens in Babylon", host: "Kevin Minnett", episodeTitle: "God’s Medicine Cabinet: Rediscovering Herbs for Your Health", episodeUrl: "https://podcasts.apple.com/us/podcast/gods-medicine-cabinet-rediscovering-herbs-for-your/id1892034341?i=1000796364010" },
 ];
 
 const SHOW_TITLE: Record<string, string> = Object.fromEntries(SHOWS.map((s) => [s.show, s.episodeTitle]));
