@@ -197,6 +197,10 @@ verify_jwt = false
 [functions.wired-replay-failures]
 verify_jwt = true
 
+# wired-pdf builds + emails purchase PDFs (W7); service role only (stripe-webhook kick + Vercel cron).
+[functions.wired-pdf]
+verify_jwt = true
+
 # launch-email-preview mails the founder a copy of each launch email a day early.
 # Invoked only by the Vercel cron with the service-role key; it additionally
 # requires role=service_role via _shared/require-service-role.ts, so verify_jwt
