@@ -56,6 +56,22 @@ describe("mapCurricula", () => {
   it("refuses a file with no header row", () => {
     expect(() => mapCurricula("a,b\n1,2")).toThrow(/header row/);
   });
+  it("2026-11-20 columns: screen_based Yes/No (blank = leave alone) and price_covers (blank = leave alone)", () => {
+    const head = CURRICULA.split("\n")[1] + ",resource_type,screen_based,price_covers";
+    const csv = [
+      head,
+      'C010,Veritas Press,VP,https://v.example,Classical,,History,2,12,Seeker,Moderate,249,Per subject per year,,,,No,Christian (explicit),,No,,No,0,,,,,2026-11-20,,Approve,Ready for Camila,Curriculum,Yes,"One subject for one year, online classes"',
+      "C011,Math Book,MB,https://m.example,Mastery,,Math,1,6,Organizer,Light,40,Per level,,,,No,Secular / neutral,,No,,No,0,,,,,2026-11-20,,Approve,Ready for Camila,Curriculum,No,",
+      "C012,Not Asked Yet,NA,https://n.example,Mastery,,Math,1,6,Organizer,Light,40,Per level,,,,No,Secular / neutral,,No,,No,0,,,,,2026-11-20,,Approve,Ready for Camila,,,",
+    ].join("\n");
+    const [vp, mb, na] = mapCurricula(csv).rows;
+    expect([vp.screen_based, vp.price_covers]).toEqual([true, "One subject for one year, online classes"]);
+    expect([mb.screen_based, mb.price_covers]).toEqual([false, undefined]);
+    expect([na.screen_based, na.price_covers]).toEqual([undefined, undefined]);
+    // JSON for wired_admin_import: a blank cell sends no key, so the stored value is kept.
+    expect(Object.keys(JSON.parse(JSON.stringify(na)))).not.toContain("screen_based");
+    expect(Object.keys(JSON.parse(JSON.stringify(mb)))).not.toContain("price_covers");
+  });
 });
 
 describe("mapEsa", () => {

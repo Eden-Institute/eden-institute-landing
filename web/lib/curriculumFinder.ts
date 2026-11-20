@@ -15,6 +15,10 @@ export interface FinderCurriculum {
   free_trial_url: string | null; free_trial_type: string | null; free_trial_note: string | null; completely_free: boolean; free_trial_checked: string | null;
   mom_pros: string[]; mom_cons: string[]; mom_sources: { title?: string; url: string }[]; mom_note: string | null;
   esa_yes_states: string[]; last_verified_at: string | null;
+  /** Workbook col 34 (2026-11-20): exactly what the listed price buys. Null = not written yet (nothing shown). */
+  price_covers: string | null;
+  /** Workbook col 33 (2026-11-20). Null = not recorded (shown as neither; never hidden by the filter). */
+  screen_based: boolean | null;
 }
 
 export async function fetchFinderRows(): Promise<FinderCurriculum[]> {
@@ -62,16 +66,32 @@ export const SUBJECT_GROUPS: Record<string, string[]> = {
 
 export const PREP_ORDER = ["Open-and-go", "Light", "Moderate", "Heavy"];
 
-/** DRAFT, pending Camila's approval. */
+/**
+ * How many curricula the finder offers today: approved rows minus the coming-soon Eden's Table sets.
+ * Camila 2026-11-20 (tap "Live count"): the title, snippet and intro say the real number from the database
+ * instead of "100", so the wording stays true when she adds or cuts one.
+ */
+export function finderCount(rows: { coming_soon: boolean }[]): number {
+  return rows.filter((r) => !r.coming_soon).length;
+}
+
+/** Approved finder copy (live 2026-11-19). title / description / intro take the live count (finderCount). */
 export const FINDER_COPY = {
-  title: "Homeschool Curriculum Finder: 100 Hand-Picked Options with Free Samples",
-  description: "Compare 100 homeschool curricula by grade, subject, prep time, price and ESA eligibility. Read what moms say and try free samples before you buy.",
+  title: (n: number) => `Homeschool Curriculum Finder: ${n} Hand-Picked Options with Free Samples`,
+  description: (n: number) => `Compare ${n} homeschool curricula by grade, subject, prep time, price and ESA eligibility. Read what moms say and try free samples before you buy.`,
   heading: "Find the right homeschool curriculum",
-  intro: "100 curricula, hand-picked and checked: Christian, or secular that doesn't work against your faith. Filter by grade, subject, prep time and budget, read what other moms say, and try a free sample before you spend a dollar.",
+  intro: (n: number) => `${n} curricula, hand-picked and checked: Christian, or secular that doesn't work against your faith. Filter by grade, subject, prep time and budget, read what other moms say, and try a free sample before you spend a dollar.`,
+  /** /homeschool's one-line link to the finder (same live count). */
+  homeschoolLink: (n: number) => `${n} hand-picked homeschool curricula with free samples and what other moms say.`,
   searchLabel: "Search by name or publisher",
   freeOnly: "Completely free",
   hasTrial: "Has a free sample or trial",
   christianOnly: "Christian curricula only",
+  /** Filter + label: the approved Resource Guide wording (Wired_Quiz_Resource_Guide_Copy.md section 2, Filters + labels). */
+  hideScreen: "Hide screen-based options",
+  screenBased: "Screen-based",
+  /** PENDING Camila's approval (review page 2026-11-20): the lead-in to the workbook's price_covers line. */
+  priceCovers: "What this price covers",
   anyGrade: "Any grade",
   anySubject: "Any subject",
   anyPrep: "Any prep time",
@@ -109,6 +129,47 @@ export const FINDER_COPY = {
   familiesSay: "What families say",
   familiesNote: "Shared with permission by families who used the free sample. Eden's Table is our own curriculum, so these aren't independent reviews.",
 };
+
+/**
+ * The trust copy, word for word from the approved Resource Guide copy (Wired_Quiz_Resource_Guide_Copy.md, approved
+ * 2026-11-19 10:50 PM, spec 18 answer 41; snapshot docs/wired-copy/Wired_Quiz_Resource_Guide_Copy.md). Lane NP
+ * 2026-11-20 08:45: section 2 "Under it" line, "How we choose" (6 points + last line), Disclosures ("Ours" label +
+ * line; the commission lines were already live as T.affiliate / T.affiliateLabel), "Checked dates and corrections".
+ * src/test/curriculumFinder.test.tsx fails if any string here stops matching the snapshot.
+ * One amendment by Camila (2026-11-20 tap): point 5 adds the retailer clause (POINT_5_RETAILER_CLAUSE).
+ */
+export const POINT_5_APPROVED = "The facts check out. Prices, grades and prep come from the publisher's own site, with the date we checked. If we couldn't confirm something, we say so instead of guessing.";
+export const POINT_5_RETAILER_CLAUSE = ", or from a named retailer when the publisher doesn't list a price,";
+const POINT_5_AS_AMENDED = POINT_5_APPROVED.replace("own site,", `own site${POINT_5_RETAILER_CLAUSE}`);
+export const FINDER_TRUST = {
+  underHeading: "Every pick in this guide passed the same checks, and nobody can pay to be on it or to move up. Browse all of it free.",
+  howHeading: "How we choose",
+  how: [
+    "It fits a Christian home. Every pick is openly Christian, or secular and neutral. Nothing here teaches against a Biblical view of where life comes from or what we're made for.",
+    "It teaches well. It's a real curriculum a mom can teach a subject or a year with, with a track record in independent reviews.",
+    "Kids enjoy it. We look for games, stories, hands-on work and short lessons.",
+    "There's room for every kind of kid. We went looking for picks for the music lovers, the artists, the nature kids, the people kids and the big-question kids, not only the readers and the math kids.",
+    // Camila 2026-11-20 (tap "Add retailers"): 7 price lines come from a named retailer, so point 5 says so.
+    POINT_5_AS_AMENDED,
+    "Camila approves every pick before it shows up here.",
+  ],
+  howLast: "What never decides anything: commissions and sponsors. Nobody can pay to be in this guide or to move up in it.",
+  oursLabel: "Ours",
+  oursLine: "Eden's Table is our own curriculum. It's in this guide by the same rules as everything else.",
+  /** "[month year]" = the month of the OLDEST last-verified date among the rows shown (never a guess). */
+  checked: (monthYear: string) => `Facts checked ${monthYear}. Prices change, so check the publisher before you buy.`,
+  outOfDate: "See something out of date?",
+  tellUs: "Tell us",
+  tellUsHref: "/contact",
+};
+
+/** "November 2026" from the oldest last_verified_at among the rows, or null when none has one. */
+export function factsCheckedMonth(rows: { last_verified_at: string | null }[]): string | null {
+  const times = rows.map((r) => (r.last_verified_at ? Date.parse(r.last_verified_at) : NaN)).filter(Number.isFinite);
+  if (!times.length) return null;
+  // UTC: the workbook's dates are stored as midnight UTC, so Central time would show the day before.
+  return new Date(Math.min(...times)).toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
+}
 
 /** Re-exported launch switch: the finder invites moms to the Wired quiz only once it is public. */
 export { WIRED_IS_PUBLIC } from "../../supabase/functions/_shared/wired-launch";

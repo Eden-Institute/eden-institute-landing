@@ -30,6 +30,7 @@ import BandChooser from "../components/BandChooser.astro";
 import { FREE_WEEK_MODAL, type FreeWeekModal } from "../lib/freeWeekModal";
 import HostClipReel from "../components/HostClipReel.astro";
 import { PLACEMENTS, clipsFor, disclosureFor } from "../lib/hostClips";
+import { FINDER_COPY, fetchFinderRows, finderCount } from "../lib/curriculumFinder";
 
 // Podcast-host clips (founder brief 2026-10-17): two new questions, each paired with
 // a clip, and endorsements beside the closing price block. A placement with no
@@ -39,6 +40,8 @@ const kidsClips = clipsFor(PLACEMENTS.homeschoolKids);
 const pricingClips = clipsFor(PLACEMENTS.homeschoolPricing);
 const faqDisclosure = disclosureFor([...biblicalClips, ...kidsClips]);
 const pricingDisclosure = disclosureFor(pricingClips);
+// The finder link line carries the live curriculum count (Camila 2026-11-20, "Live count"), same as /curriculum-finder.
+const finderCurricula = finderCount(await fetchFinderRows());
 
 const meta = {
   // Sized to what Google shows whole (about 60 / 155 characters).
@@ -633,7 +636,7 @@ const PRINT_SET = {
   {/* 2026-11-19 (founder: make the curriculum finder public and link it): one plain link to /curriculum-finder. */}
   <section class="py-10 px-6 text-center">
     <p class="font-body text-base max-w-2xl mx-auto" style="color:hsl(var(--eden-bark))">
-      Comparing curricula? <a href="/curriculum-finder" data-cta="homeschool-curriculum-finder" class="font-semibold underline underline-offset-4">Use our free curriculum finder</a>: 100 hand-picked homeschool curricula with free samples and what other moms say.
+      Comparing curricula? <a href="/curriculum-finder" data-cta="homeschool-curriculum-finder" class="font-semibold underline underline-offset-4">Use our free curriculum finder</a>: {FINDER_COPY.homeschoolLink(finderCurricula)}
     </p>
   </section>
 
