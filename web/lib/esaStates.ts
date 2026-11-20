@@ -170,21 +170,6 @@ const SDL_NOTEBOOK: EsaItem = {
   image: `${PHOTO}/ET_Seedlings_NB_Cover.webp`,
 };
 
-const PENDING_ODYSSEY_STEPS = (short: string) => [
-  {
-    heading: "Where it stands",
-    body: `Eden's Table is an approved ${short} vendor. Our Sprouts (grades K-2) and Seedlings (grades 3-5) listings have been submitted in the ${short} marketplace and are waiting for the marketplace to approve them, so they cannot be ordered there yet.`,
-  },
-  {
-    heading: "When it opens",
-    body: `Once the listings are approved, sign in to your ${short} marketplace and search for Eden's Table. The Sprouts printed set is listed as "Sprouts K-2 36-Week Science and Nature Study Printed Curriculum Set, Bible-Based".`,
-  },
-  {
-    heading: "Want to know the day it opens?",
-    body: "Email us with the name of your program and we will write back the day the listing goes live.",
-  },
-];
-
 /** Odyssey marketplace open (Utah + Wyoming, offerings approved 2026-11-20, Odyssey email msg 1a1fa90aee063cfb).
     Listing names in these two portals were not read, so the steps name no listing (Lane 4, 15:15). */
 const OPEN_ODYSSEY_STEPS = (short: string) => [
@@ -512,12 +497,25 @@ export const ESA_STATES: EsaState[] = [
     short: "LA GATOR",
     platform: "Odyssey",
     approved: "July 2026",
-    status: "listing_pending",
-    statusLabel: "Approved · marketplace listing pending",
+    // 2026-11-20 Camila (Lane 4 chat ~15:25, "change Louisiana to approved, Starters and notebooks orderable now"):
+    // LA GATOR portal read by Lane 4 ~14:15: both 9-Week Starter Units and both Extra Student Notebooks approved and
+    // orderable; the two printed sets were denied for category and Odyssey was asked (14:31) to recategorize them.
+    // Items list only what can be ordered, so the Product JSON-LD never offers a set that is not orderable.
+    status: "open",
+    statusLabel: "Approved · Starter Units and notebooks orderable now",
     summary:
-      "Yes. Eden's Table is an approved service provider for the LA GATOR Scholarship marketplace. Our listings are waiting on marketplace approval, so they cannot be ordered there quite yet.",
-    howToBuy: PENDING_ODYSSEY_STEPS("LA GATOR"),
-    items: [SET, STARTER, NOTEBOOK, SDL_SET, SDL_STARTER, SDL_NOTEBOOK],
+      "Yes. Eden's Table is an approved service provider for the LA GATOR Scholarship marketplace. Our 9-Week Starter Units and Extra Student Notebooks can be ordered there now, and the printed sets are coming once the marketplace finishes reviewing them.",
+    howToBuy: [
+      {
+        heading: "1. Order in the marketplace",
+        body: "Sign in to your LA GATOR marketplace and search for Eden's Table or Rooted in Faith Ventures (the company that publishes Eden's Table). The Sprouts (grades K-2) and Seedlings (grades 3-5) 9-Week Starter Units and Extra Student Notebooks are listed there now, and you order them the way you order anything else in the marketplace.",
+      },
+      {
+        heading: "2. The printed sets",
+        body: "Our printed curriculum sets are back with the marketplace for review, so they cannot be ordered there yet. Email us and we will write back the day they open.",
+      },
+    ],
+    items: [STARTER, NOTEBOOK, SDL_STARTER, SDL_NOTEBOOK],
     // 2026-10-18: the LDOE program page, the official home of the program (checked live).
     links: [
       { label: "Louisiana Department of Education, LA GATOR Scholarship Program", href: "https://doe.louisiana.gov/topic-pages/louisiana-school-choice/la-gator" },
@@ -565,7 +563,7 @@ export const ESA_STATES: EsaState[] = [
           q: "How does Eden's Table fit LA GATOR's rules?",
           a: [
             "Eden's Table is a Bible-based science and nature study curriculum in printed books: a Teacher's Guide, a Student Notebook and a Read-Aloud Storybook for a 36-week year. LDOE names curriculum publishers as one kind of GATOR vendor, and Louisiana law says a service provider does not have to change its creed or curricula to accept program funds.",
-            "Eden's Table is an approved LA GATOR service provider. Our listings are waiting on the marketplace's review, so they cannot be ordered there yet. Once they are approved, you buy them in the marketplace like any other listing.",
+            "Eden's Table is an approved LA GATOR service provider. Our 9-Week Starter Units and Extra Student Notebooks can be ordered in the marketplace now, like any other listing. The printed sets are still with the marketplace for review.",
           ],
         },
       ],
