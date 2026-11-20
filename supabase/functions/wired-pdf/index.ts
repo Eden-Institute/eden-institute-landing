@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
   if (!isServiceRoleRequest(req)) return serviceRoleRequired(WIRED_CORS);
   const db: Db = { url: Deno.env.get("SUPABASE_URL") ?? "", key: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "" };
   const resendKey = Deno.env.get("RESEND_API_KEY") ?? "";
-  const body = await req.json().catch(() => ({})) as { job_id?: string; dry_run?: boolean };
+  const body = await req.json().catch(() => ({})) as { job_id?: string; dry_run?: boolean; test_founder?: boolean };
 
   // 1. Pick the oldest claimable job (queued, or stuck in 'building' for 15+ minutes).
   const stuck = new Date(Date.now() - STUCK_MINUTES * 60_000).toISOString();
@@ -61,13 +61,18 @@ Deno.serve(async (req) => {
       return wiredJson(200, { claimed: 1, dry_run: true, job: job.id, kind: job.kind, bytes: pdf.bytes.length, pages: pdf.pages, filename: pdf.filename, subject: mail.subject, children: loaded.children.length });
     }
     if (!resendKey) throw new Error("RESEND_API_KEY is not set");
+    // test_founder: the real email + PDF, sent ONLY to the founder (FOUNDER_EMAIL, as notifyFounder
+    // uses), never to the buyer; the job is put back afterwards so nothing counts as delivered.
+    const testFounder = body.test_founder === true && !!body.job_id;
+    const to = testFounder ? (Deno.env.get("FOUNDER_EMAIL") ?? "") : loaded.email;
+    if (!to) throw new Error("no recipient (FOUNDER_EMAIL unset for a test send)");
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json", "Idempotency-Key": `wired-pdf-${job.id}` },
+      headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json", "Idempotency-Key": `wired-pdf-${testFounder ? "test-" : ""}${job.id}` },
       body: JSON.stringify({
         from: "Camila at The Eden Institute <hello@edeninstitute.health>",
         reply_to: "hello@edeninstitute.health",
-        to: [loaded.email],
+        to: [to],
         subject: mail.subject,
         html: mail.html,
         text: mail.text,
@@ -76,6 +81,10 @@ Deno.serve(async (req) => {
       }),
     });
     if (!res.ok) throw new Error(`Resend ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);
+    if (testFounder) {
+      await pg(db, `wired_pdf_jobs?id=eq.${job.id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status: job.status, attempts: job.attempts, claimed_at: null }) });
+      return wiredJson(200, { claimed: 1, test_founder: true, job: job.id, kind: job.kind, bytes: pdf.bytes.length, pages: pdf.pages });
+    }
     await pg(db, `wired_pdf_jobs?id=eq.${job.id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status: "sent", sent_at: new Date().toISOString(), last_error: null }) });
     console.log(`wired-pdf: sent ${job.kind} job ${job.id} (${pdf.bytes.length} bytes, ${pdf.pages} pages)`);
     return wiredJson(200, { claimed: 1, sent: true, job: job.id, kind: job.kind, bytes: pdf.bytes.length });
