@@ -91,7 +91,7 @@ describe("WiredResults", () => {
     fireEvent.click(screen.getByText("Just Lily's Blueprint ($19)"));
     await waitFor(() => expect(assign).toHaveBeenCalledWith("https://checkout.stripe.com/c/pay/x"));
     const call = fetchMock.mock.calls.find(([u]) => String(u).includes("create-checkout"))!;
-    expect(JSON.parse((call[1] as RequestInit).body as string)).toEqual({ lookup_key: "wired_cart", token: "TOKEN123", product: "blueprint", child_ids: ["c1"] });
+    expect(JSON.parse(((call as unknown as [string, RequestInit])[1]).body as string)).toEqual({ lookup_key: "wired_cart", token: "TOKEN123", product: "blueprint", child_ids: ["c1"] });
   });
 
   it("W6: a refused checkout shows the server's sentence and re-enables the buttons", async () => {

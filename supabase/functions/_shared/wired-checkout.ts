@@ -126,7 +126,7 @@ export function wiredOrderLabel(orderLookupKey: string, extraChildren = 0): stri
 /**
  * Words on Stripe's screen next to the Pay button (rule 4 / spec 9.4). Built from lines
  * Camila already approved (results page small print + the cart reminder copy).
- * PENDING HER OK on the W6 go tap; no buyer can see it while the quiz is dark.
+ * APPROVED by Camila 2026-11-19 (W6 tap "Approve all"), word for word.
  */
 export const WIRED_CHECKOUT_SUBMIT_MESSAGE =
   "Your PDF lands in your inbox a few minutes after you check out. Because it's digital, all sales are final.";

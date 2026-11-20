@@ -1,8 +1,7 @@
-// Fearfully & Wonderfully Wired, W6: the few checkout words the approved results copy does not
-// already have. ⚠️ PENDING CAMILA'S OK (W6 go tap, 2026-11-19). No buyer can see them while the
-// quiz is dark. Once approved they move into docs/wired-copy/ and web/lib/wiredCopy.ts, where
-// src/test/wiredCopy.test.ts checks them word for word. The upsell line itself is DECIDED copy
-// (spec 9.1: "Upgrade to the Family Map for $28 more").
+// Fearfully & Wonderfully Wired, W6: the checkout words the results copy did not already have.
+// APPROVED by Camila 2026-11-19 ~5:50 PM CT (W6 tap "Approve all"), word for word. The Stripe
+// screen line is WIRED_CHECKOUT_SUBMIT_MESSAGE in supabase/functions/_shared/wired-checkout.ts
+// (same approval). The upsell line is DECIDED copy (spec 9.1). Do not edit without her OK.
 export const CHECKOUT = {
   upsellLine: "Teaching more than one? Upgrade to the Family Map for $28 more.",
   upsellYes: "Upgrade to the Family Map for $28 more",
