@@ -99,7 +99,17 @@ export function freeWeekLessonSchedule(signupMs: number): { sequence_position: n
   return FREE_WEEK_LESSON_NUMBERS.map((k) => ({ sequence_position: lessonPosition(k), at: freeWeekLessonSendAt(nextMorning, k) }));
 }
 
-type LessonCopy = { subject: string; button: string; paragraphs: string[] };
+// ps: an optional P.S. after the signature with ONE link (added 2026-11-20, Lesson 5 only, founder pick "Do it" on
+// Lane SEO review page FetkLKB83dGn6hyxaEAA7e: Lesson 5 lands the day a family finishes Week 1, and 0 of 67 Week 1 page
+// visitors in 30 days clicked the Starter link there). `before` is the text, `linkText` the visible link.
+type LessonPs = { before: string; linkText: string; href: string };
+type LessonCopy = { subject: string; button: string; paragraphs: string[]; ps?: LessonPs };
+
+/** The Lesson 5 P.S. link: that band's Starter page, hand-tagged so tagEmailHtml leaves it as written. */
+export function freeWeekLessonPsUrl(band: FreeWeekBand): string {
+  const path = band === 'sprouts' ? '/starter' : '/starter/seedlings';
+  return `https://edeninstitute.health${path}?utm_source=email&utm_medium=nurture&utm_campaign=free_week_1&utm_content=lesson_5_ps`;
+}
 
 // Verbatim from the founder's approval (2026-11-19). The greeting is added at render.
 export const FREE_WEEK_LESSON_COPY: Record<FreeWeekBand, Record<LessonNumber, LessonCopy>> = {
@@ -144,6 +154,11 @@ export const FREE_WEEK_LESSON_COPY: Record<FreeWeekBand, Record<LessonNumber, Le
         'Last lesson of the week. Head outside, or to a windowsill plant, and find three living things. A leaf, a bug, a worm. Have your kids tell each one out loud, "You are alive!"',
         'Then sit down together, talk through the week with the review questions on page 6, and say Psalm 139:14 one more time. Next up in the curriculum is chamomile.',
       ],
+      ps: {
+        before: "P.S. If your kids are asking what's next, Weeks 1 through 9 are $39 as an instant download, and chamomile is ready for Monday: ",
+        linkText: 'edeninstitute.health/starter',
+        href: freeWeekLessonPsUrl('sprouts'),
+      },
     },
   },
   seedlings: {
@@ -189,6 +204,11 @@ export const FREE_WEEK_LESSON_COPY: Record<FreeWeekBand, Record<LessonNumber, Le
         'Last lesson of the week, and old clothes help. Spread a scoop of garden soil on white paper and count every living thing you find. Then water a bare patch and a mulched patch and see which one holds the water.',
         'Talk through the week with the review on page 6 and say Psalm 100:3 together. Next up in the curriculum is tulsi.',
       ],
+      ps: {
+        before: "P.S. If your kids are asking what's next, Weeks 1 through 9 are $39 as an instant download, and tulsi is ready for Monday: ",
+        linkText: 'edeninstitute.health/starter/seedlings',
+        href: freeWeekLessonPsUrl('seedlings'),
+      },
     },
   },
 };
@@ -232,6 +252,7 @@ ${para(freeWeekLessonGreeting(rawFirstName))}
 ${copy.paragraphs.map((p) => para(escapeText(p))).join('\n')}
 ${button}
 ${para('Camila')}
+${copy.ps ? para(`${escapeText(copy.ps.before)}<a href="${copy.ps.href.replace(/&/g, '&amp;')}" target="_blank" style="color:${BRAND.forest};text-decoration:underline;">${escapeText(copy.ps.linkText)}</a>`) : ''}
 <div style="border-top:1px solid #eeeeee;margin:28px 0 12px 0;"></div>
 ${small('You&rsquo;re receiving this because you requested a free week of Eden&rsquo;s Table from The Eden Institute.')}
 ${small('Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Unit 3262, Clarksville, TN 37043')}

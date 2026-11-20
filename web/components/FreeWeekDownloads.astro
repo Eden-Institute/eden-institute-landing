@@ -29,6 +29,7 @@ const BANDS = {
     name: "Sprouts",
     grades: "K-2",
     plant: "Lavender",
+    next: "chamomile",
     starter: "/starter",
     files: [
       { slug: "ra", name: "Meet the Family (read-aloud)", note: "The story that opens the year. You read it aloud on Monday.", file: "hs-sprouts-w1-ra-lavender.pdf" },
@@ -40,6 +41,7 @@ const BANDS = {
     name: "Seedlings",
     grades: "3-5",
     plant: "Elderberry",
+    next: "tulsi",
     starter: "/starter/seedlings",
     files: [
       { slug: "tg", name: "Teacher's Guide", note: "Every word you need, laid out day by day.", file: "hs-seedlings-w1-tg-elderberry.pdf" },
@@ -92,6 +94,22 @@ const saveName = (name: string) => `Eden's Table - ${b.name} Week 1 - ${name.rep
       </div>
     ))}
 
+    {/* The next step, right under the downloads (2026-11-20, founder pick "Do it" on Lane SEO review page
+        FetkLKB83dGn6hyxaEAA7e): in 30 days 0 of 67 visitors clicked the small Starter line that used to sit at the
+        bottom of this page. Week 2 plants from web/lib/scopeAndSequence.ts. */}
+    <div class="p-6 rounded-sm text-center" style="background-color:hsl(var(--eden-cream));border:1px solid hsl(var(--eden-gold))">
+      <h2 class="font-serif text-2xl mb-2" style="color:hsl(var(--eden-bark))">When you finish Friday</h2>
+      <p class="font-body text-base leading-relaxed mb-5" style="color:hsl(var(--eden-bark))">
+        Week 2 is {b.next}. Weeks 1 through 9 are $39 as an instant download, so next week is ready when you are.
+      </p>
+      <a
+        href={b.starter}
+        data-cta={`freebies-dl-${band}-next-card`}
+        class="inline-flex items-center justify-center min-h-[44px] px-6 py-3 rounded-sm font-body text-sm tracking-wide"
+        style="background-color:#2E3D32;color:#FAF8F3"
+      >Get Weeks 1 to 9 for $39</a>
+    </div>
+
     <div class="p-5 rounded-sm" style="background-color:hsl(var(--eden-cream));border:1px solid hsl(var(--eden-gold))">
       <p class="font-body text-sm leading-relaxed" style="color:hsl(var(--eden-bark))">
         <strong>Seeing a blank white screen?</strong> That is your email app, not your files.
@@ -110,11 +128,5 @@ const saveName = (name: string) => `Eden's Table - ${b.name} Week 1 - ${name.rep
       </a>.
     </p>
 
-    <p class="font-body text-sm text-muted-foreground text-center pt-2">
-      In about a week, Camila will write about the weeks that follow. Ready for more now?
-      <a href={b.starter} data-cta={`freebies-dl-${band}-starter`} class="underline underline-offset-4" style="color:hsl(var(--eden-sage-ink))">
-        Weeks 1 through 9 are $39
-      </a>, as an instant download.
-    </p>
   </div>
 </section>
