@@ -19,6 +19,7 @@ import {
   isFreeWeekLessonPosition,
   lessonNumberForPosition,
   type LessonNumber,
+  MAGNET_DRAIN_ORDER,
 } from './free-week-lessons.ts';
 import { centralParts, nextMorningSendAt } from './next-morning.ts';
 
@@ -190,6 +191,68 @@ Deno.test('both-band spacing: 1, 2, 8 and every lesson are spaced; dormant 3-7 a
     assertEquals(seedlingsAt - sproutsSentAt, 2 * DAY);
     assertEquals(centralParts(seedlingsAt).h, 8);
   }
+});
+
+// A model of drainMagnetQueue for one both-band family's ten lesson rows: a run every 15
+// minutes reads the due rows in `order`, and the spacing rule (other band's copy of this
+// position sent in the last 2 days -> hold this row until 2 days after it) runs per row.
+type SimRow = { band: FreeWeekBand; pos: number; sched: number; sent: number | null };
+function simulateLessonDrain(order: (a: SimRow, b: SimRow) => number): SimRow[] {
+  const signup = Date.parse('2026-11-20T09:27:00Z'); // 3:27 AM Central, both bands at once
+  const rows: SimRow[] = BANDS.flatMap((band) =>
+    freeWeekLessonSchedule(signup).map(({ sequence_position, at }) => ({ band, pos: sequence_position, sched: at, sent: null })),
+  );
+  const start = Math.min(...rows.map((r) => r.sched));
+  for (let now = start; now < start + 12 * DAY; now += 15 * 60 * 1000) {
+    let tick = now;
+    const due = rows.filter((r) => r.sent === null && r.sched <= now).sort(order);
+    for (const r of due) {
+      const sibling = rows.find((o) => o.band !== r.band && o.pos === r.pos && o.sent !== null && o.sent >= now - BAND_SPACING_MS);
+      if (sibling) {
+        r.sched = sibling.sent! + BAND_SPACING_MS;
+        continue;
+      }
+      r.sent = ++tick;
+    }
+  }
+  return rows;
+}
+function centralDay(ms: number): string {
+  const { y, m, d } = centralParts(ms);
+  return `${y}-${m}-${d}`;
+}
+function lessonsInOrderOnePerDay(rows: SimRow[], band: FreeWeekBand): boolean {
+  const mine = rows.filter((r) => r.band === band && r.sent !== null).sort((a, b) => a.sent! - b.sent!);
+  const inOrder = mine.map((r) => r.pos).join(',') === FREE_WEEK_LESSON_POSITIONS.join(',');
+  const days = new Set(mine.map((r) => centralDay(r.sent!)));
+  return mine.length === 5 && inOrder && days.size === 5;
+}
+
+Deno.test('magnet drain order: a fixed band tie-break keeps both bands\' lessons in order, one a day', () => {
+  // The order nurture-emails sends to PostgREST, as a comparator.
+  assertEquals(MAGNET_DRAIN_ORDER, 'scheduled_for.asc,band.desc,id.asc');
+  const fixed = (a: SimRow, b: SimRow) => a.sched - b.sched || (a.band < b.band ? 1 : a.band > b.band ? -1 : 0);
+  const rows = simulateLessonDrain(fixed);
+  for (const band of BANDS) assert(lessonsInOrderOnePerDay(rows, band), `${band}: Lessons 1-5 in order, one per Central day`);
+  // Sprouts goes on Days 2-6; Seedlings starts 2 days later and never shares a morning with its own band.
+  const sprouts = rows.filter((r) => r.band === 'sprouts');
+  for (const r of sprouts) assertEquals(r.sent! - r.sched < 15 * 60 * 1000, true);
+
+  // Why the tie-break matters: if the tie order flips between days (Postgres does not
+  // promise an order for equal scheduled_for), the held band's lessons arrive out of order.
+  const flipping = (a: SimRow, b: SimRow) =>
+    a.sched - b.sched || ((a.pos % 2 === 0) === (a.band < b.band) ? -1 : 1);
+  const bad = simulateLessonDrain(flipping);
+  assert(!BANDS.every((band) => lessonsInOrderOnePerDay(bad, band)), 'a flipping tie order breaks the lesson order');
+});
+
+Deno.test('nurture-emails reads the magnet queue with MAGNET_DRAIN_ORDER', async () => {
+  const src = (await Deno.readTextFile(new URL('../nurture-emails/index.ts', import.meta.url))).replace(/\r\n/g, '\n');
+  const start = src.indexOf('async function drainMagnetQueue(');
+  const end = src.indexOf('\n}\n', start);
+  const drain = src.slice(start, end);
+  assertStringIncludes(drain, '&order=${MAGNET_DRAIN_ORDER}&limit=${QUEUE_BATCH}');
+  assert(!drain.includes('order=scheduled_for.asc&'), 'no bare scheduled_for order left in the magnet drain');
 });
 
 Deno.test('nurture-emails dispatches 11-15 before the unknown-position branch and spaces them', async () => {
