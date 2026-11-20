@@ -74,3 +74,7 @@ export const rater = (body: { kind: "teen" | "observer"; code: string; action: "
 /** W9: "Delete my quiz data". request = email the confirm link; confirm = delete. */
 export const deleteData = (body: { action: "request" | "confirm"; token?: string; email?: string }) =>
   call<{ ok?: boolean; deleted?: boolean; error?: string }>("wired-delete", { method: "POST", body });
+
+/** W12: the pilot (dark behind WIRED_PILOT_OPEN). apply = the application; status/survey/retake use her results token. */
+export const pilot = (body: Record<string, unknown>) =>
+  call<Record<string, unknown>>("wired-pilot", { method: "POST", body });

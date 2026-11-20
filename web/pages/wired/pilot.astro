@@ -1,0 +1,26 @@
+---
+// /wired/pilot (Fearfully & Wonderfully Wired, W12; spec section 13: the pilot application and the tester ladder).
+// PRIVATE: noindex always, and NO THIRD-PARTY TAGS (noThirdPartyTags below; spec rule 7: the teen and observer
+// pages load no analytics or pixels at all). Dark until the pilot opens (WIRED_PILOT_OPEN); noindex always.
+// Listed in src/test/privatePagesNoTags.astro.test.ts PRIVATE_PAGES.
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import WiredPilot from "../../components/islands/WiredPilot";
+
+const meta = {
+  title: "Help us test Fearfully & Wonderfully Wired · The Eden Institute",
+  description: "Fearfully & Wonderfully Wired.",
+  canonical: "https://edeninstitute.health/wired/pilot",
+};
+---
+
+<MarketingLayout
+  title={meta.title}
+  description={meta.description}
+  canonical={meta.canonical}
+  noindex={true}
+  noThirdPartyTags={true}
+>
+  <main>
+    <WiredPilot client:only="react" />
+  </main>
+</MarketingLayout>

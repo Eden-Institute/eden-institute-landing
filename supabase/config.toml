@@ -215,6 +215,10 @@ verify_jwt = false
 [functions.wired-delete]
 verify_jwt = false
 
+# W12 pilot: public, token-gated, dark behind WIRED_ENABLED and the WIRED_PILOT_OPEN secret.
+[functions.wired-pilot]
+verify_jwt = false
+
 # wired-cron: daily Wired jobs (W8 July 1/15 check-ins; W9 observer reminders + deletion sweep). Service role only.
 [functions.wired-cron]
 verify_jwt = true

@@ -31,7 +31,8 @@ Deno.serve(async (req) => {
   const r = await familyChildRequest(req, "wired-observers");
   if (r instanceof Response) return r;
   const { db, body, familyId, child, family } = r;
-  if (child.unlocked_via !== "blueprint" && child.unlocked_via !== "family_map") return wiredJson(403, { error: "blueprint_needed" });
+  // A pilot tester's child has the Blueprint too (W12: unlocked_via "pilot").
+  if (child.unlocked_via !== "blueprint" && child.unlocked_via !== "family_map" && child.unlocked_via !== "pilot") return wiredJson(403, { error: "blueprint_needed" });
   const action = body.action;
   const now = new Date();
   const active = async () => (await pg<ObsRow[]>(db,

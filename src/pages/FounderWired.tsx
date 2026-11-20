@@ -105,6 +105,8 @@ export default function FounderWired() {
         setNotice(`Import: ${r.inserted} new, ${r.updated} updated, ${r.skipped} left alone (already approved or incomplete), ${r.esa_rows} ESA rows.`);
       })} />
 
+      <PilotBox act={act} />
+
       <div className="flex flex-wrap gap-3 items-end my-4 text-sm">
         <label>Show <select className="border rounded px-2 py-1" value={filter.approved} onChange={(e) => setFilter({ ...filter, approved: e.target.value })}>
           <option value="all">All</option><option value="yes">Approved</option><option value="no">Not approved</option></select></label>
@@ -256,5 +258,48 @@ function Detail({ c, act }: { c: Curriculum; act: (label: string, fn: () => Prom
         </div>
       )}
     </div>
+  );
+}
+
+// ── W12: pilot applications. Counts per band so she can pick a balanced 30-50 (about 10-12 per band); selecting
+// or declining asks for her authenticator code (wired_admin_pilot_set_status, aal2). Nothing emails a family from
+// here: the "you're in" / "not this round" emails need her approved copy first. ──
+interface PilotApp { id: string; first_name: string | null; email: string; state: string | null; years: string | null; kids: string | null; children: { nickname: string; grade: number }[]; bands: string[]; approach: string | null; heard: string | null; status: string; created_at: string }
+function PilotBox({ act }: { act: (msg: string, fn: () => Promise<unknown>) => Promise<void> }) {
+  const [open, setOpen] = useState(false);
+  const [data, setData] = useState<{ applications: PilotApp[]; bands: Record<string, { applied: number; selected: number }> } | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const load = useCallback(() => {
+    rpc<{ applications: PilotApp[]; bands: Record<string, { applied: number; selected: number }> }>("wired_admin_pilot_list").then(setData).catch((e) => setErr(e instanceof Error ? e.message : String(e)));
+  }, []);
+  useEffect(() => { if (open) load(); }, [open, load]);
+  const setStatus = (id: string, status: string) => void act(`Marked ${status}.`, async () => { await rpc("wired_admin_pilot_set_status", { p_id: id, p_status: status }); load(); });
+  return (
+    <section className="my-4 border rounded p-3 text-sm">
+      <button type="button" className="underline" onClick={() => setOpen(!open)}>{open ? "Hide" : "Show"} pilot applications</button>
+      {err && <p role="alert" className="mt-2">{err}</p>}
+      {open && data && (
+        <div className="mt-3">
+          <p className="mb-2">{["K-2", "3-5", "6-8", "9-12"].map((b) => `${b}: ${data.bands?.[b]?.selected ?? 0} picked of ${(data.bands?.[b]?.applied ?? 0) + (data.bands?.[b]?.selected ?? 0)}`).join(" · ")}</p>
+          {data.applications.length === 0 ? <p>No applications yet.</p> : (
+            <table className="w-full border-collapse">
+              <thead><tr className="text-left border-b"><th className="py-1">Name</th><th>State</th><th>Children</th><th>Years</th><th>Approach</th><th>Heard</th><th>Status</th><th /></tr></thead>
+              <tbody>{data.applications.map((a) => (
+                <tr key={a.id} className="border-b align-top">
+                  <td className="py-1">{a.first_name}<div className="text-xs text-muted-foreground">{a.email}</div></td>
+                  <td>{a.state}</td>
+                  <td>{a.children.map((c) => `${c.nickname} (${grade(c.grade)})`).join(", ")}</td>
+                  <td>{a.years}</td><td>{a.approach}</td><td>{a.heard}</td><td>{a.status}</td>
+                  <td className="whitespace-nowrap">
+                    {a.status !== "selected" && <button type="button" className="underline mr-2" onClick={() => setStatus(a.id, "selected")}>Pick</button>}
+                    {a.status !== "declined" && <button type="button" className="underline" onClick={() => setStatus(a.id, "declined")}>Not this round</button>}
+                  </td>
+                </tr>
+              ))}</tbody>
+            </table>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
