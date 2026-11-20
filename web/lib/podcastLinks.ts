@@ -43,6 +43,7 @@ export const PODCAST_LINKS: PodcastLink[] = [
   { slug: "weary-women", show: "Christian Wellness for Weary Women", clip: "E15", audience: "wellness" },
   { slug: "roaming-mama", show: "The Roaming Mama Podcast", clip: "E10", audience: "homeschool" },
   { slug: "adhd-families", show: "Homeschooling Systems for ADHD Families", clip: "E14", audience: "homeschool" },
+  { slug: "gardens-in-babylon", show: "Gardens in Babylon", clip: null, audience: "homeschool" },
 ];
 
 export function showFor(link: PodcastLink): Show {
