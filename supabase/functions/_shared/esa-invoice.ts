@@ -44,8 +44,9 @@ export interface Product {
   printed: boolean;
 }
 
-// Titles: science first (Camila 2026-11-20 09:15, Lane 4 review page, all five "use"): Georgia declined
-// "nature study" and SC asked for "printed K-5 science textbooks in plant science (botany)". The band-first
+// Titles: science first, word for word from Camila's approved table (2026-11-20 09:15, Lane 4 review page
+// JQ9h7sgU9VHiJg1DSJYL2q, all five "use"; the notebooks carry no "36-Week"). Georgia declined "nature study";
+// "printed K-5 science textbooks in plant science (botany)" is the wording we offer South Carolina. The band-first
 // form labels in web/lib/esaInvoice.ts are unchanged; marketplace listings (Odyssey) are renamed separately.
 export const PRODUCTS: Record<Sku, Product> = {
   "ET-SPR-K2-004": {
@@ -58,7 +59,7 @@ export const PRODUCTS: Record<Sku, Product> = {
   },
   "ET-SPR-K2-005": {
     sku: "ET-SPR-K2-005",
-    title: "Sprouts K-2 Science Curriculum: Plant Science (Botany), 36-Week Extra Student Notebook, Bible-Based",
+    title: "Sprouts K-2 Science Curriculum: Plant Science (Botany), Extra Student Notebook, Bible-Based",
     description: "One extra printed Student Notebook (224 pages, coil bound). Shipping included.",
     unitCents: 3999,
     printed: true,
@@ -82,7 +83,7 @@ export const PRODUCTS: Record<Sku, Product> = {
   },
   "ET-SDL-35-005": {
     sku: "ET-SDL-35-005",
-    title: "Seedlings 3-5 Science Curriculum: Plant Science (Botany), 36-Week Extra Student Notebook, Bible-Based",
+    title: "Seedlings 3-5 Science Curriculum: Plant Science (Botany), Extra Student Notebook, Bible-Based",
     description: "One extra printed Student Notebook for grades 3-5 (coil bound). Shipping included.",
     unitCents: 3999,
     printed: true,

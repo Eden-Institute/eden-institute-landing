@@ -204,7 +204,7 @@ Deno.test("Seedlings extra notebook: same states as the Sprouts notebook, $39.99
     assert(p.ok, code);
     const [plan] = planInvoices(p.value);
     assertEquals(plan.items[0].sku, "ET-SDL-35-005");
-    assertEquals(plan.items[0].title, "Seedlings 3-5 Science Curriculum: Plant Science (Botany), 36-Week Extra Student Notebook, Bible-Based");
+    assertEquals(plan.items[0].title, "Seedlings 3-5 Science Curriculum: Plant Science (Botany), Extra Student Notebook, Bible-Based");
     assertEquals(plan.subtotalCents, 3999);
     assertEquals(plan.totalCents, expected[code], code);
     assert(plan.printed);
@@ -274,7 +274,7 @@ Deno.test("the web form's running total uses the same per-student price as the i
 
 Deno.test("ESA titles lead with science and the grade band (2026-11-20, Georgia declined 'nature study')", () => {
   for (const p of Object.values(PRODUCTS)) {
-    assert(/^(Sprouts K-2|Seedlings 3-5) Science Curriculum: Plant Science \(Botany\), (36-Week Printed Set|36-Week Extra Student Notebook|9-Week Starter Unit), Bible-Based$/.test(p.title), p.title);
+    assert(/^(Sprouts K-2|Seedlings 3-5) Science Curriculum: Plant Science \(Botany\), (36-Week Printed Set|Extra Student Notebook|9-Week Starter Unit), Bible-Based$/.test(p.title), p.title);
     assert(!/nature study/i.test(p.title), p.title);
   }
 });
