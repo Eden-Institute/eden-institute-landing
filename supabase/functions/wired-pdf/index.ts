@@ -16,6 +16,8 @@ import { loadBlueprintData, renderJob, type PdfJob } from "../_shared/wired-pdf-
 import { buildDeliveryEmail } from "../_shared/wired-delivery-email.ts";
 import { notifyFounder } from "../_shared/lulu-fulfillment.ts";
 
+const FROM = "Camila at The Eden Institute <hello@edeninstitute.health>";
+const REPLY_TO = FROM.slice(FROM.indexOf("<") + 1, FROM.indexOf(">"));
 const MAX_ATTEMPTS = 5;
 const STUCK_MINUTES = 15;
 
@@ -61,17 +63,18 @@ Deno.serve(async (req) => {
       return wiredJson(200, { claimed: 1, dry_run: true, job: job.id, kind: job.kind, bytes: pdf.bytes.length, pages: pdf.pages, filename: pdf.filename, subject: mail.subject, children: loaded.children.length });
     }
     if (!resendKey) throw new Error("RESEND_API_KEY is not set");
-    // test_founder: the real email + PDF, sent ONLY to the founder (FOUNDER_EMAIL, as notifyFounder
-    // uses), never to the buyer; the job is put back afterwards so nothing counts as delivered.
+    // test_founder: the real email + PDF, sent ONLY to the founder (FOUNDER_EMAIL when set, else
+    // the same reply-to inbox every customer reply reaches), never to the buyer; the job is put
+    // back afterwards so nothing counts as delivered.
     const testFounder = body.test_founder === true && !!body.job_id;
-    const to = testFounder ? (Deno.env.get("FOUNDER_EMAIL") ?? "") : loaded.email;
-    if (!to) throw new Error("no recipient (FOUNDER_EMAIL unset for a test send)");
+    const to = testFounder ? (Deno.env.get("FOUNDER_EMAIL") || REPLY_TO) : loaded.email;
+    if (!to) throw new Error("no recipient for a test send");
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json", "Idempotency-Key": `wired-pdf-${testFounder ? "test-" : ""}${job.id}` },
       body: JSON.stringify({
-        from: "Camila at The Eden Institute <hello@edeninstitute.health>",
-        reply_to: "hello@edeninstitute.health",
+        from: FROM,
+        reply_to: REPLY_TO,
         to: [to],
         subject: mail.subject,
         html: mail.html,
