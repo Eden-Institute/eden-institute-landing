@@ -6,7 +6,7 @@
 // PUBLIC since 2026-11-19 (founder: "Make it public and make sure it ranks"); copy approved with that go.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 import CurriculumFinder, { finderSlug } from "../components/islands/CurriculumFinder";
-import { FINDER_COPY, fetchFinderRows } from "../lib/curriculumFinder";
+import { FINDER_COPY, FINDER_FAQ, fetchFinderRows } from "../lib/curriculumFinder";
 
 const rows = await fetchFinderRows();
 const meta = {
@@ -21,10 +21,16 @@ const itemList = {
   numberOfItems: rows.length,
   itemListElement: rows.map((r, i) => ({ "@type": "ListItem", position: i + 1, name: r.name, url: `${meta.canonical}#${finderSlug(r.name)}` })),
 };
+const faqPage = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FINDER_FAQ.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+};
 ---
 
 <MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} noindex={false}>
   <script type="application/ld+json" set:html={JSON.stringify(itemList)} />
+  <script type="application/ld+json" set:html={JSON.stringify(faqPage)} />
   <main>
     <CurriculumFinder client:load rows={rows} />
   </main>

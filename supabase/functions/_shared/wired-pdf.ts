@@ -15,6 +15,7 @@ const fontkit = ((fontkitModule as any).default ?? fontkitModule) as any;
 import * as F from "../constitution-pdf/fonts-b64.ts";
 import { WIRED_PDF_COPY as COPY, type CopyItem } from "./wired-pdf-content.ts";
 import { DOMAINS, type Domain, type Scores } from "./wired-engine.ts";
+import { WIRED_IS_PUBLIC } from "./wired-launch.ts";
 
 // ── Data the builders take ──────────────────────────────────────────────────
 
@@ -686,9 +687,12 @@ export async function buildShortlistPdf(d: { items: FinderRow[]; esaState?: stri
       if (c.mom_sources.length) w.small(`Sources: ${c.mom_sources.map((s) => s.title || s.url).join("; ")}`);
     }
   }
-  w.ensure(120);
-  w.h2(SHORTLIST_COPY.quizTitle);
-  w.text(SHORTLIST_COPY.quizLine);
-  w.link(SHORTLIST_COPY.quizButton, SHORTLIST_COPY.quizUrl);
+  // The quiz invitation only once the quiz is public (wired-launch.ts).
+  if (WIRED_IS_PUBLIC) {
+    w.ensure(120);
+    w.h2(SHORTLIST_COPY.quizTitle);
+    w.text(SHORTLIST_COPY.quizLine);
+    w.link(SHORTLIST_COPY.quizButton, SHORTLIST_COPY.quizUrl);
+  }
   return await w.doc.save({ useObjectStreams: true });
 }

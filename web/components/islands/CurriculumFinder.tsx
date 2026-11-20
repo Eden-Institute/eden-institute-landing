@@ -3,7 +3,7 @@
 // curriculum-shortlist edge function. The Friday box is UNTICKED by default (Camila's tap).
 // Copy: FINDER_COPY in web/lib/curriculumFinder.ts (DRAFT, pending her approval).
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { COMING_SOON_BANDS, EDEN_TABLE_SHEET_IDS, EDEN_TESTIMONIALS, FINDER_COPY as T, PREP_ORDER, SUBJECT_GROUPS, type FinderCurriculum } from "../../lib/curriculumFinder";
+import { COMING_SOON_BANDS, EDEN_TABLE_SHEET_IDS, EDEN_TESTIMONIALS, FINDER_COPY as T, FINDER_FAQ, FINDER_FAQ_HEADING, FINDER_FAQ_Q1_QUIZ, PREP_ORDER, SUBJECT_GROUPS, WIRED_IS_PUBLIC, type FinderCurriculum } from "../../lib/curriculumFinder";
 import { HOMESCHOOL_AUDIENCE_ID } from "../../lib/freeWeekModal";
 
 // The site's existing grade 6-12 waitlist form (same as /homeschool's "Tell me when it opens"), loaded only
@@ -225,10 +225,30 @@ export default function CurriculumFinder({ rows }: { rows: FinderCurriculum[] })
           : <Card key={c.id} c={c} starred={stars.includes(c.id)} onStar={() => toggle(c.id)} />)) : <p>{T.empty}</p>}
       </div>
 
-      <section className="mt-10 rounded-lg p-6" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
-        <h2 className="font-display text-2xl">{T.quizTitle}</h2>
-        <p className="mt-2">{T.quizLine}</p>
-        <a href="/wired" className={`${btn} mt-4`} style={forest}>{T.quizButton}</a>
+      {WIRED_IS_PUBLIC && (
+        <section className="mt-10 rounded-lg p-6" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
+          <h2 className="font-display text-2xl">{T.quizTitle}</h2>
+          <p className="mt-2">{T.quizLine}</p>
+          <a href="/wired" className={`${btn} mt-4`} style={forest}>{T.quizButton}</a>
+        </section>
+      )}
+
+      <section className="mt-12" aria-labelledby="finder-faq">
+        <h2 id="finder-faq" className="font-display text-2xl">{FINDER_FAQ_HEADING}</h2>
+        <div className="mt-4 grid gap-5">
+          {FINDER_FAQ.map((f, i) => {
+            const parts = f.link ? f.a.split(f.link.text) : [f.a];
+            return (
+              <div key={f.q}>
+                <h3 className="font-display text-lg">{f.q}</h3>
+                <p className="mt-1">
+                  {f.link ? <>{parts[0]}<a href={f.link.href} className="underline underline-offset-4">{f.link.text}</a>{parts.slice(1).join(f.link.text)}</> : f.a}
+                  {i === 0 && WIRED_IS_PUBLIC && <> <a href="/wired" className="underline underline-offset-4">{FINDER_FAQ_Q1_QUIZ}</a></>}
+                </p>
+              </div>
+            );
+          })}
+        </div>
       </section>
 
       {wl && (
