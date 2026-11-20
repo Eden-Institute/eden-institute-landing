@@ -15,6 +15,10 @@ export interface FinderCurriculum {
   free_trial_url: string | null; free_trial_type: string | null; free_trial_note: string | null; completely_free: boolean; free_trial_checked: string | null;
   mom_pros: string[]; mom_cons: string[]; mom_sources: { title?: string; url: string }[]; mom_note: string | null;
   esa_yes_states: string[]; last_verified_at: string | null;
+  /** Workbook col 34 (2026-11-20): exactly what the listed price buys. Null = not written yet (nothing shown). */
+  price_covers: string | null;
+  /** Workbook col 33 (2026-11-20). Null = not recorded (shown as neither; never hidden by the filter). */
+  screen_based: boolean | null;
 }
 
 export async function fetchFinderRows(): Promise<FinderCurriculum[]> {
@@ -72,6 +76,11 @@ export const FINDER_COPY = {
   freeOnly: "Completely free",
   hasTrial: "Has a free sample or trial",
   christianOnly: "Christian curricula only",
+  /** Filter + label: the approved Resource Guide wording (Wired_Quiz_Resource_Guide_Copy.md section 2, Filters + labels). */
+  hideScreen: "Hide screen-based options",
+  screenBased: "Screen-based",
+  /** PENDING Camila's approval (review page 2026-11-20): the lead-in to the workbook's price_covers line. */
+  priceCovers: "What this price covers",
   anyGrade: "Any grade",
   anySubject: "Any subject",
   anyPrep: "Any prep time",
@@ -109,6 +118,42 @@ export const FINDER_COPY = {
   familiesSay: "What families say",
   familiesNote: "Shared with permission by families who used the free sample. Eden's Table is our own curriculum, so these aren't independent reviews.",
 };
+
+/**
+ * The trust copy, word for word from the approved Resource Guide copy (Wired_Quiz_Resource_Guide_Copy.md, approved
+ * 2026-11-19 10:50 PM, spec 18 answer 41; snapshot docs/wired-copy/Wired_Quiz_Resource_Guide_Copy.md). Lane NP
+ * 2026-11-20 08:45: section 2 "Under it" line, "How we choose" (6 points + last line), Disclosures ("Ours" label +
+ * line; the commission lines were already live as T.affiliate / T.affiliateLabel), "Checked dates and corrections".
+ * src/test/curriculumFinder.test.tsx fails if any string here stops matching the snapshot.
+ */
+export const FINDER_TRUST = {
+  underHeading: "Every pick in this guide passed the same checks, and nobody can pay to be on it or to move up. Browse all of it free.",
+  howHeading: "How we choose",
+  how: [
+    "It fits a Christian home. Every pick is openly Christian, or secular and neutral. Nothing here teaches against a Biblical view of where life comes from or what we're made for.",
+    "It teaches well. It's a real curriculum a mom can teach a subject or a year with, with a track record in independent reviews.",
+    "Kids enjoy it. We look for games, stories, hands-on work and short lessons.",
+    "There's room for every kind of kid. We went looking for picks for the music lovers, the artists, the nature kids, the people kids and the big-question kids, not only the readers and the math kids.",
+    "The facts check out. Prices, grades and prep come from the publisher's own site, with the date we checked. If we couldn't confirm something, we say so instead of guessing.",
+    "Camila approves every pick before it shows up here.",
+  ],
+  howLast: "What never decides anything: commissions and sponsors. Nobody can pay to be in this guide or to move up in it.",
+  oursLabel: "Ours",
+  oursLine: "Eden's Table is our own curriculum. It's in this guide by the same rules as everything else.",
+  /** "[month year]" = the month of the OLDEST last-verified date among the rows shown (never a guess). */
+  checked: (monthYear: string) => `Facts checked ${monthYear}. Prices change, so check the publisher before you buy.`,
+  outOfDate: "See something out of date?",
+  tellUs: "Tell us",
+  tellUsHref: "/contact",
+};
+
+/** "November 2026" from the oldest last_verified_at among the rows, or null when none has one. */
+export function factsCheckedMonth(rows: { last_verified_at: string | null }[]): string | null {
+  const times = rows.map((r) => (r.last_verified_at ? Date.parse(r.last_verified_at) : NaN)).filter(Number.isFinite);
+  if (!times.length) return null;
+  // UTC: the workbook's dates are stored as midnight UTC, so Central time would show the day before.
+  return new Date(Math.min(...times)).toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
+}
 
 /** Re-exported launch switch: the finder invites moms to the Wired quiz only once it is public. */
 export { WIRED_IS_PUBLIC } from "../../supabase/functions/_shared/wired-launch";

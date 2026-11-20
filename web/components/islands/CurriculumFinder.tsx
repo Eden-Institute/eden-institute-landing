@@ -3,7 +3,7 @@
 // curriculum-shortlist edge function. The Friday box is UNTICKED by default (Camila's tap).
 // Copy: FINDER_COPY in web/lib/curriculumFinder.ts (DRAFT, pending her approval).
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { COMING_SOON_BANDS, EDEN_TABLE_SHEET_IDS, EDEN_TESTIMONIALS, FINDER_COPY as T, FINDER_FAQ, FINDER_FAQ_HEADING, FINDER_FAQ_Q1_QUIZ, PREP_ORDER, SUBJECT_GROUPS, WIRED_IS_PUBLIC, type FinderCurriculum } from "../../lib/curriculumFinder";
+import { COMING_SOON_BANDS, EDEN_TABLE_SHEET_IDS, EDEN_TESTIMONIALS, FINDER_COPY as T, FINDER_FAQ, FINDER_FAQ_HEADING, FINDER_FAQ_Q1_QUIZ, FINDER_TRUST as TR, factsCheckedMonth, PREP_ORDER, SUBJECT_GROUPS, WIRED_IS_PUBLIC, type FinderCurriculum } from "../../lib/curriculumFinder";
 import { HOMESCHOOL_AUDIENCE_ID } from "../../lib/freeWeekModal";
 
 // The site's existing grade 6-12 waitlist form (same as /homeschool's "Tell me when it opens"), loaded only
@@ -18,6 +18,18 @@ const KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
 const btn = "inline-flex items-center justify-center font-accent text-xs tracking-[0.15em] uppercase font-bold px-4 py-2 rounded-md";
 const forest = { backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-cream))" };
+const outlineTag = "inline-block text-xs font-bold uppercase tracking-wide px-2 py-1 rounded border";
+const outline = { borderColor: "hsl(var(--eden-forest))", color: "hsl(var(--eden-forest))" };
+
+/** The approved "Ours" label + line on every Eden's Table entry (Resource Guide copy, Disclosures). */
+function Ours() {
+  return (
+    <p className="mt-2 text-sm">
+      <span className={outlineTag} style={outline}>{TR.oursLabel}</span>{" "}
+      <span className="opacity-80">{TR.oursLine}</span>
+    </p>
+  );
+}
 const gradeText = (g: number | null) => (g === null ? "?" : g === 0 ? "K" : String(g));
 
 function readStars(): string[] {
@@ -46,7 +58,7 @@ export function priceText(c: FinderCurriculum): string | null {
   return `About $${Math.round(c.price_cents / 100)}${c.price_basis ? ` (${c.price_basis.toLowerCase()})` : ""}`;
 }
 
-export function matches(c: FinderCurriculum, f: { q: string; grade: string; subject: string; prep: string; state: string; freeOnly: boolean; hasTrial: boolean; christian: boolean }): boolean {
+export function matches(c: FinderCurriculum, f: { q: string; grade: string; subject: string; prep: string; state: string; freeOnly: boolean; hasTrial: boolean; christian: boolean; hideScreen?: boolean }): boolean {
   if (f.q) {
     const q = f.q.toLowerCase();
     if (!c.name.toLowerCase().includes(q) && !(c.publisher ?? "").toLowerCase().includes(q)) return false;
@@ -61,6 +73,8 @@ export function matches(c: FinderCurriculum, f: { q: string; grade: string; subj
   if (f.freeOnly && !c.completely_free) return false;
   if (f.hasTrial && !c.free_trial_url) return false;
   if (f.christian && c.faith_alignment !== "Christian (explicit)") return false;
+  // Only rows marked screen-based are hidden; a row with no answer yet stays in.
+  if (f.hideScreen && c.screen_based === true) return false;
   return true;
 }
 
@@ -73,6 +87,7 @@ function ComingSoonCard({ c, onWaitlist }: { c: FinderCurriculum; onWaitlist: (s
       <h2 className="font-display text-xl mt-1">{c.name}</h2>
       {c.publisher && <p className="text-sm opacity-80">{c.publisher}</p>}
       <p className="mt-2 text-sm">{facts.join("  ·  ")}</p>
+      {b && <Ours />}
       {b && <p className="mt-3 text-sm">{T.comingSoonLine(b.grades)}</p>}
       {b && <button type="button" className={`${btn} mt-3`} style={forest} onClick={() => onWaitlist(c.sheet_id)} data-cta={`finder-${b.band}-waitlist`}>{T.waitlistButton}</button>}
     </article>
@@ -104,7 +119,10 @@ function Card({ c, starred, onStar }: { c: FinderCurriculum; starred: boolean; o
         </button>
       </div>
       <p className="mt-2 text-sm">{facts.join("  ·  ")}</p>
+      {price && !c.completely_free && c.price_covers && <p className="mt-1 text-sm opacity-80">{T.priceCovers}: {c.price_covers}</p>}
       {c.completely_free && <p className="mt-2 inline-block text-xs font-bold uppercase tracking-wide px-2 py-1 rounded" style={forest}>{T.free}</p>}
+      {c.screen_based === true && <p className={`mt-2 ml-1 ${outlineTag}`} style={outline}>{T.screenBased}</p>}
+      {EDEN_TABLE_SHEET_IDS.includes(c.sheet_id) && <Ours />}
       {c.free_trial_url && (
         <p className="mt-3 text-sm">
           <a href={c.free_trial_url} target="_blank" rel="noopener" className="font-semibold underline underline-offset-4">{T.tryFree}</a>
@@ -153,6 +171,7 @@ export default function CurriculumFinder({ rows }: { rows: FinderCurriculum[] })
   const [freeOnly, setFreeOnly] = useState(false);
   const [hasTrial, setHasTrial] = useState(false);
   const [christian, setChristian] = useState(false);
+  const [hideScreen, setHideScreen] = useState(false);
   const [stars, setStars] = useState<string[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [email, setEmail] = useState("");
@@ -168,8 +187,8 @@ export default function CurriculumFinder({ rows }: { rows: FinderCurriculum[] })
   const toggle = (id: string) => setStars((s) => { const n = s.includes(id) ? s.filter((x) => x !== id) : [...s, id].slice(0, 30); writeStars(n); return n; });
 
   const shown = useMemo(
-    () => rows.filter((c) => matches(c, { q, grade, subject, prep, state, freeOnly, hasTrial, christian })),
-    [rows, q, grade, subject, prep, state, freeOnly, hasTrial, christian],
+    () => rows.filter((c) => matches(c, { q, grade, subject, prep, state, freeOnly, hasTrial, christian, hideScreen })),
+    [rows, q, grade, subject, prep, state, freeOnly, hasTrial, christian, hideScreen],
   );
 
   async function send(e: React.FormEvent) {
@@ -189,11 +208,13 @@ export default function CurriculumFinder({ rows }: { rows: FinderCurriculum[] })
     }
   }
 
+  const checkedMonth = useMemo(() => factsCheckedMonth(rows), [rows]);
   const select = "rounded-md border px-3 py-2 bg-white text-sm";
   return (
     <div className="max-w-5xl mx-auto px-4 py-10 font-body" style={{ color: "hsl(var(--eden-bark))" }}>
       <h1 className="font-display text-3xl sm:text-4xl">{T.heading}</h1>
-      <p className="mt-3 max-w-3xl">{T.intro}</p>
+      <p className="mt-3 max-w-3xl font-semibold">{TR.underHeading}</p>
+      <p className="mt-3 max-w-3xl">{T.intro} <a href="#how-we-choose" className="underline underline-offset-4">{TR.howHeading}</a></p>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <input aria-label={T.searchLabel} placeholder={T.searchLabel} value={q} onChange={(e) => setQ(e.target.value)} className={select} />
@@ -211,6 +232,7 @@ export default function CurriculumFinder({ rows }: { rows: FinderCurriculum[] })
         <label className="flex items-center gap-2"><input type="checkbox" checked={freeOnly} onChange={(e) => setFreeOnly(e.target.checked)} />{T.freeOnly}</label>
         <label className="flex items-center gap-2"><input type="checkbox" checked={hasTrial} onChange={(e) => setHasTrial(e.target.checked)} />{T.hasTrial}</label>
         <label className="flex items-center gap-2"><input type="checkbox" checked={christian} onChange={(e) => setChristian(e.target.checked)} />{T.christianOnly}</label>
+        <label className="flex items-center gap-2"><input type="checkbox" checked={hideScreen} onChange={(e) => setHideScreen(e.target.checked)} />{T.hideScreen}</label>
         <select aria-label={T.anyState} value={state} onChange={(e) => setState(e.target.value)} className={select}>
           <option value="">{T.anyState}</option>{STATES.map((s) => <option key={s}>{s}</option>)}
         </select>
@@ -224,6 +246,14 @@ export default function CurriculumFinder({ rows }: { rows: FinderCurriculum[] })
           ? <ComingSoonCard key={c.id} c={c} onWaitlist={setWaitlistFor} />
           : <Card key={c.id} c={c} starred={stars.includes(c.id)} onStar={() => toggle(c.id)} />)) : <p>{T.empty}</p>}
       </div>
+      {checkedMonth && <p className="mt-4 text-sm opacity-80">{TR.checked(checkedMonth)}</p>}
+      <p className="mt-1 text-sm opacity-80">{TR.outOfDate} <a href={TR.tellUsHref} className="underline underline-offset-4">{TR.tellUs}</a></p>
+
+      <section id="how-we-choose" className="mt-10 scroll-mt-24" aria-labelledby="how-we-choose-h">
+        <h2 id="how-we-choose-h" className="font-display text-2xl">{TR.howHeading}</h2>
+        <ul className="mt-3 list-disc pl-5 grid gap-2">{TR.how.map((h) => <li key={h}>{h}</li>)}</ul>
+        <p className="mt-3 font-semibold">{TR.howLast}</p>
+      </section>
 
       {WIRED_IS_PUBLIC && (
         <section className="mt-10 rounded-lg p-6" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>

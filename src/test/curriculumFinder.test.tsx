@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import CurriculumFinder, { matches, priceText } from "../../web/components/islands/CurriculumFinder";
-import { comingSoonName, EDEN_TESTIMONIALS, FINDER_FAQ, WIRED_IS_PUBLIC, type FinderCurriculum } from "../../web/lib/curriculumFinder";
+import { comingSoonName, EDEN_TESTIMONIALS, factsCheckedMonth, FINDER_COPY, FINDER_FAQ, FINDER_TRUST, WIRED_IS_PUBLIC, type FinderCurriculum } from "../../web/lib/curriculumFinder";
 import { readFileSync } from "node:fs";
 
 const base: FinderCurriculum = {
@@ -11,7 +11,7 @@ const base: FinderCurriculum = {
   price_cents: 4500, price_basis: "Per level", multi_age: false, faith_alignment: "Christian-friendly", eden_band: null, coming_soon: false,
   free_trial_url: "https://mathusee.com/placement", free_trial_type: "placement_test", free_trial_note: "Free placement tool", completely_free: false, free_trial_checked: "2026-11-19",
   mom_pros: ["Clear videos"], mom_cons: ["Slow for strong math kids"], mom_sources: [{ title: "Cathy Duffy", url: "https://cathyduffyreviews.com/x" }], mom_note: null,
-  esa_yes_states: ["FL"], last_verified_at: null,
+  esa_yes_states: ["FL"], last_verified_at: null, price_covers: null, screen_based: null,
 };
 const free: FinderCurriculum = { ...base, id: "22222222-2222-4222-8222-222222222222", name: "Khan Academy", publisher: "Khan Academy", subjects: ["Math", "Science"], completely_free: true, price_cents: 0, faith_alignment: "Secular / neutral", free_trial_url: null, esa_yes_states: [] };
 const none = { q: "", grade: "", subject: "", prep: "", state: "", freeOnly: false, hasTrial: false, christian: false };
@@ -32,6 +32,58 @@ describe("curriculum finder", () => {
     expect(matches(base, { ...none, q: "demme" })).toBe(true);
     expect(priceText(free)).toBe("Completely free");
     expect(priceText(base)).toBe("About $45 (per level)");
+  });
+
+  it("the trust copy is the approved Resource Guide copy word for word", () => {
+    const approved = readFileSync("docs/wired-copy/Wired_Quiz_Resource_Guide_Copy.md", "utf8").replace(/\r\n/g, "\n");
+    expect(approved).toContain(`Under it: ${FINDER_TRUST.underHeading}`);
+    expect(approved).toContain(`Heading: ${FINDER_TRUST.howHeading}\n${FINDER_TRUST.how.map((h) => `- ${h}`).join("\n")}\n`);
+    expect(approved).toContain(`Last line under the list: ${FINDER_TRUST.howLast}`);
+    expect(approved).toContain(`an 'Ours' label and this line: ${FINDER_TRUST.oursLine}`);
+    expect(approved).toContain(`Bottom of the hub: ${FINDER_TRUST.checked("[month year]")}\n${FINDER_TRUST.outOfDate} ${FINDER_TRUST.tellUs}.`);
+    expect(approved).toContain(`Above the list (your approved line): ${FINDER_COPY.affiliate}`);
+    expect(approved).toContain(`Next to each affiliate link (approved): ${FINDER_COPY.affiliateLabel}`);
+    expect(approved).toContain(`Filters`); // the filter + label wording below
+    expect(approved).toContain(`- ${FINDER_COPY.hideScreen}`);
+    expect(approved).toContain(`· ${FINDER_COPY.screenBased} ·`);
+    for (const s of [FINDER_TRUST.underHeading, ...FINDER_TRUST.how, FINDER_TRUST.howLast, FINDER_TRUST.oursLine]) expect(s).not.toContain("—");
+  });
+
+  it("facts-checked month = the oldest verified date, in UTC; none = no line", () => {
+    expect(factsCheckedMonth([{ last_verified_at: "2026-12-01T00:00:00+00:00" }, { last_verified_at: "2026-11-18T00:00:00+00:00" }])).toBe("November 2026");
+    expect(factsCheckedMonth([{ last_verified_at: "2026-12-01T00:00:00+00:00" }])).toBe("December 2026");
+    expect(factsCheckedMonth([{ last_verified_at: null }])).toBeNull();
+  });
+
+  it("the page shows the trust copy, the Ours label on Eden's Table, and the checked line", () => {
+    const eden = { ...base, id: "44444444-4444-4444-8444-444444444444", sheet_id: "C031", name: "Eden's Table: Sprouts", last_verified_at: "2026-11-18T00:00:00+00:00" };
+    render(<CurriculumFinder rows={[base, eden]} />);
+    expect(screen.getByText(FINDER_TRUST.underHeading)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: FINDER_TRUST.howHeading })).toBeTruthy();
+    for (const h of FINDER_TRUST.how) expect(screen.getByText(h)).toBeTruthy();
+    expect(screen.getByText(FINDER_TRUST.howLast)).toBeTruthy();
+    expect(screen.getAllByText(FINDER_TRUST.oursLabel)).toHaveLength(1);
+    expect(screen.getByText(FINDER_TRUST.oursLine)).toBeTruthy();
+    expect(screen.getByText("Facts checked November 2026. Prices change, so check the publisher before you buy.")).toBeTruthy();
+    expect(screen.getByRole("link", { name: FINDER_TRUST.tellUs }).getAttribute("href")).toBe("/contact");
+  });
+
+  it("hide screen-based hides only rows marked screen-based (an unanswered row stays in)", () => {
+    expect(matches({ ...base, screen_based: true }, { ...none, hideScreen: true })).toBe(false);
+    expect(matches({ ...base, screen_based: false }, { ...none, hideScreen: true })).toBe(true);
+    expect(matches({ ...base, screen_based: null }, { ...none, hideScreen: true })).toBe(true);
+    expect(matches({ ...base, screen_based: true }, none)).toBe(true);
+  });
+
+  it("the card shows the price-covers line under a price and the Screen-based label; the filter works", () => {
+    const vp = { ...base, id: "33333333-3333-4333-8333-333333333333", sheet_id: "C091", name: "Veritas Press", screen_based: true, price_covers: "One subject for one year." };
+    render(<CurriculumFinder rows={[base, vp, { ...free, price_covers: "Never shown for a free one." }]} />);
+    expect(screen.getByText("What this price covers: One subject for one year.")).toBeTruthy();
+    expect(screen.queryByText(/Never shown for a free one/)).toBeNull();
+    expect(screen.getAllByText("Screen-based")).toHaveLength(1);
+    fireEvent.click(screen.getByLabelText("Hide screen-based options"));
+    expect(screen.queryByText("Veritas Press")).toBeNull();
+    expect(screen.getByText("Math-U-See")).toBeTruthy();
   });
 
   it("Eden's Table testimonials match /homeschool word for word, and show only on Eden's Table cards", () => {
