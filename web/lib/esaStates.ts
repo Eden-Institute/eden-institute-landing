@@ -1007,6 +1007,11 @@ export const ESA_OTHER = [
   // Lane 4 research: TN IEA 2026-27 handbook p.35 (no approved-curriculum list, no pre-approval for curricular
   // materials) and p.24 (IEA debit card); online courses need pre-approval. Not the EFS program.
   { state: "Tennessee", program: "Individualized Education Account (IEA)", note: "No vendor registration is needed. Families buy curriculum with the IEA debit card, and printed curricular materials need no pre-approval (online courses do)." },
+  // 2026-11-20 Camila (Lane 4 chat, relayed 17:54): "change Mississippi to not eligible, homeschool excluded".
+  // Source: EdChoice program summary (secondary; mdek12.org could not be read).
+  { state: "Mississippi", program: "Education Scholarship Account", note: "Children taught at home are not eligible for this program." },
+  // 2026-11-20 Camila (Lane 4 chat, relayed 17:55): "change Texas to January check, not yet applied".
+  { state: "Texas", program: "Education Freedom Accounts (TEFA)", note: "We have not applied yet, and plan to look at it again in January 2027." },
 ];
 
 /** Last content review of the ESA pages. Bump it when what they say changes (see
