@@ -50,7 +50,7 @@ Being an approved or registered vendor means a program allows families to buy fr
 
 ## What is it, if my program asks?
 
-This is how our ESA pages describe it: a 36-week Bible-based science and nature study curriculum in two levels, Sprouts for kindergarten through second grade and Seedlings for grades 3 to 5. Each week centers on one plant.
+This is how our ESA pages describe it: a 36-week Bible-based science curriculum in plant science (botany), in two levels, Sprouts for kindergarten through second grade and Seedlings for grades 3 to 5. Each week centers on one plant.
 
 A few more facts that help:
 
