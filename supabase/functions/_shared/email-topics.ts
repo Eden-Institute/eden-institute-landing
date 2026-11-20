@@ -33,6 +33,14 @@ export const EMAIL_TOPICS = {
     name: 'Partner promotions',
     description: 'Now and then, a note about a homeschool friend or business we trust and think your family would enjoy.',
   },
+  // Added 2026-11-20 (founder tap 2026-11-17, Lane 2 audit finding U1): the Advent "Plants of the Nativity"
+  // Sunday emails rode 'fridays', so leaving Advent meant leaving the Friday letter, and a family who had
+  // unticked Fridays got "You're in" and then no Sundays. Its own topic fixes both. The advent_2026 audience
+  // already limits these Broadcasts to families who opted in, so opt_in by default sends nothing extra.
+  advent: {
+    name: 'Plants of the Nativity',
+    description: 'Four Sunday emails through Advent, one plant from the Nativity story each week. Only families who signed up get them.',
+  },
 } as const;
 
 export type EmailTopicKey = keyof typeof EMAIL_TOPICS;
