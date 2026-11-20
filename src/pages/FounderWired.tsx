@@ -262,9 +262,10 @@ function Detail({ c, act }: { c: Curriculum; act: (label: string, fn: () => Prom
 }
 
 // ── W12: pilot applications. Counts per band so she can pick a balanced 30-50 (about 10-12 per band); selecting
-// or declining asks for her authenticator code (wired_admin_pilot_set_status, aal2). Nothing emails a family from
-// here: the "you're in" / "not this round" emails need her approved copy first. ──
-interface PilotApp { id: string; first_name: string | null; email: string; state: string | null; years: string | null; kids: string | null; children: { nickname: string; grade: number }[]; bands: string[]; approach: string | null; heard: string | null; status: string; created_at: string }
+// or declining asks for her authenticator code (wired_admin_pilot_set_status, aal2). 15 minutes after a pick stands,
+// wired-pdf sends her approved "you're in" / "not this round" email (_shared/wired-pilot-email.ts), once per
+// application; putting a row back to "applied" inside those 15 minutes stops it. ──
+interface PilotApp { id: string; first_name: string | null; email: string; state: string | null; years: string | null; kids: string | null; children: { nickname: string; grade: number }[]; bands: string[]; approach: string | null; heard: string | null; status: string; created_at: string; emailed: string | null }
 function PilotBox({ act }: { act: (msg: string, fn: () => Promise<unknown>) => Promise<void> }) {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<{ applications: PilotApp[]; bands: Record<string, { applied: number; selected: number }> } | null>(null);
@@ -289,10 +290,11 @@ function PilotBox({ act }: { act: (msg: string, fn: () => Promise<unknown>) => P
                   <td className="py-1">{a.first_name}<div className="text-xs text-muted-foreground">{a.email}</div></td>
                   <td>{a.state}</td>
                   <td>{a.children.map((c) => `${c.nickname} (${grade(c.grade)})`).join(", ")}</td>
-                  <td>{a.years}</td><td>{a.approach}</td><td>{a.heard}</td><td>{a.status}</td>
+                  <td>{a.years}</td><td>{a.approach}</td><td>{a.heard}</td><td>{a.status}{a.emailed ? <div className="text-xs text-muted-foreground">{a.emailed === "selected" ? "“You’re in”" : "“Not this round”"} email sent</div> : a.status === "selected" || a.status === "declined" ? <div className="text-xs text-muted-foreground">email goes 15 min after the pick</div> : null}</td>
                   <td className="whitespace-nowrap">
-                    {a.status !== "selected" && <button type="button" className="underline mr-2" onClick={() => setStatus(a.id, "selected")}>Pick</button>}
-                    {a.status !== "declined" && <button type="button" className="underline" onClick={() => setStatus(a.id, "declined")}>Not this round</button>}
+                    {!a.emailed && a.status !== "applied" && <button type="button" className="underline mr-2" onClick={() => setStatus(a.id, "applied")}>Undo</button>}
+                    {!a.emailed && a.status !== "selected" && <button type="button" className="underline mr-2" onClick={() => setStatus(a.id, "selected")}>Pick</button>}
+                    {!a.emailed && a.status !== "declined" && <button type="button" className="underline" onClick={() => setStatus(a.id, "declined")}>Not this round</button>}
                   </td>
                 </tr>
               ))}</tbody>

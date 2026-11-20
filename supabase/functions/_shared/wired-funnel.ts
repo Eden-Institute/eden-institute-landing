@@ -30,7 +30,7 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 
 /** Placement codes (W11, approved names) in plain words. */
 export const PLACEMENT_LABEL: Record<string, string> = {
-  header: "site header", homeschool_inline: "/homeschool", sample_inline: "Eden's Table sample", freebies_inline: "freebies page",
+  header: "site header", homeschool_inline: "/homeschool", sample_inline: "free-week sample pages", freebies_inline: "freebies page",
   esa_inline: "ESA pages", home_inline: "home page", bodypattern_results: "body-pattern results", blog_end: "end of blog posts",
   exit_popup: "exit pop-up", unknown: "other",
 };
