@@ -10,6 +10,8 @@ export const BRAND = {
   gold: '#C5A44E',
   sage: '#5C7A5C',
   footerText: '#6B6560',
+  /** Footer text ON the forest band: cream, about 9:1 on #2C3E2D (footerText there was about 2:1; Camila flagged it 2026-11-19). */
+  footerOnForest: '#E8E3DA',
 };
 
 // ── Slug helper ──
@@ -140,11 +142,11 @@ function standardFooterRows(provenance: EmailProvenance, unsubscribe: boolean): 
 <a href="https://www.pinterest.com/TheEdenInstituteBoards/" style="font-family:Georgia,serif;font-size:12px;color:#FFFFFF;text-decoration:underline;">Pinterest</a>
 </td></tr>
 <tr><td style="text-align:center;padding-top:14px;font-family:Georgia,serif;font-size:13px;color:${BRAND.gold};font-style:italic;">Back to Eden. Back to Truth.</td></tr>
-<tr><td style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;padding-top:16px;">${PROVENANCE_LINE[provenance]}</td></tr>
-<tr><td style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;padding-top:6px;">Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Unit 3262, Clarksville, TN 37043</td></tr>`;
+<tr><td style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerOnForest};text-align:center;padding-top:16px;">${PROVENANCE_LINE[provenance]}</td></tr>
+<tr><td style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerOnForest};text-align:center;padding-top:6px;">Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Unit 3262, Clarksville, TN 37043</td></tr>`;
   if (!unsubscribe) return rows;
   return `${rows}
-<tr><td style="text-align:center;padding-top:8px;"><a href="{{UNSUB_URL}}" style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-decoration:underline;">Unsubscribe</a></td></tr>`;
+<tr><td style="text-align:center;padding-top:8px;"><a href="{{UNSUB_URL}}" style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerOnForest};text-decoration:underline;">Unsubscribe</a></td></tr>`;
 }
 
 /** `shopCard: false` drops the Shop Medicinal Herbs card for an email that promises

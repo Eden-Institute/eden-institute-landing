@@ -511,13 +511,13 @@ const GOLDEN: Record<string, string> = {
   receipt_shipped: 'a96db1e3d0b0ffddaf134f5f59b698f2691e55347b065ac469558b4865062d64',
   receipt_zero: '1467e7f99c7771449aec6c063a09dac48b9ed10c796fb5bcff9a54d6193cda2e',
   order_receipt_0: 'a04c3c62386a81b2545053e5ffcc7e579aacf10489c7c21c23b630a2c0062664',
-  confirmation_0: '05a7964cfcfa738636cdd5119cb2ef3c2002a4b490fae6e8aebd0c2ef19c91ee',
+  confirmation_0: '7d54f8c80df89e2d733bc284bf825710f5aea2324716a37dc66a7daf9911a9ca',
   order_receipt_1: 'd9586de8f222f5da83b636d33df5b92bd2bd63a82743df83df4718ad00c7f58c',
-  confirmation_1: '28722d062076d85ebb0e7568c3e81dc854eee431b590ed47cc23f1d80f372acb',
+  confirmation_1: '70500c731099a4dd5cd6164e14f628fcd5d897ce237b1add26b87956241c670a',
   order_receipt_2: 'a04c3c62386a81b2545053e5ffcc7e579aacf10489c7c21c23b630a2c0062664',
-  confirmation_2: 'cde8d70e7efc9322bd80300ae0bc7c3e3c1d49965e8b0c6adf89f59680f9cf80',
+  confirmation_2: 'b2741bbf74bdb5bfdfeb1f1b584ea1326014c8d055633815a11a452199089287',
   order_receipt_3: 'a04c3c62386a81b2545053e5ffcc7e579aacf10489c7c21c23b630a2c0062664',
-  confirmation_3: '57f10455f563c5495ef0681532f0ab3a479d1d33ad4e7eeb8f9cc0662eff4789',
+  confirmation_3: 'e5d259e87ae5f8a1dd36ebbc752b6083734c2cc07942d096ba756e67722cd449',
 };
 
 async function sha256(s: string): Promise<string> {
