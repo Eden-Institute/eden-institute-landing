@@ -91,5 +91,25 @@ Deno.serve(async (req) => {
   if (outcome.status === 'already_completed') {
     return wiredJson(409, { status: 'already_completed', child_id: outcome.child_id ?? null, token });
   }
+  // W8a: email 1 was queued; nudge wired-pdf so it goes out in seconds (the 5-minute cron is the backstop).
+  if (outcome.unlocked) runInBackground(kickWiredPdf(db));
   return wiredJson(200, { status: 'ok', child_id: outcome.child_id ?? null, token, results: outcome.results ?? null });
 });
+
+function runInBackground(p: Promise<unknown>): void {
+  const rt = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
+  if (rt && typeof rt.waitUntil === 'function') rt.waitUntil(p);
+  else void p;
+}
+
+/** Fire-and-forget nudge to wired-pdf (service role). Never throws. */
+async function kickWiredPdf(db: Db): Promise<void> {
+  try {
+    const res = await fetch(`${db.url}/functions/v1/wired-pdf`, {
+      method: 'POST', headers: { Authorization: `Bearer ${db.key}`, 'Content-Type': 'application/json' }, body: '{}',
+    });
+    if (!res.ok) console.warn(`wired-submit: wired-pdf kick returned ${res.status}; cron will pick it up`);
+  } catch (err) {
+    console.warn('wired-submit: wired-pdf kick failed; cron will pick it up:', err instanceof Error ? err.message : String(err));
+  }
+}

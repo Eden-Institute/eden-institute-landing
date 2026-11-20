@@ -129,6 +129,15 @@ export async function processSubmission(db: Db, sub: Submission, opts: { pepper:
     });
     if (r.status === 'stale_blend') continue;
     if (r.status !== 'ok') return r as ProcessOutcome;
+    // W8a: queue learner email 1 (results + the free PDF) for an unlocked child, once per child.
+    // A failure here never fails the submit (her results are stored); it is logged for Lane 2.
+    if (r.unlocked) {
+      try {
+        await queueEmailOne(db, r.family_id, r.child_id, sub.email);
+      } catch (err) {
+        console.error('wired-submit: could not queue email 1:', err instanceof Error ? err.message : String(err));
+      }
+    }
     return {
       status: 'ok', family_id: r.family_id, child_id: r.child_id, unlocked: r.unlocked,
       results: buildResultsPayload({
@@ -178,4 +187,15 @@ async function raterRecord(db: Db, sub: Submission, year: number): Promise<{ fam
 
 async function rpc(db: Db, p: Record<string, unknown>): Promise<Record<string, any>> {
   return await pg<Record<string, any>>(db, 'rpc/wired_submit', { method: 'POST', body: JSON.stringify({ p }) });
+}
+
+/** W8a: one email-1 row per child (a July retake's email is W8b's job, not a second email 1). */
+export async function queueEmailOne(db: Db, familyId: string, childId: string, email: string, now: Date = new Date()): Promise<boolean> {
+  const existing = await pg<{ id: string }[]>(db, `wired_email_queue?child_id=eq.${childId}&kind=eq.drip&position=eq.1&select=id&limit=1`);
+  if (existing?.length) return false;
+  await pg(db, 'wired_email_queue', {
+    method: 'POST', headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({ family_id: familyId, child_id: childId, email: email.trim().toLowerCase(), kind: 'drip', position: 1, scheduled_for: now.toISOString() }),
+  });
+  return true;
 }
