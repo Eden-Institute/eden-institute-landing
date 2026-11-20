@@ -45,15 +45,17 @@ export interface EmailDrainOptions {
 export async function drainEmailQueue(db: Db, o: EmailDrainOptions): Promise<Record<string, unknown>> {
   const now = new Date().toISOString();
   const one = o.emailId && /^[0-9a-f-]{36}$/i.test(o.emailId) ? `id=eq.${o.emailId}&` : "";
+  // A founder test send of one row may re-send an email that already went out (nothing is marked).
+  const testOne = !!(o.testTo && one);
+  const due = testOne ? "" : `sent_at=is.null&failed_at=is.null&skipped_reason=is.null&scheduled_for=lte.${encodeURIComponent(now)}&retry_count=lt.${MAX_TRIES}&`;
   const rows = await pg<QueueRow[]>(db,
-    `wired_email_queue?${one}kind=eq.drip&position=eq.1&sent_at=is.null&failed_at=is.null&skipped_reason=is.null` +
-    `&scheduled_for=lte.${encodeURIComponent(now)}&retry_count=lt.${MAX_TRIES}` +
+    `wired_email_queue?${one}kind=eq.drip&position=eq.1&${due}` +
     `&select=id,family_id,email,child_id,kind,position,retry_count,created_at&order=scheduled_for.asc&limit=${one ? 1 : EMAILS_PER_RUN}`);
   const out = { emails_found: rows?.length ?? 0, sent: 0, skipped: 0, failed: 0, details: [] as unknown[] };
 
   for (const row of rows ?? []) {
-    // Claim: only one runner wins this try.
-    const claimed = await pg<QueueRow[]>(db, `wired_email_queue?id=eq.${row.id}&retry_count=eq.${row.retry_count}&sent_at=is.null`, {
+    // Claim: only one runner wins this try (a founder test of a sent row claims without the sent check).
+    const claimed = await pg<QueueRow[]>(db, `wired_email_queue?id=eq.${row.id}&retry_count=eq.${row.retry_count}${testOne ? "" : "&sent_at=is.null"}`, {
       method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ retry_count: row.retry_count + 1 }),
     });
     if (!claimed?.length) continue;
