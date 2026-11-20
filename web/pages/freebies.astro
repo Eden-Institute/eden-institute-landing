@@ -19,6 +19,7 @@
 // for SEO) and WaitlistController (the one island, which opens the modal).
 //
 // Copy here deliberately carries NO em dashes, per Lock #27.
+import WiredCta from "../components/WiredCta.astro";
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 // Hero watermark: public domain botanical plate from Koehler's Medizinal-Pflanzen
 // (1887), desaturated to a sage wash and feathered at the edges, matching the
@@ -360,4 +361,6 @@ const freeDisclosure = disclosureFor(freeClips);
       touches localStorage and the Supabase client at module load, so it must never
       be server-rendered during the static build. */}
   <WaitlistController client:only="react" />
+  {/* Wired quiz W11 card: renders nothing until WIRED_IS_PUBLIC. */}
+  <WiredCta placement="freebies_inline" />
 </MarketingLayout>

@@ -24,6 +24,8 @@
  *                           is reached by signing up on /freebies, not by search
  *   /404                  - the not-found page (dist/404.html), served with HTTP 404
  */
+import { WIRED_IS_PUBLIC } from "../../supabase/functions/_shared/wired-launch";
+
 export const STATIC_PATHS: readonly string[] = [
   "/",
   "/why-eden",
@@ -34,6 +36,8 @@ export const STATIC_PATHS: readonly string[] = [
   "/homeschool/scope-and-sequence",
   "/learn",
   "/curriculum-finder",
+  // Wired quiz (W11): in the sitemap only once the quiz is public (the one launch switch).
+  ...(WIRED_IS_PUBLIC ? ["/wired"] : []),
   "/community",
   "/freebies",
   "/books",

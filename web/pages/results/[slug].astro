@@ -18,6 +18,7 @@
 //
 // Content is imported from src/lib/constitution-data.ts, the same module the
 // React page reads, so the two cannot drift.
+import WiredCta from "../../components/WiredCta.astro";
 import MarketingLayout from "../../layouts/MarketingLayout.astro";
 import { constitutionProfiles } from "@/lib/constitution-data";
 import { CONSTITUTION_MAP } from "@/lib/constitution-utils";
@@ -158,4 +159,6 @@ const jsonLd = [
       </div>
     </div>
   </section>
+  {/* Wired quiz W11 card: renders nothing until WIRED_IS_PUBLIC. */}
+  <WiredCta placement="bodypattern_results" />
 </MarketingLayout>

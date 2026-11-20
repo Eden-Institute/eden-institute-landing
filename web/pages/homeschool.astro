@@ -6,6 +6,7 @@
 // every way in on one page. 2026-09-12: the preorder buy box came off with the
 // print-first pivot (see the §10 comment). Island: WaitlistController for the
 // free-week and "tell me when" modals.
+import WiredCta from "../components/WiredCta.astro";
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 // Hero watermark: public domain botanical plate from Koehler's Medizinal-Pflanzen
 // (1887), desaturated to a sage wash and feathered at the edges, matching the
@@ -865,4 +866,6 @@ const PRINT_SET = {
       <CoopLicensing /> here to restore it. Its $15/$13/$11 volume tiers
       overlapped the buy box, which sells up to 5 notebooks at $19. Resolve
       that overlap before bringing it back. */}
+  {/* Wired quiz W11 card: renders nothing until WIRED_IS_PUBLIC. */}
+  <WiredCta placement="homeschool_inline" />
 </MarketingLayout>

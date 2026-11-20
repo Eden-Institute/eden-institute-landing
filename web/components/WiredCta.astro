@@ -1,0 +1,33 @@
+---
+// A Wired quiz card for one placement (W11; approved copy in web/lib/wiredButtons.ts, version A at launch).
+// Renders NOTHING until WIRED_IS_PUBLIC (the one launch switch): until then the quiz is dark and a mom would
+// land on "This page isn't open yet". Internal link, no UTM; the click beacon records
+// record_cta_click('wired', page, placement) from data-cta + data-cta-placement.
+import { WIRED_CARDS, WIRED_IS_PUBLIC, wiredHref, type WiredPlacement } from "../lib/wiredButtons";
+
+export interface Props {
+  placement: Exclude<WiredPlacement, "header" | "exit_popup">;
+  /** /esa/[state]: the state's name for "[State]". */
+  state?: string;
+}
+const { placement, state } = Astro.props;
+const card = WIRED_CARDS[placement];
+const text = state ? card.text.replace("[State]", state) : card.text;
+const show = WIRED_IS_PUBLIC && !text.includes("[State]");
+---
+
+{show && (
+  <div class="max-w-3xl mx-auto px-4">
+  <aside class="wired-cta my-10 rounded-lg px-5 py-6 sm:px-8" style="background-color:hsl(var(--eden-parchment));border:1px solid hsl(var(--eden-gold) / 0.45)">
+    {card.headline && <p class="font-display text-2xl mb-2" style="color:hsl(var(--eden-forest))">{card.headline}</p>}
+    <p class="font-body text-base mb-4" style="color:hsl(var(--eden-bark))">{text}</p>
+    <a
+      href={wiredHref(placement)}
+      data-cta="wired"
+      data-cta-placement={placement}
+      class="inline-flex items-center justify-center font-accent text-sm tracking-[0.2em] uppercase font-bold px-6 py-3 rounded-md transition-opacity hover:opacity-90"
+      style="background-color:hsl(var(--eden-forest));color:hsl(var(--eden-cream))"
+    >{card.button}</a>
+  </aside>
+  </div>
+)}

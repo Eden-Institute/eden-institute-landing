@@ -3,6 +3,7 @@
  * web/pages that is indexable must appear in STATIC_PATHS, and every entry in
  * STATIC_PATHS must be an existing indexable page.
  */
+import { WIRED_IS_PUBLIC } from "../../supabase/functions/_shared/wired-launch";
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
@@ -28,6 +29,8 @@ function routeFor(file: string): string {
 function isNoindex(source: string): boolean {
   const fences = source.split(/^---\s*$/m);
   const template = fences.length >= 3 ? fences.slice(2).join("---") : source;
+  // Wired quiz (W11): /wired is noindex until the one launch switch flips, and in STATIC_PATHS after it.
+  if (/\snoindex=\{!WIRED_IS_PUBLIC\}/.test(template)) return !WIRED_IS_PUBLIC;
   return /\snoindex(=\{true\})?(?=[\s>/])/.test(template);
 }
 

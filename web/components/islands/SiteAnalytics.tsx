@@ -39,7 +39,7 @@ const SKIP_PREFIXES = ["/founder", "/apothecary/auth", "/apothecary/account"];
  * server-side, nothing identifying leaves the function, no consent gate
  * applies.
  */
-function beaconCtaClick(cta: string, path: string): void {
+function beaconCtaClick(cta: string, path: string, placement: string | null = null): void {
   try {
     void fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/record_cta_click`, {
       method: "POST",
@@ -47,7 +47,8 @@ function beaconCtaClick(cta: string, path: string): void {
         "Content-Type": "application/json",
         apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
       },
-      body: JSON.stringify({ p_cta: cta, p_path: path, p_lookup_key: null }),
+      // p_placement (W1, 4-argument record_cta_click): which button on the page, e.g. header vs exit_popup.
+      body: JSON.stringify({ p_cta: cta, p_path: path, p_lookup_key: null, ...(placement ? { p_placement: placement.slice(0, 60) } : {}) }),
       keepalive: true,
       credentials: "omit",
     }).catch(() => {});
@@ -126,7 +127,7 @@ export default function SiteAnalytics({ thirdPartyTags = true, storeBadge = fals
       if (key === lastKey && now - lastAt < 800) return;
       lastKey = key;
       lastAt = now;
-      beaconCtaClick(cta, window.location.pathname);
+      beaconCtaClick(cta, window.location.pathname, el.getAttribute("data-cta-placement"));
     };
     document.addEventListener("click", clickHandler, true);
 
