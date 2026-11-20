@@ -61,6 +61,16 @@ const EMAIL_LABELS: Record<string, string> = {
   magnet_checkin_v2_seedlings: "Homeschool · Day-7 check-in v2, one-word reply (Seedlings)",
   magnet_starter_sprouts: "Homeschool · Day-10 Starter note (Sprouts)",
   magnet_starter_seedlings: "Homeschool · Day-10 Starter note (Seedlings)",
+  magnet_lesson_1_sprouts: "Homeschool · Day-2 Lesson 1 (Sprouts)",
+  magnet_lesson_2_sprouts: "Homeschool · Day-3 Lesson 2 (Sprouts)",
+  magnet_lesson_3_sprouts: "Homeschool · Day-4 Lesson 3 (Sprouts)",
+  magnet_lesson_4_sprouts: "Homeschool · Day-5 Lesson 4 (Sprouts)",
+  magnet_lesson_5_sprouts: "Homeschool · Day-6 Lesson 5 (Sprouts)",
+  magnet_lesson_1_seedlings: "Homeschool · Day-2 Lesson 1 (Seedlings)",
+  magnet_lesson_2_seedlings: "Homeschool · Day-3 Lesson 2 (Seedlings)",
+  magnet_lesson_3_seedlings: "Homeschool · Day-4 Lesson 3 (Seedlings)",
+  magnet_lesson_4_seedlings: "Homeschool · Day-5 Lesson 4 (Seedlings)",
+  magnet_lesson_5_seedlings: "Homeschool · Day-6 Lesson 5 (Seedlings)",
   magnet_w3_fb: "Homeschool · Week 3 (Facebook)",
 };
 

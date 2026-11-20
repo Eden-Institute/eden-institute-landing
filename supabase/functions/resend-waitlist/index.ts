@@ -18,6 +18,7 @@ import { getCallerUser } from '../_shared/caller-user.ts';
 import { applyMemberRetake, memberRetakeUserId } from '../_shared/quiz-member-retake.ts';
 import { insertOrFetchWithRetry, sendWelcomeWithRetry, type WelcomeSendResult } from '../_shared/signup-safety.ts';
 import { centralMorningLabel, nextMorningSendAt } from '../_shared/next-morning.ts';
+import { FREE_WEEK_LESSON_NUMBERS, freeWeekLessonSendAt, lessonPosition } from '../_shared/free-week-lessons.ts';
 import { alertFounder } from '../_shared/founder-alert.ts';
 import { attributionFillFilter, attributionPatch, type SignupAttribution } from '../_shared/signup-attribution.ts';
 
@@ -879,7 +880,7 @@ Deno.serve(async (req) => {
           ? `The send failed before Resend answered (${failure.attempts} ${failure.attempts === 1 ? 'try' : 'tries'}): ${failure.error ?? 'no detail'}`
           : `Resend refused it with ${failure.status} after ${failure.attempts} ${failure.attempts === 1 ? 'try' : 'tries'}: ${failure.error ?? 'no detail'}`;
         const next = isFreeWeek
-          ? `Their next-morning note (it has the Week 1 download link) is still queued for ${centralMorningLabel(nextMorningMs)}, then the Day-7 check-in and the Day-10 note. The free-week sign-up form shows an "Open Week 1" button when this happens.`
+          ? `Their next-morning note (it has the Week 1 download link) is still queued for ${centralMorningLabel(nextMorningMs)}, then a lesson email each morning on Days 2 to 6, the Day-7 check-in and the Day-10 note. The free-week sign-up form shows an "Open Week 1" button when this happens.`
           : welcomeKey === 'back_to_eden_ch1'
           ? 'Their Chapter 1 follow-up notes were NOT queued, because those notes assume the chapter arrived.'
           : 'Nothing else is queued from this sign-up.';
@@ -932,8 +933,20 @@ Deno.serve(async (req) => {
         // 18 hours after sign-up; now 8 AM Central the next morning (area 5 F10, see
         // _shared/next-morning.ts).
         const nextMorning = new Date(nextMorningMs).toISOString();
+        // 2026-11-19 (founder-approved): daily Lessons 1-5 (positions 11-15) at 8 AM Central
+        // on the 1st to 5th Central days after the next-morning note, i.e. Days 2-6. See
+        // _shared/free-week-lessons.ts for why 11-15 (never the dormant 3-7 chain).
+        const lessonRows = FREE_WEEK_LESSON_NUMBERS.map((k) => ({
+          recipient_email: normalizedEmail,
+          first_name: firstNameSafe,
+          band,
+          sequence_position: lessonPosition(k),
+          scheduled_for: new Date(freeWeekLessonSendAt(nextMorningMs, k)).toISOString(),
+          status: 'pending',
+        }));
         const magnetRows = [
           { recipient_email: normalizedEmail, first_name: firstNameSafe, band, sequence_position: 1, scheduled_for: nextMorning, status: 'pending' },
+          ...lessonRows,
           { recipient_email: normalizedEmail, first_name: firstNameSafe, band, sequence_position: 2, scheduled_for: day7, status: 'pending' },
           // 2026-10-14: Day-10 Starter note (nurture-emails position 8), skipped there for owners.
           { recipient_email: normalizedEmail, first_name: firstNameSafe, band, sequence_position: 8, scheduled_for: day10, status: 'pending' },
@@ -955,7 +968,7 @@ Deno.serve(async (req) => {
           const t = await mqRes.text().catch(() => '<unreadable>');
           console.error('magnet_email_queue UPSERT failed', { status: mqRes.status, body: t });
         } else {
-          console.log(`Magnet next-morning + day-7 check-in enqueued (${band})`);
+          console.log(`Magnet next-morning + lessons 1-5 + day-7 check-in + day-10 note enqueued (${band})`);
         }
       } catch (mqErr) {
         console.error('Magnet enqueue error:', String(mqErr));
