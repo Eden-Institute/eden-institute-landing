@@ -109,3 +109,9 @@ Deno.test("July: one email per family, one button per child, each child's next g
   assertEquals(r.subject, "Still time for Lily's check-in");
   assert(noBrackets(r.text));
 });
+
+Deno.test("em-2 subject reads 'an Organizer' (a/an fixed in the subject and preview too, as in the body)", () => {
+  const m = buildLearnerEmail("em-2", { firstName: "Sarah", child: { nickname: "Sam", topId: "organizer" }, resultsToken: "t" });
+  assertEquals(m.subject, "What an Organizer looks like at home");
+  assertEquals(m.preview.includes(" a O"), false);
+});
