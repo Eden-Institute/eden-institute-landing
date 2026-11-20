@@ -62,7 +62,7 @@ export function cleanAttribution(v: unknown): Record<string, string> {
   return out;
 }
 
-function cleanAnswers(v: unknown): RaterAnswers | null {
+export function cleanAnswers(v: unknown): RaterAnswers | null {
   if (!v || typeof v !== 'object') return null;
   const o = v as Record<string, unknown>;
   const sc = o.scenarios;

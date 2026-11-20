@@ -5,7 +5,8 @@
 // list (own unsubscribe, {{UNSUB_URL}} filled by applyUnsub) and exempt from the one-a-day guard
 // (answer 5: results she asked for). The button carries her private results link (?t=token; the
 // results page moves it to her device and strips it from the address bar, answer 12).
-// Until the delete flow ships (W9) the footer's "Delete my quiz data" link has nowhere to go, so
+// Since W9 (2026-11-20) the footer carries the approved "Delete my quiz data" link (/wired/delete) next to
+// Unsubscribe. Before W9 it had nowhere to go, so
 // the footer keeps the order sentence + Unsubscribe + the business name and address.
 
 import { WIRED_PDF_COPY as COPY, type CopyItem } from "./wired-pdf-content.ts";
@@ -60,14 +61,14 @@ export function buildEmailOne(o: { firstName: string | null; nickname: string; t
       `<p style="margin:4px 0 0 0;font-family:Georgia,serif;font-size:14px;">The Eden Institute</p>`,
     `<tr><td style="font-family:Georgia,serif;font-size:12px;color:${INK};text-align:center;">${esc(footerLine)}</td></tr>
 <tr><td style="font-family:Georgia,serif;font-size:12px;color:${INK};text-align:center;padding-top:6px;">${ADDRESS}</td></tr>
-<tr><td style="text-align:center;padding-top:8px;"><a href="{{UNSUB_URL}}" style="font-family:Georgia,serif;font-size:12px;color:${INK};text-decoration:underline;">Unsubscribe from these emails</a></td></tr>`,
+<tr><td style="text-align:center;padding-top:8px;"><a href="{{UNSUB_URL}}" style="font-family:Georgia,serif;font-size:12px;color:${INK};text-decoration:underline;">Unsubscribe from these emails</a> &middot; <a href="https://edeninstitute.health/wired/delete" style="font-family:Georgia,serif;font-size:12px;color:${INK};text-decoration:underline;">Delete my quiz data</a></td></tr>`,
     { shopCard: false },
   );
   const text = [
     greeting,
     ...body.map((s) => (s === "[button]" ? `${fill(btnLabel, v)}: ${buttonUrl}` : fill(s, v))),
     "Camila", "The Eden Institute", "",
-    footerLine, ADDRESS.replace("&middot;", "·"), "Unsubscribe from these emails: {{UNSUB_URL}}",
+    footerLine, ADDRESS.replace("&middot;", "·"), "Unsubscribe from these emails: {{UNSUB_URL}}", "Delete my quiz data: https://edeninstitute.health/wired/delete",
   ].join("\n\n");
   return { subject, preview, html: tagEmailHtml(html, { medium: "nurture", campaign: "learner_quiz", content: "email_1" }), text, buttonUrl };
 }

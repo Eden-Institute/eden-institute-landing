@@ -24,6 +24,8 @@ import { signWiredToken } from "./wired-token.ts";
 import { lowest3, wiringName } from "./wired-pdf.ts";
 import { buildJulyEmail, buildLearnerEmail, type ChildBits, type LearnerEmail } from "./wired-email-learner.ts";
 import { claimSendDay, nextCentralMorning, releaseSendDay } from "./send-day-guard.ts";
+import { buildTxEmail, SITE as TX_SITE, type TxEmail } from "./wired-email-tx.ts";
+import { observerCode } from "./wired-raters.ts";
 import { quizYear } from "./wired-engine.ts";
 import { notifyFounder } from "./lulu-fulfillment.ts";
 
@@ -31,7 +33,7 @@ export const EMAILS_PER_RUN = 3;
 const MAX_TRIES = 5;
 
 interface QueueRow {
-  id: string; family_id: string | null; email: string; child_id: string | null; kind: string; position: number | null;
+  id: string; family_id: string | null; email: string; child_id: string | null; observer_id?: string | null; kind: string; position: number | null;
   retry_count: number; created_at: string;
 }
 
@@ -58,8 +60,8 @@ export async function drainEmailQueue(db: Db, o: EmailDrainOptions): Promise<Rec
   const testOne = !!(o.testTo && one);
   const due = testOne ? "" : `sent_at=is.null&failed_at=is.null&skipped_reason=is.null&scheduled_for=lte.${encodeURIComponent(now)}&retry_count=lt.${MAX_TRIES}&`;
   const rows = await pg<QueueRow[]>(db,
-    `wired_email_queue?${one}kind=in.(drip,july)&${due}` +
-    `&select=id,family_id,email,child_id,kind,position,retry_count,created_at&order=scheduled_for.asc&limit=${one ? 1 : EMAILS_PER_RUN}`);
+    `wired_email_queue?${one}${due}` +
+    `&select=id,family_id,email,child_id,observer_id,kind,position,retry_count,created_at&order=scheduled_for.asc&limit=${one ? 1 : EMAILS_PER_RUN}`);
   const out = { emails_found: rows?.length ?? 0, sent: 0, skipped: 0, deferred: 0, failed: 0, details: [] as unknown[] };
 
   for (const row of rows ?? []) {
@@ -73,6 +75,10 @@ export async function drainEmailQueue(db: Db, o: EmailDrainOptions): Promise<Rec
       await pg(db, `wired_email_queue?id=eq.${row.id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ skipped_reason: reason }) });
       out.skipped++; out.details.push({ id: row.id, skipped: reason });
     };
+    if (TX_KINDS.has(row.kind)) {
+      await sendTransactional(db, o, row, out, putBack, skip, testOne);
+      continue;
+    }
     if (!(row.kind === "drip" && row.position === 1)) {
       await sendLearner(db, o, row, out, putBack, skip, testOne);
       continue;
@@ -285,6 +291,108 @@ async function sendLearner(
       await notifyFounder("A Wired quiz follow-up email did NOT go out", [
         `A learner email (${row.kind} ${row.position}) failed 5 times and was given up.`, "",
         `Queue row: ${row.id}`, `Why: ${msg}`, "", "Nothing else is affected. Ask Claude (Lane 2) to look at it.",
+      ].join("\n"));
+    }
+  }
+}
+
+// ── W9: transactional emails (never held by the one-a-day guard) ─────────────
+
+const TX_KINDS = new Set(["observer_invite", "observer_reminder", "teen_ready", "pdf_update"]);
+/** Her label in a sentence ("[Role] just shared how they see Lily"); the email capitalises a sentence start. */
+const ROLE_WORDS: Record<string, string> = {
+  "Dad": "Dad", "Grandparent": "a grandparent", "Co-op teacher": "a co-op teacher", "Tutor": "a tutor",
+  "Other family member": "a family member", "Other": "someone you invited",
+};
+
+async function sendTransactional(
+  db: Db, o: EmailDrainOptions, row: QueueRow & { observer_id?: string | null }, out: Out,
+  putBack: () => Promise<unknown>, skip: (reason: string) => Promise<void>, testOne: boolean,
+): Promise<void> {
+  try {
+    if (!row.family_id || !row.child_id) { await skip("no_family_or_child"); return; }
+    const forMom = row.kind === "teen_ready" || row.kind === "pdf_update";
+    // Mom's teen email carries the learner unsubscribe (its approved footer); every one of these still
+    // respects a hard bounce or a spam complaint. Observers are on no list.
+    const blocked = await pg<boolean>(db, "rpc/email_send_blocked", {
+      method: "POST", body: JSON.stringify({ p_email: row.email, p_list: row.kind === "teen_ready" ? "learner" : "transactional", p_queued_at: row.created_at }),
+    });
+    if (blocked === true && !o.testTo) { await skip("suppressed"); return; }
+    const fam = (await pg<{ first_name: string | null }[]>(db, `wired_families?id=eq.${row.family_id}&select=first_name&limit=1`))?.[0];
+    if (!fam) { await skip("family_deleted"); return; }
+    const kid = (await pg<{ nickname: string; unlocked_via: string | null }[]>(db, `wired_children?id=eq.${row.child_id}&removed_at=is.null&select=nickname,unlocked_via&limit=1`))?.[0];
+    if (!kid) { await skip("child_removed"); return; }
+
+    let mail: TxEmail;
+    let attachment: { filename: string; content: string } | null = null;
+    if (!forMom) {
+      const obs = row.observer_id ? (await pg<{ id: string; email: string | null; label: string | null; removed_at: string | null; last_completed_quiz_year: number | null; quiz_year: number | null; token_expires_at: string | null }[]>(db,
+        `wired_observers?id=eq.${row.observer_id}&select=id,email,label,removed_at,last_completed_quiz_year,quiz_year,token_expires_at&limit=1`))?.[0] : undefined;
+      if (!obs || obs.removed_at || !obs.email) { await skip("observer_removed"); return; }
+      if (row.kind === "observer_reminder" && obs.last_completed_quiz_year !== null && obs.last_completed_quiz_year >= (obs.quiz_year ?? 0)) { await skip("observer_answered"); return; }
+      if (obs.token_expires_at && Date.parse(obs.token_expires_at) <= Date.now()) { await skip("observer_link_expired"); return; }
+      const code = await observerCode(obs.id);
+      mail = buildTxEmail(row.kind === "observer_invite" ? "em-obs-invite" : "em-obs-reminder", {
+        firstName: fam.first_name, nickname: kid.nickname, buttonUrl: `${TX_SITE}/wired/observer?c=${code}`,
+      });
+    } else {
+      const token = await signWiredToken({ familyId: row.family_id, purpose: "results" });
+      let role: string | undefined;
+      if (row.kind === "pdf_update" && row.observer_id) {
+        role = (await pg<{ label: string | null }[]>(db, `wired_observers?id=eq.${row.observer_id}&select=label&limit=1`))?.[0]?.label ?? undefined;
+      }
+      mail = buildTxEmail(row.kind === "teen_ready" ? "em-teen" : "em-update", {
+        firstName: fam.first_name, nickname: kid.nickname, role: role ? ROLE_WORDS[role] ?? "someone you invited" : undefined,
+        buttonUrl: `${TX_SITE}/wired/results?t=${encodeURIComponent(token)}`,
+      });
+      // The updated Blueprint (with every view blended in) when she has one for this child (answer 4: built at
+      // send time, attached, never stored).
+      if (kid.unlocked_via === "blueprint" || kid.unlocked_via === "family_map") {
+        const job: PdfJob = { id: row.id, family_id: row.family_id, child_id: row.child_id, order_id: null, buyer_id: null, kind: "blueprint", quiz_year: 0, attempts: 0, status: "queued" };
+        const pdf = await renderJob(job, await loadBlueprintData(db, job));
+        if (pdf.bytes.length > 3 * 1024 * 1024) throw new Error(`Blueprint PDF is ${pdf.bytes.length} bytes, over the 3 MB budget`);
+        attachment = { filename: pdf.filename, content: b64(pdf.bytes) };
+      } else if (row.kind === "pdf_update") {
+        await skip("no_blueprint_to_update"); return;
+      }
+    }
+    if (o.dryRun) { await putBack(); out.details.push({ id: row.id, dry_run: true, kind: row.kind, subject: mail.subject, attachment: !!attachment }); return; }
+
+    const to = o.testTo || row.email;
+    let html = mail.html, text = mail.text, headers: Record<string, string> | undefined;
+    if (mail.unsubscribe) {
+      const u = await applyUnsub(mail.html, to, "learner");
+      html = u.html; headers = u.headers;
+      text = (await applyUnsub(mail.text, to, "learner")).html;
+    }
+    if (!o.resendKey) throw new Error("RESEND_API_KEY is not set");
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${o.resendKey}`, "Content-Type": "application/json", "Idempotency-Key": `wired-email-${o.testTo ? "test-" : ""}${row.id}` },
+      body: JSON.stringify({
+        from: o.from, reply_to: o.replyTo, to: [to], subject: mail.subject, html, text, ...(headers ? { headers } : {}),
+        ...(attachment ? { attachments: [attachment] } : {}), tags: [{ name: "category", value: `wired_${row.kind}` }],
+      }),
+    });
+    if (!res.ok) throw new Error(`Resend ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);
+    const sent = await res.json().catch(() => ({})) as { id?: string };
+    if (o.testTo) { await putBack(); out.details.push({ id: row.id, test_send: true, subject: mail.subject, attachment: !!attachment }); return; }
+    await pg(db, `wired_email_queue?id=eq.${row.id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ sent_at: new Date().toISOString(), resend_id: sent.id ?? null }) });
+    if (row.kind === "observer_reminder" && row.observer_id) {
+      await pg(db, `wired_observers?id=eq.${row.observer_id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ reminder_sent_at: new Date().toISOString() }) });
+    }
+    out.sent++; out.details.push({ id: row.id, sent: true });
+  } catch (err) {
+    const msg = (err instanceof Error ? err.message : String(err)).slice(0, 400);
+    const final = row.retry_count + 1 >= MAX_TRIES;
+    console.error(`wired email ${row.id} (${row.kind}) try ${row.retry_count + 1} failed${final ? " (giving up)" : ""}: ${msg}`);
+    out.failed++; out.details.push({ id: row.id, error: msg });
+    if (o.dryRun || o.testTo || testOne) { await putBack(); return; }
+    if (final) {
+      await pg(db, `wired_email_queue?id=eq.${row.id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ failed_at: new Date().toISOString() }) });
+      await notifyFounder("A Wired quiz email did NOT go out", [
+        `A ${row.kind.replace(/_/g, " ")} email failed 5 times and was given up.`, "",
+        `Queue row: ${row.id}`, `Why: ${msg}`, "", "Ask Claude (Lane 2) to look at it.",
       ].join("\n"));
     }
   }

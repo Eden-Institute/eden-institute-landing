@@ -60,3 +60,17 @@ export const getMatches = (body: unknown) => call<Record<string, unknown>>("wire
 export type WiredBuy = "blueprint" | "family_map" | "blueprint_upgrade" | "family_map_upgrade";
 export const startWiredCheckout = (body: { token: string; product: WiredBuy; child_ids?: string[] }) =>
   call<{ url?: string; error?: string; code?: string }>("create-checkout", { method: "POST", body: { lookup_key: "wired_cart", ...body } });
+
+/** W9: the teen link (grade 9+, age picked from 10-18; 13+ gets { url }, under 13 gets { under_13: true }). */
+export const getTeenLink = (body: { token: string; child_id: string; age: number }) =>
+  call<{ url?: string; under_13?: boolean; error?: string }>("wired-teen-link", { method: "POST", body });
+/** W9: people she invites for a Blueprint child (list / add / remove). */
+export interface ObserverRow { id: string; label: string | null; email: string; status: "invited" | "answered" | "expired" }
+export const observers = (body: { token: string; child_id: string; action: "list" | "add" | "remove"; email?: string; label?: string; observer_id?: string }) =>
+  call<{ observers?: ObserverRow[]; max?: number; error?: string }>("wired-observers", { method: "POST", body });
+/** W9: the teen / observer side of the quiz (their private link code, never a family token). */
+export const rater = (body: { kind: "teen" | "observer"; code: string; action: "context" | "submit"; bank_version?: string; answers?: unknown }) =>
+  call<{ nickname?: string; mom?: string; set_kind?: string; label?: string | null; status?: string; error?: string }>("wired-rater", { method: "POST", body });
+/** W9: "Delete my quiz data". request = email the confirm link; confirm = delete. */
+export const deleteData = (body: { action: "request" | "confirm"; token?: string; email?: string }) =>
+  call<{ ok?: boolean; deleted?: boolean; error?: string }>("wired-delete", { method: "POST", body });

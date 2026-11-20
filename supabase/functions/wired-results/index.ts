@@ -2,6 +2,8 @@
 // spec section 8). Public POST {token, child_id?}, DARK until WIRED_ENABLED. Never returns
 // another family's data: every read is filtered by the token's family id. A locked 3rd
 // child gets only the top wiring's name (7.2). verify_jwt = false (config.toml).
+// W9: each child also carries `raters` (every rater's own scores: mom, teen, each observer by her label),
+// `teen_link_allowed` (grade 9+) and `observers_allowed` (a Blueprint or Family Map child).
 
 import { type Domain, type Scores } from '../_shared/wired-engine.ts';
 import { buildResultsPayload, type FamilyAnswers } from '../_shared/wired-submit-core.ts';
@@ -52,12 +54,31 @@ Deno.serve(async (req) => {
         db,
         `wired_sessions?child_id=eq.${k.id}&family_id=eq.${grant.familyId}&rater_role=eq.mom&quiz_year=eq.${r.quiz_year}&select=family_answers&limit=1`,
       );
-      children.push(buildResultsPayload({
+      const payload = buildResultsPayload({
         child: { id: k.id, nickname: k.nickname, grade: k.grade, unlocked: k.unlocked_via !== null },
         quiz_year: r.quiz_year, scores: r.blended_scores, top3: r.top3, renaissance: r.renaissance,
         family_answers: ses?.[0]?.family_answers ?? null,
         matches: r.matches_snapshot?.matches ?? [], coming_soon: r.matches_snapshot?.coming_soon ?? [],
-      }));
+      });
+      // W9: each rater's own view for the side by side ("Mom sees / Teen sees", plus each person she invited,
+      // by the label she gave, never a name or email). Only for an unlocked child.
+      let raters: { role: string; label: string | null; scores: Scores; top3: Domain[] }[] = [];
+      if (k.unlocked_via !== null) {
+        const all = await pg<{ rater_role: string; observer_id: string | null; scores: Scores; top3: Domain[] }[]>(
+          db,
+          `wired_sessions?child_id=eq.${k.id}&family_id=eq.${grant.familyId}&quiz_year=eq.${r.quiz_year}&completed_at=not.is.null&is_pilot_retake=eq.false&select=rater_role,observer_id,scores,top3&order=completed_at.asc`,
+        );
+        const obsIds = (all ?? []).map((x) => x.observer_id).filter((x): x is string => !!x);
+        const labels = new Map(obsIds.length
+          ? ((await pg<{ id: string; label: string | null }[]>(db, `wired_observers?id=in.(${obsIds.join(',')})&select=id,label`)) ?? []).map((o) => [o.id, o.label])
+          : []);
+        raters = (all ?? []).map((x) => ({ role: x.rater_role, label: x.observer_id ? labels.get(x.observer_id) ?? null : null, scores: x.scores, top3: x.top3 }));
+      }
+      children.push({
+        ...payload, raters,
+        teen_link_allowed: k.unlocked_via !== null && k.grade >= 9,
+        observers_allowed: k.unlocked_via === 'blueprint' || k.unlocked_via === 'family_map',
+      });
     }
     return wiredJson(200, { first_name: fam[0].first_name, children });
   } catch (err) {

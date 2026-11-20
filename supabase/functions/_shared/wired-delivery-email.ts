@@ -5,7 +5,7 @@
 // WIRED_PDF_COPY.emails). Transactional: no list, no unsubscribe row, never held by the one-a-day
 // guard. Sender "Camila at The Eden Institute", replies to hello@.
 //
-// Until the delete flow ships (W9) the footer's "Delete my quiz data" link has nowhere to go, so
+// Since W9 (2026-11-20) the footer carries the approved "Delete my quiz data" link (/wired/delete). Before W9
 // the footer line ends at the order sentence; the business name and mailing address row stays.
 
 import { WIRED_PDF_COPY as COPY, type CopyItem } from "./wired-pdf-content.ts";
@@ -76,9 +76,10 @@ export function buildDeliveryEmail(kind: DeliveryKind, o: { firstName: string | 
       `<p style="margin:24px 0 0 0;font-family:Georgia,serif;font-size:16px;font-weight:bold;">Camila</p>` +
       `<p style="margin:4px 0 0 0;font-family:Georgia,serif;font-size:14px;">The Eden Institute</p>`,
     `<tr><td style="font-family:Georgia,serif;font-size:12px;color:${FOOTER_INK};text-align:center;">${esc(footerLine)}</td></tr>
-<tr><td style="font-family:Georgia,serif;font-size:12px;color:${FOOTER_INK};text-align:center;padding-top:6px;">${ADDRESS_HTML}</td></tr>`,
+<tr><td style="font-family:Georgia,serif;font-size:12px;color:${FOOTER_INK};text-align:center;padding-top:6px;">${ADDRESS_HTML}</td></tr>
+<tr><td style="text-align:center;padding-top:8px;"><a href="https://edeninstitute.health/wired/delete" style="font-family:Georgia,serif;font-size:12px;color:${FOOTER_INK};text-decoration:underline;">Delete my quiz data</a></td></tr>`,
     { shopCard: false },
   );
-  const text = [greeting, ...body.map((s) => (s === "[button]" ? `${fill(btnLabel, v)}: ${buttonUrl}` : fill(s, v))), "Camila", "The Eden Institute", "", footerLine, ADDRESS.replace("&middot;", "·")].join("\n\n");
+  const text = [greeting, ...body.map((s) => (s === "[button]" ? `${fill(btnLabel, v)}: ${buttonUrl}` : fill(s, v))), "Camila", "The Eden Institute", "", footerLine, ADDRESS.replace("&middot;", "·"), "Delete my quiz data: https://edeninstitute.health/wired/delete"].join("\n\n");
   return { subject, preview, html: tagEmailHtml(html, { medium: "nurture", campaign: "learner_quiz" }), text, buttonUrl };
 }

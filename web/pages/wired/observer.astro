@@ -1,0 +1,26 @@
+---
+// /wired/observer (Fearfully & Wonderfully Wired, W9; spec 7.4: someone mom invited. The private link arrives as ?c=).
+// PRIVATE: noindex always, and NO THIRD-PARTY TAGS (noThirdPartyTags below; spec rule 7: the teen and observer
+// pages load no analytics or pixels at all). The island moves the code off the address bar at once.
+// Listed in src/test/privatePagesNoTags.astro.test.ts PRIVATE_PAGES.
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import WiredRater from "../../components/islands/WiredRater";
+
+const meta = {
+  title: "Share how you see them · The Eden Institute",
+  description: "Fearfully & Wonderfully Wired.",
+  canonical: "https://edeninstitute.health/wired/observer",
+};
+---
+
+<MarketingLayout
+  title={meta.title}
+  description={meta.description}
+  canonical={meta.canonical}
+  noindex={true}
+  noThirdPartyTags={true}
+>
+  <main>
+    <WiredRater client:only="react" kind="observer" />
+  </main>
+</MarketingLayout>

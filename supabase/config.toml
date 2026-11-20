@@ -201,6 +201,20 @@ verify_jwt = true
 [functions.wired-pdf]
 verify_jwt = true
 
+# W9 public, token-gated (dark until WIRED_ENABLED, like wired-submit): teen link, observer invites, the
+# teen/observer side of the quiz, and "Delete my quiz data".
+[functions.wired-teen-link]
+verify_jwt = false
+
+[functions.wired-observers]
+verify_jwt = false
+
+[functions.wired-rater]
+verify_jwt = false
+
+[functions.wired-delete]
+verify_jwt = false
+
 # wired-cron: daily Wired jobs (W8 July 1/15 check-ins; W9 observer reminders + deletion sweep). Service role only.
 [functions.wired-cron]
 verify_jwt = true

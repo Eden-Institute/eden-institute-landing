@@ -15,7 +15,7 @@ Deno.test("Blueprint delivery: approved subject, greeting, button with its own U
   assert(m.html.includes("color:#E8E3DA") && !m.html.includes("color:#6B6560;text-align:center;\">You"));
   assertStringIncludes(m.html, "You&#39;re getting this because of your Wired quiz order.".replace("&#39;", "'"));
   assert(!m.html.includes("Unsubscribe"));
-  assert(!m.html.includes("Delete my quiz data"));
+  assertStringIncludes(m.html, "https://edeninstitute.health/wired/delete"); // W9: the approved Delete my quiz data link
   assert(!m.html.includes("[button]") && !m.text.includes("[button]"));
 });
 
