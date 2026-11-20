@@ -1008,8 +1008,10 @@ export const ESA_PENDING = [
   { state: "West Virginia", program: "Hope Scholarship", note: "Provider application submitted September 2026. Onboarding call scheduled December 4, 2026." },
   // 2026-11-20 Camila (Lane 4 chat, relayed 10:53): "change SC to declined, resubmitting Tuesday".
   { state: "South Carolina", program: "Education Scholarship Trust Fund", note: "November 2026 provider application declined. We are resubmitting on November 24, 2026." },
-  { state: "Georgia", program: "Georgia Promise Scholarship", note: "Vendor application under appeal, November 2026." },
-  { state: "Missouri", program: "MOScholars", note: "Vendor application submitted November 2026, waiting on review." },
+  // 2026-11-20 Camila (Lane 4 chat, relayed 11:19): "change GA to under appeal, sent to state Nov 19".
+  { state: "Georgia", program: "Georgia Promise Scholarship", note: "Vendor application under appeal. Appeal sent to the state November 19, 2026." },
+  // 2026-11-20 Camila (Lane 4 chat, relayed 11:12): "change MO to pending review, submitted Nov 17".
+  { state: "Missouri", program: "MOScholars", note: "Vendor application submitted November 17, 2026, pending review." },
 ];
 
 /** Last content review of the ESA pages. Bump it when what they say changes (see
