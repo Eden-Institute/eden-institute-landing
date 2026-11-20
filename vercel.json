@@ -191,6 +191,10 @@
       "schedule": "*/30 * * * *"
     },
     {
+      "path": "/api/cron/wired-pdf",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/cron/notify-founder-digest",
       "schedule": "0 14 * * *"
     },

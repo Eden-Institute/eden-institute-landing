@@ -1548,6 +1548,8 @@ async function handleWiredPurchase(session: Stripe.Checkout.Session, email: stri
   if (error) throw new Error(`wired_grant_purchase failed for session ${sid}: ${error.message}`)
   console.log(`[${sid}] wired grant: ${JSON.stringify(data)}`)
   const out = (data ?? {}) as Record<string, unknown>
+  // W7: build + email the PDF now (fire-and-forget); the 5-minute cron is the safety net.
+  if (out.status === "ok") runInBackground(kickWiredPdf(sid))
   if (out.status !== "ok") {
     await alert(`grant status ${String(out.status)}`)
   } else if (out.upgrade_verified === false) {
@@ -1752,6 +1754,20 @@ async function giveFpeaStarters(
         `The printed order itself is recorded and going to print as normal. Please send the Starter by hand, ` +
         `or ask Claude to re-queue it.`,
     ))
+  }
+}
+
+/** Fire-and-forget nudge to wired-pdf (W7). Never throws. */
+async function kickWiredPdf(sessionId: string): Promise<void> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/wired-pdf`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    })
+    if (!res.ok) console.warn(`[${sessionId}] wired-pdf kick returned ${res.status}; cron will pick it up`)
+  } catch (err) {
+    console.warn(`[${sessionId}] wired-pdf kick failed; cron will pick it up: ` + (err instanceof Error ? err.message : String(err)))
   }
 }
 
