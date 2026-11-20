@@ -84,19 +84,23 @@ import { checkoutAttributionMetadata } from "../_shared/purchase-attribution.ts"
 // Abandoned-checkout recovery email, 2026-09-28. Applied to the main one-off,
 // print and Back to Eden PDF sessions (payment mode only), never to preorders.
 import { applyCheckoutRecovery, createCheckoutSessionWithRecovery, siteReminderMetadata } from "../_shared/checkout-recovery.ts"
-// FPEA 2027 convention offer, 2026-10-30 (/fpea). Every use below sits behind a
-// request that carried `offer`; a request without one takes the paths above unchanged.
+// Dated offers (_shared/sale-offers.ts): the FPEA 2027 convention offer (2026-10-30,
+// /fpea) and, since 2026-11-20, the two site-wide 2027 sale weeks (Spring Planning
+// Week: Starter 25% off; Back-to-School Week: printed sets ship free and bring their
+// Starter). Every use below sits behind a request that carried `offer`; a request
+// without one takes the paths above unchanged.
 import {
-  applyFpeaPrintOffer,
-  applyFpeaStarterOffer,
-  checkFpeaWindow,
-  fpeaGiftBands,
-  type FpeaGiftBand,
+  applySalePrintOffer,
+  applySaleStarterOffer,
+  checkOfferWindow,
+  type GiftBand,
+  giftBandsForSkus,
   type OfferRefusal,
-  offerNotApplicableRefusal,
+  offerNotApplicableRefusalFor,
   offerUnknownRefusal,
-  parseRequestedOffer,
-} from "../_shared/fpea-offer.ts"
+  parseRequestedSaleOffer,
+  type SaleOffer,
+} from "../_shared/sale-offers.ts"
 
 /** Hours a buyer has to cancel a print order, for Stripe's checkout copy. */
 const PRINT_CANCEL_HOURS = Math.round(LULU_PRODUCTION_DELAY_MINUTES / 60)
@@ -360,18 +364,21 @@ serve(async (req) => {
       return jsonError(`Unknown lookup_key '${lookup_key}'`, 404)
     }
 
-    // FPEA 2027 convention offer (founder 2026-10-30): a Starter Unit at 25% off,
-    // inside the offer window only. Decided here, before any Stripe call. A body
-    // with no `offer` (every request the site sent before /fpea) skips all of it.
-    const requestedOffer = parseRequestedOffer(body.offer)
-    let fpeaStarter: { windowBypassed: boolean } | null = null
+    // Dated offers: a Starter Unit at the offer's percent off (FPEA, founder
+    // 2026-10-30; Spring Planning Week, founder 2026-11-20), inside the offer's
+    // window only. Decided here, before any Stripe call. An offer without a Starter
+    // discount (Back-to-School Week) is refused, never ignored. A body with no
+    // `offer` skips all of it.
+    const requestedOffer = parseRequestedSaleOffer(body.offer)
+    let saleStarter: { offer: SaleOffer; windowBypassed: boolean } | null = null
     if (requestedOffer.kind === "unknown") return offerRefused(offerUnknownRefusal())
-    if (requestedOffer.kind === "fpea") {
-      if (!starterBandForLookupKey(lookup_key)) return offerRefused(offerNotApplicableRefusal())
+    if (requestedOffer.kind === "offer") {
+      const offer = requestedOffer.offer
+      if (offer.starterDiscountPercent == null || !starterBandForLookupKey(lookup_key)) return offerRefused(offerNotApplicableRefusalFor(offer))
       // Never bypassed here: the E2E twin cannot reach this branch (it sells print only).
-      const gate = checkFpeaWindow(Date.now(), { bypassWindow: false })
+      const gate = checkOfferWindow(offer, Date.now(), { bypassWindow: false })
       if (!gate.ok) return offerRefused(gate)
-      fpeaStarter = { windowBypassed: gate.windowBypassed }
+      saleStarter = { offer, windowBypassed: gate.windowBypassed }
     }
 
     // 2. Auth dispatch
@@ -737,13 +744,14 @@ serve(async (req) => {
       sessionParams.invoice_creation = curriculumInvoiceCreation("starter", starterBand)
     }
 
-    // FPEA 2027: the one line becomes 25% off the Price resolved above, on the
-    // Starter's own Stripe product (lookup_key metadata unchanged, so stripe-webhook
-    // runs the normal paid-Starter path); no promotion codes; and NO cart-recovery
-    // link, because Stripe honours one for 30 days, long after the window closes.
-    if (fpeaStarter) {
-      applyFpeaStarterOffer(sessionParams, metadata, price, { windowBypassed: fpeaStarter.windowBypassed, nowMs: Date.now() })
-      console.log(`create-checkout: FPEA offer on ${lookup_key}: ${metadata.offer_list_price_cents} -> ${metadata.offer_price_cents} cents`)
+    // Offer: the one line becomes the offer's percent off the Price resolved above,
+    // on the Starter's own Stripe product (lookup_key metadata unchanged, so
+    // stripe-webhook runs the normal paid-Starter path); no promotion codes; and NO
+    // cart-recovery link, because Stripe honours one for 30 days, long after the
+    // window closes.
+    if (saleStarter) {
+      applySaleStarterOffer(sessionParams, metadata, price, { ...saleStarter, nowMs: Date.now() })
+      console.log(`create-checkout: ${saleStarter.offer.id} offer on ${lookup_key}: ${metadata.offer_list_price_cents} -> ${metadata.offer_price_cents} cents`)
     }
 
     // Cart recovery (2026-09-28): 3-hour expiry, Stripe's promotional-consent box and
@@ -751,7 +759,7 @@ serve(async (req) => {
     // subscription sessions (see _shared/checkout-recovery.ts).
     // If Stripe refuses the recovery params (promotional-emails terms not accepted
     // on the account), this retries once without them rather than failing the sale.
-    if (!fpeaStarter) applyCheckoutRecovery(sessionParams)
+    if (!saleStarter) applyCheckoutRecovery(sessionParams)
 
     const session = await createCheckoutSessionWithRecovery(stripe, sessionParams)
 
@@ -1296,20 +1304,23 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
   const band: LuluBand = bands[0]
   const multiBand = bands.length > 1
 
-  // FPEA 2027 convention offer (founder 2026-10-30): a printed curriculum set ships
-  // free and brings its band's Starter Unit (both, for the bundle), inside the offer
-  // window only. Back to Eden is not part of it. The window is bypassed ONLY in the
-  // token-gated E2E twin (Stripe TEST mode), so the flow can be proven before May.
+  // Dated offers with the print gift (FPEA, founder 2026-10-30; Back-to-School
+  // Week, founder 2026-11-20): a printed curriculum set ships free and brings its
+  // band's Starter Unit (both, for the bundle), inside the offer's window only.
+  // Back to Eden is not part of it, and an offer without the print gift (Spring
+  // Planning Week) is refused, never ignored. The window is bypassed ONLY in the
+  // token-gated E2E twin (Stripe TEST mode), so the flow can be proven early.
   // A body with no `offer` skips all of this.
-  const requestedOffer = parseRequestedOffer(body.offer)
-  let fpeaPrint: { windowBypassed: boolean; giftBands: FpeaGiftBand[] } | null = null
+  const requestedOffer = parseRequestedSaleOffer(body.offer)
+  let salePrint: { offer: SaleOffer; windowBypassed: boolean; giftBands: GiftBand[] } | null = null
   if (requestedOffer.kind === "unknown") return offerRefused(offerUnknownRefusal())
-  if (requestedOffer.kind === "fpea") {
-    const giftBands = fpeaGiftBands(cart.map((c) => c.sku))
-    if (giftBands.length === 0 || bands.some((b) => isBookBand(b))) return offerRefused(offerNotApplicableRefusal())
-    const gate = checkFpeaWindow(Date.now(), { bypassWindow: E2E_MODE })
+  if (requestedOffer.kind === "offer") {
+    const offer = requestedOffer.offer
+    const giftBands = giftBandsForSkus(cart.map((c) => c.sku))
+    if (!offer.printGift || giftBands.length === 0 || bands.some((b) => isBookBand(b))) return offerRefused(offerNotApplicableRefusalFor(offer))
+    const gate = checkOfferWindow(offer, Date.now(), { bypassWindow: E2E_MODE })
     if (!gate.ok) return offerRefused(gate)
-    fpeaPrint = { windowBypassed: gate.windowBypassed, giftBands }
+    salePrint = { offer, windowBypassed: gate.windowBypassed, giftBands }
   }
 
   // Back to Eden has its own go-live switch (BOOK_SHOP_LIVE), on top of the print
@@ -1624,16 +1635,16 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
     if (E2E_MODE) sessionParams.customer_email = E2E_BUYER_EMAIL
   }
 
-  // FPEA 2027: shipping 0, no promotion codes, the gift bands in metadata (the
-  // webhook keys on metadata.offer), and NO cart-recovery link (Stripe honours one
-  // for 30 days, long after the window closes).
-  if (fpeaPrint) {
-    applyFpeaPrintOffer(sessionParams, metadata, { ...fpeaPrint, nowMs: Date.now() })
-    console.log(`print shop checkout: FPEA offer, shipping ${shippingCents} -> 0, gift Starter(s): ${fpeaPrint.giftBands.join("+")}`)
+  // Offer: shipping 0, no promotion codes, the gift bands in metadata (the webhook
+  // keys on metadata.offer), and NO cart-recovery link (Stripe honours one for 30
+  // days, long after the window closes).
+  if (salePrint) {
+    applySalePrintOffer(sessionParams, metadata, { ...salePrint, nowMs: Date.now() })
+    console.log(`print shop checkout: ${salePrint.offer.id} offer, shipping ${shippingCents} -> 0, gift Starter(s): ${salePrint.giftBands.join("+")}`)
   }
 
   // Cart recovery (2026-09-28). Last, because it mirrors the final promo state.
-  if (!fpeaPrint) applyCheckoutRecovery(sessionParams)
+  if (!salePrint) applyCheckoutRecovery(sessionParams)
 
   const session = await createCheckoutSessionWithRecovery(stripe, sessionParams)
   console.log(
@@ -1820,7 +1831,7 @@ async function handleBookDigitalCheckout(req: Request, body: Record<string, any>
 // line the Apothecary checkout buttons already show (friendlyEfError.ts).
 const GENERIC_CHECKOUT_ERROR = "Could not start checkout. Please try again or contact hello@edeninstitute.health."
 
-/** An FPEA offer refusal: a sentence for the buyer plus a code the buy boxes can act on. */
+/** An offer refusal: a sentence for the buyer plus a code the buy boxes can act on. */
 function offerRefused(r: OfferRefusal): Response {
   return new Response(
     JSON.stringify({ error: r.error, code: r.code }),

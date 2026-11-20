@@ -15,7 +15,7 @@ import { captureException } from './sentry.ts';
 import { Receipt, loadOrderReceipt, renderReceiptHtml } from './receipt.ts';
 import { tagEmailHtml } from './email-utm.ts';
 import { SHIPPED_NOTE, DELIVERED_NOTE, DELIVERED_HERBS_NOTE, DELIVERED_NOTEBOOK_NOTE } from './founding-family-templates.ts';
-import { giftStarterPhrase, isFpeaOfferMetadata, parseGiftBands } from './fpea-offer.ts';
+import { giftStarterPhrase, parseGiftBands, printGiftOfferFromMetadata } from './sale-offers.ts';
 
 const FROM = 'Camila at The Eden Institute <hello@edeninstitute.health>';
 const REPLY_TO = 'hello@edeninstitute.health';
@@ -206,7 +206,7 @@ export function buildOrderConfirmationEmail(order: OrderRow, receipt: Receipt | 
   const body =
     p(`Hi ${firstName(order)},`) +
     p(`Thank you!! Your order is in and your books are about to be printed just for you.`) +
-    fpeaConfirmationNote(order) +
+    offerConfirmationNote(order) +
     heading('Your order') +
     (order.order_number
       ? p(`Order number: <strong>${order.order_number}</strong><br>`
@@ -229,17 +229,19 @@ export function buildOrderConfirmationEmail(order: OrderRow, receipt: Receipt | 
 }
 
 /**
- * FPEA 2027 convention offer (2026-10-30): one paragraph on the confirmation of a
- * printed order bought under the offer, naming the free shipping and the gifted
- * Starter download(s), which arrive in their own email. '' for every other order,
- * so their confirmation is unchanged.
+ * FPEA 2027 convention offer (2026-10-30), and since 2026-11-20 every print-gift
+ * offer in sale-offers.ts (Back-to-School Week): one paragraph on the confirmation
+ * of a printed order bought under the offer, naming the offer, the free shipping
+ * and the gifted Starter download(s), which arrive in their own email. '' for every
+ * other order, so their confirmation is unchanged.
  */
-function fpeaConfirmationNote(order: OrderRow): string {
+function offerConfirmationNote(order: OrderRow): string {
   const meta = order.raw?.metadata;
-  if (!isFpeaOfferMetadata(meta)) return '';
+  const offer = printGiftOfferFromMetadata(meta);
+  if (!offer || !offer.copy.confirmationLead) return '';
   const bands = parseGiftBands(meta.offer_gift_starters);
   const arrives = bands.length > 1 ? 'are on their way in separate emails' : 'is on its way in a separate email';
-  return p(`Because you ordered with the FPEA convention offer, shipping is on me, and ${giftStarterPhrase(bands)} ${arrives}, so you can start this week while your books are printed.`);
+  return p(`${offer.copy.confirmationLead}, shipping is on me, and ${giftStarterPhrase(bands)} ${arrives}, so you can start this week while your books are printed.`);
 }
 
 export function buildShippedEmail(order: OrderRow): { subject: string; html: string } {

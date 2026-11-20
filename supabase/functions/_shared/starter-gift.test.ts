@@ -51,6 +51,6 @@ Deno.test('a bought Starter email is unchanged by the gift wording', () => {
 
 Deno.test('the fulfiller maps a gift_ key to the founder gift wording and an fpea_ key to the FPEA wording', async () => {
   const src = await Deno.readTextFile(new URL('./starter-fulfillment.ts', import.meta.url));
-  assert(src.includes('isFpeaGiftDeliveryKey(sid) ? FPEA_OFFER_ID : isStarterGiftDeliveryKey(sid) ? STARTER_GIFT_ID : null'));
+  assert(src.includes('giftOfferForDeliveryKey(sid)?.id ?? (isStarterGiftDeliveryKey(sid) ? STARTER_GIFT_ID : null)'));
   assert(src.includes('...(giftId ? { gift: giftId } : {})'));
 });

@@ -39,6 +39,9 @@ import PrintBuyBox from "../../web/components/islands/PrintBuyBox";
 import FpeaOffer from "../../web/components/islands/FpeaOffer";
 
 beforeEach(() => {
+  // 2026-11-20: outside every site-wide sale week (sale-offers.ts), so the boxes
+  // without an `offer` prop show the regular price whatever day this runs.
+  vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-11-20T12:00:00Z"));
   invoke.mockReset();
   // No url back: the box shows an error instead of navigating, and the body is captured.
   invoke.mockResolvedValue({ data: {}, error: null });

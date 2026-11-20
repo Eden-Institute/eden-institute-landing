@@ -101,10 +101,11 @@ import {
 } from "../_shared/checkout-recovery.ts"
 import { applyUnsub } from "../_shared/email-unsubscribe.ts"
 import { tagEmailHtml, tagEmailText } from "../_shared/email-utm.ts"
-// FPEA 2027 convention offer, 2026-10-30: a printed set bought under it gifts its
-// band's Starter Unit (no credit, ever). Only sessions with metadata.offer reach it.
-import { isFpeaOfferMetadata } from "../_shared/fpea-offer.ts"
-import { queueFpeaGiftStarters } from "../_shared/fpea-gift.ts"
+// Print-gift offers (FPEA 2027, 2026-10-30; Back-to-School Week 2027, 2026-11-20;
+// _shared/sale-offers.ts): a printed set bought under one gifts its band's Starter
+// Unit (no credit, ever). Only sessions with metadata.offer reach it.
+import { printGiftOfferFromMetadata, type SaleOffer } from "../_shared/sale-offers.ts"
+import { queueOfferGiftStarters } from "../_shared/fpea-gift.ts"
 
 /**
  * Normalize a constitution identifier to a guide-registry slug.
@@ -977,11 +978,12 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
 
     const { data: orderRow, error: orderErr } = await adminClient
       .from("orders").select("id").eq("stripe_checkout_session_id", session.id).maybeSingle()
-    // FPEA 2027: the gifted Starter(s). Before the early returns below, so a failed
-    // re-read or an E2E order still gets them (E2E buys as hello@, so the gift
-    // email goes there too and proves the rail). Never throws.
-    if (isFpeaOfferMetadata(session.metadata)) {
-      await giveFpeaStarters(session, items.map((i) => i.sku), orderRow?.id ?? null, orderNumber)
+    // Print-gift offer (FPEA, Back-to-School Week): the gifted Starter(s). Before the
+    // early returns below, so a failed re-read or an E2E order still gets them (E2E
+    // buys as hello@, so the gift email goes there too and proves the rail). Never throws.
+    const giftOffer = printGiftOfferFromMetadata(session.metadata)
+    if (giftOffer) {
+      await giveOfferStarters(giftOffer, session, items.map((i) => i.sku), orderRow?.id ?? null, orderNumber)
     }
     if (orderErr || !orderRow?.id) {
       // Throw, so Stripe redelivers: returning here left a paid order with no Lulu job.
@@ -1710,8 +1712,8 @@ async function cancelCreditForRefundedStarter(paymentIntentId: string): Promise<
 }
 
 /**
- * FPEA 2027 offer: queue the Starter Unit(s) a printed set bought under the offer
- * gifts, then kick starter-fulfill for each, the same rail and the same email a
+ * Print-gift offer (FPEA 2027, Back-to-School Week 2027): queue the Starter Unit(s)
+ * a printed set bought under the offer gifts, then kick starter-fulfill for each, the same rail and the same email a
  * bought Starter gets (the email says it was a gift and carries no receipt).
  *
  * NO CREDIT, by founder law: this path never calls issueStarterCreditForBand, never
@@ -1722,7 +1724,8 @@ async function cancelCreditForRefundedStarter(paymentIntentId: string): Promise<
  * not be queued is logged, sent to Sentry and emailed to the founder, inside the
  * 48-hour window, so the family is never left without what they were promised.
  */
-async function giveFpeaStarters(
+async function giveOfferStarters(
+  offer: SaleOffer,
   session: Stripe.Checkout.Session,
   skus: string[],
   orderId: string | null,
@@ -1730,7 +1733,7 @@ async function giveFpeaStarters(
 ): Promise<void> {
   const sid = session.id
   try {
-    const out = await queueFpeaGiftStarters(adminClient, {
+    const out = await queueOfferGiftStarters(adminClient, offer, {
       sessionId: sid,
       orderId,
       email: session.customer_details?.email ?? session.customer_email ?? null,
@@ -1739,17 +1742,17 @@ async function giveFpeaStarters(
     })
     for (const key of out.queued) runInBackground(kickStarterFulfill(key))
     console.log(
-      `[${sid}] FPEA gift Starter(s) ${out.bands.join("+") || "(none: no printed set)"}: ` +
+      `[${sid}] ${offer.id} gift Starter(s) ${out.bands.join("+") || "(none: no printed set)"}: ` +
         `queued ${out.queued.length}, already queued ${out.alreadyQueued.length}, failed ${out.errors.length}`,
     )
     if (out.errors.length) throw new Error(out.errors.join("; "))
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    console.error(`[${sid}] FPEA gift Starter could not be queued: ${message}`)
-    await captureException(err instanceof Error ? err : new Error(message), { function: "stripe-webhook", stage: "fpea_gift_starter", session_id: sid })
+    console.error(`[${sid}] ${offer.id} gift Starter could not be queued: ${message}`)
+    await captureException(err instanceof Error ? err : new Error(message), { function: "stripe-webhook", stage: "fpea_gift_starter", offer: offer.id, session_id: sid })
     runInBackground(notifyFounder(
-      `FPEA gift Starter not queued for ${orderNumber ?? sid}`,
-      `Order ${orderNumber ?? sid} was bought with the FPEA convention offer, which gifts the Starter Unit ` +
+      `${offer.id === "fpea2027" ? "FPEA" : offer.name} gift Starter not queued for ${orderNumber ?? sid}`,
+      `Order ${orderNumber ?? sid} was bought with ${offer.copy.withPhrase}, which gifts the Starter Unit ` +
         `download, but the gift could not be queued.\n\nError: ${message}\n\n` +
         `The printed order itself is recorded and going to print as normal. Please send the Starter by hand, ` +
         `or ask Claude to re-queue it.`,

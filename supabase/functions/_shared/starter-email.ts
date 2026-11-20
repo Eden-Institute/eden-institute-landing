@@ -19,7 +19,7 @@
 import { STARTER_BANDS, STARTER_LICENSE_LINE, StarterBand } from './starter-config.ts';
 import { Receipt, renderReceiptHtml, renderReceiptText } from './receipt.ts';
 import { escapeHtml } from './html-escape.ts';
-import { FPEA_OFFER_ID } from './fpea-offer.ts';
+import { saleOfferById, type SaleOfferId } from './sale-offers.ts';
 import { STARTER_GIFT_ID } from './starter-gift.ts';
 
 export interface StarterEmailModel {
@@ -46,8 +46,11 @@ export interface StarterEmailModel {
    *
    * STARTER_GIFT_ID (2026-11-03, starter-gift.ts): a Starter Camila gave someone,
    * with no purchase at all. Gift wording, no refund line, no sell-the-print block.
+   *
+   * 2026-11-20: any print-gift offer id in sale-offers.ts works like FPEA's, and the
+   * thank-you sentence names that offer (Back-to-School Week, say).
    */
-  gift?: typeof FPEA_OFFER_ID | typeof STARTER_GIFT_ID;
+  gift?: SaleOfferId | typeof STARTER_GIFT_ID;
 }
 
 // 2026-09-12, the print-first pivot. This delivery email used to hand the buyer
@@ -107,12 +110,14 @@ export function renderStarterDeliveryEmail(m: StarterEmailModel): {
   // the normal email below renders exactly as it did before.
   // A founder gift (STARTER_GIFT_ID) shares the FPEA gift's subject and drops the same
   // refund line, but has no printed order to point at and nothing to sell.
-  const fpeaGift = m.gift === FPEA_OFFER_ID;
+  // The offer's own thank-you ("Thank you for your order at the FPEA convention!").
+  const offerThanks = m.gift && m.gift !== STARTER_GIFT_ID ? saleOfferById(m.gift)?.copy.giftEmailThanks ?? null : null;
+  const offerGift = offerThanks !== null;
   const founderGift = m.gift === STARTER_GIFT_ID;
-  const gift = fpeaGift || founderGift;
+  const gift = offerGift || founderGift;
   const founderGiftIntro = `This one is a gift from me: the first nine weeks of Eden's Table, ${cfg.bandName}, free.`;
-  const intro = fpeaGift
-    ? `Thank you for your order at the FPEA convention! As promised, here are the first nine weeks of Eden's Table, ${cfg.bandName}, free, so you can start this week while your printed books are being made. Everything you need to start teaching is in these three files.`
+  const intro = offerGift
+    ? `${offerThanks} As promised, here are the first nine weeks of Eden's Table, ${cfg.bandName}, free, so you can start this week while your printed books are being made. Everything you need to start teaching is in these three files.`
     : founderGift
     ? `${founderGiftIntro} Everything you need to start teaching is in these three files.`
     : `Here are your first nine weeks of Eden's Table, ${cfg.bandName}. Everything you need to start teaching is in these three files.`;
@@ -122,7 +127,7 @@ ${sectionLabel('Your printed books')}
 ${para(`Your printed order has its own confirmation email. Printing begins 48 hours after you ordered, and I will email you tracking the day it ships. Plan on about two to three weeks to your door.`)}
 `;
 
-  const creditBlock = fpeaGift ? giftBlock : founderGift ? '' : printSetUrl
+  const creditBlock = offerGift ? giftBlock : founderGift ? '' : printSetUrl
     ? `
 ${rule()}
 ${sectionLabel('When you want the rest of the year')}
@@ -174,8 +179,8 @@ ${para(`<strong>Camila</strong><br><span style="font-size:14px;">The Eden Instit
   const text = [
     greeting,
     '',
-    fpeaGift
-      ? `Thank you for your order at the FPEA convention! As promised, here are the first nine weeks of Eden's Table, ${cfg.bandName}, free, so you can start this week while your printed books are being made.`
+    offerGift
+      ? `${offerThanks} As promised, here are the first nine weeks of Eden's Table, ${cfg.bandName}, free, so you can start this week while your printed books are being made.`
       : founderGift
       ? founderGiftIntro
       : `Here are your first nine weeks of Eden's Table, ${cfg.bandName}.`,
@@ -189,7 +194,7 @@ ${para(`<strong>Camila</strong><br><span style="font-size:14px;">The Eden Instit
     '',
     ...(founderGift
       ? []
-      : fpeaGift
+      : offerGift
       ? [
         'Your printed books: your printed order has its own confirmation email. Printing begins 48 hours after you ordered, and I will email you tracking the day it ships. Plan on about two to three weeks to your door.',
       ]
