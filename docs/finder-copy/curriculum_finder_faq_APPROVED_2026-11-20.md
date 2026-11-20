@@ -24,3 +24,9 @@ Q6. Where do the "what moms say" notes come from?
 From independent reviews by homeschool families. Each card links its sources, so you can read the full review yourself.
 
 Filter labels quoted above match FINDER_COPY on origin/main (hasTrial, christianOnly, PREP_ORDER). If L2 renames a filter, update the quoted label to match.
+
+## Amendments
+
+- 2026-11-20 ~10:35 CT, Camila's tap "Change the phrase" (Lane 2): in Q1 "how your child learns best" became "how God made your child". Q1's answer now reads:
+
+Start with your child, not the catalog. Before you compare a single curriculum, think about how God made your child, what lights them up, and where they struggle. A curriculum that fits your child gets used; one that doesn't sits on the shelf. Once you know that, narrow it down by grade, subjects, prep time and budget with the filters here, read what other moms say, and try a free sample before you buy.

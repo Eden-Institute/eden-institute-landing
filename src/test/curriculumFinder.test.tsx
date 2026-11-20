@@ -135,6 +135,9 @@ describe("curriculum finder", () => {
       expect(approved).toContain(f.a);
     }
     expect(WIRED_IS_PUBLIC).toBe(false);
+    // Camila 2026-11-20 amendment: Q1 avoids "learns best", like the Wired copy.
+    for (const f of FINDER_FAQ) expect(f.a).not.toMatch(/learns best|learning style/i);
+    expect(FINDER_FAQ[0].a).toContain("think about how God made your child, what lights them up");
     render(<CurriculumFinder rows={[base]} />);
     expect(screen.getByText("How do I choose a homeschool curriculum?")).toBeTruthy();
     expect(screen.getByText("ESA state guides").getAttribute("href")).toBe("/esa");
