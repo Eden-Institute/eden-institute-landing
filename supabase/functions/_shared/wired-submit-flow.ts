@@ -5,6 +5,8 @@
 // one). Reads go through PostgREST with the service role; the ONE write is the
 // public.wired_submit RPC (spec section 18 answer 9).
 
+import { DRIP_DAYS } from './wired-email-learner.ts';
+import { centralMorning } from './send-day-guard.ts';
 import { type Bank, blend, type BlendInput, quizYear, scoreRater, scoreTeachingStyle, AnswerError } from './wired-engine.ts';
 import { type EsaRow, rankCurricula, toMatchCurriculum } from './wired-match.ts';
 import { buildResultsPayload, type FamilyAnswers, prefsFromAnswers, type ResultsPayload, type Submission } from './wired-submit-core.ts';
@@ -141,6 +143,12 @@ export async function processSubmission(db: Db, sub: Submission, opts: { pepper:
       } catch (err) {
         console.error('wired-submit: could not queue email 1:', err instanceof Error ? err.message : String(err));
       }
+      // W8b: the learner drip (emails 2-10), once per family, for this first unlocked child.
+      try {
+        await queueLearnerDrip(db, r.family_id, r.child_id, sub.email);
+      } catch (err) {
+        console.error('wired-submit: could not queue the learner drip:', err instanceof Error ? err.message : String(err));
+      }
     }
     return {
       status: 'ok', family_id: r.family_id, child_id: r.child_id, unlocked: r.unlocked,
@@ -202,4 +210,23 @@ export async function queueEmailOne(db: Db, familyId: string, childId: string, e
     body: JSON.stringify({ family_id: familyId, child_id: childId, email: email.trim().toLowerCase(), kind: 'drip', position: 1, scheduled_for: now.toISOString() }),
   });
   return true;
+}
+
+/**
+ * W8b: queue learner emails 2-10 (kind 'drip') on days 2, 4, 7, 10, 13, 16, 20, 25, 30 after the quiz
+ * (spec answer 35), each at 8 AM Central on that day (the house send time). ONE drip per family: it follows the family's first unlocked child, and a later child
+ * does not start a second series (email 10 is the "take it for another child" note). Position 9 (pilot
+ * quotes) is NOT queued until 3+ Camila-approved pilot quotes exist (answer 35); the one-a-day guard may
+ * move any of these by a day at send time.
+ */
+export const LEARNER_DRIP_POSITIONS = [2, 3, 4, 5, 6, 7, 8, 10] as const;
+export async function queueLearnerDrip(db: Db, familyId: string, childId: string, email: string, now: Date = new Date()): Promise<number> {
+  const existing = await pg<{ id: string }[]>(db, `wired_email_queue?family_id=eq.${familyId}&kind=eq.drip&position=gte.2&select=id&limit=1`);
+  if (existing?.length) return 0;
+  const rows = LEARNER_DRIP_POSITIONS.map((position) => ({
+    family_id: familyId, child_id: childId, email: email.trim().toLowerCase(), kind: 'drip', position,
+    scheduled_for: centralMorning(now, DRIP_DAYS[position]).toISOString(),
+  }));
+  await pg(db, 'wired_email_queue', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(rows) });
+  return rows.length;
 }

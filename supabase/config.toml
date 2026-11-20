@@ -201,6 +201,10 @@ verify_jwt = true
 [functions.wired-pdf]
 verify_jwt = true
 
+# wired-cron: daily Wired jobs (W8 July 1/15 check-ins; W9 observer reminders + deletion sweep). Service role only.
+[functions.wired-cron]
+verify_jwt = true
+
 # curriculum-shortlist: the public finder's "Email me my shortlist" (honeypot + rate limits inside).
 [functions.curriculum-shortlist]
 verify_jwt = false
