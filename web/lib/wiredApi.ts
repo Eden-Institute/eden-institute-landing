@@ -78,3 +78,16 @@ export const deleteData = (body: { action: "request" | "confirm"; token?: string
 /** W12: the pilot (dark behind WIRED_PILOT_OPEN). apply = the application; status/survey/retake use her results token. */
 export const pilot = (body: Record<string, unknown>) =>
   call<Record<string, unknown>>("wired-pilot", { method: "POST", body });
+
+/**
+ * True when the quiz is dark for this visitor (no preview pass): one light request (the K-2 questions, which
+ * wired-bank caches for 5 minutes), the same check /wired makes. A network error is NOT "dark" (false).
+ */
+export async function wiredIsDark(): Promise<boolean> {
+  try {
+    await getBank("k2");
+    return false;
+  } catch (err) {
+    return err instanceof WiredDark;
+  }
+}

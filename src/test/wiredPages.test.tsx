@@ -120,12 +120,12 @@ describe("WiredResults", () => {
     expect(window.location.search).toBe("");
   });
 
-  it("with no token on this device it says so, and never calls the server", async () => {
-    const f = mockFetch({});
+  it("with no token on this device (quiz open) it says so; only the open/dark check is made, never a results call", async () => {
+    const f = mockFetch({ "wired-bank": { status: 200, body: { version: "k2-v1" } } });
     vi.stubGlobal("fetch", f);
     render(<WiredResults />);
     await waitFor(() => expect(screen.getByText(/couldn't find quiz results on this device/)).toBeTruthy());
-    expect(f).not.toHaveBeenCalled();
+    expect(f.mock.calls.every(([u]) => String(u).includes("wired-bank"))).toBe(true);
   });
 
   it("reason lines use the approved wording", () => {

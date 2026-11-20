@@ -7,7 +7,8 @@
 // Private page (noThirdPartyTags, noindex). Copy: web/lib/wiredCopyW9.ts. client:only.
 
 import { useEffect, useState } from "react";
-import { deleteData, RESULTS_KEY, savedResultsToken, WiredDark, writeStore } from "../../lib/wiredApi";
+import { deleteData, RESULTS_KEY, savedResultsToken, WiredDark, wiredIsDark, writeStore } from "../../lib/wiredApi";
+import WiredNotOpen from "./WiredNotOpen";
 import { W9 } from "../../lib/wiredCopyW9";
 
 const btn = "inline-flex items-center justify-center font-accent text-sm tracking-[0.2em] uppercase font-bold px-6 py-3 rounded-md";
@@ -28,14 +29,18 @@ export default function WiredDelete() {
   const [confirmTok, setConfirmTok] = useState<string | null>(null);
   const [results, setResults] = useState<string | null>(null);
   const [email, setEmail] = useState("");
-  const [state, setState] = useState<"ask" | "sent" | "confirm" | "done" | "expired" | "dark">("ask");
+  const [state, setState] = useState<"checking" | "ask" | "sent" | "confirm" | "done" | "expired" | "dark">("checking");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
     const c = takeConfirm();
-    if (c) { setConfirmTok(c); setState("confirm"); }
     setResults(savedResultsToken());
+    // While the quiz is dark the page says so instead of showing a form that cannot work.
+    void wiredIsDark().then((dark) => {
+      if (dark) return setState("dark");
+      if (c) { setConfirmTok(c); setState("confirm"); } else setState("ask");
+    });
   }, []);
 
   async function request() {
@@ -62,7 +67,8 @@ export default function WiredDelete() {
   }
 
   const card = (c: React.ReactNode) => <div className="max-w-xl mx-auto px-4 py-8 font-body" style={{ color: "hsl(var(--eden-bark))" }}>{c}</div>;
-  if (state === "dark") return card(<p>This page isn't open yet.</p>);
+  if (state === "checking") return card(<p>Loading...</p>);
+  if (state === "dark") return <WiredNotOpen />;
   if (state === "done") return card(<p className="text-lg">{W9.deleteDone}</p>);
   if (state === "sent") return card(<p>{W9.deleteSent}</p>);
   if (state === "confirm") {

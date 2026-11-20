@@ -6,7 +6,8 @@
 // Copy: web/lib/wiredCopyW9.ts + the bank's own approved text. client:only.
 
 import { useEffect, useState } from "react";
-import { getBank, rater, WiredDark } from "../../lib/wiredApi";
+import { getBank, rater, WiredDark, wiredIsDark } from "../../lib/wiredApi";
+import WiredNotOpen from "./WiredNotOpen";
 import { W9, w9fill } from "../../lib/wiredCopyW9";
 
 interface PublicBank {
@@ -54,7 +55,7 @@ export default function WiredRater({ kind }: { kind: "teen" | "observer" }) {
   useEffect(() => {
     const c = takeCode(kind);
     setCode(c);
-    if (!c) return setStep("bad");
+    if (!c) { void wiredIsDark().then((dark) => setStep(dark ? "dark" : "bad")); return; }
     (async () => {
       try {
         const { status, data } = await rater({ kind, code: c, action: "context" });
@@ -95,7 +96,7 @@ export default function WiredRater({ kind }: { kind: "teen" | "observer" }) {
   const progress = (n: number, of: number) => <p className="font-body text-xs text-muted-foreground mb-2">{n} of {of}</p>;
 
   if (step === "loading" || step === "saving") return card(<p>Loading...</p>);
-  if (step === "dark") return card(<p>This page isn't open yet.</p>);
+  if (step === "dark") return <WiredNotOpen />;
   if (step === "used") return card(<p>{W9.linkUsed}</p>);
   if (step === "expired") return card(<p>{W9.linkExpired}</p>);
   if (step === "nomom") return card(<p>{W9.linkNoMom}</p>);

@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 import { trackCta } from "@/lib/trackCta";
 import { getBank, submitQuiz, WiredDark, writeStore, RESULTS_KEY } from "../../lib/wiredApi";
 import { FAMILY_INTRO, FAMILY_QUESTIONS, RANKING, RESULTS, SCREENS, fill } from "../../lib/wiredCopy";
+import WiredNotOpen from "./WiredNotOpen";
 
 type Step = "checking" | "welcome" | "child" | "scenario" | "frequency" | "family" | "ranking" | "email" | "saving" | "saved_later" | "dark" | "error";
 
@@ -141,7 +142,7 @@ export default function WiredQuiz() {
   const progress = (n: number, of: number) => <p className="font-body text-xs text-muted-foreground mb-2">{n} of {of}</p>;
 
   if (step === "checking") return card(<p className="font-body text-base">Loading...</p>);
-  if (step === "dark") return card(<p className="font-body text-base">This page isn't open yet.</p>);
+  if (step === "dark") return <WiredNotOpen />;
   if (step === "saved_later") return card(<p className="font-body text-base">{RESULTS.savingFailed}</p>);
 
   if (step === "welcome") {

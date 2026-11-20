@@ -8,7 +8,8 @@
 // (need display fields per match, W5 with the curriculum import). client:only.
 
 import { useEffect, useState } from "react";
-import { getMatches, getResults, RESULTS_KEY, savedResultsToken, startWiredCheckout, WiredDark, writeStore, type WiredBuy } from "../../lib/wiredApi";
+import { getMatches, getResults, RESULTS_KEY, savedResultsToken, startWiredCheckout, WiredDark, wiredIsDark, writeStore, type WiredBuy } from "../../lib/wiredApi";
+import WiredNotOpen from "./WiredNotOpen";
 import { CHECKOUT } from "../../lib/wiredCheckoutCopy";
 import { APPROACHES, COMING_SOON_912, REASONS, RESULTS, SCREENS, TIP_LABELS, TIPS, fill, type TipKind } from "../../lib/wiredCopy";
 import { WIRING_WRITEUPS } from "../../lib/wiredWriteups";
@@ -98,7 +99,8 @@ export default function WiredResults() {
   useEffect(() => {
     const t = takeToken();
     setToken(t);
-    if (!t) return setState("none");
+    // No results on this device: while the quiz is dark that is "not open yet", not "no results".
+    if (!t) { void wiredIsDark().then((dark) => setState(dark ? "dark" : "none")); return; }
     const load = () => getResults(t)
       .then(({ status, data }) => {
         if (status === 401) return setState("none");
@@ -144,7 +146,7 @@ export default function WiredResults() {
 
   const wrap = (c: React.ReactNode) => <div className="max-w-2xl mx-auto px-4 py-8 font-body" style={{ color: "hsl(var(--eden-bark))" }}>{c}</div>;
   if (state === "loading") return wrap(<p>Loading your results...</p>);
-  if (state === "dark") return wrap(<p>This page isn't open yet.</p>);
+  if (state === "dark") return <WiredNotOpen />;
   if (state === "none") return wrap(<p>We couldn't find quiz results on this device. Open the link in your results email.</p>);
   if (state === "error" || !child) return wrap(<p>We couldn't load your results just now. Please try again in a minute.</p>);
 
