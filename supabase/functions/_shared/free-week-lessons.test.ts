@@ -20,6 +20,7 @@ import {
   lessonNumberForPosition,
   type LessonNumber,
   MAGNET_DRAIN_ORDER,
+  freeWeekLessonPsUrl,
 } from './free-week-lessons.ts';
 import { centralParts, nextMorningSendAt } from './next-morning.ts';
 
@@ -60,9 +61,10 @@ Deno.test('every subject, button and URL per band and lesson', () => {
       assertEquals(subject, EXPECTED[band][k]);
       const url = `https://edeninstitute.health/freebies/${band}-week-1?utm_source=email&utm_medium=nurture&utm_campaign=free_week_1&utm_content=lesson_${k}`;
       assertEquals(freeWeekLessonUrl(band, k), url);
-      // Exactly one button link (plus the footer unsubscribe link), with the exact URL.
+      // Exactly one button link (plus the footer unsubscribe link), with the exact URL; Lesson 5 adds its P.S.
+      // Starter link after the signature (2026-11-20).
       const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1].replace(/&amp;/g, '&'));
-      assertEquals(hrefs, [url, '{{UNSUB_URL}}']);
+      assertEquals(hrefs, k === 5 ? [url, freeWeekLessonPsUrl(band), '{{UNSUB_URL}}'] : [url, '{{UNSUB_URL}}']);
       assertStringIncludes(html, `>Open Lesson ${k}</a>`);
       assertEquals(FREE_WEEK_LESSON_COPY[band][k].button, `Open Lesson ${k}`);
       assertStringIncludes(html, '<p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#222222;margin:0 0 14px 0;">Hi Camila,</p>');
@@ -96,6 +98,19 @@ Deno.test('copy spot checks render verbatim', () => {
   assertEquals(FREE_WEEK_LESSON_COPY.sprouts[1].paragraphs.length, 3);
   assertEquals(FREE_WEEK_LESSON_COPY.seedlings[3].paragraphs.length, 3);
   assertEquals(FREE_WEEK_LESSON_COPY.sprouts[5].paragraphs.length, 2);
+});
+
+Deno.test('Lesson 5 P.S.: after the signature, one tagged Starter link per band, no other lesson has one', () => {
+  assertEquals(freeWeekLessonPsUrl('sprouts'), 'https://edeninstitute.health/starter?utm_source=email&utm_medium=nurture&utm_campaign=free_week_1&utm_content=lesson_5_ps');
+  assertEquals(freeWeekLessonPsUrl('seedlings'), 'https://edeninstitute.health/starter/seedlings?utm_source=email&utm_medium=nurture&utm_campaign=free_week_1&utm_content=lesson_5_ps');
+  const s5 = buildFreeWeekLessonEmail('Camila', 'sprouts', 5).html;
+  assertStringIncludes(s5, "P.S. If your kids are asking what's next, Weeks 1 through 9 are $39 as an instant download, and chamomile is ready for Monday: <a href=");
+  assertStringIncludes(s5, '>edeninstitute.health/starter</a>');
+  assert(s5.indexOf('>Camila</p>') < s5.indexOf('P.S. If your kids'), 'P.S. comes after the signature');
+  const d5 = buildFreeWeekLessonEmail('Camila', 'seedlings', 5).html;
+  assertStringIncludes(d5, 'and tulsi is ready for Monday: <a href=');
+  assertStringIncludes(d5, '>edeninstitute.health/starter/seedlings</a>');
+  for (const band of BANDS) for (const k of [1, 2, 3, 4] as const) assert(!FREE_WEEK_LESSON_COPY[band][k].ps, `${band} ${k} has no P.S.`);
 });
 
 Deno.test('no em dash (U+2014) anywhere, in any band, lesson or fallback greeting', () => {
