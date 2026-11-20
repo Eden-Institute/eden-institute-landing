@@ -994,6 +994,9 @@ export const ESA_PENDING = [
   { state: "Georgia", program: "Georgia Promise Scholarship", note: "Vendor application under appeal. Appeal sent to the state November 19, 2026." },
   // 2026-11-20 Camila (Lane 4 chat, relayed 11:12): "change MO to pending review, submitted Nov 17".
   { state: "Missouri", program: "MOScholars", note: "Vendor application submitted November 17, 2026, pending review." },
+  // 2026-11-20 Camila (Lane 4 chat, relayed ~17:50): "change Indiana to referred to ClassWallet Marketplace". IDOE wrote 11/19
+  // (thread 1a1ebe139479c3af) that it is submitting us to ClassWallet for the Marketplace; Indiana pays curriculum only there.
+  { state: "Indiana", program: "Education Scholarship Account", note: "Referred by the Indiana Department of Education to the ClassWallet Marketplace, November 2026. Not orderable there yet." },
 ];
 
 /** Last content review of the ESA pages. Bump it when what they say changes (see
