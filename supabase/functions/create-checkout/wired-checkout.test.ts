@@ -94,7 +94,9 @@ Deno.test("Blueprint: pending row first, only its id + product in metadata, prom
   assertEquals(p.customer_creation, "always");
   assertEquals(p.allow_promotion_codes, undefined);
   assertEquals(p.discounts, undefined);
-  assertEquals(p.after_expiration, undefined); // no store cart reminder on a wired cart
+  // Cart recovery on (the wired reminder, 2026-11-20): Stripe's recovery link, never with promo codes.
+  assertEquals(p.after_expiration, { recovery: { enabled: true, allow_promotion_codes: false } });
+  assertEquals((p.consent_collection as Record<string, string>).promotions, "auto");
   const md = p.metadata as Record<string, string>;
   assertEquals([md.lookup_key, md.wired_pending_id, md.wired_product, md.wired_extra_children, md.attr_utm_source], ["wired_cart", "pend-1", "blueprint", "0", "qa"]);
   assertEquals(md.wired_child_ids, undefined);

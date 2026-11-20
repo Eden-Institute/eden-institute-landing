@@ -92,6 +92,8 @@ export default function WiredResults() {
   const [buying, setBuying] = useState<string | null>(null);
   const [buyError, setBuyError] = useState<string | null>(null);
   const [upsell, setUpsell] = useState(false);
+  // The store's one-reminder box, same approved words (answer 20): her email is already known from the quiz.
+  const [remind, setRemind] = useState(false);
 
   useEffect(() => {
     const t = takeToken();
@@ -119,7 +121,7 @@ export default function WiredResults() {
     setBuying(product);
     setBuyError(null);
     try {
-      const { status, data } = await startWiredCheckout({ token, product, ...(childIds ? { child_ids: childIds } : {}) });
+      const { status, data } = await startWiredCheckout({ token, product, ...(remind ? { reminder_consent: true } : {}), ...(childIds ? { child_ids: childIds } : {}) });
       if (status === 200 && data.url) {
         window.location.assign(data.url);
         return;
@@ -147,6 +149,12 @@ export default function WiredResults() {
   if (state === "error" || !child) return wrap(<p>We couldn't load your results just now. Please try again in a minute.</p>);
 
   const name = child.nickname;
+  const remindBox = (
+    <label className="mt-3 flex items-start gap-2 font-body text-sm text-muted-foreground">
+      <input id="wired-remind" type="checkbox" className="mt-1" checked={remind} onChange={(e) => setRemind(e.target.checked)} />
+      <span>If I don&apos;t finish checking out, send me one reminder.</span>
+    </label>
+  );
   const buyNote = buyError ? <p className="text-sm mt-3" role="alert">{buyError}</p> : buying ? <p className="text-sm mt-3">{CHECKOUT.starting}</p> : null;
   const paidNote = paid && (
     <p className="mb-6 rounded-md p-4" style={{ backgroundColor: "hsl(var(--eden-cream))" }} role="status">
@@ -170,6 +178,7 @@ export default function WiredResults() {
         <button type="button" className={btn} style={forest} disabled={!!buying} onClick={() => buy("blueprint", [child.child_id])}>{RESULTS.thirdChildBlueprint}</button>
         <button type="button" className={btn} style={forest} disabled={!!buying} onClick={() => buy("family_map")}>{RESULTS.thirdChildFamilyMap}</button>
       </div>
+      {remindBox}
       <p className="text-xs mt-2">{CHECKOUT.allSalesFinal}</p>
       {buyNote}
     </>);
@@ -276,6 +285,7 @@ export default function WiredResults() {
           </div>
         </div>
       )}
+      {remindBox}
       <p className="text-xs mt-2">{RESULTS.blueprintSmall}</p>
       {!child.offers.family_map && buyNote}
     </section>

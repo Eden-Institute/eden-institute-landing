@@ -16,6 +16,7 @@ import { loadBlueprintData, renderJob, type PdfJob } from "../_shared/wired-pdf-
 import { buildDeliveryEmail } from "../_shared/wired-delivery-email.ts";
 import { notifyFounder } from "../_shared/lulu-fulfillment.ts";
 import { drainEmailQueue } from "../_shared/wired-email-drain.ts";
+import { sendDueWiredCartReminders } from "../_shared/wired-cart-send.ts";
 
 const FROM = "Camila at The Eden Institute <hello@edeninstitute.health>";
 const REPLY_TO = FROM.slice(FROM.indexOf("<") + 1, FROM.indexOf(">"));
@@ -50,7 +51,14 @@ Deno.serve(async (req) => {
     `wired_pdf_jobs?${filter}attempts=lt.${MAX_ATTEMPTS}&or=(status.eq.queued,and(status.eq.building,claimed_at.lt.${stuck}))` +
     `&select=id,family_id,child_id,order_id,buyer_id,kind,quiz_year,attempts,status&order=created_at.asc&limit=1`);
   const job = found?.[0];
-  if (!job) return wiredJson(200, body.job_id ? { claimed: 0 } : { claimed: 0, ...(await emails()) });
+  if (!job) {
+    if (body.job_id) return wiredJson(200, { claimed: 0 });
+    const mail = await emails();
+    // The wired cart reminders that are due (24 h after a consenting shopper's checkout started).
+    const cart = await sendDueWiredCartReminders(db, { resendKey, from: FROM, replyTo: REPLY_TO, dryRun: body.dry_run === true })
+      .catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
+    return wiredJson(200, { claimed: 0, ...mail, cart });
+  }
 
   // 2. Claim it: only one runner wins (attempts must still be what we read).
   const claimed = await pg<PdfJob[]>(db, `wired_pdf_jobs?id=eq.${job.id}&attempts=eq.${job.attempts}&status=eq.${job.status}`, {

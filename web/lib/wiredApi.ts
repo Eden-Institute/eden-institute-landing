@@ -58,7 +58,7 @@ export const getMatches = (body: unknown) => call<Record<string, unknown>>("wire
 
 /** W6: the wired cart. create-checkout verifies the token and children, then answers { url } (Stripe). */
 export type WiredBuy = "blueprint" | "family_map" | "blueprint_upgrade" | "family_map_upgrade";
-export const startWiredCheckout = (body: { token: string; product: WiredBuy; child_ids?: string[] }) =>
+export const startWiredCheckout = (body: { token: string; product: WiredBuy; child_ids?: string[]; reminder_consent?: boolean }) =>
   call<{ url?: string; error?: string; code?: string }>("create-checkout", { method: "POST", body: { lookup_key: "wired_cart", ...body } });
 
 /** W9: the teen link (grade 9+, age picked from 10-18; 13+ gets { url }, under 13 gets { under_13: true }). */

@@ -99,6 +99,7 @@ import {
   precheckExpiredSession,
   recoveryItemNames,
 } from "../_shared/checkout-recovery.ts"
+import { holdoutArm, WIRED_HOLDOUT, WIRED_REMINDER_DELAY_MS, WIRED_SCHEDULED } from "../_shared/wired-cart-reminder.ts"
 import { applyUnsub } from "../_shared/email-unsubscribe.ts"
 import { tagEmailHtml, tagEmailText } from "../_shared/email-utm.ts"
 // Print-gift offers (FPEA 2027, 2026-10-30; Back-to-School Week 2027, 2026-11-20;
@@ -2443,6 +2444,11 @@ async function handleCheckoutSessionExpired(session: Stripe.Checkout.Session): P
       console.log(`[${sid}] E2E mode: cart recovery skipped`)
       return
     }
+    // The Wired quiz cart has its own reminder: 24 h after the checkout started, 50/50 holdout.
+    if ((session.metadata as Record<string, unknown> | null)?.lookup_key === "wired_cart") {
+      await handleWiredCartExpired(session)
+      return
+    }
     // deno-lint-ignore no-explicit-any
     const pre = precheckExpiredSession(session as any)
     if (!pre.ok) {
@@ -2553,6 +2559,53 @@ async function handleCheckoutSessionExpired(session: Stripe.Checkout.Session): P
   } catch (err) {
     console.error(`[${sid}] cart recovery threw (non-fatal):`, err instanceof Error ? err.message : String(err))
     await captureException(err, { function: "stripe-webhook", step: "handleCheckoutSessionExpired", session_id: sid })
+  }
+}
+
+// ── Wired quiz cart reminder (2026-11-20, spec answers 15, 20-22, 26) ──
+// Same precheck, cooldown and suppression as the store. Then the 50/50 holdout (a hash of the session id) and,
+// for the "remind" half, a row scheduled for session created + 24 h that wired-pdf sends (wired-cart-send.ts,
+// which checks everything again at send time). INSERT only: a redelivered event finds the row and stops, so it
+// can never re-schedule a reminder that already went. Never throws.
+async function handleWiredCartExpired(session: Stripe.Checkout.Session): Promise<void> {
+  const sid = session.id
+  const meta = (session.metadata ?? {}) as Record<string, string>
+  const write = async (row: Record<string, unknown>) => {
+    const { error } = await adminClient.from("checkout_recoveries").insert({ session_id: sid, ...row })
+    // deno-lint-ignore no-explicit-any
+    if (error && (error as any).code !== "23505") console.error(`[${sid}] wired cart recovery write failed: ${error.message}`)
+  }
+  try {
+    // deno-lint-ignore no-explicit-any
+    const pre = precheckExpiredSession(session as any, { wired: true })
+    if (!pre.ok) {
+      await write({ email: pre.email, status: "skipped", reason: pre.reason, recovery_url: pre.recoveryUrl })
+      return
+    }
+    let facts: RecoveryFacts
+    try {
+      facts = await cartRecoveryFacts(pre.email, session.created)
+    } catch (err) {
+      await write({ email: pre.email, status: "skipped", reason: `lookup_failed: ${err instanceof Error ? err.message : String(err)}`.slice(0, 500), recovery_url: pre.recoveryUrl })
+      return
+    }
+    const skip = decideCartRecovery(facts)
+    if (skip) {
+      await write({ email: pre.email, status: "skipped", reason: skip, recovery_url: pre.recoveryUrl })
+      return
+    }
+    const arm = await holdoutArm(sid)
+    const createdMs = (session.created ?? Math.floor(Date.now() / 1000)) * 1000
+    await write({
+      email: pre.email, status: "skipped", recovery_url: pre.recoveryUrl, arm,
+      reason: arm === "holdout" ? WIRED_HOLDOUT : WIRED_SCHEDULED,
+      send_after: arm === "holdout" ? null : new Date(createdMs + WIRED_REMINDER_DELAY_MS).toISOString(),
+      wired_pending_id: /^[0-9a-f-]{36}$/i.test(meta.wired_pending_id ?? "") ? meta.wired_pending_id : null,
+    })
+    console.log(`[${sid}] wired cart: arm ${arm}${arm === "remind" ? ", reminder scheduled for +24 h" : ", no reminder (holdout)"}`)
+  } catch (err) {
+    console.error(`[${sid}] wired cart recovery threw (non-fatal):`, err instanceof Error ? err.message : String(err))
+    await captureException(err, { function: "stripe-webhook", step: "handleWiredCartExpired", session_id: sid })
   }
 }
 
