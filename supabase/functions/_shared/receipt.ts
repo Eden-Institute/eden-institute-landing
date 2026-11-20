@@ -19,7 +19,7 @@
 import type { Db, OrderRow } from './order-db.ts';
 import { escapeHtml } from './html-escape.ts';
 import { splitVolumeTierPooled } from './print-pricing.ts';
-import { isFpeaOfferMetadata } from './fpea-offer.ts';
+import { printGiftOfferFromMetadata } from './sale-offers.ts';
 
 /**
  * The seller of record, printed on every receipt and every Stripe invoice.
@@ -129,7 +129,8 @@ export interface Receipt {
   /** Receipt title. Omitted means the curriculum heading, unchanged. */
   heading?: string;
   /**
-   * FPEA 2027 convention offer (2026-10-30): the order shipped free, so the receipt
+   * FPEA 2027 convention offer (2026-10-30), and since 2026-11-20 any print-gift
+   * offer in sale-offers.ts: the order shipped free, so the receipt
    * shows a Shipping row reading "Free" instead of leaving shipping off. Omitted on
    * every other receipt, which therefore renders exactly as before.
    */
@@ -217,7 +218,7 @@ export async function loadOrderReceipt(db: Db, order: OrderRow): Promise<Receipt
     gradeLevel: (firstSku && RECEIPT_NAMES[firstSku]?.grade) ?? null,
     paidWith: paidWithFromRaw(raw),
     ...(firstSku && BOOK_RECEIPT_NAMES[firstSku] ? { heading: BOOK_HEADING } : {}),
-    ...(isFpeaOfferMetadata(raw.metadata) && num(totals.amount_shipping) === 0 ? { freeShipping: true } : {}),
+    ...(printGiftOfferFromMetadata(raw.metadata) && num(totals.amount_shipping) === 0 ? { freeShipping: true } : {}),
   };
 }
 

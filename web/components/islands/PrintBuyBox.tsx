@@ -55,8 +55,17 @@ import CheckoutContact, { EMPTY_CHECKOUT_CONTACT, checkoutContactBody, type Chec
 import ShipToForm, { type ShipToDraft } from "./ShipToForm";
 import { checkShipTo } from "../../../supabase/functions/_shared/ship-address";
 import { likelyNeedsGround, printShippingCents, splitVolumeTierPooled } from "../../../supabase/functions/_shared/print-pricing";
-// FPEA 2027 convention offer (/fpea, 2026-10-30). Without the `offer` prop this box is unchanged.
-import { FPEA_OFFER_ID, fpeaGiftBands, giftStarterPhrase } from "../../../supabase/functions/_shared/fpea-offer";
+// Dated offers (supabase/functions/_shared/sale-offers.ts). The FPEA 2027 convention
+// offer comes in as the `offer` prop (/fpea only). Without it, the box shows the
+// site-wide sale whose window is open (Back-to-School Week 2027: free shipping and
+// the band's Starter Unit), and outside every sale week it is exactly as before.
+import {
+  FPEA_OFFER_ID,
+  activeSiteSale,
+  giftBandsForSkus,
+  giftStarterPhrase,
+  saleOfferById,
+} from "../../../supabase/functions/_shared/sale-offers";
 
 interface PrintProduct {
   sku: string;
@@ -134,7 +143,7 @@ interface Props {
   offer?: typeof FPEA_OFFER_ID;
 }
 
-export default function PrintBuyBox({ cta, band = "sprouts", offer }: Props) {
+export default function PrintBuyBox({ cta, band = "sprouts", offer: pageOffer }: Props) {
   const { setSku: SET_SKU, nbSkus: NB_SKUS, bandName, parts: PART_SKUS } = BAND_CONFIG[band];
   const isSprouts = band === "sprouts";
   const isBoth = band === "both";
@@ -157,6 +166,14 @@ export default function PrintBuyBox({ cta, band = "sprouts", offer }: Props) {
   const [shipTo, setShipTo] = useState<ShipToDraft>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [e2eToken, setE2eToken] = useState<string | null>(null);
+  // Site-wide sale (founder 2026-11-20, whole site): read once when the box mounts
+  // (/books loads it client:only, so there is no server render to disagree with).
+  // Only a sale with the print gift changes this box. No code, nothing to share.
+  // create-checkout checks the window again and is the authority.
+  const [siteSale] = useState(() => (pageOffer ? null : activeSiteSale(Date.now())));
+  const sale = pageOffer ? saleOfferById(pageOffer) : siteSale && siteSale.printGift ? siteSale : null;
+  /** The offer id this box sends, or undefined for the regular price. */
+  const offer = sale?.id;
 
   useEffect(() => {
     setE2eToken(readE2eToken());
@@ -165,7 +182,7 @@ export default function PrintBuyBox({ cta, band = "sprouts", offer }: Props) {
     // returns carry no band param (as before); other bands add ?band=.
     const returnedBand = params.get("band") ?? "sprouts";
     // On /fpea every box names itself in ?item=, so a return reaches only its own box.
-    const state = offer
+    const state = pageOffer
       ? (params.get("item") === `print-${band}` ? params.get("checkout") : null)
       : returnedBand === band ? params.get("checkout") : null;
     if (state === "cancelled") setNotice("No payment was taken. The set is still here whenever you are ready.");
@@ -219,7 +236,7 @@ export default function PrintBuyBox({ cta, band = "sprouts", offer }: Props) {
   // One parcel. Shipping covers Lulu's cost for this exact cart (founder
   // 2026-09-26), the same formula create-checkout charges.
   const cartItems = product ? [{ sku: product.sku, qty }, ...notebooks.map((nb) => ({ sku: nb.sku, qty: qtyOf(nb.sku) }))] : [];
-  // FPEA: the whole order ships free (create-checkout charges the same 0).
+  // Offer: the whole order ships free (create-checkout charges the same 0).
   const shipping = offer ? 0 : product ? printShippingCents(cartItems) ?? product.shipping_tier_cents : 0;
   const shipsByGround = product ? likelyNeedsGround(cartItems) : false;
 
@@ -286,12 +303,12 @@ export default function PrintBuyBox({ cta, band = "sprouts", offer }: Props) {
           ...(smsPhoneE164 ? { sms_phone: smsPhoneE164 } : {}),
           ...shipToBody,
           ...(offer ? { offer } : {}),
-          // A partner's ?promo= code (this visit), never with the FPEA offer (2026-11-17).
+          // A partner's ?promo= code (this visit), never with an offer (2026-11-17, no stacking).
           ...partnerPromoBody(partnerPromoCode(), offer),
           success_url: isSprouts
             ? "https://edeninstitute.health/books/thank-you?session_id={CHECKOUT_SESSION_ID}"
             : `https://edeninstitute.health/books/thank-you?band=${band}&session_id={CHECKOUT_SESSION_ID}`,
-          cancel_url: offer
+          cancel_url: pageOffer
             ? `https://edeninstitute.health/fpea?checkout=cancelled&item=print-${band}#print-${band}`
             : isSprouts
             ? "https://edeninstitute.health/books?checkout=cancelled"
@@ -396,9 +413,9 @@ export default function PrintBuyBox({ cta, band = "sprouts", offer }: Props) {
               ? "Both years: the Sprouts and the Seedlings Teacher's Guide, Student Notebook and Read-Aloud Storybook, in one parcel."
               : "Teacher's Guide, Student Notebook and Read-Aloud Storybook, together."}
           </p>
-          {offer && (
+          {sale && (
             <p className="font-body text-sm mb-4 rounded-md px-3 py-2" style={{ backgroundColor: "hsl(var(--eden-cream))", color: "hsl(var(--eden-forest))" }}>
-              FPEA offer: free shipping, plus {giftStarterPhrase(fpeaGiftBands([product.sku]))} emailed to you right after you pay.
+              {sale.copy.printBadgeLead}: free shipping, plus {giftStarterPhrase(giftBandsForSkus([product.sku]))} emailed to you right after you pay.
             </p>
           )}
           <p className="font-serif text-3xl font-bold" style={{ color: "hsl(var(--eden-bark))" }}>

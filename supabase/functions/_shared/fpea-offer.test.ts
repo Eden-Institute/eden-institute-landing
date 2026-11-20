@@ -134,20 +134,22 @@ Deno.test('REGRESSION: the request bodies every existing buy box sends carry no 
   for (const b of bodies) assertEquals(parseRequestedOffer(b.offer), { kind: 'none' });
 });
 
-Deno.test('REGRESSION (structural): create-checkout reaches the FPEA helpers only behind its offer guards', async () => {
+Deno.test('REGRESSION (structural): create-checkout reaches the offer helpers only behind its offer guards', async () => {
+  // 2026-11-20: the FPEA helpers were generalized into sale-offers.ts (FPEA plus the
+  // two site-wide sale weeks); the guards are the same, under offer-neutral names.
   const src = await Deno.readTextFile(new URL('../create-checkout/index.ts', import.meta.url));
   const count = (needle: string) => src.split(needle).length - 1;
   // Each apply call exists once, directly inside its own guard.
-  assertEquals(count('applyFpeaStarterOffer(sessionParams'), 1);
-  assertEquals(count('applyFpeaPrintOffer(sessionParams'), 1);
-  assert(/if \(fpeaStarter\) \{\s*\n\s*applyFpeaStarterOffer\(sessionParams/.test(src));
-  assert(/if \(fpeaPrint\) \{\s*\n\s*applyFpeaPrintOffer\(sessionParams/.test(src));
-  // fpeaStarter / fpeaPrint start null and are set only after the window gate passes.
-  assertEquals(count('let fpeaStarter: { windowBypassed: boolean } | null = null'), 1);
-  assertEquals(count('let fpeaPrint: { windowBypassed: boolean; giftBands: FpeaGiftBand[] } | null = null'), 1);
-  // Cart recovery is skipped only for FPEA sessions; the Back to Eden PDF path is untouched.
-  assertEquals(count('if (!fpeaStarter) applyCheckoutRecovery(sessionParams)'), 1);
-  assertEquals(count('if (!fpeaPrint) applyCheckoutRecovery(sessionParams)'), 1);
+  assertEquals(count('applySaleStarterOffer(sessionParams'), 1);
+  assertEquals(count('applySalePrintOffer(sessionParams'), 1);
+  assert(/if \(saleStarter\) \{\s*\n\s*applySaleStarterOffer\(sessionParams/.test(src));
+  assert(/if \(salePrint\) \{\s*\n\s*applySalePrintOffer\(sessionParams/.test(src));
+  // saleStarter / salePrint start null and are set only after the window gate passes.
+  assertEquals(count('let saleStarter: { offer: SaleOffer; windowBypassed: boolean } | null = null'), 1);
+  assertEquals(count('let salePrint: { offer: SaleOffer; windowBypassed: boolean; giftBands: GiftBand[] } | null = null'), 1);
+  // Cart recovery is skipped only for offer sessions; the Back to Eden PDF path is untouched.
+  assertEquals(count('if (!saleStarter) applyCheckoutRecovery(sessionParams)'), 1);
+  assertEquals(count('if (!salePrint) applyCheckoutRecovery(sessionParams)'), 1);
   assertEquals(count('applyCheckoutRecovery(sessionParams)'), 3);
 });
 
@@ -171,7 +173,7 @@ Deno.test('the /fpea Starter price the page shows comes from the same list price
   assert(m, 'PRICE_VALUE not found in StarterBuyBox.tsx');
   for (const band of ['sprouts', 'seedlings'] as const) assertEquals(Number(m[1]) * 100, STARTER_BANDS[band].priceCents, band);
   assert(src.includes('const listCents = PRICE_VALUE * 100;'));
-  assert(src.includes('fpeaStarterPriceCents(listCents)'));
+  assert(src.includes('offerStarterPriceCents(sale, listCents)'));
 });
 
 /** The Starter session exactly as create-checkout builds it today, before the offer. */
@@ -400,7 +402,7 @@ Deno.test('webhook gift: NO credit, NO promotion code, NO Stripe; only starter_d
   for (const forbidden of ['starter-credit', 'starter_credits', 'issueStarterCredit', 'promotionCodes', 'coupons', 'Stripe']) {
     assert(!code.includes(forbidden), `fpea-gift.ts code mentions ${forbidden}`);
   }
-  assertEquals((src.match(/^import .*$/gm) ?? []).map((l) => l.replace(/.*from '(.*)';$/, '$1')), ['./fpea-offer.ts']);
+  assertEquals((src.match(/^import .*$/gm) ?? []).map((l) => l.replace(/.*from '(.*)';$/, '$1')), ['./sale-offers.ts']);
 });
 
 Deno.test('webhook gift: a redelivered webhook queues nothing twice; one band failing does not stop the other', async () => {

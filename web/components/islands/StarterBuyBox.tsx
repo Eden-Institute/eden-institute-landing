@@ -25,8 +25,16 @@ import { trackCta } from "@/lib/trackCta";
 import { partnerPromoBody, partnerPromoCode } from "../../lib/partnerPromo";
 import PayOverTime from "./PayOverTime";
 import CheckoutContact, { EMPTY_CHECKOUT_CONTACT, checkoutContactBody, type CheckoutContactValue } from "./CheckoutContact";
-// FPEA 2027 convention offer (/fpea, 2026-10-30). Without the `offer` prop this box is unchanged.
-import { FPEA_OFFER_ID, FPEA_STARTER_DISCOUNT_PERCENT, fpeaStarterPriceCents } from "../../../supabase/functions/_shared/fpea-offer";
+// Dated offers (supabase/functions/_shared/sale-offers.ts). The FPEA 2027 convention
+// offer comes in as the `offer` prop (/fpea only). Without it, the box shows the
+// site-wide sale whose window is open (Spring Planning Week 2027: 25% off), and
+// outside every sale week it is exactly as before.
+import {
+  FPEA_OFFER_ID,
+  activeSiteSale,
+  offerStarterPriceCents,
+  saleOfferById,
+} from "../../../supabase/functions/_shared/sale-offers";
 
 /**
  * One Starter Unit per band (2026-09-23). The lookup keys mirror STARTER_BANDS in
@@ -67,16 +75,24 @@ interface Props {
   offer?: typeof FPEA_OFFER_ID;
 }
 
-/** 2925 -> "$29.25". Used only for the FPEA price. */
+/** 2925 -> "$29.25". Used only for an offer price. */
 function money(cents: number): string {
   return (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
 }
 
-export default function StarterBuyBox({ cta, wide = false, band = "sprouts", offer }: Props) {
+export default function StarterBuyBox({ cta, wide = false, band = "sprouts", offer: pageOffer }: Props) {
   const product = STARTER_PRODUCTS[band];
-  // FPEA: display price only; the server charges 25% off the real Stripe Price.
+  // Site-wide sale (founder 2026-11-20, whole site): read once when the box mounts
+  // (every page loads it client:only, so there is no server render to disagree
+  // with). Only a sale with a Starter discount changes this box. No code, nothing
+  // to share. create-checkout checks the window again and is the authority.
+  const [siteSale] = useState(() => (pageOffer ? null : activeSiteSale(Date.now())));
+  const sale = pageOffer ? saleOfferById(pageOffer) : siteSale && siteSale.starterDiscountPercent != null ? siteSale : null;
+  /** The offer id this box sends, or undefined for the regular price. */
+  const offer = sale?.id;
+  // Display price only; the server charges the offer's percent off the real Stripe Price.
   const listCents = PRICE_VALUE * 100;
-  const offerCents = offer ? fpeaStarterPriceCents(listCents) : null;
+  const offerCents = sale ? offerStarterPriceCents(sale, listCents) : null;
   const priceLabel = offerCents != null ? money(offerCents) : PRICE_LABEL;
   const priceValue = offerCents != null ? offerCents / 100 : PRICE_VALUE;
   const [loading, setLoading] = useState(false);
@@ -91,7 +107,7 @@ export default function StarterBuyBox({ cta, wide = false, band = "sprouts", off
     // July: a silent non-response reads as a broken button.
     const params = new URLSearchParams(window.location.search);
     // On /fpea every box names itself in ?item=, so a return reaches only its own box.
-    if (params.get("checkout") === "cancelled" && (!offer || params.get("item") === `starter-${band}`)) setCancelled(true);
+    if (params.get("checkout") === "cancelled" && (!pageOffer || params.get("item") === `starter-${band}`)) setCancelled(true);
   }, []);
 
   async function startCheckout() {
@@ -116,10 +132,12 @@ export default function StarterBuyBox({ cta, wide = false, band = "sprouts", off
           lookup_key: product.lookupKey,
           // Optional email + one-reminder consent (CheckoutContact). Empty unless typed.
           ...checkoutContactBody(contact),
-          ...(offer
-            ? { offer, cancel_url: `https://edeninstitute.health/fpea?checkout=cancelled&item=starter-${band}#starter-${band}` }
+          ...(offer ? { offer } : {}),
+          // Only /fpea returns to its own page; a site-wide sale returns where it always did.
+          ...(pageOffer
+            ? { cancel_url: `https://edeninstitute.health/fpea?checkout=cancelled&item=starter-${band}#starter-${band}` }
             : {}),
-          // A partner's ?promo= code (this visit), never with the FPEA offer.
+          // A partner's ?promo= code (this visit), never with an offer (no stacking).
           ...partnerPromoBody(partnerPromoCode(), offer),
         },
       });
@@ -175,9 +193,9 @@ export default function StarterBuyBox({ cta, wide = false, band = "sprouts", off
         </p>
       )}
 
-      {offerCents != null && (
+      {sale && offerCents != null && (
         <p className="font-body text-sm mt-3" style={{ color: "hsl(var(--eden-forest))" }}>
-          FPEA price: {FPEA_STARTER_DISCOUNT_PERCENT}% off the regular {money(listCents)}.
+          {sale.copy.starterPriceLabel}: {sale.starterDiscountPercent}% off the regular {money(listCents)}.
         </p>
       )}
 

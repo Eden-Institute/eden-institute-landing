@@ -43,7 +43,7 @@ import {
 import { renderStarterDeliveryEmail, StarterEmailModel } from './starter-email.ts';
 import { Receipt, starterReceipt } from './receipt.ts';
 import { tagEmailHtml, tagEmailText, type EmailTag } from './email-utm.ts';
-import { FPEA_OFFER_ID, isFpeaGiftDeliveryKey } from './fpea-offer.ts';
+import { giftOfferForDeliveryKey } from './sale-offers.ts';
 import { STARTER_GIFT_ID, isStarterGiftDeliveryKey } from './starter-gift.ts';
 import { alertFounder } from './founder-alert.ts';
 import {
@@ -503,7 +503,9 @@ export async function fulfilStarterDelivery(
     // order_id is the PRINT order, whose receipt is in the order confirmation, so
     // no receipt here (a Starter receipt built from it would show the set's total).
     // Founder gift (starter-gift.ts): nothing was bought, so there is no order at all.
-    const giftId = isFpeaGiftDeliveryKey(sid) ? FPEA_OFFER_ID : isStarterGiftDeliveryKey(sid) ? STARTER_GIFT_ID : null;
+    // 2026-11-20: every print-gift offer (sale-offers.ts) has its own key prefix
+    // (fpea_, summer2027_), and the email names that offer.
+    const giftId = giftOfferForDeliveryKey(sid)?.id ?? (isStarterGiftDeliveryKey(sid) ? STARTER_GIFT_ID : null);
     const gift = giftId !== null;
     if (delivery.order_id && !gift) {
       try {

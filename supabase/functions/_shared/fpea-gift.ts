@@ -4,6 +4,10 @@
 // set bought under the offer (see fpea-offer.ts for the offer itself). Called by
 // stripe-webhook's print branch once the print order is recorded.
 //
+// 2026-11-20: the same rail serves every print-gift offer in sale-offers.ts (FPEA
+// and Back-to-School Week). queueOfferGiftStarters takes the offer; each offer has
+// its own key prefix. queueFpeaGiftStarters is the FPEA call, unchanged.
+//
 // It writes ONE thing: a pending starter_deliveries row per gifted band, which the
 // existing Starter rail (starter-fulfill: stamp, store, sign, email) then delivers
 // exactly as it delivers a bought Starter. The caller kicks starter-fulfill for
@@ -15,10 +19,10 @@
 // call even by mistake, and fpea-offer.test.ts asserts it writes to no other table.
 //
 // Idempotent: each gift's key is derived from the print session id and the band
-// (fpeaGiftDeliveryKey), and starter_deliveries is unique on that column, so a
+// (offerGiftDeliveryKey), and starter_deliveries is unique on that column, so a
 // redelivered webhook gets 23505 and queues nothing new.
 
-import { fpeaGiftBands, fpeaGiftDeliveryKey, type FpeaGiftBand } from './fpea-offer.ts';
+import { FPEA_OFFER, type GiftBand, giftBandsForSkus, offerGiftDeliveryKey, type SaleOffer } from './sale-offers.ts';
 
 // deno-lint-ignore no-explicit-any
 export type GiftDb = { from(table: string): any };
@@ -35,7 +39,7 @@ export interface GiftInput {
 }
 
 export interface GiftResult {
-  bands: FpeaGiftBand[];
+  bands: GiftBand[];
   /** Keys newly queued; the caller kicks starter-fulfill for each. */
   queued: string[];
   /** Keys that already existed (a redelivered webhook). */
@@ -49,12 +53,23 @@ export function newGiftDownloadToken(): string {
   return crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
 }
 
-export async function queueFpeaGiftStarters(
+/** The FPEA call: exactly queueOfferGiftStarters with the FPEA offer. */
+export function queueFpeaGiftStarters(
   db: GiftDb,
   input: GiftInput,
   newToken: () => string = newGiftDownloadToken,
 ): Promise<GiftResult> {
-  const bands = fpeaGiftBands(input.skus);
+  return queueOfferGiftStarters(db, FPEA_OFFER, input, newToken);
+}
+
+/** Queue the Starter(s) a print-gift offer brings. An offer without the gift queues nothing. */
+export async function queueOfferGiftStarters(
+  db: GiftDb,
+  offer: SaleOffer,
+  input: GiftInput,
+  newToken: () => string = newGiftDownloadToken,
+): Promise<GiftResult> {
+  const bands = offer.printGift && offer.giftKeyPrefix ? giftBandsForSkus(input.skus) : [];
   const result: GiftResult = { bands, queued: [], alreadyQueued: [], errors: [] };
   if (bands.length === 0) return result;
   const email = (input.email ?? '').trim().toLowerCase();
@@ -63,7 +78,7 @@ export async function queueFpeaGiftStarters(
     return result;
   }
   for (const band of bands) {
-    const key = fpeaGiftDeliveryKey(input.sessionId, band);
+    const key = offerGiftDeliveryKey(offer, input.sessionId, band);
     try {
       const { error } = await db.from('starter_deliveries').insert({
         stripe_checkout_session_id: key,
