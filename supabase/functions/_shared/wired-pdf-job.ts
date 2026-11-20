@@ -8,20 +8,20 @@
 import { PDFDocument } from "https://esm.sh/pdf-lib@1.17.1";
 import { type Domain, type Scores } from "./wired-engine.ts";
 import { normalizeCode, rankCurricula } from "./wired-match.ts";
-import { type FamilyAnswers, prefsFromAnswers } from "./wired-submit-core.ts";
+import { bestFitApproach, type FamilyAnswers, prefsFromAnswers, tipFirst } from "./wired-submit-core.ts";
 import { approvedCurricula, type Db, esaRows, pg } from "./wired-submit-flow.ts";
-import { buildBlueprintPdf, buildFamilyMapPdf, reasonLines, SUBJECT_MAP, type BlueprintData, type PdfMatch, type PdfSubject } from "./wired-pdf.ts";
+import { buildBlueprintPdf, buildFamilyMapPdf, buildFreeResultsPdf, reasonLines, SUBJECT_MAP, type FreeResultsData, type PdfMatch, type PdfSubject } from "./wired-pdf.ts";
 
 export interface PdfJob {
   id: string; family_id: string; child_id: string | null; order_id: string | null; buyer_id: string | null;
-  kind: "blueprint" | "family_map"; quiz_year: number; attempts: number; status: string;
+  kind: "blueprint" | "family_map" | "free"; quiz_year: number; attempts: number; status: string;
 }
 
 export interface LoadedJob {
   email: string;
   firstName: string | null;
   hasOwnAnswers: boolean;
-  children: BlueprintData[];
+  children: FreeResultsData[];
 }
 
 const RANK_LIMIT = 200;
@@ -36,7 +36,7 @@ export async function loadBlueprintData(db: Db, job: PdfJob): Promise<LoadedJob>
   }
 
   let childIds: string[] = [];
-  if (job.kind === "blueprint") {
+  if (job.kind === "blueprint" || job.kind === "free") {
     if (!job.child_id) throw new Error("blueprint job without a child");
     childIds = [job.child_id];
   } else {
@@ -61,10 +61,10 @@ export async function loadBlueprintData(db: Db, job: PdfJob): Promise<LoadedJob>
   const filters = { withinBudget: f.withinBudget === true, christianOnly: f.christianOnly === true, esaOnly: f.esaOnly === true && !!state, state };
   const esa = filters.esaOnly && state ? await esaRows(db, state) : [];
 
-  const children: BlueprintData[] = [];
+  const children: FreeResultsData[] = [];
   for (const k of kids) {
-    const res = (await pg<{ quiz_year: number; blended_scores: Scores; top3: Domain[]; computed_at: string }[]>(db,
-      `wired_results?child_id=eq.${k.id}&select=quiz_year,blended_scores,top3,computed_at&order=quiz_year.desc&limit=1`))?.[0];
+    const res = (await pg<{ quiz_year: number; blended_scores: Scores; top3: Domain[]; computed_at: string; renaissance: boolean }[]>(db,
+      `wired_results?child_id=eq.${k.id}&select=quiz_year,blended_scores,top3,computed_at,renaissance&order=quiz_year.desc&limit=1`))?.[0];
     if (!res) throw new Error(`no results for child ${k.id}`);
     const ses = await pg<{ family_answers: FamilyAnswers | null; completed_at: string | null; rater_role: string }[]>(db,
       `wired_sessions?child_id=eq.${k.id}&family_id=eq.${job.family_id}&quiz_year=eq.${res.quiz_year}&completed_at=not.is.null&is_pilot_retake=eq.false&select=family_answers,completed_at,rater_role`);
@@ -93,6 +93,9 @@ export async function loadBlueprintData(db: Db, job: PdfJob): Promise<LoadedJob>
       nickname: k.nickname, grade: k.grade, scores: res.blended_scores, top3: res.top3,
       answeredOn: new Date(mom?.completed_at ?? res.computed_at), observerCount: others,
       // Same rule as the results page: the line shows only when a coming-soon Eden's Table set fits this grade.
+      renaissance: res.renaissance === true,
+      approach: bestFitApproach(res.blended_scores, res.renaissance === true, fa.approach ?? null),
+      tipFirst: tipFirst(fa.frustration),
       matches, comingSoonBand: out.coming_soon.length ? (out.coming_soon.some((c) => /9-12/.test(c.eden_band ?? "")) ? "9-12" : "6-8") : null,
     });
   }
@@ -104,8 +107,11 @@ const safe = (s: string) => s.normalize("NFKD").replace(/[^A-Za-z0-9]+/g, "-").r
 export async function renderJob(job: PdfJob, loaded: LoadedJob): Promise<{ bytes: Uint8Array; pages: number; filename: string }> {
   const bytes = job.kind === "blueprint"
     ? await buildBlueprintPdf(loaded.children[0])
-    : await buildFamilyMapPdf({ children: loaded.children });
+    : job.kind === "free"
+      ? await buildFreeResultsPdf(loaded.children[0])
+      : await buildFamilyMapPdf({ children: loaded.children });
   const pages = (await PDFDocument.load(bytes)).getPageCount();
-  const filename = job.kind === "blueprint" ? `${safe(loaded.children[0].nickname)}-Learner-Blueprint.pdf` : "Family-Learning-Map.pdf";
+  const filename = job.kind === "blueprint" ? `${safe(loaded.children[0].nickname)}-Learner-Blueprint.pdf`
+    : job.kind === "free" ? `${safe(loaded.children[0].nickname)}-Wired-Results.pdf` : "Family-Learning-Map.pdf";
   return { bytes, pages, filename };
 }

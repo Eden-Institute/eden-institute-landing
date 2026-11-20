@@ -491,3 +491,124 @@ export function sharedWirings(children: BlueprintData[]): { wiring: Domain; name
 function joinNames(n: string[]): string {
   return n.length <= 2 ? n.join(" and ") : `${n.slice(0, -1).join(", ")} and ${n[n.length - 1]}`;
 }
+
+// ── The free results PDF (email 1; spec 10, answer 28) ─────────────────────
+// The free results page on paper, from the same approved copy: heading + intro, the top-3 SHORT
+// write-ups with Bible examples, the pair blurb (answer 37), all 9 as bars, the approach box, the
+// 3 tips (her frustration picks the first), up to 5 matches with reasons, then the honest limits.
+
+export interface FreeResultsData extends BlueprintData {
+  renaissance: boolean;
+  approach: { fits: { approach: string; room_for: Domain[] }[]; already_there: boolean; her_approach: string | null };
+  tipFirst: "try_today" | "low_prep" | "together";
+}
+
+const APPROACH_LABEL_TO_CODE: Record<string, string> = {
+  "Charlotte Mason": "charlotte_mason", "Classical": "classical", "Traditional / textbook": "traditional",
+  "Unit study": "unit_study", "Literature-based": "literature", "Montessori": "montessori", "Waldorf": "waldorf",
+  "Eclectic / mixed": "eclectic",
+};
+export const APPROACH_COPY: Record<string, { name: string; description: string }> = Object.fromEntries(
+  block("results", "Which approach gives room to which wirings").filter((i) => i.t === "li").flatMap((i) => {
+    const name = i.s.slice(0, i.s.indexOf(":"));
+    const code = APPROACH_LABEL_TO_CODE[name];
+    if (!code) return [];
+    const rest = i.s.slice(name.length + 1).trim();
+    const cut = rest.indexOf(" Room for:");
+    return [[code, { name, description: cut >= 0 ? rest.slice(0, cut) : rest }]];
+  }),
+);
+const TIP_LABELS: Record<string, string> = { try_today: "Try today", low_prep: "Low prep or free", together: "Together, or choosing curriculum" };
+
+export async function buildFreeResultsPdf(d: FreeResultsData): Promise<Uint8Array> {
+  const w = await newDoc(`How God wired ${d.nickname}`);
+  const name = d.nickname;
+  const v = { Nickname: name };
+  const top3 = d.top3.slice(0, 3);
+  w.footer = `How God wired ${name}`;
+  w.newPage();
+
+  const top = block("results", "Top of the page");
+  w.text("FEARFULLY & WONDERFULLY WIRED", { font: w.f.caps, size: 10, color: C.olive, after: 10 });
+  w.h1(fill(after(top, "Heading:"), v));
+  w.text(fill(after(top, "Under it:"), v));
+  if (d.renaissance) w.text(fill(block("results", "Renaissance profile (only when the top 5 are within 10 points)")[0].s, v), { font: w.f.bodyB });
+
+  w.h2(fill("[Nickname]'s top 3 wirings", v));
+  for (const dom of top3) {
+    const wu = COPY.writeups[dom];
+    w.label(wu.name);
+    for (const s of wu.short) w.text(fill(s, v), { after: 4 });
+    w.text(`${wu.bibleLabel}: ${wu.bible}`, { font: w.f.bodyI, size: 10.5, color: C.light, after: 10 });
+  }
+  const pair = pairBlurb(top3);
+  if (pair) { w.label(`${wiringName(top3[0])} + ${wiringName(top3[1])}`); w.text(fill(pair, v)); }
+
+  // All 9 as bars (scores are 0-100), longest first, the scale is 0-100 for every bar.
+  const chart = block("results", "The chart of all 9");
+  w.newPage();
+  w.h1(after(chart, "Heading:"));
+  w.text(fill(after(chart, "Caption:"), v), { size: 10.5, color: C.light, after: 12 });
+  const sorted = DOMAINS.slice().sort((a, b) => d.scores[b] - d.scores[a] || DOMAINS.indexOf(a) - DOMAINS.indexOf(b));
+  const labelW = 110, barMax = CW - labelW - 40;
+  for (const dom of sorted) {
+    w.ensure(26);
+    const val = Math.max(0, Math.min(100, Math.round(d.scores[dom])));
+    w.page.drawText(wiringName(dom), { x: M, y: w.y - 13, size: 11.5, font: top3.includes(dom) ? w.f.bodyB : w.f.body, color: C.body });
+    w.page.drawRectangle({ x: M + labelW, y: w.y - 15, width: barMax, height: 12, color: C.softGold, opacity: 0.35 });
+    w.page.drawRectangle({ x: M + labelW, y: w.y - 15, width: Math.max(2, (barMax * val) / 100), height: 12, color: top3.includes(dom) ? C.forest : C.olive });
+    w.y -= 26;
+  }
+  w.small(after(chart, "Small note under Seeker:"));
+
+  // Approach box
+  const box = block("results", "What the approach box says");
+  w.h2(fill(after(box, "Heading:"), v));
+  for (const f of d.approach.fits) {
+    const a = APPROACH_COPY[f.approach];
+    if (!a || f.room_for.length < 2) continue;
+    w.text(fill(after(box, "Line:"), { ...v, Approach: a.name, "its one-line description": a.description, A: wiringName(f.room_for[0]), B: wiringName(f.room_for[1]) }));
+  }
+  if (d.approach.her_approach) {
+    w.text(after(box, d.approach.already_there ? "If her answer to 'how do you homeschool now' is the same approach:" : "If it's different:"), { font: w.f.bodyI });
+  }
+  w.small(fill(after(box, "Small note:"), v));
+
+  // 3 tips from the top wiring; her frustration picks the first
+  w.h2("3 things to try this week");
+  const tips = block("results", `${wiringName(top3[0])}: the 3 tips`);
+  const order = [d.tipFirst, ...["try_today", "low_prep", "together"].filter((t) => t !== d.tipFirst)];
+  for (const t of order) {
+    const it = tips.find((i) => i.s.startsWith(`${TIP_LABELS[t]}:`));
+    if (it) w.bullet(fill(it.s, v));
+  }
+
+  // Matches (top 5, her priorities)
+  const mt = block("results", "Above the curriculum matches");
+  w.newPage();
+  w.h1(fill(after(mt, "Heading:"), v));
+  w.text(after(mt, "Under it:"));
+  const aff = block("results", "Affiliate note");
+  w.small(after(aff, "Right above the matches:"));
+  const affLabel = after(aff, "Next to each affiliate link, in small print:");
+  const five = d.matches.slice(0, 5);
+  if (!five.length) w.text(fill(after(block("blueprint2", "Curriculum matches by subject"), "If a subject has none:"), { ...v, subject: "every subject" }));
+  for (const m of five) {
+    w.link(m.name, m.link);
+    if (m.isAffiliate) w.small(affLabel);
+    if (m.because.length) w.text(m.because.join(" · "), { size: 10.5, color: C.light, after: 8 });
+  }
+  if (d.comingSoonBand) {
+    const cs = block("results", "Eden's Table coming-soon line")[0].s;
+    w.text(d.comingSoonBand === "9-12" ? cs.replace("grades 6-8", "grades 9-12") : cs);
+  }
+
+  // Honest limits
+  const nd = block("results", "Not a diagnostic tool");
+  w.h2(after(nd, "Heading:"));
+  w.items(nd.filter((i) => !i.s.startsWith("Heading:")), v);
+  const ev = block("results", "When to look into an evaluation");
+  w.h2(after(ev, "Heading:"));
+  w.items(ev.filter((i) => !i.s.startsWith("Heading:")), v);
+  return await w.doc.save({ useObjectStreams: true });
+}

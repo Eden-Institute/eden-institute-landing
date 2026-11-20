@@ -30,7 +30,9 @@ import { confirmPageUrl } from './unsubscribe-request.ts';
 // transactional and carry no list at all.
 // cart (2026-09-28): the one abandoned-checkout reminder stripe-webhook sends to a
 // shopper who ticked Stripe's promotional-consent box (_shared/checkout-recovery.ts).
-export type EmailList = 'constitution' | 'homeschool' | 'postpurchase' | 'podcast' | 'cart';
+// learner (2026-11-19, Wired quiz W8): the quiz's own emails (email 1 + the learner drip), its own
+// unsubscribe (spec section 11, answer 7). No Resend topic: these go through Eden's own sender.
+export type EmailList = 'constitution' | 'homeschool' | 'postpurchase' | 'podcast' | 'cart' | 'learner';
 
 // Human-readable list names shown on the confirmation page.
 export const EMAIL_LISTS: Record<EmailList, string> = {
@@ -39,6 +41,7 @@ export const EMAIL_LISTS: Record<EmailList, string> = {
   postpurchase: "the Eden's Table buyer updates",
   podcast: 'the Tales and Table Talk emails',
   cart: 'checkout reminder emails',
+  learner: 'the Fearfully & Wonderfully Wired quiz emails',
 };
 
 export function isEmailList(value: unknown): value is EmailList {

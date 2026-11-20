@@ -45,3 +45,11 @@ Deno.test("Family Map with 6 children stays under budget", async () => {
   if (Deno.env.get("WIRED_PDF_OUT")) await Deno.writeFile(`${Deno.env.get("WIRED_PDF_OUT")}/familymap.pdf`, bytes);
   console.log("family map bytes", bytes.length, "pages", (await PDFDocument.load(bytes)).getPageCount());
 });
+
+Deno.test("Free results PDF renders small, with every approach code mapped to approved copy", async () => {
+  const { buildFreeResultsPdf, APPROACH_COPY } = await import("./wired-pdf.ts");
+  for (const c of ["charlotte_mason", "classical", "traditional", "unit_study", "literature", "montessori", "waldorf", "eclectic"]) assert(APPROACH_COPY[c]?.description, c);
+  const bytes = await buildFreeResultsPdf({ ...lily, renaissance: false, tipFirst: "low_prep", approach: { fits: [{ approach: "unit_study", room_for: ["maker", "designer"] }], already_there: false, her_approach: "charlotte_mason" } });
+  assert(bytes.length < 1024 * 1024, `size ${bytes.length}`);
+  if (Deno.env.get("WIRED_PDF_OUT")) await Deno.writeFile(`${Deno.env.get("WIRED_PDF_OUT")}/free.pdf`, bytes);
+});

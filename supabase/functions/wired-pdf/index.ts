@@ -15,6 +15,7 @@ import { type Db, pg } from "../_shared/wired-submit-flow.ts";
 import { loadBlueprintData, renderJob, type PdfJob } from "../_shared/wired-pdf-job.ts";
 import { buildDeliveryEmail } from "../_shared/wired-delivery-email.ts";
 import { notifyFounder } from "../_shared/lulu-fulfillment.ts";
+import { drainEmailQueue } from "../_shared/wired-email-drain.ts";
 
 const FROM = "Camila at The Eden Institute <hello@edeninstitute.health>";
 const REPLY_TO = FROM.slice(FROM.indexOf("<") + 1, FROM.indexOf(">"));
@@ -33,7 +34,14 @@ Deno.serve(async (req) => {
   if (!isServiceRoleRequest(req)) return serviceRoleRequired(WIRED_CORS);
   const db: Db = { url: Deno.env.get("SUPABASE_URL") ?? "", key: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "" };
   const resendKey = Deno.env.get("RESEND_API_KEY") ?? "";
-  const body = await req.json().catch(() => ({})) as { job_id?: string; dry_run?: boolean; test_founder?: boolean };
+  const body = await req.json().catch(() => ({})) as { job_id?: string; email_id?: string; dry_run?: boolean; test_founder?: boolean };
+
+  // W8a: learner email 1 (results + free PDF). Runs when no purchase PDF is waiting, or for one row.
+  const emails = () => drainEmailQueue(db, {
+    resendKey, from: FROM, replyTo: REPLY_TO, emailId: body.email_id, dryRun: body.dry_run === true,
+    testTo: body.test_founder === true && body.email_id ? (Deno.env.get("FOUNDER_EMAIL") || REPLY_TO) : undefined,
+  });
+  if (body.email_id) return wiredJson(200, { claimed: 0, ...(await emails()) });
 
   // 1. Pick the oldest claimable job (queued, or stuck in 'building' for 15+ minutes).
   const stuck = new Date(Date.now() - STUCK_MINUTES * 60_000).toISOString();
@@ -42,7 +50,7 @@ Deno.serve(async (req) => {
     `wired_pdf_jobs?${filter}attempts=lt.${MAX_ATTEMPTS}&or=(status.eq.queued,and(status.eq.building,claimed_at.lt.${stuck}))` +
     `&select=id,family_id,child_id,order_id,buyer_id,kind,quiz_year,attempts,status&order=created_at.asc&limit=1`);
   const job = found?.[0];
-  if (!job) return wiredJson(200, { claimed: 0 });
+  if (!job) return wiredJson(200, body.job_id ? { claimed: 0 } : { claimed: 0, ...(await emails()) });
 
   // 2. Claim it: only one runner wins (attempts must still be what we read).
   const claimed = await pg<PdfJob[]>(db, `wired_pdf_jobs?id=eq.${job.id}&attempts=eq.${job.attempts}&status=eq.${job.status}`, {
@@ -56,7 +64,7 @@ Deno.serve(async (req) => {
     const loaded = await loadBlueprintData(db, job);
     const pdf = await renderJob(job, loaded);
     if (pdf.bytes.length > 3 * 1024 * 1024) throw new Error(`PDF is ${pdf.bytes.length} bytes, over the 3 MB budget`);
-    const mail = buildDeliveryEmail(job.kind, { firstName: loaded.firstName, nickname: loaded.children[0]?.nickname, hasOwnAnswers: loaded.hasOwnAnswers });
+    const mail = buildDeliveryEmail(job.kind as "blueprint" | "family_map", { firstName: loaded.firstName, nickname: loaded.children[0]?.nickname, hasOwnAnswers: loaded.hasOwnAnswers });
     if (body.dry_run) {
       // Lane 2 check: build everything, send nothing, put the job back as it was.
       await pg(db, `wired_pdf_jobs?id=eq.${job.id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status: job.status, attempts: job.attempts, claimed_at: null }) });
