@@ -37,10 +37,9 @@ describe("curriculum finder", () => {
   it("the trust copy is the approved Resource Guide copy word for word", () => {
     const approved = readFileSync("docs/wired-copy/Wired_Quiz_Resource_Guide_Copy.md", "utf8").replace(/\r\n/g, "\n");
     expect(approved).toContain(`Under it: ${FINDER_TRUST.underHeading}`);
-    // Point 5 carries Camila's one amendment (2026-11-20 tap "Add retailers"); everything else is the approved text.
-    const asApproved = FINDER_TRUST.how.map((h) => (h === POINT_5_APPROVED.replace("own site,", `own site${POINT_5_RETAILER_CLAUSE}`) ? POINT_5_APPROVED : h));
+    // Point 5 = Camila's 11/20 amendment, now in the refreshed snapshot (NP master).
     expect(FINDER_TRUST.how[4]).toBe("The facts check out. Prices, grades and prep come from the publisher's own site, or from a named retailer when the publisher doesn't list a price, with the date we checked. If we couldn't confirm something, we say so instead of guessing.");
-    expect(approved).toContain(`Heading: ${FINDER_TRUST.howHeading}\n${asApproved.map((h) => `- ${h}`).join("\n")}\n`);
+    expect(approved).toContain(`Heading: ${FINDER_TRUST.howHeading}\n${FINDER_TRUST.how.map((h) => `- ${h}`).join("\n")}\n`);
     expect(approved).toContain(`Last line under the list: ${FINDER_TRUST.howLast}`);
     expect(approved).toContain(`an 'Ours' label and this line: ${FINDER_TRUST.oursLine}`);
     expect(approved).toContain(`Bottom of the hub: ${FINDER_TRUST.checked("[month year]")}\n${FINDER_TRUST.outOfDate} ${FINDER_TRUST.tellUs}.`);

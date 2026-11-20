@@ -49,11 +49,12 @@ Heading: How we choose
 - It teaches well. It's a real curriculum a mom can teach a subject or a year with, with a track record in independent reviews.
 - Kids enjoy it. We look for games, stories, hands-on work and short lessons.
 - There's room for every kind of kid. We went looking for picks for the music lovers, the artists, the nature kids, the people kids and the big-question kids, not only the readers and the math kids.
-- The facts check out. Prices, grades and prep come from the publisher's own site, with the date we checked. If we couldn't confirm something, we say so instead of guessing.
+- The facts check out. Prices, grades and prep come from the publisher's own site, or from a named retailer when the publisher doesn't list a price, with the date we checked. If we couldn't confirm something, we say so instead of guessing.
 - Camila approves every pick before it shows up here.
 
 Notes:
 - Last line under the list: What never decides anything: commissions and sponsors. Nobody can pay to be in this guide or to move up in it.
+- Point 5 amended 2026-11-20 on Camila's tap "Add retailers" (Lane 2 review page, ~9:10 AM): added ", or from a named retailer when the publisher doesn't list a price,". Matches the live site (origin/main 77d1d65, `web/lib/curriculumFinder.ts:142`).
 - These five come from your 8 PM instruction tonight (worldview, quality, engagement, K-5 depth, the less-served wirings) plus the research rules every entry was filled under.
 
 ### Filters
