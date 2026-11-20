@@ -16,15 +16,15 @@
 
 import { BRAND, brandButton, emailShell, goldDivider, heading, p } from './nurture-email-templates.ts';
 
-const POSTAL_ROW = `<tr><td style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;padding-top:6px;">Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Unit 3262, Clarksville, TN 37043</td></tr>`;
-const UNSUB_ROW = `<tr><td style="text-align:center;padding-top:8px;"><a href="{{UNSUB_URL}}" style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-decoration:underline;">Unsubscribe</a></td></tr>`;
+const POSTAL_ROW = `<tr><td style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerOnForest};text-align:center;padding-top:6px;">Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Unit 3262, Clarksville, TN 37043</td></tr>`;
+const UNSUB_ROW = `<tr><td style="text-align:center;padding-top:8px;"><a href="{{UNSUB_URL}}" style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerOnForest};text-decoration:underline;">Unsubscribe</a></td></tr>`;
 
 function footerRows(provenance: string, brandLine: string | null): string {
   const brand = brandLine
     ? `<tr><td style="font-family:Georgia,serif;font-size:14px;font-weight:bold;color:#FFFFFF;text-align:center;">${brandLine}</td></tr>\n`
     : '';
   const provenancePad = brandLine ? 16 : 0;
-  return `${brand}<tr><td style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;padding-top:${provenancePad}px;">${provenance}</td></tr>
+  return `${brand}<tr><td style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerOnForest};text-align:center;padding-top:${provenancePad}px;">${provenance}</td></tr>
 ${POSTAL_ROW}
 ${UNSUB_ROW}`;
 }
