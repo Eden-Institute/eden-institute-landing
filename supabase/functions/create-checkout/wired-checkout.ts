@@ -11,11 +11,13 @@
 //   - the later $28 upgrade has a same-quiz-year Blueprint behind it,
 //   - she is not buying something she already owns this quiz year.
 // Then a wired_pending_checkouts row is written and ONLY its id rides in Stripe metadata.
-// Promo box OFF and a Stripe Customer for every purchase (answer 15). No cart recovery yet:
-// the wired reminder (24 h, 50/50 holdout, answers 20-22 and 26) is its own ticket.
+// Promo box OFF and a Stripe Customer for every purchase (answer 15). Cart recovery (2026-11-20): Stripe's recovery
+// link + promotional-consent box (applyCheckoutRecovery), and the site's one-reminder box rides in metadata as
+// reminder_consent; the reminder itself (24 h, 50/50 holdout) is stripe-webhook + _shared/wired-cart-send.ts.
 
 import type Stripe from "https://esm.sh/stripe@14?target=denonext"
 import { wiredOpen } from "../_shared/wired-gate.ts"
+import { applyCheckoutRecovery, SITE_REMINDER_CONSENT_KEY } from "../_shared/checkout-recovery.ts"
 import { verifyWiredToken } from "../_shared/wired-token.ts"
 import { quizYear } from "../_shared/wired-engine.ts"
 import {
@@ -165,6 +167,8 @@ export async function handleWiredCheckout(
   }
   const email = typeof family.email === "string" && isStripeSafeEmail(family.email) ? family.email : null
   if (email) metadata.email = email
+  // The one-reminder box on the results page (same wording as the store box, answer 20): the email is already known.
+  if (email && (body.reminder_consent === true || body.reminder_consent === "true")) metadata[SITE_REMINDER_CONSENT_KEY] = "true"
 
   const params: Stripe.Checkout.SessionCreateParams = {
     mode: "payment",
@@ -178,6 +182,7 @@ export async function handleWiredCheckout(
     payment_intent_data: { metadata },
   }
   if (email) params.customer_email = email
+  applyCheckoutRecovery(params, now.getTime())
 
   const session = await deps.createSession(params)
   const { error: upErr } = await deps.db

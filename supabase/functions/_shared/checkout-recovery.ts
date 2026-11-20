@@ -277,7 +277,7 @@ export function siteReminderMetadata(body: Record<string, unknown> | null | unde
  *   3. an email (Stripe's, else the one the site passed in metadata.email), and an
  *      https recovery URL.
  */
-export function precheckExpiredSession(session: ExpiredSessionLike): Precheck {
+export function precheckExpiredSession(session: ExpiredSessionLike, opts: { wired?: boolean } = {}): Precheck {
   const meta = session.metadata ?? {};
   const metaEmail = typeof meta.email === 'string' ? meta.email : null;
   const email = normalizeRecoveryEmail(session.customer_details?.email ?? session.customer_email ?? metaEmail);
@@ -288,7 +288,8 @@ export function precheckExpiredSession(session: ExpiredSessionLike): Precheck {
   if (typeof meta.preorder_sku === 'string' && meta.preorder_sku) return fail('preorder_session');
   if (isE2eMetadata(meta)) return fail('e2e_session');
   // The wired quiz cart has its own reminder rules (24 h, 50/50 holdout); never the store's 3-hour one.
-  if (meta.lookup_key === 'wired_cart') return fail('wired_session');
+  // (opts.wired: the wired branch of the webhook runs these same rules for its own reminder.)
+  if (meta.lookup_key === 'wired_cart' && !opts.wired) return fail('wired_session');
   const stripeConsent = session.consent?.promotions ?? null;
   const siteConsent = meta[SITE_REMINDER_CONSENT_KEY] === 'true';
   if (stripeConsent === 'opt_out') return fail('no_promotional_consent');
