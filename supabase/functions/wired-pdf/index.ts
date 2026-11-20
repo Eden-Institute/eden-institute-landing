@@ -17,6 +17,7 @@ import { buildDeliveryEmail } from "../_shared/wired-delivery-email.ts";
 import { notifyFounder } from "../_shared/lulu-fulfillment.ts";
 import { drainEmailQueue } from "../_shared/wired-email-drain.ts";
 import { sendDueWiredCartReminders } from "../_shared/wired-cart-send.ts";
+import { sendDuePilotSelectionEmails } from "../_shared/wired-pilot-email.ts";
 
 const FROM = "Camila at The Eden Institute <hello@edeninstitute.health>";
 const REPLY_TO = FROM.slice(FROM.indexOf("<") + 1, FROM.indexOf(">"));
@@ -57,7 +58,12 @@ Deno.serve(async (req) => {
     // The wired cart reminders that are due (24 h after a consenting shopper's checkout started).
     const cart = await sendDueWiredCartReminders(db, { resendKey, from: FROM, replyTo: REPLY_TO, dryRun: body.dry_run === true })
       .catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
-    return wiredJson(200, { claimed: 0, ...mail, cart });
+    // W12: the pilot "you're in" / "not this round" emails, 15 minutes after her pick (only once the pilot is open).
+    const pilot = Deno.env.get("WIRED_PILOT_OPEN") === "true"
+      ? await sendDuePilotSelectionEmails(db, { resendKey, from: FROM, replyTo: REPLY_TO, dryRun: body.dry_run === true })
+        .catch((e) => ({ error: e instanceof Error ? e.message : String(e) }))
+      : { off: true };
+    return wiredJson(200, { claimed: 0, ...mail, cart, pilot });
   }
 
   // 2. Claim it: only one runner wins (attempts must still be what we read).

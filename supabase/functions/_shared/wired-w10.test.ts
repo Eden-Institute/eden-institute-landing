@@ -1,7 +1,7 @@
 // W10: staleness punch rows, the digest line, the weekly section (no network).
 import { assert, assertEquals, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { dailyLine, type FunnelDay, weeklySection } from "./wired-funnel.ts";
-import { JUNE_SWEEP_TITLE, reverifyTitle, staleCutoff, syncStaleness } from "./wired-staleness.ts";
+import { inSweepWindow, JUNE_SWEEP_TITLE, reverifyTitle, staleCutoff, sweepCountTitle, syncStaleness } from "./wired-staleness.ts";
 import { evaluateSystemHealth, type SystemHealthInput } from "../notify-founder-digest/system-health.ts";
 import { buildEmail } from "./weekly-trends-report.ts";
 
@@ -66,10 +66,10 @@ function route(cur: unknown[], punch: unknown[]): Seen[] {
   return seen;
 }
 
-Deno.test("staleness: a row per stale curriculum, none twice, closed when re-verified, June 1 sweep row", async () => {
-  const now = new Date("2027-06-01T13:00:00Z");
-  const old = "2026-11-18T00:00:00Z";
-  const fresh = "2027-05-20T00:00:00Z";
+Deno.test("staleness: a row per stale curriculum, none twice, closed when re-verified (outside May-June)", async () => {
+  const now = new Date("2027-04-01T13:00:00Z");
+  const old = "2026-09-18T00:00:00Z";
+  const fresh = "2027-03-20T00:00:00Z";
   const seen = route(
     [
       { id: "a", name: "Abeka", publisher: null, last_verified_at: old },
@@ -84,12 +84,57 @@ Deno.test("staleness: a row per stale curriculum, none twice, closed when re-ver
     ],
   );
   const out = await syncStaleness({ url: "https://db", key: "k" }, now);
-  assertEquals(out, { approved: 4, stale: 3, added: 2, would_add: 2, closed: 1, would_close: 1, june_sweep: true });
+  assertEquals(out, { approved: 4, stale: 3, added: 2, would_add: 2, closed: 1, would_close: 1, june_sweep: false, sweep_count: 0 });
   const posted = seen.filter((s) => s.method === "POST").map((s) => (s.body as Record<string, string>).title);
-  assertEquals(posted.sort(), [JUNE_SWEEP_TITLE, "Wired quiz: re-verify Abeka", "Wired quiz: re-verify Never"].sort());
+  assertEquals(posted.sort(), ["Wired quiz: re-verify Abeka", "Wired quiz: re-verify Never"].sort());
   const closed = seen.filter((s) => s.method === "PATCH");
   assertEquals(closed.length, 1);
   assertStringIncludes(closed[0].url, "id=eq.p2");
   assertEquals((closed[0].body as Record<string, string>).status, "done");
-  assert(staleCutoff(now).toISOString().startsWith("2026-12-01"));
+  assert(staleCutoff(now).toISOString().startsWith("2026-10-01"));
+});
+
+const STALE = [
+  { id: "a", name: "Abeka", publisher: null, last_verified_at: "2026-11-01T00:00:00Z" },
+  { id: "b", name: "Beta Math", publisher: "Beta Co", last_verified_at: "2026-11-01T00:00:00Z" },
+  { id: "d", name: "Never", publisher: null, last_verified_at: null },
+];
+
+Deno.test("staleness: May 1 to June 30 folds stale entries into ONE count row (her 11/20 tap)", async () => {
+  const seen = route(STALE, [{ id: "p1", title: reverifyTitle("Beta Math", "Beta Co"), status: "open" }]); // opened before May: kept, not counted
+  const out = await syncStaleness({ url: "https://db", key: "k" }, new Date("2027-06-01T13:00:00Z"));
+  assertEquals(out, { approved: 3, stale: 3, added: 0, would_add: 0, closed: 0, would_close: 0, june_sweep: true, sweep_count: 2 });
+  const posted = seen.filter((s) => s.method === "POST").map((s) => (s.body as Record<string, string>).title);
+  assertEquals(posted.sort(), [JUNE_SWEEP_TITLE, "Wired quiz: June sweep: 2 entries to re-check"].sort());
+  assertEquals(seen.filter((s) => s.method === "PATCH").length, 0);
+});
+
+Deno.test("staleness: the count row is renamed as N changes, closed at 0 and on July 1", async () => {
+  // N went from 3 to 1: renamed, not a second row.
+  let seen = route([STALE[0]], [{ id: "c1", title: sweepCountTitle(3), status: "open" }]);
+  let out = await syncStaleness({ url: "https://db", key: "k" }, new Date("2027-05-20T13:00:00Z"));
+  assertEquals(out.sweep_count, 1);
+  assertEquals(seen.filter((s) => s.method === "POST").length, 0);
+  let patches = seen.filter((s) => s.method === "PATCH");
+  assertEquals(patches.length, 1);
+  assertStringIncludes(patches[0].url, "id=eq.c1");
+  assertEquals((patches[0].body as Record<string, string>).title, "Wired quiz: June sweep: 1 entry to re-check");
+  // Everything re-verified: closed.
+  seen = route([], [{ id: "c1", title: sweepCountTitle(1), status: "open" }]);
+  await syncStaleness({ url: "https://db", key: "k" }, new Date("2027-05-21T13:00:00Z"));
+  patches = seen.filter((s) => s.method === "PATCH");
+  assertEquals((patches[0].body as Record<string, string>).status, "done");
+  // July 1: the count row closes and the entry still stale gets its own row back.
+  seen = route([STALE[0]], [{ id: "c1", title: sweepCountTitle(1), status: "open" }]);
+  out = await syncStaleness({ url: "https://db", key: "k" }, new Date("2027-07-01T13:00:00Z"));
+  assertEquals(out.added, 1);
+  assertEquals(seen.filter((s) => s.method === "POST").map((s) => (s.body as Record<string, string>).title), ["Wired quiz: re-verify Abeka"]);
+  assertEquals((seen.filter((s) => s.method === "PATCH")[0].body as Record<string, string>).status, "done");
+});
+
+Deno.test("staleness: the window edges are Central days", () => {
+  assertEquals(inSweepWindow(new Date("2027-05-01T04:30:00Z")), false); // 11:30 PM Apr 30 CDT
+  assertEquals(inSweepWindow(new Date("2027-05-01T05:30:00Z")), true);
+  assertEquals(inSweepWindow(new Date("2027-07-01T04:30:00Z")), true);  // 11:30 PM Jun 30 CDT
+  assertEquals(inSweepWindow(new Date("2027-07-01T05:30:00Z")), false);
 });
