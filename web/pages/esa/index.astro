@@ -6,6 +6,7 @@ import MarketingLayout from "../../layouts/MarketingLayout.astro";
 import {
   ESA_STATES,
   ESA_PENDING,
+  ESA_OTHER,
   ESA_COMMON_FAQ,
   ESA_UPDATED,
   ESA_UPDATED_ISO,
@@ -27,6 +28,10 @@ const faq = [
   {
     q: "Which programs has Eden's Table applied to?",
     a: ESA_PENDING.map((p) => `${p.state}, ${p.program}: ${p.note}`).join(" "),
+  },
+  {
+    q: "What about other states' programs?",
+    a: ESA_OTHER.map((p) => `${p.state}, ${p.program}: ${p.note}`).join(" "),
   },
   ...ESA_COMMON_FAQ,
 ];
@@ -97,6 +102,9 @@ const cardStyle = "border-color:hsl(var(--eden-gold) / 0.3)";
         <p class="font-body text-sm text-muted-foreground leading-relaxed mb-2">
           Applied and waiting: {ESA_PENDING.map((p) => `${p.state} (${p.program})`).join(", ")}.
         </p>
+        {ESA_OTHER.map((p) => (
+          <p class="font-body text-sm text-muted-foreground leading-relaxed mb-2">{p.state} ({p.program}): {p.note}</p>
+        ))}
         <p class="font-body text-sm text-muted-foreground leading-relaxed">
           Tell us your state and program, and we will look into being approved there too.
           <a href={`mailto:${ESA_CONTACT_EMAIL}?subject=${encodeURIComponent("Please apply in my state")}`} class="underline">Email us</a>.
