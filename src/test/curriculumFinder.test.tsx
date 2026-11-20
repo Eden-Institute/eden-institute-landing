@@ -2,7 +2,8 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import CurriculumFinder, { matches, priceText } from "../../web/components/islands/CurriculumFinder";
-import type { FinderCurriculum } from "../../web/lib/curriculumFinder";
+import { EDEN_TESTIMONIALS, type FinderCurriculum } from "../../web/lib/curriculumFinder";
+import { readFileSync } from "node:fs";
 
 const base: FinderCurriculum = {
   id: "11111111-1111-4111-8111-111111111111", sheet_id: "C017", name: "Math-U-See", publisher: "Demme Learning", link: "https://mathusee.com/", is_affiliate: false,
@@ -31,6 +32,17 @@ describe("curriculum finder", () => {
     expect(matches(base, { ...none, q: "demme" })).toBe(true);
     expect(priceText(free)).toBe("Completely free");
     expect(priceText(base)).toBe("About $45 (per level)");
+  });
+
+  it("Eden's Table testimonials match /homeschool word for word, and show only on Eden's Table cards", () => {
+    const page = readFileSync("web/pages/homeschool.astro", "utf8").replace(/&lsquo;/g, "‘").replace(/&rsquo;/g, "’");
+    for (const t of EDEN_TESTIMONIALS) {
+      expect(page).toContain(t.quote);
+      expect(page).toContain(t.by);
+    }
+    render(<CurriculumFinder rows={[{ ...base, sheet_id: "C031", name: "Eden's Table: Sprouts" }, base]} />);
+    expect(screen.getAllByText("What families say")).toHaveLength(1);
+    expect(screen.getByText(/so these aren't independent reviews/)).toBeTruthy();
   });
 
   it("starring shows the bar; the Friday box starts unticked; the form posts the starred ids", async () => {

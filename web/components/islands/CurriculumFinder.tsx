@@ -3,7 +3,7 @@
 // curriculum-shortlist edge function. The Friday box is UNTICKED by default (Camila's tap).
 // Copy: FINDER_COPY in web/lib/curriculumFinder.ts (DRAFT, pending her approval).
 import { useEffect, useMemo, useState } from "react";
-import { FINDER_COPY as T, PREP_ORDER, SUBJECT_GROUPS, type FinderCurriculum } from "../../lib/curriculumFinder";
+import { EDEN_TABLE_SHEET_IDS, EDEN_TESTIMONIALS, FINDER_COPY as T, PREP_ORDER, SUBJECT_GROUPS, type FinderCurriculum } from "../../lib/curriculumFinder";
 
 const STARS_KEY = "eden_finder_stars";
 const STATES = "AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY".split(" ");
@@ -85,6 +85,20 @@ function Card({ c, starred, onStar }: { c: FinderCurriculum; starred: boolean; o
           <a href={c.free_trial_url} target="_blank" rel="noopener" className="font-semibold underline underline-offset-4">{T.tryFree}</a>
           {c.free_trial_note ? <span className="opacity-80">: {c.free_trial_note}</span> : null}
         </p>
+      )}
+      {EDEN_TABLE_SHEET_IDS.includes(c.sheet_id) && (
+        <details className="mt-3">
+          <summary className="cursor-pointer text-sm font-semibold">{T.familiesSay}</summary>
+          <p className="mt-2 text-xs opacity-75">{T.familiesNote}</p>
+          <div className="mt-2 grid gap-3 text-sm">
+            {EDEN_TESTIMONIALS.map((t) => (
+              <blockquote key={t.by} className="border-l-2 pl-3" style={{ borderColor: "hsl(var(--eden-gold))" }}>
+                <p className="italic">“{t.quote}”</p>
+                <footer className="mt-1 text-xs opacity-80">– {t.by}</footer>
+              </blockquote>
+            ))}
+          </div>
+        </details>
       )}
       {(c.mom_pros.length > 0 || c.mom_cons.length > 0) && (
         <details className="mt-3">

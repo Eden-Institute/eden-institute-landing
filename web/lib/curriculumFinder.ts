@@ -90,4 +90,23 @@ export const FINDER_COPY = {
   affiliate: "Some of these links pay Eden a commission if you buy. That never changes which curricula show up or the order they're in.",
   affiliateLabel: "Eden earns a commission",
   empty: "Nothing matches all of those filters. Try removing one.",
+  familiesSay: "What families say",
+  familiesNote: "Shared with permission by families who used the free sample. Eden's Table is our own curriculum, so these aren't independent reviews.",
 };
+
+/** Eden's Table rows on the finder (our own curriculum). */
+export const EDEN_TABLE_SHEET_IDS = ["C031", "C032"];
+
+/**
+ * The testimonials already approved and live on /homeschool (§9.6), word for word, same attributions.
+ * Shown on the Eden's Table cards as "What families say" (never as independent reviews).
+ * src/test/curriculumFinder.test.tsx fails if any quote or name here stops matching /homeschool.
+ */
+export const EDEN_TESTIMONIALS: { quote: string; by: string }[] = [
+  { quote: "I am a mother who has been homeschooling kids for over 18 years. I had the opportunity to review some of the lessons in the elementary grades and these lessons are amazing for someone who wants to add herbs/gardening plus faith based lessons to their curriculum. As a homesteading family, I would have loved to have something like this when my kids were little. The balance of faith and herb/gardening is perfect, it is a complete lesson and well thought out. The lessons for younger kids are easy to understand and get a little more in depth when moving up a level. Each week you study a new herb/plant and everything is included for the week. With the stories, table cards, questions, scriptures, recipes, and everything together it covers core subjects like math, reading, faith, and herbs/plants; this is a great addition to a homeschooling curriculum.", by: "Amanda, homeschooling 18 years · Dream Chasers Homestead" },
+  { quote: "I just wanted you to see how into it they are! No complaining and actually asking to do their ‘learning’!!", by: "Kati, former nurse and paramedic" },
+  { quote: "This curriculum is truly amazing! I have numerous herbal books from all sorts of authors, and this curriculum truly puts it into bite-size chunks of information while still incorporating incredible vocabulary, concepts, and quality stories. The fact that you are incorporating all these other topics beyond just herbal information is truly incredible as well. I truly love everything about it so far and can't wait until it launches! It is exactly what I was looking for and I am so excited for what will unfold in the years to come as we dive deep as a family.", by: "Kendria Scriver, curriculum writer" },
+  { quote: "Ahhhhhh I just spent the last few hours poring over the free sample you sent us. This curriculum is absolutely fantastic. I cannot wait to buy this in the fall. This will be our kids favourite curriculum to explore.", by: "Coralee, who read the free sample cover to cover" },
+  { quote: "This is a beautiful curriculum to start. I've just begun reading our teaching guide.", by: "Brooke, Clarksville, TN" },
+  { quote: "LOVE this!", by: "Ems Glenn" },
+];
