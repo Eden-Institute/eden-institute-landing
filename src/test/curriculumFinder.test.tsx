@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import CurriculumFinder, { matches, priceText } from "../../web/components/islands/CurriculumFinder";
-import { comingSoonName, EDEN_TESTIMONIALS, type FinderCurriculum } from "../../web/lib/curriculumFinder";
+import { comingSoonName, EDEN_TESTIMONIALS, FINDER_FAQ, WIRED_IS_PUBLIC, type FinderCurriculum } from "../../web/lib/curriculumFinder";
 import { readFileSync } from "node:fs";
 
 const base: FinderCurriculum = {
@@ -57,6 +57,21 @@ describe("curriculum finder", () => {
     expect(document.body.textContent).not.toMatch(/name to come/);
     expect(matches(cs, { ...none, grade: "7" })).toBe(true);
     expect(matches(cs, { ...none, hasTrial: true })).toBe(false);
+  });
+
+  it("the FAQ is Camila's approved text word for word; no quiz invitation while the quiz is dark", () => {
+    const approved = readFileSync("docs/finder-copy/curriculum_finder_faq_APPROVED_2026-11-20.md", "utf8");
+    expect(FINDER_FAQ).toHaveLength(6);
+    for (const f of FINDER_FAQ) {
+      expect(approved).toContain(f.q);
+      expect(approved).toContain(f.a);
+    }
+    expect(WIRED_IS_PUBLIC).toBe(false);
+    render(<CurriculumFinder rows={[base]} />);
+    expect(screen.getByText("How do I choose a homeschool curriculum?")).toBeTruthy();
+    expect(screen.getByText("ESA state guides").getAttribute("href")).toBe("/esa");
+    expect(document.querySelector('a[href^="/wired"]')).toBeNull();
+    expect(screen.queryByText(/Take the free quiz/)).toBeNull();
   });
 
   it("starring shows the bar; the Friday box starts unticked; the form posts the starred ids", async () => {

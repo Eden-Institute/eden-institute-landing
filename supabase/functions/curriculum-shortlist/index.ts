@@ -16,6 +16,7 @@ import { buildShortlistPdf, type FinderRow } from "../_shared/wired-pdf.ts";
 import { BRAND, emailShell } from "../_shared/nurture-email-templates.ts";
 import { tagEmailHtml } from "../_shared/email-utm.ts";
 import { cleanContactEmail } from "../_shared/contact-email.ts";
+import { WIRED_IS_PUBLIC } from "../_shared/wired-launch.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -57,14 +58,14 @@ export function buildShortlistEmail(firstName: string | null): { subject: string
   const button = `<p style="margin:8px 0 24px 0;text-align:center;"><a href="${esc(SHORTLIST_EMAIL.buttonUrl)}" style="display:inline-block;background:#2C3E2D;color:#FFFFFF;font-family:Georgia,serif;font-size:15px;font-weight:bold;text-decoration:none;padding:12px 26px;border-radius:4px;">${esc(SHORTLIST_EMAIL.button)}</a></p>`;
   const html = emailShell(
     `<span style="display:none;max-height:0;overflow:hidden;">${esc(SHORTLIST_EMAIL.preview)}</span>` +
-      p(SHORTLIST_EMAIL.greeting(firstName)) + SHORTLIST_EMAIL.body.map(p).join("") + button + p(SHORTLIST_EMAIL.quiz) +
+      p(SHORTLIST_EMAIL.greeting(firstName)) + SHORTLIST_EMAIL.body.map(p).join("") + button + (WIRED_IS_PUBLIC ? p(SHORTLIST_EMAIL.quiz) : "") +
       `<p style="margin:24px 0 0 0;font-family:Georgia,serif;font-size:16px;font-weight:bold;">Camila</p>` +
       `<p style="margin:4px 0 0 0;font-family:Georgia,serif;font-size:14px;">The Eden Institute</p>`,
     `<tr><td style="font-family:Georgia,serif;font-size:12px;color:${BRAND.footerOnForest};text-align:center;">${esc(SHORTLIST_EMAIL.footer)}</td></tr>
 <tr><td style="font-family:Georgia,serif;font-size:12px;color:${BRAND.footerOnForest};text-align:center;padding-top:6px;">${ADDRESS}</td></tr>`,
     { shopCard: false },
   );
-  const text = [SHORTLIST_EMAIL.greeting(firstName), ...SHORTLIST_EMAIL.body, `${SHORTLIST_EMAIL.button}: ${SHORTLIST_EMAIL.buttonUrl}`, SHORTLIST_EMAIL.quiz, "Camila", "The Eden Institute", "", SHORTLIST_EMAIL.footer, ADDRESS.replace("&middot;", "·")].join("\n\n");
+  const text = [SHORTLIST_EMAIL.greeting(firstName), ...SHORTLIST_EMAIL.body, `${SHORTLIST_EMAIL.button}: ${SHORTLIST_EMAIL.buttonUrl}`, ...(WIRED_IS_PUBLIC ? [SHORTLIST_EMAIL.quiz] : []), "Camila", "The Eden Institute", "", SHORTLIST_EMAIL.footer, ADDRESS.replace("&middot;", "·")].join("\n\n");
   return { subject: SHORTLIST_EMAIL.subject, html: tagEmailHtml(html, { medium: "nurture", campaign: "curriculum_finder", content: "shortlist" }), text };
 }
 
