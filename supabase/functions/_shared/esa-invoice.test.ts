@@ -4,6 +4,8 @@ import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.t
 import {
   addDays,
   CHOICE_SKU,
+  choiceUnitCents,
+  EXTRA_SET_CENTS,
   PRODUCTS,
   centralDate,
   feeFor,
@@ -16,7 +18,7 @@ import {
   STATE_RULES,
 } from "./esa-invoice.ts";
 import { renderInvoicePdf } from "./esa-invoice-pdf.ts";
-import { ESA_CHOICES, ESA_STATE_OPTIONS, esaFeeCents, esaFeeSentence } from "../../../web/lib/esaInvoice.ts";
+import { ESA_CHOICES, ESA_STATE_OPTIONS, esaChoiceCents, esaFeeCents, esaFeeSentence } from "../../../web/lib/esaInvoice.ts";
 
 const addr = { line1: "123 Main St", line2: "", city: "Mesa", region: "AZ", zip: "85201" };
 const base = (over: Record<string, unknown> = {}) => ({
@@ -171,7 +173,7 @@ Deno.test("Seedlings set: allowed in all four states, $261, AZ grossed up to $26
     assert(p.ok, code);
     const [plan] = planInvoices(p.value);
     assertEquals(plan.items[0].sku, "ET-SDL-35-004");
-    assertEquals(plan.items[0].title, "Seedlings 3-5 36-Week Science and Nature Study Printed Curriculum Set, Bible-Based");
+    assertEquals(plan.items[0].title, "Seedlings 3-5 Science Curriculum: Plant Science (Botany), 36-Week Printed Set, Bible-Based");
     assertEquals(plan.subtotalCents, 26100);
     assertEquals(plan.totalCents, expected[code], code);
     assert(plan.printed);
@@ -202,7 +204,7 @@ Deno.test("Seedlings extra notebook: same states as the Sprouts notebook, $39.99
     assert(p.ok, code);
     const [plan] = planInvoices(p.value);
     assertEquals(plan.items[0].sku, "ET-SDL-35-005");
-    assertEquals(plan.items[0].title, "Seedlings 3-5 36-Week Science and Nature Study Extra Student Notebook, Bible-Based");
+    assertEquals(plan.items[0].title, "Seedlings 3-5 Science Curriculum: Plant Science (Botany), 36-Week Extra Student Notebook, Bible-Based");
     assertEquals(plan.subtotalCents, 3999);
     assertEquals(plan.totalCents, expected[code], code);
     assert(plan.printed);
@@ -216,7 +218,8 @@ Deno.test("Seedlings: a mixed Sprouts + Seedlings family gets one invoice per st
   assert(p.ok);
   const plans = planInvoices(p.value);
   assertEquals(plans.map((x) => x.items[0].sku), ["ET-SPR-K2-004", "ET-SDL-35-004"]);
-  assertEquals(plans.map((x) => x.totalCents), [26633, 26633]);
+  // The second printed set on one submission is $251 (2026-11-20 price parity); AZ fee on top.
+  assertEquals(plans.map((x) => x.totalCents), [26633, 25612]);
 });
 
 Deno.test("choice keys fit str(o.choice, 10), and the web form matches the server exactly", () => {
@@ -239,5 +242,39 @@ Deno.test("no em dashes and no 'herbalism' in any ESA product title or descripti
       assert(!t.includes("—"), t);
       assert(!/herbalism/i.test(t), t);
     }
+  }
+});
+
+Deno.test("price parity (2026-11-20): later printed sets on one submission are $251; notebooks and Starters unchanged", () => {
+  const ar = (choices: string[]) => {
+    const p = parseSubmission(base({ state: "AR", address: stateAddr("AR"), students: choices.map((choice, i) => ({ first: `Kid${"ABCDEF"[i]}`, last: "Doe", choice })) }));
+    assert(p.ok, JSON.stringify(p));
+    return planInvoices(p.value).map((x) => x.totalCents);
+  };
+  assertEquals(EXTRA_SET_CENTS, 25100);
+  assertEquals(ar(["set"]), [26100]);
+  assertEquals(ar(["set", "set"]), [26100, 25100]);
+  assertEquals(ar(["set", "sdl_set", "set"]), [26100, 25100, 25100]);
+  assertEquals(ar(["notebook", "set"]), [3999, 26100]); // the first SET is full price, wherever it sits
+  assertEquals(ar(["set", "notebook", "sdl_nb", "sdl_set"]), [26100, 3999, 3999, 25100]);
+  // Same as a retail cart: two sets = $249 + $249 + $12 + $2 (print-pricing.ts SHIPPING_RULES).
+  assertEquals(ar(["set", "sdl_set"]).reduce((a, b) => a + b, 0), 24900 + 24900 + 1200 + 200);
+  const al = parseSubmission(base({ state: "AL", address: stateAddr("AL"), students: [{ first: "Sam", last: "Doe", choice: "set" }, { first: "Ava", last: "Doe", choice: "starter" }] }));
+  assert(al.ok);
+  assertEquals(planInvoices(al.value).map((x) => x.totalCents), [26100, 3900]);
+});
+
+Deno.test("the web form's running total uses the same per-student price as the invoice", () => {
+  const keys = Object.keys(CHOICE_SKU) as (keyof typeof CHOICE_SKU)[];
+  for (const a of keys) for (const b of keys) for (const c of keys) {
+    const choices = [a, b, c];
+    for (let i = 0; i < 3; i++) assertEquals(esaChoiceCents(choices, i), choiceUnitCents(choices, i), `${choices.join(",")} #${i}`);
+  }
+});
+
+Deno.test("ESA titles lead with science and the grade band (2026-11-20, Georgia declined 'nature study')", () => {
+  for (const p of Object.values(PRODUCTS)) {
+    assert(/^(Sprouts K-2|Seedlings 3-5) Science Curriculum: Plant Science \(Botany\), (36-Week Printed Set|36-Week Extra Student Notebook|9-Week Starter Unit), Bible-Based$/.test(p.title), p.title);
+    assert(!/nature study/i.test(p.title), p.title);
   }
 });

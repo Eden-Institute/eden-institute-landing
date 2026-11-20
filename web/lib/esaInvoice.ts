@@ -102,6 +102,20 @@ export function esaFeeSentence(rate: number): string {
   return `ClassWallet deducts 2%, so this invoice adds ${(rate * 100).toFixed(4)}% to cover it.`;
 }
 
+/**
+ * Price of student `index`'s choice on this form, mirroring choiceUnitCents in
+ * supabase/functions/_shared/esa-invoice.ts (src/test/esaInvoiceForm.test.tsx checks they agree): the first
+ * printed set on one submission is full price, every later printed set $251 (Camila 2026-11-20, "Price extra
+ * sets $251", price parity with a retail cart's extra-set shipping).
+ */
+export const ESA_EXTRA_SET_CENTS = 25100;
+export function esaChoiceCents(choices: readonly EsaChoice[], index: number): number {
+  const choice = choices[index];
+  const isSet = (c: EsaChoice) => c === "set" || c === "sdl_set";
+  if (!isSet(choice)) return ESA_CHOICES[choice].cents;
+  return choices.slice(0, index).some(isSet) ? ESA_EXTRA_SET_CENTS : ESA_CHOICES[choice].cents;
+}
+
 export function esaFeeCents(subtotalCents: number, rate: number): number {
   return rate ? Math.round(subtotalCents * rate + 1e-9) : 0;
 }

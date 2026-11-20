@@ -25,6 +25,7 @@ import {
   ESA_BANDS,
   ESA_CHOICES,
   ESA_STATE_OPTIONS,
+  esaChoiceCents,
   esaFeeCents,
   esaFeeSentence,
   esaIdempotencyKey,
@@ -101,7 +102,7 @@ export default function EsaInvoiceForm({ state, stateName, short }: Props) {
   const lines = useMemo(
     () =>
       students.map((s, i) => {
-        const sub = ESA_CHOICES[s.choice].cents;
+        const sub = esaChoiceCents(students.map((x) => x.choice), i);
         const fee = esaFeeCents(sub, opts.feeRate);
         return { i, name: `${s.first} ${s.last}`.trim() || `Student ${i + 1}`, label: ESA_CHOICES[s.choice].label, sub, fee, total: sub + fee };
       }),
@@ -251,7 +252,7 @@ export default function EsaInvoiceForm({ state, stateName, short }: Props) {
                         <input type="radio" name={`choice-${s.id}`} className="mt-1" checked={s.choice === c} onChange={() => setStudent(i, { choice: c })} />
                         <span>
                           <span className="font-semibold" style={labelStyle}>{ESA_CHOICES[c].label}</span>
-                          <span className="text-muted-foreground"> · {esaMoney(ESA_CHOICES[c].cents)}</span>
+                          <span className="text-muted-foreground"> · {esaMoney(esaChoiceCents(students.map((x, j) => (j === i ? c : x.choice)), i))}</span>
                           <span className="block text-xs text-muted-foreground">{ESA_CHOICES[c].detail}</span>
                         </span>
                       </label>
