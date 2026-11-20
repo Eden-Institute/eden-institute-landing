@@ -179,10 +179,12 @@ export { WIRED_IS_PUBLIC } from "../../supabase/functions/_shared/wired-launch";
  * on Q1 and Q4), word for word: side-session notes curriculum_finder_faq_APPROVED_2026-11-20.md.
  * Rendered at the bottom of /curriculum-finder and as FAQPage JSON-LD. `link` = a phrase inside the answer
  * that links (Q4: "ESA state guides" -> /esa). Q1's quiz line is added only when WIRED_IS_PUBLIC.
+ * Amended by Camila 2026-11-20 ~10:35 CT (Lane 2 tap "Change the phrase"): Q1 says "how God made your child"
+ * instead of "how your child learns best" (the Wired copy avoids "learns best"). Recorded in the snapshot's Amendments.
  */
 export const FINDER_FAQ_HEADING = "Questions moms ask";
 export const FINDER_FAQ: { q: string; a: string; link?: { text: string; href: string } }[] = [
-  { q: "How do I choose a homeschool curriculum?", a: "Start with your child, not the catalog. Before you compare a single curriculum, think about how your child learns best, what lights them up, and where they struggle. A curriculum that fits your child gets used; one that doesn't sits on the shelf. Once you know that, narrow it down by grade, subjects, prep time and budget with the filters here, read what other moms say, and try a free sample before you buy." },
+  { q: "How do I choose a homeschool curriculum?", a: "Start with your child, not the catalog. Before you compare a single curriculum, think about how God made your child, what lights them up, and where they struggle. A curriculum that fits your child gets used; one that doesn't sits on the shelf. Once you know that, narrow it down by grade, subjects, prep time and budget with the filters here, read what other moms say, and try a free sample before you buy." },
   { q: "What does \"open-and-go\" mean?", a: "Open-and-go curriculum is ready to teach the moment you open it. The lesson, the questions and the activities are on the page, so you don't spend an evening planning. Some curricula ask for light, moderate or heavy prep instead. Filter by prep time to see only the ones that fit your days." },
   { q: "Can I try a homeschool curriculum before I buy it?", a: "Yes. Most of the curricula here link a free sample, trial or free lesson, and some are completely free. Turn on \"Has a free sample or trial\" to see them." },
   { q: "Can I use ESA funds for these curricula?", a: "Often, yes. Choose your state in the ESA filter and the finder shows the curricula marked ESA-eligible there. Our ESA state guides explain how each program works and how to apply. Rules change, so check your state's program before you buy.", link: { text: "ESA state guides", href: "/esa" } },
