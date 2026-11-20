@@ -1034,10 +1034,10 @@ export const ESA_DISCLAIMER =
 
 export const ESA_CONTACT_EMAIL = "hello@edeninstitute.health";
 
-/** What Eden's Table is, in the locked framing. The first FAQ answer on every ESA
+/** What Eden's Table is. 2026-11-20 Camila (Lane 4 chat, relayed 13:42): "change What is Eden's Table to plant science". The first FAQ answer on every ESA
     page, and the curriculum description in the state pages' JSON-LD. */
 export const ESA_CURRICULUM_DESCRIPTION =
-  "A 36-week Bible-based science and nature study curriculum in two levels: Sprouts for kindergarten through second grade, and Seedlings for grades 3 to 5. Each week centers on one plant. In Sprouts, reading, writing, math, history, geography and art are woven into the study of it, and Seedlings studies a different 36 plants for older children. It is published by Rooted in Faith Ventures LLC.";
+  "A 36-week Bible-based science curriculum in plant science (botany), in two levels: Sprouts for kindergarten through second grade, and Seedlings for grades 3 to 5. Each week centers on one plant. In Sprouts, reading, writing, math, history, geography and art are woven into the study of it, and Seedlings studies a different 36 plants for older children. It is published by Rooted in Faith Ventures LLC.";
 
 /** Questions every state page answers. Written the way parents ask them. */
 export const ESA_COMMON_FAQ = [
