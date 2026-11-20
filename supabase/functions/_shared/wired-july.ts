@@ -11,7 +11,7 @@ export function julyPositionFor(day: string): 1 | 2 | null {
   return md === "07-01" ? 1 : md === "07-15" ? 2 : null;
 }
 
-interface ResultRow { child_id: string; wired_children: { family_id: string; removed_at: string | null; wired_families: { email: string; deleted_at: string | null } | null } | null }
+interface ResultRow { child_id: string; wired_children: { family_id: string; removed_at: string | null; wired_families: { email: string } | null } | null }
 
 export async function queueJuly(db: Db, asOf: Date, dryRun = false): Promise<Record<string, unknown>> {
   const day = centralDay(asOf);
@@ -19,11 +19,11 @@ export async function queueJuly(db: Db, asOf: Date, dryRun = false): Promise<Rec
   if (!position) return { position: null, queued: 0 };
   const prior = quizYear(asOf) - 1; // on July 1 the new quiz year has just begun
   const rows = await pg<ResultRow[]>(db,
-    `wired_results?quiz_year=eq.${prior}&select=child_id,wired_children!inner(family_id,removed_at,wired_families!inner(email,deleted_at))`);
+    `wired_results?quiz_year=eq.${prior}&select=child_id,wired_children!inner(family_id,removed_at,wired_families!inner(email))`);
   const families = new Map<string, string>();
   for (const r of rows ?? []) {
     const c = r.wired_children;
-    if (!c || c.removed_at || !c.wired_families || c.wired_families.deleted_at) continue;
+    if (!c || c.removed_at || !c.wired_families) continue; // a deleted family is gone (hard delete)
     families.set(c.family_id, c.wired_families.email);
   }
   // One row per family per date: skip families already queued for this July email this year.

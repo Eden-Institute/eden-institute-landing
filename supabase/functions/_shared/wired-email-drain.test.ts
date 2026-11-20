@@ -44,7 +44,12 @@ function install(w: World): Seen[] {
     }
     if (path.startsWith("nurture_send_log?email_lower")) return j(w.logOwner ? [{ queue_row_id: w.logOwner }] : []);
     if (path.startsWith("nurture_send_log?queue_row_id") && method === "DELETE") { w.logOwner = null; return j(null, 204); }
-    if (path.startsWith("wired_families?")) return j([{ id: FAM, email: "mom@example.com", first_name: "Sarah", deleted_at: null }]);
+    // Real columns only (id, email, first_name, created_at): a select naming any other column is a 400, like PostgREST.
+    if (path.startsWith("wired_families?")) {
+      const sel = (path.match(/select=([^&]+)/)?.[1] ?? "").split(",");
+      if (sel.some((c) => !["id", "email", "first_name", "created_at"].includes(c))) return j({ code: "42703", message: "column does not exist" }, 400);
+      return j([{ id: FAM, email: "mom@example.com", first_name: "Sarah" }]);
+    }
     if (path.startsWith("wired_children?id=eq.") && path.includes("select=unlocked_via")) return j([{ unlocked_via: w.unlocked_via === undefined ? "free" : w.unlocked_via }]);
     if (path.startsWith("wired_children?id=in.")) return j([{ id: KID, nickname: "Lily", grade: 3, created_at: "2026-11-01T00:00:00Z" }]);
     if (path.startsWith("wired_children?family_id=")) return j([{ id: KID, nickname: "Lily", grade: 3 }]);

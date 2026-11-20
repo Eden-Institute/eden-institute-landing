@@ -8,7 +8,7 @@ Deno.test("julyPositionFor: July 1 -> 1, July 15 -> 2, any other day -> none", (
   assertEquals(julyPositionFor("2026-11-20"), null);
 });
 
-Deno.test("queueJuly: one row per family from last quiz year, skipping removed children, deleted families and families already queued", async () => {
+Deno.test("queueJuly: one row per family from last quiz year, skipping removed children, missing families and families already queued", async () => {
   const posted: Record<string, unknown>[][] = [];
   let resultsPath = "";
   globalThis.fetch = ((input: string | URL, init: RequestInit = {}) => {
@@ -16,12 +16,13 @@ Deno.test("queueJuly: one row per family from last quiz year, skipping removed c
     if ((init.method ?? "GET") === "POST") { posted.push(JSON.parse(String(init.body))); return Promise.resolve(new Response(null, { status: 201 })); }
     if (url.includes("/wired_results?")) {
       resultsPath = url;
+      if (url.includes("deleted_at")) return Promise.resolve(new Response(JSON.stringify({ code: "42703" }), { status: 400 }));
       return Promise.resolve(new Response(JSON.stringify([
-        { child_id: "c1", wired_children: { family_id: "f1", removed_at: null, wired_families: { email: "A@x.com", deleted_at: null } } },
-        { child_id: "c2", wired_children: { family_id: "f1", removed_at: null, wired_families: { email: "A@x.com", deleted_at: null } } },
-        { child_id: "c3", wired_children: { family_id: "f2", removed_at: "2027-01-01", wired_families: { email: "b@x.com", deleted_at: null } } },
-        { child_id: "c4", wired_children: { family_id: "f3", removed_at: null, wired_families: { email: "c@x.com", deleted_at: "2027-02-01" } } },
-        { child_id: "c5", wired_children: { family_id: "f4", removed_at: null, wired_families: { email: "d@x.com", deleted_at: null } } },
+        { child_id: "c1", wired_children: { family_id: "f1", removed_at: null, wired_families: { email: "A@x.com" } } },
+        { child_id: "c2", wired_children: { family_id: "f1", removed_at: null, wired_families: { email: "A@x.com" } } },
+        { child_id: "c3", wired_children: { family_id: "f2", removed_at: "2027-01-01", wired_families: { email: "b@x.com" } } },
+        { child_id: "c4", wired_children: null },
+        { child_id: "c5", wired_children: { family_id: "f4", removed_at: null, wired_families: { email: "d@x.com" } } },
       ])));
     }
     if (url.includes("/wired_email_queue?")) return Promise.resolve(new Response(JSON.stringify([{ family_id: "f4" }])));
