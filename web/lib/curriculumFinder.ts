@@ -19,6 +19,13 @@ export interface FinderCurriculum {
   price_covers: string | null;
   /** Workbook col 33 (2026-11-20). Null = not recorded (shown as neither; never hidden by the filter). */
   screen_based: boolean | null;
+  /** Workbook col 32 (spec answer 38): "Curriculum" or a Helpful-extras type (App, Video library...). Null = Curriculum. */
+  resource_type: string | null;
+}
+
+/** A Helpful extra (an app, video library, songs...), not a full curriculum (spec answer 38). */
+export function isHelpfulExtra(r: { resource_type?: string | null }): boolean {
+  return !!r.resource_type && r.resource_type !== "Curriculum";
 }
 
 export async function fetchFinderRows(): Promise<FinderCurriculum[]> {
@@ -71,8 +78,9 @@ export const PREP_ORDER = ["Open-and-go", "Light", "Moderate", "Heavy"];
  * Camila 2026-11-20 (tap "Live count"): the title, snippet and intro say the real number from the database
  * instead of "100", so the wording stays true when she adds or cuts one.
  */
-export function finderCount(rows: { coming_soon: boolean }[]): number {
-  return rows.filter((r) => !r.coming_soon).length;
+export function finderCount(rows: { coming_soon: boolean; resource_type?: string | null }[]): number {
+  // Curricula only: Helpful extras are not curricula (spec answer 38), so they never raise the count.
+  return rows.filter((r) => !r.coming_soon && !isHelpfulExtra(r)).length;
 }
 
 /** Approved finder copy (live 2026-11-19). title / description / intro take the live count (finderCount). */
@@ -89,6 +97,10 @@ export const FINDER_COPY = {
   christianOnly: "Christian curricula only",
   /** Filter + label: the approved Resource Guide wording (Wired_Quiz_Resource_Guide_Copy.md section 2, Filters + labels). */
   hideScreen: "Hide screen-based options",
+  /** Helpful extras, approved Resource Guide copy (section 2 "Helpful extras section" + Filters). */
+  includeExtras: "Include helpful extras",
+  extrasHeading: "Helpful extras",
+  extrasLine: "Apps, videos, songs and books that can sit alongside a curriculum. Not a full curriculum on their own.",
   screenBased: "Screen-based",
   /** PENDING Camila's approval (review page 2026-11-20): the lead-in to the workbook's price_covers line. */
   priceCovers: "What this price covers",

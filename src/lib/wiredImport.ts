@@ -10,7 +10,7 @@ export interface CurriculumRow {
   sheet_id: string; name: string; publisher?: string; url?: string; approach?: string; subjects?: string[];
   grade_min?: number | null; grade_max?: number | null; domains_served?: string[]; prep_load?: string;
   price_cents?: number | null; price_basis?: string; price_covers?: string; multi_age?: boolean; faith_alignment?: string;
-  screen_based?: boolean;
+  screen_based?: boolean; resource_type?: string;
   affiliate_url?: string; is_affiliate?: boolean; eden_band?: string; coming_soon?: boolean; last_verified_at?: string;
   dm_name?: string; dm_role?: string; dm_email?: string; dm_source_url?: string;
 }
@@ -83,7 +83,8 @@ export function mapCurricula(csv: string): { rows: CurriculumRow[]; skipped: num
       // "Open-and-go (about 0-10 min of parent prep a day)" -> "Open-and-go": the level name only.
       domains_served: list(r.domains_served ?? "", true), prep_load: opt((r.prep_load ?? "").split("(")[0]),
       price_cents: cents(r.price_usd ?? ""), price_basis: opt(r.price_basis ?? ""), price_covers: opt(r.price_covers ?? ""),
-      multi_age: yes(r.multi_age ?? ""), faith_alignment: opt(r.faith_alignment ?? ""), screen_based: yesNo(r.screen_based ?? ""), affiliate_url: opt(r.affiliate_url ?? ""), is_affiliate: yes(r.is_affiliate ?? ""),
+      multi_age: yes(r.multi_age ?? ""), faith_alignment: opt(r.faith_alignment ?? ""), screen_based: yesNo(r.screen_based ?? ""),
+      resource_type: opt(r.resource_type ?? ""), affiliate_url: opt(r.affiliate_url ?? ""), is_affiliate: yes(r.is_affiliate ?? ""),
       eden_band: opt(r.eden_band ?? ""), coming_soon: yes(r.coming_soon ?? ""), last_verified_at: isoDate(r.last_verified_date ?? ""),
       dm_name: opt(r.dm_name ?? ""), dm_role: opt(r.dm_role ?? ""), dm_email: opt(r.dm_email ?? ""), dm_source_url: opt(r.dm_source_url ?? ""),
     });

@@ -11,7 +11,7 @@ const base: FinderCurriculum = {
   price_cents: 4500, price_basis: "Per level", multi_age: false, faith_alignment: "Christian-friendly", eden_band: null, coming_soon: false,
   free_trial_url: "https://mathusee.com/placement", free_trial_type: "placement_test", free_trial_note: "Free placement tool", completely_free: false, free_trial_checked: "2026-11-19",
   mom_pros: ["Clear videos"], mom_cons: ["Slow for strong math kids"], mom_sources: [{ title: "Cathy Duffy", url: "https://cathyduffyreviews.com/x" }], mom_note: null,
-  esa_yes_states: ["FL"], last_verified_at: null, price_covers: null, screen_based: null,
+  esa_yes_states: ["FL"], last_verified_at: null, price_covers: null, screen_based: null, resource_type: null,
 };
 const free: FinderCurriculum = { ...base, id: "22222222-2222-4222-8222-222222222222", name: "Khan Academy", publisher: "Khan Academy", subjects: ["Math", "Science"], completely_free: true, price_cents: 0, faith_alignment: "Secular / neutral", free_trial_url: null, esa_yes_states: [] };
 const none = { q: "", grade: "", subject: "", prep: "", state: "", freeOnly: false, hasTrial: false, christian: false };
@@ -63,6 +63,28 @@ describe("curriculum finder", () => {
     const page = readFileSync("web/pages/homeschool.astro", "utf8");
     expect(page).toContain("FINDER_COPY.homeschoolLink(finderCurricula)");
     expect(page).not.toContain("100 hand-picked");
+  });
+
+  it("Helpful extras: own section with the approved copy, on by default, never counted as curricula", () => {
+    const app = { ...base, id: "66666666-6666-4666-8666-666666666666", sheet_id: "C101", name: "Reading Eggs", resource_type: "App", screen_based: true };
+    const cur = { ...base, resource_type: "Curriculum" };
+    expect(finderCount([cur, app, free])).toBe(2);
+    const approved = readFileSync("docs/wired-copy/Wired_Quiz_Resource_Guide_Copy.md", "utf8").replace(/\r\n/g, "\n");
+    expect(approved).toContain(`Heading: ${FINDER_COPY.extrasHeading}\n${FINDER_COPY.extrasLine}`);
+    expect(approved).toContain(`- ${FINDER_COPY.includeExtras} (on by default`);
+    render(<CurriculumFinder rows={[cur, app]} />);
+    expect(screen.getByText("1 curriculum")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: FINDER_COPY.extrasHeading })).toBeTruthy();
+    expect(screen.getByText(FINDER_COPY.extrasLine)).toBeTruthy();
+    expect(screen.getByText("App")).toBeTruthy();
+    const box = screen.getByLabelText(FINDER_COPY.includeExtras) as HTMLInputElement;
+    expect(box.checked).toBe(true);
+    fireEvent.click(box);
+    expect(screen.queryByText("Reading Eggs")).toBeNull();
+    expect(screen.queryByRole("heading", { name: FINDER_COPY.extrasHeading })).toBeNull();
+    cleanup();
+    render(<CurriculumFinder rows={[cur]} />);
+    expect(screen.queryByLabelText(FINDER_COPY.includeExtras)).toBeNull(); // no extras yet: no box
   });
 
   it("facts-checked month = the oldest verified date, in UTC; none = no line", () => {

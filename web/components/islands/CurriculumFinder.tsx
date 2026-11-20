@@ -3,7 +3,7 @@
 // curriculum-shortlist edge function. The Friday box is UNTICKED by default (Camila's tap).
 // Copy: FINDER_COPY in web/lib/curriculumFinder.ts (DRAFT, pending her approval).
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { COMING_SOON_BANDS, EDEN_TABLE_SHEET_IDS, EDEN_TESTIMONIALS, FINDER_COPY as T, FINDER_FAQ, FINDER_FAQ_HEADING, FINDER_FAQ_Q1_QUIZ, FINDER_TRUST as TR, factsCheckedMonth, finderCount, PREP_ORDER, SUBJECT_GROUPS, WIRED_IS_PUBLIC, type FinderCurriculum } from "../../lib/curriculumFinder";
+import { COMING_SOON_BANDS, EDEN_TABLE_SHEET_IDS, EDEN_TESTIMONIALS, FINDER_COPY as T, FINDER_FAQ, FINDER_FAQ_HEADING, FINDER_FAQ_Q1_QUIZ, FINDER_TRUST as TR, factsCheckedMonth, finderCount, isHelpfulExtra, PREP_ORDER, SUBJECT_GROUPS, WIRED_IS_PUBLIC, type FinderCurriculum } from "../../lib/curriculumFinder";
 import { HOMESCHOOL_AUDIENCE_ID } from "../../lib/freeWeekModal";
 
 // The site's existing grade 6-12 waitlist form (same as /homeschool's "Tell me when it opens"), loaded only
@@ -119,6 +119,7 @@ function Card({ c, starred, onStar }: { c: FinderCurriculum; starred: boolean; o
         </button>
       </div>
       <p className="mt-2 text-sm">{facts.join("  ·  ")}</p>
+      {isHelpfulExtra(c) && <p className={`mt-2 mr-1 ${outlineTag}`} style={outline}>{c.resource_type}</p>}
       {price && !c.completely_free && c.price_covers && <p className="mt-1 text-sm opacity-80">{T.priceCovers}: {c.price_covers}</p>}
       {c.completely_free && <p className="mt-2 inline-block text-xs font-bold uppercase tracking-wide px-2 py-1 rounded" style={forest}>{T.free}</p>}
       {c.screen_based === true && <p className={`mt-2 ml-1 ${outlineTag}`} style={outline}>{T.screenBased}</p>}
@@ -172,6 +173,8 @@ export default function CurriculumFinder({ rows }: { rows: FinderCurriculum[] })
   const [hasTrial, setHasTrial] = useState(false);
   const [christian, setChristian] = useState(false);
   const [hideScreen, setHideScreen] = useState(false);
+  // Helpful extras are ON by default (spec answer 38 / approved guide copy).
+  const [includeExtras, setIncludeExtras] = useState(true);
   const [stars, setStars] = useState<string[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [email, setEmail] = useState("");
@@ -190,6 +193,9 @@ export default function CurriculumFinder({ rows }: { rows: FinderCurriculum[] })
     () => rows.filter((c) => matches(c, { q, grade, subject, prep, state, freeOnly, hasTrial, christian, hideScreen })),
     [rows, q, grade, subject, prep, state, freeOnly, hasTrial, christian, hideScreen],
   );
+  const shownCurricula = shown.filter((c) => !isHelpfulExtra(c));
+  const shownExtras = includeExtras ? shown.filter(isHelpfulExtra) : [];
+  const hasExtras = rows.some(isHelpfulExtra);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -233,19 +239,29 @@ export default function CurriculumFinder({ rows }: { rows: FinderCurriculum[] })
         <label className="flex items-center gap-2"><input type="checkbox" checked={hasTrial} onChange={(e) => setHasTrial(e.target.checked)} />{T.hasTrial}</label>
         <label className="flex items-center gap-2"><input type="checkbox" checked={christian} onChange={(e) => setChristian(e.target.checked)} />{T.christianOnly}</label>
         <label className="flex items-center gap-2"><input type="checkbox" checked={hideScreen} onChange={(e) => setHideScreen(e.target.checked)} />{T.hideScreen}</label>
+        {hasExtras && <label className="flex items-center gap-2"><input type="checkbox" checked={includeExtras} onChange={(e) => setIncludeExtras(e.target.checked)} />{T.includeExtras}</label>}
         <select aria-label={T.anyState} value={state} onChange={(e) => setState(e.target.value)} className={select}>
           <option value="">{T.anyState}</option>{STATES.map((s) => <option key={s}>{s}</option>)}
         </select>
         {state && <span className="opacity-80">{T.esaYes}</span>}
       </div>
 
-      <p className="mt-6 text-sm opacity-80">{T.count(shown.length)}</p>
+      <p className="mt-6 text-sm opacity-80">{T.count(finderCount(shownCurricula))}</p>
       {rows.some((r) => r.is_affiliate) && <p className="mt-1 text-xs opacity-70">{T.affiliate}</p>}
       <div className="mt-3 grid gap-4">
-        {shown.length ? shown.map((c) => (c.coming_soon
+        {shownCurricula.length ? shownCurricula.map((c) => (c.coming_soon
           ? <ComingSoonCard key={c.id} c={c} onWaitlist={setWaitlistFor} />
           : <Card key={c.id} c={c} starred={stars.includes(c.id)} onStar={() => toggle(c.id)} />)) : <p>{T.empty}</p>}
       </div>
+      {shownExtras.length > 0 && (
+        <section className="mt-10" aria-labelledby="helpful-extras-h">
+          <h2 id="helpful-extras-h" className="font-display text-2xl">{T.extrasHeading}</h2>
+          <p className="mt-2 max-w-3xl">{T.extrasLine}</p>
+          <div className="mt-3 grid gap-4">
+            {shownExtras.map((c) => <Card key={c.id} c={c} starred={stars.includes(c.id)} onStar={() => toggle(c.id)} />)}
+          </div>
+        </section>
+      )}
       {checkedMonth && <p className="mt-4 text-sm opacity-80">{TR.checked(checkedMonth)}</p>}
       <p className="mt-1 text-sm opacity-80">{TR.outOfDate} <a href={TR.tellUsHref} className="underline underline-offset-4">{TR.tellUs}</a></p>
 
