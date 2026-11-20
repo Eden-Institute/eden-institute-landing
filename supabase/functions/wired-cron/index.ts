@@ -3,6 +3,7 @@
 // verify_jwt = true and service role only (config.toml).
 // W9: the one observer reminder (day 5, only if unanswered) and the observer email sweep (2 Julys with no
 // retest of that child), _shared/wired-observer-cron.ts.
+// W10: curriculum staleness rows on the punch list + the June 1 sweep row, _shared/wired-staleness.ts.
 //
 // W8: the yearly check-in (spec 7.5, answer 35). On July 1 (Central) it queues one 'july' position 1 row
 // per family with a child whose latest results are from the quiz year that just ended; on July 15, one
@@ -17,6 +18,7 @@ import { WIRED_CORS, wiredJson } from "../_shared/wired-gate.ts";
 import { type Db } from "../_shared/wired-submit-flow.ts";
 import { queueJuly } from "../_shared/wired-july.ts";
 import { queueObserverReminders, sweepObserverEmails } from "../_shared/wired-observer-cron.ts";
+import { syncStaleness } from "../_shared/wired-staleness.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: WIRED_CORS });
@@ -29,7 +31,8 @@ Deno.serve(async (req) => {
     const july = await queueJuly(db, asOf, dry);
     const reminders = await queueObserverReminders(db, asOf, dry);
     const observer_sweep = await sweepObserverEmails(db, asOf, dry);
-    return wiredJson(200, { ok: true, as_of: asOf.toISOString(), july, reminders, observer_sweep });
+    const staleness = await syncStaleness(db, asOf, dry);
+    return wiredJson(200, { ok: true, as_of: asOf.toISOString(), july, reminders, observer_sweep, staleness });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("wired-cron failed:", msg);

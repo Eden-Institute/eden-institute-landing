@@ -64,6 +64,9 @@ export interface SystemHealthInput {
    *  (client_errors, src/lib/clientErrorBeacon.ts). null when the table could not be read;
    *  absent = the check is not run. */
   browserErrors?: BrowserErrorSummary | null;
+  /** (Wired W10, 2026-11-20) Approved Wired quiz curricula not verified in 6 months (spec section 12): the count
+   *  only, never the list (her 11/5 rule). null when unread; absent = the check is not run. */
+  wiredStale?: number | null;
 }
 
 /** One client_errors row, as the digest reads it. */
@@ -314,6 +317,13 @@ export function evaluateSystemHealth(input: SystemHealthInput, digestDate: strin
         detail: `The website hit ${plural(b.total, 'error')} in visitors' browsers on ${digestDate} (${plural(b.people, 'person', 'people')}): ${top}. Ask Claude to look into ${b.total === 1 ? 'it' : 'them'}.`,
       });
     }
+  }
+
+  // (Wired W10) One count-only line; the re-verify rows themselves are on the punch list.
+  if (input.wiredStale !== undefined) {
+    if (input.wiredStale === null) checks.push({ key: 'wired_stale', ok: null, detail: 'Wired quiz curricula: could not be checked.' });
+    else if (input.wiredStale === 0) checks.push({ key: 'wired_stale', ok: true, detail: 'Wired quiz curricula: none past 6 months.' });
+    else checks.push({ key: 'wired_stale', ok: false, detail: `${input.wiredStale} ${input.wiredStale === 1 ? 'curriculum' : 'curricula'} past 6 months.` });
   }
 
   return checks;
