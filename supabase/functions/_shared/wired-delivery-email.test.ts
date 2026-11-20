@@ -8,7 +8,11 @@ Deno.test("Blueprint delivery: approved subject, greeting, button with its own U
   assertStringIncludes(m.html, "Thank you! Lily&#39;s Learner Blueprint is attached.".replace("&#39;", "'"));
   assertEquals(m.buttonUrl, "https://edeninstitute.health/wired/results?utm_source=email&utm_medium=email&utm_campaign=learner_quiz&utm_content=blueprint_delivery");
   assertStringIncludes(m.html, "Invite someone who knows Lily");
-  assertStringIncludes(m.html, "303 Holly Cir, Unit 3262, Clarksville, TN 37043");
+  // The address is broken up with zero-width spaces so mail apps don't auto-link it; the text reads the same.
+  assertStringIncludes(m.html.replace(/&#8203;/g, ""), "303 Holly Cir, Unit 3262, Clarksville, TN 37043");
+  assertStringIncludes(m.text, "303 Holly Cir, Unit 3262, Clarksville, TN 37043");
+  // Footer ink is the light cream (WCAG AA on the forest band), never the old grey.
+  assert(m.html.includes("color:#E8E3DA") && !m.html.includes("color:#6B6560;text-align:center;\">You"));
   assertStringIncludes(m.html, "You&#39;re getting this because of your Wired quiz order.".replace("&#39;", "'"));
   assert(!m.html.includes("Unsubscribe"));
   assert(!m.html.includes("Delete my quiz data"));

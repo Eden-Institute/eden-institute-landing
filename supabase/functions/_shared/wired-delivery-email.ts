@@ -20,6 +20,12 @@ const KEYS: Record<DeliveryKind, string> = {
 };
 const SITE = "https://edeninstitute.health";
 const ADDRESS = "Rooted in Faith Ventures LLC &middot; 303 Holly Cir, Unit 3262, Clarksville, TN 37043";
+// Footer text on the forest band: cream, about 9:1 contrast on #2C3E2D (the old #6B6560 was about 2:1;
+// Camila flagged it 11/19). Same color the address row and the order line use.
+const FOOTER_INK = "#E8E3DA";
+// Mail apps auto-link a street address (bright blue, low contrast). A zero-width space after each
+// digit run and inheriting colour in a span stops the detector without changing what she reads.
+const ADDRESS_HTML = `<span style="color:${FOOTER_INK};text-decoration:none;">${ADDRESS.replace(/(\d+)/g, "$1&#8203;")}</span>`;
 
 function items(kind: DeliveryKind): CopyItem[] {
   const b = COPY.emails[KEYS[kind]];
@@ -69,8 +75,8 @@ export function buildDeliveryEmail(kind: DeliveryKind, o: { firstName: string | 
       body.map((s) => (s === "[button]" ? button : p(fill(s, v)))).join("") +
       `<p style="margin:24px 0 0 0;font-family:Georgia,serif;font-size:16px;font-weight:bold;">Camila</p>` +
       `<p style="margin:4px 0 0 0;font-family:Georgia,serif;font-size:14px;">The Eden Institute</p>`,
-    `<tr><td style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;">${esc(footerLine)}</td></tr>
-<tr><td style="font-family:Georgia,serif;font-size:11px;color:${BRAND.footerText};text-align:center;padding-top:6px;">${ADDRESS}</td></tr>`,
+    `<tr><td style="font-family:Georgia,serif;font-size:12px;color:${FOOTER_INK};text-align:center;">${esc(footerLine)}</td></tr>
+<tr><td style="font-family:Georgia,serif;font-size:12px;color:${FOOTER_INK};text-align:center;padding-top:6px;">${ADDRESS_HTML}</td></tr>`,
     { shopCard: false },
   );
   const text = [greeting, ...body.map((s) => (s === "[button]" ? `${fill(btnLabel, v)}: ${buttonUrl}` : fill(s, v))), "Camila", "The Eden Institute", "", footerLine, ADDRESS.replace("&middot;", "·")].join("\n\n");
