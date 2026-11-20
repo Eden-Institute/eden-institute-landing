@@ -612,3 +612,83 @@ export async function buildFreeResultsPdf(d: FreeResultsData): Promise<Uint8Arra
   w.items(ev.filter((i) => !i.s.startsWith("Heading:")), v);
   return await w.doc.save({ useObjectStreams: true });
 }
+
+// ── The curriculum finder shortlist PDF (2026-11-19) ────────────────────────
+// One block per curriculum a mom starred on /curriculum-finder: the facts, the free try-before-you-buy
+// link, what moms say (pros, cons, sources) and, when she picked a state, whether that state's ESA
+// lists it. ⚠️ SHORTLIST_COPY is DRAFT copy, PENDING Camila's approval on the finder review page;
+// every fact comes from wired_curricula via curriculum_finder_list().
+
+export interface FinderRow {
+  name: string; publisher: string | null; link: string | null; is_affiliate: boolean;
+  approach: string | null; subjects: string[]; grade_min: number | null; grade_max: number | null;
+  prep_load: string | null; price_cents: number | null; price_basis: string | null; faith_alignment: string | null;
+  free_trial_url: string | null; free_trial_note: string | null; completely_free: boolean;
+  mom_pros: string[]; mom_cons: string[]; mom_sources: { title?: string; url: string }[]; mom_note: string | null;
+  esa_yes_states: string[];
+}
+
+export const SHORTLIST_COPY = {
+  title: "Your curriculum shortlist",
+  intro: "Here are the curricula you starred, with their free samples and what other moms say. Try a free sample before you buy: it's the fastest way to see what fits your family.",
+  freeTry: "Try it free",
+  noFreeTry: "No free sample found on the publisher's site.",
+  completelyFree: "Completely free",
+  moms: "What moms say in independent reviews",
+  esaYes: (st: string) => `Listed as ESA-eligible in ${st}.`,
+  esaNo: (st: string) => `Not listed as ESA-eligible in ${st} yet. Check with your program.`,
+  quizTitle: "Not sure which one fits your child?",
+  quizLine: "Take the free Fearfully & Wonderfully Wired quiz. It shows how God wired your child and which of these curricula fit them best.",
+  quizButton: "Take the Wired quiz",
+  quizUrl: "https://edeninstitute.health/wired?utm_source=pdf&utm_medium=shortlist&utm_campaign=curriculum_finder",
+};
+
+const gradeLabel = (g: number | null) => (g === null ? "?" : g === 0 ? "K" : String(g));
+
+export async function buildShortlistPdf(d: { items: FinderRow[]; esaState?: string | null; now?: Date }): Promise<Uint8Array> {
+  const w = await newDoc(SHORTLIST_COPY.title);
+  w.footer = SHORTLIST_COPY.title;
+  w.newPage();
+  w.text("THE EDEN INSTITUTE", { font: w.f.caps, size: 10, color: C.olive, after: 10 });
+  w.h1(SHORTLIST_COPY.title);
+  w.text(SHORTLIST_COPY.intro);
+  w.small(monthYear(d.now ?? new Date()));
+  const aff = block("results", "Affiliate note");
+  const affLabel = after(aff, "Next to each affiliate link, in small print:");
+  if (d.items.some((i) => i.is_affiliate)) w.small(after(aff, "Right above the matches:"));
+
+  for (const c of d.items) {
+    w.ensure(200);
+    w.y -= 8;
+    w.page.drawLine({ start: { x: M, y: w.y }, end: { x: M + CW, y: w.y }, thickness: 0.6, color: C.softGold });
+    w.y -= 14;
+    w.link(c.name, c.link);
+    if (c.is_affiliate) w.small(affLabel);
+    const facts = [
+      c.publisher,
+      c.grade_min !== null || c.grade_max !== null ? `Grades ${gradeLabel(c.grade_min)}-${gradeLabel(c.grade_max)}` : null,
+      c.subjects.length ? c.subjects.join(", ") : null,
+      c.approach,
+      c.prep_load ? `Prep: ${c.prep_load}` : null,
+      c.completely_free ? SHORTLIST_COPY.completelyFree
+        : c.price_cents !== null ? `About $${(c.price_cents / 100).toFixed(0)}${c.price_basis ? ` (${c.price_basis.toLowerCase()})` : ""}` : null,
+      c.faith_alignment,
+    ].filter(Boolean).join("  ·  ");
+    w.text(facts, { size: 10.5, color: C.light, after: 6 });
+    if (c.free_trial_url) w.link(`${SHORTLIST_COPY.freeTry}: ${c.free_trial_note ?? ""}`.trim(), c.free_trial_url, 4);
+    else w.small(SHORTLIST_COPY.noFreeTry);
+    if (d.esaState) w.small(c.esa_yes_states.includes(d.esaState) ? SHORTLIST_COPY.esaYes(d.esaState) : SHORTLIST_COPY.esaNo(d.esaState));
+    if (c.mom_pros.length || c.mom_cons.length) {
+      w.label(SHORTLIST_COPY.moms);
+      for (const p of c.mom_pros) w.bullet(`Pro: ${p}`, { size: 10.5 });
+      for (const p of c.mom_cons) w.bullet(`Con: ${p}`, { size: 10.5 });
+      if (c.mom_note) w.small(c.mom_note);
+      if (c.mom_sources.length) w.small(`Sources: ${c.mom_sources.map((s) => s.title || s.url).join("; ")}`);
+    }
+  }
+  w.ensure(120);
+  w.h2(SHORTLIST_COPY.quizTitle);
+  w.text(SHORTLIST_COPY.quizLine);
+  w.link(SHORTLIST_COPY.quizButton, SHORTLIST_COPY.quizUrl);
+  return await w.doc.save({ useObjectStreams: true });
+}

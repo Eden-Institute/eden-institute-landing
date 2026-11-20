@@ -201,6 +201,10 @@ verify_jwt = true
 [functions.wired-pdf]
 verify_jwt = true
 
+# curriculum-shortlist: the public finder's "Email me my shortlist" (honeypot + rate limits inside).
+[functions.curriculum-shortlist]
+verify_jwt = false
+
 # launch-email-preview mails the founder a copy of each launch email a day early.
 # Invoked only by the Vercel cron with the service-role key; it additionally
 # requires role=service_role via _shared/require-service-role.ts, so verify_jwt
