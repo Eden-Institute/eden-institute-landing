@@ -1001,7 +1001,9 @@ export const ESA_STATES: EsaState[] = [
 
 /** Programs we have applied to and are waiting on. Plain facts only. */
 export const ESA_PENDING = [
-  { state: "Florida", program: "Step Up For Students scholarships", note: "Provider application submitted, waiting on review." },
+  // 2026-11-20 (Lane 4 research, AAA 2026-27 Purchasing Handbook rev 11/10/26 + Step Up reimbursement page): PEP and
+  // FES-UA families can buy now and request reimbursement for 2026-27 through 7/31/27; AAA does not reimburse teacher's editions.
+  { state: "Florida", program: "Step Up For Students scholarships", note: "Provider application submitted, waiting on review. PEP and FES-UA families can buy now and ask for reimbursement through July 31, 2027 (reviews can take up to 60 days). If AAA manages your scholarship, its handbook does not cover teacher's editions, so the Teacher's Guide may not be reimbursed." },
   { state: "West Virginia", program: "Hope Scholarship", note: "Provider application submitted September 2026, waiting on review." },
   { state: "South Carolina", program: "Education Scholarship Trust Fund", note: "Provider application submitted November 2026, waiting on review." },
   { state: "Georgia", program: "Georgia Promise Scholarship", note: "Vendor application under appeal, November 2026." },
@@ -1010,7 +1012,7 @@ export const ESA_PENDING = [
 
 /** Last content review of the ESA pages. Bump it when what they say changes (see
     the rules at the top). */
-export const ESA_UPDATED_ISO = "2026-11-18";
+export const ESA_UPDATED_ISO = "2026-11-20";
 
 /** The same date as shown on the pages, e.g. "September 2026". */
 export const ESA_UPDATED = new Date(`${ESA_UPDATED_ISO}T12:00:00Z`).toLocaleDateString("en-US", {
