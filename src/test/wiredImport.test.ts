@@ -66,6 +66,7 @@ describe("mapCurricula", () => {
     ].join("\n");
     const [vp, mb, na] = mapCurricula(csv).rows;
     expect([vp.screen_based, vp.price_covers]).toEqual([true, "One subject for one year, online classes"]);
+    expect([vp.resource_type, mb.resource_type, na.resource_type]).toEqual(["Curriculum", "Curriculum", undefined]);
     expect([mb.screen_based, mb.price_covers]).toEqual([false, undefined]);
     expect([na.screen_based, na.price_covers]).toEqual([undefined, undefined]);
     // JSON for wired_admin_import: a blank cell sends no key, so the stored value is kept.

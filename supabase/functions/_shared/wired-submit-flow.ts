@@ -56,9 +56,13 @@ export async function emailHash(email: string, pepper: string): Promise<string> 
 
 const MATCH_COLUMNS = 'id,name,grade_min,grade_max,domains_served,prep_load,price_cents,multi_age,faith_alignment,approved,coming_soon,eden_band';
 
+/** Spec answer 38 (2026-11-19): the quiz ranks resource_type = Curriculum ONLY; null = a row from before the column. */
+export const CURRICULUM_ONLY_FILTER = 'or=(resource_type.is.null,resource_type.eq.Curriculum)';
+
 export async function approvedCurricula(db: Db) {
   // Selecting the columns ranking may read, never is_affiliate / affiliate_url / dm_* (rule 3).
-  const rows = await pg<Record<string, unknown>[]>(db, `wired_curricula?approved=eq.true&select=${MATCH_COLUMNS}`);
+  // Helpful extras (apps, video libraries...) never enter the ranking (spec answer 38).
+  const rows = await pg<Record<string, unknown>[]>(db, `wired_curricula?approved=eq.true&${CURRICULUM_ONLY_FILTER}&select=${MATCH_COLUMNS}`);
   return (rows ?? []).map(toMatchCurriculum);
 }
 
