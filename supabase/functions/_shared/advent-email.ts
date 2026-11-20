@@ -44,15 +44,37 @@ function signature(signoff = "Grace and health,"): string {
 export const ADVENT_SOURCE = "advent_2026";
 export const ADVENT_CONFIRM_SUBJECT = "You're in for Plants of the Nativity";
 
-/** firstName must already be HTML-escaped (resend-waitlist passes firstNameHtml). */
-export function buildAdventConfirmEmail(firstName: string): { subject: string; html: string } {
+/**
+ * Which Sunday a sign-up's first email is. Each Sunday Broadcast goes ONCE (7 PM Central = 01:00 UTC Monday) to the
+ * families signed up by then, so a family who joins after a Sunday starts at the next one. Sign-ups up to the first
+ * send keep the founder-approved wording byte for byte; later windows use the wording she approved by pick on the
+ * Lane SEO review page 2026-11-20 ("Do it").
+ */
+export const ADVENT_WINDOWS: ReadonlyArray<{ until: string; preheader: string; first: string; closing: string }> = [
+  { until: "2026-11-30T01:00:00Z", preheader: "Four Sundays, four plants from the Christmas story. The first one comes Nov 29.",
+    first: "The first one comes Sunday, November 29, and it starts with one of the wise men's gifts, frankincense.", closing: "Four Sundays, then Christmas!" },
+  { until: "2026-12-07T01:00:00Z", preheader: "Three Sundays, three plants from the Christmas story. Your first one comes Dec 6.",
+    first: "Your first one comes Sunday, December 6, and it's myrrh, another of the wise men's gifts.", closing: "Three Sundays, then Christmas!" },
+  { until: "2026-12-14T01:00:00Z", preheader: "Two Sundays, two plants from the Christmas story. Your first one comes Dec 13.",
+    first: "Your first one comes Sunday, December 13, and it's the terebinth tree.", closing: "Two Sundays, then Christmas!" },
+  { until: "2026-12-21T01:00:00Z", preheader: "One more Sunday, one more plant from the Christmas story. It comes Dec 20.",
+    first: "Your first one comes Sunday, December 20, and it's saffron.", closing: "One more Sunday, then Christmas!" },
+];
+
+export function adventWindow(nowMs: number): (typeof ADVENT_WINDOWS)[number] {
+  return ADVENT_WINDOWS.find((w) => nowMs < Date.parse(w.until)) ?? ADVENT_WINDOWS[ADVENT_WINDOWS.length - 1];
+}
+
+/** firstName must already be HTML-escaped (resend-waitlist passes firstNameHtml). nowMs defaults to the send moment. */
+export function buildAdventConfirmEmail(firstName: string, nowMs: number = Date.now()): { subject: string; html: string } {
+  const w = adventWindow(nowMs);
   const body =
-    preheader("Four Sundays, four plants from the Christmas story. The first one comes Nov 29.") +
+    preheader(w.preheader) +
     p(`Hi ${firstName},`) +
     p("You're in! Thank you for signing up.") +
-    p("Every Sunday of Advent, I'll send you one short email about one plant from the Christmas story. The first one comes Sunday, November 29, and it starts with one of the wise men's gifts, frankincense.") +
+    p(`Every Sunday of Advent, I'll send you one short email about one plant from the Christmas story. ${w.first}`) +
     p("Each email has the Bible verses, where the plant grows, how people gathered it long ago, and one simple thing to do with your kids at the table that week.") +
-    p("Four Sundays, then Christmas!") +
+    p(w.closing) +
     signature("In Him,");
   return { subject: ADVENT_CONFIRM_SUBJECT, html: launchWrapper(body) };
 }

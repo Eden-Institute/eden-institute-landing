@@ -9,14 +9,16 @@
 // WHERE: every /herbs/<slug> page (above the bottom band), the foot of every /learn article that
 // mounts the pop-up, and /advent (the page the Friday emails link to). The box hides itself from
 // ADVENT_HIDE_FROM (web/components/AdventOffer.astro), when the last Sunday email goes out.
-// Heading, line and button are the founder-reviewed box copy. No em dashes.
+// Heading, line and button are the founder-reviewed box copy. No em dashes. The line and the success
+// subtitle name no date (founder pick "Do it", Lane SEO review page 2026-11-20): they stay true for a
+// family who signs up after the first Sunday.
 
 export type AdventPlacement = "herb" | "learn_end" | "advent_page";
 
 export const ADVENT_SOURCE = "advent_2026";
 export const ADVENT_HEADING = "Plants of the Nativity, four Advent Sundays";
 export const ADVENT_LINE =
-  "Four short Sunday emails through Advent, each one teaching a plant from the Christmas story. We start with frankincense on Nov 29.";
+  "Four short Sunday emails through Advent, each one teaching a plant from the Christmas story: frankincense, myrrh, terebinth and saffron.";
 export const ADVENT_BUTTON = "Count me in";
 /** The last Sunday email goes at this moment; the sign-up hides itself from then on. */
 export const ADVENT_HIDE_FROM = "2026-12-20T19:00:00-06:00";
@@ -29,7 +31,7 @@ export const ADVENT_ATTRS = {
   "data-waitlist-submit-label": ADVENT_BUTTON,
   "data-waitlist-success-message": "You're in!",
   "data-waitlist-success-subtitle":
-    "Check your inbox for a short note from Camila. The first plant comes Sunday, November 29.",
+    "Check your inbox for a short note from Camila. The next plant comes Sunday evening.",
 } as const;
 
 export function adventFormName(placement: AdventPlacement): string {
