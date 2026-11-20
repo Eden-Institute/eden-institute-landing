@@ -19,6 +19,7 @@ interface World {
   blocked?: boolean;
   logOwner?: string | null;       // who holds today's nurture_send_log row
   resendStatus?: number;
+  resendName?: string;
   curricula?: Record<string, unknown>[];
   prefs?: Record<string, unknown>[];
   results?: Record<string, unknown>[];
@@ -33,7 +34,7 @@ function install(w: World): Seen[] {
     const body = init.body ? JSON.parse(String(init.body)) : undefined;
     seen.push({ url, method, body });
     const j = (v: unknown, s = 200) => Promise.resolve(new Response(v === null ? null : JSON.stringify(v), { status: s }));
-    if (url.startsWith("https://api.resend.com")) return j(w.resendStatus && w.resendStatus >= 400 ? { message: "nope" } : { id: "re_1" }, w.resendStatus ?? 200);
+    if (url.startsWith("https://api.resend.com")) return j(w.resendStatus === 409 ? { name: w.resendName ?? "invalid_idempotent_request", statusCode: 409 } : w.resendStatus && w.resendStatus >= 400 ? { message: "nope" } : { id: "re_1" }, w.resendStatus ?? 200);
     const path = url.split("/rest/v1/")[1] ?? "";
     if (path.startsWith("wired_email_queue?") && method === "GET") return j([w.row]);
     if (path.startsWith("wired_email_queue?") && method === "PATCH") return j(body?.retry_count !== undefined && !("scheduled_for" in body) ? [w.row] : null, body?.retry_count !== undefined && !("scheduled_for" in body) ? 200 : 204);
@@ -185,4 +186,18 @@ Deno.test("queueLearnerDrip: positions 2-8 and 10 (never 9), 8 AM Central on day
   assertEquals(posted[0][0].email, "mom@example.com");
   existing = [{ id: "x" }];
   assertEquals(await queueLearnerDrip(DB, FAM, KID, "mom@example.com"), 0);
+});
+
+Deno.test("Resend already took this row's key (409 invalid_idempotent_request): marked sent, never a failure; concurrent: put back", async () => {
+  const w: World = { row: row("drip", 2), resendStatus: 409 };
+  const seen = install(w);
+  const out = await drainEmailQueue(DB, OPTS) as Record<string, number>;
+  assertEquals([out.sent, out.failed], [1, 0]);
+  assert(patches(seen).some((p) => typeof p.sent_at === "string"));
+  assertEquals(w.logOwner, ROW); // the day stays claimed: the email did go out
+  const w2: World = { row: row("drip", 2), resendStatus: 409, resendName: "concurrent_idempotent_requests" };
+  const seen2 = install(w2);
+  const out2 = await drainEmailQueue(DB, OPTS) as Record<string, number>;
+  assertEquals([out2.sent, out2.failed], [0, 0]);
+  assert(!patches(seen2).some((p) => "sent_at" in p));
 });
