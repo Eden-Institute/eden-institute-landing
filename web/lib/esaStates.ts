@@ -1004,8 +1004,10 @@ export const ESA_PENDING = [
   // 2026-11-20 (Lane 4 research, AAA 2026-27 Purchasing Handbook rev 11/10/26 + Step Up reimbursement page): PEP and
   // FES-UA families can buy now and request reimbursement for 2026-27 through 7/31/27; AAA does not reimburse teacher's editions.
   { state: "Florida", program: "Step Up For Students scholarships", note: "Provider application submitted, waiting on review. PEP and FES-UA families can buy now and ask for reimbursement through July 31, 2027 (reviews can take up to 60 days). If AAA manages your scholarship, its handbook does not cover teacher's editions, so the Teacher's Guide may not be reimbursed." },
-  { state: "West Virginia", program: "Hope Scholarship", note: "Provider application submitted September 2026, waiting on review." },
-  { state: "South Carolina", program: "Education Scholarship Trust Fund", note: "Provider application submitted November 2026, waiting on review." },
+  // 2026-11-20 Camila (Lane 4 chat, relayed 10:56): "change WV to call scheduled Dec 4".
+  { state: "West Virginia", program: "Hope Scholarship", note: "Provider application submitted September 2026. Onboarding call scheduled December 4, 2026." },
+  // 2026-11-20 Camila (Lane 4 chat, relayed 10:53): "change SC to declined, resubmitting Tuesday".
+  { state: "South Carolina", program: "Education Scholarship Trust Fund", note: "November 2026 provider application declined. We are resubmitting on November 24, 2026." },
   { state: "Georgia", program: "Georgia Promise Scholarship", note: "Vendor application under appeal, November 2026." },
   { state: "Missouri", program: "MOScholars", note: "Vendor application submitted November 2026, waiting on review." },
 ];
