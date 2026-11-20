@@ -10,7 +10,9 @@ const root = join(__dirname, "..", "..");
 const banksDir = join(root, "supabase", "functions", "_shared", "wired-banks");
 const migDir = join(root, "supabase", "migrations");
 const seedFile = readdirSync(migDir).find((f) => /_wired_w3_seed_banks\.sql$/.test(f));
-const seed = seedFile ? readFileSync(join(migDir, seedFile), "utf8") : "";
+// Normalise line endings: a Windows checkout (core.autocrlf=true) gives the .sql file CRLF, and the
+// block regex below matches "\non conflict". Without this the test fails on Windows only (CI is Linux).
+const seed = seedFile ? readFileSync(join(migDir, seedFile), "utf8").replace(/\r\n/g, "\n") : "";
 
 describe("wired bank seed migration", () => {
   it("exists once", () => {
