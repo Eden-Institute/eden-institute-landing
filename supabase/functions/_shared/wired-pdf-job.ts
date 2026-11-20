@@ -63,8 +63,8 @@ export async function loadBlueprintData(db: Db, job: PdfJob): Promise<LoadedJob>
 
   const children: FreeResultsData[] = [];
   for (const k of kids) {
-    const res = (await pg<{ quiz_year: number; blended_scores: Scores; top3: Domain[]; computed_at: string; renaissance: boolean }[]>(db,
-      `wired_results?child_id=eq.${k.id}&select=quiz_year,blended_scores,top3,computed_at,renaissance&order=quiz_year.desc&limit=1`))?.[0];
+    const res = (await pg<{ quiz_year: number; blended_scores: Scores; top3: Domain[]; computed_at: string; renaissance: boolean; matches_snapshot: { ranking?: string[] } | null }[]>(db,
+      `wired_results?child_id=eq.${k.id}&select=quiz_year,blended_scores,top3,computed_at,renaissance,matches_snapshot&order=quiz_year.desc&limit=1`))?.[0];
     if (!res) throw new Error(`no results for child ${k.id}`);
     const ses = await pg<{ family_answers: FamilyAnswers | null; completed_at: string | null; rater_role: string }[]>(db,
       `wired_sessions?child_id=eq.${k.id}&family_id=eq.${job.family_id}&quiz_year=eq.${res.quiz_year}&completed_at=not.is.null&is_pilot_retake=eq.false&select=family_answers,completed_at,rater_role`);
@@ -75,7 +75,10 @@ export async function loadBlueprintData(db: Db, job: PdfJob): Promise<LoadedJob>
 
     const out = rankCurricula({
       grade: k.grade, scores: res.blended_scores, top3: res.top3, curricula, esa, limit: RANK_LIMIT,
-      prefs: prefsFromAnswers(fa, prefsRow?.priority_ranking ?? null, filters),
+      // Her saved ranking (wired-matches) when she changed it on the results page, else the ranking she
+      // gave in the quiz (stored in the results snapshot at submit); before 2026-11-20 this fell back to the
+      // default order, so a mom who never touched the results page got matches in the default order.
+      prefs: prefsFromAnswers(fa, prefsRow?.priority_ranking ?? res.matches_snapshot?.ranking ?? null, filters),
     });
     const matches: PdfMatch[] = out.matches.map((m) => {
       const d = display.get(m.id);

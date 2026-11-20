@@ -107,8 +107,8 @@ type Block = { kind: "p"; s: string } | { kind: "list"; items: string[] } | { ki
 
 function render(key: LearnerKey, o: LearnerInput, blocks: Block[], v: Record<string, string>): LearnerEmail {
   const it = learnerCopy(key);
-  const subject = fill(field(it, "Subject:"), v);
-  const preview = fill(field(it, "Preview:"), v);
+  const subject = article(fill(field(it, "Subject:"), v));
+  const preview = article(fill(field(it, "Preview:"), v));
   const footerLine = field(it, "Footer:").split(" Unsubscribe from these emails")[0].trim();
   const greeting = o.firstName ? `Hi ${o.firstName},` : "Hi,";
   const p = (s: string) => `<p style="margin:0 0 16px 0;font-family:Georgia,serif;font-size:16px;line-height:1.6;color:${BRAND.text};">${esc(s)}</p>`;

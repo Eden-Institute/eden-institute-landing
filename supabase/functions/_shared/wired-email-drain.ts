@@ -211,7 +211,9 @@ export async function buildLearner(db: Db, row: QueueRow, now: Date = new Date()
     const m = child.matches[0];
     if (!m?.link) return { skip: "no_match_with_link" };
     const prefs = (await pg<{ priority_ranking: string[] | null }[]>(db, `wired_family_prefs?family_id=eq.${row.family_id}&select=priority_ranking&limit=1`))?.[0];
-    const first = (prefs?.priority_ranking ?? [])[0] ?? "wiring";
+    const snap = (await pg<{ matches_snapshot: { ranking?: string[] } | null }[]>(db, `wired_results?child_id=eq.${row.child_id}&select=matches_snapshot&order=quiz_year.desc&limit=1`))?.[0];
+    // Her saved ranking, else the one she gave in the quiz (results snapshot), else the default order.
+    const first = (prefs?.priority_ranking ?? snap?.matches_snapshot?.ranking ?? [])[0] ?? "wiring";
     const cur = (await pg<{ mom_pros: string[] | null }[]>(db, `wired_curricula?name=eq.${encodeURIComponent(m.name)}&approved=eq.true&select=mom_pros&limit=1`))?.[0];
     input.match = {
       name: m.name, reason: m.because.join(" · "), line: cur?.mom_pros?.[0] ?? "", url: m.link, isAffiliate: m.isAffiliate,
