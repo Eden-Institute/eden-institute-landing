@@ -66,12 +66,23 @@ export const SUBJECT_GROUPS: Record<string, string[]> = {
 
 export const PREP_ORDER = ["Open-and-go", "Light", "Moderate", "Heavy"];
 
-/** DRAFT, pending Camila's approval. */
+/**
+ * How many curricula the finder offers today: approved rows minus the coming-soon Eden's Table sets.
+ * Camila 2026-11-20 (tap "Live count"): the title, snippet and intro say the real number from the database
+ * instead of "100", so the wording stays true when she adds or cuts one.
+ */
+export function finderCount(rows: { coming_soon: boolean }[]): number {
+  return rows.filter((r) => !r.coming_soon).length;
+}
+
+/** Approved finder copy (live 2026-11-19). title / description / intro take the live count (finderCount). */
 export const FINDER_COPY = {
-  title: "Homeschool Curriculum Finder: 100 Hand-Picked Options with Free Samples",
-  description: "Compare 100 homeschool curricula by grade, subject, prep time, price and ESA eligibility. Read what moms say and try free samples before you buy.",
+  title: (n: number) => `Homeschool Curriculum Finder: ${n} Hand-Picked Options with Free Samples`,
+  description: (n: number) => `Compare ${n} homeschool curricula by grade, subject, prep time, price and ESA eligibility. Read what moms say and try free samples before you buy.`,
   heading: "Find the right homeschool curriculum",
-  intro: "100 curricula, hand-picked and checked: Christian, or secular that doesn't work against your faith. Filter by grade, subject, prep time and budget, read what other moms say, and try a free sample before you spend a dollar.",
+  intro: (n: number) => `${n} curricula, hand-picked and checked: Christian, or secular that doesn't work against your faith. Filter by grade, subject, prep time and budget, read what other moms say, and try a free sample before you spend a dollar.`,
+  /** /homeschool's one-line link to the finder (same live count). */
+  homeschoolLink: (n: number) => `${n} hand-picked homeschool curricula with free samples and what other moms say.`,
   searchLabel: "Search by name or publisher",
   freeOnly: "Completely free",
   hasTrial: "Has a free sample or trial",
@@ -125,7 +136,11 @@ export const FINDER_COPY = {
  * 2026-11-20 08:45: section 2 "Under it" line, "How we choose" (6 points + last line), Disclosures ("Ours" label +
  * line; the commission lines were already live as T.affiliate / T.affiliateLabel), "Checked dates and corrections".
  * src/test/curriculumFinder.test.tsx fails if any string here stops matching the snapshot.
+ * One amendment by Camila (2026-11-20 tap): point 5 adds the retailer clause (POINT_5_RETAILER_CLAUSE).
  */
+export const POINT_5_APPROVED = "The facts check out. Prices, grades and prep come from the publisher's own site, with the date we checked. If we couldn't confirm something, we say so instead of guessing.";
+export const POINT_5_RETAILER_CLAUSE = ", or from a named retailer when the publisher doesn't list a price,";
+const POINT_5_AS_AMENDED = POINT_5_APPROVED.replace("own site,", `own site${POINT_5_RETAILER_CLAUSE}`);
 export const FINDER_TRUST = {
   underHeading: "Every pick in this guide passed the same checks, and nobody can pay to be on it or to move up. Browse all of it free.",
   howHeading: "How we choose",
@@ -134,7 +149,8 @@ export const FINDER_TRUST = {
     "It teaches well. It's a real curriculum a mom can teach a subject or a year with, with a track record in independent reviews.",
     "Kids enjoy it. We look for games, stories, hands-on work and short lessons.",
     "There's room for every kind of kid. We went looking for picks for the music lovers, the artists, the nature kids, the people kids and the big-question kids, not only the readers and the math kids.",
-    "The facts check out. Prices, grades and prep come from the publisher's own site, with the date we checked. If we couldn't confirm something, we say so instead of guessing.",
+    // Camila 2026-11-20 (tap "Add retailers"): 7 price lines come from a named retailer, so point 5 says so.
+    POINT_5_AS_AMENDED,
     "Camila approves every pick before it shows up here.",
   ],
   howLast: "What never decides anything: commissions and sponsors. Nobody can pay to be in this guide or to move up in it.",

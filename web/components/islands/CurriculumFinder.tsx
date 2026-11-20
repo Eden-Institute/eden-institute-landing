@@ -3,7 +3,7 @@
 // curriculum-shortlist edge function. The Friday box is UNTICKED by default (Camila's tap).
 // Copy: FINDER_COPY in web/lib/curriculumFinder.ts (DRAFT, pending her approval).
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { COMING_SOON_BANDS, EDEN_TABLE_SHEET_IDS, EDEN_TESTIMONIALS, FINDER_COPY as T, FINDER_FAQ, FINDER_FAQ_HEADING, FINDER_FAQ_Q1_QUIZ, FINDER_TRUST as TR, factsCheckedMonth, PREP_ORDER, SUBJECT_GROUPS, WIRED_IS_PUBLIC, type FinderCurriculum } from "../../lib/curriculumFinder";
+import { COMING_SOON_BANDS, EDEN_TABLE_SHEET_IDS, EDEN_TESTIMONIALS, FINDER_COPY as T, FINDER_FAQ, FINDER_FAQ_HEADING, FINDER_FAQ_Q1_QUIZ, FINDER_TRUST as TR, factsCheckedMonth, finderCount, PREP_ORDER, SUBJECT_GROUPS, WIRED_IS_PUBLIC, type FinderCurriculum } from "../../lib/curriculumFinder";
 import { HOMESCHOOL_AUDIENCE_ID } from "../../lib/freeWeekModal";
 
 // The site's existing grade 6-12 waitlist form (same as /homeschool's "Tell me when it opens"), loaded only
@@ -214,7 +214,7 @@ export default function CurriculumFinder({ rows }: { rows: FinderCurriculum[] })
     <div className="max-w-5xl mx-auto px-4 py-10 font-body" style={{ color: "hsl(var(--eden-bark))" }}>
       <h1 className="font-display text-3xl sm:text-4xl">{T.heading}</h1>
       <p className="mt-3 max-w-3xl font-semibold">{TR.underHeading}</p>
-      <p className="mt-3 max-w-3xl">{T.intro} <a href="#how-we-choose" className="underline underline-offset-4">{TR.howHeading}</a></p>
+      <p className="mt-3 max-w-3xl">{T.intro(finderCount(rows))} <a href="#how-we-choose" className="underline underline-offset-4">{TR.howHeading}</a></p>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <input aria-label={T.searchLabel} placeholder={T.searchLabel} value={q} onChange={(e) => setQ(e.target.value)} className={select} />

@@ -6,12 +6,12 @@
 // PUBLIC since 2026-11-19 (founder: "Make it public and make sure it ranks"); copy approved with that go.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 import CurriculumFinder, { finderSlug } from "../components/islands/CurriculumFinder";
-import { FINDER_COPY, FINDER_FAQ, fetchFinderRows } from "../lib/curriculumFinder";
+import { FINDER_COPY, FINDER_FAQ, fetchFinderRows, finderCount } from "../lib/curriculumFinder";
 
 const rows = await fetchFinderRows();
 const meta = {
-  title: FINDER_COPY.title,
-  description: FINDER_COPY.description,
+  title: FINDER_COPY.title(finderCount(rows)),
+  description: FINDER_COPY.description(finderCount(rows)),
   canonical: "https://edeninstitute.health/curriculum-finder",
 };
 const itemList = {

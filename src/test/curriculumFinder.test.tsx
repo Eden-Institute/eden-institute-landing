@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import CurriculumFinder, { matches, priceText } from "../../web/components/islands/CurriculumFinder";
-import { comingSoonName, EDEN_TESTIMONIALS, factsCheckedMonth, FINDER_COPY, FINDER_FAQ, FINDER_TRUST, WIRED_IS_PUBLIC, type FinderCurriculum } from "../../web/lib/curriculumFinder";
+import { comingSoonName, EDEN_TESTIMONIALS, factsCheckedMonth, FINDER_COPY, FINDER_FAQ, FINDER_TRUST, finderCount, POINT_5_APPROVED, POINT_5_RETAILER_CLAUSE, WIRED_IS_PUBLIC, type FinderCurriculum } from "../../web/lib/curriculumFinder";
 import { readFileSync } from "node:fs";
 
 const base: FinderCurriculum = {
@@ -37,7 +37,10 @@ describe("curriculum finder", () => {
   it("the trust copy is the approved Resource Guide copy word for word", () => {
     const approved = readFileSync("docs/wired-copy/Wired_Quiz_Resource_Guide_Copy.md", "utf8").replace(/\r\n/g, "\n");
     expect(approved).toContain(`Under it: ${FINDER_TRUST.underHeading}`);
-    expect(approved).toContain(`Heading: ${FINDER_TRUST.howHeading}\n${FINDER_TRUST.how.map((h) => `- ${h}`).join("\n")}\n`);
+    // Point 5 carries Camila's one amendment (2026-11-20 tap "Add retailers"); everything else is the approved text.
+    const asApproved = FINDER_TRUST.how.map((h) => (h === POINT_5_APPROVED.replace("own site,", `own site${POINT_5_RETAILER_CLAUSE}`) ? POINT_5_APPROVED : h));
+    expect(FINDER_TRUST.how[4]).toBe("The facts check out. Prices, grades and prep come from the publisher's own site, or from a named retailer when the publisher doesn't list a price, with the date we checked. If we couldn't confirm something, we say so instead of guessing.");
+    expect(approved).toContain(`Heading: ${FINDER_TRUST.howHeading}\n${asApproved.map((h) => `- ${h}`).join("\n")}\n`);
     expect(approved).toContain(`Last line under the list: ${FINDER_TRUST.howLast}`);
     expect(approved).toContain(`an 'Ours' label and this line: ${FINDER_TRUST.oursLine}`);
     expect(approved).toContain(`Bottom of the hub: ${FINDER_TRUST.checked("[month year]")}\n${FINDER_TRUST.outOfDate} ${FINDER_TRUST.tellUs}.`);
@@ -47,6 +50,19 @@ describe("curriculum finder", () => {
     expect(approved).toContain(`- ${FINDER_COPY.hideScreen}`);
     expect(approved).toContain(`· ${FINDER_COPY.screenBased} ·`);
     for (const s of [FINDER_TRUST.underHeading, ...FINDER_TRUST.how, FINDER_TRUST.howLast, FINDER_TRUST.oursLine]) expect(s).not.toContain("—");
+  });
+
+  it("the title, snippet, intro and /homeschool line say the live count (coming-soon sets not counted)", () => {
+    const rows = [base, free, { ...base, id: "55555555-5555-4555-8555-555555555555", sheet_id: "C033", coming_soon: true }];
+    expect(finderCount(rows)).toBe(2);
+    expect(FINDER_COPY.title(95)).toBe("Homeschool Curriculum Finder: 95 Hand-Picked Options with Free Samples");
+    expect(FINDER_COPY.description(95)).toMatch(/^Compare 95 homeschool curricula by grade/);
+    expect(FINDER_COPY.intro(95)).toMatch(/^95 curricula, hand-picked and checked:/);
+    expect(FINDER_COPY.homeschoolLink(95)).toBe("95 hand-picked homeschool curricula with free samples and what other moms say.");
+    for (const s of [FINDER_COPY.title(1), FINDER_COPY.description(1), FINDER_COPY.intro(1)]) expect(s).not.toMatch(/\b100\b/);
+    const page = readFileSync("web/pages/homeschool.astro", "utf8");
+    expect(page).toContain("FINDER_COPY.homeschoolLink(finderCurricula)");
+    expect(page).not.toContain("100 hand-picked");
   });
 
   it("facts-checked month = the oldest verified date, in UTC; none = no line", () => {
