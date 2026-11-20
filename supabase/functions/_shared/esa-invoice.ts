@@ -44,10 +44,13 @@ export interface Product {
   printed: boolean;
 }
 
+// Titles: science first (Camila 2026-11-20 09:15, Lane 4 review page, all five "use"): Georgia declined
+// "nature study" and SC asked for "printed K-5 science textbooks in plant science (botany)". The band-first
+// form labels in web/lib/esaInvoice.ts are unchanged; marketplace listings (Odyssey) are renamed separately.
 export const PRODUCTS: Record<Sku, Product> = {
   "ET-SPR-K2-004": {
     sku: "ET-SPR-K2-004",
-    title: "Sprouts K-2 36-Week Science and Nature Study Printed Curriculum Set, Bible-Based",
+    title: "Sprouts K-2 Science Curriculum: Plant Science (Botany), 36-Week Printed Set, Bible-Based",
     description:
       "Three printed books: Teacher's Guide (240 pages), Student Notebook (224 pages) and Read-Aloud Storybook (112 pages). Shipping included.",
     unitCents: 26100,
@@ -55,14 +58,14 @@ export const PRODUCTS: Record<Sku, Product> = {
   },
   "ET-SPR-K2-005": {
     sku: "ET-SPR-K2-005",
-    title: "Sprouts K-2 36-Week Science and Nature Study Extra Student Notebook, Bible-Based",
+    title: "Sprouts K-2 Science Curriculum: Plant Science (Botany), 36-Week Extra Student Notebook, Bible-Based",
     description: "One extra printed Student Notebook (224 pages, coil bound). Shipping included.",
     unitCents: 3999,
     printed: true,
   },
   "ET-SPR-K2-003": {
     sku: "ET-SPR-K2-003",
-    title: "Sprouts K-2 9-Week Starter Unit, Science and Nature Study, Bible-Based",
+    title: "Sprouts K-2 Science Curriculum: Plant Science (Botany), 9-Week Starter Unit, Bible-Based",
     description:
       "Weeks 1 to 9 of the 36-week year, not the full year: Teacher's Guide, Student Notebook and Read-Aloud Storybook sections, delivered as a digital download.",
     unitCents: 3900,
@@ -71,7 +74,7 @@ export const PRODUCTS: Record<Sku, Product> = {
   // Seedlings (grades 3-5), founder decisions 2026-09-24. No page counts: they are not locked yet.
   "ET-SDL-35-004": {
     sku: "ET-SDL-35-004",
-    title: "Seedlings 3-5 36-Week Science and Nature Study Printed Curriculum Set, Bible-Based",
+    title: "Seedlings 3-5 Science Curriculum: Plant Science (Botany), 36-Week Printed Set, Bible-Based",
     description:
       "Three printed books: Teacher's Guide, Student Notebook and Read-Aloud Storybook, all 36 weeks for grades 3-5. Shipping included.",
     unitCents: 26100,
@@ -79,20 +82,39 @@ export const PRODUCTS: Record<Sku, Product> = {
   },
   "ET-SDL-35-005": {
     sku: "ET-SDL-35-005",
-    title: "Seedlings 3-5 36-Week Science and Nature Study Extra Student Notebook, Bible-Based",
+    title: "Seedlings 3-5 Science Curriculum: Plant Science (Botany), 36-Week Extra Student Notebook, Bible-Based",
     description: "One extra printed Student Notebook for grades 3-5 (coil bound). Shipping included.",
     unitCents: 3999,
     printed: true,
   },
   "ET-SDL-35-003": {
     sku: "ET-SDL-35-003",
-    title: "Seedlings 3-5 9-Week Starter Unit, Science and Nature Study, Bible-Based",
+    title: "Seedlings 3-5 Science Curriculum: Plant Science (Botany), 9-Week Starter Unit, Bible-Based",
     description:
       "Weeks 1 to 9 of the 36-week year for grades 3-5, not the full year: Teacher's Guide, Student Notebook and Read-Aloud Storybook sections, delivered as a digital download.",
     unitCents: 3900,
     printed: false,
   },
 };
+
+/**
+ * Price parity (Camila 2026-11-20 09:21, Lane 4 tap "Price extra sets $251"): on ONE submission the first
+ * printed set is $261 ($249 + $12 shipping) and every later printed set is $251 ($249 + $2), the same as a
+ * retail cart's extra-set shipping (print-pricing.ts SHIPPING_RULES perExtraCents 200). Since 2026-11-18 a
+ * submission ships in one box (esa-fulfil.ts). Extra notebooks stay $39.99 (already below retail). All
+ * invoice states; Arizona's fee line applies on top as before.
+ */
+export const EXTRA_SET_CENTS = 25100;
+export const PRINTED_SET_CHOICES: readonly Choice[] = ["set", "sdl_set"];
+
+/** Unit price of student `index`'s choice on this submission (first printed set full price, later ones $251). */
+export function choiceUnitCents(choices: readonly Choice[], index: number): number {
+  const choice = choices[index];
+  const base = PRODUCTS[CHOICE_SKU[choice]].unitCents;
+  if (!PRINTED_SET_CHOICES.includes(choice)) return base;
+  const earlierSets = choices.slice(0, index).filter((c) => PRINTED_SET_CHOICES.includes(c)).length;
+  return earlierSets > 0 ? EXTRA_SET_CENTS : base;
+}
 
 export const AZ_FEE_RATE = 0.020408;
 
@@ -334,10 +356,12 @@ export function feeFor(subtotalCents: number, rate: number): number {
 /** One invoice plan per student. */
 export function planInvoices(sub: Submission): InvoicePlan[] {
   const rules = STATE_RULES[sub.state];
-  return sub.students.map((s) => {
+  const choices = sub.students.map((s) => s.choice);
+  return sub.students.map((s, index) => {
     const p = PRODUCTS[CHOICE_SKU[s.choice]];
+    const unitCents = choiceUnitCents(choices, index);
     const items: LineItem[] = [
-      { sku: p.sku, title: p.title, description: p.description, qty: 1, unitCents: p.unitCents, amountCents: p.unitCents },
+      { sku: p.sku, title: p.title, description: p.description, qty: 1, unitCents, amountCents: unitCents },
     ];
     const subtotalCents = items.reduce((t, i) => t + i.amountCents, 0);
     const feeCents = feeFor(subtotalCents, rules.feeRate);
