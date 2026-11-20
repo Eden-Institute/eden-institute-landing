@@ -128,6 +128,13 @@ if (d.faq.length > 0) {
         </nav>
       )}
 
+      {/* 2026-11-20 (Lane SEO): homeschool articles link the curriculum finder once. */}
+      {d.freeWeekOffer && (
+        <p class="mt-10 font-body text-base" style="color:hsl(var(--eden-bark))">
+          Comparing curricula? <a href="/curriculum-finder" data-cta={`learn-${entry.slug}-curriculum-finder`} class="font-semibold underline underline-offset-4">Use our free curriculum finder</a>: hand-picked homeschool curricula with free samples and what other moms say.
+        </p>
+      )}
+
       {/* A flagged article (freeWeekOffer) signs readers up right here, the second
           of its two offers (web/lib/freeWeekOffer.ts); the others link to /freebies. */}
       {/* Back to Eden's free Chapter 1 for articles adults come to (bookOffer, 2026-11-16). */}
