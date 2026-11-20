@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
       children.push({
         ...payload, raters,
         teen_link_allowed: k.unlocked_via !== null && k.grade >= 9,
-        observers_allowed: k.unlocked_via === 'blueprint' || k.unlocked_via === 'family_map',
+        observers_allowed: k.unlocked_via === 'blueprint' || k.unlocked_via === 'family_map' || k.unlocked_via === 'pilot',
       });
     }
     return wiredJson(200, { first_name: fam[0].first_name, children });

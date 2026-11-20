@@ -211,7 +211,7 @@ export async function buildLearner(db: Db, row: QueueRow, now: Date = new Date()
   if (!row.child_id) return { skip: "no_child" };
   const kid = (await pg<{ unlocked_via: string | null }[]>(db, `wired_children?id=eq.${row.child_id}&removed_at=is.null&select=unlocked_via&limit=1`))?.[0];
   if (!kid || kid.unlocked_via === null) return { skip: "child_locked_or_removed" };
-  if (pos === 4 && (kid.unlocked_via === "blueprint" || kid.unlocked_via === "family_map")) return { skip: "already_has_blueprint" };
+  if (pos === 4 && (kid.unlocked_via === "blueprint" || kid.unlocked_via === "family_map" || kid.unlocked_via === "pilot")) return { skip: "already_has_blueprint" };
 
   const job: PdfJob = { id: row.id, family_id: row.family_id, child_id: row.child_id, order_id: null, buyer_id: null, kind: "free", quiz_year: 0, attempts: 0, status: "queued" };
   const loaded = await loadBlueprintData(db, job);
@@ -363,7 +363,7 @@ async function sendTransactional(
       });
       // The updated Blueprint (with every view blended in) when she has one for this child (answer 4: built at
       // send time, attached, never stored).
-      if (kid.unlocked_via === "blueprint" || kid.unlocked_via === "family_map") {
+      if (kid.unlocked_via === "blueprint" || kid.unlocked_via === "family_map" || kid.unlocked_via === "pilot") {
         const job: PdfJob = { id: row.id, family_id: row.family_id, child_id: row.child_id, order_id: null, buyer_id: null, kind: "blueprint", quiz_year: 0, attempts: 0, status: "queued" };
         const pdf = await renderJob(job, await loadBlueprintData(db, job));
         if (pdf.bytes.length > 3 * 1024 * 1024) throw new Error(`Blueprint PDF is ${pdf.bytes.length} bytes, over the 3 MB budget`);

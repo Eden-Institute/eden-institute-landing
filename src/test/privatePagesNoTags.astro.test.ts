@@ -41,6 +41,7 @@ const PRIVATE_PAGES = [
   "wired/teen.astro",
   "wired/observer.astro",
   "wired/delete.astro",
+  "wired/pilot.astro",
 ];
 
 /** These read the live herb database while they render (web/lib/herbsPublic.ts)

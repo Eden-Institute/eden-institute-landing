@@ -40,7 +40,11 @@ export async function loadBlueprintData(db: Db, job: PdfJob): Promise<LoadedJob>
     if (!job.child_id) throw new Error("blueprint job without a child");
     childIds = [job.child_id];
   } else {
-    const unlocks = await pg<{ child_id: string }[]>(db, `wired_unlocks?order_id=eq.${job.order_id}&product=eq.family_map&select=child_id`);
+    // A purchase: the children that order unlocked. A pilot Family Map (W12) has no order: the children its
+    // pilot_family_map unlock covered.
+    const unlocks = await pg<{ child_id: string }[]>(db, job.order_id
+      ? `wired_unlocks?order_id=eq.${job.order_id}&product=eq.family_map&select=child_id`
+      : `wired_unlocks?family_id=eq.${job.family_id}&product=eq.pilot_family_map&select=child_id`);
     childIds = [...new Set((unlocks ?? []).map((u) => u.child_id).filter(Boolean))];
   }
   if (!childIds.length) throw new Error("no covered children");
