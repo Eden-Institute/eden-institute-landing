@@ -50,6 +50,8 @@ import {
   type SalesDigest,
   type SalesOrderRow,
 } from './sales.ts';
+import { dailyLine, type FunnelDay } from '../_shared/wired-funnel.ts';
+import { staleCutoff } from '../_shared/wired-staleness.ts';
 import {
   evaluateSystemHealth,
   hasHealthProblem,
@@ -338,6 +340,9 @@ async function fetchSystemHealthInput(digestDate: string, todayCt: string, now: 
         '&order=occurred_at.desc&limit=500',
     ),
   ]);
+  // (Wired W10) Approved curricula not verified in 6 months (never verified counts too).
+  const wiredCut = encodeURIComponent(staleCutoff(now).toISOString());
+  const wiredStale = await countRows(`/rest/v1/wired_curricula?approved=eq.true&or=(last_verified_at.is.null,last_verified_at.lt.${wiredCut})&select=id&limit=1`);
 
   const failedByQueue: Record<string, number | null> = {};
   const stuckByQueue: Record<string, number | null> = {};
@@ -377,6 +382,7 @@ async function fetchSystemHealthInput(digestDate: string, todayCt: string, now: 
     ga4SecretSet: !!Deno.env.get('GA4_MP_API_SECRET'),
     sampleLinkSpikes: sampleServes ? findSampleLinkSpikes(sampleServes.rows) : null,
     browserErrors: clientErrors ? summarizeBrowserErrors(clientErrors.rows, clientErrors.n) : null,
+    wiredStale: wiredStale ? wiredStale.n : null,
   };
 }
 
@@ -486,6 +492,7 @@ function buildDigestEmail(
   health: { rails: RailHealthRow[]; sync: ContactSyncHealth | null } = { rails: [], sync: null },
   esa: EsaDigest | null = null,
   systemChecks: HealthCheck[] = [],
+  wiredDay: FunnelDay | null = null,
 ): {
   subject: string;
   html: string;
@@ -582,6 +589,8 @@ function buildDigestEmail(
 
   // ── Sales: yesterday and the last 7 days (sales.ts) ──
   const salesSection = salesHtml(sales);
+  // ── Wired quiz: yesterday's counts (W10; left out on an all-zero day, so the dark quiz adds nothing) ──
+  const wired = dailyLine(wiredDay);
 
   // ── ESA scholarship invoices ──
   const esaMoney = (c: number) => `$${(c / 100).toFixed(2)}`;
@@ -659,6 +668,7 @@ ${syncLine}
 ${capturesBlock}
 ${systemHealthHtml(systemChecks)}
 ${salesSection}
+${wired ? wired.html : ''}
 ${esaSection}
 ${railSection}
 
@@ -692,6 +702,7 @@ The Eden Institute · edeninstitute.health · automated daily digest
   }
   if (systemChecks.length > 0) lines.push('', ...systemHealthTextLines(systemChecks));
   lines.push('', ...salesTextLines(sales));
+  if (wired) lines.push('', wired.text);
   if (esa && (esa.unpaid > 0 || esa.issuedYesterday > 0 || esa.paidYesterday > 0 || esa.awaitingConfirm > 0 || esa.failed > 0)) {
     lines.push(
       '',
@@ -859,7 +870,16 @@ Deno.serve(async (req) => {
 
     // ── Build + send digest ──
     const captureRows: CaptureRow[] = Array.isArray(rows) ? rows : [];
-    const { subject, html, text } = buildDigestEmail(captureRows, digestDate, sales, health, esa, systemChecks);
+    // ── Wired quiz counts for the digest day (W10, best-effort: a failed read just leaves the line out) ──
+    let wiredDay: FunnelDay | null = null;
+    try {
+      const wr = await sbFetch(`/rest/v1/wired_funnel_daily?day=eq.${digestDate}&select=*&limit=1`);
+      if (wr.ok) wiredDay = ((await wr.json()) as FunnelDay[])[0] ?? null;
+      else console.error('notify-founder-digest: wired funnel read failed', wr.status);
+    } catch (e) {
+      console.error('notify-founder-digest: wired funnel read error', e instanceof Error ? e.message : String(e));
+    }
+    const { subject, html, text } = buildDigestEmail(captureRows, digestDate, sales, health, esa, systemChecks, wiredDay);
 
     const resendRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',

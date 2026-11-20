@@ -34,6 +34,7 @@ import { isServiceRoleRequest, serviceRoleRequired } from '../_shared/require-se
 import { claimRun, WEEKLY_TRENDS_RUNS } from '../_shared/digest-run-claim.ts';
 import { pgrstFetch } from '../_shared/pgrst-retry.ts';
 import { buildEmail, ctDateString, type Snapshot } from '../_shared/weekly-trends-report.ts';
+import { type FunnelDay, type PlacementClicks, weeklySection } from '../_shared/wired-funnel.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -60,6 +61,23 @@ async function sbFetch(path: string, init: RequestInit = {}): Promise<Response> 
     ...(init.headers ?? {}),
   };
   return pgrstFetch(`${SUPABASE_URL}${path}`, { ...init, headers });
+}
+
+// The weekly email's focus box; the Wired section goes just above it.
+const WIRED_ANCHOR = '<div style="background:#1C3A2E;padding:18px 20px;margin-bottom:8px;">';
+
+/** This week = runDate and the six days before; last week = the seven before that (Central days). */
+async function wiredWeekly(runDate: string): Promise<{ html: string; text: string } | null> {
+  const back = (n: number) => new Date(Date.parse(`${runDate}T12:00:00Z`) - n * 86_400_000).toISOString().slice(0, 10);
+  const res = await sbFetch(`/rest/v1/wired_funnel_daily?day=gte.${back(13)}&day=lte.${runDate}&select=*&order=day.asc`);
+  if (!res.ok) throw new Error(`wired_funnel_daily ${res.status}`);
+  const days = (await res.json()) as FunnelDay[];
+  const start = back(6);
+  const pRes = await sbFetch(`/rest/v1/wired_clicks_by_placement_daily?day=gte.${start}&day=lte.${runDate}&select=placement,clicks`);
+  const prow = pRes.ok ? (await pRes.json()) as PlacementClicks[] : [];
+  const byPlace = new Map<string, number>();
+  for (const p of prow) byPlace.set(p.placement, (byPlace.get(p.placement) ?? 0) + p.clicks);
+  return weeklySection(days.filter((d) => d.day >= start), days.filter((d) => d.day < start), [...byPlace].map(([placement, clicks]) => ({ placement, clicks })));
 }
 
 Deno.serve(async (req) => {
@@ -114,7 +132,15 @@ Deno.serve(async (req) => {
     const snapshot: Snapshot = await rpcRes.json();
 
     // ── Build + send (always send — the weekly rhythm is the point) ──
-    const { subject, html, text } = buildEmail(snapshot, runDate);
+    const built = buildEmail(snapshot, runDate);
+    // (Wired W10) The quiz funnel, this week vs last (best-effort; left out when both weeks are empty).
+    const wired = await wiredWeekly(runDate).catch((e) => {
+      console.error('weekly-trends-digest: wired section skipped', e instanceof Error ? e.message : String(e));
+      return null;
+    });
+    const subject = built.subject;
+    const html = wired ? built.html.replace(WIRED_ANCHOR, `${wired.html}\n${WIRED_ANCHOR}`) : built.html;
+    const text = wired ? `${built.text}\n\n${wired.text}` : built.text;
 
     const resendRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
