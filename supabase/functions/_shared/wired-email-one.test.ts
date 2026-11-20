@@ -14,7 +14,7 @@ Deno.test("email 1: approved subject, top 3 filled, private results link with it
   assertStringIncludes(m.html, "You're getting this because you took the Fearfully &amp; Wonderfully Wired quiz.");
   assertStringIncludes(m.html, "303 Holly Cir, Unit 3262, Clarksville, TN 37043");
   assertStringIncludes(m.html, "color:#E8E3DA");
-  assert(!m.html.includes("Delete my quiz data"));
+  assertStringIncludes(m.html, "https://edeninstitute.health/wired/delete"); // W9: the approved Delete my quiz data link
   assert(!m.html.includes("[button]") && !m.text.includes("[") );
 });
 

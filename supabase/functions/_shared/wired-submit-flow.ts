@@ -197,7 +197,7 @@ async function raterRecord(db: Db, sub: Submission, year: number): Promise<{ fam
   return { familyId, childId, momDone, raters };
 }
 
-async function rpc(db: Db, p: Record<string, unknown>): Promise<Record<string, any>> {
+export async function rpc(db: Db, p: Record<string, unknown>): Promise<Record<string, any>> {
   return await pg<Record<string, any>>(db, 'rpc/wired_submit', { method: 'POST', body: JSON.stringify({ p }) });
 }
 

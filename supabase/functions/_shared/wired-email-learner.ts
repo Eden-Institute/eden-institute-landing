@@ -15,7 +15,7 @@
 //   em-9  is never built until 3+ real, Camila-approved pilot quotes exist (the drain skips it).
 //   em-10 drops the book-waitlist sentence until Lane 8 supplies a waitlist link.
 //   July  one email per family, one button per child (approved PROPOSED note).
-// Until the delete flow ships (W9) the footer keeps Unsubscribe + the business name and address, as email 1.
+// Footer: the approved line, the business name and address, Unsubscribe and (since W9) Delete my quiz data.
 // Leaves {{UNSUB_URL}} for applyUnsub (list `learner`).
 
 import { WIRED_PDF_COPY as COPY, type CopyItem } from "./wired-pdf-content.ts";
@@ -125,14 +125,14 @@ function render(key: LearnerKey, o: LearnerInput, blocks: Block[], v: Record<str
       `<p style="margin:4px 0 0 0;font-family:Georgia,serif;font-size:14px;">The Eden Institute</p>`,
     `<tr><td style="font-family:Georgia,serif;font-size:12px;color:${INK};text-align:center;">${esc(footerLine)}</td></tr>
 <tr><td style="font-family:Georgia,serif;font-size:12px;color:${INK};text-align:center;padding-top:6px;">${ADDRESS}</td></tr>
-<tr><td style="text-align:center;padding-top:8px;"><a href="{{UNSUB_URL}}" style="font-family:Georgia,serif;font-size:12px;color:${INK};text-decoration:underline;">Unsubscribe from these emails</a></td></tr>`,
+<tr><td style="text-align:center;padding-top:8px;"><a href="{{UNSUB_URL}}" style="font-family:Georgia,serif;font-size:12px;color:${INK};text-decoration:underline;">Unsubscribe from these emails</a> &middot; <a href="https://edeninstitute.health/wired/delete" style="font-family:Georgia,serif;font-size:12px;color:${INK};text-decoration:underline;">Delete my quiz data</a></td></tr>`,
     { shopCard: false },
   );
   const text = [
     greeting,
     ...blocks.map((b) => b.kind === "p" ? b.s : b.kind === "list" ? b.items.map((x) => `- ${x}`).join("\n") : b.kind === "img" ? `(${b.alt})` : `${b.label}: ${b.url}${b.note ? ` (${b.note})` : ""}`),
     "Camila", "The Eden Institute", "",
-    footerLine, ADDRESS.replace("&middot;", "·"), "Unsubscribe from these emails: {{UNSUB_URL}}",
+    footerLine, ADDRESS.replace("&middot;", "·"), "Unsubscribe from these emails: {{UNSUB_URL}}", "Delete my quiz data: https://edeninstitute.health/wired/delete",
   ].join("\n\n");
   const buttonUrls = blocks.filter((b): b is Extract<Block, { kind: "button" }> => b.kind === "button").map((b) => b.url);
   // Eden links carry the learner tags; em-7's curriculum link is someone else's site (no Eden tags, answer 35).

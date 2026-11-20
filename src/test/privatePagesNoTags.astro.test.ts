@@ -38,6 +38,9 @@ const PRIVATE_PAGES = [
   "back-to-eden/download.astro",
   "answer.astro",
   "wired/results.astro",
+  "wired/teen.astro",
+  "wired/observer.astro",
+  "wired/delete.astro",
 ];
 
 /** These read the live herb database while they render (web/lib/herbsPublic.ts)
