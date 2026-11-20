@@ -53,3 +53,17 @@ Deno.test("Free results PDF renders small, with every approach code mapped to ap
   assert(bytes.length < 1024 * 1024, `size ${bytes.length}`);
   if (Deno.env.get("WIRED_PDF_OUT")) await Deno.writeFile(`${Deno.env.get("WIRED_PDF_OUT")}/free.pdf`, bytes);
 });
+
+Deno.test("Shortlist PDF renders 10 curricula under 1 MB", async () => {
+  const { buildShortlistPdf } = await import("./wired-pdf.ts");
+  const row = {
+    name: "Math-U-See", publisher: "Demme Learning", link: "https://mathusee.com/", is_affiliate: false, approach: "Mastery",
+    subjects: ["Math"], grade_min: 0, grade_max: 12, prep_load: "Light", price_cents: 4500, price_basis: "Per level",
+    faith_alignment: "Christian-friendly", free_trial_url: "https://mathusee.com/placement", free_trial_note: "Free placement tool",
+    completely_free: false, mom_pros: ["Clear videos", "Hands-on blocks"], mom_cons: ["Slow for strong math kids"],
+    mom_sources: [{ title: "Cathy Duffy", url: "https://cathyduffyreviews.com/x" }], mom_note: null, esa_yes_states: ["FL"],
+  };
+  const bytes = await buildShortlistPdf({ items: Array.from({ length: 10 }, (_, i) => ({ ...row, name: `${row.name} ${i}` })), esaState: "FL" });
+  assert(bytes.length < 1024 * 1024, `size ${bytes.length}`);
+  if (Deno.env.get("WIRED_PDF_OUT")) await Deno.writeFile(`${Deno.env.get("WIRED_PDF_OUT")}/shortlist.pdf`, bytes);
+});
