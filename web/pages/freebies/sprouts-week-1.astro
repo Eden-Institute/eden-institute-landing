@@ -3,6 +3,7 @@
 // for their three Week 1 files. All of the content lives in
 // web/components/FreeWeekDownloads.astro (see its header for why this is a page and
 // not three raw PDF links). noindex: the free week is reached by signing up.
+import WiredCta from "../../components/WiredCta.astro";
 import MarketingLayout from "../../layouts/MarketingLayout.astro";
 import FreeWeekDownloads from "../../components/FreeWeekDownloads.astro";
 
@@ -20,4 +21,6 @@ const meta = {
   noindex={true}
 >
   <FreeWeekDownloads band="sprouts" />
+  {/* Wired quiz W11 card: renders nothing until WIRED_IS_PUBLIC. */}
+  <WiredCta placement="sample_inline" />
 </MarketingLayout>

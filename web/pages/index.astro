@@ -18,6 +18,7 @@
 //   • The <GetInvolvedSection> client:only island renders the partner / donor
 //     "Get Involved" capture-then-book form (honey/green), in place of the
 //     former empty #cta placeholder. Submits to submit-partner-inquiry.
+import WiredCta from "../components/WiredCta.astro";
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 import HomeJourneyPersonalizer from "../components/islands/HomeJourneyPersonalizer.tsx";
 import GetInvolvedSection from "@/components/landing/GetInvolvedSection";
@@ -258,6 +259,8 @@ const meta = {
   <GetInvolvedSection client:only="react" />
 
   {/* FOOTER (bespoke — shared Footer suppressed via hideFooter) */}
+  {/* Wired quiz W11 card: renders nothing until WIRED_IS_PUBLIC. */}
+  <WiredCta placement="home_inline" />
   <section id="footer" aria-label="Footer" class="px-8" style="background-color:hsl(var(--footer-bg));padding-top:clamp(48px, 6vw, 80px);padding-bottom:24px">
     <div class="max-w-[1120px] mx-auto">
       <div class="grid grid-cols-1 min-[880px]:grid-cols-4 gap-10">

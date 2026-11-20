@@ -6,6 +6,7 @@
 // Built to be found and quoted: the first paragraph answers the question, the
 // FAQ ships as FAQPage JSON-LD, and Article JSON-LD carries the real published
 // and updated dates from frontmatter (never the build date).
+import WiredCta from "../../components/WiredCta.astro";
 import { getCollection, type CollectionEntry } from "astro:content";
 import MarketingLayout from "../../layouts/MarketingLayout.astro";
 import { GRADE_PAGES, gradePath } from "../../lib/gradePages";
@@ -163,6 +164,8 @@ if (d.faq.length > 0) {
         </p>
       </aside>
     </div>
+  {/* Wired quiz W11 card: renders nothing until WIRED_IS_PUBLIC. */}
+  <WiredCta placement="blog_end" />
   </article>
   {/* "Before you go" (batch 5, b5_exit): Chapter 1 on the faith articles, Week 1 on the rest. */}
   {(d.freeWeekOffer || d.bookOffer) && <ExitOffer offer={d.bookOffer ? "book" : "free_week"} placement="learn_exit" />}

@@ -11,6 +11,7 @@
 // Unlike /curriculum this page IS indexed. It shares /curriculum's plain header
 // and footer (hideNav + hideFooter), because the shared navbar carries wording
 // scholarship programs cannot place under an approved subject.
+import WiredCta from "../../components/WiredCta.astro";
 import MarketingLayout from "../../layouts/MarketingLayout.astro";
 import EsaInvoiceForm from "../../components/islands/EsaInvoiceForm.tsx";
 import {
@@ -438,4 +439,6 @@ const cardStyle = "border-color:hsl(var(--eden-gold) / 0.3)";
       303 Holly Cir, Unit 3262, Clarksville, Tennessee 37043
     </p>
   </footer>
+  {/* Wired quiz W11 card: renders nothing until WIRED_IS_PUBLIC. */}
+  <WiredCta placement="esa_inline" state={s.state} />
 </MarketingLayout>

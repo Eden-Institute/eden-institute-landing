@@ -36,6 +36,7 @@ function NavAnchor({
     style,
     onClick,
     "data-cta": link.cta,
+    "data-cta-placement": link.ctaPlacement,
   };
   if (link.spaRoute && !link.external) {
     return (

@@ -10,11 +10,14 @@
 // app watched the header change under them.
 //
 // Keep this module free of runtime imports so the Astro frontmatter, the SPA
-// bundle and the tests can all read it without pulling anything else in.
+// bundle and the tests can all read it without pulling anything else in. (One exception, 2026-11-20:
+// the Wired launch switch, a constant in a file with no imports of its own.)
 //
 // spaRoute: the path is a React Router route in src/App.tsx, so the SPA may use
 // a router <Link>. Every other internal href is an Astro page (or "/", which
 // Astro serves) and the SPA must reach it with a full page load (<a href>).
+
+import { WIRED_IS_PUBLIC } from "../../supabase/functions/_shared/wired-launch";
 
 export interface SiteLink {
   label: string;
@@ -25,12 +28,17 @@ export interface SiteLink {
   spaRoute?: boolean;
   /** data-cta value for the click beacon, when the link is a measured CTA. */
   cta?: string;
+  /** data-cta-placement for the click beacon (Wired quiz buttons, spec answer 36). */
+  ctaPlacement?: string;
 }
 
 export interface SiteButton extends SiteLink {
   background: string;
   color: string;
 }
+
+/** Wired quiz header link (W11, approved copy version A). In NAV_LINKS only when WIRED_IS_PUBLIC. */
+export const WIRED_NAV_LINK: SiteLink = { label: "Wired Quiz", href: "/wired?p=header", cta: "wired", ctaPlacement: "header" };
 
 /** Header text links, in display order. */
 export const NAV_LINKS: readonly SiteLink[] = [
@@ -47,6 +55,9 @@ export const NAV_LINKS: readonly SiteLink[] = [
   { label: "Guides", href: "/learn" },
   // 2026-11-19 (founder: "make it public and make sure it ranks"): the public curriculum finder.
   { label: "Curriculum Finder", href: "/curriculum-finder", cta: "nav-curriculum-finder" },
+  // Wired quiz W11 (approved 2026-11-19, version A "Wired Quiz", placement header): shown only once the quiz
+  // is public (WIRED_IS_PUBLIC, the one launch switch). Internal link: no UTM; counted by the click beacon.
+  ...(WIRED_IS_PUBLIC ? [WIRED_NAV_LINK] : []),
   // 2026-10-14 (founder: "change Adult Courses to Adult Resources, I am only selling the
   // books"): the adult course is retired, so this goes to the Back to Eden book page.
   // /courses redirects there too (vercel.json). The separate "Buy the Book" link

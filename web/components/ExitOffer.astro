@@ -26,8 +26,16 @@
 // clicked by the script, picked up by the SiteAnalytics click beacon), and its buttons
 // carry their own data-cta / form_name (herb-exit-bte-ch1, learn-exit-sprouts-free, ...).
 // Copy rule: no em dashes.
+//
+// WIRED QUIZ POP-UP (W11, spec section 14, approved copy 2026-11-19, version A). Once the quiz is public
+// (WIRED_IS_PUBLIC), each visitor is assigned ONE of the two pop-ups, 50/50, kept in localStorage
+// "eden-exit-arm" ("wired" | "existing"). Same trigger as this box. Once the Wired pop-up has shown, it stays
+// closed for that visitor ("eden-wired-popup-closed"). Impressions: data-cta "exit-popup-wired-shown" (and this
+// box's own "<placement>-shown"); clicks: data-cta "wired" + data-cta-placement "exit_popup". No storage = no
+// pop-up at all, as before. Until launch the Wired panel is not rendered and nothing changes here.
 import { bookChapterOfferHtml, type BookOfferPlacement } from "../lib/bookChapterOffer";
 import { freeWeekOfferHtml, type FreeWeekPlacement } from "../lib/freeWeekOffer";
+import { WIRED_IS_PUBLIC, WIRED_POPUP, wiredHref } from "../lib/wiredButtons";
 
 export interface Props {
   offer: "book" | "free_week";
@@ -40,6 +48,7 @@ const offerHtml =
     ? bookChapterOfferHtml(placement as Exclude<BookOfferPlacement, "monograph">)
     : freeWeekOfferHtml(placement as FreeWeekPlacement);
 const shownCta = `${placement.replace(/_/g, "-")}-shown`;
+const popup = WIRED_POPUP.A;
 ---
 
 <div id="exit-offer" class="exit-offer" hidden role="dialog" aria-modal="true" aria-label="Before you go">
@@ -52,6 +61,26 @@ const shownCta = `${placement.replace(/_/g, "-")}-shown`;
     <span hidden data-cta={shownCta} data-exit-shown></span>
   </div>
 </div>
+
+{WIRED_IS_PUBLIC && (
+  <div id="wired-exit" class="exit-offer" hidden role="dialog" aria-modal="true" aria-label={popup.headline}>
+    <div class="exit-offer__backdrop" data-exit-close></div>
+    <div class="exit-offer__panel">
+      <button type="button" class="exit-offer__x" data-exit-close aria-label="Close">&times;</button>
+      <p class="font-display text-2xl mb-3" style="color:hsl(var(--eden-forest))">{popup.headline}</p>
+      <p class="font-body text-base mb-5" style="color:hsl(var(--eden-bark))">{popup.text}</p>
+      <a
+        href={wiredHref("exit_popup")}
+        data-cta="wired"
+        data-cta-placement="exit_popup"
+        class="inline-flex items-center justify-center font-accent text-sm tracking-[0.2em] uppercase font-bold px-6 py-3 rounded-md"
+        style="background-color:hsl(var(--eden-forest));color:hsl(var(--eden-cream))"
+      >{popup.yes}</a>
+      <button type="button" class="exit-offer__no font-body text-sm underline underline-offset-4" data-exit-close>{popup.no}</button>
+      <span hidden data-cta="exit-popup-wired-shown" data-cta-placement="exit_popup" data-exit-shown></span>
+    </div>
+  </div>
+)}
 
 <style>
   .exit-offer {
@@ -124,20 +153,42 @@ const shownCta = `${placement.replace(/_/g, "-")}-shown`;
   const QUIET_DAYS = 30;
   const ARM_MS = 12000;
 
+  const ARM_KEY = "eden-exit-arm";
+  const WIRED_CLOSED_KEY = "eden-wired-popup-closed";
+
   function init() {
-    const box = document.getElementById("exit-offer");
-    if (!box) return;
+    const offerBox = document.getElementById("exit-offer");
+    if (!offerBox) return;
+    const wiredBox = document.getElementById("wired-exit");
+
+    // W11: with the Wired pop-up on the page, each visitor gets one of the two, 50/50, kept for good.
+    let arm = "existing";
+    if (wiredBox) {
+      try {
+        const kept = window.localStorage.getItem(ARM_KEY);
+        arm = kept === "wired" || kept === "existing" ? kept : Math.random() < 0.5 ? "wired" : "existing";
+        if (kept !== arm) window.localStorage.setItem(ARM_KEY, arm);
+      } catch {
+        return;
+      }
+    }
+    const box = arm === "wired" && wiredBox ? wiredBox : offerBox;
 
     // Once per visitor. No storage = never show (the promise could not be kept).
     try {
-      const last = Number(window.localStorage.getItem(KEY));
-      if (last && Date.now() - last < QUIET_DAYS * 86400000) return;
+      if (box === wiredBox) {
+        if (window.localStorage.getItem(WIRED_CLOSED_KEY)) return;
+      } else {
+        const last = Number(window.localStorage.getItem(KEY));
+        if (last && Date.now() - last < QUIET_DAYS * 86400000) return;
+      }
     } catch {
       return;
     }
     const remember = () => {
       try {
-        window.localStorage.setItem(KEY, String(Date.now()));
+        if (box === wiredBox) window.localStorage.setItem(WIRED_CLOSED_KEY, "1");
+        else window.localStorage.setItem(KEY, String(Date.now()));
       } catch {
         /* storage went away: nothing to do */
       }
@@ -158,7 +209,7 @@ const shownCta = `${placement.replace(/_/g, "-")}-shown`;
       done = true;
       remember();
       box.hidden = false;
-      box.querySelector<HTMLElement>("[data-waitlist-source]")?.focus();
+      (box.querySelector<HTMLElement>("[data-waitlist-source]") ?? box.querySelector<HTMLElement>("a[data-cta]"))?.focus();
       box.querySelector<HTMLElement>("[data-exit-shown]")?.click();
     };
 
