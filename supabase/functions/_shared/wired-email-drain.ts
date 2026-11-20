@@ -159,8 +159,9 @@ type Out = { sent: number; skipped: number; deferred: number; failed: number; de
 
 export async function buildLearner(db: Db, row: QueueRow, now: Date = new Date()): Promise<{ mail: LearnerEmail } | { skip: string }> {
   if (!row.family_id) return { skip: "no_family" };
-  const fam = (await pg<{ first_name: string | null; deleted_at: string | null }[]>(db, `wired_families?id=eq.${row.family_id}&select=first_name,deleted_at&limit=1`))?.[0];
-  if (!fam || fam.deleted_at) return { skip: "family_deleted" };
+  // A data deletion hard-deletes the family (and cascades its queue rows), so a missing row = deleted.
+  const fam = (await pg<{ first_name: string | null }[]>(db, `wired_families?id=eq.${row.family_id}&select=first_name&limit=1`))?.[0];
+  if (!fam) return { skip: "family_deleted" };
   const token = await signWiredToken({ familyId: row.family_id, purpose: "results" });
 
   if (row.kind === "july") {
