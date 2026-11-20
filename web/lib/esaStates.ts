@@ -999,6 +999,16 @@ export const ESA_PENDING = [
   { state: "Indiana", program: "Education Scholarship Account", note: "Referred by the Indiana Department of Education to the ClassWallet Marketplace, November 2026. Not orderable there yet." },
 ];
 
+/** Programs where Eden's Table has NOT applied, with how they work for us. Never shown as "applied". */
+export const ESA_OTHER = [
+  // 2026-11-20 Camila (Lane 4 chat, relayed 17:48): "change North Carolina to Marketplace only, not yet applied".
+  { state: "North Carolina", program: "Education Student Accounts (ESA+)", note: "Pays for curriculum only through the ClassWallet Marketplace. We have not applied yet." },
+  // 2026-11-20 Camila (Lane 4 chat, relayed 17:49): "change Tennessee to IEA, no vendor registration needed".
+  // Lane 4 research: TN IEA 2026-27 handbook p.35 (no approved-curriculum list, no pre-approval for curricular
+  // materials) and p.24 (IEA debit card); online courses need pre-approval. Not the EFS program.
+  { state: "Tennessee", program: "Individualized Education Account (IEA)", note: "No vendor registration is needed. Families buy curriculum with the IEA debit card, and printed curricular materials need no pre-approval (online courses do)." },
+];
+
 /** Last content review of the ESA pages. Bump it when what they say changes (see
     the rules at the top). */
 export const ESA_UPDATED_ISO = "2026-11-20";
