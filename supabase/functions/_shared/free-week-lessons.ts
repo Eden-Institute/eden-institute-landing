@@ -50,6 +50,19 @@ export const FREE_WEEK_LESSON_POSITIONS: readonly number[] = FREE_WEEK_LESSON_NU
 export const FREE_WEEK_BAND_SPACED_POSITIONS: ReadonlySet<number> = new Set<number>([1, 2, 8, ...FREE_WEEK_LESSON_POSITIONS]);
 export const BAND_SPACING_MS = 2 * 24 * 60 * 60 * 1000;
 
+/**
+ * PostgREST `order` for the magnet drain (nurture-emails drainMagnetQueue). A both-band
+ * family's two copies of a lesson share one scheduled_for, and the spacing rule sends
+ * whichever copy the drain reads FIRST and holds the other 2 days. With only
+ * `scheduled_for.asc`, Postgres may return those ties in either order, and a flip between
+ * two days sends the second band's lessons out of order (e.g. Lesson 3 before Lesson 1, or
+ * two lessons on one morning). A fixed tie-break makes the same band go first every day.
+ * `band.desc` = Sprouts first, which matches the order the drain has used so far (rows are
+ * created Sprouts first), so switching to it mid-week changes nothing for families already
+ * part-way through. Area 6 audit, 2026-11-20.
+ */
+export const MAGNET_DRAIN_ORDER = 'scheduled_for.asc,band.desc,id.asc';
+
 export function lessonPosition(k: LessonNumber): number {
   return k + FREE_WEEK_LESSON_POSITION_OFFSET;
 }

@@ -94,6 +94,7 @@ import {
   BAND_SPACING_MS,
   buildFreeWeekLessonForPosition,
   FREE_WEEK_BAND_SPACED_POSITIONS,
+  MAGNET_DRAIN_ORDER,
 } from '../_shared/free-week-lessons.ts';
 import { buildBuyerEmail } from '../_shared/buyer-sequence-templates.ts';
 import { buildFoundingFamilyEmail, type FoundingFamilyStep } from '../_shared/founding-family-templates.ts';
@@ -1380,7 +1381,7 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
   // run, so two band rows due in the same batch don't both send.
   const sentAgnostic = new Set<string>();
   const rows = await supabaseQuery(
-    `magnet_email_queue?status=eq.pending&scheduled_for=lte.${encodeURIComponent(nowIso)}&${dueFilter(nowIso)}&order=scheduled_for.asc&limit=${QUEUE_BATCH}`,
+    `magnet_email_queue?status=eq.pending&scheduled_for=lte.${encodeURIComponent(nowIso)}&${dueFilter(nowIso)}&order=${MAGNET_DRAIN_ORDER}&limit=${QUEUE_BATCH}`,
   );
   if (!Array.isArray(rows)) {
     console.error('drainMagnetQueue: unexpected query result', JSON.stringify(rows));
