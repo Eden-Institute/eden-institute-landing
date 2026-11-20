@@ -21,7 +21,10 @@
 //        5 — Week 5 use the Around-the-Table cards (band-agnostic)
 //        6 — Week 6 seasonal herb (band-agnostic)
 //        7 — Week 7 devotional (band-agnostic)
-//      Only position 2 is enqueued (resend-waitlist, since 2026-07-28).
+//      Queued per free-week sign-up (resend-waitlist): 1 (next-morning note, 8 AM
+//      Central), 11-15 (daily Lessons 1-5, Days 2-6, _shared/free-week-lessons.ts,
+//      since 2026-11-19), 2 (Day 7 check-in, A/B since 2026-11-16) and 8 (Day 10
+//      Starter note). Position 2 no longer carries Week 2 (see the call site).
 //      Position 3 and the 4-7 chain are DORMANT: nothing enqueues 3, so
 //      MAGNET_CHAIN_NEXT never fires. Kept so the tail can be re-enabled by
 //      enqueueing 3 again; see migration 20260728234500. Band-agnostic
@@ -87,6 +90,11 @@ import {
   EMAIL_7_RESEND_POSITION,
 } from '../_shared/launch-sequence-templates.ts';
 import { foundersFormUrl } from '../_shared/founders-link.ts';
+import {
+  BAND_SPACING_MS,
+  buildFreeWeekLessonForPosition,
+  FREE_WEEK_BAND_SPACED_POSITIONS,
+} from '../_shared/free-week-lessons.ts';
 import { buildBuyerEmail } from '../_shared/buyer-sequence-templates.ts';
 import { buildFoundingFamilyEmail, type FoundingFamilyStep } from '../_shared/founding-family-templates.ts';
 import {
@@ -181,12 +189,13 @@ const MAGNET_KEY_BY_POS: Record<number, string> = {
 const MAGNET_BAND_AGNOSTIC = new Set<number>([3, 4, 5, 6, 7]);
 
 // Band-specific welcome steps a both-band family gets once per band: the next-morning
-// note (1), the Day 7 check-in (2) and the Day 10 Starter note (8). About 1 family in 5
+// note (1), the Day 7 check-in (2), the Day 10 Starter note (8) and, since 2026-11-19,
+// the daily Lessons 1-5 (11-15). The set and BAND_SPACING_MS live in
+// _shared/free-week-lessons.ts so the lesson tests cover them. About 1 family in 5
 // takes both free weeks, most within minutes, so each pair used to land in the same
 // minute. Founder decision 2026-10-14: the second band's copy of a step goes 2 days after
 // the first band's. Enforced here at send time, so it also covers rows queued earlier.
-const BAND_SPACED_POSITIONS = new Set<number>([1, 2, 8]);
-const BAND_SPACING_MS = 2 * 24 * 60 * 60 * 1000;
+const BAND_SPACED_POSITIONS = FREE_WEEK_BAND_SPACED_POSITIONS;
 
 // Chained scheduling: when position N sends, enqueue N+1 at +7 days. Only
 // position 2 is enqueued (resend-waitlist, since 2026-07-28). Position 3 and
@@ -1463,7 +1472,13 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
 
       let built: { subject: string; html: string };
       let emailKey: string;
-      if (pos === 1) {
+      const lesson = buildFreeWeekLessonForPosition(pos, row.first_name, band);
+      if (lesson) {
+        // 2026-11-19 (founder-approved): daily Lessons 1-5 on Days 2-6, positions 11-15.
+        // Sent to owners too: free lessons, not a sale (no ownsBand skip, unlike 8).
+        built = { subject: lesson.subject, html: lesson.html };
+        emailKey = lesson.emailKey;
+      } else if (pos === 1) {
         // 2026-10-14 (#352): the next-morning nudge, about 18 hours after the free week.
         built = buildFreeWeekNextMorningEmail(row.first_name, band);
         emailKey = `magnet_nextmorning_${band}`;
