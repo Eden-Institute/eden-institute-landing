@@ -98,6 +98,7 @@ import {
 } from '../_shared/free-week-lessons.ts';
 import { buildBuyerEmail } from '../_shared/buyer-sequence-templates.ts';
 import { buildFoundingFamilyEmail, type FoundingFamilyStep } from '../_shared/founding-family-templates.ts';
+import { claimSendDay, nextCentralMorning, releaseSendDay } from '../_shared/send-day-guard.ts';
 import {
   buildChapterEmail2,
   buildChapterEmail3,
@@ -341,10 +342,58 @@ interface SendResult {
   duplicate?: boolean;
   /** Another run is sending this row right now (409 concurrent_idempotent_requests): leave it alone. */
   inFlight?: boolean;
+  /** One Eden nurture email a day (2026-11-20): this address already had one today, so the row was moved
+   *  to 8 AM Central tomorrow, still pending. Not a failure. */
+  deferred?: boolean;
 }
 
 // idempotencyKey: dripIdempotencyKey(table, row.id, row.retry_count) for every drip (N1).
+//
+// queueRow (2026-11-20, spec section 11 / answer 5, "never two Eden nurture emails on one day"): every
+// queue drip passes its table + row id. Right before Resend, sendEmail claims the address's Central day in
+// public.nurture_send_log (_shared/send-day-guard.ts). If another email (any nurture queue, or the Wired
+// learner drip) already has today, the row is moved to 8 AM Central tomorrow, left pending, and nothing
+// is sent ({ deferred: true }). A send that fails gives the day back. The guard fails OPEN: if the log
+// cannot be read, the email sends. Friday Broadcasts are not in the log and never hold anything.
 async function sendEmail(
+  to: string,
+  subject: string,
+  html: string,
+  list: EmailList,
+  tags: ResendTag[] | undefined,
+  idempotencyKey: string,
+  queueRow?: { table: string; id: string },
+): Promise<SendResult> {
+  let claimed = false;
+  if (queueRow) {
+    const guardDb = { url: SUPABASE_URL!, key: SUPABASE_SERVICE_ROLE_KEY! };
+    const claim = await claimSendDay(guardDb, to, queueRow.table, queueRow.id);
+    if (claim === 'taken') {
+      const next = nextCentralMorning(new Date()).toISOString();
+      const moved = await supabaseQuery(`${queueRow.table}?id=eq.${queueRow.id}&status=eq.pending`, {
+        method: 'PATCH',
+        body: JSON.stringify({ scheduled_for: next, updated_at: new Date().toISOString() }),
+      }).catch((err: unknown) => ({ ok: false, status: err instanceof Error ? err.message : 'error' }));
+      if (!moved.ok) console.error(`nurture-emails: could not hold ${queueRow.table} ${queueRow.id} to tomorrow (${moved.status}); it is retried next run`);
+      console.log(`nurture-emails: ${queueRow.table} ${queueRow.id} held to ${next} (already one Eden email today)`);
+      return { ok: false, deferred: true };
+    }
+    claimed = claim === 'claimed';
+  }
+  const giveBack = async () => {
+    if (claimed && queueRow) await releaseSendDay({ url: SUPABASE_URL!, key: SUPABASE_SERVICE_ROLE_KEY! }, queueRow.id);
+  };
+  try {
+    const r = await sendEmailNow(to, subject, html, list, tags, idempotencyKey);
+    if (!r.ok && !r.inFlight) await giveBack();
+    return r;
+  } catch (err) {
+    await giveBack();
+    throw err;
+  }
+}
+
+async function sendEmailNow(
   to: string,
   subject: string,
   html: string,
@@ -649,6 +698,7 @@ async function drainNurtureQueue(): Promise<QueueResult> {
         'constitution',
         engagementTags('constitution', emailKey),
         dripIdempotencyKey('nurture_email_queue', row.id, row.retry_count),
+        { table: 'nurture_email_queue', id: row.id },
       );
       if (send.ok) {
         sendAccepted = true;
@@ -658,7 +708,7 @@ async function drainNurtureQueue(): Promise<QueueResult> {
           updated_at: new Date().toISOString(),
         });
         result.sent++;
-      } else if (!send.inFlight) {
+      } else if (!send.inFlight && !send.deferred) {
         await recordSendFailure('nurture_email_queue', row, { status: send.status, name: send.name, message: send.error }, result);
       }
 
@@ -1051,6 +1101,7 @@ async function drainFollowupQueue(): Promise<QueueResult> {
         list,
         tags,
         dripIdempotencyKey('followup_email_queue', row.id, row.retry_count),
+        { table: 'followup_email_queue', id: row.id },
       );
       if (send.ok) {
         sendAccepted = true;
@@ -1060,7 +1111,7 @@ async function drainFollowupQueue(): Promise<QueueResult> {
           updated_at: new Date().toISOString(),
         });
         result.sent++;
-      } else if (!send.inFlight) {
+      } else if (!send.inFlight && !send.deferred) {
         await recordSendFailure('followup_email_queue', row, { status: send.status, name: send.name, message: send.error }, result);
       }
       await new Promise((r) => setTimeout(r, RATE_LIMIT_MS));
@@ -1548,6 +1599,7 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
         'homeschool',
         engagementTags('homeschool', emailKey),
         dripIdempotencyKey('magnet_email_queue', row.id, row.retry_count),
+        { table: 'magnet_email_queue', id: row.id },
       );
       if (send.ok) {
         sendAccepted = true;
@@ -1562,7 +1614,7 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
         // Chain the next follow-up (Weeks 4-7) at +7 days.
         const nextPos = MAGNET_CHAIN_NEXT[pos];
         if (nextPos) await enqueueNextMagnet(row, nextPos);
-      } else if (!send.inFlight) {
+      } else if (!send.inFlight && !send.deferred) {
         await recordSendFailure('magnet_email_queue', row, { status: send.status, name: send.name, message: send.error }, result);
       }
       await new Promise((r) => setTimeout(r, RATE_LIMIT_MS));
@@ -1787,6 +1839,7 @@ async function drainLaunchQueue(): Promise<QueueResult> {
         'homeschool',
         engagementTags('launch_2026', emailKey),
         dripIdempotencyKey('launch_email_queue', row.id, row.retry_count),
+        { table: 'launch_email_queue', id: row.id },
       );
       if (send.ok) {
         sendAccepted = true;
@@ -1796,7 +1849,7 @@ async function drainLaunchQueue(): Promise<QueueResult> {
           updated_at: new Date().toISOString(),
         });
         result.sent++;
-      } else if (!send.inFlight) {
+      } else if (!send.inFlight && !send.deferred) {
         await recordSendFailure('launch_email_queue', row, { status: send.status, name: send.name, message: send.error }, result);
       }
       await new Promise((r) => setTimeout(r, RATE_LIMIT_MS));
@@ -1932,6 +1985,7 @@ async function drainBuyerQueue(): Promise<QueueResult> {
         'postpurchase',
         engagementTags('buyer_2026', `buyer_${pos}`),
         dripIdempotencyKey('buyer_email_queue', row.id, row.retry_count),
+        { table: 'buyer_email_queue', id: row.id },
       );
       if (send.ok) {
         sendAccepted = true;
@@ -1941,7 +1995,7 @@ async function drainBuyerQueue(): Promise<QueueResult> {
           updated_at: new Date().toISOString(),
         });
         result.sent++;
-      } else if (!send.inFlight) {
+      } else if (!send.inFlight && !send.deferred) {
         await recordSendFailure('buyer_email_queue', row, { status: send.status, name: send.name, message: send.error }, result);
       }
       await new Promise((r) => setTimeout(r, RATE_LIMIT_MS));
@@ -2071,6 +2125,7 @@ async function drainFoundingFamilyQueue(): Promise<QueueResult & { enabled?: boo
         'postpurchase',
         engagementTags('founding_family_2026', `ff_${row.step}`),
         dripIdempotencyKey('founding_family_queue', row.id, row.retry_count),
+        { table: 'founding_family_queue', id: row.id },
       );
       if (send.ok) {
         sendAccepted = true;
@@ -2080,7 +2135,7 @@ async function drainFoundingFamilyQueue(): Promise<QueueResult & { enabled?: boo
           updated_at: new Date().toISOString(),
         });
         result.sent++;
-      } else if (!send.inFlight) {
+      } else if (!send.inFlight && !send.deferred) {
         await recordSendFailure('founding_family_queue', row, { status: send.status, name: send.name, message: send.error }, result);
       }
       await new Promise((r) => setTimeout(r, RATE_LIMIT_MS));
