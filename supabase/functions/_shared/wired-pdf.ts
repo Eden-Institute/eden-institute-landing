@@ -7,7 +7,11 @@
 // Text-first, fonts subset, no images: well under the 3 MB budget (spec rule 12).
 
 import { PDFDocument, rgb, PDFName, PDFString, type PDFFont, type PDFPage, type RGB } from "https://esm.sh/pdf-lib@1.17.1";
-import fontkit from "https://esm.sh/@pdf-lib/fontkit@1.1.1";
+import * as fontkitModule from "https://esm.sh/@pdf-lib/fontkit@1.1.1";
+// esm.sh serves fontkit with a default export at runtime (constitution-pdf imports it that way),
+// but its .d.ts declares none, which newer Deno type-checking rejects. Take whichever exists.
+// deno-lint-ignore no-explicit-any
+const fontkit = ((fontkitModule as any).default ?? fontkitModule) as any;
 import * as F from "../constitution-pdf/fonts-b64.ts";
 import { WIRED_PDF_COPY as COPY, type CopyItem } from "./wired-pdf-content.ts";
 import { DOMAINS, type Domain, type Scores } from "./wired-engine.ts";
