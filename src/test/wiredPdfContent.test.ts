@@ -44,3 +44,12 @@ describe("wired PDF copy", () => {
     for (const bad of ["learning style", "learns best", "diagnose", "assessment shows"]) expect(all).not.toContain(bad);
   });
 });
+
+import { WIRED_LEARNER_COPY } from "../../supabase/functions/_shared/wired-learner-content";
+describe("wired learner email copy (W8b)", () => {
+  it("every learner email line is in Wired_Quiz_Emails_Learner.md, word for word", () => {
+    const src = readFileSync("docs/wired-copy/Wired_Quiz_Emails_Learner.md", "utf8").replace(/\r\n/g, "\n");
+    expect(Object.keys(WIRED_LEARNER_COPY)).toHaveLength(12);
+    for (const items of Object.values(WIRED_LEARNER_COPY)) for (const it of items) expect(src).toContain(it.s);
+  });
+});
