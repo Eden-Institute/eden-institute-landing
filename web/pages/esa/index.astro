@@ -7,6 +7,7 @@ import {
   ESA_STATES,
   ESA_PENDING,
   ESA_OTHER,
+  ESA_ALSO_LISTED,
   ESA_COMMON_FAQ,
   ESA_UPDATED,
   ESA_UPDATED_ISO,
@@ -105,6 +106,7 @@ const cardStyle = "border-color:hsl(var(--eden-gold) / 0.3)";
         {ESA_OTHER.map((p) => (
           <p class="font-body text-sm text-muted-foreground leading-relaxed mb-2">{p.state} ({p.program}): {p.note}</p>
         ))}
+        <p class="font-body text-sm text-muted-foreground leading-relaxed mb-2">Also listed: {ESA_ALSO_LISTED.map((l) => `${l.name}: ${l.note}`).join(" ")}</p>
         <p class="font-body text-sm text-muted-foreground leading-relaxed">
           Tell us your state and program, and we will look into being approved there too.
           <a href={`mailto:${ESA_CONTACT_EMAIL}?subject=${encodeURIComponent("Please apply in my state")}`} class="underline">Email us</a>.
