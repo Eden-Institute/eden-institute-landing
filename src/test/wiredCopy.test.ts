@@ -7,7 +7,7 @@ import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  APPROACHES, COMING_SOON_912, FAMILY_INTRO, FAMILY_QUESTIONS, RANKING, REASONS, RESULTS, SCREENS, TIP_LABELS, TIPS, fill,
+  APPROACHES, COMING_SOON_912, FAMILY_INTRO, FAMILY_QUESTIONS, OWN_QUESTIONS, RANKING, REASONS, RESULTS, SCREENS, TIP_LABELS, TIPS, fill,
 } from "../../web/lib/wiredCopy";
 import { WIRING_WRITEUPS } from "../../web/lib/wiredWriteups";
 
@@ -40,7 +40,7 @@ function strings(v: unknown): string[] {
 const SHIPPED = [
   ...strings(RESULTS), ...strings(APPROACHES), ...strings(TIP_LABELS), ...strings(TIPS), ...strings(REASONS),
   FAMILY_INTRO, ...FAMILY_QUESTIONS.flatMap((q) => [q.question, q.helper ?? "", ...q.options.map((o) => o[1])]).filter(Boolean),
-  ...strings(RANKING), ...strings(SCREENS),
+  ...strings(RANKING), ...strings(SCREENS), ...strings(OWN_QUESTIONS),
   ...Object.values(WIRING_WRITEUPS).flatMap((w) => [w.short, w.bible, w.name]),
 ];
 

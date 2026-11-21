@@ -11,6 +11,7 @@ import { type Bank, blend, type BlendInput, quizYear, scoreRater, scoreTeachingS
 import { type EsaRow, rankCurricula, toMatchCurriculum } from './wired-match.ts';
 import { buildResultsPayload, type FamilyAnswers, prefsFromAnswers, type ResultsPayload, type Submission } from './wired-submit-core.ts';
 import { type BuyerRow, DISPLAY_COLUMNS, type DisplayRow, EXTRAS_COLUMNS, FAMILY_MAP_PRODUCTS, familyMapUpgrade, type UnlockRow } from './wired-display.ts';
+import { verifyWiredToken } from './wired-token.ts';
 
 export interface Db { url: string; key: string }
 
@@ -107,8 +108,70 @@ export async function familyMapUpgradeFor(db: Db, familyId: string, now: Date = 
   return familyMapUpgrade(buys, unlocks, new Map(kids.map((k) => [k.id, k.nickname])));
 }
 
+// ── Her own questions (the adult-v1 set) and the complete Family Map (2026-11-21, approved "Build it, as written") ──
+
+/** July 1, 00:00 Central of a quiz year (July is always CDT, UTC-5): where that quiz year begins (answer 8). */
+export function quizYearStart(year: number): Date {
+  return new Date(Date.UTC(year, 6, 1, 5));
+}
+
+/**
+ * For the results page's "Your own questions" box: does this family have a Family Map (paid or pilot: a
+ * family_map PDF job) this quiz year, and has she answered her own questions this quiz year? Reads only this
+ * family's rows.
+ */
+export async function familyMapOwnQuestions(db: Db, familyId: string, now: Date = new Date()): Promise<{ has_family_map: boolean; own_questions_answered: boolean }> {
+  if (!UUID_ONLY.test(familyId)) return { has_family_map: false, own_questions_answered: false };
+  const y = quizYear(now);
+  const [maps, own] = await Promise.all([
+    pg<unknown[]>(db, `wired_pdf_jobs?family_id=eq.${familyId}&kind=eq.family_map&quiz_year=eq.${y}&select=id&limit=1`),
+    pg<unknown[]>(db, `wired_family_results?family_id=eq.${familyId}&quiz_year=eq.${y}&select=family_id&limit=1`),
+  ]);
+  return { has_family_map: (maps ?? []).length > 0, own_questions_answered: (own ?? []).length > 0 };
+}
+
+/**
+ * Queue the complete Family Map ONCE after she answers her own questions: one pdf_update row with no child and no
+ * observer (the transactional rail, so the one-a-day guard never holds it; wired-pdf's drain builds it). Only for a
+ * family with a Family Map this quiz year, and never a second row this quiz year (her own set is also once a year:
+ * wired_submit answers a repeat with already_completed). Returns whether a row was added.
+ */
+export async function queueFamilyMapUpdate(db: Db, familyId: string, email: string, now: Date = new Date()): Promise<boolean> {
+  if (!UUID_ONLY.test(familyId)) return false;
+  const y = quizYear(now);
+  const map = await pg<{ id: string }[]>(db, `wired_pdf_jobs?family_id=eq.${familyId}&kind=eq.family_map&quiz_year=eq.${y}&select=id&limit=1`);
+  if (!map?.length) return false;
+  const since = encodeURIComponent(quizYearStart(y).toISOString());
+  const existing = await pg<{ id: string }[]>(db,
+    `wired_email_queue?family_id=eq.${familyId}&kind=eq.pdf_update&child_id=is.null&observer_id=is.null&created_at=gte.${since}&select=id&limit=1`);
+  if (existing?.length) return false;
+  await pg(db, 'wired_email_queue', {
+    method: 'POST', headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({ family_id: familyId, child_id: null, observer_id: null, email: email.trim().toLowerCase(), kind: 'pdf_update', scheduled_for: now.toISOString() }),
+  });
+  return true;
+}
+
+/**
+ * Her own questions sent from her private results page carry her results token, not an email (the page never holds
+ * it). For that form ({set: 'adult', token}) the family's own email is read from the token's family and the token is
+ * dropped (so a dead-lettered copy carries no token). Any other body comes back unchanged; a bad or expired token, or
+ * a family that no longer exists, gives null (401).
+ */
+export async function adultBodyFromToken(db: Db, body: unknown): Promise<unknown | null> {
+  if (!body || typeof body !== 'object') return body;
+  const b = body as Record<string, unknown>;
+  if (b.set !== 'adult' || b.token === undefined) return body;
+  const grant = await verifyWiredToken(b.token, 'results');
+  if (!grant) return null;
+  const fam = (await pg<{ email: string }[]>(db, `wired_families?id=eq.${grant.familyId}&select=email&limit=1`))?.[0];
+  if (!fam?.email) return null;
+  const { token: _token, first_name: _first, ...rest } = b;
+  return { ...rest, email: fam.email };
+}
+
 export type ProcessOutcome =
-  | { status: 'ok'; family_id: string; child_id?: string; unlocked?: boolean; results?: ResultsPayload }
+  | { status: 'ok'; family_id: string; child_id?: string; unlocked?: boolean; results?: ResultsPayload; family_map_update?: boolean }
   | { status: 'already_completed'; family_id: string; child_id?: string }
   | { status: 'unknown_child'; family_id: string };
 
@@ -141,7 +204,16 @@ export async function processSubmission(db: Db, sub: Submission, opts: { pepper:
 
   if (!sub.child) {
     const r = await rpc(db, { ...common, child: null, teaching_style: teaching });
-    return r.status === 'ok' ? { status: 'ok', family_id: r.family_id } : r as ProcessOutcome;
+    if (r.status !== 'ok') return r as ProcessOutcome;
+    // 2026-11-21: her first answers this year queue the complete Family Map once (when she has one). Like email 1,
+    // a failure here never fails the submit (her answers are stored); it is logged for Lane 2.
+    let family_map_update = false;
+    try {
+      family_map_update = await queueFamilyMapUpdate(db, r.family_id, sub.email, now);
+    } catch (err) {
+      console.error('wired-submit: could not queue the complete Family Map:', err instanceof Error ? err.message : String(err));
+    }
+    return { status: 'ok', family_id: r.family_id, family_map_update };
   }
 
   for (let attempt = 0; attempt < 2; attempt++) {

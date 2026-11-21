@@ -8,10 +8,12 @@
 // each unlocked child its Helpful extras (answer 38, no filters: the page starts with every box unticked), and
 // the reply `family_map_upgrade` = { blueprint_nickname } when the later $28 upgrade applies (spec 9.2, the same
 // gate create-checkout uses), else null.
+// 2026-11-21 ("Your own questions" box): `has_family_map` (a Family Map, paid or pilot, this quiz year) and
+// `own_questions_answered` (her own adult-v1 answers this quiz year), for the token's own family only.
 
 import { type Domain, type Scores } from '../_shared/wired-engine.ts';
 import { buildResultsPayload, type FamilyAnswers, prefsFromAnswers } from '../_shared/wired-submit-core.ts';
-import { type Db, familyMapUpgradeFor, helpfulExtraRows, matchDisplayRows, pg } from '../_shared/wired-submit-flow.ts';
+import { type Db, familyMapOwnQuestions, familyMapUpgradeFor, helpfulExtraRows, matchDisplayRows, pg } from '../_shared/wired-submit-flow.ts';
 import { type HelpfulExtra, pickHelpfulExtras, withDisplay } from '../_shared/wired-display.ts';
 import { verifyWiredToken } from '../_shared/wired-token.ts';
 import { wiredGate, wiredJson } from '../_shared/wired-gate.ts';
@@ -50,9 +52,10 @@ Deno.serve(async (req) => {
     const children = [];
     // Read once per request: the extras (only when a child can see them) and the $28 upgrade state.
     const anyUnlocked = (kids ?? []).some((k) => k.unlocked_via !== null);
-    const [extraRows, family_map_upgrade] = await Promise.all([
+    const [extraRows, family_map_upgrade, own] = await Promise.all([
       anyUnlocked ? helpfulExtraRows(db) : Promise.resolve([]),
       familyMapUpgradeFor(db, grant.familyId),
+      familyMapOwnQuestions(db, grant.familyId),
     ]);
     for (const k of kids ?? []) {
       const res = await pg<{ quiz_year: number; blended_scores: Scores; top3: Domain[]; renaissance: boolean; matches_snapshot: { matches?: Match[]; coming_soon?: { name: string; eden_band: string | null }[] } | null }[]>(
@@ -98,7 +101,7 @@ Deno.serve(async (req) => {
         observers_allowed: k.unlocked_via === 'blueprint' || k.unlocked_via === 'family_map' || k.unlocked_via === 'pilot',
       });
     }
-    return wiredJson(200, { first_name: fam[0].first_name, children, family_map_upgrade });
+    return wiredJson(200, { first_name: fam[0].first_name, children, family_map_upgrade, has_family_map: own.has_family_map, own_questions_answered: own.own_questions_answered });
   } catch (err) {
     console.error('wired-results:', err instanceof Error ? err.message : String(err));
     return wiredJson(500, { error: 'could_not_load_results' });

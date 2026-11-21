@@ -12,7 +12,7 @@
 import { isServiceRoleRequest, serviceRoleRequired } from "../_shared/require-service-role.ts";
 import { WIRED_CORS, wiredJson } from "../_shared/wired-gate.ts";
 import { type Db, pg } from "../_shared/wired-submit-flow.ts";
-import { loadBlueprintData, renderJob, type PdfJob } from "../_shared/wired-pdf-job.ts";
+import { isPilotJob, loadBlueprintData, renderJob, type PdfJob } from "../_shared/wired-pdf-job.ts";
 import { buildDeliveryEmail } from "../_shared/wired-delivery-email.ts";
 import { notifyFounder } from "../_shared/lulu-fulfillment.ts";
 import { drainEmailQueue } from "../_shared/wired-email-drain.ts";
@@ -85,7 +85,8 @@ Deno.serve(async (req) => {
     const loaded = await loadBlueprintData(db, job);
     const pdf = await renderJob(job, loaded);
     if (pdf.bytes.length > 3 * 1024 * 1024) throw new Error(`PDF is ${pdf.bytes.length} bytes, over the 3 MB budget`);
-    const mail = buildDeliveryEmail(job.kind as "blueprint" | "family_map", { firstName: loaded.firstName, nickname: loaded.children[0]?.nickname, hasOwnAnswers: loaded.hasOwnAnswers });
+    // A pilot job (no order, no buyer: wired_pilot_grant) gets the approved pilot first line + footer (2026-11-21).
+    const mail = buildDeliveryEmail(job.kind as "blueprint" | "family_map", { firstName: loaded.firstName, nickname: loaded.children[0]?.nickname, hasOwnAnswers: loaded.hasOwnAnswers, pilot: isPilotJob(job) });
     if (body.dry_run) {
       // Lane 2 check: build everything, send nothing, put the job back as it was.
       await pg(db, `wired_pdf_jobs?id=eq.${job.id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status: job.status, attempts: job.attempts, claimed_at: null }) });

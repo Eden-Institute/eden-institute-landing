@@ -1933,6 +1933,10 @@ export const WIRED_PDF_COPY: WiredPdfCopy = {
    {
     "t": "p",
     "s": "Footer: You're getting this because of your Wired quiz order. Delete my quiz data · [business name and mailing address]"
+   },
+   {
+    "t": "li",
+    "s": "Pilot version (APPROVED by Camila 2026-11-21 ~8:58 AM CT, tap \"Use as written\"): for a pilot unlock, the first line is \"Thank you for testing the quiz! Here is [Nickname]'s Learner Blueprint, your gift for finishing the first survey.\" and the footer is \"You're getting this because you're testing the Fearfully & Wonderfully Wired quiz. Delete my quiz data · [business name and mailing address]\". Everything else unchanged. Paid buyers keep the wording above."
    }
   ],
   "Family Map delivery (`em-familymap`)": [
@@ -1987,6 +1991,10 @@ export const WIRED_PDF_COPY: WiredPdfCopy = {
    {
     "t": "p",
     "s": "Footer: You're getting this because of your Wired quiz order. Delete my quiz data · [business name and mailing address]"
+   },
+   {
+    "t": "li",
+    "s": "Pilot version (APPROVED by Camila 2026-11-21 ~8:58 AM CT, tap \"Use as written\"): for a pilot unlock, the first line is \"Thank you for the second survey! Your Family Learning Map is attached, with a full Blueprint for each child.\" and the footer is the pilot footer (\"You're getting this because you're testing the Fearfully & Wonderfully Wired quiz.\"). Everything else unchanged."
    },
    {
     "t": "li",
@@ -2187,6 +2195,10 @@ export const WIRED_PDF_COPY: WiredPdfCopy = {
    {
     "t": "p",
     "s": "Footer: You're getting this because of your Wired quiz order. Delete my quiz data · [business name and mailing address]"
+   },
+   {
+    "t": "li",
+    "s": "Pilot version (APPROVED by Camila 2026-11-21 ~8:58 AM CT): for a pilot tester's family, the footer is the pilot footer (\"You're getting this because you're testing the Fearfully & Wonderfully Wired quiz.\"). Everything else unchanged."
    },
    {
     "t": "li",

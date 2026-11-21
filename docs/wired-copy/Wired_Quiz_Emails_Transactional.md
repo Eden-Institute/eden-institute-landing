@@ -41,6 +41,8 @@ The Eden Institute
 
 Footer: You're getting this because of your Wired quiz order. Delete my quiz data · [business name and mailing address]
 
+- Pilot version (APPROVED by Camila 2026-11-21 ~8:58 AM CT, tap "Use as written"): for a pilot unlock, the first line is "Thank you for testing the quiz! Here is [Nickname]'s Learner Blueprint, your gift for finishing the first survey." and the footer is "You're getting this because you're testing the Fearfully & Wonderfully Wired quiz. Delete my quiz data · [business name and mailing address]". Everything else unchanged. Paid buyers keep the wording above.
+
 
 ## Family Map delivery (`em-familymap`)
 
@@ -60,6 +62,7 @@ The Eden Institute
 
 Footer: You're getting this because of your Wired quiz order. Delete my quiz data · [business name and mailing address]
 
+- Pilot version (APPROVED by Camila 2026-11-21 ~8:58 AM CT, tap "Use as written"): for a pilot unlock, the first line is "Thank you for the second survey! Your Family Learning Map is attached, with a full Blueprint for each child." and the footer is the pilot footer ("You're getting this because you're testing the Fearfully & Wonderfully Wired quiz."). Everything else unchanged.
 - Note: PROPOSED flow: the map is sent right away, and her own pages are added in an updated copy once she answers. If she has already answered, this email skips the 'one quick step' lines.
 
 ## Invite to dad, a grandparent or a teacher (`em-obs-invite`)
@@ -132,6 +135,7 @@ The Eden Institute
 
 Footer: You're getting this because of your Wired quiz order. Delete my quiz data · [business name and mailing address]
 
+- Pilot version (APPROVED by Camila 2026-11-21 ~8:58 AM CT): for a pilot tester's family, the footer is the pilot footer ("You're getting this because you're testing the Fearfully & Wonderfully Wired quiz."). Everything else unchanged.
 - Note: [Role] = the label she gave (dad, a grandparent, a co-op teacher, a tutor). No observer name or email ever appears.
 
 ## Confirm your delete request (`em-delete-confirm`)

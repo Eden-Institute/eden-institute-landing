@@ -7,10 +7,13 @@
 //
 // Since W9 (2026-11-20) the footer carries the approved "Delete my quiz data" link (/wired/delete). Before W9
 // the footer line ends at the order sentence; the business name and mailing address row stays.
+// 2026-11-21 (Camila, "Use as written"): a pilot unlock gets each email's approved "Pilot version": its own first
+// line and the pilot footer sentence. The address row and the delete link are the same rows paid buyers get.
 
 import { WIRED_PDF_COPY as COPY, type CopyItem } from "./wired-pdf-content.ts";
 import { BRAND, emailShell } from "./nurture-email-templates.ts";
 import { tagEmailHtml } from "./email-utm.ts";
+import { pilotVersion } from "./wired-email-tx.ts";
 
 export type DeliveryKind = "blueprint" | "family_map";
 
@@ -46,8 +49,10 @@ export interface DeliveryEmail { subject: string; preview: string; html: string;
  * `firstName` null -> "Hi there," is NOT approved copy, so the greeting falls back to the plain
  * "Hi," the approved observer invite uses. `hasOwnAnswers` (Family Map) skips the
  * "one quick step" lines, per the approved note.
+ * `pilot` (2026-11-21, approved "Use as written"): a pilot unlock swaps ONLY the first line and the footer sentence
+ * for the approved pilot wording (each email's "Pilot version" note). Paid buyers' emails are unchanged.
  */
-export function buildDeliveryEmail(kind: DeliveryKind, o: { firstName: string | null; nickname?: string; hasOwnAnswers?: boolean }): DeliveryEmail {
+export function buildDeliveryEmail(kind: DeliveryKind, o: { firstName: string | null; nickname?: string; hasOwnAnswers?: boolean; pilot?: boolean }): DeliveryEmail {
   const it = items(kind);
   const v: Record<string, string> = { Nickname: o.nickname ?? "", "first name": o.firstName ?? "" };
   const subject = fill(field(it, "Subject:"), v);
@@ -61,11 +66,18 @@ export function buildDeliveryEmail(kind: DeliveryKind, o: { firstName: string | 
   const start = it.findIndex((i) => i.s.startsWith("Hi "));
   const end = it.findIndex((i) => i.s === "Camila");
   let body = it.slice(start + 1, end).map((i) => i.s);
+  const pilot = o.pilot ? pilotVersion(it, KEYS[kind]) : null;
+  if (pilot) {
+    if (!pilot.firstLine) throw new Error(`${KEYS[kind]}: the pilot first line is missing from its note`);
+    // The first line after the greeting is the one the pilot version replaces ("Thank you! ...").
+    if (!/^Thank you!/.test(body[0] ?? "")) throw new Error(`${KEYS[kind]}: the first line is not the one the pilot version replaces`);
+    body = [pilot.firstLine, ...body.slice(1)];
+  }
   if (kind === "family_map" && o.hasOwnAnswers) {
     body = body.filter((s) => !/^One quick step:/.test(s) && s !== "[button]" && !/^As soon as you finish/.test(s));
   }
   const greeting = o.firstName ? fill(it[start].s, v) : "Hi,";
-  const footerLine = field(it, "Footer:").split(" Delete my quiz data")[0].trim();
+  const footerLine = pilot ? pilot.footerSentence : field(it, "Footer:").split(" Delete my quiz data")[0].trim();
 
   const p = (s: string) => `<p style="margin:0 0 16px 0;font-family:Georgia,serif;font-size:16px;line-height:1.6;color:${BRAND.text ?? "#3D3832"};">${esc(s)}</p>`;
   const button = `<p style="margin:8px 0 24px 0;text-align:center;"><a href="${esc(buttonUrl)}" style="display:inline-block;background:#2C3E2D;color:#FFFFFF;font-family:Georgia,serif;font-size:15px;font-weight:bold;text-decoration:none;padding:12px 26px;border-radius:4px;">${esc(fill(btnLabel, v))}</a></p>`;
