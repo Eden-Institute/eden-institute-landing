@@ -1009,7 +1009,9 @@ export const ESA_OTHER = [
   { state: "Tennessee", program: "Individualized Education Account (IEA)", note: "No vendor registration is needed. Families buy curriculum with the IEA debit card, and printed curricular materials need no pre-approval (online courses do)." },
   // 2026-11-20 Camila (Lane 4 chat, relayed 17:54): "change Mississippi to not eligible, homeschool excluded".
   // Source: EdChoice program summary (secondary; mdek12.org could not be read).
-  { state: "Mississippi", program: "Education Scholarship Account", note: "Children taught at home are not eligible for this program." },
+  { state: "Mississippi", program: "Equal Opportunity for Students with Special Needs ESA", note: "Home instruction is not eligible, so homeschool families cannot use it for Eden's Table." },
+  // 2026-11-20 Camila (Lane 4 tap, relayed 17:59).
+  { state: "Iowa", program: "Education Savings Account", note: "Only for students enrolled in an Iowa-accredited private school, so homeschool families cannot use it." },
   // 2026-11-20 Camila (Lane 4 chat, relayed 17:55): "change Texas to January check, not yet applied".
   { state: "Texas", program: "Education Freedom Accounts (TEFA)", note: "We have not applied yet, and plan to look at it again in January 2027." },
 ];
