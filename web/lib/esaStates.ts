@@ -1011,7 +1011,7 @@ export const ESA_OTHER = [
   // Source: EdChoice program summary (secondary; mdek12.org could not be read).
   { state: "Mississippi", program: "Equal Opportunity for Students with Special Needs ESA", note: "Home instruction is not eligible, so homeschool families cannot use it for Eden's Table." },
   // 2026-11-20 Camila (Lane 4 tap, relayed 17:59).
-  { state: "Iowa", program: "Education Savings Account", note: "Only for students enrolled in an Iowa-accredited private school, so homeschool families cannot use it." },
+  { state: "Iowa", program: "Students First ESA", note: "Only for students enrolled in an Iowa-accredited private school, so homeschool families cannot use it." },
   // 2026-11-20 Camila (Lane 4 chat, relayed 17:55): "change Texas to January check, not yet applied".
   { state: "Texas", program: "Education Freedom Accounts (TEFA)", note: "We have not applied yet, and plan to look at it again in January 2027." },
 ];
