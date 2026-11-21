@@ -156,3 +156,44 @@ Camila
 The Eden Institute
 
 - Note: no "we'll email you when it opens" line, because the application promises answers are used only to choose the group and run the test.
+
+## 6. Advance chapter delivery (APPROVED by Camila 2026-11-20 ~6:31 PM CT, taps "Use as written" / "Use both as written")
+
+### Tester page (/wired/pilot)
+Heading: Your advance chapters
+Line: Thank you for testing the quiz. Here's your gift: early chapters of my upcoming book, Unschooled by Design.
+Buttons: Read Chapter 1: The Mouth of the South / Read Chapter 4: Judge a Fish
+- Note: buttons use the book's chapter numbers; Survey 4 keeps "advance chapter 2" (it is the second gift). Her tap "Book numbers on buttons".
+
+### Chapter 1 email
+Subject: Your advance chapter of Unschooled by Design
+
+Hi [first name],
+
+Thank you for answering the third survey. Your gift is ready: Chapter 1 of my upcoming book, Unschooled by Design.
+
+Button: Read Chapter 1
+
+It opens on your tester page. One more chapter unlocks after your 30-day retake.
+
+Camila
+The Eden Institute
+
+### Chapter 4 email
+Subject: Your advance chapter of Unschooled by Design
+
+Hi [first name],
+
+Thank you for finishing every step of the test. Your last gift is ready: Chapter 4 of Unschooled by Design.
+
+Button: Read Chapter 4
+
+It opens on your tester page.
+
+Camila
+The Eden Institute
+
+### Line at the top of each chapter PDF
+Advance copy for our pilot families. Please don't share.
+- Note: no copyright line (her tap "Advance-copy line only").
+

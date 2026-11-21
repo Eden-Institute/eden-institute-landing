@@ -9,12 +9,15 @@
 //                                              when it opens, whether the retake quiz is due.
 //   {action: 'survey', token, child_id, kind, answers}   records a survey and gives its reward.
 //   {action: 'retake', token, child_id, bank_version, answers}   the 30-day retake quiz.
+//   {action: 'chapter', token, n: 1 | 4}       a fresh 1-hour link to an unlocked advance chapter (private storage,
+//                                              _shared/wired-pilot-chapters.ts). status lists the ready ones.
 // Tokens are her results token (family id). Only a SELECTED tester can take surveys or the retake.
 
 import { bumpRateBucket, clientIp } from "../_shared/rate-bucket.ts";
 import { nextStep, parseApplication, selectedPilot, submitRetake, submitSurvey, SURVEY_ORDER, type SurveyKind } from "../_shared/wired-pilot.ts";
 import { cleanAnswers, cleanAttribution } from "../_shared/wired-submit-core.ts";
 import { type Db, pg } from "../_shared/wired-submit-flow.ts";
+import { availableChapters, signChapter, type ChapterNo } from "../_shared/wired-pilot-chapters.ts";
 import { verifyWiredToken } from "../_shared/wired-token.ts";
 import { wiredGate, wiredJson, wiredOpen } from "../_shared/wired-gate.ts";
 
@@ -68,9 +71,17 @@ Deno.serve(async (req) => {
       const kids = (await pg<{ id: string; nickname: string; grade: number }[]>(db,
         `wired_children?family_id=eq.${grant.familyId}&removed_at=is.null&unlocked_via=not.is.null&select=id,nickname,grade&order=created_at.asc`)) ?? [];
       const first = kids[0];
-      return wiredJson(200, { selected: true, child: first ?? null, ...(first ? await nextStep(db, grant.familyId, first.id) : { next: "quiz" }) });
+      const chapters = await availableChapters(db, grant.familyId);
+      return wiredJson(200, { selected: true, child: first ?? null, chapters, ...(first ? await nextStep(db, grant.familyId, first.id) : { next: "quiz" }) });
     }
     if (!selected) return wiredJson(403, { error: "not_a_selected_tester" });
+    if (body.action === "chapter") {
+      const n = body.n === 1 || body.n === 4 ? (body.n as ChapterNo) : null;
+      if (!n) return wiredJson(400, { error: "n must be 1 or 4" });
+      if (!(await availableChapters(db, grant.familyId)).includes(n)) return wiredJson(404, { error: "chapter_not_ready" });
+      const url = await signChapter(db, n);
+      return url ? wiredJson(200, { url }) : wiredJson(404, { error: "chapter_not_ready" });
+    }
     if (typeof body.child_id !== "string" || !UUID_RE.test(body.child_id)) return wiredJson(400, { error: "child_id is required" });
     const kid = (await pg<{ id: string }[]>(db, `wired_children?id=eq.${body.child_id}&family_id=eq.${grant.familyId}&removed_at=is.null&select=id&limit=1`))?.[0];
     if (!kid) return wiredJson(404, { error: "unknown_child" });

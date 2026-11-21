@@ -9,8 +9,8 @@
 //   step 3  Survey 3 (family_map), ~2 weeks later   -> advance Ch 1 + the Founding Families list (only with permission)
 //   step 4  the 30-day retake + Survey 4 (retake)   -> advance Ch 4
 // Every survey unlocks the next reward whatever the feedback (16 CFR 465.4); nothing here reads the answers to
-// decide a reward. Chapter files are attached later by Lane 8: until PILOT_CHAPTER_1_URL / PILOT_CHAPTER_4_URL are
-// set, those steps are recorded and nothing is sent ("inert", spec section 13).
+// decide a reward. The chapters are delivered from private storage by _shared/wired-pilot-chapters.ts (a button
+// on the tester page + a chapter-ready email), each once its file is uploaded; until then the step is recorded.
 
 import { type Db, loadBank, pg, rpc } from "./wired-submit-flow.ts";
 import { quizYear, scoreRater, setKindForGrade, type RaterAnswers } from "./wired-engine.ts";
@@ -179,10 +179,10 @@ export async function submitSurvey(db: Db, familyId: string, childId: string, ki
       method: "PATCH", headers: { Prefer: "return=minimal" },
       body: JSON.stringify({ step3_at: stamp, badge_permission: !!badge, badge_name: badge, quote, quote_permission: !!quote && yes(answers.quote_permission) }),
     });
-    return { status: "ok", step: 3, unlocked: "chapter_1", chapter: env("PILOT_CHAPTER_1_URL") ? "sent" : "pending" };
+    return { status: "ok", step: 3, unlocked: "chapter_1" };
   }
   await pg(db, `wired_pilot_progress?family_id=eq.${familyId}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ step4_at: stamp }) });
-  return { status: "ok", step: 4, unlocked: "chapter_4", chapter: env("PILOT_CHAPTER_4_URL") ? "sent" : "pending" };
+  return { status: "ok", step: 4, unlocked: "chapter_4" };
 }
 
 /**

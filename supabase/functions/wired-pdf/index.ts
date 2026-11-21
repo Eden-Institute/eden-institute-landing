@@ -18,6 +18,8 @@ import { notifyFounder } from "../_shared/lulu-fulfillment.ts";
 import { drainEmailQueue } from "../_shared/wired-email-drain.ts";
 import { sendDueWiredCartReminders } from "../_shared/wired-cart-send.ts";
 import { sendDuePilotSelectionEmails } from "../_shared/wired-pilot-email.ts";
+import { sendDueChapterEmails } from "../_shared/wired-pilot-chapters.ts";
+import { signWiredToken } from "../_shared/wired-token.ts";
 
 const FROM = "Camila at The Eden Institute <hello@edeninstitute.health>";
 const REPLY_TO = FROM.slice(FROM.indexOf("<") + 1, FROM.indexOf(">"));
@@ -63,7 +65,12 @@ Deno.serve(async (req) => {
       ? await sendDuePilotSelectionEmails(db, { resendKey, from: FROM, replyTo: REPLY_TO, dryRun: body.dry_run === true })
         .catch((e) => ({ error: e instanceof Error ? e.message : String(e) }))
       : { off: true };
-    return wiredJson(200, { claimed: 0, ...mail, cart, pilot });
+    // W12: the chapter-ready emails (each chapter once its file is in private storage), same switch.
+    const chapters = Deno.env.get("WIRED_PILOT_OPEN") === "true"
+      ? await sendDueChapterEmails(db, { resendKey, from: FROM, replyTo: REPLY_TO, dryRun: body.dry_run === true, signToken: (familyId) => signWiredToken({ familyId, purpose: "results" }) })
+        .catch((e) => ({ error: e instanceof Error ? e.message : String(e) }))
+      : { off: true };
+    return wiredJson(200, { claimed: 0, ...mail, cart, pilot, chapters });
   }
 
   // 2. Claim it: only one runner wins (attempts must still be what we read).

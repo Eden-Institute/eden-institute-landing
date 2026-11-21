@@ -73,15 +73,15 @@ Deno.test("ladder: in order only; Survey 3 opens 12 days after Survey 2; the ret
   if (early.status === "not_yet") assertEquals(early.opens_at, "2026-12-27T00:00:00.000Z");
   route({ step1_at: "2026-12-02T00:00:00Z", step2_at: "2026-12-05T00:00:00Z" });
   const ok = await submitSurvey(DB, "f", "c", "family_map", { recommend: "No", badge: "Yes", badge_name: "The Smiths", quote: "Hard to follow.", quote_permission: "No" }, () => undefined, NOW);
-  assertEquals(ok, { status: "ok", step: 3, unlocked: "chapter_1", chapter: "pending" }); // chapters inert until Lane 8 attaches them
+  assertEquals(ok, { status: "ok", step: 3, unlocked: "chapter_1" }); // delivery: _shared/wired-pilot-chapters.ts (private storage)
   route({ step1_at: "x", step2_at: "x", step3_at: "2026-12-18T00:00:00Z" }, { firstQuiz: "2026-12-01T00:00:00Z" });
   const s = await nextStep(DB, "f", "c", NOW);
   assertEquals(s, { next: "retake", opens_at: "2026-12-31T00:00:00.000Z", retake_needed: true });
   route({ step1_at: "x", step2_at: "x", step3_at: "x" }, { firstQuiz: "2026-11-01T00:00:00Z", retakeDone: false });
   assertEquals((await submitSurvey(DB, "f", "c", "retake", { big_change: "No", answered_differently: "No" }, () => undefined, NOW)).status, "not_yet");
   route({ step1_at: "x", step2_at: "x", step3_at: "x" }, { firstQuiz: "2026-11-01T00:00:00Z", retakeDone: true });
-  assertEquals(await submitSurvey(DB, "f", "c", "retake", { big_change: "No", answered_differently: "No" }, (k) => (k === "PILOT_CHAPTER_4_URL" ? "https://x" : undefined), NOW),
-    { status: "ok", step: 4, unlocked: "chapter_4", chapter: "sent" });
+  assertEquals(await submitSurvey(DB, "f", "c", "retake", { big_change: "No", answered_differently: "No" }, () => undefined, NOW),
+    { status: "ok", step: 4, unlocked: "chapter_4" });
   route({ step1_at: "x", step2_at: "x", step3_at: "x", step4_at: "x" });
   assertEquals((await submitSurvey(DB, "f", "c", "ux", { capabilities: 5, easy: 5 }, () => undefined, NOW)).status, "already");
 });
