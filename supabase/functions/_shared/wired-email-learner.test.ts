@@ -1,6 +1,6 @@
 // W8b: learner emails 2-10 + July, built word for word from the approved copy (answer 35).
 import { assert, assertEquals, assertStringIncludes, assertThrows } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { buildJulyEmail, buildLearnerEmail, DRIP_DAYS, firstSmallTaste, learnerCopy, prayerFor, waysToServe } from "./wired-email-learner.ts";
+import { buildJulyEmail, buildLearnerEmail, DRIP_DAYS, em6BlueprintBuyers, firstSmallTaste, learnerCopy, prayerFor, waysToServe } from "./wired-email-learner.ts";
 
 const base = {
   firstName: "Anna",
@@ -65,6 +65,26 @@ Deno.test("em-6: one-child families get the approved one-child first paragraph",
   assertStringIncludes(one, "Ever notice that you and Lily are wired differently? You might love a plan while Lily loves to explore. Knowing both helps.");
   assert(!one.includes("If you're teaching more than one child"));
   assertStringIncludes(buildLearnerEmail("em-6", base).text, "If you're teaching more than one child");
+});
+
+Deno.test("em-6: a Blueprint buyer (this quiz year) gets the approved $28 line in place of the $47 sentence", () => {
+  const swap = em6BlueprintBuyers();
+  assertEquals(swap, { from: "It's $47 for up to 5 kids.", to: "You already have [Nickname]'s Blueprint, so the Family Map is $28 for you this school year." });
+  // The Blueprint may be for another child: the line names that child.
+  const bp = buildLearnerEmail("em-6", { ...base, blueprintNickname: "Ben" }).text;
+  assertStringIncludes(bp, "how your kids' wirings work together. You already have Ben's Blueprint, so the Family Map is $28 for you this school year.");
+  assert(!bp.includes("$47"));
+  assertStringIncludes(bp, "Because it's a digital download, all sales are final.");
+  // Everyone else keeps the $47 sentence, and so does a null nickname.
+  for (const o of [base, { ...base, blueprintNickname: null }]) {
+    const t = buildLearnerEmail("em-6", o).text;
+    assertStringIncludes(t, "It's $47 for up to 5 kids.");
+    assert(!t.includes("$28"));
+  }
+  // Works with the one-child first paragraph too.
+  const one = buildLearnerEmail("em-6", { ...base, kids: 1, blueprintNickname: "Lily" }).text;
+  assertStringIncludes(one, "Ever notice that you and Lily are wired differently?");
+  assertStringIncludes(one, "You already have Lily's Blueprint, so the Family Map is $28 for you this school year.");
 });
 
 Deno.test("em-7: her priority, the match, the curriculum's own link with the commission label, no Eden tags", () => {

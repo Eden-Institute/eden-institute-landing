@@ -295,6 +295,10 @@ export const WIRED_LEARNER_COPY: Record<string, CopyItem[]> = {
   },
   {
    "t": "li",
+   "s": "Blueprint buyers (APPROVED by Camila 2026-11-21 ~8:52 AM CT, tap \"Results page + email 6\"): when the family already bought a Blueprint in this quiz year, \"It's $47 for up to 5 kids.\" is replaced with: \"You already have [Nickname]'s Blueprint, so the Family Map is $28 for you this school year.\" The button still goes to her results page, which shows the $28 upgrade."
+  },
+  {
+   "t": "li",
    "s": "Note: Moms with one child get this first paragraph instead: \"Ever notice that you and [Nickname] are wired differently? You might love a plan while [Nickname] loves to explore. Knowing both helps.\" The rest stays the same (the Family Map includes your own teaching wiring)."
   }
  ],

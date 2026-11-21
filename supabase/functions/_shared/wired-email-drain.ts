@@ -16,7 +16,7 @@
 // sender uses) or the child is locked or removed -> build the free PDF + email 1 -> send with a
 // Resend Idempotency-Key per row -> mark sent. 5 tries, then failed_at and a founder email.
 
-import { type Db, pg } from "./wired-submit-flow.ts";
+import { type Db, familyMapUpgradeFor, pg } from "./wired-submit-flow.ts";
 import { loadBlueprintData, renderJob, type PdfJob } from "./wired-pdf-job.ts";
 import { buildEmailOne } from "./wired-email-one.ts";
 import { applyUnsub } from "./email-unsubscribe.ts";
@@ -229,6 +229,9 @@ export async function buildLearner(db: Db, row: QueueRow, now: Date = new Date()
     const mom = (await pg<{ family_answers: { kids?: string } | null }[]>(db,
       `wired_sessions?child_id=eq.${row.child_id}&rater_role=eq.mom&completed_at=not.is.null&select=family_answers&order=completed_at.desc&limit=1`))?.[0];
     input.kids = mom?.family_answers?.kids === "1" ? 1 : 2;
+    // A Blueprint bought this quiz year (and no Family Map yet): the $28 line instead of "$47 for up to 5 kids"
+    // (approved 2026-11-21), on the same gate create-checkout uses for the upgrade.
+    input.blueprintNickname = (await familyMapUpgradeFor(db, row.family_id, now))?.blueprint_nickname ?? null;
   }
   if (pos === 7) {
     // The top match by her own ranking (loadBlueprintData ranks with her saved priorities and filters).
