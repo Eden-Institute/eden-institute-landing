@@ -10,7 +10,7 @@ import { type Domain, type Scores } from "./wired-engine.ts";
 import { normalizeCode, rankCurricula } from "./wired-match.ts";
 import { bestFitApproach, type FamilyAnswers, prefsFromAnswers, tipFirst } from "./wired-submit-core.ts";
 import { approvedCurricula, type Db, esaRows, pg } from "./wired-submit-flow.ts";
-import { buildBlueprintPdf, buildFamilyMapPdf, buildFreeResultsPdf, reasonLines, SUBJECT_MAP, type FreeResultsData, type PdfMatch, type PdfSubject } from "./wired-pdf.ts";
+import { buildBlueprintPdf, buildFamilyMapPdf, buildFreeResultsPdf, reasonLines, SUBJECT_MAP, type FreeResultsData, type PdfMatch, type PdfSubject, type RaterView } from "./wired-pdf.ts";
 
 export interface PdfJob {
   id: string; family_id: string; child_id: string | null; order_id: string | null; buyer_id: string | null;
@@ -70,12 +70,20 @@ export async function loadBlueprintData(db: Db, job: PdfJob): Promise<LoadedJob>
     const res = (await pg<{ quiz_year: number; blended_scores: Scores; top3: Domain[]; computed_at: string; renaissance: boolean; matches_snapshot: { ranking?: string[] } | null }[]>(db,
       `wired_results?child_id=eq.${k.id}&select=quiz_year,blended_scores,top3,computed_at,renaissance,matches_snapshot&order=quiz_year.desc&limit=1`))?.[0];
     if (!res) throw new Error(`no results for child ${k.id}`);
-    const ses = await pg<{ family_answers: FamilyAnswers | null; completed_at: string | null; rater_role: string }[]>(db,
-      `wired_sessions?child_id=eq.${k.id}&family_id=eq.${job.family_id}&quiz_year=eq.${res.quiz_year}&completed_at=not.is.null&is_pilot_retake=eq.false&select=family_answers,completed_at,rater_role`);
+    const ses = await pg<{ family_answers: FamilyAnswers | null; completed_at: string | null; rater_role: string; observer_id: string | null; scores: Scores | null; top3: Domain[] | null }[]>(db,
+      `wired_sessions?child_id=eq.${k.id}&family_id=eq.${job.family_id}&quiz_year=eq.${res.quiz_year}&completed_at=not.is.null&is_pilot_retake=eq.false&select=family_answers,completed_at,rater_role,observer_id,scores,top3&order=completed_at.asc`);
     const mom = (ses ?? []).find((s) => s.rater_role === "mom");
     const fa = mom?.family_answers ?? (ses ?? []).find((s) => s.family_answers)?.family_answers;
     if (!fa) throw new Error(`no family answers for child ${k.id}`);
     const others = (ses ?? []).filter((s) => s.rater_role !== "mom").length;
+    // Each person's own view for the side-by-side page (same rows as the results page): observers by the label
+    // mom gave, never a name or email.
+    const obsIds = (ses ?? []).map((s) => s.observer_id).filter((x): x is string => !!x);
+    const labels = new Map(obsIds.length
+      ? ((await pg<{ id: string; label: string | null }[]>(db, `wired_observers?id=in.(${obsIds.join(",")})&select=id,label`)) ?? []).map((o) => [o.id, o.label])
+      : []);
+    const raters: RaterView[] = (ses ?? []).filter((s) => s.scores && s.top3)
+      .map((s) => ({ role: s.rater_role, label: s.observer_id ? labels.get(s.observer_id) ?? null : null, scores: s.scores!, top3: s.top3! }));
 
     const out = rankCurricula({
       grade: k.grade, scores: res.blended_scores, top3: res.top3, curricula, esa, limit: RANK_LIMIT,
@@ -98,7 +106,7 @@ export async function loadBlueprintData(db: Db, job: PdfJob): Promise<LoadedJob>
     });
     children.push({
       nickname: k.nickname, grade: k.grade, scores: res.blended_scores, top3: res.top3,
-      answeredOn: new Date(mom?.completed_at ?? res.computed_at), observerCount: others,
+      answeredOn: new Date(mom?.completed_at ?? res.computed_at), observerCount: others, raters,
       // Same rule as the results page: the line shows only when a coming-soon Eden's Table set fits this grade.
       renaissance: res.renaissance === true,
       approach: bestFitApproach(res.blended_scores, res.renaissance === true, fa.approach ?? null),
