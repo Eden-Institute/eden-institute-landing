@@ -1016,6 +1016,15 @@ export const ESA_OTHER = [
   { state: "Texas", program: "Education Freedom Accounts (TEFA)", note: "We have not applied yet, and plan to look at it again in January 2027." },
 ];
 
+/** Directories and marketplaces we are listed or approved in that are NOT a way to pay today. Never shown as orderable.
+    2026-11-20 Camila (Lane 4 chat, relayed ~19:00): "add Curious Mind and My Learning Source to /esa".
+    My Learning Source: free listing approved 2026-10-23 in the Arkansas EFA provider directory (families still order by
+    our Arkansas invoice). Curious Mind Marketplace (Well Planned Day): approved vendor 2026-09-20; listings open early 2027. */
+export const ESA_ALSO_LISTED = [
+  { name: "My Learning Source", note: "listed in its Arkansas EFA provider directory." },
+  { name: "Curious Mind Marketplace", note: "approved vendor; our listings open there in 2027." },
+];
+
 /** Last content review of the ESA pages. Bump it when what they say changes (see
     the rules at the top). */
 export const ESA_UPDATED_ISO = "2026-11-20";
