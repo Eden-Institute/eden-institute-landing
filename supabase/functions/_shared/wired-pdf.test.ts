@@ -110,3 +110,14 @@ Deno.test("side by side: the lines shared with the results page are identical", 
   assertEquals(val("sideHeading")?.replace("{name}", "[Nickname]"), SIDE_COPY.heading);
   assertEquals(val("labelSees")?.replace("{label}", "[label]"), SIDE_COPY.labelSees);
 });
+
+Deno.test("side by side: the PDF-only lines are word for word from the approved section", async () => {
+  const { SIDE_COPY } = await import("./wired-pdf.ts");
+  const md = await Deno.readTextFile(new URL("../../../docs/wired-copy/Wired_Quiz_Blueprint_Part2.md", import.meta.url));
+  const sec = md.slice(md.indexOf("## Side-by-side page"));
+  assert(sec.startsWith("## Side-by-side page (APPROVED"), "approved section present");
+  assert(sec.includes(`Line under the heading: ${SIDE_COPY.note}`));
+  assert(sec.includes(`Line under the table: ${SIDE_COPY.normal}`));
+  assert(sec.includes(`Small key: ${SIDE_COPY.key}`));
+  assert(sec.includes(`/ ${SIDE_COPY.blended}`));
+});

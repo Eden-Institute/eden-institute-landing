@@ -62,7 +62,8 @@ export interface RaterView { role: string; label: string | null; scores: Scores;
 // (web/lib/wiredCopyW9.ts); a test keeps the shared lines identical.
 //   APPROVED: momSees, teenSees (email copy APPROVED 2026-11-19 2:44 PM CT, "Mom sees / Teen sees").
 //   PROPOSED on Camila's W9 review page: heading, labelSees.
-//   NEW for the PDF, PROPOSED to Camila via Lane NP 2026-11-20 (N1-N4): blended, note, normal, key.
+//   blended, note, normal, key: APPROVED 2026-11-20 ~6:02 PM CT (four taps "Use as written"), snapshot in
+//   docs/wired-copy/Wired_Quiz_Blueprint_Part2.md, section "Side-by-side page".
 export const SIDE_COPY = {
   heading: "How each of you sees [Nickname]",
   momSees: "Mom sees",
