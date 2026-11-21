@@ -86,7 +86,9 @@ Deno.serve(async (req) => {
     const pdf = await renderJob(job, loaded);
     if (pdf.bytes.length > 3 * 1024 * 1024) throw new Error(`PDF is ${pdf.bytes.length} bytes, over the 3 MB budget`);
     // A pilot job (no order, no buyer: wired_pilot_grant) gets the approved pilot first line + footer (2026-11-21).
-    const mail = buildDeliveryEmail(job.kind as "blueprint" | "family_map", { firstName: loaded.firstName, nickname: loaded.children[0]?.nickname, hasOwnAnswers: loaded.hasOwnAnswers, pilot: isPilotJob(job) });
+    // The button is her private link (signed results token), paid and pilot alike (2026-11-21, PR #829).
+    const resultsToken = await signWiredToken({ familyId: job.family_id, purpose: "results" });
+    const mail = buildDeliveryEmail(job.kind as "blueprint" | "family_map", { firstName: loaded.firstName, nickname: loaded.children[0]?.nickname, hasOwnAnswers: loaded.hasOwnAnswers, pilot: isPilotJob(job), resultsToken });
     if (body.dry_run) {
       // Lane 2 check: build everything, send nothing, put the job back as it was.
       await pg(db, `wired_pdf_jobs?id=eq.${job.id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status: job.status, attempts: job.attempts, claimed_at: null }) });

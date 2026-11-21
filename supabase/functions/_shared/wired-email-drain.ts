@@ -18,7 +18,7 @@
 
 import { type Db, familyMapUpgradeFor, pg } from "./wired-submit-flow.ts";
 import { isPilotJob, loadBlueprintData, renderJob, type PdfJob } from "./wired-pdf-job.ts";
-import { buildDeliveryEmail } from "./wired-delivery-email.ts";
+import { buildCompleteMapEmail } from "./wired-delivery-email.ts";
 import { buildEmailOne } from "./wired-email-one.ts";
 import { applyUnsub } from "./email-unsubscribe.ts";
 import { signWiredToken } from "./wired-token.ts";
@@ -338,8 +338,8 @@ export const FAMILY_MAP_UPDATE_WAIT_MINUTES = 10;
  * answers her own questions. Queued once by wired-submit (queueFamilyMapUpdate) as a pdf_update row with no child
  * and no observer, so it rides the transactional rail (never held by the one-a-day guard, like every updated PDF).
  * Re-renders the family's Family Map (same children: the job's order, or the pilot unlock) with her pages, and sends
- * it with the approved Family Map delivery email in its "she has already answered" form (the 'one quick step' lines
- * skipped, per the approved note), pilot wording for a pilot Family Map.
+ * it with its own approved email (`em-familymap-complete`, Camila 2026-11-21 ~4:28 PM CT, "Use as written": the same
+ * lines for paid and pilot, no button; the pilot footer for a pilot Family Map).
  *   - no Family Map job, or no answers of hers -> skip;
  *   - the first Family Map is still queued / building -> wait (its own build may already carry her pages);
  *   - the first Family Map was built after her answers (same quiz year) -> skip: it already had her pages.
@@ -362,7 +362,7 @@ export async function buildFamilyMapUpdate(db: Db, familyId: string): Promise<
   if (!loaded.mom) throw new Error("her own answers could not be read for her Family Map pages");
   const pdf = await renderJob(render, loaded);
   if (pdf.bytes.length > 3 * 1024 * 1024) throw new Error(`Family Map PDF is ${pdf.bytes.length} bytes, over the 3 MB budget`);
-  const mail = buildDeliveryEmail("family_map", { firstName: loaded.firstName, nickname: loaded.children[0]?.nickname, hasOwnAnswers: true, pilot: isPilotJob(job) });
+  const mail = buildCompleteMapEmail({ firstName: loaded.firstName, pilot: isPilotJob(job) });
   return { mail, attachment: { filename: pdf.filename, content: b64(pdf.bytes) } };
 }
 

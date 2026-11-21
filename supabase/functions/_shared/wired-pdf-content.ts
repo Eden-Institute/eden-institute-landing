@@ -962,7 +962,7 @@ export const WIRED_PDF_COPY: WiredPdfCopy = {
    },
    {
     "t": "p",
-    "s": "The approved line when the grade set changed (for example, grades 3-5 to grades 6-8)."
+    "s": "If the grade set changed (APPROVED by Camila 2026-11-21 ~8:35-8:40 AM CT, tap \"Build it, line A\"): This year you answered the grades [new band] questions about [Nickname], and last year it was the grades [old band] questions. The questions grow with your child, so read the changes as a rough guide, not an exact match. (Bands print as K-2, 3-5, 6-8, 9-12, e.g. \"the grades 6-8 questions\".)"
    },
    {
     "t": "p",
@@ -1294,7 +1294,7 @@ export const WIRED_PDF_COPY: WiredPdfCopy = {
    },
    {
     "t": "li",
-    "s": "If you lean toward planning ahead, plan this week on the weekend. If you lean toward the moment, plan only Monday morning and let the rest follow."
+    "s": "If you lean toward planning ahead, plan this week on the weekend. If you lean toward the moment, plan only Monday morning and let the rest follow. (Camila 2026-11-21 4:29 PM CT, tap \"Whole line, every mom\": both sentences show to every mom, whatever her planning result.)"
    }
   ],
   "How your kids' wirings work together": [
@@ -1999,6 +1999,52 @@ export const WIRED_PDF_COPY: WiredPdfCopy = {
    {
     "t": "li",
     "s": "Note: PROPOSED flow: the map is sent right away, and her own pages are added in an updated copy once she answers. If she has already answered, this email skips the 'one quick step' lines."
+   }
+  ],
+  "Complete Family Map, after her own questions (`em-familymap-complete`)": [
+   {
+    "t": "p",
+    "s": "APPROVED by Camila 2026-11-21 ~4:28 PM CT (tap \"Use as written\", Lane NP; PR #829 question 2). Same for paid and pilot families."
+   },
+   {
+    "t": "p",
+    "s": "When: After mom answers her own questions and the Family Map is rebuilt with her pages."
+   },
+   {
+    "t": "p",
+    "s": "Subject: Your complete Family Learning Map"
+   },
+   {
+    "t": "p",
+    "s": "Preview: Your own pages are in. Here's the whole map."
+   },
+   {
+    "t": "p",
+    "s": "Hi [first name],"
+   },
+   {
+    "t": "p",
+    "s": "Thank you for answering your own questions! Your complete Family Learning Map is attached, now with your own teaching-wiring pages."
+   },
+   {
+    "t": "p",
+    "s": "Questions? Just reply to this email. It comes straight to me."
+   },
+   {
+    "t": "p",
+    "s": "Camila"
+   },
+   {
+    "t": "p",
+    "s": "The Eden Institute"
+   },
+   {
+    "t": "p",
+    "s": "Footer: the em-familymap footer (paid), or the pilot footer for a tester's family (\"You're getting this because you're testing the Fearfully & Wonderfully Wired quiz.\")."
+   },
+   {
+    "t": "li",
+    "s": "Note: no button (same as the approved 'already answered' form of em-familymap)."
    }
   ],
   "Invite to dad, a grandparent or a teacher (`em-obs-invite`)": [

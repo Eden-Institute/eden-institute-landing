@@ -16,6 +16,9 @@ export const W9 = {
   deleteLink: "Delete my quiz data",
   momSees: "Mom sees",
   teenSees: "Teen sees",
+  // APPROVED on the W9 review page (card tryAgain, 2026-11-20 6:15 PM CT); also the error line of the "Your own
+  // questions" box on the results page.
+  tryAgain: "Something went wrong. Please try again in a minute.",
 
   // ── PROPOSED (Camila approves on the W9 review page) ──
   sideHeading: "How each of you sees {name}",
@@ -58,7 +61,6 @@ export const W9 = {
   deleteConfirmButton: "Yes, delete my quiz data",
   deleteDone: "Done. Your quiz data is deleted, and you won't get any more learner emails.",
   deleteExpired: "This confirm link has expired. You can ask for a new one below.",
-  tryAgain: "Something went wrong. Please try again in a minute.",
 } as const;
 
 export const OBSERVER_LABELS = ["Dad", "Grandparent", "Co-op teacher", "Tutor", "Other family member", "Other"] as const;

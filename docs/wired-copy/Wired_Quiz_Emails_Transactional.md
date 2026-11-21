@@ -65,6 +65,24 @@ Footer: You're getting this because of your Wired quiz order. Delete my quiz dat
 - Pilot version (APPROVED by Camila 2026-11-21 ~8:58 AM CT, tap "Use as written"): for a pilot unlock, the first line is "Thank you for the second survey! Your Family Learning Map is attached, with a full Blueprint for each child." and the footer is the pilot footer ("You're getting this because you're testing the Fearfully & Wonderfully Wired quiz."). Everything else unchanged.
 - Note: PROPOSED flow: the map is sent right away, and her own pages are added in an updated copy once she answers. If she has already answered, this email skips the 'one quick step' lines.
 
+## Complete Family Map, after her own questions (`em-familymap-complete`)
+
+APPROVED by Camila 2026-11-21 ~4:28 PM CT (tap "Use as written", Lane NP; PR #829 question 2). Same for paid and pilot families.
+
+When: After mom answers her own questions and the Family Map is rebuilt with her pages.
+Subject: Your complete Family Learning Map
+Preview: Your own pages are in. Here's the whole map.
+
+Hi [first name],
+Thank you for answering your own questions! Your complete Family Learning Map is attached, now with your own teaching-wiring pages.
+Questions? Just reply to this email. It comes straight to me.
+Camila
+The Eden Institute
+
+Footer: the em-familymap footer (paid), or the pilot footer for a tester's family ("You're getting this because you're testing the Fearfully & Wonderfully Wired quiz.").
+
+- Note: no button (same as the approved 'already answered' form of em-familymap).
+
 ## Invite to dad, a grandparent or a teacher (`em-obs-invite`)
 
 When: When she adds someone (Blueprint or Family Map).

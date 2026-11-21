@@ -153,7 +153,7 @@ Chart caption: Last year's bar sits next to this year's for each wiring.
 Lines (only the ones that apply): Grew the most: [Wiring]. / Same top wiring as last year: [Wiring]. / New in the top 3 this year: [Wiring].
 Some change is normal. Interests often shift as kids grow, especially between about 11 and 14, so a new top wiring isn't a mistake. It's growth.
 If the number of people answering changed: This year's results include [N] other people's answers and last year's included [M], so some differences come from the extra views.
-The approved line when the grade set changed (for example, grades 3-5 to grades 6-8).
+If the grade set changed (APPROVED by Camila 2026-11-21 ~8:35-8:40 AM CT, tap "Build it, line A"): This year you answered the grades [new band] questions about [Nickname], and last year it was the grades [old band] questions. The questions grow with your child, so read the changes as a rough guide, not an exact match. (Bands print as K-2, 3-5, 6-8, 9-12, e.g. "the grades 6-8 questions".)
 Closing: Take a minute to thank God for how [Nickname] has grown this year.
 
 ### Where the ideas come from

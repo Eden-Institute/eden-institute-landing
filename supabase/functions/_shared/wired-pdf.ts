@@ -507,11 +507,12 @@ export async function buildBlueprintPdf(d: BlueprintData): Promise<Uint8Array> {
 // Her own teaching-wiring pages need her own answers (the adult-v1 set), so a copy built before she
 // answers skips them, exactly as the approved Family Map delivery email says ("your own teaching-wiring
 // pages fill in after you answer your own questions"). Lines that depend on her answers (you-and-each-child,
-// the 4-day and planning lines) are left out until then.
+// the 4-day line) are left out until then.
 // With her answers (2026-11-21, the "Your own questions" box): spec answer 31's order and picks, approved copy
 // word for word: her top-3 teaching-wiring blocks, one style line per side picked by her band, then the family
-// pages with "You and each child" (one line per child), the 4-day line for the low-capacity band, and the
-// planning sentence her planning band picks (a balance of both = neither sentence).
+// pages with "You and each child" (one line per child) and the 4-day line for the low-capacity band.
+// The planning line shows whole (both sentences) in every Family Map, with or without her answers (Camila
+// 2026-11-21 4:29 PM CT, "Whole line, every mom").
 
 /** "a Storyteller" / "an Organizer": the same a/an fix the learner emails apply to the approved "a [Wiring]". */
 const article = (s: string) => s.replace(/\ba ([AEIOU])/g, "an $1");
@@ -537,20 +538,18 @@ export function youAndEachChildLines(mom: MomData, children: BlueprintData[]): s
   return children.map((c) => article(fill(tpl.s, { "Your top wiring": wiringName(mom.top3[0]), Nickname: c.nickname, "Their top wiring": wiringName(c.top3[0]) })));
 }
 
+/** An approval note Lane NP keeps at the end of an approved line ("(Camila 2026-11-21 4:29 PM CT, tap ...)"): not copy. */
+const withoutApprovalNote = (s: string) => s.replace(/\s*\(Camila \d{4}-\d{2}-\d{2}[^)]*\)\s*$/, "");
+
 /**
- * The two "Your family's week" lines that need her answers: the 4-day line only for the low-capacity band
- * ("is running close to empty right now"); the planning line's sentence for her planning band (planning ahead =
- * the first sentence, deciding in the moment = the second, a balance of both = none). Anything else: null.
+ * The two conditional "Your family's week" lines. The 4-day line needs her answers: only for the low-capacity band
+ * ("is running close to empty right now"). The planning line is the WHOLE approved line, both sentences, for every
+ * mom whatever her planning result, with or without her own answers (Camila 2026-11-21 4:29 PM CT, tap "Whole line,
+ * every mom"). Anything else: null.
  */
-export function weekLineFor(line: string, mom: MomData): string | null {
-  const side = (k: string) => mom.teaching.find((t) => t.key === k);
-  if (line.startsWith("If your energy")) return side("capacity")?.band === "right" ? line : null;
-  if (line.startsWith("If you lean")) {
-    const band = side("planning")?.band;
-    const [ahead, moment] = line.split(/(?<=\.) (?=If you lean)/);
-    if (!ahead || !moment) throw new Error("wired-pdf: the approved planning line no longer has its two sentences");
-    return band === "left" ? ahead : band === "right" ? moment : null;
-  }
+export function weekLineFor(line: string, mom: MomData | null): string | null {
+  if (line.startsWith("If your energy")) return mom?.teaching.find((t) => t.key === "capacity")?.band === "right" ? line : null;
+  if (line.startsWith("If you lean")) return withoutApprovalNote(line);
   return null;
 }
 
@@ -607,8 +606,8 @@ export async function buildFamilyMapPdf(d: FamilyMapData): Promise<Uint8Array> {
   w.newPage();
   w.h1("Your family's week");
   for (const it of block("familyMap", "Your family's week")) {
-    if (it.t === "li" && /^If (your energy|you lean)/.test(it.s)) {           // needs her own answers
-      const s = d.mom ? weekLineFor(it.s, d.mom) : null;
+    if (it.t === "li" && /^If (your energy|you lean)/.test(it.s)) {           // the 4-day line needs her own answers
+      const s = weekLineFor(it.s, d.mom ?? null);
       if (s) w.bullet(s);
       continue;
     }

@@ -149,7 +149,7 @@ Here's a family week to start with, built from your answers. "Let us not be wear
 - One day a week: outside or out of the house (nature walk, field trip, co-op, park day).
 - End of the week: a family project or show-and-tell, where each child shares something in their own way.
 - If your energy is low right now, try a 4-day week and keep only the family morning and skills time on the lightest days.
-- If you lean toward planning ahead, plan this week on the weekend. If you lean toward the moment, plan only Monday morning and let the rest follow.
+- If you lean toward planning ahead, plan this week on the weekend. If you lean toward the moment, plan only Monday morning and let the rest follow. (Camila 2026-11-21 4:29 PM CT, tap "Whole line, every mom": both sentences show to every mom, whatever her planning result.)
 
 ### How your kids' wirings work together
 

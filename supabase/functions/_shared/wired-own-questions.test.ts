@@ -2,10 +2,12 @@
 //   item 7, "Use as written": the pilot wording on the pilot delivery emails (em-blueprint, em-familymap) and on
 //           em-update for a tester's child; paid buyers' emails unchanged;
 //   item 8, "Build it, as written": her own questions (adult-v1) from the results page and the complete Family Map
-//           (her pages + the lines that need her answers), queued once and sent on the transactional rail.
+//           (her pages + the lines that need her answers), queued once and sent on the transactional rail;
+//   PR #829 follow-up (16:27-16:29 CT): Q1 her private link on both delivery buttons (paid + pilot), Q2 the complete
+//           map's own email (em-familymap-complete), Q3 the whole planning line for every mom.
 // No network: a fake PostgREST + a fake Resend, like the other wired tests.
 import { assert, assertEquals, assertStringIncludes, assertThrows } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { buildDeliveryEmail } from "./wired-delivery-email.ts";
+import { buildCompleteMapEmail, buildDeliveryEmail } from "./wired-delivery-email.ts";
 import { buildTxEmail, pilotFooterLine, pilotVersion, txCopy } from "./wired-email-tx.ts";
 import { WIRED_PDF_COPY } from "./wired-pdf-content.ts";
 import { isPilotJob } from "./wired-pdf-job.ts";
@@ -48,8 +50,8 @@ Deno.test("item 7: the pilot strings are read from the approved notes, word for 
 });
 
 Deno.test("item 7: pilot Blueprint delivery = the pilot first line + pilot footer; everything else as the paid email", () => {
-  const paid = buildDeliveryEmail("blueprint", { firstName: "Sarah", nickname: "Lily" });
-  const pilot = buildDeliveryEmail("blueprint", { firstName: "Sarah", nickname: "Lily", pilot: true });
+  const paid = buildDeliveryEmail("blueprint", { firstName: "Sarah", nickname: "Lily", resultsToken: "TOK" });
+  const pilot = buildDeliveryEmail("blueprint", { firstName: "Sarah", nickname: "Lily", pilot: true, resultsToken: "TOK" });
   assertStringIncludes(unesc(pilot.html), PILOT_BP);
   assertStringIncludes(pilot.text, PILOT_BP);
   assert(!pilot.text.includes("Thank you! Lily's Learner Blueprint is attached."));
@@ -70,8 +72,8 @@ Deno.test("item 7: pilot Blueprint delivery = the pilot first line + pilot foote
 
 Deno.test("item 7: pilot Family Map delivery, with and without her own answers", () => {
   for (const hasOwnAnswers of [false, true]) {
-    const paid = buildDeliveryEmail("family_map", { firstName: "Sarah", hasOwnAnswers });
-    const pilot = buildDeliveryEmail("family_map", { firstName: "Sarah", hasOwnAnswers, pilot: true });
+    const paid = buildDeliveryEmail("family_map", { firstName: "Sarah", hasOwnAnswers, resultsToken: "TOK" });
+    const pilot = buildDeliveryEmail("family_map", { firstName: "Sarah", hasOwnAnswers, pilot: true, resultsToken: "TOK" });
     const a = paid.text.split("\n\n"), b = pilot.text.split("\n\n");
     const diff = a.map((s, k) => (s === b[k] ? null : [s, b[k]])).filter(Boolean);
     assertEquals(diff, [["Thank you! Your Family Learning Map is attached, with a full Blueprint for each child.", PILOT_FM], [PAID_FOOT, PILOT_FOOT]], `hasOwnAnswers=${hasOwnAnswers}`);
@@ -81,12 +83,67 @@ Deno.test("item 7: pilot Family Map delivery, with and without her own answers",
 
 Deno.test("item 7: paid delivery emails are unchanged (pilot false = no pilot flag) and carry no pilot wording", () => {
   for (const kind of ["blueprint", "family_map"] as const) {
-    const o = { firstName: "Sarah", nickname: "Lily", hasOwnAnswers: false };
+    const o = { firstName: "Sarah", nickname: "Lily", hasOwnAnswers: false, resultsToken: "TOK" };
     assertEquals(buildDeliveryEmail(kind, { ...o, pilot: false }), buildDeliveryEmail(kind, o));
     const m = buildDeliveryEmail(kind, o);
     assertStringIncludes(m.text, PAID_FOOT);
     assert(!m.text.includes("testing") && !m.text.includes("survey"), kind);
   }
+});
+
+Deno.test("PR #829 Q1: both delivery buttons carry her private link (signed results token), paid and pilot, like em-update", async () => {
+  const token = await signWiredToken({ familyId: "11111111-1111-4111-8111-111111111111", purpose: "results" });
+  const link = (content: string) => `https://edeninstitute.health/wired/results?t=${encodeURIComponent(token)}&utm_source=email&utm_medium=email&utm_campaign=learner_quiz&utm_content=${content}`;
+  for (const [kind, content, label] of [["blueprint", "blueprint_delivery", "Invite someone who knows Lily"], ["family_map", "family_map_delivery", "Answer my questions"]] as const) {
+    for (const pilot of [false, true]) {
+      const m = buildDeliveryEmail(kind, { firstName: "Sarah", nickname: "Lily", pilot, resultsToken: token });
+      assertEquals(m.buttonUrl, link(content), `${kind} pilot=${pilot}`);
+      assertStringIncludes(m.text, `${label}: ${link(content)}`);
+      assertStringIncludes(m.html, `href="${link(content).replace(/&/g, "&amp;")}"`);
+    }
+    // A button with no private link is refused, so a tokenless link can never go out again.
+    assertThrows(() => buildDeliveryEmail(kind, { firstName: "Sarah", nickname: "Lily" }), Error, "private link");
+  }
+  // The same shape em-update has always used: ?t=<token>&<the copy's tags>.
+  const up = buildTxEmail("em-update", { firstName: "Sarah", nickname: "Lily", buttonUrl: `https://edeninstitute.health/wired/results?t=${encodeURIComponent(token)}` });
+  assertEquals(up.buttonUrl, link("pdf_update"));
+});
+
+Deno.test("PR #829 Q1: the button URL is the ONLY difference from the paid emails before (origin/main 2bbce27)", () => {
+  // Pinned from origin/main's builder: the old button pointed at /wired/results + tags, with no token.
+  for (const [kind, content] of [["blueprint", "blueprint_delivery"], ["family_map", "family_map_delivery"]] as const) {
+    const m = buildDeliveryEmail(kind, { firstName: "Sarah", nickname: "Lily", resultsToken: "TOK" });
+    const old = `https://edeninstitute.health/wired/results?utm_source=email&utm_medium=email&utm_campaign=learner_quiz&utm_content=${content}`;
+    assertEquals(m.buttonUrl, old.replace("?", "?t=TOK&"));
+    assert(!m.text.replace(m.buttonUrl!, "").includes("t=TOK"));
+  }
+});
+
+// ── PR #829 Q2: the complete Family Map's own email (em-familymap-complete) ──
+
+const COMPLETE_FIRST = "Thank you for answering your own questions! Your complete Family Learning Map is attached, now with your own teaching-wiring pages.";
+const REPLY = "Questions? Just reply to this email. It comes straight to me.";
+
+Deno.test("PR #829 Q2: the complete-map email = its own approved subject, preview and lines, no button; footer by family", () => {
+  const tx = approved("Wired_Quiz_Emails_Transactional.md");
+  for (const s of ["Subject: Your complete Family Learning Map", "Preview: Your own pages are in. Here's the whole map.", COMPLETE_FIRST, REPLY]) assertStringIncludes(tx, s);
+  for (const pilot of [false, true]) {
+    const m = buildCompleteMapEmail({ firstName: "Sarah", pilot });
+    assertEquals(m.subject, "Your complete Family Learning Map");
+    assertEquals(m.preview, "Your own pages are in. Here's the whole map.");
+    const foot = pilot ? PILOT_FOOT : PAID_FOOT;
+    assertEquals(m.text.split("\n\n"), [
+      "Hi Sarah,", COMPLETE_FIRST, REPLY, "Camila", "The Eden Institute", "", foot,
+      `Rooted in Faith Ventures LLC · ${ADDRESS}`, "Delete my quiz data: https://edeninstitute.health/wired/delete",
+    ]);
+    // No button: the only link is the footer's Delete my quiz data.
+    assertEquals([...m.html.matchAll(/<a href="([^"]+)"/g)].map((x) => x[1].split("?")[0]), ["https://edeninstitute.health/wired/delete"]);
+    assert(!m.html.includes("Answer my questions") && !m.html.includes("One quick step"));
+    assertStringIncludes(unesc(m.html), foot);
+    assert(!unesc(m.html).includes(pilot ? PAID_FOOT : PILOT_FOOT));
+    assertStringIncludes(m.html, "Your own pages are in."); // the hidden preview line
+  }
+  assertEquals(buildCompleteMapEmail({ firstName: null }).text.split("\n\n")[0], "Hi,");
 });
 
 Deno.test("item 7: em-update for a tester's family = the pilot footer; paid em-update unchanged; no pilot version for em-teen", () => {
@@ -141,22 +198,30 @@ Deno.test("item 8: her teaching-wiring page = the approved opening, her top-3 bl
   for (const s of [...p.opening, ...p.wirings.flatMap((w) => w.lines), ...p.style.map((x) => x.line)]) assertStringIncludes(screens, s);
 });
 
-Deno.test("item 8: 'You and each child' = one line per child, with 'an Organizer'; the week lines follow her bands", () => {
+Deno.test("item 8: 'You and each child' = one line per child, with 'an Organizer'; the 4-day line follows her capacity band", () => {
   const lines = youAndEachChildLines(MOM, [kid("Lily", ["maker", "designer", "seeker"]), kid("Ben", ["organizer", "maker", "seeker"])]);
   assertEquals(lines, [
     "You and each child: you're an Organizer; Lily is a Maker. When the two differ, offer Lily a way in that isn't your own favorite.",
     "You and each child: you're an Organizer; Ben is an Organizer. When the two differ, offer Ben a way in that isn't your own favorite.",
   ]);
   const energy = "If your energy is low right now, try a 4-day week and keep only the family morning and skills time on the lightest days.";
-  const planning = "If you lean toward planning ahead, plan this week on the weekend. If you lean toward the moment, plan only Monday morning and let the rest follow.";
   assertEquals(weekLineFor(energy, MOM), energy);                       // low-capacity band adds the 4-day line
-  assertEquals(weekLineFor(planning, MOM), "If you lean toward planning ahead, plan this week on the weekend.");
   const flow: MomData = { ...MOM, teaching: [side("planning", "right", "leans toward deciding in the moment"), side("capacity", "balance", "a balance of both")] };
   assertEquals(weekLineFor(energy, flow), null);
-  assertEquals(weekLineFor(planning, flow), "If you lean toward the moment, plan only Monday morning and let the rest follow.");
-  const mid: MomData = { ...MOM, teaching: [side("planning", "balance", "a balance of both"), side("capacity", "left", "has room to spare right now")] };
-  assertEquals(weekLineFor(planning, mid), null);
-  assertEquals(weekLineFor(energy, mid), null);
+  assertEquals(weekLineFor(energy, { ...MOM, teaching: [side("capacity", "left", "has room to spare right now")] }), null);
+  assertEquals(weekLineFor(energy, null), null);                       // needs her answers
+});
+
+Deno.test("PR #829 Q3: the planning line is the WHOLE approved line for every mom, whatever her planning result (or none yet)", () => {
+  const WHOLE = "If you lean toward planning ahead, plan this week on the weekend. If you lean toward the moment, plan only Monday morning and let the rest follow.";
+  const raw = WIRED_PDF_COPY.familyMap["Your family's week"].find((i) => i.t === "li" && i.s.startsWith("If you lean"))!.s;
+  assertStringIncludes(raw, "Whole line, every mom");                  // the master carries Camila's tap as a note...
+  for (const band of ["left", "balance", "right"] as const) {
+    const mom: MomData = { ...MOM, teaching: [side("planning", band, band === "left" ? "leans toward planning ahead" : band === "right" ? "leans toward deciding in the moment" : "a balance of both")] };
+    assertEquals(weekLineFor(raw, mom), WHOLE, band);                  // ...which never prints: both sentences, nothing else
+  }
+  assertEquals(weekLineFor(raw, null), WHOLE);                         // also in the first copy, before her answers
+  assertStringIncludes(approved("Wired_Quiz_Family_Map_And_Screens.md"), WHOLE);
 });
 
 Deno.test("item 8: the Family Map with her answers adds her page and stays under budget; without them it is the first copy", async () => {
@@ -330,14 +395,15 @@ const job = (over: Record<string, unknown>) => ({
 });
 const OWN = { quiz_year: 2026, computed_at: "2026-11-21T15:00:00Z" };
 
-Deno.test("drain: the complete Family Map (paid): her pages attached, the approved 'already answered' email, transactional, sent", async () => {
+Deno.test("drain: the complete Family Map (paid): her pages attached, its own approved email (em-familymap-complete), transactional, sent", async () => {
   const seen = drainWorld({ job: job({}), own: OWN });
   const out = await drainEmailQueue(DB, OPTS) as Record<string, number>;
   assertEquals(out.sent, 1);
   const r = resendBody(seen)!;
-  assertEquals(r.subject, "Your Family Learning Map");
+  assertEquals(r.subject, "Your complete Family Learning Map");
   assertEquals(r.to, ["mom@example.com"]);
-  assertStringIncludes(String(r.text), "Thank you! Your Family Learning Map is attached, with a full Blueprint for each child.");
+  assertEquals(r.text, buildCompleteMapEmail({ firstName: "Sarah", pilot: false }).text);
+  assertStringIncludes(String(r.text), COMPLETE_FIRST);
   assert(!String(r.text).includes("One quick step:") && !String(r.text).includes("Answer my questions"));
   assertStringIncludes(String(r.text), PAID_FOOT);
   assertEquals((r.attachments as { filename: string }[])[0].filename, "Family-Learning-Map.pdf");
@@ -358,8 +424,12 @@ Deno.test("drain: the complete Family Map for a pilot family carries the pilot w
   const seen = drainWorld({ job: job({ order_id: null, buyer_id: null }), own: OWN });
   await drainEmailQueue(DB, OPTS);
   const r = resendBody(seen)!;
-  assertStringIncludes(String(r.text), PILOT_FM);
+  // The same approved lines as a paid family (PR #829 Q2), with the pilot footer.
+  assertEquals(r.subject, "Your complete Family Learning Map");
+  assertEquals(r.text, buildCompleteMapEmail({ firstName: "Sarah", pilot: true }).text);
+  assertStringIncludes(String(r.text), COMPLETE_FIRST);
   assertStringIncludes(String(r.text), PILOT_FOOT);
+  assert(!String(r.text).includes(PILOT_FM) && !String(r.text).includes(PAID_FOOT));
   assert(seen.some((s) => decodeURIComponent(s.url).includes(`wired_unlocks?family_id=eq.${FAM}&product=eq.pilot_family_map`)));
 });
 
