@@ -101,7 +101,7 @@ const cardStyle = "border-color:hsl(var(--eden-gold) / 0.3)";
       <div class={card} style={cardStyle}>
         <h2 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-forest))">Not in one of these states?</h2>
         <p class="font-body text-sm text-muted-foreground leading-relaxed mb-2">
-          Applied and waiting: {ESA_PENDING.map((p) => `${p.state} (${p.program})`).join(", ")}.
+          Applied and waiting: {ESA_PENDING.map((p, i) => (<>{i > 0 && ", "}{p.href ? <a href={p.href} class="underline">{p.state} ({p.program}): how to buy now</a> : `${p.state} (${p.program})`}</>))}.
         </p>
         {ESA_OTHER.map((p) => (
           <p class="font-body text-sm text-muted-foreground leading-relaxed mb-2">{p.state} ({p.program}): {p.note}</p>

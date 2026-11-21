@@ -980,12 +980,14 @@ export const ESA_STATES: EsaState[] = [
   },
 ];
 
-/** Programs we have applied to and are waiting on. Plain facts only. */
-export const ESA_PENDING = [
+/** Programs we have applied to and are waiting on. Plain facts only. `href`, where set, is that
+    state's own page (not an ESA_STATES page, because it is not approved yet): /esa/florida. */
+export const ESA_PENDING: { state: string; program: string; note: string; href?: string }[] = [
   // 2026-11-20 (Lane 4 research, AAA 2026-27 Purchasing Handbook rev 11/10/26 + Step Up reimbursement page): PEP and
   // FES-UA families can buy now and request reimbursement for 2026-27 through 7/31/27; AAA does not reimburse teacher's editions.
   // Camila 2026-11-20 (Lane 4 chat, relayed 11:29): "change FL to buy now, reimbursement through July 31" = lead with it.
-  { state: "Florida", program: "Step Up For Students scholarships", note: "PEP and FES-UA families can buy now and ask for reimbursement through July 31, 2027 (reviews can take up to 60 days). If AAA manages your scholarship, its handbook does not cover teacher's editions, so the Teacher's Guide may not be reimbursed. Our provider application is submitted and waiting on review." },
+  // 2026-11-20 (Lane 2c, Camila's Lane 4 pick "Florida + receipt form"): href = its own step-by-step page, web/pages/esa/florida.astro.
+  { state: "Florida", program: "Step Up For Students scholarships", href: "/esa/florida", note: "PEP and FES-UA families can buy now and ask for reimbursement through July 31, 2027 (reviews can take up to 60 days). If AAA manages your scholarship, its handbook does not cover teacher's editions, so the Teacher's Guide may not be reimbursed. Our provider application is submitted and waiting on review." },
   // 2026-11-20 Camila (Lane 4 chat, relayed 10:56): "change WV to call scheduled Dec 4".
   { state: "West Virginia", program: "Hope Scholarship", note: "Provider application submitted September 2026. Onboarding call scheduled December 4, 2026." },
   // 2026-11-20 Camila (Lane 4 chat, relayed 10:53): "change SC to declined, resubmitting Tuesday".

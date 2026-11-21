@@ -1,0 +1,234 @@
+---
+// /esa/florida: how Florida PEP and FES-UA families order Eden's Table with scholarship funds.
+// Added 2026-11-20 (Lane 2c). Content lives in web/lib/esaFlorida.ts (read its header first).
+// Not an ESA_STATES page: Florida has not approved Eden's Table yet, so this page never says
+// "approved". It shows the route that works today: our store, a paid receipt, reimbursement.
+// Same plain header and footer as /esa/<state> (hideNav + hideFooter), and indexed like them.
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import EsaReceiptForm from "../../components/islands/EsaReceiptForm.tsx";
+import {
+  ESA_STATES,
+  ESA_PENDING,
+  ESA_COMMON_FAQ,
+  ESA_UPDATED,
+  ESA_UPDATED_ISO,
+  ESA_CONTACT_EMAIL,
+  ESA_DISCLAIMER,
+  esaCopyProblems,
+} from "../../lib/esaStates";
+import { FL_AAA_NOTES, FL_CHECKED, FL_FAQ, FL_ORDER_LINKS, FL_SOURCES, FL_STEPS } from "../../lib/esaFlorida";
+
+const fl = ESA_PENDING.find((p) => p.href === "/esa/florida");
+if (!fl) throw new Error("/esa/florida: ESA_PENDING has no Florida entry pointing here (web/lib/esaStates.ts).");
+
+const summary =
+  "If your child has a Personalized Education Program (PEP) or Family Empowerment Scholarship for Students with Unique Abilities (FES-UA) account, you can buy Eden's Table on our store today and ask your scholarship organization to pay you back. Here is how, in four steps.";
+
+const faq = [...FL_FAQ, ...ESA_COMMON_FAQ];
+
+// Same refusal as /esa/<state>: no banned word and no em dash in anything this page shows.
+const visibleCopy = [
+  summary,
+  ...FL_STEPS.flatMap((s) => [s.heading, s.body]),
+  ...FL_ORDER_LINKS.flatMap((l) => [l.label, l.price]),
+  ...FL_AAA_NOTES,
+  ...faq.flatMap((f) => [f.q, f.a]),
+  ...FL_SOURCES.map((s) => s.label),
+  fl.note,
+  ESA_DISCLAIMER,
+];
+for (const text of visibleCopy) {
+  const problems = esaCopyProblems(text);
+  if (problems.length) {
+    throw new Error(`/esa/florida: ${problems.join(", ")} in "${text.slice(0, 80)}". See the rules at the top of web/lib/esaStates.ts.`);
+  }
+}
+
+const canonical = "https://edeninstitute.health/esa/florida";
+const title = "Florida PEP and FES-UA: Buy Eden's Table, Get Reimbursed";
+const description =
+  "How Florida PEP and FES-UA families buy Eden's Table K-5 Bible-based science curriculum and get reimbursed by Step Up For Students or AAA, with a paid-in-full receipt in one click.";
+
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    dateModified: ESA_UPDATED_ISO,
+    mainEntity: faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: "How to buy Eden's Table with a Florida PEP or FES-UA scholarship",
+    step: FL_STEPS.map((s) => ({ "@type": "HowToStep", position: s.n, name: s.heading, text: s.body })),
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Scholarship and ESA states", item: "https://edeninstitute.health/esa" },
+      { "@type": "ListItem", position: 2, name: "Florida", item: canonical },
+    ],
+  },
+];
+
+const mailto = `mailto:${ESA_CONTACT_EMAIL}?subject=${encodeURIComponent("Eden's Table with my Florida scholarship")}`;
+const card = "rounded-lg p-5 bg-white border";
+const cardStyle = "border-color:hsl(var(--eden-gold) / 0.3)";
+---
+
+<MarketingLayout
+  title={title}
+  description={description}
+  canonical={canonical}
+  ogImage="https://edeninstitute.health/og-default-realpages.jpg"
+  jsonLd={jsonLd}
+  hideNav
+  hideFooter
+  orgDescription="Publisher of Eden's Table, a Bible-based science and nature study curriculum for homeschooling families."
+>
+  <header class="px-6 py-5 border-b bg-white" style={cardStyle}>
+    <div class="max-w-4xl mx-auto flex items-center justify-between gap-4 flex-wrap">
+      <a href="/esa" class="font-serif text-xl font-bold" style="color:hsl(var(--eden-forest))">Eden's Table</a>
+      <a href="/esa" class="font-body text-sm underline text-muted-foreground">All scholarship states</a>
+    </div>
+  </header>
+
+  <section class="pt-14 pb-10 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto text-center">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-4" style="color:hsl(var(--eden-gold-ink))">Florida · PEP and FES-UA · Grades K-5</p>
+      <h1 class="font-serif text-3xl md:text-5xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
+        Use your Florida scholarship for Eden's Table
+      </h1>
+      <p
+        class="inline-block font-body text-sm font-semibold rounded-full px-4 py-1 mb-5 border"
+        style="background-color:hsl(var(--eden-gold) / 0.12); border-color:hsl(var(--eden-gold) / 0.5); color:hsl(var(--eden-bark))"
+      >Buy now, then request reimbursement</p>
+      <p class="font-body text-lg text-muted-foreground leading-relaxed">{summary}</p>
+      <p class="font-body text-xs text-muted-foreground mt-4">Step Up For Students and AAA Scholarship Foundation families · Updated {ESA_UPDATED}</p>
+    </div>
+  </section>
+
+  <section class="py-12 px-6 bg-background">
+    <div class="max-w-2xl mx-auto">
+      <h2 class="font-serif text-2xl font-bold mb-6" style="color:hsl(var(--eden-bark))">Four steps</h2>
+      <ol class="space-y-4">
+        {FL_STEPS.map((s) => (
+          <li class={`${card} flex gap-4`} style={cardStyle}>
+            <span
+              aria-hidden="true"
+              class="flex-none w-10 h-10 rounded-full flex items-center justify-center font-serif text-lg font-bold"
+              style="background-color:hsl(var(--eden-forest)); color:hsl(var(--eden-parchment))"
+            >{s.n}</span>
+            <div class="min-w-0">
+              <h3 class="font-serif text-lg font-bold mb-1" style="color:hsl(var(--eden-forest))">
+                <span class="sr-only">Step {s.n}: </span>{s.heading}
+              </h3>
+              <p class="font-body text-sm text-muted-foreground leading-relaxed">{s.body}</p>
+              {s.n === 1 && (
+                <ul class="mt-3 grid gap-2 sm:grid-cols-2">
+                  {FL_ORDER_LINKS.map((l) => (
+                    <li>
+                      <a
+                        href={l.href}
+                        class="block rounded-md border px-3 py-2 font-body text-sm hover:shadow-sm transition-shadow"
+                        style="border-color:hsl(var(--eden-forest) / 0.4)"
+                      >
+                        <span class="font-semibold" style="color:hsl(var(--eden-forest))">{l.label}</span>
+                        <span class="block text-xs text-muted-foreground">{l.price}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {s.n === 2 && (
+                <p class="font-body text-sm mt-2"><a href="#receipt" class="underline font-semibold" style="color:hsl(var(--eden-forest))">Go to the receipt form</a></p>
+              )}
+              {s.n === 3 && (
+                <p class="font-body text-sm mt-2 space-x-3">
+                  <a href={FL_SOURCES[0].href} class="underline" rel="noopener" target="_blank">Step Up For Students reimbursement page</a>
+                  <a href={FL_SOURCES[5].href} class="underline" rel="noopener" target="_blank">AAA Florida page</a>
+                </p>
+              )}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </section>
+
+  <section class="pb-4 px-6 bg-background">
+    <div class="max-w-2xl mx-auto">
+      <div class="rounded-lg p-5 border" style="background-color:hsl(var(--eden-gold) / 0.08); border-color:hsl(var(--eden-gold) / 0.5)">
+        <h2 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-bark))">If AAA manages your scholarship, read this first</h2>
+        <ul class="list-disc pl-5 space-y-2">
+          {FL_AAA_NOTES.map((n) => <li class="font-body text-sm text-muted-foreground leading-relaxed">{n}</li>)}
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="receipt" class="py-12 px-6 bg-background scroll-mt-4">
+    <div class="max-w-2xl mx-auto">
+      <EsaReceiptForm client:only="react" />
+      <noscript>
+        <p class="font-body text-sm text-muted-foreground">
+          The receipt form needs JavaScript. Email <a href={mailto} class="underline">{ESA_CONTACT_EMAIL}</a> with your order number and we will send your receipt by hand.
+        </p>
+      </noscript>
+      <p class="font-body text-xs text-muted-foreground mt-4">
+        Questions? Write to <a href={mailto} class="underline">{ESA_CONTACT_EMAIL}</a>, or call
+        <a href="tel:+19315755895" class="underline">(931) 575-5895</a>, Monday through Friday, 9am to 5pm Central.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto">
+      <h2 class="font-serif text-2xl font-bold mb-6" style="color:hsl(var(--eden-bark))">Questions Florida families ask</h2>
+      <div class="space-y-5">
+        {faq.map((f) => (
+          <div>
+            <h3 class="font-serif text-base font-bold mb-1" style="color:hsl(var(--eden-forest))">{f.q}</h3>
+            <p class="font-body text-sm text-muted-foreground leading-relaxed">{f.a}</p>
+          </div>
+        ))}
+      </div>
+      <p class="font-body text-sm text-muted-foreground mt-6">
+        <a href="/curriculum" class="underline">Curriculum details</a> ·
+        <a href="/returns" class="underline">Return and refund policy</a>
+      </p>
+    </div>
+  </section>
+
+  <section class="py-12 px-6 bg-background">
+    <div class="max-w-2xl mx-auto">
+      <div class={card} style={cardStyle}>
+        <h2 class="font-serif text-lg font-bold mb-2" style="color:hsl(var(--eden-forest))">Where these rules come from</h2>
+        <ul class="space-y-1">
+          {FL_SOURCES.map((s) => (
+            <li class="font-body text-sm"><a href={s.href} class="underline" rel="noopener" target="_blank">{s.label}</a></li>
+          ))}
+        </ul>
+        <p class="font-body text-xs text-muted-foreground mt-3">
+          Checked against these documents on {FL_CHECKED}. Program rules change, and your scholarship organization's current handbook is the final word on what it will reimburse.
+        </p>
+      </div>
+      <p class="font-body text-sm text-muted-foreground mt-6">
+        Eden's Table in other states: {ESA_STATES.map((o, i) => (<>{i > 0 && ", "}<a href={`/esa/${o.slug}`} class="underline">{o.state}</a></>))}.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-8 px-6 bg-background">
+    <p class="max-w-2xl mx-auto font-body text-xs text-muted-foreground leading-relaxed text-center">{ESA_DISCLAIMER}</p>
+  </section>
+
+  <footer class="px-6 py-8 text-center" style="background-color:hsl(var(--eden-bark))">
+    <p class="font-serif text-lg font-semibold" style="color:hsl(var(--eden-parchment))">Eden's Table</p>
+    <p class="font-body text-xs mt-1" style="color:hsl(var(--eden-parchment) / 0.6)">
+      A Bible-based science and nature study curriculum · Published by Rooted in Faith Ventures LLC,
+      303 Holly Cir, Unit 3262, Clarksville, Tennessee 37043
+    </p>
+  </footer>
+</MarketingLayout>

@@ -47,6 +47,11 @@ verify_jwt = false
 [functions.esa-invoice]
 verify_jwt = false
 
+# Reimbursement-ready receipt on /esa/florida (added 2026-11-20). Anonymous families; the EF
+# checks the order number against the email on the order and asks Stripe before issuing anything.
+[functions.esa-receipt]
+verify_jwt = false
+
 # ESA payments (added 2026-09-15). esa-payment is service-role only: payment intake from
 # scripts/esa_payment_intake.py, manual mark_paid, and the daily reminder pass from the Vercel
 # cron. It relies on isServiceRoleRequest, which is only safe at verify_jwt = true.

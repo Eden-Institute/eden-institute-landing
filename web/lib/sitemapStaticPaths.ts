@@ -52,6 +52,7 @@ export const STATIC_PATHS: readonly string[] = [
   "/cookies",
   "/herbs",
   "/esa",
+  "/esa/florida",
   "/tales-and-table-talk",
   "/as-heard-on",
 ];
