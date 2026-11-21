@@ -1,0 +1,27 @@
+---
+// /wired/retake (Fearfully & Wonderfully Wired, spec 7.5): the July yearly-retest link lands here as ?r=<signed>.
+// The same quiz as /wired, with the child's nickname, the assumed grade (mom confirms or fixes it) and her email
+// filled in (_shared/wired-retake.ts). PRIVATE: noindex always and NO THIRD-PARTY TAGS (rule 7: the link and the
+// child it names never reach analytics or a Referer). The island moves the link off the address bar at once.
+// Listed in src/test/privatePagesNoTags.astro.test.ts PRIVATE_PAGES.
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import WiredQuiz from "../../components/islands/WiredQuiz";
+
+const meta = {
+  title: "Fearfully & Wonderfully Wired · The Eden Institute",
+  description: "A free quiz for homeschool moms about the strengths and interests you see in your child right now.",
+  canonical: "https://edeninstitute.health/wired",
+};
+---
+
+<MarketingLayout
+  title={meta.title}
+  description={meta.description}
+  canonical={meta.canonical}
+  noindex={true}
+  noThirdPartyTags={true}
+>
+  <main>
+    <WiredQuiz client:only="react" retake={true} />
+  </main>
+</MarketingLayout>

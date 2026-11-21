@@ -39,6 +39,7 @@ const PRIVATE_PAGES = [
   "answer.astro",
   "wired/results.astro",
   "wired/teen.astro",
+  "wired/retake.astro",
   "wired/observer.astro",
   "wired/delete.astro",
   "wired/pilot.astro",

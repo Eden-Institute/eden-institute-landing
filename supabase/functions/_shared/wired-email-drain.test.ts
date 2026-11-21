@@ -151,6 +151,15 @@ Deno.test("July 1: one email per family, grade + 1; July 15 skips a family that 
   assertEquals(out.sent, 1);
   const r = resendCall(seen)!.body as Record<string, unknown>;
   assertStringIncludes(String(r.html), "utm_content=july_1");
+  // Her retake link: the private /wired/retake page with a signed 'retake' token for that child, no child data.
+  const href = String(r.html).match(/href="(https:\/\/edeninstitute\.health\/wired\/retake\?r=[^"]+)"/)?.[1];
+  assert(href, "retake link");
+  const tok = decodeURIComponent(href!.replace(/&amp;/g, "&").split("?r=")[1].split("&")[0]);
+  const { verifyWiredToken } = await import("./wired-token.ts");
+  const grant = await verifyWiredToken(tok, "retake");
+  assertEquals(grant?.familyId, FAM);
+  assert(grant?.childId, "child in the token");
+  assert(!/Lily|nickname|grade=/i.test(href!), "no child data in the URL");
   const now = new Date();
   const thisYear = now.getUTCMonth() >= 6 ? now.getUTCFullYear() : now.getUTCFullYear() - 1;
   const seen2 = install({ row: row("july", 2), results: [{ quiz_year: thisYear }] });

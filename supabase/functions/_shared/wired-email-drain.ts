@@ -21,6 +21,7 @@ import { loadBlueprintData, renderJob, type PdfJob } from "./wired-pdf-job.ts";
 import { buildEmailOne } from "./wired-email-one.ts";
 import { applyUnsub } from "./email-unsubscribe.ts";
 import { signWiredToken } from "./wired-token.ts";
+import { RETAKE_PAGE } from "./wired-retake.ts";
 import { lowest3, wiringName } from "./wired-pdf.ts";
 import { buildJulyEmail, buildLearnerEmail, type ChildBits, type LearnerEmail } from "./wired-email-learner.ts";
 import { claimSendDay, nextCentralMorning, releaseSendDay } from "./send-day-guard.ts";
@@ -196,9 +197,10 @@ export async function buildLearner(db: Db, row: QueueRow, now: Date = new Date()
       if (!last || last.quiz_year >= thisYear) continue; // never quizzed, or already retested this quiz year
       const next = k.grade + (thisYear - last.quiz_year);
       if (next > 12) continue; // graduated
-      // Follow-up (W4): /wired does not pre-fill the child from the link yet; she enters nickname + grade there,
-      // and wired-submit matches the same child by nickname.
-      children.push({ nickname: k.nickname, topId: "", nextGrade: gradeWord(next), retakeUrl: `${SITE}/wired` });
+      // Her retake link: signed (family + child), to the private /wired/retake page, which fills in the nickname
+      // and this assumed grade for her to confirm or fix (_shared/wired-retake.ts). No child data in the URL.
+      const retake = await signWiredToken({ familyId: row.family_id, purpose: "retake", childId: k.id });
+      children.push({ nickname: k.nickname, topId: "", nextGrade: gradeWord(next), retakeUrl: `${RETAKE_PAGE}?r=${retake}` });
     }
     if (!children.length) return { skip: "no_child_due_retest" };
     const key = row.position === 2 ? "em-july15" : "em-july1";

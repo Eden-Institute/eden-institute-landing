@@ -8,10 +8,17 @@
 // Copy: web/lib/wiredCopy.ts (approved, word for word, incl. the welcome screen and child step
 // approved 2026-11-19 2:19 PM CT) + the bank's own approved text.
 // client:only (reads localStorage and the address bar).
+//
+// retake (the private /wired/retake page, spec 7.5): the July link's ?r= is moved to sessionStorage and off the
+// address bar at once, wired-retake resolves it, and the child step opens with the nickname (fixed: it is that
+// child), the assumed grade (she confirms or fixes it before the questions, so the set follows her answer) and
+// her email filled in. The submit carries the child's id, so wired_submit binds the retest to that child (one
+// free retest a year). A link that is expired, already used this year or not for a due child gives the plain
+// quiz. If she enters a different email, the quiz is saved the plain way (by nickname under that email).
 
 import { useEffect, useMemo, useState } from "react";
 import { trackCta } from "@/lib/trackCta";
-import { getBank, submitQuiz, WiredDark, writeStore, RESULTS_KEY } from "../../lib/wiredApi";
+import { getBank, getRetake, submitQuiz, WiredDark, writeStore, RESULTS_KEY } from "../../lib/wiredApi";
 import { FAMILY_INTRO, FAMILY_QUESTIONS, RANKING, RESULTS, SCREENS, fill } from "../../lib/wiredCopy";
 import WiredNotOpen from "./WiredNotOpen";
 
@@ -34,6 +41,22 @@ const forest = { backgroundColor: "hsl(var(--eden-forest))", color: "hsl(var(--e
 const choice = "w-full text-left font-body text-base rounded-md border px-4 py-3 mt-3 transition-colors";
 const choiceStyle = (on: boolean) => ({ borderColor: "hsl(var(--eden-gold) / 0.6)", backgroundColor: on ? "hsl(var(--eden-cream))" : "transparent" });
 
+const RETAKE_KEY = "eden_wired_retake";
+/** The July link's ?r=: kept for this tab only and removed from the address bar before anything reads it. */
+function takeRetake(): string | null {
+  try {
+    const url = new URL(window.location.href);
+    const r = url.searchParams.get("r");
+    if (r) {
+      try { window.sessionStorage.setItem(RETAKE_KEY, r); } catch { /* memory only */ }
+      url.searchParams.delete("r");
+      window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+      return r;
+    }
+  } catch { /* fall through */ }
+  try { return window.sessionStorage.getItem(RETAKE_KEY); } catch { return null; }
+}
+
 function attribution(): Record<string, string> {
   const out: Record<string, string> = {};
   try {
@@ -51,8 +74,9 @@ function attribution(): Record<string, string> {
   return out;
 }
 
-export default function WiredQuiz() {
+export default function WiredQuiz({ retake = false }: { retake?: boolean } = {}) {
   const [step, setStep] = useState<Step>("checking");
+  const [childId, setChildId] = useState<string | null>(null);
   const [nickname, setNickname] = useState("");
   const [grade, setGrade] = useState<number | null>(null);
   const [bank, setBank] = useState<PublicBank | null>(null);
@@ -72,10 +96,25 @@ export default function WiredQuiz() {
   // Dark until launch: a visitor who reaches /wired before it opens sees one plain line, not the
   // welcome screen. One light request (the K-2 questions, cached 5 minutes by wired-bank).
   useEffect(() => {
+    const r = retake ? takeRetake() : null;
+    if (r) {
+      getRetake(r)
+        .then(({ status, data }) => {
+          if (status === 200 && data.child_id && data.nickname && typeof data.grade === "number") {
+            setChildId(data.child_id);
+            setNickname(data.nickname);
+            setGrade(data.grade);
+            if (data.email) setEmail(data.email);
+          }
+          setStep("welcome");
+        })
+        .catch((err) => setStep(err instanceof WiredDark ? "dark" : "welcome"));
+      return;
+    }
     getBank("k2")
       .then(() => setStep("welcome"))
       .catch((err) => setStep(err instanceof WiredDark ? "dark" : "welcome"));
-  }, []);
+  }, [retake]);
 
   async function start() {
     trackCta("wired_start");
@@ -103,7 +142,7 @@ export default function WiredQuiz() {
     setError(null);
     const rank = skippedRanking || ranking.length < rankOptions.length ? null : ranking;
     try {
-      const { status, data } = await submitQuiz({
+      const payload = {
         email: email.trim(),
         first_name: firstName.trim() || null,
         child: { nickname: nickname.trim(), grade },
@@ -112,7 +151,12 @@ export default function WiredQuiz() {
         family_answers: family,
         ranking: rank,
         attribution: attribution(),
-      });
+      };
+      let { status, data } = await submitQuiz(childId ? { ...payload, child_id: childId } : payload);
+      // A July retest under a different email than the link's: that child is not in this email's family, so save
+      // it the plain way.
+      if (childId && status === 404 && (data as { error?: string }).error === "unknown_child") ({ status, data } = await submitQuiz(payload));
+      if (status === 200 || status === 409) { try { window.sessionStorage.removeItem(RETAKE_KEY); } catch { /* nothing kept */ } }
       const token = (data as { token?: string }).token;
       if ((status === 200 || status === 409) && token) {
         writeStore(RESULTS_KEY, token);
@@ -161,7 +205,7 @@ export default function WiredQuiz() {
       <h1 className="font-display text-2xl mb-4">{SCREENS.childHeading}</h1>
       <label className="block text-sm mb-1" htmlFor="wired-nick">{SCREENS.nicknameLabel}</label>
       <input id="wired-nick" className="w-full rounded-md border px-3 py-3 text-base bg-background" maxLength={40} autoComplete="off"
-        value={nickname} onChange={(e) => setNickname(e.target.value)} style={{ borderColor: "hsl(var(--eden-gold) / 0.5)" }} />
+        value={nickname} onChange={(e) => setNickname(e.target.value)} readOnly={!!childId} style={{ borderColor: "hsl(var(--eden-gold) / 0.5)" }} />
       <label className="block text-sm mt-4 mb-1" htmlFor="wired-grade">{SCREENS.gradeLabel}</label>
       <p className="text-xs text-muted-foreground mb-1">{SCREENS.gradeHelper}</p>
       <select id="wired-grade" className="w-full rounded-md border px-3 py-3 text-base bg-background" value={grade ?? ""}
