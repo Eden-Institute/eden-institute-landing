@@ -18,7 +18,10 @@ import {
 const canonical = "https://edeninstitute.health/esa";
 const stateNames = ESA_STATES.map((s) => s.state);
 const stateList = `${stateNames.slice(0, -1).join(", ")} and ${stateNames[stateNames.length - 1]}`;
-const title = "Use Your ESA for Eden's Table K-5 Science Curriculum";
+// The hero question reads "If you live in A, B ... or New Hampshire, yes." (same tap).
+const stateListOr = `${stateNames.slice(0, -1).join(", ")} or ${stateNames[stateNames.length - 1]}`;
+// 2026-11-20 Camila (Lane 4 tap ~18:54, "ESA or state scholarship").
+const title = "Use Your ESA or State Scholarship for Eden's Table K-5 Science Curriculum";
 const description = `Eden's Table, a Bible-based K-5 science and nature study curriculum, is an approved or registered vendor in ${ESA_STATES.length} ESA and scholarship programs: ${stateList}. See how to buy in your state.`;
 
 const faq = [
@@ -77,10 +80,10 @@ const cardStyle = "border-color:hsl(var(--eden-gold) / 0.3)";
         Scholarship and ESA families
       </p>
       <h1 class="font-serif text-3xl md:text-5xl font-bold leading-tight mb-6" style="color:hsl(var(--eden-bark))">
-        Can I use my ESA for Eden's Table?
+        Can I use my ESA or state scholarship for Eden's Table?
       </h1>
       <p class="font-body text-lg text-muted-foreground leading-relaxed">
-        If you live in {stateList}, yes. Eden's Table is an approved or registered vendor in {ESA_STATES.length} education
+        If you live in {stateListOr}, yes. Eden's Table is an approved or registered vendor in {ESA_STATES.length} education
         savings account and scholarship programs. Pick your state to see how buying works there right now.
       </p>
       <p class="font-body text-xs text-muted-foreground mt-4">Updated {ESA_UPDATED}</p>
