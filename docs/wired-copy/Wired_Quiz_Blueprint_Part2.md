@@ -161,3 +161,14 @@ Closing: Take a minute to thank God for how [Nickname] has grown this year.
 - Backwards design: Wiggins and McTighe, Understanding by Design (ASCD, 1998); three stages: identify desired results, determine acceptable evidence, plan learning experiences (University of Toronto summary, read 2026-11-19).
 - Interest change: Pässler and Hell (2020), already in the plan's research basis: ages 11 to 14 show the most change in interests.
 - Ways in are about giving interests room (Harackiewicz and others, 2016, approved with the results page), never about how a child learns (Pashler and others, 2008).
+
+## Side-by-side page (APPROVED by Camila 2026-11-20 ~6:02 PM CT, four taps "Use as written")
+
+Shown in the Blueprint (and each child's Blueprint inside the Family Map) right after the top-3 write-ups, only when a second person has answered. Table: the 9 wirings down the side, one column per person, then a blended column; each person's top 3 in bold.
+
+Heading: How each of you sees [Nickname] (follows her W9 review page)
+Columns: Mom sees / Teen sees / [label] sees / Blended
+Line under the heading: The last column blends everyone: your view counts for half, and the others share the other half.
+Line under the table: It's normal if your views don't match. You each see different sides of [Nickname].
+Small key: Bold numbers are each person's top 3.
+

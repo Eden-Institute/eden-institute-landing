@@ -49,9 +49,35 @@ export interface BlueprintData {
   top3: Domain[];
   answeredOn: Date;             // her answers' date
   observerCount: number;        // other people whose answers are blended in (0 today; W9)
+  raters?: RaterView[];         // each person's own view, mom first (the side-by-side page shows when 2+)
   matches: PdfMatch[];          // already ranked by her own priorities
   comingSoonBand: "6-8" | "9-12" | null;
   now?: Date;
+}
+
+/** One person's own answers for a child: mom, the teen, or an observer by the label mom gave (never a name). */
+export interface RaterView { role: string; label: string | null; scores: Scores; top3: Domain[] }
+
+// The side-by-side page (spec 7.3/7.4, promised by em-teen and em-update). Mirrors the results page
+// (web/lib/wiredCopyW9.ts); a test keeps the shared lines identical.
+//   APPROVED: momSees, teenSees (email copy APPROVED 2026-11-19 2:44 PM CT, "Mom sees / Teen sees").
+//   PROPOSED on Camila's W9 review page: heading, labelSees.
+//   blended, note, normal, key: APPROVED 2026-11-20 ~6:02 PM CT (four taps "Use as written"), snapshot in
+//   docs/wired-copy/Wired_Quiz_Blueprint_Part2.md, section "Side-by-side page".
+export const SIDE_COPY = {
+  heading: "How each of you sees [Nickname]",
+  momSees: "Mom sees",
+  teenSees: "Teen sees",
+  labelSees: "[label] sees",
+  blended: "Blended",
+  note: "The last column blends everyone: your view counts for half, and the others share the other half.",
+  normal: "It's normal if your views don't match. You each see different sides of [Nickname].",
+  key: "Bold numbers are each person's top 3.",
+};
+
+export function raterHeading(r: RaterView): string {
+  return r.role === "mom" ? SIDE_COPY.momSees : r.role === "teen" ? SIDE_COPY.teenSees
+    : SIDE_COPY.labelSees.replace("[label]", r.label?.trim() || "Someone");
 }
 
 export interface FamilyMapData {
@@ -318,6 +344,9 @@ function writeBlueprint(w: Writer, d: BlueprintData) {
   const pair = pairBlurb(top3);
   if (pair) { w.h2(`${wiringName(top3[0])} + ${wiringName(top3[1])}`); w.text(fill(pair, v)); }
 
+  // 2b. Side by side: only when someone besides mom has answered for this child.
+  if ((d.raters?.length ?? 0) >= 2) writeSideBySide(w, d);
+
   // 3. Subject-by-subject plan: the opening, then one page per subject
   const plan = block("blueprint2", "Subject-by-subject plan: the opening and the fill-in lines");
   w.newPage();
@@ -419,6 +448,46 @@ function writeBlueprint(w: Writer, d: BlueprintData) {
   // Where the ideas come from
   w.h2("Where the ideas come from");
   for (const it of block("blueprint2", "Where the ideas come from")) w.small(it.s);
+}
+
+/** Each person's view of the 9 wirings in columns, then the blend; each person's top 3 in bold. */
+function writeSideBySide(w: Writer, d: BlueprintData) {
+  const v = { Nickname: d.nickname };
+  const raters = [...(d.raters ?? [])].sort((a, b) => (a.role === "mom" ? -1 : b.role === "mom" ? 1 : a.role === "teen" ? -1 : b.role === "teen" ? 1 : 0));
+  w.newPage();
+  w.h1(fill(SIDE_COPY.heading, v));
+  w.text(SIDE_COPY.note, { after: 14 });
+  const cols = [...raters.map(raterHeading), SIDE_COPY.blended];
+  const nameW = 150, colW = (CW - nameW) / cols.length, size = 11, hSize = 9.5;
+  // Header row: each heading wrapped to its column, bottom-aligned.
+  const heads = cols.map((c) => w.wrap(c, w.f.bodyB, hSize, colW - 6));
+  const hLines = Math.max(...heads.map((h) => h.length));
+  const hTop = w.y;
+  heads.forEach((lines, i) => {
+    lines.forEach((ln, k) => {
+      const y = hTop - hSize - (hLines - lines.length + k) * (hSize * 1.25);
+      const x = M + nameW + colW * i + (colW - w.f.bodyB.widthOfTextAtSize(ln, hSize)) / 2;
+      w.page.drawText(ln, { x, y, size: hSize, font: w.f.bodyB, color: i === cols.length - 1 ? C.olive : C.forest });
+    });
+  });
+  w.y = hTop - hLines * hSize * 1.25 - 6;
+  w.page.drawLine({ start: { x: M, y: w.y }, end: { x: M + CW, y: w.y }, thickness: 0.8, color: C.gold });
+  const views = [...raters.map((r) => ({ scores: r.scores, top3: r.top3.slice(0, 3) })), { scores: d.scores, top3: d.top3.slice(0, 3) }];
+  for (const dom of DOMAINS) {
+    const rowH = 24;
+    w.page.drawText(wiringName(dom), { x: M, y: w.y - 16, size, font: w.f.body, color: C.body });
+    views.forEach((vw, i) => {
+      const n = String(Math.round(vw.scores[dom] ?? 0));
+      const font = vw.top3.includes(dom) ? w.f.bodyB : w.f.body;
+      const x = M + nameW + colW * i + (colW - font.widthOfTextAtSize(n, size)) / 2;
+      w.page.drawText(n, { x, y: w.y - 16, size, font, color: vw.top3.includes(dom) ? C.forest : C.body });
+    });
+    w.y -= rowH;
+    w.page.drawLine({ start: { x: M, y: w.y }, end: { x: M + CW, y: w.y }, thickness: 0.4, color: C.softGold });
+  }
+  w.y -= 16;
+  w.text(fill(SIDE_COPY.normal, v), { after: 6 });
+  w.small(SIDE_COPY.key);
 }
 
 export async function buildBlueprintPdf(d: BlueprintData): Promise<Uint8Array> {

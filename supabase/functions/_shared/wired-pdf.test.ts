@@ -67,3 +67,57 @@ Deno.test("Shortlist PDF renders 10 curricula under 1 MB", async () => {
   assert(bytes.length < 1024 * 1024, `size ${bytes.length}`);
   if (Deno.env.get("WIRED_PDF_OUT")) await Deno.writeFile(`${Deno.env.get("WIRED_PDF_OUT")}/shortlist.pdf`, bytes);
 });
+
+// ── Side by side (spec 7.3/7.4; promised by em-teen and em-update) ──
+const fiveRaters = () => {
+  const mk = (role: string, label: string | null, bump: number) => ({
+    role, label, top3: ["maker", "designer", "cultivator"] as BlueprintData["top3"],
+    scores: Object.fromEntries(Object.entries(scores).map(([k, n]) => [k, Math.max(0, Math.min(100, n + bump))])) as typeof scores,
+  });
+  return [mk("observer", "Other family member", -12), mk("teen", null, 8), mk("mom", null, 0), mk("observer", "Grandparent", 15), mk("observer", "Co-op teacher", -5)];
+};
+
+Deno.test("side by side: one extra page only when a second person answered", async () => {
+  const { raterHeading, SIDE_COPY } = await import("./wired-pdf.ts");
+  const base = (await PDFDocument.load(await buildBlueprintPdf(lily))).getPageCount();
+  const momOnly = (await PDFDocument.load(await buildBlueprintPdf({ ...lily, raters: [fiveRaters()[2]] }))).getPageCount();
+  const bytes = await buildBlueprintPdf({ ...lily, observerCount: 4, raters: fiveRaters() });
+  const withRaters = (await PDFDocument.load(bytes)).getPageCount();
+  assertEquals(momOnly, base);
+  assertEquals(withRaters, base + 1);
+  assert(bytes.length < 3 * 1024 * 1024, `size ${bytes.length}`);
+  assertEquals(raterHeading({ role: "mom", label: null, scores, top3: [] }), "Mom sees");
+  assertEquals(raterHeading({ role: "teen", label: null, scores, top3: [] }), "Teen sees");
+  assertEquals(raterHeading({ role: "observer", label: "Dad", scores, top3: [] }), "Dad sees");
+  assertEquals(raterHeading({ role: "observer", label: null, scores, top3: [] }), "Someone sees");
+  assert(SIDE_COPY.heading.includes("[Nickname]"));
+  if (Deno.env.get("WIRED_PDF_OUT")) await Deno.writeFile(`${Deno.env.get("WIRED_PDF_OUT")}/blueprint_sidebyside.pdf`, bytes);
+});
+
+Deno.test("side by side: Family Map with 6 children, 5 people each, stays under 3 MB", async () => {
+  const kids = ["Lily", "Ben", "Ana", "Sam", "Joy", "Eli"].map((n, i) => ({ ...lily, nickname: n, grade: i * 2, raters: fiveRaters(), observerCount: 4 }));
+  const bytes = await buildFamilyMapPdf({ children: kids, now: lily.now });
+  assert(bytes.length < 3 * 1024 * 1024, `size ${bytes.length}`);
+  console.log("family map with raters bytes", bytes.length);
+});
+
+Deno.test("side by side: the lines shared with the results page are identical", async () => {
+  const { SIDE_COPY } = await import("./wired-pdf.ts");
+  const web = await Deno.readTextFile(new URL("../../../web/lib/wiredCopyW9.ts", import.meta.url));
+  const val = (k: string) => web.match(new RegExp(` ${k}: "([^"]*)"`))?.[1];
+  assertEquals(val("momSees"), SIDE_COPY.momSees);
+  assertEquals(val("teenSees"), SIDE_COPY.teenSees);
+  assertEquals(val("sideHeading")?.replace("{name}", "[Nickname]"), SIDE_COPY.heading);
+  assertEquals(val("labelSees")?.replace("{label}", "[label]"), SIDE_COPY.labelSees);
+});
+
+Deno.test("side by side: the PDF-only lines are word for word from the approved section", async () => {
+  const { SIDE_COPY } = await import("./wired-pdf.ts");
+  const md = await Deno.readTextFile(new URL("../../../docs/wired-copy/Wired_Quiz_Blueprint_Part2.md", import.meta.url));
+  const sec = md.slice(md.indexOf("## Side-by-side page"));
+  assert(sec.startsWith("## Side-by-side page (APPROVED"), "approved section present");
+  assert(sec.includes(`Line under the heading: ${SIDE_COPY.note}`));
+  assert(sec.includes(`Line under the table: ${SIDE_COPY.normal}`));
+  assert(sec.includes(`Small key: ${SIDE_COPY.key}`));
+  assert(sec.includes(`/ ${SIDE_COPY.blended}`));
+});
