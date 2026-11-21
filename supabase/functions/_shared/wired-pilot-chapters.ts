@@ -9,7 +9,7 @@
 //   Delivery is a PAGE, never a raw file link in an email (memory r_email_pdf_links_blank_screen): the tester
 //   page shows a button per unlocked chapter, and each tap signs a fresh 1-hour view link (no download= param).
 //   The chapter-ready email links to that page with her results token.
-// Copy marked PROPOSED waits on Camila's taps (via Lane NP).
+// Copy APPROVED by Camila 2026-11-20 ~6:31 PM CT (Wired_Quiz_Pilot_Pieces.md section 6; snapshot in docs/wired-copy/).
 
 import { type Db, pg } from "./wired-submit-flow.ts";
 import { BRAND, emailShell } from "./nurture-email-templates.ts";
@@ -26,7 +26,7 @@ export const CHAPTERS: Record<ChapterNo, { path: string; step: "step3_at" | "ste
 const ADDRESS = "Rooted in Faith Ventures LLC · 303 Holly Cir, Unit 3262, Clarksville, TN 37043";
 const INK = "#E8E3DA";
 
-// PROPOSED (C1-C3, E1, E2 in NOTES 2026-11-20): the email side lives here; the page side in web/lib/wiredPilotCopy.ts.
+// APPROVED (section 6): the email side lives here; the page side in web/lib/wiredPilotCopy.ts. A test keeps both word for word.
 export const CHAPTER_EMAIL: Record<ChapterNo, { subject: string; body: string[]; button: string }> = {
   1: {
     subject: "Your advance chapter of Unschooled by Design",
@@ -38,10 +38,11 @@ export const CHAPTER_EMAIL: Record<ChapterNo, { subject: string; body: string[];
     button: "Read Chapter 1",
   },
   4: {
-    subject: "Your last gift: another chapter of Unschooled by Design",
+    subject: "Your advance chapter of Unschooled by Design",
     body: [
       "Thank you for finishing every step of the test. Your last gift is ready: Chapter 4 of Unschooled by Design.",
       "[button]",
+      "It opens on your tester page.",
     ],
     button: "Read Chapter 4",
   },

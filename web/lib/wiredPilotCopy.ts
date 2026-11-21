@@ -27,7 +27,7 @@ export const PILOT = {
   everySurvey: "You get every reward for finishing the surveys, whether your feedback is positive, negative or mixed. Honest answers help us most.",
 } as const;
 
-/** The advance chapters on the tester page. PROPOSED (C1-C3 in NOTES 2026-11-20), waiting on Camila's taps. */
+/** The advance chapters on the tester page. APPROVED 2026-11-20 ~6:31 PM CT (Wired_Quiz_Pilot_Pieces.md section 6). */
 export const CHAPTERS_COPY = {
   heading: "Your advance chapters",
   line: "Thank you for testing the quiz. Here's your gift: early chapters of my upcoming book, Unschooled by Design.",

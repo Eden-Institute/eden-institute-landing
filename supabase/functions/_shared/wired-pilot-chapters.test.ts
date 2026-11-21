@@ -82,3 +82,21 @@ Deno.test("sender: waits for the file; then claims, sends once per family + chap
   assertEquals(out.failed, 1);
   assert(calls.some((c) => c.method === "PATCH" && JSON.stringify(c.body) === JSON.stringify({ ch1_emailed_at: null })), "claim released");
 });
+
+Deno.test("chapter copy: emails and page lines word for word from the approved section 6", async () => {
+  const md = await Deno.readTextFile(new URL("../../../docs/wired-copy/Wired_Quiz_Pilot_Pieces.md", import.meta.url));
+  const sec = md.slice(md.indexOf("## 6. Advance chapter delivery"));
+  assert(sec.startsWith("## 6. Advance chapter delivery (APPROVED"), "approved section present");
+  const ch4 = sec.slice(sec.indexOf("### Chapter 4 email"));
+  const ch1 = sec.slice(sec.indexOf("### Chapter 1 email"), sec.indexOf("### Chapter 4 email"));
+  for (const [n, part] of [[1, ch1], [4, ch4]] as const) {
+    const c = CHAPTER_EMAIL[n];
+    assertStringIncludes(part, `Subject: ${c.subject}`);
+    for (const line of c.body) if (line !== "[button]") assertStringIncludes(part, line);
+    assertStringIncludes(part, `Button: ${c.button}`);
+  }
+  const web = await Deno.readTextFile(new URL("../../../web/lib/wiredPilotCopy.ts", import.meta.url));
+  for (const s of ["Heading: Your advance chapters", "Line: Thank you for testing the quiz.", "Read Chapter 1: The Mouth of the South", "Read Chapter 4: Judge a Fish"]) assertStringIncludes(sec, s);
+  for (const s of ["Your advance chapters", "Thank you for testing the quiz. Here's your gift: early chapters of my upcoming book, Unschooled by Design.", "Read Chapter 1: The Mouth of the South", "Read Chapter 4: Judge a Fish"]) assertStringIncludes(web, s);
+  assertStringIncludes(sec, "Line: Thank you for testing the quiz. Here's your gift: early chapters of my upcoming book, Unschooled by Design.");
+});
