@@ -59,7 +59,8 @@ export const GET: APIRoute = async () => {
 
   const esaPaths = ESA_STATES.map((s) => `/esa/${s.slug}`);
   // The only URLs that carry a <lastmod>. See the header for why.
-  const datedPaths = new Set(["/esa", ...esaPaths]);
+  // /esa/florida (2026-11-20) is a fixed page in STATIC_PATHS but follows the ESA review date too.
+  const datedPaths = new Set(["/esa", "/esa/florida", ...esaPaths]);
 
   const gradePaths = GRADE_PAGES.map(gradePath);
 

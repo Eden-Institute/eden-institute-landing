@@ -265,6 +265,7 @@ const FILES: [string, string][] = [
   ["/learn", "web/pages/learn/index.astro"],
   ["/herbs", "web/pages/herbs/index.astro"],
   ["/esa", "web/pages/esa/index.astro"],
+  ["/esa/florida", "web/pages/esa/florida.astro"],
   ["/books", "web/pages/books.astro"],
   ["/books/thank-you", "web/pages/books/thank-you.astro"],
   ["/starter", "web/pages/starter.astro"],

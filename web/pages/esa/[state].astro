@@ -422,7 +422,7 @@ const cardStyle = "border-color:hsl(var(--eden-gold) / 0.3)";
         ))}
       </ul>
       <p class="font-body text-sm text-muted-foreground mt-4">
-        Applied and waiting: {ESA_PENDING.map((p) => `${p.state} (${p.program})`).join(", ")}.
+        Applied and waiting: {ESA_PENDING.map((p, i) => (<>{i > 0 && ", "}{p.href ? <a href={p.href} class="underline">{p.state} ({p.program}): how to buy now</a> : `${p.state} (${p.program})`}</>))}.
         Not in any of these? <a href={`mailto:${ESA_CONTACT_EMAIL}?subject=${encodeURIComponent("Please apply in my state")}`} class="underline">Tell us your state</a>.
       </p>
     </div>
