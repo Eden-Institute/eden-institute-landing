@@ -55,6 +55,9 @@ export const submitQuiz = (body: unknown) => call<Record<string, unknown>>("wire
 export const getResults = (token: string, childId?: string) =>
   call<Record<string, unknown>>("wired-results", { method: "POST", body: { token, ...(childId ? { child_id: childId } : {}) } });
 export const getMatches = (body: unknown) => call<Record<string, unknown>>("wired-matches", { method: "POST", body });
+/** The July yearly-retest link (/wired/retake?r=): the child's nickname, the assumed grade and her email. */
+export interface RetakeInfo { status: string; child_id?: string; nickname?: string; grade?: number; email?: string }
+export const getRetake = (r: string) => call<RetakeInfo>("wired-retake", { method: "POST", body: { r } });
 
 /** W6: the wired cart. create-checkout verifies the token and children, then answers { url } (Stripe). */
 export type WiredBuy = "blueprint" | "family_map" | "blueprint_upgrade" | "family_map_upgrade";

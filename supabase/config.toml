@@ -206,6 +206,9 @@ verify_jwt = true
 [functions.wired-teen-link]
 verify_jwt = false
 
+[functions.wired-retake]
+verify_jwt = false
+
 [functions.wired-observers]
 verify_jwt = false
 
