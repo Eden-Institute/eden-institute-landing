@@ -152,23 +152,28 @@ export async function submitSurvey(db: Db, familyId: string, childId: string, ki
 
   const stored: Record<string, unknown> = { ...answers };
   if (kind === "ux") stored.umux_lite = umuxLite(answers.capabilities as number, answers.easy as number);
-  await pg(db, "wired_surveys", {
-    method: "POST", headers: { Prefer: "return=minimal" },
+  // 2026-11-21 (pilot Family Map fix, Camila's go via NP): retry-safe. wired_surveys is unique per family + kind, so a
+  // tester retrying after a failed grant or stamp would otherwise hit a 409 and be stuck; her first saved answers are kept.
+  await pg(db, "wired_surveys?on_conflict=family_id,kind", {
+    method: "POST", headers: { Prefer: "return=minimal,resolution=ignore-duplicates" },
     body: JSON.stringify({ family_id: familyId, child_id: childId, session_id: first?.id ?? null, kind, answers: stored }),
   });
   const year = quizYear(now);
   const stamp = now.toISOString();
+  // Grant FIRST, then stamp the step. A grant that throws leaves the step open, so her retry runs the grant again
+  // (it answers "already" if the first one did land). Stamping first stranded her: the ladder read her as past the
+  // step and the reward never came (Lane 2b test pass 11/20, finding 1).
   if (kind === "ux") {
+    await pg(db, "rpc/wired_pilot_grant", { method: "POST", body: JSON.stringify({ p_family: familyId, p_child: childId, p_product: "pilot_blueprint", p_quiz_year: year }) });
     await pg(db, "wired_pilot_progress?on_conflict=family_id", {
       method: "POST", headers: { Prefer: "return=minimal,resolution=merge-duplicates" },
       body: JSON.stringify({ family_id: familyId, child_id: childId, step1_at: stamp }),
     });
-    await pg(db, "rpc/wired_pilot_grant", { method: "POST", body: JSON.stringify({ p_family: familyId, p_child: childId, p_product: "pilot_blueprint", p_quiz_year: year }) });
     return { status: "ok", step: 1, unlocked: "blueprint" };
   }
   if (kind === "accuracy") {
-    await pg(db, `wired_pilot_progress?family_id=eq.${familyId}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ step2_at: stamp }) });
     await pg(db, "rpc/wired_pilot_grant", { method: "POST", body: JSON.stringify({ p_family: familyId, p_child: childId, p_product: "pilot_family_map", p_quiz_year: year }) });
+    await pg(db, `wired_pilot_progress?family_id=eq.${familyId}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ step2_at: stamp }) });
     return { status: "ok", step: 2, unlocked: "family_map" };
   }
   if (kind === "family_map") {
