@@ -1,7 +1,10 @@
 // Fearfully & Wonderfully Wired: the words on /wired and /wired/results (W4).
 //
 // Every string here is Camila's APPROVED copy, word for word:
-//   - docs/wired-copy/Wired_Quiz_Results_Page_Copy.md (approved 2026-11-19 11:20 AM CT)
+//   - docs/wired-copy/Wired_Quiz_Results_Page_Copy.md (approved 2026-11-19 11:20 AM CT; the later $28 upgrade
+//     approved 2026-11-21 ~8:52 AM CT)
+//   - docs/wired-copy/Wired_Quiz_Resource_Guide_Copy.md section 2 (approved 2026-11-19 10:50 PM CT): the
+//     "Helpful extras section" words and the "Screen-based" label (the same strings the Curriculum Finder shows)
 //   - docs/wired-copy/Wired_Quiz_Family_Questions.md (approved 2026-11-19 8:47 AM CT)
 //   - docs/wired-copy/Wired_Quiz_Family_Map_And_Screens.md section 1 (quiz screens, approved
 //     2026-11-19 2:19 PM CT)
@@ -72,6 +75,15 @@ export const RESULTS = {
   familyMapOffer: "Teaching more than one? The Family Learning Map includes a full Blueprint for each child, plus your own teaching wiring, how to teach your kids together, a family weekly rhythm, and how your children's wirings work with each other.",
   familyMapButton: "Get the Family Map ($47 for up to 5 kids)",
   familyMapSmall: "+$10 for each child after 5. Instant PDF download. Because it's digital, all sales are final.",
+  /** The later $28 upgrade (approved 2026-11-21): {name} = the child whose Blueprint she already has. */
+  familyMapUpgradeLine: "You already have {name}'s Blueprint, so the Family Map is $28 for you this school year.",
+  familyMapUpgradeButton: "Upgrade to the Family Map ($28)",
+  /** The coming-soon line's button (results copy section 5). */
+  waitlistButton: "Join the waitlist",
+  /** Helpful extras (spec answer 38; Resource Guide copy section 2 "Helpful extras section" + its labels). */
+  extrasHeading: "Helpful extras",
+  extrasLine: "Apps, videos, songs and books that can sit alongside a curriculum. Not a full curriculum on their own.",
+  screenBased: "Screen-based",
   notDiagnosticHeading: "What this quiz is, and isn't",
   notDiagnostic: [
     "This quiz shows the strengths and interests you notice in {name} right now. It is not a diagnostic tool. It doesn't measure intelligence, it isn't a test score, and it can't find or rule out a learning difference, an attention issue or anything medical.",

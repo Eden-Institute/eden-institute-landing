@@ -6,6 +6,7 @@
 // Google sees; the island filters in the browser. ⚠️ FINDER_COPY is DRAFT copy, PENDING Camila's
 // approval on the finder review page.
 import { createClient } from "@supabase/supabase-js";
+import { COMING_SOON_BANDS } from "./bandWaitlist";
 
 export interface FinderCurriculum {
   id: string; sheet_id: string; name: string; publisher: string | null; link: string | null; is_affiliate: boolean;
@@ -48,11 +49,8 @@ export async function fetchFinderRows(): Promise<FinderCurriculum[]> {
   return ((data ?? []) as FinderCurriculum[]).map((r) => (r.coming_soon ? { ...r, name: comingSoonName(r) } : r));
 }
 
-/** The public waitlist bands (same names, dates and wording as the /homeschool band cards). */
-export const COMING_SOON_BANDS: Record<string, { band: "cultivators" | "practitioners"; name: string; grades: string; status: string }> = {
-  C033: { band: "cultivators", name: "Cultivators", grades: "grades 6-8", status: "Planned for late 2027" },
-  C034: { band: "practitioners", name: "Practitioners", grades: "grades 9-12", status: "Planned for 2028" },
-};
+/** The public waitlist bands: one definition in web/lib/bandWaitlist.ts (shared with the Wired results page). */
+export { COMING_SOON_BANDS };
 export function comingSoonName(r: { sheet_id: string; name: string }): string {
   const b = COMING_SOON_BANDS[r.sheet_id];
   return b ? `Eden's Table: ${b.name} (${b.grades})` : r.name.replace(/\s*\(name to come[^)]*\)/i, "");

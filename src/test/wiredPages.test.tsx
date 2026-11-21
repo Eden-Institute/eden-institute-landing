@@ -136,6 +136,114 @@ describe("WiredResults", () => {
   });
 });
 
+describe("WiredResults, 2026-11-21: links, reasons, Helpful extras, the $28 upgrade", () => {
+  const alpha = {
+    id: "m1", name: "Alpha Math", because: ["wiring", "prep"], served_top3: ["maker", "designer"], components: { prep: 1, budget: 1 },
+    prep_load: "open_and_go", price_cents: 20000, price_basis: "Per family per year", url: "https://aff.example/alpha?ref=eden", is_affiliate: true,
+  };
+  const beta = {
+    id: "m2", name: "Beta Reading", because: ["budget", "prep"], served_top3: ["maker"], components: { budget: 1, prep: 0.5 },
+    prep_load: "light", price_cents: 0, price_basis: "Free", url: "https://beta.example/", is_affiliate: false,
+  };
+  const extras = [
+    { id: "x1", name: "Seeds Family Worship", resource_type: "Songs", screen_based: false, url: "https://seeds.example/", is_affiliate: false },
+    { id: "x2", name: "Starfall", resource_type: "App", screen_based: true, url: "https://starfall.example/", is_affiliate: false },
+  ];
+
+  it("each match name links to its curriculum; the commission label sits next to affiliate links only; two reasons with prep and Free", async () => {
+    localStorage.setItem(RESULTS_KEY, "TOKEN123");
+    vi.stubGlobal("fetch", mockFetch({
+      "wired-results": { status: 200, body: { children: [unlockedChild] } },
+      "wired-matches": { status: 200, body: { matches: [alpha, beta], budget_filter_offered: true, extras: [] } },
+    }));
+    render(<WiredResults />);
+    await waitFor(() => expect(screen.getByText("Alpha Math")).toBeTruthy());
+    const a = screen.getByText("Alpha Math").closest("a")!;
+    expect(a.getAttribute("href")).toBe("https://aff.example/alpha?ref=eden");
+    expect(a.getAttribute("rel")).toBe("sponsored noopener");
+    const b = screen.getByText("Beta Reading").closest("a")!;
+    expect(b.getAttribute("href")).toBe("https://beta.example/");
+    expect(b.getAttribute("rel")).toBe("noopener");
+    expect(screen.getAllByText("Eden earns a commission")).toHaveLength(1);
+    expect(a.parentElement!.textContent).toContain("Eden earns a commission");
+    expect(screen.getByText("Some of these links pay Eden a commission if you buy. That never changes which curricula show up or the order they're in.")).toBeTruthy();
+    expect(screen.getByText("Serves 2 of Lily's top 3: Maker and Designer · Open-and-go: about 10 minutes of prep a day")).toBeTruthy();
+    expect(screen.getByText("Free · Light prep: about 10 to 20 minutes a day (a little more prep than you said you have)")).toBeTruthy();
+  });
+
+  it("Helpful extras: the approved heading and line, each with its type label and Screen-based, never numbered", async () => {
+    localStorage.setItem(RESULTS_KEY, "TOKEN123");
+    vi.stubGlobal("fetch", mockFetch({
+      "wired-results": { status: 200, body: { children: [unlockedChild] } },
+      "wired-matches": { status: 200, body: { matches: [alpha], budget_filter_offered: true, extras } },
+    }));
+    render(<WiredResults />);
+    await waitFor(() => expect(screen.getByText("Helpful extras")).toBeTruthy());
+    expect(screen.getByText("Apps, videos, songs and books that can sit alongside a curriculum. Not a full curriculum on their own.")).toBeTruthy();
+    expect(screen.getByText("Songs")).toBeTruthy();
+    expect(screen.getByText("App · Screen-based")).toBeTruthy();
+    const item = screen.getByText("Starfall").closest("li")!;
+    expect(item.parentElement!.tagName).toBe("UL");
+    expect(screen.getByText("Starfall").closest("a")!.getAttribute("href")).toBe("https://starfall.example/");
+  });
+
+  it("Helpful extras from wired-results show before (or without) a live re-rank; none = no section", async () => {
+    localStorage.setItem(RESULTS_KEY, "TOKEN123");
+    vi.stubGlobal("fetch", mockFetch({ "wired-results": { status: 200, body: { children: [{ ...unlockedChild, extras }] } } }));
+    render(<WiredResults />);
+    await waitFor(() => expect(screen.getByText("Seeds Family Worship")).toBeTruthy());
+    cleanup();
+    vi.stubGlobal("fetch", mockFetch({
+      "wired-results": { status: 200, body: { children: [unlockedChild] } },
+      "wired-matches": { status: 200, body: { matches: [], budget_filter_offered: true, extras: [] } },
+    }));
+    render(<WiredResults />);
+    await waitFor(() => expect(screen.getByText("How God wired Lily")).toBeTruthy());
+    expect(screen.queryByText("Helpful extras")).toBeNull();
+  });
+
+  it("the later $28 upgrade: a Blueprint this quiz year swaps the Family Map button and adds the line; it buys family_map_upgrade", async () => {
+    localStorage.setItem(RESULTS_KEY, "TOKEN123");
+    const assign = vi.fn();
+    vi.stubGlobal("location", { ...window.location, href: window.location.href, assign });
+    const fetchMock = mockFetch({
+      "wired-results": { status: 200, body: { children: [unlockedChild], family_map_upgrade: { blueprint_nickname: "Ben" } } },
+      "wired-matches": { status: 200, body: { matches: [], budget_filter_offered: true } },
+      "create-checkout": { status: 200, body: { url: "https://checkout.stripe.com/c/pay/u" } },
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<WiredResults />);
+    await waitFor(() => expect(screen.getByText("Upgrade to the Family Map ($28)")).toBeTruthy());
+    expect(screen.getByText("You already have Ben's Blueprint, so the Family Map is $28 for you this school year.")).toBeTruthy();
+    expect(screen.getByText("Because it's digital, all sales are final.")).toBeTruthy();
+    expect(screen.getByText(/Teaching more than one\? The Family Learning Map includes/)).toBeTruthy();
+    expect(screen.queryByText("Get the Family Map ($47 for up to 5 kids)")).toBeNull();
+    fireEvent.click(screen.getByText("Upgrade to the Family Map ($28)"));
+    await waitFor(() => expect(assign).toHaveBeenCalledWith("https://checkout.stripe.com/c/pay/u"));
+    const call = fetchMock.mock.calls.find(([u]) => String(u).includes("create-checkout"))!;
+    expect(JSON.parse(((call as unknown as [string, RequestInit])[1]).body as string)).toEqual({ lookup_key: "wired_cart", token: "TOKEN123", product: "family_map_upgrade" });
+  });
+
+  it("no upgrade (null) keeps the $47 offer; a one-child family sees no Family Map box either way", async () => {
+    localStorage.setItem(RESULTS_KEY, "TOKEN123");
+    vi.stubGlobal("fetch", mockFetch({
+      "wired-results": { status: 200, body: { children: [unlockedChild], family_map_upgrade: null } },
+      "wired-matches": { status: 200, body: { matches: [], budget_filter_offered: true } },
+    }));
+    render(<WiredResults />);
+    await waitFor(() => expect(screen.getByText("Get the Family Map ($47 for up to 5 kids)")).toBeTruthy());
+    expect(screen.queryByText("Upgrade to the Family Map ($28)")).toBeNull();
+    cleanup();
+    vi.stubGlobal("fetch", mockFetch({
+      "wired-results": { status: 200, body: { children: [{ ...unlockedChild, offers: { blueprint: true, family_map: false } }], family_map_upgrade: { blueprint_nickname: "Lily" } } },
+      "wired-matches": { status: 200, body: { matches: [], budget_filter_offered: true } },
+    }));
+    render(<WiredResults />);
+    await waitFor(() => expect(screen.getByText("How God wired Lily")).toBeTruthy());
+    expect(screen.queryByText("Upgrade to the Family Map ($28)")).toBeNull();
+  });
+});
+
 describe("WiredQuiz", () => {
   it("dark: a visitor sees one plain line straight away, never the welcome or the questions", async () => {
     vi.stubGlobal("fetch", mockFetch({ "wired-bank": { status: 404, body: { error: "not_found" } } }));

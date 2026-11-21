@@ -175,6 +175,11 @@ Teaching more than one? The Family Learning Map includes a full Blueprint for ea
 Button: Get the Family Map ($47 for up to 5 kids)
 Small print: +$10 for each child after 5. Instant PDF download. Because it's digital, all sales are final.
 
+**Later $28 upgrade (APPROVED by Camila 2026-11-21 ~8:52 AM CT, tap "Results page + email 6"):** when the family already bought a Blueprint in this quiz year, the Family Map box (same visibility rule as above) swaps its button and adds one line:
+Line: You already have [Nickname]'s Blueprint, so the Family Map is $28 for you this school year.
+Button: Upgrade to the Family Map ($28)
+Small print: the approved all-sales-final line above.
+
 ## 6. Not a diagnostic tool, evaluations, and the fine print
 
 The honest-limits section every results page carries, plus the affiliate and children's privacy wording. Every fact here comes from the spec you approved or from the sources listed at the end.

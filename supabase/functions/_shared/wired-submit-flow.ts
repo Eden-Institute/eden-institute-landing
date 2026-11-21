@@ -10,6 +10,7 @@ import { centralMorning } from './send-day-guard.ts';
 import { type Bank, blend, type BlendInput, quizYear, scoreRater, scoreTeachingStyle, AnswerError } from './wired-engine.ts';
 import { type EsaRow, rankCurricula, toMatchCurriculum } from './wired-match.ts';
 import { buildResultsPayload, type FamilyAnswers, prefsFromAnswers, type ResultsPayload, type Submission } from './wired-submit-core.ts';
+import { type BuyerRow, DISPLAY_COLUMNS, type DisplayRow, EXTRAS_COLUMNS, FAMILY_MAP_PRODUCTS, familyMapUpgrade, type UnlockRow } from './wired-display.ts';
 
 export interface Db { url: string; key: string }
 
@@ -70,6 +71,40 @@ export async function approvedCurricula(db: Db) {
 
 export async function esaRows(db: Db, state: string): Promise<EsaRow[]> {
   return (await pg<EsaRow[]>(db, `wired_curriculum_esa?state=eq.${encodeURIComponent(state.toUpperCase())}&select=curriculum_id,state,eligible,verified_at`)) ?? [];
+}
+
+const UUID_ONLY = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Display fields for ranked matches (2026-11-21), read AFTER ranking (rule 3). Approved rows only. */
+export async function matchDisplayRows(db: Db, ids: string[]): Promise<DisplayRow[]> {
+  const ok = [...new Set(ids)].filter((id) => UUID_ONLY.test(id));
+  if (!ok.length) return [];
+  return (await pg<DisplayRow[]>(db, `wired_curricula?id=in.(${ok.join(',')})&approved=eq.true&select=${DISPLAY_COLUMNS}`)) ?? [];
+}
+
+/** The approved Helpful extras (spec answer 38): every row whose resource_type is set and is not "Curriculum". */
+export async function helpfulExtraRows(db: Db): Promise<Record<string, unknown>[]> {
+  return (await pg<Record<string, unknown>[]>(db, `wired_curricula?approved=eq.true&coming_soon=eq.false&resource_type=neq.Curriculum&select=${EXTRAS_COLUMNS}`)) ?? [];
+}
+
+/**
+ * The later $28 upgrade for a family (spec 9.2), on create-checkout's exact gate: wired_buyers rows for the
+ * CURRENT quiz year, a live Blueprint and no live Family Map. Returns the Blueprint child's nickname, or null.
+ */
+export async function familyMapUpgradeFor(db: Db, familyId: string, now: Date = new Date()): Promise<{ blueprint_nickname: string } | null> {
+  if (!UUID_ONLY.test(familyId)) return null;
+  const buys = (await pg<BuyerRow[]>(db,
+    `wired_buyers?family_id=eq.${familyId}&quiz_year=eq.${quizYear(now)}&select=product,order_id,refunded_at,disputed_at,purchased_at&order=purchased_at.asc`)) ?? [];
+  const live = buys.filter((b) => !b.refunded_at && !b.disputed_at);
+  const orders = [...new Set(live.filter((b) => b.product === 'blueprint' && b.order_id).map((b) => b.order_id as string))].filter((id) => UUID_ONLY.test(id));
+  if (!orders.length || live.some((b) => FAMILY_MAP_PRODUCTS.includes(b.product))) return null;
+  const unlocks = (await pg<UnlockRow[]>(db,
+    `wired_unlocks?family_id=eq.${familyId}&order_id=in.(${orders.join(',')})&product=eq.blueprint&select=order_id,child_id`)) ?? [];
+  const kidIds = [...new Set(unlocks.map((u) => u.child_id).filter((id): id is string => !!id && UUID_ONLY.test(id)))];
+  const kids = kidIds.length
+    ? (await pg<{ id: string; nickname: string }[]>(db, `wired_children?family_id=eq.${familyId}&id=in.(${kidIds.join(',')})&select=id,nickname`)) ?? []
+    : [];
+  return familyMapUpgrade(buys, unlocks, new Map(kids.map((k) => [k.id, k.nickname])));
 }
 
 export type ProcessOutcome =

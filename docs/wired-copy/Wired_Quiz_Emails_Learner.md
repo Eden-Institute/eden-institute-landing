@@ -103,6 +103,7 @@ The Eden Institute
 
 Footer: You're getting this because you took the Fearfully & Wonderfully Wired quiz. Unsubscribe from these emails · Delete my quiz data · [business name and mailing address]
 
+- Blueprint buyers (APPROVED by Camila 2026-11-21 ~8:52 AM CT, tap "Results page + email 6"): when the family already bought a Blueprint in this quiz year, "It's $47 for up to 5 kids." is replaced with: "You already have [Nickname]'s Blueprint, so the Family Map is $28 for you this school year." The button still goes to her results page, which shows the $28 upgrade.
 - Note: Moms with one child get this first paragraph instead: "Ever notice that you and [Nickname] are wired differently? You might love a plan while [Nickname] loves to explore. Knowing both helps." The rest stays the same (the Family Map includes your own teaching wiring).
 
 ## A curriculum spotlight (`em-7`)

@@ -1695,6 +1695,22 @@ export const WIRED_PDF_COPY: WiredPdfCopy = {
    {
     "t": "p",
     "s": "Small print: +$10 for each child after 5. Instant PDF download. Because it's digital, all sales are final."
+   },
+   {
+    "t": "p",
+    "s": "**Later $28 upgrade (APPROVED by Camila 2026-11-21 ~8:52 AM CT, tap \"Results page + email 6\"):** when the family already bought a Blueprint in this quiz year, the Family Map box (same visibility rule as above) swaps its button and adds one line:"
+   },
+   {
+    "t": "p",
+    "s": "Line: You already have [Nickname]'s Blueprint, so the Family Map is $28 for you this school year."
+   },
+   {
+    "t": "p",
+    "s": "Button: Upgrade to the Family Map ($28)"
+   },
+   {
+    "t": "p",
+    "s": "Small print: the approved all-sales-final line above."
    }
   ],
   "Not a diagnostic tool": [

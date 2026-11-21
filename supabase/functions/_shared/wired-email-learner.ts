@@ -8,7 +8,9 @@
 //         for the top wiring.
 //   em-4  shows a real Blueprint page (the Math page for the top wiring) as a hosted image; never AI.
 //   em-5  names the 3 lowest wirings (lowest first) and the first approved "small taste" for the lowest.
-//   em-6  swaps in the approved one-child first paragraph when the family has one child.
+//   em-6  swaps in the approved one-child first paragraph when the family has one child, and for a family that
+//         already bought a Blueprint this quiz year (the $28 upgrade applies) replaces "It's $47 for up to 5 kids."
+//         with the approved Blueprint-buyers line (APPROVED 2026-11-21 ~8:52 AM CT).
 //   em-7  = the top match by her own ranking; the button goes to the curriculum's own link, with the
 //         approved "Eden earns a commission" label beside it when that link is an affiliate link.
 //   em-8  pastes the 3 approved "Ways to serve right now" and the approved prayer for the top wiring.
@@ -97,6 +99,7 @@ export interface LearnerInput {
   child: ChildBits;
   resultsToken: string;
   kids?: number;                                  // em-6: 1 = the one-child paragraph
+  blueprintNickname?: string | null;              // em-6: the $28 upgrade applies (the child whose Blueprint she has)
   blueprintPageImageUrl?: string;                 // em-4: the real Blueprint Math page for the top wiring
   match?: { name: string; reason: string; line: string; url: string; isAffiliate: boolean; priority: string }; // em-7
   bookWaitlistUrl?: string | null;                // em-10
@@ -153,6 +156,17 @@ function buttonSpec(key: LearnerKey): { label: string; utm: string; path: string
 }
 const resultsUrl = (token: string, utm: string) => `${SITE}/wired/results?t=${encodeURIComponent(token)}${utm ? `&${utm}` : ""}`;
 
+/**
+ * em-6, Blueprint buyers (approved note, 2026-11-21): the sentence that is replaced and its replacement, both read
+ * word for word from the approved copy.
+ */
+export function em6BlueprintBuyers(): { from: string; to: string } {
+  const note = learnerCopy("em-6").find((i) => i.s.startsWith("Blueprint buyers"));
+  const m = note?.s.match(/"([^"]+)" is replaced with: "([^"]+)"/);
+  if (!m) throw new Error("em-6 Blueprint-buyers line missing");
+  return { from: m[1], to: m[2] };
+}
+
 /** Build learner email 2-10 for one child (em-9 needs quotes: never built here, see the drain). */
 export function buildLearnerEmail(key: Exclude<LearnerKey, "em-9" | "em-july1" | "em-july15">, o: LearnerInput): LearnerEmail {
   const c = o.child;
@@ -191,6 +205,13 @@ export function buildLearnerEmail(key: Exclude<LearnerKey, "em-9" | "em-july1" |
       if (!m) throw new Error("em-6 one-child paragraph missing");
       blocks.push({ kind: "p", s: fill(m[1], v) });
       continue;
+    }
+    if (key === "em-6" && o.blueprintNickname) {
+      const swap = em6BlueprintBuyers();
+      if (raw.includes(swap.from)) {
+        blocks.push({ kind: "p", s: article(fill(raw.replace(swap.from, swap.to), { ...v, Nickname: o.blueprintNickname })) });
+        continue;
+      }
     }
     if (key === "em-7") {
       if (!o.match) throw new Error("em-7 needs a match");

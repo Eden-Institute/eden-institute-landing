@@ -2,7 +2,7 @@
 import { assert, assertEquals, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { drainEmailQueue, EM4_IMAGE } from "./wired-email-drain.ts";
 import { LEARNER_DRIP_POSITIONS, queueLearnerDrip } from "./wired-submit-flow.ts";
-import { DOMAINS } from "./wired-engine.ts";
+import { DOMAINS, quizYear } from "./wired-engine.ts";
 
 Deno.env.set("WIRED_LINK_SECRET", "w".repeat(64));
 Deno.env.set("UNSUB_SIGNING_SECRET", "u".repeat(64));
@@ -23,6 +23,8 @@ interface World {
   curricula?: Record<string, unknown>[];
   prefs?: Record<string, unknown>[];
   results?: Record<string, unknown>[];
+  buyers?: Record<string, unknown>[];   // wired_buyers rows (em-6: the $28 upgrade)
+  unlocks?: Record<string, unknown>[];  // wired_unlocks rows
 }
 type Seen = { url: string; method: string; body?: unknown };
 
@@ -55,6 +57,8 @@ function install(w: World): Seen[] {
     if (path.startsWith("wired_children?id=in.")) return j([{ id: KID, nickname: "Lily", grade: 3, created_at: "2026-11-01T00:00:00Z" }]);
     if (path.startsWith("wired_children?family_id=")) return j([{ id: KID, nickname: "Lily", grade: 3 }]);
     if (path.startsWith("wired_family_prefs?")) return j(w.prefs ?? []);
+    if (path.startsWith("wired_buyers?")) return j(w.buyers ?? []);
+    if (path.startsWith("wired_unlocks?")) return j(w.unlocks ?? []);
     if (path.startsWith("wired_family_results?")) return j([]);
     if (path.startsWith("wired_curricula?") && path.includes("mom_pros")) return j([{ mom_pros: ["Short, cheerful daily lessons."] }]);
     if (path.startsWith("wired_curricula?") && path.includes("affiliate_url")) return j((w.curricula ?? []).map((c) => ({ id: c.id, url: c.url, affiliate_url: c.affiliate_url ?? null, is_affiliate: c.is_affiliate ?? false, subjects: c.subjects, price_cents: c.price_cents, prep_load: c.prep_load })));
@@ -136,6 +140,29 @@ Deno.test("em-6: a one-child family gets the one-child paragraph", async () => {
   await drainEmailQueue(DB, OPTS);
   const html = String((resendCall(seen)!.body as Record<string, unknown>).html);
   assert(!html.includes("If you&#39;re teaching more than one child") && !html.includes("If you're teaching more than one child"));
+});
+
+Deno.test("em-6: a Blueprint bought this quiz year (no Family Map) swaps in the $28 line; otherwise the $47 sentence", async () => {
+  const ORDER = "44444444-4444-4444-8444-444444444444";
+  const bp = { product: "blueprint", order_id: ORDER, refunded_at: null, disputed_at: null, purchased_at: "2026-11-19T00:00:00Z" };
+  const seen = install({ row: row("drip", 6), buyers: [bp], unlocks: [{ order_id: ORDER, child_id: KID }] });
+  await drainEmailQueue(DB, OPTS);
+  const text = String((resendCall(seen)!.body as Record<string, unknown>).text);
+  assertStringIncludes(text, "You already have Lily's Blueprint, so the Family Map is $28 for you this school year.");
+  assert(!text.includes("$47"));
+  assert(seen.some((x) => x.url.includes(`wired_buyers?family_id=eq.${FAM}&quiz_year=eq.${quizYear(new Date())}&`)), "this quiz year only");
+
+  for (const w of [
+    { row: row("drip", 6) },                                                                                      // no Blueprint
+    { row: row("drip", 6), buyers: [{ ...bp, refunded_at: "2026-11-20T00:00:00Z" }], unlocks: [{ order_id: ORDER, child_id: KID }] }, // refunded
+    { row: row("drip", 6), buyers: [bp, { ...bp, product: "family_map", order_id: ROW }], unlocks: [{ order_id: ORDER, child_id: KID }] }, // owns the Family Map
+  ] as World[]) {
+    const s2 = install(w);
+    await drainEmailQueue(DB, OPTS);
+    const t = String((resendCall(s2)!.body as Record<string, unknown>).text);
+    assertStringIncludes(t, "It's $47 for up to 5 kids.");
+    assert(!t.includes("$28"));
+  }
 });
 
 Deno.test("em-7 with no matched curriculum is skipped, never sent half-filled", async () => {

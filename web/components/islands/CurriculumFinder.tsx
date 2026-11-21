@@ -2,13 +2,11 @@
 // the browser. Stars live on her device (localStorage); "Email me my shortlist" posts to the
 // curriculum-shortlist edge function. The Friday box is UNTICKED by default (Camila's tap).
 // Copy: FINDER_COPY in web/lib/curriculumFinder.ts (DRAFT, pending her approval).
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { COMING_SOON_BANDS, EDEN_TABLE_SHEET_IDS, EDEN_TESTIMONIALS, FINDER_COPY as T, FINDER_FAQ, FINDER_FAQ_HEADING, FINDER_FAQ_Q1_QUIZ, FINDER_TRUST as TR, factsCheckedMonth, finderCount, isHelpfulExtra, PREP_ORDER, SUBJECT_GROUPS, WIRED_IS_PUBLIC, type FinderCurriculum } from "../../lib/curriculumFinder";
-import { HOMESCHOOL_AUDIENCE_ID } from "../../lib/freeWeekModal";
-
 // The site's existing grade 6-12 waitlist form (same as /homeschool's "Tell me when it opens"), loaded only
-// when a mom taps "Join the waitlist": it touches localStorage at module load, so never during the build.
-const WaitlistModal = lazy(() => import("@/components/landing/WaitlistModal"));
+// when a mom taps "Join the waitlist" (web/lib/bandWaitlist.ts, shared with the Wired results page).
+import BandWaitlistModal from "./BandWaitlistModal";
 
 const STARS_KEY = "eden_finder_stars";
 const STATES = "AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY".split(" ");
@@ -297,22 +295,7 @@ export default function CurriculumFinder({ rows }: { rows: FinderCurriculum[] })
         </div>
       </section>
 
-      {wl && (
-        <Suspense fallback={null}>
-          <WaitlistModal
-            open={!!wl}
-            onOpenChange={(o) => { if (!o) setWaitlistFor(null); }}
-            audienceId={HOMESCHOOL_AUDIENCE_ID}
-            source={`${wl.band}_waitlist`}
-            formName={`finder_${wl.band}_waitlist`}
-            title={`Tell me when ${wl.name} opens`}
-            subtitle={`I will email you the moment ${wl.name} has a date. Add your mobile number if you would also like a text when it opens.`}
-            successCtaHref="https://edeninstitute.health/homeschool#choose-band"
-            successCtaLabel="See where to start today"
-            successCtaBlurb={`${wl.name} goes deeper into the 72 plants your child meets in Sprouts and Seedlings, so the best preparation is to start with them now.`}
-          />
-        </Suspense>
-      )}
+      {wl && <BandWaitlistModal band={wl.band} formName={`finder_${wl.band}_waitlist`} onClose={() => setWaitlistFor(null)} />}
 
       {stars.length > 0 && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 backdrop-blur px-4 py-3" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>

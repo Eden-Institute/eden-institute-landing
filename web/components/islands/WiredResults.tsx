@@ -4,13 +4,18 @@
 // Copy: web/lib/wiredCopy.ts + wiredWriteups.ts (approved, word for word).
 // Buy buttons (W6): create-checkout's wired cart; Stripe brings her back with ?paid=, which is stripped.
 // W9 (2026-11-20): the side by side, the teen link, the observer invites (WiredRaterPanels) and "Delete my quiz data".
-// Not wired yet (later tickets): the later $28 upgrade button (needs buyer state from wired-results), the coming-soon waitlist button (W11), curriculum links + prep/"Free" reason lines
-// (need display fields per match, W5 with the curriculum import). client:only.
+// 2026-11-21 (Camila's taps): each match links to its curriculum (the affiliate link when it is one, with "Eden earns a
+// commission" beside it) and its reason lines get the prep / "Free" fields; up to 3 Helpful extras below the matches
+// (answer 38: type label + "Screen-based", never numbered); the later $28 upgrade in the Family Map box when
+// wired-results says a Blueprint was bought this quiz year; and the coming-soon "Join the waitlist" button opens the
+// Curriculum Finder's grade 6-12 waitlist form (BandWaitlistModal). client:only.
 
 import { useEffect, useState } from "react";
 import { getMatches, getResults, RESULTS_KEY, savedResultsToken, startWiredCheckout, WiredDark, wiredIsDark, writeStore, type WiredBuy } from "../../lib/wiredApi";
 import WiredNotOpen from "./WiredNotOpen";
 import { CHECKOUT } from "../../lib/wiredCheckoutCopy";
+import { upperBandOf, type UpperBand } from "../../lib/bandWaitlist";
+import BandWaitlistModal from "./BandWaitlistModal";
 import { APPROACHES, COMING_SOON_912, REASONS, RESULTS, SCREENS, TIP_LABELS, TIPS, fill, type TipKind } from "../../lib/wiredCopy";
 import { WIRING_WRITEUPS } from "../../lib/wiredWriteups";
 import { Observers, type RaterView, SideBySide, TeenLink } from "./WiredRaterPanels";
@@ -19,13 +24,17 @@ import { DOMAINS, type Domain } from "../../../supabase/functions/_shared/wired-
 
 interface Match {
   id: string; name: string; because: string[]; served_top3: Domain[]; components: Record<string, number>; esa_state?: string;
-  prep_load?: string; price_cents?: number | null; url?: string | null; affiliate_url?: string | null; is_affiliate?: boolean;
+  // Display fields (wired-matches / wired-results, read after ranking): url is already the affiliate link when is_affiliate.
+  prep_load?: string; price_cents?: number | null; price_basis?: string | null; url?: string | null; is_affiliate?: boolean;
 }
+/** A Helpful extra (answer 38): never ranked, so it is never numbered on the page. */
+interface Extra { id: string; name: string; resource_type: string; screen_based: boolean; url: string | null; is_affiliate: boolean }
 interface ChildResults {
   child_id: string; nickname: string; grade: number; unlocked: boolean; preview?: { top_wiring: Domain };
   scores?: Record<Domain, number>; top3?: Domain[]; renaissance?: boolean; tip_first?: TipKind;
   approach?: { fits: { approach: string; room_for: Domain[] }[]; already_there: boolean; her_approach: string | null };
   matches?: Match[]; coming_soon?: { name: string; eden_band: string | null }[]; offers: { blueprint: boolean; family_map: boolean };
+  extras?: Extra[];
   raters?: RaterView[]; teen_link_allowed?: boolean; observers_allowed?: boolean;
 }
 
@@ -88,7 +97,10 @@ export default function WiredResults() {
   const [children, setChildren] = useState<ChildResults[]>([]);
   const [sel, setSel] = useState(0);
   const [filters, setFilters] = useState({ withinBudget: false, christianOnly: false, esaOnly: false, state: "" });
-  const [live, setLive] = useState<{ matches: Match[]; budget_filter_offered: boolean } | null>(null);
+  const [live, setLive] = useState<{ matches: Match[]; budget_filter_offered: boolean; extras?: Extra[] } | null>(null);
+  // The later $28 upgrade (spec 9.2): { blueprint_nickname } when she bought a Blueprint this quiz year, else null.
+  const [upgrade, setUpgrade] = useState<{ blueprint_nickname: string } | null>(null);
+  const [waitlist, setWaitlist] = useState<UpperBand | null>(null);
   const [paid, setPaid] = useState(false);
   const [buying, setBuying] = useState<string | null>(null);
   const [buyError, setBuyError] = useState<string | null>(null);
@@ -106,6 +118,7 @@ export default function WiredResults() {
         if (status === 401) return setState("none");
         if (status !== 200) return setState("error");
         setChildren(((data as { children?: ChildResults[] }).children) ?? []);
+        setUpgrade((data as { family_map_upgrade?: { blueprint_nickname: string } | null }).family_map_upgrade ?? null);
         setState("ready");
       })
       .catch((err) => setState(err instanceof WiredDark ? "dark" : "error"));
@@ -191,6 +204,7 @@ export default function WiredResults() {
   const sorted = DOMAINS.slice().sort((a, b) => scores[b] - scores[a]);
   const tips = [child.tip_first ?? "try_today", ...TIP_ORDER.filter((t) => t !== (child.tip_first ?? "try_today"))] as TipKind[];
   const matches = live?.matches ?? child.matches ?? [];
+  const extras = live?.extras ?? child.extras ?? [];
   const budgetOffered = live?.budget_filter_offered ?? true;
 
   return wrap(<>
@@ -259,17 +273,36 @@ export default function WiredResults() {
       <ol className="mt-3 space-y-3">
         {matches.map((m) => (
           <li key={m.id}>
-            <p className="font-semibold">{m.affiliate_url || m.url ? <a href={(m.affiliate_url || m.url)!} className="underline" rel={m.is_affiliate ? "sponsored noopener" : "noopener"} target="_blank">{m.name}</a> : m.name}
-              {m.is_affiliate && <span className="ml-2 text-xs text-muted-foreground">{RESULTS.affiliateLabel}</span>}</p>
+            <p className="font-semibold">{m.url ? <a href={m.url} className="underline" rel={m.is_affiliate ? "sponsored noopener" : "noopener"} target="_blank">{m.name}</a> : m.name}
+              {m.url && m.is_affiliate && <span className="ml-2 text-xs text-muted-foreground">{RESULTS.affiliateLabel}</span>}</p>
             <p className="text-sm">{reasonLines(m, name, top3).join(" · ")}</p>
           </li>
         ))}
       </ol>
       {(child.coming_soon ?? []).map((c) => (
-        <p key={c.name} className="mt-4 text-sm"><span className="text-xs uppercase tracking-wide mr-2">{RESULTS.comingSoonLabel}</span>
-          {/9-12/.test(c.eden_band ?? "") ? COMING_SOON_912 : RESULTS.comingSoon68}</p>
+        <div key={c.name} className="mt-4">
+          <p className="text-sm"><span className="text-xs uppercase tracking-wide mr-2">{RESULTS.comingSoonLabel}</span>
+            {upperBandOf(c.eden_band) === "practitioners" ? COMING_SOON_912 : RESULTS.comingSoon68}</p>
+          <button type="button" className={`${btn} mt-2`} style={forest} onClick={() => setWaitlist(upperBandOf(c.eden_band))}>{RESULTS.waitlistButton}</button>
+        </div>
       ))}
+      {extras.length > 0 && (
+        <div className="mt-8">
+          <h3 className="font-display text-xl">{RESULTS.extrasHeading}</h3>
+          <p className="mt-1 text-sm">{RESULTS.extrasLine}</p>
+          <ul className="mt-3 space-y-2">
+            {extras.map((x) => (
+              <li key={x.id}>
+                <p className="font-semibold">{x.url ? <a href={x.url} className="underline" rel={x.is_affiliate ? "sponsored noopener" : "noopener"} target="_blank">{x.name}</a> : x.name}
+                  {x.url && x.is_affiliate && <span className="ml-2 text-xs text-muted-foreground">{RESULTS.affiliateLabel}</span>}</p>
+                <p className="text-xs uppercase tracking-wide mt-1">{[x.resource_type, x.screen_based ? RESULTS.screenBased : null].filter(Boolean).join(" · ")}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </section>
+    <BandWaitlistModal band={waitlist} formName={waitlist ? `wired_results_${waitlist}_waitlist` : ""} onClose={() => setWaitlist(null)} />
 
     <section className="mt-8 rounded-md p-5" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
       <p>{fill(RESULTS.blueprintOffer, { name })}</p>
@@ -294,8 +327,15 @@ export default function WiredResults() {
     {child.offers.family_map && (
       <section className="mt-4 rounded-md p-5" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
         <p>{RESULTS.familyMapOffer}</p>
-        <button type="button" className={`${btn} mt-4`} style={forest} disabled={!!buying} onClick={() => buy("family_map")}>{RESULTS.familyMapButton}</button>
-        <p className="text-xs mt-2">{RESULTS.familyMapSmall}</p>
+        {upgrade ? (<>
+          {/* The later $28 upgrade (approved 2026-11-21): a Blueprint bought this quiz year; create-checkout re-checks it. */}
+          <p className="mt-2 font-semibold">{fill(RESULTS.familyMapUpgradeLine, { name: upgrade.blueprint_nickname })}</p>
+          <button type="button" className={`${btn} mt-4`} style={forest} disabled={!!buying} onClick={() => buy("family_map_upgrade")}>{RESULTS.familyMapUpgradeButton}</button>
+          <p className="text-xs mt-2">{CHECKOUT.allSalesFinal}</p>
+        </>) : (<>
+          <button type="button" className={`${btn} mt-4`} style={forest} disabled={!!buying} onClick={() => buy("family_map")}>{RESULTS.familyMapButton}</button>
+          <p className="text-xs mt-2">{RESULTS.familyMapSmall}</p>
+        </>)}
         {buyNote}
       </section>
     )}

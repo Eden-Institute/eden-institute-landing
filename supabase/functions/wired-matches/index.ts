@@ -2,11 +2,15 @@
 // ranking (Fearfully & Wonderfully Wired, W3; spec sections 6 + 8, answers 9, 25, 28).
 // Public POST {token, child_id, filters, ranking}, DARK until WIRED_ENABLED. The ONE writer
 // of wired_family_prefs (answer 9). Locked children get no matches. verify_jwt = false.
+// 2026-11-21: each match also carries its display fields (url, is_affiliate, price_cents, price_basis,
+// prep_load), read only AFTER ranking (rule 3), and the reply carries up to 3 Helpful extras (answer 38)
+// chosen with the same filters (_shared/wired-display.ts).
 
 import { type Domain, type Scores } from '../_shared/wired-engine.ts';
 import { rankCurricula } from '../_shared/wired-match.ts';
 import { cleanRanking, type FamilyAnswers, prefsFromAnswers } from '../_shared/wired-submit-core.ts';
-import { approvedCurricula, type Db, esaRows, pg } from '../_shared/wired-submit-flow.ts';
+import { approvedCurricula, type Db, esaRows, helpfulExtraRows, matchDisplayRows, pg } from '../_shared/wired-submit-flow.ts';
+import { pickHelpfulExtras, withDisplay } from '../_shared/wired-display.ts';
 import { verifyWiredToken } from '../_shared/wired-token.ts';
 import { wiredGate, wiredJson } from '../_shared/wired-gate.ts';
 
@@ -55,11 +59,14 @@ Deno.serve(async (req) => {
     const fa = ses?.[0]?.family_answers;
     if (!fa) return wiredJson(404, { error: 'no_family_answers' });
 
-    const [curricula, esa] = await Promise.all([approvedCurricula(db), filters.esaOnly && state ? esaRows(db, state) : Promise.resolve([])]);
-    const out = rankCurricula({
-      grade: kid[0].grade, scores: res[0].blended_scores, top3: res[0].top3, curricula, esa,
-      prefs: prefsFromAnswers(fa, ranking, filters),
-    });
+    const [curricula, esa, extraRows] = await Promise.all([
+      approvedCurricula(db), filters.esaOnly && state ? esaRows(db, state) : Promise.resolve([]), helpfulExtraRows(db),
+    ]);
+    const prefs = prefsFromAnswers(fa, ranking, filters);
+    const out = rankCurricula({ grade: kid[0].grade, scores: res[0].blended_scores, top3: res[0].top3, curricula, esa, prefs });
+    // Display fields only now, after the order is fixed (rule 3).
+    const matches = withDisplay(out.matches, await matchDisplayRows(db, out.matches.map((m) => m.id)));
+    const extras = pickHelpfulExtras({ grade: kid[0].grade, scores: res[0].blended_scores, top3: res[0].top3, prefs, rows: extraRows, esa });
 
     // Remember her latest filters, ranking and state (the only writer of wired_family_prefs).
     await pg(db, 'wired_family_prefs?on_conflict=family_id', {
@@ -67,7 +74,7 @@ Deno.serve(async (req) => {
       headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
       body: JSON.stringify({ family_id: grant.familyId, filters, priority_ranking: ranking, state, updated_at: new Date().toISOString() }),
     });
-    return wiredJson(200, { matches: out.matches, coming_soon: out.coming_soon, ranking: out.ranking, budget_filter_offered: out.budget_filter_offered });
+    return wiredJson(200, { matches, coming_soon: out.coming_soon, ranking: out.ranking, budget_filter_offered: out.budget_filter_offered, extras });
   } catch (err) {
     console.error('wired-matches:', err instanceof Error ? err.message : String(err));
     return wiredJson(500, { error: 'could_not_rank' });
