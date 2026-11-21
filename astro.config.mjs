@@ -33,7 +33,14 @@ export default defineConfig({
     // (supabase client, analytics) work identically in islands.
     envPrefix: ["VITE_", "PUBLIC_"],
     resolve: {
-      alias: { "@": fromRoot("./src") },
+      alias: [
+        // 2026-11-21: marketing pages get a session-less Supabase client (no cross-tab auth lock, so a
+        // visitor with several tabs open no longer loses page views). Exact match only, listed BEFORE "@",
+        // so "@/integrations/supabase/types" and everything else still resolve into ./src.
+        // The SPA (vite.config.ts) keeps the generated client. See web/lib/supabaseWebClient.ts.
+        { find: /^@\/integrations\/supabase\/client$/, replacement: fromRoot("./web/lib/supabaseWebClient.ts") },
+        { find: "@", replacement: fromRoot("./src") },
+      ],
     },
   },
 });
