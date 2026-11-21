@@ -6,9 +6,9 @@
 // No child data reaches analytics: the page sends answers only to wired-pilot. client:only.
 
 import { useEffect, useMemo, useState } from "react";
-import { getBank, pilot, savedResultsToken, WiredDark } from "../../lib/wiredApi";
+import { getBank, pilot, RESULTS_KEY, savedResultsToken, WiredDark, writeStore } from "../../lib/wiredApi";
 import { FAMILY_QUESTIONS } from "../../lib/wiredCopy";
-import { PILOT, pilotThanks, SURVEYS, type Q } from "../../lib/wiredPilotCopy";
+import { CHAPTERS_COPY, PILOT, pilotThanks, SURVEYS, type Q } from "../../lib/wiredPilotCopy";
 import { WIRING_WRITEUPS } from "../../lib/wiredWriteups";
 import WiredNotOpen from "./WiredNotOpen";
 
@@ -23,7 +23,7 @@ const choice = "w-full text-left font-body text-base rounded-md border px-4 py-3
 const choiceStyle = (on: boolean) => ({ borderColor: "hsl(var(--eden-gold) / 0.6)", backgroundColor: on ? "hsl(var(--eden-cream))" : "transparent" });
 const APPROACH = FAMILY_QUESTIONS.find((q) => q.key === "approach")!;
 
-interface Status { selected: boolean; child?: { id: string; nickname: string; grade: number } | null; next?: string; opens_at?: string | null; retake_needed?: boolean }
+interface Status { selected: boolean; child?: { id: string; nickname: string; grade: number } | null; next?: string; opens_at?: string | null; retake_needed?: boolean; chapters?: (1 | 4)[] }
 interface PublicBank { version: string; instructions: string; frequency_stem: string; scale: { labels: string[] }; scenarios: { id: string; prompt: string; options: { id: string; text: string }[] }[]; frequency: { id: string; text: string }[] }
 
 function Apply() {
@@ -140,8 +140,55 @@ function Retake({ grade, onSubmit }: { grade: number; onSubmit: (bank: string, a
     {bank.scale.labels.map((l, k) => <button key={l} type="button" className={choice} style={choiceStyle(fq[f.id] === k + 1)} onClick={() => { const next = { ...fq, [f.id]: k + 1 }; setFq(next); if (i + 1 < bank.frequency.length) setI(i + 1); else void onSubmit(bank.version, { scenarios: sc, frequency: next }); }}>{l}</button>)}</>;
 }
 
+/** The chapter-ready email links here as ?t=<her results token>: kept on this device like the results page does,
+ *  and removed from the address bar at once (the page loads no third-party tags either). */
+function takeToken(): string | null {
+  try {
+    const url = new URL(window.location.href);
+    const t = url.searchParams.get("t");
+    if (t) {
+      writeStore(RESULTS_KEY, t);
+      url.searchParams.delete("t");
+      window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+      return t;
+    }
+  } catch { /* fall through */ }
+  return savedResultsToken();
+}
+
+/** One button per unlocked chapter; each tap asks wired-pilot for a fresh 1-hour link (private storage). */
+function Chapters({ token, chapters }: { token: string; chapters: (1 | 4)[] }) {
+  const [busy, setBusy] = useState<number | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  if (!chapters.length) return null;
+  async function open(n: 1 | 4) {
+    setBusy(n); setErr(null);
+    // Open the tab inside the tap (pop-up blockers), then point it at the signed link.
+    const tab = window.open("", "_blank");
+    try {
+      const { status, data } = await pilot({ action: "chapter", token, n });
+      const url = (data as { url?: string }).url;
+      if (status === 200 && url) { if (tab) tab.location.href = url; else window.location.href = url; }
+      else { tab?.close(); setErr("We could not open the chapter. Please try again."); }
+    } catch { tab?.close(); setErr("We could not open the chapter. Please try again."); }
+    setBusy(null);
+  }
+  return (
+    <section className="mb-8 border rounded-md p-4" style={{ borderColor: "hsl(var(--eden-gold) / 0.5)" }}>
+      <h2 className="font-display text-xl mb-2">{CHAPTERS_COPY.heading}</h2>
+      <p className="mb-4">{CHAPTERS_COPY.line}</p>
+      <div className="flex flex-col gap-3 items-start">
+        {chapters.map((n) => (
+          <button key={n} type="button" className={btn} style={forest} disabled={busy !== null} onClick={() => void open(n)}>{CHAPTERS_COPY.button[n]}</button>
+        ))}
+      </div>
+      {err && <p className="text-sm mt-3" role="alert">{err}</p>}
+    </section>
+  );
+}
+
 export default function WiredPilot() {
-  const [token] = useState(() => savedResultsToken());
+  const [token] = useState(() => takeToken());
   const [status, setStatus] = useState<Status | null>(null);
   const [view, setView] = useState<"loading" | "apply" | "tester" | "closed">("loading");
   const [msg, setMsg] = useState<string | null>(null);
@@ -179,18 +226,19 @@ export default function WiredPilot() {
   if (view === "closed") return <WiredNotOpen />;
   if (view === "apply") return card(<Apply />);
   if (!child) return card(<p><a className="underline" href="/wired">Take the quiz</a> for one of your children first, on this device.</p>);
-  if (msg) return card(<p className="text-lg">{msg}</p>);
-  if (status?.next === "done") return card(<p className="text-lg">Thank you! You've finished every step.</p>);
-  if (opens) return card(<p>Your next step opens on {opens}.</p>);
+  const gifts = token && status?.chapters?.length ? <Chapters token={token} chapters={status.chapters} /> : null;
+  if (msg) return card(<>{gifts}<p className="text-lg">{msg}</p></>);
+  if (status?.next === "done") return card(<>{gifts}<p className="text-lg">Thank you! You've finished every step.</p></>);
+  if (opens) return card(<>{gifts}<p>Your next step opens on {opens}.</p></>);
   const next = status!.next as keyof typeof SURVEYS;
   if (next === "retake" && status?.retake_needed) {
-    return card(<Retake grade={child.grade} onSubmit={async (bank, answers) => {
+    return card(<>{gifts}<Retake grade={child.grade} onSubmit={async (bank, answers) => {
       const { status: st } = await pilot({ action: "retake", token, child_id: child.id, bank_version: bank, answers });
       if (st === 200) await load(); else setMsg("We could not save your answers. Please try again.");
-    }} />);
+    }} /></>);
   }
-  return card(<SurveyForm kind={next} nickname={child.nickname} top3={top3} onSubmit={async (answers) => {
+  return card(<>{gifts}<SurveyForm kind={next} nickname={child.nickname} top3={top3} onSubmit={async (answers) => {
     const { status: st } = await pilot({ action: "survey", token, child_id: child.id, kind: next, answers });
     if (st === 200) { setMsg(null); await load(); } else setMsg("We could not save your answers. Please check the required questions and try again.");
-  }} />);
+  }} /></>);
 }
