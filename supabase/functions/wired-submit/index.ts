@@ -8,10 +8,12 @@
 // If the database cannot be reached (5xx or network, after the RPC call itself): the full
 // payload goes to wired_failures and the caller gets 502 {saved: true}; the replay cron
 // (wired-replay-failures, every 30 min) finishes it. Email 1 + the free PDF land in W7/W8.
+// 2026-11-21: her own questions (adult-v1) may come from her private results page as {set: 'adult', token}; the
+// family's email is read from the token, and her first answers queue the complete Family Map once (when she has one).
 
 import { bumpRateBucket, clientIp } from '../_shared/rate-bucket.ts';
 import { parseSubmission } from '../_shared/wired-submit-core.ts';
-import { type Db, processSubmission, WiredBadRequest, WiredUnavailable } from '../_shared/wired-submit-flow.ts';
+import { adultBodyFromToken, type Db, processSubmission, WiredBadRequest, WiredUnavailable } from '../_shared/wired-submit-flow.ts';
 import { signWiredToken } from '../_shared/wired-token.ts';
 import { wiredGate, wiredJson } from '../_shared/wired-gate.ts';
 
@@ -46,6 +48,17 @@ Deno.serve(async (req) => {
     body = await req.json();
   } catch {
     return wiredJson(400, { error: 'body must be JSON' });
+  }
+  // 2026-11-21: her own questions from her private results page ({set: 'adult', token}): the family's email comes
+  // from the token's family, never from the page.
+  try {
+    const resolved = await adultBodyFromToken(db, body);
+    if (resolved === null) return wiredJson(401, { error: 'invalid_or_expired_link' });
+    body = resolved;
+  } catch (err) {
+    if (err instanceof WiredUnavailable) return wiredJson(502, { error: 'try_again' });
+    console.error('wired-submit: cannot read the results token:', err instanceof Error ? err.message : String(err));
+    return wiredJson(500, { error: 'server_misconfigured' });
   }
   const parsed = parseSubmission(body);
   if (!parsed.ok) return wiredJson(400, { error: 'invalid', details: parsed.errors });
@@ -91,8 +104,9 @@ Deno.serve(async (req) => {
   if (outcome.status === 'already_completed') {
     return wiredJson(409, { status: 'already_completed', child_id: outcome.child_id ?? null, token });
   }
-  // W8a: email 1 was queued; nudge wired-pdf so it goes out in seconds (the 5-minute cron is the backstop).
-  if (outcome.unlocked) runInBackground(kickWiredPdf(db));
+  // W8a: email 1 was queued (or, 2026-11-21, the complete Family Map after her own questions); nudge wired-pdf so it
+  // goes out in seconds (the 5-minute cron is the backstop).
+  if (outcome.unlocked || outcome.family_map_update) runInBackground(kickWiredPdf(db));
   return wiredJson(200, { status: 'ok', child_id: outcome.child_id ?? null, token, results: outcome.results ?? null });
 });
 

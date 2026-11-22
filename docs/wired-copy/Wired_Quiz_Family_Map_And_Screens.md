@@ -149,7 +149,7 @@ Here's a family week to start with, built from your answers. "Let us not be wear
 - One day a week: outside or out of the house (nature walk, field trip, co-op, park day).
 - End of the week: a family project or show-and-tell, where each child shares something in their own way.
 - If your energy is low right now, try a 4-day week and keep only the family morning and skills time on the lightest days.
-- If you lean toward planning ahead, plan this week on the weekend. If you lean toward the moment, plan only Monday morning and let the rest follow.
+- If you lean toward planning ahead, plan this week on the weekend. If you lean toward the moment, plan only Monday morning and let the rest follow. (Camila 2026-11-21 4:29 PM CT, tap "Whole line, every mom": both sentences show to every mom, whatever her planning result.)
 
 ### How your kids' wirings work together
 
@@ -159,3 +159,15 @@ Brothers and sisters are wired differently on purpose. "Behold, how good and how
 - When one loves order and one loves to explore (an Organizer next to a Maker or Cultivator): let the Organizer plan the project and the explorer test it.
 - When one talks it out and one thinks it through (a Storyteller or Connector next to a Ponderer): let the talker go first at dinner, and give the thinker time to answer later.
 - Name each child's gifts out loud, in front of the others. Children who feel seen compete less for your attention.
+
+## Mom's own questions box on the results page (APPROVED by Camila 2026-11-21 ~8:58-9:06 AM CT, tap "Build it, as written")
+
+Shown on her private results page to a family with a Family Map (paid or pilot) whose mom has not answered her own set yet. The Family Map delivery email's "Answer my questions" button lands here.
+
+Heading: Your own questions
+Line: Your Family Map includes pages about you: your own wiring and how you like to teach. Answer 33 quick questions about yourself (about 8 minutes) and we'll email you the complete map.
+Button: Answer my questions
+Then the approved mom's set screens (Wired_Quiz_Mom_Set.md, Part A + Part B, with their approved instructions).
+When she finishes: Thank you! Your complete Family Map is on its way to your inbox.
+
+- 33 = the 12 moments + 9 how-often items (Part A) + the 12 teaching-style lines (Part B). "About 8 minutes" matches the approved Family Map email.

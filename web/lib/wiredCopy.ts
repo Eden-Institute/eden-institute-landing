@@ -7,7 +7,7 @@
 //     "Helpful extras section" words and the "Screen-based" label (the same strings the Curriculum Finder shows)
 //   - docs/wired-copy/Wired_Quiz_Family_Questions.md (approved 2026-11-19 8:47 AM CT)
 //   - docs/wired-copy/Wired_Quiz_Family_Map_And_Screens.md section 1 (quiz screens, approved
-//     2026-11-19 2:19 PM CT)
+//     2026-11-19 2:19 PM CT) and its "Mom's own questions box" (approved 2026-11-21 ~8:58-9:06 AM CT)
 //   - the 9 write-ups: web/lib/wiredWriteups.ts (generated from the approved file)
 // Placeholders: {name} = [Nickname], {wiring} = [Wiring], {approach} = [Approach],
 // {description} = [its one-line description], {a} {b} {c} = [A] [B] [C], {state} = [State].
@@ -251,6 +251,19 @@ export const RANKING = {
   startOver: "Start over",
   skip: "Skip this step",
   skipNote: "We'll use the most common order: a fit for {name} first, then little prep, then budget, then teaching together.",
+} as const;
+
+/**
+ * The "Your own questions" box on her private results page (screens file, "Mom's own questions box on the results
+ * page", APPROVED 2026-11-21 ~8:58-9:06 AM CT, tap "Build it, as written"). Shown to a family with a Family Map
+ * (paid or pilot) whose mom has not answered her own set; the button runs the approved adult-v1 screens (their text
+ * comes from the bank, Wired_Quiz_Mom_Set.md Part A + Part B), then the done line.
+ */
+export const OWN_QUESTIONS = {
+  heading: "Your own questions",
+  line: "Your Family Map includes pages about you: your own wiring and how you like to teach. Answer 33 quick questions about yourself (about 8 minutes) and we'll email you the complete map.",
+  button: "Answer my questions",
+  done: "Thank you! Your complete Family Map is on its way to your inbox.",
 } as const;
 
 /** Fill the {placeholders} in an approved string. */

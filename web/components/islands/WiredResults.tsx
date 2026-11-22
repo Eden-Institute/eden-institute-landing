@@ -8,7 +8,10 @@
 // commission" beside it) and its reason lines get the prep / "Free" fields; up to 3 Helpful extras below the matches
 // (answer 38: type label + "Screen-based", never numbered); the later $28 upgrade in the Family Map box when
 // wired-results says a Blueprint was bought this quiz year; and the coming-soon "Join the waitlist" button opens the
-// Curriculum Finder's grade 6-12 waitlist form (BandWaitlistModal). client:only.
+// Curriculum Finder's grade 6-12 waitlist form (BandWaitlistModal).
+// 2026-11-21 (Camila's tap, "Build it, as written"): the "Your own questions" box (WiredOwnQuestions) at the top for a
+// Family Map family (paid or pilot) whose mom has not answered her own set; the Family Map email's "Answer my
+// questions" button lands here. client:only.
 
 import { useEffect, useState } from "react";
 import { getMatches, getResults, RESULTS_KEY, savedResultsToken, startWiredCheckout, WiredDark, wiredIsDark, writeStore, type WiredBuy } from "../../lib/wiredApi";
@@ -16,6 +19,7 @@ import WiredNotOpen from "./WiredNotOpen";
 import { CHECKOUT } from "../../lib/wiredCheckoutCopy";
 import { upperBandOf, type UpperBand } from "../../lib/bandWaitlist";
 import BandWaitlistModal from "./BandWaitlistModal";
+import WiredOwnQuestions from "./WiredOwnQuestions";
 import { APPROACHES, COMING_SOON_912, REASONS, RESULTS, SCREENS, TIP_LABELS, TIPS, fill, type TipKind } from "../../lib/wiredCopy";
 import { WIRING_WRITEUPS } from "../../lib/wiredWriteups";
 import { Observers, type RaterView, SideBySide, TeenLink } from "./WiredRaterPanels";
@@ -100,6 +104,8 @@ export default function WiredResults() {
   const [live, setLive] = useState<{ matches: Match[]; budget_filter_offered: boolean; extras?: Extra[] } | null>(null);
   // The later $28 upgrade (spec 9.2): { blueprint_nickname } when she bought a Blueprint this quiz year, else null.
   const [upgrade, setUpgrade] = useState<{ blueprint_nickname: string } | null>(null);
+  // The "Your own questions" box (2026-11-21): a Family Map family (paid or pilot) whose mom has not answered her own set.
+  const [ownBox, setOwnBox] = useState(false);
   const [waitlist, setWaitlist] = useState<UpperBand | null>(null);
   const [paid, setPaid] = useState(false);
   const [buying, setBuying] = useState<string | null>(null);
@@ -119,6 +125,8 @@ export default function WiredResults() {
         if (status !== 200) return setState("error");
         setChildren(((data as { children?: ChildResults[] }).children) ?? []);
         setUpgrade((data as { family_map_upgrade?: { blueprint_nickname: string } | null }).family_map_upgrade ?? null);
+        const own = data as { has_family_map?: boolean; own_questions_answered?: boolean };
+        setOwnBox(own.has_family_map === true && own.own_questions_answered !== true);
         setState("ready");
       })
       .catch((err) => setState(err instanceof WiredDark ? "dark" : "error"));
@@ -209,6 +217,7 @@ export default function WiredResults() {
 
   return wrap(<>
     {paidNote}
+    {token && ownBox && <WiredOwnQuestions token={token} />}
     {tabs}
     <h1 className="font-display text-3xl">{fill(RESULTS.heading, { name })}</h1>
     <p className="mt-3">{fill(RESULTS.intro, { name })}</p>

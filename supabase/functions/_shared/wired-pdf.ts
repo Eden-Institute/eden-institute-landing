@@ -80,9 +80,16 @@ export function raterHeading(r: RaterView): string {
     : SIDE_COPY.labelSees.replace("[label]", r.label?.trim() || "Someone");
 }
 
+/** One side of her teaching style as wired_family_results.teaching_style stores it (scoreTeachingStyle). */
+export interface MomTeachingSide { key: string; band: "left" | "balance" | "right"; label: string }
+/** Her own answers (the adult-v1 set), for her pages in the Family Map. */
+export interface MomData { top3: Domain[]; teaching: MomTeachingSide[] }
+
 export interface FamilyMapData {
   children: BlueprintData[];
   now?: Date;
+  /** Her own answers, once she has given them; null/absent = the first copy, without her pages. */
+  mom?: MomData | null;
 }
 
 // ── Copy helpers ────────────────────────────────────────────────────────────
@@ -497,10 +504,54 @@ export async function buildBlueprintPdf(d: BlueprintData): Promise<Uint8Array> {
 }
 
 // ── The Family Learning Map ────────────────────────────────────────────────
-// Her own teaching-wiring pages need her own answers (adult questions, a later ticket), so the
-// first copy skips them, exactly as the approved Family Map delivery email says ("your own
-// teaching-wiring pages fill in after you answer your own questions"). Lines that depend on her
-// answers (you-and-each-child, the 4-day and planning lines) are left out until then.
+// Her own teaching-wiring pages need her own answers (the adult-v1 set), so a copy built before she
+// answers skips them, exactly as the approved Family Map delivery email says ("your own teaching-wiring
+// pages fill in after you answer your own questions"). Lines that depend on her answers (you-and-each-child,
+// the 4-day line) are left out until then.
+// With her answers (2026-11-21, the "Your own questions" box): spec answer 31's order and picks, approved copy
+// word for word: her top-3 teaching-wiring blocks, one style line per side picked by her band, then the family
+// pages with "You and each child" (one line per child) and the 4-day line for the low-capacity band.
+// The planning line shows whole (both sentences) in every Family Map, with or without her answers (Camila
+// 2026-11-21 4:29 PM CT, "Whole line, every mom").
+
+/** "a Storyteller" / "an Organizer": the same a/an fix the learner emails apply to the approved "a [Wiring]". */
+const article = (s: string) => s.replace(/\ba ([AEIOU])/g, "an $1");
+const titleOf = (key: string) => key.charAt(0).toUpperCase() + key.slice(1);
+
+/** Her teaching-wiring page: the opening, her top 3 blocks ("A [Wiring] mom") and one line per side of her style. */
+export function momPages(mom: MomData): { opening: string[]; wirings: { wiring: Domain; lines: string[] }[]; style: { title: string; line: string }[] } {
+  const opening = block("familyMap", "Your teaching wiring: the opening").map((i) => i.s);
+  const wirings = mom.top3.slice(0, 3).map((dom) => ({ wiring: dom, lines: block("familyMap", `A ${wiringName(dom)} mom`).map((i) => i.s) }));
+  const style = mom.teaching.map((t) => {
+    const title = titleOf(t.key);
+    const hit = block("familyMap", `${title}: what each result says`).find((i) => i.t === "li" && i.s.startsWith(`${t.label}: `));
+    if (!hit) throw new Error(`wired-pdf: no approved ${title} line for '${t.label}'`);
+    return { title, line: hit.s.slice(t.label.length + 2).trim() };
+  });
+  return { opening, wirings, style };
+}
+
+/** "You and each child": one line per child, her top wiring next to theirs. */
+export function youAndEachChildLines(mom: MomData, children: BlueprintData[]): string[] {
+  const tpl = block("familyMap", "Teaching your kids together").find((i) => i.t === "li" && i.s.startsWith("You and each child:"));
+  if (!tpl) throw new Error("wired-pdf: approved line missing: You and each child");
+  return children.map((c) => article(fill(tpl.s, { "Your top wiring": wiringName(mom.top3[0]), Nickname: c.nickname, "Their top wiring": wiringName(c.top3[0]) })));
+}
+
+/** An approval note Lane NP keeps at the end of an approved line ("(Camila 2026-11-21 4:29 PM CT, tap ...)"): not copy. */
+const withoutApprovalNote = (s: string) => s.replace(/\s*\(Camila \d{4}-\d{2}-\d{2}[^)]*\)\s*$/, "");
+
+/**
+ * The two conditional "Your family's week" lines. The 4-day line needs her answers: only for the low-capacity band
+ * ("is running close to empty right now"). The planning line is the WHOLE approved line, both sentences, for every
+ * mom whatever her planning result, with or without her own answers (Camila 2026-11-21 4:29 PM CT, tap "Whole line,
+ * every mom"). Anything else: null.
+ */
+export function weekLineFor(line: string, mom: MomData | null): string | null {
+  if (line.startsWith("If your energy")) return mom?.teaching.find((t) => t.key === "capacity")?.band === "right" ? line : null;
+  if (line.startsWith("If you lean")) return withoutApprovalNote(line);
+  return null;
+}
 
 export async function buildFamilyMapPdf(d: FamilyMapData): Promise<Uint8Array> {
   const now = d.now ?? new Date();
@@ -517,13 +568,30 @@ export async function buildFamilyMapPdf(d: FamilyMapData): Promise<Uint8Array> {
   w.y -= 10;
   for (const c of d.children) w.text(`${c.nickname}: ${c.top3.slice(0, 3).map(wiringName).join(", ")}`, { font: w.f.bodyB, center: true, after: 2 });
 
+  // Her teaching wiring (only once she has answered her own questions)
+  if (d.mom) {
+    const mp = momPages(d.mom);
+    w.newPage();
+    w.h1("Your teaching wiring");
+    for (const s of mp.opening) w.text(s);
+    for (const x of mp.wirings) {
+      w.h2(wiringName(x.wiring));
+      for (const s of x.lines) w.text(s);
+    }
+    w.y -= 6;
+    for (const s of mp.style) { w.label(s.title); w.text(s.line); }
+  }
+
   // Teaching your kids together
   w.newPage();
   w.h1("Teaching your kids together");
   const tog = block("familyMap", "Teaching your kids together");
   for (const it of tog) {
     if (it.t !== "li") { w.text(it.s); continue; }
-    if (it.s.startsWith("You and each child:")) continue;         // needs her own answers
+    if (it.s.startsWith("You and each child:")) {                  // needs her own answers
+      if (d.mom) for (const s of youAndEachChildLines(d.mom, d.children)) w.bullet(s);
+      continue;
+    }
     if (it.s.startsWith("Wirings your kids share:")) {
       const shared = sharedWirings(d.children);
       if (!shared.length) continue;                                  // "only the lines that apply"
@@ -538,7 +606,11 @@ export async function buildFamilyMapPdf(d: FamilyMapData): Promise<Uint8Array> {
   w.newPage();
   w.h1("Your family's week");
   for (const it of block("familyMap", "Your family's week")) {
-    if (it.t === "li" && /^If (your energy|you lean)/.test(it.s)) continue;   // needs her own answers
+    if (it.t === "li" && /^If (your energy|you lean)/.test(it.s)) {           // the 4-day line needs her own answers
+      const s = weekLineFor(it.s, d.mom ?? null);
+      if (s) w.bullet(s);
+      continue;
+    }
     it.t === "li" ? w.bullet(it.s) : w.text(it.s);
   }
 

@@ -6,11 +6,11 @@
 // page uses; affiliate fields are read only AFTER ranking, for the links, rule 3).
 
 import { PDFDocument } from "https://esm.sh/pdf-lib@1.17.1";
-import { type Domain, type Scores } from "./wired-engine.ts";
+import { DOMAINS, type Domain, type Scores } from "./wired-engine.ts";
 import { normalizeCode, rankCurricula } from "./wired-match.ts";
 import { bestFitApproach, type FamilyAnswers, prefsFromAnswers, tipFirst } from "./wired-submit-core.ts";
 import { approvedCurricula, type Db, esaRows, pg } from "./wired-submit-flow.ts";
-import { buildBlueprintPdf, buildFamilyMapPdf, buildFreeResultsPdf, reasonLines, SUBJECT_MAP, type FreeResultsData, type PdfMatch, type PdfSubject, type RaterView } from "./wired-pdf.ts";
+import { buildBlueprintPdf, buildFamilyMapPdf, buildFreeResultsPdf, type MomData, type MomTeachingSide, reasonLines, SUBJECT_MAP, type FreeResultsData, type PdfMatch, type PdfSubject, type RaterView } from "./wired-pdf.ts";
 
 export interface PdfJob {
   id: string; family_id: string; child_id: string | null; order_id: string | null; buyer_id: string | null;
@@ -21,8 +21,16 @@ export interface LoadedJob {
   email: string;
   firstName: string | null;
   hasOwnAnswers: boolean;
+  /** Family Map jobs only: her own answers (top 3 + teaching style) for her pages, when she has answered. */
+  mom?: MomData | null;
   children: FreeResultsData[];
 }
+
+/**
+ * A pilot job (W12): wired_pilot_grant writes it with no order and no buyer. Every paid job carries both
+ * (wired_grant_purchase refuses a null order id), so this never reads a paid buyer as a tester.
+ */
+export const isPilotJob = (job: Pick<PdfJob, "order_id" | "buyer_id">): boolean => job.order_id === null && job.buyer_id === null;
 
 const RANK_LIMIT = 200;
 
@@ -55,7 +63,19 @@ export async function loadBlueprintData(db: Db, job: PdfJob): Promise<LoadedJob>
 
   const prefsRow = (await pg<{ filters: Record<string, unknown> | null; priority_ranking: string[] | null; state: string | null }[]>(db,
     `wired_family_prefs?family_id=eq.${job.family_id}&select=filters,priority_ranking,state&limit=1`))?.[0];
-  const hasOwnAnswers = ((await pg<unknown[]>(db, `wired_family_results?family_id=eq.${job.family_id}&quiz_year=eq.${job.quiz_year}&select=family_id&limit=1`)) ?? []).length > 0;
+  const own = (await pg<{ adult_scores: Scores | null; teaching_style: MomTeachingSide[] | null; session_id: string | null }[]>(db,
+    `wired_family_results?family_id=eq.${job.family_id}&quiz_year=eq.${job.quiz_year}&select=adult_scores,teaching_style,session_id&limit=1`))?.[0];
+  const hasOwnAnswers = !!own;
+  // Her pages in the Family Map (2026-11-21): her top 3 as scored at submit (her session), else her scores' order.
+  let mom: MomData | null = null;
+  if (own && job.kind === "family_map" && Array.isArray(own.teaching_style) && own.teaching_style.length) {
+    const ses = own.session_id
+      ? (await pg<{ top3: Domain[] | null }[]>(db, `wired_sessions?id=eq.${own.session_id}&family_id=eq.${job.family_id}&select=top3&limit=1`))?.[0]
+      : undefined;
+    const sc = own.adult_scores;
+    const top3 = ses?.top3?.length ? ses.top3 : sc ? DOMAINS.slice().sort((a, b) => (sc[b] ?? 0) - (sc[a] ?? 0)).slice(0, 3) : [];
+    if (top3.length) mom = { top3, teaching: own.teaching_style };
+  }
 
   const curricula = await approvedCurricula(db);
   const display = new Map((await pg<{ id: string; url: string | null; affiliate_url: string | null; is_affiliate: boolean | null; subjects: string[] | null; price_cents: number | null; prep_load: string | null }[]>(db,
@@ -114,7 +134,7 @@ export async function loadBlueprintData(db: Db, job: PdfJob): Promise<LoadedJob>
       matches, comingSoonBand: out.coming_soon.length ? (out.coming_soon.some((c) => /9-12/.test(c.eden_band ?? "")) ? "9-12" : "6-8") : null,
     });
   }
-  return { email, firstName: fam.first_name, hasOwnAnswers, children };
+  return { email, firstName: fam.first_name, hasOwnAnswers, mom, children };
 }
 
 const safe = (s: string) => s.normalize("NFKD").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "Child";
@@ -124,7 +144,7 @@ export async function renderJob(job: PdfJob, loaded: LoadedJob): Promise<{ bytes
     ? await buildBlueprintPdf(loaded.children[0])
     : job.kind === "free"
       ? await buildFreeResultsPdf(loaded.children[0])
-      : await buildFamilyMapPdf({ children: loaded.children });
+      : await buildFamilyMapPdf({ children: loaded.children, mom: loaded.mom ?? null });
   const pages = (await PDFDocument.load(bytes)).getPageCount();
   const filename = job.kind === "blueprint" ? `${safe(loaded.children[0].nickname)}-Learner-Blueprint.pdf`
     : job.kind === "free" ? `${safe(loaded.children[0].nickname)}-Wired-Results.pdf` : "Family-Learning-Map.pdf";

@@ -17,7 +17,8 @@
 // Resend Idempotency-Key per row -> mark sent. 5 tries, then failed_at and a founder email.
 
 import { type Db, familyMapUpgradeFor, pg } from "./wired-submit-flow.ts";
-import { loadBlueprintData, renderJob, type PdfJob } from "./wired-pdf-job.ts";
+import { isPilotJob, loadBlueprintData, renderJob, type PdfJob } from "./wired-pdf-job.ts";
+import { buildCompleteMapEmail } from "./wired-delivery-email.ts";
 import { buildEmailOne } from "./wired-email-one.ts";
 import { applyUnsub } from "./email-unsubscribe.ts";
 import { signWiredToken } from "./wired-token.ts";
@@ -318,6 +319,9 @@ async function sendLearner(
 }
 
 // ── W9: transactional emails (never held by the one-a-day guard) ─────────────
+// 2026-11-21: em-update carries the approved pilot footer for a tester's child (unlocked_via 'pilot'), and a
+// pdf_update row with no child and no observer is the complete Family Map after her own questions
+// (buildFamilyMapUpdate, below).
 
 const TX_KINDS = new Set(["observer_invite", "observer_reminder", "teen_ready", "pdf_update"]);
 /** Her label in a sentence ("[Role] just shared how they see Lily"); the email capitalises a sentence start. */
@@ -326,12 +330,50 @@ const ROLE_WORDS: Record<string, string> = {
   "Other family member": "a family member", "Other": "someone you invited",
 };
 
+/** How long a complete-map email waits when the family's first Family Map is still being built. */
+export const FAMILY_MAP_UPDATE_WAIT_MINUTES = 10;
+
+/**
+ * 2026-11-21 (the "Your own questions" box, approved "Build it, as written"): the complete Family Map after she
+ * answers her own questions. Queued once by wired-submit (queueFamilyMapUpdate) as a pdf_update row with no child
+ * and no observer, so it rides the transactional rail (never held by the one-a-day guard, like every updated PDF).
+ * Re-renders the family's Family Map (same children: the job's order, or the pilot unlock) with her pages, and sends
+ * it with its own approved email (`em-familymap-complete`, Camila 2026-11-21 ~4:28 PM CT, "Use as written": the same
+ * lines for paid and pilot, no button; the pilot footer for a pilot Family Map).
+ *   - no Family Map job, or no answers of hers -> skip;
+ *   - the first Family Map is still queued / building -> wait (its own build may already carry her pages);
+ *   - the first Family Map was built after her answers (same quiz year) -> skip: it already had her pages.
+ */
+export async function buildFamilyMapUpdate(db: Db, familyId: string): Promise<
+  { mail: { subject: string; html: string; text: string }; attachment: { filename: string; content: string } } | { skip: string } | { wait: true }
+> {
+  const job = (await pg<(PdfJob & { claimed_at: string | null })[]>(db,
+    `wired_pdf_jobs?family_id=eq.${familyId}&kind=eq.family_map&select=id,family_id,child_id,order_id,buyer_id,kind,quiz_year,attempts,status,claimed_at&order=created_at.desc&limit=1`))?.[0];
+  if (!job) return { skip: "no_family_map" };
+  const own = (await pg<{ quiz_year: number; computed_at: string }[]>(db,
+    `wired_family_results?family_id=eq.${familyId}&select=quiz_year,computed_at&order=quiz_year.desc&limit=1`))?.[0];
+  if (!own) return { skip: "no_own_answers" };
+  if (job.status === "queued" || job.status === "building") return { wait: true };
+  if (job.status === "sent" && job.quiz_year === own.quiz_year && job.claimed_at && Date.parse(job.claimed_at) >= Date.parse(own.computed_at)) {
+    return { skip: "family_map_had_her_pages" };
+  }
+  const render: PdfJob = { ...job, quiz_year: own.quiz_year };
+  const loaded = await loadBlueprintData(db, render);
+  if (!loaded.mom) throw new Error("her own answers could not be read for her Family Map pages");
+  const pdf = await renderJob(render, loaded);
+  if (pdf.bytes.length > 3 * 1024 * 1024) throw new Error(`Family Map PDF is ${pdf.bytes.length} bytes, over the 3 MB budget`);
+  const mail = buildCompleteMapEmail({ firstName: loaded.firstName, pilot: isPilotJob(job) });
+  return { mail, attachment: { filename: pdf.filename, content: b64(pdf.bytes) } };
+}
+
 async function sendTransactional(
   db: Db, o: EmailDrainOptions, row: QueueRow & { observer_id?: string | null }, out: Out,
   putBack: () => Promise<unknown>, skip: (reason: string) => Promise<void>, testOne: boolean,
 ): Promise<void> {
   try {
-    if (!row.family_id || !row.child_id) { await skip("no_family_or_child"); return; }
+    // A pdf_update with no child and no observer = the complete Family Map after her own answers.
+    const familyMapUpdate = row.kind === "pdf_update" && !row.child_id && !row.observer_id;
+    if (!row.family_id || (!row.child_id && !familyMapUpdate)) { await skip("no_family_or_child"); return; }
     const forMom = row.kind === "teen_ready" || row.kind === "pdf_update";
     // Mom's teen email carries the learner unsubscribe (its approved footer); every one of these still
     // respects a hard bounce or a spam complaint. Observers are on no list.
@@ -341,40 +383,61 @@ async function sendTransactional(
     if (blocked === true && !o.testTo) { await skip("suppressed"); return; }
     const fam = (await pg<{ first_name: string | null }[]>(db, `wired_families?id=eq.${row.family_id}&select=first_name&limit=1`))?.[0];
     if (!fam) { await skip("family_deleted"); return; }
-    const kid = (await pg<{ nickname: string; unlocked_via: string | null }[]>(db, `wired_children?id=eq.${row.child_id}&removed_at=is.null&select=nickname,unlocked_via&limit=1`))?.[0];
-    if (!kid) { await skip("child_removed"); return; }
 
-    let mail: TxEmail;
+    let mail: Pick<TxEmail, "subject" | "html" | "text" | "unsubscribe">;
     let attachment: { filename: string; content: string } | null = null;
-    if (!forMom) {
-      const obs = row.observer_id ? (await pg<{ id: string; email: string | null; label: string | null; removed_at: string | null; last_completed_quiz_year: number | null; quiz_year: number | null; token_expires_at: string | null }[]>(db,
-        `wired_observers?id=eq.${row.observer_id}&select=id,email,label,removed_at,last_completed_quiz_year,quiz_year,token_expires_at&limit=1`))?.[0] : undefined;
-      if (!obs || obs.removed_at || !obs.email) { await skip("observer_removed"); return; }
-      if (row.kind === "observer_reminder" && obs.last_completed_quiz_year !== null && obs.last_completed_quiz_year >= (obs.quiz_year ?? 0)) { await skip("observer_answered"); return; }
-      if (obs.token_expires_at && Date.parse(obs.token_expires_at) <= Date.now()) { await skip("observer_link_expired"); return; }
-      const code = await observerCode(obs.id);
-      mail = buildTxEmail(row.kind === "observer_invite" ? "em-obs-invite" : "em-obs-reminder", {
-        firstName: fam.first_name, nickname: kid.nickname, buttonUrl: `${TX_SITE}/wired/observer?c=${code}`,
-      });
-    } else {
-      const token = await signWiredToken({ familyId: row.family_id, purpose: "results" });
-      let role: string | undefined;
-      if (row.kind === "pdf_update" && row.observer_id) {
-        role = (await pg<{ label: string | null }[]>(db, `wired_observers?id=eq.${row.observer_id}&select=label&limit=1`))?.[0]?.label ?? undefined;
+    if (familyMapUpdate) {
+      const built = await buildFamilyMapUpdate(db, row.family_id);
+      if ("wait" in built) {
+        if (o.dryRun || o.testTo || testOne) { await putBack(); out.details.push({ id: row.id, would_wait: "family_map_still_building" }); return; }
+        await pg(db, `wired_email_queue?id=eq.${row.id}`, {
+          method: "PATCH", headers: { Prefer: "return=minimal" },
+          body: JSON.stringify({ retry_count: row.retry_count, scheduled_for: new Date(Date.now() + FAMILY_MAP_UPDATE_WAIT_MINUTES * 60_000).toISOString() }),
+        });
+        out.deferred++; out.details.push({ id: row.id, deferred: "family_map_still_building" });
+        return;
       }
-      mail = buildTxEmail(row.kind === "teen_ready" ? "em-teen" : "em-update", {
-        firstName: fam.first_name, nickname: kid.nickname, role: role ? ROLE_WORDS[role] ?? "someone you invited" : undefined,
-        buttonUrl: `${TX_SITE}/wired/results?t=${encodeURIComponent(token)}`,
-      });
-      // The updated Blueprint (with every view blended in) when she has one for this child (answer 4: built at
-      // send time, attached, never stored).
-      if (kid.unlocked_via === "blueprint" || kid.unlocked_via === "family_map" || kid.unlocked_via === "pilot") {
-        const job: PdfJob = { id: row.id, family_id: row.family_id, child_id: row.child_id, order_id: null, buyer_id: null, kind: "blueprint", quiz_year: 0, attempts: 0, status: "queued" };
-        const pdf = await renderJob(job, await loadBlueprintData(db, job));
-        if (pdf.bytes.length > 3 * 1024 * 1024) throw new Error(`Blueprint PDF is ${pdf.bytes.length} bytes, over the 3 MB budget`);
-        attachment = { filename: pdf.filename, content: b64(pdf.bytes) };
-      } else if (row.kind === "pdf_update") {
-        await skip("no_blueprint_to_update"); return;
+      if ("skip" in built) {
+        if (o.dryRun || o.testTo || testOne) { await putBack(); out.details.push({ id: row.id, would_skip: built.skip }); return; }
+        await skip(built.skip); return;
+      }
+      mail = { ...built.mail, unsubscribe: false };
+      attachment = built.attachment;
+    } else {
+      const kid = (await pg<{ nickname: string; unlocked_via: string | null }[]>(db, `wired_children?id=eq.${row.child_id}&removed_at=is.null&select=nickname,unlocked_via&limit=1`))?.[0];
+      if (!kid) { await skip("child_removed"); return; }
+      if (!forMom) {
+        const obs = row.observer_id ? (await pg<{ id: string; email: string | null; label: string | null; removed_at: string | null; last_completed_quiz_year: number | null; quiz_year: number | null; token_expires_at: string | null }[]>(db,
+          `wired_observers?id=eq.${row.observer_id}&select=id,email,label,removed_at,last_completed_quiz_year,quiz_year,token_expires_at&limit=1`))?.[0] : undefined;
+        if (!obs || obs.removed_at || !obs.email) { await skip("observer_removed"); return; }
+        if (row.kind === "observer_reminder" && obs.last_completed_quiz_year !== null && obs.last_completed_quiz_year >= (obs.quiz_year ?? 0)) { await skip("observer_answered"); return; }
+        if (obs.token_expires_at && Date.parse(obs.token_expires_at) <= Date.now()) { await skip("observer_link_expired"); return; }
+        const code = await observerCode(obs.id);
+        mail = buildTxEmail(row.kind === "observer_invite" ? "em-obs-invite" : "em-obs-reminder", {
+          firstName: fam.first_name, nickname: kid.nickname, buttonUrl: `${TX_SITE}/wired/observer?c=${code}`,
+        });
+      } else {
+        const token = await signWiredToken({ familyId: row.family_id, purpose: "results" });
+        let role: string | undefined;
+        if (row.kind === "pdf_update" && row.observer_id) {
+          role = (await pg<{ label: string | null }[]>(db, `wired_observers?id=eq.${row.observer_id}&select=label&limit=1`))?.[0]?.label ?? undefined;
+        }
+        mail = buildTxEmail(row.kind === "teen_ready" ? "em-teen" : "em-update", {
+          firstName: fam.first_name, nickname: kid.nickname, role: role ? ROLE_WORDS[role] ?? "someone you invited" : undefined,
+          buttonUrl: `${TX_SITE}/wired/results?t=${encodeURIComponent(token)}`,
+          // em-update for a tester's child (unlocked through the pilot): the approved pilot footer (2026-11-21).
+          pilot: row.kind === "pdf_update" && kid.unlocked_via === "pilot",
+        });
+        // The updated Blueprint (with every view blended in) when she has one for this child (answer 4: built at
+        // send time, attached, never stored).
+        if (kid.unlocked_via === "blueprint" || kid.unlocked_via === "family_map" || kid.unlocked_via === "pilot") {
+          const job: PdfJob = { id: row.id, family_id: row.family_id, child_id: row.child_id, order_id: null, buyer_id: null, kind: "blueprint", quiz_year: 0, attempts: 0, status: "queued" };
+          const pdf = await renderJob(job, await loadBlueprintData(db, job));
+          if (pdf.bytes.length > 3 * 1024 * 1024) throw new Error(`Blueprint PDF is ${pdf.bytes.length} bytes, over the 3 MB budget`);
+          attachment = { filename: pdf.filename, content: b64(pdf.bytes) };
+        } else if (row.kind === "pdf_update") {
+          await skip("no_blueprint_to_update"); return;
+        }
       }
     }
     if (o.dryRun) { await putBack(); out.details.push({ id: row.id, dry_run: true, kind: row.kind, subject: mail.subject, attachment: !!attachment }); return; }
@@ -392,7 +455,7 @@ async function sendTransactional(
       headers: { Authorization: `Bearer ${o.resendKey}`, "Content-Type": "application/json", "Idempotency-Key": `wired-email-${o.testTo ? "test-" : ""}${row.id}` },
       body: JSON.stringify({
         from: o.from, reply_to: o.replyTo, to: [to], subject: mail.subject, html, text, ...(headers ? { headers } : {}),
-        ...(attachment ? { attachments: [attachment] } : {}), tags: [{ name: "category", value: `wired_${row.kind}` }],
+        ...(attachment ? { attachments: [attachment] } : {}), tags: [{ name: "category", value: familyMapUpdate ? "wired_family_map_update" : `wired_${row.kind}` }],
       }),
     });
     const sent = await readResend(res);
