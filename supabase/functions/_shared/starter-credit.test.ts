@@ -6,7 +6,8 @@
 // API on 2026-08-26:
 //
 //   customer binding   a session for any other Customer is refused with
-//                      promotion_code_customer_mismatch
+//                      promotion_code_customer_mismatch (codes minted before
+//                      2026-11-22 only; new codes are deliberately unbound)
 //   kit-only scope     an order without the kit is refused with "This coupon
 //                      cannot be redeemed because it does not apply to anything
 //                      in this order"
@@ -15,7 +16,11 @@
 //
 // To re-run those against live, use scripts/create-starter-stripe-objects.ts,
 // which re-verifies the coupon's product scope (with the required
-// expand[]=applies_to) on every run.
+// expand[]=applies_to) on every run. The printed-set coupons (2026-11-22) are
+// checked the same way, read-only, by every dry run of
+// scripts/move-starter-credits-to-print.ts. The printed-set credit itself (both
+// bands, the print shop, redemption, refunds, the move) is tested in
+// starter-credit-print.test.ts.
 //
 // The stakes: a credit that is shareable, reusable, or valid against the wrong
 // product does not throw and does not fail a happy-path test. It just sells kits
@@ -40,6 +45,9 @@ import { generateCreditCode, normalizeCreditCode, STARTER_CREDIT_CENTS } from '.
 // deliberately DOES enforce unique constraints, because the idempotency
 // guarantees under test are constraint-backed rather than code-backed. A fake
 // that let duplicate inserts through would pass tests that production fails.
+// Since 2026-11-22 it also REJECTS UNKNOWN COLUMNS (the real ones, from
+// supabase/migrations/20260826120000_sprouts_starter_unit.sql), so a column the
+// table does not have (a `band` on starter_credits, say) fails here, not in prod.
 // ---------------------------------------------------------------------------
 type Row = Record<string, unknown>;
 
@@ -47,9 +55,23 @@ class UniqueViolation extends Error {
   code = '23505';
 }
 
+const REAL_COLUMNS: Record<string, readonly string[]> = {
+  starter_credits: [
+    'id', 'created_at', 'stripe_checkout_session_id', 'order_id', 'email', 'purchaser_name',
+    'stripe_customer_id', 'stripe_promotion_code_id', 'code', 'amount_cents', 'issued_at',
+    'redeemed_at', 'redeemed_order_id', 'redeemed_session_id', 'deactivated_at', 'deactivated_reason',
+  ],
+  starter_credit_phases: ['phase', 'triggered_at', 'founding_units_at_trigger', 'codes_affected', 'policy'],
+};
+
 class FakeTable {
   rows: Row[] = [];
-  constructor(public uniqueCols: string[] = []) {}
+  constructor(public name: string, public uniqueCols: string[] = []) {}
+  check(cols: string[]) {
+    const known = REAL_COLUMNS[this.name];
+    if (!known) throw new Error(`fake: unknown table ${this.name}`);
+    for (const c of cols) if (!known.includes(c)) throw new Error(`fake: unknown column ${this.name}.${c}`);
+  }
 }
 
 class Query {
@@ -60,16 +82,16 @@ class Query {
 
   constructor(private table: FakeTable, private beforeInsert?: () => void) {}
 
-  select(_cols?: string) {
-    if (this.op === 'select') this.op = 'select';
+  select(cols?: string) {
+    if (cols) this.table.check(cols.split(',').map((c) => c.trim()).filter(Boolean));
     return this;
   }
-  insert(row: Row) { this.op = 'insert'; this.payload = row; return this; }
-  update(row: Row) { this.op = 'update'; this.payload = row; return this; }
+  insert(row: Row) { this.table.check(Object.keys(row)); this.op = 'insert'; this.payload = row; return this; }
+  update(row: Row) { this.table.check(Object.keys(row)); this.op = 'update'; this.payload = row; return this; }
   delete() { this.op = 'delete'; return this; }
-  in(col: string, vals: unknown[]) { this.filters.push((r) => vals.includes(r[col])); return this; }
-  eq(col: string, val: unknown) { this.filters.push((r) => r[col] === val); return this; }
-  is(col: string, val: unknown) { this.filters.push((r) => (r[col] ?? null) === val); return this; }
+  in(col: string, vals: unknown[]) { this.table.check([col]); this.filters.push((r) => vals.includes(r[col])); return this; }
+  eq(col: string, val: unknown) { this.table.check([col]); this.filters.push((r) => r[col] === val); return this; }
+  is(col: string, val: unknown) { this.table.check([col]); this.filters.push((r) => (r[col] ?? null) === val); return this; }
   maybeSingle() { this.wantSingle = true; return this; }
 
   private matching(): Row[] {
@@ -122,12 +144,12 @@ class FakeDb {
   constructor() {
     this.tables.set(
       'starter_credits',
-      new FakeTable(['stripe_checkout_session_id', 'code', 'stripe_promotion_code_id']),
+      new FakeTable('starter_credits', ['stripe_checkout_session_id', 'code', 'stripe_promotion_code_id']),
     );
-    this.tables.set('starter_credit_phases', new FakeTable(['phase']));
+    this.tables.set('starter_credit_phases', new FakeTable('starter_credit_phases', ['phase']));
   }
   from(name: string) {
-    const t = this.tables.get(name) ?? new FakeTable();
+    const t = this.tables.get(name) ?? new FakeTable(name);
     if (!this.tables.has(name)) this.tables.set(name, t);
     return new Query(t, () => {
       const hook = this.onBeforeInsert;
@@ -180,7 +202,11 @@ function credit(over: Partial<StarterCreditRow> = {}): StarterCreditRow {
   };
 }
 
-Deno.env.set('STRIPE_STARTER_CREDIT_COUPON_ID', 'coupon_test');
+// 2026-11-22: new codes are minted on the band's printed-set coupon. The legacy
+// kit-only coupon env is set too, to prove nothing new is minted on it.
+Deno.env.set('STRIPE_STARTER_PRINT_CREDIT_COUPON_SPROUTS', 'coupon_test');
+Deno.env.set('STRIPE_STARTER_PRINT_CREDIT_COUPON_SEEDLINGS', 'coupon_test_seedlings');
+Deno.env.set('STRIPE_STARTER_CREDIT_COUPON_ID', 'coupon_test_legacy_kit');
 
 // ---------------------------------------------------------------------------
 // evaluateRedemption: the pure decision
@@ -268,8 +294,8 @@ Deno.test('ACCEPTANCE: a duplicate webhook does not issue a second code', async 
   const db = new FakeDb();
   const stripe = fakeStripe();
 
-  const first = await issueStarterCredit(db as never, stripe, issueInput);
-  const second = await issueStarterCredit(db as never, stripe, issueInput);
+  const first = await issueStarterCredit(db as never, stripe, 'sprouts', issueInput);
+  const second = await issueStarterCredit(db as never, stripe, 'sprouts', issueInput);
 
   assertEquals(first.created, true);
   assertEquals(second.created, false, 'the retry must not create a new credit');
@@ -280,19 +306,24 @@ Deno.test('ACCEPTANCE: a duplicate webhook does not issue a second code', async 
 
 Deno.test('the stored email is normalised at write time', async () => {
   const db = new FakeDb();
-  await issueStarterCredit(db as never, fakeStripe(), issueInput);
+  await issueStarterCredit(db as never, fakeStripe(), 'sprouts', issueInput);
   assertEquals(db.tables.get('starter_credits')!.rows[0].email, 'parent@example.com');
 });
 
-Deno.test('the minted Stripe code is bound to the customer and single-use', async () => {
+Deno.test('the minted Stripe code is single-use, on the printed-set coupon, and NOT bound to a customer (2026-11-22)', async () => {
   const stripe = fakeStripe();
-  await issueStarterCredit(new FakeDb() as never, stripe, issueInput);
+  const db = new FakeDb();
+  await issueStarterCredit(db as never, stripe, 'sprouts', issueInput);
   const params = stripe.created[0];
-  assertEquals(params.customer, 'cus_1');
+  // Unbound on purpose: the print checkout makes a fresh Customer per order, where
+  // a bound code is refused (promotion_code_customer_mismatch). The Customer is
+  // still RECORDED on our row.
+  assertEquals(params.customer, undefined);
+  assertEquals(db.tables.get('starter_credits')!.rows[0].stripe_customer_id, 'cus_1');
   assertEquals(params.max_redemptions, 1);
   assertEquals(params.coupon, 'coupon_test');
-  // expires_at must NOT be set: it cannot be changed later, and under the shipped
-  // honour_retail policy the credit deliberately outlives the founding window.
+  // expires_at must NOT be set: it cannot be changed later, and the founder ruled
+  // on 2026-11-22 that the credit never expires.
   assertEquals(params.expires_at, undefined);
 });
 
@@ -308,7 +339,7 @@ Deno.test('a known session never reaches Stripe at all', async () => {
     email: 'parent@example.com',
   });
 
-  const out = await issueStarterCredit(db as never, stripe, {
+  const out = await issueStarterCredit(db as never, stripe, 'sprouts', {
     ...issueInput, sessionId: 'cs_test_known',
   });
   assertEquals(out.created, false);
@@ -336,7 +367,7 @@ Deno.test('ACCEPTANCE: losing the insert race deactivates the duplicate Stripe c
     });
   };
 
-  const out = await issueStarterCredit(db as never, stripe, {
+  const out = await issueStarterCredit(db as never, stripe, 'sprouts', {
     ...issueInput, sessionId: 'cs_test_race',
   });
 
@@ -372,7 +403,7 @@ Deno.test('a failed duplicate cleanup is reported, not swallowed', async () => {
   };
 
   try {
-    const out = await issueStarterCredit(db as never, stripe, {
+    const out = await issueStarterCredit(db as never, stripe, 'sprouts', {
       ...issueInput, sessionId: 'cs_test_race2',
     });
     assertEquals(out.code, 'EDEN-S-WINNER', 'the buyer still gets a working credit');
@@ -385,17 +416,20 @@ Deno.test('a failed duplicate cleanup is reported, not swallowed', async () => {
 });
 
 Deno.test('issuance refuses rather than guesses when the coupon id is missing', async () => {
-  const saved = Deno.env.get('STRIPE_STARTER_CREDIT_COUPON_ID')!;
-  Deno.env.delete('STRIPE_STARTER_CREDIT_COUPON_ID');
+  const saved = Deno.env.get('STRIPE_STARTER_PRINT_CREDIT_COUPON_SPROUTS')!;
+  Deno.env.delete('STRIPE_STARTER_PRINT_CREDIT_COUPON_SPROUTS');
+  const stripe = fakeStripe();
   let threw = false;
   try {
-    await issueStarterCredit(new FakeDb() as never, fakeStripe(), issueInput);
+    // The legacy kit coupon is still set: it must NOT be used as a fallback.
+    await issueStarterCredit(new FakeDb() as never, stripe, 'sprouts', issueInput);
   } catch {
     threw = true;
   } finally {
-    Deno.env.set('STRIPE_STARTER_CREDIT_COUPON_ID', saved);
+    Deno.env.set('STRIPE_STARTER_PRINT_CREDIT_COUPON_SPROUTS', saved);
   }
   assert(threw, 'a missing coupon id must throw, never fall back to a guess');
+  assertEquals(stripe.created.length, 0);
 });
 
 // ---------------------------------------------------------------------------
@@ -404,7 +438,7 @@ Deno.test('issuance refuses rather than guesses when the coupon id is missing', 
 
 Deno.test('redemption is a compare-and-set, so a retry cannot rewrite the timestamp', async () => {
   const db = new FakeDb();
-  await issueStarterCredit(db as never, fakeStripe(), issueInput);
+  await issueStarterCredit(db as never, fakeStripe(), 'sprouts', issueInput);
   const promoId = db.tables.get('starter_credits')!.rows[0].stripe_promotion_code_id as string;
 
   const first = await markCreditRedeemed(db as never, {
@@ -456,7 +490,7 @@ Deno.test('a later kit sale does not re-trigger the transition', async () => {
 Deno.test('SHIPPED POLICY: at the cap, outstanding credits stay live for retail', async () => {
   const db = new FakeDb();
   const stripe = fakeStripe();
-  await issueStarterCredit(db as never, stripe, issueInput);
+  await issueStarterCredit(db as never, stripe, 'sprouts', issueInput);
 
   const out = await applyFoundingCapPolicy(db as never, stripe, {
     soldAtTrigger: 500, policy: 'honour_retail',
@@ -474,7 +508,7 @@ Deno.test('SHIPPED POLICY: at the cap, outstanding credits stay live for retail'
 Deno.test('ORIGINAL BRIEF: under expire_at_cap, a pre-cap code is refused after the cap', async () => {
   const db = new FakeDb();
   const stripe = fakeStripe();
-  await issueStarterCredit(db as never, stripe, issueInput);
+  await issueStarterCredit(db as never, stripe, 'sprouts', issueInput);
 
   const before = db.tables.get('starter_credits')!.rows[0] as unknown as StarterCreditRow;
   assert(evaluateRedemption(before, 'parent@example.com').ok, 'valid before the cap');
@@ -496,7 +530,7 @@ Deno.test('ORIGINAL BRIEF: under expire_at_cap, a pre-cap code is refused after 
 Deno.test('under expire_at_cap, an already-redeemed code is left alone', async () => {
   const db = new FakeDb();
   const stripe = fakeStripe();
-  await issueStarterCredit(db as never, stripe, issueInput);
+  await issueStarterCredit(db as never, stripe, 'sprouts', issueInput);
   const promoId = db.tables.get('starter_credits')!.rows[0].stripe_promotion_code_id as string;
   await markCreditRedeemed(db as never, { promotionCodeId: promoId, orderId: 'k', sessionId: 's' });
 
@@ -510,7 +544,7 @@ Deno.test('under expire_at_cap, an already-redeemed code is left alone', async (
 Deno.test('a Stripe failure during expiry leaves the credit live for retry', async () => {
   const db = new FakeDb();
   const stripe = fakeStripe();
-  await issueStarterCredit(db as never, stripe, issueInput);
+  await issueStarterCredit(db as never, stripe, 'sprouts', issueInput);
   stripe.failUpdates();
 
   const out = await applyFoundingCapPolicy(db as never, stripe, {
@@ -527,7 +561,7 @@ Deno.test('expire_at_cap without a Stripe client releases the claim rather than 
   // Claiming the phase but not performing the deactivation would mark the
   // transition done while leaving every code live: the worst of both policies.
   const db = new FakeDb();
-  await issueStarterCredit(db as never, fakeStripe(), issueInput);
+  await issueStarterCredit(db as never, fakeStripe(), 'sprouts', issueInput);
 
   let threw = false;
   try {
@@ -574,7 +608,7 @@ Deno.test('promotion codes still mint when STRIPE_STARTER_PROMO_KEY is absent', 
   Deno.env.delete('STRIPE_STARTER_PROMO_KEY');
   const db = new FakeDb();
   const stripe = fakeStripe();
-  const out = await issueStarterCredit(db as never, stripe, issueInput);
+  const out = await issueStarterCredit(db as never, stripe, 'sprouts', issueInput);
   assertEquals(out.created, true);
   assertEquals(stripe.created.length, 1, 'the passed-in client must be used');
 });
@@ -587,7 +621,7 @@ Deno.test('a non-Stripe client is never swapped out, even with the key set', asy
   try {
     const db = new FakeDb();
     const stripe = fakeStripe();
-    const out = await issueStarterCredit(db as never, stripe, issueInput);
+    const out = await issueStarterCredit(db as never, stripe, 'sprouts', issueInput);
     assertEquals(out.created, true);
     assertEquals(stripe.created.length, 1, 'must fall back to the passed-in client');
   } finally {
@@ -596,27 +630,19 @@ Deno.test('a non-Stripe client is never swapped out, even with the key set', asy
 });
 
 // ---------------------------------------------------------------------------
-// Bands (2026-09-23). FOUNDER DECISION: the Seedlings Starter Unit carries NO
-// credit and NO coupon of any kind. The webhook goes through
-// issueStarterCreditForBand, which must not touch the database or Stripe at all
-// for Seedlings, and must behave exactly like issueStarterCredit for Sprouts.
+// Bands. 2026-09-23 the Seedlings Starter carried NO credit. FOUNDER DECISION
+// 2026-11-22 replaces that: both bands earn one, each on its own printed-set
+// coupon, through issueStarterCreditForBand. (More in starter-credit-print.test.ts.)
 // ---------------------------------------------------------------------------
 
-/** Any property read throws, so ANY use of the object fails the test. */
-function untouchable(name: string) {
-  return new Proxy({}, {
-    get(_t, prop) { throw new Error(`${name}.${String(prop)} was touched`); },
-  });
-}
-
-Deno.test('ACCEPTANCE: a Seedlings purchase mints nothing and never touches starter_credits or Stripe', async () => {
-  const out = await issueStarterCreditForBand(
-    untouchable('db') as never,
-    untouchable('stripe'),
-    'seedlings',
-    { ...issueInput, sessionId: 'cs_test_seedlings' },
-  );
-  assertEquals(out, null);
+Deno.test('2026-11-22: a Seedlings purchase mints its credit on the Seedlings coupon', async () => {
+  const db = new FakeDb();
+  const stripe = fakeStripe();
+  const out = await issueStarterCreditForBand(db as never, stripe, 'seedlings', { ...issueInput, sessionId: 'cs_test_seedlings' });
+  assert(out && out.created);
+  assertEquals(stripe.created[0].coupon, 'coupon_test_seedlings');
+  assertEquals((stripe.created[0].metadata as Row).starter_band, 'seedlings');
+  assertEquals(db.tables.get('starter_credits')!.rows[0].amount_cents, 3900);
 });
 
 Deno.test('a Sprouts purchase through the band gate is exactly issueStarterCredit', async () => {
@@ -626,7 +652,7 @@ Deno.test('a Sprouts purchase through the band gate is exactly issueStarterCredi
   assert(out && out.created);
   assertEquals(stripe.created.length, 1);
   assertEquals(stripe.created[0].coupon, 'coupon_test');
-  assertEquals(Object.keys(stripe.created[0].metadata as Row).sort(), ['purpose', 'starter_email', 'starter_session_id']);
+  assertEquals(Object.keys(stripe.created[0].metadata as Row).sort(), ['purpose', 'starter_band', 'starter_email', 'starter_session_id']);
   const row = db.tables.get('starter_credits')!.rows[0];
   assert(!('band' in row), 'no band column is written on a credit row');
   assertEquals(row.amount_cents, 3900);

@@ -2,8 +2,11 @@
 //
 // Single source of truth for the Eden's Table Starter Units: $39 digital products
 // carrying weeks 1-9 of a band (Teacher's Guide, Student Notebook and the
-// Read-Aloud storybook). Sprouts buyers also earn a $39 credit toward the kit;
-// Seedlings buyers do not (founder decision 2026-09-23, see STARTER_BANDS).
+// Read-Aloud storybook). Since 2026-11-22 (founder decision, see STARTER_BANDS) a
+// family-paid Starter of EITHER band earns one $39 credit, single use, never
+// expiring, good on that band's printed set or the two-band printed set (and, for
+// Sprouts, the Complete Kit when it is on sale again). Until then only Sprouts had a
+// credit, and it was good on the kit only.
 //
 // TWO BANDS since 2026-09-23 (founder decision): Sprouts (K-2) and Seedlings
 // (grades 3-5). The Sprouts constants below are UNCHANGED and are still exported
@@ -21,9 +24,11 @@
 //     which create-checkout already supports for every other one-off product. The
 //     same lookup key is set in test and live, so no ID has to be carried across
 //     modes and no ID has to be invented before the live object exists.
-//   - The COUPON has no lookup-key equivalent, so it comes from the environment
-//     (STRIPE_STARTER_CREDIT_COUPON_ID). The functions that need it fail loudly
-//     rather than falling back to a guess.
+//   - The COUPONS have no lookup-key equivalent, so they come from the environment,
+//     one per band (STARTER_BANDS[band].credit.couponEnv). The functions that need
+//     one fail loudly rather than falling back to a guess. The original kit-only
+//     coupon (STRIPE_STARTER_CREDIT_COUPON_ID) is now LEGACY: nothing new is minted
+//     on it, and it is read only to recognise codes minted before 2026-11-22.
 //
 // The one Stripe id below is the KIT PRODUCT, and it is a verified value, read
 // off the live API on 2026-08-26: both price_1Tc7TJ2NWfYbCZT83q4TuxFf ($249
@@ -46,6 +51,9 @@ export const STARTER_PRICE_CENTS = 3900;
  * have sold a $249 kit for $78 all-in and taken roughly $85,500 out of the print
  * run across 500 units. Camila confirmed $39: the starter price applies to the
  * kit, Eden still nets $249, and the credit costs nothing when it converts.
+ *
+ * FOUNDER DECISION 2026-11-22: the same $39, from either band's Starter, now also
+ * comes off that band's printed set ($249) or the two-band printed set ($429).
  */
 export const STARTER_CREDIT_CENTS = 3900;
 
@@ -75,6 +83,12 @@ export const STARTER_TAX_CODE = 'txcd_10302000';
  * 'expire_at_cap' (the original brief): every outstanding code is deactivated at
  *   the cap and no new code is issued after it. Fully implemented and tested, one
  *   constant away, so the decision stays reversible.
+ *
+ * 🛑 2026-11-22: the founder ruled that the credit NEVER expires, and it is now good
+ * on the printed sets too. deactivateOutstandingCredits cannot tell a kit-only code
+ * from a printed-set code, so flipping this to 'expire_at_cap' would also kill every
+ * printed-set credit at the kit cap, against that ruling. starter-credit.test.ts
+ * pins 'honour_retail' for that reason.
  */
 export type CreditExpiryPolicy = 'honour_retail' | 'expire_at_cap';
 export const CREDIT_EXPIRY_POLICY: CreditExpiryPolicy = 'honour_retail';
@@ -186,12 +200,43 @@ export function normalizeEmail(raw: string): string {
 // row written before that migration) is Sprouts, because Sprouts was the only
 // Starter Unit that existed: normalizeStarterBand(null) === 'sprouts'.
 //
-// THE CREDIT IS PER BAND, and only Sprouts has one. FOUNDER DECISION 2026-09-23:
-// "this was for the kit only and we are not doing it for seedlings". So the
-// Seedlings entry has `credit: null`, and every credit step (minting a promotion
-// code, writing starter_credits, looking a code up for the email or the
-// downloads page, cancelling one on refund) is skipped for it via
-// starterBandHasCredit. The Sprouts credit machinery is untouched.
+// THE CREDIT IS PER BAND. History: 2026-09-23 the founder ruled "this was for the
+// kit only and we are not doing it for seedlings", so Seedlings had `credit: null`.
+// FOUNDER DECISION 2026-11-22 (her own taps) replaces that:
+//
+//   1. A FAMILY-PAID Starter of EITHER band earns ONE $39 credit, single use, that
+//      NEVER expires.
+//   2. It is good on that band's printed set, the two-band printed set, and (Sprouts
+//      only) the Sprouts Complete Kit when it is on sale again. One use: whichever
+//      the family buys first.
+//   3. Scholarship- or ESA-paid Starters earn none. That stays structural: a credit
+//      is minted ONLY by stripe-webhook's paid-Starter path. esa-fulfil (Laws L-29),
+//      the print-gift offers (fpea-gift.ts) and founder gifts (starter-gift.ts) queue
+//      deliveries without ever touching starter_credits or Stripe.
+//
+// So both entries now carry a credit, each against its OWN NEW coupon. A coupon's
+// applies_to cannot be edited after it is created, which is why the old kit-only
+// coupon could not simply be widened. WHAT EACH COUPON MUST BE (Lane 2 creates them
+// in Stripe at ship time and sets the env vars; nothing here invents an id):
+//
+//   amount_off 3900, currency usd, duration 'forever', NO redeem_by, NO coupon-level
+//   max_redemptions (each family's promotion code carries max_redemptions 1), and
+//   applies_to.products = the Stripe products behind the skus in appliesToSkus:
+//     Sprouts   (STRIPE_STARTER_PRINT_CREDIT_COUPON_SPROUTS):
+//               sprouts_print_set, both_bands_print_set, sprouts_kit
+//               (sprouts_kit is STARTER_KIT_PRODUCT_ID below, the one verified id)
+//     Seedlings (STRIPE_STARTER_PRINT_CREDIT_COUPON_SEEDLINGS):
+//               seedlings_print_set, both_bands_print_set
+//   The printed sets' product ids are not stored in this repo as product ids (the
+//   products table holds a Price id or a lookup key per sku), so they are named by
+//   sku here. scripts/move-starter-credits-to-print.ts resolves each sku to its
+//   Stripe product live and checks the coupon's applies_to against it, read-only,
+//   on every dry run.
+//
+// The codes on these coupons are promotion codes that are NOT bound to a Stripe
+// Customer, because the print checkout makes a fresh Customer for every order and a
+// bound code would be refused there (promotion_code_customer_mismatch). See the
+// enforcement notes at the top of starter-credit.ts for what that trades away.
 
 export type StarterBand = 'sprouts' | 'seedlings';
 
@@ -201,14 +246,35 @@ export interface StarterFileSet {
   readAloud: string;
 }
 
-/** A band's Starter Unit credit. Only Sprouts has one. */
+/** A band's Starter Unit credit. Both bands have one since 2026-11-22. */
 export interface StarterCreditConfig {
   cents: number;
   /** Env var holding the coupon id. Read at call time, never defaulted. */
   couponEnv: string;
-  /** The Stripe product the coupon is scoped to (verified value). */
-  targetProductId: string;
+  /**
+   * What the coupon's applies_to.products must cover, named by products.sku. The
+   * coupon is the Stripe-side enforcement of this list; create-checkout uses the
+   * same list to give a readable refusal before Stripe is called.
+   */
+  appliesToSkus: readonly string[];
 }
+
+/** The Sprouts Complete Kit sku (founding preorder products table). */
+export const STARTER_CREDIT_KIT_SKU = 'sprouts_kit';
+
+/**
+ * The Sprouts Complete Kit's Stripe product. Verified value (see the header of this
+ * file): both kit prices hang off it.
+ */
+export const STARTER_KIT_PRODUCT_ID = 'prod_UbK7PJQPkKhcnE';
+
+/**
+ * The ORIGINAL kit-only coupon (2026-08-26 to 2026-11-22). Nothing is minted on it
+ * any more. It is read only to recognise a code minted before 2026-11-22: by
+ * create-checkout (a readable refusal for an old code on the print shop) and by the
+ * one-off move script (which moves the outstanding ones onto the new coupon).
+ */
+export const LEGACY_KIT_CREDIT_COUPON_ENV = 'STRIPE_STARTER_CREDIT_COUPON_ID';
 
 export interface StarterBandConfig {
   band: StarterBand;
@@ -236,8 +302,8 @@ export interface StarterBandConfig {
    */
   printSetUrl: string | null;
   /**
-   * The credit a purchase earns, or null for none. Null means NO promotion code,
-   * NO coupon and NO starter_credits row, ever, for this band.
+   * The credit a family-paid purchase earns, or null for none. Null means NO
+   * promotion code, NO coupon and NO starter_credits row, ever, for this band.
    */
   credit: StarterCreditConfig | null;
 }
@@ -255,12 +321,13 @@ export const STARTER_BANDS: Record<StarterBand, StarterBandConfig> = {
     pageUrl: STARTER_PAGE_URL,
     successUrl: 'https://edeninstitute.health/starter/thank-you?session_id={CHECKOUT_SESSION_ID}',
     printSetUrl: 'https://edeninstitute.health/books',
-    // Unchanged: the same coupon env var and the verified kit product (see the
-    // header of this file) the Sprouts credit has used since 2026-08-26.
+    // FOUNDER DECISION 2026-11-22: the Sprouts printed set, the two-band set, and
+    // the Complete Kit when it is on sale again. A NEW coupon (see the registry
+    // notes above); the 2026-08-26 kit-only one is LEGACY_KIT_CREDIT_COUPON_ENV.
     credit: {
       cents: STARTER_CREDIT_CENTS,
-      couponEnv: 'STRIPE_STARTER_CREDIT_COUPON_ID',
-      targetProductId: 'prod_UbK7PJQPkKhcnE',
+      couponEnv: 'STRIPE_STARTER_PRINT_CREDIT_COUPON_SPROUTS',
+      appliesToSkus: ['sprouts_print_set', 'both_bands_print_set', STARTER_CREDIT_KIT_SKU],
     },
   },
   seedlings: {
@@ -293,8 +360,14 @@ export const STARTER_BANDS: Record<StarterBand, StarterBandConfig> = {
     successUrl: 'https://edeninstitute.health/starter/seedlings/thank-you?session_id={CHECKOUT_SESSION_ID}',
     // On sale since 2026-09-24: the #seedlings buy box on /books.
     printSetUrl: 'https://edeninstitute.health/books#seedlings',
-    // FOUNDER DECISION 2026-09-23: no credit, no coupon of any kind.
-    credit: null,
+    // FOUNDER DECISION 2026-11-22, replacing 2026-09-23's "no credit": the Seedlings
+    // printed set and the two-band set. Never the Sprouts set alone, and never the
+    // kit (the Complete Kit is a Sprouts product).
+    credit: {
+      cents: STARTER_CREDIT_CENTS,
+      couponEnv: 'STRIPE_STARTER_PRINT_CREDIT_COUPON_SEEDLINGS',
+      appliesToSkus: ['seedlings_print_set', 'both_bands_print_set'],
+    },
   },
 };
 
@@ -336,13 +409,41 @@ export function starterBandHasCredit(band: StarterBand): boolean {
 
 /**
  * Env vars that must be set before a band's Starter Unit may be sold. Empty means
- * sellable. Sprouts needs its coupon, exactly as before. A band with no credit
- * (Seedlings) needs none.
+ * sellable. A band with a credit needs its coupon, because the credit is minted
+ * AFTER payment and a missing coupon would take $39 for a credit we cannot issue.
+ * Since 2026-11-22 that is both bands, each on its own new coupon. A band with no
+ * credit would need none.
  */
 export function missingStarterEnv(band: StarterBand): string[] {
   const credit = STARTER_BANDS[band].credit;
   if (!credit) return [];
   return Deno.env.get(credit.couponEnv) ? [] : [credit.couponEnv];
+}
+
+/**
+ * What a credit code is, read off its promotion code's coupon id: a band's printed-
+ * set credit, a legacy kit-only credit (minted before 2026-11-22), or null when the
+ * coupon is none of ours or its env var is unset. Env read at call time.
+ *
+ * Used only to give a READABLE refusal before Stripe is called. Stripe's coupon
+ * scope is the enforcement; null therefore means "let Stripe decide", never "allow".
+ */
+export type StarterCreditKind = StarterBand | 'legacy_kit';
+
+export function starterCreditKindForCoupon(couponId: string | null | undefined): StarterCreditKind | null {
+  if (!couponId) return null;
+  for (const b of STARTER_BAND_LIST) {
+    const env = STARTER_BANDS[b].credit?.couponEnv;
+    if (env && Deno.env.get(env) === couponId) return b;
+  }
+  if (Deno.env.get(LEGACY_KIT_CREDIT_COUPON_ENV) === couponId) return 'legacy_kit';
+  return null;
+}
+
+/** The skus a credit of this kind comes off. A legacy code: the kit only. */
+export function starterCreditAppliesToSkus(kind: StarterCreditKind): readonly string[] {
+  if (kind === 'legacy_kit') return [STARTER_CREDIT_KIT_SKU];
+  return STARTER_BANDS[kind].credit?.appliesToSkus ?? [];
 }
 
 /**
@@ -360,13 +461,14 @@ export function missingStarterMasters(band: StarterBand, presentPaths: readonly 
  * create-checkout ahead of creating any Stripe session. Returns problems; empty
  * means sellable. Never throws. Masters are checked separately (needs Storage).
  *
- *   1. The band's env vars (none for Seedlings, which has no credit).
+ *   1. The band's env vars (since 2026-11-22, Seedlings needs its printed-set
+ *      credit coupon, STRIPE_STARTER_PRINT_CREDIT_COUPON_SEEDLINGS).
  *   2. The band migration (20260923120000) is applied: starter_deliveries.band
  *      is readable. Without it the webhook's Seedlings delivery insert fails
- *      AFTER payment. Only starter_deliveries is probed: a band with no credit
- *      never reads or writes starter_credits.
+ *      AFTER payment. Only starter_deliveries is probed: starter_credits has
+ *      existed since 2026-08-26 and has no band column.
  *
- * Not called for Sprouts, whose guard is unchanged (its coupon env only).
+ * Not called for Sprouts, whose guard is its coupon env only (missingStarterEnv).
  */
 // deno-lint-ignore no-explicit-any
 export async function starterPrepaymentProblems(db: { from(table: string): any }, band: StarterBand): Promise<string[]> {

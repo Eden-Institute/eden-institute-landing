@@ -66,6 +66,15 @@ import {
 } from "../_shared/starter-config.ts"
 import { curriculumInvoiceCreation } from "../_shared/receipt.ts"
 import { evaluateRedemption, findCreditByCode } from "../_shared/starter-credit.ts"
+// Starter credit on the printed sets (founder decision 2026-11-22). A separate line
+// from the imports above on purpose, to keep this change's hunks apart.
+import { starterCreditKindForCoupon } from "../_shared/starter-config.ts"
+import {
+  CREDIT_EMAIL_REQUIRED_MESSAGE,
+  CREDIT_KIT_REQUIRED_MESSAGE,
+  decidePrintPromoCredit,
+  starterCreditCartRefusal,
+} from "../_shared/starter-credit.ts"
 import { LULU_PRODUCTION_DELAY_MINUTES, LULU_PRODUCTS, PRINT_SHOP_URL, luluProductBySku } from "../_shared/lulu-config.ts"
 import { timingSafeEqual } from "../_shared/timing-safe-equal.ts"
 import { E2E_BUYER_EMAIL, E2E_HEADER, E2E_METADATA_KEY, E2E_MODE, e2eRequestAllowed, stripeSecretKey } from "../_shared/e2e-mode.ts"
@@ -198,14 +207,16 @@ const NO_PROMO_LOOKUP_KEYS = new Set<string>([])
 
 // Lookup_keys that need a real Stripe Customer created at checkout.
 //
-// The Starter Unit credit is a promotion code BOUND TO A CUSTOMER, which is what
-// makes it non-transferable (Stripe rejects any other customer with
-// promotion_code_customer_mismatch). No Customer at purchase time means no
-// binding, so this is load-bearing, not a nicety.
-// Sprouts only: the Seedlings Starter Unit carries no credit (founder decision
-// 2026-09-23), so it has nothing to bind to a Customer.
+// Every Starter Unit earns a credit (founder decision 2026-11-22, both bands), and
+// its starter_credits row records the purchase's Stripe Customer
+// (stripe_customer_id is NOT NULL). Without a Customer the webhook refuses to mint,
+// so this is load-bearing, not a nicety. Until 2026-11-22 the Customer was also what
+// the code was BOUND to (promotion_code_customer_mismatch for anyone else); new
+// codes are unbound (see _shared/starter-credit.ts), so the Customer is now the
+// record of who bought, not the lock. Sprouts was the only entry until 2026-11-22.
 const CUSTOMER_REQUIRED_LOOKUP_KEYS = new Set([
   STARTER_LOOKUP_KEY,
+  ...STARTER_LOOKUP_KEYS,
 ])
 
 // Founders Edition rails removed 2026-09-15 (BUNDLE_RESTRICTED_LOOKUP_KEYS,
@@ -238,6 +249,13 @@ const PRICE_ID_OVERRIDES: Record<string, string> = {
 /** Stripe caps a metadata value at 500 chars; body-supplied values are attacker-influenced. */
 function clampMeta(v: unknown, max = 255): string | null {
   return typeof v === "string" && v ? v.slice(0, max) : null
+}
+
+/** A Stripe promotion code's coupon id (the coupon arrives expanded or as an id). */
+function couponIdOfPromo(promo: { coupon?: unknown } | null | undefined): string | null {
+  const c = promo?.coupon as { id?: string } | string | null | undefined
+  if (typeof c === "string") return c
+  return c?.id ?? null
 }
 
 /** Dark-test bypass for the preorder and print-shop gates. */
@@ -566,22 +584,22 @@ serve(async (req) => {
 
     // REFUSE TO SELL THE STARTER UNIT IF THE CREDIT CANNOT BE ISSUED.
     //
-    // The $39 credit toward the kit is not a bonus, it is the product's entire
-    // proposition and it is promised in the hero, the FAQ, the confirmation page
-    // and the refund policy. Minting the code needs
-    // STRIPE_STARTER_CREDIT_COUPON_ID, and that only gets consulted AFTER payment,
-    // in the webhook. So without this guard a misconfigured deploy takes $39 and
-    // then discovers it cannot deliver the thing it just sold, one buyer at a
-    // time, with nothing visible on the storefront.
+    // The $39 credit is promised in the refund policy (/returns). Minting the code
+    // needs the band's coupon (STARTER_BANDS[band].credit.couponEnv; since
+    // 2026-11-22 STRIPE_STARTER_PRINT_CREDIT_COUPON_SPROUTS or
+    // STRIPE_STARTER_PRINT_CREDIT_COUPON_SEEDLINGS), and that only gets consulted
+    // AFTER payment, in the webhook. So without this guard a misconfigured deploy
+    // takes $39 and then discovers it cannot deliver the thing it just sold, one
+    // buyer at a time, with nothing visible on the storefront.
     //
     // Failing closed here costs a sale we could not honour anyway. It also makes
     // the misconfiguration obvious the moment anyone presses the button, instead
     // of at the first refund request.
     //
-    // Per band since 2026-09-23. Sprouts checks only STRIPE_STARTER_CREDIT_COUPON_ID,
-    // as before. Seedlings has no credit (founder decision 2026-09-23), so it needs
-    // no coupon; it needs the band migration applied and all three master PDFs in
-    // the bucket, or the buyer would pay and then receive a failed delivery.
+    // Per band. Sprouts checks only its coupon env. Seedlings checks its coupon env
+    // too since 2026-11-22 (it had no credit before), plus the band migration and
+    // all three master PDFs in the bucket, or the buyer would pay and then receive
+    // a failed delivery.
     const starterNotConfigured = () => new Response(
       JSON.stringify({
         error: "The Starter Unit is not available right now. Please try again shortly, or email hello@edeninstitute.health.",
@@ -986,7 +1004,30 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
   // one the code is bound to, and Stripe would refuse the buyer's own valid
   // credit with promotion_code_customer_mismatch. That failure would look exactly
   // like a bug in the credit rather than in the session setup.
-  const rawCreditCode = typeof body.credit_code === "string" ? body.credit_code.trim() : ""
+  // (2026-11-22: codes minted since then are NOT bound to a Customer. Binding the
+  // session to the credit row's Customer still works for them, and keeps a legacy
+  // bound code working, so this path is unchanged.)
+  //
+  // 2026-11-22: a Starter code can also arrive as `promo_code` (a ?promo= link).
+  // A new, unbound code pre-applied through the affiliate branch below would skip
+  // the email check, so a promo_code that IS a Starter credit goes down this credit
+  // path instead. If that lookup fails, the code is not pre-applied at all and the
+  // buyer is left Stripe's own field, where Stripe still enforces single use and
+  // product scope (the trade-off described in _shared/starter-credit.ts).
+  let rawCreditCode = typeof body.credit_code === "string" ? body.credit_code.trim() : ""
+  const kitPromoCode = typeof body.promo_code === "string" ? body.promo_code.trim() : ""
+  let kitPromoLookupFailed = false
+  if (!rawCreditCode && kitPromoCode) {
+    try {
+      if (await findCreditByCode(adminClient, kitPromoCode)) rawCreditCode = kitPromoCode
+    } catch (err) {
+      kitPromoLookupFailed = true
+      console.error(
+        "preorder checkout: starter credit lookup for promo_code failed; not pre-applying it: " +
+          (err instanceof Error ? err.message : String(err)),
+      )
+    }
+  }
   let appliedCredit: { promotionCodeId: string; code: string; customerId: string } | null = null
 
   if (rawCreditCode) {
@@ -994,7 +1035,7 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
     if (!buyerEmail) {
       return new Response(
         JSON.stringify({
-          error: "Please enter the email address you used for your Starter Unit so we can check your credit.",
+          error: CREDIT_EMAIL_REQUIRED_MESSAGE,
           code: "CREDIT_EMAIL_REQUIRED",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
@@ -1004,7 +1045,7 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
     if (!cart.some((c) => c.sku === FOUNDING_GATE_SKU)) {
       return new Response(
         JSON.stringify({
-          error: "Your Starter Unit credit applies to the Sprouts Complete Kit. Add the kit to use it.",
+          error: CREDIT_KIT_REQUIRED_MESSAGE,
           code: "CREDIT_KIT_REQUIRED",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
@@ -1021,6 +1062,23 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
         JSON.stringify({ error: verdict.message, code: verdict.code }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
       )
+    }
+    // Which coupon the code sits on (2026-11-22): a Seedlings printed-set credit
+    // does not come off the kit, and Stripe's own refusal would surface as a
+    // generic 500. A failed read skips this readable check only; Stripe's coupon
+    // scope still refuses at session creation.
+    try {
+      const promo = await stripe.promotionCodes.retrieve(verdict.credit.stripe_promotion_code_id)
+      const refusal = starterCreditCartRefusal(starterCreditKindForCoupon(couponIdOfPromo(promo)), cart.map((c) => c.sku))
+      if (refusal) {
+        console.warn(`starter credit refused: reason=${refusal.code} credit_id=${verdict.credit.id}`)
+        return new Response(
+          JSON.stringify({ error: refusal.message, code: refusal.code }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
+        )
+      }
+    } catch (err) {
+      console.warn(`starter credit scope pre-check skipped (Stripe still enforces it): ${err instanceof Error ? err.message : String(err)}`)
     }
     appliedCredit = {
       promotionCodeId: verdict.credit.stripe_promotion_code_id,
@@ -1146,7 +1204,9 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
     // credit still means no promo field, which is what keeps it non-stackable.
     const bodyPromoCode = typeof body.promo_code === "string" ? body.promo_code.trim() : ""
     let promoApplied = false
-    if (bodyPromoCode) {
+    // kitPromoLookupFailed: we could not tell whether this code is a Starter credit
+    // (2026-11-22, above), so it is not pre-applied; the manual field stays.
+    if (bodyPromoCode && !kitPromoLookupFailed) {
       try {
         const promoList = await stripe.promotionCodes.list({
           code: bodyPromoCode,
@@ -1579,9 +1639,44 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
 
   // Affiliate codes, same two ways in as the kit: ?promo=CODE pre-applied, else
   // Stripe's own field. Stripe refuses a session carrying both, so exclusive.
+  //
+  // STARTER CREDITS (founder decision 2026-11-22): a Starter credit now comes off
+  // the printed sets. If the pre-applied code IS one, it gets the same check the
+  // kit path gives a credit (our database, by the email given here) and a readable
+  // refusal if it is used, deactivated, someone else's, or not for this cart; a
+  // checked one is pre-applied and stamped into metadata so the webhook records the
+  // redemption. A credit TYPED into Stripe's field is enforced by Stripe alone
+  // (single use + coupon scope); see _shared/starter-credit.ts for that trade-off.
   const bodyPromoCode = typeof body.promo_code === "string" ? body.promo_code.trim() : ""
   let promoApplied = false
+  let promoIsNotACredit = true
   if (bodyPromoCode) {
+    const creditDecision = await decidePrintPromoCredit(adminClient, stripe, {
+      rawCode: bodyPromoCode,
+      email: shipTo?.email ?? (typeof body.email === "string" ? body.email : null),
+      skus: cart.map((c) => c.sku),
+      offerSession: salePrint !== null,
+    })
+    if (creditDecision.kind === "refuse") {
+      console.warn(`print shop: starter credit refused: reason=${creditDecision.code} credit_id=${creditDecision.creditId}`)
+      return new Response(
+        JSON.stringify({ error: creditDecision.message, code: creditDecision.code }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
+      )
+    }
+    if (creditDecision.kind === "apply") {
+      sessionParams.discounts = [{ promotion_code: creditDecision.promotionCodeId }]
+      promoApplied = true
+      metadata.starter_credit_code = creditDecision.code
+      metadata.starter_credit_promo_id = creditDecision.promotionCodeId
+    } else if (creditDecision.kind === "skip") {
+      console.log(`print shop: starter credit ${creditDecision.creditId} not pre-applied (${creditDecision.reason}); manual field stays`)
+    } else if (creditDecision.kind === "lookup_failed") {
+      console.error(`print shop: starter credit lookup failed, promo_code not pre-applied: ${creditDecision.detail}`)
+    }
+    promoIsNotACredit = creditDecision.kind === "not_a_credit"
+  }
+  if (bodyPromoCode && promoIsNotACredit) {
     try {
       const promoList = await stripe.promotionCodes.list({ code: bodyPromoCode, active: true, limit: 1 })
       const promo = promoList.data[0]
