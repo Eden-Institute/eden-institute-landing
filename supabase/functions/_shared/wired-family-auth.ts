@@ -4,7 +4,8 @@
 
 import { type Db, pg } from "./wired-submit-flow.ts";
 import { verifyWiredToken } from "./wired-token.ts";
-import { wiredGate, wiredJson } from "./wired-gate.ts";
+import { wiredJson } from "./wired-gate.ts";
+import { wiredTesterGate } from "./wired-pilot-pass.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -17,7 +18,7 @@ export interface FamilyChild {
 }
 
 export async function familyChildRequest(req: Request, fn: string): Promise<FamilyChild | Response> {
-  const gate = wiredGate(req);
+  const gate = await wiredTesterGate(req);
   if (gate) return gate;
   if (req.method !== "POST") return wiredJson(405, { error: "method_not_allowed" });
   let body: Record<string, unknown>;

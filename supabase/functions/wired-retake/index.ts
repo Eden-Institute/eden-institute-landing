@@ -4,13 +4,14 @@
 // The link (wired-token purpose 'retake', signed with WIRED_LINK_SECRET) carries only ids; this answers only for
 // the child it was signed for. _shared/wired-retake.ts has the rules.
 
-import { wiredGate, wiredJson } from "../_shared/wired-gate.ts";
+import { wiredJson } from "../_shared/wired-gate.ts";
+import { wiredTesterGate } from "../_shared/wired-pilot-pass.ts";
 import { verifyWiredToken } from "../_shared/wired-token.ts";
 import { retakeContext } from "../_shared/wired-retake.ts";
 import { type Db } from "../_shared/wired-submit-flow.ts";
 
 Deno.serve(async (req) => {
-  const gate = wiredGate(req);
+  const gate = await wiredTesterGate(req);
   if (gate) return gate;
   if (req.method !== "POST") return wiredJson(405, { error: "method_not_allowed" });
   let body: Record<string, unknown>;

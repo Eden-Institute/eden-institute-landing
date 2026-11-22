@@ -6,12 +6,13 @@
 
 import { publicBank } from '../_shared/wired-engine.ts';
 import { activeBank, type Db } from '../_shared/wired-submit-flow.ts';
-import { wiredGate, wiredJson } from '../_shared/wired-gate.ts';
+import { wiredJson } from '../_shared/wired-gate.ts';
+import { wiredTesterGate } from '../_shared/wired-pilot-pass.ts';
 
 const SETS = new Set(['k2', 'g3_5', 'g6_8', 'g9_12', 'teen', 'adult']);
 
 Deno.serve(async (req) => {
-  const gate = wiredGate(req);
+  const gate = await wiredTesterGate(req);
   if (gate) return gate;
   if (req.method !== 'GET') return wiredJson(405, { error: 'method_not_allowed' });
   const set = new URL(req.url).searchParams.get('set') ?? '';

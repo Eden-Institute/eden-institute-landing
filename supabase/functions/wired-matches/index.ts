@@ -12,13 +12,14 @@ import { cleanRanking, type FamilyAnswers, prefsFromAnswers } from '../_shared/w
 import { approvedCurricula, type Db, esaRows, helpfulExtraRows, matchDisplayRows, pg } from '../_shared/wired-submit-flow.ts';
 import { pickHelpfulExtras, withDisplay } from '../_shared/wired-display.ts';
 import { verifyWiredToken } from '../_shared/wired-token.ts';
-import { wiredGate, wiredJson } from '../_shared/wired-gate.ts';
+import { wiredJson } from '../_shared/wired-gate.ts';
+import { wiredTesterGate } from '../_shared/wired-pilot-pass.ts';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const STATE_RE = /^[A-Za-z]{2}$/;
 
 Deno.serve(async (req) => {
-  const gate = wiredGate(req);
+  const gate = await wiredTesterGate(req);
   if (gate) return gate;
   if (req.method !== 'POST') return wiredJson(405, { error: 'method_not_allowed' });
   let body: Record<string, any>;

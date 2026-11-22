@@ -20,6 +20,7 @@ import { type Db, pg } from "../_shared/wired-submit-flow.ts";
 import { availableChapters, signChapter, type ChapterNo } from "../_shared/wired-pilot-chapters.ts";
 import { verifyWiredToken } from "../_shared/wired-token.ts";
 import { wiredGate, wiredJson, wiredOpen } from "../_shared/wired-gate.ts";
+import { pilotSwitchOn, WIRED_PASS_CORS } from "../_shared/wired-pilot-pass.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -30,8 +31,14 @@ export function pilotOpen(req: Request, env: (k: string) => string | undefined =
 }
 
 Deno.serve(async (req) => {
-  const gate = wiredGate(req);
-  if (gate) return gate;
+  // 2026-11-22 testers-only pilot (founder tap via Lane NP): with the pilot switch ON, this function no longer waits
+  // for the quiz switch, so 'apply' is open to anyone with the /wired/pilot link while the quiz stays dark; every
+  // other action still needs her results token and a SELECTED application (below). Switch OFF: exactly as before.
+  if (req.method === "OPTIONS") return new Response(null, { headers: WIRED_PASS_CORS });
+  if (!pilotSwitchOn()) {
+    const gate = wiredGate(req);
+    if (gate) return gate;
+  }
   if (req.method !== "POST") return wiredJson(405, { error: "method_not_allowed" });
   if (!pilotOpen(req)) return wiredJson(404, { error: "pilot_closed" });
   let body: Record<string, unknown>;

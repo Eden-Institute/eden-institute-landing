@@ -15,7 +15,8 @@ import { bumpRateBucket, clientIp } from '../_shared/rate-bucket.ts';
 import { parseSubmission } from '../_shared/wired-submit-core.ts';
 import { adultBodyFromToken, type Db, processSubmission, WiredBadRequest, WiredUnavailable } from '../_shared/wired-submit-flow.ts';
 import { signWiredToken } from '../_shared/wired-token.ts';
-import { wiredGate, wiredJson } from '../_shared/wired-gate.ts';
+import { wiredJson } from '../_shared/wired-gate.ts';
+import { wiredAccess } from '../_shared/wired-pilot-pass.ts';
 
 const IP_PER_HOUR = 60;
 const EMAIL_PER_HOUR = 10;
@@ -36,8 +37,8 @@ async function deadLetter(db: Db, body: unknown, email: string | null, status: n
 }
 
 Deno.serve(async (req) => {
-  const gate = wiredGate(req);
-  if (gate) return gate;
+  const access = await wiredAccess(req);
+  if (!access.ok) return access.response;
   if (req.method !== 'POST') return wiredJson(405, { error: 'method_not_allowed' });
 
   const db: Db = { url: Deno.env.get('SUPABASE_URL') ?? '', key: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '' };
@@ -54,7 +55,14 @@ Deno.serve(async (req) => {
   try {
     const resolved = await adultBodyFromToken(db, body);
     if (resolved === null) return wiredJson(401, { error: 'invalid_or_expired_link' });
+    const fromToken = resolved !== body;
     body = resolved;
+    // 2026-11-22 testers-only pilot: in through the pilot pass (quiz still dark), the quiz is saved under the email she
+    // APPLIED with (the address her "You're in" went to), whatever was typed in the email box, so the pilot ladder
+    // (selectedPilot by the family's email) always finds her. Her own-questions path already uses the token's family.
+    if (!fromToken && access.via === 'tester' && body && typeof body === 'object') {
+      body = { ...(body as Record<string, unknown>), email: access.tester.email };
+    }
   } catch (err) {
     if (err instanceof WiredUnavailable) return wiredJson(502, { error: 'try_again' });
     console.error('wired-submit: cannot read the results token:', err instanceof Error ? err.message : String(err));

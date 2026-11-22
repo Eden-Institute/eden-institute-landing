@@ -25,6 +25,7 @@ interface World {
   results?: Record<string, unknown>[];
   buyers?: Record<string, unknown>[];   // wired_buyers rows (em-6: the $28 upgrade)
   unlocks?: Record<string, unknown>[];  // wired_unlocks rows
+  pilotStatus?: string;                 // her wired_pilot_applications status (2026-11-22 tester skips)
 }
 type Seen = { url: string; method: string; body?: unknown };
 
@@ -56,6 +57,7 @@ function install(w: World): Seen[] {
     if (path.startsWith("wired_children?id=eq.") && path.includes("select=unlocked_via")) return j([{ unlocked_via: w.unlocked_via === undefined ? "free" : w.unlocked_via }]);
     if (path.startsWith("wired_children?id=in.")) return j([{ id: KID, nickname: "Lily", grade: 3, created_at: "2026-11-01T00:00:00Z" }]);
     if (path.startsWith("wired_children?family_id=")) return j([{ id: KID, nickname: "Lily", grade: 3 }]);
+    if (path.startsWith("wired_pilot_applications?")) return j(w.pilotStatus ? [{ status: w.pilotStatus }] : []);
     if (path.startsWith("wired_family_prefs?")) return j(w.prefs ?? []);
     if (path.startsWith("wired_buyers?")) return j(w.buyers ?? []);
     if (path.startsWith("wired_unlocks?")) return j(w.unlocks ?? []);
@@ -236,4 +238,28 @@ Deno.test("Resend already took this row's key (409 invalid_idempotent_request): 
   const out2 = await drainEmailQueue(DB, OPTS) as Record<string, number>;
   assertEquals([out2.sent, out2.failed], [0, 0]);
   assert(!patches(seen2).some((p) => "sent_at" in p));
+});
+
+Deno.test("pilot testers (Camila 2026-11-22, 'Skip the 3 sales emails'): em-4, em-6, em-10 never send; content emails do", async () => {
+  for (const pos of [4, 6, 10]) {
+    const w: World = { row: row("drip", pos), pilotStatus: "selected" };
+    const seen = install(w);
+    const out = await drainEmailQueue(DB, OPTS) as Record<string, number>;
+    assertEquals(out.skipped, 1, `em-${pos}`);
+    assertEquals(resendCall(seen), undefined, `em-${pos}`);
+    assert(patches(seen).some((p) => p.skipped_reason === "pilot_tester_no_sales"), `em-${pos}`);
+    assert(seen.some((x) => x.url.includes("wired_pilot_applications?email=eq.mom%40example.com")), `em-${pos}: looked up by the family's email`);
+  }
+  // A content email still goes to a tester.
+  const seen5 = install({ row: row("drip", 5), pilotStatus: "selected" });
+  const out5 = await drainEmailQueue(DB, OPTS) as Record<string, number>;
+  assertEquals(out5.sent, 1);
+  assert(resendCall(seen5));
+  // An applicant who was not picked (or anyone else) still gets em-4.
+  for (const status of ["applied", "declined", undefined]) {
+    const seen = install({ row: row("drip", 4), pilotStatus: status });
+    const out = await drainEmailQueue(DB, OPTS) as Record<string, number>;
+    assertEquals(out.sent, 1, String(status));
+    assert(!patches(seen).some((p) => p.skipped_reason === "pilot_tester_no_sales"), String(status));
+  }
 });
