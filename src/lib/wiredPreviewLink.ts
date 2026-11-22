@@ -14,7 +14,7 @@
 // Strip first: with storage blocked the pass is still wiped from the URL. Nothing visible changes and
 // nothing is sent anywhere; a URL without #preview= is left exactly as it is.
 //
-// The key name must stay equal to PREVIEW_KEY in web/lib/wiredApi.ts (src/test/wiredPreviewLink.test.ts).
+// The key names must stay equal to PREVIEW_KEY / PILOT_KEY in web/lib/wiredApi.ts (src/test/wiredPreviewLink.test.ts).
 
 /** The hash parameter: /wired#preview=<pass>. */
 export const WIRED_PREVIEW_HASH_PARAM = "preview";
@@ -24,6 +24,14 @@ export const WIRED_PREVIEW_CLEAR = "clear";
 
 /** localStorage key read by web/lib/wiredApi.ts (PREVIEW_KEY). */
 export const WIRED_PREVIEW_STORAGE_KEY = "eden_wired_preview";
+
+/**
+ * 2026-11-22 testers-only pilot: the "You're in" email's button is /wired#pilot=<her pilot pass> (a signed token,
+ * supabase/functions/_shared/wired-pilot-pass.ts). Same treatment: wiped from the address bar first, then saved under
+ * this key, which web/lib/wiredApi.ts sends as the x-wired-pass header.
+ */
+export const WIRED_PILOT_HASH_PARAM = "pilot";
+export const WIRED_PILOT_STORAGE_KEY = "eden_wired_pilot";
 
 /** Only pages under this path act on the hash. */
 export const WIRED_PREVIEW_PATH_PREFIX = "/wired";
@@ -35,16 +43,18 @@ export const WIRED_PREVIEW_PATH_PREFIX = "/wired";
 export const WIRED_PREVIEW_STRIP_JS = `(function () {
   try {
     var hash = window.location.hash;
-    if (!hash || hash.indexOf('#preview=') !== 0) return;
+    if (!hash) return;
+    var key = hash.indexOf('#preview=') === 0 ? 'eden_wired_preview' : hash.indexOf('#pilot=') === 0 ? 'eden_wired_pilot' : '';
+    if (!key) return;
     var path = window.location.pathname;
     if (path !== '/wired' && path.indexOf('/wired/') !== 0) return;
-    var raw = hash.slice(9);
+    var raw = hash.slice(hash.indexOf('=') + 1);
     var pass = raw;
     try { pass = decodeURIComponent(raw); } catch (e) {}
     window.history.replaceState(window.history.state, '', path + window.location.search);
     try {
-      if (pass === 'clear') window.localStorage.removeItem('eden_wired_preview');
-      else if (pass) window.localStorage.setItem('eden_wired_preview', pass);
+      if (pass === 'clear') window.localStorage.removeItem(key);
+      else if (pass) window.localStorage.setItem(key, pass);
     } catch (e) {}
   } catch (e) {}
 })();`;

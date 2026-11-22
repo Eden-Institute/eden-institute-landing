@@ -2,6 +2,9 @@
 import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert@1";
 import { buildSelectionEmail, SELECTION_COPY, sendDuePilotSelectionEmails, UNDO_MINUTES } from "./wired-pilot-email.ts";
 
+// The "You're in" button carries a signed pilot pass (2026-11-22), so the sender needs the link secret.
+Deno.env.set("WIRED_LINK_SECRET", "e".repeat(64));
+
 const SNAPSHOT = new URL("../../../docs/wired-copy/Wired_Quiz_Pilot_Pieces.md", import.meta.url);
 
 Deno.test("selection emails: every line word for word from the approved section 5", async () => {
@@ -68,6 +71,8 @@ Deno.test("sender: only choices older than 15 minutes, claimed, one Idempotency-
   assertEquals(send.headers!["Idempotency-Key"], `wired-pilot-selection:${ROW.id}`);
   assertEquals(send.body!.to, ["sarah@example.com"]);
   assertEquals(send.body!.subject, SELECTION_COPY.selected.subject);
+  // Her pilot pass for THIS application rides after the # of the Start the quiz link.
+  assertStringIncludes(String(send.body!.text), "utm_content=pilot_selected#pilot=");
   const mark = calls[calls.length - 1];
   assertEquals(mark.body!.selection_email_id, "re_1");
   assertEquals(mark.body!.selection_email_at, NOW.toISOString());

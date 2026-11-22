@@ -15,6 +15,7 @@ import { type Db, pg } from "./wired-submit-flow.ts";
 import { BRAND, emailShell } from "./nurture-email-templates.ts";
 import { tagEmailHtml, tagEmailText } from "./email-utm.ts";
 import { SITE } from "./wired-email-tx.ts";
+import { signWiredToken } from "./wired-token.ts";
 
 export const UNDO_MINUTES = 15;
 export type SelectionKind = "selected" | "declined";
@@ -45,8 +46,10 @@ export const SELECTION_COPY: Record<SelectionKind, Copy> = {
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-export function buildSelectionEmail(kind: SelectionKind, firstName: string | null): { subject: string; html: string; text: string } {
-  const c = SELECTION_COPY[kind];
+/** buttonUrl: the "You're in" button's real link (pilotButtonUrl, her pilot pass after the #); the words never change. */
+export function buildSelectionEmail(kind: SelectionKind, firstName: string | null, buttonUrl?: string): { subject: string; html: string; text: string } {
+  const base = SELECTION_COPY[kind];
+  const c: Copy = base.button && buttonUrl ? { ...base, button: { ...base.button, url: buttonUrl } } : base;
   const name = firstName?.trim();
   const greeting = name ? `Hi ${name},` : "Hi,";
   const p = (s: string) => `<p style="margin:0 0 16px 0;font-family:Georgia,serif;font-size:16px;line-height:1.6;color:${BRAND.text};">${esc(s)}</p>`;
@@ -64,6 +67,15 @@ export function buildSelectionEmail(kind: SelectionKind, firstName: string | nul
   const tag = { medium: "nurture" as const, campaign: "wired_pilot", content: kind === "selected" ? "pilot_selected" : "pilot_declined" };
   const text = [greeting, ...c.body.map((s) => (s === "[button]" ? `${c.button!.label}: ${c.button!.url}` : s)), "Camila", "The Eden Institute", "", ADDRESS].join("\n\n");
   return { subject: c.subject, html: tagEmailHtml(html, tag), text: tagEmailText(text, tag) };
+}
+
+/**
+ * 2026-11-22 testers-only pilot: the "Start the quiz" link carries her pilot pass after the # (a 'pilot' token for this
+ * application, _shared/wired-pilot-pass.ts). The # part never reaches a server; the /wired head script saves it on her
+ * device and wipes it from the address bar (src/lib/wiredPreviewLink.ts). UTM tags go before the # (email-utm.ts).
+ */
+export async function pilotButtonUrl(applicationId: string): Promise<string> {
+  return `${SITE}/wired#pilot=${await signWiredToken({ familyId: applicationId, purpose: "pilot" })}`;
 }
 
 interface Row { id: string; email: string; first_name: string | null; status: string; decided_at: string }
@@ -90,7 +102,7 @@ export async function sendDuePilotSelectionEmails(db: Db, o: { resendKey: string
     }).catch(() => {});
     try {
       if (!o.resendKey) throw new Error("RESEND_API_KEY is not set");
-      const mail = buildSelectionEmail(kind, r.first_name);
+      const mail = buildSelectionEmail(kind, r.first_name, kind === "selected" ? await pilotButtonUrl(r.id) : undefined);
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: `Bearer ${o.resendKey}`, "Content-Type": "application/json", "Idempotency-Key": `wired-pilot-selection:${r.id}` },

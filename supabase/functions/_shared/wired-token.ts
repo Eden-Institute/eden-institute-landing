@@ -6,7 +6,7 @@
 // trap guide-access.ts has and the unsubscribe links had, memory r_unsub_signing_secret):
 // no secret = no token, and the caller answers 500.
 
-export type WiredPurpose = 'results' | 'delete' | 'teen' | 'retake';
+export type WiredPurpose = 'results' | 'delete' | 'teen' | 'retake' | 'pilot';
 
 /** Lifetimes (spec section 8, PROPOSED with the spec): results 1 year, delete-confirm 24 h, teen link 60 days.
  *  retake (the July 1 / July 15 link, spec 7.5): 300 days, so it lasts the quiz year it was sent in and is gone
@@ -16,6 +16,9 @@ export const WIRED_TOKEN_TTL_SECONDS: Record<WiredPurpose, number> = {
   delete: 24 * 3600,
   teen: 60 * 24 * 3600,
   retake: 300 * 24 * 3600,
+  // 2026-11-22 testers-only pilot: the "You're in" button's pass. f = the APPLICATION id (not a family id); judged
+  // live against wired_pilot_applications.status by _shared/wired-pilot-pass.ts. 180 days covers the pilot month.
+  pilot: 180 * 24 * 3600,
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

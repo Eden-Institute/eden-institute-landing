@@ -16,14 +16,17 @@ import { buildResultsPayload, type FamilyAnswers, prefsFromAnswers } from '../_s
 import { type Db, familyMapOwnQuestions, familyMapUpgradeFor, helpfulExtraRows, matchDisplayRows, pg } from '../_shared/wired-submit-flow.ts';
 import { type HelpfulExtra, pickHelpfulExtras, withDisplay } from '../_shared/wired-display.ts';
 import { verifyWiredToken } from '../_shared/wired-token.ts';
-import { wiredGate, wiredJson } from '../_shared/wired-gate.ts';
+import { wiredJson } from '../_shared/wired-gate.ts';
+import { wiredAccess } from '../_shared/wired-pilot-pass.ts';
 import type { Match } from '../_shared/wired-match.ts';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 Deno.serve(async (req) => {
-  const gate = wiredGate(req);
-  if (gate) return gate;
+  // 2026-11-22: a selected pilot tester gets in while the quiz is dark (wired-pilot-pass.ts); buying stays closed for
+  // her (create-checkout keeps the plain gate), so the reply says buy_closed and the page shows no buy buttons.
+  const access = await wiredAccess(req);
+  if (!access.ok) return access.response;
   if (req.method !== 'POST') return wiredJson(405, { error: 'method_not_allowed' });
   let body: Record<string, unknown>;
   try {
@@ -101,7 +104,7 @@ Deno.serve(async (req) => {
         observers_allowed: k.unlocked_via === 'blueprint' || k.unlocked_via === 'family_map' || k.unlocked_via === 'pilot',
       });
     }
-    return wiredJson(200, { first_name: fam[0].first_name, children, family_map_upgrade, has_family_map: own.has_family_map, own_questions_answered: own.own_questions_answered });
+    return wiredJson(200, { first_name: fam[0].first_name, children, family_map_upgrade, has_family_map: own.has_family_map, own_questions_answered: own.own_questions_answered, buy_closed: access.via === 'tester' });
   } catch (err) {
     console.error('wired-results:', err instanceof Error ? err.message : String(err));
     return wiredJson(500, { error: 'could_not_load_results' });

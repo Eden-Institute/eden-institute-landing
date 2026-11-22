@@ -11,12 +11,13 @@ import { bumpRateBucket, clientIp } from "../_shared/rate-bucket.ts";
 import { processRaterSubmission, type RaterKind, resolveRaterLink } from "../_shared/wired-raters.ts";
 import { cleanAnswers } from "../_shared/wired-submit-core.ts";
 import { type Db } from "../_shared/wired-submit-flow.ts";
-import { wiredGate, wiredJson } from "../_shared/wired-gate.ts";
+import { wiredJson } from "../_shared/wired-gate.ts";
+import { wiredTesterGate } from "../_shared/wired-pilot-pass.ts";
 
 const IP_PER_HOUR = 60;
 
 Deno.serve(async (req) => {
-  const gate = wiredGate(req);
+  const gate = await wiredTesterGate(req);
   if (gate) return gate;
   if (req.method !== "POST") return wiredJson(405, { error: "method_not_allowed" });
   let body: Record<string, unknown>;

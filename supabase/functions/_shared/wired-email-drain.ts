@@ -29,6 +29,7 @@ import { claimSendDay, nextCentralMorning, releaseSendDay } from "./send-day-gua
 import { buildTxEmail, SITE as TX_SITE, type TxEmail } from "./wired-email-tx.ts";
 import { observerCode } from "./wired-raters.ts";
 import { quizYear } from "./wired-engine.ts";
+import { selectedPilot } from "./wired-pilot.ts";
 import { notifyFounder } from "./lulu-fulfillment.ts";
 import { classifyResendResponse } from "./resend-idempotency.ts";
 
@@ -175,6 +176,8 @@ const PRIORITY_WORDS: Record<string, (nick: string) => string> = {
 };
 /** Answer 35: email 9 waits for 3+ real, Camila-approved pilot quotes (and is not queued until then). */
 export const PILOT_QUOTES_READY = false;
+/** 2026-11-22: the learner emails a selected pilot tester never gets (the sales emails; buying is closed for her). */
+export const PILOT_TESTER_SKIPS = new Set([4, 6, 10]);
 /** em-4: a REAL Blueprint Math page per top wiring (scripts/wired/render_em4_pages.ts), hosted on the site. Never AI. */
 export const EM4_IMAGE = (wiring: string) => `${SITE}/email/wired/blueprint-math-${wiring}.png`;
 const gradeWord = (g: number) => (g <= 0 ? "K" : String(g));
@@ -184,7 +187,7 @@ type Out = { sent: number; skipped: number; deferred: number; failed: number; de
 export async function buildLearner(db: Db, row: QueueRow, now: Date = new Date()): Promise<{ mail: LearnerEmail } | { skip: string }> {
   if (!row.family_id) return { skip: "no_family" };
   // A data deletion hard-deletes the family (and cascades its queue rows), so a missing row = deleted.
-  const fam = (await pg<{ first_name: string | null }[]>(db, `wired_families?id=eq.${row.family_id}&select=first_name&limit=1`))?.[0];
+  const fam = (await pg<{ first_name: string | null; email: string }[]>(db, `wired_families?id=eq.${row.family_id}&select=first_name,email&limit=1`))?.[0];
   if (!fam) return { skip: "family_deleted" };
   const token = await signWiredToken({ familyId: row.family_id, purpose: "results" });
 
@@ -215,6 +218,9 @@ export async function buildLearner(db: Db, row: QueueRow, now: Date = new Date()
   const kid = (await pg<{ unlocked_via: string | null }[]>(db, `wired_children?id=eq.${row.child_id}&removed_at=is.null&select=unlocked_via&limit=1`))?.[0];
   if (!kid || kid.unlocked_via === null) return { skip: "child_locked_or_removed" };
   if (pos === 4 && (kid.unlocked_via === "blueprint" || kid.unlocked_via === "family_map" || kid.unlocked_via === "pilot")) return { skip: "already_has_blueprint" };
+  // 2026-11-22, Camila (tap via Lane NP 09:08, "Skip the 3 sales emails"): a selected pilot tester gets the content
+  // emails (2, 3, 5, 7, 8) but never the sales emails 4, 6 and 10 (buying is closed for testers). Skip, not delay.
+  if (PILOT_TESTER_SKIPS.has(pos) && (await selectedPilot(db, fam.email ?? ""))) return { skip: "pilot_tester_no_sales" };
 
   const job: PdfJob = { id: row.id, family_id: row.family_id, child_id: row.child_id, order_id: null, buyer_id: null, kind: "free", quiz_year: 0, attempts: 0, status: "queued" };
   const loaded = await loadBlueprintData(db, job);

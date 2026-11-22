@@ -18,7 +18,8 @@ import { bumpRateBucket, clientIp } from "../_shared/rate-bucket.ts";
 import { buildTxEmail, SITE } from "../_shared/wired-email-tx.ts";
 import { type Db, emailHash, pg } from "../_shared/wired-submit-flow.ts";
 import { signWiredToken, verifyWiredToken } from "../_shared/wired-token.ts";
-import { wiredGate, wiredJson } from "../_shared/wired-gate.ts";
+import { wiredJson } from "../_shared/wired-gate.ts";
+import { wiredTesterGate } from "../_shared/wired-pilot-pass.ts";
 
 const FROM = "Camila at The Eden Institute <hello@edeninstitute.health>";
 const REPLY_TO = "hello@edeninstitute.health";
@@ -36,7 +37,7 @@ async function send(to: string, mail: { subject: string; html: string; text: str
 }
 
 Deno.serve(async (req) => {
-  const gate = wiredGate(req);
+  const gate = await wiredTesterGate(req);
   if (gate) return gate;
   if (req.method !== "POST") return wiredJson(405, { error: "method_not_allowed" });
   let body: Record<string, unknown>;
