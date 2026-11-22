@@ -7,6 +7,7 @@ import Navbar from "../components/Navbar.astro";
 import Footer from "../components/Footer.astro";
 import SiteAnalytics from "../components/islands/SiteAnalytics.tsx";
 import { CHECKOUT_SESSION_STRIP_JS } from "@/lib/checkoutSession";
+import { WIRED_PREVIEW_STRIP_JS, isWiredPath } from "@/lib/wiredPreviewLink";
 import { TEST_SESSION_GUARD_JS } from "@/lib/productionHost";
 import { SOCIALS } from "@/lib/socials";
 import { GOOGLE_FONTS_HREF } from "@/lib/fonts";
@@ -108,6 +109,8 @@ const websiteJsonLd = {
   url: "https://edeninstitute.health/",
 };
 const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
+// Only the /wired pages carry the preview-pass script (src/lib/wiredPreviewLink.ts).
+const wiredPage = isWiredPath(Astro.url.pathname);
 ---
 
 <!doctype html>
@@ -130,6 +133,13 @@ const pageJsonLd = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
       readCheckoutSessionId(). Source and reasoning: src/lib/checkoutSession.ts.
     */}
     <script is:inline set:html={CHECKOUT_SESSION_STRIP_JS}></script>
+    {/*
+      Wired preview pass, /wired pages only, still before every tag: the one-time
+      phone link /wired#preview=<pass> is wiped from the address bar and the pass
+      saved to localStorage for web/lib/wiredApi.ts. Source and reasoning:
+      src/lib/wiredPreviewLink.ts.
+    */}
+    {wiredPage && <script is:inline set:html={WIRED_PREVIEW_STRIP_JS}></script>}
     {/*
       Third-party tags, in three guarded blocks: the consent script, GTM and
       gtag just below, the Pinterest tag after the JSON-LD, and the GTM
