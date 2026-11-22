@@ -5,13 +5,15 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  WIRED_PILOT_HASH_PARAM,
+  WIRED_PILOT_STORAGE_KEY,
   WIRED_PREVIEW_CLEAR,
   WIRED_PREVIEW_HASH_PARAM,
   WIRED_PREVIEW_STORAGE_KEY,
   WIRED_PREVIEW_STRIP_JS,
   isWiredPath,
 } from "@/lib/wiredPreviewLink";
-import { PREVIEW_KEY } from "../../web/lib/wiredApi";
+import { PILOT_KEY, PREVIEW_KEY } from "../../web/lib/wiredApi";
 import marketingLayout from "../../web/layouts/MarketingLayout.astro?raw";
 
 const PASS = "pass_ABC-123_xyz";
@@ -39,9 +41,11 @@ describe("wiredPreviewLink", () => {
 
   it("saves under the key wiredApi reads, with the literals the script uses", () => {
     expect(WIRED_PREVIEW_STORAGE_KEY).toBe(PREVIEW_KEY);
+    expect(WIRED_PILOT_STORAGE_KEY).toBe(PILOT_KEY);
     expect(WIRED_PREVIEW_STRIP_JS).toContain(`'${WIRED_PREVIEW_STORAGE_KEY}'`);
+    expect(WIRED_PREVIEW_STRIP_JS).toContain(`'${WIRED_PILOT_STORAGE_KEY}'`);
     expect(WIRED_PREVIEW_STRIP_JS).toContain(`'#${WIRED_PREVIEW_HASH_PARAM}='`);
-    expect(WIRED_PREVIEW_STRIP_JS).toContain(`hash.slice(${`#${WIRED_PREVIEW_HASH_PARAM}=`.length})`);
+    expect(WIRED_PREVIEW_STRIP_JS).toContain(`'#${WIRED_PILOT_HASH_PARAM}='`);
     expect(WIRED_PREVIEW_STRIP_JS).toContain(`'${WIRED_PREVIEW_CLEAR}'`);
   });
 
@@ -111,6 +115,25 @@ describe("wiredPreviewLink", () => {
     go(`/wiredx#preview=${PASS}`);
     runStrip();
     expect(localStorage.getItem(PREVIEW_KEY)).toBeNull();
+  });
+
+  it("#pilot= (the You're-in button) is wiped first and saved under its own key, not the preview key", () => {
+    const TOKEN = "eyJ2IjoxfQ.sig_part-1";
+    go(`/wired?utm_source=email&utm_content=pilot_selected#pilot=${TOKEN}`);
+    runStrip();
+    expect(here()).toBe("/wired?utm_source=email&utm_content=pilot_selected");
+    expect(window.location.href).not.toContain(TOKEN);
+    expect(localStorage.getItem(PILOT_KEY)).toBe(TOKEN);
+    expect(localStorage.getItem(PREVIEW_KEY)).toBeNull();
+
+    go("/wired#pilot=clear");
+    runStrip();
+    expect(localStorage.getItem(PILOT_KEY)).toBeNull();
+
+    go(`/books#pilot=${TOKEN}`);
+    runStrip();
+    expect(here()).toBe(`/books#pilot=${TOKEN}`);
+    expect(localStorage.getItem(PILOT_KEY)).toBeNull();
   });
 
   it("isWiredPath matches /wired and its subpages only", () => {

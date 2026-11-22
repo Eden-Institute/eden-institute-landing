@@ -6,7 +6,7 @@
 // Copy: web/lib/wiredCopyW9.ts + the bank's own approved text. client:only.
 
 import { useEffect, useState } from "react";
-import { getBank, rater, WiredDark, wiredIsDark } from "../../lib/wiredApi";
+import { getBank, rater, raterPass, WiredDark, wiredIsDark } from "../../lib/wiredApi";
 import WiredNotOpen from "./WiredNotOpen";
 import { W9, w9fill } from "../../lib/wiredCopyW9";
 
@@ -61,7 +61,7 @@ export default function WiredRater({ kind }: { kind: "teen" | "observer" }) {
         const { status, data } = await rater({ kind, code: c, action: "context" });
         if (status !== 200 || !data.set_kind) return setStep(linkProblem(data.error));
         setCtx({ nickname: data.nickname ?? "", mom: data.mom ?? "" });
-        const b = await getBank(data.set_kind);
+        const b = await getBank(data.set_kind, raterPass(kind, c));
         if (b.status !== 200) return setStep("error");
         setBank(b.data as unknown as PublicBank);
         setStep("intro");

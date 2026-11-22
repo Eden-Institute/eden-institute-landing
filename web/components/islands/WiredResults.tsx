@@ -106,6 +106,9 @@ export default function WiredResults() {
   const [upgrade, setUpgrade] = useState<{ blueprint_nickname: string } | null>(null);
   // The "Your own questions" box (2026-11-21): a Family Map family (paid or pilot) whose mom has not answered her own set.
   const [ownBox, setOwnBox] = useState(false);
+  // 2026-11-22 testers-only pilot: buying is closed for a tester (create-checkout keeps the plain gate), so her page
+  // shows no buy buttons and no offer boxes (removal only, no new words). wired-results says so with buy_closed.
+  const [buyClosed, setBuyClosed] = useState(false);
   const [waitlist, setWaitlist] = useState<UpperBand | null>(null);
   const [paid, setPaid] = useState(false);
   const [buying, setBuying] = useState<string | null>(null);
@@ -127,6 +130,7 @@ export default function WiredResults() {
         setUpgrade((data as { family_map_upgrade?: { blueprint_nickname: string } | null }).family_map_upgrade ?? null);
         const own = data as { has_family_map?: boolean; own_questions_answered?: boolean };
         setOwnBox(own.has_family_map === true && own.own_questions_answered !== true);
+        setBuyClosed((data as { buy_closed?: boolean }).buy_closed === true);
         setState("ready");
       })
       .catch((err) => setState(err instanceof WiredDark ? "dark" : "error"));
@@ -197,13 +201,15 @@ export default function WiredResults() {
     return wrap(<>
       {tabs}
       <p className="text-base">{fill(RESULTS.thirdChild, { name, wiring: child.preview ? wname(child.preview.top_wiring) : "" })}</p>
-      <div className="flex flex-wrap gap-3 mt-5">
-        <button type="button" className={btn} style={forest} disabled={!!buying} onClick={() => buy("blueprint", [child.child_id])}>{RESULTS.thirdChildBlueprint}</button>
-        <button type="button" className={btn} style={forest} disabled={!!buying} onClick={() => buy("family_map")}>{RESULTS.thirdChildFamilyMap}</button>
-      </div>
-      {remindBox}
-      <p className="text-xs mt-2">{CHECKOUT.allSalesFinal}</p>
-      {buyNote}
+      {!buyClosed && (<>
+        <div className="flex flex-wrap gap-3 mt-5">
+          <button type="button" className={btn} style={forest} disabled={!!buying} onClick={() => buy("blueprint", [child.child_id])}>{RESULTS.thirdChildBlueprint}</button>
+          <button type="button" className={btn} style={forest} disabled={!!buying} onClick={() => buy("family_map")}>{RESULTS.thirdChildFamilyMap}</button>
+        </div>
+        {remindBox}
+        <p className="text-xs mt-2">{CHECKOUT.allSalesFinal}</p>
+        {buyNote}
+      </>)}
     </>);
   }
 
@@ -313,7 +319,7 @@ export default function WiredResults() {
     </section>
     <BandWaitlistModal band={waitlist} formName={waitlist ? `wired_results_${waitlist}_waitlist` : ""} onClose={() => setWaitlist(null)} />
 
-    <section className="mt-8 rounded-md p-5" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
+    {!buyClosed && (<section className="mt-8 rounded-md p-5" style={{ backgroundColor: "hsl(var(--eden-cream))" }} data-offer="blueprint">
       <p>{fill(RESULTS.blueprintOffer, { name })}</p>
       <p className="mt-2 text-sm">{fill(RESULTS.blueprintObservers, { name })}</p>
       {!upsell ? (
@@ -332,9 +338,9 @@ export default function WiredResults() {
       {remindBox}
       <p className="text-xs mt-2">{RESULTS.blueprintSmall}</p>
       {!child.offers.family_map && buyNote}
-    </section>
-    {child.offers.family_map && (
-      <section className="mt-4 rounded-md p-5" style={{ backgroundColor: "hsl(var(--eden-cream))" }}>
+    </section>)}
+    {!buyClosed && child.offers.family_map && (
+      <section className="mt-4 rounded-md p-5" style={{ backgroundColor: "hsl(var(--eden-cream))" }} data-offer="family_map">
         <p>{RESULTS.familyMapOffer}</p>
         {upgrade ? (<>
           {/* The later $28 upgrade (approved 2026-11-21): a Blueprint bought this quiz year; create-checkout re-checks it. */}
