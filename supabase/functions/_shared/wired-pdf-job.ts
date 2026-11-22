@@ -10,7 +10,7 @@ import { DOMAINS, type Domain, type Scores } from "./wired-engine.ts";
 import { normalizeCode, rankCurricula } from "./wired-match.ts";
 import { bestFitApproach, type FamilyAnswers, prefsFromAnswers, tipFirst } from "./wired-submit-core.ts";
 import { approvedCurricula, type Db, esaRows, pg } from "./wired-submit-flow.ts";
-import { buildBlueprintPdf, buildFamilyMapPdf, buildFreeResultsPdf, type MomData, type MomTeachingSide, reasonLines, SUBJECT_MAP, type FreeResultsData, type PdfMatch, type PdfSubject, type RaterView } from "./wired-pdf.ts";
+import { bandOfSetKind, buildBlueprintPdf, buildFamilyMapPdf, buildFreeResultsPdf, type MomData, type MomTeachingSide, type PriorYear, type QuestionBand, reasonLines, SUBJECT_MAP, type FreeResultsData, type PdfMatch, type PdfSubject, type RaterView } from "./wired-pdf.ts";
 
 export interface PdfJob {
   id: string; family_id: string; child_id: string | null; order_id: string | null; buyer_id: string | null;
@@ -90,8 +90,8 @@ export async function loadBlueprintData(db: Db, job: PdfJob): Promise<LoadedJob>
     const res = (await pg<{ quiz_year: number; blended_scores: Scores; top3: Domain[]; computed_at: string; renaissance: boolean; matches_snapshot: { ranking?: string[] } | null }[]>(db,
       `wired_results?child_id=eq.${k.id}&select=quiz_year,blended_scores,top3,computed_at,renaissance,matches_snapshot&order=quiz_year.desc&limit=1`))?.[0];
     if (!res) throw new Error(`no results for child ${k.id}`);
-    const ses = await pg<{ family_answers: FamilyAnswers | null; completed_at: string | null; rater_role: string; observer_id: string | null; scores: Scores | null; top3: Domain[] | null }[]>(db,
-      `wired_sessions?child_id=eq.${k.id}&family_id=eq.${job.family_id}&quiz_year=eq.${res.quiz_year}&completed_at=not.is.null&is_pilot_retake=eq.false&select=family_answers,completed_at,rater_role,observer_id,scores,top3&order=completed_at.asc`);
+    const ses = await pg<{ family_answers: FamilyAnswers | null; completed_at: string | null; rater_role: string; observer_id: string | null; scores: Scores | null; top3: Domain[] | null; bank_version: string | null }[]>(db,
+      `wired_sessions?child_id=eq.${k.id}&family_id=eq.${job.family_id}&quiz_year=eq.${res.quiz_year}&completed_at=not.is.null&is_pilot_retake=eq.false&select=family_answers,completed_at,rater_role,observer_id,scores,top3,bank_version&order=completed_at.asc`);
     const mom = (ses ?? []).find((s) => s.rater_role === "mom");
     const fa = mom?.family_answers ?? (ses ?? []).find((s) => s.family_answers)?.family_answers;
     if (!fa) throw new Error(`no family answers for child ${k.id}`);
@@ -104,6 +104,8 @@ export async function loadBlueprintData(db: Db, job: PdfJob): Promise<LoadedJob>
       : []);
     const raters: RaterView[] = (ses ?? []).filter((s) => s.scores && s.top3)
       .map((s) => ({ role: s.rater_role, label: s.observer_id ? labels.get(s.observer_id) ?? null : null, scores: s.scores!, top3: s.top3! }));
+    // The year-over-year page (Blueprint + Family Map only; the free results PDF has none).
+    const yoy = job.kind === "free" ? null : await loadPriorYear(db, job.family_id, k.id, res.quiz_year, mom?.bank_version ?? null);
 
     const out = rankCurricula({
       grade: k.grade, scores: res.blended_scores, top3: res.top3, curricula, esa, limit: RANK_LIMIT,
@@ -132,9 +134,40 @@ export async function loadBlueprintData(db: Db, job: PdfJob): Promise<LoadedJob>
       approach: bestFitApproach(res.blended_scores, res.renaissance === true, fa.approach ?? null),
       tipFirst: tipFirst(fa.frustration),
       matches, comingSoonBand: out.coming_soon.length ? (out.coming_soon.some((c) => /9-12/.test(c.eden_band ?? "")) ? "9-12" : "6-8") : null,
+      ...(yoy ? { priorYear: yoy.priorYear, questionBand: yoy.questionBand } : {}),
     });
   }
   return { email, firstName: fam.first_name, hasOwnAnswers, mom, children };
+}
+
+/**
+ * The most recent earlier quiz year for one child (wired_results.quiz_year < the year shown), with that year's
+ * other people (completed, non-retake teen + observer sessions: the same count as observerCount) and the grade set
+ * mom answered each year (her session's bank_version -> wired_question_banks.set_kind). Null when there is none:
+ * the page is then left out and nothing else in the PDF changes.
+ */
+export async function loadPriorYear(db: Db, familyId: string, childId: string, quizYear: number, momBankNow: string | null): Promise<{ priorYear: PriorYear; questionBand: QuestionBand | null } | null> {
+  const prev = (await pg<{ quiz_year: number; blended_scores: Scores | null; top3: Domain[] | null }[]>(db,
+    `wired_results?child_id=eq.${childId}&quiz_year=lt.${quizYear}&select=quiz_year,blended_scores,top3&order=quiz_year.desc&limit=1`))?.[0];
+  if (!prev || !(prev.quiz_year < quizYear) || !prev.blended_scores || !Array.isArray(prev.top3)) return null;
+  const prevSes = (await pg<{ rater_role: string; bank_version: string | null }[]>(db,
+    `wired_sessions?child_id=eq.${childId}&family_id=eq.${familyId}&quiz_year=eq.${prev.quiz_year}&completed_at=not.is.null&is_pilot_retake=eq.false&select=rater_role,bank_version`)) ?? [];
+  const momBankThen = prevSes.find((s) => s.rater_role === "mom")?.bank_version ?? null;
+  const versions = [...new Set([momBankNow, momBankThen].filter((x): x is string => !!x))];
+  const kinds = new Map(versions.length
+    ? ((await pg<{ version: string; set_kind: string }[]>(db,
+      `wired_question_banks?version=in.(${versions.map(encodeURIComponent).join(",")})&select=version,set_kind`)) ?? []).map((b) => [b.version, b.set_kind])
+    : []);
+  return {
+    priorYear: {
+      quizYear: prev.quiz_year,
+      scores: prev.blended_scores,
+      top3: prev.top3,
+      otherCount: prevSes.filter((s) => s.rater_role !== "mom").length,
+      band: momBankThen ? bandOfSetKind(kinds.get(momBankThen)) : null,
+    },
+    questionBand: momBankNow ? bandOfSetKind(kinds.get(momBankNow)) : null,
+  };
 }
 
 const safe = (s: string) => s.normalize("NFKD").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "Child";

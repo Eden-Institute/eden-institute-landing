@@ -53,6 +53,22 @@ export interface BlueprintData {
   matches: PdfMatch[];          // already ranked by her own priorities
   comingSoonBand: "6-8" | "9-12" | null;
   now?: Date;
+  /** The grade set mom answered this quiz year (her session's wired_question_banks.set_kind); null/absent = unknown. */
+  questionBand?: QuestionBand | null;
+  /** The most recent EARLIER quiz year's results for this child: the year-over-year page shows only when present. */
+  priorYear?: PriorYear | null;
+}
+
+/** The grade band a question set asks about, as the Blueprint prints it. */
+export type QuestionBand = "K-2" | "3-5" | "6-8" | "9-12";
+
+/** One earlier quiz year, for the year-over-year page (from year 2 on). */
+export interface PriorYear {
+  quizYear: number;
+  scores: Scores;               // that year's blended scores
+  top3: Domain[];               // that year's top 3, as stored
+  otherCount: number;           // other people (teen + observers) with a completed session that year: same count as observerCount
+  band: QuestionBand | null;    // the grade set mom answered that year; null = unknown
 }
 
 /** One person's own answers for a child: mom, the teen, or an observer by the label mom gave (never a name). */
@@ -121,6 +137,11 @@ export function bandOf(grade: number): "K-2" | "3-5" | "6-8" | "9-12" {
   return grade <= 2 ? "K-2" : grade <= 5 ? "3-5" : grade <= 8 ? "6-8" : "9-12";
 }
 
+/** wired_question_banks.set_kind -> the grade band it asks about. The teen and adult sets are not a grade band (null). */
+export function bandOfSetKind(setKind: string | null | undefined): QuestionBand | null {
+  return setKind === "k2" ? "K-2" : setKind === "g3_5" ? "3-5" : setKind === "g6_8" ? "6-8" : setKind === "g9_12" ? "9-12" : null;
+}
+
 export function lowest3(scores: Scores): Domain[] {
   return DOMAINS.slice().sort((a, b) => scores[a] - scores[b] || DOMAINS.indexOf(a) - DOMAINS.indexOf(b)).slice(0, 3);
 }
@@ -178,6 +199,96 @@ export function monthYear(d: Date): string {
 }
 function longDate(d: Date): string {
   return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/Chicago" });
+}
+
+// ── Year over year (spec answer 30, page 10: from year 2 on) ────────────────
+// Approved copy, word for word: docs/wired-copy/Wired_Quiz_Blueprint_Part2.md, "### Year over year" (the grade-set
+// line APPROVED 2026-11-21, "Build it, line A"). Parsed lazily, so a copy problem can only stop a page that needs it.
+
+const YOY_LABELS = /^(Heading|Chart caption|Lines \(only the ones that apply\)|If the number of people answering changed|If the grade set changed(?: \([^)]*\))?|Closing):/;
+
+function yoyCopy() {
+  const b = block("blueprint2", "Year over year");
+  const [grew, same, newTop3] = after(b, "Lines (only the ones that apply):").split(" / ").map((s) => s.trim());
+  if (!grew?.startsWith("Grew the most:") || !same?.startsWith("Same top wiring as last year:") || !newTop3?.startsWith("New in the top 3 this year:")) {
+    throw new Error("wired-pdf: year over year lines changed shape");
+  }
+  const g = b.find((i) => i.s.startsWith("If the grade set changed"));
+  if (!g) throw new Error("wired-pdf: line 'If the grade set changed' missing");
+  // The label runs to the first "): "; the trailing "(Bands print as ...)" is a note on how to print, not copy.
+  const grades = g.s.slice(g.s.indexOf("): ") + 3).replace(/\s*\(Bands print as[^)]*\)\s*$/, "").trim();
+  return {
+    heading: after(b, "Heading:"),
+    caption: after(b, "Chart caption:"),
+    grew, same, newTop3,
+    normal: b.filter((i) => !YOY_LABELS.test(i.s)).map((i) => i.s),
+    raters: after(b, "If the number of people answering changed:"),
+    grades,
+    closing: after(b, "Closing:"),
+  };
+}
+
+/**
+ * "Grew the most": the wiring whose blended score rose the most since the earlier year (this year minus that
+ * year, to the 0.1 the blend stores). Null when no wiring rose. Ties go to the first in DOMAINS order.
+ */
+export function grewTheMost(now: Scores, before: Scores): Domain | null {
+  let best: Domain | null = null, bestUp = 0;
+  for (const d of DOMAINS) {
+    const a = now[d], b = before[d];
+    if (!Number.isFinite(a) || !Number.isFinite(b)) continue;
+    const up = Math.round((a - b) * 10) / 10;
+    if (up > bestUp) { best = d; bestUp = up; }
+  }
+  return best;
+}
+
+/** "New in the top 3 this year": this year's top 3 (in its order) minus last year's top 3. */
+export function newInTop3(now: Domain[], before: Domain[]): Domain[] {
+  const was = before.slice(0, 3);
+  return now.slice(0, 3).filter((d) => !was.includes(d));
+}
+
+export interface YearOverYearText {
+  heading: string;
+  caption: string;
+  lines: string[];              // only the ones that apply, in the approved order
+  normal: string[];             // always
+  raters: string | null;        // only when the number of other people answering changed
+  grades: string | null;        // only when the grade set changed
+  closing: string;
+}
+
+/**
+ * Every sentence of the year-over-year page for one child, or null when there is no earlier year.
+ * - Grew the most: grewTheMost (omitted when nothing rose).
+ * - Same top wiring as last year: this year's top3[0] is last year's top3[0].
+ * - New in the top 3 this year: one line per wiring in this year's top 3 that was not in last year's.
+ * - The raters line: only when observerCount (this year) differs from priorYear.otherCount; N = this year, M = last.
+ * - The grade-set line: only when both bands are known and differ.
+ */
+export function yearOverYear(d: BlueprintData): YearOverYearText | null {
+  const p = d.priorYear;
+  if (!p) return null;
+  const c = yoyCopy();
+  const v = { Nickname: d.nickname };
+  const lines: string[] = [];
+  const grew = grewTheMost(d.scores, p.scores);
+  if (grew) lines.push(fill(c.grew, { Wiring: wiringName(grew) }));
+  const top = d.top3[0];
+  if (top && top === p.top3[0]) lines.push(fill(c.same, { Wiring: wiringName(top) }));
+  for (const dom of newInTop3(d.top3, p.top3)) lines.push(fill(c.newTop3, { Wiring: wiringName(dom) }));
+  return {
+    heading: fill(c.heading, v),
+    caption: fill(c.caption, v),
+    lines,
+    normal: c.normal.map((s) => fill(s, v)),
+    raters: d.observerCount !== p.otherCount ? fill(c.raters, { N: String(d.observerCount), M: String(p.otherCount) }) : null,
+    grades: d.questionBand && p.band && d.questionBand !== p.band
+      ? fill(c.grades, { ...v, "new band": d.questionBand, "old band": p.band })
+      : null,
+    closing: fill(c.closing, v),
+  };
 }
 
 // ── Layout engine ───────────────────────────────────────────────────────────
@@ -450,7 +561,8 @@ function writeBlueprint(w: Writer, d: BlueprintData) {
     w.text(d.comingSoonBand === "9-12" ? cs.replace("grades 6-8", "grades 9-12") : cs, { after: 10 });
   }
 
-  // 10. Year over year: from year 2 only (no child has a year 2 before July 2027), so not rendered yet.
+  // 10. Year over year: from year 2 only, so only for a child with results from an earlier quiz year.
+  if (d.priorYear) writeYearOverYear(w, d);
 
   // Where the ideas come from
   w.h2("Where the ideas come from");
@@ -495,6 +607,45 @@ function writeSideBySide(w: Writer, d: BlueprintData) {
   w.y -= 16;
   w.text(fill(SIDE_COPY.normal, v), { after: 6 });
   w.small(SIDE_COPY.key);
+}
+
+/**
+ * The year-over-year page: last year's bar next to this year's for each of the 9 wirings (the results chart's
+ * bar style; last year's lighter, on top), then the approved lines that apply. No legend: the approved caption says
+ * which bar is which.
+ */
+function writeYearOverYear(w: Writer, d: BlueprintData) {
+  const t = yearOverYear(d);
+  const p = d.priorYear;
+  if (!t || !p) return;
+  w.newPage();
+  w.h1(t.heading);
+  w.text(t.caption, { size: 10.5, color: C.light, after: 12 });
+  const top3 = d.top3.slice(0, 3);
+  const sorted = DOMAINS.slice().sort((a, b) => d.scores[b] - d.scores[a] || DOMAINS.indexOf(a) - DOMAINS.indexOf(b));
+  const labelW = 110, barMax = CW - labelW - 40, barH = 9, rowH = 30;
+  const val = (n: number) => Math.max(0, Math.min(100, Math.round(Number.isFinite(n) ? n : 0)));
+  const bar = (y: number, n: number, color: RGB, opacity: number) => {
+    const width = Math.max(2, (barMax * n) / 100);
+    w.page.drawRectangle({ x: M + labelW, y, width: barMax, height: barH, color: C.softGold, opacity: 0.35 });
+    w.page.drawRectangle({ x: M + labelW, y, width, height: barH, color, opacity });
+    w.page.drawText(String(n), { x: M + labelW + width + 4, y: y + 1.5, size: 8.5, font: w.f.body, color: C.light });
+  };
+  for (const dom of sorted) {
+    w.ensure(rowH);
+    const inTop = top3.includes(dom);
+    w.page.drawText(wiringName(dom), { x: M, y: w.y - 17, size: 11.5, font: inTop ? w.f.bodyB : w.f.body, color: C.body });
+    bar(w.y - 11, val(p.scores[dom]), C.gold, 0.55);                   // last year
+    bar(w.y - 22, val(d.scores[dom]), inTop ? C.forest : C.olive, 1);  // this year
+    w.y -= rowH;
+  }
+  w.y -= 8;
+  for (const s of t.lines) w.bullet(s);
+  w.y -= 4;
+  for (const s of t.normal) w.text(s);
+  if (t.raters) w.text(t.raters);
+  if (t.grades) w.text(t.grades);
+  w.text(t.closing, { font: w.f.bodyI, after: 10 });
 }
 
 export async function buildBlueprintPdf(d: BlueprintData): Promise<Uint8Array> {
