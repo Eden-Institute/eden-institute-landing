@@ -128,6 +128,7 @@ export async function processRaterSubmission(db: Db, ctx: RaterContext, bankVers
     const snap = (await pg<{ matches_snapshot: { ranking?: string[] } | null }[]>(db,
       `wired_results?child_id=eq.${ctx.childId}&quiz_year=eq.${ctx.quizYear}&select=matches_snapshot&limit=1`))?.[0];
     const prefs = (await pg<{ priority_ranking: string[] | null }[]>(db, `wired_family_prefs?family_id=eq.${ctx.familyId}&select=priority_ranking&limit=1`))?.[0];
+    // Mom's stored family answers carry her plan_year, so the re-blend keeps her planning grade (2026-11-22).
     const ranked = rankCurricula({
       grade: ctx.grade, scores: blended.blended_scores, top3: blended.top3,
       prefs: prefsFromAnswers(mom.family_answers, prefs?.priority_ranking ?? snap?.matches_snapshot?.ranking ?? null),
@@ -142,7 +143,7 @@ export async function processRaterSubmission(db: Db, ctx: RaterContext, bankVers
       results: {
         blended_scores: blended.blended_scores, top3: blended.top3, renaissance: blended.renaissance,
         weights: blended.weights, expected_session_ids: raters.map((x) => x.session_id),
-        matches_snapshot: { matches: ranked.matches, coming_soon: ranked.coming_soon, ranking: ranked.ranking, match_version: ranked.match_version },
+        matches_snapshot: { matches: ranked.matches, coming_soon: ranked.coming_soon, ranking: ranked.ranking, match_version: ranked.match_version, planning_grade: ranked.planning_grade },
         engine_version: blended.engine_version,
       },
     });

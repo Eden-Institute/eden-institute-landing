@@ -1,6 +1,11 @@
 // Fearfully & Wonderfully Wired: the quiz itself on /wired (W4; spec 7.1).
-// welcome -> child (nickname + grade) -> 12 moments -> 9 how-often items -> 6 family questions
+// welcome -> child (nickname + grade + which school year) -> 12 moments -> 9 how-often items -> 6 family questions
 // -> ranking (tap in order, skippable) -> email -> wired-submit -> /wired/results.
+//
+// "Which school year are you choosing curriculum for?" (approved 2026-11-22) sits right under the grade. It is
+// optional: a choice is sent as family_answers.plan_year ('this' | 'next'); skipped sends nothing (= this school
+// year). The question set still follows the grade; the server moves the matches and the coming-soon line to the
+// planning grade (supabase/functions/_shared/wired-match.ts planningGrade).
 //
 // Rules kept: questions come from wired-bank with no scoring keys; scoring happens on the server
 // only; no child data goes to analytics (rule 7: the only event is "wired_start", with no child
@@ -79,6 +84,7 @@ export default function WiredQuiz({ retake = false }: { retake?: boolean } = {})
   const [childId, setChildId] = useState<string | null>(null);
   const [nickname, setNickname] = useState("");
   const [grade, setGrade] = useState<number | null>(null);
+  const [planYear, setPlanYear] = useState<"this" | "next" | null>(null);
   const [bank, setBank] = useState<PublicBank | null>(null);
   const [i, setI] = useState(0);
   const [scenarios, setScenarios] = useState<Record<string, string>>({});
@@ -148,7 +154,7 @@ export default function WiredQuiz({ retake = false }: { retake?: boolean } = {})
         child: { nickname: nickname.trim(), grade },
         bank_version: bank.version,
         answers: { scenarios, frequency },
-        family_answers: family,
+        family_answers: planYear ? { ...family, plan_year: planYear } : family,
         ranking: rank,
         attribution: attribution(),
       };
@@ -213,6 +219,15 @@ export default function WiredQuiz({ retake = false }: { retake?: boolean } = {})
         <option value="">Choose a grade</option>
         {GRADES.map(([g, label]) => <option key={g} value={g}>{label}</option>)}
       </select>
+      <fieldset className="mt-4">
+        <legend className="block text-sm mb-1">{SCREENS.planYearQuestion}</legend>
+        {([["this", SCREENS.planYearThis], ["next", SCREENS.planYearNext]] as const).map(([code, label]) => (
+          <label key={code} className={`${choice} flex items-center gap-3 cursor-pointer`} style={choiceStyle(planYear === code)}>
+            <input type="radio" name="wired-plan-year" value={code} checked={planYear === code} onChange={() => setPlanYear(code)} />
+            {label}
+          </label>
+        ))}
+      </fieldset>
       {error && <p className="text-sm mt-3" role="alert" style={{ color: "hsl(var(--destructive))" }}>{error}</p>}
       <button type="button" className={`${btn} mt-6`} style={forest} onClick={loadQuestions}>{SCREENS.next}</button>
     </>);

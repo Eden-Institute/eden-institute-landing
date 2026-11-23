@@ -17,7 +17,15 @@ export const FAMILY_CODES = {
   budget: ['free', 'under_100', '100_300', '300_600', '600_1000', 'over_1000', 'unsure'],
   esa: ['yes', 'planning', 'no', 'unsure'],
 } as const;
-export type FamilyAnswers = { [K in keyof typeof FAMILY_CODES]: typeof FAMILY_CODES[K][number] };
+/**
+ * The child step's "Which school year are you choosing curriculum for?" (approved 2026-11-22): This school year /
+ * Next school year. OPTIONAL and kept with her family answers as `plan_year`; skipped (or an answer from before
+ * the question) = this school year. Any other value is refused like a bad family code. wired-match.ts
+ * planningGrade() turns it into the grade the matches and the coming-soon line follow.
+ */
+export const PLAN_YEARS = ['this', 'next'] as const;
+export type PlanYear = typeof PLAN_YEARS[number];
+export type FamilyAnswers = { [K in keyof typeof FAMILY_CODES]: typeof FAMILY_CODES[K][number] } & { plan_year?: PlanYear };
 
 const RANKING_CODES = ['wiring', 'budget', 'prep', 'siblings'];
 const ATTRIBUTION_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'placement', 'landing_path'] as const;
@@ -101,6 +109,12 @@ function cleanFamilyAnswers(v: unknown): FamilyAnswers | null | 'invalid' {
     if (typeof val !== 'string' || !(codes as readonly string[]).includes(val)) return 'invalid';
     out[k] = val;
   }
+  // Optional: absent / null = not stored (this school year); otherwise one of its codes.
+  const py = o.plan_year;
+  if (py !== undefined && py !== null) {
+    if (typeof py !== 'string' || !(PLAN_YEARS as readonly string[]).includes(py)) return 'invalid';
+    out.plan_year = py;
+  }
   return out as FamilyAnswers;
 }
 
@@ -172,8 +186,10 @@ export function parseSubmission(body: unknown): { ok: true; value: Submission } 
 }
 
 // ── Prefs for matching from her answers ──
+// Every caller that ranks or picks for a child (submit, a rater's re-blend, the live re-rank, the results page's
+// extras, the PDF loader) builds its prefs here, so all of them follow the same stored plan_year.
 export function prefsFromAnswers(fa: FamilyAnswers, ranking: string[] | null, filters: MatchPrefs['filters'] = {}): MatchPrefs {
-  return { kids: fa.kids, prep: fa.prep, budget: fa.budget, ranking, filters };
+  return { kids: fa.kids, prep: fa.prep, budget: fa.budget, ranking, filters, plan_year: fa.plan_year ?? null };
 }
 
 // ── Best-fit approach (answer 28a; results copy section 2) ──

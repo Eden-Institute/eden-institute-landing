@@ -10,15 +10,19 @@
 // gate create-checkout uses), else null.
 // 2026-11-21 ("Your own questions" box): `has_family_map` (a Family Map, paid or pilot, this quiz year) and
 // `own_questions_answered` (her own adult-v1 answers this quiz year), for the token's own family only.
+// 2026-11-22 ("Which school year are you choosing curriculum for?"): the Eden's Table coming-soon line is worked out
+// live from her stored plan_year (the planning grade's OWN set only, _shared/wired-match.ts comingSoonFor), the same
+// rule the PDF and the live re-rank use, so a snapshot stored under the old wider rule no longer shows a 5th grader
+// the grades 6-8 waitlist. The ranked matches still come from the stored snapshot.
 
 import { type Domain, type Scores } from '../_shared/wired-engine.ts';
 import { buildResultsPayload, type FamilyAnswers, prefsFromAnswers } from '../_shared/wired-submit-core.ts';
-import { type Db, familyMapOwnQuestions, familyMapUpgradeFor, helpfulExtraRows, matchDisplayRows, pg } from '../_shared/wired-submit-flow.ts';
+import { approvedCurricula, type Db, familyMapOwnQuestions, familyMapUpgradeFor, helpfulExtraRows, matchDisplayRows, pg } from '../_shared/wired-submit-flow.ts';
 import { type HelpfulExtra, pickHelpfulExtras, withDisplay } from '../_shared/wired-display.ts';
 import { verifyWiredToken } from '../_shared/wired-token.ts';
 import { wiredJson } from '../_shared/wired-gate.ts';
 import { wiredAccess } from '../_shared/wired-pilot-pass.ts';
-import type { Match } from '../_shared/wired-match.ts';
+import { comingSoonFor, type Match, type MatchCurriculum, planningGrade } from '../_shared/wired-match.ts';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -53,10 +57,12 @@ Deno.serve(async (req) => {
       `wired_children?family_id=eq.${grant.familyId}&removed_at=is.null${only ? `&id=eq.${only}` : ''}&select=id,nickname,grade,unlocked_via&order=created_at.asc`,
     );
     const children = [];
-    // Read once per request: the extras (only when a child can see them) and the $28 upgrade state.
+    // Read once per request: the extras and the curricula for the coming-soon line (only when a child can see
+    // them) and the $28 upgrade state.
     const anyUnlocked = (kids ?? []).some((k) => k.unlocked_via !== null);
-    const [extraRows, family_map_upgrade, own] = await Promise.all([
+    const [extraRows, curricula, family_map_upgrade, own] = await Promise.all([
       anyUnlocked ? helpfulExtraRows(db) : Promise.resolve([]),
+      anyUnlocked ? approvedCurricula(db) : Promise.resolve([] as MatchCurriculum[]),
       familyMapUpgradeFor(db, grant.familyId),
       familyMapOwnQuestions(db, grant.familyId),
     ]);
@@ -69,7 +75,8 @@ Deno.serve(async (req) => {
       if (!r) continue;
       const ses = await pg<{ family_answers: FamilyAnswers | null }[]>(
         db,
-        `wired_sessions?child_id=eq.${k.id}&family_id=eq.${grant.familyId}&rater_role=eq.mom&quiz_year=eq.${r.quiz_year}&select=family_answers&limit=1`,
+        // Her real quiz, never a pilot 30-day retake (stored with family_answers null), like the PDF loader reads it.
+        `wired_sessions?child_id=eq.${k.id}&family_id=eq.${grant.familyId}&rater_role=eq.mom&quiz_year=eq.${r.quiz_year}&is_pilot_retake=eq.false&select=family_answers&limit=1`,
       );
       const snapshot = r.matches_snapshot?.matches ?? [];
       // Display fields are looked up after the stored ranking, by id, and never reorder it (rule 3).
@@ -79,7 +86,8 @@ Deno.serve(async (req) => {
         child: { id: k.id, nickname: k.nickname, grade: k.grade, unlocked: k.unlocked_via !== null },
         quiz_year: r.quiz_year, scores: r.blended_scores, top3: r.top3, renaissance: r.renaissance,
         family_answers: fa,
-        matches, coming_soon: r.matches_snapshot?.coming_soon ?? [],
+        // Her stored plan_year (absent = this school year); a locked child's payload drops it anyway.
+        matches, coming_soon: comingSoonFor(curricula, planningGrade(k.grade, fa?.plan_year)),
       });
       const extras: HelpfulExtra[] = k.unlocked_via !== null && fa
         ? pickHelpfulExtras({ grade: k.grade, scores: r.blended_scores, top3: r.top3, prefs: prefsFromAnswers(fa, null), rows: extraRows })

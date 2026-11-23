@@ -7,10 +7,16 @@
 // MatchCurriculum, a type with NO affiliate field; toMatchCurriculum() builds it from a
 // database row and drops is_affiliate / affiliate_url / the founder-only dm_* fields
 // before anything is scored. The tests flip every affiliate flag and compare rankings.
+//
+// 2026-11-22 (Camila's tap "Use as written"): "Which school year are you choosing curriculum for?" moves matching
+// to the PLANNING grade (planningGrade below; her answer rides in prefs.plan_year, from her stored family answers),
+// and the Eden's Table coming-soon line now shows only for the planning grade's OWN set (comingSoonFor). Before,
+// any coming-soon set inside the +/- 1 window was listed, so a 5th grader saw the grades 6-8 waitlist.
 
 import { type Domain, type Scores, DOMAINS } from './wired-engine.ts';
 
-export const MATCH_VERSION = 'wired-match-1';
+/** wired-match-2 (2026-11-22): the planning grade + the own-set coming-soon rule. Stored in each matches snapshot. */
+export const MATCH_VERSION = 'wired-match-2';
 
 export type Component = 'wiring' | 'budget' | 'prep' | 'siblings';
 export const COMPONENTS: readonly Component[] = ['wiring', 'budget', 'prep', 'siblings'];
@@ -98,10 +104,12 @@ export interface MatchPrefs {
   budget: string;                     // a BUDGET_BOUNDS_CENTS code or 'unsure'
   ranking?: string[] | null;          // her tap order; null/invalid = DEFAULT_RANKING
   filters?: { withinBudget?: boolean; christianOnly?: boolean; esaOnly?: boolean; state?: string | null };
+  /** "Which school year are you choosing curriculum for?" ('this' | 'next', family_answers.plan_year). Absent = this year. */
+  plan_year?: string | null;
 }
 
 export interface MatchInput {
-  grade: number;                      // the child's grade (K = 0)
+  grade: number;                      // the child's CURRENT grade (K = 0); ranking uses planningGrade(grade, prefs.plan_year)
   scores: Scores;                     // blended scores
   top3: Domain[];                     // blended top 3
   prefs: MatchPrefs;
@@ -134,6 +142,7 @@ export interface MatchOutput {
   coming_soon: { name: string; eden_band: string | null }[];   // shown outside the ranked list
   budget_filter_offered: boolean;
   match_version: string;
+  planning_grade: number;                                       // the grade the matches and coming_soon were chosen for
 }
 
 /** A valid 4-item ranking, or the default. A one-child family's 3-item ranking gets siblings last (answer 25). */
@@ -151,10 +160,29 @@ export function rankWeights(ranking: Component[]): Record<Component, number> {
   return w;
 }
 
-/** Grade range includes the child's grade +/- 1 (DECIDED 11/17). */
+/** Grade range includes the child's grade +/- 1 (DECIDED 11/17). Callers pass the planning grade. */
 export function gradeFits(c: Pick<MatchCurriculum, 'grade_min' | 'grade_max'>, grade: number): boolean {
   if (c.grade_min === null || c.grade_max === null) return false;
   return c.grade_min <= grade + 1 && c.grade_max >= grade - 1;
+}
+
+/**
+ * The grade she is choosing curriculum for (approved 2026-11-22): "Next school year" ('next') = her current grade
+ * + 1, capped at 12 (a 12th grader planning next year stays at 12); "This school year", skipped, or anything else
+ * (an answer from before the question) = her current grade. The question set still follows her current grade.
+ */
+export function planningGrade(grade: number, planYear: unknown): number {
+  return planYear === 'next' ? Math.min(grade + 1, 12) : grade;
+}
+
+/**
+ * The Eden's Table coming-soon line(s) for a child: only an approved coming-soon set whose OWN grade range holds
+ * the planning grade (no +/- 1 window), so the waitlist shows only when that grade's own set is not ready.
+ */
+export function comingSoonFor(curricula: MatchCurriculum[], planning: number): MatchOutput['coming_soon'] {
+  return curricula
+    .filter((c) => c.approved && c.coming_soon && c.grade_min !== null && c.grade_max !== null && c.grade_min <= planning && planning <= c.grade_max)
+    .map((c) => ({ name: c.name, eden_band: c.eden_band }));
 }
 
 export function wiringComponent(c: MatchCurriculum, scores: Scores, top3: Domain[]): { value: number; served: Domain[] } {
@@ -207,7 +235,8 @@ export function esaEligible(curriculumId: string, state: string | null | undefin
 
 /** Rank the approved curricula for one child (spec section 6). */
 export function rankCurricula(input: MatchInput): MatchOutput {
-  const { grade, scores, top3, prefs } = input;
+  const { scores, top3, prefs } = input;
+  const grade = planningGrade(input.grade, prefs.plan_year);
   const ranking = resolveRanking(prefs.ranking);
   const weights = rankWeights(ranking);
   const christian = (input.christianValues ?? CHRISTIAN_FAITH_VALUES).map(normalizeCode);
@@ -215,7 +244,7 @@ export function rankCurricula(input: MatchInput): MatchOutput {
   const f = prefs.filters ?? {};
 
   const inGrade = input.curricula.filter((c) => c.approved && gradeFits(c, grade));
-  const comingSoon = inGrade.filter((c) => c.coming_soon).map((c) => ({ name: c.name, eden_band: c.eden_band }));
+  const comingSoon = comingSoonFor(input.curricula, grade);
 
   const candidates = inGrade.filter((c) => {
     if (c.coming_soon) return false;
@@ -269,5 +298,6 @@ export function rankCurricula(input: MatchInput): MatchOutput {
     coming_soon: comingSoon,
     budget_filter_offered: budgetOffered,
     match_version: MATCH_VERSION,
+    planning_grade: grade,
   };
 }

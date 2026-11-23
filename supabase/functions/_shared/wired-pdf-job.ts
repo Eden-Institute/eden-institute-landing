@@ -107,6 +107,8 @@ export async function loadBlueprintData(db: Db, job: PdfJob): Promise<LoadedJob>
     // The year-over-year page (Blueprint + Family Map only; the free results PDF has none).
     const yoy = job.kind === "free" ? null : await loadPriorYear(db, job.family_id, k.id, res.quiz_year, mom?.bank_version ?? null);
 
+    // Her current grade; prefsFromAnswers carries her stored plan_year, so the matches and the coming-soon line
+    // follow the same planning grade as the results page (2026-11-22).
     const out = rankCurricula({
       grade: k.grade, scores: res.blended_scores, top3: res.top3, curricula, esa, limit: RANK_LIMIT,
       // Her saved ranking (wired-matches) when she changed it on the results page, else the ranking she
@@ -129,7 +131,7 @@ export async function loadBlueprintData(db: Db, job: PdfJob): Promise<LoadedJob>
     children.push({
       nickname: k.nickname, grade: k.grade, scores: res.blended_scores, top3: res.top3,
       answeredOn: new Date(mom?.completed_at ?? res.computed_at), observerCount: others, raters,
-      // Same rule as the results page: the line shows only when a coming-soon Eden's Table set fits this grade.
+      // Same rule as the results page: the line shows only when the planning grade's OWN Eden's Table set is coming soon.
       renaissance: res.renaissance === true,
       approach: bestFitApproach(res.blended_scores, res.renaissance === true, fa.approach ?? null),
       tipFirst: tipFirst(fa.frustration),
