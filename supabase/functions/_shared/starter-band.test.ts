@@ -293,11 +293,18 @@ function deliveryEmail(band?: 'sprouts' | 'seedlings') {
   });
 }
 
+// 2026-11-22 (founder review page, 'Use this'): the delivery email names the family's code in ONE approved sentence,
+// which deliberately mentions both printed sets ('...the Sprouts and Seedlings printed sets together.'). The
+// band-isolation checks below apply to everything else in the email.
+const BOTH_SETS = 'It also works if you order the Sprouts and Seedlings printed sets together.';
+const withoutBothSets = (s: string) => s.split(BOTH_SETS).join('');
+
 Deno.test('ACCEPTANCE: the Seedlings delivery email never says Sprouts', () => {
   const m = deliveryEmail('seedlings');
   for (const part of [m.subject, m.html, m.text]) {
-    assert(!SPROUTS.test(part), 'Seedlings delivery email mentions Sprouts');
+    assert(!SPROUTS.test(withoutBothSets(part)), 'Seedlings delivery email mentions Sprouts');
   }
+  assert(m.text.includes('Your $39 credit: when you order the printed Seedlings year, enter EDEN-S-ABC234 in the promotion code box at checkout and $39 comes off. It works once and never expires. ' + BOTH_SETS));
   assert(m.html.includes("Eden's Table, Seedlings"));
   assert(m.text.includes("Eden's Table, Seedlings"));
   assert(m.html.includes('Seedlings Starter Unit, Digital Curriculum, Weeks 1 to 9'));
@@ -315,8 +322,9 @@ Deno.test('ACCEPTANCE: the Sprouts delivery email never says Seedlings, and band
   const explicit = deliveryEmail('sprouts');
   assertEquals(implicit, explicit);
   for (const part of [explicit.subject, explicit.html, explicit.text]) {
-    assert(!SEEDLINGS.test(part), 'Sprouts delivery email mentions Seedlings');
+    assert(!SEEDLINGS.test(withoutBothSets(part)), 'Sprouts delivery email mentions Seedlings');
   }
+  assert(explicit.text.includes('Your $39 credit: when you order the printed Sprouts year, enter EDEN-S-ABC234 in the promotion code box'));
   assert(explicit.html.includes("Eden's Table, Sprouts"));
   assert(explicit.html.includes('https://edeninstitute.health/books'));
 });
@@ -377,17 +385,19 @@ Deno.test('the Seedlings lead offer sells the Seedlings Starter Unit, not Sprout
 
 // ---------------------------------------------------------------------------
 // FOUNDER DECISION 2026-09-23: no credit, code or "$39 toward" anywhere a
-// Seedlings buyer or lead reads. 2026-11-22: Seedlings buyers now EARN a credit,
-// but that change ships with NO copy change (Lane 2 drafts the wording for the
-// founder separately), so this test still holds: the delivery email does not print
-// the code even when the fulfiller now passes it in.
+// Seedlings buyer or lead reads. 2026-11-22: Seedlings buyers now EARN a credit, and the delivery email names the
+// family's code in the ONE approved sentence (founder review page). Everything else a Seedlings buyer or lead reads
+// (receipt, invoice, nurture offer) still carries no credit wording, and with no code the email carries none either.
 // ---------------------------------------------------------------------------
 
 const CREDIT_WORDING = /credit|coupon|promo(tion)? code|\btoward\b|EDEN-S-/i;
 
-Deno.test('ACCEPTANCE: no credit wording in any Seedlings output', () => {
-  // The fulfiller passes creditCode null for Seedlings; even if a code leaked in,
-  // the email must not print it.
+Deno.test('ACCEPTANCE: Seedlings credit wording only in the approved email sentence, and only with a code', () => {
+  const noCode = renderStarterDeliveryEmail({
+    firstName: 'Pat', email: 'pat@example.com', creditCode: null, downloadToken: 'a'.repeat(64),
+    receipt: starterReceipt(ORDER, 'seedlings_starter_unit'), band: 'seedlings',
+  });
+  for (const part of [noCode.subject, noCode.html, noCode.text]) assert(!CREDIT_WORDING.test(part), 'Seedlings email with no code carries credit wording');
   const withLeakedCode = renderStarterDeliveryEmail({
     firstName: 'Pat',
     email: 'pat@example.com',
@@ -398,8 +408,9 @@ Deno.test('ACCEPTANCE: no credit wording in any Seedlings output', () => {
   });
   const outputs: Record<string, string> = {
     'delivery email subject': withLeakedCode.subject,
-    'delivery email html': withLeakedCode.html,
-    'delivery email text': withLeakedCode.text,
+    // The approved sentence is the one place credit wording may appear (checked word for word just below).
+    'delivery email html': withLeakedCode.html.replace(/<p [^>]*>Your \$39 credit: [^<]*<strong>[^<]*<\/strong>[^<]*<\/p>/, ''),
+    'delivery email text': withLeakedCode.text.replace(/Your \$39 credit: [^\n]*/, ''),
     'receipt html': renderReceiptHtml(starterReceipt(ORDER, 'seedlings_starter_unit')),
     'receipt text': renderReceiptText(starterReceipt(ORDER, 'seedlings_starter_unit')),
     'stripe invoice': JSON.stringify(curriculumInvoiceCreation('starter', 'seedlings')),
@@ -409,4 +420,6 @@ Deno.test('ACCEPTANCE: no credit wording in any Seedlings output', () => {
     const hit = text.match(CREDIT_WORDING);
     assert(!hit, `Seedlings ${label} carries credit wording: "${hit?.[0]}"`);
   }
+  assert(withLeakedCode.text.includes('Your $39 credit: when you order the printed Seedlings year, enter EDEN-S-ABC234 in the promotion code box at checkout and $39 comes off. It works once and never expires. It also works if you order the Sprouts and Seedlings printed sets together.'));
+  assert(withLeakedCode.html.includes('<strong>EDEN-S-ABC234</strong>'));
 });

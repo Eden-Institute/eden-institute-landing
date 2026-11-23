@@ -504,10 +504,13 @@ Deno.test('FPEA order confirmation: one added paragraph naming free shipping and
 // 2026-11-09: starter_email_* re-pinned for ONE change, the refund sentence in the Starter
 // delivery email ("not refundable once the files have been downloaded" -> "not refundable";
 // founder: "No digital refunds. Ever."). Every other key kept its hash.
+// 2026-11-22: starter_email_1 re-pinned for ONE change, the approved "Your $39 credit: ..." line (founder review
+// page, "Use this"), shown only when the model carries a creditCode. With that line removed, the new render hashes
+// to the old pin 6a933105...; starter_email_0 and _2 (no creditCode) kept their hashes.
 
 const GOLDEN: Record<string, string> = {
   starter_email_0: '76a861f83b6a6f031f4e00d1213cd75e345792d13e56f172e64dc7676925b61a',
-  starter_email_1: '6a933105bb2e113362b50a53ad8152b7e1327b1384509fa186ecbf0b93d05a65',
+  starter_email_1: '1ce18f74c00aef2c955338f313c69b531da26f0ff9dde2592e03d80b09602ee0',
   starter_email_2: '6204c197abeed9de8812da2a4f0bdc3807ae16afda797151182a50e12628a81c',
   receipt_starter: '48d4b460a520972d3713c2f29108dea06820e8b05aa49672239b7704e78d186e',
   receipt_shipped: 'a96db1e3d0b0ffddaf134f5f59b698f2691e55347b065ac469558b4865062d64',

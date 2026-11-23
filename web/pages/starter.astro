@@ -17,17 +17,11 @@
 // "quarter", then "9 weeks". Every surface uses the same wording: this page, the
 // buy box, /curriculum, the scholarship listings and the New Hampshire profile.
 //
-// 🔴 THE $39 KIT CREDIT IS STILL MINTED, AND IS NO LONGER ADVERTISED HERE.
-// Founder decision 2026-09-12, the print-first pivot. The kit came off the site,
-// so a credit against it cannot be sold as a benefit: there is nothing to spend
-// it on today. stripe-webhook and starter-credit.ts are UNCHANGED and every
-// Starter Unit purchase still mints a code. The plan is deliberate, in her words:
-// when the boxed edition launches, Starter buyers are the first list she mails
-// and the credit they did not know they had is what opens that email.
-//
-// So do NOT "fix" this by deleting the minting code, and do NOT put the credit
-// back on the page while the kit is off sale. The hero credit panel, the bundled
-// bullet, the credit FAQ and the closing kit CTA are all on b8751c1.
+// THE $39 CREDIT (founder decision 2026-11-22): every family-paid Starter earns a one-time $39 credit toward
+// the printed set of the same band (or both sets together, or the Sprouts kit when it returns), never expiring.
+// One line under the hero buy box says so (wording approved on her review page 2026-11-22). The delivery email
+// gives the family their code; /returns carries the full terms. History: 2026-09-12 to 2026-11-22 the credit was
+// minted but not advertised, because it only fit the off-sale kit (old panel/FAQ on b8751c1).
 //
 // Prices here are display copy. The only billing truth is the Stripe Price that
 // create-checkout resolves from lookup_key "sprouts_starter_unit". Keep in sync
@@ -224,6 +218,7 @@ const faqJsonLd = {
       <div id="early-access" class="flex justify-center scroll-mt-28 min-[1024px]:scroll-mt-40">
         <StarterBuyBox client:only="react" cta="starter-hero-buy" wide={true} />
       </div>
+      <p class="font-body text-sm text-center mt-3" data-starter-credit-line style="color:hsl(var(--eden-bark))">Comes with a $39 credit toward the printed Sprouts year, whenever you're ready for the rest.</p>
       <p class="font-body text-sm text-muted-foreground text-center mt-4">
         Using an education savings account or scholarship? <a href="/esa" data-cta="starter-esa" class="underline" style="color:hsl(var(--eden-forest))">See how to buy in your state</a>.
       </p>

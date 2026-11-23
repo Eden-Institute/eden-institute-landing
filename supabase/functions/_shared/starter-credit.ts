@@ -173,7 +173,7 @@ export const CREDIT_EMAIL_REQUIRED_MESSAGE =
  * coupon we cannot name, e.g. an env var unset) is NOT refused here: Stripe decides.
  *
  * CREDIT_SET_REQUIRED is the one new buyer-facing sentence in the 2026-11-22
- * change. Lane 2 reviews its wording with the founder before ship.
+ * change; its wording was approved by the founder on her review page that day.
  */
 export function starterCreditCartRefusal(
   kind: StarterCreditKind | null,
@@ -185,7 +185,7 @@ export function starterCreditCartRefusal(
   if (kind === 'legacy_kit') return { code: 'CREDIT_KIT_REQUIRED', message: CREDIT_KIT_REQUIRED_MESSAGE };
   return {
     code: 'CREDIT_SET_REQUIRED',
-    message: `Your Starter Unit credit applies to the ${STARTER_BANDS[kind].bandName} printed set, or to the Sprouts and Seedlings printed sets together. Add one to use it.`,
+    message: `Your Starter Unit credit comes off the ${STARTER_BANDS[kind].bandName} printed set, or the Sprouts and Seedlings printed sets together. Add one to your cart to use it.`,
   };
 }
 

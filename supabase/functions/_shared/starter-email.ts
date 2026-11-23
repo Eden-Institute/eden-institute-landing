@@ -53,12 +53,9 @@ export interface StarterEmailModel {
   gift?: SaleOfferId | typeof STARTER_GIFT_ID;
 }
 
-// 2026-09-12, the print-first pivot. This delivery email used to hand the buyer
-// their $39 kit credit code and send them to /preorder. The kit is off sale, so
-// the credit is still MINTED (stripe-webhook and starter-credit.ts unchanged) and
-// simply not mentioned. Founder plan: when the boxed edition launches, Starter
-// buyers are the first list she mails and the credit is what opens that email.
-// Do not restore the credit block here while the kit is off sale.
+// 2026-11-22: the credit now comes off the printed sets (founder decision), so this email names the family's own
+// code again, in the printed-year block (creditLine below, wording approved on her review page that day).
+// History: 2026-09-12 to 2026-11-22 the code was minted but not mentioned, because it only fit the off-sale kit.
 // The printed-year link is per band now (STARTER_BANDS[band].printSetUrl). For
 // Sprouts it is still https://edeninstitute.health/books.
 const RETURNS_URL = 'https://edeninstitute.health/returns';
@@ -127,12 +124,22 @@ ${sectionLabel('Your printed books')}
 ${para(`Your printed order has its own confirmation email. Printing begins 48 hours after you ordered, and I will email you tracking the day it ships. Plan on about two to three weeks to your door.`)}
 `;
 
+  // 2026-11-22 (founder review page, 'Use this'): the family's own $39 code, word for word as approved. Only a
+  // family-paid Starter has one (scholarship/ESA and gift Starters pass creditCode null), and only in the
+  // printed-year block (a gift Starter's email has no sell-the-print block at all).
+  const creditLine = m.creditCode && printSetUrl && !offerGift && !founderGift
+    ? {
+      before: `Your $39 credit: when you order the printed ${cfg.bandName} year, enter `,
+      code: m.creditCode,
+      after: ' in the promotion code box at checkout and $39 comes off. It works once and never expires. It also works if you order the Sprouts and Seedlings printed sets together.',
+    }
+    : null;
   const creditBlock = offerGift ? giftBlock : founderGift ? '' : printSetUrl
     ? `
 ${rule()}
 ${sectionLabel('When you want the rest of the year')}
 ${para(`These are the first nine weeks of the 36-week year. The other twenty-seven are finished too, and the whole year is printed to order: the Teacher's Guide, the Student Notebook and the whole Read-Aloud storybook, at your door in about two to three weeks. There is no hurry at all, and nothing here stops working if you never buy it.`)}
-${ctaButton('See the printed year', printSetUrl)}
+${creditLine ? para(escapeHtml(creditLine.before) + `<strong>${escapeHtml(creditLine.code)}</strong>` + escapeHtml(creditLine.after)) + '\n' : ''}${ctaButton('See the printed year', printSetUrl)}
 `
     : `
 ${rule()}
@@ -201,6 +208,7 @@ ${para(`<strong>Camila</strong><br><span style="font-size:14px;">The Eden Instit
       : printSetUrl
       ? [
         'When you want the rest of the year: the other twenty-seven weeks are finished and the whole year is printed to order, at your door in about two to three weeks.',
+        ...(creditLine ? [creditLine.before + creditLine.code + creditLine.after] : []),
         `See the printed year: ${printSetUrl}`,
       ]
       : [

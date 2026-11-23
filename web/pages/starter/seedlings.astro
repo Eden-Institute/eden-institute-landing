@@ -16,8 +16,9 @@
 // already publishes for Seedlings.
 //
 // Same copy rules as /starter: it is a 9-week STARTER, never "sample", "preview",
-// "lite" or "partial", and never the whole year. Unlike Sprouts there is NO credit
-// or coupon of any kind (founder decision 2026-09-23), so none is mentioned here.
+// "lite" or "partial", and never the whole year. Since 2026-11-22 (founder decision) a family-paid Seedlings
+// Starter earns the same one-time $39 credit toward the printed Seedlings set (or both sets together); one line
+// under the hero buy box says so (wording approved on her review page that day). Until then it had none.
 //
 // Prices here are display copy. The only billing truth is the Stripe Price that
 // create-checkout resolves from lookup_key "seedlings_starter_unit". Keep in sync
@@ -179,6 +180,7 @@ const faqJsonLd = {
       <div id="early-access" class="flex justify-center scroll-mt-28 min-[1024px]:scroll-mt-40">
         <StarterBuyBox client:only="react" band="seedlings" cta="starter-seedlings-hero-buy" wide={true} />
       </div>
+      <p class="font-body text-sm text-center mt-3" data-starter-credit-line style="color:hsl(var(--eden-bark))">Comes with a $39 credit toward the printed Seedlings year, whenever you're ready for the rest.</p>
       <p class="font-body text-sm text-center mt-4" style="color:hsl(var(--eden-bark))">
         New to herbs? Even with older children, most families start with
         <a href="/starter" data-cta="starter-seedlings-hero-sprouts" class="underline" style="color:hsl(var(--eden-forest))">the Sprouts Starter Unit</a>,
