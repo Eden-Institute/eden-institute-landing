@@ -70,7 +70,12 @@ import { BOOK_RECEIPT_NAMES, bookDigitalReceipt } from "../_shared/receipt.ts"
 import { bookDigitalBySku, newDownloadToken, sendBookDeliveryEmail } from "../_shared/book-shop.ts"
 import { deliveryIdempotencyKey } from "../_shared/resend-idempotency.ts"
 import { isMetaReportablePurchase, unsentOrderEmails } from "../_shared/webhook-guards.ts"
-import { creditIssuanceOpen, issueStarterCreditForBand, markCreditRedeemed } from "../_shared/starter-credit.ts"
+import {
+  creditIssuanceOpen,
+  deactivateCreditForRefundedStarter,
+  issueStarterCreditForBand,
+  recordStarterCreditRedemptions,
+} from "../_shared/starter-credit.ts"
 import { escapeLikePattern } from "../_shared/like-escape.ts"
 import { classifyLearnWorldsCharge } from "../_shared/learnworlds-charge.ts"
 import { thisRefundCents } from "../_shared/refund-amount.ts"
@@ -990,6 +995,9 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
       // Throw, so Stripe redelivers: returning here left a paid order with no Lulu job.
       throw new Error(`[${session.id}] print order recorded but could not be re-read to queue its Lulu job: ${orderErr?.message ?? "no row"}`)
     }
+    // A Starter credit spent on this printed set (2026-11-22): mark it redeemed.
+    // Best effort and idempotent; never throws (see recordCreditRedemption).
+    await recordCreditRedemption(session, orderRow.id)
     // E2E: the order and its confirmation are real rows, but NOTHING goes to Lulu.
     // No lulu_jobs row means lulu-submit has nothing to claim, so no print is bought.
     if (E2E_MODE) {
@@ -1067,36 +1075,17 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
     }
     // If this kit was bought with a Starter Unit credit, close the loop.
     //
-    // The promotion code id is stamped into session metadata by create-checkout,
-    // which is more reliable than reading total_details.breakdown.discounts (that
-    // needs an expansion the webhook payload does not carry). markCreditRedeemed
-    // is a compare-and-set on redeemed_at, so a Stripe retry reports no-op instead
-    // of overwriting the original timestamp, which is the one number the whole
-    // starter-to-kit conversion metric is computed from.
+    // create-checkout stamps the promotion code id into session metadata on the
+    // credit path, and since 2026-11-22 the discount actually on the session is read
+    // too (a new, unbound code can also be typed into Stripe's own field, which
+    // leaves no metadata). markCreditRedeemed is a compare-and-set on redeemed_at,
+    // so a Stripe retry reports no-op instead of overwriting the original
+    // timestamp, which the starter-to-purchase conversion metric is computed from.
     //
     // Best-effort: the kit order is already recorded and the buyer already
     // charged, so a failure here is a reporting gap, never a reason to 500 and
-    // have Stripe retry a completed order.
-    const creditPromoId = (session.metadata?.starter_credit_promo_id as string | undefined) ?? null
-    if (creditPromoId) {
-      try {
-        const { data: kitOrder } = await adminClient
-          .from("orders").select("id").eq("stripe_checkout_session_id", session.id).maybeSingle()
-        const out = await markCreditRedeemed(adminClient, {
-          promotionCodeId: creditPromoId,
-          orderId: kitOrder?.id ?? null,
-          sessionId: session.id,
-        })
-        if (!out.redeemed) {
-          console.log(`[${session.id}] starter credit ${creditPromoId} was already marked redeemed; no-op`)
-        }
-      } catch (err) {
-        console.error(
-          `[${session.id}] starter credit redemption writeback failed: ` +
-            (err instanceof Error ? err.message : String(err)),
-        )
-      }
-    }
+    // have Stripe retry a completed order. `undefined` = look the order id up.
+    await recordCreditRedemption(session, undefined)
 
     // Founder milestone pings (250/400/475/490/cap) ride the recording path so the
     // final ping lands at the actual flip moment, and this call also advances the
@@ -1467,8 +1456,9 @@ async function kickLuluSubmit(orderId: string): Promise<void> {
 }
 
 /**
- * Eden's Table Sprouts Starter Unit: record the sale, issue the kit credit, and
- * queue delivery.
+ * Eden's Table Starter Unit (either band): record the sale, issue the credit
+ * (printed sets, and the Sprouts kit; founder decision 2026-11-22), and queue
+ * delivery.
  *
  * ORDER OF OPERATIONS IS DELIBERATE, and it is the same lesson the Deep-Dive
  * Guide branch above learned the hard way:
@@ -1593,17 +1583,24 @@ async function handleStarterUnitPurchase(
     typeof session.customer === "string" ? session.customer : session.customer?.id ?? null
   const purchaserName = session.customer_details?.name ?? null
 
-  // 2. The credit. Sprouts only: a band with no credit (Seedlings, founder
-  // decision 2026-09-23) skips this whole step, so its purchase never creates a
-  // promotion code or coupon and never writes a starter_credits row.
+  // 2. The credit. FOUNDER DECISION 2026-11-22: a family-paid Starter of EITHER
+  // band earns one $39 credit on its band's printed-set coupon (starter-config.ts
+  // STARTER_BANDS[band].credit). This path is the ONLY place a credit is minted,
+  // which is what keeps scholarship- and ESA-paid Starters (esa-fulfil, Laws
+  // L-29) and gifted Starters (fpea-gift, starter-gift) credit-free.
+  //
+  // A missing coupon env var throws inside issueStarterCredit and lands in the
+  // catch below, loudly, exactly as before; create-checkout refuses to sell a
+  // band's Starter while its coupon env is unset (missingStarterEnv), so this is
+  // the backstop, not the gate.
   let creditCode: string | null = null
   if (starterBandHasCredit(band)) try {
     if (!stripeCustomerId) {
-      // Without a Customer the code cannot be bound, and an UNBOUND code is a
-      // transferable $39 that anyone can use. Refuse to issue rather than issue a
-      // shareable one; create-checkout sets customer_creation="always" for this
-      // product, so reaching here means something upstream changed.
-      throw new Error("no Stripe Customer on the session; refusing to issue an unbound credit")
+      // The code is no longer bound to a Customer (2026-11-22), but the row records
+      // the purchase's Customer (starter_credits.stripe_customer_id is NOT NULL).
+      // create-checkout sets customer_creation="always" for every Starter, so
+      // reaching here means something upstream changed.
+      throw new Error("no Stripe Customer on the session; starter_credits needs one, refusing to issue")
     }
     if (!(await creditIssuanceOpen(adminClient))) {
       console.log(`[${sid}] credit issuance is closed under the current policy; no code issued`)
@@ -1667,49 +1664,56 @@ async function handleStarterUnitPurchase(
 }
 
 /**
- * Cancel the kit credit attached to a refunded Starter Unit purchase.
- *
- * Published policy (/returns, 2026-08-26): "If a Starter Unit purchase is
- * refunded, its credit is cancelled with it." Without this, a $39 purchase could
- * be refunded and still leave a live $39 credit, which is a free kit discount for
- * the cost of a support email.
- *
- * An ALREADY-REDEEMED credit is deliberately left alone. If the buyer has already
- * spent it on a kit, revoking it retroactively would not claw anything back (the
- * kit sale is done) and the row is the evidence of what happened. Deactivating it
- * would only corrupt the redemption record.
+ * Cancel the credit attached to a refunded Starter Unit purchase, either band.
+ * The logic (and its tests) moved to _shared/starter-credit.ts on 2026-11-22,
+ * unchanged: Stripe `active: false` first, then the row; an already-redeemed
+ * credit is left alone. Throws on failure; the caller logs it for manual cleanup.
  */
 async function cancelCreditForRefundedStarter(paymentIntentId: string): Promise<void> {
-  const { data: order } = await adminClient
-    .from("orders").select("stripe_checkout_session_id, lookup_key")
-    .eq("stripe_payment_intent_id", paymentIntentId).maybeSingle()
-  const refundedBand = order ? starterBandForLookupKey(order.lookup_key) : null
-  // A band with no credit (Seedlings) has nothing to cancel; do not query for one.
-  if (!order || !refundedBand || !starterBandHasCredit(refundedBand)) return
+  await deactivateCreditForRefundedStarter(adminClient, stripe, paymentIntentId)
+}
 
-  const { data: credit } = await adminClient
-    .from("starter_credits").select("id, code, stripe_promotion_code_id, redeemed_at, deactivated_at")
-    .eq("stripe_checkout_session_id", order.stripe_checkout_session_id).maybeSingle()
-  if (!credit) return
-
-  if (credit.redeemed_at) {
-    console.log(
-      `[${order.stripe_checkout_session_id}] starter refunded but credit ${credit.code} was already ` +
-        `redeemed; leaving the redemption record intact`,
-    )
-    return
+/**
+ * Mark any Starter credit spent on this paid session as redeemed (2026-11-22).
+ * Used by the print-shop and kit-preorder branches. Never throws: the order is
+ * recorded and the buyer charged, so a failure here is a reporting gap that is
+ * logged and sent to Sentry, never a reason to have Stripe retry the order.
+ *
+ * `orderId` undefined means "look it up", which only happens when the session
+ * could carry a credit at all (our metadata, a discount, or an attached code).
+ * Stripe's max_redemptions: 1 holds the single use whether or not this records it.
+ */
+async function recordCreditRedemption(session: Stripe.Checkout.Session, orderId: string | null | undefined): Promise<void> {
+  // deno-lint-ignore no-explicit-any
+  const s = session as any
+  const mayCarryCredit = Boolean(s.metadata?.starter_credit_promo_id) ||
+    Number(s.total_details?.amount_discount ?? 0) > 0 ||
+    (Array.isArray(s.discounts) && s.discounts.length > 0)
+  if (!mayCarryCredit) return
+  try {
+    let id = orderId ?? null
+    if (orderId === undefined) {
+      const { data } = await adminClient
+        .from("orders").select("id").eq("stripe_checkout_session_id", session.id).maybeSingle()
+      id = data?.id ?? null
+    }
+    const out = await recordStarterCreditRedemptions(adminClient, stripe, session, id)
+    if (out.redeemed.length) {
+      console.log(`[${session.id}] starter credit redeemed: ${out.redeemed.join(", ")}`)
+    } else if (out.promotionCodeIds.length) {
+      console.log(`[${session.id}] no new starter credit redemption among ${out.promotionCodeIds.join(", ")} (not a credit, or already recorded)`)
+    }
+    if (out.lookupError) {
+      const message = `[${session.id}] discounted session could not be re-read for its promotion code; ` +
+        `a Starter credit typed into Checkout may be unrecorded: ${out.lookupError}`
+      console.error(message)
+      await captureException(new Error(message), { function: "stripe-webhook", stage: "starter_credit_redemption", session_id: session.id })
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    console.error(`[${session.id}] starter credit redemption writeback failed: ${message}`)
+    await captureException(err instanceof Error ? err : new Error(message), { function: "stripe-webhook", stage: "starter_credit_redemption", session_id: session.id })
   }
-  if (credit.deactivated_at) return
-
-  // Stripe first. If it fails we throw, our row stays active, and the mismatch is
-  // in the safe direction: a code live with us but dead at Stripe would refuse at
-  // checkout with an opaque error.
-  await stripe.promotionCodes.update(credit.stripe_promotion_code_id, { active: false })
-  const { error } = await adminClient.from("starter_credits")
-    .update({ deactivated_at: new Date().toISOString(), deactivated_reason: "starter_purchase_refunded" })
-    .eq("id", credit.id)
-  if (error) throw new Error(`local credit deactivation write failed: ${error.message}`)
-  console.log(`[${order.stripe_checkout_session_id}] starter refunded; credit ${credit.code} cancelled`)
 }
 
 /**
