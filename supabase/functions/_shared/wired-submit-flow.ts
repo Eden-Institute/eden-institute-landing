@@ -226,6 +226,7 @@ export async function processSubmission(db: Db, sub: Submission, opts: { pepper:
     const others = onRecord.raters;
     const blended = blend([...others, { role: 'mom', session_id: 'new', result: rater }]);
     const curricula = await approvedCurricula(db);
+    // Her current grade; rankCurricula moves to the planning grade from family_answers.plan_year (2026-11-22).
     const ranked = rankCurricula({
       grade: sub.child.grade, scores: blended.blended_scores, top3: blended.top3,
       prefs: prefsFromAnswers(sub.family_answers as FamilyAnswers, sub.ranking), curricula,
@@ -236,7 +237,7 @@ export async function processSubmission(db: Db, sub: Submission, opts: { pepper:
       results: {
         blended_scores: blended.blended_scores, top3: blended.top3, renaissance: blended.renaissance,
         weights: blended.weights, expected_session_ids: others.map((o) => o.session_id),
-        matches_snapshot: { matches: ranked.matches, coming_soon: ranked.coming_soon, ranking: ranked.ranking, match_version: ranked.match_version },
+        matches_snapshot: { matches: ranked.matches, coming_soon: ranked.coming_soon, ranking: ranked.ranking, match_version: ranked.match_version, planning_grade: ranked.planning_grade },
         engine_version: blended.engine_version,
       },
     });

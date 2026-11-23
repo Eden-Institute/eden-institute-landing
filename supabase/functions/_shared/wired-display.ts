@@ -7,7 +7,8 @@
 //      it is one, else the normal link), is_affiliate, price_cents + price_basis as stored, and the prep code.
 //      Read ONLY AFTER rankCurricula has ordered the matches (spec rule 3), and never reorders them.
 //   2. Helpful extras (spec answer 38): up to 3 non-curriculum resources below the ranked matches, chosen by
-//      the child's top wirings + grade (blank grades on an extra = any grade) + her Christian / ESA / budget
+//      the child's top wirings + grade (the planning grade since 2026-11-22, the same one the matches use; blank
+//      grades on an extra = any grade) + her Christian / ESA / budget
 //      filters. Same data as the Curriculum Finder's "Helpful extras" section (wired_curricula rows whose
 //      resource_type is set and is not "Curriculum", web/lib/curriculumFinder.ts isHelpfulExtra) and the same
 //      link rule as public.curriculum_finder_list(). Never ranked on the page (no position numbers), and
@@ -27,6 +28,7 @@ import {
   type Match,
   type MatchPrefs,
   normalizeCode,
+  planningGrade,
   toMatchCurriculum,
   wiringComponent,
 } from './wired-match.ts';
@@ -105,10 +107,10 @@ export interface HelpfulExtra {
 }
 
 export interface ExtrasInput {
-  grade: number;
+  grade: number;               // the child's CURRENT grade; extras follow planningGrade(grade, prefs.plan_year), like the matches
   scores: Scores;
   top3: Domain[];
-  prefs: Pick<MatchPrefs, 'budget' | 'filters'>;
+  prefs: Pick<MatchPrefs, 'budget' | 'filters' | 'plan_year'>;
   // deno-lint-ignore no-explicit-any
   rows: Record<string, any>[];
   esa?: EsaRow[];
@@ -122,7 +124,8 @@ export interface ExtrasInput {
  * child's top-3 score the extra serves, then name, then id (never affiliate status).
  */
 export function pickHelpfulExtras(input: ExtrasInput): HelpfulExtra[] {
-  const { grade, scores, top3, prefs } = input;
+  const { scores, top3, prefs } = input;
+  const grade = planningGrade(input.grade, prefs.plan_year);
   const f = prefs.filters ?? {};
   const christian = (input.christianValues ?? CHRISTIAN_FAITH_VALUES).map(normalizeCode);
   const budgetOffered = prefs.budget !== 'unsure' && prefs.budget in BUDGET_BOUNDS_CENTS;

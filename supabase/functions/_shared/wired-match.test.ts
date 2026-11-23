@@ -2,7 +2,7 @@
 //
 // Wired quiz W2: matching (spec section 6 + answer 25): ROC weights, default order,
 // grade +/- 1, the four components, filters, coming-soon rows, ties, and the hard rule
-// that affiliate status can never change a ranking.
+// that affiliate status can never change a ranking. The planning-year rule (2026-11-22) is in wired-plan-year.test.ts.
 
 import { assert, assertAlmostEquals, assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import { DOMAINS, type Domain, type Scores } from './wired-engine.ts';
@@ -175,12 +175,15 @@ Deno.test('candidates: approved only, grade +/- 1, coming-soon rows listed outsi
     ...Array.from({ length: 7 }, (_, i) => row({ id: `ok${i}`, name: `Ok ${i}` })),
     row({ id: 'draft', name: 'Draft', approved: false }),
     row({ id: 'old', name: 'Old', grade_min: 6, grade_max: 8 }),
-    row({ id: 'eden', name: "Eden's Table 6-8", grade_min: 3, grade_max: 5, coming_soon: true, eden_band: '6-8 set' }),
+    row({ id: 'eden', name: "Eden's Table K-2", grade_min: 0, grade_max: 2, coming_soon: true, eden_band: 'K-2 set' }),
+    // 2026-11-22: a coming-soon set for the NEXT band is inside the +/- 1 window but is not this grade's own set
+    row({ id: 'eden35', name: "Eden's Table 3-5", grade_min: 3, grade_max: 5, coming_soon: true, eden_band: '3-5 set' }),
   ];
   const out = rankCurricula(input(rows.map(toMatchCurriculum)));
   assertEquals(out.matches.length, 5);
   assert(out.matches.every((m) => m.id.startsWith('ok')));
-  assertEquals(out.coming_soon, [{ name: "Eden's Table 6-8", eden_band: '6-8 set' }]);
+  assertEquals(out.coming_soon, [{ name: "Eden's Table K-2", eden_band: 'K-2 set' }]);
+  assertEquals(out.planning_grade, 2);
 });
 
 Deno.test('filters: within budget (not offered when unsure), Christian only, ESA eligible in her state', () => {

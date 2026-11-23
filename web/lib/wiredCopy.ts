@@ -7,7 +7,8 @@
 //     "Helpful extras section" words and the "Screen-based" label (the same strings the Curriculum Finder shows)
 //   - docs/wired-copy/Wired_Quiz_Family_Questions.md (approved 2026-11-19 8:47 AM CT)
 //   - docs/wired-copy/Wired_Quiz_Family_Map_And_Screens.md section 1 (quiz screens, approved
-//     2026-11-19 2:19 PM CT) and its "Mom's own questions box" (approved 2026-11-21 ~8:58-9:06 AM CT)
+//     2026-11-19 2:19 PM CT; the child step's "Which school year are you choosing curriculum for?" approved
+//     2026-11-22) and its "Mom's own questions box" (approved 2026-11-21 ~8:58-9:06 AM CT)
 //   - the 9 write-ups: web/lib/wiredWriteups.ts (generated from the approved file)
 // Placeholders: {name} = [Nickname], {wiring} = [Wiring], {approach} = [Approach],
 // {description} = [its one-line description], {a} {b} {c} = [A] [B] [C], {state} = [State].
@@ -29,6 +30,10 @@ export const SCREENS = {
   nicknameLabel: "Nickname (a first name or a nickname is fine, no last names)",
   gradeLabel: "Grade this school year (K to 12)",
   gradeHelper: "We use the grade to pick the right questions.",
+  // Right under the grade (APPROVED 2026-11-22, tap "Use as written"): optional; skipped = this school year.
+  planYearQuestion: "Which school year are you choosing curriculum for?",
+  planYearThis: "This school year",
+  planYearNext: "Next school year",
   next: "Next",
   part1: "Part 1 of 3: Everyday moments (12 quick picks)",
   part2: "Part 2 of 3: How often (9 quick taps)",

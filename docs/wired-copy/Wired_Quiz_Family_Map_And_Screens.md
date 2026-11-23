@@ -20,6 +20,8 @@ Small print: Free results for up to 2 children per email.
 Heading: Tell us about your child
 Nickname (a first name or a nickname is fine, no last names)
 Grade this school year (K to 12). Helper: We use the grade to pick the right questions.
+Which school year are you choosing curriculum for? Answers: This school year / Next school year
+(APPROVED by Camila 2026-11-22, tap "Use as written", Lane NP. Rules: This school year = matches fit her current grade (+/-1, as before) and the Eden's Table waitlist line shows only if THAT grade's set is not ready; Next school year = matches fit grade + 1 (+/-1) and the waitlist shows only if that grade's set is not ready; skipped = This school year; the wiring questions still use her current grade; a 12th grader planning next year stays at 12.)
 Button: Next
 
 ### Part headings and the progress line

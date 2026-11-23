@@ -55,7 +55,8 @@ Deno.serve(async (req) => {
     );
     if (!res?.length) return wiredJson(404, { error: 'no_results' });
     const ses = await pg<{ family_answers: FamilyAnswers | null }[]>(
-      db, `wired_sessions?child_id=eq.${kid[0].id}&family_id=eq.${grant.familyId}&rater_role=eq.mom&quiz_year=eq.${res[0].quiz_year}&select=family_answers&limit=1`,
+      // Her real quiz, never a pilot 30-day retake (stored with family_answers null), like the PDF loader reads it.
+      db, `wired_sessions?child_id=eq.${kid[0].id}&family_id=eq.${grant.familyId}&rater_role=eq.mom&quiz_year=eq.${res[0].quiz_year}&is_pilot_retake=eq.false&select=family_answers&limit=1`,
     );
     const fa = ses?.[0]?.family_answers;
     if (!fa) return wiredJson(404, { error: 'no_family_answers' });
@@ -63,6 +64,7 @@ Deno.serve(async (req) => {
     const [curricula, esa, extraRows] = await Promise.all([
       approvedCurricula(db), filters.esaOnly && state ? esaRows(db, state) : Promise.resolve([]), helpfulExtraRows(db),
     ]);
+    // Her stored plan_year rides in prefs: the re-rank, coming_soon and extras use the same planning grade (2026-11-22).
     const prefs = prefsFromAnswers(fa, ranking, filters);
     const out = rankCurricula({ grade: kid[0].grade, scores: res[0].blended_scores, top3: res[0].top3, curricula, esa, prefs });
     // Display fields only now, after the order is fixed (rule 3).
