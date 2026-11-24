@@ -18,6 +18,7 @@ import { getCallerUser } from '../_shared/caller-user.ts';
 import { applyMemberRetake, memberRetakeUserId } from '../_shared/quiz-member-retake.ts';
 import { insertOrFetchWithRetry, sendWelcomeWithRetry, type WelcomeSendResult } from '../_shared/signup-safety.ts';
 import { centralMorningLabel, nextMorningSendAt } from '../_shared/next-morning.ts';
+import { cleanHeardAbout } from '../_shared/heard-about.ts';
 import { FREE_WEEK_LESSON_NUMBERS, freeWeekLessonSendAt, lessonPosition } from '../_shared/free-week-lessons.ts';
 import { alertFounder } from '../_shared/founder-alert.ts';
 import { attributionFillFilter, attributionPatch, type SignupAttribution } from '../_shared/signup-attribution.ts';
@@ -252,6 +253,7 @@ Deno.serve(async (req) => {
       marketingConsent,
       phone: phoneRaw,
       smsConsent,
+      heard_about: heardAboutRaw,
     } = body;
 
     // Attribution fields go straight into waitlist_signups (plain text / jsonb
@@ -259,6 +261,8 @@ Deno.serve(async (req) => {
     // non-string values are truncated or dropped, never rejected, so a real
     // signup is not blocked by a long tracking URL.
     const source = str(sourceRaw, 100);
+    // "How did you hear about us?" (2026-11-24, _shared/heard-about.ts): optional; anything unknown is dropped.
+    const heardAbout = cleanHeardAbout(heardAboutRaw);
     const source_url = str(sourceUrlRaw, 2048);
     const referrer = str(referrerRaw, 2048);
     const utm_source = str(utmSourceRaw, 256);
@@ -402,6 +406,27 @@ Deno.serve(async (req) => {
           ].join('\n'),
           'resend-waitlist',
         );
+      }
+    }
+
+    // ── Step 1a: "How did you hear about us?" (2026-11-24) ──
+    // The upsert above is a no-op for a family already on the list, so the answer is written here, on whichever row
+    // it returned, and only if that row has none yet (the first answer is kept). Non-fatal: never blocks a sign-up.
+    if (heardAbout && waitlistId) {
+      try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/waitlist_signups?id=eq.${encodeURIComponent(waitlistId)}&heard_about=is.null`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': SUPABASE_SERVICE_ROLE_KEY!,
+            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY!}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal',
+          },
+          body: JSON.stringify({ heard_about: heardAbout }),
+        });
+        if (!r.ok) console.error('heard_about not saved', r.status, (await r.text()).slice(0, 300));
+      } catch (e) {
+        console.error('heard_about save error', String(e));
       }
     }
 
