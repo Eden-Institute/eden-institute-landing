@@ -47,6 +47,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext"
 import { handleWiredCheckout } from "./wired-checkout.ts"
 import { WIRED_CART_KEY } from "../_shared/wired-checkout.ts"
+import { heardAboutStripeField } from "../_shared/heard-about.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { FOUNDING_GATE_SKU, PREORDER_FLAT_SHIPPING_CENTS, PREORDER_PRODUCTS, SHIP_WINDOW, preorderProductBySku } from "../_shared/order-config.ts"
 import { getFoundingGate, getStockGate } from "../_shared/order-db.ts"
@@ -653,6 +654,9 @@ serve(async (req) => {
         : "https://edeninstitute.health/assessment"
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
+      // "How did you hear about us?" (2026-11-24): an optional dropdown on every checkout (_shared/heard-about.ts).
+      // One-time purchases only: an app subscription records no order, so its answer would have nowhere to go.
+      ...(isSubscription ? {} : { custom_fields: [heardAboutStripeField()] }),
       mode,
       line_items: [{ price: price.id, quantity: 1 }],
       // Only honor caller-supplied redirect URLs on our own origin — otherwise
@@ -1115,6 +1119,8 @@ async function handlePreorderCheckout(req: Request, body: Record<string, any>): 
     : "https://edeninstitute.health/preorder?checkout=cancelled"
 
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    // "How did you hear about us?" (2026-11-24): an optional dropdown on every checkout (_shared/heard-about.ts).
+    custom_fields: [heardAboutStripeField()],
     mode: "payment",
     line_items: lineItems,
     success_url: successUrl,
@@ -1592,6 +1598,8 @@ async function handlePrintCheckout(req: Request, body: Record<string, any>): Pro
       : `${PRINT_SHOP_URL}?checkout=cancelled`
 
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    // "How did you hear about us?" (2026-11-24): an optional dropdown on every checkout (_shared/heard-about.ts).
+    custom_fields: [heardAboutStripeField()],
     mode: "payment",
     line_items: lineItems,
     success_url: successUrl,
@@ -1865,6 +1873,8 @@ async function handleBookDigitalCheckout(req: Request, body: Record<string, any>
   if (E2E_MODE) metadata[E2E_METADATA_KEY] = "true"
 
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    // "How did you hear about us?" (2026-11-24): an optional dropdown on every checkout (_shared/heard-about.ts).
+    custom_fields: [heardAboutStripeField()],
     mode: "payment",
     line_items: [lineItem],
     success_url: `${BOOK_THANK_YOU}?kind=digital&session_id={CHECKOUT_SESSION_ID}`,

@@ -17,6 +17,7 @@ import { FORM_ERROR_FALLBACK, visitorFacingError } from "@/lib/edgeFunctionError
 // The consent wording lives in ONE file shared with the edge function, so the words
 // beside the box are exactly the words stored as the consent record.
 import { bandFromSource, smsConsentText } from "../../../supabase/functions/_shared/band-waitlist";
+import { HEARD_ABOUT_OPTIONS, HEARD_ABOUT_QUESTION } from "../../../supabase/functions/_shared/heard-about";
 
 interface WaitlistModalProps {
   open: boolean;
@@ -102,6 +103,9 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
   // and an UNTICKED launch-alert consent box. Every other use of this modal is unchanged.
   const phoneBand = bandFromSource(source);
   const [phone, setPhone] = useState("");
+  // "How did you hear about us?" (2026-11-24, Camila's taps): optional, free-week sign-ups only (_shared/heard-about.ts).
+  const isFreeWeek = source === "sprouts_magnet" || source === "seedlings_magnet";
+  const [heardAbout, setHeardAbout] = useState("");
   const [smsConsent, setSmsConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -164,6 +168,7 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
           fbEventId,
           marketingConsent,
           ...(phoneBand ? { phone, smsConsent } : {}),
+          ...(isFreeWeek && heardAbout ? { heard_about: heardAbout } : {}),
           ...attribution,
           ...(funnel ? { entry_funnel: funnel } : {}),
           ...(metadata ? { metadata } : {}),
@@ -183,6 +188,7 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
       setSuccess(true);
       setFirstName("");
       setEmail("");
+      setHeardAbout("");
       setPhone("");
       setSmsConsent(false);
       setEmailSuggestion(null);
@@ -275,6 +281,22 @@ const WaitlistModal = ({ open, onOpenChange, audienceId, title, subtitle, source
                 </p>
               )}
             </div>
+            {isFreeWeek && (
+              <div>
+                <label htmlFor="heard-about" className="block font-accent text-xs tracking-[0.2em] uppercase text-muted-foreground mb-2">{HEARD_ABOUT_QUESTION} (optional)</label>
+                <select
+                  id="heard-about"
+                  value={heardAbout}
+                  onChange={(e) => setHeardAbout(e.target.value)}
+                  className="w-full px-4 py-3 bg-background border border-border font-body text-foreground focus:outline-none focus:border-eden-gold transition-colors"
+                >
+                  <option value=""></option>
+                  {HEARD_ABOUT_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             {phoneBand && (
               <div>
                 <label className="block font-accent text-xs tracking-[0.2em] uppercase text-muted-foreground mb-2">Mobile number (optional)</label>

@@ -49,6 +49,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext"
 import { WIRED_CART_KEY, wiredOrderLabel } from "../_shared/wired-checkout.ts"
+import { heardAboutFromSession } from "../_shared/heard-about.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { claimStripeEvent, markEventProcessed, markEventError, getOrderByPaymentIntent } from "../_shared/order-db.ts"
 import { sendPartialRefundEmail } from "../_shared/order-messages.ts"
@@ -420,6 +421,9 @@ serve(async (req) => {
         // Both writes are no-ops for sessions that carry no attribution.
         await stampPurchaseAttribution("orders", "stripe_checkout_session_id", session.id, session.metadata)
         await stampPurchaseAttribution("payments", "stripe_event_id", event.id, session.metadata)
+        // "How did you hear about us?" (2026-11-24): the buyer's optional checkout pick, on the order.
+        // Same rules as the attribution stamp: after the sale is recorded, never throws.
+        await stampHeardAbout(session)
 
         // A paid cart that came back through a recovery link. Reporting only; never throws.
         await markCartRecovered(session)
@@ -2374,6 +2378,24 @@ async function stampPurchaseAttribution(
       `last-touch attribution stamp failed on ${table} (${matchColumn}=${matchValue}), non-fatal: ` +
         (err instanceof Error ? err.message : String(err)),
     )
+  }
+}
+
+// "How did you hear about us?" (2026-11-24, _shared/heard-about.ts). Writes the buyer's pick onto the order(s) this
+// session created, only where none is stored yet (a Stripe retry never changes it). Skipped answers and anything
+// unknown write nothing. Never throws, so it can never fail an order.
+async function stampHeardAbout(session: Stripe.Checkout.Session): Promise<void> {
+  try {
+    const heardAbout = heardAboutFromSession(session)
+    if (!heardAbout) return
+    const { error } = await adminClient
+      .from("orders")
+      .update({ heard_about: heardAbout })
+      .eq("stripe_checkout_session_id", session.id)
+      .is("heard_about", null)
+    if (error) console.error(`heard_about not stamped on orders (session ${session.id}): ${error.message}`)
+  } catch (err) {
+    console.error(`heard_about stamp failed (session ${session.id}), non-fatal: ` + (err instanceof Error ? err.message : String(err)))
   }
 }
 
