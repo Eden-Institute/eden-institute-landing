@@ -4,10 +4,16 @@
 // Clips are tap-to-play here, not autoplay: with every clip on one page, several
 // would otherwise play at once. Live builds show only clips whose host gave
 // permission (web/lib/hostClips.ts); the show list and episode links always show.
+// 2026-11-24 (punch #474, Camila's taps "Small table" + "Leave it off"): the show list comes from
+// public.podcast_appearances (web/lib/podcastAppearances.ts), newest first, so a newly aired episode is one
+// row in the table, no code change. AsHeardOnLive adds rows logged after this build. The book's QR opens here.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 import HostClipReel from "../components/HostClipReel.astro";
-import { SHOWS, allClips, disclosureFor } from "../lib/hostClips";
+import AsHeardOnLive from "../components/islands/AsHeardOnLive";
+import { allClips, disclosureFor } from "../lib/hostClips";
+import { fetchAppearances, showSlug } from "../lib/podcastAppearances";
 
+const appearances = await fetchAppearances();
 const clips = allClips();
 const disclosure = disclosureFor(clips);
 const meta = {
@@ -32,15 +38,16 @@ const meta = {
 
   <section class="px-6 py-14 md:py-16 bg-background">
     <div class="max-w-6xl mx-auto space-y-14">
-      {SHOWS.map((s) => {
+      <AsHeardOnLive client:idle knownIds={appearances.map((s) => s.id)} />
+      {appearances.map((s) => {
         const mine = clips.filter((c) => c.show === s.show);
         return (
           <article class="grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-8 items-start border-t pt-10" style="border-color:hsl(var(--eden-gold) / 0.3)">
             <div>
               <h2 class="font-serif text-2xl md:text-3xl font-bold mb-2" style="color:hsl(var(--eden-bark))">{s.show}</h2>
               <p class="font-accent text-lg mb-3" style="color:hsl(var(--eden-forest))">with {s.host}</p>
-              <p class="font-body text-base text-muted-foreground mb-4">{s.episodeTitle}</p>
-              <a href={s.episodeUrl} target="_blank" rel="noopener" class="font-body underline" style="color:hsl(var(--eden-forest))" data-cta={`as-heard-on-page-${s.show.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}>Listen to the full episode</a>
+              <p class="font-body text-base text-muted-foreground mb-4">{s.episode_title}</p>
+              <a href={s.episode_url} target="_blank" rel="noopener" class="font-body underline" style="color:hsl(var(--eden-forest))" data-cta={`as-heard-on-page-${showSlug(s.show)}`}>Listen to the full episode</a>
             </div>
             {mine.length > 0 && (
               <div class="grid sm:grid-cols-2 gap-6">
