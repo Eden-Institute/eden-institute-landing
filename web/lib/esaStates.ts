@@ -1030,7 +1030,8 @@ export const ESA_ALSO_LISTED = [
 
 /** Last content review of the ESA pages. Bump it when what they say changes (see
     the rules at the top). */
-export const ESA_UPDATED_ISO = "2026-11-20";
+// 2026-11-24: South Carolina resubmitted (the ESA_PENDING line changed in #836; this bump was missed there).
+export const ESA_UPDATED_ISO = "2026-11-24";
 
 /** The same date as shown on the pages, e.g. "September 2026". */
 export const ESA_UPDATED = new Date(`${ESA_UPDATED_ISO}T12:00:00Z`).toLocaleDateString("en-US", {
