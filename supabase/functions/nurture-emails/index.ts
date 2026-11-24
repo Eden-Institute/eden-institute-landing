@@ -96,6 +96,7 @@ import {
   FREE_WEEK_BAND_SPACED_POSITIONS,
   MAGNET_DRAIN_ORDER,
 } from '../_shared/free-week-lessons.ts';
+import { FREE_WEEK_ORDER_POSITIONS, isFreeWeekOrderStep, planFreeWeekStep } from '../_shared/free-week-order.ts';
 import { buildBuyerEmail } from '../_shared/buyer-sequence-templates.ts';
 import { buildFoundingFamilyEmail, type FoundingFamilyStep } from '../_shared/founding-family-templates.ts';
 import { claimSendDay, nextCentralMorning, releaseSendDay } from '../_shared/send-day-guard.ts';
@@ -197,6 +198,9 @@ const MAGNET_BAND_AGNOSTIC = new Set<number>([3, 4, 5, 6, 7]);
 // takes both free weeks, most within minutes, so each pair used to land in the same
 // minute. Founder decision 2026-10-14: the second band's copy of a step goes 2 days after
 // the first band's. Enforced here at send time, so it also covers rows queued earlier.
+// Since 2026-11-24 (#473, "One band, then the other") the free-week order check runs first
+// and holds a family's second band until the first band's free week is done
+// (_shared/free-week-order.ts), so this 2-day spacing is now only a backstop.
 const BAND_SPACED_POSITIONS = FREE_WEEK_BAND_SPACED_POSITIONS;
 
 // Chained scheduling: when position N sends, enqueue N+1 at +7 days. Only
@@ -1475,6 +1479,31 @@ async function drainMagnetQueue(): Promise<MagnetResult> {
           }),
         });
         continue;
+      }
+
+      // 2026-11-24 (punch #473, founder tap 2026-11-23 "One band, then the other"): free-week order.
+      // A both-band family's second band waits until the first band's free week is done, then runs
+      // its note, Lessons 1-5, Day 7 and Day 10 in order with the same day gaps; within a band a step
+      // never goes before an earlier one (_shared/free-week-order.ts). Checked before the band
+      // spacing and before sendEmail claims the day, so a held row never takes today's one email.
+      // An unreadable answer throws (fail closed): the catch below keeps the row pending and retries it.
+      if (isFreeWeekOrderStep(pos)) {
+        const family = rowsOrThrow(
+          await supabaseQuery(
+            `magnet_email_queue?recipient_email=eq.${encodeURIComponent(email)}&sequence_position=in.(${FREE_WEEK_ORDER_POSITIONS.join(',')})&select=id,band,sequence_position,status,scheduled_for,sent_at`,
+          ),
+          'free-week order check',
+        );
+        const plan = planFreeWeekStep(row, family, new Date());
+        if (!plan.send) {
+          const held = await supabaseQuery(`magnet_email_queue?id=eq.${row.id}&status=eq.pending`, {
+            method: 'PATCH',
+            body: JSON.stringify({ scheduled_for: plan.until.toISOString(), updated_at: new Date().toISOString() }),
+          });
+          if (!held.ok) console.error(`drainMagnetQueue: could not hold ${row.id} to ${plan.until.toISOString()} (${held.status}); it is read again next run`);
+          console.log(`drainMagnetQueue: ${band} position ${pos} held to ${plan.until.toISOString()} (${plan.reason})`);
+          continue;
+        }
       }
 
       // Both-band spacing (see BAND_SPACED_POSITIONS): if the other band's copy of this
