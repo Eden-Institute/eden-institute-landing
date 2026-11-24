@@ -5432,6 +5432,7 @@ export type Database = {
       founder_crm_summary: { Args: { p_since?: string }; Returns: Json }
       founder_email_engagement: { Args: { p_since: string }; Returns: Json }
       founder_funnel: { Args: { p_since?: string }; Returns: Json }
+      founder_heard_about_counts: { Args: never; Returns: Json }
       founder_lead_feed: {
         Args: { p_since?: string }
         Returns: {

@@ -13,10 +13,12 @@
 //
 // Above all of that sits Week1SourcesPanel (free Week 1 sign-ups by source,
 // founder_week1_signups_by_source), which loads itself on fixed ranges.
+// Then HeardAboutPanel ("How did you hear about us?" answers, founder_heard_about_counts), same idea.
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Week1SourcesPanel from "./Week1SourcesPanel";
+import HeardAboutPanel from "./HeardAboutPanel";
 
 interface Funnel {
   stages: {
@@ -91,6 +93,9 @@ export default function FunnelTab({ since }: { since: string }) {
     <div>
       {/* Fixed ranges (12 weeks / 6 months), loads itself; ignores `since`. */}
       <Week1SourcesPanel />
+
+      {/* "How did you hear about us?" answers since 11/24; loads itself; ignores `since`. */}
+      <HeardAboutPanel />
 
       {error && (
         <div className="mb-6 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
