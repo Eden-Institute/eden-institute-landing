@@ -12,6 +12,9 @@ const meta = {
   // text when a tester post or DM shares this page (meta description, og:description, twitter:description).
   description: "We're looking for 30 to 50 homeschool families to try our new quiz before it opens to everyone. It helps you see how God wired each child right now, and matches them with curriculum that fits your real life.",
   canonical: "https://edeninstitute.health/wired/pilot",
+  // 2026-11-24 Camila (Lane NP, ~11:08 CT, "Use it"): the link-card picture, public/og-wired-pilot.jpg (1200 x 628):
+  // a real phone screenshot of this page with her approved words (Canva DAHb2avXbU4), no generated imagery.
+  ogImage: "https://edeninstitute.health/og-wired-pilot.jpg",
 };
 ---
 
@@ -19,6 +22,8 @@ const meta = {
   title={meta.title}
   description={meta.description}
   canonical={meta.canonical}
+  ogImage={meta.ogImage}
+  ogImageSize={{ width: 1200, height: 628 }}
   noindex={true}
   noThirdPartyTags={true}
 >
