@@ -72,7 +72,7 @@ function deps(db: unknown, over: Partial<OnlineYearGrantDeps> = {}) {
   const d: OnlineYearGrantDeps = {
     db,
     recordOrder: (k, l) => { recorded.push([k, l]); return Promise.resolve(); },
-    cardCountry: () => Promise.resolve("US"),
+    chargeFacts: () => Promise.resolve({ cardCountry: "US", disputed: false }),
     notifyFounder: (subject, text) => { alerts.push({ subject, text }); return Promise.resolve(); },
     afterOrder: (id) => { after.push(id); return Promise.resolve(); },
     log: () => {},
@@ -96,7 +96,7 @@ Deno.test("a new family: the sale is recorded first, then one RPC grants both ch
   const f = fakeDb({ orders: ORDERS });
   const x = deps(f.db);
   const out = await handleOnlineYearPurchase(session(), CREATED, x.d);
-  assertEquals(out, { status: "granted", orderId: "o-new", inserted: 2, already: 0, flagged: 0 });
+  assertEquals(out, { status: "granted", orderId: "o-new", inserted: 2, already: 0, flagged: 0, closedDisputed: 0 });
   assertEquals(x.recorded, [["online_year_sprouts", "Eden's Table Online Year: Sprouts (K-2), first child + 1 sibling"]]);
   assertEquals(x.after, ["o-new"]);
   assertEquals(f.rpcCalls.length, 1);
@@ -139,7 +139,7 @@ Deno.test("redelivered event: the order already holds every license, so no RPC a
       { id: "N2", parent_id: "p1", band: "sprouts", child_name: "Ben", status: "active", ends_at: "2027-12-01T15:30:00+00:00", order_id: "o-new", renews_license_id: null },
     ],
   });
-  const x = deps(f.db, { cardCountry: () => Promise.resolve("BR") });
+  const x = deps(f.db, { chargeFacts: () => Promise.resolve({ cardCountry: "BR", disputed: false }) });
   const out = await handleOnlineYearPurchase(session(), CREATED, x.d);
   assertEquals(out, { status: "already", orderId: "o-new", already: 2 });
   assertEquals(f.rpcCalls.length, 0);
@@ -148,7 +148,7 @@ Deno.test("redelivered event: the order already holds every license, so no RPC a
 
 Deno.test("out-of-area card: granted anyway, and one founder alert naming the order", async () => {
   const f = fakeDb({ orders: ORDERS });
-  const x = deps(f.db, { cardCountry: () => Promise.resolve("BR") });
+  const x = deps(f.db, { chargeFacts: () => Promise.resolve({ cardCountry: "BR", disputed: false }) });
   const out = await handleOnlineYearPurchase(session(), CREATED, x.d);
   assertEquals(out.status, "granted");
   assert(out.status === "granted" && out.flagged === 1);
@@ -165,6 +165,23 @@ Deno.test("out-of-area billing address on the E2E twin: the alert says TEST", as
   assertEquals(x.alerts.length, 1);
   assert(x.alerts[0].subject.startsWith("TEST (E2E): Online Year order ET-1100"));
   assert(x.alerts[0].text.includes("the billing address is in GB"));
+});
+
+Deno.test("a dispute that arrived before the order existed: the grant closes the new licenses as disputed and tells the founder", async () => {
+  // The fake RPC writes nothing, so it adds the licenses the real one would write for this order.
+  const rows: Rows = { orders: ORDERS, online_year_licenses: [] };
+  const f = fakeDb(rows);
+  const realRpc = f.db.rpc;
+  f.db.rpc = (fn: string, args: Record<string, unknown>) => {
+    for (const l of args.p_licenses as Row[]) rows.online_year_licenses.push({ id: `N-${l.child_name}`, order_id: args.p_order_id, child_name: l.child_name, status: "active" });
+    return realRpc(fn, args);
+  };
+  const x = deps(f.db, { chargeFacts: () => Promise.resolve({ cardCountry: "US", disputed: true }) });
+  const out = await handleOnlineYearPurchase({ ...session(), payment_intent: "pi_disputed" }, CREATED, x.d);
+  assertEquals(out, { status: "granted", orderId: "o-new", inserted: 2, already: 0, flagged: 0, closedDisputed: 2 });
+  assertEquals(rows.online_year_licenses.map((l) => `${l.child_name}:${l.status}:${l.closed_reason}`), ["Ava:closed:disputed", "Ben:closed:disputed"]);
+  assertEquals(x.alerts.map((a) => a.subject), ["Online Year order ET-1100 was disputed: access closed"]);
+  assert(x.alerts[0].text.includes("Stripe payment: pi_disputed"));
 });
 
 Deno.test("throws so Stripe redelivers: the RPC fails (a stale plan), or the order cannot be re-read", async () => {

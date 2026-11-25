@@ -14,7 +14,8 @@
 //      index (order_id, band, lower(child_name)) is the backstop).
 //   3. COUNTRY FLAG (her tap 2026-11-25, "Our page asks"): a billing address or a card from
 //      outside the U.S., Canada and Australia emails her once, after the grant. Never a refund,
-//      never a block.
+//      never a block. The same charge read also catches a dispute that arrived BEFORE the order
+//      existed (seen in the 11/25 test run) and closes the licenses at once.
 // Refund (full) / dispute: the order's active licenses close (status closed, closed_reason
 // refunded / disputed). No refund is ever issued by code. A partial refund closes nothing.
 // NOT here: emails to the family (OY8), sign-in (OY4), the thank-you page (OY4).
@@ -41,14 +42,18 @@ export interface OnlineYearSession {
   metadata?: Record<string, string> | null;
   customer_details?: { email?: string | null; name?: string | null; address?: { country?: string | null } | null } | null;
   customer_email?: string | null;
+  payment_intent?: string | { id: string } | null;
 }
 
 export interface OnlineYearGrantDeps {
   db: Db;
   /** Record the sale in orders (idempotent on the session id). Throws on a real DB error. */
   recordOrder: (lookupKey: string, label: string) => Promise<void>;
-  /** The paying card's issuing country, or null (not a card, or the lookup failed). Never throws. */
-  cardCountry: () => Promise<string | null>;
+  /**
+   * The paying charge, read once after the grant: the card's issuing country (null = not a card,
+   * or the lookup failed) and whether it is already disputed. Never throws.
+   */
+  chargeFacts: () => Promise<OnlineYearChargeFacts>;
   /** Email the founder. Never throws. */
   notifyFounder: (subject: string, text: string) => Promise<void>;
   /** After the order exists (a Starter credit redemption, the Resend contact sync). Never throws. */
@@ -58,11 +63,16 @@ export interface OnlineYearGrantDeps {
   log?: (line: string) => void;
 }
 
+export interface OnlineYearChargeFacts {
+  cardCountry: string | null;
+  disputed: boolean;
+}
+
 export type OnlineYearGrantOutcome =
   | { status: 'unpaid' }
   | { status: 'needs_a_look'; reason: string; orderId: string }
   | { status: 'already'; orderId: string; already: number }
-  | { status: 'granted'; orderId: string; inserted: number; already: number; flagged: number };
+  | { status: 'granted'; orderId: string; inserted: number; already: number; flagged: number; closedDisputed: number };
 
 const ALERT_SUBJECT = 'Online Year purchase needs a look';
 
@@ -157,11 +167,23 @@ export async function handleOnlineYearPurchase(
   const already = Number(out.already ?? 0);
   log(`[${sid}] online year granted: order ${orderNumber ?? orderId} band=${input.cart.band} inserted=${inserted} already=${already}`);
 
-  // 3. The country flag, once: only on the delivery that actually granted.
+  // 3. Once, on the delivery that actually granted: the country flag, and a dispute that arrived
+  //    before this order existed (Stripe can open one the same second as the payment; its
+  //    charge.dispute.created then found no order to close). Either way it is closed here.
   let flagged = 0;
+  let closedDisputed = 0;
   if (inserted > 0) {
     const billingCountry = session.customer_details?.address?.country ?? null;
-    const cardCountry = await deps.cardCountry();
+    const facts = await deps.chargeFacts();
+    const cardCountry = facts.cardCountry;
+    if (facts.disputed) {
+      closedDisputed = await closeOrderLicenses(
+        { id: orderId, order_number: orderNumber, customer_email: input.email },
+        'disputed',
+        (typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id) ?? sid,
+        { db: deps.db, notifyFounder: deps.notifyFounder, test: deps.test, log },
+      );
+    }
     const flags = onlineYearCountryFlags({ billingCountry, cardCountry });
     if (flags.length > 0) {
       flagged = flags.length;
@@ -180,7 +202,7 @@ export async function handleOnlineYearPurchase(
       await deps.notifyFounder(alert.subject, alert.text);
     }
   }
-  return { status: 'granted', orderId, inserted, already, flagged };
+  return { status: 'granted', orderId, inserted, already, flagged, closedDisputed };
 }
 
 export interface OnlineYearCloseDeps {
@@ -201,6 +223,39 @@ async function onlineYearOrdersFor(db: Db, paymentIntentId: string): Promise<{ i
     .map((o) => ({ id: String(o.id), order_number: o.order_number ? String(o.order_number) : null, customer_email: o.customer_email ? String(o.customer_email) : null }));
 }
 
+/** Close one order's active licenses; a dispute also emails the founder. Returns how many closed. Throws on a DB error. */
+async function closeOrderLicenses(
+  o: { id: string; order_number: string | null; customer_email: string | null },
+  reason: OnlineYearCloseReason,
+  paymentRef: string,
+  deps: OnlineYearCloseDeps,
+): Promise<number> {
+  const log = deps.log ?? ((l: string) => console.log(l));
+  const at = (deps.now ? deps.now() : new Date()).toISOString();
+  const { data, error } = await deps.db
+    .from('online_year_licenses')
+    .update({ status: 'closed', closed_at: at, closed_reason: reason, updated_at: at })
+    .eq('order_id', o.id).eq('status', 'active')
+    .select('id, child_name');
+  if (error) throw new Error(`online year: closing licenses for order ${o.order_number ?? o.id} failed: ${error.message}`);
+  const n = (data ?? []).length;
+  log(`online year: ${n} license(s) closed (${reason}) for order ${o.order_number ?? o.id} (${paymentRef})`);
+  if (reason === 'disputed' && n > 0) {
+    await deps.notifyFounder(
+      `${deps.test ? 'TEST (E2E): ' : ''}Online Year order ${o.order_number ?? o.id} was disputed: access closed`,
+      [
+        `The payment for Online Year order ${o.order_number ?? o.id} was disputed (a chargeback), so its ${n} license(s) are now closed and the family can no longer open it.`,
+        '',
+        `Buyer: ${o.customer_email ?? '(no email)'}`,
+        `Stripe payment: ${paymentRef}`,
+        '',
+        "Stripe will email you about answering the dispute. If you win it and want the family's access back, tell Claude (Lane 2).",
+      ].join('\n'),
+    );
+  }
+  return n;
+}
+
 /**
  * A full refund or a dispute on an Online Year payment: close its active licenses. Returns how
  * many closed (0 for any other product). A dispute also emails the founder. Throws on a DB error.
@@ -210,35 +265,10 @@ export async function closeOnlineYearLicenses(
   reason: OnlineYearCloseReason,
   deps: OnlineYearCloseDeps,
 ): Promise<{ closed: number; orders: number }> {
-  const log = deps.log ?? ((l: string) => console.log(l));
   const orders = await onlineYearOrdersFor(deps.db, paymentIntentId);
   if (orders.length === 0) return { closed: 0, orders: 0 };
-  const at = (deps.now ? deps.now() : new Date()).toISOString();
   let closed = 0;
-  for (const o of orders) {
-    const { data, error } = await deps.db
-      .from('online_year_licenses')
-      .update({ status: 'closed', closed_at: at, closed_reason: reason, updated_at: at })
-      .eq('order_id', o.id).eq('status', 'active')
-      .select('id, child_name');
-    if (error) throw new Error(`online year: closing licenses for order ${o.order_number ?? o.id} failed: ${error.message}`);
-    const n = (data ?? []).length;
-    closed += n;
-    log(`online year: ${n} license(s) closed (${reason}) for order ${o.order_number ?? o.id} (pi=${paymentIntentId})`);
-    if (reason === 'disputed' && n > 0) {
-      await deps.notifyFounder(
-        `${deps.test ? 'TEST (E2E): ' : ''}Online Year order ${o.order_number ?? o.id} was disputed: access closed`,
-        [
-          `The payment for Online Year order ${o.order_number ?? o.id} was disputed (a chargeback), so its ${n} license(s) are now closed and the family can no longer open it.`,
-          '',
-          `Buyer: ${o.customer_email ?? '(no email)'}`,
-          `Stripe payment: ${paymentIntentId}`,
-          '',
-          "Stripe will email you about answering the dispute. If you win it and want the family's access back, tell Claude (Lane 2).",
-        ].join('\n'),
-      );
-    }
-  }
+  for (const o of orders) closed += await closeOrderLicenses(o, reason, paymentIntentId, deps);
   return { closed, orders: orders.length };
 }
 

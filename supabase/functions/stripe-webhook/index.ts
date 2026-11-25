@@ -1618,18 +1618,23 @@ async function handleWiredPurchase(session: Stripe.Checkout.Session, email: stri
 
 // ---------- Eden's Table Online Year (OY3, 2026-11-25) ----------
 
-/** The paying card's issuing country (the out-of-area flag). Best effort: null on any failure or a non-card payment. */
-async function paymentCardCountry(session: Stripe.Checkout.Session): Promise<string | null> {
+/**
+ * The paying charge for the Online Year grant: the card's issuing country (the out-of-area flag)
+ * and whether it is already disputed (a dispute can arrive before the order exists). Best effort:
+ * a failure or a non-card payment reads as { cardCountry: null, disputed: false }.
+ */
+async function paymentChargeFacts(session: Stripe.Checkout.Session): Promise<{ cardCountry: string | null; disputed: boolean }> {
+  const none = { cardCountry: null, disputed: false }
   const pi = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id ?? null
-  if (!pi) return null
+  if (!pi) return none
   try {
     const intent = await stripe.paymentIntents.retrieve(pi, { expand: ["latest_charge"] })
     const charge = intent.latest_charge
-    const card = charge && typeof charge === "object" ? charge.payment_method_details?.card : null
-    return card?.country ?? null
+    if (!charge || typeof charge !== "object") return none
+    return { cardCountry: charge.payment_method_details?.card?.country ?? null, disputed: charge.disputed === true }
   } catch (err) {
-    console.warn(`[${session.id}] card country lookup failed; not flagged on it: ${err instanceof Error ? err.message : String(err)}`)
-    return null
+    console.warn(`[${session.id}] charge lookup failed; no country flag or dispute check from it: ${err instanceof Error ? err.message : String(err)}`)
+    return none
   }
 }
 
@@ -1637,7 +1642,7 @@ function onlineYearGrantDeps(session: Stripe.Checkout.Session, email: string | n
   return {
     db: adminClient,
     recordOrder: async (lookupKey, label) => recordDigitalOrder(await withPaymentCard(session), lookupKey, email, label),
-    cardCountry: () => paymentCardCountry(session),
+    chargeFacts: () => paymentChargeFacts(session),
     notifyFounder,
     afterOrder: async (orderId) => {
       // Both never throw. The credit line is a no-op until the Online Year credit coupons exist.
