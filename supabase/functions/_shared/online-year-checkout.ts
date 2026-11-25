@@ -64,6 +64,29 @@ export const ONLINE_YEAR_UNDER_BUTTON =
 export const ONLINE_YEAR_AGREEMENT =
   "I understand this is a 12-month license for my household only. It's read online, doesn't download, and can't be shared. Digital purchases are final.";
 
+/**
+ * The order page's own error lines, keyed by refusal code: "After checkout + order-page errors" >
+ * "Order page error lines" (APPROVED 2026-11-25 12:21 PM CT), word for word, snapshotted in
+ * docs/online-year-copy/approved-2026-11-25-thank-you.md and pinned by src/test/onlineYearCopy.test.ts
+ * (the same lines as web/lib/onlineYearCopy.ts OY_APPROVED_ORDER_ERRORS). Every other refusal keeps
+ * ONLINE_YEAR_SOMETHING_WRONG.
+ */
+export const ONLINE_YEAR_ERROR_LINES = {
+  OY_BAD_CHILD_NAME: "Please type just your child's first name or nickname, using letters only.",
+  OY_DUPLICATE_CHILD_NAME: "You typed the same name twice. Please give each child their own name or nickname.",
+  OY_EMAIL: "Please check your email address. It's how you'll sign in.",
+  OY_TOO_MANY_CHILDREN: "For a family this size, email hello@edeninstitute.health and we'll set it up for you.",
+  OY_NOT_CONFIGURED: "Checkout isn't quite ready. Please try again shortly, or email hello@edeninstitute.health.",
+} as const;
+
+/** The generic refusal line, for every refusal without its own line above. */
+export const ONLINE_YEAR_SOMETHING_WRONG = 'Something went wrong. Please refresh the page and try again.';
+
+/** The line for a refusal code: its own approved line, or the generic one. */
+export function onlineYearErrorLine(code: string): string {
+  return (ONLINE_YEAR_ERROR_LINES as Record<string, string>)[code] ?? ONLINE_YEAR_SOMETHING_WRONG;
+}
+
 /** Same 1-40 character limit as online_year_licenses.child_name (OY1 migration). */
 export const MAX_CHILD_NAME_LENGTH = 40;
 /** A family is never this big in one band in practice; the cap keeps a forged request from building a silly cart. */

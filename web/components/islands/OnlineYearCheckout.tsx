@@ -5,7 +5,10 @@
 // create-checkout (lookup_key "online_year_cart") checks every field again and prices the cart:
 // $149 for the first child in a band, $29 for each sibling. Dark until ONLINE_YEAR_ENABLED: the
 // function answers 404 until then, so this page shows the usual "could not open checkout" line.
-// Words: web/lib/onlineYearCopy.ts (all approved, pinned by onlineYearCopy.test.ts).
+// Words: web/lib/onlineYearCopy.ts (all approved, pinned by onlineYearCopy.test.ts). A refusal that
+// carries a code shows create-checkout's own line alone: the approved error lines (2026-11-25) for a
+// bad name, a repeated name, the email, too many children and checkout not set up, else the generic
+// "Something went wrong..." line (src/test/onlineYearCheckoutErrors.test.tsx).
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { friendlyEfError } from "@/components/apothecary/friendlyEfError";
@@ -63,7 +66,17 @@ export default function OnlineYearCheckout() {
           ...(promo ? { promo_code: promo } : {}),
         },
       });
-      if (fnError) throw new Error((await friendlyEfError(fnError, "")) || fnError.message);
+      if (fnError) {
+        // A refusal create-checkout wrote words for (it carries a code): show those words exactly as
+        // approved, on their own (e.g. "Please check your email address. It's how you'll sign in.").
+        const line = await friendlyEfError(fnError, "");
+        if (line) {
+          setError(line);
+          setLoading(false);
+          return;
+        }
+        throw new Error(fnError.message);
+      }
       if (!data?.url) throw new Error("Checkout did not return a link.");
       window.location.href = data.url as string;
     } catch (err) {

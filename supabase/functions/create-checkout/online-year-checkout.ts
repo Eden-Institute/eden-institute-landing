@@ -31,9 +31,11 @@ import {
   isOnlineYearBand,
   ONLINE_YEAR_COUNTRIES,
   ONLINE_YEAR_PRICE_CENTS,
+  ONLINE_YEAR_SOMETHING_WRONG,
   ONLINE_YEAR_SUCCESS_URL,
   ONLINE_YEAR_UNDER_BUTTON,
   onlineYearCancelUrl,
+  onlineYearErrorLine,
   onlineYearProductDescription,
   onlineYearProductName,
   planOnlineYearCart,
@@ -63,7 +65,7 @@ export function onlineYearCreditSku(band: OnlineYearBand): string {
   return `${band}_online_year`
 }
 
-const SOMETHING_WRONG = "Something went wrong. Please refresh the page and try again."
+const SOMETHING_WRONG = ONLINE_YEAR_SOMETHING_WRONG
 
 /** The family's live first-child license in this band: its child's name, or null. Throws on a read error (fail closed). */
 export async function liveFirstChildName(db: Db, email: string, band: OnlineYearBand, now: Date): Promise<string | null> {
@@ -87,6 +89,8 @@ export async function handleOnlineYearCheckout(
   const json = (status: number, payload: unknown) =>
     new Response(JSON.stringify(payload), { status, headers: { ...deps.cors, "Content-Type": "application/json" } })
   const refuse = (status: number, code: string, error: string) => json(status, { error, code })
+  // The approved line for a code that has one (ONLINE_YEAR_ERROR_LINES), otherwise the generic line.
+  const refuseCode = (status: number, code: string) => refuse(status, code, onlineYearErrorLine(code))
 
   // Dark until launch: the same answer as a path that does not exist.
   if (!onlineYearOpen(req, deps.env)) return json(404, { error: "not_found" })
@@ -101,17 +105,14 @@ export async function handleOnlineYearCheckout(
 
   const typed = typeof body.email === "string" ? body.email.trim() : ""
   const email = deps.e2e ? deps.e2e.buyerEmail : typed
-  if (!email || !isStripeSafeEmail(email)) return refuse(400, "OY_EMAIL", SOMETHING_WRONG)
+  if (!email || !isStripeSafeEmail(email)) return refuseCode(400, "OY_EMAIL")
 
   const now = deps.now ? deps.now() : new Date()
   const liveFirst = await liveFirstChildName(deps.db, email, band, now)
   const planned = planOnlineYearCart({ band, childNames: body.child_names, liveFirstChildName: liveFirst })
-  if (!planned.ok) {
-    const error = planned.error === "too_many_children"
-      ? "For a family this size, email hello@edeninstitute.health and we'll set it up for you."
-      : SOMETHING_WRONG
-    return refuse(400, `OY_${planned.error.toUpperCase()}`, error)
-  }
+  // too_many_children, bad_child_name and duplicate_child_name have their own lines; no_children
+  // (the page never sends it) and unknown_band keep the generic one.
+  if (!planned.ok) return refuseCode(400, `OY_${planned.error.toUpperCase()}`)
   const plan = planned.plan
   const hasFirst = plan.children.some((c) => c.kind === "first_child")
 
@@ -138,7 +139,7 @@ export async function handleOnlineYearCheckout(
     const missing = keys.filter((k) => !byKey.has(k))
     if (missing.length) {
       console.error(`online year checkout: no active Stripe price for ${missing.join(", ")}; refusing`)
-      return refuse(503, "OY_NOT_CONFIGURED", "Checkout isn't quite ready. Please try again shortly, or email hello@edeninstitute.health.")
+      return refuseCode(503, "OY_NOT_CONFIGURED")
     }
     lineItems = plan.lines.map((l) => ({ price: byKey.get(l.lookup_key)!, quantity: l.quantity }))
   }

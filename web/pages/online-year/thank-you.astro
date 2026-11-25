@@ -1,0 +1,27 @@
+---
+// /online-year/thank-you (Eden's Table Online Year, punch #472): where Stripe sends an Online Year buyer after
+// paying (ONLINE_YEAR_SUCCESS_URL, ?session_id={CHECKOUT_SESSION_ID}). The island owns every word on the page,
+// so the heading can never contradict the order's state. Words: web/lib/onlineYearCopy.ts OY_APPROVED_THANK_YOU
+// (approved 2026-11-25). DARK until launch: noindex, linked from nowhere but Stripe's redirect, and
+// online-year-order-status answers 404 until ONLINE_YEAR_ENABLED.
+//
+// noindex: a confirmation page has nothing to offer search, and the session id must never reach an index
+// (MarketingLayout's first head script also moves it out of the URL; src/lib/checkoutSession.ts).
+//
+// The tab title and description reuse the order page's approved words (checkout.astro).
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import OnlineYearThankYou from "../../components/islands/OnlineYearThankYou";
+import { OY_APPROVED } from "../../lib/onlineYearCopy";
+
+const meta = {
+  title: `${OY_APPROVED.title} · The Eden Institute`,
+  description: OY_APPROVED.noRenewal,
+  canonical: "https://edeninstitute.health/online-year/thank-you",
+};
+---
+
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} noindex={true}>
+  <main>
+    <OnlineYearThankYou client:only="react" />
+  </main>
+</MarketingLayout>
