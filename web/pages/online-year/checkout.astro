@@ -1,0 +1,20 @@
+---
+// /online-year/checkout (Eden's Table Online Year, OY2, punch #472): the order page. Child names, where she
+// lives and the required agreement box are collected here, before Stripe. DARK until launch: noindex, linked
+// from nowhere, and create-checkout answers the Online Year cart with a 404 until ONLINE_YEAR_ENABLED.
+// The /homeschool cards that link here are OY9 (launch day). Words: web/lib/onlineYearCopy.ts.
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import OnlineYearCheckout from "../../components/islands/OnlineYearCheckout";
+
+const meta = {
+  title: "Online Year, all 36 weeks · The Eden Institute",
+  description: "12 months, no shipping, no automatic renewal",
+  canonical: "https://edeninstitute.health/online-year/checkout",
+};
+---
+
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} noindex={true}>
+  <main>
+    <OnlineYearCheckout client:only="react" />
+  </main>
+</MarketingLayout>
