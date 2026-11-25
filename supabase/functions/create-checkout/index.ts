@@ -47,6 +47,9 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import Stripe from "https://esm.sh/stripe@14.21.0?target=denonext"
 import { handleWiredCheckout } from "./wired-checkout.ts"
 import { WIRED_CART_KEY } from "../_shared/wired-checkout.ts"
+import { handleOnlineYearCheckout } from "./online-year-checkout.ts"
+import { ONLINE_YEAR_CART_KEY } from "../_shared/online-year-checkout.ts"
+import { ONLINE_YEAR_PREVIEW_HEADER } from "../_shared/online-year-gate.ts"
 import { heardAboutStripeField } from "../_shared/heard-about.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { FOUNDING_GATE_SKU, PREORDER_FLAT_SHIPPING_CENTS, PREORDER_PRODUCTS, SHIP_WINDOW, preorderProductBySku } from "../_shared/order-config.ts"
@@ -123,7 +126,7 @@ const stripe = new Stripe(stripeSecretKey(), {
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": `authorization, x-client-info, apikey, content-type, x-preorder-admin, x-wired-preview, ${E2E_HEADER}`,
+  "Access-Control-Allow-Headers": `authorization, x-client-info, apikey, content-type, x-preorder-admin, x-wired-preview, ${ONLINE_YEAR_PREVIEW_HEADER}, ${E2E_HEADER}`,
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 }
 
@@ -341,6 +344,19 @@ serve(async (req) => {
     //      test twin can buy one with a test card.
     if (body.book_digital === true || body.book_digital === "true") {
       return await handleBookDigitalCheckout(req, body)
+    }
+    // 1a'''. Eden's Table Online Year cart (OY2, punch #472, 2026-11-25). Dark until
+    //        ONLINE_YEAR_ENABLED; before the E2E refusal so the test twin can buy one
+    //        with a test card (test prices built inline, buyer forced to hello@).
+    if (lookup_key === ONLINE_YEAR_CART_KEY) {
+      return await handleOnlineYearCheckout(req, body, {
+        stripe,
+        db: admin(),
+        cors: corsHeaders,
+        createSession: (params) => createCheckoutSessionWithRecovery(stripe, params),
+        extraMetadata: (b) => checkoutAttributionMetadata(b),
+        ...(E2E_MODE ? { e2e: { buyerEmail: E2E_BUYER_EMAIL, metadataKey: E2E_METADATA_KEY } } : {}),
+      })
     }
     if (E2E_MODE) {
       return jsonError("The E2E checkout serves the print shop only", 400)
