@@ -155,7 +155,7 @@ Deno.test("out-of-area card: granted anyway, and one founder alert naming the or
   assertEquals(x.alerts.length, 1);
   assertEquals(x.alerts[0].subject, "Online Year order ET-1100 paid from outside the U.S., Canada and Australia");
   assert(x.alerts[0].text.includes("the card is from BR"));
-  assert(x.alerts[0].text.includes("Country she picked on our page: US"));
+  assert(x.alerts[0].text.includes("Country picked on our page: US"));
 });
 
 Deno.test("out-of-area billing address on the E2E twin: the alert says TEST", async () => {
