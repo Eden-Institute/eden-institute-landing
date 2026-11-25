@@ -4,8 +4,8 @@
 // APPROVED: word for word from "Approved copy" in EdensTable_Digital_License_Plan.md (her review page
 // MfwucqoucDoZPXoq97a9a7, Nov 23), snapshotted in docs/online-year-copy/approved.md and pinned by
 // src/test/onlineYearCopy.test.ts.
-// PENDING: new lines the order page needs that the approved copy does not have. They go to Camila on a
-// review page before this page can be used; the test lists them so none slips through unreviewed.
+// OY_APPROVED_ORDER_PAGE: 6 lines the order page needed that the plan's copy did not have; Camila approved them
+// word for word on 2026-11-25 (Lane 2 tap "Approve all 6", docs/online-year-copy/approved-2026-11-25-order-page.md).
 
 export type OnlineYearBandKey = "sprouts" | "seedlings";
 
@@ -25,7 +25,7 @@ export const OY_APPROVED = {
   moreCountries: "We hope to open it to more countries later.",
 } as const;
 
-export const OY_PENDING = {
+export const OY_APPROVED_ORDER_PAGE = {
   emailLabel: "Your email",
   addChild: "Add another child in this band",
   removeChild: "Remove",

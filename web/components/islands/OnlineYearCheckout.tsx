@@ -5,7 +5,7 @@
 // create-checkout (lookup_key "online_year_cart") checks every field again and prices the cart:
 // $149 for the first child in a band, $29 for each sibling. Dark until ONLINE_YEAR_ENABLED: the
 // function answers 404 until then, so this page shows the usual "could not open checkout" line.
-// Words: web/lib/onlineYearCopy.ts (approved + pending lists, pinned by onlineYearCopy.test.ts).
+// Words: web/lib/onlineYearCopy.ts (all approved, pinned by onlineYearCopy.test.ts).
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { friendlyEfError } from "@/components/apothecary/friendlyEfError";
@@ -13,7 +13,7 @@ import { getFbAttribution } from "@/lib/fbAttribution";
 import { getCheckoutAttribution } from "@/lib/attribution";
 import { trackCta } from "@/lib/trackCta";
 import { partnerPromoCode } from "../../lib/partnerPromo";
-import { OY_APPROVED, OY_COUNTRY_CODES, OY_PENDING, type OnlineYearBandKey } from "../../lib/onlineYearCopy";
+import { OY_APPROVED, OY_COUNTRY_CODES, OY_APPROVED_ORDER_PAGE, type OnlineYearBandKey } from "../../lib/onlineYearCopy";
 
 const MAX_CHILDREN = 10;
 const MAX_NAME = 40;
@@ -85,10 +85,10 @@ export default function OnlineYearCheckout() {
       <p className="font-body text-lg mt-1">{OY_APPROVED.bandLabel[band]}</p>
       <p className="font-body mt-3"><strong>{OY_APPROVED.price}</strong> · {OY_APPROVED.siblingPrice}</p>
       <p className="font-body text-sm text-muted-foreground mt-1">{OY_APPROVED.noRenewal}</p>
-      <p className="font-body text-sm text-muted-foreground mt-3">{OY_PENDING.siblingNote}</p>
+      <p className="font-body text-sm text-muted-foreground mt-3">{OY_APPROVED_ORDER_PAGE.siblingNote}</p>
 
       <div className="mt-6 text-left">
-        <label htmlFor="oy-email" className="block font-body text-sm">{OY_PENDING.emailLabel}</label>
+        <label htmlFor="oy-email" className="block font-body text-sm">{OY_APPROVED_ORDER_PAGE.emailLabel}</label>
         <input id="oy-email" type="email" inputMode="email" autoComplete="email" placeholder="you@example.com"
           value={email} onChange={(e) => setEmail(e.target.value)} className={field} style={border} />
         <p className="mt-1 font-body text-xs text-muted-foreground">{OY_APPROVED.signInEmail}</p>
@@ -102,7 +102,7 @@ export default function OnlineYearCheckout() {
               value={c} onChange={(e) => setChild(i, e.target.value)} className={field} style={border} />
             {children.length > 1 && (
               <button type="button" className="font-body text-sm underline mt-1"
-                onClick={() => setChildren((cs) => cs.filter((_, j) => j !== i))}>{OY_PENDING.removeChild}</button>
+                onClick={() => setChildren((cs) => cs.filter((_, j) => j !== i))}>{OY_APPROVED_ORDER_PAGE.removeChild}</button>
             )}
           </div>
           {i === 0 && <p className="mt-1 font-body text-xs text-muted-foreground">{OY_APPROVED.childHelper}</p>}
@@ -110,15 +110,15 @@ export default function OnlineYearCheckout() {
       ))}
       {children.length < MAX_CHILDREN && (
         <button type="button" className="mt-3 font-body text-sm underline"
-          onClick={() => setChildren((cs) => [...cs, ""])}>{OY_PENDING.addChild}</button>
+          onClick={() => setChildren((cs) => [...cs, ""])}>{OY_APPROVED_ORDER_PAGE.addChild}</button>
       )}
 
       <div className="mt-6 text-left">
-        <label htmlFor="oy-country" className="block font-body text-sm">{OY_PENDING.countryLabel}</label>
+        <label htmlFor="oy-country" className="block font-body text-sm">{OY_APPROVED_ORDER_PAGE.countryLabel}</label>
         <select id="oy-country" value={country} onChange={(e) => setCountry(e.target.value)} className={field} style={border}>
           <option value="" disabled>{" "}</option>
           {[...OY_COUNTRY_CODES, "other"].map((k) => (
-            <option key={k} value={k}>{OY_PENDING.countries[k]}</option>
+            <option key={k} value={k}>{OY_APPROVED_ORDER_PAGE.countries[k]}</option>
           ))}
         </select>
         {elsewhere && <p className="mt-1 font-body text-sm">{OY_APPROVED.moreCountries}</p>}
