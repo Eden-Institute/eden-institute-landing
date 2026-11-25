@@ -26,6 +26,10 @@
 //                                       seedlings_complete, two_band_bundle and nb_addon
 //                                       removed 2026-09-15; recoverable from git history.
 //                                       create-checkout refuses those keys.)
+//                                       online_year_cart → orders + online_year_licenses via
+//                                       online_year_grant_purchase (OY3, 2026-11-25; dark)
+//   charge.dispute.created         → an Online Year order's licenses close (OY3). The live
+//                                     endpoint must subscribe to this event for it to arrive.
 //   checkout.session.expired       → abandoned-checkout reminder email (2026-09-28;
 //                                     consent-gated, one per address per 30 days;
 //                                     see _shared/checkout-recovery.ts)
@@ -113,6 +117,17 @@ import { tagEmailHtml, tagEmailText } from "../_shared/email-utm.ts"
 // Unit (no credit, ever). Only sessions with metadata.offer reach it.
 import { printGiftOfferFromMetadata, type SaleOffer } from "../_shared/sale-offers.ts"
 import { queueOfferGiftStarters } from "../_shared/fpea-gift.ts"
+// Eden's Table Online Year, OY3 (punch #472, 2026-11-25): grant the licenses, close them on a
+// refund or dispute, flag an out-of-area card. Dark: only create-checkout's Online Year branch
+// (behind ONLINE_YEAR_ENABLED / the preview token) writes lookup_key online_year_cart.
+import { ONLINE_YEAR_CART_KEY } from "../_shared/online-year-checkout.ts"
+import {
+  closeOnlineYearLicenses,
+  handleOnlineYearPurchase,
+  noteOnlineYearPartialRefund,
+  type OnlineYearCloseDeps,
+  type OnlineYearGrantDeps,
+} from "../_shared/online-year-webhook.ts"
 
 /**
  * Normalize a constitution identifier to a guide-registry slug.
@@ -311,13 +326,15 @@ serve(async (req) => {
 
   console.log(`Received event: ${event.type} (id: ${event.id})`)
 
-  // E2E twin: test-mode events only, and only the two a print purchase produces.
+  // E2E twin: test-mode events only, and only the ones a purchase produces (a dispute since
+  // OY3, so the Online Year close can be proven with Stripe's test dispute card).
   if (E2E_MODE) {
     if (event.livemode) {
       console.error(`E2E webhook refused a LIVE event ${event.id}`)
       return new Response("Live events are not accepted here", { status: 400 })
     }
-    if (event.type !== "checkout.session.completed" && event.type !== "charge.refunded") {
+    if (event.type !== "checkout.session.completed" && event.type !== "charge.refunded" &&
+      event.type !== "charge.dispute.created") {
       return new Response(JSON.stringify({ received: true, e2e_ignored: event.type }), {
         headers: { "Content-Type": "application/json" },
         status: 200,
@@ -414,7 +431,7 @@ serve(async (req) => {
         // produces only a payment. Revenue is sum(payments) either way.
         await recordOneOffPayment(event, session)
 
-        await handleOneOffPayment(session)
+        await handleOneOffPayment(session, event.created)
 
         // Where the buyer came from (attr_* metadata stamped by create-checkout).
         // Best-effort and AFTER the sale is recorded: it can never fail an order.
@@ -506,6 +523,13 @@ serve(async (req) => {
           await notifyPartialRefund(event, charge).catch((err) =>
             console.error(`partial refund email failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
           )
+          // Online Year (OY3): a partial refund closes no license; the founder is told which order.
+          const partialPi = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id ?? null
+          if (partialPi) {
+            await noteOnlineYearPartialRefund(partialPi, onlineYearCloseDeps()).catch((err) =>
+              console.error(`[pi=${partialPi}] online year partial-refund note failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
+            )
+          }
           break
         }
         const pi = typeof charge.payment_intent === "string"
@@ -541,9 +565,33 @@ serve(async (req) => {
                 (err instanceof Error ? err.message : String(err)),
             )
           )
+          // Online Year (OY3): a fully refunded order's licenses close. Same rule as the Starter
+          // credit above: the refund is recorded, so a failure is logged loudly for hand cleanup
+          // rather than a 500 that has Stripe retry a completed refund.
+          await closeOnlineYearLicenses(pi, "refunded", onlineYearCloseDeps()).catch((err) =>
+            console.error(
+              `[pi=${pi}] online year license close after refund FAILED; close them by hand: ` +
+                (err instanceof Error ? err.message : String(err)),
+            )
+          )
         } else {
           console.warn(`charge.refunded without payment_intent; charge=${charge.id}`)
         }
+        break
+      }
+
+      // A chargeback (OY3): an Online Year order's licenses close and the founder is told. Any
+      // other product is left alone (closeOnlineYearLicenses finds no Online Year order).
+      // A failure THROWS so Stripe redelivers: nothing else happens on this event to repeat.
+      case "charge.dispute.created": {
+        const dispute = event.data.object as Stripe.Dispute
+        const pi = typeof dispute.payment_intent === "string" ? dispute.payment_intent : dispute.payment_intent?.id ?? null
+        if (!pi) {
+          console.warn(`charge.dispute.created without payment_intent; dispute=${dispute.id}`)
+          break
+        }
+        const closed = await closeOnlineYearLicenses(pi, "disputed", onlineYearCloseDeps())
+        console.log(`charge.dispute.created: dispute=${dispute.id} pi=${pi} online year licenses closed=${closed.closed}`)
         break
       }
 
@@ -926,7 +974,7 @@ async function withPaymentCard(session: Stripe.Checkout.Session): Promise<Stripe
   }
 }
 
-async function handleOneOffPayment(session: Stripe.Checkout.Session) {
+async function handleOneOffPayment(session: Stripe.Checkout.Session, eventCreated?: number) {
   // ---- Branch 0a: Back to Eden PDF (2026-09-25) ----
   // Detected by book_digital_sku, stamped only by create-checkout's book branch.
   const bookSku = (session.metadata?.book_digital_sku as string | undefined) ?? null
@@ -1167,6 +1215,16 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session) {
     return
   }
 
+  // Branch 2d: Eden's Table Online Year cart (OY3, 2026-11-25; dark). create-checkout checked
+  // the band, the children, first child vs sibling and the country before charging; this
+  // records the sale and grants one license per child (online_year_grant_purchase). A failed
+  // grant THROWS so Stripe redelivers; see _shared/online-year-webhook.ts.
+  if (lookupKey === ONLINE_YEAR_CART_KEY) {
+    const outcome = await handleOnlineYearPurchase(session, eventCreated, onlineYearGrantDeps(session, email))
+    console.log(`[${session.id}] online year outcome: ${JSON.stringify(outcome)}`)
+    return
+  }
+
   // Branch 3: one-off DIGITAL products (Deep-Dive Guide, future courses).
   //
   // Order of operations here is deliberate and was previously wrong:
@@ -1265,11 +1323,13 @@ async function recordDigitalOrder(
   session: Stripe.Checkout.Session,
   lookupKey: string,
   email: string | null,
+  // OY3: the Online Year names its own order (_shared/online-year-grant.ts onlineYearOrderLabel).
+  labelOverride?: string,
 ) {
   const nickname = (session.metadata?.constitution_nickname as string | undefined) ?? null
   // 2026-09-12: the Starter Unit used to fall through to the raw key
   // "sprouts_starter_unit", which is what buyers and scholarship reviewers saw.
-  const label = lookupKey === "deep_dive_guide"
+  const label = labelOverride ? labelOverride : lookupKey === "deep_dive_guide"
     ? `Deep-Dive Guide${nickname ? `: ${nickname}` : ""}`
     : starterBandForLookupKey(lookupKey)
       ? starterOrderLabel(lookupKey)
@@ -1554,6 +1614,42 @@ async function handleWiredPurchase(session: Stripe.Checkout.Session, email: stri
   } else if (Number(out.missing_children ?? 0) > 0) {
     await alert(`${out.missing_children} child(ren) on the order were removed before payment and were not unlocked`)
   }
+}
+
+// ---------- Eden's Table Online Year (OY3, 2026-11-25) ----------
+
+/** The paying card's issuing country (the out-of-area flag). Best effort: null on any failure or a non-card payment. */
+async function paymentCardCountry(session: Stripe.Checkout.Session): Promise<string | null> {
+  const pi = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id ?? null
+  if (!pi) return null
+  try {
+    const intent = await stripe.paymentIntents.retrieve(pi, { expand: ["latest_charge"] })
+    const charge = intent.latest_charge
+    const card = charge && typeof charge === "object" ? charge.payment_method_details?.card : null
+    return card?.country ?? null
+  } catch (err) {
+    console.warn(`[${session.id}] card country lookup failed; not flagged on it: ${err instanceof Error ? err.message : String(err)}`)
+    return null
+  }
+}
+
+function onlineYearGrantDeps(session: Stripe.Checkout.Session, email: string | null): OnlineYearGrantDeps {
+  return {
+    db: adminClient,
+    recordOrder: async (lookupKey, label) => recordDigitalOrder(await withPaymentCard(session), lookupKey, email, label),
+    cardCountry: () => paymentCardCountry(session),
+    notifyFounder,
+    afterOrder: async (orderId) => {
+      // Both never throw. The credit line is a no-op until the Online Year credit coupons exist.
+      await recordCreditRedemption(session, orderId)
+      await syncPurchaseProperties(email, session.id)
+    },
+    test: E2E_MODE,
+  }
+}
+
+function onlineYearCloseDeps(): OnlineYearCloseDeps {
+  return { db: adminClient, notifyFounder, test: E2E_MODE }
 }
 
 async function handleStarterUnitPurchase(
