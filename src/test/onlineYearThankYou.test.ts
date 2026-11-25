@@ -90,10 +90,13 @@ describe("the Week 1 line", () => {
       "Start with Week 1 in the Teacher's Guide; it lays out each day for you. When it's time for Notebook pages, tap Print, and Ava's name goes on every page.",
     );
   });
-  it("two children: the names joined the same way as the years line", () => {
-    expect(onlineYearStartWeek1([{ name: "Ava", ends_at: "x" }, { name: "Ben", ends_at: "x" }])).toBe(
-      "Start with Week 1 in the Teacher's Guide; it lays out each day for you. When it's time for Notebook pages, tap Print, and Ava and Ben's name goes on every page.",
-    );
+  it("two or more children: the approved 'each child's name' line, no names", () => {
+    for (const n of [2, 3]) {
+      const kids = ["Ava", "Ben", "Cal"].slice(0, n).map((name) => ({ name, ends_at: "x" }));
+      expect(onlineYearStartWeek1(kids)).toBe(
+        "Start with Week 1 in the Teacher's Guide; it lays out each day for you. When it's time for Notebook pages, tap Print, and each child's name goes on their own pages.",
+      );
+    }
   });
 });
 

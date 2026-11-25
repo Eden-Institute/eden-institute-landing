@@ -83,9 +83,10 @@ export function onlineYearYearSentences(children: readonly OnlineYearChildYear[]
     );
 }
 
-/** The Week 1 line, with every child's name where the plan writes [Child]. */
+/** The Week 1 line: one child = her name where the plan writes [Child]; two or more = the approved "each child's name" line (no names). */
 export function onlineYearStartWeek1(children: readonly OnlineYearChildYear[]): string {
-  return OY_APPROVED_THANK_YOU.startWeek1.replace("[Child]", () => joinChildNames(children.map((c) => c.name)));
+  if (children.length >= 2) return OY_APPROVED_THANK_YOU.startWeek1TwoOrMore;
+  return OY_APPROVED_THANK_YOU.startWeek1.replace("[Child]", () => children[0]?.name ?? "");
 }
 
 /** The status answer when it is ready and well formed; null for pending or anything unexpected. */

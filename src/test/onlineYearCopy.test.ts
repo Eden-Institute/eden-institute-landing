@@ -69,7 +69,7 @@ const approvedThankYou = readFileSync(join(root, "docs", "online-year-copy", "ap
 describe("Online Year thank-you page + order-page error lines", () => {
   it("every thank-you line is in the 2026-11-25 snapshot, word for word (placeholders as the plan writes them)", () => {
     expect(Object.keys(OY_APPROVED_THANK_YOU).sort()).toEqual([
-      "emailSent", "help", "openButton", "pendingBody", "pendingHeading", "pendingHelp", "readyHeading", "signIn", "startWeek1", "yearOneChild", "yearTwoOrMore",
+      "emailSent", "help", "openButton", "pendingBody", "pendingHeading", "pendingHelp", "readyHeading", "signIn", "startWeek1", "startWeek1TwoOrMore", "yearOneChild", "yearTwoOrMore",
     ]);
     for (const s of strings(OY_APPROVED_THANK_YOU)) expect(approvedThankYou, s).toContain(s);
     expect(approvedThankYou).toContain(`Heading: ${OY_APPROVED_THANK_YOU.readyHeading}`);

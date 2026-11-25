@@ -49,6 +49,9 @@ export const OY_APPROVED_THANK_YOU = {
   openButton: "Open Sprouts",
   startWeek1:
     "Start with Week 1 in the Teacher's Guide; it lays out each day for you. When it's time for Notebook pages, tap Print, and [Child]'s name goes on every page.",
+  // 2+ children (APPROVED 2026-11-25 ~6 PM CT, her tap "Each child's name" via NP; no names in this version).
+  startWeek1TwoOrMore:
+    "Start with Week 1 in the Teacher's Guide; it lays out each day for you. When it's time for Notebook pages, tap Print, and each child's name goes on their own pages.",
   signIn:
     "You'll sign in with the email you used at checkout. Each time you use a new device, we'll email you a code. It works on 3 devices with one child, plus one more for each sibling.",
   emailSent: "We just sent you an email with all of this too.",

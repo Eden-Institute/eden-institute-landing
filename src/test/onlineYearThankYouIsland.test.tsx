@@ -42,7 +42,7 @@ describe("OnlineYearThankYou", () => {
     expect(screen.getByText("Ben's year runs through November 25, 2027. Ava's year runs through March 1, 2028.")).toBeTruthy();
     const button = screen.getByRole("link", { name: "Open Seedlings" });
     expect(button.getAttribute("href")).toBe("/online-year/sign-in");
-    expect(screen.getByText(/tap Print, and Ben and Ava's name goes on every page\.$/)).toBeTruthy();
+    expect(screen.getByText(/tap Print, and each child's name goes on their own pages\.$/)).toBeTruthy();
     expect(screen.getByText("We just sent you an email with all of this too.")).toBeTruthy();
     expect(screen.getByRole("link", { name: "hello@edeninstitute.health" }).getAttribute("href")).toBe("mailto:hello@edeninstitute.health");
     expect(screen.queryByText(PENDING_HEADING)).toBeNull();
