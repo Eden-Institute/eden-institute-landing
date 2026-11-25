@@ -234,7 +234,7 @@ export async function closeOnlineYearLicenses(
           `Buyer: ${o.customer_email ?? '(no email)'}`,
           `Stripe payment: ${paymentIntentId}`,
           '',
-          'Stripe will email you about answering the dispute. If you win it and want the family's access back, tell Claude (Lane 2).',
+          "Stripe will email you about answering the dispute. If you win it and want the family's access back, tell Claude (Lane 2).",
         ].join('\n'),
       );
     }
