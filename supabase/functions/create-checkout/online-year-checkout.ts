@@ -31,11 +31,9 @@ import {
   isOnlineYearBand,
   ONLINE_YEAR_COUNTRIES,
   ONLINE_YEAR_PRICE_CENTS,
-  ONLINE_YEAR_SOMETHING_WRONG,
   ONLINE_YEAR_SUCCESS_URL,
   ONLINE_YEAR_UNDER_BUTTON,
   onlineYearCancelUrl,
-  onlineYearErrorLine,
   onlineYearProductDescription,
   onlineYearProductName,
   planOnlineYearCart,
@@ -63,6 +61,30 @@ export interface OnlineYearCheckoutDeps {
 /** The sku a Starter credit's coupon must cover for this band's first-child year (starter-config appliesToSkus). */
 export function onlineYearCreditSku(band: OnlineYearBand): string {
   return `${band}_online_year`
+}
+
+/**
+ * Kept in this file, not in _shared, so stripe-webhook's import closure is unchanged.
+ * The order page's own error lines, keyed by refusal code: "After checkout + order-page errors" >
+ * "Order page error lines" (APPROVED 2026-11-25 12:21 PM CT), word for word, snapshotted in
+ * docs/online-year-copy/approved-2026-11-25-thank-you.md and pinned by src/test/onlineYearCopy.test.ts
+ * (the same lines as web/lib/onlineYearCopy.ts OY_APPROVED_ORDER_ERRORS). Every other refusal keeps
+ * ONLINE_YEAR_SOMETHING_WRONG.
+ */
+export const ONLINE_YEAR_ERROR_LINES = {
+  OY_BAD_CHILD_NAME: "Please type just your child's first name or nickname, using letters only.",
+  OY_DUPLICATE_CHILD_NAME: "You typed the same name twice. Please give each child their own name or nickname.",
+  OY_EMAIL: "Please check your email address. It's how you'll sign in.",
+  OY_TOO_MANY_CHILDREN: "For a family this size, email hello@edeninstitute.health and we'll set it up for you.",
+  OY_NOT_CONFIGURED: "Checkout isn't quite ready. Please try again shortly, or email hello@edeninstitute.health.",
+} as const;
+
+/** The generic refusal line, for every refusal without its own line above. */
+export const ONLINE_YEAR_SOMETHING_WRONG = 'Something went wrong. Please refresh the page and try again.';
+
+/** The line for a refusal code: its own approved line, or the generic one. */
+export function onlineYearErrorLine(code: string): string {
+  return (ONLINE_YEAR_ERROR_LINES as Record<string, string>)[code] ?? ONLINE_YEAR_SOMETHING_WRONG;
 }
 
 const SOMETHING_WRONG = ONLINE_YEAR_SOMETHING_WRONG

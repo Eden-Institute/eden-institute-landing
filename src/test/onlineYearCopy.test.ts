@@ -23,6 +23,8 @@ const root = join(__dirname, "..", "..");
 const approved = readFileSync(join(root, "docs", "online-year-copy", "approved.md"), "utf8").replace(/\s+/g, " ");
 const approvedOrderPage = readFileSync(join(root, "docs", "online-year-copy", "approved-2026-11-25-order-page.md"), "utf8").replace(/\s+/g, " ");
 const shared = readFileSync(join(root, "supabase", "functions", "_shared", "online-year-checkout.ts"), "utf8");
+// The order-page error lines live in create-checkout's Online Year module (not _shared, so stripe-webhook's closure is unchanged).
+const cc = readFileSync(join(root, "supabase", "functions", "create-checkout", "online-year-checkout.ts"), "utf8");
 
 function strings(v: unknown): string[] {
   if (typeof v === "string") return [v];
@@ -94,11 +96,11 @@ describe("Online Year thank-you page + order-page error lines", () => {
     expect(Object.keys(OY_APPROVED_ORDER_ERRORS).sort()).toEqual(Object.keys(codeFor).sort());
     for (const [k, line] of Object.entries(OY_APPROVED_ORDER_ERRORS)) {
       expect(approvedThankYou, line).toContain(line);
-      expect(shared, line).toContain(`${codeFor[k as keyof typeof codeFor]}: ${JSON.stringify(line)},`);
+      expect(cc, line).toContain(`${codeFor[k as keyof typeof codeFor]}: ${JSON.stringify(line)},`);
     }
     // Every other refusal keeps the line these replace.
     expect(approvedThankYou).toContain('replace "Something went wrong. Please refresh the page and try again." for these cases');
-    expect(shared).toContain("export const ONLINE_YEAR_SOMETHING_WRONG = 'Something went wrong. Please refresh the page and try again.';");
+    expect(cc).toContain("export const ONLINE_YEAR_SOMETHING_WRONG = 'Something went wrong. Please refresh the page and try again.';");
   });
 
   it("Open Sprouts goes to the Online Year sign-in page: one internal path, no tracking tags", () => {
