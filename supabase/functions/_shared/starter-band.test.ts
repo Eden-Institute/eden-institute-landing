@@ -77,7 +77,7 @@ Deno.test('Sprouts registry entry IS the original constants, unchanged', () => {
   assertEquals(s.credit, {
     cents: 3900,
     couponEnv: 'STRIPE_STARTER_PRINT_CREDIT_COUPON_SPROUTS',
-    appliesToSkus: ['sprouts_print_set', 'both_bands_print_set', 'sprouts_kit'],
+    appliesToSkus: ['sprouts_print_set', 'both_bands_print_set', 'sprouts_kit', 'sprouts_online_year'],
   });
   assert(starterBandHasCredit('sprouts'));
   assertEquals(s.successUrl, 'https://edeninstitute.health/starter/thank-you?session_id={CHECKOUT_SESSION_ID}');
@@ -103,7 +103,7 @@ Deno.test('FOUNDER DECISION 2026-11-22 (replacing 2026-09-23): the Seedlings Sta
   assertEquals(STARTER_BANDS.seedlings.credit, {
     cents: 3900,
     couponEnv: 'STRIPE_STARTER_PRINT_CREDIT_COUPON_SEEDLINGS',
-    appliesToSkus: ['seedlings_print_set', 'both_bands_print_set'],
+    appliesToSkus: ['seedlings_print_set', 'both_bands_print_set', 'seedlings_online_year'],
   });
   assertEquals(starterBandHasCredit('seedlings'), true);
   // The credit lives in `credit` alone: no coupon, credit or Stripe env var
