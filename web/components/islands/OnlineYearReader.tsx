@@ -12,13 +12,19 @@
 // token is kept in sessionStorage for this tab only and never leaves the browser except as the preview header.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { makePortfolioPdf } from "../../lib/onlineYearPortfolio";
 import { OY_APPROVED, OY_APPROVED_READER, OY_READER_DRAFT, type OnlineYearBandKey } from "../../lib/onlineYearCopy";
 import {
   atLimitLine,
   bandLicense,
   bandsHeld,
+  callFamily,
   callSignin,
   chunks,
+  doneLine,
+  type FamilyLicense,
+  portfolioButtonLine,
+  printLine,
   DEVICE_TOKEN_KEY,
   displayName,
   errorLine,
@@ -74,8 +80,12 @@ export default function OnlineYearReader() {
   const [raStart, setRaStart] = useState(1);
   const [pages, setPages] = useState<Page[]>([]);
   const [pageError, setPageError] = useState("");
+  // OY6/OY7: each live child's done weeks (online-year-family 'progress').
+  const [family, setFamily] = useState<FamilyLicense[]>([]);
+  const [actionBusy, setActionBusy] = useState("");
 
   const api = useCallback((body: Record<string, unknown>) => callSignin(body, { url: SUPABASE_URL, apikey: APIKEY, preview }), [preview]);
+  const famApi = useCallback((body: Record<string, unknown>) => callFamily(body, { url: SUPABASE_URL, apikey: APIKEY, preview }), [preview]);
 
   const token = () => {
     try {
@@ -95,6 +105,8 @@ export default function OnlineYearReader() {
       const held = bandsHeld(s);
       if (held.length) setBand(held[0]);
       setScreen("reader");
+      const p = await famApi({ action: "progress", token: t });
+      if (p.status === 200) setFamily((p.body.licenses as FamilyLicense[]) ?? []);
     } else {
       try {
         localStorage.removeItem(DEVICE_TOKEN_KEY);
@@ -102,7 +114,7 @@ export default function OnlineYearReader() {
       if (r.body.error === "SIGNED_OUT") setError(OY_READER_DRAFT.signedOut);
       setScreen("email");
     }
-  }, [api]);
+  }, [api, famApi]);
 
   useEffect(() => {
     setPreview(readPreview());
@@ -282,6 +294,60 @@ export default function OnlineYearReader() {
                 </select>
               )}
             </div>
+            {book === "tg" && section.kind === "week" && (
+              <div className="space-y-2">
+                {family
+                  .filter((l) => l.band === band && Date.parse(l.ends_at) > Date.now())
+                  .map((l) => {
+                    const wk = (section as { week: number }).week;
+                    const isDone = l.done.some((d) => d.week === wk);
+                    return (
+                      <div key={l.id} className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className={btn}
+                          style={btnStyle}
+                          disabled={!!actionBusy}
+                          data-cta="oy-print-notebook"
+                          onClick={async () => {
+                            // Open the tab inside the click so the browser allows it; point it at the PDF when ready.
+                            const tab = window.open("", "_blank");
+                            setActionBusy(`print-${l.id}`);
+                            const r = await famApi({ action: "print", token: token(), license_id: l.id, week: wk });
+                            setActionBusy("");
+                            if (r.status === 200 && typeof r.body.url === "string") {
+                              if (tab) tab.location.href = r.body.url;
+                              else window.location.href = r.body.url;
+                            } else {
+                              tab?.close();
+                              setPageError(errorLine(r.body.error, r.body));
+                            }
+                          }}
+                        >
+                          {printLine(l.child_name)}
+                        </button>
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 rounded-sm border font-body text-sm"
+                          disabled={isDone || !!actionBusy}
+                          aria-pressed={isDone}
+                          data-cta="oy-mark-done"
+                          onClick={async () => {
+                            setActionBusy(`done-${l.id}`);
+                            const r = await famApi({ action: "done", token: token(), license_id: l.id, week: wk });
+                            setActionBusy("");
+                            if (r.status === 200) {
+                              setFamily((f) => f.map((x) => (x.id === l.id ? { ...x, done: [...x.done, { week: wk, done_on: String(r.body.done_on) }] } : x)));
+                            } else setPageError(errorLine(r.body.error, r.body));
+                          }}
+                        >
+                          {isDone ? "✓ " : ""}{doneLine(wk, l.child_name)}
+                        </button>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
             {pageError && <p className="font-body text-sm" role="alert">{pageError}</p>}
             {!pages.length && !pageError && <p className="font-body text-sm">{OY_READER_DRAFT.loading}</p>}
             <div className="space-y-6" onContextMenu={(e) => e.preventDefault()}>
@@ -305,6 +371,29 @@ export default function OnlineYearReader() {
             )}
           </>
         )}
+        {family.filter((l) => l.band === band).map((l) => (
+          <div key={`pf-${l.id}`} className="space-y-2 pt-4">
+            <p className="font-body text-sm">{OY_APPROVED_READER.portfolio.replace("[Child]", l.child_name)}</p>
+            <button
+              type="button"
+              className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 rounded-sm border font-body text-sm"
+              data-cta="oy-portfolio"
+              onClick={async () => {
+                const bytes = await makePortfolioPdf({ child: l.child_name, band: l.band, starts_at: l.starts_at, ends_at: l.ends_at, done: l.done });
+                const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `${l.child_name} - Eden's Table ${OY_APPROVED.bandLabel[l.band]} portfolio.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 60_000);
+              }}
+            >
+              {portfolioButtonLine(l.child_name)}
+            </button>
+          </div>
+        ))}
         <button type="button" className="font-body text-xs underline underline-offset-4" onClick={signOut}>{OY_READER_DRAFT.signOut}</button>
       </div>
     </section>

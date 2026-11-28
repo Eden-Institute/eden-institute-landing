@@ -100,6 +100,11 @@ export const OY_APPROVED_READER = {
   yearEnded:
     "[Child]'s Online Year ended on [end date]. Everything you printed is yours to keep. Renew for another 12 months to pick up where you left off.",
   yearEndedButton: "Renew [Child]'s year",
+  printButton: "Print [Child]'s Notebook pages for this week",
+  doneButton: "Mark Week [N] done for [Child]",
+  portfolio: "[Child]'s portfolio: week, date finished, plant, Scripture, plus the standards the year is aligned to.",
+  portfolioButton: "Download [Child]'s portfolio",
+  certificate: "[Child] finished the Sprouts year of Eden's Table and learned [number] plants. [school year]",
 } as const;
 
 /**
