@@ -121,6 +121,7 @@ import { queueOfferGiftStarters } from "../_shared/fpea-gift.ts"
 // refund or dispute, flag an out-of-area card. Dark: only create-checkout's Online Year branch
 // (behind ONLINE_YEAR_ENABLED / the preview token) writes lookup_key online_year_cart.
 import { ONLINE_YEAR_CART_KEY } from "../_shared/online-year-checkout.ts"
+import { sendOnlineYearOrderEmails } from "../_shared/online-year-email-send.ts"
 import {
   closeOnlineYearLicenses,
   handleOnlineYearPurchase,
@@ -1222,6 +1223,14 @@ async function handleOneOffPayment(session: Stripe.Checkout.Session, eventCreate
   if (lookupKey === ONLINE_YEAR_CART_KEY) {
     const outcome = await handleOnlineYearPurchase(session, eventCreated, onlineYearGrantDeps(session, email))
     console.log(`[${session.id}] online year outcome: ${JSON.stringify(outcome)}`)
+    // OY8 (2026-11-28): the family's order email (approved Email 1, or Email 2 for a sibling-only order), only
+    // when licenses were just granted and none was closed by a dispute. Never throws; idempotency keys per order
+    // and license mean a redelivered event sends nothing twice. Licenses exist only after a granted outcome, and
+    // none exist before launch, so nothing is sent while the Online Year is dark (E2E: the forced founder buyer).
+    if (outcome.status === 'granted' && outcome.inserted > 0 && outcome.closedDisputed === 0) {
+      const mail = await sendOnlineYearOrderEmails(adminClient, outcome.orderId, RESEND_API_KEY ?? '')
+      console.log(`[${session.id}] online year emails: ${JSON.stringify(mail)}`)
+    }
     return
   }
 
