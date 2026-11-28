@@ -199,6 +199,10 @@
       "schedule": "0 13 * * *"
     },
     {
+      "path": "/api/cron/online-year-cron",
+      "schedule": "0 13 * * *"
+    },
+    {
       "path": "/api/cron/notify-founder-digest",
       "schedule": "0 14 * * *"
     },

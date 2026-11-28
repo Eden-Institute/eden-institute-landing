@@ -119,6 +119,10 @@ verify_jwt = false
 [functions.online-year-signin]
 verify_jwt = false
 
+# Online Year daily emails (OY8, punch #472): 14-days-before + end day. Service role only (Vercel Cron).
+[functions.online-year-cron]
+verify_jwt = true
+
 # Online Year print + done log (OY6/OY7, punch #472): called anonymously from the reader page; dark until ONLINE_YEAR_ENABLED.
 [functions.online-year-family]
 verify_jwt = false
