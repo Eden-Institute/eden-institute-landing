@@ -1,0 +1,8 @@
+---
+// /online-year/seedlings: the Online Year sales page for this band (OY9, punch #472). See web/components/OnlineYearSales.astro.
+// noindex until the site switch flips (web/lib/onlineYearLaunch.ts); in web/lib/sitemapStaticPaths.ts after it.
+import OnlineYearSales from "../../components/OnlineYearSales.astro";
+import { ONLINE_YEAR_ON_SALE } from "../../lib/onlineYearLaunch";
+---
+
+<OnlineYearSales band="seedlings" noindex={!ONLINE_YEAR_ON_SALE} />

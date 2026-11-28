@@ -38,7 +38,7 @@ const sections = [
     // 2026-09-13: qualified for scholarship-funded Starters, which the
     // Scholarship and ESA purchases card below excludes.
     heading: "Starter Unit credit toward the printed set",
-    body: "Every Starter Unit you pay for yourself comes with a one-time $39 credit. A Sprouts Starter Unit's credit comes off the Sprouts printed set, and a Seedlings Starter Unit's credit comes off the Seedlings printed set. Either one also works on the Sprouts and Seedlings printed sets bought together, and a Sprouts credit can go toward the Sprouts Complete Kit when it is offered again. Each credit works once and does not expire. It does not apply to a Starter Unit that was paid with or reimbursed by scholarship funds (see Scholarship and ESA purchases below). If a Starter Unit purchase is refunded, its credit is cancelled with it.",
+    body: `Every Starter Unit you pay for yourself comes with a one-time $39 credit. A Sprouts Starter Unit's credit comes off the Sprouts printed set, and a Seedlings Starter Unit's credit comes off the Seedlings printed set. Either one also works on the Sprouts and Seedlings printed sets bought together, and a Sprouts credit can go toward the Sprouts Complete Kit when it is offered again.${ONLINE_YEAR_ON_SALE ? " It also works on the same band's Online Year, off the first child's $149 year, instead of a printed set." : ""} Each credit works once and does not expire. It does not apply to a Starter Unit that was paid with or reimbursed by scholarship funds (see Scholarship and ESA purchases below). If a Starter Unit purchase is refunded, its credit is cancelled with it.`,
   },
   {
     // Added 2026-09-11 with the printed Sprouts set (/books); covers the Seedlings
@@ -72,6 +72,7 @@ const sections = [
     body: "If your order was paid with money from an ESA, EFA or scholarship program, any refund goes back to that program, never to you personally. If you paid on our checkout with a card your program issued, such as an Arizona ESA ClassWallet debit card, the refund goes back to that same card. If you ordered through your program's marketplace, or with an invoice paid through your program, such as Direct Pay or Pay Vendor, the refund goes back to your program account. If your program reimbursed you for an order you placed with us, tell us the order was reimbursed when you ask for a refund, so we can send the money back the way your program requires. The $39 Starter Unit credit does not apply to a Starter Unit that was paid with scholarship funds or reimbursed by a scholarship program.",
   },
 ];
+import { ONLINE_YEAR_ON_SALE } from "../lib/onlineYearLaunch";
 ---
 
 <MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical}>

@@ -1,0 +1,64 @@
+---
+// The Online Year sales page for one band (/online-year/sprouts, /online-year/seedlings; OY9, punch #472).
+// Every word: web/lib/onlineYearCopy.ts (approved Nov 23 card, details and FAQ; the free-week lead, the anchor and
+// the per-week line from her 2026-11-27 landing-page taps). Behind the site switch (web/lib/onlineYearLaunch.ts):
+// while ONLINE_YEAR_ON_SALE is false the page is noindex and linked from nowhere.
+import MarketingLayout from "../layouts/MarketingLayout.astro";
+import { OY_APPROVED, OY_APPROVED_CARD, OY_APPROVED_DETAILS_HEADING, OY_APPROVED_FAQ, OY_SALES_LINES, onlineYearDetails, type OnlineYearBandKey } from "../lib/onlineYearCopy";
+import { freeWeekButtonHtml } from "../lib/freeWeekOffer";
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
+
+interface Props {
+  band: OnlineYearBandKey;
+  noindex: boolean;
+}
+const { band, noindex } = Astro.props;
+const label = OY_APPROVED.bandLabel[band];
+const checkout = `/online-year/checkout?band=${band}`;
+const meta = {
+  title: `${OY_APPROVED_CARD.title} · ${label} · The Eden Institute`,
+  description: `${OY_APPROVED_CARD.price}. ${OY_APPROVED.noRenewal}.`,
+  canonical: `https://edeninstitute.health/online-year/${band}`,
+};
+---
+
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} noindex={noindex}>
+  <section class="pt-12 md:pt-20 pb-10 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-3xl mx-auto text-center rounded-lg" style="background-color:hsl(0 0% 100% / 0.92);border:1px solid hsl(var(--eden-gold) / 0.35);padding:clamp(26px, 3.5vw, 52px)">
+      <p class="font-accent text-sm tracking-[0.3em] uppercase mb-3" style="color:hsl(var(--eden-gold-ink))">Eden's Table · {label}</p>
+      <h1 class="font-serif text-4xl md:text-5xl font-bold leading-tight mb-3" style="color:hsl(var(--eden-bark))">{OY_APPROVED_CARD.title}</h1>
+      <p class="font-serif text-2xl font-bold" style="color:hsl(var(--eden-forest))">{OY_APPROVED_CARD.price}</p>
+      <p class="font-body text-sm mt-1" style="color:hsl(var(--eden-bark))">{OY_SALES_LINES.perWeek} {OY_SALES_LINES.anchor}</p>
+      <p class="font-body text-base mt-5 mb-5" style="color:hsl(var(--eden-bark))">
+        <Fragment set:html={freeWeekButtonHtml("online_year", band, { label: OY_SALES_LINES.freeFirst, className: "inline w-auto p-0 font-semibold underline underline-offset-4", style: "color:hsl(var(--eden-forest));background:transparent" })} />.
+      </p>
+      <a href={checkout} data-cta={`online-year-${band}-start`} class={cn(buttonVariants({ variant: "eden", size: "xl" }), "text-center")}>{OY_APPROVED_CARD.button}</a>
+      <p class="font-body text-xs mt-3" style="color:hsl(var(--eden-bark))">{OY_APPROVED_CARD.when}</p>
+      <ul class="font-body text-sm text-left max-w-md mx-auto mt-6 space-y-1" style="color:hsl(var(--eden-bark))">
+        {OY_APPROVED_CARD.points.map((p) => <li>· {p}</li>)}
+      </ul>
+    </div>
+  </section>
+
+  <section class="py-12 px-6 bg-background">
+    <div class="max-w-2xl mx-auto space-y-4">
+      <h2 class="font-serif text-3xl font-bold" style="color:hsl(var(--eden-bark))">{OY_APPROVED_DETAILS_HEADING}</h2>
+      {onlineYearDetails(band).map((p) => <p class="font-body text-base leading-relaxed" style="color:hsl(var(--eden-bark))">{p}</p>)}
+      <div class="pt-2">
+        <a href={checkout} data-cta={`online-year-${band}-start-details`} class={cn(buttonVariants({ variant: "eden", size: "lg" }), "text-center")}>{OY_APPROVED_CARD.button}</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-12 px-6" style="background-color:hsl(var(--eden-cream))">
+    <div class="max-w-2xl mx-auto space-y-3">
+      {OY_APPROVED_FAQ.map((f) => (
+        <details class="rounded-md border p-4" style="border-color:hsl(var(--eden-gold) / 0.4);background-color:hsl(0 0% 100% / 0.7)">
+          <summary class="font-serif text-lg font-bold cursor-pointer" style="color:hsl(var(--eden-bark))">{f.q}</summary>
+          <p class="font-body text-base leading-relaxed mt-2" style="color:hsl(var(--eden-bark))">{f.a}</p>
+        </details>
+      ))}
+    </div>
+  </section>
+</MarketingLayout>

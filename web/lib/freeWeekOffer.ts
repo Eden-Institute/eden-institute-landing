@@ -27,7 +27,7 @@
 import { FREE_WEEK_MODAL } from "./freeWeekModal";
 
 export type FreeWeekBand = "sprouts" | "seedlings";
-export type FreeWeekPlacement = "learn_mid" | "learn_end" | "herb" | "learn_exit" | "podcast" | "starter";
+export type FreeWeekPlacement = "learn_mid" | "learn_end" | "herb" | "learn_exit" | "podcast" | "starter" | "online_year";
 
 export const FREE_WEEK_OFFER_HEADING = "Free: Week 1 of Eden's Table (Sprouts K-2 or Seedlings 3-5)";
 export const FREE_WEEK_OFFER_LINE =
