@@ -71,8 +71,9 @@ function freeWeekButtonAttrs(placement: FreeWeekPlacement, band: FreeWeekBand): 
     `data-waitlist-submit-label="${esc(m.submitLabel)}"`,
     `data-waitlist-success-message="${esc(m.successMessage)}"`,
     `data-waitlist-success-subtitle="${esc(m.successSubtitle)}"`,
-    `data-waitlist-cta-href="/homeschool"`,
-    `data-waitlist-cta-label="See the full year"`,
+    `data-waitlist-cta-href="${esc(m.successCtaHref)}"`,
+    `data-waitlist-cta-label="${esc(m.successCtaLabel)}"`,
+    `data-waitlist-cta-blurb="${esc(m.successCtaBlurb)}"`,
   ];
 }
 

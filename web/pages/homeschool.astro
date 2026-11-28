@@ -325,8 +325,9 @@ const PRINT_SET = {
                 data-waitlist-submit-label={f.modal.submitLabel}
                 data-waitlist-success-message={f.modal.successMessage}
                 data-waitlist-success-subtitle={f.modal.successSubtitle}
-                data-waitlist-cta-href="/homeschool"
-                data-waitlist-cta-label="See the full year"
+                data-waitlist-cta-href={f.modal.successCtaHref}
+                data-waitlist-cta-label={f.modal.successCtaLabel}
+                data-waitlist-cta-blurb={f.modal.successCtaBlurb}
               >{f.label}</button>
             </>
           ))}
@@ -473,8 +474,9 @@ const PRINT_SET = {
                         data-waitlist-submit-label={r.modal.submitLabel}
                         data-waitlist-success-message={r.modal.successMessage}
                         data-waitlist-success-subtitle={r.modal.successSubtitle}
-                        data-waitlist-cta-href="/homeschool"
-                        data-waitlist-cta-label="See the full year"
+                        data-waitlist-cta-href={r.modal.successCtaHref}
+                        data-waitlist-cta-label={r.modal.successCtaLabel}
+                        data-waitlist-cta-blurb={r.modal.successCtaBlurb}
                       >{r.button}</Button>
                     ) : (
                       <a href={r.href} data-cta={r.cta} class={cn(buttonVariants({ variant: r.primary ? "eden" : "eden-outline", size: "lg" }), "text-center w-full whitespace-normal h-auto min-h-[48px] py-3 px-4 leading-snug")}>{r.button}</a>

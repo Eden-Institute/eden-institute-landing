@@ -69,10 +69,11 @@ Deno.test('Sprouts week 1 welcome keeps its subject, copy, three downloads and f
     'href="https://edeninstitute.health/freebies"',
     'The Eden Institute | edeninstitute.health',
     "You're receiving this because you signed up at edeninstitute.health. No spam, ever.",
-    'Shop Medicinal Herbs',
     ...CLOSING,
   ]);
   assertLegalFooter(html);
+  // 2026-11-27: the free-week welcome has one job (open Week 1); the Shop Medicinal Herbs card was removed.
+  assert(!html.includes('Shop Medicinal Herbs'), 'free-week welcome carries no shop card');
 });
 
 Deno.test('Seedlings week 1 welcome keeps its subject, copy, three downloads and footer', () => {
@@ -96,10 +97,11 @@ Deno.test('Seedlings week 1 welcome keeps its subject, copy, three downloads and
     'Tomorrow morning I will send you a short note on how to get started, and in about a week I will check in to see how it went.',
     'The Eden Institute | edeninstitute.health',
     "You're receiving this because you signed up at edeninstitute.health. No spam, ever.",
-    'Shop Medicinal Herbs',
     ...CLOSING,
   ]);
   assertLegalFooter(html);
+  // 2026-11-27: the free-week welcome has one job (open Week 1); the Shop Medicinal Herbs card was removed.
+  assert(!html.includes('Shop Medicinal Herbs'), 'free-week welcome carries no shop card');
   assert(!html.includes('hs-seedlings-w1-ra-'), 'Seedlings has no Week 1 story; its bonus read-aloud is Story Seven (Week 2)');
 });
 

@@ -25,8 +25,10 @@ describe("freeWeekOfferHtml", () => {
     // The pop-up's wording comes from FREE_WEEK_MODAL, read back intact through the escaping.
     expect(buttons[1].getAttribute("data-waitlist-subtitle")).toBe(FREE_WEEK_MODAL.seedlings.subtitle);
     expect(buttons[0].getAttribute("data-waitlist-title")).toBe(FREE_WEEK_MODAL.sprouts.title);
-    // The post-signup button is a plain internal link (no UTM tags).
-    expect(buttons[0].getAttribute("data-waitlist-cta-href")).toBe("/homeschool");
+    // The post-signup button is a plain internal link (no UTM tags). Since 2026-11-27 it opens the band's
+    // Week 1 page so a new family can start right away (it used to send them to /homeschool).
+    expect(buttons[0].getAttribute("data-waitlist-cta-href")).toBe("/freebies/sprouts-week-1");
+    expect(buttons[0].getAttribute("data-waitlist-cta-label")).toBe("Open Week 1 now");
     expect(buttons.every((b) => b.getAttribute("type") === "button")).toBe(true);
   });
 
