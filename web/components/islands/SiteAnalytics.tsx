@@ -17,6 +17,7 @@ import { captureFirstTouch } from "@/lib/attribution";
 import { startMerchantWidgetAfterAccept } from "@/lib/merchantWidget";
 import { partnerPromoCode } from "../../lib/partnerPromo";
 import { installClientErrorBeacon } from "@/lib/clientErrorBeacon";
+import { affiliateClick } from "@/lib/affiliateClick";
 
 const SKIP_PREFIXES = ["/founder", "/apothecary/auth", "/apothecary/account"];
 
@@ -115,9 +116,26 @@ export default function SiteAnalytics({ thirdPartyTags = true, storeBadge = fals
     // no future stopPropagation can hide a CTA from measurement).
     let lastKey = "";
     let lastAt = 0;
+    let lastAff = "";
+    let lastAffAt = 0;
     const clickHandler = (e: MouseEvent) => {
       const target = e.target as Element | null;
       if (!target || typeof target.closest !== "function") return;
+      // Affiliate and sponsored outbound links (2026-11-27, src/lib/affiliateClick.ts): one extra row naming the
+      // program and the item. The link is not touched, so commission credit is unchanged.
+      const link = target.closest("a[href]");
+      if (link) {
+        const aff = affiliateClick(link.getAttribute("href"), link.getAttribute("rel"), window.location.href);
+        if (aff) {
+          const affKey = `${aff.cta}|${aff.placement}|${window.location.pathname}`;
+          const t = Date.now();
+          if (affKey !== lastAff || t - lastAffAt >= 800) {
+            lastAff = affKey;
+            lastAffAt = t;
+            beaconCtaClick(aff.cta, window.location.pathname, aff.placement);
+          }
+        }
+      }
       const el = target.closest("[data-cta]");
       if (!el) return;
       const cta = el.getAttribute("data-cta");
