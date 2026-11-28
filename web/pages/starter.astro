@@ -42,7 +42,7 @@ import heroStarter from "@/assets/hero-starter.jpg";
 import HeroBackdrop from "../components/HeroBackdrop.astro";
 import StarterBuyBox from "../components/islands/StarterBuyBox.tsx";
 import ComponentShowcases from "../components/ComponentShowcases.astro";
-import { RETURN_POLICY } from "../lib/merchantOffer";
+import { includedShippingPolicies } from "../lib/merchantOffer";
 import { productDetails } from "../lib/productDetails";
 
 const PRICE = "$39";
@@ -144,7 +144,7 @@ const productJsonLd = {
     priceCurrency: "USD",
     availability: "https://schema.org/InStock",
     url: "https://edeninstitute.health/starter",
-    hasMerchantReturnPolicy: RETURN_POLICY,
+    ...includedShippingPolicies("download"),
   },
 };
 

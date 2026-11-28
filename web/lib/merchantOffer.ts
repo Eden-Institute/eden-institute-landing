@@ -34,24 +34,39 @@ const days = (minValue: number, maxValue: number) => ({
   unitCode: "DAY",
 });
 
+function shipping(rateCents: number, transitMin: number, transitMax: number) {
+  return {
+    "@type": "OfferShippingDetails",
+    shippingRate: { "@type": "MonetaryAmount", value: (rateCents / 100).toFixed(2), currency: "USD" },
+    shippingDestination: { "@type": "DefinedRegion", addressCountry: "US" },
+    deliveryTime: {
+      "@type": "ShippingDeliveryTime",
+      handlingTime: days(0, 0),
+      transitTime: days(transitMin, transitMax),
+      businessDays: {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map((d) => `https://schema.org/${d}`),
+      },
+    },
+  };
+}
+
 export function printOfferPolicies(sku: string) {
   const cents = printShippingCents([{ sku, qty: 1 }]);
   if (cents == null) throw new Error(`No shipping tier for ${sku}`);
+  return { shippingDetails: shipping(cents, 10, 15), hasMerchantReturnPolicy: RETURN_POLICY };
+}
+
+/**
+ * Offers whose price already covers delivery (2026-11-27; Search Console 11/14 flagged
+ * "Missing field shippingDetails (in offers)" on the pages that lacked it):
+ * - "download": the Starter Units, delivered by email on the spot, so $0 and 0 days.
+ * - "print": the /esa items, whose prices are totals with shipping inside ("$261 total",
+ *   "Shipping included"), so $0 extra and the feed's 10 to 15 business days in transit.
+ */
+export function includedShippingPolicies(kind: "download" | "print") {
   return {
-    shippingDetails: {
-      "@type": "OfferShippingDetails",
-      shippingRate: { "@type": "MonetaryAmount", value: (cents / 100).toFixed(2), currency: "USD" },
-      shippingDestination: { "@type": "DefinedRegion", addressCountry: "US" },
-      deliveryTime: {
-        "@type": "ShippingDeliveryTime",
-        handlingTime: days(0, 0),
-        transitTime: days(10, 15),
-        businessDays: {
-          "@type": "OpeningHoursSpecification",
-          dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map((d) => `https://schema.org/${d}`),
-        },
-      },
-    },
+    shippingDetails: kind === "download" ? shipping(0, 0, 0) : shipping(0, 10, 15),
     hasMerchantReturnPolicy: RETURN_POLICY,
   };
 }

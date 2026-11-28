@@ -32,7 +32,7 @@ import {
   esaCopyProblems,
   type EsaState,
 } from "../../lib/esaStates";
-import { RETURN_POLICY } from "../../lib/merchantOffer";
+import { includedShippingPolicies } from "../../lib/merchantOffer";
 
 export function getStaticPaths() {
   return ESA_STATES.map((s) => ({ params: { state: s.slug }, props: { s } }));
@@ -167,7 +167,8 @@ const productJsonLd =
           availability: "https://schema.org/InStock",
           url: canonical,
           seller: { "@type": "Organization", name: "Rooted in Faith Ventures LLC" },
-          hasMerchantReturnPolicy: RETURN_POLICY,
+          // A Starter Unit is a download; every other item is printed, with shipping inside its price.
+          ...includedShippingPolicies(/download/i.test(i.note) ? "download" : "print"),
         },
       }));
 
