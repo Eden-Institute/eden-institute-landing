@@ -77,7 +77,52 @@ export const OY_APPROVED_ORDER_ERRORS = {
 export const OY_HELP_EMAIL = "hello@edeninstitute.health";
 
 /**
- * Where "Open Sprouts" / "Open Seedlings" goes: the Online Year sign-in page, which OY4 builds. Internal link,
- * so no UTM tags. Until OY4 ships, this path does not exist yet.
+ * Where "Open Sprouts" / "Open Seedlings" goes: the Online Year sign-in page, which is also the reader (OY5).
+ * Internal link, so no UTM tags.
  */
 export const ONLINE_YEAR_SIGNIN_PATH = "/online-year/sign-in";
+
+/**
+ * The reader's own lines, word for word from the plan's "Approved copy > Inside the reader" (her review page,
+ * Nov 23, version 5; device line updated on her "3, plus 1 per sibling" tap). Placeholders as the plan writes them.
+ */
+export const OY_APPROVED_READER = {
+  topLine: "Online Year · [Band] · open through [end date]",
+  licensedLine: "Licensed to [parent's name] · [email] · for use at home",
+  signIn: "Sign in to your Online Year. Enter the email you used at checkout, and we'll send you a 6-digit code.",
+  codeScreen: "Check your email for your code. It works for 10 minutes.",
+  codeButton: "Sign in",
+  newCodeLink: "Send a new code",
+  atLimit: "You're signed in on [N] devices, your family's limit. Signing in here signs out the one you used longest ago.",
+  atLimitButton: "Sign in here",
+  lastTwoWeeks: "Your Online Year ends on [end date]. Renew to keep going.",
+  renewFirstChild: "Renew for $149",
+  yearEnded:
+    "[Child]'s Online Year ended on [end date]. Everything you printed is yours to keep. Renew for another 12 months to pick up where you left off.",
+  yearEndedButton: "Renew [Child]'s year",
+} as const;
+
+/**
+ * Reader lines the approved copy does not have yet (buttons, labels, errors), DRAFTED 2026-11-28 for Camila's OK.
+ * Every one is plain and short; none makes a claim. Until she approves them, OY_READER_DRAFT_APPROVED stays false
+ * and src/test/onlineYearReader.test.ts reminds the launch check (OY10) that they are still drafts.
+ */
+export const OY_READER_DRAFT_APPROVED = false;
+export const OY_READER_DRAFT = {
+  sendCodeButton: "Email me a code",
+  codeLabel: "Your 6-digit code",
+  codeInvalid: "That code didn't work. Check the newest email from us, or send a new code.",
+  tooManyTries: "That code has had too many tries. Please send a new code.",
+  slowDown: "Please wait a little while and try again.",
+  signedOut: "You've been signed out on this device. Sign in again to keep going.",
+  noYearHere: "Your Online Year isn't for this band. Choose your band above.",
+  teachersGuide: "Teacher's Guide",
+  storybook: "Storybook",
+  beforeWeek1: "Before Week 1",
+  week: "Week [N] · [Plant]",
+  backOfBook: "Back of the book",
+  previous: "Previous pages",
+  next: "Next pages",
+  signOut: "Sign out of this device",
+  loading: "Opening your pages...",
+} as const;

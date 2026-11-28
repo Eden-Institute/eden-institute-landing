@@ -44,7 +44,32 @@ const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,63}$/;
 const CODE_RE = /^\d{6}$/;
 const TOKEN_RE = /^[A-Za-z0-9_-]{43}$/;
 
-export type SigninAction = 'request' | 'verify' | 'session' | 'signout';
+export type SigninAction = 'request' | 'verify' | 'session' | 'signout' | 'pages';
+
+// ── The reader (OY5) ──────────────────────────────────────────────────────────────────────────────────────
+// Page images live in the PRIVATE bucket "online-year" (uploaded 2026-11-28 from the OY0 build), at
+// reader/<band>/<book>/pNNN.webp. A signed-in family gets short-lived signed links, a few pages at a time,
+// and only for a band where it holds a live (active, not ended) FIRST-CHILD license: the Teacher's Guide and
+// storybook come with the $149 year (approved FAQ: a sibling's $29 adds that child's Notebook pages).
+export type ReaderBand = 'sprouts' | 'seedlings';
+export type ReaderBook = 'tg' | 'ra';
+export const READER_BUCKET = 'online-year';
+/** Page counts of the printed books (OY0 manifest; the files Lulu prints from). */
+export const READER_PAGES: Record<ReaderBand, Record<ReaderBook, number>> = {
+  sprouts: { tg: 240, ra: 112 },
+  seedlings: { tg: 245, ra: 160 },
+};
+export const READER_LINK_SECONDS = 600;
+export const MAX_PAGES_PER_CALL = 12;
+
+export function readerPagePath(band: ReaderBand, book: ReaderBook, page: number): string {
+  return `reader/${band}/${book}/p${String(page).padStart(3, '0')}.webp`;
+}
+
+/** The family's live first-child license in this band, if any (this is what opens the Teacher's Guide). */
+export function readerLicense(licenses: SigninLicense[], band: string, now: Date): SigninLicense | null {
+  return licenses.find((l) => l.band === band && l.kind === 'first_child' && l.status === 'active' && Date.parse(l.ends_at) > now.getTime()) ?? null;
+}
 
 export interface SigninLicense {
   id: string;
@@ -104,6 +129,8 @@ export interface SigninDeps {
   signOutDevice(deviceId: string, reason: 'limit' | 'user', at: string): Promise<void>;
   findDeviceByTokenHash(tokenHash: string): Promise<SigninDevice | null>;
   touchDevice(deviceId: string, at: string): Promise<void>;
+  /** Signed links for these storage paths in READER_BUCKET, in the same order. */
+  signUrls?(paths: string[], seconds: number): Promise<string[]>;
   /** Runs background work after the response (EdgeRuntime.waitUntil) or awaits it. */
   defer(work: Promise<unknown>): Promise<void>;
   /** Cryptographic randomness, injectable for tests. */
@@ -284,6 +311,39 @@ export async function handleSession(token: string, deps: SigninDeps): Promise<Re
   };
 }
 
+/**
+ * pages {token, band, book, from, to}: signed links for up to MAX_PAGES_PER_CALL pages of one book.
+ * SIGNED_OUT when the device is not signed in; YEAR_ENDED when the family has had a first-child year in
+ * this band that is over or closed (the reader shows the approved "Year ended" screen); NO_LICENSE when it
+ * never had one in this band.
+ */
+export async function handlePages(
+  input: { token: string; band: ReaderBand; book: ReaderBook; from: number; to: number },
+  deps: SigninDeps,
+): Promise<Result> {
+  const now = (deps.now ?? (() => new Date()))();
+  const device = await deps.findDeviceByTokenHash(await sha256Hex(input.token));
+  if (!device || device.signed_out_at) return SIGNED_OUT;
+  const parent = await deps.findParentById(device.parent_id);
+  if (!parent) return SIGNED_OUT;
+  const licenses = await deps.listLicenses(parent.id);
+  if (!canSignIn(licenses)) return SIGNED_OUT;
+  if (!readerLicense(licenses, input.band, now)) {
+    const had = licenses.some((l) => l.band === input.band && l.kind === 'first_child');
+    return { status: 403, body: { error: had ? 'YEAR_ENDED' : 'NO_LICENSE' } };
+  }
+  const total = READER_PAGES[input.band][input.book];
+  if (input.from < 1 || input.to > total || input.to < input.from || input.to - input.from + 1 > MAX_PAGES_PER_CALL) {
+    return { status: 400, body: { error: 'BAD_REQUEST' } };
+  }
+  if (!deps.signUrls) throw new Error('signUrls not wired');
+  const pages: number[] = [];
+  for (let p = input.from; p <= input.to; p++) pages.push(p);
+  const urls = await deps.signUrls(pages.map((p) => readerPagePath(input.band, input.book, p)), READER_LINK_SECONDS);
+  await deps.touchDevice(device.id, now.toISOString());
+  return { status: 200, body: { pages: pages.map((page, i) => ({ page, url: urls[i] })), total, expires_in: READER_LINK_SECONDS } };
+}
+
 export async function handleSignout(token: string, deps: SigninDeps): Promise<Result> {
   const now = (deps.now ?? (() => new Date()))();
   const device = await deps.findDeviceByTokenHash(await sha256Hex(token));
@@ -315,6 +375,15 @@ export async function handleOnlineYearSignin(req: Request, deps: SigninDeps): Pr
       if (!email || !CODE_RE.test(code)) return respond(CODE_INVALID, deps.cors);
       const label = typeof b.label === 'string' && b.label.trim() ? b.label.trim().slice(0, 80) : null;
       return respond(await handleVerify({ email, code, confirm: b.confirm === true, label }, deps), deps.cors);
+    }
+    if (action === 'pages') {
+      const token = typeof b.token === 'string' ? b.token : '';
+      if (!TOKEN_RE.test(token)) return respond(SIGNED_OUT, deps.cors);
+      const band = b.band, book = b.book, from = Number(b.from), to = Number(b.to);
+      if ((band !== 'sprouts' && band !== 'seedlings') || (book !== 'tg' && book !== 'ra') || !Number.isInteger(from) || !Number.isInteger(to)) {
+        return respond({ status: 400, body: { error: 'BAD_REQUEST' } }, deps.cors);
+      }
+      return respond(await handlePages({ token, band, book, from, to }, deps), deps.cors);
     }
     if (action === 'session' || action === 'signout') {
       const token = typeof b.token === 'string' ? b.token : '';

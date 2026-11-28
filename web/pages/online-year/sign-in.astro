@@ -1,0 +1,21 @@
+---
+// /online-year/sign-in (Eden's Table Online Year, OY5, punch #472): sign in with an emailed code, then the reader
+// (Teacher's Guide + storybook on screen). "Open Sprouts" on /online-year/thank-you links here
+// (ONLINE_YEAR_SIGNIN_PATH). DARK until launch: noindex, no third-party tags (a family's name and email show on
+// every page), and online-year-signin answers 404 until ONLINE_YEAR_ENABLED.
+import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import OnlineYearReader from "../../components/islands/OnlineYearReader";
+import { OY_APPROVED } from "../../lib/onlineYearCopy";
+
+const meta = {
+  title: `${OY_APPROVED.title} · The Eden Institute`,
+  description: OY_APPROVED.noRenewal,
+  canonical: "https://edeninstitute.health/online-year/sign-in",
+};
+---
+
+<MarketingLayout title={meta.title} description={meta.description} canonical={meta.canonical} noindex={true} noThirdPartyTags={true}>
+  <main>
+    <OnlineYearReader client:only="react" />
+  </main>
+</MarketingLayout>
