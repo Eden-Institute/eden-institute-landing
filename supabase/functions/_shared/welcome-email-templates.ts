@@ -57,7 +57,9 @@ function magnetWrapper(body: string): string {
       "You're receiving this because you signed up at edeninstitute.health. No spam, ever.",
       'The Eden Institute | edeninstitute.health',
     ),
-    { shopCard: true },
+    // 2026-11-27 (landing-page deep dive, founder go-ahead "make all fixes now"): the welcome is the most-opened
+    // email and its one job is opening Week 1, so the Shop Medicinal Herbs card no longer rides along.
+    { shopCard: false },
   );
 }
 

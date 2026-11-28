@@ -40,6 +40,11 @@ export interface FreeWeekModal {
   /** The band's Week 1 download page, shown as a button in that case. */
   lateHref: string;
   lateLabel: string;
+  /** 2026-11-27: the button on the normal success screen. It opens the band's Week 1 page (the same page the
+   *  welcome email links) so a new family can start now instead of being sent to /homeschool. */
+  successCtaHref: string;
+  successCtaLabel: string;
+  successCtaBlurb: string;
 }
 
 const SUBMIT_LABEL = "Send me Week 1";
@@ -51,6 +56,8 @@ const SUCCESS_MESSAGE = "Week 1 is on its way to your inbox now.";
 // instead of saying the email is on its way. Copy rule: no em dashes.
 const LATE_MESSAGE = "You're signed up. Your email is running late, so here is Week 1 now:";
 const LATE_LABEL = "Open Week 1";
+const SUCCESS_CTA_LABEL = "Open Week 1 now";
+const SUCCESS_CTA_BLURB = "No need to wait for the email. Your Week 1 lessons are ready to open right now.";
 
 export const FREE_WEEK_MODAL: Record<"sprouts" | "seedlings", FreeWeekModal> = {
   sprouts: {
@@ -64,6 +71,9 @@ export const FREE_WEEK_MODAL: Record<"sprouts" | "seedlings", FreeWeekModal> = {
     lateMessage: LATE_MESSAGE,
     lateHref: "/freebies/sprouts-week-1",
     lateLabel: LATE_LABEL,
+    successCtaHref: "/freebies/sprouts-week-1",
+    successCtaLabel: SUCCESS_CTA_LABEL,
+    successCtaBlurb: SUCCESS_CTA_BLURB,
   },
   seedlings: {
     source: "seedlings_magnet",
@@ -76,6 +86,9 @@ export const FREE_WEEK_MODAL: Record<"sprouts" | "seedlings", FreeWeekModal> = {
     lateMessage: LATE_MESSAGE,
     lateHref: "/freebies/seedlings-week-1",
     lateLabel: LATE_LABEL,
+    successCtaHref: "/freebies/seedlings-week-1",
+    successCtaLabel: SUCCESS_CTA_LABEL,
+    successCtaBlurb: SUCCESS_CTA_BLURB,
   },
 };
 

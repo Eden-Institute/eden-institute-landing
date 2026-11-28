@@ -64,8 +64,9 @@ export function FreeWeekOfferCard() {
           submitLabel={m.submitLabel}
           successMessage={m.successMessage}
           successSubtitle={m.successSubtitle}
-          successCtaHref="/homeschool"
-          successCtaLabel="See the full year"
+          successCtaHref={m.successCtaHref}
+          successCtaLabel={m.successCtaLabel}
+          successCtaBlurb={m.successCtaBlurb}
           lateMessage={m.lateMessage}
           lateHref={m.lateHref}
           lateLabel={m.lateLabel}

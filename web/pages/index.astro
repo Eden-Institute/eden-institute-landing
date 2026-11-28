@@ -93,19 +93,21 @@ const meta = {
           Somewhere along the way, we stopped listening.
         </span>
       </p>
+      {/* 2026-11-27, founder decision (punch #482, decision 1): the headline stays; the two buttons now lead to
+          Eden's Table. They went to the adult quiz and the Apothecary, while /freebies is the one page that converts. */}
       <div class="flex flex-col sm:flex-row gap-3 justify-center" style="margin-top:32px">
         <a
-          href="/assessment"
-          data-cta="home-hero-quiz"
+          href="/freebies"
+          data-cta="home-hero-free-week"
           class="inline-flex items-center justify-center transition-colors duration-200 min-h-[48px]"
           style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:15px;letter-spacing:0.06em;padding:12px 28px;border-radius:2px;background-color:hsl(var(--honey));color:hsl(var(--footer-bg));border:1px solid hsl(var(--honey))"
-        >Find Your Body Pattern, Free 2-Minute Quiz</a>
+        >Get a free week</a>
         <a
-          href="/apothecary"
-          data-cta="home-hero-apothecary"
+          href="/homeschool"
+          data-cta="home-hero-curriculum"
           class="inline-flex items-center justify-center transition-colors duration-200 min-h-[48px]"
           style="font-family:'Cormorant Garamond', Georgia, serif;font-weight:600;font-size:15px;letter-spacing:0.06em;padding:12px 28px;border-radius:2px;background-color:transparent;color:hsl(var(--green-deep));border:1px solid hsl(var(--green-deep))"
-        >Open the Apothecary</a>
+        >See the curriculum</a>
       </div>
     </div>
     {heroClips.length > 0 && (

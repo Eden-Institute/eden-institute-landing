@@ -26,12 +26,13 @@
 //
 // Copy rule: no em dashes (feedback_no_em_dashes).
 import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import FamilyQuotes from "../../components/FamilyQuotes.astro";
 import WaitlistController from "../../components/islands/WaitlistController.tsx";
 import { freeWeekButtonHtml } from "../../lib/freeWeekOffer";
 import heroStarter from "@/assets/hero-starter.jpg";
 import HeroBackdrop from "../../components/HeroBackdrop.astro";
 import StarterBuyBox from "../../components/islands/StarterBuyBox.tsx";
-import { RETURN_POLICY } from "../../lib/merchantOffer";
+import { includedShippingPolicies } from "../../lib/merchantOffer";
 import { productDetails } from "../../lib/productDetails";
 
 const PRICE = "$39";
@@ -116,7 +117,7 @@ const productJsonLd = {
     priceCurrency: "USD",
     availability: "https://schema.org/InStock",
     url: "https://edeninstitute.health/starter/seedlings",
-    hasMerchantReturnPolicy: RETURN_POLICY,
+    ...includedShippingPolicies("download"),
   },
 };
 
@@ -180,7 +181,7 @@ const faqJsonLd = {
       <div id="early-access" class="flex justify-center scroll-mt-28 min-[1024px]:scroll-mt-40">
         <StarterBuyBox client:only="react" band="seedlings" cta="starter-seedlings-hero-buy" wide={true} />
       </div>
-      <p class="font-body text-sm text-center mt-3" data-starter-credit-line style="color:hsl(var(--eden-bark))">Comes with a $39 credit toward the printed Seedlings year, whenever you're ready for the rest.</p>
+      <p class="font-body text-sm text-center mt-3" data-starter-credit-line style="color:hsl(var(--eden-bark))">Comes with a $39 credit toward the printed Seedlings year, so the set is $210 instead of $249, whenever you're ready for the rest.</p>
       <p class="font-body text-sm text-center mt-4" style="color:hsl(var(--eden-bark))">
         New to herbs? Even with older children, most families start with
         <a href="/starter" data-cta="starter-seedlings-hero-sprouts" class="underline" style="color:hsl(var(--eden-forest))">the Sprouts Starter Unit</a>,
@@ -193,10 +194,12 @@ const faqJsonLd = {
       {/* Not ready to buy: the free Week 1 of this band first (2026-11-16, Lane SEO batch 5,
           b5_week1, the Gather 'Round / Sonlight sample route). */}
       <p class="font-body text-sm text-center mt-3" style="color:hsl(var(--eden-bark))">
-        Not sure yet? <Fragment set:html={freeWeekButtonHtml("starter", "seedlings", { label: "Teach Week 1 free first", className: "inline w-auto p-0 font-semibold underline underline-offset-4", style: "color:hsl(var(--eden-forest));background:transparent" })} />, then decide.
+        Not sure yet? <Fragment set:html={freeWeekButtonHtml("starter", "seedlings", { label: "Teach Week 1 free first", className: "inline w-auto p-0 font-semibold underline underline-offset-4", style: "color:hsl(var(--eden-forest));background:transparent" })} /> (no card needed), then decide.
       </p>
     </div>
   </section>
+
+  <FamilyQuotes />
 
   <!-- WHAT IS INCLUDED -->
   <section class="py-16 px-6 bg-background">

@@ -20,6 +20,7 @@
 //
 // Copy here deliberately carries NO em dashes, per Lock #27.
 import WiredCta from "../components/WiredCta.astro";
+import { FAMILY_QUOTES } from "../lib/familyQuotes";
 import MarketingLayout from "../layouts/MarketingLayout.astro";
 // Hero watermark: public domain botanical plate from Koehler's Medizinal-Pflanzen
 // (1887), desaturated to a sage wash and feathered at the edges, matching the
@@ -101,40 +102,8 @@ const hooks = [
   { band: "Seedlings", line: "Week 1 is elderberry. Look closely at the berries, cook a batch of syrup, and meet a doctor who wrote a whole book about one shrub." },
 ];
 
-// Word for word; a cut is marked with an ellipsis. PERMISSION ON FILE for each,
-// as of 2026-10-14 (the Testers tab of the Outreach Bible is the record for T-01/T-02):
-//   Kati       written, 2026-07-12, website testimonial (T-01). Her own message says
-//              "in to"; /homeschool prints "into". Nested quotes are single here.
-//   Amanda     written, 2026-07-06, her whole review on the website (T-02). The cut
-//              drops her list of "table cards" and "recipes": the card decks left
-//              the free week on 2026-09-12, so this page must not promise them.
-//   Brooke     founder's word, 2026-09-15 (no written copy on file).
-//   Kendria    founder's word, 2026-09-15 (no written copy on file). The cut drops
-//              "can't wait until it launches!", which reads stale now.
-//   Coralee    founder's word, 2026-10-14 (no written copy on file).
-// Never add a quote here without a permission line above it.
-const testimonials = [
-  {
-    quote: "I just wanted you to see how in to it they are! No complaining and actually asking to do their ‘learning’!!",
-    who: "Kati, former nurse and paramedic, whose children did Week 1 in June",
-  },
-  {
-    quote: "I am a mother who has been homeschooling kids for over 18 years. … The balance of faith and herb/gardening is perfect, it is a complete lesson and well thought out.",
-    who: "Amanda, homeschooling 18 years, who reviewed the lessons",
-  },
-  {
-    quote: "Ahhhhhh I just spent the last few hours poring over the free sample you sent us. This curriculum is absolutely fantastic. I cannot wait to buy this in the fall. This will be our kids favourite curriculum to explore.",
-    who: "Coralee, who read the free sample cover to cover",
-  },
-  {
-    quote: "This is a beautiful curriculum to start. I've just begun reading our teaching guide.",
-    who: "Brooke, Clarksville, TN",
-  },
-  {
-    quote: "…this curriculum truly puts it into bite-size chunks of information while still incorporating incredible vocabulary, concepts, and quality stories.",
-    who: "Kendria Scriver, curriculum writer",
-  },
-];
+// The quotes and their permission record live in web/lib/familyQuotes.ts (moved 2026-11-27).
+const testimonials = FAMILY_QUOTES;
 
 // FAQ. Each answer is built from published copy or the Week 1 pages (sources in the
 // audit doc). No "no dosing" claim anywhere: Seedlings Week 1 carries a dose line,
@@ -159,7 +128,7 @@ const faqs = [
   },
   {
     q: "What happens after I download?",
-    a: "Week 1 lands in your inbox right away, all five days of it. About a week later Camila writes about the weeks that follow, and there's nothing you need to do before then. If you want to keep going, weeks 1 through 9 are $39 as an instant download.",
+    a: "Week 1 lands in your inbox right away, all five days of it, and you can open it on the page as soon as you sign up. Then Camila sends a short note the next morning, one email a day with that day's lesson, a check-in at the end of the week, and a few days later a look at the weeks that follow. If you want to keep going, weeks 1 through 9 are $39 as an instant download.",
   },
 ];
 

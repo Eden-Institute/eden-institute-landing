@@ -1271,8 +1271,9 @@ ${small('<a href="{{UNSUB_URL}}" style="color:#888888;text-decoration:underline;
 // Day-10 Starter note after a free week (DRAFT 2026-10-14, founder asked for a Starter email
 // after Day 7). Same plain look as the next-morning note and the check-in. Link in the first
 // three lines, two links in all, one ask. Every plant and day is from the Week 1-9 Teacher's
-// Guides (Sprouts roster; Seedlings spine). No credit wording (founder law 2026-09-14), no
-// deadline (there is none). No em dashes.
+// Guides (Sprouts roster; Seedlings spine). No deadline (there is none). No em dashes.
+// 2026-11-27 (punch #482, decision 3): one credit line, since a family-paid Starter's $39 now comes off
+// the same band's printed set (founder 2026-11-22). Was "No credit wording" under the 2026-09-14 law.
 function buildFreeWeekStarterEmail(
   rawFirstName: string | null,
   band: 'sprouts' | 'seedlings',
@@ -1313,6 +1314,7 @@ ${para(`If ${s.plant} week went well at your house, here is what comes next. Wee
 ${para(s.weeks)}
 ${para(s.shape)}
 ${para(`You get the Teacher&rsquo;s Guide, the Student Notebook and ${s.stories}, as PDFs you print at home. Print it again for the next child as often as you like.`)}
+${para(`And if you go on to the printed ${s.band} year later, the $39 you paid comes off it, so the set is $210 instead of $249.`)}
 ${para(`${a(`Start ${s.band} weeks 1 to 9 for $39`, url)}`)}
 ${para('Not ready? That is okay. Your free week is still yours, and I will keep sending you a plant idea every Friday.')}
 ${para('Camila')}

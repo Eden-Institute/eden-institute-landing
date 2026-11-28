@@ -17,6 +17,7 @@
 
 import { useEffect, useRef } from "react";
 import { trackCta } from "@/lib/trackCta";
+import { affiliateClick } from "@/lib/affiliateClick";
 
 const SKIP_PREFIXES = ["/founder"];
 
@@ -27,6 +28,12 @@ export default function CtaClickTracker() {
     const handler = (e: MouseEvent) => {
       const target = e.target as Element | null;
       if (!target || typeof target.closest !== "function") return;
+      // Affiliate and sponsored outbound links (2026-11-27): one extra row naming the program and the item.
+      const link = target.closest("a[href]");
+      if (link && !SKIP_PREFIXES.some((p) => window.location.pathname.startsWith(p))) {
+        const aff = affiliateClick(link.getAttribute("href"), link.getAttribute("rel"), window.location.href);
+        if (aff) trackCta(aff.cta, { path: window.location.pathname, placement: aff.placement });
+      }
       const el = target.closest("[data-cta]");
       if (!el) return;
       const cta = el.getAttribute("data-cta");
