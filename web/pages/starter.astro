@@ -30,6 +30,7 @@
 //
 // Copy rule: no em dashes (feedback_no_em_dashes).
 import MarketingLayout from "../layouts/MarketingLayout.astro";
+import FamilyQuotes from "../components/FamilyQuotes.astro";
 import WaitlistController from "../components/islands/WaitlistController.tsx";
 import { freeWeekButtonHtml } from "../lib/freeWeekOffer";
 // Hero watermark: public domain botanical plate from Koehler's Medizinal-Pflanzen
@@ -233,6 +234,8 @@ const faqJsonLd = {
       </p>
     </div>
   </section>
+
+  <FamilyQuotes />
 
   <!-- WHAT IS INCLUDED -->
   <section class="py-16 px-6 bg-background">

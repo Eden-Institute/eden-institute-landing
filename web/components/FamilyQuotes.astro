@@ -1,0 +1,33 @@
+---
+// Mom quotes for the buy pages (added 2026-11-27, landing-page deep dive: the Starter and
+// printed-set pages carried no social proof, and pages with reviews are bought far more
+// often). Quotes and permissions: web/lib/familyQuotes.ts. Never add a quote there without
+// a permission line.
+import { FAMILY_QUOTES } from "../lib/familyQuotes";
+
+interface Props {
+  heading?: string;
+  /** How many quotes to show, in list order. */
+  limit?: number;
+}
+const { heading = "What families said", limit = 4 } = Astro.props;
+const quotes = FAMILY_QUOTES.slice(0, limit);
+---
+
+<section class="py-14 px-6 bg-background">
+  <div class="max-w-5xl mx-auto">
+    <h2 class="font-serif text-3xl md:text-4xl text-center mb-10" style="color:hsl(var(--eden-bark))">
+      {heading}
+    </h2>
+    <div class="grid gap-6 md:grid-cols-2">
+      {quotes.map((t) => (
+        <figure class="p-6 rounded-sm border flex flex-col" style="border-color:hsl(var(--eden-gold)/0.25);background-color:hsl(var(--eden-cream)/0.4)">
+          <blockquote class="font-serif text-lg leading-relaxed mb-4" style="color:hsl(var(--eden-bark))">
+            &ldquo;{t.quote}&rdquo;
+          </blockquote>
+          <figcaption class="font-body text-sm text-muted-foreground mt-auto">{t.who}</figcaption>
+        </figure>
+      ))}
+    </div>
+  </div>
+</section>

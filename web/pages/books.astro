@@ -34,6 +34,7 @@
 //
 // Copy rule: no em dashes.
 import MarketingLayout from "../layouts/MarketingLayout.astro";
+import FamilyQuotes from "../components/FamilyQuotes.astro";
 import PrintBuyBox from "../components/islands/PrintBuyBox.tsx";
 import ComponentShowcases from "../components/ComponentShowcases.astro";
 import BandChooser from "../components/BandChooser.astro";
@@ -243,6 +244,8 @@ const booksDisclosure = disclosureFor(booksClips);
       </p>
     </div>
   </section>
+
+  <FamilyQuotes />
 
   {/* WHY PRINTED TO ORDER. Replaced the kit-versus-books positioning block on
       2026-09-12; the old copy is on b8751c1. The point a reader must take from
