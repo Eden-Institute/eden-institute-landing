@@ -73,6 +73,7 @@ class World {
       touchDevice: async (id, at) => {
         this.devices.find((d) => d.id === id)!.last_seen_at = at;
       },
+      signUrls: async (paths, seconds) => paths.map((p) => `signed:${seconds}:${p}`),
       defer: async (w) => {
         await w;
       },
@@ -290,4 +291,46 @@ Deno.test('the sign-in code email is the approved "Email 5", word for word, with
   assert(!/—/.test(m.html + m.text), 'no em dashes');
   assert(buildSigninCodeEmail(null, '000001', 'x').text.startsWith('Hi,'));
   assert(buildSigninCodeEmail('<b>', '000001', 'x').html.includes('Hi &lt;b&gt;,'));
+});
+
+// ── OY5 reader: signed page links ────────────────────────────────────────────────────────────────────────
+
+Deno.test('pages: a signed-in family with a live Sprouts year gets short-lived links, in order, with the book size', async () => {
+  const w = new World();
+  const { body } = await w.signIn();
+  const r = await w.call({ action: 'pages', token: body.token, band: 'sprouts', book: 'tg', from: 13, to: 18 });
+  assertEquals(r.status, 200);
+  assertEquals(r.body.total, 240);
+  assertEquals(r.body.expires_in, 600);
+  assertEquals(r.body.pages.map((p: { page: number }) => p.page), [13, 14, 15, 16, 17, 18]);
+  assertEquals(r.body.pages[0].url, 'signed:600:reader/sprouts/tg/p013.webp');
+  const ra = await w.call({ action: 'pages', token: body.token, band: 'sprouts', book: 'ra', from: 112, to: 112 });
+  assertEquals(ra.body.pages[0].url, 'signed:600:reader/sprouts/ra/p112.webp');
+});
+
+Deno.test('pages: another band, an ended year, a refund, a sibling-only license and a signed-out device get nothing', async () => {
+  const w = new World();
+  const { body } = await w.signIn();
+  assertEquals((await w.call({ action: 'pages', token: body.token, band: 'seedlings', book: 'tg', from: 1, to: 2 })).body, { error: 'NO_LICENSE' });
+  w.licenses.p1 = [lic({ ends_at: new Date(T0.getTime() - DAY).toISOString() })];
+  assertEquals((await w.call({ action: 'pages', token: body.token, band: 'sprouts', book: 'tg', from: 1, to: 2 })).body, { error: 'YEAR_ENDED' });
+  w.licenses.p1 = [lic({ status: 'closed' }), lic({ kind: 'sibling', child_name: 'Ben' })];
+  assertEquals((await w.call({ action: 'pages', token: body.token, band: 'sprouts', book: 'tg', from: 1, to: 2 })).body, { error: 'YEAR_ENDED' });
+  w.licenses.p1 = [lic()];
+  await w.call({ action: 'signout', token: body.token });
+  assertEquals((await w.call({ action: 'pages', token: body.token, band: 'sprouts', book: 'tg', from: 1, to: 2 })).body, { error: 'SIGNED_OUT' });
+});
+
+Deno.test('pages: at most 12 pages a call, inside the book, and only real bands and books', async () => {
+  const w = new World();
+  const { body } = await w.signIn();
+  const bad = (x: Record<string, unknown>) => w.call({ action: 'pages', token: body.token, band: 'sprouts', book: 'tg', from: 1, to: 2, ...x });
+  assertEquals((await bad({ from: 1, to: 13 })).body, { error: 'BAD_REQUEST' });
+  assertEquals((await bad({ from: 0, to: 1 })).body, { error: 'BAD_REQUEST' });
+  assertEquals((await bad({ from: 240, to: 241 })).body, { error: 'BAD_REQUEST' });
+  assertEquals((await bad({ from: 5, to: 4 })).body, { error: 'BAD_REQUEST' });
+  assertEquals((await bad({ band: 'cultivators' })).body, { error: 'BAD_REQUEST' });
+  assertEquals((await bad({ book: 'nb' })).body, { error: 'BAD_REQUEST' });
+  assertEquals((await bad({ from: 1, to: 12 })).status, 200);
+  assertEquals((await bad({ from: 229, to: 240 })).status, 200);
 });

@@ -17,6 +17,7 @@ import {
   buildSigninCodeEmail,
   handleOnlineYearSignin,
   likeExact,
+  READER_BUCKET,
   SIGNIN_EMAIL_FROM,
   SIGNIN_EMAIL_REPLY_TO,
   type SigninCode,
@@ -136,6 +137,17 @@ serve((req) =>
     },
     touchDevice: async (deviceId, at) => {
       must(await db().from('online_year_devices').update({ last_seen_at: at }).eq('id', deviceId), 'touch device');
+    },
+    // OY5 reader: short-lived signed links into the private bucket, in the order asked for.
+    signUrls: async (paths, seconds) => {
+      const { data, error } = await db().storage.from(READER_BUCKET).createSignedUrls(paths, seconds);
+      if (error || !data) throw new Error(`sign urls: ${error?.message ?? 'no data'}`);
+      const byPath = new Map(data.filter((d) => !d.error && d.signedUrl).map((d) => [d.path, d.signedUrl as string]));
+      return paths.map((p) => {
+        const u = byPath.get(p);
+        if (!u) throw new Error(`sign urls: missing ${p}`);
+        return u;
+      });
     },
     defer,
   })
