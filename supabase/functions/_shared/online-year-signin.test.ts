@@ -159,7 +159,10 @@ Deno.test('request: per-email hourly limit sends nothing more but answers the sa
 Deno.test('request: per-IP limit answers 429 RATE_LIMITED; a bad address answers EMAIL_INVALID', async () => {
   const w = new World();
   for (let i = 0; i < MAX_REQUESTS_PER_IP_PER_HOUR; i++) await w.call({ action: 'request', email: `x${i}@example.com` });
-  assertEquals((await w.call({ action: 'request', email: 'mom@example.com' })).body, { error: 'RATE_LIMITED' });
+  // T0 is 15:00:00 UTC on the hour, so the limit lifts a full hour later.
+  assertEquals((await w.call({ action: 'request', email: 'mom@example.com' })).body, { error: 'RATE_LIMITED', retry_after_seconds: 3600 });
+  w.tick(23 * 60_000 + 5_000);
+  assertEquals((await w.call({ action: 'request', email: 'mom@example.com' })).body.retry_after_seconds, 3600 - 23 * 60 - 5);
   assertEquals((await new World().call({ action: 'request', email: 'not-an-email' })).body, { error: 'EMAIL_INVALID' });
 });
 

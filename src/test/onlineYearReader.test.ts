@@ -6,6 +6,7 @@ import {
   bandsHeld,
   callSignin,
   chunks,
+  retryTimeText,
   displayName,
   endDateText,
   errorLine,
@@ -81,9 +82,35 @@ describe("Online Year reader: the approved lines, filled in", () => {
     expect(JSON.stringify({ OY_APPROVED_READER, OY_READER_DRAFT })).not.toMatch(/—/);
   });
 
-  it("the drafted reader lines still need Camila's OK before launch (OY10)", () => {
-    // Flip OY_READER_DRAFT_APPROVED to true only after she approves the OY_READER_DRAFT words.
-    expect(OY_READER_DRAFT_APPROVED).toBe(false);
+  it("the reader lines are the words Camila approved on her review page (2026-11-28)", () => {
+    expect(OY_READER_DRAFT_APPROVED).toBe(true);
+    expect(OY_READER_DRAFT).toEqual({
+      sendCodeButton: "Email me a code",
+      codeLabel: "Your 6-digit code",
+      codeInvalid: "That code didn't work. Check the newest email from us, or send a new code.",
+      tooManyTries: "That code has had too many tries. Please send a new code.",
+      slowDown: "Too many tries for now. You can try again at [time].",
+      signedOut: "You've been signed out on this device. Sign in again to keep going.",
+      noYearHere: "Your Online Year isn't for this band. Choose your band above.",
+      teachersGuide: "Teacher's Guide",
+      storybook: "Read-Aloud",
+      beforeWeek1: "Getting Started",
+      week: "Week [N] · [Plant]",
+      backOfBook: "Academic Standards & Final Notes",
+      previous: "Previous pages",
+      next: "Next pages",
+      signOut: "Sign out of this device",
+      loading: "Opening your pages...",
+    });
+  });
+
+  it("tells her exactly when she can try again after too many tries", () => {
+    const now = new Date("2026-12-01T20:37:00Z");
+    // 23 minutes left in the hour: 21:00 UTC is 3:00 PM in Central.
+    expect(retryTimeText(23 * 60, now, "America/Chicago")).toBe("3:00 PM");
+    // No number from the server: the next top of the hour, which is when the limit resets.
+    expect(retryTimeText(undefined, now, "America/Chicago")).toBe("3:00 PM");
+    expect(errorLine("RATE_LIMITED", { retry_after_seconds: 23 * 60 }, now)).toMatch(/^Too many tries for now\. You can try again at \d{1,2}:00 (AM|PM)\.$/);
   });
 });
 

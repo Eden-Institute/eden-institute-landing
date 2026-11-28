@@ -119,7 +119,7 @@ export default function OnlineYearReader() {
     const r = await api({ action: "request", email });
     setBusy(false);
     if (r.status === 200) setScreen("code");
-    else setError(errorLine(r.body.error));
+    else setError(errorLine(r.body.error, r.body));
   }
 
   async function verify(confirm = false, e?: React.FormEvent) {
@@ -137,7 +137,7 @@ export default function OnlineYearReader() {
     } else if (r.status === 409 && r.body.error === "AT_LIMIT") {
       setDevices(Number(r.body.devices) || 0);
       setScreen("limit");
-    } else setError(errorLine(r.body.error));
+    } else setError(errorLine(r.body.error, r.body));
   }
 
   async function signOut() {

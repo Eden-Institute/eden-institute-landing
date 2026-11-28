@@ -203,6 +203,16 @@ function respond(r: Result, cors: Record<string, string>): Response {
 }
 
 const NOT_FOUND: Result = { status: 404, body: { error: 'not_found' } };
+
+/**
+ * The per-IP limits count in clock-hour buckets (rate-bucket.ts -> checkout_rate_bump floors the epoch to the
+ * window), so a limit lifts at the top of the next hour. retry_after_seconds lets the page say exactly when
+ * (Camila 2026-11-28: "They need to know exactly how long to wait"; her tap: show the clock time).
+ */
+export function rateLimited(now: Date): Result {
+  const s = Math.floor(now.getTime() / 1000);
+  return { status: 429, body: { error: 'RATE_LIMITED', retry_after_seconds: 3600 - (s % 3600) } };
+}
 const CODE_INVALID: Result = { status: 400, body: { error: 'CODE_INVALID' } };
 const SIGNED_OUT: Result = { status: 401, body: { error: 'SIGNED_OUT' } };
 
@@ -212,7 +222,7 @@ export async function handleRequest(email: string, deps: SigninDeps): Promise<Re
   const requesterHash = deps.ip ? await sha256Hex(`oy-signin-ip:${deps.ip}`) : null;
   if (deps.ip) {
     const n = await deps.bumpRate(`oy_signin_request_ip:${deps.ip}`).catch(() => null);
-    if (n !== null && n > MAX_REQUESTS_PER_IP_PER_HOUR) return { status: 429, body: { error: 'RATE_LIMITED' } };
+    if (n !== null && n > MAX_REQUESTS_PER_IP_PER_HOUR) return rateLimited(now);
   }
   const work = (async () => {
     try {
@@ -254,7 +264,7 @@ export async function handleVerify(
   const now = (deps.now ?? (() => new Date()))();
   if (deps.ip) {
     const n = await deps.bumpRate(`oy_signin_verify_ip:${deps.ip}`).catch(() => null);
-    if (n !== null && n > MAX_VERIFIES_PER_IP_PER_HOUR) return { status: 429, body: { error: 'RATE_LIMITED' } };
+    if (n !== null && n > MAX_VERIFIES_PER_IP_PER_HOUR) return rateLimited(now);
   }
   const codes = await deps.recentCodes(input.email, new Date(now.getTime() - CODE_TTL_MINUTES * 60_000).toISOString());
   // Only the newest code that is still open counts: asking for a new code retires the older ones.

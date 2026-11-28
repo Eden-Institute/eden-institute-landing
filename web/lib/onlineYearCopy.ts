@@ -103,24 +103,26 @@ export const OY_APPROVED_READER = {
 } as const;
 
 /**
- * Reader lines the approved copy does not have yet (buttons, labels, errors), DRAFTED 2026-11-28 for Camila's OK.
- * Every one is plain and short; none makes a claim. Until she approves them, OY_READER_DRAFT_APPROVED stays false
- * and src/test/onlineYearReader.test.ts reminds the launch check (OY10) that they are still drafts.
+ * Reader lines the plan's approved copy did not have (buttons, labels, errors). Drafted 2026-11-28 and APPROVED by
+ * Camila the same day on her review page (https://claude.ai/artifact/XPNmSg8mbyZd1DmbdEMVu7, Send 07:06 UTC):
+ * 12 as drafted, 4 changed to her words: storybook "Read-Aloud", beforeWeek1 "Getting Started", backOfBook
+ * "Academic Standards & Final Notes", and slowDown names the exact time (her tap: the clock time). Pinned by
+ * src/test/onlineYearReader.test.ts. (The object keeps its old name so nothing else has to move.)
  */
-export const OY_READER_DRAFT_APPROVED = false;
+export const OY_READER_DRAFT_APPROVED = true;
 export const OY_READER_DRAFT = {
   sendCodeButton: "Email me a code",
   codeLabel: "Your 6-digit code",
   codeInvalid: "That code didn't work. Check the newest email from us, or send a new code.",
   tooManyTries: "That code has had too many tries. Please send a new code.",
-  slowDown: "Please wait a little while and try again.",
+  slowDown: "Too many tries for now. You can try again at [time].",
   signedOut: "You've been signed out on this device. Sign in again to keep going.",
   noYearHere: "Your Online Year isn't for this band. Choose your band above.",
   teachersGuide: "Teacher's Guide",
-  storybook: "Storybook",
-  beforeWeek1: "Before Week 1",
+  storybook: "Read-Aloud",
+  beforeWeek1: "Getting Started",
   week: "Week [N] · [Plant]",
-  backOfBook: "Back of the book",
+  backOfBook: "Academic Standards & Final Notes",
   previous: "Previous pages",
   next: "Next pages",
   signOut: "Sign out of this device",
