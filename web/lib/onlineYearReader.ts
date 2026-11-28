@@ -136,15 +136,26 @@ export async function callSignin(body: Record<string, unknown>, opts: { url: str
   return { status: res.status, body: parsed };
 }
 
-/** Which draft or approved sentence a function error shows. */
-export function errorLine(code: unknown): string {
+/**
+ * When a per-IP limit lifts, as a clock time in the viewer's own time zone ("3:00 PM"). The server says how many
+ * seconds remain (retry_after_seconds); without it, the next top of the hour, which is when the buckets reset.
+ */
+export function retryTimeText(retryAfterSeconds: unknown, now: Date = new Date(), timeZone?: string): string {
+  const secs = typeof retryAfterSeconds === "number" && retryAfterSeconds > 0 && retryAfterSeconds <= 3600
+    ? retryAfterSeconds
+    : 3600 - (Math.floor(now.getTime() / 1000) % 3600);
+  return new Date(now.getTime() + secs * 1000).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", ...(timeZone ? { timeZone } : {}) });
+}
+
+/** Which approved sentence a function error shows. `body` is the function's answer (for RATE_LIMITED's time). */
+export function errorLine(code: unknown, body: Record<string, unknown> = {}, now: Date = new Date()): string {
   switch (code) {
     case "CODE_INVALID":
       return OY_READER_DRAFT.codeInvalid;
     case "TOO_MANY_ATTEMPTS":
       return OY_READER_DRAFT.tooManyTries;
     case "RATE_LIMITED":
-      return OY_READER_DRAFT.slowDown;
+      return OY_READER_DRAFT.slowDown.replace("[time]", retryTimeText(body.retry_after_seconds, now));
     case "SIGNED_OUT":
       return OY_READER_DRAFT.signedOut;
     case "NO_LICENSE":
