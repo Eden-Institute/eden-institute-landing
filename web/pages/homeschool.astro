@@ -156,7 +156,7 @@ const BANDS: Band[] = [
         step: "Step 2 · Start now",
         title: "Starter Unit, weeks 1 to 9",
         price: "$39",
-        points: ["The 9-week starter: weeks 1 to 9 of 36", "Teacher's Guide, Notebook and storybook", "Instant download"],
+        points: ["The 9-week starter: weeks 1 to 9 of 36", "Teacher's Guide, Notebook and storybook", "Instant download", "Your $39 comes off the printed set later"],
         when: "Tonight. It downloads to your inbox in about a minute.",
         button: "Get the Starter Unit",
         href: "/starter",
@@ -166,7 +166,7 @@ const BANDS: Band[] = [
         step: "Step 3 · The whole year, in print",
         title: "Printed Curriculum Set",
         price: "$249",
-        points: ["All 36 weeks, three printed books", "Teacher's Guide, Notebook, storybook", "Extra Notebooks for siblings, $39.99 each", "Printed to order, mailed to you"],
+        points: ["All 36 weeks, three printed books", "About $7 a week across the year", "Teacher's Guide, Notebook, storybook", "Extra Notebooks for siblings, $39.99 each", "Printed to order, mailed to you"],
         when: "At your door in about 2 to 3 weeks.",
         button: "Order the printed set",
         href: "/books",
@@ -198,7 +198,7 @@ const BANDS: Band[] = [
         step: "Step 2 · Start now",
         title: "Starter Unit, weeks 1 to 9",
         price: "$39",
-        points: ["The 9-week starter: weeks 1 to 9 of 36", "Teacher's Guide, Notebook and storybook", "Instant download"],
+        points: ["The 9-week starter: weeks 1 to 9 of 36", "Teacher's Guide, Notebook and storybook", "Instant download", "Your $39 comes off the printed set later"],
         when: "Tonight. It downloads to your inbox in about a minute.",
         button: "Get the Starter Unit",
         href: "/starter/seedlings",
@@ -209,7 +209,7 @@ const BANDS: Band[] = [
         step: "Step 3 · The whole year, in print",
         title: "Printed Curriculum Set",
         price: "$249",
-        points: ["All 36 weeks, three printed books", "Teacher's Guide, Notebook, storybook", "Extra Notebooks for siblings, $39.99 each", "Printed to order, mailed to you"],
+        points: ["All 36 weeks, three printed books", "About $7 a week across the year", "Teacher's Guide, Notebook, storybook", "Extra Notebooks for siblings, $39.99 each", "Printed to order, mailed to you"],
         when: "At your door in about 2 to 3 weeks.",
         button: "Order the printed set",
         href: "/books#seedlings",
@@ -304,11 +304,12 @@ const PRINT_SET = {
           </a>
         </div>
 
-        {/* Punch #394, founder 2026-11-03: PHONES ONLY, a free way in on the first
-            screen (it sat about 2 screens down). WaitlistController opens the band's
+        {/* Punch #394, founder 2026-11-03: a free way in on the first screen (it sat
+            about 2 screens down). Phones only until 2026-11-27, when the founder put it
+            on desktop too (punch #482, decision 2). WaitlistController opens the band's
             Week 1 pop-up from the data-waitlist-* attributes; GA form_name
-            homeschool_hero_<band>_week1. md: and up are unchanged. */}
-        <p class="md:hidden font-body text-sm -mt-1 leading-relaxed" style="color:hsl(var(--eden-bark))">
+            homeschool_hero_<band>_week1. */}
+        <p class="font-body text-sm -mt-1 leading-relaxed" style="color:hsl(var(--eden-bark))">
           Or try Week 1 free:{" "}
           {HERO_FREE.map((f, i) => (
             <>
@@ -338,11 +339,13 @@ const PRINT_SET = {
         <p class="font-body text-sm max-w-2xl mx-auto mt-1 leading-relaxed" style="color:hsl(var(--eden-bark))">
           <strong>The printed year</strong> is the whole 36 weeks in three books, printed to order
           and at your door in about two to three weeks. <strong>The Starter Unit</strong> is the first nine
-          weeks of it, as a download, if you would rather try before you commit.
+          weeks of it, as a download, if you would rather try before you commit, and its $39
+          comes off the printed set of the same band when you are ready for the rest.
         </p>
 
         <p class="font-body text-sm text-muted-foreground max-w-md mx-auto">
           Shipping from $12, calculated in your cart. Extra Student Notebooks for siblings, Sprouts or Seedlings, $39.99 each.
+          Printed books: change your mind within 48 hours for a full refund, and damaged copies are replaced free.
         </p>
 
         {/* Stripe's pay-over-time line for the printed set. 24900 mirrors the $249 above. */}
