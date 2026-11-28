@@ -6,7 +6,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ESA_STATES } from "../../web/lib/esaStates";
-import { printOfferPolicies, RETURN_POLICY } from "../../web/lib/merchantOffer";
+import { includedShippingPolicies, printOfferPolicies, RETURN_POLICY } from "../../web/lib/merchantOffer";
 
 const SITE = "https://edeninstitute.health/";
 
@@ -38,5 +38,25 @@ describe("printOfferPolicies", () => {
     expect(shippingDetails.deliveryTime.transitTime).toMatchObject({ minValue: 10, maxValue: 15, unitCode: "DAY" });
     expect(shippingDetails.deliveryTime.businessDays.dayOfWeek).toHaveLength(5);
     expect(hasMerchantReturnPolicy).toBe(RETURN_POLICY);
+  });
+});
+
+describe("includedShippingPolicies (Search Console: shippingDetails in every offer)", () => {
+  it("a download ships free, on the spot", () => {
+    const { shippingDetails, hasMerchantReturnPolicy } = includedShippingPolicies("download");
+    expect(shippingDetails.shippingRate.value).toBe("0.00");
+    expect(shippingDetails.deliveryTime.transitTime).toMatchObject({ minValue: 0, maxValue: 0 });
+    expect(hasMerchantReturnPolicy).toBe(RETURN_POLICY);
+  });
+  it("an /esa printed total includes shipping and keeps the feed's transit time", () => {
+    const { shippingDetails } = includedShippingPolicies("print");
+    expect(shippingDetails.shippingRate.value).toBe("0.00");
+    expect(shippingDetails.deliveryTime.transitTime).toMatchObject({ minValue: 10, maxValue: 15 });
+  });
+  it("every /esa price that is a download says so in its note, and every printed one carries shipping in its price", () => {
+    for (const s of ESA_STATES) for (const i of s.items) {
+      if (/Starter/.test(i.name)) expect(i.note).toMatch(/download/i);
+      else expect(i.note).toMatch(/shipping/i);
+    }
   });
 });
