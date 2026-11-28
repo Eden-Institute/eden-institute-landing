@@ -25,3 +25,12 @@ const meta = {
     <OnlineYearThankYou client:only="react" />
   </main>
 </MarketingLayout>
+
+<script>
+  // Google Customer Reviews opt-in (punch #472 launch checklist, 2026-11-27), the same call the Starter and print
+  // thank-you pages make: once the order row exists (print-order-status serves any order), a digital order, so the
+  // delivery date is today. Never throws; skipped when marketing consent is denied. See src/lib/customerReviews.ts.
+  import { readCheckoutSessionId } from "@/lib/checkoutSession";
+  import { showCustomerReviewsOptInForSession } from "@/lib/customerReviews";
+  void showCustomerReviewsOptInForSession(readCheckoutSessionId());
+</script>
