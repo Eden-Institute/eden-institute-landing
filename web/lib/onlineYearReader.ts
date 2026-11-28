@@ -118,6 +118,34 @@ export function bandsHeld(s: ReaderSession): OnlineYearBandKey[] {
 
 export type ApiResult = { status: number; body: Record<string, unknown> };
 
+export const printLine = (child: string) => OY_APPROVED_READER.printButton.replace("[Child]", child);
+export const doneLine = (week: number, child: string) => OY_APPROVED_READER.doneButton.replace("[N]", String(week)).replace("[Child]", child);
+export const portfolioButtonLine = (child: string) => OY_APPROVED_READER.portfolioButton.replace("[Child]", child);
+
+export interface FamilyLicense {
+  id: string;
+  band: OnlineYearBandKey;
+  child_name: string;
+  kind: "first_child" | "sibling";
+  starts_at: string;
+  ends_at: string;
+  done: { week: number; done_on: string }[];
+}
+
+/** POST to online-year-family (print / done / progress), same headers as callSignin. */
+export async function callFamily(body: Record<string, unknown>, opts: { url: string; apikey: string; preview?: string | null; fetchImpl?: typeof fetch }): Promise<ApiResult> {
+  const headers: Record<string, string> = { "Content-Type": "application/json", apikey: opts.apikey };
+  if (opts.preview) headers[PREVIEW_HEADER] = opts.preview;
+  const res = await (opts.fetchImpl ?? fetch)(`${opts.url}/functions/v1/online-year-family`, { method: "POST", headers, body: JSON.stringify(body), credentials: "omit" });
+  let parsed: Record<string, unknown> = {};
+  try {
+    parsed = await res.json();
+  } catch {
+    /* gateway HTML */
+  }
+  return { status: res.status, body: parsed };
+}
+
 export async function callSignin(body: Record<string, unknown>, opts: { url: string; apikey: string; preview?: string | null; fetchImpl?: typeof fetch }): Promise<ApiResult> {
   const headers: Record<string, string> = { "Content-Type": "application/json", apikey: opts.apikey };
   if (opts.preview) headers[PREVIEW_HEADER] = opts.preview;

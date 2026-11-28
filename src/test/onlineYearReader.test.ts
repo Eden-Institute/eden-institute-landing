@@ -146,3 +146,12 @@ describe("Online Year reader: the session", () => {
     expect((seen[1].init.headers as Record<string, string>)[PREVIEW_HEADER]).toBeUndefined();
   });
 });
+
+describe("Online Year reader: print, done and portfolio lines (approved Nov 23)", () => {
+  it("fills in the child and the week", async () => {
+    const { printLine, doneLine, portfolioButtonLine } = await import("../../web/lib/onlineYearReader");
+    expect(printLine("Ada")).toBe("Print Ada's Notebook pages for this week");
+    expect(doneLine(3, "Ada")).toBe("Mark Week 3 done for Ada");
+    expect(portfolioButtonLine("Ada")).toBe("Download Ada's portfolio");
+  });
+});
