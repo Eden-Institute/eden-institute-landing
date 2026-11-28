@@ -25,6 +25,7 @@
  *   /404                  - the not-found page (dist/404.html), served with HTTP 404
  */
 import { WIRED_IS_PUBLIC } from "../../supabase/functions/_shared/wired-launch";
+import { ONLINE_YEAR_ON_SALE } from "./onlineYearLaunch";
 
 export const STATIC_PATHS: readonly string[] = [
   "/",
@@ -38,6 +39,8 @@ export const STATIC_PATHS: readonly string[] = [
   "/curriculum-finder",
   // Wired quiz (W11): in the sitemap only once the quiz is public (the one launch switch).
   ...(WIRED_IS_PUBLIC ? ["/wired"] : []),
+  // Online Year (OY9): the two band sales pages, only once the site switch is on (web/lib/onlineYearLaunch.ts).
+  ...(ONLINE_YEAR_ON_SALE ? ["/online-year/sprouts", "/online-year/seedlings"] : []),
   "/community",
   "/freebies",
   "/books",

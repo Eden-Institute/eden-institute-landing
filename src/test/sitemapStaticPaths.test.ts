@@ -8,6 +8,7 @@ import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { STATIC_PATHS } from "../../web/lib/sitemapStaticPaths";
+import { ONLINE_YEAR_ON_SALE } from "../../web/lib/onlineYearLaunch";
 
 const pagesDir = join(__dirname, "..", "..", "web", "pages");
 
@@ -31,6 +32,8 @@ function isNoindex(source: string): boolean {
   const template = fences.length >= 3 ? fences.slice(2).join("---") : source;
   // Wired quiz (W11): /wired is noindex until the one launch switch flips, and in STATIC_PATHS after it.
   if (/\snoindex=\{!WIRED_IS_PUBLIC\}/.test(template)) return !WIRED_IS_PUBLIC;
+  // Online Year (OY9): the band sales pages are noindex until the site switch flips, and in STATIC_PATHS after it.
+  if (/\snoindex=\{!ONLINE_YEAR_ON_SALE\}/.test(template)) return !ONLINE_YEAR_ON_SALE;
   return /\snoindex(=\{true\})?(?=[\s>/])/.test(template);
 }
 

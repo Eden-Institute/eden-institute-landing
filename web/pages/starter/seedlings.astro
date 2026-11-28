@@ -26,6 +26,8 @@
 //
 // Copy rule: no em dashes (feedback_no_em_dashes).
 import MarketingLayout from "../../layouts/MarketingLayout.astro";
+import { ONLINE_YEAR_ON_SALE } from "../../lib/onlineYearLaunch";
+import { starterCreditLineOnSale } from "../../lib/onlineYearCopy";
 import FamilyQuotes from "../../components/FamilyQuotes.astro";
 import WaitlistController from "../../components/islands/WaitlistController.tsx";
 import { freeWeekButtonHtml } from "../../lib/freeWeekOffer";
@@ -181,7 +183,7 @@ const faqJsonLd = {
       <div id="early-access" class="flex justify-center scroll-mt-28 min-[1024px]:scroll-mt-40">
         <StarterBuyBox client:only="react" band="seedlings" cta="starter-seedlings-hero-buy" wide={true} />
       </div>
-      <p class="font-body text-sm text-center mt-3" data-starter-credit-line style="color:hsl(var(--eden-bark))">Comes with a $39 credit toward the printed Seedlings year, so the set is $210 instead of $249, whenever you're ready for the rest.</p>
+      <p class="font-body text-sm text-center mt-3" data-starter-credit-line style="color:hsl(var(--eden-bark))">{ONLINE_YEAR_ON_SALE ? starterCreditLineOnSale("Seedlings") : "Comes with a $39 credit toward the printed Seedlings year, so the set is $210 instead of $249, whenever you're ready for the rest."}</p>
       <p class="font-body text-sm text-center mt-4" style="color:hsl(var(--eden-bark))">
         New to herbs? Even with older children, most families start with
         <a href="/starter" data-cta="starter-seedlings-hero-sprouts" class="underline" style="color:hsl(var(--eden-forest))">the Sprouts Starter Unit</a>,

@@ -19,6 +19,8 @@ import heroHomeschool from "@/assets/hero-homeschool.jpg";
 import HeroBackdrop from "../components/HeroBackdrop.astro";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ONLINE_YEAR_ON_SALE } from "../lib/onlineYearLaunch";
+import { OY_APPROVED_CARD } from "../lib/onlineYearCopy";
 // CTA links carry buttonVariants classes rather than wrapping a <Button>: a
 // <button> inside an <a> is invalid HTML and a second tab stop. text-center
 // stands in for a <button>'s own centring; max-md:w-full max-md:max-w-full keep
@@ -125,6 +127,19 @@ interface Band {
   planned?: string[];
 }
 
+// OY9 (punch #472): the Online Year card, a second "Step 3" beside the printed set, word for word from the
+// approved card (web/lib/onlineYearCopy.ts). Shown only once the site switch is on (web/lib/onlineYearLaunch.ts).
+const onlineYearRung = (band: "sprouts" | "seedlings"): Rung => ({
+  step: OY_APPROVED_CARD.step,
+  title: OY_APPROVED_CARD.title,
+  price: OY_APPROVED_CARD.price,
+  points: [...OY_APPROVED_CARD.points],
+  when: OY_APPROVED_CARD.when,
+  button: OY_APPROVED_CARD.button,
+  href: `/online-year/checkout?band=${band}`,
+  cta: `homeschool-${band}-online-year`,
+});
+
 // Punch #394 (founder 2026-11-03): the phone hero's free way in, one tap per band,
 // each opening that band's Week 1 pop-up (the same FREE_WEEK_MODAL the rungs use).
 const HERO_FREE = (["sprouts", "seedlings"] as const).map((band) => ({
@@ -173,6 +188,7 @@ const BANDS: Band[] = [
         cta: "homeschool-sprouts-books",
         primary: true,
       },
+      ...(ONLINE_YEAR_ON_SALE ? [onlineYearRung("sprouts")] : []),
     ],
   },
   {
@@ -216,6 +232,7 @@ const BANDS: Band[] = [
         cta: "homeschool-seedlings-books",
         primary: true,
       },
+      ...(ONLINE_YEAR_ON_SALE ? [onlineYearRung("seedlings")] : []),
     ],
   },
   {
@@ -452,7 +469,7 @@ const PRINT_SET = {
             </div>
 
             {b.rungs ? (
-              <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div class={b.rungs.length === 4 ? "grid md:grid-cols-2 xl:grid-cols-4 gap-4" : "grid md:grid-cols-2 lg:grid-cols-3 gap-4"}>
                 {b.rungs.map((r) => (
                   <div class={`rounded-lg p-5 border-2 flex flex-col ${r.soon ? "opacity-80" : ""}`} style={`border-color:${r.soon ? "hsl(var(--border))" : "hsl(var(--eden-gold) / 0.6)"};background-color:${r.soon ? "transparent" : "hsl(var(--eden-cream))"}`}>
                     <p class="font-accent text-[10px] tracking-[0.25em] uppercase mb-2" style="color:hsl(var(--eden-gold-ink))">{r.step}</p>
