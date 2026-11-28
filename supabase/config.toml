@@ -115,6 +115,10 @@ verify_jwt = false
 [functions.online-year-order-status]
 verify_jwt = false
 
+# Online Year sign-in (OY4, punch #472): called anonymously from the reader page; dark until ONLINE_YEAR_ENABLED.
+[functions.online-year-signin]
+verify_jwt = false
+
 # A buyer's one-click answer to an FTC delay notice (consent or cancel). Reached
 # from an email link with no Supabase session, so verify_jwt MUST stay false;
 # security is the HMAC token, not a JWT. 435.2(b)(3) requires the cancellation
