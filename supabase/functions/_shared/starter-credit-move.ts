@@ -383,6 +383,15 @@ export interface CouponCheck {
 
 async function productForSku(deps: { db: DbLike; stripe: StripeLike }, sku: string): Promise<string> {
   if (sku === STARTER_CREDIT_KIT_SKU) return STARTER_KIT_PRODUCT_ID;
+  // The Online Year has no products row: its first-child year is a Stripe Price by lookup key (OY2).
+  const oy = /^(sprouts|seedlings)_online_year$/.exec(sku);
+  if (oy) {
+    const list = await deps.stripe.prices.list({ lookup_keys: [`online_year_${oy[1]}_first_child`], active: true, limit: 1 });
+    const price = list?.data?.[0];
+    const product = typeof price?.product === 'string' ? price.product : price?.product?.id;
+    if (!product) throw new Error(`no Stripe Price resolves for ${sku}`);
+    return product;
+  }
   const { data, error } = await deps.db.from('products')
     .select('sku, stripe_retail_price_id, stripe_lookup_key')
     .eq('sku', sku)

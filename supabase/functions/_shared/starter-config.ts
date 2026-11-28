@@ -327,7 +327,8 @@ export const STARTER_BANDS: Record<StarterBand, StarterBandConfig> = {
     credit: {
       cents: STARTER_CREDIT_CENTS,
       couponEnv: 'STRIPE_STARTER_PRINT_CREDIT_COUPON_SPROUTS',
-      appliesToSkus: ['sprouts_print_set', 'both_bands_print_set', STARTER_CREDIT_KIT_SKU],
+      // + the Sprouts Online Year first child (founder 2026-11-23 'honor it'; coupons rebuilt 2026-11-28, punch #472 OY9).
+      appliesToSkus: ['sprouts_print_set', 'both_bands_print_set', STARTER_CREDIT_KIT_SKU, 'sprouts_online_year'],
     },
   },
   seedlings: {
@@ -366,7 +367,8 @@ export const STARTER_BANDS: Record<StarterBand, StarterBandConfig> = {
     credit: {
       cents: STARTER_CREDIT_CENTS,
       couponEnv: 'STRIPE_STARTER_PRINT_CREDIT_COUPON_SEEDLINGS',
-      appliesToSkus: ['seedlings_print_set', 'both_bands_print_set'],
+      // + the Seedlings Online Year first child (founder 2026-11-23; coupons rebuilt 2026-11-28, punch #472 OY9).
+      appliesToSkus: ['seedlings_print_set', 'both_bands_print_set', 'seedlings_online_year'],
     },
   },
 };

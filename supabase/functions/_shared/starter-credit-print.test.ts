@@ -341,12 +341,12 @@ Deno.test('RULE 1/2: both bands carry a $39 credit on their own new coupon env, 
   assertEquals(STARTER_BANDS.sprouts.credit, {
     cents: 3900,
     couponEnv: 'STRIPE_STARTER_PRINT_CREDIT_COUPON_SPROUTS',
-    appliesToSkus: ['sprouts_print_set', 'both_bands_print_set', 'sprouts_kit'],
+    appliesToSkus: ['sprouts_print_set', 'both_bands_print_set', 'sprouts_kit', 'sprouts_online_year'],
   });
   assertEquals(STARTER_BANDS.seedlings.credit, {
     cents: 3900,
     couponEnv: 'STRIPE_STARTER_PRINT_CREDIT_COUPON_SEEDLINGS',
-    appliesToSkus: ['seedlings_print_set', 'both_bands_print_set'],
+    appliesToSkus: ['seedlings_print_set', 'both_bands_print_set', 'seedlings_online_year'],
   });
   // Never cross-band, and the kit is Sprouts only.
   assert(!STARTER_BANDS.sprouts.credit!.appliesToSkus.includes('seedlings_print_set'));
@@ -971,13 +971,16 @@ function couponFixture(couponOver: Row = {}) {
   stripe.priceStore.set('price_sp_set', { id: 'price_sp_set', product: 'prod_sp_set' });
   stripe.priceStore.set('price_sd_set', { id: 'price_sd_set', product: { id: 'prod_sd_set' } });
   stripe.priceStore.set('price_both', { id: 'price_both', product: 'prod_both', lookup_key: 'both_bands_print_set' });
+  // The Online Year first-child years (OY2): Stripe Prices by lookup key, no products row (2026-11-28).
+  stripe.priceStore.set('price_oy_sp', { id: 'price_oy_sp', product: 'prod_oy_sp', lookup_key: 'online_year_sprouts_first_child' });
+  stripe.priceStore.set('price_oy_sd', { id: 'price_oy_sd', product: 'prod_oy_sd', lookup_key: 'online_year_seedlings_first_child' });
   stripe.couponStore.set(SPROUTS_COUPON, {
     id: SPROUTS_COUPON, valid: true, amount_off: 3900, currency: 'usd', percent_off: null, duration: 'forever',
-    redeem_by: null, max_redemptions: null, applies_to: { products: ['prod_sp_set', 'prod_both', STARTER_KIT_PRODUCT_ID] }, ...couponOver,
+    redeem_by: null, max_redemptions: null, applies_to: { products: ['prod_sp_set', 'prod_both', STARTER_KIT_PRODUCT_ID, 'prod_oy_sp'] }, ...couponOver,
   });
   stripe.couponStore.set(SEEDLINGS_COUPON, {
     id: SEEDLINGS_COUPON, valid: true, amount_off: 3900, currency: 'usd', percent_off: null, duration: 'forever',
-    redeem_by: null, max_redemptions: null, applies_to: { products: ['prod_sd_set', 'prod_both'] },
+    redeem_by: null, max_redemptions: null, applies_to: { products: ['prod_sd_set', 'prod_both', 'prod_oy_sd'] },
   });
   return { db, stripe };
 }
@@ -991,6 +994,7 @@ Deno.test('COUPON check: correctly scoped coupons pass, resolving each sku to it
     { sku: 'sprouts_print_set', productId: 'prod_sp_set' },
     { sku: 'both_bands_print_set', productId: 'prod_both' },
     { sku: 'sprouts_kit', productId: STARTER_KIT_PRODUCT_ID },
+    { sku: 'sprouts_online_year', productId: 'prod_oy_sp' },
   ]);
   const sd = await checkPrintCreditCoupon({ db, stripe }, 'seedlings', SEEDLINGS_COUPON);
   assert(sd.ok, sd.problems.join('; '));
