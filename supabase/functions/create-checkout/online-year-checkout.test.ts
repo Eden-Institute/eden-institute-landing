@@ -106,26 +106,38 @@ Deno.test("an ENDED first-child year does not count: Seedlings is $149 again", a
   assertEquals(await liveFirstChildName(fakeDb(LIVE), "MOM@example.com", "sprouts", NOW), "Ava");
 });
 
-Deno.test("refusals before any Stripe session: agreement, country, email, band, names", async () => {
-  for (const [over, code] of [
-    [{ agree: false }, "OY_AGREEMENT_REQUIRED"],
-    [{ agree: "true" }, "OY_AGREEMENT_REQUIRED"],
-    [{ country: "GB" }, "OY_COUNTRY"],
-    [{ country: undefined }, "OY_COUNTRY"],
-    [{ email: "not-an-email" }, "OY_EMAIL"],
-    [{ band: "kit" }, "OY_UNKNOWN_BAND"],
-    [{ child_names: ["Ava", "ava"] }, "OY_DUPLICATE_CHILD_NAME"],
-    [{ child_names: [] }, "OY_NO_CHILDREN"],
-  ] as [Record<string, unknown>, string][]) {
+// The approved order-page error lines (2026-11-25, "After checkout + order-page errors"), word for word.
+const GENERIC = "Something went wrong. Please refresh the page and try again.";
+const BAD_NAME = "Please type just your child's first name or nickname, using letters only.";
+const SAME_NAME = "You typed the same name twice. Please give each child their own name or nickname.";
+const BAD_EMAIL = "Please check your email address. It's how you'll sign in.";
+const TOO_MANY = "For a family this size, email hello@edeninstitute.health and we'll set it up for you.";
+const NOT_READY = "Checkout isn't quite ready. Please try again shortly, or email hello@edeninstitute.health.";
+
+Deno.test("refusals before any Stripe session: each with its approved line, the rest with the generic line", async () => {
+  for (const [over, code, line] of [
+    [{ agree: false }, "OY_AGREEMENT_REQUIRED", GENERIC],
+    [{ agree: "true" }, "OY_AGREEMENT_REQUIRED", GENERIC],
+    [{ country: "GB" }, "OY_COUNTRY", GENERIC],
+    [{ country: undefined }, "OY_COUNTRY", GENERIC],
+    [{ email: "not-an-email" }, "OY_EMAIL", BAD_EMAIL],
+    [{ email: "" }, "OY_EMAIL", BAD_EMAIL],
+    [{ band: "kit" }, "OY_UNKNOWN_BAND", GENERIC],
+    [{ child_names: ["Ava", "ava"] }, "OY_DUPLICATE_CHILD_NAME", SAME_NAME],
+    [{ child_names: ["Ava", "B3n"] }, "OY_BAD_CHILD_NAME", BAD_NAME],
+    [{ child_names: ["<b>"] }, "OY_BAD_CHILD_NAME", BAD_NAME],
+    [{ child_names: Array.from({ length: 11 }, (_, i) => `Kid${"abcdefghijk"[i]}`) }, "OY_TOO_MANY_CHILDREN", TOO_MANY],
+    [{ child_names: [] }, "OY_NO_CHILDREN", GENERIC],
+  ] as [Record<string, unknown>, string, string][]) {
     const r = await run(over);
-    assertEquals([r.status, r.json.code], [400, code], JSON.stringify(over));
+    assertEquals([r.status, r.json.code, r.json.error], [400, code, line], JSON.stringify(over));
     assertEquals(r.created.length, 0);
   }
 });
 
 Deno.test("a missing live price refuses the whole cart (503), never sells part of it", async () => {
   const r = await run({}, {}, { prices: ["online_year_sprouts_first_child"] });
-  assertEquals([r.status, r.json.code], [503, "OY_NOT_CONFIGURED"]);
+  assertEquals([r.status, r.json.code, r.json.error], [503, "OY_NOT_CONFIGURED", NOT_READY]);
   assertEquals(r.created.length, 0);
 });
 

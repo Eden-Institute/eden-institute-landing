@@ -63,7 +63,31 @@ export function onlineYearCreditSku(band: OnlineYearBand): string {
   return `${band}_online_year`
 }
 
-const SOMETHING_WRONG = "Something went wrong. Please refresh the page and try again."
+/**
+ * Kept in this file, not in _shared, so stripe-webhook's import closure is unchanged.
+ * The order page's own error lines, keyed by refusal code: "After checkout + order-page errors" >
+ * "Order page error lines" (APPROVED 2026-11-25 12:21 PM CT), word for word, snapshotted in
+ * docs/online-year-copy/approved-2026-11-25-thank-you.md and pinned by src/test/onlineYearCopy.test.ts
+ * (the same lines as web/lib/onlineYearCopy.ts OY_APPROVED_ORDER_ERRORS). Every other refusal keeps
+ * ONLINE_YEAR_SOMETHING_WRONG.
+ */
+export const ONLINE_YEAR_ERROR_LINES = {
+  OY_BAD_CHILD_NAME: "Please type just your child's first name or nickname, using letters only.",
+  OY_DUPLICATE_CHILD_NAME: "You typed the same name twice. Please give each child their own name or nickname.",
+  OY_EMAIL: "Please check your email address. It's how you'll sign in.",
+  OY_TOO_MANY_CHILDREN: "For a family this size, email hello@edeninstitute.health and we'll set it up for you.",
+  OY_NOT_CONFIGURED: "Checkout isn't quite ready. Please try again shortly, or email hello@edeninstitute.health.",
+} as const;
+
+/** The generic refusal line, for every refusal without its own line above. */
+export const ONLINE_YEAR_SOMETHING_WRONG = 'Something went wrong. Please refresh the page and try again.';
+
+/** The line for a refusal code: its own approved line, or the generic one. */
+export function onlineYearErrorLine(code: string): string {
+  return (ONLINE_YEAR_ERROR_LINES as Record<string, string>)[code] ?? ONLINE_YEAR_SOMETHING_WRONG;
+}
+
+const SOMETHING_WRONG = ONLINE_YEAR_SOMETHING_WRONG
 
 /** The family's live first-child license in this band: its child's name, or null. Throws on a read error (fail closed). */
 export async function liveFirstChildName(db: Db, email: string, band: OnlineYearBand, now: Date): Promise<string | null> {
@@ -87,6 +111,8 @@ export async function handleOnlineYearCheckout(
   const json = (status: number, payload: unknown) =>
     new Response(JSON.stringify(payload), { status, headers: { ...deps.cors, "Content-Type": "application/json" } })
   const refuse = (status: number, code: string, error: string) => json(status, { error, code })
+  // The approved line for a code that has one (ONLINE_YEAR_ERROR_LINES), otherwise the generic line.
+  const refuseCode = (status: number, code: string) => refuse(status, code, onlineYearErrorLine(code))
 
   // Dark until launch: the same answer as a path that does not exist.
   if (!onlineYearOpen(req, deps.env)) return json(404, { error: "not_found" })
@@ -101,17 +127,14 @@ export async function handleOnlineYearCheckout(
 
   const typed = typeof body.email === "string" ? body.email.trim() : ""
   const email = deps.e2e ? deps.e2e.buyerEmail : typed
-  if (!email || !isStripeSafeEmail(email)) return refuse(400, "OY_EMAIL", SOMETHING_WRONG)
+  if (!email || !isStripeSafeEmail(email)) return refuseCode(400, "OY_EMAIL")
 
   const now = deps.now ? deps.now() : new Date()
   const liveFirst = await liveFirstChildName(deps.db, email, band, now)
   const planned = planOnlineYearCart({ band, childNames: body.child_names, liveFirstChildName: liveFirst })
-  if (!planned.ok) {
-    const error = planned.error === "too_many_children"
-      ? "For a family this size, email hello@edeninstitute.health and we'll set it up for you."
-      : SOMETHING_WRONG
-    return refuse(400, `OY_${planned.error.toUpperCase()}`, error)
-  }
+  // too_many_children, bad_child_name and duplicate_child_name have their own lines; no_children
+  // (the page never sends it) and unknown_band keep the generic one.
+  if (!planned.ok) return refuseCode(400, `OY_${planned.error.toUpperCase()}`)
   const plan = planned.plan
   const hasFirst = plan.children.some((c) => c.kind === "first_child")
 
@@ -138,7 +161,7 @@ export async function handleOnlineYearCheckout(
     const missing = keys.filter((k) => !byKey.has(k))
     if (missing.length) {
       console.error(`online year checkout: no active Stripe price for ${missing.join(", ")}; refusing`)
-      return refuse(503, "OY_NOT_CONFIGURED", "Checkout isn't quite ready. Please try again shortly, or email hello@edeninstitute.health.")
+      return refuseCode(503, "OY_NOT_CONFIGURED")
     }
     lineItems = plan.lines.map((l) => ({ price: byKey.get(l.lookup_key)!, quantity: l.quantity }))
   }

@@ -108,6 +108,13 @@ verify_jwt = false
 [functions.print-order-status]
 verify_jwt = false
 
+# Online Year (punch #472): the band, children's first names and end dates for
+# /online-year/thank-you, proven by the Stripe Checkout session id, the same as
+# print-order-status. Anonymous caller, no JWT; no email, money or Stripe ids.
+# DARK: 404 until ONLINE_YEAR_ENABLED (or the x-online-year-preview header).
+[functions.online-year-order-status]
+verify_jwt = false
+
 # A buyer's one-click answer to an FTC delay notice (consent or cancel). Reached
 # from an email link with no Supabase session, so verify_jwt MUST stay false;
 # security is the HMAC token, not a JWT. 435.2(b)(3) requires the cancellation
