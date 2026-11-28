@@ -25,7 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export function trackCta(
   cta: string,
-  opts?: { path?: string; lookupKey?: string | null },
+  opts?: { path?: string; lookupKey?: string | null; placement?: string | null },
 ): void {
   if (!cta) return;
   // A synchronous throw (no client, a stubbed client without .rpc) must not escape
@@ -41,6 +41,8 @@ export function trackCta(
         p_path: path,
         // p_lookup_key is optional (SQL default null), so omit it rather than send null.
         ...(opts?.lookupKey ? { p_lookup_key: opts.lookupKey } : {}),
+        // p_placement (4-argument record_cta_click): the affiliate item (src/lib/affiliateClick.ts).
+        ...(opts?.placement ? { p_placement: opts.placement.slice(0, 50) } : {}),
       })
       .then(
         () => {},
